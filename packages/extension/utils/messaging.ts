@@ -216,6 +216,7 @@ export interface StorageSchema {
   history: GrabbedElement[];
   stats: ExtensionStats;
   lastGrabbed: GrabbedElement | null;
+  activeTab: "info" | "settings";
 }
 
 /**

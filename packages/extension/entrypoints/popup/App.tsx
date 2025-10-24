@@ -10,6 +10,7 @@ import {
 
 export function App() {
   const [activeTab, setActiveTab] = useState<"info" | "settings">("info");
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const form = useForm({
     defaultValues: getDefaultSettings(),
@@ -23,9 +24,11 @@ export function App() {
     },
   });
 
+  // Load settings and active tab from storage
   useEffect(() => {
-    const loadSettings = async () => {
-      const result = await getStorage("settings");
+    const loadData = async () => {
+      const result = await getStorage("settings", "activeTab");
+
       if (result.settings) {
         batch(() => {
           form.setFieldValue("enabled", result.settings.enabled);
@@ -34,9 +37,24 @@ export function App() {
           form.setFieldValue("keyHoldDuration", result.settings.keyHoldDuration);
         });
       }
+
+      if (result.activeTab) {
+        setActiveTab(result.activeTab);
+      }
+
+      setIsInitialLoad(false);
     };
-    loadSettings();
+    loadData();
   }, [form]);
+
+  // Save active tab to storage when it changes (skip initial load)
+  useEffect(() => {
+    if (!isInitialLoad) {
+      setStorage({ activeTab }).catch((error) => {
+        console.warn("Failed to save active tab:", error);
+      });
+    }
+  }, [activeTab, isInitialLoad]);
 
   const settings = useStore(form.store, (state) => state.values);
 
