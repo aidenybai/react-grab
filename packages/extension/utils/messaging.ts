@@ -245,8 +245,8 @@ export function getDefaultSettings(): ExtensionSettings {
     enabled: true,
     adapter: "none",
     hotkey: {
-      key: "g",
-      modifiers: isMac ? ["Meta", "Shift"] : ["Control", "Shift"],
+      key: "c",
+      modifiers: isMac ? ["Meta"] : ["Control"],
     },
     keyHoldDuration: 500,
   };
