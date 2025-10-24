@@ -1,4 +1,5 @@
-import { libStore } from "./index.js";
+import type { StoreApi } from "./utils/store.js";
+import { createStore } from "./utils/store.js";
 
 export type FormTags =
   | "input"
@@ -46,14 +47,14 @@ export const isCustomElement = (element: HTMLElement): boolean => {
 };
 
 export const isReadonlyArray = (
-  value: unknown
+  value: unknown,
 ): value is readonly unknown[] => {
   return Array.isArray(value);
 };
 
 export const isHotkeyEnabledOnTagName = (
   event: KeyboardEvent,
-  enabledOnTags: boolean | readonly FormTags[] = false
+  enabledOnTags: boolean | readonly FormTags[] = false,
 ): boolean => {
   const { composed, target } = event;
 
@@ -81,8 +82,8 @@ export const isHotkeyEnabledOnTagName = (
           (tag) =>
             (typeof targetTagName === "string" &&
               tag.toLowerCase() === targetTagName.toLowerCase()) ||
-            tag === targetRole
-        )
+            tag === targetRole,
+        ),
     );
   }
 
@@ -90,12 +91,39 @@ export const isHotkeyEnabledOnTagName = (
 };
 
 export const isKeyboardEventTriggeredByInput = (
-  event: KeyboardEvent
+  event: KeyboardEvent,
 ): boolean => {
   return isHotkeyEnabledOnTagName(event, FORM_TAGS_AND_ROLES);
 };
 
-export const trackHotkeys = () => {
+/**
+ * Global keyboard state
+ * This represents the physical keyboard - there's only one keyboard per page
+ */
+interface KeyboardState {
+  keyPressTimestamps: Map<Hotkey, number>;
+  pressedKeys: Set<Hotkey>;
+}
+
+/**
+ * Global keyboard state store (singleton)
+ * Shared across all react-grab instances
+ */
+export const keyboardStore = createStore<KeyboardState>(() => ({
+  keyPressTimestamps: new Map(),
+  pressedKeys: new Set(),
+}));
+
+/**
+ * Global keyboard tracking cleanup function
+ */
+let keyboardTrackingCleanup: (() => void) | null = null;
+
+/**
+ * Start tracking keyboard events globally
+ * This should only be called once per page
+ */
+function startKeyboardTracking(store: StoreApi<KeyboardState>): () => void {
   const handleKeyDown = (event: KeyboardEvent) => {
     if (isKeyboardEventTriggeredByInput(event)) {
       return;
@@ -105,7 +133,7 @@ export const trackHotkeys = () => {
       return;
     }
 
-    libStore.setState((state) => {
+    store.setState((state) => {
       const newTimestamps = new Map(state.keyPressTimestamps);
       if (!state.pressedKeys.has(event.key)) {
         newTimestamps.set(event.key, Date.now());
@@ -123,21 +151,21 @@ export const trackHotkeys = () => {
       return;
     }
 
-    libStore.setState((state) => {
+    store.setState((state) => {
       const newTimestamps = new Map(state.keyPressTimestamps);
       newTimestamps.delete(event.key);
       return {
         ...state,
         keyPressTimestamps: newTimestamps,
         pressedKeys: new Set(
-          [...state.pressedKeys].filter((key) => key !== event.key)
+          [...state.pressedKeys].filter((key) => key !== event.key),
         ),
       };
     });
   };
 
   const handleBlur = () => {
-    libStore.setState((state) => ({
+    store.setState((state) => ({
       ...state,
       keyPressTimestamps: new Map(),
       pressedKeys: new Set(),
@@ -145,7 +173,7 @@ export const trackHotkeys = () => {
   };
 
   const handleContextmenu = () => {
-    libStore.setState((state) => ({
+    store.setState((state) => ({
       ...state,
       keyPressTimestamps: new Map(),
       pressedKeys: new Set(),
@@ -154,7 +182,6 @@ export const trackHotkeys = () => {
 
   document.addEventListener("keydown", handleKeyDown);
   document.addEventListener("keyup", handleKeyUp);
-
   window.addEventListener("blur", handleBlur);
   window.addEventListener("contextmenu", handleContextmenu);
 
@@ -164,10 +191,23 @@ export const trackHotkeys = () => {
     window.removeEventListener("blur", handleBlur);
     window.removeEventListener("contextmenu", handleContextmenu);
   };
-};
+}
 
-export const isKeyPressed = (key: Hotkey) => {
-  const { pressedKeys } = libStore.getState();
+/**
+ * Ensure global keyboard tracking is active
+ * Safe to call multiple times - will only initialize once
+ */
+export function ensureKeyboardTracking(): void {
+  if (!keyboardTrackingCleanup) {
+    keyboardTrackingCleanup = startKeyboardTracking(keyboardStore);
+  }
+}
+
+/**
+ * Check if a specific key is currently pressed
+ */
+export const isKeyPressed = (key: Hotkey): boolean => {
+  const { pressedKeys } = keyboardStore.getState();
   if (key.length === 1) {
     return (
       pressedKeys.has(key.toLowerCase()) || pressedKeys.has(key.toUpperCase())
@@ -176,10 +216,13 @@ export const isKeyPressed = (key: Hotkey) => {
   return pressedKeys.has(key);
 };
 
+/**
+ * Watch for a key combination to be held for a duration
+ */
 export const watchKeyHeldFor = (
   key: Hotkey | Hotkey[],
   duration: number,
-  onHeld: () => void
+  onHeld: () => void,
 ): (() => void) => {
   let timeoutId: null | ReturnType<typeof setTimeout> = null;
   let unsubscribe: (() => void) | null = null;
@@ -198,7 +241,7 @@ export const watchKeyHeldFor = (
 
   const checkSingleKeyPressed = (
     keyToCheck: Hotkey,
-    pressedKeys: Set<string>
+    pressedKeys: Set<string>,
   ) => {
     if (keyToCheck.length === 1) {
       return (
@@ -212,14 +255,14 @@ export const watchKeyHeldFor = (
   const checkAllKeysPressed = (pressedKeys: Set<string>) => {
     if (Array.isArray(key)) {
       return key.every((keyFromCombo) =>
-        checkSingleKeyPressed(keyFromCombo, pressedKeys)
+        checkSingleKeyPressed(keyFromCombo, pressedKeys),
       );
     }
     return checkSingleKeyPressed(key, pressedKeys);
   };
 
   const scheduleCallback = () => {
-    const state = libStore.getState();
+    const state = keyboardStore.getState();
     const { pressedKeys } = state;
 
     if (!checkAllKeysPressed(pressedKeys)) {
@@ -249,11 +292,11 @@ export const watchKeyHeldFor = (
     }, remaining);
   };
 
-  unsubscribe = libStore.subscribe(
+  unsubscribe = keyboardStore.subscribe(
     () => {
       scheduleCallback();
     },
-    (state) => state.pressedKeys
+    (state) => state.pressedKeys,
   );
 
   scheduleCallback();

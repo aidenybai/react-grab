@@ -1,10 +1,11 @@
 import { Adapter, cursorAdapter } from "./adapters.js";
 import {
+  ensureKeyboardTracking,
   Hotkey,
   isKeyPressed,
-  trackHotkeys,
+  keyboardStore,
   watchKeyHeldFor,
-} from "./hotkeys.js";
+} from "./keyboard-state.js";
 import {
   filterStack,
   getHTMLSnippet,
@@ -52,26 +53,28 @@ export interface Options {
   keyHoldDuration?: number;
 }
 
-interface LibStore {
-  keyPressTimestamps: Map<Hotkey, number>;
+/**
+ * Instance-specific UI state
+ * Each call to init() gets its own instance store
+ */
+interface InstanceState {
   mouseX: number;
   mouseY: number;
   overlayMode: "copying" | "hidden" | "visible";
-  pressedKeys: Set<Hotkey>;
 }
 
-export const libStore = createStore<LibStore>(() => ({
-  keyPressTimestamps: new Map(),
-  mouseX: -1000,
-  mouseY: -1000,
-  overlayMode: "hidden",
-  pressedKeys: new Set(),
-}));
-
-export const init = (options: Options = {}) => {
+export const init = (options: Options = {}): (() => void) => {
   if (options.enabled === false) {
-    return;
+    return () => {};
   }
+
+  ensureKeyboardTracking();
+
+  const instanceStore = createStore<InstanceState>(() => ({
+    mouseX: -1000,
+    mouseY: -1000,
+    overlayMode: "hidden",
+  }));
 
   const resolvedOptions = {
     adapter: undefined,
@@ -106,7 +109,7 @@ export const init = (options: Options = {}) => {
 
     const elapsed = Date.now() - progressStartTime;
     const progress = Math.min(1, elapsed / resolvedOptions.keyHoldDuration);
-    const { mouseX, mouseY } = libStore.getState();
+    const { mouseX, mouseY } = instanceStore.getState();
     showProgressIndicator(root, progress, mouseX, mouseY);
 
     if (progress < 1) {
@@ -118,7 +121,7 @@ export const init = (options: Options = {}) => {
     if (progressAnimationFrame !== null) return;
 
     progressStartTime = Date.now();
-    const { mouseX, mouseY } = libStore.getState();
+    const { mouseX, mouseY } = instanceStore.getState();
     showProgressIndicator(root, 0, mouseX, mouseY);
     progressAnimationFrame = requestAnimationFrame(updateProgressIndicator);
   };
@@ -135,10 +138,11 @@ export const init = (options: Options = {}) => {
   let cleanupActivationHotkeyWatcher: (() => void) | null = null;
 
   const handleKeyStateChange = (pressedKeys: Set<Hotkey>) => {
-    const { overlayMode } = libStore.getState();
+    const { overlayMode } = instanceStore.getState();
 
     if (pressedKeys.has("Escape") || pressedKeys.has("Esc")) {
-      libStore.setState((state) => {
+      // Clear escape keys from keyboard store
+      keyboardStore.setState((state) => {
         const nextPressedKeys = new Set(state.pressedKeys);
         nextPressedKeys.delete("Escape");
         nextPressedKeys.delete("Esc");
@@ -164,10 +168,15 @@ export const init = (options: Options = {}) => {
         return {
           ...state,
           keyPressTimestamps: nextTimestamps,
-          overlayMode: "hidden",
           pressedKeys: nextPressedKeys,
         };
       });
+
+      instanceStore.setState((state) => ({
+        ...state,
+        overlayMode: "hidden",
+      }));
+
       if (cleanupActivationHotkeyWatcher) {
         cleanupActivationHotkeyWatcher();
         cleanupActivationHotkeyWatcher = null;
@@ -185,7 +194,7 @@ export const init = (options: Options = {}) => {
       }
 
       if (overlayMode !== "hidden") {
-        libStore.setState((state) => ({
+        instanceStore.setState((state) => ({
           ...state,
           overlayMode: "hidden",
         }));
@@ -201,7 +210,7 @@ export const init = (options: Options = {}) => {
         resolvedOptions.hotkey,
         resolvedOptions.keyHoldDuration,
         () => {
-          libStore.setState((state) => ({
+          instanceStore.setState((state) => ({
             ...state,
             overlayMode: "visible",
           }));
@@ -212,7 +221,7 @@ export const init = (options: Options = {}) => {
     }
   };
 
-  const cleanupKeyStateChangeSubscription = libStore.subscribe(
+  const cleanupKeyStateChangeSubscription = keyboardStore.subscribe(
     handleKeyStateChange,
     (state) => state.pressedKeys,
   );
@@ -230,7 +239,7 @@ export const init = (options: Options = {}) => {
 
     requestAnimationFrame(() => {
       mouseMoveScheduled = false;
-      libStore.setState((state) => ({
+      instanceStore.setState((state) => ({
         ...state,
         mouseX: pendingMouseX,
         mouseY: pendingMouseY,
@@ -243,7 +252,7 @@ export const init = (options: Options = {}) => {
       return;
     }
 
-    const { overlayMode } = libStore.getState();
+    const { overlayMode } = instanceStore.getState();
 
     if (overlayMode === "hidden") {
       return;
@@ -253,7 +262,7 @@ export const init = (options: Options = {}) => {
     event.stopPropagation();
     event.stopImmediatePropagation();
 
-    libStore.setState((state) => ({
+    instanceStore.setState((state) => ({
       ...state,
       overlayMode: "copying",
     }));
@@ -291,7 +300,6 @@ export const init = (options: Options = {}) => {
   window.addEventListener("scroll", handleScroll, true);
   window.addEventListener("resize", handleResize);
   document.addEventListener("visibilitychange", handleVisibilityChange);
-  const cleanupTrackHotkeys = trackHotkeys();
 
   const getElementAtPosition = (x: number, y: number): Element | null => {
     const elements = document.elementsFromPoint(x, y);
@@ -353,7 +361,7 @@ export const init = (options: Options = {}) => {
     }
   };
 
-  const handleRender = (state: LibStore) => {
+  const handleRender = (state: InstanceState) => {
     const { mouseX, mouseY, overlayMode } = state;
 
     if (overlayMode === "hidden") {
@@ -389,7 +397,7 @@ export const init = (options: Options = {}) => {
         });
 
         const isStillPressed = checkIsActivationHotkeyPressed();
-        libStore.setState((state) => ({
+        instanceStore.setState((state) => ({
           ...state,
           overlayMode: isStillPressed ? "visible" : "hidden",
         }));
@@ -455,11 +463,11 @@ export const init = (options: Options = {}) => {
     renderScheduled = true;
     requestAnimationFrame(() => {
       renderScheduled = false;
-      handleRender(libStore.getState());
+      handleRender(instanceStore.getState());
     });
   };
 
-  const cleanupRenderSubscription = libStore.subscribe(() => {
+  const cleanupRenderSubscription = instanceStore.subscribe(() => {
     scheduleRender();
   });
 
@@ -476,23 +484,38 @@ export const init = (options: Options = {}) => {
     window.removeEventListener("scroll", handleScroll, true);
     window.removeEventListener("resize", handleResize);
     document.removeEventListener("visibilitychange", handleVisibilityChange);
-    cleanupTrackHotkeys();
+
     cleanupRenderSubscription();
     cleanupKeyStateChangeSubscription();
     if (cleanupActivationHotkeyWatcher) {
       cleanupActivationHotkeyWatcher();
     }
+
     stopProgressTracking();
     cleanupGrabbedIndicators();
     hideLabel();
+    selectionOverlay.hide();
+
+    instanceStore.setState(instanceStore.getInitialState());
+
+    // Note: We don't cleanup global keyboard tracking here
+    // because other instances might still be using it
   };
 };
 
+// Auto-initialize only if loaded via <script> tag with data attributes
+// This prevents auto-init when imported as a module (e.g., in extensions)
 if (typeof window !== "undefined" && typeof document !== "undefined") {
   const currentScript = document.currentScript;
-  const options: Options = {};
-  if (currentScript?.dataset) {
+
+  // Only auto-init if script has at least one data attribute
+  // Empty dataset object is truthy but has no keys
+  if (
+    currentScript?.dataset &&
+    Object.keys(currentScript.dataset).length > 0
+  ) {
     const { adapter, enabled, hotkey, keyHoldDuration } = currentScript.dataset;
+    const options: Options = {};
 
     if (adapter !== undefined) {
       if (adapter === "cursor") {
@@ -515,6 +538,7 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
         options.keyHoldDuration = duration;
       }
     }
+
+    init(options);
   }
-  init(options);
 }
