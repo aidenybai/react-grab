@@ -52,7 +52,7 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <Script
-          src="//unpkg.com/react-grab@0.0.18/dist/index.global.js"
+          src="https://unpkg.com/react-grab/dist/index.global.js"
           crossOrigin="anonymous"
           strategy="beforeInteractive"
           data-enabled="true"

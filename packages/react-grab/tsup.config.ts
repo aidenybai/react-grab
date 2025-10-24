@@ -66,6 +66,15 @@ export default defineConfig([
   // Vite plugin
   {
     ...DEFAULT_OPTIONS,
+    entry: ["./src/index.ts"],
+    format: ["cjs", "esm"],
+    loader: {
+      ".css": "text",
+    },
+    outDir: "./dist",
+  },
+  {
+    ...DEFAULT_OPTIONS,
     dts: true,
     entry: ["./src/plugins/vite.ts"],
     format: ["esm", "cjs"],

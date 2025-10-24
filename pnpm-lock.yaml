@@ -113,6 +113,9 @@ importers:
 
   packages/website:
     dependencies:
+      '@shikijs/transformers':
+        specifier: ^3.13.0
+        version: 3.13.0
       '@vercel/analytics':
         specifier: ^1.5.0
         version: 1.5.0(next@16.0.0(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)
@@ -162,6 +165,9 @@ importers:
       eslint-config-next:
         specifier: 16.0.0
         version: 16.0.0(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3)
+      next:
+        specifier: 16.0.0
+        version: 16.0.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       tailwindcss:
         specifier: ^4
         version: 4.1.15
@@ -1110,6 +1116,9 @@ packages:
 
   '@shikijs/themes@3.13.0':
     resolution: {integrity: sha512-Vxw1Nm1/Od8jyA7QuAenaV78BG2nSr3/gCGdBkLpfLscddCkzkL36Q5b67SrLLfvAJTOUzW39x4FHVCFriPVgg==}
+
+  '@shikijs/transformers@3.13.0':
+    resolution: {integrity: sha512-833lcuVzcRiG+fXvgslWsM2f4gHpjEgui1ipIknSizRuTgMkNZupiXE5/TVJ6eSYfhNBFhBZKkReKWO2GgYmqA==}
 
   '@shikijs/types@3.13.0':
     resolution: {integrity: sha512-oM9P+NCFri/mmQ8LoFGVfVyemm5Hi27330zuOBp0annwJdKH1kOLndw3zCtAVDehPLg9fKqoEx3Ht/wNZxolfw==}
@@ -5338,6 +5347,11 @@ snapshots:
 
   '@shikijs/themes@3.13.0':
     dependencies:
+      '@shikijs/types': 3.13.0
+
+  '@shikijs/transformers@3.13.0':
+    dependencies:
+      '@shikijs/core': 3.13.0
       '@shikijs/types': 3.13.0
 
   '@shikijs/types@3.13.0':
