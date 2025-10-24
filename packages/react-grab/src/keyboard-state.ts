@@ -134,20 +134,55 @@ function startKeyboardTracking(store: StoreApi<KeyboardState>): () => void {
     }
 
     store.setState((state) => {
-      const newTimestamps = new Map(state.keyPressTimestamps);
-      if (!state.pressedKeys.has(event.key)) {
-        newTimestamps.set(event.key, Date.now());
+      const nextPressedKeys = new Set(state.pressedKeys);
+      const nextTimestamps = new Map(state.keyPressTimestamps);
+
+      /*
+       * macOS Meta key bug fix:
+       * When Meta (Cmd) is held, keyup events for other keys are not fired.
+       * Clear non-modifier keys before adding new key to prevent stuck keys.
+       * https://stackoverflow.com/questions/11818637/why-does-javascript-drop-keyup-events-when-the-metakey-is-pressed-on-mac-browser
+       */
+      if (state.pressedKeys.has("Meta")) {
+        const modifiers = new Set(["Alt", "Control", "Meta", "Shift"]);
+        nextPressedKeys.forEach((key) => {
+          if (!modifiers.has(key)) {
+            nextPressedKeys.delete(key);
+            nextTimestamps.delete(key);
+          }
+        });
       }
+
+      if (!nextPressedKeys.has(event.key)) {
+        nextTimestamps.set(event.key, Date.now());
+      }
+
+      nextPressedKeys.add(event.key);
+
       return {
         ...state,
-        keyPressTimestamps: newTimestamps,
-        pressedKeys: new Set([event.key, ...state.pressedKeys]),
+        keyPressTimestamps: nextTimestamps,
+        pressedKeys: nextPressedKeys,
       };
     });
   };
 
   const handleKeyUp = (event: KeyboardEvent) => {
     if (event.code === undefined) {
+      return;
+    }
+
+    /*
+     * macOS Meta key bug fix:
+     * Clear all pressed keys when Meta is released since we missed keyup events
+     * for other keys that were pressed while Meta was held.
+     */
+    if (event.key === "Meta") {
+      store.setState((state) => ({
+        ...state,
+        keyPressTimestamps: new Map(),
+        pressedKeys: new Set(),
+      }));
       return;
     }
 
@@ -173,21 +208,43 @@ function startKeyboardTracking(store: StoreApi<KeyboardState>): () => void {
   };
 
   const handleContextmenu = () => {
-    store.setState((state) => ({
-      ...state,
-      keyPressTimestamps: new Map(),
-      pressedKeys: new Set(),
-    }));
+    /*
+     * Must clear pressed keys after existing keydown events in queue have resolved.
+     * setTimeout ensures keydown events finish processing before clearing.
+     */
+    setTimeout(() => {
+      store.setState((state) => ({
+        ...state,
+        keyPressTimestamps: new Map(),
+        pressedKeys: new Set(),
+      }));
+    }, 0);
+  };
+
+  const handleVisibilityChange = () => {
+    /*
+     * Clear keyboard state when tab is hidden to prevent stuck keys
+     * when user switches tabs while holding keys.
+     */
+    if (document.hidden) {
+      store.setState((state) => ({
+        ...state,
+        keyPressTimestamps: new Map(),
+        pressedKeys: new Set(),
+      }));
+    }
   };
 
   document.addEventListener("keydown", handleKeyDown);
   document.addEventListener("keyup", handleKeyUp);
+  document.addEventListener("visibilitychange", handleVisibilityChange);
   window.addEventListener("blur", handleBlur);
   window.addEventListener("contextmenu", handleContextmenu);
 
   return () => {
     document.removeEventListener("keydown", handleKeyDown);
     document.removeEventListener("keyup", handleKeyUp);
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
     window.removeEventListener("blur", handleBlur);
     window.removeEventListener("contextmenu", handleContextmenu);
   };
