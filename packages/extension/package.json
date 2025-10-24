@@ -16,6 +16,8 @@
     "clean": "rm -rf .output .wxt node_modules"
   },
   "dependencies": {
+    "@tanstack/react-form": "^1.23.7",
+    "@tanstack/react-store": "^0.8.0",
     "next-themes": "^0.4.6",
     "react": "19.2.0",
     "react-dom": "19.2.0",

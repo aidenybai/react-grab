@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useForm, useStore } from "@tanstack/react-form";
+import { batch } from "@tanstack/react-store";
 import {
   getStorage,
   setStorage,
@@ -8,28 +10,35 @@ import {
 
 export function App() {
   const [activeTab, setActiveTab] = useState<"info" | "settings">("info");
-  const [settings, setSettings] = useState<ExtensionSettings>(getDefaultSettings());
+
+  const form = useForm({
+    defaultValues: getDefaultSettings(),
+    listeners: {
+      onChange: ({ formApi }) => {
+        setStorage({ settings: formApi.state.values }).catch((error) => {
+          console.warn("Failed to save settings:", error);
+        });
+      },
+      onChangeDebounceMs: 300,
+    },
+  });
 
   useEffect(() => {
-    // Load settings from type-safe storage
-    getStorage("settings").then((result) => {
+    const loadSettings = async () => {
+      const result = await getStorage("settings");
       if (result.settings) {
-        setSettings(result.settings);
+        batch(() => {
+          form.setFieldValue("enabled", result.settings.enabled);
+          form.setFieldValue("adapter", result.settings.adapter);
+          form.setFieldValue("hotkey", result.settings.hotkey);
+          form.setFieldValue("keyHoldDuration", result.settings.keyHoldDuration);
+        });
       }
-    });
-  }, []);
+    };
+    loadSettings();
+  }, [form]);
 
-  const saveSettings = async () => {
-    await setStorage({ settings });
-    // Show success message
-    const successEl = document.getElementById("save-success");
-    if (successEl) {
-      successEl.classList.remove("hidden");
-      setTimeout(() => {
-        successEl.classList.add("hidden");
-      }, 2000);
-    }
-  };
+  const settings = useStore(form.store, (state) => state.values);
 
   const hotkeyDisplay = settings.hotkey.modifiers
     .map((mod) => {
@@ -103,17 +112,20 @@ export function App() {
         ) : (
           <div className="space-y-3">
             <div>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={settings.enabled}
-                  onChange={(e) =>
-                    setSettings({ ...settings, enabled: e.target.checked })
-                  }
-                  className="w-4 h-4"
-                />
-                <span className="text-sm font-medium">Enable React Grab</span>
-              </label>
+              <form.Field
+                name="enabled"
+                children={(field) => (
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.checked)}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm font-medium">Enable React Grab</span>
+                  </label>
+                )}
+              />
             </div>
 
             <div className="border-t border-border pt-4">
@@ -121,80 +133,96 @@ export function App() {
 
               <div className="space-y-3">
                 <div>
-                  <label className="text-sm text-foreground mb-2 block">
-                    Activation Key
-                  </label>
-                  <input
-                    type="text"
-                    value={settings.hotkey.key.toUpperCase()}
-                    onChange={(e) => {
-                      const key = e.target.value.slice(-1).toLowerCase();
-                      if (key && /^[a-z]$/.test(key)) {
-                        setSettings({
-                          ...settings,
-                          hotkey: { ...settings.hotkey, key },
-                        });
-                      }
-                    }}
-                    maxLength={1}
-                    className="w-16 p-2 border border-border bg-card text-foreground rounded text-center font-mono uppercase"
-                    placeholder="G"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm text-foreground mb-2 block">
-                    Modifiers
-                  </label>
-                  <div className="space-y-2">
-                    {["Control", "Shift", "Alt", "Meta"].map((modifier) => (
-                      <label key={modifier} className="flex items-center gap-2 cursor-pointer">
+                  <form.Field
+                    name="hotkey"
+                    children={(field) => (
+                      <>
+                        <label className="text-sm text-foreground mb-2 block">
+                          Activation Key
+                        </label>
                         <input
-                          type="checkbox"
-                          checked={settings.hotkey.modifiers.includes(modifier)}
+                          type="text"
+                          value={field.state.value.key.toUpperCase()}
                           onChange={(e) => {
-                            const modifiers = e.target.checked
-                              ? [...settings.hotkey.modifiers, modifier]
-                              : settings.hotkey.modifiers.filter(
-                                  (m) => m !== modifier,
-                                );
-                            setSettings({
-                              ...settings,
-                              hotkey: { ...settings.hotkey, modifiers },
-                            });
+                            const key = e.target.value.slice(-1).toLowerCase();
+                            if (key && /^[a-z]$/.test(key)) {
+                              field.handleChange({
+                                ...field.state.value,
+                                key,
+                              });
+                            }
                           }}
-                          className="w-4 h-4"
+                          maxLength={1}
+                          className="w-16 p-2 border border-border bg-card text-foreground rounded text-center font-mono uppercase"
+                          placeholder="G"
                         />
-                        <span className="text-sm">
-                          {modifier === "Meta" ? "⌘ Command (Mac) / ⊞ Win" : modifier}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
+                      </>
+                    )}
+                  />
                 </div>
 
                 <div>
-                  <label className="text-sm text-foreground mb-2 block">
-                    Hold Duration: {settings.keyHoldDuration}ms
-                  </label>
-                  <input
-                    type="range"
-                    min="100"
-                    max="1000"
-                    step="50"
-                    value={settings.keyHoldDuration}
-                    onChange={(e) =>
-                      setSettings({
-                        ...settings,
-                        keyHoldDuration: parseInt(e.target.value),
-                      })
-                    }
-                    className="w-full"
+                  <form.Field
+                    name="hotkey"
+                    children={(field) => (
+                      <>
+                        <label className="text-sm text-foreground mb-2 block">
+                          Modifiers
+                        </label>
+                        <div className="space-y-2">
+                          {["Control", "Shift", "Alt", "Meta"].map((modifier) => (
+                            <label key={modifier} className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={field.state.value.modifiers.includes(modifier)}
+                                onChange={(e) => {
+                                  const modifiers = e.target.checked
+                                    ? [...field.state.value.modifiers, modifier]
+                                    : field.state.value.modifiers.filter(
+                                        (m) => m !== modifier,
+                                      );
+                                  field.handleChange({
+                                    ...field.state.value,
+                                    modifiers,
+                                  });
+                                }}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-sm">
+                                {modifier === "Meta" ? "⌘ Command (Mac) / ⊞ Win" : modifier}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   />
-                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>100ms (fast)</span>
-                    <span>1000ms (slow)</span>
-                  </div>
+                </div>
+
+                <div>
+                  <form.Field
+                    name="keyHoldDuration"
+                    children={(field) => (
+                      <>
+                        <label className="text-sm text-foreground mb-2 block">
+                          Hold Duration: {field.state.value}ms
+                        </label>
+                        <input
+                          type="range"
+                          min="100"
+                          max="1000"
+                          step="50"
+                          value={field.state.value}
+                          onChange={(e) => field.handleChange(parseInt(e.target.value))}
+                          className="w-full"
+                        />
+                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                          <span>100ms (fast)</span>
+                          <span>1000ms (slow)</span>
+                        </div>
+                      </>
+                    )}
+                  />
                 </div>
 
                 <div className="bg-muted border border-border rounded p-3">
@@ -234,37 +262,26 @@ export function App() {
             <div className="border-t border-border pt-4">
               <h3 className="font-semibold mb-3">AI Adapter</h3>
 
-              <select
-                value={settings.adapter}
-                onChange={(e) =>
-                  setSettings({
-                    ...settings,
-                    adapter: e.target.value as ExtensionSettings["adapter"],
-                  })
-                }
-                className="w-full p-2 border border-border bg-card text-foreground rounded"
-              >
-                <option value="none">None (clipboard only)</option>
-                <option value="cursor">Cursor</option>
-              </select>
-              <p className="text-xs text-muted-foreground mt-1">
-                Automatically open grabbed elements in your AI coding tool
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={saveSettings}
-                className="flex-1 py-2 bg-grab-primary text-white rounded hover:bg-grab-primary-dark transition-colors font-medium"
-              >
-                Save Settings
-              </button>
-              <div
-                id="save-success"
-                className="hidden text-sm text-grab-primary-dark font-medium"
-              >
-                ✓ Saved
-              </div>
+              <form.Field
+                name="adapter"
+                children={(field) => (
+                  <>
+                    <select
+                      value={field.state.value}
+                      onChange={(e) =>
+                        field.handleChange(e.target.value as ExtensionSettings["adapter"])
+                      }
+                      className="w-full p-2 border border-border bg-card text-foreground rounded"
+                    >
+                      <option value="none">None (clipboard only)</option>
+                      <option value="cursor">Cursor</option>
+                    </select>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Automatically open grabbed elements in your AI coding tool
+                    </p>
+                  </>
+                )}
+              />
             </div>
           </div>
         )}

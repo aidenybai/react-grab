@@ -30,15 +30,16 @@ export default defineUnlistedScript(() => {
     }
 
     cleanup = init({
+      enabled: data.settings.enabled,
       hotkey: [...data.settings.hotkey.modifiers, data.settings.hotkey.key],
       keyHoldDuration: data.settings.keyHoldDuration,
       adapter,
     });
 
-    console.log("React Grab: Initialized with hotkey", [
-      ...data.settings.hotkey.modifiers,
-      data.settings.hotkey.key,
-    ]);
+    console.log("React Grab: Initialized", {
+      enabled: data.settings.enabled,
+      hotkey: [...data.settings.hotkey.modifiers, data.settings.hotkey.key],
+    });
   });
 
   // Signal to ISOLATED world that we're ready to receive settings
