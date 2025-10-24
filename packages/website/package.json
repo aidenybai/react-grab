@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@vercel/analytics": "^1.5.0",
-    "bippy": "^0.3.31",
+    "bippy": "^0.3.32",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.24",
     "motion": "^12.23.24",
@@ -22,12 +22,12 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^22.18.12",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9",
+    "eslint": "^9.37.0",
     "eslint-config-next": "16.0.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5.9.3"
   }
 }

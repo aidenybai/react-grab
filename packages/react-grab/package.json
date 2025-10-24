@@ -76,6 +76,7 @@
     "prepublishOnly": "pnpm build"
   },
   "devDependencies": {
+    "@types/node": "^22.18.12",
     "eslint": "^9.37.0",
     "eslint-plugin-perfectionist": "^4.15.1",
     "publint": "^0.2.12",
