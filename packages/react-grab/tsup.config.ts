@@ -39,8 +39,21 @@ const DEFAULT_OPTIONS: Options = {
 };
 
 export default defineConfig([
+  // main entry as ESM and CJS for package consumers
   {
     ...DEFAULT_OPTIONS,
+    entry: ["./src/index.ts"],
+    format: ["esm", "cjs"],
+    loader: {
+      ".css": "text",
+    },
+    minify: process.env.NODE_ENV === "production",
+    outDir: "./dist",
+  },
+  // IIFE global bundle for direct <script> usage
+  {
+    ...DEFAULT_OPTIONS,
+    dts: false,
     entry: ["./src/index.ts"],
     format: ["iife"],
     globalName: "ReactGrab",
@@ -50,6 +63,7 @@ export default defineConfig([
     minify: process.env.NODE_ENV === "production",
     outDir: "./dist",
   },
+  // Vite plugin
   {
     ...DEFAULT_OPTIONS,
     dts: true,
