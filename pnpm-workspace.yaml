@@ -1,2 +1,11 @@
 packages:
-  - "packages/*"
+  - packages/*
+
+onlyBuiltDependencies:
+  - esbuild
+  - sharp
+  - spawn-sync
+  - unrs-resolver
+
+overrides:
+  '@wxt-dev/storage': 1.2.0
