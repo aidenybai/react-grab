@@ -1,10 +1,49 @@
 @import "tailwindcss";
 
-@theme {
-  --color-grab-primary: #d239c0;
-  --color-grab-primary-dark: #b21c8e;
-  --color-grab-secondary: #fde7f7;
-  --color-grab-border: #f7c5ec;
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+  --card: #ffffff;
+  --card-foreground: #0a0a0a;
+  --muted: #f5f5f5;
+  --muted-foreground: #737373;
+  --border: #e5e5e5;
+
+  --grab-primary: #d239c0;
+  --grab-primary-dark: #b21c8e;
+  --grab-secondary: #fde7f7;
+  --grab-border: #f7c5ec;
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --card: #1a1a1a;
+  --card-foreground: #ededed;
+  --muted: #262626;
+  --muted-foreground: #9d9d9d;
+  --border: #333333;
+
+  --grab-primary: #ff45a2;
+  --grab-primary-dark: #ff5bb0;
+  --grab-secondary: #1a0a14;
+  --grab-border: #300417;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-grab-primary: var(--grab-primary);
+  --color-grab-primary-dark: var(--grab-primary-dark);
+  --color-grab-secondary: var(--grab-secondary);
+  --color-grab-border: var(--grab-border);
 }
 
 * {
@@ -14,6 +53,8 @@
 body {
   margin: 0;
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  background-color: var(--background);
+  color: var(--foreground);
 }
 
 kbd {
