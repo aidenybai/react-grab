@@ -1,17 +1,17 @@
 import { Adapter, cursorAdapter } from "./adapters.js";
 import {
+  filterStack,
+  getHTMLSnippet,
+  getStack,
+  serializeStack,
+} from "./instrumentation.js";
+import {
   ensureKeyboardTracking,
   Hotkey,
   isKeyPressed,
   keyboardStore,
   watchKeyHeldFor,
 } from "./keyboard-state.js";
-import {
-  filterStack,
-  getHTMLSnippet,
-  getStack,
-  serializeStack,
-} from "./instrumentation.js";
 import {
   cleanupGrabbedIndicators,
   createGrabbedOverlay,
@@ -320,6 +320,10 @@ export const init = (options: Options = {}): (() => void) => {
     return null;
   };
 
+  function referencedElementTemplate(content: string): string {
+    return `\n\n<referenced_element>\n${content}\n</referenced_element>`;
+  };
+
   const handleCopy = async (element: Element) => {
     const tagName = (element.tagName || "").toLowerCase();
     const rect = element.getBoundingClientRect();
@@ -329,7 +333,7 @@ export const init = (options: Options = {}): (() => void) => {
       const htmlSnippet = getHTMLSnippet(element);
 
       await copyTextToClipboard(
-        `\n\n<referenced_element>\n${htmlSnippet}\n</referenced_element>`,
+        referencedElementTemplate(htmlSnippet),
       );
 
       const stack = await getStack(element);
@@ -342,7 +346,7 @@ export const init = (options: Options = {}): (() => void) => {
           const fullText = `${htmlSnippet}\n\nComponent owner stack:\n${serializedStack}`;
 
           await copyTextToClipboard(
-            `\n\n<referenced_element>\n${fullText}\n</referenced_element>`,
+            referencedElementTemplate(fullText),
           ).catch(() => {});
 
           if (resolvedOptions.adapter) {
