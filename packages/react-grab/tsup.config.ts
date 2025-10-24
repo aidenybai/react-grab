@@ -39,7 +39,7 @@ const DEFAULT_OPTIONS: Options = {
 };
 
 export default defineConfig([
-  // main entry as ESM and CJS for package consumers
+  // main package entry (ESM + CJS)
   {
     ...DEFAULT_OPTIONS,
     entry: ["./src/index.ts"],
@@ -64,15 +64,6 @@ export default defineConfig([
     outDir: "./dist",
   },
   // Vite plugin
-  {
-    ...DEFAULT_OPTIONS,
-    entry: ["./src/index.ts"],
-    format: ["cjs", "esm"],
-    loader: {
-      ".css": "text",
-    },
-    outDir: "./dist",
-  },
   {
     ...DEFAULT_OPTIONS,
     dts: true,
