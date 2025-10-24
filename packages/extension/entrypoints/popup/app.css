@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+@theme {
+  --color-grab-primary: #d239c0;
+  --color-grab-primary-dark: #b21c8e;
+  --color-grab-secondary: #fde7f7;
+  --color-grab-border: #f7c5ec;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+kbd {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 0.875em;
+}

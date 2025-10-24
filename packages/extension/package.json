@@ -1,0 +1,34 @@
+{
+  "name": "@react-grab/extension",
+  "description": "Grab any element on any website and give it to AI coding agents",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "dev:firefox": "wxt -b firefox",
+    "build": "wxt build",
+    "build:firefox": "wxt build -b firefox",
+    "zip": "wxt zip",
+    "zip:firefox": "wxt zip -b firefox",
+    "typecheck": "tsc --noEmit",
+    "postinstall": "wxt prepare",
+    "clean": "rm -rf .output .wxt node_modules"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-grab": "workspace:*"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.14",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@wxt-dev/module-react": "^1.1.3",
+    "babel-plugin-react-compiler": "1.0.0",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vite-plugin-babel": "^1.3.0",
+    "wxt": "^0.20.6"
+  }
+}
