@@ -21,8 +21,14 @@ export default defineConfig({
   manifest: {
     name: "React Grab",
     description: "Grab any element on any website and give it to AI coding agents",
-    permissions: ["activeTab", "storage", "clipboardWrite", "contextMenus"],
+    permissions: ["activeTab", "storage", "clipboardWrite"],
     host_permissions: ["<all_urls>"],
+    web_accessible_resources: [
+      {
+        resources: ["main-world.js"],
+        matches: ["<all_urls>"],
+      },
+    ],
     icons: {
       "16": "icon/16.png",
       "32": "icon/32.png",
