@@ -96,10 +96,10 @@ export const createSelectionOverlay = (root: HTMLElement) => {
 
   let visible = false;
 
-  element.addEventListener('mousedown', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
+  element.addEventListener('mousedown', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
     
     const { overlayMode } = libStore.getState();
     if (overlayMode === 'visible') {
