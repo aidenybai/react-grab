@@ -259,6 +259,18 @@ export const init = (options: Options = {}) => {
     }));
   };
 
+  const handleClick = (event: MouseEvent) => {
+    const { overlayMode } = libStore.getState();
+
+    if (overlayMode === "hidden") {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+  };
+
   const handleVisibilityChange = () => {
     if (document.hidden) {
       cleanupGrabbedIndicators();
@@ -287,7 +299,8 @@ export const init = (options: Options = {}) => {
   };
 
   window.addEventListener("mousemove", handleMouseMove);
-  window.addEventListener("mousedown", handleMouseDown);
+  window.addEventListener("mousedown", handleMouseDown, true);
+  window.addEventListener("click", handleClick, true);
   window.addEventListener("scroll", handleScroll, true);
   window.addEventListener("resize", handleResize);
   document.addEventListener("visibilitychange", handleVisibilityChange);
@@ -472,7 +485,8 @@ export const init = (options: Options = {}) => {
 
   return () => {
     window.removeEventListener("mousemove", handleMouseMove);
-    window.removeEventListener("mousedown", handleMouseDown);
+    window.removeEventListener("mousedown", handleMouseDown, true);
+    window.removeEventListener("click", handleClick, true);
     window.removeEventListener("scroll", handleScroll, true);
     window.removeEventListener("resize", handleResize);
     document.removeEventListener("visibilitychange", handleVisibilityChange);
