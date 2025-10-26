@@ -470,8 +470,8 @@ export const init = (options: Options = {}) => {
     showLabel(root, rect.left, rect.top, tagName);
 
     const isDisabled =
-      element.hasAttribute("disabled") ||
-      element.closest("[disabled]") !== null ||
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access -- we do any because typing this will be a massive fucking headache
+      Boolean((element as any).disabled) ||
       computedStyle.pointerEvents === "none";
 
     if (isDisabled) {
