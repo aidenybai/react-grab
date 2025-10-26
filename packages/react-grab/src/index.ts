@@ -468,6 +468,18 @@ export const init = (options: Options = {}) => {
     }
 
     showLabel(root, rect.left, rect.top, tagName);
+
+    const isDisabled =
+      element.hasAttribute("disabled") ||
+      element.closest("[disabled]") !== null ||
+      computedStyle.pointerEvents === "none";
+
+    if (isDisabled) {
+      const overlayElement = selectionOverlay.element;
+      if (overlayElement) {
+        overlayElement.style.pointerEvents = "auto";
+      }
+    }
   };
 
   let renderScheduled = false;

@@ -66,13 +66,15 @@ function App() {
           style={{
             padding: "0.75rem 1.5rem",
             fontSize: "1rem",
-            backgroundColor: "#3b82f6",
+            backgroundColor: !newTodo.trim() ? "#93c5fd" : "#3b82f6",
             color: "white",
             border: "none",
             borderRadius: "8px",
-            cursor: "pointer",
-            fontWeight: "500"
+            cursor: !newTodo.trim() ? "not-allowed" : "pointer",
+            fontWeight: "500",
+            opacity: !newTodo.trim() ? 0.6 : 1,
           }}
+          disabled={!newTodo.trim()}
         >
           Add Todo
         </button>
