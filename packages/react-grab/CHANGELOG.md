@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.19
+
+### Patch Changes
+
+- fix: react devtools and windows/linux compat
+
 ## 0.0.18
 
 ### Patch Changes
