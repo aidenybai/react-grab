@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm install)",
+      "Bash(pnpm build:*)",
+      "Bash(chmod:*)",
+      "Bash(./scripts/generate-icons.sh:*)",
+      "Bash(cat:*)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "shadcn",
+    "nuxt-ui",
+    "Better Auth",
+    "supabase"
+  ]
+}
