@@ -40,7 +40,7 @@ export interface Options {
   /**
    * hotkey to trigger the overlay
    *
-   * default: ["Meta", "C"]
+   * default: ["Meta", "C"] on macOS, ["Control", "C"] on Windows/Linux
    */
   hotkey?: Hotkey | Hotkey[];
 
@@ -68,6 +68,15 @@ export const libStore = createStore<LibStore>(() => ({
   pressedKeys: new Set(),
 }));
 
+const getDefaultHotkey = (): Hotkey[] => {
+  if (typeof navigator === "undefined") {
+    return ["Meta", "C"];
+  }
+
+  const isMac = navigator.platform.toLowerCase().includes("mac");
+  return isMac ? ["Meta", "C"] : ["Control", "C"];
+};
+
 export const init = (options: Options = {}) => {
   if (options.enabled === false) {
     return;
@@ -76,7 +85,7 @@ export const init = (options: Options = {}) => {
   const resolvedOptions = {
     adapter: undefined,
     enabled: true,
-    hotkey: ["Meta", "C"] as Hotkey | Hotkey[],
+    hotkey: options.hotkey ?? getDefaultHotkey(),
     keyHoldDuration: 500,
     ...options,
   };
