@@ -87,6 +87,6 @@
     "access": "public"
   },
   "dependencies": {
-    "bippy": "^0.3.32"
+    "bippy": "^0.3.33"
   }
 }
