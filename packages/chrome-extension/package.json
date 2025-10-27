@@ -11,6 +11,7 @@
     "icons": "./scripts/generate-icons.sh"
   },
   "dependencies": {
+    "html2canvas": "^1.4.1",
     "react-grab": "workspace:*"
   },
   "devDependencies": {

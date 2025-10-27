@@ -1,4 +1,4 @@
-import type { CapturedElement } from "../adapters/chrome.js";
+import type { CapturedElement } from "../adapters/chrome-enhanced.js";
 
 interface Settings {
   enabled: boolean;
@@ -59,6 +59,11 @@ const renderElements = async (): Promise<void> => {
     .map(
       (element) => `
     <div class="element" data-timestamp="${element.timestamp}">
+      ${
+        element.screenshot
+          ? `<img class="element-thumbnail" src="${element.screenshot}" alt="Element preview" data-timestamp="${element.timestamp}" />`
+          : '<div class="element-thumbnail-placeholder">📷</div>'
+      }
       <div class="element-info">
         <div class="element-title">${element.title || "Untitled"}</div>
         <div class="element-url">${element.url}</div>
@@ -98,6 +103,33 @@ const renderElements = async (): Promise<void> => {
       await renderElements();
     });
   });
+
+  container.querySelectorAll(".element-thumbnail").forEach((thumbnail) => {
+    thumbnail.addEventListener("click", (e) => {
+      const timestamp = Number((e.target as HTMLElement).dataset.timestamp);
+      const element = elements.find((el) => el.timestamp === timestamp);
+      if (element?.screenshot) {
+        showModal(element.screenshot);
+      }
+    });
+  });
+};
+
+const showModal = (imageSrc: string): void => {
+  const modal = document.getElementById("modal");
+  const modalImage = document.getElementById("modalImage") as HTMLImageElement;
+
+  if (modal && modalImage) {
+    modalImage.src = imageSrc;
+    modal.classList.add("active");
+  }
+};
+
+const hideModal = (): void => {
+  const modal = document.getElementById("modal");
+  if (modal) {
+    modal.classList.remove("active");
+  }
 };
 
 const init = async (): Promise<void> => {
@@ -140,6 +172,21 @@ const init = async (): Promise<void> => {
   }
 
   await renderElements();
+
+  const modalCloseBtn = document.getElementById("modalClose");
+  const modal = document.getElementById("modal");
+
+  if (modalCloseBtn) {
+    modalCloseBtn.addEventListener("click", hideModal);
+  }
+
+  if (modal) {
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) {
+        hideModal();
+      }
+    });
+  }
 
   chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName === "local" && changes.capturedElements) {

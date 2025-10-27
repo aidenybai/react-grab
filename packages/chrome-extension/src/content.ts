@@ -1,6 +1,6 @@
 import { init } from "react-grab";
 import type { Options } from "react-grab";
-import { chromeAdapter } from "./adapters/chrome.js";
+import { chromeAdapter, trackHoveredElement } from "./adapters/chrome-enhanced.js";
 
 interface ExtensionSettings {
   enabled: boolean;
@@ -35,6 +35,7 @@ const initializeReactGrab = async () => {
     };
 
     const cleanup = init(options);
+    const cleanupTracker = trackHoveredElement();
 
     console.log("[react-grab] Initialized with settings:", settings);
 
@@ -45,7 +46,10 @@ const initializeReactGrab = async () => {
       }
     });
 
-    return cleanup;
+    return () => {
+      cleanup?.();
+      cleanupTracker();
+    };
   } catch (error) {
     console.error("[react-grab] Failed to initialize:", error);
   }

@@ -6,7 +6,9 @@ Chrome extension version of React Grab that automatically injects into all web p
 
 - **Automatic injection** - No need to manually add script tags to your projects
 - **Works on all websites** - Automatically enabled on every page you visit
+- **🖼️ Visual previews** - Automatic screenshot thumbnails of captured elements
 - **Persistent storage** - Captured elements are saved and accessible from the popup
+- **Fullscreen preview** - Click thumbnails to view full-size screenshots
 - **Configurable settings** - Customize hotkey and hold duration
 - **Privacy-focused** - All data stays local in your browser
 

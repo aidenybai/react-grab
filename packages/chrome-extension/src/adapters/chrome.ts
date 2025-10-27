@@ -5,6 +5,8 @@ export interface CapturedElement {
   timestamp: number;
   url: string;
   title: string;
+  screenshot?: string;
+  elementSelector?: string;
 }
 
 export const chromeAdapter: Adapter = {

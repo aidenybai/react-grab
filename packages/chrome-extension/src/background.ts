@@ -1,4 +1,4 @@
-import type { CapturedElement } from "./adapters/chrome.js";
+import type { CapturedElement } from "./adapters/chrome-enhanced.js";
 
 interface Message {
   type: string;

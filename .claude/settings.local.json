@@ -5,7 +5,10 @@
       "Bash(pnpm build:*)",
       "Bash(chmod:*)",
       "Bash(./scripts/generate-icons.sh:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm --filter react-grab build:*)",
+      "Bash(pnpm --filter chrome-extension build:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -80,11 +80,41 @@
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        gap: 8px;
+        gap: 12px;
       }
 
       .element:hover {
         background: #f5f5f5;
+      }
+
+      .element-thumbnail {
+        width: 80px;
+        height: 60px;
+        border-radius: 4px;
+        border: 1px solid #e5e5e5;
+        object-fit: cover;
+        flex-shrink: 0;
+        cursor: pointer;
+        transition: transform 0.2s;
+      }
+
+      .element-thumbnail:hover {
+        transform: scale(1.05);
+        border-color: #000000;
+      }
+
+      .element-thumbnail-placeholder {
+        width: 80px;
+        height: 60px;
+        border-radius: 4px;
+        border: 1px dashed #d5d5d5;
+        background: #f9f9f9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 24px;
+        color: #d5d5d5;
       }
 
       .element-info {
@@ -169,6 +199,54 @@
         font-size: 11px;
         padding: 4px 8px;
       }
+
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .modal.active {
+        display: flex;
+      }
+
+      .modal-content {
+        max-width: 90%;
+        max-height: 90%;
+        position: relative;
+      }
+
+      .modal-image {
+        max-width: 100%;
+        max-height: 90vh;
+        border-radius: 8px;
+      }
+
+      .modal-close {
+        position: absolute;
+        top: -40px;
+        right: 0;
+        background: transparent;
+        border: none;
+        color: white;
+        font-size: 32px;
+        cursor: pointer;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        line-height: 1;
+      }
+
+      .modal-close:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
     </style>
   </head>
   <body>
@@ -196,6 +274,13 @@
     <div class="footer">
       <div class="footer-text">Hold ⌘C and click elements</div>
       <button id="clearAll" class="danger">Clear All</button>
+    </div>
+
+    <div id="modal" class="modal">
+      <div class="modal-content">
+        <button class="modal-close" id="modalClose">×</button>
+        <img id="modalImage" class="modal-image" src="" alt="Element preview" />
+      </div>
     </div>
 
     <script src="popup.js"></script>
