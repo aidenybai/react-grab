@@ -46,14 +46,14 @@ export const isCustomElement = (element: HTMLElement): boolean => {
 };
 
 export const isReadonlyArray = (
-  value: unknown
+  value: unknown,
 ): value is readonly unknown[] => {
   return Array.isArray(value);
 };
 
 export const isHotkeyEnabledOnTagName = (
   event: KeyboardEvent,
-  enabledOnTags: boolean | readonly FormTags[] = false
+  enabledOnTags: boolean | readonly FormTags[] = false,
 ): boolean => {
   const { composed, target } = event;
 
@@ -81,8 +81,8 @@ export const isHotkeyEnabledOnTagName = (
           (tag) =>
             (typeof targetTagName === "string" &&
               tag.toLowerCase() === targetTagName.toLowerCase()) ||
-            tag === targetRole
-        )
+            tag === targetRole,
+        ),
     );
   }
 
@@ -90,7 +90,7 @@ export const isHotkeyEnabledOnTagName = (
 };
 
 export const isKeyboardEventTriggeredByInput = (
-  event: KeyboardEvent
+  event: KeyboardEvent,
 ): boolean => {
   return isHotkeyEnabledOnTagName(event, FORM_TAGS_AND_ROLES);
 };
@@ -101,37 +101,75 @@ export const trackHotkeys = () => {
       return;
     }
 
-    if (event.code === undefined) {
-      return;
-    }
-
     libStore.setState((state) => {
       const newTimestamps = new Map(state.keyPressTimestamps);
-      if (!state.pressedKeys.has(event.key)) {
-        newTimestamps.set(event.key, Date.now());
+      const newPressedKeys = new Set(state.pressedKeys);
+
+      if (event.ctrlKey && !newPressedKeys.has("Control")) {
+        newTimestamps.set("Control", Date.now());
+        newPressedKeys.add("Control");
       }
+
+      if (event.metaKey && !newPressedKeys.has("Meta")) {
+        newTimestamps.set("Meta", Date.now());
+        newPressedKeys.add("Meta");
+      }
+
+      if (event.altKey && !newPressedKeys.has("Alt")) {
+        newTimestamps.set("Alt", Date.now());
+        newPressedKeys.add("Alt");
+      }
+
+      if (event.shiftKey && !newPressedKeys.has("Shift")) {
+        newTimestamps.set("Shift", Date.now());
+        newPressedKeys.add("Shift");
+      }
+
+      if (!newPressedKeys.has(event.key)) {
+        newTimestamps.set(event.key, Date.now());
+        newPressedKeys.add(event.key);
+      }
+
       return {
         ...state,
         keyPressTimestamps: newTimestamps,
-        pressedKeys: new Set([event.key, ...state.pressedKeys]),
+        pressedKeys: newPressedKeys,
       };
     });
   };
 
   const handleKeyUp = (event: KeyboardEvent) => {
-    if (event.code === undefined) {
-      return;
-    }
-
     libStore.setState((state) => {
       const newTimestamps = new Map(state.keyPressTimestamps);
+      const newPressedKeys = new Set(state.pressedKeys);
+
       newTimestamps.delete(event.key);
+      newPressedKeys.delete(event.key);
+
+      if (!event.ctrlKey) {
+        newTimestamps.delete("Control");
+        newPressedKeys.delete("Control");
+      }
+
+      if (!event.metaKey) {
+        newTimestamps.delete("Meta");
+        newPressedKeys.delete("Meta");
+      }
+
+      if (!event.altKey) {
+        newTimestamps.delete("Alt");
+        newPressedKeys.delete("Alt");
+      }
+
+      if (!event.shiftKey) {
+        newTimestamps.delete("Shift");
+        newPressedKeys.delete("Shift");
+      }
+
       return {
         ...state,
         keyPressTimestamps: newTimestamps,
-        pressedKeys: new Set(
-          [...state.pressedKeys].filter((key) => key !== event.key)
-        ),
+        pressedKeys: newPressedKeys,
       };
     });
   };
@@ -166,20 +204,32 @@ export const trackHotkeys = () => {
   };
 };
 
+const isModifierKeyPressed = (
+  key: string,
+  pressedKeys: Set<string>,
+): boolean => {
+  if (key === "Control" || key === "Meta") {
+    return pressedKeys.has("Control") || pressedKeys.has("Meta");
+  }
+  return pressedKeys.has(key);
+};
+
 export const isKeyPressed = (key: Hotkey) => {
   const { pressedKeys } = libStore.getState();
+
   if (key.length === 1) {
     return (
       pressedKeys.has(key.toLowerCase()) || pressedKeys.has(key.toUpperCase())
     );
   }
-  return pressedKeys.has(key);
+
+  return isModifierKeyPressed(key, pressedKeys);
 };
 
 export const watchKeyHeldFor = (
   key: Hotkey | Hotkey[],
   duration: number,
-  onHeld: () => void
+  onHeld: () => void,
 ): (() => void) => {
   let timeoutId: null | ReturnType<typeof setTimeout> = null;
   let unsubscribe: (() => void) | null = null;
@@ -198,7 +248,7 @@ export const watchKeyHeldFor = (
 
   const checkSingleKeyPressed = (
     keyToCheck: Hotkey,
-    pressedKeys: Set<string>
+    pressedKeys: Set<string>,
   ) => {
     if (keyToCheck.length === 1) {
       return (
@@ -206,13 +256,13 @@ export const watchKeyHeldFor = (
         pressedKeys.has(keyToCheck.toUpperCase())
       );
     }
-    return pressedKeys.has(keyToCheck);
+    return isModifierKeyPressed(keyToCheck, pressedKeys);
   };
 
   const checkAllKeysPressed = (pressedKeys: Set<string>) => {
     if (Array.isArray(key)) {
       return key.every((keyFromCombo) =>
-        checkSingleKeyPressed(keyFromCombo, pressedKeys)
+        checkSingleKeyPressed(keyFromCombo, pressedKeys),
       );
     }
     return checkSingleKeyPressed(key, pressedKeys);
@@ -253,7 +303,7 @@ export const watchKeyHeldFor = (
     () => {
       scheduleCallback();
     },
-    (state) => state.pressedKeys
+    (state) => state.pressedKeys,
   );
 
   scheduleCallback();
