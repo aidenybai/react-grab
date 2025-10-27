@@ -37,8 +37,8 @@ importers:
   packages/react-grab:
     dependencies:
       bippy:
-        specifier: ^0.3.33
-        version: 0.3.33(@types/react@19.2.2)(react@19.2.0)
+        specifier: ^0.3.34
+        version: 0.3.34(@types/react@19.2.2)(react@19.2.0)
     devDependencies:
       eslint:
         specifier: ^9.37.0
@@ -1470,8 +1470,8 @@ packages:
     peerDependencies:
       react: '>=17.0.1'
 
-  bippy@0.3.33:
-    resolution: {integrity: sha512-nOU5YM0uYLNT+ItZldc4RrBDCreNHkdlw2FJb3AYugqMK1tIGzlee+1NXEBRyJ//PLZvJdgHekWREUlb//2jow==}
+  bippy@0.3.34:
+    resolution: {integrity: sha512-vmptmU/20UdIWHHhq7qCSHhHzK7Ro3YJ1utU0fBG7ujUc58LEfTtilKxcF0IOgSjT5XLcm7CBzDjbv4lcKApGQ==}
     peerDependencies:
       react: '>=17.0.1'
 
@@ -4489,7 +4489,7 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
-  bippy@0.3.33(@types/react@19.2.2)(react@19.2.0):
+  bippy@0.3.34(@types/react@19.2.2)(react@19.2.0):
     dependencies:
       '@types/react-reconciler': 0.28.9(@types/react@19.2.2)
       react: 19.2.0

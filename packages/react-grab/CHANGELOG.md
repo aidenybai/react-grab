@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.20
+
+### Patch Changes
+
+- fix: circular references issue
+
 ## 0.0.19
 
 ### Patch Changes
