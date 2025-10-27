@@ -181,6 +181,90 @@
         font-size: 13px;
       }
 
+      .empty small {
+        display: block;
+        margin-top: 8px;
+        font-size: 11px;
+        color: #bbbbbb;
+      }
+
+      .loading {
+        padding: 48px 16px;
+        text-align: center;
+        color: #666666;
+        font-size: 13px;
+      }
+
+      .error {
+        padding: 48px 16px;
+        text-align: center;
+      }
+
+      .error-icon {
+        font-size: 32px;
+        margin-bottom: 12px;
+      }
+
+      .error-message {
+        color: #dc2626;
+        font-size: 13px;
+        margin-bottom: 16px;
+      }
+
+      .retry-btn {
+        background: #000000;
+        color: #ffffff;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .retry-btn:hover {
+        background: #333333;
+      }
+
+      .toast {
+        position: fixed;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background: #000000;
+        color: #ffffff;
+        padding: 12px 16px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        z-index: 2000;
+        transition: transform 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        max-width: 300px;
+        text-align: center;
+      }
+
+      .toast-show {
+        transform: translateX(-50%) translateY(0);
+      }
+
+      .toast-success {
+        background: #16a34a;
+      }
+
+      .toast-error {
+        background: #dc2626;
+      }
+
+      .toast-info {
+        background: #2563eb;
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
       .footer {
         padding: 12px 16px;
         border-top: 1px solid #e5e5e5;
