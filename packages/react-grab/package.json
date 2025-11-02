@@ -1,6 +1,6 @@
 {
   "name": "react-grab",
-  "version": "0.1.0",
+  "version": "0.0.20",
   "description": "",
   "keywords": [
     "react",
@@ -88,6 +88,6 @@
     "access": "public"
   },
   "dependencies": {
-    "bippy": "^0.3.32"
+    "bippy": "^0.3.34"
   }
 }

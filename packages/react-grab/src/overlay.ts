@@ -1,3 +1,5 @@
+import { libStore } from "./index.js";
+
 interface Selection {
   borderRadius: string;
   height: number;
@@ -94,7 +96,22 @@ export const createSelectionOverlay = (root: HTMLElement) => {
 
   let visible = false;
 
+  element.addEventListener('mousedown', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    
+    const { overlayMode } = libStore.getState();
+    if (overlayMode === 'visible') {
+      libStore.setState((state) => ({
+        ...state,
+        overlayMode: "copying",
+      }));
+    }
+  }, true);
+
   return {
+    element,
     hide: () => {
       visible = false;
       element.style.display = "none";

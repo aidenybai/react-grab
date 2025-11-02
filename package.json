@@ -13,6 +13,7 @@
     "check": "pnpm --filter react-grab check",
     "changeset": "changeset",
     "version": "changeset version",
+    "bump": "changeset && changeset version",
     "release": "pnpm build && changeset publish"
   },
   "devDependencies": {
