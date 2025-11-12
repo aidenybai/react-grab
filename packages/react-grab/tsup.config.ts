@@ -59,12 +59,4 @@ export default defineConfig([
     },
     outDir: "./dist",
   },
-  {
-    ...DEFAULT_OPTIONS,
-    dts: true,
-    entry: ["./src/plugins/vite.ts"],
-    format: ["esm", "cjs"],
-    onSuccess: undefined,
-    outDir: "./dist/plugins",
-  },
 ]);

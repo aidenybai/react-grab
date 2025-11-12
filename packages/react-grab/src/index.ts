@@ -1,4 +1,3 @@
-import { Adapter, cursorAdapter } from "./adapters.js";
 import {
   Hotkey,
   isKeyPressed,
@@ -26,15 +25,7 @@ import { isElementVisible } from "./utils/is-element-visible.js";
 import { ATTRIBUTE_NAME, mountRoot } from "./utils/mount-root.js";
 import { createStore } from "./utils/store.js";
 
-export { cursorAdapter } from "./adapters.js";
-export type { Adapter } from "./adapters.js";
-
 export interface Options {
-  /**
-   * adapter to open the prompt in an external tool
-   */
-  adapter?: Adapter;
-
   enabled?: boolean;
 
   /**
@@ -358,15 +349,7 @@ export const init = (options: Options = {}) => {
           await copyTextToClipboard(
             `\n\n<referenced_element>\n${fullText}\n</referenced_element>`,
           ).catch(() => {});
-
-          if (resolvedOptions.adapter) {
-            resolvedOptions.adapter.open(fullText);
-          }
-        } else if (resolvedOptions.adapter) {
-          resolvedOptions.adapter.open(htmlSnippet);
         }
-      } else if (resolvedOptions.adapter) {
-        resolvedOptions.adapter.open(htmlSnippet);
       }
 
       cleanupIndicator(tagName);
@@ -527,13 +510,7 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
   const currentScript = document.currentScript;
   const options: Options = {};
   if (currentScript?.dataset) {
-    const { adapter, enabled, hotkey, keyHoldDuration } = currentScript.dataset;
-
-    if (adapter !== undefined) {
-      if (adapter === "cursor") {
-        options.adapter = cursorAdapter;
-      }
-    }
+    const { enabled, hotkey, keyHoldDuration } = currentScript.dataset;
 
     if (enabled !== undefined) {
       options.enabled = enabled === "true";

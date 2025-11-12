@@ -5,15 +5,11 @@
   "keywords": [
     "react",
     "grab",
-    "cursor",
-    "claude",
-    "code",
-    "context",
-    "changes",
-    "modifications",
-    "modification"
+    "react",
+    "agent",
+    "context"
   ],
-  "homepage": "https://github.com/aidenybai/react-grab#readme",
+  "homepage": "https://react-grab.com",
   "bugs": {
     "url": "https://github.com/aidenybai/react-grab/issues"
   },
@@ -37,16 +33,6 @@
       "require": {
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
-      }
-    },
-    "./plugins/vite": {
-      "import": {
-        "types": "./dist/plugins/vite.d.ts",
-        "default": "./dist/plugins/vite.js"
-      },
-      "require": {
-        "types": "./dist/plugins/vite.d.cts",
-        "default": "./dist/plugins/vite.cjs"
       }
     },
     "./dist/*": "./dist/*.js",
@@ -77,7 +63,6 @@
   },
   "devDependencies": {
     "eslint": "^9.37.0",
-    "eslint-plugin-perfectionist": "^4.15.1",
     "publint": "^0.2.12",
     "terser": "^5.36.0",
     "tsup": "^8.2.4",

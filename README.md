@@ -1,10 +1,8 @@
-# <img src="https://react-grab.com/logo.svg" width="60" align="center" /> React Grab
+# <img src="https://github.com/aidenybai/react-grab/blob/main/.github/public/logo.png?raw=true" width="60" align="center" /> React Grab
 
 [![size](https://img.shields.io/bundlephobia/minzip/react-grab?label=gzip&style=flat&colorA=000000&colorB=000000)](https://bundlephobia.com/package/react-grab)
 [![version](https://img.shields.io/npm/v/react-grab?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/react-grab)
 [![downloads](https://img.shields.io/npm/dt/react-grab.svg?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/react-grab)
-
-> [**Install using Cursor**](https://cursor.com/link/prompt?text=1.+Search+in+this+codebase+for+the+project%0A2.+Determine+if+the+project+is+using+Next.js+app%2Fpages+router%2C+or+Vite%2C+or+something+else%0A3.+Scrape%3A+https%3A%2F%2Fraw.githubusercontent.com%2Faidenybai%2Freact-grab%2Frefs%2Fheads%2Fmain%2FREADME.md%0A4.+Find+the+installation+instructions+in+the+scraped+content+and+install+it+in+the+user%27s+project%0A)
 
 Grab any element on in your app and give it to Cursor, Claude Code, etc. to change.
 
@@ -15,8 +13,6 @@ By default coding agents cannot access elements on your page. React Grab fixes t
 - Just a single script tag (it’s just JavaScript!)
 
 ### [Try out a demo! →](https://react-grab.com)
-
-![React Grab Demo](https://react-grab.com/demo.gif)
 
 ## Install
 

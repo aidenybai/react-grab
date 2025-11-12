@@ -4,7 +4,7 @@ export const mountRoot = () => {
   const mountedHost = document.querySelector(`[${ATTRIBUTE_NAME}]`);
   if (mountedHost) {
     const mountedRoot = mountedHost.shadowRoot?.querySelector(
-      `[${ATTRIBUTE_NAME}]`
+      `[${ATTRIBUTE_NAME}]`,
     );
     if (mountedRoot instanceof HTMLDivElement && mountedHost.shadowRoot) {
       return mountedRoot;
