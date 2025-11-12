@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.21
+
+### Patch Changes
+
+- fix: refactor code
+
 ## 0.0.20
 
 ### Patch Changes

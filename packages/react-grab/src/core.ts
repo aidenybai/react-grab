@@ -18,6 +18,18 @@ interface Options {
   onActivate?: () => void;
 }
 
+interface CoreState {
+  holdTimerId: number | null;
+  isHoldingKeys: boolean;
+  overlayRoot: HTMLElement | null;
+  selectionOverlay: ReturnType<typeof createSelectionOverlay> | null;
+  renderFrameId: number | null;
+  isCopying: boolean;
+  lastGrabbedElement: Element | null;
+  mouseX: number;
+  mouseY: number;
+}
+
 export const init = (rawOptions?: Options) => {
   const options = {
     enabled: true,
@@ -28,17 +40,19 @@ export const init = (rawOptions?: Options) => {
     return;
   }
 
-  let holdTimer: null | number = null;
-  let isHoldingKeys = false;
-  let overlayRoot: HTMLElement | null = null;
-  let selectionOverlay: ReturnType<typeof createSelectionOverlay> | null = null;
-  let renderFrameId: number | null = null;
-  let isActive = false;
-  let isCopying = false;
-  let hoveredElement: Element | null = null;
-  let lastGrabbedElement: Element | null = null;
-  let mouseX = -1000;
-  let mouseY = -1000;
+  const state: CoreState = {
+    holdTimerId: null,
+    isHoldingKeys: false,
+    overlayRoot: null,
+    selectionOverlay: null,
+    renderFrameId: null,
+    isCopying: false,
+    lastGrabbedElement: null,
+    mouseX: -1000,
+    mouseY: -1000,
+  };
+
+  const isOverlayActive = () => state.isHoldingKeys && !state.isCopying;
 
   const isTargetKeyCombination = (event: KeyboardEvent) =>
     (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "c";
@@ -69,7 +83,7 @@ export const init = (rawOptions?: Options) => {
     const tagName = (targetElement.tagName || "").toLowerCase();
     const elementBounds = targetElement.getBoundingClientRect();
     const showSuccessIndicator = updateLabelToProcessing(
-      overlayRoot!,
+      state.overlayRoot!,
       elementBounds.left,
       elementBounds.top,
     );
@@ -100,43 +114,37 @@ export const init = (rawOptions?: Options) => {
   };
 
   const hideOverlayAndLabel = () => {
-    selectionOverlay?.hide();
-    if (!isCopying) hideLabel();
+    state.selectionOverlay?.hide();
+    if (!state.isCopying) hideLabel();
   };
 
   const handleRender = () => {
-    if (!isActive) {
+    if (!isOverlayActive()) {
       hideOverlayAndLabel();
-      hoveredElement = null;
-      lastGrabbedElement = null;
+      state.lastGrabbedElement = null;
       return;
     }
 
-    if (isCopying) return;
-
-    const targetElement = getElementAtPosition(mouseX, mouseY);
+    const targetElement = getElementAtPosition(state.mouseX, state.mouseY);
 
     if (!targetElement) {
       hideOverlayAndLabel();
-      hoveredElement = null;
       return;
     }
 
-    if (lastGrabbedElement) {
-      if (targetElement !== lastGrabbedElement) {
-        lastGrabbedElement = null;
+    if (state.lastGrabbedElement) {
+      if (targetElement !== state.lastGrabbedElement) {
+        state.lastGrabbedElement = null;
       } else {
         hideOverlayAndLabel();
-        hoveredElement = targetElement;
         return;
       }
     }
 
-    hoveredElement = targetElement;
     const elementBounds = targetElement.getBoundingClientRect();
     const computedStyle = window.getComputedStyle(targetElement);
 
-    selectionOverlay?.update({
+    state.selectionOverlay?.update({
       borderRadius: computedStyle.borderRadius || "0px",
       height: elementBounds.height,
       transform: computedStyle.transform || "none",
@@ -145,10 +153,10 @@ export const init = (rawOptions?: Options) => {
       y: elementBounds.top,
     });
 
-    if (!selectionOverlay?.isVisible()) selectionOverlay?.show();
+    if (!state.selectionOverlay?.isVisible()) state.selectionOverlay?.show();
 
     showLabel(
-      overlayRoot!,
+      state.overlayRoot!,
       elementBounds.left,
       elementBounds.top,
       (targetElement.tagName || "").toLowerCase(),
@@ -156,9 +164,9 @@ export const init = (rawOptions?: Options) => {
   };
 
   const scheduleRender = () => {
-    if (renderFrameId !== null) return;
-    renderFrameId = requestAnimationFrame(() => {
-      renderFrameId = null;
+    if (state.renderFrameId !== null) return;
+    state.renderFrameId = requestAnimationFrame(() => {
+      state.renderFrameId = null;
       handleRender();
     });
   };
@@ -169,8 +177,8 @@ export const init = (rawOptions?: Options) => {
   };
 
   const handleMouseMove = (event: MouseEvent) => {
-    mouseX = event.clientX;
-    mouseY = event.clientY;
+    state.mouseX = event.clientX;
+    state.mouseY = event.clientY;
     scheduleRender();
   };
 
@@ -182,15 +190,17 @@ export const init = (rawOptions?: Options) => {
   };
 
   const handleSelectionClick = () => {
-    if (!hoveredElement || isCopying) return;
+    if (state.isCopying) return;
 
-    isCopying = true;
-    lastGrabbedElement = hoveredElement;
-    const targetElement = hoveredElement;
+    const targetElement = getElementAtPosition(state.mouseX, state.mouseY);
+    if (!targetElement) return;
+
+    state.isCopying = true;
+    state.lastGrabbedElement = targetElement;
     const computedStyle = window.getComputedStyle(targetElement);
     const elementBounds = targetElement.getBoundingClientRect();
 
-    createGrabbedOverlay(overlayRoot!, {
+    createGrabbedOverlay(state.overlayRoot!, {
       borderRadius: computedStyle.borderRadius || "0px",
       height: elementBounds.height,
       transform: computedStyle.transform || "none",
@@ -200,37 +210,34 @@ export const init = (rawOptions?: Options) => {
     });
 
     void handleCopy(targetElement).finally(() => {
-      isCopying = false;
-      isActive = isHoldingKeys;
+      state.isCopying = false;
     });
   };
 
   const activateOverlay = () => {
-    if (!overlayRoot) {
-      overlayRoot = mountRoot();
-      selectionOverlay = createSelectionOverlay(
-        overlayRoot,
+    if (!state.overlayRoot) {
+      state.overlayRoot = mountRoot();
+      state.selectionOverlay = createSelectionOverlay(
+        state.overlayRoot,
         handleSelectionClick,
       );
       continuousRender();
     }
-    isActive = true;
     handleRender();
   };
 
   const handleKeyDown = (event: KeyboardEvent) => {
-    if (event.key === "Escape" && isHoldingKeys) {
-      isHoldingKeys = false;
-      if (holdTimer) window.clearTimeout(holdTimer);
-      isActive = false;
+    if (event.key === "Escape" && state.isHoldingKeys) {
+      state.isHoldingKeys = false;
+      if (state.holdTimerId) window.clearTimeout(state.holdTimerId);
       return;
     }
 
     if (isKeyboardEventTriggeredByInput(event)) return;
 
-    if (isTargetKeyCombination(event) && !isHoldingKeys) {
-      isHoldingKeys = true;
-      holdTimer = window.setTimeout(() => {
+    if (isTargetKeyCombination(event) && !state.isHoldingKeys) {
+      state.isHoldingKeys = true;
+      state.holdTimerId = window.setTimeout(() => {
         activateOverlay();
         options.onActivate?.();
       }, options.keyHoldDuration);
@@ -239,12 +246,11 @@ export const init = (rawOptions?: Options) => {
 
   const handleKeyUp = (event: KeyboardEvent) => {
     if (
-      isHoldingKeys &&
+      state.isHoldingKeys &&
       (!isTargetKeyCombination(event) || event.key.toLowerCase() === "c")
     ) {
-      isHoldingKeys = false;
-      if (holdTimer) window.clearTimeout(holdTimer);
-      isActive = false;
+      state.isHoldingKeys = false;
+      if (state.holdTimerId) window.clearTimeout(state.holdTimerId);
     }
   };
 
@@ -262,8 +268,8 @@ export const init = (rawOptions?: Options) => {
     window.removeEventListener("scroll", scheduleRender, true);
     window.removeEventListener("resize", scheduleRender);
     document.removeEventListener("visibilitychange", handleVisibilityChange);
-    if (holdTimer) window.clearTimeout(holdTimer);
-    if (renderFrameId) cancelAnimationFrame(renderFrameId);
+    if (state.holdTimerId) window.clearTimeout(state.holdTimerId);
+    if (state.renderFrameId) cancelAnimationFrame(state.renderFrameId);
     cleanupGrabbedIndicators();
     hideLabel();
   };
