@@ -72,6 +72,6 @@
     "access": "public"
   },
   "dependencies": {
-    "bippy": "^0.3.34"
+    "bippy": "^0.5.14"
   }
 }

@@ -1,5 +1,3 @@
-import { libStore } from "./index.js";
-
 interface Selection {
   borderRadius: string;
   height: number;
@@ -7,6 +5,21 @@ interface Selection {
   width: number;
   x: number;
   y: number;
+}
+
+const templateCache = new Map<string, HTMLTemplateElement>();
+
+const html = (strings: TemplateStringsArray, ...values: (string | number)[]): HTMLElement => {
+  const key = strings.join("");
+
+  let template = templateCache.get(key);
+  if (!template) {
+    template = document.createElement("template");
+    template.innerHTML = strings.reduce((acc, str, i) => acc + str + (values[i] ?? ""), "");
+    templateCache.set(key, template);
+  }
+
+  return template.content.firstElementChild!.cloneNode(true) as HTMLElement;
 }
 
 const VIEWPORT_MARGIN_PX = 8;
@@ -31,27 +44,30 @@ const createSelectionElement = ({
   x,
   y,
 }: Selection): HTMLDivElement => {
-  const overlay = document.createElement("div");
-  overlay.style.position = "fixed";
-  overlay.style.top = `${y}px`;
-  overlay.style.left = `${x}px`;
-  overlay.style.width = `${width}px`;
-  overlay.style.height = `${height}px`;
-  overlay.style.borderRadius = borderRadius;
-  overlay.style.transform = transform;
-  overlay.style.pointerEvents = "none";
-  overlay.style.border = "1px solid rgb(210, 57, 192)";
-  overlay.style.backgroundColor = "rgba(210, 57, 192, 0.2)";
-  overlay.style.zIndex = "2147483646";
-  overlay.style.boxSizing = "border-box";
-  overlay.style.display = "none";
+  const overlay = html`
+    <div style="
+      position: fixed;
+      top: ${y}px;
+      left: ${x}px;
+      width: ${width}px;
+      height: ${height}px;
+      border-radius: ${borderRadius};
+      transform: ${transform};
+      pointer-events: auto;
+      border: 1px solid rgb(210, 57, 192);
+      background-color: rgba(210, 57, 192, 0.2);
+      z-index: 2147483646;
+      box-sizing: border-box;
+      display: none;
+    "></div>
+  ` as HTMLDivElement;
 
   return overlay;
 };
 
 const updateSelectionElement = (
   element: HTMLElement,
-  { borderRadius, height, transform, width, x, y }: Selection
+  { borderRadius, height, transform, width, x, y }: Selection,
 ) => {
   const currentTop = parseFloat(element.style.top) || 0;
   const currentLeft = parseFloat(element.style.left) || 0;
@@ -83,7 +99,7 @@ const updateSelectionElement = (
   }
 };
 
-export const createSelectionOverlay = (root: HTMLElement) => {
+export const createSelectionOverlay = (root: HTMLElement, onSelectionClick?: () => void) => {
   const element = createSelectionElement({
     borderRadius: "0px",
     height: 0,
@@ -95,25 +111,27 @@ export const createSelectionOverlay = (root: HTMLElement) => {
   root.appendChild(element);
 
   let visible = false;
+  let hasBeenShown = false;
 
-  element.addEventListener('mousedown', (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-    
-    const { overlayMode } = libStore.getState();
-    if (overlayMode === 'visible') {
-      libStore.setState((state) => ({
-        ...state,
-        overlayMode: "copying",
-      }));
-    }
-  }, true);
+  element.addEventListener(
+    "mousedown",
+    (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+
+      if (onSelectionClick) {
+        onSelectionClick();
+      }
+    },
+    true,
+  );
 
   return {
     element,
     hide: () => {
       visible = false;
+      hasBeenShown = false;
       element.style.display = "none";
     },
 
@@ -125,12 +143,25 @@ export const createSelectionOverlay = (root: HTMLElement) => {
     },
 
     update: (selection: Selection) => {
-      updateSelectionElement(element, selection);
+      if (!hasBeenShown) {
+        element.style.top = `${selection.y}px`;
+        element.style.left = `${selection.x}px`;
+        element.style.width = `${selection.width}px`;
+        element.style.height = `${selection.height}px`;
+        element.style.borderRadius = selection.borderRadius;
+        element.style.transform = selection.transform;
+        hasBeenShown = true;
+      } else {
+        updateSelectionElement(element, selection);
+      }
     },
   };
 };
 
-export const createGrabbedOverlay = (root: HTMLElement, selection: Selection) => {
+export const createGrabbedOverlay = (
+  root: HTMLElement,
+  selection: Selection,
+) => {
   const element = document.createElement("div");
   element.style.position = "fixed";
   element.style.top = `${selection.y}px`;
@@ -159,15 +190,18 @@ export const createGrabbedOverlay = (root: HTMLElement, selection: Selection) =>
 };
 
 const createSpinner = (): HTMLSpanElement => {
-  const spinner = document.createElement("span");
-  spinner.style.display = "inline-block";
-  spinner.style.width = "8px";
-  spinner.style.height = "8px";
-  spinner.style.border = "1.5px solid rgb(210, 57, 192)";
-  spinner.style.borderTopColor = "transparent";
-  spinner.style.borderRadius = "50%";
-  spinner.style.marginRight = "4px";
-  spinner.style.verticalAlign = "middle";
+  const spinner = html`
+    <span style="
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border: 1.5px solid rgb(210, 57, 192);
+      border-top-color: transparent;
+      border-radius: 50%;
+      margin-right: 4px;
+      vertical-align: middle;
+    "></span>
+  ` as HTMLSpanElement;
 
   spinner.animate(
     [{ transform: "rotate(0deg)" }, { transform: "rotate(360deg)" }],
@@ -175,7 +209,7 @@ const createSpinner = (): HTMLSpanElement => {
       duration: 600,
       easing: "linear",
       iterations: Infinity,
-    }
+    },
   );
 
   return spinner;
@@ -184,29 +218,30 @@ const createSpinner = (): HTMLSpanElement => {
 let activeIndicator: HTMLDivElement | null = null;
 
 const createIndicator = (): HTMLDivElement => {
-  const indicator = document.createElement("div");
-  indicator.style.position = "fixed";
-  indicator.style.top = "calc(8px + env(safe-area-inset-top))";
-  indicator.style.padding = "2px 6px";
-  indicator.style.backgroundColor = "#fde7f7";
-  indicator.style.color = "#b21c8e";
-  indicator.style.border = "1px solid #f7c5ec";
-  indicator.style.borderRadius = "4px";
-  indicator.style.fontSize = "11px";
-  indicator.style.fontWeight = "500";
-  indicator.style.fontFamily =
-    "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-  indicator.style.zIndex = "2147483647";
-  indicator.style.pointerEvents = "none";
-  indicator.style.opacity = "0";
-  indicator.style.transition = "opacity 0.2s ease-in-out";
-  indicator.style.display = "flex";
-  indicator.style.alignItems = "center";
-  indicator.style.maxWidth =
-    "calc(100vw - (16px + env(safe-area-inset-left) + env(safe-area-inset-right)))";
-  indicator.style.overflow = "hidden";
-  indicator.style.textOverflow = "ellipsis";
-  indicator.style.whiteSpace = "nowrap";
+  const indicator = html`
+    <div style="
+      position: fixed;
+      top: calc(8px + env(safe-area-inset-top));
+      padding: 2px 6px;
+      background-color: #fde7f7;
+      color: #b21c8e;
+      border: 1px solid #f7c5ec;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      z-index: 2147483647;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease-in-out;
+      display: flex;
+      align-items: center;
+      max-width: calc(100vw - (16px + env(safe-area-inset-left) + env(safe-area-inset-right)));
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    "></div>
+  ` as HTMLDivElement;
 
   return indicator;
 };
@@ -215,7 +250,7 @@ export const showLabel = (
   root: HTMLElement,
   selectionLeftPx: number,
   selectionTopPx: number,
-  tagName: string
+  tagName: string,
 ) => {
   let indicator = activeIndicator;
   let isNewIndicator = false;
@@ -294,7 +329,7 @@ const activeGrabbedIndicators: Set<HTMLDivElement> = new Set();
 export const updateLabelToProcessing = (
   root: HTMLElement,
   selectionLeftPx?: number,
-  selectionTopPx?: number
+  selectionTopPx?: number,
 ) => {
   const indicator = createIndicator();
   indicator.style.zIndex = "2147483648";
@@ -401,31 +436,32 @@ export const cleanupGrabbedIndicators = () => {
 let activeProgressIndicator: HTMLDivElement | null = null;
 
 const createProgressIndicatorElement = (): HTMLDivElement => {
-  const container = document.createElement("div");
-  container.style.position = "fixed";
-  container.style.zIndex = "2147483647";
-  container.style.pointerEvents = "none";
-  container.style.opacity = "0";
-  container.style.transition = "opacity 0.1s ease-in-out";
-
-  const progressBarContainer = document.createElement("div");
-  progressBarContainer.style.width = "32px";
-  progressBarContainer.style.height = "2px";
-  progressBarContainer.style.backgroundColor = "rgba(178, 28, 142, 0.2)";
-  progressBarContainer.style.borderRadius = "1px";
-  progressBarContainer.style.overflow = "hidden";
-  progressBarContainer.style.position = "relative";
-
-  const progressBarFill = document.createElement("div");
-  progressBarFill.style.width = "0%";
-  progressBarFill.style.height = "100%";
-  progressBarFill.style.backgroundColor = "#b21c8e";
-  progressBarFill.style.borderRadius = "1px";
-  progressBarFill.style.transition = "width 0.05s linear";
-  progressBarFill.setAttribute("data-progress-fill", "true");
-
-  progressBarContainer.appendChild(progressBarFill);
-  container.appendChild(progressBarContainer);
+  const container = html`
+    <div style="
+      position: fixed;
+      z-index: 2147483647;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.1s ease-in-out;
+    ">
+      <div style="
+        width: 32px;
+        height: 2px;
+        background-color: rgba(178, 28, 142, 0.2);
+        border-radius: 1px;
+        overflow: hidden;
+        position: relative;
+      ">
+        <div data-progress-fill="true" style="
+          width: 0%;
+          height: 100%;
+          background-color: #b21c8e;
+          border-radius: 1px;
+          transition: width 0.05s linear;
+        "></div>
+      </div>
+    </div>
+  ` as HTMLDivElement;
 
   return container;
 };
@@ -434,7 +470,7 @@ export const showProgressIndicator = (
   root: HTMLElement,
   progress: number,
   mouseX: number,
-  mouseY: number
+  mouseY: number,
 ) => {
   if (!activeProgressIndicator) {
     activeProgressIndicator = createProgressIndicatorElement();
@@ -464,18 +500,24 @@ export const showProgressIndicator = (
 
   indicatorTop = Math.max(
     VIEWPORT_MARGIN,
-    Math.min(indicatorTop, viewportHeight - indicatorRect.height - VIEWPORT_MARGIN)
+    Math.min(
+      indicatorTop,
+      viewportHeight - indicatorRect.height - VIEWPORT_MARGIN,
+    ),
   );
   indicatorLeft = Math.max(
     VIEWPORT_MARGIN,
-    Math.min(indicatorLeft, viewportWidth - indicatorRect.width - VIEWPORT_MARGIN)
+    Math.min(
+      indicatorLeft,
+      viewportWidth - indicatorRect.width - VIEWPORT_MARGIN,
+    ),
   );
 
   indicator.style.top = `${indicatorTop}px`;
   indicator.style.left = `${indicatorLeft}px`;
 
   const progressFill = indicator.querySelector(
-    "[data-progress-fill]"
+    "[data-progress-fill]",
   ) as HTMLDivElement;
   if (progressFill) {
     const percentage = Math.min(100, Math.max(0, progress * 100));

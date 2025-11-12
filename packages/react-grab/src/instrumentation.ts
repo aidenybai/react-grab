@@ -1,11 +1,13 @@
-import { _fiberRoots, getFiberFromHostInstance, instrument } from "bippy";
 import {
-  getFiberSource,
-  getFiberStackTrace,
+  _fiberRoots as fiberRoots,
+  getFiberFromHostInstance,
+  instrument,
+} from "bippy";
+import {
   getOwnerStack,
+  getSourcesFromStack,
+  getSourceFromHostInstance,
 } from "bippy/dist/source";
-
-export const fiberRoots = _fiberRoots;
 
 instrument({
   onCommitFiberRoot(_, fiberRoot) {
@@ -13,89 +15,20 @@ instrument({
   },
 });
 
-export interface StackItem {
-  componentName: string;
-  displayName?: string;
-  fileName: string | undefined;
-  source?: string;
-}
-
-// HACK: sometimes source file paths get duplicated in the form /path/to/file/path/to/file
-// this detects obvious duplicates where the path repeats itself and removes the duplication
-const dedupeFileName = (fileName: string | undefined): string | undefined => {
-  if (!fileName) return fileName;
-
-  const parts = fileName.split("/");
-
-  for (let start = 0; start < parts.length / 2; start++) {
-    for (let len = 1; len <= parts.length - start; len++) {
-      const firstSeq = parts.slice(start, start + len);
-      const secondStart = start + len;
-      const secondSeq = parts.slice(secondStart, secondStart + len);
-
-      if (firstSeq.length > 2 &&
-          firstSeq.length === secondSeq.length &&
-          firstSeq.every((part, i) => part === secondSeq[i])) {
-        return parts.slice(secondStart).join("/");
-      }
-    }
-  }
-
-  return fileName;
-};
-
-export const getStack = async (element: Element) => {
+export const getSourceTrace = async (element: Element) => {
   const fiber = getFiberFromHostInstance(element);
   if (!fiber) return null;
-  const stackTrace = getFiberStackTrace(fiber);
-  const rawOwnerStack = await getOwnerStack(stackTrace);
-  const stack: StackItem[] = rawOwnerStack.map((item) => ({
-    componentName: item.name,
-    fileName: dedupeFileName(item.source?.fileName),
-  }));
-
-  if (stack.length > 0 && fiber) {
-    const fiberSource = await getFiberSource(fiber);
-    if (fiberSource) {
-      const fiberType = fiber.type as
-        | null
-        | undefined
-        | { displayName?: string; name?: string };
-      const displayName =
-        fiberType?.displayName ?? fiberType?.name ?? stack[0].componentName;
-      stack[0].displayName = displayName;
-      const dedupedFileName = dedupeFileName(fiberSource.fileName);
-      stack[0].source = `${dedupedFileName}:${fiberSource.lineNumber}:${fiberSource.columnNumber}`;
-    }
-  }
-
-  return stack;
-};
-
-export const filterStack = (stack: StackItem[]) => {
-  return stack.filter(
-    (item) =>
-      item.fileName &&
-      !item.fileName.includes("node_modules") &&
-      item.componentName.length > 1 &&
-      !item.fileName.startsWith("_"),
+  const ownerStack = getOwnerStack(fiber);
+  const sources = await getSourcesFromStack(
+    ownerStack,
+    Number.MAX_SAFE_INTEGER,
   );
+  if (!sources) return null;
+  return sources;
 };
 
-export const serializeStack = (stack: StackItem[]) => {
-  return stack
-    .map((item, index) => {
-      const fileName = item.fileName;
-      const componentName = item.displayName || item.componentName;
-      let result = `${componentName}${fileName ? ` (${fileName})` : ""}`;
-
-      if (index === 0 && item.source) {
-        result += `\n${item.source}`;
-      }
-
-      return result;
-    })
-    .join("\n");
+export const getSource = async (element: Element) => {
+  return getSourceFromHostInstance(element);
 };
 
 export const getHTMLSnippet = (element: Element) => {

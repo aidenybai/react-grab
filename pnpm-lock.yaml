@@ -70,8 +70,8 @@ importers:
   packages/react-grab:
     dependencies:
       bippy:
-        specifier: ^0.3.34
-        version: 0.3.34(@types/react@19.2.2)(react@19.2.0)
+        specifier: ^0.5.14
+        version: 0.5.14(@types/react@19.2.2)(react@19.2.0)
     devDependencies:
       eslint:
         specifier: ^9.37.0
@@ -1499,13 +1499,13 @@ packages:
     resolution: {integrity: sha512-pbnl5XzGBdrFU/wT4jqmJVPn2B6UHPBOhzMQkY/SPUPB6QtUXtmBHBIwCbXJol93mOpGMnQyP/+BB19q04xj7g==}
     engines: {node: '>=4'}
 
-  bippy@0.3.34:
-    resolution: {integrity: sha512-vmptmU/20UdIWHHhq7qCSHhHzK7Ro3YJ1utU0fBG7ujUc58LEfTtilKxcF0IOgSjT5XLcm7CBzDjbv4lcKApGQ==}
+  bippy@0.5.11:
+    resolution: {integrity: sha512-A2vkZ1YiHWww2/XwZNRAAXn7QVcN3IdfcGxQJMIFGo+4SqWC1U+bzohXF/cLrN1F595BSZyBQJ1LC8TCf1kvsw==}
     peerDependencies:
       react: '>=17.0.1'
 
-  bippy@0.5.11:
-    resolution: {integrity: sha512-A2vkZ1YiHWww2/XwZNRAAXn7QVcN3IdfcGxQJMIFGo+4SqWC1U+bzohXF/cLrN1F595BSZyBQJ1LC8TCf1kvsw==}
+  bippy@0.5.14:
+    resolution: {integrity: sha512-QrY2UHRFiIA8+2nkZfTLucGXhjshbkLnwGCCShQTO1FecJwDLHKOUBzOd1DArUsJnnomFZTggFRmj1Zxt4uamg==}
     peerDependencies:
       react: '>=17.0.1'
 
@@ -4378,17 +4378,17 @@ snapshots:
     dependencies:
       is-windows: 1.0.2
 
-  bippy@0.3.34(@types/react@19.2.2)(react@19.2.0):
-    dependencies:
-      '@types/react-reconciler': 0.28.9(@types/react@19.2.2)
-      react: 19.2.0
-    transitivePeerDependencies:
-      - '@types/react'
-
   bippy@0.5.11(@types/react@19.2.2)(react@19.1.0):
     dependencies:
       '@types/react-reconciler': 0.28.9(@types/react@19.2.2)
       react: 19.1.0
+    transitivePeerDependencies:
+      - '@types/react'
+
+  bippy@0.5.14(@types/react@19.2.2)(react@19.2.0):
+    dependencies:
+      '@types/react-reconciler': 0.28.9(@types/react@19.2.2)
+      react: 19.2.0
     transitivePeerDependencies:
       - '@types/react'
 
