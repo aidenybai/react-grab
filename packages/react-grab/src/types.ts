@@ -30,6 +30,7 @@ export interface ReactGrabRendererProps {
   progress?: number;
   mouseX?: number;
   mouseY?: number;
+  crosshairVisible?: boolean;
 }
 
 export interface GrabbedBox {

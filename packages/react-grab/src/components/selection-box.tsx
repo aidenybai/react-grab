@@ -3,7 +3,6 @@ import {
   createEffect,
   onCleanup,
   Show,
-  onMount,
   on,
 } from "solid-js";
 import type { JSX, Component } from "solid-js";
@@ -31,14 +30,6 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
   let animationFrameId: number | null = null;
   let targetBounds = props.bounds;
   let isAnimating = false;
-
-  onMount(() => {
-    if (props.variant === "grabbed") {
-      requestAnimationFrame(() => {
-        setOpacity(0);
-      });
-    }
-  });
 
   const lerpFactor = () => {
     if (props.lerpFactor !== undefined) return props.lerpFactor;

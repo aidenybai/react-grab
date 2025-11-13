@@ -50,26 +50,76 @@ export const Label: Component<LabelProps> = (props) => {
     const boundingRect = labelBoundingRect();
     if (!boundingRect) return { left: props.x, top: props.y };
 
-    const indicatorLeft = Math.round(props.x);
-    const indicatorTop = Math.round(props.y) - boundingRect.height - 6;
+    if (props.variant === "success") {
+      const indicatorLeft = Math.round(props.x);
+      const indicatorTop = Math.round(props.y) - boundingRect.height - 6;
 
-    const willClampLeft = indicatorLeft < VIEWPORT_MARGIN_PX;
-    const willClampTop = indicatorTop < VIEWPORT_MARGIN_PX;
-    const isClamped = willClampLeft || willClampTop;
+      const willClampLeft = indicatorLeft < VIEWPORT_MARGIN_PX;
+      const willClampTop = indicatorTop < VIEWPORT_MARGIN_PX;
+      const isClamped = willClampLeft || willClampTop;
 
-    const clamped = getClampedElementPosition(
-      indicatorLeft,
-      indicatorTop,
+      const clamped = getClampedElementPosition(
+        indicatorLeft,
+        indicatorTop,
+        boundingRect.width,
+        boundingRect.height,
+      );
+
+      if (isClamped) {
+        clamped.left += INDICATOR_CLAMP_PADDING_PX;
+        clamped.top += INDICATOR_CLAMP_PADDING_PX;
+      }
+
+      return clamped;
+    }
+
+    const CROSSHAIR_OFFSET = 12;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    const quadrants = [
+      {
+        left: Math.round(props.x) + CROSSHAIR_OFFSET,
+        top: Math.round(props.y) + CROSSHAIR_OFFSET,
+      },
+      {
+        left: Math.round(props.x) - boundingRect.width - CROSSHAIR_OFFSET,
+        top: Math.round(props.y) + CROSSHAIR_OFFSET,
+      },
+      {
+        left: Math.round(props.x) + CROSSHAIR_OFFSET,
+        top: Math.round(props.y) - boundingRect.height - CROSSHAIR_OFFSET,
+      },
+      {
+        left: Math.round(props.x) - boundingRect.width - CROSSHAIR_OFFSET,
+        top: Math.round(props.y) - boundingRect.height - CROSSHAIR_OFFSET,
+      },
+    ];
+
+    for (const position of quadrants) {
+      const fitsHorizontally =
+        position.left >= VIEWPORT_MARGIN_PX &&
+        position.left + boundingRect.width <= viewportWidth - VIEWPORT_MARGIN_PX;
+      const fitsVertically =
+        position.top >= VIEWPORT_MARGIN_PX &&
+        position.top + boundingRect.height <= viewportHeight - VIEWPORT_MARGIN_PX;
+
+      if (fitsHorizontally && fitsVertically) {
+        return position;
+      }
+    }
+
+    const fallback = getClampedElementPosition(
+      quadrants[0].left,
+      quadrants[0].top,
       boundingRect.width,
       boundingRect.height,
     );
 
-    if (isClamped) {
-      clamped.left += INDICATOR_CLAMP_PADDING_PX;
-      clamped.top += INDICATOR_CLAMP_PADDING_PX;
-    }
+    fallback.left += INDICATOR_CLAMP_PADDING_PX;
+    fallback.top += INDICATOR_CLAMP_PADDING_PX;
 
-    return clamped;
+    return fallback;
   };
 
   return (

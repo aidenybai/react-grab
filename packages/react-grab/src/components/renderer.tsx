@@ -4,6 +4,7 @@ import type { ReactGrabRendererProps } from "../types.js";
 import { SelectionBox } from "./selection-box.js";
 import { Label } from "./label.js";
 import { ProgressIndicator } from "./progress-indicator.js";
+import { Crosshair } from "./crosshair.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
   return (
@@ -13,6 +14,20 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           variant="selection"
           bounds={props.selectionBounds!}
           visible={props.selectionVisible}
+        />
+      </Show>
+
+      <Show
+        when={
+          props.crosshairVisible === true &&
+          props.mouseX !== undefined &&
+          props.mouseY !== undefined
+        }
+      >
+        <Crosshair
+          mouseX={props.mouseX!}
+          mouseY={props.mouseY!}
+          visible={true}
         />
       </Show>
 

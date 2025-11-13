@@ -26,7 +26,6 @@ import type {
   SourceTrace,
 } from "./types.js";
 
-const GRABBED_BOX_DURATION_MS = 300;
 const SUCCESS_LABEL_DURATION_MS = 1700;
 const PROGRESS_INDICATOR_DELAY_MS = 150;
 
@@ -64,6 +63,8 @@ export const init = (rawOptions?: Options) => {
     const [isActivated, setIsActivated] = createSignal(false);
     const [showProgressIndicator, setShowProgressIndicator] =
       createSignal(false);
+    const [grabMouseX, setGrabMouseX] = createSignal<number | null>(null);
+    const [grabMouseY, setGrabMouseY] = createSignal<number | null>(null);
 
     let holdTimerId: number | null = null;
     let progressAnimationId: number | null = null;
@@ -83,11 +84,6 @@ export const init = (rawOptions?: Options) => {
       const newBox: GrabbedBox = { id: boxId, bounds };
       const currentBoxes: GrabbedBox[] = grabbedBoxes();
       setGrabbedBoxes([...currentBoxes, newBox]);
-
-      setTimeout(() => {
-        const currentBoxes: GrabbedBox[] = grabbedBoxes();
-        setGrabbedBoxes(currentBoxes.filter((box: GrabbedBox) => box.id !== boxId));
-      }, GRABBED_BOX_DURATION_MS);
     };
 
     const addSuccessLabel = (
@@ -139,6 +135,8 @@ export const init = (rawOptions?: Options) => {
       const elementBounds = targetElement.getBoundingClientRect();
       const tagName = getElementTagName(targetElement);
 
+      setGrabMouseX(mouseX());
+      setGrabMouseY(mouseY());
       addGrabbedBox(createElementBounds(targetElement));
 
       try {
@@ -158,6 +156,9 @@ export const init = (rawOptions?: Options) => {
 
       let minPositionX = Infinity;
       let minPositionY = Infinity;
+
+      setGrabMouseX(mouseX());
+      setGrabMouseY(mouseY());
 
       for (const element of targetElements) {
         const elementBounds = element.getBoundingClientRect();
@@ -259,11 +260,6 @@ export const init = (rawOptions?: Options) => {
     });
 
     const labelPosition = createMemo(() => {
-      const element = targetElement() ?? lastGrabbedElement();
-      if (element) {
-        const boundingRect = element.getBoundingClientRect();
-        return { x: boundingRect.left, y: boundingRect.top };
-      }
       return { x: mouseX(), y: mouseY() };
     });
 
@@ -279,6 +275,26 @@ export const init = (rawOptions?: Options) => {
         ([currentElement, lastElement]) => {
           if (lastElement && currentElement && lastElement !== currentElement) {
             setLastGrabbedElement(null);
+          }
+        },
+      ),
+    );
+
+    createEffect(
+      on(
+        () => [mouseX(), mouseY(), grabMouseX(), grabMouseY()] as const,
+        ([currentMouseX, currentMouseY, initialGrabMouseX, initialGrabMouseY]) => {
+          if (initialGrabMouseX === null || initialGrabMouseY === null) return;
+          if (grabbedBoxes().length === 0) return;
+
+          const MOUSE_MOVE_THRESHOLD_PX = 5;
+          const distanceX = Math.abs(currentMouseX - initialGrabMouseX);
+          const distanceY = Math.abs(currentMouseY - initialGrabMouseY);
+
+          if (distanceX > MOUSE_MOVE_THRESHOLD_PX || distanceY > MOUSE_MOVE_THRESHOLD_PX) {
+            setGrabbedBoxes([]);
+            setGrabMouseX(null);
+            setGrabMouseY(null);
           }
         },
       ),
@@ -330,6 +346,7 @@ export const init = (rawOptions?: Options) => {
     const activateRenderer = () => {
       stopProgressAnimation();
       setIsActivated(true);
+      document.body.style.cursor = "crosshair";
     };
 
     const abortController = new AbortController();
@@ -341,10 +358,10 @@ export const init = (rawOptions?: Options) => {
         if (event.key === "Escape" && isHoldingKeys()) {
           setIsHoldingKeys(false);
           setIsActivated(false);
+          document.body.style.cursor = "";
           if (isDragging()) {
             setIsDragging(false);
             document.body.style.userSelect = "";
-            document.body.style.cursor = "";
           }
           if (holdTimerId) window.clearTimeout(holdTimerId);
           stopProgressAnimation();
@@ -374,6 +391,7 @@ export const init = (rawOptions?: Options) => {
         ) {
           setIsHoldingKeys(false);
           setIsActivated(false);
+          document.body.style.cursor = "";
           if (holdTimerId) window.clearTimeout(holdTimerId);
           stopProgressAnimation();
         }
@@ -400,7 +418,6 @@ export const init = (rawOptions?: Options) => {
         setDragStartX(event.clientX);
         setDragStartY(event.clientY);
         document.body.style.userSelect = "none";
-        document.body.style.cursor = "crosshair";
       },
       { signal: eventListenerSignal },
     );
@@ -418,7 +435,6 @@ export const init = (rawOptions?: Options) => {
 
         setIsDragging(false);
         document.body.style.userSelect = "";
-        document.body.style.cursor = "";
 
         if (wasDragGesture) {
           const dragRect = getDragRect(event.clientX, event.clientY);
@@ -479,7 +495,7 @@ export const init = (rawOptions?: Options) => {
     const rendererRoot = mountRoot();
 
     const selectionVisible = createMemo(
-      () => isRendererActive() && !isDragging() && !!selectionBounds(),
+      () => false,
     );
 
     const dragVisible = createMemo(
@@ -504,6 +520,10 @@ export const init = (rawOptions?: Options) => {
         isHoldingKeys() && showProgressIndicator() && hasValidMousePosition(),
     );
 
+    const crosshairVisible = createMemo(
+      () => isRendererActive() && !isDragging(),
+    );
+
     render(
       () => (
         <ReactGrabRenderer
@@ -522,6 +542,7 @@ export const init = (rawOptions?: Options) => {
           progress={progress()}
           mouseX={mouseX()}
           mouseY={mouseY()}
+          crosshairVisible={crosshairVisible()}
         />
       ),
       rendererRoot,
