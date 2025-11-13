@@ -1,6 +1,22 @@
+// both the modern Clipboard API and document.execCommand('copy') require the document to have focus.
+// this function attempts to focus the window and waits for the focus event before proceeding.
+const waitForFocus = (): Promise<void> => {
+  if (document.hasFocus()) return Promise.resolve();
+  return new Promise((resolve) => {
+    const onFocus = () => {
+      window.removeEventListener("focus", onFocus);
+      resolve();
+    };
+    window.addEventListener("focus", onFocus);
+    window.focus();
+  });
+};
+
 export const copyContent = async (
   content: string | Blob | Array<string | Blob>,
 ): Promise<boolean> => {
+  await waitForFocus();
+
   try {
     if (Array.isArray(content)) {
       if (!navigator?.clipboard?.write) {

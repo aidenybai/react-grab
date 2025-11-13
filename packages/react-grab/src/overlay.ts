@@ -35,6 +35,7 @@ const lerp = (start: number, end: number, factor: number) => {
 };
 
 const SELECTION_LERP_FACTOR = 0.95;
+const MARQUEE_LERP_FACTOR = 0.9;
 
 const createSelectionElement = ({
   borderRadius,
@@ -99,7 +100,7 @@ const updateSelectionElement = (
   }
 };
 
-export const createSelectionOverlay = (root: HTMLElement, onSelectionClick?: () => void) => {
+export const createSelectionOverlay = (root: HTMLElement) => {
   const element = createSelectionElement({
     borderRadius: "0px",
     height: 0,
@@ -112,20 +113,6 @@ export const createSelectionOverlay = (root: HTMLElement, onSelectionClick?: () 
 
   let visible = false;
   let hasBeenShown = false;
-
-  element.addEventListener(
-    "mousedown",
-    (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation();
-
-      if (onSelectionClick) {
-        onSelectionClick();
-      }
-    },
-    true,
-  );
 
   return {
     element,
@@ -535,4 +522,92 @@ export const hideProgressIndicator = () => {
       }
     }, 100);
   }
+};
+
+export interface MarqueeRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface MarqueeOverlay {
+  element: HTMLDivElement;
+  hide: () => void;
+  isVisible: () => boolean;
+  show: () => void;
+  update: (rect: MarqueeRect) => void;
+}
+
+export const createMarqueeOverlay = (root: HTMLElement): MarqueeOverlay => {
+  const fullScreenLayer = document.createElement("div");
+  fullScreenLayer.style.position = "fixed";
+  fullScreenLayer.style.top = "0";
+  fullScreenLayer.style.left = "0";
+  fullScreenLayer.style.width = "100vw";
+  fullScreenLayer.style.height = "100vh";
+  fullScreenLayer.style.zIndex = "2147483647";
+  fullScreenLayer.style.pointerEvents = "auto";
+  fullScreenLayer.style.cursor = "crosshair";
+  fullScreenLayer.style.userSelect = "none";
+  fullScreenLayer.style.display = "none";
+
+  const marqueeRect = document.createElement("div");
+  marqueeRect.style.position = "fixed";
+  marqueeRect.style.border = "1px dashed rgb(210, 57, 192)";
+  marqueeRect.style.backgroundColor = "rgba(210, 57, 192, 0.1)";
+  marqueeRect.style.pointerEvents = "none";
+  marqueeRect.style.boxSizing = "border-box";
+  marqueeRect.style.display = "none";
+  marqueeRect.style.willChange = "transform, width, height";
+  marqueeRect.style.contain = "layout paint size";
+  marqueeRect.style.transform = "translate3d(0, 0, 0)";
+
+  fullScreenLayer.appendChild(marqueeRect);
+  root.appendChild(fullScreenLayer);
+
+  let visible = false;
+  let hasCurrentRect = false;
+  let currentX = 0;
+  let currentY = 0;
+  let currentWidth = 0;
+  let currentHeight = 0;
+
+  return {
+    element: fullScreenLayer,
+    hide: () => {
+      visible = false;
+      fullScreenLayer.style.display = "none";
+      marqueeRect.style.display = "none";
+      hasCurrentRect = false;
+    },
+    isVisible: () => visible,
+    show: () => {
+      visible = true;
+      fullScreenLayer.style.display = "block";
+    },
+    update: (rect: MarqueeRect) => {
+      marqueeRect.style.display = "block";
+      if (!hasCurrentRect) {
+        currentX = rect.x;
+        currentY = rect.y;
+        currentWidth = rect.width;
+        currentHeight = rect.height;
+        marqueeRect.style.width = `${currentWidth}px`;
+        marqueeRect.style.height = `${currentHeight}px`;
+        marqueeRect.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+        hasCurrentRect = true;
+        return;
+      }
+
+      currentX = lerp(currentX, rect.x, MARQUEE_LERP_FACTOR);
+      currentY = lerp(currentY, rect.y, MARQUEE_LERP_FACTOR);
+      currentWidth = lerp(currentWidth, rect.width, MARQUEE_LERP_FACTOR);
+      currentHeight = lerp(currentHeight, rect.height, MARQUEE_LERP_FACTOR);
+
+      marqueeRect.style.width = `${currentWidth}px`;
+      marqueeRect.style.height = `${currentHeight}px`;
+      marqueeRect.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+    },
+  };
 };
