@@ -9,24 +9,24 @@ import {
 import { render } from "solid-js/web";
 import { isKeyboardEventTriggeredByInput } from "./utils/is-keyboard-event-triggered-by-input.js";
 import { mountRoot } from "./utils/mount-root.js";
-import { ReactGrabController } from "./overlay.js";
+import { ReactGrabRenderer } from "./components/renderer.js";
 import { getHTMLSnippet, getSourceTrace } from "./instrumentation.js";
 import { copyContent } from "./utils/copy-content.js";
 import { getElementAtPosition } from "./utils/get-element-at-position.js";
 import { isValidGrabbableElement } from "./utils/is-valid-grabbable-element.js";
 import {
-  getElementsInMarquee,
-  getElementsInMarqueeLoose,
-} from "./utils/get-elements-in-marquee.js";
+  getElementsInDrag,
+  getElementsInDragLoose,
+} from "./utils/get-elements-in-drag.js";
 import { createElementBounds } from "./utils/create-element-bounds.js";
 import type {
   Options,
   OverlayBounds,
-  GrabbedOverlay,
+  GrabbedBox,
   SourceTrace,
 } from "./types.js";
 
-const GRABBED_OVERLAY_DURATION_MS = 300;
+const GRABBED_BOX_DURATION_MS = 300;
 const SUCCESS_LABEL_DURATION_MS = 1700;
 const PROGRESS_INDICATOR_DELAY_MS = 150;
 
@@ -57,9 +57,7 @@ export const init = (rawOptions?: Options) => {
       number | null
     >(null);
     const [progressTick, setProgressTick] = createSignal(0);
-    const [grabbedOverlays, setGrabbedOverlays] = createSignal<
-      GrabbedOverlay[]
-    >([]);
+    const [grabbedBoxes, setGrabbedBoxes] = createSignal<GrabbedBox[]>([]);
     const [successLabels, setSuccessLabels] = createSignal<
       Array<{ id: string; text: string; x: number; y: number }>
     >([]);
@@ -71,7 +69,7 @@ export const init = (rawOptions?: Options) => {
     let progressAnimationId: number | null = null;
     let progressDelayTimerId: number | null = null;
 
-    const isOverlayActive = createMemo(() => isActivated() && !isCopying());
+    const isRendererActive = createMemo(() => isActivated() && !isCopying());
 
     const hasValidMousePosition = createMemo(
       () => mouseX() > OFFSCREEN_POSITION && mouseY() > OFFSCREEN_POSITION,
@@ -80,18 +78,16 @@ export const init = (rawOptions?: Options) => {
     const isTargetKeyCombination = (event: KeyboardEvent) =>
       (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "c";
 
-    const addGrabbedOverlay = (bounds: OverlayBounds) => {
-      const overlayId = `grabbed-${Date.now()}-${Math.random()}`;
-      setGrabbedOverlays((previousOverlays) => [
-        ...previousOverlays,
-        { id: overlayId, bounds },
-      ]);
+    const addGrabbedBox = (bounds: OverlayBounds) => {
+      const boxId = `grabbed-${Date.now()}-${Math.random()}`;
+      const newBox: GrabbedBox = { id: boxId, bounds };
+      const currentBoxes: GrabbedBox[] = grabbedBoxes();
+      setGrabbedBoxes([...currentBoxes, newBox]);
 
       setTimeout(() => {
-        setGrabbedOverlays((previousOverlays) =>
-          previousOverlays.filter((overlay) => overlay.id !== overlayId),
-        );
-      }, GRABBED_OVERLAY_DURATION_MS);
+        const currentBoxes: GrabbedBox[] = grabbedBoxes();
+        setGrabbedBoxes(currentBoxes.filter((box: GrabbedBox) => box.id !== boxId));
+      }, GRABBED_BOX_DURATION_MS);
     };
 
     const addSuccessLabel = (
@@ -143,7 +139,7 @@ export const init = (rawOptions?: Options) => {
       const elementBounds = targetElement.getBoundingClientRect();
       const tagName = getElementTagName(targetElement);
 
-      addGrabbedOverlay(createElementBounds(targetElement));
+      addGrabbedBox(createElementBounds(targetElement));
 
       try {
         const content = await getElementContentWithTrace(targetElement);
@@ -168,7 +164,7 @@ export const init = (rawOptions?: Options) => {
         minPositionX = Math.min(minPositionX, elementBounds.left);
         minPositionY = Math.min(minPositionY, elementBounds.top);
 
-        addGrabbedOverlay(createElementBounds(element));
+        addGrabbedBox(createElementBounds(element));
       }
 
       try {
@@ -188,16 +184,13 @@ export const init = (rawOptions?: Options) => {
     };
 
     const targetElement = createMemo(() => {
-      if (!isOverlayActive() || isDragging()) return null;
+      if (!isRendererActive() || isDragging()) return null;
       return getElementAtPosition(mouseX(), mouseY());
     });
 
     const selectionBounds = createMemo((): OverlayBounds | undefined => {
       const element = targetElement();
       if (!element) return undefined;
-
-      const last = lastGrabbedElement();
-      if (last && element === last) return undefined;
 
       const elementBounds = element.getBoundingClientRect();
       const computedStyle = window.getComputedStyle(element);
@@ -225,37 +218,36 @@ export const init = (rawOptions?: Options) => {
       const dragDistance = getDragDistance(mouseX(), mouseY());
 
       return (
-        dragDistance.x > DRAG_THRESHOLD_PX ||
-        dragDistance.y > DRAG_THRESHOLD_PX
+        dragDistance.x > DRAG_THRESHOLD_PX || dragDistance.y > DRAG_THRESHOLD_PX
       );
     });
 
-    const getMarqueeRect = (endX: number, endY: number) => {
-      const marqueeX = Math.min(dragStartX(), endX);
-      const marqueeY = Math.min(dragStartY(), endY);
-      const marqueeWidth = Math.abs(endX - dragStartX());
-      const marqueeHeight = Math.abs(endY - dragStartY());
+    const getDragRect = (endX: number, endY: number) => {
+      const dragX = Math.min(dragStartX(), endX);
+      const dragY = Math.min(dragStartY(), endY);
+      const dragWidth = Math.abs(endX - dragStartX());
+      const dragHeight = Math.abs(endY - dragStartY());
 
       return {
-        x: marqueeX,
-        y: marqueeY,
-        width: marqueeWidth,
-        height: marqueeHeight,
+        x: dragX,
+        y: dragY,
+        width: dragWidth,
+        height: dragHeight,
       };
     };
 
-    const marqueeBounds = createMemo((): OverlayBounds | undefined => {
+    const dragBounds = createMemo((): OverlayBounds | undefined => {
       if (!isDraggingBeyondThreshold()) return undefined;
 
-      const marquee = getMarqueeRect(mouseX(), mouseY());
+      const drag = getDragRect(mouseX(), mouseY());
 
       return {
         borderRadius: "0px",
-        height: marquee.height,
+        height: drag.height,
         transform: "none",
-        width: marquee.width,
-        x: marquee.x,
-        y: marquee.y,
+        width: drag.width,
+        x: drag.x,
+        y: drag.y,
       };
     });
 
@@ -335,7 +327,7 @@ export const init = (rawOptions?: Options) => {
       setShowProgressIndicator(false);
     };
 
-    const activateOverlay = () => {
+    const activateRenderer = () => {
       stopProgressAnimation();
       setIsActivated(true);
     };
@@ -365,7 +357,7 @@ export const init = (rawOptions?: Options) => {
           setIsHoldingKeys(true);
           startProgressAnimation();
           holdTimerId = window.setTimeout(() => {
-            activateOverlay();
+            activateRenderer();
             options.onActivate?.();
           }, options.keyHoldDuration);
         }
@@ -401,7 +393,7 @@ export const init = (rawOptions?: Options) => {
     window.addEventListener(
       "mousedown",
       (event: MouseEvent) => {
-        if (!isOverlayActive() || isCopying()) return;
+        if (!isRendererActive() || isCopying()) return;
 
         event.preventDefault();
         setIsDragging(true);
@@ -429,12 +421,9 @@ export const init = (rawOptions?: Options) => {
         document.body.style.cursor = "";
 
         if (wasDragGesture) {
-          const marqueeRect = getMarqueeRect(event.clientX, event.clientY);
+          const dragRect = getDragRect(event.clientX, event.clientY);
 
-          const elements = getElementsInMarquee(
-            marqueeRect,
-            isValidGrabbableElement,
-          );
+          const elements = getElementsInDrag(dragRect, isValidGrabbableElement);
 
           if (elements.length > 0) {
             setIsCopying(true);
@@ -442,8 +431,8 @@ export const init = (rawOptions?: Options) => {
               setIsCopying(false);
             });
           } else {
-            const fallbackElements = getElementsInMarqueeLoose(
-              marqueeRect,
+            const fallbackElements = getElementsInDragLoose(
+              dragRect,
               isValidGrabbableElement,
             );
 
@@ -473,7 +462,7 @@ export const init = (rawOptions?: Options) => {
       "visibilitychange",
       () => {
         if (document.hidden) {
-          setGrabbedOverlays([]);
+          setGrabbedBoxes([]);
         }
       },
       { signal: eventListenerSignal },
@@ -487,14 +476,14 @@ export const init = (rawOptions?: Options) => {
       document.body.style.cursor = "";
     });
 
-    const overlayRoot = mountRoot();
+    const rendererRoot = mountRoot();
 
     const selectionVisible = createMemo(
-      () => isOverlayActive() && !isDragging() && !!selectionBounds(),
+      () => isRendererActive() && !isDragging() && !!selectionBounds(),
     );
 
-    const marqueeVisible = createMemo(
-      () => isOverlayActive() && isDraggingBeyondThreshold(),
+    const dragVisible = createMemo(
+      () => isRendererActive() && isDraggingBeyondThreshold(),
     );
 
     const labelVariant = createMemo(() =>
@@ -503,7 +492,7 @@ export const init = (rawOptions?: Options) => {
 
     const labelVisible = createMemo(
       () =>
-        (isOverlayActive() &&
+        (isRendererActive() &&
           !isDragging() &&
           !!targetElement() &&
           !isSameAsLast()) ||
@@ -511,17 +500,18 @@ export const init = (rawOptions?: Options) => {
     );
 
     const progressVisible = createMemo(
-      () => isHoldingKeys() && showProgressIndicator() && hasValidMousePosition(),
+      () =>
+        isHoldingKeys() && showProgressIndicator() && hasValidMousePosition(),
     );
 
     render(
       () => (
-        <ReactGrabController
+        <ReactGrabRenderer
           selectionVisible={selectionVisible()}
           selectionBounds={selectionBounds()}
-          marqueeVisible={marqueeVisible()}
-          marqueeBounds={marqueeBounds()}
-          grabbedOverlays={grabbedOverlays()}
+          dragVisible={dragVisible()}
+          dragBounds={dragBounds()}
+          grabbedBoxes={grabbedBoxes()}
           successLabels={successLabels()}
           labelVariant={labelVariant()}
           labelText={labelText()}
@@ -534,7 +524,7 @@ export const init = (rawOptions?: Options) => {
           mouseY={mouseY()}
         />
       ),
-      overlayRoot,
+      rendererRoot,
     );
 
     return dispose;

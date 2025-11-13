@@ -1,4 +1,4 @@
-import { VIEWPORT_MARGIN_PX } from "../components/overlay-constants.js";
+import { VIEWPORT_MARGIN_PX } from "../constants.js";
 
 export const getClampedElementPosition = (
   positionLeft: number,
@@ -19,4 +19,3 @@ export const getClampedElementPosition = (
 
   return { left: clampedLeft, top: clampedTop };
 };
-

@@ -1,37 +1,32 @@
 import { Show, For } from "solid-js";
 import type { Component } from "solid-js";
-import type { ReactGrabControllerProps } from "./types.js";
-import { Overlay } from "./components/overlay.js";
-import { Label } from "./components/label.js";
-import { ProgressIndicator } from "./components/progress-indicator.js";
-import {
-  SELECTION_LERP_FACTOR,
-} from "./components/overlay-constants.js";
+import type { ReactGrabRendererProps } from "../types.js";
+import { SelectionBox } from "./selection-box.js";
+import { Label } from "./label.js";
+import { ProgressIndicator } from "./progress-indicator.js";
 
-export const ReactGrabController: Component<ReactGrabControllerProps> = (props) => {
+export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
   return (
     <>
       <Show when={props.selectionVisible && props.selectionBounds}>
-        <Overlay
+        <SelectionBox
           variant="selection"
           bounds={props.selectionBounds!}
           visible={props.selectionVisible}
-          lerpFactor={SELECTION_LERP_FACTOR}
         />
       </Show>
 
-      <Show when={props.marqueeVisible && props.marqueeBounds}>
-        <Overlay
-          variant="marquee"
-          bounds={props.marqueeBounds!}
-          visible={props.marqueeVisible}
-          lerpFactor={0.9}
+      <Show when={props.dragVisible && props.dragBounds}>
+        <SelectionBox
+          variant="drag"
+          bounds={props.dragBounds!}
+          visible={props.dragVisible}
         />
       </Show>
 
-      <For each={props.grabbedOverlays ?? []}>
-        {(overlay) => (
-          <Overlay variant="grabbed" bounds={overlay.bounds} visible={true} />
+      <For each={props.grabbedBoxes ?? []}>
+        {(box) => (
+          <SelectionBox variant="grabbed" bounds={box.bounds} />
         )}
       </For>
 
@@ -42,8 +37,6 @@ export const ReactGrabController: Component<ReactGrabControllerProps> = (props) 
             text={label.text}
             x={label.x}
             y={label.y}
-            visible={true}
-            zIndex={2147483648}
           />
         )}
       </For>

@@ -1,6 +1,6 @@
 import { init } from "./core.js";
 
 export { init };
-export type { Options, OverlayBounds, ReactGrabControllerProps as ReactGrabOverlayProps } from "./types.js";
+export type { Options, OverlayBounds, ReactGrabRendererProps } from "./types.js";
 
 init();

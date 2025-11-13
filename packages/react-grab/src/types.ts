@@ -13,12 +13,12 @@ export interface OverlayBounds {
   y: number;
 }
 
-export interface ReactGrabControllerProps {
+export interface ReactGrabRendererProps {
   selectionVisible?: boolean;
   selectionBounds?: OverlayBounds;
-  marqueeVisible?: boolean;
-  marqueeBounds?: OverlayBounds;
-  grabbedOverlays?: Array<{ id: string; bounds: OverlayBounds }>;
+  dragVisible?: boolean;
+  dragBounds?: OverlayBounds;
+  grabbedBoxes?: Array<{ id: string; bounds: OverlayBounds }>;
   successLabels?: Array<{ id: string; text: string; x: number; y: number }>;
   labelVariant?: "hover" | "processing" | "success";
   labelText?: string;
@@ -32,7 +32,7 @@ export interface ReactGrabControllerProps {
   mouseY?: number;
 }
 
-export interface GrabbedOverlay {
+export interface GrabbedBox {
   id: string;
   bounds: OverlayBounds;
 }

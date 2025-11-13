@@ -10,17 +10,17 @@ import type { JSX, Component } from "solid-js";
 import type { OverlayBounds } from "../types.js";
 import {
   SELECTION_LERP_FACTOR,
-} from "./overlay-constants.js";
+} from "../constants.js";
 import { lerp } from "../utils/lerp.js";
 
-interface OverlayProps {
-  variant: "selection" | "grabbed" | "marquee";
+interface SelectionBoxProps {
+  variant: "selection" | "grabbed" | "drag";
   bounds: OverlayBounds;
   visible?: boolean;
   lerpFactor?: number;
 }
 
-export const Overlay: Component<OverlayProps> = (props) => {
+export const SelectionBox: Component<SelectionBoxProps> = (props) => {
   const [currentX, setCurrentX] = createSignal(props.bounds.x);
   const [currentY, setCurrentY] = createSignal(props.bounds.y);
   const [currentWidth, setCurrentWidth] = createSignal(props.bounds.width);
@@ -40,7 +40,11 @@ export const Overlay: Component<OverlayProps> = (props) => {
     }
   });
 
-  const lerpFactor = () => props.lerpFactor ?? SELECTION_LERP_FACTOR;
+  const lerpFactor = () => {
+    if (props.lerpFactor !== undefined) return props.lerpFactor;
+    if (props.variant === "drag") return 0.9;
+    return SELECTION_LERP_FACTOR;
+  };
 
   const startAnimation = () => {
     if (isAnimating) return;
@@ -113,12 +117,12 @@ export const Overlay: Component<OverlayProps> = (props) => {
   const baseStyle: JSX.CSSProperties = {
     position: "fixed",
     "box-sizing": "border-box",
-    "pointer-events": props.variant === "marquee" ? "none" : "auto",
+    "pointer-events": props.variant === "drag" ? "none" : "auto",
     "z-index": "2147483646",
   };
 
   const variantStyle = (): JSX.CSSProperties => {
-    if (props.variant === "marquee") {
+    if (props.variant === "drag") {
       return {
         border: "1px dashed rgb(210, 57, 192)",
         "background-color": "rgba(210, 57, 192, 0.15)",

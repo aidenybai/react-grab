@@ -4,7 +4,7 @@ import { Spinner } from "./spinner.js";
 import {
   VIEWPORT_MARGIN_PX,
   INDICATOR_CLAMP_PADDING_PX,
-} from "./overlay-constants.js";
+} from "../constants.js";
 import { getClampedElementPosition } from "../utils/get-clamped-element-position.js";
 
 interface LabelProps {
@@ -51,8 +51,7 @@ export const Label: Component<LabelProps> = (props) => {
     if (!boundingRect) return { left: props.x, top: props.y };
 
     const indicatorLeft = Math.round(props.x);
-    const indicatorTop =
-      Math.round(props.y) - boundingRect.height - 6;
+    const indicatorTop = Math.round(props.y) - boundingRect.height - 6;
 
     const willClampLeft = indicatorLeft < VIEWPORT_MARGIN_PX;
     const willClampTop = indicatorTop < VIEWPORT_MARGIN_PX;
@@ -117,7 +116,9 @@ export const Label: Component<LabelProps> = (props) => {
             ✓
           </span>
         </Show>
-        <Show when={props.variant === "success"}>Grabbed </Show>
+        <Show when={props.variant === "success"}>
+          <div style={{ "margin-right": "4px" }}>Grabbed</div>
+        </Show>
         <Show when={props.variant === "processing"}>Grabbing…</Show>
         <span
           style={{

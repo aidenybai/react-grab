@@ -1,24 +1,24 @@
-const MARQUEE_COVERAGE_THRESHOLD = 0.75;
+const DRAG_COVERAGE_THRESHOLD = 0.75;
 
-interface MarqueeRect {
+interface DragRect {
   x: number;
   y: number;
   width: number;
   height: number;
 }
 
-const filterElementsInMarquee = (
-  marqueeRect: MarqueeRect,
+const filterElementsInDrag = (
+  dragRect: DragRect,
   isValidGrabbableElement: (element: Element) => boolean,
   shouldCheckCoverage: boolean,
 ): Element[] => {
   const elements: Element[] = [];
   const allElements = Array.from(document.querySelectorAll("*"));
 
-  const marqueeLeft = marqueeRect.x;
-  const marqueeTop = marqueeRect.y;
-  const marqueeRight = marqueeRect.x + marqueeRect.width;
-  const marqueeBottom = marqueeRect.y + marqueeRect.height;
+  const dragLeft = dragRect.x;
+  const dragTop = dragRect.y;
+  const dragRight = dragRect.x + dragRect.width;
+  const dragBottom = dragRect.y + dragRect.height;
 
   for (const candidateElement of allElements) {
     if (!shouldCheckCoverage) {
@@ -37,10 +37,10 @@ const filterElementsInMarquee = (
     const elementBottom = elementRect.top + elementRect.height;
 
     if (shouldCheckCoverage) {
-      const intersectionLeft = Math.max(marqueeLeft, elementLeft);
-      const intersectionTop = Math.max(marqueeTop, elementTop);
-      const intersectionRight = Math.min(marqueeRight, elementRight);
-      const intersectionBottom = Math.min(marqueeBottom, elementBottom);
+      const intersectionLeft = Math.max(dragLeft, elementLeft);
+      const intersectionTop = Math.max(dragTop, elementTop);
+      const intersectionRight = Math.min(dragRight, elementRight);
+      const intersectionBottom = Math.min(dragBottom, elementBottom);
 
       const intersectionWidth = Math.max(0, intersectionRight - intersectionLeft);
       const intersectionHeight = Math.max(0, intersectionBottom - intersectionTop);
@@ -49,17 +49,17 @@ const filterElementsInMarquee = (
       const elementArea = Math.max(0, elementRect.width * elementRect.height);
       const hasMajorityCoverage =
         elementArea > 0 &&
-        intersectionArea / elementArea >= MARQUEE_COVERAGE_THRESHOLD;
+        intersectionArea / elementArea >= DRAG_COVERAGE_THRESHOLD;
 
       if (hasMajorityCoverage) {
         elements.push(candidateElement);
       }
     } else {
       const hasIntersection =
-        elementLeft < marqueeRight &&
-        elementRight > marqueeLeft &&
-        elementTop < marqueeBottom &&
-        elementBottom > marqueeTop;
+        elementLeft < dragRight &&
+        elementRight > dragLeft &&
+        elementTop < dragBottom &&
+        elementBottom > dragTop;
 
       if (hasIntersection) {
         elements.push(candidateElement);
@@ -70,16 +70,16 @@ const filterElementsInMarquee = (
   return elements;
 };
 
-export const getElementsInMarquee = (
-  marqueeRect: MarqueeRect,
+export const getElementsInDrag = (
+  dragRect: DragRect,
   isValidGrabbableElement: (element: Element) => boolean,
 ): Element[] => {
-  return filterElementsInMarquee(marqueeRect, isValidGrabbableElement, true);
+  return filterElementsInDrag(dragRect, isValidGrabbableElement, true);
 };
 
-export const getElementsInMarqueeLoose = (
-  marqueeRect: MarqueeRect,
+export const getElementsInDragLoose = (
+  dragRect: DragRect,
   isValidGrabbableElement: (element: Element) => boolean,
 ): Element[] => {
-  return filterElementsInMarquee(marqueeRect, isValidGrabbableElement, false);
+  return filterElementsInDrag(dragRect, isValidGrabbableElement, false);
 };

@@ -3,7 +3,7 @@ import type { Component } from "solid-js";
 import {
   VIEWPORT_MARGIN_PX,
   CURSOR_OFFSET_PX,
-} from "./overlay-constants.js";
+} from "../constants.js";
 import { getClampedElementPosition } from "../utils/get-clamped-element-position.js";
 
 interface ProgressIndicatorProps {
