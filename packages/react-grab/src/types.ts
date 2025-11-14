@@ -39,7 +39,7 @@ export interface GrabbedBox {
   createdAt: number;
 }
 
-export interface SourceTrace {
+interface SourceTrace {
   functionName?: string;
   fileName?: string;
   lineNumber?: number;

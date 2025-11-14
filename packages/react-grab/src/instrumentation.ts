@@ -7,8 +7,6 @@ import {
   traverseFiber,
 } from "bippy";
 import {
-  getOwnerStack,
-  getSourcesFromStack,
   getSourceFromHostInstance,
   isSourceFile,
   normalizeFileName,
@@ -21,36 +19,16 @@ instrument({
   },
 });
 
-export const getSourceTrace = async (element: Element) => {
-  const fiber = getFiberFromHostInstance(element);
-  if (!fiber) return null;
-  const ownerStack = getOwnerStack(fiber);
-  const sources = await getSourcesFromStack(
-    ownerStack,
-    Number.MAX_SAFE_INTEGER,
-  );
-  if (!sources) return null;
-  return sources
-    .map((source) => {
-      return {
-        ...source,
-        fileName: normalizeFileName(source.fileName),
-      };
-    })
-    .filter((source) => {
-      return isSourceFile(source.fileName);
-    });
-};
-
-export const getSource = async (element: Element) => {
-  return getSourceFromHostInstance(element);
-};
-
-export const getSelector = (element: Element) => {
+const generateCSSSelector = (element: Element) => {
   return finder(element);
 };
 
 export const getHTMLSnippet = async (element: Element) => {
+  const truncateString = (string: string, maxLength: number) =>
+    string.length > maxLength
+      ? `${string.substring(0, maxLength)}...`
+      : string;
+
   const isInternalComponent = (name: string): boolean => {
     if (name.startsWith("_")) return true;
     if (name.includes("Provider") && name.includes("Context")) return true;
@@ -58,7 +36,7 @@ export const getHTMLSnippet = async (element: Element) => {
     return false;
   };
 
-  const getComponentName = (el: Element): string | null => {
+  const extractReactComponentName = (el: Element): string | null => {
     const fiber = getFiberFromHostInstance(el);
     if (!fiber) return null;
 
@@ -81,7 +59,9 @@ export const getHTMLSnippet = async (element: Element) => {
     return componentName;
   };
 
-  const getComponentSource = async (el: Element): Promise<string | null> => {
+  const formatComponentSourceLocation = async (
+    el: Element,
+  ): Promise<string | null> => {
     const source = await getSourceFromHostInstance(el);
     if (!source) return null;
     const fileName = normalizeFileName(source.fileName);
@@ -113,7 +93,10 @@ export const getHTMLSnippet = async (element: Element) => {
     );
   };
 
-  const getAncestorChain = (el: Element, maxDepth: number = 10): Element[] => {
+  const collectDistinguishingAncestors = (
+    el: Element,
+    maxDepth: number = 10,
+  ): Element[] => {
     const ancestors: Element[] = [];
     let current = el.parentElement;
     let depth = 0;
@@ -130,7 +113,10 @@ export const getHTMLSnippet = async (element: Element) => {
     return ancestors.reverse();
   };
 
-  const getElementTag = (el: Element, compact: boolean = false): string => {
+  const formatElementOpeningTag = (
+    el: Element,
+    compact: boolean = false,
+  ): string => {
     const tagName = el.tagName.toLowerCase();
     const attrs: string[] = [];
 
@@ -142,10 +128,7 @@ export const getHTMLSnippet = async (element: Element) => {
       const classes = el.className.trim().split(/\s+/);
       if (classes.length > 0 && classes[0]) {
         const displayClasses = compact ? classes.slice(0, 3) : classes;
-        let classStr = displayClasses.join(" ");
-        if (classStr.length > 30) {
-          classStr = classStr.substring(0, 30) + "...";
-        }
+        const classStr = truncateString(displayClasses.join(" "), 30);
         attrs.push(`class="${classStr}"`);
       }
     }
@@ -155,20 +138,12 @@ export const getHTMLSnippet = async (element: Element) => {
     );
     const displayDataAttrs = compact ? dataAttrs.slice(0, 1) : dataAttrs;
     for (const attr of displayDataAttrs) {
-      let value = attr.value;
-      if (value.length > 20) {
-        value = value.substring(0, 20) + "...";
-      }
-      attrs.push(`${attr.name}="${value}"`);
+      attrs.push(`${attr.name}="${truncateString(attr.value, 20)}"`);
     }
 
     const ariaLabel = el.getAttribute("aria-label");
     if (ariaLabel && !compact) {
-      let value = ariaLabel;
-      if (value.length > 20) {
-        value = value.substring(0, 20) + "...";
-      }
-      attrs.push(`aria-label="${value}"`);
+      attrs.push(`aria-label="${truncateString(ariaLabel, 20)}"`);
     }
 
     return attrs.length > 0
@@ -176,21 +151,15 @@ export const getHTMLSnippet = async (element: Element) => {
       : `<${tagName}>`;
   };
 
-  const getClosingTag = (el: Element) => {
-    return `</${el.tagName.toLowerCase()}>`;
+  const formatElementClosingTag = (el: Element) =>
+    `</${el.tagName.toLowerCase()}>`;
+
+  const extractTruncatedTextContent = (el: Element) => {
+    const text = (el.textContent || "").trim().replace(/\s+/g, " ");
+    return truncateString(text, 60);
   };
 
-  const getTextContent = (el: Element) => {
-    let text = el.textContent || "";
-    text = text.trim().replace(/\s+/g, " ");
-    const maxLength = 60;
-    if (text.length > maxLength) {
-      text = text.substring(0, maxLength) + "...";
-    }
-    return text;
-  };
-
-  const getSiblingIdentifier = (el: Element): null | string => {
+  const extractSiblingIdentifier = (el: Element): null | string => {
     if (el.id) return `#${el.id}`;
     if (el.className && typeof el.className === "string") {
       const classes = el.className.trim().split(/\s+/);
@@ -203,25 +172,26 @@ export const getHTMLSnippet = async (element: Element) => {
 
   const lines: string[] = [];
 
-  const selector = getSelector(element);
-  lines.push(`selector: ${selector}`);
+  const selector = generateCSSSelector(element);
+  lines.push(`Locate this element in the codebase:`);
+  lines.push(`- selector: ${selector}`);
   const rect = element.getBoundingClientRect();
-  lines.push(`width: ${Math.round(rect.width)}`);
-  lines.push(`height: ${Math.round(rect.height)}`);
+  lines.push(`- width: ${Math.round(rect.width)}`);
+  lines.push(`- height: ${Math.round(rect.height)}`);
   lines.push("HTML snippet:");
   lines.push("```html");
 
-  const ancestors = getAncestorChain(element);
+  const ancestors = collectDistinguishingAncestors(element);
 
   const ancestorComponents = ancestors.map((ancestor) =>
-    getComponentName(ancestor),
+    extractReactComponentName(ancestor),
   );
-  const elementComponent = getComponentName(element);
+  const elementComponent = extractReactComponentName(element);
 
   const ancestorSources = await Promise.all(
-    ancestors.map((ancestor) => getComponentSource(ancestor)),
+    ancestors.map((ancestor) => formatComponentSourceLocation(ancestor)),
   );
-  const elementSource = await getComponentSource(element);
+  const elementSource = await formatComponentSourceLocation(element);
 
   for (let i = 0; i < ancestors.length; i++) {
     const indent = "  ".repeat(i);
@@ -232,9 +202,9 @@ export const getHTMLSnippet = async (element: Element) => {
       source &&
       (i === 0 || ancestorComponents[i - 1] !== componentName)
     ) {
-      lines.push(indent + `<${componentName} source="${source}">`);
+      lines.push(`${indent}<${componentName} source="${source}">`);
     }
-    lines.push(indent + getElementTag(ancestors[i], true));
+    lines.push(`${indent}${formatElementOpeningTag(ancestors[i], true)}`);
   }
 
   const parent = element.parentElement;
@@ -245,10 +215,10 @@ export const getHTMLSnippet = async (element: Element) => {
 
     if (targetIndex > 0) {
       const prevSibling = siblings[targetIndex - 1];
-      const prevId = getSiblingIdentifier(prevSibling);
+      const prevId = extractSiblingIdentifier(prevSibling);
       if (prevId && targetIndex <= 2) {
         const indent = "  ".repeat(ancestors.length);
-        lines.push(`${indent}  ${getElementTag(prevSibling, true)}`);
+        lines.push(`${indent}  ${formatElementOpeningTag(prevSibling, true)}`);
         lines.push(`${indent}  </${prevSibling.tagName.toLowerCase()}>`);
       } else if (targetIndex > 0) {
         const indent = "  ".repeat(ancestors.length);
@@ -273,24 +243,24 @@ export const getHTMLSnippet = async (element: Element) => {
     elementComponent !== lastAncestorComponent;
 
   if (showElementComponent) {
-    lines.push(indent + `  <${elementComponent} used-at="${elementSource}">`);
+    lines.push(`${indent}  <${elementComponent} used-at="${elementSource}">`);
   }
 
-  lines.push(indent + `  <!-- IMPORTANT: selected element -->`);
+  lines.push(`${indent}  <!-- IMPORTANT: selected element -->`);
 
-  const textContent = getTextContent(element);
+  const textContent = extractTruncatedTextContent(element);
   const childrenCount = element.children.length;
 
-  const elementIndent = indent + (showElementComponent ? "    " : "  ");
+  const elementIndent = `${indent}${showElementComponent ? "    " : "  "}`;
 
   if (textContent && childrenCount === 0 && textContent.length < 40) {
     lines.push(
-      `${elementIndent}${getElementTag(element)}${textContent}${getClosingTag(
+      `${elementIndent}${formatElementOpeningTag(element)}${textContent}${formatElementClosingTag(
         element,
       )}`,
     );
   } else {
-    lines.push(elementIndent + getElementTag(element));
+    lines.push(`${elementIndent}${formatElementOpeningTag(element)}`);
     if (textContent) {
       lines.push(`${elementIndent}  ${textContent}`);
     }
@@ -301,11 +271,11 @@ export const getHTMLSnippet = async (element: Element) => {
         })`,
       );
     }
-    lines.push(elementIndent + getClosingTag(element));
+    lines.push(`${elementIndent}${formatElementClosingTag(element)}`);
   }
 
   if (showElementComponent) {
-    lines.push(indent + `  </${elementComponent}>`);
+    lines.push(`${indent}  </${elementComponent}>`);
   }
 
   if (parent && targetIndex >= 0) {
@@ -313,9 +283,9 @@ export const getHTMLSnippet = async (element: Element) => {
     const siblingsAfter = siblings.length - targetIndex - 1;
     if (siblingsAfter > 0) {
       const nextSibling = siblings[targetIndex + 1];
-      const nextId = getSiblingIdentifier(nextSibling);
+      const nextId = extractSiblingIdentifier(nextSibling);
       if (nextId && siblingsAfter <= 2) {
-        lines.push(`${indent}  ${getElementTag(nextSibling, true)}`);
+        lines.push(`${indent}  ${formatElementOpeningTag(nextSibling, true)}`);
         lines.push(`${indent}  </${nextSibling.tagName.toLowerCase()}>`);
       } else {
         lines.push(
@@ -329,7 +299,7 @@ export const getHTMLSnippet = async (element: Element) => {
 
   for (let i = ancestors.length - 1; i >= 0; i--) {
     const indent = "  ".repeat(i);
-    lines.push(indent + getClosingTag(ancestors[i]));
+    lines.push(`${indent}${formatElementClosingTag(ancestors[i])}`);
     const componentName = ancestorComponents[i];
     const source = ancestorSources[i];
     if (
@@ -338,7 +308,7 @@ export const getHTMLSnippet = async (element: Element) => {
       (i === ancestors.length - 1 ||
         ancestorComponents[i + 1] !== componentName)
     ) {
-      lines.push(indent + `</${componentName}>`);
+      lines.push(`${indent}</${componentName}>`);
     }
   }
 

@@ -93,15 +93,15 @@ const findBestParentElement = (
   let currentParent: Element | null = elements[0];
 
   while (currentParent) {
-    const parent = currentParent.parentElement;
+    const parent: HTMLElement | null = currentParent.parentElement;
     if (!parent) break;
 
-    const parentRect = parent.getBoundingClientRect();
+    const parentRect: DOMRect = parent.getBoundingClientRect();
 
-    const intersectionLeft = Math.max(dragLeft, parentRect.left);
-    const intersectionTop = Math.max(dragTop, parentRect.top);
-    const intersectionRight = Math.min(dragRight, parentRect.left + parentRect.width);
-    const intersectionBottom = Math.min(dragBottom, parentRect.top + parentRect.height);
+    const intersectionLeft: number = Math.max(dragLeft, parentRect.left);
+    const intersectionTop: number = Math.max(dragTop, parentRect.top);
+    const intersectionRight: number = Math.min(dragRight, parentRect.left + parentRect.width);
+    const intersectionBottom: number = Math.min(dragBottom, parentRect.top + parentRect.height);
 
     const intersectionWidth = Math.max(0, intersectionRight - intersectionLeft);
     const intersectionHeight = Math.max(0, intersectionBottom - intersectionTop);

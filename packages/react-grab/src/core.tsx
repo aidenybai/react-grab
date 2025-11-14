@@ -10,7 +10,7 @@ import { render } from "solid-js/web";
 import { isKeyboardEventTriggeredByInput } from "./utils/is-keyboard-event-triggered-by-input.js";
 import { mountRoot } from "./utils/mount-root.js";
 import { ReactGrabRenderer } from "./components/renderer.js";
-import { getHTMLSnippet, getSourceTrace } from "./instrumentation.js";
+import { getHTMLSnippet } from "./instrumentation.js";
 import { copyContent } from "./utils/copy-content.js";
 import { getElementAtPosition } from "./utils/get-element-at-position.js";
 import { isValidGrabbableElement } from "./utils/is-valid-grabbable-element.js";
@@ -20,12 +20,7 @@ import {
 } from "./utils/get-elements-in-drag.js";
 import { createElementBounds } from "./utils/create-element-bounds.js";
 import { SUCCESS_LABEL_DURATION_MS } from "./constants.js";
-import type {
-  Options,
-  OverlayBounds,
-  GrabbedBox,
-  SourceTrace,
-} from "./types.js";
+import type { Options, OverlayBounds, GrabbedBox } from "./types.js";
 
 const PROGRESS_INDICATOR_DELAY_MS = 150;
 const QUICK_REPRESS_THRESHOLD_MS = 150;
@@ -84,7 +79,7 @@ export const init = (rawOptions?: Options) => {
     const isTargetKeyCombination = (event: KeyboardEvent) =>
       (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "c";
 
-    const addGrabbedBox = (bounds: OverlayBounds) => {
+    const showTemporaryGrabbedBox = (bounds: OverlayBounds) => {
       const boxId = `grabbed-${Date.now()}-${Math.random()}`;
       const createdAt = Date.now();
       const newBox: GrabbedBox = { id: boxId, bounds, createdAt };
@@ -98,7 +93,7 @@ export const init = (rawOptions?: Options) => {
       }, SUCCESS_LABEL_DURATION_MS);
     };
 
-    const addSuccessLabel = (
+    const showTemporarySuccessLabel = (
       text: string,
       positionX: number,
       positionY: number,
@@ -116,23 +111,10 @@ export const init = (rawOptions?: Options) => {
       }, SUCCESS_LABEL_DURATION_MS);
     };
 
-    const formatStackTrace = (stackTrace: SourceTrace[]) => {
-      return stackTrace
-        .map((source) => {
-          const functionName = source.functionName ?? "anonymous";
-          const fileName = source.fileName ?? "unknown";
-          const lineNumber = source.lineNumber ?? 0;
-          const columnNumber = source.columnNumber ?? 0;
-          return `    at ${functionName} (${fileName}:${lineNumber}:${columnNumber})`;
-        })
-        .join("\n");
-    };
+    const wrapInSelectedElementTags = (context: string) =>
+      `<selected_element>\n${context}\n</selected_element>`;
 
-    const wrapContextInXmlTags = (context: string) => {
-      return `<selected_element>\n${context}\n</selected_element>`;
-    };
-
-    const getComputedStyles = (element: Element) => {
+    const extractRelevantComputedStyles = (element: Element) => {
       const computed = window.getComputedStyle(element);
       const rect = element.getBoundingClientRect();
       return {
@@ -147,11 +129,11 @@ export const init = (rawOptions?: Options) => {
       };
     };
 
-    const createStructuredClipboardHtml = (
+    const createStructuredClipboardHtmlBlob = (
       elements: Array<{
         tagName: string;
         content: string;
-        computedStyles: ReturnType<typeof getComputedStyles>;
+        computedStyles: ReturnType<typeof extractRelevantComputedStyles>;
       }>,
     ) => {
       const structuredData = {
@@ -168,68 +150,77 @@ export const init = (rawOptions?: Options) => {
       return new Blob([htmlContent], { type: "text/html" });
     };
 
-    const getElementContentWithTrace = async (element: Element) => {
-      const elementHtml = await getHTMLSnippet(element);
-      return elementHtml;
-    };
-
-    const getElementTagName = (element: Element) =>
+    const extractElementTagName = (element: Element) =>
       (element.tagName || "").toLowerCase();
 
-    const handleCopy = async (targetElement: Element) => {
-      const tagName = getElementTagName(targetElement);
+    const executeCopyOperation = async (
+      positionX: number,
+      positionY: number,
+      operation: () => Promise<void>,
+    ) => {
+      setCopyStartX(positionX);
+      setCopyStartY(positionY);
+      setIsCopying(true);
+      await operation().finally(() => {
+        setIsCopying(false);
+      });
+    };
 
-      addGrabbedBox(createElementBounds(targetElement));
+    const copySingleElementToClipboard = async (targetElement: Element) => {
+      const tagName = extractElementTagName(targetElement);
+
+      showTemporaryGrabbedBox(createElementBounds(targetElement));
 
       try {
-        const content = await getElementContentWithTrace(targetElement);
-        const plainTextContent = wrapContextInXmlTags(content);
-        const htmlContent = createStructuredClipboardHtml([
+        const content = await getHTMLSnippet(targetElement);
+        const plainTextContent = wrapInSelectedElementTags(content);
+        const htmlContent = createStructuredClipboardHtmlBlob([
           {
             tagName,
-            content: await getElementContentWithTrace(targetElement),
-            computedStyles: getComputedStyles(targetElement),
+            content,
+            computedStyles: extractRelevantComputedStyles(targetElement),
           },
         ]);
 
         await copyContent([plainTextContent, htmlContent]);
       } catch {}
 
-      addSuccessLabel(
+      showTemporarySuccessLabel(
         tagName ? `<${tagName}>` : "<element>",
         copyStartX(),
         copyStartY(),
       );
     };
 
-    const handleMultipleCopy = async (targetElements: Element[]) => {
+    const copyMultipleElementsToClipboard = async (
+      targetElements: Element[],
+    ) => {
       if (targetElements.length === 0) return;
 
       for (const element of targetElements) {
-        addGrabbedBox(createElementBounds(element));
+        showTemporaryGrabbedBox(createElementBounds(element));
       }
 
       try {
         const elementSnippets = await Promise.all(
-          targetElements.map((element) => getElementContentWithTrace(element)),
+          targetElements.map((element) => getHTMLSnippet(element)),
         );
 
         const combinedContent = elementSnippets.join("\n\n---\n\n");
-        const plainTextContent = wrapContextInXmlTags(combinedContent);
+        const plainTextContent = wrapInSelectedElementTags(combinedContent);
 
-        const structuredElements = await Promise.all(
-          targetElements.map(async (element) => ({
-            tagName: getElementTagName(element),
-            content: await getElementContentWithTrace(element),
-            computedStyles: getComputedStyles(element),
-          })),
-        );
-        const htmlContent = createStructuredClipboardHtml(structuredElements);
+        const structuredElements = elementSnippets.map((content, index) => ({
+          tagName: extractElementTagName(targetElements[index]),
+          content,
+          computedStyles: extractRelevantComputedStyles(targetElements[index]),
+        }));
+        const htmlContent =
+          createStructuredClipboardHtmlBlob(structuredElements);
 
         await copyContent([plainTextContent, htmlContent]);
       } catch {}
 
-      addSuccessLabel(
+      showTemporarySuccessLabel(
         `${targetElements.length} elements`,
         copyStartX(),
         copyStartY(),
@@ -260,7 +251,7 @@ export const init = (rawOptions?: Options) => {
 
     const DRAG_THRESHOLD_PX = 2;
 
-    const getDragDistance = (endX: number, endY: number) => ({
+    const calculateDragDistance = (endX: number, endY: number) => ({
       x: Math.abs(endX - dragStartX()),
       y: Math.abs(endY - dragStartY()),
     });
@@ -268,14 +259,14 @@ export const init = (rawOptions?: Options) => {
     const isDraggingBeyondThreshold = createMemo(() => {
       if (!isDragging()) return false;
 
-      const dragDistance = getDragDistance(mouseX(), mouseY());
+      const dragDistance = calculateDragDistance(mouseX(), mouseY());
 
       return (
         dragDistance.x > DRAG_THRESHOLD_PX || dragDistance.y > DRAG_THRESHOLD_PX
       );
     });
 
-    const getDragRect = (endX: number, endY: number) => {
+    const calculateDragRectangle = (endX: number, endY: number) => {
       const dragX = Math.min(dragStartX(), endX);
       const dragY = Math.min(dragStartY(), endY);
       const dragWidth = Math.abs(endX - dragStartX());
@@ -292,7 +283,7 @@ export const init = (rawOptions?: Options) => {
     const dragBounds = createMemo((): OverlayBounds | undefined => {
       if (!isDraggingBeyondThreshold()) return undefined;
 
-      const drag = getDragRect(mouseX(), mouseY());
+      const drag = calculateDragRectangle(mouseX(), mouseY());
 
       return {
         borderRadius: "0px",
@@ -306,21 +297,18 @@ export const init = (rawOptions?: Options) => {
 
     const labelText = createMemo(() => {
       const element = targetElement();
-      return element ? `<${getElementTagName(element)}>` : "<element>";
+      return element ? `<${extractElementTagName(element)}>` : "<element>";
     });
 
-    const labelPosition = createMemo(() => {
-      if (isCopying()) {
-        return { x: copyStartX(), y: copyStartY() };
-      }
-      return { x: mouseX(), y: mouseY() };
-    });
+    const labelPosition = createMemo(() =>
+      isCopying()
+        ? { x: copyStartX(), y: copyStartY() }
+        : { x: mouseX(), y: mouseY() },
+    );
 
-    const isSameAsLast = createMemo(() => {
-      const currentElement = targetElement();
-      const lastElement = lastGrabbedElement();
-      return Boolean(currentElement) && currentElement === lastElement;
-    });
+    const isSameAsLast = createMemo(() =>
+      Boolean(targetElement() && targetElement() === lastGrabbedElement()),
+    );
 
     createEffect(
       on(
@@ -430,13 +418,10 @@ export const init = (rawOptions?: Options) => {
 
               const element = getElementAtPosition(mouseX(), mouseY());
               if (element) {
-                setCopyStartX(mouseX());
-                setCopyStartY(mouseY());
-                setIsCopying(true);
                 setLastGrabbedElement(element);
-                void handleCopy(element).finally(() => {
-                  setIsCopying(false);
-                });
+                void executeCopyOperation(mouseX(), mouseY(), () =>
+                  copySingleElementToClipboard(element),
+                );
               }
             } else {
               startProgressAnimation();
@@ -507,7 +492,7 @@ export const init = (rawOptions?: Options) => {
       (event: MouseEvent) => {
         if (!isDragging()) return;
 
-        const dragDistance = getDragDistance(event.clientX, event.clientY);
+        const dragDistance = calculateDragDistance(event.clientX, event.clientY);
 
         const wasDragGesture =
           dragDistance.x > DRAG_THRESHOLD_PX ||
@@ -518,17 +503,14 @@ export const init = (rawOptions?: Options) => {
 
         if (wasDragGesture) {
           setDidJustDrag(true);
-          const dragRect = getDragRect(event.clientX, event.clientY);
+          const dragRect = calculateDragRectangle(event.clientX, event.clientY);
 
           const elements = getElementsInDrag(dragRect, isValidGrabbableElement);
 
           if (elements.length > 0) {
-            setCopyStartX(event.clientX);
-            setCopyStartY(event.clientY);
-            setIsCopying(true);
-            void handleMultipleCopy(elements).finally(() => {
-              setIsCopying(false);
-            });
+            void executeCopyOperation(event.clientX, event.clientY, () =>
+              copyMultipleElementsToClipboard(elements),
+            );
           } else {
             const fallbackElements = getElementsInDragLoose(
               dragRect,
@@ -536,26 +518,19 @@ export const init = (rawOptions?: Options) => {
             );
 
             if (fallbackElements.length > 0) {
-              setCopyStartX(event.clientX);
-              setCopyStartY(event.clientY);
-              setIsCopying(true);
-              void handleMultipleCopy(fallbackElements).finally(() => {
-                setIsCopying(false);
-              });
+              void executeCopyOperation(event.clientX, event.clientY, () =>
+                copyMultipleElementsToClipboard(fallbackElements),
+              );
             }
           }
         } else {
           const element = getElementAtPosition(event.clientX, event.clientY);
           if (!element) return;
 
-          setCopyStartX(event.clientX);
-          setCopyStartY(event.clientY);
-          setIsCopying(true);
           setLastGrabbedElement(element);
-
-          void handleCopy(element).finally(() => {
-            setIsCopying(false);
-          });
+          void executeCopyOperation(event.clientX, event.clientY, () =>
+            copySingleElementToClipboard(element),
+          );
         }
       },
       { signal: eventListenerSignal },

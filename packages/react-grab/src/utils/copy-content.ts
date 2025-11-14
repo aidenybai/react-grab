@@ -63,7 +63,7 @@ export const copyContent = async (
   }
 };
 
-export const copyContentFallback = (content: string) => {
+const copyContentFallback = (content: string) => {
   if (!document.execCommand) return false;
   const el = document.createElement("textarea");
   el.value = String(content);

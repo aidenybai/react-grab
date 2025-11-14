@@ -1,4 +1,4 @@
-export type FormTags =
+type FormTags =
   | "input"
   | "INPUT"
   | "menuitem"
@@ -15,8 +15,6 @@ export type FormTags =
   | "TEXTAREA"
   | "textbox";
 
-export type Hotkey = KeyboardEvent["key"];
-
 const FORM_TAGS_AND_ROLES: readonly FormTags[] = [
   "input",
   "textarea",
@@ -32,7 +30,7 @@ const FORM_TAGS_AND_ROLES: readonly FormTags[] = [
   "textbox",
 ];
 
-export const isCustomElement = (element: HTMLElement): boolean => {
+const isCustomElement = (element: HTMLElement): boolean => {
   // we just do a basic check w/o any complex RegExp or validation against the list of legacy names containing a hyphen,
   // as none of them is likely to be an event target, and it won't hurt anyway if we miss.
   // see: https://html.spec.whatwg.org/multipage/custom-elements.html#prod-potentialcustomelementname
@@ -43,13 +41,13 @@ export const isCustomElement = (element: HTMLElement): boolean => {
   );
 };
 
-export const isReadonlyArray = (
+const isReadonlyArray = (
   value: unknown,
 ): value is readonly unknown[] => {
   return Array.isArray(value);
 };
 
-export const isHotkeyEnabledOnTagName = (
+const isHotkeyEnabledOnTagName = (
   event: KeyboardEvent,
   enabledOnTags: boolean | readonly FormTags[] = false,
 ): boolean => {
