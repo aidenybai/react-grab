@@ -7,6 +7,8 @@ import {
   getOwnerStack,
   getSourcesFromStack,
   getSourceFromHostInstance,
+  isSourceFile,
+  normalizeFileName,
 } from "bippy/dist/source";
 
 instrument({
@@ -24,7 +26,16 @@ export const getSourceTrace = async (element: Element) => {
     Number.MAX_SAFE_INTEGER,
   );
   if (!sources) return null;
-  return sources;
+  return sources
+    .filter((source) => {
+      return isSourceFile(source.fileName);
+    })
+    .map((source) => {
+      return {
+        ...source,
+        fileName: normalizeFileName(source.fileName),
+      };
+    });
 };
 
 export const getSource = async (element: Element) => {
