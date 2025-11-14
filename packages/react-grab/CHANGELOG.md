@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.28
+
+### Patch Changes
+
+- fix: computed styles
+
 ## 0.0.27
 
 ### Patch Changes
