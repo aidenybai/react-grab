@@ -117,13 +117,48 @@ export const init = (rawOptions?: Options) => {
           const fileName = source.fileName ?? "unknown";
           const lineNumber = source.lineNumber ?? 0;
           const columnNumber = source.columnNumber ?? 0;
-          return ` ${functionName} - ${fileName}:${lineNumber}:${columnNumber}`;
+          return `    at ${functionName} (${fileName}:${lineNumber}:${columnNumber})`;
         })
         .join("\n");
     };
 
     const wrapContextInXmlTags = (context: string) => {
       return `<selected_element>${context}</selected_element>`;
+    };
+
+    const getComputedStyles = (element: Element) => {
+      const computed = window.getComputedStyle(element);
+      return {
+        width: computed.width,
+        height: computed.height,
+        paddingTop: computed.paddingTop,
+        paddingRight: computed.paddingRight,
+        paddingBottom: computed.paddingBottom,
+        paddingLeft: computed.paddingLeft,
+        background: computed.background,
+        opacity: computed.opacity,
+      };
+    };
+
+    const createStructuredClipboardHtml = (
+      elements: Array<{
+        tagName: string;
+        content: string;
+        computedStyles: ReturnType<typeof getComputedStyles>;
+      }>,
+    ) => {
+      const structuredData = {
+        elements: elements.map((element) => ({
+          tagName: element.tagName,
+          content: element.content,
+          computedStyles: element.computedStyles,
+        })),
+      };
+
+      const base64Data = btoa(JSON.stringify(structuredData));
+      const htmlContent = `<div data-react-grab="${base64Data}"></div>`;
+
+      return new Blob([htmlContent], { type: "text/html" });
     };
 
     const getElementContentWithTrace = async (element: Element) => {
@@ -149,7 +184,16 @@ export const init = (rawOptions?: Options) => {
 
       try {
         const content = await getElementContentWithTrace(targetElement);
-        await copyContent(wrapContextInXmlTags(content));
+        const plainTextContent = wrapContextInXmlTags(content);
+        const htmlContent = createStructuredClipboardHtml([
+          {
+            tagName,
+            content: await getElementContentWithTrace(targetElement),
+            computedStyles: getComputedStyles(targetElement),
+          },
+        ]);
+
+        await copyContent([plainTextContent, htmlContent]);
       } catch {}
 
       addSuccessLabel(
@@ -179,7 +223,18 @@ export const init = (rawOptions?: Options) => {
         );
 
         const combinedContent = elementSnippets.join("\n\n---\n\n");
-        await copyContent(wrapContextInXmlTags(combinedContent));
+        const plainTextContent = wrapContextInXmlTags(combinedContent);
+
+        const structuredElements = await Promise.all(
+          targetElements.map(async (element) => ({
+            tagName: getElementTagName(element),
+            content: await getElementContentWithTrace(element),
+            computedStyles: getComputedStyles(element),
+          })),
+        );
+        const htmlContent = createStructuredClipboardHtml(structuredElements);
+
+        await copyContent([plainTextContent, htmlContent]);
       } catch {}
 
       addSuccessLabel(
