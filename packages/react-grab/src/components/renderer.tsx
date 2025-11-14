@@ -41,7 +41,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
 
       <For each={props.grabbedBoxes ?? []}>
         {(box) => (
-          <SelectionBox variant="grabbed" bounds={box.bounds} />
+          <SelectionBox variant="grabbed" bounds={box.bounds} createdAt={box.createdAt} />
         )}
       </For>
 

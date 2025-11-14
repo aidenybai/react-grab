@@ -6,6 +6,7 @@ import {
   INDICATOR_CLAMP_PADDING_PX,
 } from "../constants.js";
 import { getClampedElementPosition } from "../utils/get-clamped-element-position.js";
+import { lerp } from "../utils/lerp.js";
 
 interface LabelProps {
   variant: "hover" | "processing" | "success";
@@ -18,7 +19,51 @@ interface LabelProps {
 
 export const Label: Component<LabelProps> = (props) => {
   const [opacity, setOpacity] = createSignal(0);
+  const [positionTick, setPositionTick] = createSignal(0);
   let labelRef: HTMLDivElement | undefined;
+  let currentX = props.x;
+  let currentY = props.y;
+  let targetX = props.x;
+  let targetY = props.y;
+  let animationFrameId: number | null = null;
+  let hasBeenRenderedOnce = false;
+
+  const animate = () => {
+    currentX = lerp(currentX, targetX, 0.3);
+    currentY = lerp(currentY, targetY, 0.3);
+
+    setPositionTick((tick) => tick + 1);
+
+    const hasConvergedToTarget =
+      Math.abs(currentX - targetX) < 0.5 &&
+      Math.abs(currentY - targetY) < 0.5;
+
+    if (!hasConvergedToTarget) {
+      animationFrameId = requestAnimationFrame(animate);
+    } else {
+      animationFrameId = null;
+    }
+  };
+
+  const startAnimation = () => {
+    if (animationFrameId !== null) return;
+    animationFrameId = requestAnimationFrame(animate);
+  };
+
+  const updateTarget = () => {
+    targetX = props.x;
+    targetY = props.y;
+
+    if (!hasBeenRenderedOnce) {
+      currentX = targetX;
+      currentY = targetY;
+      hasBeenRenderedOnce = true;
+      setPositionTick((tick) => tick + 1);
+      return;
+    }
+
+    startAnimation();
+  };
 
   createEffect(
     on(
@@ -44,15 +89,27 @@ export const Label: Component<LabelProps> = (props) => {
     ),
   );
 
+  createEffect(() => {
+    updateTarget();
+  });
+
+  onCleanup(() => {
+    if (animationFrameId !== null) {
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = null;
+    }
+  });
+
   const labelBoundingRect = () => labelRef?.getBoundingClientRect();
 
   const computedPosition = () => {
+    positionTick();
     const boundingRect = labelBoundingRect();
-    if (!boundingRect) return { left: props.x, top: props.y };
+    if (!boundingRect) return { left: currentX, top: currentY };
 
     if (props.variant === "success") {
-      const indicatorLeft = Math.round(props.x);
-      const indicatorTop = Math.round(props.y) - boundingRect.height - 6;
+      const indicatorLeft = Math.round(currentX);
+      const indicatorTop = Math.round(currentY) - boundingRect.height - 6;
 
       const willClampLeft = indicatorLeft < VIEWPORT_MARGIN_PX;
       const willClampTop = indicatorTop < VIEWPORT_MARGIN_PX;
@@ -79,20 +136,20 @@ export const Label: Component<LabelProps> = (props) => {
 
     const quadrants = [
       {
-        left: Math.round(props.x) + CROSSHAIR_OFFSET,
-        top: Math.round(props.y) + CROSSHAIR_OFFSET,
+        left: Math.round(currentX) + CROSSHAIR_OFFSET,
+        top: Math.round(currentY) + CROSSHAIR_OFFSET,
       },
       {
-        left: Math.round(props.x) - boundingRect.width - CROSSHAIR_OFFSET,
-        top: Math.round(props.y) + CROSSHAIR_OFFSET,
+        left: Math.round(currentX) - boundingRect.width - CROSSHAIR_OFFSET,
+        top: Math.round(currentY) + CROSSHAIR_OFFSET,
       },
       {
-        left: Math.round(props.x) + CROSSHAIR_OFFSET,
-        top: Math.round(props.y) - boundingRect.height - CROSSHAIR_OFFSET,
+        left: Math.round(currentX) + CROSSHAIR_OFFSET,
+        top: Math.round(currentY) - boundingRect.height - CROSSHAIR_OFFSET,
       },
       {
-        left: Math.round(props.x) - boundingRect.width - CROSSHAIR_OFFSET,
-        top: Math.round(props.y) - boundingRect.height - CROSSHAIR_OFFSET,
+        left: Math.round(currentX) - boundingRect.width - CROSSHAIR_OFFSET,
+        top: Math.round(currentY) - boundingRect.height - CROSSHAIR_OFFSET,
       },
     ];
 
@@ -167,18 +224,28 @@ export const Label: Component<LabelProps> = (props) => {
           </span>
         </Show>
         <Show when={props.variant === "success"}>
-          <div style={{ "margin-right": "4px" }}>Grabbed</div>
+          <div style={{ "margin-right": "4px" }}>Copied</div>
         </Show>
         <Show when={props.variant === "processing"}>Grabbing…</Show>
-        <span
-          style={{
-            "font-family":
-              "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-            "font-variant-numeric": "tabular-nums",
-          }}
+        <Show
+          when={props.text.startsWith("(")}
+          fallback={
+            <span
+              style={{
+                "font-family":
+                  "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+                "font-variant-numeric": "tabular-nums",
+              }}
+            >
+              {props.text}
+            </span>
+          }
         >
           {props.text}
-        </span>
+        </Show>
+        <Show when={props.variant === "success"}>
+          <div style={{ "margin-left": "4px" }}>to clipboard</div>
+        </Show>
       </div>
     </Show>
   );

@@ -17,6 +17,7 @@ interface SelectionBoxProps {
   bounds: OverlayBounds;
   visible?: boolean;
   lerpFactor?: number;
+  createdAt?: number;
 }
 
 export const SelectionBox: Component<SelectionBoxProps> = (props) => {
@@ -28,12 +29,13 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
 
   let hasBeenRenderedOnce = false;
   let animationFrameId: number | null = null;
+  let fadeTimerId: number | null = null;
   let targetBounds = props.bounds;
   let isAnimating = false;
 
   const lerpFactor = () => {
     if (props.lerpFactor !== undefined) return props.lerpFactor;
-    if (props.variant === "drag") return 0.9;
+    if (props.variant === "drag") return 0.7;
     return SELECTION_LERP_FACTOR;
   };
 
@@ -97,10 +99,22 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
     ),
   );
 
+  createEffect(() => {
+    if (props.variant === "grabbed" && props.createdAt) {
+      fadeTimerId = window.setTimeout(() => {
+        setOpacity(0);
+      }, 1500);
+    }
+  });
+
   onCleanup(() => {
     if (animationFrameId !== null) {
       cancelAnimationFrame(animationFrameId);
       animationFrameId = null;
+    }
+    if (fadeTimerId !== null) {
+      window.clearTimeout(fadeTimerId);
+      fadeTimerId = null;
     }
     isAnimating = false;
   });
@@ -115,8 +129,8 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
   const variantStyle = (): JSX.CSSProperties => {
     if (props.variant === "drag") {
       return {
-        border: "1px dashed rgb(210, 57, 192)",
-        "background-color": "rgba(210, 57, 192, 0.15)",
+        border: "1px dashed rgba(210, 57, 192, 0.4)",
+        "background-color": "rgba(210, 57, 192, 0.05)",
         "will-change": "transform, width, height",
         contain: "layout paint size",
         cursor: "crosshair",

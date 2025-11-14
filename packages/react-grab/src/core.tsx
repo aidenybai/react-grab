@@ -63,12 +63,11 @@ export const init = (rawOptions?: Options) => {
     const [isActivated, setIsActivated] = createSignal(false);
     const [showProgressIndicator, setShowProgressIndicator] =
       createSignal(false);
-    const [grabMouseX, setGrabMouseX] = createSignal<number | null>(null);
-    const [grabMouseY, setGrabMouseY] = createSignal<number | null>(null);
 
     let holdTimerId: number | null = null;
     let progressAnimationId: number | null = null;
     let progressDelayTimerId: number | null = null;
+    let keydownSpamTimerId: number | null = null;
 
     const isRendererActive = createMemo(() => isActivated() && !isCopying());
 
@@ -81,9 +80,16 @@ export const init = (rawOptions?: Options) => {
 
     const addGrabbedBox = (bounds: OverlayBounds) => {
       const boxId = `grabbed-${Date.now()}-${Math.random()}`;
-      const newBox: GrabbedBox = { id: boxId, bounds };
+      const createdAt = Date.now();
+      const newBox: GrabbedBox = { id: boxId, bounds, createdAt };
       const currentBoxes: GrabbedBox[] = grabbedBoxes();
       setGrabbedBoxes([...currentBoxes, newBox]);
+
+      setTimeout(() => {
+        setGrabbedBoxes((previousBoxes) =>
+          previousBoxes.filter((box) => box.id !== boxId),
+        );
+      }, SUCCESS_LABEL_DURATION_MS);
     };
 
     const addSuccessLabel = (
@@ -116,6 +122,10 @@ export const init = (rawOptions?: Options) => {
         .join("\n");
     };
 
+    const wrapContextInXmlTags = (context: string) => {
+      return `<selected_element>${context}</selected_element>`;
+    };
+
     const getElementContentWithTrace = async (element: Element) => {
       const elementHtml = getHTMLSnippet(element);
       const componentStackTrace = await getSourceTrace(element);
@@ -135,13 +145,11 @@ export const init = (rawOptions?: Options) => {
       const elementBounds = targetElement.getBoundingClientRect();
       const tagName = getElementTagName(targetElement);
 
-      setGrabMouseX(mouseX());
-      setGrabMouseY(mouseY());
       addGrabbedBox(createElementBounds(targetElement));
 
       try {
         const content = await getElementContentWithTrace(targetElement);
-        await copyContent(content);
+        await copyContent(wrapContextInXmlTags(content));
       } catch {}
 
       addSuccessLabel(
@@ -157,9 +165,6 @@ export const init = (rawOptions?: Options) => {
       let minPositionX = Infinity;
       let minPositionY = Infinity;
 
-      setGrabMouseX(mouseX());
-      setGrabMouseY(mouseY());
-
       for (const element of targetElements) {
         const elementBounds = element.getBoundingClientRect();
         minPositionX = Math.min(minPositionX, elementBounds.left);
@@ -174,7 +179,7 @@ export const init = (rawOptions?: Options) => {
         );
 
         const combinedContent = elementSnippets.join("\n\n---\n\n");
-        await copyContent(combinedContent);
+        await copyContent(wrapContextInXmlTags(combinedContent));
       } catch {}
 
       addSuccessLabel(
@@ -206,7 +211,7 @@ export const init = (rawOptions?: Options) => {
       };
     });
 
-    const DRAG_THRESHOLD_PX = 5;
+    const DRAG_THRESHOLD_PX = 2;
 
     const getDragDistance = (endX: number, endY: number) => ({
       x: Math.abs(endX - dragStartX()),
@@ -254,7 +259,7 @@ export const init = (rawOptions?: Options) => {
 
     const labelText = createMemo(() => {
       const element = targetElement();
-      if (!element) return "";
+      if (!element) return "(click or drag to select element(s))";
       const tagName = getElementTagName(element);
       return tagName ? `<${tagName}>` : "<element>";
     });
@@ -275,26 +280,6 @@ export const init = (rawOptions?: Options) => {
         ([currentElement, lastElement]) => {
           if (lastElement && currentElement && lastElement !== currentElement) {
             setLastGrabbedElement(null);
-          }
-        },
-      ),
-    );
-
-    createEffect(
-      on(
-        () => [mouseX(), mouseY(), grabMouseX(), grabMouseY()] as const,
-        ([currentMouseX, currentMouseY, initialGrabMouseX, initialGrabMouseY]) => {
-          if (initialGrabMouseX === null || initialGrabMouseY === null) return;
-          if (grabbedBoxes().length === 0) return;
-
-          const MOUSE_MOVE_THRESHOLD_PX = 5;
-          const distanceX = Math.abs(currentMouseX - initialGrabMouseX);
-          const distanceY = Math.abs(currentMouseY - initialGrabMouseY);
-
-          if (distanceX > MOUSE_MOVE_THRESHOLD_PX || distanceY > MOUSE_MOVE_THRESHOLD_PX) {
-            setGrabbedBoxes([]);
-            setGrabMouseX(null);
-            setGrabMouseY(null);
           }
         },
       ),
@@ -349,6 +334,19 @@ export const init = (rawOptions?: Options) => {
       document.body.style.cursor = "crosshair";
     };
 
+    const deactivateRenderer = () => {
+      setIsHoldingKeys(false);
+      setIsActivated(false);
+      document.body.style.cursor = "";
+      if (isDragging()) {
+        setIsDragging(false);
+        document.body.style.userSelect = "";
+      }
+      if (holdTimerId) window.clearTimeout(holdTimerId);
+      if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
+      stopProgressAnimation();
+    };
+
     const abortController = new AbortController();
     const eventListenerSignal = abortController.signal;
 
@@ -356,27 +354,28 @@ export const init = (rawOptions?: Options) => {
       "keydown",
       (event: KeyboardEvent) => {
         if (event.key === "Escape" && isHoldingKeys()) {
-          setIsHoldingKeys(false);
-          setIsActivated(false);
-          document.body.style.cursor = "";
-          if (isDragging()) {
-            setIsDragging(false);
-            document.body.style.userSelect = "";
-          }
-          if (holdTimerId) window.clearTimeout(holdTimerId);
-          stopProgressAnimation();
+          deactivateRenderer();
           return;
         }
 
         if (isKeyboardEventTriggeredByInput(event)) return;
 
-        if (isTargetKeyCombination(event) && !isHoldingKeys()) {
-          setIsHoldingKeys(true);
-          startProgressAnimation();
-          holdTimerId = window.setTimeout(() => {
-            activateRenderer();
-            options.onActivate?.();
-          }, options.keyHoldDuration);
+        if (isTargetKeyCombination(event)) {
+          if (!isHoldingKeys()) {
+            setIsHoldingKeys(true);
+            startProgressAnimation();
+            holdTimerId = window.setTimeout(() => {
+              activateRenderer();
+              options.onActivate?.();
+            }, options.keyHoldDuration);
+          }
+
+          if (isActivated()) {
+            if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
+            keydownSpamTimerId = window.setTimeout(() => {
+              deactivateRenderer();
+            }, 200);
+          }
         }
       },
       { signal: eventListenerSignal },
@@ -385,18 +384,16 @@ export const init = (rawOptions?: Options) => {
     window.addEventListener(
       "keyup",
       (event: KeyboardEvent) => {
-        if (
-          isHoldingKeys() &&
-          (!isTargetKeyCombination(event) || event.key.toLowerCase() === "c")
-        ) {
-          setIsHoldingKeys(false);
-          setIsActivated(false);
-          document.body.style.cursor = "";
-          if (holdTimerId) window.clearTimeout(holdTimerId);
-          stopProgressAnimation();
+        if (!isHoldingKeys() && !isActivated()) return;
+
+        const isReleasingC = event.key.toLowerCase() === "c";
+        const isReleasingModifier = !event.metaKey && !event.ctrlKey;
+
+        if (isReleasingC || isReleasingModifier) {
+          deactivateRenderer();
         }
       },
-      { signal: eventListenerSignal },
+      { signal: eventListenerSignal, capture: true },
     );
 
     window.addEventListener(
@@ -487,6 +484,7 @@ export const init = (rawOptions?: Options) => {
     onCleanup(() => {
       abortController.abort();
       if (holdTimerId) window.clearTimeout(holdTimerId);
+      if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
       stopProgressAnimation();
       document.body.style.userSelect = "";
       document.body.style.cursor = "";
@@ -494,9 +492,7 @@ export const init = (rawOptions?: Options) => {
 
     const rendererRoot = mountRoot();
 
-    const selectionVisible = createMemo(
-      () => false,
-    );
+    const selectionVisible = createMemo(() => false);
 
     const dragVisible = createMemo(
       () => isRendererActive() && isDraggingBeyondThreshold(),
@@ -510,8 +506,7 @@ export const init = (rawOptions?: Options) => {
       () =>
         (isRendererActive() &&
           !isDragging() &&
-          !!targetElement() &&
-          !isSameAsLast()) ||
+          (!!targetElement() && !isSameAsLast() || !targetElement())) ||
         isCopying(),
     );
 

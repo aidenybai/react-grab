@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.25
+
+### Patch Changes
+
+- new crosshair
+
 ## 0.0.24
 
 ### Patch Changes

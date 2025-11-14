@@ -1,4 +1,4 @@
-import { Show, createSignal, createEffect, onCleanup, on } from "solid-js";
+import { Show, createEffect, onCleanup } from "solid-js";
 import type { Component } from "solid-js";
 import { lerp } from "../utils/lerp.js";
 
@@ -9,104 +9,125 @@ interface CrosshairProps {
 }
 
 export const Crosshair: Component<CrosshairProps> = (props) => {
-  const [currentX, setCurrentX] = createSignal(props.mouseX);
-  const [currentY, setCurrentY] = createSignal(props.mouseY);
-
-  let hasBeenRenderedOnce = false;
-  let animationFrameId: number | null = null;
+  let canvasRef: HTMLCanvasElement | undefined;
+  let context: CanvasRenderingContext2D | null = null;
+  let width = 0;
+  let height = 0;
+  let dpr = 1;
+  let currentX = props.mouseX;
+  let currentY = props.mouseY;
   let targetX = props.mouseX;
   let targetY = props.mouseY;
-  let isAnimating = false;
+  let animationFrameId: number | null = null;
+  let hasBeenRenderedOnce = false;
+
+  const setupCanvas = () => {
+    if (!canvasRef) return;
+
+    dpr = Math.max(window.devicePixelRatio || 1, 2);
+    width = window.innerWidth;
+    height = window.innerHeight;
+
+    canvasRef.width = width * dpr;
+    canvasRef.height = height * dpr;
+    canvasRef.style.width = `${width}px`;
+    canvasRef.style.height = `${height}px`;
+
+    context = canvasRef.getContext("2d");
+    if (context) {
+      context.scale(dpr, dpr);
+    }
+  };
+
+  const render = () => {
+    if (!context) return;
+
+    context.clearRect(0, 0, width, height);
+
+    context.strokeStyle = "rgba(210, 57, 192)";
+    context.lineWidth = 1;
+
+    context.beginPath();
+    context.moveTo(currentX, 0);
+    context.lineTo(currentX, height);
+    context.moveTo(0, currentY);
+    context.lineTo(width, currentY);
+    context.stroke();
+  };
+
+  const animate = () => {
+    currentX = lerp(currentX, targetX, 0.3);
+    currentY = lerp(currentY, targetY, 0.3);
+
+    render();
+
+    const hasConvergedToTarget =
+      Math.abs(currentX - targetX) < 0.5 &&
+      Math.abs(currentY - targetY) < 0.5;
+
+    if (!hasConvergedToTarget) {
+      animationFrameId = requestAnimationFrame(animate);
+    } else {
+      animationFrameId = null;
+    }
+  };
 
   const startAnimation = () => {
-    if (isAnimating) return;
-    isAnimating = true;
-
-    const animate = () => {
-      const interpolatedX = lerp(currentX(), targetX, 0.3);
-      const interpolatedY = lerp(currentY(), targetY, 0.3);
-
-      setCurrentX(interpolatedX);
-      setCurrentY(interpolatedY);
-
-      const hasConvergedToTarget =
-        Math.abs(interpolatedX - targetX) < 0.5 &&
-        Math.abs(interpolatedY - targetY) < 0.5;
-
-      if (!hasConvergedToTarget) {
-        animationFrameId = requestAnimationFrame(animate);
-      } else {
-        animationFrameId = null;
-        isAnimating = false;
-      }
-    };
-
+    if (animationFrameId !== null) return;
     animationFrameId = requestAnimationFrame(animate);
   };
 
-  createEffect(
-    on(
-      () => [props.mouseX, props.mouseY] as const,
-      ([newMouseX, newMouseY]) => {
-        targetX = newMouseX;
-        targetY = newMouseY;
+  const updateTarget = () => {
+    targetX = props.mouseX;
+    targetY = props.mouseY;
 
-        if (!hasBeenRenderedOnce) {
-          setCurrentX(targetX);
-          setCurrentY(targetY);
-          hasBeenRenderedOnce = true;
-          return;
-        }
-
-        startAnimation();
-      },
-    ),
-  );
-
-  onCleanup(() => {
-    if (animationFrameId !== null) {
-      cancelAnimationFrame(animationFrameId);
-      animationFrameId = null;
+    if (!hasBeenRenderedOnce) {
+      currentX = targetX;
+      currentY = targetY;
+      hasBeenRenderedOnce = true;
+      render();
+      return;
     }
-    isAnimating = false;
+
+    startAnimation();
+  };
+
+  createEffect(() => {
+    setupCanvas();
+    render();
+
+    const handleResize = () => {
+      setupCanvas();
+      render();
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    onCleanup(() => {
+      window.removeEventListener("resize", handleResize);
+      if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+    });
+  });
+
+  createEffect(() => {
+    updateTarget();
   });
 
   return (
     <Show when={props.visible !== false}>
-      <div
+      <canvas
+        ref={canvasRef}
         style={{
           position: "fixed",
           top: "0",
           left: "0",
-          width: "100vw",
-          height: "100vh",
           "pointer-events": "none",
           "z-index": "2147483645",
         }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            top: "0",
-            left: `${currentX()}px`,
-            width: "1px",
-            height: "100%",
-            "background-color": "rgba(210, 57, 192, 0.5)",
-            "will-change": "transform",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            top: `${currentY()}px`,
-            left: "0",
-            width: "100%",
-            height: "1px",
-            "background-color": "rgba(210, 57, 192, 0.5)",
-            "will-change": "transform",
-          }}
-        />
-      </div>
+      />
     </Show>
   );
 };

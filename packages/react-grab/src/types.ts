@@ -18,7 +18,7 @@ export interface ReactGrabRendererProps {
   selectionBounds?: OverlayBounds;
   dragVisible?: boolean;
   dragBounds?: OverlayBounds;
-  grabbedBoxes?: Array<{ id: string; bounds: OverlayBounds }>;
+  grabbedBoxes?: Array<{ id: string; bounds: OverlayBounds; createdAt: number }>;
   successLabels?: Array<{ id: string; text: string; x: number; y: number }>;
   labelVariant?: "hover" | "processing" | "success";
   labelText?: string;
@@ -36,6 +36,7 @@ export interface ReactGrabRendererProps {
 export interface GrabbedBox {
   id: string;
   bounds: OverlayBounds;
+  createdAt: number;
 }
 
 export interface SourceTrace {
