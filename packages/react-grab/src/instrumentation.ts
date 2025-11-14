@@ -1,7 +1,10 @@
 import {
   _fiberRoots as fiberRoots,
   getFiberFromHostInstance,
+  getDisplayName,
   instrument,
+  isCompositeFiber,
+  traverseFiber,
 } from "bippy";
 import {
   getOwnerStack,
@@ -10,6 +13,7 @@ import {
   isSourceFile,
   normalizeFileName,
 } from "bippy/dist/source";
+import { finder } from "@medv/finder";
 
 instrument({
   onCommitFiberRoot(_, fiberRoot) {
@@ -26,7 +30,6 @@ export const getSourceTrace = async (element: Element) => {
     Number.MAX_SAFE_INTEGER,
   );
   if (!sources) return null;
-  console.log(sources);
   return sources
     .map((source) => {
       return {
@@ -43,7 +46,49 @@ export const getSource = async (element: Element) => {
   return getSourceFromHostInstance(element);
 };
 
-export const getHTMLSnippet = (element: Element) => {
+export const getSelector = (element: Element) => {
+  return finder(element);
+};
+
+export const getHTMLSnippet = async (element: Element) => {
+  const isInternalComponent = (name: string): boolean => {
+    if (name.startsWith("_")) return true;
+    if (name.includes("Provider") && name.includes("Context")) return true;
+
+    return false;
+  };
+
+  const getComponentName = (el: Element): string | null => {
+    const fiber = getFiberFromHostInstance(el);
+    if (!fiber) return null;
+
+    let componentName: string | null = null;
+    traverseFiber(
+      fiber,
+      (currentFiber) => {
+        if (isCompositeFiber(currentFiber)) {
+          const displayName = getDisplayName(currentFiber);
+          if (displayName && !isInternalComponent(displayName)) {
+            componentName = displayName;
+            return true;
+          }
+        }
+        return false;
+      },
+      true,
+    );
+
+    return componentName;
+  };
+
+  const getComponentSource = async (el: Element): Promise<string | null> => {
+    const source = await getSourceFromHostInstance(el);
+    if (!source) return null;
+    const fileName = normalizeFileName(source.fileName);
+    if (!isSourceFile(fileName)) return null;
+    return `${fileName}:${source.lineNumber}:${source.columnNumber}`;
+  };
+
   const semanticTags = new Set([
     "article",
     "aside",
@@ -83,48 +128,6 @@ export const getHTMLSnippet = (element: Element) => {
     }
 
     return ancestors.reverse();
-  };
-
-  const getCSSPath = (el: Element): string => {
-    const parts: string[] = [];
-    let current: Element | null = el;
-    let depth = 0;
-    const maxDepth = 5;
-
-    while (current && depth < maxDepth && current.tagName !== "BODY") {
-      let selector = current.tagName.toLowerCase();
-
-      if (current.id) {
-        selector += `#${current.id}`;
-        parts.unshift(selector);
-        break;
-      } else if (
-        current.className &&
-        typeof current.className === "string" &&
-        current.className.trim()
-      ) {
-        const classes = current.className.trim().split(/\s+/).slice(0, 2);
-        selector += `.${classes.join(".")}`;
-      }
-
-      if (
-        !current.id &&
-        (!current.className || !current.className.trim()) &&
-        current.parentElement
-      ) {
-        const siblings = Array.from(current.parentElement.children);
-        const index = siblings.indexOf(current);
-        if (index >= 0 && siblings.length > 1) {
-          selector += `:nth-child(${index + 1})`;
-        }
-      }
-
-      parts.unshift(selector);
-      current = current.parentElement;
-      depth++;
-    }
-
-    return parts.join(" > ");
   };
 
   const getElementTag = (el: Element, compact: boolean = false): string => {
@@ -200,13 +203,37 @@ export const getHTMLSnippet = (element: Element) => {
 
   const lines: string[] = [];
 
-  lines.push(`Path: ${getCSSPath(element)}`);
-  lines.push("");
+  const selector = getSelector(element);
+  lines.push(`selector: ${selector}`);
+  const rect = element.getBoundingClientRect();
+  lines.push(`width: ${Math.round(rect.width)}`);
+  lines.push(`height: ${Math.round(rect.height)}`);
+  lines.push("HTML snippet:");
+  lines.push("```html");
 
   const ancestors = getAncestorChain(element);
 
+  const ancestorComponents = ancestors.map((ancestor) =>
+    getComponentName(ancestor),
+  );
+  const elementComponent = getComponentName(element);
+
+  const ancestorSources = await Promise.all(
+    ancestors.map((ancestor) => getComponentSource(ancestor)),
+  );
+  const elementSource = await getComponentSource(element);
+
   for (let i = 0; i < ancestors.length; i++) {
     const indent = "  ".repeat(i);
+    const componentName = ancestorComponents[i];
+    const source = ancestorSources[i];
+    if (
+      componentName &&
+      source &&
+      (i === 0 || ancestorComponents[i - 1] !== componentName)
+    ) {
+      lines.push(indent + `<${componentName} source="${source}">`);
+    }
     lines.push(indent + getElementTag(ancestors[i], true));
   }
 
@@ -235,30 +262,50 @@ export const getHTMLSnippet = (element: Element) => {
   }
 
   const indent = "  ".repeat(ancestors.length);
-  lines.push(indent + "  <!-- SELECTED -->");
+
+  const lastAncestorComponent =
+    ancestors.length > 0
+      ? ancestorComponents[ancestorComponents.length - 1]
+      : null;
+  const showElementComponent =
+    elementComponent &&
+    elementSource &&
+    elementComponent !== lastAncestorComponent;
+
+  if (showElementComponent) {
+    lines.push(indent + `  <${elementComponent} used-at="${elementSource}">`);
+  }
+
+  lines.push(indent + `  <!-- IMPORTANT: selected element -->`);
 
   const textContent = getTextContent(element);
   const childrenCount = element.children.length;
 
+  const elementIndent = indent + (showElementComponent ? "    " : "  ");
+
   if (textContent && childrenCount === 0 && textContent.length < 40) {
     lines.push(
-      `${indent}  ${getElementTag(element)}${textContent}${getClosingTag(
+      `${elementIndent}${getElementTag(element)}${textContent}${getClosingTag(
         element,
       )}`,
     );
   } else {
-    lines.push(indent + "  " + getElementTag(element));
+    lines.push(elementIndent + getElementTag(element));
     if (textContent) {
-      lines.push(`${indent}    ${textContent}`);
+      lines.push(`${elementIndent}  ${textContent}`);
     }
     if (childrenCount > 0) {
       lines.push(
-        `${indent}    ... (${childrenCount} element${
+        `${elementIndent}  ... (${childrenCount} element${
           childrenCount === 1 ? "" : "s"
         })`,
       );
     }
-    lines.push(indent + "  " + getClosingTag(element));
+    lines.push(elementIndent + getClosingTag(element));
+  }
+
+  if (showElementComponent) {
+    lines.push(indent + `  </${elementComponent}>`);
   }
 
   if (parent && targetIndex >= 0) {
@@ -283,7 +330,19 @@ export const getHTMLSnippet = (element: Element) => {
   for (let i = ancestors.length - 1; i >= 0; i--) {
     const indent = "  ".repeat(i);
     lines.push(indent + getClosingTag(ancestors[i]));
+    const componentName = ancestorComponents[i];
+    const source = ancestorSources[i];
+    if (
+      componentName &&
+      source &&
+      (i === ancestors.length - 1 ||
+        ancestorComponents[i + 1] !== componentName)
+    ) {
+      lines.push(indent + `</${componentName}>`);
+    }
   }
+
+  lines.push("```");
 
   return lines.join("\n");
 };

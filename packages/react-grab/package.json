@@ -1,6 +1,6 @@
 {
   "name": "react-grab",
-  "version": "0.0.28",
+  "version": "0.0.29",
   "description": "",
   "keywords": [
     "react",
@@ -76,6 +76,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@medv/finder": "^4.0.2",
     "bippy": "^0.5.14",
     "solid-js": "^1.9.10"
   }

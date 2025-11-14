@@ -19,6 +19,7 @@ import {
   getElementsInDragLoose,
 } from "./utils/get-elements-in-drag.js";
 import { createElementBounds } from "./utils/create-element-bounds.js";
+import { SUCCESS_LABEL_DURATION_MS } from "./constants.js";
 import type {
   Options,
   OverlayBounds,
@@ -26,8 +27,8 @@ import type {
   SourceTrace,
 } from "./types.js";
 
-const SUCCESS_LABEL_DURATION_MS = 1700;
 const PROGRESS_INDICATOR_DELAY_MS = 150;
+const QUICK_REPRESS_THRESHOLD_MS = 150;
 
 export const init = (rawOptions?: Options) => {
   const options = {
@@ -63,11 +64,16 @@ export const init = (rawOptions?: Options) => {
     const [isActivated, setIsActivated] = createSignal(false);
     const [showProgressIndicator, setShowProgressIndicator] =
       createSignal(false);
+    const [didJustDrag, setDidJustDrag] = createSignal(false);
+    const [isModifierHeld, setIsModifierHeld] = createSignal(false);
+    const [copyStartX, setCopyStartX] = createSignal(OFFSCREEN_POSITION);
+    const [copyStartY, setCopyStartY] = createSignal(OFFSCREEN_POSITION);
 
     let holdTimerId: number | null = null;
     let progressAnimationId: number | null = null;
     let progressDelayTimerId: number | null = null;
     let keydownSpamTimerId: number | null = null;
+    let lastDeactivationTime: number | null = null;
 
     const isRendererActive = createMemo(() => isActivated() && !isCopying());
 
@@ -123,15 +129,15 @@ export const init = (rawOptions?: Options) => {
     };
 
     const wrapContextInXmlTags = (context: string) => {
-      return `<selected_element>${context}</selected_element>`;
+      return `<selected_element>\n${context}\n</selected_element>`;
     };
 
     const getComputedStyles = (element: Element) => {
       const computed = window.getComputedStyle(element);
       const rect = element.getBoundingClientRect();
       return {
-        width: `${rect.width}px`,
-        height: `${rect.height}px`,
+        width: `${Math.round(rect.width)}px`,
+        height: `${Math.round(rect.height)}px`,
         paddingTop: computed.paddingTop,
         paddingRight: computed.paddingRight,
         paddingBottom: computed.paddingBottom,
@@ -163,14 +169,7 @@ export const init = (rawOptions?: Options) => {
     };
 
     const getElementContentWithTrace = async (element: Element) => {
-      const elementHtml = getHTMLSnippet(element);
-      const componentStackTrace = await getSourceTrace(element);
-
-      if (componentStackTrace?.length) {
-        const formattedStackTrace = formatStackTrace(componentStackTrace);
-        return `${elementHtml}\n\nComponent owner stack:\n${formattedStackTrace}`;
-      }
-
+      const elementHtml = await getHTMLSnippet(element);
       return elementHtml;
     };
 
@@ -178,7 +177,6 @@ export const init = (rawOptions?: Options) => {
       (element.tagName || "").toLowerCase();
 
     const handleCopy = async (targetElement: Element) => {
-      const elementBounds = targetElement.getBoundingClientRect();
       const tagName = getElementTagName(targetElement);
 
       addGrabbedBox(createElementBounds(targetElement));
@@ -199,22 +197,15 @@ export const init = (rawOptions?: Options) => {
 
       addSuccessLabel(
         tagName ? `<${tagName}>` : "<element>",
-        elementBounds.left,
-        elementBounds.top,
+        copyStartX(),
+        copyStartY(),
       );
     };
 
     const handleMultipleCopy = async (targetElements: Element[]) => {
       if (targetElements.length === 0) return;
 
-      let minPositionX = Infinity;
-      let minPositionY = Infinity;
-
       for (const element of targetElements) {
-        const elementBounds = element.getBoundingClientRect();
-        minPositionX = Math.min(minPositionX, elementBounds.left);
-        minPositionY = Math.min(minPositionY, elementBounds.top);
-
         addGrabbedBox(createElementBounds(element));
       }
 
@@ -240,8 +231,8 @@ export const init = (rawOptions?: Options) => {
 
       addSuccessLabel(
         `${targetElements.length} elements`,
-        minPositionX,
-        minPositionY,
+        copyStartX(),
+        copyStartY(),
       );
     };
 
@@ -315,19 +306,20 @@ export const init = (rawOptions?: Options) => {
 
     const labelText = createMemo(() => {
       const element = targetElement();
-      if (!element) return "(click or drag to select element(s))";
-      const tagName = getElementTagName(element);
-      return tagName ? `<${tagName}>` : "<element>";
+      return element ? `<${getElementTagName(element)}>` : "<element>";
     });
 
     const labelPosition = createMemo(() => {
+      if (isCopying()) {
+        return { x: copyStartX(), y: copyStartY() };
+      }
       return { x: mouseX(), y: mouseY() };
     });
 
     const isSameAsLast = createMemo(() => {
       const currentElement = targetElement();
       const lastElement = lastGrabbedElement();
-      return !!currentElement && currentElement === lastElement;
+      return Boolean(currentElement) && currentElement === lastElement;
     });
 
     createEffect(
@@ -390,9 +382,12 @@ export const init = (rawOptions?: Options) => {
       document.body.style.cursor = "crosshair";
     };
 
-    const deactivateRenderer = () => {
+    const deactivateRenderer = (shouldResetModifier = true) => {
       setIsHoldingKeys(false);
       setIsActivated(false);
+      if (shouldResetModifier) {
+        setIsModifierHeld(false);
+      }
       document.body.style.cursor = "";
       if (isDragging()) {
         setIsDragging(false);
@@ -401,6 +396,7 @@ export const init = (rawOptions?: Options) => {
       if (holdTimerId) window.clearTimeout(holdTimerId);
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
       stopProgressAnimation();
+      lastDeactivationTime = Date.now();
     };
 
     const abortController = new AbortController();
@@ -409,6 +405,10 @@ export const init = (rawOptions?: Options) => {
     window.addEventListener(
       "keydown",
       (event: KeyboardEvent) => {
+        if (event.metaKey || event.ctrlKey) {
+          setIsModifierHeld(true);
+        }
+
         if (event.key === "Escape" && isHoldingKeys()) {
           deactivateRenderer();
           return;
@@ -417,13 +417,34 @@ export const init = (rawOptions?: Options) => {
         if (isKeyboardEventTriggeredByInput(event)) return;
 
         if (isTargetKeyCombination(event)) {
+          const wasRecentlyDeactivated =
+            lastDeactivationTime !== null &&
+            Date.now() - lastDeactivationTime < QUICK_REPRESS_THRESHOLD_MS;
+
           if (!isHoldingKeys()) {
             setIsHoldingKeys(true);
-            startProgressAnimation();
-            holdTimerId = window.setTimeout(() => {
+
+            if (wasRecentlyDeactivated && isModifierHeld()) {
               activateRenderer();
               options.onActivate?.();
-            }, options.keyHoldDuration);
+
+              const element = getElementAtPosition(mouseX(), mouseY());
+              if (element) {
+                setCopyStartX(mouseX());
+                setCopyStartY(mouseY());
+                setIsCopying(true);
+                setLastGrabbedElement(element);
+                void handleCopy(element).finally(() => {
+                  setIsCopying(false);
+                });
+              }
+            } else {
+              startProgressAnimation();
+              holdTimerId = window.setTimeout(() => {
+                activateRenderer();
+                options.onActivate?.();
+              }, options.keyHoldDuration);
+            }
           }
 
           if (isActivated()) {
@@ -440,13 +461,19 @@ export const init = (rawOptions?: Options) => {
     window.addEventListener(
       "keyup",
       (event: KeyboardEvent) => {
+        const isReleasingModifier = !event.metaKey && !event.ctrlKey;
+        const isReleasingC = event.key.toLowerCase() === "c";
+
+        if (isReleasingModifier) {
+          setIsModifierHeld(false);
+        }
+
         if (!isHoldingKeys() && !isActivated()) return;
 
-        const isReleasingC = event.key.toLowerCase() === "c";
-        const isReleasingModifier = !event.metaKey && !event.ctrlKey;
-
-        if (isReleasingC || isReleasingModifier) {
-          deactivateRenderer();
+        if (isReleasingC) {
+          deactivateRenderer(false);
+        } else if (isReleasingModifier) {
+          deactivateRenderer(true);
         }
       },
       { signal: eventListenerSignal, capture: true },
@@ -490,11 +517,14 @@ export const init = (rawOptions?: Options) => {
         document.body.style.userSelect = "";
 
         if (wasDragGesture) {
+          setDidJustDrag(true);
           const dragRect = getDragRect(event.clientX, event.clientY);
 
           const elements = getElementsInDrag(dragRect, isValidGrabbableElement);
 
           if (elements.length > 0) {
+            setCopyStartX(event.clientX);
+            setCopyStartY(event.clientY);
             setIsCopying(true);
             void handleMultipleCopy(elements).finally(() => {
               setIsCopying(false);
@@ -506,6 +536,8 @@ export const init = (rawOptions?: Options) => {
             );
 
             if (fallbackElements.length > 0) {
+              setCopyStartX(event.clientX);
+              setCopyStartY(event.clientY);
               setIsCopying(true);
               void handleMultipleCopy(fallbackElements).finally(() => {
                 setIsCopying(false);
@@ -516,6 +548,8 @@ export const init = (rawOptions?: Options) => {
           const element = getElementAtPosition(event.clientX, event.clientY);
           if (!element) return;
 
+          setCopyStartX(event.clientX);
+          setCopyStartY(event.clientY);
           setIsCopying(true);
           setLastGrabbedElement(element);
 
@@ -525,6 +559,18 @@ export const init = (rawOptions?: Options) => {
         }
       },
       { signal: eventListenerSignal },
+    );
+
+    window.addEventListener(
+      "click",
+      (event: MouseEvent) => {
+        if (didJustDrag()) {
+          event.preventDefault();
+          event.stopPropagation();
+          setDidJustDrag(false);
+        }
+      },
+      { signal: eventListenerSignal, capture: true },
     );
 
     document.addEventListener(
@@ -562,7 +608,8 @@ export const init = (rawOptions?: Options) => {
       () =>
         (isRendererActive() &&
           !isDragging() &&
-          (!!targetElement() && !isSameAsLast() || !targetElement())) ||
+          ((Boolean(targetElement()) && !isSameAsLast()) ||
+            !targetElement())) ||
         isCopying(),
     );
 

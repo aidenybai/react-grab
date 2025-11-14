@@ -4,6 +4,8 @@ import { Spinner } from "./spinner.js";
 import {
   VIEWPORT_MARGIN_PX,
   INDICATOR_CLAMP_PADDING_PX,
+  CURSOR_OFFSET_PX,
+  SUCCESS_LABEL_DURATION_MS,
 } from "../constants.js";
 import { getClampedElementPosition } from "../utils/get-clamped-element-position.js";
 import { lerp } from "../utils/lerp.js";
@@ -35,8 +37,7 @@ export const Label: Component<LabelProps> = (props) => {
     setPositionTick((tick) => tick + 1);
 
     const hasConvergedToTarget =
-      Math.abs(currentX - targetX) < 0.5 &&
-      Math.abs(currentY - targetY) < 0.5;
+      Math.abs(currentX - targetX) < 0.5 && Math.abs(currentY - targetY) < 0.5;
 
     if (!hasConvergedToTarget) {
       animationFrameId = requestAnimationFrame(animate);
@@ -81,7 +82,7 @@ export const Label: Component<LabelProps> = (props) => {
         if (props.variant === "success") {
           const fadeOutTimer = setTimeout(() => {
             setOpacity(0);
-          }, 1500);
+          }, SUCCESS_LABEL_DURATION_MS);
 
           onCleanup(() => clearTimeout(fadeOutTimer));
         }
@@ -107,59 +108,37 @@ export const Label: Component<LabelProps> = (props) => {
     const boundingRect = labelBoundingRect();
     if (!boundingRect) return { left: currentX, top: currentY };
 
-    if (props.variant === "success") {
-      const indicatorLeft = Math.round(currentX);
-      const indicatorTop = Math.round(currentY) - boundingRect.height - 6;
-
-      const willClampLeft = indicatorLeft < VIEWPORT_MARGIN_PX;
-      const willClampTop = indicatorTop < VIEWPORT_MARGIN_PX;
-      const isClamped = willClampLeft || willClampTop;
-
-      const clamped = getClampedElementPosition(
-        indicatorLeft,
-        indicatorTop,
-        boundingRect.width,
-        boundingRect.height,
-      );
-
-      if (isClamped) {
-        clamped.left += INDICATOR_CLAMP_PADDING_PX;
-        clamped.top += INDICATOR_CLAMP_PADDING_PX;
-      }
-
-      return clamped;
-    }
-
-    const CROSSHAIR_OFFSET = 12;
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
     const quadrants = [
       {
-        left: Math.round(currentX) + CROSSHAIR_OFFSET,
-        top: Math.round(currentY) + CROSSHAIR_OFFSET,
+        left: Math.round(currentX) + CURSOR_OFFSET_PX,
+        top: Math.round(currentY) + CURSOR_OFFSET_PX,
       },
       {
-        left: Math.round(currentX) - boundingRect.width - CROSSHAIR_OFFSET,
-        top: Math.round(currentY) + CROSSHAIR_OFFSET,
+        left: Math.round(currentX) - boundingRect.width - CURSOR_OFFSET_PX,
+        top: Math.round(currentY) + CURSOR_OFFSET_PX,
       },
       {
-        left: Math.round(currentX) + CROSSHAIR_OFFSET,
-        top: Math.round(currentY) - boundingRect.height - CROSSHAIR_OFFSET,
+        left: Math.round(currentX) + CURSOR_OFFSET_PX,
+        top: Math.round(currentY) - boundingRect.height - CURSOR_OFFSET_PX,
       },
       {
-        left: Math.round(currentX) - boundingRect.width - CROSSHAIR_OFFSET,
-        top: Math.round(currentY) - boundingRect.height - CROSSHAIR_OFFSET,
+        left: Math.round(currentX) - boundingRect.width - CURSOR_OFFSET_PX,
+        top: Math.round(currentY) - boundingRect.height - CURSOR_OFFSET_PX,
       },
     ];
 
     for (const position of quadrants) {
       const fitsHorizontally =
         position.left >= VIEWPORT_MARGIN_PX &&
-        position.left + boundingRect.width <= viewportWidth - VIEWPORT_MARGIN_PX;
+        position.left + boundingRect.width <=
+          viewportWidth - VIEWPORT_MARGIN_PX;
       const fitsVertically =
         position.top >= VIEWPORT_MARGIN_PX &&
-        position.top + boundingRect.height <= viewportHeight - VIEWPORT_MARGIN_PX;
+        position.top + boundingRect.height <=
+          viewportHeight - VIEWPORT_MARGIN_PX;
 
       if (fitsHorizontally && fitsVertically) {
         return position;
@@ -227,21 +206,16 @@ export const Label: Component<LabelProps> = (props) => {
           <div style={{ "margin-right": "4px" }}>Copied</div>
         </Show>
         <Show when={props.variant === "processing"}>Grabbing…</Show>
-        <Show
-          when={props.text.startsWith("(")}
-          fallback={
-            <span
-              style={{
-                "font-family":
-                  "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-                "font-variant-numeric": "tabular-nums",
-              }}
-            >
-              {props.text}
-            </span>
-          }
-        >
-          {props.text}
+        <Show when={props.variant !== "processing"}>
+          <span
+            style={{
+              "font-family":
+                "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+              "font-variant-numeric": "tabular-nums",
+            }}
+          >
+            {props.text}
+          </span>
         </Show>
         <Show when={props.variant === "success"}>
           <div style={{ "margin-left": "4px" }}>to clipboard</div>
