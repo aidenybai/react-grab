@@ -128,9 +128,10 @@ export const init = (rawOptions?: Options) => {
 
     const getComputedStyles = (element: Element) => {
       const computed = window.getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
       return {
-        width: computed.width,
-        height: computed.height,
+        width: `${rect.width}px`,
+        height: `${rect.height}px`,
         paddingTop: computed.paddingTop,
         paddingRight: computed.paddingRight,
         paddingBottom: computed.paddingBottom,

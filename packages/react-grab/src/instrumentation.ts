@@ -26,15 +26,16 @@ export const getSourceTrace = async (element: Element) => {
     Number.MAX_SAFE_INTEGER,
   );
   if (!sources) return null;
+  console.log(sources);
   return sources
-    .filter((source) => {
-      return isSourceFile(source.fileName);
-    })
     .map((source) => {
       return {
         ...source,
         fileName: normalizeFileName(source.fileName),
       };
+    })
+    .filter((source) => {
+      return isSourceFile(source.fileName);
     });
 };
 

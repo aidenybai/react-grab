@@ -1,3 +1,5 @@
+"use client";
+
 import { TodoItem } from "./todo-item";
 
 export function TodoList() {
