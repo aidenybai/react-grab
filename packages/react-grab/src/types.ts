@@ -4,6 +4,14 @@ export interface Options {
   onActivate?: () => void;
 }
 
+export interface ReactGrabAPI {
+  activate: () => void;
+  deactivate: () => void;
+  toggle: () => void;
+  isActive: () => boolean;
+  dispose: () => void;
+}
+
 export interface OverlayBounds {
   borderRadius: string;
   height: number;

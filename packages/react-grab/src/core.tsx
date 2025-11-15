@@ -20,12 +20,11 @@ import {
 } from "./utils/get-elements-in-drag.js";
 import { createElementBounds } from "./utils/create-element-bounds.js";
 import { SUCCESS_LABEL_DURATION_MS } from "./constants.js";
-import type { Options, OverlayBounds, GrabbedBox } from "./types.js";
+import type { Options, OverlayBounds, GrabbedBox, ReactGrabAPI } from "./types.js";
 
 const PROGRESS_INDICATOR_DELAY_MS = 150;
-const QUICK_REPRESS_THRESHOLD_MS = 150;
 
-export const init = (rawOptions?: Options) => {
+export const init = (rawOptions?: Options): ReactGrabAPI => {
   const options = {
     enabled: true,
     keyHoldDuration: 300,
@@ -33,7 +32,13 @@ export const init = (rawOptions?: Options) => {
   };
 
   if (options.enabled === false) {
-    return;
+    return {
+      activate: () => {},
+      deactivate: () => {},
+      toggle: () => {},
+      isActive: () => false,
+      dispose: () => {},
+    };
   }
 
   return createRoot((dispose) => {
@@ -60,7 +65,6 @@ export const init = (rawOptions?: Options) => {
     const [showProgressIndicator, setShowProgressIndicator] =
       createSignal(false);
     const [didJustDrag, setDidJustDrag] = createSignal(false);
-    const [isModifierHeld, setIsModifierHeld] = createSignal(false);
     const [copyStartX, setCopyStartX] = createSignal(OFFSCREEN_POSITION);
     const [copyStartY, setCopyStartY] = createSignal(OFFSCREEN_POSITION);
 
@@ -68,7 +72,6 @@ export const init = (rawOptions?: Options) => {
     let progressAnimationId: number | null = null;
     let progressDelayTimerId: number | null = null;
     let keydownSpamTimerId: number | null = null;
-    let lastDeactivationTime: number | null = null;
 
     const isRendererActive = createMemo(() => isActivated() && !isCopying());
 
@@ -370,12 +373,9 @@ export const init = (rawOptions?: Options) => {
       document.body.style.cursor = "crosshair";
     };
 
-    const deactivateRenderer = (shouldResetModifier = true) => {
+    const deactivateRenderer = () => {
       setIsHoldingKeys(false);
       setIsActivated(false);
-      if (shouldResetModifier) {
-        setIsModifierHeld(false);
-      }
       document.body.style.cursor = "";
       if (isDragging()) {
         setIsDragging(false);
@@ -384,7 +384,6 @@ export const init = (rawOptions?: Options) => {
       if (holdTimerId) window.clearTimeout(holdTimerId);
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
       stopProgressAnimation();
-      lastDeactivationTime = Date.now();
     };
 
     const abortController = new AbortController();
@@ -393,10 +392,6 @@ export const init = (rawOptions?: Options) => {
     window.addEventListener(
       "keydown",
       (event: KeyboardEvent) => {
-        if (event.metaKey || event.ctrlKey) {
-          setIsModifierHeld(true);
-        }
-
         if (event.key === "Escape" && isHoldingKeys()) {
           deactivateRenderer();
           return;
@@ -405,31 +400,13 @@ export const init = (rawOptions?: Options) => {
         if (isKeyboardEventTriggeredByInput(event)) return;
 
         if (isTargetKeyCombination(event)) {
-          const wasRecentlyDeactivated =
-            lastDeactivationTime !== null &&
-            Date.now() - lastDeactivationTime < QUICK_REPRESS_THRESHOLD_MS;
-
           if (!isHoldingKeys()) {
             setIsHoldingKeys(true);
-
-            if (wasRecentlyDeactivated && isModifierHeld()) {
+            startProgressAnimation();
+            holdTimerId = window.setTimeout(() => {
               activateRenderer();
               options.onActivate?.();
-
-              const element = getElementAtPosition(mouseX(), mouseY());
-              if (element) {
-                setLastGrabbedElement(element);
-                void executeCopyOperation(mouseX(), mouseY(), () =>
-                  copySingleElementToClipboard(element),
-                );
-              }
-            } else {
-              startProgressAnimation();
-              holdTimerId = window.setTimeout(() => {
-                activateRenderer();
-                options.onActivate?.();
-              }, options.keyHoldDuration);
-            }
+            }, options.keyHoldDuration);
           }
 
           if (isActivated()) {
@@ -446,19 +423,13 @@ export const init = (rawOptions?: Options) => {
     window.addEventListener(
       "keyup",
       (event: KeyboardEvent) => {
+        if (!isHoldingKeys() && !isActivated()) return;
+
         const isReleasingModifier = !event.metaKey && !event.ctrlKey;
         const isReleasingC = event.key.toLowerCase() === "c";
 
-        if (isReleasingModifier) {
-          setIsModifierHeld(false);
-        }
-
-        if (!isHoldingKeys() && !isActivated()) return;
-
-        if (isReleasingC) {
-          deactivateRenderer(false);
-        } else if (isReleasingModifier) {
-          deactivateRenderer(true);
+        if (isReleasingC || isReleasingModifier) {
+          deactivateRenderer();
         }
       },
       { signal: eventListenerSignal, capture: true },
@@ -621,6 +592,28 @@ export const init = (rawOptions?: Options) => {
       rendererRoot,
     );
 
-    return dispose;
+    return {
+      activate: () => {
+        if (!isActivated()) {
+          activateRenderer();
+          options.onActivate?.();
+        }
+      },
+      deactivate: () => {
+        if (isActivated()) {
+          deactivateRenderer();
+        }
+      },
+      toggle: () => {
+        if (isActivated()) {
+          deactivateRenderer();
+        } else {
+          activateRenderer();
+          options.onActivate?.();
+        }
+      },
+      isActive: () => isActivated(),
+      dispose,
+    };
   });
 };

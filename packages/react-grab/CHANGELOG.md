@@ -1,5 +1,17 @@
 # react-grab
 
+## 0.0.31
+
+### Patch Changes
+
+- fix: screenshotrs
+
+## 0.0.30
+
+### Patch Changes
+
+- improvements to instrumentaiton
+
 ## 0.0.29
 
 ### Patch Changes

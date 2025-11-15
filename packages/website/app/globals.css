@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+html,
+body {
+  background-color: #101010;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.shimmer-text {
+  background: linear-gradient(
+    90deg,
+    #818181 0%,
+    #818181 35%,
+    #ffffff 50%,
+    #818181 65%,
+    #818181 100%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 3s ease-in-out infinite;
+}
