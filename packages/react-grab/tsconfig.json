@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
-    "jsx": "react",
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js",
     "module": "NodeNext",
     "esModuleInterop": true,
     "strictNullChecks": true,
@@ -8,6 +9,6 @@
     "strict": true,
     "lib": ["esnext", "dom"]
   },
-  "include": ["src", "tsup.config.ts"],
+  "include": ["src", "tsup.config.ts", "esbuild-plugin-babel.d.ts"],
   "exclude": ["**/node_modules/**", "dist"]
 }

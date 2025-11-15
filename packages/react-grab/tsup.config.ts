@@ -1,5 +1,7 @@
 import fs from "node:fs";
 import { defineConfig, type Options } from "tsup";
+// @ts-expect-error -- esbuild-plugin-babel is not typed
+import babel from "esbuild-plugin-babel";
 
 const banner = `/**
  * @license MIT
@@ -49,6 +51,17 @@ export default defineConfig([
     },
     minify: process.env.NODE_ENV === "production",
     outDir: "./dist",
+    esbuildPlugins: [
+      babel({
+        filter: /\.(tsx|jsx)$/,
+        config: {
+          presets: [
+            ["@babel/preset-typescript", { onlyRemoveTypeImports: true }],
+            "babel-preset-solid",
+          ],
+        },
+      }),
+    ],
   },
   {
     ...DEFAULT_OPTIONS,
@@ -58,13 +71,16 @@ export default defineConfig([
       ".css": "text",
     },
     outDir: "./dist",
-  },
-  {
-    ...DEFAULT_OPTIONS,
-    dts: true,
-    entry: ["./src/plugins/vite.ts"],
-    format: ["esm", "cjs"],
-    onSuccess: undefined,
-    outDir: "./dist/plugins",
+    esbuildPlugins: [
+      babel({
+        filter: /\.(tsx|jsx)$/,
+        config: {
+          presets: [
+            ["@babel/preset-typescript", { onlyRemoveTypeImports: true }],
+            "babel-preset-solid",
+          ],
+        },
+      }),
+    ],
   },
 ]);

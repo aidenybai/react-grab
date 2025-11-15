@@ -1,5 +1,71 @@
 # react-grab
 
+## 0.0.32
+
+### Patch Changes
+
+- fix: keybind issues
+
+## 0.0.31
+
+### Patch Changes
+
+- fix: screenshotrs
+
+## 0.0.30
+
+### Patch Changes
+
+- improvements to instrumentaiton
+
+## 0.0.29
+
+### Patch Changes
+
+- fix: crosshair length
+
+## 0.0.28
+
+### Patch Changes
+
+- fix: computed styles
+
+## 0.0.27
+
+### Patch Changes
+
+- fix: sources
+
+## 0.0.26
+
+### Patch Changes
+
+- performance
+
+## 0.0.25
+
+### Patch Changes
+
+- new crosshair
+
+## 0.0.24
+
+### Patch Changes
+
+- fix: issues
+
+## 0.0.23
+
+### Patch Changes
+
+- fix: things
+
+## 0.0.21
+
+### Patch Changes
+
+- fix: refactor code
+
 ## 0.0.20
 
 ### Patch Changes

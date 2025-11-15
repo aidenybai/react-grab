@@ -4,21 +4,18 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "pnpm --filter react-grab build && next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
-    "@shikijs/transformers": "^3.13.0",
-    "@vercel/analytics": "^1.5.0",
-    "bippy": "^0.3.31",
-    "clsx": "^2.1.1",
-    "framer-motion": "^12.23.24",
+    "lucide-react": "^0.553.0",
     "motion": "^12.23.24",
+    "next": "16.0.3",
     "react": "19.2.0",
     "react-dom": "19.2.0",
-    "shiki": "^3.13.0",
-    "tailwind-merge": "^3.3.1"
+    "react-grab": "workspace:*",
+    "sugar-high": "^0.9.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -26,8 +23,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.0.0",
-    "next": "16.0.0",
+    "eslint-config-next": "16.0.3",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

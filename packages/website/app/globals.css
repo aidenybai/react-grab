@@ -1,56 +1,93 @@
 @import "tailwindcss";
 
-@font-face {
-  font-family: "TestDie-Grotesk-VF";
-  src: url("/TestDieGroteskVF-Roman.ttf") format("truetype");
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
+html,
+body {
+  background-color: #000;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
-@font-face {
-  font-family: "TestDie-Grotesk-VF";
-  src: url("/TestDieGroteskVF-Italic.ttf") format("truetype");
-  font-weight: 100 900;
-  font-style: italic;
-  font-display: swap;
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
-@font-face {
-  font-family: "EKModenaMono-Regular";
-  src: url("/EKModenaMono-Regular.otf") format("opentype");
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
+.shimmer-text {
+  background: linear-gradient(
+    90deg,
+    #818181 0%,
+    #818181 35%,
+    #ffffff 50%,
+    #818181 65%,
+    #818181 100%
+  );
+  background-size: 150% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 1s ease-in-out infinite;
+}
+
+@keyframes logo-shimmer {
+  0% {
+    filter: drop-shadow(0 0 0 rgba(252, 78, 253, 0));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 16px rgba(252, 78, 253, 0.9));
+    transform: scale(1.04);
+  }
+  100% {
+    filter: drop-shadow(0 0 0 rgba(252, 78, 253, 0));
+    transform: scale(1);
+  }
+}
+
+@keyframes logo-shimmer-hover {
+  0% {
+    filter: drop-shadow(0 0 0 rgba(252, 78, 253, 0));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 16px rgba(252, 78, 253, 0.9));
+    transform: scale(1.04);
+  }
+  100% {
+    filter: drop-shadow(0 0 0 rgba(252, 78, 253, 0));
+    transform: scale(1);
+  }
+}
+
+.logo-shimmer-once {
+  animation: logo-shimmer 0.9s ease-out;
+}
+
+.logo-shimmer-once:hover {
+  animation: logo-shimmer-hover 0.9s ease-out;
+}
+
+::selection {
+  background: #d75fcb33;
+  color: #d75fcb;
+}
+
+::-moz-selection {
+  background: #d75fcb33;
+  color: #d75fcb;
 }
 
 :root {
-  --background: #1e1e1e;
-  --foreground: #ededed;
-  --font-grotesk: "TestDie-Grotesk-VF", "Test Die Grotesk VF", system-ui, sans-serif;
-  --font-enduro: "Enduro-Medium", "Enduro Medium", system-ui, sans-serif;
-  --font-mono: "EKModenaMono-Regular", "EK Modena Mono", monospace;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-mono);
-  --font-grotesk: var(--font-grotesk);
-  --font-enduro: var(--font-enduro);
-}
-
-body {
-  min-height: 100vh;
-  background: #0a0a0a;
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-pre,
-pre > code {
-  background: #000 !important;
+  --sh-class: #facc15;
+  --sh-identifier: #e5e7eb;
+  --sh-sign: #9ca3af;
+  --sh-property: #93c5fd;
+  --sh-entity: #6ee7b7;
+  --sh-jsxliterals: #a5b4fc;
+  --sh-string: #f97373;
+  --sh-keyword: #f472b6;
+  --sh-comment: #9ca3af;
 }

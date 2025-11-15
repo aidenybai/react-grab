@@ -1,5 +1,4 @@
 import tseslint from "typescript-eslint";
-import perfectionist from "eslint-plugin-perfectionist";
 
 export default tseslint.config(
   {
@@ -13,12 +12,10 @@ export default tseslint.config(
       "*.js",
       "*.json",
       "*.md",
-      "kitchen-sink/**",
     ],
   },
   ...tseslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
-  perfectionist.configs["recommended-natural"],
   {
     languageOptions: {
       parserOptions: {

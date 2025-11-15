@@ -1,19 +1,15 @@
 {
   "name": "react-grab",
-  "version": "0.0.20",
+  "version": "0.0.32",
   "description": "",
   "keywords": [
     "react",
     "grab",
-    "cursor",
-    "claude",
-    "code",
-    "context",
-    "changes",
-    "modifications",
-    "modification"
+    "react",
+    "agent",
+    "context"
   ],
-  "homepage": "https://github.com/aidenybai/react-grab#readme",
+  "homepage": "https://react-grab.com",
   "bugs": {
     "url": "https://github.com/aidenybai/react-grab/issues"
   },
@@ -37,16 +33,6 @@
       "require": {
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
-      }
-    },
-    "./plugins/vite": {
-      "import": {
-        "types": "./dist/plugins/vite.d.ts",
-        "default": "./dist/plugins/vite.js"
-      },
-      "require": {
-        "types": "./dist/plugins/vite.d.cts",
-        "default": "./dist/plugins/vite.cjs"
       }
     },
     "./dist/*": "./dist/*.js",
@@ -76,8 +62,11 @@
     "prepublishOnly": "pnpm build"
   },
   "devDependencies": {
+    "@babel/core": "^7.28.5",
+    "@babel/preset-typescript": "^7.28.5",
+    "babel-preset-solid": "^1.9.10",
+    "esbuild-plugin-babel": "^0.2.3",
     "eslint": "^9.37.0",
-    "eslint-plugin-perfectionist": "^4.15.1",
     "publint": "^0.2.12",
     "terser": "^5.36.0",
     "tsup": "^8.2.4",
@@ -87,6 +76,9 @@
     "access": "public"
   },
   "dependencies": {
-    "bippy": "^0.3.34"
+    "@medv/finder": "^4.0.2",
+    "bippy": "^0.5.14",
+    "modern-screenshot": "^4.6.6",
+    "solid-js": "^1.9.10"
   }
 }

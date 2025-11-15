@@ -1,0 +1,4 @@
+{
+  "buildCommand": "pnpm --filter react-grab build && pnpm --filter @react-grab/website build",
+  "installCommand": "pnpm install"
+}
