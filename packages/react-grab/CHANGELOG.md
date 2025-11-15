@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.32
+
+### Patch Changes
+
+- fix: keybind issues
+
 ## 0.0.31
 
 ### Patch Changes
