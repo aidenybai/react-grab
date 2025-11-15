@@ -1,0 +1,5 @@
+{
+  "buildCommand": "cd packages/website && pnpm build",
+  "installCommand": "pnpm install",
+  "outputDirectory": "packages/website/.next"
+}
