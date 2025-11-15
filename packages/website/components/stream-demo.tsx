@@ -97,8 +97,8 @@ const StreamDemoInner = () => {
     : stream.blocks;
 
   return (
-    <div className="min-h-screen bg-black p-8">
-      <div className="mx-auto flex max-w-2xl flex-col gap-2 pt-8 text-lg">
+    <div className="min-h-screen bg-black px-4 py-6 sm:px-8 sm:py-8">
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-3 pt-4 text-base sm:pt-8 sm:text-lg">
         {stream.wasPreloaded ? (
           postBlocks.map((block) => {
             const rendered = renderBaseBlock(block);

@@ -20,11 +20,11 @@ export const ReadToolCallBlock = ({
   };
 
   return (
-    <div className="flex gap-1 text-[#818181]">
+    <div className="flex flex-wrap gap-1 text-[#818181]">
       <span className={isStreaming ? "shimmer-text" : ""}>{displayName}</span>
       <button
         onClick={handleClick}
-        className="transition-colors duration-300"
+        className="max-w-full break-all text-left transition-colors duration-300"
         style={{
           color: isClicked ? "#ffffff" : "#5b5b5b",
         }}

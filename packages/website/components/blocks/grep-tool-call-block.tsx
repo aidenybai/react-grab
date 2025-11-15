@@ -18,7 +18,7 @@ export const GrepToolCallBlock = ({
   return (
     <Collapsible
       header={
-        <div className="flex gap-1">
+        <div className="flex flex-wrap gap-1">
           <span className={isStreaming ? "shimmer-text" : ""}>{displayName}</span>
           {isStreaming ? (
             <span className="text-[#5b5b5b]">{parameter}</span>

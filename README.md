@@ -112,69 +112,6 @@ Your `index.html` could look like this:
 </html>
 ```
 
-## API
-
-React Grab provides a programmatic API to control the selection mode without using keyboard shortcuts.
-
-### Basic Usage
-
-When you install React Grab using the script tag or plugin methods above, a global API instance is automatically created. You can access it with `getGlobalApi()`:
-
-```tsx
-import { getGlobalApi } from "react-grab";
-
-const api = getGlobalApi();
-
-api?.toggle();
-api?.activate();
-api?.deactivate();
-```
-
-### React Example
-
-```tsx
-import { getGlobalApi } from "react-grab";
-
-function MyComponent() {
-  const handleActivate = () => {
-    const api = getGlobalApi();
-    api?.activate();
-  };
-
-  return (
-    <button onClick={handleActivate}>
-      Activate Selection Mode
-    </button>
-  );
-}
-```
-
-### API Methods
-
-- `activate()` - Activates the selection mode (shows the crosshair and allows element selection)
-- `deactivate()` - Deactivates the selection mode
-- `toggle()` - Toggles between active and inactive states
-- `isActive()` - Returns `true` if selection mode is currently active, `false` otherwise
-- `dispose()` - Cleans up and removes all event listeners
-
-### Creating Custom Instances
-
-You can also create your own instance with custom options:
-
-```tsx
-import { init } from "react-grab";
-
-const customApi = init({
-  enabled: true,
-  keyHoldDuration: 500,
-  onActivate: () => {
-    console.log("Selection mode activated!");
-  },
-});
-
-customApi.toggle();
-```
-
 ## Resources & Contributing Back
 
 Want to try it out? Check the [our demo](https://react-grab.com).

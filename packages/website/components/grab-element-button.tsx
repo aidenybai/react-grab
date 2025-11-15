@@ -10,6 +10,7 @@ interface GrabElementButtonProps {
 export const GrabElementButton = ({ onSelect, showSkip = true }: GrabElementButtonProps) => {
   const [isActivated, setIsActivated] = useState(false);
   const [isMac, setIsMac] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
   const [hideSkip, setHideSkip] = useState(false);
   const [hasAdvanced, setHasAdvanced] = useState(false);
 
@@ -31,12 +32,22 @@ export const GrabElementButton = ({ onSelect, showSkip = true }: GrabElementButt
     if (typeof window !== "undefined") {
       setIsMac(navigator.platform.toUpperCase().indexOf("MAC") >= 0);
 
-      // Preload react-grab so it's ready when user activates
-      import("react-grab").catch((error) => {
-        console.error("Failed to preload react-grab:", error);
-      });
+      const hasTouchPoints = navigator.maxTouchPoints > 0;
+      const hasTouchMedia = window.matchMedia("(pointer: coarse)").matches;
+      const isMobileDevice = hasTouchPoints || hasTouchMedia;
+      setIsMobile(isMobileDevice);
+
+      if (isMobileDevice) {
+        setTimeout(() => {
+          onSelect("button");
+        }, 100);
+      } else {
+        import("react-grab").catch((error) => {
+          console.error("Failed to preload react-grab:", error);
+        });
+      }
     }
-  }, []);
+  }, [onSelect]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -122,10 +133,14 @@ export const GrabElementButton = ({ onSelect, showSkip = true }: GrabElementButt
     onSelect("div");
   };
 
+  if (isMobile) {
+    return null;
+  }
+
   return (
-    <div className="flex items-center gap-3 py-4">
+    <div className="hidden flex-col gap-2 py-4 sm:flex sm:flex-row sm:items-center sm:gap-3">
       <button
-        className={`px-3 py-2 rounded-lg text-white text-sm transition-colors flex items-center gap-2 cursor-pointer ${
+        className={`flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm text-white transition-colors sm:w-auto ${
           hasAdvanced
             ? "border border-white/20 bg-white/5 hover:bg-white/10"
             : "border border-[#d75fcb] bg-[#330039] hover:bg-[#4a0052] shadow-[0_0_12px_rgba(215,95,203,0.4)]"
@@ -134,7 +149,7 @@ export const GrabElementButton = ({ onSelect, showSkip = true }: GrabElementButt
       >
         {!isActivated ? (
           <>
-            <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-xs font-mono">
+            <kbd className="shrink-0 rounded bg-white/10 px-1.5 py-0.5 text-xs font-mono">
               {isMac ? "⌘ C" : "Ctrl C"}
             </kbd>
             <span className="text-white">Hold to select element</span>

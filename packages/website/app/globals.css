@@ -3,6 +3,8 @@
 html,
 body {
   background-color: #000;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
 @keyframes shimmer {

@@ -227,8 +227,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           targetElements.map((element) => getHTMLSnippet(element)),
         );
 
-        const combinedContent = elementSnippets.join("\n\n---\n\n");
-        const plainTextContent = wrapInSelectedElementTags(combinedContent);
+        const plainTextContent = elementSnippets
+          .filter((snippet) => snippet.trim())
+          .map((snippet) => wrapInSelectedElementTags(snippet))
+          .join("\n\n");
 
         const structuredElements = elementSnippets.map((content, index) => ({
           tagName: extractElementTagName(targetElements[index]),
@@ -419,23 +421,33 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         if (isKeyboardEventTriggeredByInput(event)) return;
 
-        if (isTargetKeyCombination(event)) {
-          if (!isHoldingKeys()) {
-            setIsHoldingKeys(true);
-            startProgressAnimation();
-            holdTimerId = window.setTimeout(() => {
-              activateRenderer();
-              options.onActivate?.();
-            }, options.keyHoldDuration);
-          }
+        if (!isTargetKeyCombination(event)) return;
 
-          if (isActivated()) {
-            if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
-            keydownSpamTimerId = window.setTimeout(() => {
-              deactivateRenderer();
-            }, 200);
+        if (isActivated()) {
+          if (keydownSpamTimerId !== null) {
+            window.clearTimeout(keydownSpamTimerId);
           }
+          keydownSpamTimerId = window.setTimeout(() => {
+            deactivateRenderer();
+          }, 200);
+          return;
         }
+
+        if (event.repeat) return;
+
+        if (holdTimerId !== null) {
+          window.clearTimeout(holdTimerId);
+        }
+
+        if (!isHoldingKeys()) {
+          setIsHoldingKeys(true);
+        }
+
+        startProgressAnimation();
+        holdTimerId = window.setTimeout(() => {
+          activateRenderer();
+          options.onActivate?.();
+        }, options.keyHoldDuration);
       },
       { signal: eventListenerSignal },
     );

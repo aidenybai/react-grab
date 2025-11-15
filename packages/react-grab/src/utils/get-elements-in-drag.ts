@@ -140,11 +140,6 @@ export const getElementsInDrag = (
   const elements = filterElementsInDrag(dragRect, isValidGrabbableElement, true);
   const uniqueElements = removeNestedElements(elements);
 
-  const bestParent = findBestParentElement(uniqueElements, dragRect, isValidGrabbableElement);
-  if (bestParent) {
-    return [bestParent];
-  }
-
   return uniqueElements;
 };
 
@@ -154,11 +149,6 @@ export const getElementsInDragLoose = (
 ): Element[] => {
   const elements = filterElementsInDrag(dragRect, isValidGrabbableElement, false);
   const uniqueElements = removeNestedElements(elements);
-
-  const bestParent = findBestParentElement(uniqueElements, dragRect, isValidGrabbableElement);
-  if (bestParent) {
-    return [bestParent];
-  }
 
   return uniqueElements;
 };

@@ -1,11 +1,13 @@
 // both the modern Clipboard API and document.execCommand('copy') require the document to have focus.
 // this function attempts to focus the window and waits for the focus event before proceeding.
 const waitForFocus = (): Promise<void> => {
-  if (document.hasFocus()) return Promise.resolve();
+  if (document.hasFocus()) {
+    return new Promise((resolve) => setTimeout(resolve, 50));
+  }
   return new Promise((resolve) => {
     const onFocus = () => {
       window.removeEventListener("focus", onFocus);
-      resolve();
+      setTimeout(resolve, 50);
     };
     window.addEventListener("focus", onFocus);
     window.focus();
@@ -28,21 +30,24 @@ export const copyContent = async (
         }
         return true;
       }
+      const mimeTypeMap = new Map<string, Blob>();
+      for (const contentPart of content) {
+        if (contentPart instanceof Blob) {
+          const mimeType = contentPart.type || "text/plain";
+          if (!mimeTypeMap.has(mimeType)) {
+            mimeTypeMap.set(mimeType, contentPart);
+          }
+        } else {
+          if (!mimeTypeMap.has("text/plain")) {
+            mimeTypeMap.set(
+              "text/plain",
+              new Blob([contentPart], { type: "text/plain" }),
+            );
+          }
+        }
+      }
       await navigator.clipboard.write([
-        new ClipboardItem(
-          Object.fromEntries(
-            content.map((contentPart) => {
-              if (contentPart instanceof Blob) {
-                return [contentPart.type ?? "text/plain", contentPart];
-              } else {
-                return [
-                  "text/plain",
-                  new Blob([contentPart], { type: "text/plain" }),
-                ];
-              }
-            }),
-          ),
-        ),
+        new ClipboardItem(Object.fromEntries(mimeTypeMap)),
       ]);
       return true;
     } else if (content instanceof Blob) {

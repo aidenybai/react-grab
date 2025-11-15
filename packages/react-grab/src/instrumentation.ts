@@ -173,7 +173,6 @@ export const getHTMLSnippet = async (element: Element) => {
   const lines: string[] = [];
 
   const selector = generateCSSSelector(element);
-  lines.push(`Locate this element in the codebase:`);
   lines.push(`- selector: ${selector}`);
   const rect = element.getBoundingClientRect();
   lines.push(`- width: ${Math.round(rect.width)}`);
