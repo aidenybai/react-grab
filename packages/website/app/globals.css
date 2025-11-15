@@ -79,15 +79,3 @@ body {
   background: #d75fcb33;
   color: #d75fcb;
 }
-
-:root {
-  --sh-class: #facc15;
-  --sh-identifier: #e5e7eb;
-  --sh-sign: #9ca3af;
-  --sh-property: #93c5fd;
-  --sh-entity: #6ee7b7;
-  --sh-jsxliterals: #a5b4fc;
-  --sh-string: #f97373;
-  --sh-keyword: #f472b6;
-  --sh-comment: #9ca3af;
-}

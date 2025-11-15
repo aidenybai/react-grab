@@ -15,9 +15,28 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "React Grab",
   description:
-    "Grab any element on in your app and give it to Cursor, Claude Code, etc. to change.",
+    "Select an element → Give it to Cursor, Claude Code, etc → Make a change to your app",
   icons: {
-    icon: "/logo.png",
+    icon: "https://react-grab.com/favicon.png",
+    shortcut: "https://react-grab.com/favicon.png",
+    apple: "https://react-grab.com/favicon.png",
+  },
+  openGraph: {
+    images: "https://react-grab.com/banner.png",
+    title: "React Grab",
+    description:
+      "Select an element → Give it to Cursor, Claude Code, etc → Make a change to your app",
+    url: "https://react-grab.com",
+    siteName: "React Grab",
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "React Grab",
+    description:
+      "Select an element → Give it to Cursor, Claude Code, etc → Make a change to your app",
+    images: "https://react-grab.com/banner.png",
   },
 };
 

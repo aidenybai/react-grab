@@ -15,7 +15,7 @@
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-grab": "workspace:*",
-    "sugar-high": "^0.9.5"
+    "shiki": "^1.24.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
