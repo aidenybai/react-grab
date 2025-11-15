@@ -12,6 +12,8 @@ export const GrepToolCallBlock = ({
   isStreaming = false,
 }: GrepToolCallBlockProps) => {
   const displayName = isStreaming ? "Grepping" : "Grepped";
+  const hasNoMatches = result === "0 matches";
+  const displayResult = hasNoMatches ? "Could not find any matches" : result;
 
   return (
     <Collapsible
@@ -24,7 +26,7 @@ export const GrepToolCallBlock = ({
             <>
               <span className="text-[#5b5b5b]">{parameter}</span>
               <span>and found</span>
-              <span className="text-[#5b5b5b]">{result}</span>
+              <span className="text-[#5b5b5b]">{hasNoMatches ? "no matches" : result}</span>
             </>
           )}
         </div>
@@ -33,8 +35,7 @@ export const GrepToolCallBlock = ({
       isStreaming={isStreaming}
       autoExpandOnStreaming={false}
     >
-      <div className="text-[#5b5b5b] mb-2 ml-4">{result}</div>
+      <div className="text-[#5b5b5b] mb-2 ml-4">{displayResult}</div>
     </Collapsible>
   );
 };
-

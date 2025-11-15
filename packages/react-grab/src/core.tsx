@@ -156,6 +156,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const extractElementTagName = (element: Element) =>
       (element.tagName || "").toLowerCase();
 
+    const notifyElementsSelected = (elements: Element[]) => {
+      try {
+        const elementsPayload = elements.map((element) => ({
+          tagName: extractElementTagName(element),
+        }));
+
+        window.dispatchEvent(
+          new CustomEvent("react-grab:element-selected", {
+            detail: {
+              elements: elementsPayload,
+            },
+          }),
+        );
+      } catch {}
+    };
+
     const executeCopyOperation = async (
       positionX: number,
       positionY: number,
@@ -193,6 +209,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         copyStartX(),
         copyStartY(),
       );
+
+      notifyElementsSelected([targetElement]);
     };
 
     const copyMultipleElementsToClipboard = async (
@@ -228,6 +246,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         copyStartX(),
         copyStartY(),
       );
+
+      notifyElementsSelected(targetElements);
     };
 
     const targetElement = createMemo(() => {

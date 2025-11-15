@@ -2,7 +2,7 @@
 
 html,
 body {
-  background-color: #101010;
+  background-color: #000;
 }
 
 @keyframes shimmer {
@@ -23,9 +23,69 @@ body {
     #818181 65%,
     #818181 100%
   );
-  background-size: 200% 100%;
+  background-size: 150% 100%;
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: shimmer 3s ease-in-out infinite;
+  animation: shimmer 1s ease-in-out infinite;
+}
+
+@keyframes logo-shimmer {
+  0% {
+    filter: drop-shadow(0 0 0 rgba(252, 78, 253, 0));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 16px rgba(252, 78, 253, 0.9));
+    transform: scale(1.04);
+  }
+  100% {
+    filter: drop-shadow(0 0 0 rgba(252, 78, 253, 0));
+    transform: scale(1);
+  }
+}
+
+@keyframes logo-shimmer-hover {
+  0% {
+    filter: drop-shadow(0 0 0 rgba(252, 78, 253, 0));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 16px rgba(252, 78, 253, 0.9));
+    transform: scale(1.04);
+  }
+  100% {
+    filter: drop-shadow(0 0 0 rgba(252, 78, 253, 0));
+    transform: scale(1);
+  }
+}
+
+.logo-shimmer-once {
+  animation: logo-shimmer 0.9s ease-out;
+}
+
+.logo-shimmer-once:hover {
+  animation: logo-shimmer-hover 0.9s ease-out;
+}
+
+::selection {
+  background: #d75fcb33;
+  color: #d75fcb;
+}
+
+::-moz-selection {
+  background: #d75fcb33;
+  color: #d75fcb;
+}
+
+:root {
+  --sh-class: #facc15;
+  --sh-identifier: #e5e7eb;
+  --sh-sign: #9ca3af;
+  --sh-property: #93c5fd;
+  --sh-entity: #6ee7b7;
+  --sh-jsxliterals: #a5b4fc;
+  --sh-string: #f97373;
+  --sh-keyword: #f472b6;
+  --sh-comment: #9ca3af;
 }

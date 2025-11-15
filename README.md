@@ -91,19 +91,25 @@ export default function Document() {
 
 #### Vite
 
-1. Run `npm i react-grab@latest`
-2. Add this to your `vite.config.ts`:
+Your `index.html` could look like this:
 
-```ts
-// ...
-import { reactGrab } from "react-grab/plugins/vite";
-
-export default defineConfig({
-  plugins: [
-    // add react grab as a plugin
-    reactGrab(),
-  ],
-});
+```html
+<!doctype html>
+<html lang="en">
+  <head>
+    <script type="module">
+      // first npm i react-grab
+      // then in head:
+      if (import.meta.env.DEV) {
+        import("react-grab");
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
 ```
 
 ## API
