@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.33
+
+### Patch Changes
+
+- fix: bug with optimisitc label
+
 ## 0.0.32
 
 ### Patch Changes
