@@ -65,7 +65,7 @@ const StreamDemoInner = () => {
   const renderBaseBlock = (block: StreamRenderedBlock, blockIndex?: number) => {
     if (block.status === "pending") return null;
 
-    const animationDelay = stream.wasPreloaded && blockIndex !== undefined ? blockIndex * 0.15 : 0;
+    const animationDelay = stream.wasPreloaded && blockIndex !== undefined ? blockIndex * 0.03 : 0;
 
     if (block.type === "user_message") {
       if (!block.content) return null;
@@ -113,7 +113,7 @@ const StreamDemoInner = () => {
                   <GrabElementButton
                     onSelect={handleElementSelect}
                     showSkip={false}
-                    animationDelay={(index + 1) * 0.15}
+                    animationDelay={(index + 1) * 0.03}
                   />
                 )}
               </Fragment>
