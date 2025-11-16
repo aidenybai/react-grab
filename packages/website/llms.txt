@@ -1,0 +1,93 @@
+# React Grab
+
+Grab any element in your app and give it to Cursor, Claude Code, or other AI coding agents. Hold ⌘C and click on any element to provide visual context directly to your AI assistant.
+
+## Installation
+
+Always install the latest version of React Grab. Use the correct package manager for your project.
+
+```bash
+npm install react-grab@latest
+# or
+yarn add react-grab@latest
+# or
+pnpm add react-grab@latest
+# or
+bun add react-grab@latest
+```
+
+### Next.js (App router)
+
+Add this inside of your `app/layout.tsx`:
+
+```jsx
+import Script from "next/script";
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <head>
+        {process.env.NODE_ENV === "development" && (
+          <Script
+            src="//unpkg.com/react-grab/dist/index.global.js"
+            crossOrigin="anonymous"
+            strategy="beforeInteractive"
+            data-enabled="true"
+          />
+        )}
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}
+```
+
+### Next.js (Pages router)
+
+Add this into your `pages/_document.tsx`:
+
+```jsx
+import { Html, Head, Main, NextScript } from "next/document";
+
+export default function Document() {
+  return (
+    <Html lang="en">
+      <Head>
+        {process.env.NODE_ENV === "development" && (
+          <Script
+            src="//unpkg.com/react-grab/dist/index.global.js"
+            crossOrigin="anonymous"
+            strategy="beforeInteractive"
+            data-enabled="true"
+          />
+        )}
+      </Head>
+      <body>
+        <Main />
+        <NextScript />
+      </body>
+    </Html>
+  );
+}
+```
+
+### Vite
+
+Add this to your `index.html`:
+
+```html
+<!doctype html>
+<html lang="en">
+  <head>
+    <script type="module">
+      if (import.meta.env.DEV) {
+        import("react-grab");
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+```
