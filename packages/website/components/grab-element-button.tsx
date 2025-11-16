@@ -70,10 +70,9 @@ export const GrabElementButton = ({
 
       const tagName = customEvent.detail?.elements?.[0]?.tagName || "element";
 
+      setIsActivated(false);
       setHasAdvanced(true);
       setHideSkip(true);
-      setIsActivated(false);
-      deactivateReactGrab();
       onSelect(tagName);
     };
 
