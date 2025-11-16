@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.34
+
+### Patch Changes
+
+- fix: click thru
+
 ## 0.0.33
 
 ### Patch Changes
