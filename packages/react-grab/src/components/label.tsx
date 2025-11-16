@@ -158,6 +158,20 @@ export const Label: Component<LabelProps> = (props) => {
     return fallback;
   };
 
+  const labelSegments = () => {
+    const separator = " in ";
+    const separatorIndex = props.text.indexOf(separator);
+
+    if (separatorIndex === -1) {
+      return { primary: props.text, secondary: "" };
+    }
+
+    return {
+      primary: props.text.slice(0, separatorIndex),
+      secondary: props.text.slice(separatorIndex),
+    };
+  };
+
   return (
     <Show when={props.visible !== false}>
       <div
@@ -212,10 +226,27 @@ export const Label: Component<LabelProps> = (props) => {
               "font-family":
                 "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
               "font-variant-numeric": "tabular-nums",
+              "vertical-align": "middle",
             }}
           >
-            {props.text}
+            {labelSegments().primary}
           </span>
+          <Show
+            when={
+              props.variant === "hover" && labelSegments().secondary !== ""
+            }
+          >
+            <span
+              style={{
+                "font-variant-numeric": "tabular-nums",
+                "font-size": "10px",
+                "margin-left": "4px",
+                "vertical-align": "middle",
+              }}
+            >
+              {labelSegments().secondary}
+            </span>
+          </Show>
         </Show>
         <Show when={props.variant === "success"}>
           <div style={{ "margin-left": "4px" }}>to clipboard</div>

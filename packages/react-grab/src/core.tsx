@@ -11,6 +11,12 @@ import { isKeyboardEventTriggeredByInput } from "./utils/is-keyboard-event-trigg
 import { mountRoot } from "./utils/mount-root.js";
 import { ReactGrabRenderer } from "./components/renderer.js";
 import { getHTMLSnippet } from "./instrumentation.js";
+import {
+  getFiberFromHostInstance,
+  getDisplayName,
+  isCompositeFiber,
+  traverseFiber,
+} from "bippy";
 import { copyContent } from "./utils/copy-content.js";
 import { getElementAtPosition } from "./utils/get-element-at-position.js";
 import { isValidGrabbableElement } from "./utils/is-valid-grabbable-element.js";
@@ -20,6 +26,7 @@ import {
 } from "./utils/get-elements-in-drag.js";
 import { createElementBounds } from "./utils/create-element-bounds.js";
 import { SUCCESS_LABEL_DURATION_MS } from "./constants.js";
+import { isCapitalized } from "./utils/is-capitalized.js";
 import type { Options, OverlayBounds, GrabbedBox, ReactGrabAPI } from "./types.js";
 
 const PROGRESS_INDICATOR_DELAY_MS = 150;
@@ -161,6 +168,48 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const extractElementTagName = (element: Element) =>
       (element.tagName || "").toLowerCase();
 
+    const extractNearestComponentName = (element: Element): string | null => {
+      const fiber = getFiberFromHostInstance(element);
+      if (!fiber) return null;
+
+      let componentName: string | null = null;
+      traverseFiber(
+        fiber,
+        (currentFiber) => {
+          if (isCompositeFiber(currentFiber)) {
+            const displayName = getDisplayName(currentFiber);
+            if (
+              displayName &&
+              isCapitalized(displayName) &&
+              !displayName.startsWith("_")
+            ) {
+              componentName = displayName;
+              return true;
+            }
+          }
+          return false;
+        },
+        true,
+      );
+
+      return componentName;
+    };
+
+    const extractElementLabelText = (element: Element) => {
+      const tagName = extractElementTagName(element);
+      const componentName = extractNearestComponentName(element);
+
+      if (tagName && componentName) {
+        return `<${tagName}> in ${componentName}`;
+      }
+
+      if (tagName) {
+        return `<${tagName}>`;
+      }
+
+      return "<element>";
+    };
+
     const notifyElementsSelected = (elements: Element[]) => {
       try {
         const elementsPayload = elements.map((element) => ({
@@ -193,8 +242,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const copySingleElementToClipboard = async (targetElement: Element) => {
-      const tagName = extractElementTagName(targetElement);
-
       showTemporaryGrabbedBox(createElementBounds(targetElement));
 
       await new Promise((resolve) => requestAnimationFrame(resolve));
@@ -204,7 +251,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const plainTextContent = wrapInSelectedElementTags(content);
         const htmlContent = createStructuredClipboardHtmlBlob([
           {
-            tagName,
+            tagName: extractElementTagName(targetElement),
             content,
             computedStyles: extractRelevantComputedStyles(targetElement),
           },
@@ -214,7 +261,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       } catch {}
 
       showTemporarySuccessLabel(
-        tagName ? `<${tagName}>` : "<element>",
+        extractElementLabelText(targetElement),
         copyStartX(),
         copyStartY(),
       );
@@ -333,7 +380,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const labelText = createMemo(() => {
       const element = targetElement();
-      return element ? `<${extractElementTagName(element)}>` : "<element>";
+      return element ? extractElementLabelText(element) : "<element>";
     });
 
     const labelPosition = createMemo(() =>
@@ -367,8 +414,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const startTime = progressStartTime();
       progressTick();
       if (startTime === null) return 0;
+
       const elapsedTime = Date.now() - startTime;
-      return Math.min(elapsedTime / options.keyHoldDuration, 1);
+      const normalizedTime = elapsedTime / options.keyHoldDuration;
+      const easedProgress = 1 - Math.exp(-normalizedTime);
+      const maxProgressBeforeCompletion = 0.95;
+
+      if (isCopying()) {
+        return Math.min(easedProgress, maxProgressBeforeCompletion);
+      }
+
+      return 1;
     });
 
     const startProgressAnimation = () => {

@@ -12,6 +12,7 @@ import {
   normalizeFileName,
 } from "bippy/dist/source";
 import { finder } from "@medv/finder";
+import { isCapitalized } from "./utils/is-capitalized.js";
 
 instrument({
   onCommitFiberRoot(_, fiberRoot) {
@@ -23,52 +24,50 @@ const generateCSSSelector = (element: Element) => {
   return finder(element);
 };
 
-export const getHTMLSnippet = async (element: Element) => {
-  const truncateString = (string: string, maxLength: number) =>
-    string.length > maxLength
-      ? `${string.substring(0, maxLength)}...`
-      : string;
+const truncateString = (string: string, maxLength: number) =>
+  string.length > maxLength ? `${string.substring(0, maxLength)}...` : string;
 
-  const isInternalComponent = (name: string): boolean => {
-    if (name.startsWith("_")) return true;
-    if (name.includes("Provider") && name.includes("Context")) return true;
+const isInternalComponent = (name: string): boolean =>
+  !isCapitalized(name) ||
+  name.startsWith("_") ||
+  (name.includes("Provider") && name.includes("Context"));
 
-    return false;
-  };
+export const getNearestComponentDisplayName = (
+  element: Element,
+): string | null => {
+  const fiber = getFiberFromHostInstance(element);
+  if (!fiber) return null;
 
-  const extractReactComponentName = (el: Element): string | null => {
-    const fiber = getFiberFromHostInstance(el);
-    if (!fiber) return null;
-
-    let componentName: string | null = null;
-    traverseFiber(
-      fiber,
-      (currentFiber) => {
-        if (isCompositeFiber(currentFiber)) {
-          const displayName = getDisplayName(currentFiber);
-          if (displayName && !isInternalComponent(displayName)) {
-            componentName = displayName;
-            return true;
-          }
+  let componentName: string | null = null;
+  traverseFiber(
+    fiber,
+    (currentFiber) => {
+      if (isCompositeFiber(currentFiber)) {
+        const displayName = getDisplayName(currentFiber);
+        if (displayName && !isInternalComponent(displayName)) {
+          componentName = displayName;
+          return true;
         }
-        return false;
-      },
-      true,
-    );
+      }
+      return false;
+    },
+    true,
+  );
 
-    return componentName;
-  };
+  return componentName;
+};
 
-  const formatComponentSourceLocation = async (
-    el: Element,
-  ): Promise<string | null> => {
-    const source = await getSourceFromHostInstance(el);
-    if (!source) return null;
-    const fileName = normalizeFileName(source.fileName);
-    if (!isSourceFile(fileName)) return null;
-    return `${fileName}:${source.lineNumber}:${source.columnNumber}`;
-  };
+const formatComponentSourceLocation = async (
+  el: Element,
+): Promise<string | null> => {
+  const source = await getSourceFromHostInstance(el);
+  if (!source) return null;
+  const fileName = normalizeFileName(source.fileName);
+  if (!isSourceFile(fileName)) return null;
+  return `${fileName}:${source.lineNumber}:${source.columnNumber}`;
+};
 
+export const getHTMLSnippet = async (element: Element) => {
   const semanticTags = new Set([
     "article",
     "aside",
@@ -183,9 +182,9 @@ export const getHTMLSnippet = async (element: Element) => {
   const ancestors = collectDistinguishingAncestors(element);
 
   const ancestorComponents = ancestors.map((ancestor) =>
-    extractReactComponentName(ancestor),
+    getNearestComponentDisplayName(ancestor),
   );
-  const elementComponent = extractReactComponentName(element);
+  const elementComponent = getNearestComponentDisplayName(element);
 
   const ancestorSources = await Promise.all(
     ancestors.map((ancestor) => formatComponentSourceLocation(ancestor)),
