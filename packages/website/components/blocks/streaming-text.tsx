@@ -9,9 +9,12 @@ interface StreamingTextProps {
     id: string;
     text: string;
   }>;
+  animationDelay?: number;
 }
 
-export const StreamingText = ({ content, chunks }: StreamingTextProps) => {
+export const StreamingText = ({ content, chunks, animationDelay = 0 }: StreamingTextProps) => {
+  const isInstantContent = chunks.length === 0;
+
   if (Array.isArray(content)) {
     const streamedText = chunks.map(chunk => chunk.text).join("");
 
@@ -19,8 +22,17 @@ export const StreamingText = ({ content, chunks }: StreamingTextProps) => {
       <>
         {content.map((item, index) => {
           if (typeof item === "string") {
-            if (chunks.length === 0) {
-              return item;
+            if (isInstantContent) {
+              return (
+                <motion.span
+                  key={`text-${index}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.4, ease: "easeOut", delay: animationDelay }}
+                >
+                  {item}
+                </motion.span>
+              );
             }
             return (
               <span key={`text-${index}`}>
@@ -44,11 +56,30 @@ export const StreamingText = ({ content, chunks }: StreamingTextProps) => {
   }
 
   if (typeof content !== "string") {
+    if (isInstantContent) {
+      return (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, ease: "easeOut", delay: animationDelay }}
+        >
+          {content}
+        </motion.div>
+      );
+    }
     return <>{content}</>;
   }
 
-  if (chunks.length === 0) {
-    return <>{content}</>;
+  if (isInstantContent) {
+    return (
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4, ease: "easeOut", delay: animationDelay }}
+      >
+        {content}
+      </motion.span>
+    );
   }
 
   return (

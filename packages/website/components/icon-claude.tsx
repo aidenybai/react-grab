@@ -30,3 +30,4 @@ export const IconClaude = ({
     </defs>
   </svg>
 );
+

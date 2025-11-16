@@ -62,8 +62,10 @@ const StreamDemoInner = () => {
     setUpdatedBlocks(newBlocks);
   };
 
-  const renderBaseBlock = (block: StreamRenderedBlock) => {
+  const renderBaseBlock = (block: StreamRenderedBlock, blockIndex?: number) => {
     if (block.status === "pending") return null;
+
+    const animationDelay = stream.wasPreloaded && blockIndex !== undefined ? blockIndex * 0.15 : 0;
 
     if (block.type === "user_message") {
       if (!block.content) return null;
@@ -75,7 +77,7 @@ const StreamDemoInner = () => {
     }
 
     if (block.type === "message") {
-      return <MessageBlock block={block} />;
+      return <MessageBlock block={block} animationDelay={animationDelay} />;
     }
 
     if (block.type === "code_block") {
@@ -100,15 +102,19 @@ const StreamDemoInner = () => {
     <div className="min-h-screen bg-black px-4 py-6 sm:px-8 sm:py-8">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-3 pt-4 text-base sm:pt-8 sm:text-lg">
         {stream.wasPreloaded ? (
-          postBlocks.map((block) => {
-            const rendered = renderBaseBlock(block);
+          postBlocks.map((block, index) => {
+            const rendered = renderBaseBlock(block, index);
             if (!rendered) return null;
 
             return (
               <Fragment key={block.id}>
                 {rendered}
                 {block.id === "message-5" && (
-                  <GrabElementButton onSelect={handleElementSelect} showSkip={false} />
+                  <GrabElementButton
+                    onSelect={handleElementSelect}
+                    showSkip={false}
+                    animationDelay={(index + 1) * 0.15}
+                  />
                 )}
               </Fragment>
             );

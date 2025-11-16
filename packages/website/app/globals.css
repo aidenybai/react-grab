@@ -64,6 +64,10 @@ body {
 
 .logo-shimmer-once {
   animation: logo-shimmer 0.9s ease-out;
+  will-change: transform, filter;
+  transform-origin: center;
+  backface-visibility: hidden;
+  transform: translateZ(0);
 }
 
 .logo-shimmer-once:hover {

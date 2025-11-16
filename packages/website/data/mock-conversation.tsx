@@ -121,12 +121,14 @@ export const mockConversation: StreamBlock[] = [
     type: "message",
     content: (
       <div key="content" className="flex flex-col gap-2">
-        <ReactGrabLogo
-          key="logo"
-          width={42}
-          height={42}
-          className="logo-shimmer-once"
-        />
+        <div className="inline-flex" style={{ padding: "2px" }}>
+          <ReactGrabLogo
+            key="logo"
+            width={42}
+            height={42}
+            className="logo-shimmer-once"
+          />
+        </div>
         <div>
           <span className="font-bold">React Grab</span> allows you to select an
           element and copy it{"'"}s context (like HTML, React component source,

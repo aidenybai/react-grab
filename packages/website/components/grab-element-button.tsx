@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion } from "motion/react";
 
 interface GrabElementButtonProps {
   onSelect: (elementTag: string) => void;
   showSkip?: boolean;
+  animationDelay?: number;
 }
 
-export const GrabElementButton = ({ onSelect, showSkip = true }: GrabElementButtonProps) => {
+export const GrabElementButton = ({ onSelect, showSkip = true, animationDelay = 0 }: GrabElementButtonProps) => {
   const [isActivated, setIsActivated] = useState(false);
   const [isMac, setIsMac] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -138,7 +140,12 @@ export const GrabElementButton = ({ onSelect, showSkip = true }: GrabElementButt
   }
 
   return (
-    <div className="hidden flex-col gap-2 py-4 sm:flex sm:flex-row sm:items-center sm:gap-3">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4, ease: "easeOut", delay: animationDelay }}
+      className="hidden flex-col gap-2 py-4 sm:flex sm:flex-row sm:items-center sm:gap-3"
+    >
       <button
         className={`flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm text-white transition-colors sm:w-auto ${
           hasAdvanced
@@ -167,6 +174,6 @@ export const GrabElementButton = ({ onSelect, showSkip = true }: GrabElementButt
           Skip
         </button>
       )}
-    </div>
+    </motion.div>
   );
 };
