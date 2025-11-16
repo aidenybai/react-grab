@@ -67,11 +67,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [didJustDrag, setDidJustDrag] = createSignal(false);
     const [copyStartX, setCopyStartX] = createSignal(OFFSCREEN_POSITION);
     const [copyStartY, setCopyStartY] = createSignal(OFFSCREEN_POSITION);
+    const [mouseHasSettled, setMouseHasSettled] = createSignal(false);
 
     let holdTimerId: number | null = null;
     let progressAnimationId: number | null = null;
     let progressDelayTimerId: number | null = null;
     let keydownSpamTimerId: number | null = null;
+    let mouseSettleTimerId: number | null = null;
+    let referenceMouseX = OFFSCREEN_POSITION;
+    let referenceMouseY = OFFSCREEN_POSITION;
 
     const isRendererActive = createMemo(() => isActivated() && !isCopying());
 
@@ -190,6 +194,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       showTemporaryGrabbedBox(createElementBounds(targetElement));
 
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+
       try {
         const content = await getHTMLSnippet(targetElement);
         const plainTextContent = wrapInSelectedElementTags(content);
@@ -221,6 +227,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       for (const element of targetElements) {
         showTemporaryGrabbedBox(createElementBounds(element));
       }
+
+      await new Promise((resolve) => requestAnimationFrame(resolve));
 
       try {
         const elementSnippets = await Promise.all(
@@ -405,6 +413,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       if (holdTimerId) window.clearTimeout(holdTimerId);
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
+      if (mouseSettleTimerId) {
+        window.clearTimeout(mouseSettleTimerId);
+        mouseSettleTimerId = null;
+      }
+      setMouseHasSettled(false);
+      referenceMouseX = OFFSCREEN_POSITION;
+      referenceMouseY = OFFSCREEN_POSITION;
       stopProgressAnimation();
     };
 
@@ -472,6 +487,38 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: MouseEvent) => {
         setMouseX(event.clientX);
         setMouseY(event.clientY);
+
+        if (referenceMouseX === OFFSCREEN_POSITION) {
+          referenceMouseX = event.clientX;
+          referenceMouseY = event.clientY;
+        }
+
+        const deltaX = event.clientX - referenceMouseX;
+        const deltaY = event.clientY - referenceMouseY;
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+        if (distance >= 200) {
+          if (mouseSettleTimerId !== null) {
+            window.clearTimeout(mouseSettleTimerId);
+          }
+          setMouseHasSettled(false);
+          referenceMouseX = event.clientX;
+          referenceMouseY = event.clientY;
+
+          mouseSettleTimerId = window.setTimeout(() => {
+            setMouseHasSettled(true);
+            referenceMouseX = mouseX();
+            referenceMouseY = mouseY();
+            mouseSettleTimerId = null;
+          }, 100);
+        } else if (mouseSettleTimerId === null && !mouseHasSettled()) {
+          mouseSettleTimerId = window.setTimeout(() => {
+            setMouseHasSettled(true);
+            referenceMouseX = mouseX();
+            referenceMouseY = mouseY();
+            mouseSettleTimerId = null;
+          }, 100);
+        }
       },
       { signal: eventListenerSignal },
     );
@@ -565,6 +612,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       abortController.abort();
       if (holdTimerId) window.clearTimeout(holdTimerId);
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
+      if (mouseSettleTimerId) window.clearTimeout(mouseSettleTimerId);
       stopProgressAnimation();
       document.body.style.userSelect = "";
       document.body.style.cursor = "";
@@ -586,6 +634,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () =>
         (isRendererActive() &&
           !isDragging() &&
+          mouseHasSettled() &&
           ((Boolean(targetElement()) && !isSameAsLast()) ||
             !targetElement())) ||
         isCopying(),

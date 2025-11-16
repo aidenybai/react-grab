@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { highlightCode } from "../lib/shiki";
 import { installTabsData } from "./install-tabs";
+import { detectMobile } from "@/utils/detect-mobile";
+import { cn } from "@/utils/classnames";
 
 export const InstallTabsClient = () => {
   const [activeTabId, setActiveTabId] = useState<string>(installTabsData[0]?.id);
@@ -13,12 +15,7 @@ export const InstallTabsClient = () => {
   const activeTab = installTabsData.find((tab) => tab.id === activeTabId) ?? installTabsData[0];
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const hasTouchPoints = navigator.maxTouchPoints > 0;
-      const hasTouchMedia = window.matchMedia("(pointer: coarse)").matches;
-      const isMobileDevice = hasTouchPoints || hasTouchMedia;
-      setIsMobile(isMobileDevice);
-    }
+    setIsMobile(detectMobile());
   }, []);
 
   useEffect(() => {
@@ -44,7 +41,8 @@ export const InstallTabsClient = () => {
     if (typeof navigator === "undefined" || !navigator.clipboard) return;
 
     const textToCopy = activeTab.changedLines
-      ? activeTab.code.split("\n")
+      ? activeTab.code
+          .split("\n")
           .filter((_, index) => activeTab.changedLines?.includes(index + 1))
           .join("\n")
       : activeTab.code;
@@ -53,9 +51,7 @@ export const InstallTabsClient = () => {
       .writeText(textToCopy)
       .then(() => {
         setDidCopy(true);
-        setTimeout(() => {
-          setDidCopy(false);
-        }, 1200);
+        setTimeout(() => setDidCopy(false), 1200);
       })
       .catch(() => {});
   };
@@ -76,11 +72,12 @@ export const InstallTabsClient = () => {
             <button
               key={tab.id}
               type="button"
-              className={`border-b pb-2 font-sans text-[13px] transition-colors ${
+              className={cn(
+                "border-b pb-2 font-sans text-[13px] transition-colors",
                 isActive
                   ? "border-white text-white"
                   : "border-transparent text-white/60 hover:text-white"
-              }`}
+              )}
               onClick={() => setActiveTabId(tab.id)}
             >
               <span>{tab.label}</span>
