@@ -14,7 +14,7 @@ export const UserMessage = ({ block, skipAnimation = false }: UserMessageProps) 
       initial={skipAnimation ? { opacity: 1, y: 0 } : { opacity: 0, y: 5 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
-      className="ml-auto max-w-[80%] text-right text-white bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-3 py-2"
+      className="ml-auto w-full max-w-full sm:w-auto sm:max-w-[80%] text-left text-white bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-3 py-2"
     >
       {block.content}
     </motion.div>

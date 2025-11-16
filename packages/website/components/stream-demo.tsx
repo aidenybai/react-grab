@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useStream, type StreamRenderedBlock } from "@/hooks/use-stream";
 import { mockConversation } from "@/data/mock-conversation";
 import { ThoughtBlock } from "./blocks/thought-block";
@@ -13,6 +14,15 @@ import { useState, useEffect, useRef, Fragment } from "react";
 const StreamDemoInner = () => {
   const [updatedBlocks, setUpdatedBlocks] = useState(mockConversation);
   const [shouldShowGrabButton, setShouldShowGrabButton] = useState(false);
+  const [isMobile] = useState(() => {
+    if (typeof window === "undefined") return false;
+
+    const hasTouchPoints = navigator.maxTouchPoints > 0;
+    const hasTouchMedia = window.matchMedia("(pointer: coarse)").matches;
+    const isMobileDevice = hasTouchPoints || hasTouchMedia;
+
+    return isMobileDevice;
+  });
   const shouldResumeRef = useRef(false);
 
   const stream = useStream({
@@ -98,11 +108,19 @@ const StreamDemoInner = () => {
     ? stream.blocks.slice(reactGrabStartIndex)
     : stream.blocks;
 
+  const filteredPostBlocks = isMobile
+    ? postBlocks.filter((block) => block.id !== "message-6" && block.id !== "install-tabs-1")
+    : postBlocks;
+
+  const filteredStreamBlocks = isMobile
+    ? stream.blocks.filter((block) => block.id !== "message-6" && block.id !== "install-tabs-1")
+    : stream.blocks;
+
   return (
     <div className="min-h-screen bg-black px-4 py-6 sm:px-8 sm:py-8">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-3 pt-4 text-base sm:pt-8 sm:text-lg">
         {stream.wasPreloaded ? (
-          postBlocks.map((block, index) => {
+          filteredPostBlocks.map((block, index) => {
             const rendered = renderBaseBlock(block, index);
             if (!rendered) return null;
 
@@ -110,17 +128,29 @@ const StreamDemoInner = () => {
               <Fragment key={block.id}>
                 {rendered}
                 {block.id === "message-5" && (
-                  <GrabElementButton
-                    onSelect={handleElementSelect}
-                    showSkip={false}
-                    animationDelay={(index + 1) * 0.03}
-                  />
+                  <>
+                    {isMobile && (
+                      <Image
+                        src="/demo.gif"
+                        alt="React Grab demo"
+                        className="mt-3 w-full rounded-lg border border-white/10"
+                        width={800}
+                        height={450}
+                        priority
+                      />
+                    )}
+                    <GrabElementButton
+                      onSelect={handleElementSelect}
+                      showSkip={false}
+                      animationDelay={(index + 1) * 0.03}
+                    />
+                  </>
                 )}
               </Fragment>
             );
           })
         ) : (
-          stream.blocks.map((block) => {
+          filteredStreamBlocks.map((block) => {
             const rendered = renderBaseBlock(block);
             if (!rendered) return null;
 
@@ -129,6 +159,16 @@ const StreamDemoInner = () => {
                 {rendered}
                 {block.id === "message-2" && shouldShowGrabButton && (
                   <GrabElementButton onSelect={handleElementSelect} />
+                )}
+                {block.id === "message-5" && isMobile && (
+                  <Image
+                    src="/demo.gif"
+                    alt="React Grab demo"
+                    className="mt-3 w-full rounded-lg border border-white/10"
+                    width={800}
+                    height={450}
+                    priority
+                  />
                 )}
               </Fragment>
             );
