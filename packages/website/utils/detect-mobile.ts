@@ -7,3 +7,4 @@ export const detectMobile = (): boolean => {
   return hasTouchPoints || hasTouchMedia;
 };
 
+
