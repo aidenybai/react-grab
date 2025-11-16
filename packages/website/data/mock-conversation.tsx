@@ -18,8 +18,8 @@ export const mockConversation: StreamBlock[] = [
     id: "thought-1",
     type: "thought",
     content:
-      "The user wants to make a submit button bigger. I need to find the submit button in their codebase. Let me search for submit buttons across the project. I'll try searching for common patterns like 'submit', 'type=\"submit\"', and button elements. This might take a few searches since I don't know exactly where the button is located or what file it's in.",
-    duration: 2000,
+      "I need to find the submit button in their codebase. Let me search for submit buttons across the project that might satisfy the user's request.",
+    duration: 1000,
   },
   {
     id: "message-1",
@@ -121,7 +121,7 @@ export const mockConversation: StreamBlock[] = [
     type: "message",
     content: (
       <div key="content" className="flex flex-col gap-2">
-        <div className="inline-flex" style={{ padding: "2px" }}>
+        <div className="inline-flex" style={{ padding: "2px", transform: "translateX(-3px)" }}>
           <ReactGrabLogo
             key="logo"
             width={42}
@@ -143,18 +143,18 @@ export const mockConversation: StreamBlock[] = [
     content: (
       <span>
         It improves the accuracy of tools like{" "}
-        <span className="inline-flex items-center gap-1">
-          <IconCursor width={14} height={14} />
+        <span className="inline-flex items-baseline gap-1">
+          <IconCursor width={16} height={16} className="translate-y-[2px]" />
           Cursor
         </span>
         ,{" "}
-        <span className="inline-flex items-center gap-1">
-          <IconClaude width={14} height={14} />
+        <span className="inline-flex items-baseline gap-1">
+          <IconClaude width={16} height={16} className="translate-y-[2px]" />
           Claude Code
         </span>
         ,{" "}
-        <span className="inline-flex items-center gap-1">
-          <IconCopilot width={16} height={16} />
+        <span className="inline-flex items-baseline gap-1">
+          <IconCopilot width={18} height={18} className="translate-y-[2px]" />
           Copilot
         </span>
         , you name it!

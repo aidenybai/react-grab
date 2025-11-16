@@ -25,6 +25,7 @@ export interface StreamRenderedBlock {
   status: StreamStatus;
   startTime?: number;
   endTime?: number;
+  duration?: number;
   metadata?: Record<string, unknown>;
 }
 
@@ -66,6 +67,7 @@ export const useStream = ({
       content: "",
       chunks: [],
       status: "pending" as StreamStatus,
+      duration: block.duration,
       metadata: block.metadata,
     })),
   }));
@@ -93,6 +95,7 @@ export const useStream = ({
               content: block.content,
               chunks: [],
               status: "complete" as StreamStatus,
+              duration: block.duration,
               metadata: block.metadata,
             })),
           });

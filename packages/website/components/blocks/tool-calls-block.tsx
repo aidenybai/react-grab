@@ -47,7 +47,7 @@ export const ToolCallsBlock = ({ block, allBlocks }: ToolCallsBlockProps) => {
           (innerBlock) => innerBlock.status === "streaming",
         )}
       >
-        <div className="flex flex-col gap-2 my-2">
+        <div className="flex flex-col gap-2 mt-2">
           {grepBlocks.map((grepBlock, index) => (
             <GrepToolCallBlock
               key={grepBlock.id}

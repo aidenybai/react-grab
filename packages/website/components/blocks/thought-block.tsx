@@ -2,7 +2,6 @@
 
 import { Collapsible } from "../collapsible";
 import { Scrollable } from "../scrollable";
-import { Timer } from "../timer";
 import { StreamingText } from "./streaming-text";
 import { StreamRenderedBlock } from "@/hooks/use-stream";
 
@@ -17,13 +16,9 @@ export const ThoughtBlock = ({ block }: ThoughtBlockProps) => {
       header={
         <span className="text-[#818181]">
           {block.status === "streaming" ? "Thinking " : "Thought for "}
-          <span className="text-[#5b5b5b]">
-            <Timer
-              isRunning={block.status === "streaming"}
-              startTime={block.startTime}
-              endTime={block.endTime}
-            />
-          </span>
+          {block.status !== "streaming" && (
+            <span className="text-[#5b5b5b]">1s</span>
+          )}
         </span>
       }
       defaultExpanded={block.status === "streaming"}

@@ -3,14 +3,12 @@
 import { useEffect, useState } from "react";
 import { highlightCode } from "../lib/shiki";
 import { installTabsData } from "./install-tabs";
-import { ChevronDown } from "lucide-react";
 
 export const InstallTabsClient = () => {
   const [activeTabId, setActiveTabId] = useState<string>(installTabsData[0]?.id);
   const [didCopy, setDidCopy] = useState(false);
   const [highlightedCodes, setHighlightedCodes] = useState<Record<string, string>>({});
   const [isMobile, setIsMobile] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
 
   const activeTab = installTabsData.find((tab) => tab.id === activeTabId) ?? installTabsData[0];
 
@@ -42,10 +40,6 @@ export const InstallTabsClient = () => {
     });
   }, []);
 
-  useEffect(() => {
-    setIsExpanded(false);
-  }, [activeTabId]);
-
   const handleCopyClick = () => {
     if (typeof navigator === "undefined" || !navigator.clipboard) return;
 
@@ -67,9 +61,6 @@ export const InstallTabsClient = () => {
   };
 
   const highlightedCode = highlightedCodes[activeTab.id];
-  const lineCount = activeTab.code.split("\n").length;
-  const shouldShowExpandButton = lineCount > 15;
-  const maxHeight = !isExpanded ? "max-h-[400px]" : "";
 
   if (isMobile) {
     return null;
@@ -98,11 +89,11 @@ export const InstallTabsClient = () => {
         })}
       </div>
       <div className="bg-black/60 relative">
-        <div className="flex items-center justify-between border-b border-white/10 px-4 py-2 text-[11px] text-white/60">
+        <div className="flex items-center justify-between gap-2 flex-wrap border-b border-white/10 px-4 py-2 text-[11px] text-white/60">
           <span>{activeTab.description}</span>
           <span className="font-mono text-[11px] text-white/40">{activeTab.fileName}</span>
         </div>
-        <div className={`${maxHeight} overflow-hidden relative`}>
+        <div className="relative">
           <div className="group relative">
             <button
               type="button"
@@ -122,25 +113,7 @@ export const InstallTabsClient = () => {
               </pre>
             )}
           </div>
-
-          {shouldShowExpandButton && !isExpanded && (
-            <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/60 via-black/50 to-transparent pointer-events-none" />
-          )}
         </div>
-
-        {shouldShowExpandButton && (
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="relative w-full py-2 flex items-center justify-center gap-1 text-xs text-white/50 hover:text-white/90 transition-colors bg-black/60"
-            type="button"
-          >
-            <span>{isExpanded ? "Show less" : "Show more"}</span>
-            <ChevronDown
-              size={14}
-              className={`transition-transform ${isExpanded ? "rotate-180" : ""}`}
-            />
-          </button>
-        )}
       </div>
     </div>
   );

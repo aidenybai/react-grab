@@ -147,7 +147,7 @@ export const GrabElementButton = ({ onSelect, showSkip = true, animationDelay = 
       className="hidden flex-col gap-2 py-4 sm:flex sm:flex-row sm:items-center sm:gap-3"
     >
       <button
-        className={`flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm text-white transition-colors sm:w-auto ${
+        className={`flex h-12 w-full items-center justify-center gap-2 rounded-lg px-3 text-sm text-white transition-colors sm:w-auto ${
           hasAdvanced
             ? "border border-white/20 bg-white/5 hover:bg-white/10"
             : "border border-[#d75fcb] bg-[#330039] hover:bg-[#4a0052] shadow-[0_0_12px_rgba(215,95,203,0.4)]"
@@ -156,10 +156,23 @@ export const GrabElementButton = ({ onSelect, showSkip = true, animationDelay = 
       >
         {!isActivated ? (
           <>
-            <kbd className="shrink-0 rounded bg-white/10 px-1.5 py-0.5 text-xs font-mono">
-              {isMac ? "⌘ C" : "Ctrl C"}
-            </kbd>
-            <span className="text-white">Hold to select element</span>
+            <span className="flex items-center gap-1.5 text-white">
+              <span>Hold</span>
+              <kbd className="inline-flex items-center gap-1 rounded bg-white/10 px-2.5 py-1 font-mono text-base font-semibold">
+                {isMac ? (
+                  <>
+                    <span className="text-lg leading-none">⌘</span>
+                    <span className="text-sm leading-none">C</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-base leading-none">Ctrl</span>
+                    <span className="text-sm leading-none">C</span>
+                  </>
+                )}
+              </kbd>
+              <span>to select element</span>
+            </span>
           </>
         ) : (
           <span className="animate-pulse">Move your mouse and click/drag to select an element</span>

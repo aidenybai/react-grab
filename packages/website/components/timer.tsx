@@ -6,6 +6,7 @@ interface TimerProps {
   isRunning: boolean;
   startTime?: number;
   endTime?: number;
+  maxDurationMs?: number;
 }
 
 const formatDuration = (milliseconds: number): string => {
@@ -20,7 +21,7 @@ const formatDuration = (milliseconds: number): string => {
   return `${minutes}m ${remainingSeconds}s`;
 };
 
-export const Timer = ({ isRunning, startTime, endTime }: TimerProps) => {
+export const Timer = ({ isRunning, startTime, endTime, maxDurationMs }: TimerProps) => {
   const [elapsed, setElapsed] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
@@ -62,7 +63,9 @@ export const Timer = ({ isRunning, startTime, endTime }: TimerProps) => {
 
   if (!startTime) return null;
 
-  if (elapsed < 1000) return null;
+  const clampedElapsed = maxDurationMs ? Math.min(elapsed, maxDurationMs) : elapsed;
 
-  return <span>{formatDuration(elapsed)}</span>;
+  if (clampedElapsed < 1000) return null;
+
+  return <span>{formatDuration(clampedElapsed)}</span>;
 };

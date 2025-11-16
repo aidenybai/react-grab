@@ -53,7 +53,7 @@ const StreamDemoInner = () => {
         return {
           ...block,
           content: (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 flex-wrap">
               Here{"'"}s the element
               <span
                 key="badge"
@@ -118,15 +118,20 @@ const StreamDemoInner = () => {
 
   return (
     <div className="min-h-screen bg-black px-4 py-6 sm:px-8 sm:py-8">
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-3 pt-4 text-base sm:pt-8 sm:text-lg">
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 pt-4 text-base sm:pt-8 sm:text-lg">
         {stream.wasPreloaded ? (
           filteredPostBlocks.map((block, index) => {
             const rendered = renderBaseBlock(block, index);
             if (!rendered) return null;
 
+            const needsExtraLargeTopMargin = block.id === "user-2";
+            const needsLargeTopMargin = block.id === "message-6" || block.id === "message-7";
+
             return (
               <Fragment key={block.id}>
-                {rendered}
+                <div className={needsExtraLargeTopMargin ? "mt-10" : needsLargeTopMargin ? "mt-6" : ""}>
+                  {rendered}
+                </div>
                 {block.id === "message-5" && (
                   <>
                     {isMobile && (
@@ -154,9 +159,14 @@ const StreamDemoInner = () => {
             const rendered = renderBaseBlock(block);
             if (!rendered) return null;
 
+            const needsExtraLargeTopMargin = block.id === "user-2";
+            const needsLargeTopMargin = block.id === "message-6" || block.id === "message-7";
+
             return (
               <Fragment key={block.id}>
-                {rendered}
+                <div className={needsExtraLargeTopMargin ? "mt-10" : needsLargeTopMargin ? "mt-6" : ""}>
+                  {rendered}
+                </div>
                 {block.id === "message-2" && shouldShowGrabButton && (
                   <GrabElementButton onSelect={handleElementSelect} />
                 )}
