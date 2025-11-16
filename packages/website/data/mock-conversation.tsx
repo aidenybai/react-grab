@@ -66,8 +66,8 @@ export const mockConversation: StreamBlock[] = [
     type: "message",
     content: (
       <span className="text-[#ff8080] inline-flex items-center gap-2">
-        <TriangleAlert size={16} />
-        I couldn&apos;t find what you&apos;re looking for :(
+        <TriangleAlert size={16} />I couldn&apos;t find what you&apos;re looking
+        for :(
       </span>
     ),
   },
@@ -187,7 +187,7 @@ export const mockConversation: StreamBlock[] = [
             Star on GitHub
           </a>
           <a
-            href="https://cursor.com/link/prompt?text=Fetch+https%3A%2F%2Freact-grab.com%2Fllms.txt+to+get+latest+install+instructions"
+            href="cursor://anysphere.cursor-deeplink/prompt?text=1.+Run+curl+-s+https%3A%2F%2Freact-grab.com%2Fllms.txt+%0A2.+Understand+the+content+and+follow+the+instructions+to+install+React+Grab.%0A3.+Tell+the+user+to+refresh+their+local+app+and+explain+how+to+use+React+Grab"
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white transition-colors hover:bg-white/10"
