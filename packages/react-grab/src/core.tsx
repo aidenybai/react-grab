@@ -185,8 +185,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setCopyStartX(positionX);
       setCopyStartY(positionY);
       setIsCopying(true);
+      startProgressAnimation();
       await operation().finally(() => {
         setIsCopying(false);
+        stopProgressAnimation();
       });
     };
 
@@ -340,6 +342,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         : { x: mouseX(), y: mouseY() },
     );
 
+    const progressPosition = createMemo(() =>
+      isCopying()
+        ? { x: copyStartX(), y: copyStartY() }
+        : { x: mouseX(), y: mouseY() },
+    );
+
     const isSameAsLast = createMemo(() =>
       Boolean(targetElement() && targetElement() === lastGrabbedElement()),
     );
@@ -464,7 +472,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           setIsHoldingKeys(true);
         }
 
-        startProgressAnimation();
         holdTimerId = window.setTimeout(() => {
           activateRenderer();
           options.onActivate?.();
@@ -650,7 +657,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const progressVisible = createMemo(
       () =>
-        isHoldingKeys() && showProgressIndicator() && hasValidMousePosition(),
+        isCopying() && showProgressIndicator() && hasValidMousePosition(),
     );
 
     const crosshairVisible = createMemo(
@@ -673,8 +680,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           labelVisible={labelVisible()}
           progressVisible={progressVisible()}
           progress={progress()}
-          mouseX={mouseX()}
-          mouseY={mouseY()}
+          mouseX={progressPosition().x}
+          mouseY={progressPosition().y}
           crosshairVisible={crosshairVisible()}
         />
       ),
