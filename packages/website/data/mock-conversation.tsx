@@ -6,6 +6,7 @@ import { IconCursor } from "@/components/icon-cursor";
 import { IconClaude } from "@/components/icon-claude";
 import { IconCopilot } from "@/components/icon-copilot";
 import { IconGithub } from "@/components/icon-github";
+import { TriangleAlert } from "lucide-react";
 
 export const mockConversation: StreamBlock[] = [
   {
@@ -63,12 +64,38 @@ export const mockConversation: StreamBlock[] = [
   {
     id: "message-2",
     type: "message",
-    content: "I couldn't find what you're looking for :(",
+    content: (
+      <span className="text-[#ff8080] inline-flex items-center gap-2">
+        <TriangleAlert size={16} />
+        I couldn&apos;t find what you&apos;re looking for :(
+      </span>
+    ),
   },
   {
     id: "user-2",
     type: "user_message",
     content: "",
+  },
+  {
+    id: "message-2-5",
+    type: "message",
+    content: (
+      <span>
+        I see you attached{" "}
+        <span className="inline-flex items-center rounded-md bg-[#330039] px-1 py-0.5 text-xs font-mono text-[#ff4fff]">
+          src/components/ui/primary-button.tsx
+        </span>
+        . It&apos;s next to the cancel button at line 42, currently using{" "}
+        <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-sm">
+          medium
+        </code>{" "}
+        size (
+        <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-sm">
+          38px
+        </code>
+        ). Let me take a closer look.
+      </span>
+    ),
   },
   {
     id: "tool-read-1",
