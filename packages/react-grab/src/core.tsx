@@ -589,10 +589,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     window.addEventListener(
       "click",
       (event: MouseEvent) => {
-        if (didJustDrag()) {
+        if (isRendererActive() || isCopying() || didJustDrag()) {
           event.preventDefault();
           event.stopPropagation();
-          setDidJustDrag(false);
+          if (didJustDrag()) {
+            setDidJustDrag(false);
+          }
         }
       },
       { signal: eventListenerSignal, capture: true },
