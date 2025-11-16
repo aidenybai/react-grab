@@ -1,6 +1,7 @@
 export interface Options {
   enabled?: boolean;
   keyHoldDuration?: number;
+  allowActivationInsideInput?: boolean;
   onActivate?: () => void;
 }
 

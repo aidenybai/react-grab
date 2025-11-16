@@ -28,6 +28,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   const options = {
     enabled: true,
     keyHoldDuration: 300,
+    allowActivationInsideInput: true,
     ...rawOptions,
   };
 
@@ -434,7 +435,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        if (isKeyboardEventTriggeredByInput(event)) return;
+        if (
+          !options.allowActivationInsideInput &&
+          isKeyboardEventTriggeredByInput(event)
+        ) {
+          return;
+        }
 
         if (!isTargetKeyCombination(event)) return;
 
