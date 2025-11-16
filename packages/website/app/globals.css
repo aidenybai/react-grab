@@ -83,3 +83,12 @@ body {
   background: #d75fcb33;
   color: #d75fcb;
 }
+
+.highlighted-code .line-changed {
+  background-color: rgba(34, 197, 94, 0.15);
+  border-left: 1px solid rgb(34, 197, 94, 0.75);
+  padding-left: 0.5rem;
+  display: inline-block;
+  width: 100%;
+  box-sizing: border-box;
+}

@@ -36,11 +36,25 @@ async function getHighlighter() {
   return highlighterInstance;
 }
 
+function highlightChangedLines(html: string, changedLines?: number[]): string {
+  if (!changedLines || changedLines.length === 0) return html;
+  
+  let lineNumber = 0;
+  return html.replace(/<span class=("|')line\1>/g, (match) => {
+    lineNumber += 1;
+    if (changedLines.includes(lineNumber)) {
+      return `<span class="line line-changed">`;
+    }
+    return match;
+  });
+}
+
 interface HighlightCodeOptions {
   code: string;
   lang: string;
   theme?: "vesper";
   showLineNumbers?: boolean;
+  changedLines?: number[];
 }
 
 export async function highlightCode({
@@ -48,6 +62,7 @@ export async function highlightCode({
   lang,
   theme = "vesper",
   showLineNumbers = false,
+  changedLines,
 }: HighlightCodeOptions): Promise<string> {
   const highlighter = await getHighlighter();
   const options: CodeToHastOptions = { lang, theme };
@@ -57,6 +72,7 @@ export async function highlightCode({
   if (showLineNumbers) {
     html = injectLineNumbers(html);
   }
+  html = highlightChangedLines(html, changedLines);
   return html;
 }
 

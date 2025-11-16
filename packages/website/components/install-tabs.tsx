@@ -6,6 +6,7 @@ interface InstallTab {
   fileName: string;
   description: string;
   code: string;
+  changedLines?: number[];
 }
 
 export const installTabsData: InstallTab[] = [
@@ -35,6 +36,7 @@ export default function RootLayout({ children }) {
     </html>
   );
 }`,
+    changedLines: [8, 9, 10, 11, 12, 13, 14, 15],
   },
   {
     id: "next-pages",
@@ -66,6 +68,7 @@ export default function Document() {
     </Html>
   );
 }`,
+    changedLines: [9, 10, 11, 12, 13, 14, 15, 16],
   },
   {
     id: "vite",
@@ -88,6 +91,7 @@ export default function Document() {
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>`,
+    changedLines: [4, 5, 6, 7, 8, 9, 10],
   },
 ];
 
