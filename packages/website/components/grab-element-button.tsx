@@ -59,8 +59,10 @@ export const GrabElementButton = ({ onSelect, showSkip = true, animationDelay = 
     let holdTimeout: NodeJS.Timeout | null = null;
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (hasAdvanced) return;
+
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "c") {
-        if (!holdStartTime && !hasAdvanced) {
+        if (!holdStartTime) {
           holdStartTime = Date.now();
           holdTimeout = setTimeout(() => {
             if (!hasAdvanced && holdStartTime) {
@@ -75,6 +77,8 @@ export const GrabElementButton = ({ onSelect, showSkip = true, animationDelay = 
     };
 
     const handleKeyUp = (event: KeyboardEvent) => {
+      if (hasAdvanced) return;
+
       const isReleasingModifier = !event.metaKey && !event.ctrlKey;
       const isReleasingC = event.key.toLowerCase() === "c";
 
