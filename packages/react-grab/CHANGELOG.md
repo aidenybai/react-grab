@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.37
+
+### Patch Changes
+
+- fix: in Component
+
 ## 0.0.36
 
 ### Patch Changes
