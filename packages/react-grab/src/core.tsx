@@ -18,6 +18,7 @@ import {
   traverseFiber,
 } from "bippy";
 import { copyContent } from "./utils/copy-content.js";
+import { playCopySound } from "./utils/play-copy-sound.js";
 import { getElementAtPosition } from "./utils/get-element-at-position.js";
 import { isValidGrabbableElement } from "./utils/is-valid-grabbable-element.js";
 import {
@@ -36,6 +37,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     enabled: true,
     keyHoldDuration: 300,
     allowActivationInsideInput: true,
+    playCopySound: false,
     ...rawOptions,
   };
 
@@ -257,7 +259,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           },
         ]);
 
-        await copyContent([plainTextContent, htmlContent]);
+        await copyContent(
+          [plainTextContent, htmlContent],
+          options.playCopySound ? playCopySound : undefined,
+        );
       } catch {}
 
       showTemporarySuccessLabel(
@@ -298,7 +303,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const htmlContent =
           createStructuredClipboardHtmlBlob(structuredElements);
 
-        await copyContent([plainTextContent, htmlContent]);
+        await copyContent(
+          [plainTextContent, htmlContent],
+          options.playCopySound ? playCopySound : undefined,
+        );
       } catch {}
 
       showTemporarySuccessLabel(

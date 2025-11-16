@@ -1,5 +1,3 @@
-// both the modern Clipboard API and document.execCommand('copy') require the document to have focus.
-// this function attempts to focus the window and waits for the focus event before proceeding.
 const waitForFocus = (): Promise<void> => {
   if (document.hasFocus()) {
     return new Promise((resolve) => setTimeout(resolve, 50));
@@ -16,6 +14,7 @@ const waitForFocus = (): Promise<void> => {
 
 export const copyContent = async (
   content: string | Blob | Array<string | Blob>,
+  onSuccess?: () => void,
 ): Promise<boolean> => {
   await waitForFocus();
 
@@ -24,10 +23,11 @@ export const copyContent = async (
       if (!navigator?.clipboard?.write) {
         for (const contentPart of content) {
           if (typeof contentPart === "string") {
-            const result = copyContentFallback(contentPart);
+            const result = copyContentFallback(contentPart, onSuccess);
             if (!result) return result;
           }
         }
+        onSuccess?.();
         return true;
       }
       const mimeTypeMap = new Map<string, Blob>();
@@ -49,18 +49,22 @@ export const copyContent = async (
       await navigator.clipboard.write([
         new ClipboardItem(Object.fromEntries(mimeTypeMap)),
       ]);
+      onSuccess?.();
       return true;
     } else if (content instanceof Blob) {
       await navigator.clipboard.write([
         new ClipboardItem({ [content.type]: content }),
       ]);
+      onSuccess?.();
       return true;
     } else {
       try {
         await navigator.clipboard.writeText(String(content));
+        onSuccess?.();
         return true;
       } catch {
-        return copyContentFallback(content);
+        const result = copyContentFallback(content, onSuccess);
+        return result;
       }
     }
   } catch {
@@ -68,7 +72,7 @@ export const copyContent = async (
   }
 };
 
-const copyContentFallback = (content: string) => {
+const copyContentFallback = (content: string, onSuccess?: () => void) => {
   if (!document.execCommand) return false;
   const el = document.createElement("textarea");
   el.value = String(content);
@@ -78,7 +82,9 @@ const copyContentFallback = (content: string) => {
   doc.append(el);
   try {
     el.select();
-    return document.execCommand("copy");
+    const result = document.execCommand("copy");
+    if (result) onSuccess?.();
+    return result;
   } finally {
     el.remove();
   }

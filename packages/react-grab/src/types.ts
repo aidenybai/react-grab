@@ -3,6 +3,7 @@ export interface Options {
   keyHoldDuration?: number;
   allowActivationInsideInput?: boolean;
   onActivate?: () => void;
+  playCopySound?: boolean;
 }
 
 export interface ReactGrabAPI {
