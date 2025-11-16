@@ -2,6 +2,10 @@ import { ReactGrabLogo } from "@/components/react-grab-logo";
 import { InstallTabs } from "@/components/install-tabs";
 import { DemoFooter } from "@/components/demo-footer";
 import { StreamBlock } from "@/hooks/use-stream";
+import { IconCursor } from "@/components/icon-cursor";
+import { IconClaude } from "@/components/icon-claude";
+import { IconCopilot } from "@/components/icon-copilot";
+import { IconGithub } from "@/components/icon-github";
 
 export const mockConversation: StreamBlock[] = [
   {
@@ -97,9 +101,9 @@ export const mockConversation: StreamBlock[] = [
           className="logo-shimmer-once"
         />
         <div>
-          <span className="font-bold">React Grab</span> allows you to select
-          elements on the page and extracts relevant context (like HTML, React
-          component, CSS, etc.).
+          <span className="font-bold">React Grab</span> allows you to select an
+          element and copy it{"'"}s context (like HTML, React component source,
+          CSS, etc.)
         </div>
       </div>
     ),
@@ -107,14 +111,31 @@ export const mockConversation: StreamBlock[] = [
   {
     id: "message-5",
     type: "message",
-    content:
-      "You can use it in any AI coding tool: Cursor, Claude Code, Copilot, you name it",
+    content: (
+      <span>
+        It improves the accuracy of tools like{" "}
+        <span className="inline-flex items-center gap-1">
+          <IconCursor width={14} height={14} />
+          Cursor
+        </span>
+        ,{" "}
+        <span className="inline-flex items-center gap-1">
+          <IconClaude width={14} height={14} />
+          Claude Code
+        </span>
+        ,{" "}
+        <span className="inline-flex items-center gap-1">
+          <IconCopilot width={16} height={16} />
+          Copilot
+        </span>
+        , you name it!
+      </span>
+    ),
   },
   {
     id: "message-6",
     type: "message",
-    content:
-      "If you're using a React framework or build tool, here are quick setup instructions:",
+    content: "It takes 1 script tag to get started:",
   },
   {
     id: "install-tabs-1",
@@ -126,14 +147,24 @@ export const mockConversation: StreamBlock[] = [
     type: "message",
     content: (
       <div className="pt-2">
-        <div>
+        <div className="flex gap-2">
           <a
             href="https://github.com/aidenybai/react-grab"
             target="_blank"
             rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-md border border-white/20 bg-white px-3 py-1.5 text-sm text-black transition-colors hover:bg-white/90"
+          >
+            <IconGithub className="h-[18px] w-[18px]" />
+            Star on GitHub
+          </a>
+          <a
+            href="https://cursor.com/link/prompt?text=1.+Search+in+this+codebase+for+the+project%0A2.+Determine+if+the+project+is+using+Next.js+app%2Fpages+router%2C+or+Vite%2C+or+something+else.+Then%2C+modify+their+files+based+on+the+framework%3A%0A%0ANext.js+%28App+router%29%0A%0AAdd+this+inside+of+your+%60app%2Flayout.tsx%60%3A%0A%0A%60%60%60jsx%0Aimport+Script+from+%22next%2Fscript%22%3B%0A%0Aexport+default+function+RootLayout%28%7B+children+%7D%29+%7B%0A++return+%28%0A++++%3Chtml%3E%0A++++++%3Chead%3E%0A++++++++%7B%2F*+put+this+in+the+%3Chead%3E+*%2F%7D%0A++++++++%7Bprocess.env.NODE_ENV+%3D%3D%3D+%22development%22+%26%26+%28%0A++++++++++%3CScript%0A++++++++++++src%3D%22%2F%2Funpkg.com%2Freact-grab%2Fdist%2Findex.global.js%22%0A++++++++++++crossOrigin%3D%22anonymous%22%0A++++++++++++strategy%3D%22beforeInteractive%22%0A++++++++++++data-enabled%3D%22true%22%0A++++++++++%2F%3E%0A++++++++%29%7D%0A++++++++%7B%2F*+rest+of+your+scripts+go+under+*%2F%7D%0A++++++%3C%2Fhead%3E%0A++++++%3Cbody%3E%7Bchildren%7D%3C%2Fbody%3E%0A++++%3C%2Fhtml%3E%0A++%29%3B%0A%7D%0A%60%60%60%0A%0A%23%23%23%23+Next.js+%28Pages+router%29%0A%0AAdd+this+into+your+%60pages%2F_document.tsx%60%3A%0A%0A%60%60%60jsx%0Aimport+%7B+Html%2C+Head%2C+Main%2C+NextScript+%7D+from+%22next%2Fdocument%22%3B%0A%0Aexport+default+function+Document%28%29+%7B%0A++return+%28%0A++++%3CHtml+lang%3D%22en%22%3E%0A++++++%3CHead%3E%0A++++++++%7B%2F*+put+this+in+the+%3CHead%3E+*%2F%7D%0A++++++++%7Bprocess.env.NODE_ENV+%3D%3D%3D+%22development%22+%26%26+%28%0A++++++++++%3CScript%0A++++++++++++src%3D%22%2F%2Funpkg.com%2Freact-grab%2Fdist%2Findex.global.js%22%0A++++++++++++crossOrigin%3D%22anonymous%22%0A++++++++++++strategy%3D%22beforeInteractive%22%0A++++++++++++data-enabled%3D%22true%22%0A++++++++++%2F%3E%0A++++++++%29%7D%0A++++++++%7B%2F*+rest+of+your+scripts+go+under+*%2F%7D%0A++++++%3C%2FHead%3E%0A++++++%3Cbody%3E%0A++++++++%3CMain+%2F%3E%0A++++++++%3CNextScript+%2F%3E%0A++++++%3C%2Fbody%3E%0A++++%3C%2FHtml%3E%0A++%29%3B%0A%7D%0A%60%60%60%0A%0A%23%23%23%23+Vite%0A%0A1.+Run+%60npm+i+react-grab%40latest%60%0A2.+Add+this+to+your+%60vite.config.ts%60%3A%0A%0A%60%60%60ts%0A%2F%2F+...%0Aimport+%7B+reactGrab+%7D+from+%22react-grab%2Fplugins%2Fvite%22%3B%0A%0Aexport+default+defineConfig%28%7B%0A++plugins%3A+%5B%0A++++%2F%2F+add+react+grab+as+a+plugin%0A++++reactGrab%28%29%2C%0A++%5D%2C%0A%7D%29%3B%0A%60%60%60%0A%0A3.+If+no+framework+or+project+available%2C+ask+the+user+where+it+is+or+what+it+is.+If+there+is+a+project+but+no+framework%2C+then+use%3A%0A%0A%60%60%60html%0A%3Cscript%0A++src%3D%22%2F%2Funpkg.com%2Freact-grab%2Fdist%2Findex.global.js%22%0A++crossorigin%3D%22anonymous%22%0A++data-enabled%3D%22true%22%0A%3E%3C%2Fscript%3E%0A%60%60%60%0A%0ATo+install"
+            target="_blank"
+            rel="noreferrer"
             className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white transition-colors hover:bg-white/10"
           >
-            Learn more on GitHub
+            <IconCursor className="h-[15px] w-[15px]" />
+            Install with Cursor
           </a>
         </div>
         <DemoFooter />

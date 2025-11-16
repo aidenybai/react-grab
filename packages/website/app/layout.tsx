@@ -17,9 +17,9 @@ export const metadata: Metadata = {
   description:
     "Select an element → Give it to Cursor, Claude Code, etc → Make a change to your app",
   icons: {
-    icon: "https://react-grab.com/favicon.png",
-    shortcut: "https://react-grab.com/favicon.png",
-    apple: "https://react-grab.com/favicon.png",
+    icon: "https://react-grab.com/logo.png",
+    shortcut: "https://react-grab.com/logo.png",
+    apple: "https://react-grab.com/logo.png",
   },
   openGraph: {
     images: "https://react-grab.com/banner.png",

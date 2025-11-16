@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "babel-plugin-react-compiler": "^1.0.0",
     "lucide-react": "^0.553.0",
     "motion": "^12.23.24",
     "next": "16.0.3",
