@@ -63,3 +63,4 @@ export const useKeyboardShortcut = ({
     };
   }, [onActivate, onDeactivate, holdDuration, enabled]);
 };
+
