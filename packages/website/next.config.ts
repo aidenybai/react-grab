@@ -2,8 +2,16 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["react-grab"],
-  reactCompiler: true,
+  // this causes sources to be mangled
+  reactCompiler: false,
   productionBrowserSourceMaps: true,
+  turbopack: {},
+  webpack: (config, { dev, isServer }) => {
+    if (!isServer && !dev) {
+      config.devtool = "source-map";
+    }
+    return config;
+  },
   rewrites: async () => {
     return {
       beforeFiles: [

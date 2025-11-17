@@ -63,8 +63,35 @@ const formatComponentSourceLocation = async (
   const source = await getSourceFromHostInstance(el);
   if (!source) return null;
   const fileName = normalizeFileName(source.fileName);
-  if (!isSourceFile(fileName)) return null;
-  return `${fileName}:${source.lineNumber}:${source.columnNumber}`;
+
+  if (isSourceFile(fileName)) {
+    return `${fileName}:${source.lineNumber}:${source.columnNumber}`;
+  }
+
+  if (
+    fileName &&
+    (fileName.includes(".tsx") ||
+      fileName.includes(".ts") ||
+      fileName.includes(".jsx") ||
+      fileName.includes(".js"))
+  ) {
+    const cleanedFileName = fileName
+      .replace(/^webpack:\/\/_N_E\//, "")
+      .replace(/^webpack:\/\/\//, "")
+      .replace(/^webpack:\/\//, "")
+      .replace(/^\.\//, "");
+
+    if (
+      cleanedFileName &&
+      !cleanedFileName.startsWith("node_modules") &&
+      !cleanedFileName.includes(".next") &&
+      !cleanedFileName.startsWith("webpack")
+    ) {
+      return `${cleanedFileName}:${source.lineNumber}:${source.columnNumber}`;
+    }
+  }
+
+  return null;
 };
 
 export const getHTMLSnippet = async (element: Element) => {
@@ -212,14 +239,18 @@ export const getHTMLSnippet = async (element: Element) => {
     targetIndex = siblings.indexOf(element);
 
     if (targetIndex > 0) {
-      const prevSibling = siblings[targetIndex - 1];
-      const prevId = extractSiblingIdentifier(prevSibling);
-      if (prevId && targetIndex <= 2) {
-        const indent = "  ".repeat(ancestors.length);
-        lines.push(`${indent}  ${formatElementOpeningTag(prevSibling, true)}`);
-        lines.push(`${indent}  </${prevSibling.tagName.toLowerCase()}>`);
-      } else if (targetIndex > 0) {
-        const indent = "  ".repeat(ancestors.length);
+      const indent = "  ".repeat(ancestors.length);
+
+      if (targetIndex <= 2) {
+        for (let i = 0; i < targetIndex; i++) {
+          const sibling = siblings[i];
+          const siblingId = extractSiblingIdentifier(sibling);
+          if (siblingId) {
+            lines.push(`${indent}  ${formatElementOpeningTag(sibling, true)}`);
+            lines.push(`${indent}  </${sibling.tagName.toLowerCase()}>`);
+          }
+        }
+      } else {
         lines.push(
           `${indent}  ... (${targetIndex} element${
             targetIndex === 1 ? "" : "s"
@@ -280,11 +311,15 @@ export const getHTMLSnippet = async (element: Element) => {
     const siblings = Array.from(parent.children);
     const siblingsAfter = siblings.length - targetIndex - 1;
     if (siblingsAfter > 0) {
-      const nextSibling = siblings[targetIndex + 1];
-      const nextId = extractSiblingIdentifier(nextSibling);
-      if (nextId && siblingsAfter <= 2) {
-        lines.push(`${indent}  ${formatElementOpeningTag(nextSibling, true)}`);
-        lines.push(`${indent}  </${nextSibling.tagName.toLowerCase()}>`);
+      if (siblingsAfter <= 2) {
+        for (let i = targetIndex + 1; i < siblings.length; i++) {
+          const sibling = siblings[i];
+          const siblingId = extractSiblingIdentifier(sibling);
+          if (siblingId) {
+            lines.push(`${indent}  ${formatElementOpeningTag(sibling, true)}`);
+            lines.push(`${indent}  </${sibling.tagName.toLowerCase()}>`);
+          }
+        }
       } else {
         lines.push(
           `${indent}  ... (${siblingsAfter} element${
