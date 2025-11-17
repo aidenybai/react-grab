@@ -15,3 +15,5 @@ export const MessageBlock = ({ block, animationDelay }: MessageBlockProps) => {
     </div>
   );
 };
+
+MessageBlock.displayName = "MessageBlock";

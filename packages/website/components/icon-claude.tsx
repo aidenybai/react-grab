@@ -31,14 +31,4 @@ export const IconClaude = ({
   </svg>
 );
 
-
-
-
-
-
-
-
-
-
-
-
+IconClaude.displayName = "IconClaude";

@@ -32,3 +32,5 @@ export const ThoughtBlock = ({ block }: ThoughtBlockProps) => {
     </Collapsible>
   );
 };
+
+ThoughtBlock.displayName = "ThoughtBlock";

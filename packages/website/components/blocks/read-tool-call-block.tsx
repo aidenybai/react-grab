@@ -35,3 +35,4 @@ export const ReadToolCallBlock = ({
   );
 };
 
+ReadToolCallBlock.displayName = "ReadToolCallBlock";

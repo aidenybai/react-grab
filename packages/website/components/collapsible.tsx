@@ -77,3 +77,5 @@ export const Collapsible = ({
     </div>
   );
 };
+
+Collapsible.displayName = "Collapsible";

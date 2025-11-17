@@ -39,3 +39,5 @@ export const DemoFooter = () => {
     </div>
   );
 };
+
+DemoFooter.displayName = "DemoFooter";

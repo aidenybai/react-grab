@@ -16,3 +16,5 @@ export async function Code({ code, lang, showLineNumbers = false }: CodeProps) {
     />
   );
 }
+
+Code.displayName = "Code";

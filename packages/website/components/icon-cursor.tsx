@@ -21,14 +21,4 @@ export const IconCursor = ({
   </svg>
 );
 
-
-
-
-
-
-
-
-
-
-
-
+IconCursor.displayName = "IconCursor";

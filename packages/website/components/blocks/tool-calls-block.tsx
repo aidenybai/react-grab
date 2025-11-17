@@ -71,3 +71,5 @@ export const ToolCallsBlock = ({ block, allBlocks }: ToolCallsBlockProps) => {
 
   return null;
 };
+
+ToolCallsBlock.displayName = "ToolCallsBlock";

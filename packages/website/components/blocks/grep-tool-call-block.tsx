@@ -39,3 +39,5 @@ export const GrepToolCallBlock = ({
     </Collapsible>
   );
 };
+
+GrepToolCallBlock.displayName = "GrepToolCallBlock";

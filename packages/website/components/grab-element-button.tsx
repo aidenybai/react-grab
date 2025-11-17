@@ -147,3 +147,5 @@ export const GrabElementButton = ({
     </motion.div>
   );
 };
+
+GrabElementButton.displayName = "GrabElementButton";

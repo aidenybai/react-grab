@@ -4,4 +4,6 @@ const Home = () => {
   return <StreamDemo />;
 };
 
+Home.displayName = "Home";
+
 export default Home;

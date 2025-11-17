@@ -23,3 +23,5 @@ export const IconGithub = ({
     />
   </svg>
 );
+
+IconGithub.displayName = "IconGithub";

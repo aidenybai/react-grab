@@ -115,3 +115,5 @@ export const InstallTabsClient = () => {
     </div>
   );
 };
+
+InstallTabsClient.displayName = "InstallTabsClient";

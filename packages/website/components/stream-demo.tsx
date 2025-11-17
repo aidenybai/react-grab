@@ -366,3 +366,5 @@ export const StreamDemo = () => {
     </div>
   );
 };
+
+StreamDemo.displayName = "StreamDemo";

@@ -20,3 +20,5 @@ export const UserMessage = ({ block, skipAnimation = false }: UserMessageProps) 
     </motion.div>
   );
 };
+
+UserMessage.displayName = "UserMessage";

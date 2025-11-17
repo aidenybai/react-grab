@@ -116,3 +116,5 @@ export const Scrollable = ({
     </div>
   );
 };
+
+Scrollable.displayName = "Scrollable";

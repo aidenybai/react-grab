@@ -72,3 +72,5 @@ export const ReactGrabLogo = ({
     </defs>
   </svg>
 );
+
+ReactGrabLogo.displayName = "ReactGrabLogo";

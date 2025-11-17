@@ -97,3 +97,5 @@ export const StreamingText = ({ content, chunks, animationDelay = 0 }: Streaming
     </>
   );
 };
+
+StreamingText.displayName = "StreamingText";

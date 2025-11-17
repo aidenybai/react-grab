@@ -69,3 +69,5 @@ export const Timer = ({ isRunning, startTime, endTime, maxDurationMs }: TimerPro
 
   return <span>{formatDuration(clampedElapsed)}</span>;
 };
+
+Timer.displayName = "Timer";
