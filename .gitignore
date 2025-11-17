@@ -4,3 +4,4 @@ node_modules
 dist
 **/*.tgz
 coverage
+react-grab-extension.zip

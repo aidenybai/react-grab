@@ -2,23 +2,23 @@
 
 set -e
 
-echo "🚀 Building React Grab Extension..."
+echo "Building React Grab Extension..."
 
 cd "$(dirname "$0")/.."
 
-echo "📦 Installing dependencies..."
+echo "Installing dependencies..."
 pnpm install
 
-echo "🔨 Building extension..."
+echo "Building extension..."
 pnpm run build
 
-echo "📦 Creating ZIP package..."
+echo "Creating ZIP package..."
 cd dist
 zip -r ../react-grab-extension.zip . -x "*.DS_Store"
 cd ..
 
-echo "✅ Extension packaged successfully!"
-echo "📦 Package location: react-grab-extension.zip"
+echo "Extension packaged successfully!"
+echo "Package location: react-grab-extension.zip"
 echo ""
 echo "Next steps:"
 echo "1. Go to Chrome Web Store Developer Dashboard"

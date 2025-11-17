@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "React Grab",
-  "version": "0.1.0",
-  "description": "Grab React components from any website with Cmd+C. Point, click, and copy elements to give context to Cursor, Claude Code, and other AI coding assistants.",
+  "version": "0.0.1",
+  "description": "Grab React components from any website with Cmd+C. Perfect for Cursor, Claude Code, and other AI coding tools.",
   "author": "Aiden Bai",
   "homepage_url": "https://react-grab.com",
   "icons": {
@@ -31,10 +31,6 @@
       "run_at": "document_start",
       "world": "MAIN"
     }
-  ],
-  "permissions": [
-    "storage",
-    "activeTab"
   ],
   "host_permissions": [
     "<all_urls>"
