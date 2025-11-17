@@ -7,6 +7,7 @@ import {
   on,
 } from "solid-js";
 import { render } from "solid-js/web";
+import { toast } from "solid-sonner";
 import { isKeyboardEventTriggeredByInput } from "./utils/is-keyboard-event-triggered-by-input.js";
 import { mountRoot } from "./utils/mount-root.js";
 import { ReactGrabRenderer } from "./components/renderer.js";
@@ -28,7 +29,19 @@ import {
 import { createElementBounds } from "./utils/create-element-bounds.js";
 import { SUCCESS_LABEL_DURATION_MS } from "./constants.js";
 import { isCapitalized } from "./utils/is-capitalized.js";
-import type { Options, OverlayBounds, GrabbedBox, ReactGrabAPI } from "./types.js";
+import type {
+  Options,
+  OverlayBounds,
+  GrabbedBox,
+  ReactGrabAPI,
+} from "./types.js";
+
+interface CapturedReactError {
+  message: string;
+  stack?: string;
+  timestamp: number;
+  origin: string;
+}
 
 const PROGRESS_INDICATOR_DELAY_MS = 150;
 
@@ -78,6 +91,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [copyStartX, setCopyStartX] = createSignal(OFFSCREEN_POSITION);
     const [copyStartY, setCopyStartY] = createSignal(OFFSCREEN_POSITION);
     const [mouseHasSettled, setMouseHasSettled] = createSignal(false);
+    const [, setCapturedReactErrors] = createSignal<CapturedReactError[]>([]);
 
     let holdTimerId: number | null = null;
     let progressAnimationId: number | null = null;
@@ -95,6 +109,66 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const isTargetKeyCombination = (event: KeyboardEvent) =>
       (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "c";
+
+    // const isReactLikeError = (errorLike: {
+    //   message?: string;
+    //   stack?: string;
+    // }) => {
+    //   const message = errorLike.message || "";
+    //   const stack = errorLike.stack || "";
+    //   const combined = `${message} ${stack}`.toLowerCase();
+
+    //   return (
+    //     combined.includes("react") ||
+    //     combined.includes("react-dom") ||
+    //     combined.includes(".jsx") ||
+    //     combined.includes(".tsx") ||
+    //     combined.includes("component")
+    //   );
+    // };
+
+    const formatSingleErrorForClipboard = (
+      error: CapturedReactError,
+    ): string => {
+      const timestamp = new Date(error.timestamp).toISOString();
+      let formatted = `Error (${error.origin} at ${timestamp}):\n`;
+      formatted += `Message: ${error.message}\n`;
+      if (error.stack) {
+        formatted += `Stack:\n${error.stack}\n`;
+      }
+      return formatted;
+    };
+
+    const captureReactError = (
+      errorLike: { message?: string; stack?: string },
+      origin: string,
+    ) => {
+      const newError: CapturedReactError = {
+        message: errorLike.message || "Unknown error",
+        stack: errorLike.stack,
+        timestamp: Date.now(),
+        origin,
+      };
+
+      const formattedError = formatSingleErrorForClipboard(newError);
+      const truncatedMessage =
+        newError.message.length > 60
+          ? `${newError.message.slice(0, 60)}...`
+          : newError.message;
+
+      toast.error(truncatedMessage, {
+        duration: 2000,
+        icon: null,
+        action: {
+          label: "Copy",
+          onClick: () => {
+            void navigator.clipboard.writeText(formattedError);
+          },
+        },
+      });
+
+      setCapturedReactErrors((previousErrors) => [...previousErrors, newError]);
+    };
 
     const showTemporaryGrabbedBox = (bounds: OverlayBounds) => {
       const boxId = `grabbed-${Date.now()}-${Math.random()}`;
@@ -619,7 +693,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: MouseEvent) => {
         if (!isDragging()) return;
 
-        const dragDistance = calculateDragDistance(event.clientX, event.clientY);
+        const dragDistance = calculateDragDistance(
+          event.clientX,
+          event.clientY,
+        );
 
         const wasDragGesture =
           dragDistance.x > DRAG_THRESHOLD_PX ||
@@ -687,6 +764,57 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       { signal: eventListenerSignal },
     );
 
+    window.addEventListener(
+      "error",
+      (event: ErrorEvent) => {
+        const errorObject: unknown = event.error;
+        let stack: string | undefined;
+        if (
+          errorObject &&
+          typeof errorObject === "object" &&
+          "stack" in errorObject
+        ) {
+          const stackValue: unknown = errorObject.stack;
+          stack = typeof stackValue === "string" ? stackValue : undefined;
+        }
+        captureReactError(
+          {
+            message: event.message,
+            stack,
+          },
+          "error",
+        );
+      },
+      { signal: eventListenerSignal },
+    );
+
+    window.addEventListener(
+      "unhandledrejection",
+      (event: PromiseRejectionEvent) => {
+        const reason: unknown = event.reason;
+        let message: string;
+        if (reason instanceof Error) {
+          message = reason.message;
+        } else if (reason === null || reason === undefined) {
+          message = "Unknown rejection";
+        } else if (typeof reason === "string") {
+          message = reason;
+        } else if (typeof reason === "number" || typeof reason === "boolean") {
+          message = String(reason);
+        } else {
+          message = "Unknown rejection (non-primitive value)";
+        }
+        captureReactError(
+          {
+            message,
+            stack: reason instanceof Error ? reason.stack : undefined,
+          },
+          "unhandledrejection",
+        );
+      },
+      { signal: eventListenerSignal },
+    );
+
     onCleanup(() => {
       abortController.abort();
       if (holdTimerId) window.clearTimeout(holdTimerId);
@@ -720,8 +848,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const progressVisible = createMemo(
-      () =>
-        isCopying() && showProgressIndicator() && hasValidMousePosition(),
+      () => isCopying() && showProgressIndicator() && hasValidMousePosition(),
     );
 
     const crosshairVisible = createMemo(

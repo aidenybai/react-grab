@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { TodoItem } from "./todo-item";
 
 const todos = [
@@ -16,10 +17,33 @@ const todos = [
 ];
 
 export const TodoList = () => {
+  useEffect(() => {
+    // HACK: Intentional demo errors to test React error toast capture
+    setTimeout(() => {
+      throw new Error("React component render error in TodoList.tsx");
+    }, 2000);
+
+    setTimeout(() => {
+      Promise.reject(
+        new Error("React async error: Failed to fetch todo data"),
+      );
+    }, 3000);
+  }, []);
+
+  const handleClickError = () => {
+    throw new Error("React click handler error in TodoList component");
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
         <h1>Todo List</h1>
+        <button
+          onClick={handleClickError}
+          className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200"
+        >
+          Trigger Error
+        </button>
       </div>
       <ul className="list-disc list-inside">
         {todos.map((todo) => (

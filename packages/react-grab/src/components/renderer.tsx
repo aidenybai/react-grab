@@ -1,5 +1,6 @@
 import { Show, For } from "solid-js";
 import type { Component } from "solid-js";
+import { Toaster } from "solid-sonner";
 import type { ReactGrabRendererProps } from "../types.js";
 import { SelectionBox } from "./selection-box.js";
 import { Label } from "./label.js";
@@ -90,6 +91,31 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           visible={props.progressVisible}
         />
       </Show>
+
+      <Toaster
+        position="bottom-right"
+        duration={Number.POSITIVE_INFINITY}
+        gap={6}
+        style={{
+          "--width": "240px",
+        }}
+        toastOptions={{
+          unstyled: false,
+          style: {
+            "background-color": "#fde7f7",
+            color: "#b21c8e",
+            border: "1px solid #f7c5ec",
+            "border-radius": "4px",
+            "font-size": "12px",
+            "font-weight": "500",
+            "font-family":
+              "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+            "font-variant-numeric": "tabular-nums",
+            padding: "4px 8px",
+            width: "240px",
+          },
+        }}
+      />
     </>
   );
 };
