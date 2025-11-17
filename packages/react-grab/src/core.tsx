@@ -81,7 +81,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [progressTick, setProgressTick] = createSignal(0);
     const [grabbedBoxes, setGrabbedBoxes] = createSignal<GrabbedBox[]>([]);
     const [successLabels, setSuccessLabels] = createSignal<
-      Array<{ id: string; text: string; x: number; y: number }>
+      Array<{ id: string; text: string }>
     >([]);
     const [isActivated, setIsActivated] = createSignal(false);
     const [showProgressIndicator, setShowProgressIndicator] =
@@ -122,15 +122,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, SUCCESS_LABEL_DURATION_MS);
     };
 
-    const showTemporarySuccessLabel = (
-      text: string,
-      positionX: number,
-      positionY: number,
-    ) => {
+    const showTemporarySuccessLabel = (text: string) => {
       const labelId = `success-${Date.now()}-${Math.random()}`;
       setSuccessLabels((previousLabels) => [
         ...previousLabels,
-        { id: labelId, text, x: positionX, y: positionY },
+        { id: labelId, text },
       ]);
 
       setTimeout(() => {
@@ -342,11 +338,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       if (didCopy) {
-        showTemporarySuccessLabel(
-          extractElementLabelText(targetElement),
-          copyStartX(),
-          copyStartY(),
-        );
+        showTemporarySuccessLabel(extractElementLabelText(targetElement));
       }
 
       notifyElementsSelected([targetElement]);
@@ -432,11 +424,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       } catch {}
 
       if (didCopy) {
-        showTemporarySuccessLabel(
-          `${targetElements.length} elements`,
-          copyStartX(),
-          copyStartY(),
-        );
+        showTemporarySuccessLabel(`${targetElements.length} elements`);
       }
 
       notifyElementsSelected(targetElements);

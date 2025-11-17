@@ -30,7 +30,7 @@ export interface ReactGrabRendererProps {
   dragVisible?: boolean;
   dragBounds?: OverlayBounds;
   grabbedBoxes?: Array<{ id: string; bounds: OverlayBounds; createdAt: number }>;
-  successLabels?: Array<{ id: string; text: string; x: number; y: number }>;
+  successLabels?: Array<{ id: string; text: string }>;
   labelVariant?: "hover" | "processing" | "success";
   labelText?: string;
   labelX?: number;

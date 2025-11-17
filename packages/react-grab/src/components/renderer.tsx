@@ -50,8 +50,8 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           <Label
             variant="success"
             text={label.text}
-            x={label.x}
-            y={label.y}
+            x={props.mouseX ?? 0}
+            y={props.mouseY ?? 0}
           />
         )}
       </For>
