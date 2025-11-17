@@ -28,7 +28,19 @@ import {
 import { createElementBounds } from "./utils/create-element-bounds.js";
 import { SUCCESS_LABEL_DURATION_MS } from "./constants.js";
 import { isCapitalized } from "./utils/is-capitalized.js";
-import type { Options, OverlayBounds, GrabbedBox, ReactGrabAPI } from "./types.js";
+import { isLocalhost } from "./utils/is-localhost.js";
+import type {
+  Options,
+  OverlayBounds,
+  GrabbedBox,
+  ReactGrabAPI,
+} from "./types.js";
+
+declare global {
+  interface Window {
+    __REACT_GRAB_EXTENSION_ACTIVE__?: boolean;
+  }
+}
 
 const PROGRESS_INDICATOR_DELAY_MS = 150;
 
@@ -228,6 +240,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       } catch {}
     };
 
+    const isExtensionEnvironment = () =>
+      window.__REACT_GRAB_EXTENSION_ACTIVE__ === true ||
+      options.isExtension === true;
+
+    const isExtensionTextOnlyMode = () =>
+      isExtensionEnvironment() && !isLocalhost();
+
     const executeCopyOperation = async (
       positionX: number,
       positionY: number,
@@ -243,26 +262,56 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
     };
 
+    const hasInnerText = (
+      element: Element,
+    ): element is Element & { innerText: string } =>
+      "innerText" in element;
+
+    const extractElementTextContent = (element: Element): string => {
+      if (hasInnerText(element)) {
+        return element.innerText;
+      }
+
+      return element.textContent ?? "";
+    };
+
+    const createCombinedTextContent = (elements: Element[]): string =>
+      elements
+        .map((element) => extractElementTextContent(element).trim())
+        .filter((textContent) => textContent.length > 0)
+        .join("\n\n");
+
     const copySingleElementToClipboard = async (targetElement: Element) => {
       showTemporaryGrabbedBox(createElementBounds(targetElement));
 
       await new Promise((resolve) => requestAnimationFrame(resolve));
 
       try {
-        const content = await getHTMLSnippet(targetElement);
-        const plainTextContent = wrapInSelectedElementTags(content);
-        const htmlContent = createStructuredClipboardHtmlBlob([
-          {
-            tagName: extractElementTagName(targetElement),
-            content,
-            computedStyles: extractRelevantComputedStyles(targetElement),
-          },
-        ]);
+        if (isExtensionTextOnlyMode()) {
+          const plainTextContent = createCombinedTextContent([targetElement]);
 
-        await copyContent(
-          [plainTextContent, htmlContent],
-          options.playCopySound ? playCopySound : undefined,
-        );
+          if (plainTextContent.length > 0) {
+            await copyContent(
+              plainTextContent,
+              options.playCopySound ? playCopySound : undefined,
+            );
+          }
+        } else {
+          const content = await getHTMLSnippet(targetElement);
+          const plainTextContent = wrapInSelectedElementTags(content);
+          const htmlContent = createStructuredClipboardHtmlBlob([
+            {
+              tagName: extractElementTagName(targetElement),
+              content,
+              computedStyles: extractRelevantComputedStyles(targetElement),
+            },
+          ]);
+
+          await copyContent(
+            [plainTextContent, htmlContent],
+            options.playCopySound ? playCopySound : undefined,
+          );
+        }
       } catch {}
 
       showTemporarySuccessLabel(
@@ -286,27 +335,42 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       await new Promise((resolve) => requestAnimationFrame(resolve));
 
       try {
-        const elementSnippets = await Promise.all(
-          targetElements.map((element) => getHTMLSnippet(element)),
-        );
+        if (isExtensionTextOnlyMode()) {
+          const plainTextContent = createCombinedTextContent(targetElements);
 
-        const plainTextContent = elementSnippets
-          .filter((snippet) => snippet.trim())
-          .map((snippet) => wrapInSelectedElementTags(snippet))
-          .join("\n\n");
+          if (plainTextContent.length > 0) {
+            await copyContent(
+              plainTextContent,
+              options.playCopySound ? playCopySound : undefined,
+            );
+          }
+        } else {
+          const elementSnippets = await Promise.all(
+            targetElements.map((element) => getHTMLSnippet(element)),
+          );
 
-        const structuredElements = elementSnippets.map((content, index) => ({
-          tagName: extractElementTagName(targetElements[index]),
-          content,
-          computedStyles: extractRelevantComputedStyles(targetElements[index]),
-        }));
-        const htmlContent =
-          createStructuredClipboardHtmlBlob(structuredElements);
+          const plainTextContent = elementSnippets
+            .filter((snippet) => snippet.trim())
+            .map((snippet) => wrapInSelectedElementTags(snippet))
+            .join("\n\n");
 
-        await copyContent(
-          [plainTextContent, htmlContent],
-          options.playCopySound ? playCopySound : undefined,
-        );
+          const structuredElements = elementSnippets.map(
+            (content, elementIndex) => ({
+              tagName: extractElementTagName(targetElements[elementIndex]),
+              content,
+              computedStyles: extractRelevantComputedStyles(
+                targetElements[elementIndex],
+              ),
+            }),
+          );
+          const htmlContent =
+            createStructuredClipboardHtmlBlob(structuredElements);
+
+          await copyContent(
+            [plainTextContent, htmlContent],
+            options.playCopySound ? playCopySound : undefined,
+          );
+        }
       } catch {}
 
       showTemporarySuccessLabel(

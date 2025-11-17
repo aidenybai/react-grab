@@ -4,6 +4,7 @@ export interface Options {
   allowActivationInsideInput?: boolean;
   onActivate?: () => void;
   playCopySound?: boolean;
+  isExtension?: boolean;
 }
 
 export interface ReactGrabAPI {
