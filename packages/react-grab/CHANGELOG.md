@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.38
+
+### Patch Changes
+
+- fix: multi select
+
 ## 0.0.37
 
 ### Patch Changes

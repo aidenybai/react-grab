@@ -10,6 +10,7 @@
   "ignore": [
     "@react-grab/next-playground",
     "@react-grab/vite-playground",
-    "@react-grab/website"
+    "@react-grab/website",
+    "@react-grab/web-extension"
   ]
 }
