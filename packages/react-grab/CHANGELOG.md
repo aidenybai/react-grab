@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.39
+
+### Patch Changes
+
+- fix: sourcemaps in prod
+
 ## 0.0.38
 
 ### Patch Changes
