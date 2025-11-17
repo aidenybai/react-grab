@@ -173,7 +173,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         })),
       };
 
-      const base64Data = btoa(JSON.stringify(structuredData));
+      const jsonString = JSON.stringify(structuredData);
+      const base64Data = btoa(
+        encodeURIComponent(jsonString).replace(
+          /%([0-9A-F]{2})/g,
+          (_match, p1: string) => String.fromCharCode(parseInt(p1, 16)),
+        ),
+      );
       const htmlContent = `<div data-react-grab="${base64Data}"></div>`;
 
       return new Blob([htmlContent], { type: "text/html" });
@@ -264,8 +270,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const hasInnerText = (
       element: Element,
-    ): element is Element & { innerText: string } =>
-      "innerText" in element;
+    ): element is Element & { innerText: string } => "innerText" in element;
 
     const extractElementTextContent = (element: Element): string => {
       if (hasInnerText(element)) {
@@ -286,12 +291,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       await new Promise((resolve) => requestAnimationFrame(resolve));
 
+      let didCopy = false;
+
       try {
         if (isExtensionTextOnlyMode()) {
           const plainTextContent = createCombinedTextContent([targetElement]);
 
           if (plainTextContent.length > 0) {
-            await copyContent(
+            didCopy = await copyContent(
               plainTextContent,
               options.playCopySound ? playCopySound : undefined,
             );
@@ -307,18 +314,40 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             },
           ]);
 
-          await copyContent(
+          didCopy = await copyContent(
             [plainTextContent, htmlContent],
             options.playCopySound ? playCopySound : undefined,
           );
-        }
-      } catch {}
 
-      showTemporarySuccessLabel(
-        extractElementLabelText(targetElement),
-        copyStartX(),
-        copyStartY(),
-      );
+          if (!didCopy) {
+            const plainTextContentOnly = createCombinedTextContent([
+              targetElement,
+            ]);
+            if (plainTextContentOnly.length > 0) {
+              didCopy = await copyContent(
+                plainTextContentOnly,
+                options.playCopySound ? playCopySound : undefined,
+              );
+            }
+          }
+        }
+      } catch {
+        const plainTextContentOnly = createCombinedTextContent([targetElement]);
+        if (plainTextContentOnly.length > 0) {
+          didCopy = await copyContent(
+            plainTextContentOnly,
+            options.playCopySound ? playCopySound : undefined,
+          );
+        }
+      }
+
+      if (didCopy) {
+        showTemporarySuccessLabel(
+          extractElementLabelText(targetElement),
+          copyStartX(),
+          copyStartY(),
+        );
+      }
 
       notifyElementsSelected([targetElement]);
     };
@@ -334,50 +363,81 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       await new Promise((resolve) => requestAnimationFrame(resolve));
 
+      let didCopy = false;
+
       try {
         if (isExtensionTextOnlyMode()) {
           const plainTextContent = createCombinedTextContent(targetElements);
 
           if (plainTextContent.length > 0) {
-            await copyContent(
+            didCopy = await copyContent(
               plainTextContent,
               options.playCopySound ? playCopySound : undefined,
             );
           }
         } else {
-          const elementSnippets = await Promise.all(
+          const elementSnippetResults = await Promise.allSettled(
             targetElements.map((element) => getHTMLSnippet(element)),
           );
 
-          const plainTextContent = elementSnippets
-            .filter((snippet) => snippet.trim())
-            .map((snippet) => wrapInSelectedElementTags(snippet))
-            .join("\n\n");
+          const elementSnippets = elementSnippetResults
+            .map((result) =>
+              result.status === "fulfilled" ? result.value : "",
+            )
+            .filter((snippet) => snippet.trim());
 
-          const structuredElements = elementSnippets.map(
-            (content, elementIndex) => ({
-              tagName: extractElementTagName(targetElements[elementIndex]),
-              content,
-              computedStyles: extractRelevantComputedStyles(
-                targetElements[elementIndex],
-              ),
-            }),
-          );
-          const htmlContent =
-            createStructuredClipboardHtmlBlob(structuredElements);
+          if (elementSnippets.length > 0) {
+            const plainTextContent = elementSnippets
+              .map((snippet) => wrapInSelectedElementTags(snippet))
+              .join("\n\n");
 
-          await copyContent(
-            [plainTextContent, htmlContent],
-            options.playCopySound ? playCopySound : undefined,
-          );
+            const structuredElements = elementSnippets.map(
+              (content, elementIndex) => ({
+                tagName: extractElementTagName(targetElements[elementIndex]),
+                content,
+                computedStyles: extractRelevantComputedStyles(
+                  targetElements[elementIndex],
+                ),
+              }),
+            );
+            const htmlContent =
+              createStructuredClipboardHtmlBlob(structuredElements);
+
+            didCopy = await copyContent(
+              [plainTextContent, htmlContent],
+              options.playCopySound ? playCopySound : undefined,
+            );
+
+            if (!didCopy) {
+              const plainTextContentOnly =
+                createCombinedTextContent(targetElements);
+              if (plainTextContentOnly.length > 0) {
+                didCopy = await copyContent(
+                  plainTextContentOnly,
+                  options.playCopySound ? playCopySound : undefined,
+                );
+              }
+            }
+          } else {
+            const plainTextContentOnly =
+              createCombinedTextContent(targetElements);
+            if (plainTextContentOnly.length > 0) {
+              didCopy = await copyContent(
+                plainTextContentOnly,
+                options.playCopySound ? playCopySound : undefined,
+              );
+            }
+          }
         }
       } catch {}
 
-      showTemporarySuccessLabel(
-        `${targetElements.length} elements`,
-        copyStartX(),
-        copyStartY(),
-      );
+      if (didCopy) {
+        showTemporarySuccessLabel(
+          `${targetElements.length} elements`,
+          copyStartX(),
+          copyStartY(),
+        );
+      }
 
       notifyElementsSelected(targetElements);
     };
@@ -683,7 +743,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: MouseEvent) => {
         if (!isDragging()) return;
 
-        const dragDistance = calculateDragDistance(event.clientX, event.clientY);
+        const dragDistance = calculateDragDistance(
+          event.clientX,
+          event.clientY,
+        );
 
         const wasDragGesture =
           dragDistance.x > DRAG_THRESHOLD_PX ||
@@ -784,8 +847,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const progressVisible = createMemo(
-      () =>
-        isCopying() && showProgressIndicator() && hasValidMousePosition(),
+      () => isCopying() && showProgressIndicator() && hasValidMousePosition(),
     );
 
     const crosshairVisible = createMemo(

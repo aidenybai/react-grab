@@ -46,11 +46,33 @@ export const copyContent = async (
           }
         }
       }
-      await navigator.clipboard.write([
-        new ClipboardItem(Object.fromEntries(mimeTypeMap)),
-      ]);
-      onSuccess?.();
-      return true;
+
+      if (mimeTypeMap.size === 0) {
+        const plainTextFallback = content.find(
+          (contentPart) => typeof contentPart === "string",
+        );
+        if (typeof plainTextFallback === "string") {
+          return copyContentFallback(plainTextFallback, onSuccess);
+        }
+        return false;
+      }
+
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem(Object.fromEntries(mimeTypeMap)),
+        ]);
+        onSuccess?.();
+        return true;
+      } catch {
+        const plainTextParts = content.filter(
+          (contentPart): contentPart is string => typeof contentPart === "string",
+        );
+        if (plainTextParts.length > 0) {
+          const combinedText = plainTextParts.join("\n\n");
+          return copyContentFallback(combinedText, onSuccess);
+        }
+        return false;
+      }
     } else if (content instanceof Blob) {
       await navigator.clipboard.write([
         new ClipboardItem({ [content.type]: content }),
