@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   serverExternalPackages: ["react-grab"],
   reactCompiler: true,
+  productionBrowserSourceMaps: true,
   rewrites: async () => {
     return {
       beforeFiles: [
