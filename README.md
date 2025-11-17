@@ -18,7 +18,7 @@ By default coding agents cannot access elements on your page. React Grab fixes t
 
 ## Install
 
-> [**Install using Cursor**](cursor://anysphere.cursor-deeplink/prompt?text=1.+Run+curl+-s+https%3A%2F%2Freact-grab.com%2Fllms.txt+%0A2.+Understand+the+content+and+follow+the+instructions+to+install+React+Grab.%0A3.+Tell+the+user+to+refresh+their+local+app+and+explain+how+to+use+React+Grab)
+> [**Install using Cursor**](https://cursor.com/link/prompt?text=1.+Run+curl+-s+https%3A%2F%2Freact-grab.com%2Fllms.txt+%0A2.+Understand+the+content+and+follow+the+instructions+to+install+React+Grab.%0A3.+Tell+the+user+to+refresh+their+local+app+and+explain+how+to+use+React+Grab)
 
 Get started in 1 minute by adding this script tag to your app:
 
