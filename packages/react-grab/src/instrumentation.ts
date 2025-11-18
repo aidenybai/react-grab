@@ -227,7 +227,7 @@ export const getHTMLSnippet = async (element: Element) => {
       source &&
       (i === 0 || ancestorComponents[i - 1] !== componentName)
     ) {
-      lines.push(`${indent}<${componentName} source="${source}">`);
+      lines.push(`${indent}<${componentName} used-at="${source}">`);
     }
     lines.push(`${indent}${formatElementOpeningTag(ancestors[i], true)}`);
   }
