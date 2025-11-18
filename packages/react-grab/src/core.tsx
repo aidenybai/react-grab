@@ -85,6 +85,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       Array<{ id: string; text: string }>
     >([]);
     const [isActivated, setIsActivated] = createSignal(false);
+    const [isToggleMode, setIsToggleMode] = createSignal(false);
     const [showProgressIndicator, setShowProgressIndicator] =
       createSignal(false);
     const [didJustDrag, setDidJustDrag] = createSignal(false);
@@ -262,6 +263,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       await operation().finally(() => {
         setIsCopying(false);
         stopProgressAnimation();
+
+        if (isToggleMode()) {
+          if (!isHoldingKeys()) {
+            deactivateRenderer();
+          } else {
+            setIsToggleMode(false);
+          }
+        }
       });
     };
 
@@ -596,6 +605,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const deactivateRenderer = () => {
+      setIsToggleMode(false);
       setIsHoldingKeys(false);
       setIsActivated(false);
       document.body.style.cursor = "";
@@ -626,12 +636,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        if (event.key === "Enter" && isActivated()) {
-          const element = targetElement();
-          if (element) {
-            void executeCopyOperation(mouseX(), mouseY(), () =>
-              copySingleElementToClipboard(element),
-            );
+        if (event.key === "Enter" && isHoldingKeys()) {
+          setIsToggleMode(true);
+
+          if (keydownSpamTimerId !== null) {
+            window.clearTimeout(keydownSpamTimerId);
+            keydownSpamTimerId = null;
+          }
+
+          if (!isActivated()) {
+            if (holdTimerId) window.clearTimeout(holdTimerId);
+            activateRenderer();
+            options.onActivate?.();
           }
           return;
         }
@@ -646,6 +662,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!isTargetKeyCombination(event)) return;
 
         if (isActivated()) {
+          if (isToggleMode()) return;
+
           if (keydownSpamTimerId !== null) {
             window.clearTimeout(keydownSpamTimerId);
           }
@@ -682,6 +700,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const isReleasingC = event.key.toLowerCase() === "c";
 
         if (isReleasingC || isReleasingModifier) {
+          if (isToggleMode()) return;
           deactivateRenderer();
         }
       },
@@ -841,15 +860,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isCopying() ? "processing" : "hover",
     );
 
-    const labelVisible = createMemo(
-      () =>
-        (isRendererActive() &&
-          !isDragging() &&
-          mouseHasSettled() &&
-          ((Boolean(targetElement()) && !isSameAsLast()) ||
-            !targetElement())) ||
-        isCopying(),
-    );
+    const labelVisible = createMemo(() => {
+      if (isCopying()) return true;
+      if (successLabels().length > 0) return false;
+
+      return (
+        isRendererActive() &&
+        !isDragging() &&
+        mouseHasSettled() &&
+        ((Boolean(targetElement()) && !isSameAsLast()) || !targetElement())
+      );
+    });
 
     const progressVisible = createMemo(
       () => isCopying() && showProgressIndicator() && hasValidMousePosition(),
@@ -873,6 +894,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           labelX={labelPosition().x}
           labelY={labelPosition().y}
           labelVisible={labelVisible()}
+          labelZIndex={2147483646}
           progressVisible={progressVisible()}
           progress={progress()}
           mouseX={progressPosition().x}
