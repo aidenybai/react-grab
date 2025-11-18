@@ -626,6 +626,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
+        if (event.key === "Enter" && isActivated()) {
+          const element = targetElement();
+          if (element) {
+            void executeCopyOperation(mouseX(), mouseY(), () =>
+              copySingleElementToClipboard(element),
+            );
+          }
+          return;
+        }
+
         if (
           !options.allowActivationInsideInput &&
           isKeyboardEventTriggeredByInput(event)
