@@ -199,7 +199,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             if (
               displayName &&
               isCapitalized(displayName) &&
-              !displayName.startsWith("_")
+              !displayName.startsWith("_") &&
+              !displayName.startsWith("Primitive.")
             ) {
               componentName = displayName;
               return true;
@@ -820,8 +821,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (isRendererActive() || isCopying() || didJustDrag()) {
           event.preventDefault();
           event.stopPropagation();
-          if (didJustDrag()) {
+
+          const hadDrag = didJustDrag();
+          if (hadDrag) {
             setDidJustDrag(false);
+          }
+
+          if (isToggleMode() && !isCopying()) {
+            if (!isHoldingKeys()) {
+              deactivateRenderer();
+            } else {
+              setIsToggleMode(false);
+            }
           }
         }
       },

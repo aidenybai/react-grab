@@ -30,6 +30,7 @@ const truncateString = (string: string, maxLength: number) =>
 const isInternalComponent = (name: string): boolean =>
   !isCapitalized(name) ||
   name.startsWith("_") ||
+  name.startsWith("Primitive.") ||
   (name.includes("Provider") && name.includes("Context"));
 
 export const getNearestComponentDisplayName = (
@@ -71,9 +72,9 @@ const formatComponentSourceLocation = async (
   if (
     fileName &&
     (fileName.includes(".tsx") ||
-      fileName.includes(".ts") ||
-      fileName.includes(".jsx") ||
-      fileName.includes(".js"))
+    fileName.includes(".ts") ||
+    fileName.includes(".jsx") ||
+    fileName.includes(".js"))
   ) {
     const cleanedFileName = fileName
       .replace(/^webpack:\/\/_N_E\//, "")
@@ -218,18 +219,33 @@ export const getHTMLSnippet = async (element: Element) => {
   );
   const elementSource = await formatComponentSourceLocation(element);
 
+  const ancestorElementIndents: number[] = [];
+  const ancestorComponentIndents: number[] = [];
+  let currentIndentLevel = 0;
+
+  const getIndent = (level: number) => "  ".repeat(level);
+
   for (let i = 0; i < ancestors.length; i++) {
-    const indent = "  ".repeat(i);
     const componentName = ancestorComponents[i];
     const source = ancestorSources[i];
-    if (
+    const isNewComponent =
       componentName &&
       source &&
-      (i === 0 || ancestorComponents[i - 1] !== componentName)
-    ) {
-      lines.push(`${indent}<${componentName} used-at="${source}">`);
+      (i === 0 || ancestorComponents[i - 1] !== componentName);
+
+    if (isNewComponent) {
+      ancestorComponentIndents[i] = currentIndentLevel;
+      lines.push(
+        `${getIndent(currentIndentLevel)}<${componentName} used-at="${source}">`,
+      );
+      currentIndentLevel++;
     }
-    lines.push(`${indent}${formatElementOpeningTag(ancestors[i], true)}`);
+
+    ancestorElementIndents[i] = currentIndentLevel;
+    lines.push(
+      `${getIndent(currentIndentLevel)}${formatElementOpeningTag(ancestors[i], true)}`,
+    );
+    currentIndentLevel++;
   }
 
   const parent = element.parentElement;
@@ -239,28 +255,26 @@ export const getHTMLSnippet = async (element: Element) => {
     targetIndex = siblings.indexOf(element);
 
     if (targetIndex > 0) {
-      const indent = "  ".repeat(ancestors.length);
+      const indent = getIndent(currentIndentLevel);
 
       if (targetIndex <= 2) {
         for (let i = 0; i < targetIndex; i++) {
           const sibling = siblings[i];
           const siblingId = extractSiblingIdentifier(sibling);
           if (siblingId) {
-            lines.push(`${indent}  ${formatElementOpeningTag(sibling, true)}`);
-            lines.push(`${indent}  </${sibling.tagName.toLowerCase()}>`);
+            lines.push(`${indent}${formatElementOpeningTag(sibling, true)}`);
+            lines.push(`${indent}</${sibling.tagName.toLowerCase()}>`);
           }
         }
       } else {
         lines.push(
-          `${indent}  ... (${targetIndex} element${
+          `${indent}... (${targetIndex} element${
             targetIndex === 1 ? "" : "s"
           })`,
         );
       }
     }
   }
-
-  const indent = "  ".repeat(ancestors.length);
 
   const lastAncestorComponent =
     ancestors.length > 0
@@ -271,16 +285,21 @@ export const getHTMLSnippet = async (element: Element) => {
     elementSource &&
     elementComponent !== lastAncestorComponent;
 
+  let elementIndentLevel = currentIndentLevel;
+  const elementComponentIndentLevel = currentIndentLevel;
+
   if (showElementComponent) {
-    lines.push(`${indent}  <${elementComponent} used-at="${elementSource}">`);
+    lines.push(
+      `${getIndent(elementIndentLevel)}<${elementComponent} used-at="${elementSource}">`,
+    );
+    elementIndentLevel++;
   }
 
-  lines.push(`${indent}  <!-- IMPORTANT: selected element -->`);
+  const elementIndent = getIndent(elementIndentLevel);
+  lines.push(`${elementIndent}<!-- IMPORTANT: selected element -->`);
 
   const textContent = extractTruncatedTextContent(element);
   const childrenCount = element.children.length;
-
-  const elementIndent = `${indent}${showElementComponent ? "    " : "  "}`;
 
   if (textContent && childrenCount === 0 && textContent.length < 40) {
     lines.push(
@@ -304,25 +323,28 @@ export const getHTMLSnippet = async (element: Element) => {
   }
 
   if (showElementComponent) {
-    lines.push(`${indent}  </${elementComponent}>`);
+    lines.push(
+      `${getIndent(elementComponentIndentLevel)}</${elementComponent}>`,
+    );
   }
 
   if (parent && targetIndex >= 0) {
     const siblings = Array.from(parent.children);
     const siblingsAfter = siblings.length - targetIndex - 1;
     if (siblingsAfter > 0) {
+      const indent = getIndent(currentIndentLevel);
       if (siblingsAfter <= 2) {
         for (let i = targetIndex + 1; i < siblings.length; i++) {
           const sibling = siblings[i];
           const siblingId = extractSiblingIdentifier(sibling);
           if (siblingId) {
-            lines.push(`${indent}  ${formatElementOpeningTag(sibling, true)}`);
-            lines.push(`${indent}  </${sibling.tagName.toLowerCase()}>`);
+            lines.push(`${indent}${formatElementOpeningTag(sibling, true)}`);
+            lines.push(`${indent}</${sibling.tagName.toLowerCase()}>`);
           }
         }
       } else {
         lines.push(
-          `${indent}  ... (${siblingsAfter} element${
+          `${indent}... (${siblingsAfter} element${
             siblingsAfter === 1 ? "" : "s"
           })`,
         );
@@ -331,17 +353,12 @@ export const getHTMLSnippet = async (element: Element) => {
   }
 
   for (let i = ancestors.length - 1; i >= 0; i--) {
-    const indent = "  ".repeat(i);
-    lines.push(`${indent}${formatElementClosingTag(ancestors[i])}`);
-    const componentName = ancestorComponents[i];
-    const source = ancestorSources[i];
-    if (
-      componentName &&
-      source &&
-      (i === ancestors.length - 1 ||
-        ancestorComponents[i + 1] !== componentName)
-    ) {
-      lines.push(`${indent}</${componentName}>`);
+    const elementIndent = getIndent(ancestorElementIndents[i]);
+    lines.push(`${elementIndent}${formatElementClosingTag(ancestors[i])}`);
+
+    if (ancestorComponentIndents[i] !== undefined) {
+      const compIndent = getIndent(ancestorComponentIndents[i]);
+      lines.push(`${compIndent}</${ancestorComponents[i]}>`);
     }
   }
 
