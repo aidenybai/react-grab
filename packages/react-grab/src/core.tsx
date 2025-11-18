@@ -660,7 +660,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           options.onActivate?.();
         }, options.keyHoldDuration);
       },
-      { signal: eventListenerSignal },
+      { signal: eventListenerSignal, capture: true },
     );
 
     window.addEventListener(
