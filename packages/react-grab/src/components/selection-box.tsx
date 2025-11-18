@@ -123,7 +123,7 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
     position: "fixed",
     "box-sizing": "border-box",
     "pointer-events": props.variant === "drag" ? "none" : "auto",
-    "z-index": "2147483646",
+    "z-index": props.variant === "grabbed" ? "2147483645" : "2147483646",
   };
 
   const variantStyle = (): JSX.CSSProperties => {
@@ -139,7 +139,7 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
 
     return {
       border: "1px solid rgb(210, 57, 192)",
-      "background-color": "rgba(210, 57, 192, 0.2)",
+      "background-color": props.variant === "grabbed" ? "rgba(210, 57, 192, 0.08)" : "rgba(210, 57, 192, 0.2)",
       transition:
         props.variant === "grabbed" ? "opacity 0.3s ease-out" : undefined,
     };
