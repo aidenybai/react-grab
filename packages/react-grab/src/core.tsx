@@ -29,6 +29,7 @@ import { createElementBounds } from "./utils/create-element-bounds.js";
 import { SUCCESS_LABEL_DURATION_MS } from "./constants.js";
 import { isCapitalized } from "./utils/is-capitalized.js";
 import { isLocalhost } from "./utils/is-localhost.js";
+import { elementToMarkdown } from "./utils/html-to-markdown.js";
 import type {
   Options,
   OverlayBounds,
@@ -282,6 +283,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         .filter((textContent) => textContent.length > 0)
         .join("\n\n");
 
+    const createCombinedMarkdownContent = (elements: Element[]): string =>
+      elements
+        .map((element) => elementToMarkdown(element).trim())
+        .filter((markdownContent) => markdownContent.length > 0)
+        .join("\n\n");
+
     const copySingleElementToClipboard = async (targetElement: Element) => {
       showTemporaryGrabbedBox(createElementBounds(targetElement));
 
@@ -291,11 +298,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       try {
         if (isExtensionTextOnlyMode()) {
-          const plainTextContent = createCombinedTextContent([targetElement]);
+          const markdownContent = createCombinedMarkdownContent([targetElement]);
 
-          if (plainTextContent.length > 0) {
+          if (markdownContent.length > 0) {
             didCopy = await copyContent(
-              plainTextContent,
+              markdownContent,
               options.playCopySound ? playCopySound : undefined,
             );
           }
@@ -359,11 +366,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       try {
         if (isExtensionTextOnlyMode()) {
-          const plainTextContent = createCombinedTextContent(targetElements);
+          const markdownContent = createCombinedMarkdownContent(targetElements);
 
-          if (plainTextContent.length > 0) {
+          if (markdownContent.length > 0) {
             didCopy = await copyContent(
-              plainTextContent,
+              markdownContent,
               options.playCopySound ? playCopySound : undefined,
             );
           }
