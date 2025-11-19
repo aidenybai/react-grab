@@ -11,6 +11,7 @@
     "@react-grab/next-playground",
     "@react-grab/vite-playground",
     "@react-grab/website",
-    "@react-grab/web-extension"
+    "@react-grab/web-extension",
+    "@react-grab/benchmarks"
   ]
 }

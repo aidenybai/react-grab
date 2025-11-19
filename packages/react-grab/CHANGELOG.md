@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.40
+
+### Patch Changes
+
+- fix: selection opacity
+
 ## 0.0.39
 
 ### Patch Changes

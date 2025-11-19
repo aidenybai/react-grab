@@ -861,7 +861,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const rendererRoot = mountRoot();
 
-    const selectionVisible = createMemo(() => false);
+    const selectionVisible = createMemo(
+      () => isRendererActive() && !isDragging() && Boolean(targetElement()),
+    );
 
     const dragVisible = createMemo(
       () => isRendererActive() && isDraggingBeyondThreshold(),

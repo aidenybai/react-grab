@@ -137,11 +137,17 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
       };
     }
 
+    if (props.variant === "selection") {
+      return {
+        border: "1px dashed rgba(210, 57, 192, 0.5)",
+        "background-color": "rgba(210, 57, 192, 0.08)",
+      };
+    }
+
     return {
       border: "1px solid rgb(210, 57, 192)",
-      "background-color": props.variant === "grabbed" ? "rgba(210, 57, 192, 0.08)" : "rgba(210, 57, 192, 0.2)",
-      transition:
-        props.variant === "grabbed" ? "opacity 0.3s ease-out" : undefined,
+      "background-color": "rgba(210, 57, 192, 0.08)",
+      transition: "opacity 0.3s ease-out",
     };
   };
 
