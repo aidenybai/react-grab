@@ -1,0 +1,10 @@
+{
+  "name": "@react-grab/benchmarks",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {},
+  "dependencies": {
+    "ai": "^5.0.95",
+    "ai-sdk-provider-claude-code": "^2.1.0"
+  }
+}
