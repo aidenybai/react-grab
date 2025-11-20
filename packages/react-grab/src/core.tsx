@@ -10,8 +10,7 @@ import { render } from "solid-js/web";
 import { isKeyboardEventTriggeredByInput } from "./utils/is-keyboard-event-triggered-by-input.js";
 import { mountRoot } from "./utils/mount-root.js";
 import { ReactGrabRenderer } from "./components/renderer.js";
-import { getHTMLSnippet } from "./instrumentation.js";
-import { getNearestComponentName } from "./utils/get-nearest-component-name.js";
+import { getStack, formatStack, getHTMLPreview } from "./instrumentation.js";
 import { copyContent } from "./utils/copy-content.js";
 import { playCopySound } from "./utils/play-copy-sound.js";
 import { getElementAtPosition } from "./utils/get-element-at-position.js";
@@ -34,6 +33,7 @@ import type {
   GrabbedBox,
   ReactGrabAPI,
 } from "./types.js";
+import { getNearestComponentName } from "./instrumentation.js";
 
 export const init = (rawOptions?: Options): ReactGrabAPI => {
   const options = {
@@ -129,48 +129,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const wrapInSelectedElementTags = (context: string) =>
       `<selected_element>\n${context}\n</selected_element>`;
 
-    const extractRelevantComputedStyles = (element: Element) => {
-      const computed = window.getComputedStyle(element);
-      const rect = element.getBoundingClientRect();
-      return {
-        width: `${Math.round(rect.width)}px`,
-        height: `${Math.round(rect.height)}px`,
-        paddingTop: computed.paddingTop,
-        paddingRight: computed.paddingRight,
-        paddingBottom: computed.paddingBottom,
-        paddingLeft: computed.paddingLeft,
-        background: computed.background,
-        opacity: computed.opacity,
-      };
-    };
-
-    const createStructuredClipboardHtmlBlob = (
-      elements: Array<{
-        tagName: string;
-        content: string;
-        computedStyles: ReturnType<typeof extractRelevantComputedStyles>;
-      }>,
-    ) => {
-      const structuredData = {
-        elements: elements.map((element) => ({
-          tagName: element.tagName,
-          content: element.content,
-          computedStyles: element.computedStyles,
-        })),
-      };
-
-      const jsonString = JSON.stringify(structuredData);
-      const base64Data = btoa(
-        encodeURIComponent(jsonString).replace(
-          /%([0-9A-F]{2})/g,
-          (_match, p1: string) => String.fromCharCode(parseInt(p1, 16)),
-        ),
-      );
-      const htmlContent = `<div data-react-grab="${base64Data}"></div>`;
-
-      return new Blob([htmlContent], { type: "text/html" });
-    };
-
     const extractElementTagName = (element: Element) =>
       (element.tagName || "").toLowerCase();
 
@@ -253,13 +211,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       try {
         const elementSnippetResults = await Promise.allSettled(
-          elements.map((element) => getHTMLSnippet(element)),
+          elements.map(
+            async (element) =>
+              `## HTML Frame:\n${getHTMLPreview(element)}\n\n## Code Location:\n${formatStack(await getStack(element))}`,
+          ),
         );
 
         const elementSnippets = elementSnippetResults
-          .map((result) =>
-            result.status === "fulfilled" ? result.value : "",
-          )
+          .map((result) => (result.status === "fulfilled" ? result.value : ""))
           .filter((snippet) => snippet.trim());
 
         if (elementSnippets.length > 0) {
@@ -267,20 +226,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             .map((snippet) => wrapInSelectedElementTags(snippet))
             .join("\n\n");
 
-          const structuredElements = elementSnippets.map(
-            (content, elementIndex) => ({
-              tagName: extractElementTagName(elements[elementIndex]),
-              content,
-              computedStyles: extractRelevantComputedStyles(
-                elements[elementIndex],
-              ),
-            }),
-          );
-          const htmlContent =
-            createStructuredClipboardHtmlBlob(structuredElements);
-
           didCopy = await copyContent(
-            [plainTextContent, htmlContent],
+            plainTextContent,
             options.playCopySound ? playCopySound : undefined,
           );
         }

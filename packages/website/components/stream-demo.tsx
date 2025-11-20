@@ -1,7 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useStream, type StreamRenderedBlock, type StreamBlock } from "@/hooks/use-stream";
+import {
+  useStream,
+  type StreamRenderedBlock,
+  type StreamBlock,
+} from "@/hooks/use-stream";
 import { ThoughtBlock } from "./blocks/thought-block";
 import { MessageBlock } from "./blocks/message-block";
 import { CodeBlock } from "./blocks/code-block";
@@ -132,7 +136,10 @@ const getConversationBlocks = (): StreamBlock[] => [
     type: "message",
     content: (
       <div key="content" className="flex flex-col gap-2">
-        <div className="inline-flex" style={{ padding: "2px", transform: "translateX(-3px)" }}>
+        <div
+          className="inline-flex"
+          style={{ padding: "2px", transform: "translateX(-3px)" }}
+        >
           <ReactGrabLogo
             key="logo"
             width={42}
@@ -227,11 +234,12 @@ const renderBlock = (
   block: StreamRenderedBlock,
   blockIndex: number | undefined,
   wasPreloaded: boolean,
-  allBlocks: StreamRenderedBlock[]
+  allBlocks: StreamRenderedBlock[],
 ) => {
   if (block.status === "pending") return null;
 
-  const animationDelay = wasPreloaded && blockIndex !== undefined ? blockIndex * 0.03 : 0;
+  const animationDelay =
+    wasPreloaded && blockIndex !== undefined ? blockIndex * 0.03 : 0;
 
   if (block.type === "user_message") {
     if (!block.content) return null;
@@ -257,9 +265,14 @@ const renderBlock = (
   return null;
 };
 
-const filterMobileBlocks = (blocks: StreamRenderedBlock[], isMobile: boolean): StreamRenderedBlock[] => {
+const filterMobileBlocks = (
+  blocks: StreamRenderedBlock[],
+  isMobile: boolean,
+): StreamRenderedBlock[] => {
   if (!isMobile) return blocks;
-  return blocks.filter((block) => block.id !== "message-6" && block.id !== "install-tabs-1");
+  return blocks.filter(
+    (block) => block.id !== "message-6" && block.id !== "install-tabs-1",
+  );
 };
 
 export const StreamDemo = () => {
@@ -276,7 +289,10 @@ export const StreamDemo = () => {
   });
 
   useEffect(() => {
-    if (shouldResumeRef.current && updatedBlocks.find((block) => block.id === "user-2")?.content) {
+    if (
+      shouldResumeRef.current &&
+      updatedBlocks.find((block) => block.id === "user-2")?.content
+    ) {
       shouldResumeRef.current = false;
       stream.resume();
     }
@@ -308,11 +324,14 @@ export const StreamDemo = () => {
   };
 
   const reactGrabStartId = "message-4";
-  const reactGrabStartIndex = stream.blocks.findIndex((block) => block.id === reactGrabStartId);
+  const reactGrabStartIndex = stream.blocks.findIndex(
+    (block) => block.id === reactGrabStartId,
+  );
 
-  const blocksToRender = stream.wasPreloaded && reactGrabStartIndex > 0
-    ? stream.blocks.slice(reactGrabStartIndex)
-    : stream.blocks;
+  const blocksToRender =
+    stream.wasPreloaded && reactGrabStartIndex > 0
+      ? stream.blocks.slice(reactGrabStartIndex)
+      : stream.blocks;
 
   const filteredBlocks = filterMobileBlocks(blocksToRender, isMobile);
 
@@ -324,7 +343,7 @@ export const StreamDemo = () => {
             block,
             stream.wasPreloaded ? index : undefined,
             stream.wasPreloaded,
-            stream.blocks
+            stream.blocks,
           );
           if (!rendered) return null;
 
@@ -332,12 +351,12 @@ export const StreamDemo = () => {
 
           return (
             <Fragment key={block.id}>
-              <div className={spacing}>
-                {rendered}
-              </div>
-              {block.id === "message-2" && stream.isPaused && !stream.wasPreloaded && (
-                <GrabElementButton onSelect={handleElementSelect} />
-              )}
+              <div className={spacing}>{rendered}</div>
+              {block.id === "message-2" &&
+                stream.isPaused &&
+                !stream.wasPreloaded && (
+                  <GrabElementButton onSelect={handleElementSelect} />
+                )}
               {block.id === "message-5" && (
                 <>
                   {isMobile && (

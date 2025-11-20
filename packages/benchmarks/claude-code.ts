@@ -45,11 +45,11 @@ export const runClaudeCodeTest = async (
 ): Promise<ClaudeCodeTestResult> => {
   return new Promise(async (resolve, reject) => {
     const result = streamText({
-      model: claudeCode("haiku", {
-        permissionMode: "plan",
+      model: claudeCode("sonnet", {
         cwd: options.cwd,
       }),
       prompt: options.prompt,
+      onChunk: async (chunk) => {},
       onFinish: async (args) => {
         if (!args.providerMetadata) {
           reject(new Error("Provider metadata not found"));
@@ -74,6 +74,8 @@ Output:
 
 ${args.text}`,
         });
+
+        console.log(args.text);
 
         const usageResult: ClaudeCodeTestResult = {
           inputTokens,

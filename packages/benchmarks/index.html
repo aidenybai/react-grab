@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Benchmark Results</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-neutral-950 text-neutral-100 antialiased">
+    <div class="max-w-7xl mx-auto px-6 py-6">
+      <h1 class="text-2xl font-medium mb-6 text-white">Benchmark Results</h1>
+
+      <div class="grid grid-cols-4 gap-4 mb-6" id="summary">
+        <div>
+          <h3
+            class="text-xs font-medium text-neutral-400 uppercase tracking-wide mb-1"
+          >
+            Total Tests
+          </h3>
+          <p class="text-2xl font-semibold text-white" id="total-tests">-</p>
+        </div>
+        <div>
+          <h3
+            class="text-xs font-medium text-neutral-400 uppercase tracking-wide mb-1"
+          >
+            Success Rate
+          </h3>
+          <p class="text-2xl font-semibold text-white" id="success-rate">-</p>
+        </div>
+        <div>
+          <h3
+            class="text-xs font-medium text-neutral-400 uppercase tracking-wide mb-1"
+          >
+            Total Cost
+          </h3>
+          <p class="text-2xl font-semibold text-white" id="total-cost">-</p>
+        </div>
+        <div>
+          <h3
+            class="text-xs font-medium text-neutral-400 uppercase tracking-wide mb-1"
+          >
+            Total Duration
+          </h3>
+          <p class="text-2xl font-semibold text-white" id="total-duration">-</p>
+        </div>
+      </div>
+
+      <div id="comparison" class="mb-6"></div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-neutral-800">
+              <th
+                rowspan="2"
+                class="text-left py-2 px-3 text-xs font-medium text-neutral-300"
+              >
+                Test Name
+              </th>
+              <th
+                colspan="2"
+                class="text-left py-2 px-3 text-xs font-medium text-neutral-300"
+              >
+                Success
+              </th>
+              <th
+                colspan="2"
+                class="text-left py-2 px-3 text-xs font-medium text-neutral-300"
+              >
+                Input Tokens
+              </th>
+              <th
+                colspan="2"
+                class="text-left py-2 px-3 text-xs font-medium text-neutral-300"
+              >
+                Output Tokens
+              </th>
+              <th
+                colspan="2"
+                class="text-left py-2 px-3 text-xs font-medium text-neutral-300"
+              >
+                Cost
+              </th>
+              <th
+                colspan="2"
+                class="text-left py-2 px-3 text-xs font-medium text-neutral-300"
+              >
+                Duration
+              </th>
+              <th
+                colspan="2"
+                class="text-left py-2 px-3 text-xs font-medium text-neutral-300"
+              >
+                Tool Calls
+              </th>
+            </tr>
+            <tr class="border-b border-neutral-800 bg-neutral-900">
+              <th
+                class="text-left py-1.5 px-3 text-xs font-normal text-neutral-400"
+              >
+                Control
+              </th>
+              <th
+                class="text-left py-1.5 px-3 text-xs font-normal text-neutral-400 bg-neutral-800"
+              >
+                Treatment
+              </th>
+              <th
+                class="text-left py-1.5 px-3 text-xs font-normal text-neutral-400"
+              >
+                Control
+              </th>
+              <th
+                class="text-left py-1.5 px-3 text-xs font-normal text-neutral-400 bg-neutral-800"
+              >
+                Treatment
+              </th>
+              <th
+                class="text-left py-1.5 px-3 text-xs font-normal text-neutral-400"
+              >
+                Control
+              </th>
+              <th
+                class="text-left py-1.5 px-3 text-xs font-normal text-neutral-400 bg-neutral-800"
+              >
+                Treatment
+              </th>
+              <th
+                class="text-left py-1.5 px-3 text-xs font-normal text-neutral-400"
+              >
+                Control
+              </th>
+              <th
+                class="text-left py-1.5 px-3 text-xs font-normal text-neutral-400 bg-neutral-800"
+              >
+                Treatment
+              </th>
+              <th
+                class="text-left py-1.5 px-3 text-xs font-normal text-neutral-400"
+              >
+                Control
+              </th>
+              <th
+                class="text-left py-1.5 px-3 text-xs font-normal text-neutral-400 bg-neutral-800"
+              >
+                Treatment
+              </th>
+              <th
+                class="text-left py-1.5 px-3 text-xs font-normal text-neutral-400"
+              >
+                Control
+              </th>
+              <th
+                class="text-left py-1.5 px-3 text-xs font-normal text-neutral-400 bg-neutral-800"
+              >
+                Treatment
+              </th>
+            </tr>
+          </thead>
+          <tbody id="results-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <script type="module">
+      import prettyMs from "https://esm.sh/pretty-ms@9";
+
+      let testCaseMap = {};
+
+      async function loadResults() {
+        try {
+          const [resultsData, testCasesData] = await Promise.all([
+            fetch("/results.json").then((r) => r.json()),
+            fetch("/test-cases.json").then((r) => r.json()),
+          ]);
+
+          testCasesData.forEach((testCase) => {
+            testCaseMap[testCase.name] = testCase.prompt;
+          });
+
+          displayResults(resultsData);
+          displaySummary(resultsData);
+          displayComparison(resultsData);
+        } catch (error) {
+          console.error("Error loading results:", error);
+          document.getElementById("results-table").innerHTML =
+            '<tr><td colspan="13" class="text-center py-8 text-red-400">Error loading results. Please check console.</td></tr>';
+        }
+      }
+
+      function displayResults(data) {
+        const tbody = document.getElementById("results-table");
+
+        const groupedByTest = {};
+        data.forEach((result) => {
+          if (!groupedByTest[result.testName]) {
+            groupedByTest[result.testName] = {};
+          }
+          groupedByTest[result.testName][result.type] = result;
+        });
+
+        tbody.innerHTML = Object.entries(groupedByTest)
+          .map(([testName, results]) => {
+            const control = results.control || {};
+            const treatment = results.treatment || {};
+
+            const calculateChange = (controlVal, treatmentVal) => {
+              if (!controlVal || !treatmentVal)
+                return { change: "", bgColor: "bg-neutral-900" };
+              const change = ((treatmentVal - controlVal) / controlVal) * 100;
+              const isImprovement = change < 0;
+              const color = isImprovement ? "text-green-400" : "text-red-400";
+              const bgColor = isImprovement ? "bg-green-950" : "bg-red-950";
+              return {
+                change: `<span class="ml-1 text-xs ${color}">${isImprovement ? "↓" : "↑"}${Math.abs(change).toFixed(0)}%</span>`,
+                bgColor,
+              };
+            };
+
+            const inputChange = calculateChange(
+              control.inputTokens,
+              treatment.inputTokens,
+            );
+            const outputChange = calculateChange(
+              control.outputTokens,
+              treatment.outputTokens,
+            );
+            const costChange = calculateChange(
+              control.costUsd,
+              treatment.costUsd,
+            );
+            const durationChange = calculateChange(
+              control.durationMs,
+              treatment.durationMs,
+            );
+            const toolCallsChange = calculateChange(
+              control.toolCalls,
+              treatment.toolCalls,
+            );
+
+            const prompt = testCaseMap[testName] || "";
+
+            return `
+                    <tr class="border-b border-neutral-800 hover:bg-neutral-900">
+                        <td class="py-2 px-3 font-medium text-neutral-200 cursor-help" title="${prompt}">${testName}</td>
+                        <td class="py-2 px-3 ${control.success ? "text-green-400" : "text-red-400"}">${control.success !== undefined ? (control.success ? "✓" : "✗") : "-"}</td>
+                        <td class="py-2 px-3 bg-neutral-800 ${treatment.success ? "text-green-400" : "text-red-400"}">${treatment.success !== undefined ? (treatment.success ? "✓" : "✗") : "-"}</td>
+                        <td class="py-2 px-3 text-neutral-300 tabular-nums">${control.inputTokens ? control.inputTokens.toLocaleString() : "-"}</td>
+                        <td class="py-2 px-3 text-neutral-300 tabular-nums ${inputChange.bgColor}">${treatment.inputTokens ? treatment.inputTokens.toLocaleString() : "-"}${inputChange.change}</td>
+                        <td class="py-2 px-3 text-neutral-300 tabular-nums">${control.outputTokens ? control.outputTokens.toLocaleString() : "-"}</td>
+                        <td class="py-2 px-3 text-neutral-300 tabular-nums ${outputChange.bgColor}">${treatment.outputTokens ? treatment.outputTokens.toLocaleString() : "-"}${outputChange.change}</td>
+                        <td class="py-2 px-3 text-neutral-300 tabular-nums">${control.costUsd !== undefined ? "$" + control.costUsd.toFixed(2) : "-"}</td>
+                        <td class="py-2 px-3 text-neutral-300 tabular-nums ${costChange.bgColor}">${treatment.costUsd !== undefined ? "$" + treatment.costUsd.toFixed(2) : "-"}${costChange.change}</td>
+                        <td class="py-2 px-3 text-neutral-300 tabular-nums">${control.durationMs ? prettyMs(control.durationMs) : "-"}</td>
+                        <td class="py-2 px-3 text-neutral-300 tabular-nums ${durationChange.bgColor}">${treatment.durationMs ? prettyMs(treatment.durationMs) : "-"}${durationChange.change}</td>
+                        <td class="py-2 px-3 text-neutral-300 tabular-nums">${control.toolCalls !== undefined ? control.toolCalls : "-"}</td>
+                        <td class="py-2 px-3 text-neutral-300 tabular-nums ${toolCallsChange.bgColor}">${treatment.toolCalls !== undefined ? treatment.toolCalls : "-"}${toolCallsChange.change}</td>
+                </tr>
+                `;
+          })
+          .join("");
+      }
+
+      function displaySummary(data) {
+        const totalTests = data.length;
+        const successCount = data.filter((r) => r.success).length;
+        const successRate = ((successCount / totalTests) * 100).toFixed(1);
+        const totalCost = data.reduce((sum, r) => sum + r.costUsd, 0);
+        const totalDuration = data.reduce((sum, r) => sum + r.durationMs, 0);
+
+        document.getElementById("total-tests").textContent = totalTests;
+        document.getElementById("success-rate").textContent = `${successRate}%`;
+        document.getElementById("total-cost").textContent =
+          `$${totalCost.toFixed(2)}`;
+        document.getElementById("total-duration").textContent =
+          prettyMs(totalDuration);
+      }
+
+      function displayComparison(data) {
+        const controlResults = data.filter((r) => r.type === "control");
+        const treatmentResults = data.filter((r) => r.type === "treatment");
+
+        if (controlResults.length === 0 || treatmentResults.length === 0) {
+          return;
+        }
+
+        const controlStats = calculateStats(controlResults);
+        const treatmentStats = calculateStats(treatmentResults);
+
+        const metrics = [
+          {
+            name: "Success Rate",
+            control: `${controlStats.successRate}%`,
+            treatment: `${treatmentStats.successRate}%`,
+            isImprovement:
+              treatmentStats.successRate >= controlStats.successRate,
+            change: `${Math.abs(treatmentStats.successRate - controlStats.successRate).toFixed(1)}%`,
+          },
+          {
+            name: "Avg Cost",
+            control: `$${controlStats.avgCost.toFixed(2)}`,
+            treatment: `$${treatmentStats.avgCost.toFixed(2)}`,
+            isImprovement: treatmentStats.avgCost <= controlStats.avgCost,
+            change: `${Math.abs(((treatmentStats.avgCost - controlStats.avgCost) / controlStats.avgCost) * 100).toFixed(1)}%`,
+          },
+          {
+            name: "Avg Duration",
+            control: prettyMs(controlStats.avgDuration),
+            treatment: prettyMs(treatmentStats.avgDuration),
+            isImprovement:
+              treatmentStats.avgDuration <= controlStats.avgDuration,
+            change: `${Math.abs(((treatmentStats.avgDuration - controlStats.avgDuration) / controlStats.avgDuration) * 100).toFixed(1)}%`,
+          },
+          {
+            name: "Avg Tool Calls",
+            control: controlStats.avgToolCalls.toFixed(1),
+            treatment: treatmentStats.avgToolCalls.toFixed(1),
+            isImprovement:
+              treatmentStats.avgToolCalls <= controlStats.avgToolCalls,
+            change: `${Math.abs(((treatmentStats.avgToolCalls - controlStats.avgToolCalls) / controlStats.avgToolCalls) * 100).toFixed(1)}%`,
+          },
+        ];
+
+        const comparisonHTML = `
+                <h2 class="text-xl font-medium mb-4 text-white">Control vs Treatment</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-neutral-800">
+                                <th class="text-left py-2 px-3 text-xs font-medium text-neutral-300">Metric</th>
+                                <th class="text-left py-2 px-3 text-xs font-medium text-neutral-300">Control</th>
+                                <th class="text-left py-2 px-3 text-xs font-medium text-neutral-300 bg-neutral-800">Treatment</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${metrics
+                              .map(
+                                (metric) => `
+                                <tr class="border-b border-neutral-800 hover:bg-neutral-900">
+                                    <td class="py-2 px-3 font-medium text-neutral-200">${metric.name}</td>
+                                    <td class="py-2 px-3 text-neutral-300 tabular-nums">${metric.control}</td>
+                                    <td class="py-2 px-3 text-neutral-300 tabular-nums bg-neutral-800">
+                                        ${metric.treatment}
+                                        <span class="ml-2 text-xs font-medium ${metric.isImprovement ? "text-green-400" : "text-red-400"}">
+                                            ${metric.isImprovement ? "↓" : "↑"} ${metric.change}
+                                        </span>
+                                    </td>
+                                </tr>
+                            `,
+                              )
+                              .join("")}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+        document.getElementById("comparison").innerHTML = comparisonHTML;
+      }
+
+      function calculateStats(results) {
+        const successCount = results.filter((r) => r.success).length;
+        return {
+          successRate: ((successCount / results.length) * 100).toFixed(1),
+          avgCost:
+            results.reduce((sum, r) => sum + r.costUsd, 0) / results.length,
+          avgDuration:
+            results.reduce((sum, r) => sum + r.durationMs, 0) / results.length,
+          avgToolCalls:
+            results.reduce((sum, r) => sum + r.toolCalls, 0) / results.length,
+          avgInputTokens:
+            results.reduce((sum, r) => sum + r.inputTokens, 0) / results.length,
+          avgOutputTokens:
+            results.reduce((sum, r) => sum + r.outputTokens, 0) /
+            results.length,
+        };
+      }
+
+      loadResults();
+    </script>
+  </body>
+</html>

@@ -9,6 +9,13 @@ const TARGET_ENVIRONMENT_DIR = path.join(__dirname, "shadcn-dashboard");
 const run = async () => {
   const spinner = createSpinner({ text: "Running…" }).start();
 
+  const testCasesJson = TEST_CASES.map(({ name, prompt }) => ({
+    name,
+    prompt,
+  }));
+  const testCasesPath = path.join(__dirname, "test-cases.json");
+  await fs.writeFile(testCasesPath, JSON.stringify(testCasesJson, null, 2));
+
   const allTests = TEST_CASES.flatMap((testCase) => {
     const { name, prompt, expectedFile, reactGrabOutput } = testCase;
 
@@ -36,24 +43,37 @@ ${reactGrabOutput}`,
     ];
   });
 
-  const results = await Promise.all(
+  const outputPath = path.join(__dirname, "results.json");
+  const results: Array<{
+    testName: string;
+    type: "control" | "treatment";
+    [key: string]: unknown;
+  }> = [];
+
+  await fs.writeFile(outputPath, JSON.stringify(results, null, 2));
+
+  await Promise.all(
     allTests.map(async ({ testName, type, promise }) => {
       const result = await promise;
-      return {
+      const testResult = {
         testName,
         type,
         ...result,
       };
-    })
+
+      results.push(testResult);
+      await fs.writeFile(outputPath, JSON.stringify(results, null, 2));
+
+      spinner.text = `Completed ${results.length}/${allTests.length} tests`;
+    }),
   );
 
-  const outputPath = path.join(__dirname, "results.json");
-  await fs.writeFile(outputPath, JSON.stringify(results, null, 2));
+  spinner.stop();
 
   console.log(`Results written to ${outputPath}`);
   console.log(`Total tests run: ${results.length}`);
 
-  spinner.stop();
+  process.exit(0);
 };
 
 run();

@@ -1,333 +1,207 @@
 import {
-  _fiberRoots as fiberRoots,
-  instrument,
+  getDisplayName,
+  getFiberFromHostInstance,
+  getLatestFiber,
+  isCompositeFiber,
+  isFiber,
+  isHostFiber,
+  traverseFiber,
 } from "bippy";
+// import { isCapitalized } from "./utils/is-capitalized.js";
+
 import {
-  getSourceFromHostInstance,
+  FiberSource,
+  getSource,
   isSourceFile,
   normalizeFileName,
-} from "bippy/dist/source";
-import { finder } from "@medv/finder";
-import { getNearestComponentName } from "./utils/get-nearest-component-name.js";
+} from "bippy/source";
+import { isCapitalized } from "./utils/is-capitalized.js";
 
-instrument({
-  onCommitFiberRoot(_, fiberRoot) {
-    fiberRoots.add(fiberRoot);
-  },
-});
+const NEXT_INTERNAL_COMPONENT_NAMES = [
+  "InnerLayoutRouter",
+  "RedirectErrorBoundary",
+  "RedirectBoundary",
+  "HTTPAccessFallbackErrorBoundary",
+  "HTTPAccessFallbackBoundary",
+  "LoadingBoundary",
+  "ErrorBoundary",
+  "InnerScrollAndFocusHandler",
+  "ScrollAndFocusHandler",
+  "RenderFromTemplateContext",
+  "OuterLayoutRouter",
+  "body",
+  "html",
+  "RedirectErrorBoundary",
+  "RedirectBoundary",
+  "HTTPAccessFallbackErrorBoundary",
+  "HTTPAccessFallbackBoundary",
+  "DevRootHTTPAccessFallbackBoundary",
+  "AppDevOverlayErrorBoundary",
+  "AppDevOverlay",
+  "HotReload",
+  "Router",
+  "ErrorBoundaryHandler",
+  "ErrorBoundary",
+  "AppRouter",
+  "ServerRoot",
+  "SegmentStateProvider",
+  "RootErrorBoundary",
+];
 
-const generateCSSSelector = (element: Element) => {
-  return finder(element);
+export const checkIsNextProject = (): boolean => {
+  return Boolean(document.getElementById("__NEXT_DATA__"));
 };
 
-const truncateString = (string: string, maxLength: number) =>
-  string.length > maxLength ? `${string.substring(0, maxLength)}...` : string;
-
-const formatComponentSourceLocation = async (
-  el: Element,
-): Promise<string | null> => {
-  const source = await getSourceFromHostInstance(el);
-  if (!source) return null;
-  const fileName = normalizeFileName(source.fileName);
-
-  if (isSourceFile(fileName)) {
-    return `${fileName}:${source.lineNumber}:${source.columnNumber}`;
-  }
-
-  if (
-    fileName &&
-    (fileName.includes(".tsx") ||
-    fileName.includes(".ts") ||
-    fileName.includes(".jsx") ||
-    fileName.includes(".js"))
-  ) {
-    const cleanedFileName = fileName
-      .replace(/^webpack:\/\/_N_E\//, "")
-      .replace(/^webpack:\/\/\//, "")
-      .replace(/^webpack:\/\//, "")
-      .replace(/^\.\//, "");
-
-    if (
-      cleanedFileName &&
-      !cleanedFileName.startsWith("node_modules") &&
-      !cleanedFileName.includes(".next") &&
-      !cleanedFileName.startsWith("webpack")
-    ) {
-      return `${cleanedFileName}:${source.lineNumber}:${source.columnNumber}`;
-    }
-  }
-
-  return null;
+export const checkIsInternalComponentName = (name: string): boolean => {
+  if (name.startsWith("_")) return true;
+  if (NEXT_INTERNAL_COMPONENT_NAMES.includes(name)) return true;
+  return false;
 };
 
-export const getHTMLSnippet = async (element: Element) => {
-  const semanticTags = new Set([
-    "article",
-    "aside",
-    "footer",
-    "form",
-    "header",
-    "main",
-    "nav",
-    "section",
-  ]);
+export const checkIsSourceComponentName = (name: string): boolean => {
+  if (checkIsInternalComponentName(name)) return false;
+  if (!isCapitalized(name)) return false;
+  if (name.startsWith("Primitive.")) return false;
+  if (name.includes("Provider") && name.includes("Context")) return false;
+  return true;
+};
 
-  const hasDistinguishingFeatures = (el: Element): boolean => {
-    const tagName = el.tagName.toLowerCase();
-    if (semanticTags.has(tagName)) return true;
-    if (el.id) return true;
-    if (el.className && typeof el.className === "string") {
-      const classes = el.className.trim();
-      if (classes && classes.length > 0) return true;
-    }
-    return Array.from(el.attributes).some((attr) =>
-      attr.name.startsWith("data-"),
-    );
-  };
+export const getNearestComponentName = (element: Element): string | null => {
+  const fiber = getFiberFromHostInstance(element);
+  if (!fiber) return null;
 
-  const collectDistinguishingAncestors = (
-    el: Element,
-    maxDepth: number = 10,
-  ): Element[] => {
-    const ancestors: Element[] = [];
-    let current = el.parentElement;
-    let depth = 0;
-
-    while (current && depth < maxDepth && current.tagName !== "BODY") {
-      if (hasDistinguishingFeatures(current)) {
-        ancestors.push(current);
-        if (ancestors.length >= 3) break;
-      }
-      current = current.parentElement;
-      depth++;
-    }
-
-    return ancestors.reverse();
-  };
-
-  const formatElementOpeningTag = (
-    el: Element,
-    compact: boolean = false,
-  ): string => {
-    const tagName = el.tagName.toLowerCase();
-    const attrs: string[] = [];
-
-    if (el.id) {
-      attrs.push(`id="${el.id}"`);
-    }
-
-    if (el.className && typeof el.className === "string") {
-      const classes = el.className.trim().split(/\s+/);
-      if (classes.length > 0 && classes[0]) {
-        const displayClasses = compact ? classes.slice(0, 3) : classes;
-        const classStr = truncateString(displayClasses.join(" "), 30);
-        attrs.push(`class="${classStr}"`);
-      }
-    }
-
-    const dataAttrs = Array.from(el.attributes).filter((attr) =>
-      attr.name.startsWith("data-"),
-    );
-    const displayDataAttrs = compact ? dataAttrs.slice(0, 1) : dataAttrs;
-    for (const attr of displayDataAttrs) {
-      attrs.push(`${attr.name}="${truncateString(attr.value, 20)}"`);
-    }
-
-    const ariaLabel = el.getAttribute("aria-label");
-    if (ariaLabel && !compact) {
-      attrs.push(`aria-label="${truncateString(ariaLabel, 20)}"`);
-    }
-
-    return attrs.length > 0
-      ? `<${tagName} ${attrs.join(" ")}>`
-      : `<${tagName}>`;
-  };
-
-  const formatElementClosingTag = (el: Element) =>
-    `</${el.tagName.toLowerCase()}>`;
-
-  const extractTruncatedTextContent = (el: Element) => {
-    const text = (el.textContent || "").trim().replace(/\s+/g, " ");
-    return truncateString(text, 60);
-  };
-
-  const extractSiblingIdentifier = (el: Element): null | string => {
-    if (el.id) return `#${el.id}`;
-    if (el.className && typeof el.className === "string") {
-      const classes = el.className.trim().split(/\s+/);
-      if (classes.length > 0 && classes[0]) {
-        return `.${classes[0]}`;
-      }
-    }
-    return null;
-  };
-
-  const lines: string[] = [];
-
-  const selector = generateCSSSelector(element);
-  lines.push(`- selector: ${selector}`);
-  const rect = element.getBoundingClientRect();
-  lines.push(`- width: ${Math.round(rect.width)}`);
-  lines.push(`- height: ${Math.round(rect.height)}`);
-  lines.push("HTML snippet:");
-  lines.push("```html");
-
-  const ancestors = collectDistinguishingAncestors(element);
-
-  const ancestorComponents = ancestors.map((ancestor) =>
-    getNearestComponentName(ancestor),
-  );
-  const elementComponent = getNearestComponentName(element);
-
-  const ancestorSources = await Promise.all(
-    ancestors.map((ancestor) => formatComponentSourceLocation(ancestor)),
-  );
-  const elementSource = await formatComponentSourceLocation(element);
-
-  const ancestorElementIndents: number[] = [];
-  const ancestorComponentIndents: number[] = [];
-  let currentIndentLevel = 0;
-
-  const getIndent = (level: number) => "  ".repeat(level);
-
-  for (let i = 0; i < ancestors.length; i++) {
-    const componentName = ancestorComponents[i];
-    const source = ancestorSources[i];
-    const isNewComponent =
-      componentName &&
-      source &&
-      (i === 0 || ancestorComponents[i - 1] !== componentName);
-
-    if (isNewComponent) {
-      ancestorComponentIndents[i] = currentIndentLevel;
-      lines.push(
-        `${getIndent(currentIndentLevel)}<${componentName} used-at="${source}">`,
-      );
-      currentIndentLevel++;
-    }
-
-    ancestorElementIndents[i] = currentIndentLevel;
-    lines.push(
-      `${getIndent(currentIndentLevel)}${formatElementOpeningTag(ancestors[i], true)}`,
-    );
-    currentIndentLevel++;
-  }
-
-  const parent = element.parentElement;
-  let targetIndex = -1;
-  if (parent) {
-    const siblings = Array.from(parent.children);
-    targetIndex = siblings.indexOf(element);
-
-    if (targetIndex > 0) {
-      const indent = getIndent(currentIndentLevel);
-
-      if (targetIndex <= 2) {
-        for (let i = 0; i < targetIndex; i++) {
-          const sibling = siblings[i];
-          const siblingId = extractSiblingIdentifier(sibling);
-          if (siblingId) {
-            lines.push(`${indent}${formatElementOpeningTag(sibling, true)}`);
-            lines.push(`${indent}</${sibling.tagName.toLowerCase()}>`);
-          }
+  let foundComponentName: string | null = null;
+  traverseFiber(
+    fiber,
+    (currentFiber) => {
+      if (isCompositeFiber(currentFiber)) {
+        const displayName = getDisplayName(currentFiber);
+        if (displayName && checkIsSourceComponentName(displayName)) {
+          foundComponentName = displayName;
+          return true;
         }
+      }
+      return false;
+    },
+    true,
+  );
+
+  return foundComponentName;
+};
+
+interface StackFrame {
+  name: string;
+  source: FiberSource | null;
+}
+
+interface UnresolvedStackFrame {
+  name: string;
+  sourcePromise: Promise<FiberSource | null>;
+}
+
+export const getStack = async (
+  element: Element,
+): Promise<Array<StackFrame>> => {
+  const maybeFiber = getFiberFromHostInstance(element);
+  if (!maybeFiber || !isFiber(maybeFiber)) return [];
+  const fiber = getLatestFiber(maybeFiber);
+
+  const unresolvedStack: Array<UnresolvedStackFrame> = [];
+
+  traverseFiber(
+    fiber,
+    (currentFiber) => {
+      const displayName = isHostFiber(currentFiber)
+        ? typeof currentFiber.type === "string"
+          ? currentFiber.type
+          : null
+        : getDisplayName(currentFiber);
+
+      if (displayName && !checkIsInternalComponentName(displayName)) {
+        unresolvedStack.push({
+          name: displayName,
+          sourcePromise: getSource(currentFiber),
+        });
+      }
+    },
+    true,
+  );
+
+  const resolvedStack = await Promise.all(
+    unresolvedStack.map(async (frame) => ({
+      name: frame.name,
+      source: await frame.sourcePromise,
+    })),
+  );
+
+  return resolvedStack.filter((frame) => frame.source !== null);
+};
+
+export const formatStack = (stack: Array<StackFrame>): string => {
+  const isNextProject = checkIsNextProject();
+  return stack
+    .map(({ name, source }) => {
+      if (!source) return `  at ${name}`;
+      if (source.fileName.startsWith("about://React/Server")) {
+        return `  at ${name} (Server)`;
+      }
+      if (!isSourceFile(source.fileName)) return `  at ${name}`;
+      const framePart = `  at ${name} in ${normalizeFileName(source.fileName)}`;
+      if (isNextProject) {
+        return `${framePart}:${source.lineNumber}:${source.columnNumber}`;
+      }
+      // bundlers like vite fuck up the line number and column number
+      return framePart;
+    })
+    .join("\n");
+};
+
+export const getHTMLPreview = (element: Element): string => {
+  const tagName = element.tagName.toLowerCase();
+  if (!(element instanceof HTMLElement)) {
+    return `<${tagName} />`;
+  }
+  const text = element.innerText?.trim() ?? element.textContent?.trim() ?? "";
+
+  let attrsText = "";
+  const attributes = Array.from(element.attributes);
+  for (const attribute of attributes) {
+    const name = attribute.name;
+    let value = attribute.value;
+    if (value.length > 20) {
+      value = `${value.slice(0, 20)}...`;
+    }
+    attrsText += ` ${name}="${value}"`;
+  }
+
+  let topElements = 0;
+  let bottomElements = 0;
+  let foundFirstText = false;
+
+  const childNodes = Array.from(element.childNodes);
+  for (const node of childNodes) {
+    if (node.nodeType === Node.COMMENT_NODE) continue; // Comment
+
+    if (node.nodeType === Node.TEXT_NODE) {
+      if (node.textContent && node.textContent.trim().length > 0) {
+        foundFirstText = true;
+      }
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      if (!foundFirstText) {
+        topElements++;
       } else {
-        lines.push(
-          `${indent}... (${targetIndex} element${
-            targetIndex === 1 ? "" : "s"
-          })`,
-        );
+        bottomElements++;
       }
     }
   }
 
-  const lastAncestorComponent =
-    ancestors.length > 0
-      ? ancestorComponents[ancestorComponents.length - 1]
-      : null;
-  const showElementComponent =
-    elementComponent &&
-    elementSource &&
-    elementComponent !== lastAncestorComponent;
+  let content = "";
+  if (topElements > 0) content += `\n  (${topElements} elements)`;
+  if (text.length > 0) content += `\n  ${text}`;
+  if (bottomElements > 0) content += `\n  (${bottomElements} elements)`;
 
-  let elementIndentLevel = currentIndentLevel;
-  const elementComponentIndentLevel = currentIndentLevel;
-
-  if (showElementComponent) {
-    lines.push(
-      `${getIndent(elementIndentLevel)}<${elementComponent} used-at="${elementSource}">`,
-    );
-    elementIndentLevel++;
+  if (content.length > 0) {
+    return `<${tagName}${attrsText}>${content}\n</${tagName}>`;
   }
-
-  const elementIndent = getIndent(elementIndentLevel);
-  lines.push(`${elementIndent}<!-- IMPORTANT: selected element -->`);
-
-  const textContent = extractTruncatedTextContent(element);
-  const childrenCount = element.children.length;
-
-  if (textContent && childrenCount === 0 && textContent.length < 40) {
-    lines.push(
-      `${elementIndent}${formatElementOpeningTag(element)}${textContent}${formatElementClosingTag(
-        element,
-      )}`,
-    );
-  } else {
-    lines.push(`${elementIndent}${formatElementOpeningTag(element)}`);
-    if (textContent) {
-      lines.push(`${elementIndent}  ${textContent}`);
-    }
-    if (childrenCount > 0) {
-      lines.push(
-        `${elementIndent}  ... (${childrenCount} element${
-          childrenCount === 1 ? "" : "s"
-        })`,
-      );
-    }
-    lines.push(`${elementIndent}${formatElementClosingTag(element)}`);
-  }
-
-  if (showElementComponent) {
-    lines.push(
-      `${getIndent(elementComponentIndentLevel)}</${elementComponent}>`,
-    );
-  }
-
-  if (parent && targetIndex >= 0) {
-    const siblings = Array.from(parent.children);
-    const siblingsAfter = siblings.length - targetIndex - 1;
-    if (siblingsAfter > 0) {
-      const indent = getIndent(currentIndentLevel);
-      if (siblingsAfter <= 2) {
-        for (let i = targetIndex + 1; i < siblings.length; i++) {
-          const sibling = siblings[i];
-          const siblingId = extractSiblingIdentifier(sibling);
-          if (siblingId) {
-            lines.push(`${indent}${formatElementOpeningTag(sibling, true)}`);
-            lines.push(`${indent}</${sibling.tagName.toLowerCase()}>`);
-          }
-        }
-      } else {
-        lines.push(
-          `${indent}... (${siblingsAfter} element${
-            siblingsAfter === 1 ? "" : "s"
-          })`,
-        );
-      }
-    }
-  }
-
-  for (let i = ancestors.length - 1; i >= 0; i--) {
-    const elementIndent = getIndent(ancestorElementIndents[i]);
-    lines.push(`${elementIndent}${formatElementClosingTag(ancestors[i])}`);
-
-    if (ancestorComponentIndents[i] !== undefined) {
-      const compIndent = getIndent(ancestorComponentIndents[i]);
-      lines.push(`${compIndent}</${ancestorComponents[i]}>`);
-    }
-  }
-
-  lines.push("```");
-
-  return lines.join("\n");
+  return `<${tagName}${attrsText} />`;
 };

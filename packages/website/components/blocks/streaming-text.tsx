@@ -12,12 +12,14 @@ interface StreamingTextProps {
   animationDelay?: number;
 }
 
-export const StreamingText = ({ content, chunks, animationDelay = 0 }: StreamingTextProps) => {
+export const StreamingText = ({
+  content,
+  chunks,
+  animationDelay = 0,
+}: StreamingTextProps) => {
   const isInstantContent = chunks.length === 0;
 
   if (Array.isArray(content)) {
-    const streamedText = chunks.map(chunk => chunk.text).join("");
-
     return (
       <>
         {content.map((item, index) => {
@@ -28,7 +30,11 @@ export const StreamingText = ({ content, chunks, animationDelay = 0 }: Streaming
                   key={`text-${index}`}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ duration: 0.4, ease: "easeOut", delay: animationDelay }}
+                  transition={{
+                    duration: 0.4,
+                    ease: "easeOut",
+                    delay: animationDelay,
+                  }}
                 >
                   {item}
                 </motion.span>

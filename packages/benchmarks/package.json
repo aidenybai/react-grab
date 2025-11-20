@@ -2,9 +2,18 @@
   "name": "@react-grab/benchmarks",
   "version": "0.1.0",
   "private": true,
-  "scripts": {},
+  "scripts": {
+    "serve": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
   "dependencies": {
+    "@ai-sdk/anthropic": "^2.0.45",
     "ai": "^5.0.95",
-    "ai-sdk-provider-claude-code": "^2.1.0"
+    "ai-sdk-provider-claude-code": "^2.1.0",
+    "yocto-spinner": "^1.0.0"
+  },
+  "devDependencies": {
+    "vite": "^6.0.7"
   }
 }
