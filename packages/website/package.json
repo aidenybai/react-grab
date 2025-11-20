@@ -13,6 +13,7 @@
     "lucide-react": "^0.553.0",
     "motion": "^12.23.24",
     "next": "16.0.3",
+    "pretty-ms": "^9.3.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-grab": "workspace:*",

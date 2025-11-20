@@ -1,0 +1,82 @@
+[
+  {
+    "name": "Grayscale Avatar",
+    "prompt": "Find the grayscale avatar in the user menu"
+  },
+  {
+    "name": "Forgot Password Link",
+    "prompt": "Find the forgot password link in the login form"
+  },
+  {
+    "name": "Time Range Toggle",
+    "prompt": "Find the time range toggle group showing Last 3 months, Last 30 days, Last 7 days"
+  },
+  {
+    "name": "Drag Handle",
+    "prompt": "Find the drag handle with grip vertical icon in the table rows"
+  },
+  {
+    "name": "Editable Target Input",
+    "prompt": "Find the inline editable target input field with transparent background in the data table"
+  },
+  {
+    "name": "OTP Input",
+    "prompt": "Find the OTP input with separator showing 6-digit verification code split into two groups"
+  },
+  {
+    "name": "Quick Create Button",
+    "prompt": "Find the Quick Create button with primary background color in the sidebar"
+  },
+  {
+    "name": "Dropdown Actions",
+    "prompt": "Find the show-on-hover dropdown menu button with three dots in the documents section"
+  },
+  {
+    "name": "Status Badge",
+    "prompt": "Find the status badge with green checkmark icon showing Done status"
+  },
+  {
+    "name": "Tabs with Badges",
+    "prompt": "Find the tab button showing Past Performance with a badge counter showing 3"
+  },
+  {
+    "name": "Team Switcher Dropdown",
+    "prompt": "Find the team switcher dropdown button with chevron icon in the sidebar"
+  },
+  {
+    "name": "Keyboard Shortcut Badge",
+    "prompt": "Find the keyboard shortcut indicator showing ⌘1 in the team dropdown menu"
+  },
+  {
+    "name": "GitHub Link Button",
+    "prompt": "Find the GitHub link button in the header toolbar"
+  },
+  {
+    "name": "Sidebar Trigger Toggle",
+    "prompt": "Find the sidebar toggle trigger button at the top of the header"
+  },
+  {
+    "name": "Full Name Input Field",
+    "prompt": "Find the full name input field with placeholder John Doe in the signup form"
+  },
+  {
+    "name": "Field Description Text",
+    "prompt": "Find the helper text saying We'll use this to contact you below the email input"
+  },
+  {
+    "name": "Sign Up With Google Button",
+    "prompt": "Find the Sign up with Google button with outline variant in the signup form"
+  },
+  {
+    "name": "Revenue Card Badge",
+    "prompt": "Find the trending up badge showing +12.5% in the Total Revenue card"
+  },
+  {
+    "name": "Calendar Date Cell",
+    "prompt": "Find the selected date cell in the calendar component showing June 12"
+  },
+  {
+    "name": "Projects More Button",
+    "prompt": "Find the More button with horizontal dots icon at the bottom of the projects list"
+  }
+]
