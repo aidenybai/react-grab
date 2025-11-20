@@ -1,11 +1,27 @@
+import type { DragRect, Rect } from "../types.js";
+
 const DRAG_COVERAGE_THRESHOLD = 0.75;
 
-interface DragRect {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
+const calculateIntersectionArea = (rect1: Rect, rect2: Rect): number => {
+  const intersectionLeft = Math.max(rect1.left, rect2.left);
+  const intersectionTop = Math.max(rect1.top, rect2.top);
+  const intersectionRight = Math.min(rect1.right, rect2.right);
+  const intersectionBottom = Math.min(rect1.bottom, rect2.bottom);
+
+  const intersectionWidth = Math.max(0, intersectionRight - intersectionLeft);
+  const intersectionHeight = Math.max(0, intersectionBottom - intersectionTop);
+
+  return intersectionWidth * intersectionHeight;
+};
+
+const hasIntersection = (rect1: Rect, rect2: Rect): boolean => {
+  return (
+    rect1.left < rect2.right &&
+    rect1.right > rect2.left &&
+    rect1.top < rect2.bottom &&
+    rect1.bottom > rect2.top
+  );
+};
 
 const filterElementsInDrag = (
   dragRect: DragRect,
@@ -15,10 +31,12 @@ const filterElementsInDrag = (
   const elements: Element[] = [];
   const allElements = Array.from(document.querySelectorAll("*"));
 
-  const dragLeft = dragRect.x;
-  const dragTop = dragRect.y;
-  const dragRight = dragRect.x + dragRect.width;
-  const dragBottom = dragRect.y + dragRect.height;
+  const dragBounds: Rect = {
+    left: dragRect.x,
+    top: dragRect.y,
+    right: dragRect.x + dragRect.width,
+    bottom: dragRect.y + dragRect.height,
+  };
 
   for (const candidateElement of allElements) {
     if (!shouldCheckCoverage) {
@@ -31,21 +49,15 @@ const filterElementsInDrag = (
     }
 
     const elementRect = candidateElement.getBoundingClientRect();
-    const elementLeft = elementRect.left;
-    const elementTop = elementRect.top;
-    const elementRight = elementRect.left + elementRect.width;
-    const elementBottom = elementRect.top + elementRect.height;
+    const elementBounds: Rect = {
+      left: elementRect.left,
+      top: elementRect.top,
+      right: elementRect.left + elementRect.width,
+      bottom: elementRect.top + elementRect.height,
+    };
 
     if (shouldCheckCoverage) {
-      const intersectionLeft = Math.max(dragLeft, elementLeft);
-      const intersectionTop = Math.max(dragTop, elementTop);
-      const intersectionRight = Math.min(dragRight, elementRight);
-      const intersectionBottom = Math.min(dragBottom, elementBottom);
-
-      const intersectionWidth = Math.max(0, intersectionRight - intersectionLeft);
-      const intersectionHeight = Math.max(0, intersectionBottom - intersectionTop);
-      const intersectionArea = intersectionWidth * intersectionHeight;
-
+      const intersectionArea = calculateIntersectionArea(dragBounds, elementBounds);
       const elementArea = Math.max(0, elementRect.width * elementRect.height);
       const hasMajorityCoverage =
         elementArea > 0 &&
@@ -55,13 +67,7 @@ const filterElementsInDrag = (
         elements.push(candidateElement);
       }
     } else {
-      const hasIntersection =
-        elementLeft < dragRight &&
-        elementRight > dragLeft &&
-        elementTop < dragBottom &&
-        elementBottom > dragTop;
-
-      if (hasIntersection) {
+      if (hasIntersection(elementBounds, dragBounds)) {
         elements.push(candidateElement);
       }
     }
@@ -76,61 +82,6 @@ const removeNestedElements = (elements: Element[]): Element[] => {
       otherElement !== element && otherElement.contains(element)
     );
   });
-};
-
-const findBestParentElement = (
-  elements: Element[],
-  dragRect: DragRect,
-  isValidGrabbableElement: (element: Element) => boolean,
-): Element | null => {
-  if (elements.length <= 1) return null;
-
-  const dragLeft = dragRect.x;
-  const dragTop = dragRect.y;
-  const dragRight = dragRect.x + dragRect.width;
-  const dragBottom = dragRect.y + dragRect.height;
-
-  let currentParent: Element | null = elements[0];
-
-  while (currentParent) {
-    const parent: HTMLElement | null = currentParent.parentElement;
-    if (!parent) break;
-
-    const parentRect: DOMRect = parent.getBoundingClientRect();
-
-    const intersectionLeft: number = Math.max(dragLeft, parentRect.left);
-    const intersectionTop: number = Math.max(dragTop, parentRect.top);
-    const intersectionRight: number = Math.min(dragRight, parentRect.left + parentRect.width);
-    const intersectionBottom: number = Math.min(dragBottom, parentRect.top + parentRect.height);
-
-    const intersectionWidth = Math.max(0, intersectionRight - intersectionLeft);
-    const intersectionHeight = Math.max(0, intersectionBottom - intersectionTop);
-    const intersectionArea = intersectionWidth * intersectionHeight;
-
-    const parentArea = Math.max(0, parentRect.width * parentRect.height);
-    const hasMajorityCoverage =
-      parentArea > 0 &&
-      intersectionArea / parentArea >= DRAG_COVERAGE_THRESHOLD;
-
-    if (!hasMajorityCoverage) break;
-
-    if (!isValidGrabbableElement(parent)) {
-      currentParent = parent;
-      continue;
-    }
-
-    const allChildrenInParent = elements.every((element) =>
-      parent.contains(element)
-    );
-
-    if (allChildrenInParent) {
-      return parent;
-    }
-
-    currentParent = parent;
-  }
-
-  return null;
 };
 
 export const getElementsInDrag = (

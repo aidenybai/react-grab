@@ -4,7 +4,6 @@ export interface Options {
   allowActivationInsideInput?: boolean;
   onActivate?: () => void;
   playCopySound?: boolean;
-  isExtension?: boolean;
 }
 
 export interface ReactGrabAPI {
@@ -50,9 +49,21 @@ export interface GrabbedBox {
   createdAt: number;
 }
 
-interface SourceTrace {
-  functionName?: string;
-  fileName?: string;
-  lineNumber?: number;
-  columnNumber?: number;
+export interface Rect {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+export interface DragRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface Position {
+  left: number;
+  top: number;
 }

@@ -1,4 +1,5 @@
 import TurndownService from "turndown";
+import { isElementVisible } from "./is-element-visible.js";
 
 let turndownService: TurndownService | null = null;
 
@@ -21,12 +22,7 @@ const getTurndownService = (): TurndownService => {
     turndownService.addRule("removeHidden", {
       filter: (node) => {
         if (node instanceof HTMLElement) {
-          const style = window.getComputedStyle(node);
-          return (
-            style.display === "none" ||
-            style.visibility === "hidden" ||
-            style.opacity === "0"
-          );
+          return !isElementVisible(node);
         }
         return false;
       },

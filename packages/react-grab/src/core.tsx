@@ -11,12 +11,7 @@ import { isKeyboardEventTriggeredByInput } from "./utils/is-keyboard-event-trigg
 import { mountRoot } from "./utils/mount-root.js";
 import { ReactGrabRenderer } from "./components/renderer.js";
 import { getHTMLSnippet } from "./instrumentation.js";
-import {
-  getFiberFromHostInstance,
-  getDisplayName,
-  isCompositeFiber,
-  traverseFiber,
-} from "bippy";
+import { getNearestComponentName } from "./utils/get-nearest-component-name.js";
 import { copyContent } from "./utils/copy-content.js";
 import { playCopySound } from "./utils/play-copy-sound.js";
 import { getElementAtPosition } from "./utils/get-element-at-position.js";
@@ -26,24 +21,19 @@ import {
   getElementsInDragLoose,
 } from "./utils/get-elements-in-drag.js";
 import { createElementBounds } from "./utils/create-element-bounds.js";
-import { SUCCESS_LABEL_DURATION_MS } from "./constants.js";
-import { isCapitalized } from "./utils/is-capitalized.js";
-import { isLocalhost } from "./utils/is-localhost.js";
-import { elementToMarkdown } from "./utils/html-to-markdown.js";
+import {
+  SUCCESS_LABEL_DURATION_MS,
+  PROGRESS_INDICATOR_DELAY_MS,
+  OFFSCREEN_POSITION,
+  DRAG_THRESHOLD_PX,
+  Z_INDEX_LABEL,
+} from "./constants.js";
 import type {
   Options,
   OverlayBounds,
   GrabbedBox,
   ReactGrabAPI,
 } from "./types.js";
-
-declare global {
-  interface Window {
-    __REACT_GRAB_EXTENSION_ACTIVE__?: boolean;
-  }
-}
-
-const PROGRESS_INDICATOR_DELAY_MS = 150;
 
 export const init = (rawOptions?: Options): ReactGrabAPI => {
   const options = {
@@ -65,8 +55,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   }
 
   return createRoot((dispose) => {
-    const OFFSCREEN_POSITION = -1000;
-
     const [isHoldingKeys, setIsHoldingKeys] = createSignal(false);
     const [mouseX, setMouseX] = createSignal(OFFSCREEN_POSITION);
     const [mouseY, setMouseY] = createSignal(OFFSCREEN_POSITION);
@@ -79,7 +67,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [progressStartTime, setProgressStartTime] = createSignal<
       number | null
     >(null);
-    const [progressTick, setProgressTick] = createSignal(0);
+    const [progress, setProgress] = createSignal(0);
     const [grabbedBoxes, setGrabbedBoxes] = createSignal<GrabbedBox[]>([]);
     const [successLabels, setSuccessLabels] = createSignal<
       Array<{ id: string; text: string }>
@@ -186,37 +174,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const extractElementTagName = (element: Element) =>
       (element.tagName || "").toLowerCase();
 
-    const extractNearestComponentName = (element: Element): string | null => {
-      const fiber = getFiberFromHostInstance(element);
-      if (!fiber) return null;
-
-      let componentName: string | null = null;
-      traverseFiber(
-        fiber,
-        (currentFiber) => {
-          if (isCompositeFiber(currentFiber)) {
-            const displayName = getDisplayName(currentFiber);
-            if (
-              displayName &&
-              isCapitalized(displayName) &&
-              !displayName.startsWith("_") &&
-              !displayName.startsWith("Primitive.")
-            ) {
-              componentName = displayName;
-              return true;
-            }
-          }
-          return false;
-        },
-        true,
-      );
-
-      return componentName;
-    };
-
     const extractElementLabelText = (element: Element) => {
       const tagName = extractElementTagName(element);
-      const componentName = extractNearestComponentName(element);
+      const componentName = getNearestComponentName(element);
 
       if (tagName && componentName) {
         return `<${tagName}> in ${componentName}`;
@@ -244,13 +204,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         );
       } catch {}
     };
-
-    const isExtensionEnvironment = () =>
-      window.__REACT_GRAB_EXTENSION_ACTIVE__ === true ||
-      options.isExtension === true;
-
-    const isExtensionTextOnlyMode = () =>
-      isExtensionEnvironment() && !isLocalhost();
 
     const executeCopyOperation = async (
       positionX: number,
@@ -293,59 +246,56 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         .filter((textContent) => textContent.length > 0)
         .join("\n\n");
 
-    const createCombinedMarkdownContent = (elements: Element[]): string =>
-      elements
-        .map((element) => elementToMarkdown(element).trim())
-        .filter((markdownContent) => markdownContent.length > 0)
-        .join("\n\n");
-
-    const copySingleElementToClipboard = async (targetElement: Element) => {
-      showTemporaryGrabbedBox(createElementBounds(targetElement));
-
-      await new Promise((resolve) => requestAnimationFrame(resolve));
-
+    const tryCopyWithFallback = async (
+      elements: Element[],
+    ): Promise<boolean> => {
       let didCopy = false;
 
       try {
-        if (isExtensionTextOnlyMode()) {
-          const markdownContent = createCombinedMarkdownContent([targetElement]);
+        const elementSnippetResults = await Promise.allSettled(
+          elements.map((element) => getHTMLSnippet(element)),
+        );
 
-          if (markdownContent.length > 0) {
-            didCopy = await copyContent(
-              markdownContent,
-              options.playCopySound ? playCopySound : undefined,
-            );
-          }
-        } else {
-          const content = await getHTMLSnippet(targetElement);
-          const plainTextContent = wrapInSelectedElementTags(content);
-          const htmlContent = createStructuredClipboardHtmlBlob([
-            {
-              tagName: extractElementTagName(targetElement),
+        const elementSnippets = elementSnippetResults
+          .map((result) =>
+            result.status === "fulfilled" ? result.value : "",
+          )
+          .filter((snippet) => snippet.trim());
+
+        if (elementSnippets.length > 0) {
+          const plainTextContent = elementSnippets
+            .map((snippet) => wrapInSelectedElementTags(snippet))
+            .join("\n\n");
+
+          const structuredElements = elementSnippets.map(
+            (content, elementIndex) => ({
+              tagName: extractElementTagName(elements[elementIndex]),
               content,
-              computedStyles: extractRelevantComputedStyles(targetElement),
-            },
-          ]);
+              computedStyles: extractRelevantComputedStyles(
+                elements[elementIndex],
+              ),
+            }),
+          );
+          const htmlContent =
+            createStructuredClipboardHtmlBlob(structuredElements);
 
           didCopy = await copyContent(
             [plainTextContent, htmlContent],
             options.playCopySound ? playCopySound : undefined,
           );
+        }
 
-          if (!didCopy) {
-            const plainTextContentOnly = createCombinedTextContent([
-              targetElement,
-            ]);
-            if (plainTextContentOnly.length > 0) {
-              didCopy = await copyContent(
-                plainTextContentOnly,
-                options.playCopySound ? playCopySound : undefined,
-              );
-            }
+        if (!didCopy) {
+          const plainTextContentOnly = createCombinedTextContent(elements);
+          if (plainTextContentOnly.length > 0) {
+            didCopy = await copyContent(
+              plainTextContentOnly,
+              options.playCopySound ? playCopySound : undefined,
+            );
           }
         }
       } catch {
-        const plainTextContentOnly = createCombinedTextContent([targetElement]);
+        const plainTextContentOnly = createCombinedTextContent(elements);
         if (plainTextContentOnly.length > 0) {
           didCopy = await copyContent(
             plainTextContentOnly,
@@ -353,6 +303,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           );
         }
       }
+
+      return didCopy;
+    };
+
+    const copySingleElementToClipboard = async (targetElement: Element) => {
+      showTemporaryGrabbedBox(createElementBounds(targetElement));
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+
+      const didCopy = await tryCopyWithFallback([targetElement]);
 
       if (didCopy) {
         showTemporarySuccessLabel(extractElementLabelText(targetElement));
@@ -369,76 +328,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       for (const element of targetElements) {
         showTemporaryGrabbedBox(createElementBounds(element));
       }
-
       await new Promise((resolve) => requestAnimationFrame(resolve));
 
-      let didCopy = false;
-
-      try {
-        if (isExtensionTextOnlyMode()) {
-          const markdownContent = createCombinedMarkdownContent(targetElements);
-
-          if (markdownContent.length > 0) {
-            didCopy = await copyContent(
-              markdownContent,
-              options.playCopySound ? playCopySound : undefined,
-            );
-          }
-        } else {
-          const elementSnippetResults = await Promise.allSettled(
-            targetElements.map((element) => getHTMLSnippet(element)),
-          );
-
-          const elementSnippets = elementSnippetResults
-            .map((result) =>
-              result.status === "fulfilled" ? result.value : "",
-            )
-            .filter((snippet) => snippet.trim());
-
-          if (elementSnippets.length > 0) {
-            const plainTextContent = elementSnippets
-              .map((snippet) => wrapInSelectedElementTags(snippet))
-              .join("\n\n");
-
-            const structuredElements = elementSnippets.map(
-              (content, elementIndex) => ({
-                tagName: extractElementTagName(targetElements[elementIndex]),
-                content,
-                computedStyles: extractRelevantComputedStyles(
-                  targetElements[elementIndex],
-                ),
-              }),
-            );
-            const htmlContent =
-              createStructuredClipboardHtmlBlob(structuredElements);
-
-            didCopy = await copyContent(
-              [plainTextContent, htmlContent],
-              options.playCopySound ? playCopySound : undefined,
-            );
-
-            if (!didCopy) {
-              const plainTextContentOnly =
-                createCombinedTextContent(targetElements);
-              if (plainTextContentOnly.length > 0) {
-                didCopy = await copyContent(
-                  plainTextContentOnly,
-                  options.playCopySound ? playCopySound : undefined,
-                );
-              }
-            }
-          } else {
-            const plainTextContentOnly =
-              createCombinedTextContent(targetElements);
-            if (plainTextContentOnly.length > 0) {
-              didCopy = await copyContent(
-                plainTextContentOnly,
-                options.playCopySound ? playCopySound : undefined,
-              );
-            }
-          }
-        }
-      } catch {}
+      const didCopy = await tryCopyWithFallback(targetElements);
 
       if (didCopy) {
         showTemporarySuccessLabel(`${targetElements.length} elements`);
@@ -468,8 +360,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         y: elementBounds.top,
       };
     });
-
-    const DRAG_THRESHOLD_PX = 2;
 
     const calculateDragDistance = (endX: number, endY: number) => ({
       x: Math.abs(endX - dragStartX()),
@@ -547,25 +437,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       ),
     );
 
-    const progress = createMemo(() => {
-      const startTime = progressStartTime();
-      progressTick();
-      if (startTime === null) return 0;
-
-      const elapsedTime = Date.now() - startTime;
-      const normalizedTime = elapsedTime / options.keyHoldDuration;
-      const easedProgress = 1 - Math.exp(-normalizedTime);
-      const maxProgressBeforeCompletion = 0.95;
-
-      if (isCopying()) {
-        return Math.min(easedProgress, maxProgressBeforeCompletion);
-      }
-
-      return 1;
-    });
-
     const startProgressAnimation = () => {
-      setProgressStartTime(Date.now());
+      const startTime = Date.now();
+      setProgressStartTime(startTime);
       setShowProgressIndicator(false);
 
       progressDelayTimerId = window.setTimeout(() => {
@@ -574,10 +448,20 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, PROGRESS_INDICATOR_DELAY_MS);
 
       const animateProgress = () => {
-        if (progressStartTime() === null) return;
+        const currentStartTime = progressStartTime();
+        if (currentStartTime === null) return;
 
-        setProgressTick((tick) => tick + 1);
-        const currentProgress = progress();
+        const elapsedTime = Date.now() - currentStartTime;
+        const normalizedTime = elapsedTime / options.keyHoldDuration;
+        const easedProgress = 1 - Math.exp(-normalizedTime);
+        const maxProgressBeforeCompletion = 0.95;
+
+        const currentProgress = isCopying()
+          ? Math.min(easedProgress, maxProgressBeforeCompletion)
+          : 1;
+
+        setProgress(currentProgress);
+
         if (currentProgress < 1) {
           progressAnimationId = requestAnimationFrame(animateProgress);
         }
@@ -596,6 +480,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         progressDelayTimerId = null;
       }
       setProgressStartTime(null);
+      setProgress(1);
       setShowProgressIndicator(false);
     };
 
@@ -907,7 +792,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           labelX={labelPosition().x}
           labelY={labelPosition().y}
           labelVisible={labelVisible()}
-          labelZIndex={2147483646}
+          labelZIndex={Z_INDEX_LABEL}
           progressVisible={progressVisible()}
           progress={progress()}
           mouseX={progressPosition().x}

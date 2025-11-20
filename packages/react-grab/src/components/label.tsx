@@ -1,4 +1,4 @@
-import { createSignal, createEffect, onCleanup, Show, on } from "solid-js";
+import { Show } from "solid-js";
 import type { Component } from "solid-js";
 import { Spinner } from "./spinner.js";
 import {
@@ -8,7 +8,9 @@ import {
   SUCCESS_LABEL_DURATION_MS,
 } from "../constants.js";
 import { getClampedElementPosition } from "../utils/get-clamped-element-position.js";
-import { lerp } from "../utils/lerp.js";
+import { useAnimatedPosition } from "../hooks/use-animated-lerp.js";
+import { useFadeInOut } from "../hooks/use-fade-in-out.js";
+import { getCursorQuadrants } from "../utils/get-cursor-quadrants.js";
 
 interface LabelProps {
   variant: "hover" | "processing" | "success";
@@ -20,115 +22,36 @@ interface LabelProps {
 }
 
 export const Label: Component<LabelProps> = (props) => {
-  const [opacity, setOpacity] = createSignal(0);
-  const [positionTick, setPositionTick] = createSignal(0);
   let labelRef: HTMLDivElement | undefined;
-  let currentX = props.x;
-  let currentY = props.y;
-  let targetX = props.x;
-  let targetY = props.y;
-  let animationFrameId: number | null = null;
-  let hasBeenRenderedOnce = false;
 
-  const animate = () => {
-    currentX = lerp(currentX, targetX, 0.3);
-    currentY = lerp(currentY, targetY, 0.3);
-
-    setPositionTick((tick) => tick + 1);
-
-    const hasConvergedToTarget =
-      Math.abs(currentX - targetX) < 0.5 && Math.abs(currentY - targetY) < 0.5;
-
-    if (!hasConvergedToTarget) {
-      animationFrameId = requestAnimationFrame(animate);
-    } else {
-      animationFrameId = null;
-    }
-  };
-
-  const startAnimation = () => {
-    if (animationFrameId !== null) return;
-    animationFrameId = requestAnimationFrame(animate);
-  };
-
-  const updateTarget = () => {
-    targetX = props.x;
-    targetY = props.y;
-
-    if (!hasBeenRenderedOnce) {
-      currentX = targetX;
-      currentY = targetY;
-      hasBeenRenderedOnce = true;
-      setPositionTick((tick) => tick + 1);
-      return;
-    }
-
-    startAnimation();
-  };
-
-  createEffect(
-    on(
-      () => props.visible,
-      (visible) => {
-        if (visible !== false) {
-          requestAnimationFrame(() => {
-            setOpacity(1);
-          });
-        } else {
-          setOpacity(0);
-          return;
-        }
-
-        if (props.variant === "success") {
-          const fadeOutTimer = setTimeout(() => {
-            setOpacity(0);
-          }, SUCCESS_LABEL_DURATION_MS);
-
-          onCleanup(() => clearTimeout(fadeOutTimer));
-        }
-      },
-    ),
-  );
-
-  createEffect(() => {
-    updateTarget();
+  const position = useAnimatedPosition({
+    x: () => props.x,
+    y: () => props.y,
+    lerpFactor: 0.3,
   });
 
-  onCleanup(() => {
-    if (animationFrameId !== null) {
-      cancelAnimationFrame(animationFrameId);
-      animationFrameId = null;
-    }
+  const opacity = useFadeInOut({
+    visible: props.visible,
+    autoFadeOutAfter:
+      props.variant === "success" ? SUCCESS_LABEL_DURATION_MS : undefined,
   });
 
   const labelBoundingRect = () => labelRef?.getBoundingClientRect();
 
   const computedPosition = () => {
-    positionTick();
     const boundingRect = labelBoundingRect();
-    if (!boundingRect) return { left: currentX, top: currentY };
+    if (!boundingRect) return { left: position.x(), top: position.y() };
 
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
-    const quadrants = [
-      {
-        left: Math.round(currentX) + CURSOR_OFFSET_PX,
-        top: Math.round(currentY) + CURSOR_OFFSET_PX,
-      },
-      {
-        left: Math.round(currentX) - boundingRect.width - CURSOR_OFFSET_PX,
-        top: Math.round(currentY) + CURSOR_OFFSET_PX,
-      },
-      {
-        left: Math.round(currentX) + CURSOR_OFFSET_PX,
-        top: Math.round(currentY) - boundingRect.height - CURSOR_OFFSET_PX,
-      },
-      {
-        left: Math.round(currentX) - boundingRect.width - CURSOR_OFFSET_PX,
-        top: Math.round(currentY) - boundingRect.height - CURSOR_OFFSET_PX,
-      },
-    ];
+    const quadrants = getCursorQuadrants(
+      position.x(),
+      position.y(),
+      boundingRect.width,
+      boundingRect.height,
+      CURSOR_OFFSET_PX,
+    );
 
     for (const position of quadrants) {
       const fitsHorizontally =

@@ -1,10 +1,6 @@
 import {
   _fiberRoots as fiberRoots,
-  getFiberFromHostInstance,
-  getDisplayName,
   instrument,
-  isCompositeFiber,
-  traverseFiber,
 } from "bippy";
 import {
   getSourceFromHostInstance,
@@ -12,7 +8,7 @@ import {
   normalizeFileName,
 } from "bippy/dist/source";
 import { finder } from "@medv/finder";
-import { isCapitalized } from "./utils/is-capitalized.js";
+import { getNearestComponentName } from "./utils/get-nearest-component-name.js";
 
 instrument({
   onCommitFiberRoot(_, fiberRoot) {
@@ -26,37 +22,6 @@ const generateCSSSelector = (element: Element) => {
 
 const truncateString = (string: string, maxLength: number) =>
   string.length > maxLength ? `${string.substring(0, maxLength)}...` : string;
-
-const isInternalComponent = (name: string): boolean =>
-  !isCapitalized(name) ||
-  name.startsWith("_") ||
-  name.startsWith("Primitive.") ||
-  (name.includes("Provider") && name.includes("Context"));
-
-export const getNearestComponentDisplayName = (
-  element: Element,
-): string | null => {
-  const fiber = getFiberFromHostInstance(element);
-  if (!fiber) return null;
-
-  let componentName: string | null = null;
-  traverseFiber(
-    fiber,
-    (currentFiber) => {
-      if (isCompositeFiber(currentFiber)) {
-        const displayName = getDisplayName(currentFiber);
-        if (displayName && !isInternalComponent(displayName)) {
-          componentName = displayName;
-          return true;
-        }
-      }
-      return false;
-    },
-    true,
-  );
-
-  return componentName;
-};
 
 const formatComponentSourceLocation = async (
   el: Element,
@@ -210,9 +175,9 @@ export const getHTMLSnippet = async (element: Element) => {
   const ancestors = collectDistinguishingAncestors(element);
 
   const ancestorComponents = ancestors.map((ancestor) =>
-    getNearestComponentDisplayName(ancestor),
+    getNearestComponentName(ancestor),
   );
-  const elementComponent = getNearestComponentDisplayName(element);
+  const elementComponent = getNearestComponentName(element);
 
   const ancestorSources = await Promise.all(
     ancestors.map((ancestor) => formatComponentSourceLocation(ancestor)),

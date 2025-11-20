@@ -1,6 +1,6 @@
 import { Show, createEffect, onCleanup } from "solid-js";
 import type { Component } from "solid-js";
-import { lerp } from "../utils/lerp.js";
+import { useAnimatedPosition } from "../hooks/use-animated-lerp.js";
 
 interface CrosshairProps {
   mouseX: number;
@@ -14,12 +14,12 @@ export const Crosshair: Component<CrosshairProps> = (props) => {
   let width = 0;
   let height = 0;
   let dpr = 1;
-  let currentX = props.mouseX;
-  let currentY = props.mouseY;
-  let targetX = props.mouseX;
-  let targetY = props.mouseY;
-  let animationFrameId: number | null = null;
-  let hasBeenRenderedOnce = false;
+
+  const position = useAnimatedPosition({
+    x: () => props.mouseX,
+    y: () => props.mouseY,
+    lerpFactor: 0.3,
+  });
 
   const setupCanvas = () => {
     if (!canvasRef) return;
@@ -48,48 +48,11 @@ export const Crosshair: Component<CrosshairProps> = (props) => {
     context.lineWidth = 1;
 
     context.beginPath();
-    context.moveTo(currentX, 0);
-    context.lineTo(currentX, height);
-    context.moveTo(0, currentY);
-    context.lineTo(width, currentY);
+    context.moveTo(position.x(), 0);
+    context.lineTo(position.x(), height);
+    context.moveTo(0, position.y());
+    context.lineTo(width, position.y());
     context.stroke();
-  };
-
-  const animate = () => {
-    currentX = lerp(currentX, targetX, 0.3);
-    currentY = lerp(currentY, targetY, 0.3);
-
-    render();
-
-    const hasConvergedToTarget =
-      Math.abs(currentX - targetX) < 0.5 &&
-      Math.abs(currentY - targetY) < 0.5;
-
-    if (!hasConvergedToTarget) {
-      animationFrameId = requestAnimationFrame(animate);
-    } else {
-      animationFrameId = null;
-    }
-  };
-
-  const startAnimation = () => {
-    if (animationFrameId !== null) return;
-    animationFrameId = requestAnimationFrame(animate);
-  };
-
-  const updateTarget = () => {
-    targetX = props.mouseX;
-    targetY = props.mouseY;
-
-    if (!hasBeenRenderedOnce) {
-      currentX = targetX;
-      currentY = targetY;
-      hasBeenRenderedOnce = true;
-      render();
-      return;
-    }
-
-    startAnimation();
   };
 
   createEffect(() => {
@@ -105,15 +68,13 @@ export const Crosshair: Component<CrosshairProps> = (props) => {
 
     onCleanup(() => {
       window.removeEventListener("resize", handleResize);
-      if (animationFrameId !== null) {
-        cancelAnimationFrame(animationFrameId);
-        animationFrameId = null;
-      }
     });
   });
 
   createEffect(() => {
-    updateTarget();
+    position.x();
+    position.y();
+    render();
   });
 
   return (

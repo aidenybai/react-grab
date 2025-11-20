@@ -1,10 +1,11 @@
-import { Show, createSignal, createEffect, on } from "solid-js";
+import { Show } from "solid-js";
 import type { Component } from "solid-js";
 import {
   VIEWPORT_MARGIN_PX,
   CURSOR_OFFSET_PX,
 } from "../constants.js";
 import { getClampedElementPosition } from "../utils/get-clamped-element-position.js";
+import { useFadeInOut } from "../hooks/use-fade-in-out.js";
 
 interface ProgressIndicatorProps {
   progress: number;
@@ -13,29 +14,8 @@ interface ProgressIndicatorProps {
   visible?: boolean;
 }
 
-const useFadeInOut = (visible: boolean | undefined) => {
-  const [opacity, setOpacity] = createSignal(0);
-
-  createEffect(
-    on(
-      () => visible,
-      (isVisible) => {
-        if (isVisible !== false) {
-          requestAnimationFrame(() => {
-            setOpacity(1);
-          });
-        } else {
-          setOpacity(0);
-        }
-      },
-    ),
-  );
-
-  return opacity;
-};
-
 export const ProgressIndicator: Component<ProgressIndicatorProps> = (props) => {
-  const opacity = useFadeInOut(props.visible);
+  const opacity = useFadeInOut({ visible: props.visible });
   let progressIndicatorRef: HTMLDivElement | undefined;
 
   const computedPosition = () => {
