@@ -319,7 +319,7 @@ const BlogPostPage = () => {
       </div>
 
       <div className="px-4 sm:px-8">
-        <div className="mx-auto max-w-2xl flex flex-col gap-3 text-sm text-neutral-400">
+        <div className="mx-auto max-w-2xl flex flex-col gap-3 text-neutral-400">
           <p>
             Without React Grab, the agent has to guess. It reads files, greps
             for patterns, reads more files when the first ones are wrong. Each
@@ -340,7 +340,7 @@ const BlogPostPage = () => {
       <div className="px-4 sm:px-8 py-12">
         <div className="mx-auto max-w-2xl flex flex-col gap-3">
           <h3 className="text-lg font-medium text-neutral-200">Results</h3>
-          <p className="text-sm text-neutral-400">
+          <p className="text-neutral-400">
             Here are the latest measurement results from all 20 test cases. Each
             row shows control vs. treatment metrics with percentage
             improvements.
