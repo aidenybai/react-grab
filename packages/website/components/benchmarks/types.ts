@@ -26,3 +26,17 @@ export interface Metric {
   isImprovement: boolean;
   change: string;
 }
+
+export interface ChangeInfo {
+  change: string;
+  bgColor: string;
+}
+
+export interface Stats {
+  successRate: number;
+  avgCost: number;
+  avgDuration: number;
+  avgToolCalls: number;
+  avgInputTokens: number;
+  avgOutputTokens: number;
+}
