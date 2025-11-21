@@ -5,7 +5,6 @@ body {
   background-color: #000;
   min-height: 100vh;
   overflow-x: hidden;
-  font-family: var(--font-geist-sans);
 }
 
 @keyframes shimmer {
