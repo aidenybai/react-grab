@@ -8,6 +8,8 @@ Grab any element on in your app and give it to Cursor, Claude Code, etc. to chan
 
 By default coding agents cannot access elements on your page. React Grab fixes this - just point and click to provide context!
 
+**[Makes coding agents 55% faster at frontend →](https://react-grab.com/blog/intro)**
+
 - Hold <kbd>⌘C</kbd> and click on any element on your page
 - Works with Cursor, Claude Code, OpenCode
 - Just a single script tag (it’s just JavaScript!)
