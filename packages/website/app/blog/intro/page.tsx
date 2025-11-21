@@ -61,7 +61,7 @@ const BlogPostPage = () => {
             className="text-sm text-neutral-400 hover:text-white transition-colors flex items-center gap-2"
           >
             <ArrowLeft size={16} />
-            Back to Home
+            Back to home
           </Link>
 
           <div className="flex flex-col gap-2">

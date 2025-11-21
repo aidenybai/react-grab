@@ -79,21 +79,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         />
       </Show>
 
-      <Show
-        when={
-          props.progressVisible &&
-          props.progress !== undefined &&
-          props.mouseX !== undefined &&
-          props.mouseY !== undefined
-        }
-      >
-        <ProgressIndicator
-          progress={props.progress!}
-          mouseX={props.mouseX!}
-          mouseY={props.mouseY!}
-          visible={props.progressVisible}
-        />
-      </Show>
     </>
   );
 };

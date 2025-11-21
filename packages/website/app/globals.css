@@ -33,6 +33,22 @@ body {
   animation: shimmer 1s ease-in-out infinite;
 }
 
+.shimmer-text-pink {
+  background: linear-gradient(
+    90deg,
+    #f973ff 0%,
+    #ffb3ff 25%,
+    #ffe6ff 50%,
+    #ffb3ff 75%,
+    #f973ff 100%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 2.5s linear infinite;
+}
+
 @keyframes logo-shimmer {
   0% {
     filter: drop-shadow(0 0 0 rgba(252, 78, 253, 0));

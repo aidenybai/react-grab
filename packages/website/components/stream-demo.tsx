@@ -24,6 +24,7 @@ import { TriangleAlert } from "lucide-react";
 import { useState, useEffect, useRef, Fragment } from "react";
 import { detectMobile } from "@/utils/detect-mobile";
 import demoGif from "@/public/demo.gif";
+import Link from "next/link";
 
 const getConversationBlocks = (): StreamBlock[] => [
   {
@@ -162,7 +163,7 @@ const getConversationBlocks = (): StreamBlock[] => [
     type: "message",
     content: (
       <span>
-        It improves the accuracy of tools like{" "}
+        It makes tools like{" "}
         <span className="inline-flex items-baseline gap-1">
           <IconCursor width={16} height={16} className="translate-y-[2px]" />
           Cursor
@@ -175,9 +176,14 @@ const getConversationBlocks = (): StreamBlock[] => [
         ,{" "}
         <span className="inline-flex items-baseline gap-1">
           <IconCopilot width={18} height={18} className="translate-y-[2px]" />
-          Copilot
-        </span>
-        , you name it!
+          Copilot run
+        </span>{" "}
+        <Link href="/blog/intro" rel="noreferrer" className="shimmer-text-pink">
+          <span>
+            <span className="font-bold font-mono">55%</span> faster
+          </span>{" "}
+          <span className="text-[10px] -translate-y-[2px]">[ref]</span>
+        </Link>
       </span>
     ),
   },
