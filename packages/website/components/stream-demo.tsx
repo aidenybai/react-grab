@@ -21,7 +21,7 @@ import { IconCopilot } from "./icon-copilot";
 import { GithubButton } from "./github-button";
 import { CursorInstallButton } from "./cursor-install-button";
 import { TriangleAlert } from "lucide-react";
-import { useState, useEffect, useRef, Fragment } from "react";
+import { useState, useEffect, useRef, Fragment, useCallback } from "react";
 import { detectMobile } from "@/utils/detect-mobile";
 import demoGif from "@/public/demo.gif";
 import Link from "next/link";
@@ -178,11 +178,12 @@ const getConversationBlocks = (): StreamBlock[] => [
           <IconCopilot width={18} height={18} className="translate-y-[2px]" />
           Copilot run up to
         </span>{" "}
-        <Link href="/blog/intro" rel="noreferrer" className="shimmer-text-pink">
-          <span>
-            <span className="font-bold font-mono">55%</span> faster
-          </span>{" "}
-          <sup>*</sup>
+        <Link
+          href="/blog/intro"
+          rel="noreferrer"
+          className="shimmer-text-pink inline-block touch-manipulation py-1"
+        >
+          <span className="font-bold font-mono">55%</span> faster <sup>*</sup>
         </Link>
       </span>
     ),
@@ -290,7 +291,7 @@ export const StreamDemo = () => {
     }
   }, [updatedBlocks, stream]);
 
-  const handleElementSelect = (elementTag: string) => {
+  const handleElementSelect = useCallback((elementTag: string) => {
     const newBlocks = updatedBlocks.map((block) => {
       if (block.id === "user-2") {
         return {
@@ -313,7 +314,7 @@ export const StreamDemo = () => {
 
     shouldResumeRef.current = true;
     setUpdatedBlocks(newBlocks);
-  };
+  }, [updatedBlocks]);
 
   const reactGrabStartId = "message-4";
   const reactGrabStartIndex = stream.blocks.findIndex(

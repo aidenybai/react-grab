@@ -45,14 +45,15 @@ export const GrabElementButton = ({
   }, []);
 
   useEffect(() => {
-    if (isMobile) {
+    if (isMobile && !hasAdvanced) {
+      setHasAdvanced(true);
       onSelect("button");
     } else if (typeof window !== "undefined") {
       import("react-grab").catch((error) => {
         console.error("Failed to preload react-grab:", error);
       });
     }
-  }, [isMobile, onSelect]);
+  }, [isMobile, onSelect, hasAdvanced]);
 
   useKeyboardShortcut({
     onActivate: useCallback(() => setIsActivated(true), []),
