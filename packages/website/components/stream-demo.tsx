@@ -23,6 +23,7 @@ import { CursorInstallButton } from "./cursor-install-button";
 import { TriangleAlert } from "lucide-react";
 import { useState, useEffect, useRef, Fragment } from "react";
 import { detectMobile } from "@/utils/detect-mobile";
+import demoGif from "@/public/demo.gif";
 
 const getConversationBlocks = (): StreamBlock[] => [
   {
@@ -150,7 +151,8 @@ const getConversationBlocks = (): StreamBlock[] => [
         </div>
         <div>
           <span className="font-bold">React Grab</span> allows you to select an
-          element and copy its context (like HTML, React component, and file source)
+          element and copy its context (like HTML, React component, and file
+          source)
         </div>
       </div>
     ),
@@ -345,7 +347,7 @@ export const StreamDemo = () => {
                 <>
                   {isMobile && (
                     <Image
-                      src="/demo.gif"
+                      src={demoGif}
                       alt="React Grab demo"
                       className="mt-3 w-full rounded-lg border border-white/10"
                       width={800}

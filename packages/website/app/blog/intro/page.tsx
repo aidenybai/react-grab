@@ -13,7 +13,7 @@ import { GithubButton } from "@/components/github-button";
 import { CursorInstallButton } from "@/components/cursor-install-button";
 import resultsData from "@/public/results.json";
 import testCasesData from "@/public/test-cases.json";
-import ReactGrabDemoGif from "@/public/demo.gif";
+import demoGif from "@/public/demo.gif";
 
 const BlogPostPage = () => {
   const [highlightedCode, setHighlightedCode] = useState<string>("");
@@ -95,9 +95,9 @@ const BlogPostPage = () => {
 
           <div className="flex flex-col gap-4 text-neutral-400">
             <p>
-              I{"'"}ve been using a lot of Cursor/Claude Code lately and I{"'"}ve
-              found doing frontend stuff has been... really annoying (to say the
-              least). It{"'"}ll{" "}
+              I{"'"}ve been using a lot of Cursor/Claude Code lately and I{"'"}
+              ve found doing frontend stuff has been... really annoying (to say
+              the least). It{"'"}ll{" "}
               <code className="text-neutral-300 text-sm bg-neutral-900/50 px-1.5 py-0.5 rounded">
                 grep
               </code>{" "}
@@ -111,10 +111,10 @@ const BlogPostPage = () => {
             <p>
               My main problem with coding agents today is that translating that
               intent (from UI → prompt → code → UI) is very lossy. If I say
-              something like "edit this button." which button would it be? There
-              could be multiple button defintions and usages across the whole
-              codebase. Prompting feels very tedious and watching the agent
-              stumble around my codebase every time costs time and money.
+              something like {"'"}edit this button.{"'"} which button would it
+              be? There could be multiple button defintions and usages across
+              the whole codebase. Prompting feels very tedious and watching the
+              agent stumble around my codebase every time costs time and money.
             </p>
 
             <p>
@@ -124,10 +124,10 @@ const BlogPostPage = () => {
               I just told it what I wanted to change.
             </p>
 
-            <p>Here's how it looks:</p>
+            <p>Here{"'"}s how it looks:</p>
 
             <div>
-              <Image src={ReactGrabDemoGif} alt="demo gif" />
+              <Image src={demoGif} alt="demo gif" />
             </div>
 
             <div className="flex flex-col gap-3">
