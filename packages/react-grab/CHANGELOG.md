@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.43
+
+### Patch Changes
+
+- fix: new hooks
+
 ## 0.0.42
 
 ### Patch Changes
