@@ -176,13 +176,13 @@ const getConversationBlocks = (): StreamBlock[] => [
         ,{" "}
         <span className="inline-flex items-baseline gap-1">
           <IconCopilot width={18} height={18} className="translate-y-[2px]" />
-          Copilot run
+          Copilot run up to
         </span>{" "}
         <Link href="/blog/intro" rel="noreferrer" className="shimmer-text-pink">
           <span>
             <span className="font-bold font-mono">55%</span> faster
           </span>{" "}
-          <span className="text-[10px] -translate-y-[2px]">[ref]</span>
+          <sup>*</sup>
         </Link>
       </span>
     ),
