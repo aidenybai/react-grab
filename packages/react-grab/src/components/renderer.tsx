@@ -3,7 +3,6 @@ import type { Component } from "solid-js";
 import type { ReactGrabRendererProps } from "../types.js";
 import { SelectionBox } from "./selection-box.js";
 import { Label } from "./label.js";
-import { ProgressIndicator } from "./progress-indicator.js";
 import { Crosshair } from "./crosshair.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
@@ -41,7 +40,11 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
 
       <For each={props.grabbedBoxes ?? []}>
         {(box) => (
-          <SelectionBox variant="grabbed" bounds={box.bounds} createdAt={box.createdAt} />
+          <SelectionBox
+            variant="grabbed"
+            bounds={box.bounds}
+            createdAt={box.createdAt}
+          />
         )}
       </For>
 
@@ -78,7 +81,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           showHint={props.labelShowHint}
         />
       </Show>
-
     </>
   );
 };
