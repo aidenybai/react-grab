@@ -89,7 +89,7 @@ const BlogPostPage = () => {
                 Aiden Bai
               </a>
               {" · "}
-              <span>November 21, 2024</span>
+              <span>November 21, 2025</span>
             </div>
           </div>
 
