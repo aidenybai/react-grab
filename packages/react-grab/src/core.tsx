@@ -197,11 +197,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         stopProgressAnimation();
 
         if (isToggleMode()) {
-          if (!isHoldingKeys()) {
-            deactivateRenderer();
-          } else {
-            setIsToggleMode(false);
-          }
+          deactivateRenderer();
         }
       });
     };
