@@ -13,6 +13,7 @@ import { GithubButton } from "@/components/github-button";
 import { CursorInstallButton } from "@/components/cursor-install-button";
 import resultsData from "@/public/results.json";
 import testCasesData from "@/public/test-cases.json";
+import ReactGrabDemoGif from "@/public/demo.gif";
 
 const BlogPostPage = () => {
   const [highlightedCode, setHighlightedCode] = useState<string>("");
@@ -94,53 +95,49 @@ const BlogPostPage = () => {
 
           <div className="flex flex-col gap-4 text-neutral-400">
             <p>
-              So I&apos;ve been using Claude/Cursor for coding lately and
-              something kept annoying me. You tell it to modify a button and it
-              just... starts reading random files. It&apos;ll{" "}
+              I{"'"}ve been using a lot of Cursor/Claude Code lately and I{"'"}ve
+              found doing frontend stuff has been... really annoying (to say the
+              least). It{"'"}ll{" "}
               <code className="text-neutral-300 text-sm bg-neutral-900/50 px-1.5 py-0.5 rounded">
                 grep
               </code>{" "}
-              through your components folder, pattern match on some{" "}
+              , pattern match on some{" "}
               <code className="text-neutral-300 text-sm bg-neutral-900/50 px-1.5 py-0.5 rounded">
                 className
               </code>
-              , maybe get lucky and find the right component.
+              , and stumbles around a bunch of random files.
             </p>
 
             <p>
-              The problem is obvious. AI agents can&apos;t see your React
-              component tree. They look at the DOM and just see{" "}
-              <code className="text-neutral-300 text-sm bg-neutral-900/50 px-1.5 py-0.5 rounded">
-                {'<button class="...">'}
-              </code>
-              . Which component rendered that? Which file is it in? No clue. So
-              they have to guess.
+              My main problem with coding agents today is that translating that
+              intent (from UI → prompt → code → UI) is very lossy. If I say
+              something like "edit this button." which button would it be? There
+              could be multiple button defintions and usages across the whole
+              codebase. Prompting feels very tedious and watching the agent
+              stumble around my codebase every time costs time and money.
             </p>
 
             <p>
-              I was watching Claude burn through tokens doing this and thought:
-              what if you could just grab an element and hand it to the AI with
-              all its context? Like hold ⌘C, click the button you want to
-              change, and boom - the AI knows exactly where it is in your
-              codebase.
+              I solved this by adding a overlay in my UI where I can select any
+              element on the page and copy the metadata (HTML and source file)
+              to my clipboard. This way, instead of prompting where the code is,
+              I just told it what I wanted to change.
             </p>
 
-            <p>
-              That&apos;s React Grab. Add one script tag to your app, hold ⌘C
-              and click any element. It grabs the full React component stack
-              with file paths and line numbers, then you paste it to your AI
-              agent. No more searching through files, the AI gets exactly what
-              it needs.
-            </p>
+            <p>Here's how it looks:</p>
+
+            <div>
+              <Image src={ReactGrabDemoGif} alt="demo gif" />
+            </div>
 
             <div className="flex flex-col gap-3">
               <h3 className="text-lg font-medium text-neutral-200">
                 How does it work?
               </h3>
               <p>
-                I spent way too much time digging through React DevTools source
-                code to figure this out. React already tracks the component tree
-                internally, you just need to access it. So I built{" "}
+                To make this work, I went into the React DevTools source. React
+                already maintains the component tree internally; the missing
+                piece is a way to read it at runtime. That became{" "}
                 <a
                   href="https://github.com/aidenybai/bippy"
                   target="_blank"
@@ -153,11 +150,12 @@ const BlogPostPage = () => {
                 the fiber tree with source locations.
               </p>
               <p>
-                React Grab uses bippy to walk up the component tree from
-                whatever element you clicked, grabs each component&apos;s
-                display name and source location (file path + line number), then
-                formats it into something readable. All at runtime, no build
-                step needed.
+                React Grab uses bippy to walk up the component tree from the
+                element you clicked, collect each component&apos;s display name
+                and source location (file path + line number), and format that
+                into a readable stack. A small script listens for a ⌘C+click
+                gesture in the browser to choose the starting element, and
+                everything runs at runtime with no build step needed.
               </p>
             </div>
           </div>
