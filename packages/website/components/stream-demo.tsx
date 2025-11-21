@@ -183,7 +183,7 @@ const getConversationBlocks = (): StreamBlock[] => [
           rel="noreferrer"
           className="shimmer-text-pink inline-block touch-manipulation py-1"
         >
-          <span className="font-bold font-mono">55%</span> faster <sup>*</sup>
+          <span className="font-bold font-mono">55%</span> faster
         </Link>
       </span>
     ),
