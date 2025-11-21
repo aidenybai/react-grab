@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { detectMobile } from "@/utils/detect-mobile";
 import { cn } from "@/utils/classnames";
-import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 
 interface GrabElementButtonProps {
   onSelect: (elementTag: string) => void;
@@ -55,11 +54,20 @@ export const GrabElementButton = ({
     }
   }, [isMobile, onSelect, hasAdvanced]);
 
-  useKeyboardShortcut({
-    onActivate: useCallback(() => setIsActivated(true), []),
-    onDeactivate: useCallback(() => setIsActivated(false), []),
-    enabled: !hasAdvanced,
-  });
+  useEffect(() => {
+    if (hasAdvanced || typeof window === "undefined") return;
+
+    const handleActivated = () => setIsActivated(true);
+    const handleDeactivated = () => setIsActivated(false);
+
+    window.addEventListener("react-grab:activated", handleActivated);
+    window.addEventListener("react-grab:deactivated", handleDeactivated);
+
+    return () => {
+      window.removeEventListener("react-grab:activated", handleActivated);
+      window.removeEventListener("react-grab:deactivated", handleDeactivated);
+    };
+  }, [hasAdvanced]);
 
   useEffect(() => {
     if (typeof window === "undefined" || hasAdvanced) return;

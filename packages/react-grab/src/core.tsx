@@ -429,6 +429,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       stopProgressAnimation();
       setIsActivated(true);
       document.body.style.cursor = "crosshair";
+      options.onActivate?.();
     };
 
     const deactivateRenderer = () => {
@@ -448,6 +449,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       setMouseHasSettled(false);
       stopProgressAnimation();
+      options.onDeactivate?.();
     };
 
     const abortController = new AbortController();
@@ -472,7 +474,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           if (!isActivated()) {
             if (holdTimerId) window.clearTimeout(holdTimerId);
             activateRenderer();
-            options.onActivate?.();
           }
           return;
         }
@@ -510,7 +511,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         holdTimerId = window.setTimeout(() => {
           activateRenderer();
-          options.onActivate?.();
         }, options.keyHoldDuration);
       },
       { signal: eventListenerSignal, capture: true },
@@ -720,7 +720,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       activate: () => {
         if (!isActivated()) {
           activateRenderer();
-          options.onActivate?.();
         }
       },
       deactivate: () => {
@@ -733,7 +732,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           deactivateRenderer();
         } else {
           activateRenderer();
-          options.onActivate?.();
         }
       },
       isActive: () => isActivated(),
