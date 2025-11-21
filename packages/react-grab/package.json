@@ -64,6 +64,7 @@
   "devDependencies": {
     "@babel/core": "^7.28.5",
     "@babel/preset-typescript": "^7.28.5",
+    "@types/node": "^20.19.23",
     "babel-preset-solid": "^1.9.10",
     "esbuild-plugin-babel": "^0.2.3",
     "eslint": "^9.37.0",
