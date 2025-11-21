@@ -19,6 +19,8 @@ interface LabelProps {
   y: number;
   visible?: boolean;
   zIndex?: number;
+  progress?: number;
+  showHint?: boolean;
 }
 
 export const Label: Component<LabelProps> = (props) => {
@@ -103,7 +105,6 @@ export const Label: Component<LabelProps> = (props) => {
           position: "fixed",
           top: `${computedPosition().top}px`,
           left: `${computedPosition().left}px`,
-          padding: "2px 6px",
           "background-color": "#fde7f7",
           color: "#b21c8e",
           border: "1px solid #f7c5ec",
@@ -116,64 +117,105 @@ export const Label: Component<LabelProps> = (props) => {
           "pointer-events": "none",
           opacity: opacity(),
           transition: "opacity 0.2s ease-in-out",
-          display: "flex",
-          "align-items": "center",
           "max-width":
             "calc(100vw - (16px + env(safe-area-inset-left) + env(safe-area-inset-right)))",
           overflow: "hidden",
-          "text-overflow": "ellipsis",
-          "white-space": "nowrap",
         }}
       >
-        <Show when={props.variant === "processing"}>
-          <Spinner />
-        </Show>
-        <Show when={props.variant === "success"}>
-          <span
+        <Show when={props.variant === "processing" && props.progress !== undefined}>
+          <div
             style={{
-              display: "inline-block",
-              "margin-right": "4px",
-              "font-weight": "600",
+              position: "absolute",
+              top: "0",
+              left: "0",
+              bottom: "0",
+              width: `${Math.min(100, Math.max(0, (props.progress ?? 0) * 100))}%`,
+              "background-color": "rgba(178, 28, 142, 0.2)",
+              "border-radius": "3px",
+              transition: "width 0.1s ease-out",
+              "pointer-events": "none",
+            }}
+          />
+        </Show>
+        <div
+          style={{
+            position: "relative",
+            padding: "2px 6px",
+            display: "flex",
+            "flex-direction": "column",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              "align-items": "center",
+              "text-overflow": "ellipsis",
+              "white-space": "nowrap",
             }}
           >
-            ✓
-          </span>
-        </Show>
-        <Show when={props.variant === "success"}>
-          <div style={{ "margin-right": "4px" }}>Copied</div>
-        </Show>
-        <Show when={props.variant === "processing"}>Grabbing…</Show>
-        <Show when={props.variant !== "processing"}>
-          <span
-            style={{
-              "font-family":
-                "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-              "font-variant-numeric": "tabular-nums",
-              "vertical-align": "middle",
-            }}
-          >
-            {labelSegments().primary}
-          </span>
-          <Show
-            when={
-              props.variant === "hover" && labelSegments().secondary !== ""
-            }
-          >
-            <span
+            <Show when={props.variant === "processing"}>
+              <Spinner />
+            </Show>
+            <Show when={props.variant === "success"}>
+              <span
+                style={{
+                  display: "inline-block",
+                  "margin-right": "4px",
+                  "font-weight": "600",
+                }}
+              >
+                ✓
+              </span>
+            </Show>
+            <Show when={props.variant === "success"}>
+              <div style={{ "margin-right": "4px" }}>Copied</div>
+            </Show>
+            <Show when={props.variant === "processing"}>Please wait…</Show>
+            <Show when={props.variant !== "processing"}>
+              <span
+                style={{
+                  "font-family":
+                    "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+                  "font-variant-numeric": "tabular-nums",
+                  "vertical-align": "middle",
+                }}
+              >
+                {labelSegments().primary}
+              </span>
+              <Show
+                when={
+                  props.variant === "hover" && labelSegments().secondary !== ""
+                }
+              >
+                <span
+                  style={{
+                    "font-variant-numeric": "tabular-nums",
+                    "font-size": "10px",
+                    "margin-left": "4px",
+                    "vertical-align": "middle",
+                  }}
+                >
+                  {labelSegments().secondary}
+                </span>
+              </Show>
+            </Show>
+            <Show when={props.variant === "success"}>
+              <div style={{ "margin-left": "4px" }}>to clipboard</div>
+            </Show>
+          </div>
+          <Show when={props.variant === "hover" && props.showHint}>
+            <div
               style={{
-                "font-variant-numeric": "tabular-nums",
-                "font-size": "10px",
-                "margin-left": "4px",
-                "vertical-align": "middle",
+                "font-size": "9px",
+                opacity: "0.6",
+                "text-align": "center",
+                "margin-top": "2px",
               }}
             >
-              {labelSegments().secondary}
-            </span>
+              Click or drag to select
+            </div>
           </Show>
-        </Show>
-        <Show when={props.variant === "success"}>
-          <div style={{ "margin-left": "4px" }}>to clipboard</div>
-        </Show>
+        </div>
       </div>
     </Show>
   );

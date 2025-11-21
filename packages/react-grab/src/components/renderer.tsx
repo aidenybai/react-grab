@@ -45,16 +45,18 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         )}
       </For>
 
-      <For each={props.successLabels ?? []}>
-        {(label) => (
-          <Label
-            variant="success"
-            text={label.text}
-            x={props.mouseX ?? 0}
-            y={props.mouseY ?? 0}
-          />
-        )}
-      </For>
+      <Show when={props.labelVariant !== "processing"}>
+        <For each={props.successLabels ?? []}>
+          {(label) => (
+            <Label
+              variant="success"
+              text={label.text}
+              x={props.mouseX ?? 0}
+              y={props.mouseY ?? 0}
+            />
+          )}
+        </For>
+      </Show>
 
       <Show
         when={
@@ -72,6 +74,8 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           y={props.labelY!}
           visible={props.labelVisible}
           zIndex={props.labelZIndex}
+          progress={props.progress}
+          showHint={props.labelShowHint}
         />
       </Show>
 

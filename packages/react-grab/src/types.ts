@@ -36,6 +36,7 @@ export interface ReactGrabRendererProps {
   labelY?: number;
   labelVisible?: boolean;
   labelZIndex?: number;
+  labelShowHint?: boolean;
   progressVisible?: boolean;
   progress?: number;
   mouseX?: number;
