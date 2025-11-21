@@ -174,13 +174,13 @@ export const getHTMLPreview = (element: Element): string => {
     attrsText += ` ${name}="${value}"`;
   }
 
-  let topElements = 0;
-  let bottomElements = 0;
+  const topElements: Array<Element> = [];
+  const bottomElements: Array<Element> = [];
   let foundFirstText = false;
 
   const childNodes = Array.from(element.childNodes);
   for (const node of childNodes) {
-    if (node.nodeType === Node.COMMENT_NODE) continue; // Comment
+    if (node.nodeType === Node.COMMENT_NODE) continue;
 
     if (node.nodeType === Node.TEXT_NODE) {
       if (node.textContent && node.textContent.trim().length > 0) {
@@ -188,17 +188,32 @@ export const getHTMLPreview = (element: Element): string => {
       }
     } else if (node.nodeType === Node.ELEMENT_NODE) {
       if (!foundFirstText) {
-        topElements++;
+        topElements.push(node as Element);
       } else {
-        bottomElements++;
+        bottomElements.push(node as Element);
       }
     }
   }
 
+  const formatElements = (elements: Array<Element>): string => {
+    if (elements.length === 0) return "";
+    if (elements.length <= 2) {
+      return elements
+        .map((el) => `<${el.tagName.toLowerCase()} ...>`)
+        .join("\n  ");
+    }
+    return `(${elements.length} elements)`;
+  };
+
   let content = "";
-  if (topElements > 0) content += `\n  (${topElements} elements)`;
-  if (text.length > 0) content += `\n  ${text}`;
-  if (bottomElements > 0) content += `\n  (${bottomElements} elements)`;
+  const topElementsStr = formatElements(topElements);
+  if (topElementsStr) content += `\n  ${topElementsStr}`;
+  if (text.length > 0) {
+    const truncatedText = text.length > 100 ? `${text.slice(0, 100)}...` : text;
+    content += `\n  ${truncatedText}`;
+  }
+  const bottomElementsStr = formatElements(bottomElements);
+  if (bottomElementsStr) content += `\n  ${bottomElementsStr}`;
 
   if (content.length > 0) {
     return `<${tagName}${attrsText}>${content}\n</${tagName}>`;

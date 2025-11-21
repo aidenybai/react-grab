@@ -23,22 +23,24 @@ const run = async () => {
       {
         testName: name,
         type: "control" as const,
-        promise: runClaudeCodeTest({
-          prompt: `ONLY RETURN THE FILE NAME, NO OTHER TEXT. ${prompt}`,
-          expectedFile,
-          cwd: TARGET_ENVIRONMENT_DIR,
-        }),
+        run: () =>
+          runClaudeCodeTest({
+            prompt: `ONLY RETURN THE FILE NAME, NO OTHER TEXT. ${prompt}`,
+            expectedFile,
+            cwd: TARGET_ENVIRONMENT_DIR,
+          }),
       },
       {
         testName: name,
         type: "treatment" as const,
-        promise: runClaudeCodeTest({
-          prompt: `ONLY RETURN THE FILE NAME, NO OTHER TEXT. ${prompt}
+        run: () =>
+          runClaudeCodeTest({
+            prompt: `ONLY RETURN THE FILE NAME, NO OTHER TEXT. ${prompt}
 
 ${reactGrabOutput}`,
-          expectedFile,
-          cwd: TARGET_ENVIRONMENT_DIR,
-        }),
+            expectedFile,
+            cwd: TARGET_ENVIRONMENT_DIR,
+          }),
       },
     ];
   });
@@ -52,21 +54,27 @@ ${reactGrabOutput}`,
 
   await fs.writeFile(outputPath, JSON.stringify(results, null, 2));
 
-  await Promise.all(
-    allTests.map(async ({ testName, type, promise }) => {
-      const result = await promise;
-      const testResult = {
-        testName,
-        type,
-        ...result,
-      };
+  const BATCH_SIZE = 5;
 
-      results.push(testResult);
-      await fs.writeFile(outputPath, JSON.stringify(results, null, 2));
+  for (let i = 0; i < allTests.length; i += BATCH_SIZE) {
+    const batch = allTests.slice(i, i + BATCH_SIZE);
 
-      spinner.text = `Completed ${results.length}/${allTests.length} tests`;
-    }),
-  );
+    await Promise.all(
+      batch.map(async ({ testName, type, run }) => {
+        const result = await run();
+        const testResult = {
+          testName,
+          type,
+          ...result,
+        };
+
+        results.push(testResult);
+        await fs.writeFile(outputPath, JSON.stringify(results, null, 2));
+
+        spinner.text = `Completed ${results.length}/${allTests.length} tests`;
+      }),
+    );
+  }
 
   spinner.stop();
 

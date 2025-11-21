@@ -12,6 +12,15 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
+  redirects: async () => {
+    return [
+      {
+        source: "/benchmarks",
+        destination: "/blog/intro",
+        permanent: true,
+      },
+    ];
+  },
   rewrites: async () => {
     return {
       beforeFiles: [

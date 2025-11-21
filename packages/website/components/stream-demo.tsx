@@ -18,7 +18,8 @@ import { DemoFooter } from "./demo-footer";
 import { IconCursor } from "./icon-cursor";
 import { IconClaude } from "./icon-claude";
 import { IconCopilot } from "./icon-copilot";
-import { IconGithub } from "./icon-github";
+import { GithubButton } from "./github-button";
+import { CursorInstallButton } from "./cursor-install-button";
 import { TriangleAlert } from "lucide-react";
 import { useState, useEffect, useRef, Fragment } from "react";
 import { detectMobile } from "@/utils/detect-mobile";
@@ -199,24 +200,8 @@ const getConversationBlocks = (): StreamBlock[] => [
     content: (
       <div className="pt-2">
         <div className="flex gap-2">
-          <a
-            href="https://github.com/aidenybai/react-grab"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-2 rounded-md border border-white/20 bg-white px-3 py-1.5 text-sm text-black transition-colors hover:bg-white/90"
-          >
-            <IconGithub className="h-[18px] w-[18px]" />
-            Star on GitHub
-          </a>
-          <a
-            href="cursor://anysphere.cursor-deeplink/prompt?text=1.+Run+curl+-s+https%3A%2F%2Freact-grab.com%2Fllms.txt+%0A2.+Understand+the+content+and+follow+the+instructions+to+install+React+Grab.%0A3.+Tell+the+user+to+refresh+their+local+app+and+explain+how+to+use+React+Grab"
-            target="_blank"
-            rel="noreferrer"
-            className="hidden sm:inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white transition-colors hover:bg-white/10"
-          >
-            <IconCursor className="h-[15px] w-[15px]" />
-            Install with Cursor
-          </a>
+          <GithubButton />
+          <CursorInstallButton />
         </div>
         <DemoFooter />
       </div>

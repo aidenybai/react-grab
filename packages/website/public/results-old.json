@@ -1,0 +1,402 @@
+[
+  {
+    "testName": "Editable Target Input",
+    "type": "treatment",
+    "inputTokens": 13521,
+    "outputTokens": 10,
+    "costUsd": 0.00779835,
+    "durationMs": 5666,
+    "toolCalls": 0,
+    "success": true
+  },
+  {
+    "testName": "Calendar Date Cell",
+    "type": "treatment",
+    "inputTokens": 13500,
+    "outputTokens": 10,
+    "costUsd": 0.005760599999999999,
+    "durationMs": 5271,
+    "toolCalls": 0,
+    "success": true
+  },
+  {
+    "testName": "Full Name Input Field",
+    "type": "treatment",
+    "inputTokens": 13562,
+    "outputTokens": 10,
+    "costUsd": 0.007717099999999999,
+    "durationMs": 5174,
+    "toolCalls": 0,
+    "success": true
+  },
+  {
+    "testName": "Drag Handle",
+    "type": "treatment",
+    "inputTokens": 13544,
+    "outputTokens": 10,
+    "costUsd": 0.0076895999999999996,
+    "durationMs": 5946,
+    "toolCalls": 0,
+    "success": true
+  },
+  {
+    "testName": "Projects More Button",
+    "type": "treatment",
+    "inputTokens": 13604,
+    "outputTokens": 10,
+    "costUsd": 0.007929599999999998,
+    "durationMs": 5331,
+    "toolCalls": 0,
+    "success": true
+  },
+  {
+    "testName": "GitHub Link Button",
+    "type": "treatment",
+    "inputTokens": 13536,
+    "outputTokens": 10,
+    "costUsd": 0.005895599999999999,
+    "durationMs": 5499,
+    "toolCalls": 0,
+    "success": true
+  },
+  {
+    "testName": "Keyboard Shortcut Badge",
+    "type": "treatment",
+    "inputTokens": 13561,
+    "outputTokens": 11,
+    "costUsd": 0.007753349999999998,
+    "durationMs": 5856,
+    "toolCalls": 0,
+    "success": true
+  },
+  {
+    "testName": "Field Description Text",
+    "type": "treatment",
+    "inputTokens": 13592,
+    "outputTokens": 10,
+    "costUsd": 0.007739599999999999,
+    "durationMs": 5282,
+    "toolCalls": 0,
+    "success": true
+  },
+  {
+    "testName": "Team Switcher Dropdown",
+    "type": "treatment",
+    "inputTokens": 13607,
+    "outputTokens": 11,
+    "costUsd": 0.007790849999999999,
+    "durationMs": 7409,
+    "toolCalls": 0,
+    "success": true
+  },
+  {
+    "testName": "Sidebar Trigger Toggle",
+    "type": "treatment",
+    "inputTokens": 13533,
+    "outputTokens": 10,
+    "costUsd": 0.00744335,
+    "durationMs": 7317,
+    "toolCalls": 0,
+    "success": true
+  },
+  {
+    "testName": "Time Range Toggle",
+    "type": "control",
+    "inputTokens": 26980,
+    "outputTokens": 139,
+    "costUsd": 0.019286849999999998,
+    "durationMs": 9231,
+    "toolCalls": 1,
+    "success": true
+  },
+  {
+    "testName": "Forgot Password Link",
+    "type": "treatment",
+    "inputTokens": 28026,
+    "outputTokens": 69,
+    "costUsd": 0.022056149999999997,
+    "durationMs": 9007,
+    "toolCalls": 1,
+    "success": true
+  },
+  {
+    "testName": "Grayscale Avatar",
+    "type": "treatment",
+    "inputTokens": 28492,
+    "outputTokens": 69,
+    "costUsd": 0.023527549999999998,
+    "durationMs": 9723,
+    "toolCalls": 1,
+    "success": true
+  },
+  {
+    "testName": "Quick Create Button",
+    "type": "treatment",
+    "inputTokens": 28079,
+    "outputTokens": 69,
+    "costUsd": 0.016209249999999998,
+    "durationMs": 9510,
+    "toolCalls": 1,
+    "success": true
+  },
+  {
+    "testName": "Tabs with Badges",
+    "type": "control",
+    "inputTokens": 26916,
+    "outputTokens": 95,
+    "costUsd": 0.01913135,
+    "durationMs": 10001,
+    "toolCalls": 1,
+    "success": true
+  },
+  {
+    "testName": "Dropdown Actions",
+    "type": "treatment",
+    "inputTokens": 13608,
+    "outputTokens": 10,
+    "costUsd": 0.0139936,
+    "durationMs": 10296,
+    "toolCalls": 0,
+    "success": true
+  },
+  {
+    "testName": "Full Name Input Field",
+    "type": "control",
+    "inputTokens": 26910,
+    "outputTokens": 87,
+    "costUsd": 0.0182804,
+    "durationMs": 10422,
+    "toolCalls": 1,
+    "success": true
+  },
+  {
+    "testName": "Drag Handle",
+    "type": "control",
+    "inputTokens": 26927,
+    "outputTokens": 110,
+    "costUsd": 0.015809099999999996,
+    "durationMs": 11451,
+    "toolCalls": 1,
+    "success": true
+  },
+  {
+    "testName": "Time Range Toggle",
+    "type": "treatment",
+    "inputTokens": 32056,
+    "outputTokens": 109,
+    "costUsd": 0.03821815,
+    "durationMs": 11579,
+    "toolCalls": 1,
+    "success": true
+  },
+  {
+    "testName": "Tabs with Badges",
+    "type": "treatment",
+    "inputTokens": 27850,
+    "outputTokens": 125,
+    "costUsd": 0.01812005,
+    "durationMs": 12359,
+    "toolCalls": 1,
+    "success": true
+  },
+  {
+    "testName": "Team Switcher Dropdown",
+    "type": "control",
+    "inputTokens": 26943,
+    "outputTokens": 122,
+    "costUsd": 0.0191476,
+    "durationMs": 13285,
+    "toolCalls": 1,
+    "success": true
+  },
+  {
+    "testName": "Status Badge",
+    "type": "treatment",
+    "inputTokens": 37218,
+    "outputTokens": 100,
+    "costUsd": 0.0539481,
+    "durationMs": 12173,
+    "toolCalls": 1,
+    "success": true
+  },
+  {
+    "testName": "Revenue Card Badge",
+    "type": "control",
+    "inputTokens": 42662,
+    "outputTokens": 322,
+    "costUsd": 0.03291495,
+    "durationMs": 14523,
+    "toolCalls": 5,
+    "success": true
+  },
+  {
+    "testName": "Grayscale Avatar",
+    "type": "control",
+    "inputTokens": 42241,
+    "outputTokens": 269,
+    "costUsd": 0.0324918,
+    "durationMs": 14965,
+    "toolCalls": 3,
+    "success": true
+  },
+  {
+    "testName": "Sign Up With Google Button",
+    "type": "treatment",
+    "inputTokens": 13576,
+    "outputTokens": 10,
+    "costUsd": 0.013643599999999999,
+    "durationMs": 14968,
+    "toolCalls": 0,
+    "success": true
+  },
+  {
+    "testName": "Forgot Password Link",
+    "type": "control",
+    "inputTokens": 41795,
+    "outputTokens": 261,
+    "costUsd": 0.02932575,
+    "durationMs": 15433,
+    "toolCalls": 5,
+    "success": true
+  },
+  {
+    "testName": "OTP Input",
+    "type": "treatment",
+    "inputTokens": 28413,
+    "outputTokens": 96,
+    "costUsd": 0.023783099999999998,
+    "durationMs": 14273,
+    "toolCalls": 1,
+    "success": true
+  },
+  {
+    "testName": "Quick Create Button",
+    "type": "control",
+    "inputTokens": 41302,
+    "outputTokens": 141,
+    "costUsd": 0.027811199999999998,
+    "durationMs": 14927,
+    "toolCalls": 2,
+    "success": true
+  },
+  {
+    "testName": "GitHub Link Button",
+    "type": "control",
+    "inputTokens": 41511,
+    "outputTokens": 262,
+    "costUsd": 0.031107299999999997,
+    "durationMs": 15360,
+    "toolCalls": 5,
+    "success": true
+  },
+  {
+    "testName": "Projects More Button",
+    "type": "control",
+    "inputTokens": 42251,
+    "outputTokens": 381,
+    "costUsd": 0.029370999999999998,
+    "durationMs": 15731,
+    "toolCalls": 4,
+    "success": true
+  },
+  {
+    "testName": "OTP Input",
+    "type": "control",
+    "inputTokens": 43219,
+    "outputTokens": 246,
+    "costUsd": 0.0360602,
+    "durationMs": 16641,
+    "toolCalls": 4,
+    "success": true
+  },
+  {
+    "testName": "Revenue Card Badge",
+    "type": "treatment",
+    "inputTokens": 28860,
+    "outputTokens": 114,
+    "costUsd": 0.022516099999999997,
+    "durationMs": 16845,
+    "toolCalls": 1,
+    "success": true
+  },
+  {
+    "testName": "Sidebar Trigger Toggle",
+    "type": "control",
+    "inputTokens": 41324,
+    "outputTokens": 185,
+    "costUsd": 0.026903449999999995,
+    "durationMs": 17608,
+    "toolCalls": 3,
+    "success": true
+  },
+  {
+    "testName": "Editable Target Input",
+    "type": "control",
+    "inputTokens": 51185,
+    "outputTokens": 343,
+    "costUsd": 0.06662345,
+    "durationMs": 18255,
+    "toolCalls": 4,
+    "success": true
+  },
+  {
+    "testName": "Calendar Date Cell",
+    "type": "control",
+    "inputTokens": 44219,
+    "outputTokens": 273,
+    "costUsd": 0.039314249999999995,
+    "durationMs": 18895,
+    "toolCalls": 4,
+    "success": true
+  },
+  {
+    "testName": "Dropdown Actions",
+    "type": "control",
+    "inputTokens": 57234,
+    "outputTokens": 549,
+    "costUsd": 0.04281249999999999,
+    "durationMs": 20096,
+    "toolCalls": 6,
+    "success": true
+  },
+  {
+    "testName": "Keyboard Shortcut Badge",
+    "type": "control",
+    "inputTokens": 55550,
+    "outputTokens": 269,
+    "costUsd": 0.0356668,
+    "durationMs": 19789,
+    "toolCalls": 3,
+    "success": true
+  },
+  {
+    "testName": "Field Description Text",
+    "type": "control",
+    "inputTokens": 54198,
+    "outputTokens": 252,
+    "costUsd": 0.030540399999999995,
+    "durationMs": 25541,
+    "toolCalls": 3,
+    "success": true
+  },
+  {
+    "testName": "Sign Up With Google Button",
+    "type": "control",
+    "inputTokens": 41643,
+    "outputTokens": 152,
+    "costUsd": 0.027177349999999996,
+    "durationMs": 34030,
+    "toolCalls": 3,
+    "success": true
+  },
+  {
+    "testName": "Status Badge",
+    "type": "control",
+    "inputTokens": 123594,
+    "outputTokens": 738,
+    "costUsd": 0.10045275,
+    "durationMs": 38352,
+    "toolCalls": 9,
+    "success": true
+  }
+]
