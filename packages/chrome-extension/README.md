@@ -145,7 +145,11 @@ The extension requires these permissions:
 
 ## Contributing
 
-This extension is part of the React Grab monorepo. See the main [CONTRIBUTING.md](../../CONTRIBUTING.md) for development guidelines.
+## Author
+
+Made by [@creativerezz](https://github.com/creativerezz) during a "this should be a Chrome extension" moment that spiraled beautifully out of control 
+
+Follow more questionable ideas on [X/Twitter](https://x.com/creativerezz) 🚀
 
 ## License
 
