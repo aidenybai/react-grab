@@ -11,6 +11,7 @@ import { isKeyboardEventTriggeredByInput } from "./utils/is-keyboard-event-trigg
 import { mountRoot } from "./utils/mount-root.js";
 import { ReactGrabRenderer } from "./components/renderer.js";
 import { getStack, formatStack, getHTMLPreview } from "./instrumentation.js";
+import { isInstrumentationActive } from "bippy";
 import { copyContent } from "./utils/copy-content.js";
 import { playCopySound } from "./utils/play-copy-sound.js";
 import { getElementAtPosition } from "./utils/get-element-at-position.js";
@@ -242,13 +243,26 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       extraPrompt?: string,
     ): Promise<boolean> => {
       let didCopy = false;
+      const isReactProject = isInstrumentationActive();
 
       try {
         const elementSnippetResults = await Promise.allSettled(
-          elements.map(
-            async (element) =>
-              `## HTML Frame:\n${getHTMLPreview(element)}\n\n## Code Location:\n${formatStack(await getStack(element))}`,
-          ),
+          elements.map(async (element) => {
+            const htmlPreview = getHTMLPreview(element);
+
+            if (!isReactProject) {
+              return `## HTML Frame:\n${htmlPreview}`;
+            }
+
+            const stack = await getStack(element);
+            const formattedStack = formatStack(stack);
+
+            if (formattedStack) {
+              return `## HTML Frame:\n${htmlPreview}\n\n## Code Location:\n${formattedStack}`;
+            }
+
+            return `## HTML Frame:\n${htmlPreview}`;
+          }),
         );
 
         const elementSnippets = elementSnippetResults

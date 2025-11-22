@@ -6,8 +6,8 @@ import {
   isFiber,
   isHostFiber,
   traverseFiber,
+  isInstrumentationActive,
 } from "bippy";
-// import { isCapitalized } from "./utils/is-capitalized.js";
 
 import {
   FiberSource,
@@ -67,26 +67,32 @@ export const checkIsSourceComponentName = (name: string): boolean => {
 };
 
 export const getNearestComponentName = (element: Element): string | null => {
-  const fiber = getFiberFromHostInstance(element);
-  if (!fiber) return null;
+  if (!isInstrumentationActive()) return null;
 
-  let foundComponentName: string | null = null;
-  traverseFiber(
-    fiber,
-    (currentFiber) => {
-      if (isCompositeFiber(currentFiber)) {
-        const displayName = getDisplayName(currentFiber);
-        if (displayName && checkIsSourceComponentName(displayName)) {
-          foundComponentName = displayName;
-          return true;
+  try {
+    const fiber = getFiberFromHostInstance(element);
+    if (!fiber) return null;
+
+    let foundComponentName: string | null = null;
+    traverseFiber(
+      fiber,
+      (currentFiber) => {
+        if (isCompositeFiber(currentFiber)) {
+          const displayName = getDisplayName(currentFiber);
+          if (displayName && checkIsSourceComponentName(displayName)) {
+            foundComponentName = displayName;
+            return true;
+          }
         }
-      }
-      return false;
-    },
-    true,
-  );
+        return false;
+      },
+      true,
+    );
 
-  return foundComponentName;
+    return foundComponentName;
+  } catch {
+    return null;
+  }
 };
 
 interface StackFrame {
@@ -102,39 +108,45 @@ interface UnresolvedStackFrame {
 export const getStack = async (
   element: Element,
 ): Promise<Array<StackFrame>> => {
-  const maybeFiber = getFiberFromHostInstance(element);
-  if (!maybeFiber || !isFiber(maybeFiber)) return [];
-  const fiber = getLatestFiber(maybeFiber);
+  if (!isInstrumentationActive()) return [];
 
-  const unresolvedStack: Array<UnresolvedStackFrame> = [];
+  try {
+    const maybeFiber = getFiberFromHostInstance(element);
+    if (!maybeFiber || !isFiber(maybeFiber)) return [];
+    const fiber = getLatestFiber(maybeFiber);
 
-  traverseFiber(
-    fiber,
-    (currentFiber) => {
-      const displayName = isHostFiber(currentFiber)
-        ? typeof currentFiber.type === "string"
-          ? currentFiber.type
-          : null
-        : getDisplayName(currentFiber);
+    const unresolvedStack: Array<UnresolvedStackFrame> = [];
 
-      if (displayName && !checkIsInternalComponentName(displayName)) {
-        unresolvedStack.push({
-          name: displayName,
-          sourcePromise: getSource(currentFiber),
-        });
-      }
-    },
-    true,
-  );
+    traverseFiber(
+      fiber,
+      (currentFiber) => {
+        const displayName = isHostFiber(currentFiber)
+          ? typeof currentFiber.type === "string"
+            ? currentFiber.type
+            : null
+          : getDisplayName(currentFiber);
 
-  const resolvedStack = await Promise.all(
-    unresolvedStack.map(async (frame) => ({
-      name: frame.name,
-      source: await frame.sourcePromise,
-    })),
-  );
+        if (displayName && !checkIsInternalComponentName(displayName)) {
+          unresolvedStack.push({
+            name: displayName,
+            sourcePromise: getSource(currentFiber),
+          });
+        }
+      },
+      true,
+    );
 
-  return resolvedStack.filter((frame) => frame.source !== null);
+    const resolvedStack = await Promise.all(
+      unresolvedStack.map(async (frame) => ({
+        name: frame.name,
+        source: await frame.sourcePromise,
+      })),
+    );
+
+    return resolvedStack.filter((frame) => frame.source !== null);
+  } catch {
+    return [];
+  }
 };
 
 export const formatStack = (stack: Array<StackFrame>): string => {
@@ -186,11 +198,11 @@ export const getHTMLPreview = (element: Element): string => {
       if (node.textContent && node.textContent.trim().length > 0) {
         foundFirstText = true;
       }
-    } else if (node.nodeType === Node.ELEMENT_NODE) {
+    } else if (node instanceof Element) {
       if (!foundFirstText) {
-        topElements.push(node as Element);
+        topElements.push(node);
       } else {
-        bottomElements.push(node as Element);
+        bottomElements.push(node);
       }
     }
   }
