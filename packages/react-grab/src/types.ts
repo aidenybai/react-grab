@@ -49,6 +49,7 @@ export interface GrabbedBox {
   id: string;
   bounds: OverlayBounds;
   createdAt: number;
+  element: Element;
 }
 
 export interface Rect {

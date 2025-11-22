@@ -104,6 +104,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [copyStartX, setCopyStartX] = createSignal(OFFSCREEN_POSITION);
     const [copyStartY, setCopyStartY] = createSignal(OFFSCREEN_POSITION);
     const [mouseHasSettled, setMouseHasSettled] = createSignal(false);
+    const [viewportVersion, setViewportVersion] = createSignal(0);
 
     let holdTimerId: number | null = null;
     let progressAnimationId: number | null = null;
@@ -130,10 +131,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
     };
 
-    const showTemporaryGrabbedBox = (bounds: OverlayBounds) => {
+    const showTemporaryGrabbedBox = (bounds: OverlayBounds, element: Element) => {
       const boxId = `grabbed-${Date.now()}-${Math.random()}`;
       const createdAt = Date.now();
-      const newBox: GrabbedBox = { id: boxId, bounds, createdAt };
+      const newBox: GrabbedBox = { id: boxId, bounds, createdAt, element };
       const currentBoxes: GrabbedBox[] = grabbedBoxes();
       setGrabbedBoxes([...currentBoxes, newBox]);
 
@@ -283,7 +284,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const copySingleElementToClipboard = async (targetElement: Element) => {
-      showTemporaryGrabbedBox(createElementBounds(targetElement));
+      showTemporaryGrabbedBox(createElementBounds(targetElement), targetElement);
       await new Promise((resolve) => requestAnimationFrame(resolve));
 
       const didCopy = await tryCopyWithFallback([targetElement]);
@@ -301,7 +302,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (targetElements.length === 0) return;
 
       for (const element of targetElements) {
-        showTemporaryGrabbedBox(createElementBounds(element));
+        showTemporaryGrabbedBox(createElementBounds(element), element);
       }
       await new Promise((resolve) => requestAnimationFrame(resolve));
 
@@ -320,6 +321,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const selectionBounds = createMemo((): OverlayBounds | undefined => {
+      viewportVersion();
       const element = targetElement();
       if (!element) return undefined;
 
@@ -412,6 +414,23 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           if (lastElement && currentElement && lastElement !== currentElement) {
             setLastGrabbedElement(null);
           }
+        },
+      ),
+    );
+
+    createEffect(
+      on(
+        () => viewportVersion(),
+        () => {
+          const currentBoxes = grabbedBoxes();
+          if (currentBoxes.length === 0) return;
+
+          const updatedBoxes = currentBoxes.map((box) => ({
+            ...box,
+            bounds: createElementBounds(box.element),
+          }));
+
+          setGrabbedBoxes(updatedBoxes);
         },
       ),
     );
@@ -741,6 +760,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (document.hidden) {
           setGrabbedBoxes([]);
         }
+      },
+      { signal: eventListenerSignal },
+    );
+
+    window.addEventListener(
+      "scroll",
+      () => {
+        setViewportVersion((version) => version + 1);
+      },
+      { signal: eventListenerSignal, capture: true },
+    );
+
+    window.addEventListener(
+      "resize",
+      () => {
+        setViewportVersion((version) => version + 1);
       },
       { signal: eventListenerSignal },
     );
