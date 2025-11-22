@@ -10,6 +10,7 @@
     "check": "pnpm --filter react-grab check",
     "changeset": "changeset",
     "version": "changeset version",
+    "prebump": "cp README.md packages/react-grab/README.md",
     "bump": "changeset && changeset version",
     "release": "pnpm build && changeset publish",
     "extension:dev": "pnpm --filter web-extension dev",
