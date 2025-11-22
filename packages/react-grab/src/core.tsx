@@ -70,10 +70,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         `background: #330039; color: #ffffff; border: 1px solid #d75fcb; padding: 4px 4px 4px 24px; border-radius: 4px; background-image: url("${logoDataUri}"); background-size: 16px 16px; background-repeat: no-repeat; background-position: 4px center; display: inline-block; margin-bottom: 4px;`,
         "",
       );
-
-      fetch("https://www.react-grab.com/api/version")
-        .then((res) => res.text())
-        .catch(() => null);
+      if (navigator.onLine) {
+        fetch("https://www.react-grab.com/api/version", {
+          referrerPolicy: "origin",
+          keepalive: true,
+          priority: "low",
+          cache: "no-store",
+        })
+          .then((res) => res.text())
+          .catch(() => null);
+      }
     } catch {}
   };
 

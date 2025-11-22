@@ -1,21 +1,20 @@
 import packageJson from "react-grab/package.json";
 
-export const runtime = "edge";
-
-const corsHeaders = {
+const headers = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Methods": "*",
+  "Access-Control-Allow-Headers": "*",
+  "Cache-Control": "no-store, no-cache, must-revalidate",
 };
 
 export function GET() {
   return new Response(packageJson.version, {
-    headers: corsHeaders,
+    headers,
   });
 }
 
 export function OPTIONS() {
   return new Response(null, {
-    headers: corsHeaders,
+    headers,
   });
 }
