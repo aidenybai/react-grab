@@ -4,6 +4,7 @@ import type { ReactGrabRendererProps } from "../types.js";
 import { SelectionBox } from "./selection-box.js";
 import { Label } from "./label.js";
 import { Crosshair } from "./crosshair.js";
+import { InputOverlay } from "./input-overlay.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
   return (
@@ -81,6 +82,17 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           showHint={props.labelShowHint}
         />
       </Show>
+
+      <InputOverlay
+        x={props.inputX ?? 0}
+        y={props.inputY ?? 0}
+        zIndex={props.labelZIndex}
+        value={props.inputValue ?? ""}
+        visible={props.inputVisible ?? false}
+        onInput={props.onInputChange!}
+        onSubmit={props.onInputSubmit!}
+        onCancel={props.onInputCancel!}
+      />
     </>
   );
 };

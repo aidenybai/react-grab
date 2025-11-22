@@ -43,6 +43,13 @@ export interface ReactGrabRendererProps {
   mouseX?: number;
   mouseY?: number;
   crosshairVisible?: boolean;
+  inputVisible?: boolean;
+  inputX?: number;
+  inputY?: number;
+  inputValue?: string;
+  onInputChange?: (value: string) => void;
+  onInputSubmit?: () => void;
+  onInputCancel?: () => void;
 }
 
 export interface GrabbedBox {
