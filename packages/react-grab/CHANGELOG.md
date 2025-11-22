@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.47
+
+### Patch Changes
+
+- fix: use event code instead of event key
+
 ## 0.0.46
 
 ### Patch Changes
