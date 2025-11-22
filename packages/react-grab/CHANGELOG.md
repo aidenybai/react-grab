@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.48
+
+### Patch Changes
+
+- fix: version fetching
+
 ## 0.0.47
 
 ### Patch Changes
