@@ -1,6 +1,6 @@
 {
   "name": "react-grab",
-  "version": "0.0.44",
+  "version": "0.0.45",
   "description": "Grab any element in your app and give it to Cursor, Claude Code, or other AI coding agents.",
   "keywords": [
     "react",
