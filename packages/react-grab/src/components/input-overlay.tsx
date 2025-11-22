@@ -76,11 +76,12 @@ export const InputOverlay: Component<InputOverlayProps> = (props) => {
   };
 
   const handleKeyDown = (event: KeyboardEvent) => {
-    if (event.key === "Enter" && !event.shiftKey) {
+    // NOTE: we use event.code instead of event.key for keyboard layout compatibility (e.g., AZERTY, QWERTZ)
+    if (event.code === "Enter" && !event.shiftKey) {
       event.preventDefault();
       event.stopPropagation();
       props.onSubmit();
-    } else if (event.key === "Escape") {
+    } else if (event.code === "Escape") {
       event.preventDefault();
       event.stopPropagation();
       props.onCancel();
@@ -105,67 +106,67 @@ export const InputOverlay: Component<InputOverlayProps> = (props) => {
       ref={containerRef}
       data-react-grab-input
       style={{
-          display: props.visible ? "block" : "none",
-          position: "fixed",
-          top: `${computedPosition().top}px`,
-          left: `${computedPosition().left}px`,
-          "background-color": "#fde7f7",
-          color: "#b21c8e",
-          border: "1px solid #f7c5ec",
-          "border-radius": "4px",
-          "font-size": "11px",
-          "font-weight": "500",
-          "font-family":
-            "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-          "z-index": props.zIndex?.toString() ?? "2147483647",
-          "pointer-events": props.visible ? "auto" : "none",
-          "max-width":
-            "calc(100vw - (16px + env(safe-area-inset-left) + env(safe-area-inset-right)))",
-          overflow: "hidden",
+        display: props.visible ? "block" : "none",
+        position: "fixed",
+        top: `${computedPosition().top}px`,
+        left: `${computedPosition().left}px`,
+        "background-color": "#fde7f7",
+        color: "#b21c8e",
+        border: "1px solid #f7c5ec",
+        "border-radius": "4px",
+        "font-size": "11px",
+        "font-weight": "500",
+        "font-family":
+          "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        "z-index": props.zIndex?.toString() ?? "2147483647",
+        "pointer-events": props.visible ? "auto" : "none",
+        "max-width":
+          "calc(100vw - (16px + env(safe-area-inset-left) + env(safe-area-inset-right)))",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          position: "relative",
+          padding: "2px 3px",
+          display: "flex",
+          "flex-direction": "column",
+          gap: "2px",
         }}
       >
+        <textarea
+          ref={inputRef}
+          value={props.value}
+          onInput={handleInput}
+          onKeyDown={handleKeyDown}
+          placeholder="e.g., Make this button larger"
+          rows={1}
+          style={{
+            width: "240px",
+            padding: "2px 4px",
+            "background-color": "#ffffff",
+            color: "#b21c8e",
+            border: "1px solid #f7c5ec",
+            "border-radius": "3px",
+            "font-size": "11px",
+            "line-height": "1.2",
+            "font-family":
+              "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+            outline: "none",
+            resize: "vertical",
+            "min-height": "18px",
+          }}
+        />
         <div
           style={{
-            position: "relative",
-            padding: "2px 3px",
-            display: "flex",
-            "flex-direction": "column",
-            gap: "2px",
+            "font-size": "9px",
+            opacity: "0.6",
+            "text-align": "center",
           }}
         >
-          <textarea
-            ref={inputRef}
-            value={props.value}
-            onInput={handleInput}
-            onKeyDown={handleKeyDown}
-            placeholder="e.g., Make this button larger"
-            rows={1}
-            style={{
-              width: "240px",
-              padding: "2px 4px",
-              "background-color": "#ffffff",
-              color: "#b21c8e",
-              border: "1px solid #f7c5ec",
-              "border-radius": "3px",
-              "font-size": "11px",
-              "line-height": "1.2",
-              "font-family":
-                "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-              outline: "none",
-              resize: "vertical",
-              "min-height": "18px",
-            }}
-          />
-          <div
-            style={{
-              "font-size": "9px",
-              opacity: "0.6",
-              "text-align": "center",
-            }}
-          >
-            Enter ⏎ to submit, Escape to cancel
-          </div>
+          Enter ⏎ to submit, Escape to cancel
         </div>
       </div>
+    </div>
   );
 };

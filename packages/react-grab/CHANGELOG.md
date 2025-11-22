@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.46
+
+### Patch Changes
+
+- fix: non-react projects
+
 ## 0.0.45
 
 ### Patch Changes

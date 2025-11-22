@@ -123,7 +123,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const isTargetKeyCombination = (event: KeyboardEvent) =>
-      (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "c";
+      // NOTE: we use event.code instead of event.key for keyboard layout compatibility (e.g., AZERTY, QWERTZ)
+      (event.metaKey || event.ctrlKey) && event.code === "KeyC";
 
     const getAutoScrollDirection = (clientX: number, clientY: number) => {
       return {
@@ -624,7 +625,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     window.addEventListener(
       "keydown",
       (event: KeyboardEvent) => {
-        if (event.key === "Escape" && isHoldingKeys()) {
+        // NOTE: we use event.code instead of event.key for keyboard layout compatibility (e.g., AZERTY, QWERTZ)
+        if (event.code === "Escape" && isHoldingKeys()) {
           if (isInputMode()) {
             return;
           }
@@ -632,7 +634,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        if (event.key === "Enter" && isHoldingKeys() && !isInputMode()) {
+        if (event.code === "Enter" && isHoldingKeys() && !isInputMode()) {
           setIsToggleMode(true);
 
           if (keydownSpamTimerId !== null) {
@@ -693,7 +695,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!isHoldingKeys() && !isActivated()) return;
 
         const isReleasingModifier = !event.metaKey && !event.ctrlKey;
-        const isReleasingC = event.key.toLowerCase() === "c";
+        // NOTE: we use event.code instead of event.key for keyboard layout compatibility (e.g., AZERTY, QWERTZ)
+        const isReleasingC = event.code === "KeyC";
 
         if (isReleasingC || isReleasingModifier) {
           if (isToggleMode()) return;
