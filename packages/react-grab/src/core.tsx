@@ -26,6 +26,8 @@ import {
   OFFSCREEN_POSITION,
   DRAG_THRESHOLD_PX,
   Z_INDEX_LABEL,
+  AUTO_SCROLL_EDGE_THRESHOLD_PX,
+  AUTO_SCROLL_SPEED_PX,
 } from "./constants.js";
 import type {
   Options,
@@ -108,6 +110,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let progressDelayTimerId: number | null = null;
     let keydownSpamTimerId: number | null = null;
     let mouseSettleTimerId: number | null = null;
+    let autoScrollAnimationId: number | null = null;
 
     const isRendererActive = createMemo(() => isActivated() && !isCopying());
 
@@ -117,6 +120,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const isTargetKeyCombination = (event: KeyboardEvent) =>
       (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "c";
+
+    const getAutoScrollDirection = (clientX: number, clientY: number) => {
+      return {
+        top: clientY < AUTO_SCROLL_EDGE_THRESHOLD_PX,
+        bottom: clientY > window.innerHeight - AUTO_SCROLL_EDGE_THRESHOLD_PX,
+        left: clientX < AUTO_SCROLL_EDGE_THRESHOLD_PX,
+        right: clientX > window.innerWidth - AUTO_SCROLL_EDGE_THRESHOLD_PX,
+      };
+    };
 
     const showTemporaryGrabbedBox = (bounds: OverlayBounds) => {
       const boxId = `grabbed-${Date.now()}-${Math.random()}`;
@@ -324,10 +336,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
     });
 
-    const calculateDragDistance = (endX: number, endY: number) => ({
-      x: Math.abs(endX - dragStartX()),
-      y: Math.abs(endY - dragStartY()),
-    });
+    const calculateDragDistance = (endX: number, endY: number) => {
+      const endPageX = endX + window.scrollX;
+      const endPageY = endY + window.scrollY;
+
+      return {
+        x: Math.abs(endPageX - dragStartX()),
+        y: Math.abs(endPageY - dragStartY()),
+      };
+    };
 
     const isDraggingBeyondThreshold = createMemo(() => {
       if (!isDragging()) return false;
@@ -340,14 +357,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const calculateDragRectangle = (endX: number, endY: number) => {
-      const dragX = Math.min(dragStartX(), endX);
-      const dragY = Math.min(dragStartY(), endY);
-      const dragWidth = Math.abs(endX - dragStartX());
-      const dragHeight = Math.abs(endY - dragStartY());
+      const endPageX = endX + window.scrollX;
+      const endPageY = endY + window.scrollY;
+
+      const dragPageX = Math.min(dragStartX(), endPageX);
+      const dragPageY = Math.min(dragStartY(), endPageY);
+      const dragWidth = Math.abs(endPageX - dragStartX());
+      const dragHeight = Math.abs(endPageY - dragStartY());
 
       return {
-        x: dragX,
-        y: dragY,
+        x: dragPageX - window.scrollX,
+        y: dragPageY - window.scrollY,
         width: dragWidth,
         height: dragHeight,
       };
@@ -443,6 +463,42 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setShowProgressIndicator(false);
     };
 
+    const startAutoScroll = () => {
+      const scroll = () => {
+        if (!isDragging()) {
+          stopAutoScroll();
+          return;
+        }
+
+        const direction = getAutoScrollDirection(mouseX(), mouseY());
+
+        if (direction.top) window.scrollBy(0, -AUTO_SCROLL_SPEED_PX);
+        if (direction.bottom) window.scrollBy(0, AUTO_SCROLL_SPEED_PX);
+        if (direction.left) window.scrollBy(-AUTO_SCROLL_SPEED_PX, 0);
+        if (direction.right) window.scrollBy(AUTO_SCROLL_SPEED_PX, 0);
+
+        if (
+          direction.top ||
+          direction.bottom ||
+          direction.left ||
+          direction.right
+        ) {
+          autoScrollAnimationId = requestAnimationFrame(scroll);
+        } else {
+          autoScrollAnimationId = null;
+        }
+      };
+
+      scroll();
+    };
+
+    const stopAutoScroll = () => {
+      if (autoScrollAnimationId !== null) {
+        cancelAnimationFrame(autoScrollAnimationId);
+        autoScrollAnimationId = null;
+      }
+    };
+
     const activateRenderer = () => {
       stopProgressAnimation();
       setIsActivated(true);
@@ -466,6 +522,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         mouseSettleTimerId = null;
       }
       setMouseHasSettled(false);
+      stopAutoScroll();
       stopProgressAnimation();
       options.onDeactivate?.();
     };
@@ -565,6 +622,24 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           setMouseHasSettled(true);
           mouseSettleTimerId = null;
         }, 300);
+
+        if (isDragging()) {
+          const direction = getAutoScrollDirection(
+            event.clientX,
+            event.clientY,
+          );
+          const isNearEdge =
+            direction.top ||
+            direction.bottom ||
+            direction.left ||
+            direction.right;
+
+          if (isNearEdge && autoScrollAnimationId === null) {
+            startAutoScroll();
+          } else if (!isNearEdge && autoScrollAnimationId !== null) {
+            stopAutoScroll();
+          }
+        }
       },
       { signal: eventListenerSignal },
     );
@@ -576,8 +651,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         event.preventDefault();
         setIsDragging(true);
-        setDragStartX(event.clientX);
-        setDragStartY(event.clientY);
+        setDragStartX(event.clientX + window.scrollX);
+        setDragStartY(event.clientY + window.scrollY);
         document.body.style.userSelect = "none";
       },
       { signal: eventListenerSignal },
@@ -598,6 +673,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           dragDistance.y > DRAG_THRESHOLD_PX;
 
         setIsDragging(false);
+        stopAutoScroll();
         document.body.style.userSelect = "";
 
         if (wasDragGesture) {
@@ -674,6 +750,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (holdTimerId) window.clearTimeout(holdTimerId);
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
       if (mouseSettleTimerId) window.clearTimeout(mouseSettleTimerId);
+      stopAutoScroll();
       stopProgressAnimation();
       document.body.style.userSelect = "";
       document.body.style.cursor = "";
