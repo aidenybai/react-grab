@@ -93,6 +93,29 @@ export default function Document() {
 </html>`,
     changedLines: [4, 5, 6, 7, 8, 9, 10],
   },
+  {
+    id: "webpack",
+    label: "Webpack",
+    fileName: "src/index.tsx",
+    description: "First npm install react-grab, then add this at the top of your main entry file:",
+    code: `import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+
+if (process.env.NODE_ENV === "development") {
+  import("react-grab");
+}
+
+const root = ReactDOM.createRoot(
+  document.getElementById("root") as HTMLElement
+);
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);`,
+    changedLines: [5, 6, 7],
+  },
 ];
 
 export { InstallTabsClient as InstallTabs };

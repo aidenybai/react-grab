@@ -114,6 +114,22 @@ Your `index.html` could look like this:
 </html>
 ```
 
+#### Webpack
+
+First, install React Grab:
+
+```bash
+npm install react-grab
+```
+
+Then add this at the top of your main entry file (e.g., `src/index.tsx` or `src/main.tsx`):
+
+```tsx
+if (process.env.NODE_ENV === "development") {
+  import("react-grab");
+}
+```
+
 ## Resources & Contributing Back
 
 Want to try it out? Check the [our demo](https://react-grab.com).

@@ -635,6 +635,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
 
         if (event.code === "Enter" && isHoldingKeys() && !isInputMode()) {
+          event.preventDefault();
+          event.stopPropagation();
           setIsToggleMode(true);
 
           if (keydownSpamTimerId !== null) {
