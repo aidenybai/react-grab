@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.49
+
+### Patch Changes
+
+- fix: reactivation bug
+
 ## 0.0.48
 
 ### Patch Changes
