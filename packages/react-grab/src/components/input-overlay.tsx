@@ -105,35 +105,18 @@ export const InputOverlay: Component<InputOverlayProps> = (props) => {
     <div
       ref={containerRef}
       data-react-grab-input
+      class="fixed bg-grab-pink-light text-grab-pink border border-grab-pink-border rounded text-[11px] font-medium font-sans overflow-hidden"
       style={{
         display: props.visible ? "block" : "none",
-        position: "fixed",
         top: `${computedPosition().top}px`,
         left: `${computedPosition().left}px`,
-        "background-color": "#fde7f7",
-        color: "#b21c8e",
-        border: "1px solid #f7c5ec",
-        "border-radius": "4px",
-        "font-size": "11px",
-        "font-weight": "500",
-        "font-family":
-          "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         "z-index": props.zIndex?.toString() ?? "2147483647",
         "pointer-events": props.visible ? "auto" : "none",
         "max-width":
           "calc(100vw - (16px + env(safe-area-inset-left) + env(safe-area-inset-right)))",
-        overflow: "hidden",
       }}
     >
-      <div
-        style={{
-          position: "relative",
-          padding: "2px 3px",
-          display: "flex",
-          "flex-direction": "column",
-          gap: "2px",
-        }}
-      >
+      <div class="relative p-0.5 px-[3px] flex flex-col gap-0.5">
         <textarea
           ref={inputRef}
           value={props.value}
@@ -141,29 +124,9 @@ export const InputOverlay: Component<InputOverlayProps> = (props) => {
           onKeyDown={handleKeyDown}
           placeholder="e.g., Make this button larger"
           rows={1}
-          style={{
-            width: "240px",
-            padding: "2px 4px",
-            "background-color": "#ffffff",
-            color: "#b21c8e",
-            border: "1px solid #f7c5ec",
-            "border-radius": "3px",
-            "font-size": "11px",
-            "line-height": "1.2",
-            "font-family":
-              "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-            outline: "none",
-            resize: "vertical",
-            "min-height": "18px",
-          }}
+          class="w-[240px] px-1 py-0.5 bg-white text-grab-pink border border-grab-pink-border rounded-[3px] text-[11px] leading-tight font-sans outline-none resize-y min-h-[18px]"
         />
-        <div
-          style={{
-            "font-size": "9px",
-            opacity: "0.6",
-            "text-align": "center",
-          }}
-        >
+        <div class="text-[9px] opacity-60 text-center">
           Enter ⏎ to submit, Escape to cancel
         </div>
       </div>

@@ -5,12 +5,13 @@ import {
   Show,
   on,
 } from "solid-js";
-import type { JSX, Component } from "solid-js";
+import type { Component } from "solid-js";
 import type { OverlayBounds } from "../types.js";
 import {
   SELECTION_LERP_FACTOR,
 } from "../constants.js";
 import { lerp } from "../utils/lerp.js";
+import { cn } from "../utils/cn.js";
 
 interface SelectionBoxProps {
   variant: "selection" | "grabbed" | "drag";
@@ -119,44 +120,20 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
     isAnimating = false;
   });
 
-  const baseStyle: JSX.CSSProperties = {
-    position: "fixed",
-    "box-sizing": "border-box",
-    "pointer-events": props.variant === "drag" ? "none" : "auto",
-    "z-index": props.variant === "grabbed" ? "2147483645" : "2147483646",
-  };
-
-  const variantStyle = (): JSX.CSSProperties => {
-    if (props.variant === "drag") {
-      return {
-        border: "1px dashed rgba(210, 57, 192, 0.4)",
-        "background-color": "rgba(210, 57, 192, 0.05)",
-        "will-change": "transform, width, height",
-        contain: "layout paint size",
-        cursor: "crosshair",
-      };
-    }
-
-    if (props.variant === "selection") {
-      return {
-        border: "1px dashed rgba(210, 57, 192, 0.5)",
-        "background-color": "rgba(210, 57, 192, 0.08)",
-      };
-    }
-
-    return {
-      border: "1px solid rgb(210, 57, 192)",
-      "background-color": "rgba(210, 57, 192, 0.08)",
-      transition: "opacity 0.3s ease-out",
-    };
-  };
-
   return (
     <Show when={props.visible !== false}>
       <div
+        class={cn(
+          "fixed box-border",
+          props.variant === "drag" && "pointer-events-none",
+          props.variant !== "drag" && "pointer-events-auto",
+          props.variant === "grabbed" && "z-2147483645",
+          props.variant !== "grabbed" && "z-2147483646",
+          props.variant === "drag" && "border border-dashed border-grab-purple/40 bg-grab-purple/5 will-change-[transform,width,height] cursor-crosshair",
+          props.variant === "selection" && "border border-dashed border-grab-purple/50 bg-grab-purple/8",
+          props.variant === "grabbed" && "border border-grab-purple bg-grab-purple/8 transition-opacity duration-300 ease-out"
+        )}
         style={{
-          ...baseStyle,
-          ...variantStyle(),
           top: `${currentY()}px`,
           left: `${currentX()}px`,
           width: `${currentWidth()}px`,
@@ -164,6 +141,7 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
           "border-radius": props.bounds.borderRadius,
           transform: props.bounds.transform,
           opacity: opacity(),
+          contain: props.variant === "drag" ? "layout paint size" : undefined,
         }}
       />
     </Show>

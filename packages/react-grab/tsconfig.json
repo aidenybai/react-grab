@@ -9,6 +9,11 @@
     "strict": true,
     "lib": ["esnext", "dom"]
   },
-  "include": ["src", "tsup.config.ts", "esbuild-plugin-babel.d.ts"],
+  "include": [
+    "src",
+    "tsup.config.ts",
+    "esbuild-plugin-babel.d.ts",
+    "tailwind.config.ts"
+  ],
   "exclude": ["**/node_modules/**", "dist"]
 }

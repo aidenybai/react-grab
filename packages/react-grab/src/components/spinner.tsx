@@ -24,17 +24,8 @@ export const Spinner: Component<SpinnerProps> = (props) => {
   return (
     <span
       ref={spinnerRef}
-      style={{
-        display: "inline-block",
-        width: "8px",
-        height: "8px",
-        border: "1.5px solid rgb(210, 57, 192)",
-        "border-top-color": "transparent",
-        "border-radius": "50%",
-        "margin-right": "4px",
-        "vertical-align": "middle",
-        ...props.style,
-      }}
+      class="inline-block w-2 h-2 border-[1.5px] border-grab-dark-pink border-t-transparent rounded-full mr-1 align-middle"
+      style={props.style}
     />
   );
 };

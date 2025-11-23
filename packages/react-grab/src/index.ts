@@ -10,4 +10,9 @@ globalApi = init();
 export { init };
 export { playCopySound } from "./utils/play-copy-sound.js";
 
-export type { Options, OverlayBounds, ReactGrabRendererProps, ReactGrabAPI } from "./types.js";
+export type {
+  Options,
+  OverlayBounds,
+  ReactGrabRendererProps,
+  ReactGrabAPI,
+} from "./types.js";

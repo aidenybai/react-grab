@@ -16,7 +16,7 @@ const DEFAULT_OPTIONS: Options = {
   banner: {
     js: banner,
   },
-  clean: true,
+  clean: ["**/*", "!styles.css"],
   dts: true,
   entry: [],
   env: {

@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+@theme {
+  --color-grab-pink: #b21c8e;
+  --color-grab-pink-light: #fde7f7;
+  --color-grab-pink-border: #f7c5ec;
+  --color-grab-purple: rgb(210, 57, 192);
+}

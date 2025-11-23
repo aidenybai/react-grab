@@ -1,6 +1,6 @@
 export const ATTRIBUTE_NAME = "data-react-grab";
 
-export const mountRoot = () => {
+export const mountRoot = (cssText?: string) => {
   const mountedHost = document.querySelector(`[${ATTRIBUTE_NAME}]`);
   if (mountedHost) {
     const mountedRoot = mountedHost.shadowRoot?.querySelector(
@@ -19,6 +19,12 @@ export const mountRoot = () => {
   host.style.top = "0";
   host.style.left = "0";
   const shadowRoot = host.attachShadow({ mode: "open" });
+
+  if (cssText) {
+    const styleElement = document.createElement("style");
+    styleElement.textContent = cssText;
+    shadowRoot.appendChild(styleElement);
+  }
 
   const root = document.createElement("div");
 

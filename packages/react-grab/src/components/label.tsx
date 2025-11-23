@@ -101,85 +101,40 @@ export const Label: Component<LabelProps> = (props) => {
     <Show when={props.visible !== false}>
       <div
         ref={labelRef}
+        class="fixed bg-grab-pink-light text-grab-pink border border-grab-pink-border rounded text-[11px] font-medium font-sans pointer-events-none transition-opacity duration-200 ease-in-out overflow-hidden"
         style={{
-          position: "fixed",
           top: `${computedPosition().top}px`,
           left: `${computedPosition().left}px`,
-          "background-color": "#fde7f7",
-          color: "#b21c8e",
-          border: "1px solid #f7c5ec",
-          "border-radius": "4px",
-          "font-size": "11px",
-          "font-weight": "500",
-          "font-family":
-            "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
           "z-index": props.zIndex?.toString() ?? "2147483647",
-          "pointer-events": "none",
           opacity: opacity(),
-          transition: "opacity 0.2s ease-in-out",
           "max-width":
             "calc(100vw - (16px + env(safe-area-inset-left) + env(safe-area-inset-right)))",
-          overflow: "hidden",
         }}
       >
         <Show when={props.variant === "processing" && props.progress !== undefined}>
           <div
+            class="absolute top-0 left-0 bottom-0 bg-grab-pink/20 rounded-[3px] transition-[width] duration-100 ease-out pointer-events-none"
             style={{
-              position: "absolute",
-              top: "0",
-              left: "0",
-              bottom: "0",
               width: `${Math.min(100, Math.max(0, (props.progress ?? 0) * 100))}%`,
-              "background-color": "rgba(178, 28, 142, 0.2)",
-              "border-radius": "3px",
-              transition: "width 0.1s ease-out",
-              "pointer-events": "none",
             }}
           />
         </Show>
-        <div
-          style={{
-            position: "relative",
-            padding: "2px 6px",
-            display: "flex",
-            "flex-direction": "column",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              "align-items": "center",
-              "text-overflow": "ellipsis",
-              "white-space": "nowrap",
-            }}
-          >
+        <div class="relative py-0.5 px-1.5 flex flex-col">
+          <div class="flex items-center text-ellipsis whitespace-nowrap">
             <Show when={props.variant === "processing"}>
               <Spinner />
             </Show>
             <Show when={props.variant === "success"}>
-              <span
-                style={{
-                  display: "inline-block",
-                  "margin-right": "4px",
-                  "font-weight": "600",
-                }}
-              >
+              <span class="inline-block mr-1 font-semibold">
                 ✓
               </span>
             </Show>
             <Show when={props.variant === "success"}>
-              <div style={{ "margin-right": "4px" }}>Copied</div>
+              <div class="mr-1">Copied</div>
             </Show>
             <Show when={props.variant === "processing"}>Please wait…</Show>
             <Show when={props.variant !== "processing"}>
-              <span
-                style={{
-                  "font-family":
-                    "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-                  "font-variant-numeric": "tabular-nums",
-                  "vertical-align": "middle",
-                }}
-              >
+              <span class="font-mono tabular-nums align-middle">
                 {labelSegments().primary}
               </span>
               <Show
@@ -187,31 +142,17 @@ export const Label: Component<LabelProps> = (props) => {
                   props.variant === "hover" && labelSegments().secondary !== ""
                 }
               >
-                <span
-                  style={{
-                    "font-variant-numeric": "tabular-nums",
-                    "font-size": "10px",
-                    "margin-left": "4px",
-                    "vertical-align": "middle",
-                  }}
-                >
+                <span class="tabular-nums text-[10px] ml-1 align-middle">
                   {labelSegments().secondary}
                 </span>
               </Show>
             </Show>
             <Show when={props.variant === "success"}>
-              <div style={{ "margin-left": "4px" }}>to clipboard</div>
+              <div class="ml-1">to clipboard</div>
             </Show>
           </div>
           <Show when={props.variant === "hover" && props.showHint}>
-            <div
-              style={{
-                "font-size": "9px",
-                opacity: "0.6",
-                "text-align": "center",
-                "margin-top": "2px",
-              }}
-            >
+            <div class="text-[9px] opacity-60 text-center mt-0.5">
               Click or drag to select
             </div>
           </Show>

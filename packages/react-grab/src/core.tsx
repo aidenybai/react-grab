@@ -1,3 +1,5 @@
+// @ts-expect-error - CSS imported as text via tsup loader
+import cssText from "../dist/styles.css";
 import {
   createSignal,
   createMemo,
@@ -889,7 +891,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       document.body.style.cursor = "";
     });
 
-    const rendererRoot = mountRoot();
+    const rendererRoot = mountRoot(cssText as string);
 
     const selectionVisible = createMemo(
       () => isRendererActive() && !isDragging() && Boolean(targetElement()),

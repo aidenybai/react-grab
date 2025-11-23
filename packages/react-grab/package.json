@@ -52,8 +52,11 @@
     "LICENSE"
   ],
   "scripts": {
+    "css:build": "tailwindcss -i ./src/styles.css -o ./dist/styles.css -m",
+    "css:watch": "tailwindcss -i ./src/styles.css -o ./dist/styles.css -w",
+    "prebuild": "mkdir -p dist && tailwindcss -i ./src/styles.css -o ./dist/styles.css -m",
     "build": "NODE_ENV=production tsup",
-    "dev": "tsup --watch --ignore-watch dist",
+    "dev": "concurrently \"pnpm:css:watch\" \"tsup --watch --ignore-watch dist\"",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write .",
@@ -64,11 +67,14 @@
   "devDependencies": {
     "@babel/core": "^7.28.5",
     "@babel/preset-typescript": "^7.28.5",
+    "@tailwindcss/cli": "^4.1.17",
     "@types/node": "^20.19.23",
     "babel-preset-solid": "^1.9.10",
+    "concurrently": "^9.1.2",
     "esbuild-plugin-babel": "^0.2.3",
     "eslint": "^9.37.0",
     "publint": "^0.2.12",
+    "tailwindcss": "^4.1.0",
     "terser": "^5.36.0",
     "tsup": "^8.2.4",
     "typescript-eslint": "^8.46.1"
@@ -78,6 +84,8 @@
   },
   "dependencies": {
     "bippy": "^0.5.16",
-    "solid-js": "^1.9.10"
+    "clsx": "^2.1.1",
+    "solid-js": "^1.9.10",
+    "tailwind-merge": "^2.5.5"
   }
 }
