@@ -1,4 +1,5 @@
 import type { OverlayBounds } from "../types.js";
+import { stripTranslateFromTransform } from "./strip-translate-from-transform.js";
 
 export const createElementBounds = (element: Element): OverlayBounds => {
   const boundingRect = element.getBoundingClientRect();
@@ -7,7 +8,7 @@ export const createElementBounds = (element: Element): OverlayBounds => {
   return {
     borderRadius: computedStyle.borderRadius || "0px",
     height: boundingRect.height,
-    transform: computedStyle.transform || "none",
+    transform: stripTranslateFromTransform(element),
     width: boundingRect.width,
     x: boundingRect.left,
     y: boundingRect.top,

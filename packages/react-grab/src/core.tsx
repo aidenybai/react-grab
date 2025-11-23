@@ -23,6 +23,7 @@ import {
   getElementsInDragLoose,
 } from "./utils/get-elements-in-drag.js";
 import { createElementBounds } from "./utils/create-element-bounds.js";
+import { stripTranslateFromTransform } from "./utils/strip-translate-from-transform.js";
 import {
   SUCCESS_LABEL_DURATION_MS,
   PROGRESS_INDICATOR_DELAY_MS,
@@ -72,14 +73,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         `background: #330039; color: #ffffff; border: 1px solid #d75fcb; padding: 4px 4px 4px 24px; border-radius: 4px; background-image: url("${logoDataUri}"); background-size: 16px 16px; background-repeat: no-repeat; background-position: 4px center; display: inline-block; margin-bottom: 4px;`,
         "",
       );
-      if (navigator.onLine) {
-        fetch("https://www.react-grab.com/api/version", {
+      if (navigator.onLine && version) {
+        fetch(`https://www.react-grab.com/api/version?t=${Date.now()}`, {
           referrerPolicy: "origin",
           keepalive: true,
           priority: "low",
           cache: "no-store",
         })
           .then((res) => res.text())
+          .then((latestVersion) => {
+            if (latestVersion && latestVersion !== version) {
+              console.warn(
+                `[React Grab] v${version} is outdated (latest: v${latestVersion})`,
+              );
+            }
+          })
           .catch(() => null);
       }
     } catch {}
@@ -378,7 +386,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return {
         borderRadius: computedStyle.borderRadius || "0px",
         height: elementBounds.height,
-        transform: computedStyle.transform || "none",
+        transform: stripTranslateFromTransform(element),
         width: elementBounds.width,
         x: elementBounds.left,
         y: elementBounds.top,
@@ -670,31 +678,31 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         if (!isTargetKeyCombination(event)) return;
 
-    if (isActivated()) {
-      if (isToggleMode()) return;
+        if (isActivated()) {
+          if (isToggleMode()) return;
 
-      if (keydownSpamTimerId !== null) {
-        window.clearTimeout(keydownSpamTimerId);
-      }
-      keydownSpamTimerId = window.setTimeout(() => {
-        deactivateRenderer();
-      }, 200);
-      return;
-    }
+          if (keydownSpamTimerId !== null) {
+            window.clearTimeout(keydownSpamTimerId);
+          }
+          keydownSpamTimerId = window.setTimeout(() => {
+            deactivateRenderer();
+          }, 200);
+          return;
+        }
 
-    if (isHoldingKeys() && event.repeat) return;
+        if (isHoldingKeys() && event.repeat) return;
 
-    if (holdTimerId !== null) {
-      window.clearTimeout(holdTimerId);
-    }
+        if (holdTimerId !== null) {
+          window.clearTimeout(holdTimerId);
+        }
 
-    if (!isHoldingKeys()) {
-      setIsHoldingKeys(true);
-    }
+        if (!isHoldingKeys()) {
+          setIsHoldingKeys(true);
+        }
 
-    holdTimerId = window.setTimeout(() => {
-      activateRenderer();
-    }, options.keyHoldDuration);
+        holdTimerId = window.setTimeout(() => {
+          activateRenderer();
+        }, options.keyHoldDuration);
       },
       { signal: eventListenerSignal, capture: true },
     );
