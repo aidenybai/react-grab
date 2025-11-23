@@ -46,7 +46,7 @@ let hasInited = false;
 export const init = (rawOptions?: Options): ReactGrabAPI => {
   const options = {
     enabled: true,
-    keyHoldDuration: 300,
+    keyHoldDuration: 150,
     allowActivationInsideInput: true,
     playCopySound: false,
     ...rawOptions,
@@ -638,8 +638,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const abortController = new AbortController();
     const eventListenerSignal = abortController.signal;
 
-    let hasReceivedFirstKeyEvent = false;
-
     window.addEventListener(
       "keydown",
       (event: KeyboardEvent) => {
@@ -702,16 +700,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           setIsHoldingKeys(true);
         }
 
-        const isFirstEventAndRepeat = !hasReceivedFirstKeyEvent && event.repeat;
-        if (!hasReceivedFirstKeyEvent) {
-          hasReceivedFirstKeyEvent = true;
-        }
-
-        const holdDuration = isFirstEventAndRepeat ? 50 : options.keyHoldDuration;
-
         holdTimerId = window.setTimeout(() => {
           activateRenderer();
-        }, holdDuration);
+        }, options.keyHoldDuration);
       },
       { signal: eventListenerSignal, capture: true },
     );
