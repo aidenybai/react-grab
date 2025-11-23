@@ -638,6 +638,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const abortController = new AbortController();
     const eventListenerSignal = abortController.signal;
 
+    let hasReceivedFirstKeyEvent = false;
+
     window.addEventListener(
       "keydown",
       (event: KeyboardEvent) => {
@@ -700,9 +702,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           setIsHoldingKeys(true);
         }
 
+        const isFirstEventAndRepeat = !hasReceivedFirstKeyEvent && event.repeat;
+        if (!hasReceivedFirstKeyEvent) {
+          hasReceivedFirstKeyEvent = true;
+        }
+
+        const holdDuration = isFirstEventAndRepeat ? 50 : options.keyHoldDuration;
+
         holdTimerId = window.setTimeout(() => {
           activateRenderer();
-        }, options.keyHoldDuration);
+        }, holdDuration);
       },
       { signal: eventListenerSignal, capture: true },
     );
