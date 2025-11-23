@@ -46,7 +46,7 @@ let hasInited = false;
 export const init = (rawOptions?: Options): ReactGrabAPI => {
   const options = {
     enabled: true,
-    keyHoldDuration: 150,
+    keyHoldDuration: 200,
     allowActivationInsideInput: true,
     playCopySound: false,
     ...rawOptions,
