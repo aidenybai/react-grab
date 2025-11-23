@@ -670,31 +670,31 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         if (!isTargetKeyCombination(event)) return;
 
-        if (isActivated()) {
-          if (isToggleMode()) return;
+    if (isActivated()) {
+      if (isToggleMode()) return;
 
-          if (keydownSpamTimerId !== null) {
-            window.clearTimeout(keydownSpamTimerId);
-          }
-          keydownSpamTimerId = window.setTimeout(() => {
-            deactivateRenderer();
-          }, 200);
-          return;
-        }
+      if (keydownSpamTimerId !== null) {
+        window.clearTimeout(keydownSpamTimerId);
+      }
+      keydownSpamTimerId = window.setTimeout(() => {
+        deactivateRenderer();
+      }, 200);
+      return;
+    }
 
-        if (event.repeat) return;
+    if (isHoldingKeys() && event.repeat) return;
 
-        if (holdTimerId !== null) {
-          window.clearTimeout(holdTimerId);
-        }
+    if (holdTimerId !== null) {
+      window.clearTimeout(holdTimerId);
+    }
 
-        if (!isHoldingKeys()) {
-          setIsHoldingKeys(true);
-        }
+    if (!isHoldingKeys()) {
+      setIsHoldingKeys(true);
+    }
 
-        holdTimerId = window.setTimeout(() => {
-          activateRenderer();
-        }, options.keyHoldDuration);
+    holdTimerId = window.setTimeout(() => {
+      activateRenderer();
+    }, options.keyHoldDuration);
       },
       { signal: eventListenerSignal, capture: true },
     );
