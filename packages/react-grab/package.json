@@ -70,10 +70,12 @@
     "@tailwindcss/cli": "^4.1.17",
     "@types/node": "^20.19.23",
     "babel-preset-solid": "^1.9.10",
+    "clsx": "^2.1.1",
     "concurrently": "^9.1.2",
     "esbuild-plugin-babel": "^0.2.3",
     "eslint": "^9.37.0",
     "publint": "^0.2.12",
+    "tailwind-merge": "^2.5.5",
     "tailwindcss": "^4.1.0",
     "terser": "^5.36.0",
     "tsup": "^8.2.4",
@@ -84,8 +86,6 @@
   },
   "dependencies": {
     "bippy": "^0.5.16",
-    "clsx": "^2.1.1",
-    "solid-js": "^1.9.10",
-    "tailwind-merge": "^2.5.5"
+    "solid-js": "^1.9.10"
   }
 }
