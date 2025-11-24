@@ -4,12 +4,9 @@
 [![version](https://img.shields.io/npm/v/react-grab?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/react-grab)
 [![downloads](https://img.shields.io/npm/dt/react-grab.svg?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/react-grab)
 
-Grab any element on in your app and give it to Cursor, Claude Code, etc. to change.
+React Grab allows you to select an element and copy its context (like HTML, React component, and file source)
 
-By default coding agents cannot access elements on your page. React Grab fixes this - just point and click to provide context!
-
-- Hold <kbd>⌘C</kbd> and click on any element on your page
-- Makes coding agents like Cursor, Claude Code, Copilot, OpenCode run [**55% faster**](https://react-grab.com/blog/intro)
+It makes tools like Cursor, Claude Code, Copilot run up to [**55% faster**](https://react-grab.com/blog/intro)
 
 ### [Try out a demo! →](https://react-grab.com)
 
