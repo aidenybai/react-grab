@@ -17,6 +17,8 @@ import demoGif from "@/public/demo.gif";
 
 const BlogPostPage = () => {
   const [highlightedCode, setHighlightedCode] = useState<string>("");
+  const [highlightedReactInternalsCode, setHighlightedReactInternalsCode] =
+    useState<string>("");
 
   const testCaseMapping = useMemo(() => {
     const mapping: Record<string, string> = {};
@@ -40,6 +42,23 @@ const BlogPostPage = () => {
 
 </selected_element>`;
 
+  const reactInternalsCodeExample = `<selected_element>
+
+## HTML Frame:
+
+<span class="font-bold">
+  React Grab
+</span>
+
+## Code Location:
+
+  at motion.div
+  at StreamingText in /[project]/packages/website/components/blocks/streaming-text.tsx
+  at MessageBlock in /[project]/packages/website/components/blocks/message-block.tsx
+  at StreamDemo in /[project]/packages/website/components/stream-demo.tsx
+
+</selected_element>`;
+
   useEffect(() => {
     const highlight = async () => {
       const html = await highlightCode({
@@ -51,6 +70,18 @@ const BlogPostPage = () => {
     };
     highlight();
   }, [codeExample]);
+
+  useEffect(() => {
+    const highlight = async () => {
+      const html = await highlightCode({
+        code: reactInternalsCodeExample,
+        lang: "html",
+        showLineNumbers: false,
+      });
+      setHighlightedReactInternalsCode(html);
+    };
+    highlight();
+  }, [reactInternalsCodeExample]);
 
   return (
     <div className="min-h-screen bg-black font-sans text-white">
@@ -95,150 +126,185 @@ const BlogPostPage = () => {
 
           <div className="flex flex-col gap-4 text-neutral-400">
             <p>
-              I{"'"}ve been using a lot of Cursor/Claude Code lately and I{"'"}
-              ve found doing frontend stuff has been... really annoying (to say
-              the least). It{"'"}ll{" "}
-              <code className="text-neutral-300 text-sm bg-neutral-900/50 px-1.5 py-0.5 rounded">
-                grep
-              </code>{" "}
-              , pattern match on some{" "}
-              <code className="text-neutral-300 text-sm bg-neutral-900/50 px-1.5 py-0.5 rounded">
-                className
-              </code>
-              , and stumbles around a bunch of random files.
+              Coding agents suck at frontend because{" "}
+              <span className="font-medium text-neutral-300">
+                translating intent
+              </span>{" "}
+              (from UI → prompt → code → UI) is lossy.
             </p>
 
+            <p>For example, if you want to make a UI change:</p>
+
+            <ol className="list-decimal list-inside space-y-2 pl-2">
+              <li>Create a visual representation in your brain</li>
+              <li>Write a prompt (e.g. &quot;make this button bigger&quot;)</li>
+            </ol>
+
+            <p>How the coding agent processes this:</p>
+
+            <ol className="list-decimal list-inside space-y-2 pl-2" start={3}>
+              <li>
+                Turns your prompt into a trajectory (e.g. &quot;let me
+                grep/search for where this code might be&quot;)
+              </li>
+              <li>
+                Tries to guess what you{"'"}re referencing and edits the code
+              </li>
+            </ol>
+
             <p>
-              My main problem with coding agents today is that translating that
-              intent (from UI → prompt → code → UI) is very lossy. If I say
-              something like {"'"}edit this button.{"'"} which button would it
-              be? There could be multiple button defintions and usages across
-              the whole codebase. Prompting feels very tedious and watching the
-              agent stumble around my codebase every time costs time and money.
+              Search is a pretty random process since language models have
+              non-deterministic outputs. Depending on the search strategy, these
+              trajectories range from instant (if lucky) to very long.
+              Unfortunately, this means added latency, cost, and performance.
             </p>
 
+            <p>Today, there are two solutions to this problem:</p>
+
+            <ul className="list-disc list-inside space-y-2 pl-2">
+              <li>
+                <span className="text-neutral-300 font-medium">
+                  Prompt better:
+                </span>{" "}
+                Use @ to add additional context, write longer and more specific
+                prompts (this is something YOU control)
+              </li>
+              <li>
+                <span className="text-neutral-300 font-medium">
+                  Make the agent better at codebase search
+                </span>{" "}
+                (e.g. Instant Grep, SWE-Grep - this is something model/agent
+                PROVIDERS control) ƒ
+              </li>
+            </ul>
+
             <p>
-              I solved this by adding a overlay in my UI where I can select any
-              element on the page and copy the metadata (HTML and source file)
-              to my clipboard. This way, instead of prompting where the code is,
-              I just told it what I wanted to change.
-            </p>
-
-            <p>Here{"'"}s how it looks:</p>
-
-            <div>
-              <Image src={demoGif} alt="demo gif" />
-            </div>
-
-            <div className="flex flex-col gap-3">
-              <h3 className="text-lg font-medium text-neutral-200">
-                How does it work?
-              </h3>
-              <p>
-                To make this work, I went into the React DevTools source. React
-                already maintains the component tree internally; the missing
-                piece is a way to read it at runtime. That became{" "}
-                <a
-                  href="https://github.com/aidenybai/bippy"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-neutral-300 hover:text-white underline underline-offset-4"
-                >
-                  bippy
-                </a>
-                , a library that hooks into React&apos;s internals and extracts
-                the fiber tree with source locations.
-              </p>
-              <p>
-                React Grab uses bippy to walk up the component tree from the
-                element you clicked, collect each component&apos;s display name
-                and source location (file path + line number), and format that
-                into a readable stack. A small script listens for a ⌘C+click
-                gesture in the browser to choose the starting element, and
-                everything runs at runtime with no build step needed.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="px-4 sm:px-8 py-12">
-        <div className="mx-auto max-w-2xl">
-          <BenchmarkCharts results={resultsData as BenchmarkResult[]} />
-        </div>
-      </div>
-
-      <div className="px-4 sm:px-8">
-        <div className="mx-auto max-w-2xl flex flex-col gap-6 text-neutral-400">
-          <p>
-            The difference is even bigger for complex stuff. That editable table
-            cell test? Claude took 32 seconds without React Grab, 9 seconds with
-            it. The OTP input with separators went from 16 seconds to 9.
-          </p>
-
-          <div className="flex flex-col gap-3">
-            <h3 className="text-lg font-medium text-neutral-200">
-              Benchmark methodology
-            </h3>
-            <p>
-              To measure React Grab&apos;s impact, I used the{" "}
+              Improving the agent is a <em>lot</em> of unsolved research
+              problems. It involves training better models (see{" "}
               <a
-                href="https://github.com/shadcn-ui/ui"
+                href="https://cursor.com/changelog/2-1#instant-grep-beta"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-neutral-300 hover:text-white underline underline-offset-4"
               >
-                shadcn/ui dashboard example
-              </a>{" "}
-              as the test codebase. This is a production-grade Next.js
-              application with authentication flows, data tables, interactive
-              charts, and complex form components.
+                Instant Grep
+              </a>
+              ,{" "}
+              <a
+                href="https://cognition.ai/blog/swe-grep"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-neutral-300 hover:text-white underline underline-offset-4"
+              >
+                SWE-grep
+              </a>
+              ).
             </p>
-            <p>
-              I created 20 test cases covering common UI element retrieval
-              tasks. Each test case consists of a natural language prompt (e.g.,
-              &quot;Find the forgot password link in the login form&quot;) and
-              the expected component location. Each test was run twice: once
-              with React Grab enabled (treatment), once without (control). Both
-              conditions used identical codebases, identical prompts, and Claude
-              3.5 Sonnet as the AI model.
-            </p>
-            <p>
-              Metrics tracked: input tokens, output tokens, cost (USD), duration
-              (ms), number of tool calls, and task success. All tests were
-              automated and run sequentially to ensure consistent conditions.
-            </p>
-          </div>
 
-          <div className="flex flex-col gap-3">
-            <h3 className="text-base font-medium text-neutral-200">
-              Example test case
-            </h3>
-            <div className="flex flex-col gap-2">
-              <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-neutral-300">
-                &quot;Find the forgot password link in the login form&quot;
+            <p>
+              Ultimately, reducing the amount of translation steps required
+              makes the process faster and more accurate (this scales with
+              codebase size).
+            </p>
+
+            <p>But what if there was a different way?</p>
+
+            <div className="flex flex-col gap-3">
+              <h3 className="text-lg font-medium text-neutral-200 mt-4">
+                Digging through React internals
+              </h3>
+              <p>
+                In my ad-hoc tests, I noticed that referencing the file path
+                (e.g.{" "}
+                <code className="text-neutral-300">path/to/component.tsx</code>)
+                or something to <code className="text-neutral-300">grep</code>{" "}
+                (e.g.{" "}
+                <code className="text-neutral-300">
+                  className=&quot;flex flex-col gap-5 text-shimmer&quot;
+                </code>
+                ) made the coding agent{" "}
+                <span className="text-neutral-300 font-medium">much</span>{" "}
+                faster at finding what I was referencing. In short - there are
+                shortcuts to reduce the number of steps needed to search!
+              </p>
+              <p>
+                Turns out, React.js exposes the source location for elements on
+                the page. React Grab walks up the component tree from the
+                element you clicked, collects each component&apos;s component
+                name and source location (file path + line number), and formats
+                that into a readable stack.
+              </p>
+              <p>It looks something like this:</p>
+              <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden">
+                <div className="px-3 py-2">
+                  <div className="font-mono text-xs overflow-x-auto">
+                    {highlightedReactInternalsCode ? (
+                      <div
+                        dangerouslySetInnerHTML={{
+                          __html: highlightedReactInternalsCode,
+                        }}
+                        className="highlighted-code"
+                      />
+                    ) : (
+                      <pre className="text-neutral-300 whitespace-pre">
+                        {reactInternalsCodeExample}
+                      </pre>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="text-xs text-neutral-500">
-                → Expected: components/login-form.tsx:46:19
+              <p>
+                When I passed this to Cursor, it <em>instantly</em> found the
+                file and made the change in a couple seconds. Trying on a couple
+                other cases got the same result.
+              </p>
+              <div className="py-12">
+                <Image src={demoGif} alt="demo gif" />
               </div>
             </div>
-          </div>
 
-          <div className="flex flex-col gap-3">
-            <h3 className="text-lg font-medium text-neutral-200">
-              Without React Grab vs with it
-            </h3>
-            <p>
-              The control group (no React Grab) is painful to watch. Claude
-              reads like 3-4 component files, greps around, tries to match text
-              content, backtracks when it&apos;s wrong. Takes forever and burns
-              tokens.
-            </p>
+            <div className="flex flex-col gap-3">
+              <h3 className="text-lg font-medium text-neutral-200 mt-4">
+                Benchmarking for speed
+              </h3>
+              <p>
+                I used the{" "}
+                <a
+                  href="https://github.com/shadcn-ui/ui"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-neutral-300 hover:text-white underline underline-offset-4"
+                >
+                  shadcn/ui dashboard
+                </a>{" "}
+                as the test codebase. This is a Next.js application with auth,
+                data tables, charts, and form components.
+              </p>
+              <p>
+                The benchmark consists of{" "}
+                <a
+                  href="https://github.com/aidenybai/react-grab/blob/main/packages/benchmarks/test-cases.json"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-neutral-300 hover:text-white underline underline-offset-4"
+                >
+                  20 test cases
+                </a>{" "}
+                designed to cover a wide range of UI element retrieval
+                scenarios. Each test represents a real-world task that
+                developers commonly perform when working with coding agents.
+              </p>
+              <p>
+                Each test ran twice: once with React Grab enabled (treatment),
+                once without (control). Both conditions used identical codebases
+                and Claude 4.5 Haiku.
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="px-4 sm:px-8 py-8">
+      <div className="px-4 sm:px-8 py-16">
         <div className="mx-auto max-w-4xl">
           <div className="grid gap-6 lg:grid-cols-2">
             <div className="flex flex-col gap-3">
@@ -319,32 +385,42 @@ const BlogPostPage = () => {
       </div>
 
       <div className="px-4 sm:px-8">
-        <div className="mx-auto max-w-2xl flex flex-col gap-3 text-neutral-400">
+        <div className="mx-auto max-w-2xl flex flex-col gap-6 text-neutral-400">
           <p>
-            Without React Grab, the agent has to guess. It reads files, greps
-            for patterns, reads more files when the first ones are wrong. Each
-            additional tool call adds latency and token cost. Performance varies
-            wildly depending on whether the agent&apos;s search strategy gets
-            lucky.
+            Without React Grab, the agent must search through the codebase to
+            find the right component. Since language models predict tokens
+            non-deterministically, this search process varies dramatically -
+            sometimes finding the target instantly, other times requiring
+            multiple attempts. This unpredictability adds latency, increases
+            token consumption, and degrades overall performance.
           </p>
+
           <p>
-            With React Grab, there&apos;s no search phase. The component stack
-            is already in the DOM with exact file paths and line numbers. The
-            agent reads exactly one file and finds what it needs immediately.
-            Performance becomes consistent and predictable regardless of
-            component complexity.
+            With React Grab, the search phase is eliminated entirely. The
+            component stack with exact file paths and line numbers is embedded
+            directly in the DOM. The agent can jump straight to the correct file
+            and locate what it needs in O(1) time complexity.
+          </p>
+
+          <p>
+            …and turns out, Claude Code becomes ~
+            <span className="font-medium text-neutral-300">
+              55% faster with React Grab
+            </span>
+            !
           </p>
         </div>
       </div>
 
       <div className="px-4 sm:px-8 py-12">
-        <div className="mx-auto max-w-2xl flex flex-col gap-3">
-          <h3 className="text-lg font-medium text-neutral-200">Results</h3>
-          <p className="text-neutral-400">
-            Here are the latest measurement results from all 20 test cases. Each
-            row shows control vs. treatment metrics with percentage
-            improvements.
-          </p>
+        <div className="mx-auto max-w-2xl">
+          <BenchmarkCharts results={resultsData as BenchmarkResult[]} />
+        </div>
+      </div>
+
+      <div className="px-4 sm:px-8 mb-16">
+        <div className="mx-auto max-w-2xl flex flex-col gap-6 text-neutral-400">
+          <p>Here are the latest measurement results from all 20 test cases:</p>
         </div>
       </div>
 
@@ -362,34 +438,30 @@ const BlogPostPage = () => {
         <div className="mx-auto max-w-2xl flex flex-col gap-6 text-neutral-400">
           <div className="flex flex-col gap-4">
             <h3 className="text-lg font-medium text-neutral-200">
-              Interesting patterns
+              How it impacts you
             </h3>
             <p>
-              Looking through the data, a few things stood out. The simpler
-              tests (like finding a button or link) showed the biggest
-              improvements - React Grab cut tool calls from 5-8 down to just 1.
-              Makes sense. When the AI doesn&apos;t have to guess, it&apos;s way
-              more efficient.
+              The best use case I&apos;ve seen for React Grab is for
+              low-entropy adjustments like: spacing, layout tweaks, or minor
+              visual changes.
             </p>
             <p>
-              Complex UI components were interesting too. The editable table
-              cell test? Without React Grab, Claude made 13 tool calls and took
-              32 seconds. With it, 1 tool call and 9 seconds. Same with the OTP
-              input with separators - went from 4 tool calls to 1.
+              If you iterate on UI frequently, this can make everyday changes
+              feel smoother. Instead of describing where the code is, you can
+              select an element and give the agent an exact starting point.
             </p>
             <p>
-              Token usage is probably the most surprising metric. React Grab
-              consistently uses fewer tokens even though it&apos;s adding extra
-              context to the message. Why? Because the AI doesn&apos;t need to
-              read through multiple component files anymore. It already knows
-              where to look.
-            </p>
-            <p>
-              A couple tests showed minimal improvement (Time Range Toggle, Tabs
-              with Badges). Looking at the control runs, Claude actually got
-              lucky and found these pretty fast. But that&apos;s the thing -
-              with React Grab you don&apos;t rely on luck. Every test completes
-              in roughly the same time regardless of complexity.
+              We&apos;re finally moves things a bit closer to narrowing the
+              intent to output gap (see{" "}
+              <a
+                href="https://youtu.be/PUv66718DII?t=390"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-neutral-300 hover:text-white underline underline-offset-4"
+              >
+                Inventing on Principle
+              </a>
+              ).
             </p>
           </div>
 
@@ -398,18 +470,28 @@ const BlogPostPage = () => {
               What&apos;s next
             </h3>
             <p>
-              This benchmark only tested on one codebase (shadcn dashboard).
-              Would be interesting to run it on more repos - different
-              frameworks, different component patterns, different sizes. See if
-              the improvements hold up across the board.
+              There are a lot of improvements that can be made to this
+              benchmark:
             </p>
+            <ul className="list-disc list-inside space-y-2 pl-2">
+              <li>
+                Different codebases (this benchmark used shadcn dashboard) -
+                what happens with different frameworks/sizes/patterns? Need to
+                run it on more repos.
+              </li>
+              <li>Different agents/model providers</li>
+              <li>
+                Multiple trials and sampling - decrease variance, since agents
+                are non-deterministic
+              </li>
+            </ul>
             <p>
-              There&apos;s also a bunch of stuff that could make this even
-              better. Like grabbing error stack traces when things break, or
-              building a Chrome extension so you don&apos;t need to modify your
-              app at all. Maybe add screenshots of the element you&apos;re
-              grabbing, or capture runtime state/props. All that extra context
-              would probably help AI agents even more.
+              On the React Grab side - there&apos;s also a bunch of stuff that
+              could make this even better. For example, grabbing error stack
+              traces when things break, or building a Chrome extension so you
+              don&apos;t need to modify your app at all. Maybe add screenshots
+              of the element you&apos;re grabbing, or capture runtime
+              state/props.
             </p>
             <p>
               If you want to help out or have ideas, hit me up on{" "}
@@ -428,9 +510,7 @@ const BlogPostPage = () => {
           <div className="flex flex-col gap-4">
             <h3 className="text-lg font-medium text-neutral-200">Try it out</h3>
             <p>
-              React Grab is free and open source. Takes like 30 seconds to
-              install - just add a script tag or npm package to your app. Then
-              hold ⌘C and start grabbing elements.
+              React Grab is free and open source. Go try it out!
             </p>
             <div className="flex flex-col gap-2">
               <Link

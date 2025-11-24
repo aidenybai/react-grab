@@ -84,20 +84,23 @@ export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
   const controlStats = calculateStats(controlResults);
   const treatmentStats = calculateStats(treatmentResults);
 
+  const controlTotalCost = controlResults.reduce((sum, r) => sum + r.costUsd, 0);
+  const treatmentTotalCost = treatmentResults.reduce((sum, r) => sum + r.costUsd, 0);
+
   const rawData = [
-    {
-      name: "Avg Cost",
-      Control: controlStats.avgCost,
-      Treatment: treatmentStats.avgCost,
-      better: "lower",
-      unit: "$",
-    },
     {
       name: "Avg Duration",
       Control: controlStats.avgDuration,
       Treatment: treatmentStats.avgDuration,
       better: "lower",
       unit: "ms",
+    },
+    {
+      name: "Total Cost",
+      Control: controlTotalCost,
+      Treatment: treatmentTotalCost,
+      better: "lower",
+      unit: "$",
     },
     {
       name: "Avg Tool Calls",
@@ -110,18 +113,18 @@ export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
 
   const metrics: Metric[] = [
     {
-      name: "Avg Cost",
-      control: `$${controlStats.avgCost.toFixed(2)}`,
-      treatment: `$${treatmentStats.avgCost.toFixed(2)}`,
-      isImprovement: treatmentStats.avgCost <= controlStats.avgCost,
-      change: `${Math.abs(((treatmentStats.avgCost - controlStats.avgCost) / controlStats.avgCost) * 100).toFixed(1)}%`,
-    },
-    {
       name: "Avg Duration",
       control: prettyMs(controlStats.avgDuration),
       treatment: prettyMs(treatmentStats.avgDuration),
       isImprovement: treatmentStats.avgDuration <= controlStats.avgDuration,
       change: `${Math.abs(((treatmentStats.avgDuration - controlStats.avgDuration) / controlStats.avgDuration) * 100).toFixed(1)}%`,
+    },
+    {
+      name: "Total Cost",
+      control: `$${controlTotalCost.toFixed(2)}`,
+      treatment: `$${treatmentTotalCost.toFixed(2)}`,
+      isImprovement: treatmentTotalCost <= controlTotalCost,
+      change: `${Math.abs(((treatmentTotalCost - controlTotalCost) / controlTotalCost) * 100).toFixed(1)}%`,
     },
     {
       name: "Avg Tool Calls",
