@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import ReactGrabLogo from "@/public/logo.svg";
 import { highlightCode } from "@/lib/shiki";
-import { BenchmarkCharts } from "@/components/benchmarks/benchmark-charts";
+import { BenchmarkCharts, BenchmarkChartsTweet } from "@/components/benchmarks/benchmark-charts";
 import { BenchmarkDetailedTable } from "@/components/benchmarks/benchmark-detailed-table";
 import { BenchmarkResult, TestCase } from "@/components/benchmarks/types";
 import { GithubButton } from "@/components/github-button";
@@ -134,10 +134,9 @@ const BlogPostPage = () => {
                 {">"} TL;DR: click to see results
               </span>
             }
-            defaultExpanded={false}
           >
             <div className="pt-4">
-              <BenchmarkCharts results={resultsData as BenchmarkResult[]} />
+              <BenchmarkChartsTweet results={resultsData as BenchmarkResult[]} />
             </div>
           </Collapsible>
 
@@ -233,10 +232,10 @@ const BlogPostPage = () => {
               <p>
                 In my ad-hoc tests, I noticed that referencing the file path
                 (e.g.{" "}
-                <code className="text-neutral-300">path/to/component.tsx</code>)
-                or something to <code className="text-neutral-300">grep</code>{" "}
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">path/to/component.tsx</code>)
+                or something to <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">grep</code>{" "}
                 (e.g.{" "}
-                <code className="text-neutral-300">
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
                   className=&quot;flex flex-col gap-5 text-shimmer&quot;
                 </code>
                 ) made the coding agent{" "}

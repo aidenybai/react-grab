@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
 import {
   Bar,
   BarChart,
@@ -46,9 +49,10 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
 
           let formattedValue: number | string = rawValue;
           if (typeof rawValue === "number") {
-             if (unit === "$") formattedValue = `$${rawValue.toFixed(2)}`;
-             else if (unit === "ms") formattedValue = `${(rawValue / 1000).toFixed(2)}s`;
-             else formattedValue = rawValue.toFixed(2);
+            if (unit === "$") formattedValue = `$${rawValue.toFixed(2)}`;
+            else if (unit === "ms")
+              formattedValue = `${(rawValue / 1000).toFixed(2)}s`;
+            else formattedValue = rawValue.toFixed(2);
           }
 
           return (
@@ -73,6 +77,269 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   return null;
 };
 
+interface AnimatedBarProps {
+  targetSeconds: number;
+  maxSeconds: number;
+  color: string;
+  label: string;
+}
+
+const AnimatedBar = ({ targetSeconds, maxSeconds, color, label }: AnimatedBarProps) => {
+  const [currentTime, setCurrentTime] = useState(0);
+  const animationRef = useRef<number | null>(null);
+  const startTimeRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const animate = (timestamp: number) => {
+      if (!startTimeRef.current) {
+        startTimeRef.current = timestamp;
+      }
+
+      const elapsed = (timestamp - startTimeRef.current) / 1000;
+      const newTime = Math.min(elapsed, maxSeconds);
+      setCurrentTime(newTime);
+
+      if (newTime < maxSeconds) {
+        animationRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    animationRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [maxSeconds]);
+
+  const displayTime = Math.min(currentTime, targetSeconds);
+  const barWidth = (displayTime / maxSeconds) * 100;
+  const isComplete = currentTime >= targetSeconds;
+
+  const targetWidth = (targetSeconds / maxSeconds) * 100;
+
+  return (
+    <div className="relative h-7 flex-1">
+      <div
+        className="absolute top-0 left-0 h-full rounded-r bg-neutral-800"
+        style={{ width: `${targetWidth}%` }}
+      />
+      <div
+        className="absolute top-0 left-0 h-full rounded-r"
+        style={{
+          width: `${barWidth}%`,
+          backgroundColor: color,
+        }}
+      />
+      <span
+        className="absolute top-1/2 -translate-y-1/2 text-xs font-semibold ml-2 tabular-nums"
+        style={{
+          left: `${targetWidth}%`,
+          color: color === "#525252" ? "#737373" : color,
+        }}
+      >
+        {isComplete ? label : `${displayTime.toFixed(1)}s`}
+      </span>
+    </div>
+  );
+};
+
+export const BenchmarkChartsTweet = ({ results }: BenchmarkChartsProps) => {
+  const controlResults = results.filter((r) => r.type === "control");
+  const treatmentResults = results.filter((r) => r.type === "treatment");
+
+  if (controlResults.length === 0 || treatmentResults.length === 0) {
+    return null;
+  }
+
+  const controlStats = calculateStats(controlResults);
+  const treatmentStats = calculateStats(treatmentResults);
+
+  const controlTotalCost = controlResults.reduce(
+    (sum, r) => sum + r.costUsd,
+    0,
+  );
+  const treatmentTotalCost = treatmentResults.reduce(
+    (sum, r) => sum + r.costUsd,
+    0,
+  );
+
+  const controlDurationSec = controlStats.avgDuration / 1000;
+  const treatmentDurationSec = treatmentStats.avgDuration / 1000;
+  const maxSeconds = Math.ceil(controlDurationSec / 5) * 5;
+  const gridLines = Array.from({ length: maxSeconds / 5 + 1 }, (_, i) => i * 5);
+
+  const durationChange = Math.abs(((treatmentStats.avgDuration - controlStats.avgDuration) / controlStats.avgDuration) * 100).toFixed(0);
+  const costChange = Math.abs(((treatmentTotalCost - controlTotalCost) / controlTotalCost) * 100).toFixed(0);
+
+  return (
+    <div className="bg-[#0a0a0a] rounded-xl p-5 max-w-xl mx-auto border border-neutral-800/50">
+      <div className="relative">
+        <div className="flex items-center gap-3">
+          <div className="w-20 shrink-0" />
+          <div className="flex-1 relative h-0">
+            {gridLines.map((seconds) => (
+              <div
+                key={seconds}
+                className="absolute top-0 border-l border-neutral-800"
+                style={{
+                  left: `${(seconds / maxSeconds) * 100}%`,
+                  height: "calc(100% + 80px)",
+                  marginTop: "-4px",
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-2 relative">
+          <div className="flex items-center gap-3">
+            <div className="w-20 text-right text-xs font-medium text-neutral-400 shrink-0">
+              Claude Code
+            </div>
+            <AnimatedBar
+              targetSeconds={controlDurationSec}
+              maxSeconds={maxSeconds}
+              color="#525252"
+              label={`${controlDurationSec.toFixed(1)}s`}
+            />
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="w-20 text-right text-xs font-medium text-[#ff4fff] shrink-0">
+              Claude Code + React Grab
+            </div>
+            <div className="relative h-7 flex-1">
+              <AnimatedBarTreatment
+                targetSeconds={treatmentDurationSec}
+                maxSeconds={maxSeconds}
+                color="#ff4fff"
+                durationLabel={`${treatmentDurationSec.toFixed(1)}s`}
+                durationChange={durationChange}
+                costLabel={`$${treatmentTotalCost.toFixed(2)}`}
+                costChange={costChange}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 mt-3">
+          <div className="w-20 shrink-0" />
+          <div className="flex-1 relative h-5">
+            {gridLines.map((seconds) => (
+              <span
+                key={seconds}
+                className="absolute text-[10px] text-neutral-600 -translate-x-1/2"
+                style={{ left: `${(seconds / maxSeconds) * 100}%` }}
+              >
+                {seconds}s
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 pt-3 border-t border-neutral-800/50 flex items-center justify-between">
+        <div className="text-[9px] text-neutral-600">
+          *All values are averages across 20 benchmark runs per group
+        </div>
+        <a
+          href="https://github.com/aidenybai/react-grab/tree/main/packages/benchmarks"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[10px] text-neutral-600 hover:text-neutral-400 underline underline-offset-4"
+        >
+          github.com/aidenybai/react-grab
+        </a>
+      </div>
+    </div>
+  );
+};
+
+interface AnimatedBarTreatmentProps {
+  targetSeconds: number;
+  maxSeconds: number;
+  color: string;
+  durationLabel: string;
+  durationChange: string;
+  costLabel: string;
+  costChange: string;
+}
+
+const AnimatedBarTreatment = ({
+  targetSeconds,
+  maxSeconds,
+  color,
+  durationLabel,
+  durationChange,
+  costLabel,
+  costChange,
+}: AnimatedBarTreatmentProps) => {
+  const [currentTime, setCurrentTime] = useState(0);
+  const animationRef = useRef<number | null>(null);
+  const startTimeRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const animate = (timestamp: number) => {
+      if (!startTimeRef.current) {
+        startTimeRef.current = timestamp;
+      }
+
+      const elapsed = (timestamp - startTimeRef.current) / 1000;
+      const newTime = Math.min(elapsed, maxSeconds);
+      setCurrentTime(newTime);
+
+      if (newTime < maxSeconds) {
+        animationRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    animationRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [maxSeconds]);
+
+  const displayTime = Math.min(currentTime, targetSeconds);
+  const barWidth = (displayTime / maxSeconds) * 100;
+  const targetWidth = (targetSeconds / maxSeconds) * 100;
+  const isComplete = currentTime >= targetSeconds;
+
+  return (
+    <>
+      <div
+        className="absolute top-0 left-0 h-full rounded-r bg-neutral-800"
+        style={{ width: `${targetWidth}%` }}
+      />
+      <div
+        className="absolute top-0 left-0 h-full rounded-r"
+        style={{
+          width: `${barWidth}%`,
+          backgroundColor: color,
+        }}
+      />
+      <span
+        className="absolute top-1/2 -translate-y-1/2 flex items-center gap-2 ml-2"
+        style={{ left: `${targetWidth}%` }}
+      >
+        {isComplete ? (
+          <>
+            <span className="text-xs font-semibold text-[#ff4fff]">{durationLabel}</span>
+            <span className="text-sm font-bold text-emerald-400">↓{durationChange}%</span>
+            <span className="text-[10px] text-neutral-500">({costLabel} ↓{costChange}%)</span>
+          </>
+        ) : (
+          <span className="text-xs font-semibold text-[#ff4fff] tabular-nums">{displayTime.toFixed(1)}s</span>
+        )}
+      </span>
+    </>
+  );
+};
+
 export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
   const controlResults = results.filter((r) => r.type === "control");
   const treatmentResults = results.filter((r) => r.type === "treatment");
@@ -84,8 +351,14 @@ export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
   const controlStats = calculateStats(controlResults);
   const treatmentStats = calculateStats(treatmentResults);
 
-  const controlTotalCost = controlResults.reduce((sum, r) => sum + r.costUsd, 0);
-  const treatmentTotalCost = treatmentResults.reduce((sum, r) => sum + r.costUsd, 0);
+  const controlTotalCost = controlResults.reduce(
+    (sum, r) => sum + r.costUsd,
+    0,
+  );
+  const treatmentTotalCost = treatmentResults.reduce(
+    (sum, r) => sum + r.costUsd,
+    0,
+  );
 
   const rawData = [
     {
@@ -113,7 +386,7 @@ export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
 
   const metrics: Metric[] = [
     {
-      name: "Avg Duration",
+      name: "Average Duration",
       control: prettyMs(controlStats.avgDuration),
       treatment: prettyMs(treatmentStats.avgDuration),
       isImprovement: treatmentStats.avgDuration <= controlStats.avgDuration,
@@ -142,12 +415,18 @@ export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
     ControlRaw: metric.Control,
     TreatmentRaw: metric.Treatment,
     unit: metric.unit,
-    controlDisplay: metric.unit === "$" ? `$${metric.Control.toFixed(2)}` :
-                    metric.unit === "ms" ? `${(metric.Control / 1000).toFixed(1)}s` :
-                    metric.Control.toFixed(1),
-    treatmentDisplay: metric.unit === "$" ? `$${metric.Treatment.toFixed(2)}` :
-                      metric.unit === "ms" ? `${(metric.Treatment / 1000).toFixed(1)}s` :
-                      metric.Treatment.toFixed(1),
+    controlDisplay:
+      metric.unit === "$"
+        ? `$${metric.Control.toFixed(2)}`
+        : metric.unit === "ms"
+          ? `${(metric.Control / 1000).toFixed(1)}s`
+          : metric.Control.toFixed(1),
+    treatmentDisplay:
+      metric.unit === "$"
+        ? `$${metric.Treatment.toFixed(2)}`
+        : metric.unit === "ms"
+          ? `${(metric.Treatment / 1000).toFixed(1)}s`
+          : metric.Treatment.toFixed(1),
   }));
 
   return (
@@ -190,7 +469,7 @@ export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
                 verticalAlign="top"
                 height={36}
                 iconType="circle"
-                wrapperStyle={{ paddingBottom: '10px', fontSize: '12px' }}
+                wrapperStyle={{ paddingBottom: "10px", fontSize: "12px" }}
                 content={({ payload }) => (
                   <div className="flex items-center justify-center gap-4">
                     {payload?.map((entry, index) => (
@@ -208,7 +487,12 @@ export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
                               height={12}
                               className="w-3 h-3"
                             />
-                            <span className="text-xs" style={{ color: "#ff4fff" }}>{entry.value}</span>
+                            <span
+                              className="text-xs"
+                              style={{ color: "#ff4fff" }}
+                            >
+                              {entry.value}
+                            </span>
                           </div>
                         ) : (
                           <span className="text-xs">{entry.value}</span>
