@@ -184,7 +184,7 @@ const BlogPostPage = () => {
                   Make the agent better at codebase search
                 </span>{" "}
                 (e.g. Instant Grep, SWE-Grep - this is something model/agent
-                PROVIDERS control) ƒ
+                PROVIDERS control)
               </li>
             </ul>
 
