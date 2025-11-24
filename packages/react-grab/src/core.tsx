@@ -154,8 +154,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const isTargetKeyCombination = (event: KeyboardEvent) =>
-      // NOTE: we use event.code instead of event.key for keyboard layout compatibility (e.g., AZERTY, QWERTZ)
-      (event.metaKey || event.ctrlKey) && event.code === "KeyC";
+      (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "c";
 
     const getAutoScrollDirection = (clientX: number, clientY: number) => {
       return {
@@ -804,8 +803,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!isHoldingKeys() && !isActivated()) return;
 
         const isReleasingModifier = !event.metaKey && !event.ctrlKey;
-        // NOTE: we use event.code instead of event.key for keyboard layout compatibility (e.g., AZERTY, QWERTZ)
-        const isReleasingC = event.code === "KeyC";
+        const isReleasingC = event.key.toLowerCase() === "c";
 
         if (isReleasingC || isReleasingModifier) {
           if (isToggleMode()) return;
