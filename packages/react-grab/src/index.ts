@@ -19,10 +19,18 @@ export type {
   DragRect,
   Rect,
   Position,
+  DeepPartial,
 } from "./types.js";
 
 import { init } from "./core.js";
+import type { ReactGrabAPI } from "./types.js";
+
+let globalApi: ReactGrabAPI | null = null;
+
+export const getGlobalApi = (): ReactGrabAPI | null => {
+  return globalApi;
+};
 
 if (typeof window !== "undefined") {
-  init();
+  globalApi = init();
 }

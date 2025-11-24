@@ -38,9 +38,11 @@ import type {
   GrabbedBox,
   ReactGrabAPI,
   ReactGrabState,
+  DeepPartial,
+  Theme,
 } from "./types.js";
 import { getNearestComponentName } from "./instrumentation.js";
-import { mergeTheme } from "./theme.js";
+import { mergeTheme, deepMergeTheme } from "./theme.js";
 
 let hasInited = false;
 
@@ -52,7 +54,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     ...rawOptions,
   };
 
-  const theme = mergeTheme(options.theme);
+  const initialTheme = mergeTheme(options.theme);
 
   if (options.enabled === false || hasInited) {
     return {
@@ -69,6 +71,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         targetElement: null,
         dragBounds: null,
       }),
+      updateTheme: () => {},
+      getTheme: () => initialTheme,
     };
   }
   hasInited = true;
@@ -106,6 +110,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   logIntro();
 
   return createRoot((dispose) => {
+    const [theme, setTheme] = createSignal(initialTheme);
     const [isHoldingKeys, setIsHoldingKeys] = createSignal(false);
     const [mouseX, setMouseX] = createSignal(OFFSCREEN_POSITION);
     const [mouseY, setMouseY] = createSignal(OFFSCREEN_POSITION);
@@ -353,7 +358,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         options.onElementSelect?.(targetElement);
       } catch {}
 
-      if (theme.grabbedBoxes.enabled) {
+      if (theme().grabbedBoxes.enabled) {
         showTemporaryGrabbedBox(
           createElementBounds(targetElement),
           targetElement,
@@ -363,7 +368,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const didCopy = await tryCopyWithFallback([targetElement], extraPrompt);
 
-      if (didCopy && theme.successLabels.enabled) {
+      if (didCopy && theme().successLabels.enabled) {
         showTemporarySuccessLabel(extractElementTagNameForSuccess(targetElement));
       }
 
@@ -381,7 +386,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         } catch {}
       }
 
-      if (theme.grabbedBoxes.enabled) {
+      if (theme().grabbedBoxes.enabled) {
         for (const element of targetElements) {
           showTemporaryGrabbedBox(createElementBounds(element), element);
         }
@@ -390,7 +395,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const didCopy = await tryCopyWithFallback(targetElements);
 
-      if (didCopy && theme.successLabels.enabled) {
+      if (didCopy && theme().successLabels.enabled) {
         showTemporarySuccessLabel(`${targetElements.length} elements`);
       }
 
@@ -1000,11 +1005,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const rendererRoot = mountRoot(cssText as string);
 
     const selectionVisible = createMemo(
-      () => theme.selectionBox.enabled && isRendererActive() && !isDragging() && Boolean(targetElement()),
+      () => theme().selectionBox.enabled && isRendererActive() && !isDragging() && Boolean(targetElement()),
     );
 
     const dragVisible = createMemo(
-      () => theme.dragBox.enabled && isRendererActive() && isDraggingBeyondThreshold(),
+      () => theme().dragBox.enabled && isRendererActive() && isDraggingBeyondThreshold(),
     );
 
     const labelVariant = createMemo(() =>
@@ -1012,7 +1017,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const labelVisible = createMemo(() => {
-      if (!theme.elementLabel.enabled) return false;
+      if (!theme().elementLabel.enabled) return false;
       if (isInputMode()) return false;
       if (isCopying()) return true;
       if (successLabels().length > 0) return false;
@@ -1025,18 +1030,25 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const crosshairVisible = createMemo(
-      () => theme.crosshair.enabled && isRendererActive() && !isDragging(),
+      () => theme().crosshair.enabled && isRendererActive() && !isDragging(),
     );
 
-    const inputVisible = createMemo(() => theme.inputOverlay.enabled && isInputMode());
+    const inputVisible = createMemo(() => theme().inputOverlay.enabled && isInputMode());
 
-    const shouldShowGrabbedBoxes = createMemo(() => theme.grabbedBoxes.enabled);
-    const shouldShowSuccessLabels = createMemo(() => theme.successLabels.enabled);
+    const shouldShowGrabbedBoxes = createMemo(() => theme().grabbedBoxes.enabled);
+    const shouldShowSuccessLabels = createMemo(() => theme().successLabels.enabled);
 
-    if (theme.enabled) {
-      if (theme.hue !== 0) {
-        rendererRoot.style.filter = `hue-rotate(${theme.hue}deg)`;
-      }
+    createEffect(
+      on(theme, (currentTheme) => {
+        if (currentTheme.hue !== 0) {
+          rendererRoot.style.filter = `hue-rotate(${currentTheme.hue}deg)`;
+        } else {
+          rendererRoot.style.filter = "";
+        }
+      }),
+    );
+
+    if (theme().enabled) {
 
       render(
         () => (
@@ -1066,7 +1078,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onInputChange={handleInputChange}
             onInputSubmit={handleInputSubmit}
             onInputCancel={handleInputCancel}
-            theme={theme}
+            theme={theme()}
           />
         ),
         rendererRoot,
@@ -1125,6 +1137,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       dispose,
       copyElement: copyElementAPI,
       getState: getStateAPI,
+      updateTheme: (partialTheme: DeepPartial<Theme>) => {
+        const currentTheme = theme();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
+        const mergedTheme = deepMergeTheme(currentTheme, partialTheme);
+        setTheme(mergedTheme);
+      },
+      getTheme: () => theme(),
     };
   });
 };

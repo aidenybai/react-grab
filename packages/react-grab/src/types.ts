@@ -1,3 +1,7 @@
+export type DeepPartial<T> = {
+  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
+};
+
 export interface Theme {
   enabled?: boolean;
   hue?: number;
@@ -76,6 +80,8 @@ export interface ReactGrabAPI {
   dispose: () => void;
   copyElement: (elements: Element | Element[]) => Promise<boolean>;
   getState: () => ReactGrabState;
+  updateTheme: (theme: DeepPartial<Theme>) => void;
+  getTheme: () => Required<Theme>;
 }
 
 export interface OverlayBounds {
