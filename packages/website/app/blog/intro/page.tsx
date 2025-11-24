@@ -11,6 +11,7 @@ import { BenchmarkDetailedTable } from "@/components/benchmarks/benchmark-detail
 import { BenchmarkResult, TestCase } from "@/components/benchmarks/types";
 import { GithubButton } from "@/components/github-button";
 import { CursorInstallButton } from "@/components/cursor-install-button";
+import { Collapsible } from "@/components/collapsible";
 import resultsData from "@/public/results.json";
 import testCasesData from "@/public/test-cases.json";
 import demoGif from "@/public/demo.gif";
@@ -123,6 +124,15 @@ const BlogPostPage = () => {
               <span>November 21, 2025</span>
             </div>
           </div>
+
+          <Collapsible
+            header={<span className="text-sm font-medium" style={{ color: "#ff4fff" }}>{'>'} TL;DR: click to see results</span>}
+            defaultExpanded={false}
+          >
+            <div className="pt-4">
+              <BenchmarkCharts results={resultsData as BenchmarkResult[]} />
+            </div>
+          </Collapsible>
 
           <div className="flex flex-col gap-4 text-neutral-400">
             <p>

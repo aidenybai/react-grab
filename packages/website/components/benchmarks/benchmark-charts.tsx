@@ -259,13 +259,13 @@ export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
           <table className="text-sm border-collapse max-w-2xl w-full">
             <thead>
               <tr className="border-b border-[#2a2a2a]">
-                <th className="text-left py-2 px-3 text-[10px] font-medium text-neutral-500 uppercase tracking-wider">
+                <th className="text-left py-2 px-4 text-xs font-medium text-neutral-500 uppercase tracking-wider">
                   Metric
                 </th>
-                <th className="text-left py-2 px-3 text-[10px] font-medium text-neutral-500 uppercase tracking-wider">
+                <th className="text-left py-2 px-4 text-xs font-medium text-neutral-500 uppercase tracking-wider">
                   Control
                 </th>
-                <th className="text-left py-2 px-3 text-[10px] font-medium text-neutral-500 uppercase tracking-wider bg-[#1f1f1f]/50 rounded-tr-md">
+                <th className="text-left py-2 px-4 text-xs font-medium text-neutral-500 uppercase tracking-wider bg-[#1f1f1f]/50 rounded-tr-md">
                   <div className="flex items-center gap-1.5">
                     <Image
                       src="/logo.svg"
@@ -285,16 +285,16 @@ export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
                   key={metric.name}
                   className="hover:bg-[#1a1a1a] transition-colors group"
                 >
-                  <td className="py-2 px-3 font-medium text-neutral-300 text-xs group-hover:text-white transition-colors">
+                  <td className="py-2 px-4 font-medium text-neutral-300 text-sm group-hover:text-white transition-colors">
                     {metric.name}
                   </td>
-                  <td className="py-2 px-3 text-neutral-400 tabular-nums text-xs">
+                  <td className="py-2 px-4 text-neutral-400 tabular-nums text-sm">
                     {metric.control}
                   </td>
-                  <td className="py-2 px-3 text-neutral-300 tabular-nums bg-[#1f1f1f]/50 text-xs group-hover:bg-[#1f1f1f] transition-colors">
+                  <td className="py-2 px-4 text-neutral-300 tabular-nums bg-[#1f1f1f]/50 text-sm group-hover:bg-[#1f1f1f] transition-colors">
                     {metric.treatment}
                     <span
-                      className={`ml-2 text-[10px] font-medium ${metric.isImprovement ? "text-green-400" : "text-red-400"}`}
+                      className={`ml-2 text-xs font-medium ${metric.isImprovement ? "text-green-400" : "text-red-400"}`}
                     >
                       {metric.isImprovement ? "↓" : "↑"} {metric.change}
                     </span>
