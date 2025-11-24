@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.51
+
+### Patch Changes
+
+- fix: jsdocs on theme prop values
+
 ## 0.0.50
 
 ### Patch Changes
