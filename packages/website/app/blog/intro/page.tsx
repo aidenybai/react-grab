@@ -450,6 +450,34 @@ const BlogPostPage = () => {
         </div>
       </div>
 
+      <div className="px-4 sm:px-8 pt-8">
+        <div className="mx-auto max-w-2xl">
+          <div className="text-sm text-neutral-500 border-t border-[#2a2a2a] pt-6">
+            <p>
+              To run the benchmark yourself, check out the{" "}
+              <a
+                href="https://github.com/aidenybai/react-grab/tree/main/packages/benchmarks"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-neutral-300 hover:text-white underline underline-offset-4"
+              >
+                benchmarks directory
+              </a>{" "}
+              on GitHub. The benchmark runs{" "}
+              <a
+                href="https://github.com/aidenybai/react-grab/blob/main/packages/benchmarks/test-cases.json"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-neutral-300 hover:text-white underline underline-offset-4"
+              >
+                20 test cases
+              </a>{" "}
+              comparing control (without React Grab) vs treatment (with React Grab) groups using Claude Code.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div className="px-4 sm:px-8 pt-16 pb-56">
         <div className="mx-auto max-w-2xl flex flex-col gap-6 text-neutral-400">
           <div className="flex flex-col gap-4">
