@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.50
+
+### Patch Changes
+
+- feat: extend API
+
 ## 0.0.49
 
 ### Patch Changes
