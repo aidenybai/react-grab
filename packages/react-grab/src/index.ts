@@ -1,4 +1,12 @@
 export { init } from "./core.js";
+export {
+  getStack,
+  formatStack,
+  getHTMLPreview,
+  getNearestComponentName,
+  isInstrumentationActive,
+  DEFAULT_THEME,
+} from "./core.js";
 export type {
   Options,
   ReactGrabAPI,

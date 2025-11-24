@@ -139,11 +139,13 @@ import { init } from "react-grab/core";
 
 const api = init({
   theme: {
+    enabled: true, // disable all UI by setting to false
     hue: 180, // shift colors by 180 degrees (pink → cyan/turquoise)
     crosshair: {
       enabled: false, // disable crosshair
     },
-    elementLabel: { // when hovering over an element
+    elementLabel: {
+      // when hovering over an element
       backgroundColor: "#000000",
       textColor: "#ffffff",
     },

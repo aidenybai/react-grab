@@ -37,84 +37,10 @@ import type {
   OverlayBounds,
   GrabbedBox,
   ReactGrabAPI,
-  Theme,
   ReactGrabState,
 } from "./types.js";
 import { getNearestComponentName } from "./instrumentation.js";
-
-const DEFAULT_THEME: Required<Theme> = {
-  hue: 0,
-  selectionBox: {
-    enabled: true,
-    color: undefined,
-    borderRadius: undefined,
-  },
-  dragBox: {
-    enabled: true,
-    color: undefined,
-  },
-  grabbedBoxes: {
-    enabled: true,
-    color: undefined,
-  },
-  elementLabel: {
-    enabled: true,
-    backgroundColor: undefined,
-    textColor: undefined,
-    borderColor: undefined,
-    padding: undefined,
-    cursorOffset: undefined,
-  },
-  successLabels: {
-    enabled: true,
-  },
-  crosshair: {
-    enabled: true,
-    color: undefined,
-  },
-  inputOverlay: {
-    enabled: true,
-  },
-};
-
-const mergeTheme = (userTheme?: Theme): Required<Theme> => {
-  if (!userTheme) return DEFAULT_THEME;
-
-  return {
-    hue: userTheme.hue ?? DEFAULT_THEME.hue,
-    selectionBox: {
-      enabled: userTheme.selectionBox?.enabled ?? DEFAULT_THEME.selectionBox.enabled,
-      color: userTheme.selectionBox?.color ?? DEFAULT_THEME.selectionBox.color,
-      borderRadius: userTheme.selectionBox?.borderRadius ?? DEFAULT_THEME.selectionBox.borderRadius,
-    },
-    dragBox: {
-      enabled: userTheme.dragBox?.enabled ?? DEFAULT_THEME.dragBox.enabled,
-      color: userTheme.dragBox?.color ?? DEFAULT_THEME.dragBox.color,
-    },
-    grabbedBoxes: {
-      enabled: userTheme.grabbedBoxes?.enabled ?? DEFAULT_THEME.grabbedBoxes.enabled,
-      color: userTheme.grabbedBoxes?.color ?? DEFAULT_THEME.grabbedBoxes.color,
-    },
-    elementLabel: {
-      enabled: userTheme.elementLabel?.enabled ?? DEFAULT_THEME.elementLabel.enabled,
-      backgroundColor: userTheme.elementLabel?.backgroundColor ?? DEFAULT_THEME.elementLabel.backgroundColor,
-      textColor: userTheme.elementLabel?.textColor ?? DEFAULT_THEME.elementLabel.textColor,
-      borderColor: userTheme.elementLabel?.borderColor ?? DEFAULT_THEME.elementLabel.borderColor,
-      padding: userTheme.elementLabel?.padding ?? DEFAULT_THEME.elementLabel.padding,
-      cursorOffset: userTheme.elementLabel?.cursorOffset ?? DEFAULT_THEME.elementLabel.cursorOffset,
-    },
-    successLabels: {
-      enabled: userTheme.successLabels?.enabled ?? DEFAULT_THEME.successLabels.enabled,
-    },
-    crosshair: {
-      enabled: userTheme.crosshair?.enabled ?? DEFAULT_THEME.crosshair.enabled,
-      color: userTheme.crosshair?.color ?? DEFAULT_THEME.crosshair.color,
-    },
-    inputOverlay: {
-      enabled: userTheme.inputOverlay?.enabled ?? DEFAULT_THEME.inputOverlay.enabled,
-    },
-  };
-};
+import { mergeTheme } from "./theme.js";
 
 let hasInited = false;
 
@@ -1107,43 +1033,45 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const shouldShowGrabbedBoxes = createMemo(() => theme.grabbedBoxes.enabled);
     const shouldShowSuccessLabels = createMemo(() => theme.successLabels.enabled);
 
-    if (theme.hue !== 0) {
-      rendererRoot.style.filter = `hue-rotate(${theme.hue}deg)`;
-    }
+    if (theme.enabled) {
+      if (theme.hue !== 0) {
+        rendererRoot.style.filter = `hue-rotate(${theme.hue}deg)`;
+      }
 
-    render(
-      () => (
-        <ReactGrabRenderer
-          selectionVisible={selectionVisible()}
-          selectionBounds={selectionBounds()}
-          dragVisible={dragVisible()}
-          dragBounds={dragBounds()}
-          grabbedBoxes={shouldShowGrabbedBoxes() ? grabbedBoxes() : []}
-          successLabels={shouldShowSuccessLabels() ? successLabels() : []}
-          labelVariant={labelVariant()}
-          labelContent={labelContent()}
-          labelX={labelPosition().x}
-          labelY={labelPosition().y}
-          labelVisible={labelVisible()}
-          labelZIndex={Z_INDEX_LABEL}
-          labelShowHint={mouseHasSettled()}
-          progressVisible={progressVisible()}
-          progress={progress()}
-          mouseX={progressPosition().x}
-          mouseY={progressPosition().y}
-          crosshairVisible={crosshairVisible()}
-          inputVisible={inputVisible()}
-          inputX={mouseX()}
-          inputY={mouseY()}
-          inputValue={inputText()}
-          onInputChange={handleInputChange}
-          onInputSubmit={handleInputSubmit}
-          onInputCancel={handleInputCancel}
-          theme={theme}
-        />
-      ),
-      rendererRoot,
-    );
+      render(
+        () => (
+          <ReactGrabRenderer
+            selectionVisible={selectionVisible()}
+            selectionBounds={selectionBounds()}
+            dragVisible={dragVisible()}
+            dragBounds={dragBounds()}
+            grabbedBoxes={shouldShowGrabbedBoxes() ? grabbedBoxes() : []}
+            successLabels={shouldShowSuccessLabels() ? successLabels() : []}
+            labelVariant={labelVariant()}
+            labelContent={labelContent()}
+            labelX={labelPosition().x}
+            labelY={labelPosition().y}
+            labelVisible={labelVisible()}
+            labelZIndex={Z_INDEX_LABEL}
+            labelShowHint={mouseHasSettled()}
+            progressVisible={progressVisible()}
+            progress={progress()}
+            mouseX={progressPosition().x}
+            mouseY={progressPosition().y}
+            crosshairVisible={crosshairVisible()}
+            inputVisible={inputVisible()}
+            inputX={mouseX()}
+            inputY={mouseY()}
+            inputValue={inputText()}
+            onInputChange={handleInputChange}
+            onInputSubmit={handleInputSubmit}
+            onInputCancel={handleInputCancel}
+            theme={theme}
+          />
+        ),
+        rendererRoot,
+      );
+    }
 
     const copyElementAPI = async (elements: Element | Element[]): Promise<boolean> => {
       const elementsArray = Array.isArray(elements) ? elements : [elements];
@@ -1200,6 +1128,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
   });
 };
+
+export {
+  getStack,
+  formatStack,
+  getHTMLPreview,
+  getNearestComponentName,
+} from "./instrumentation.js";
+export { isInstrumentationActive } from "bippy";
+export { DEFAULT_THEME } from "./theme.js";
 
 export type {
   Options,

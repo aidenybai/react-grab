@@ -1,4 +1,5 @@
 export interface Theme {
+  enabled?: boolean;
   hue?: number;
   selectionBox?: {
     enabled?: boolean;
