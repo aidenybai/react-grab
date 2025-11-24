@@ -1,18 +1,20 @@
-import { init } from "./core.js";
-import type { ReactGrabAPI } from "./types.js";
-
-let globalApi: ReactGrabAPI | null = null;
-
-export const getGlobalApi = (): ReactGrabAPI | null => globalApi;
-
-globalApi = init();
-
-export { init };
-export { playCopySound } from "./utils/play-copy-sound.js";
-
+export { init } from "./core.js";
 export type {
   Options,
-  OverlayBounds,
-  ReactGrabRendererProps,
   ReactGrabAPI,
+  Theme,
+  ReactGrabState,
+  RenderType,
+  RenderData,
+  OverlayBounds,
+  GrabbedBox,
+  DragRect,
+  Rect,
+  Position,
 } from "./types.js";
+
+import { init } from "./core.js";
+
+if (typeof window !== "undefined") {
+  init();
+}

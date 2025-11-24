@@ -130,6 +130,41 @@ if (process.env.NODE_ENV === "development") {
 }
 ```
 
+## Extending React Grab
+
+React Grab provides an public customization API. Check out the [type definitions](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) to see all available options for extending React Grab.
+
+```typescript
+import { init } from "react-grab/core";
+
+const api = init({
+  theme: {
+    hue: 180, // shift colors by 180 degrees (pink → cyan/turquoise)
+    crosshair: {
+      enabled: false, // disable crosshair
+    },
+    elementLabel: { // when hovering over an element
+      backgroundColor: "#000000",
+      textColor: "#ffffff",
+    },
+  },
+
+  onElementSelect: (element) => {
+    console.log("Selected:", element);
+  },
+  onCopySuccess: (elements, content) => {
+    console.log("Copied to clipboard:", content);
+  },
+  onStateChange: (state) => {
+    console.log("Active:", state.isActive);
+  },
+});
+
+api.activate();
+api.copyElement(document.querySelector(".my-element"));
+console.log(api.getState());
+```
+
 ## Resources & Contributing Back
 
 Want to try it out? Check the [our demo](https://react-grab.com).

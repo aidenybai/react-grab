@@ -1,4 +1,4 @@
-import { Show, For } from "solid-js";
+import { Show, For, type JSX } from "solid-js";
 import type { Component } from "solid-js";
 import type { ReactGrabRendererProps } from "../types.js";
 import { SelectionBox } from "./selection-box.js";
@@ -54,7 +54,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           {(label) => (
             <Label
               variant="success"
-              text={label.text}
+              content={<>{label.text}</>}
               x={props.mouseX ?? 0}
               y={props.mouseY ?? 0}
             />
@@ -66,16 +66,16 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         when={
           props.labelVisible &&
           props.labelVariant &&
-          props.labelText &&
+          props.labelContent !== undefined &&
           props.labelX !== undefined &&
           props.labelY !== undefined
         }
       >
         <Label
-          variant={props.labelVariant!}
-          text={props.labelText!}
-          x={props.labelX!}
-          y={props.labelY!}
+          variant={props.labelVariant as "hover" | "processing" | "success"}
+          content={props.labelContent as JSX.Element}
+          x={props.labelX as number}
+          y={props.labelY as number}
           visible={props.labelVisible}
           zIndex={props.labelZIndex}
           progress={props.progress}

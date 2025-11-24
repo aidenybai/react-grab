@@ -1,4 +1,4 @@
-import { Show } from "solid-js";
+import { Show, type JSX } from "solid-js";
 import type { Component } from "solid-js";
 import { Spinner } from "./spinner.js";
 import {
@@ -14,7 +14,7 @@ import { getCursorQuadrants } from "../utils/get-cursor-quadrants.js";
 
 interface LabelProps {
   variant: "hover" | "processing" | "success";
-  text: string;
+  content: JSX.Element;
   x: number;
   y: number;
   visible?: boolean;
@@ -83,20 +83,6 @@ export const Label: Component<LabelProps> = (props) => {
     return fallback;
   };
 
-  const labelSegments = () => {
-    const separator = " in ";
-    const separatorIndex = props.text.indexOf(separator);
-
-    if (separatorIndex === -1) {
-      return { primary: props.text, secondary: "" };
-    }
-
-    return {
-      primary: props.text.slice(0, separatorIndex),
-      secondary: props.text.slice(separatorIndex),
-    };
-  };
-
   return (
     <Show when={props.visible !== false}>
       <div
@@ -134,18 +120,7 @@ export const Label: Component<LabelProps> = (props) => {
             </Show>
             <Show when={props.variant === "processing"}>Please wait…</Show>
             <Show when={props.variant !== "processing"}>
-              <span class="font-mono tabular-nums align-middle">
-                {labelSegments().primary}
-              </span>
-              <Show
-                when={
-                  props.variant === "hover" && labelSegments().secondary !== ""
-                }
-              >
-                <span class="tabular-nums text-[10px] ml-1 align-middle">
-                  {labelSegments().secondary}
-                </span>
-              </Show>
+              {props.content}
             </Show>
             <Show when={props.variant === "success"}>
               <div class="ml-1">to clipboard</div>

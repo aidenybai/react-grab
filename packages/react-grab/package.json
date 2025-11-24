@@ -35,6 +35,16 @@
         "default": "./dist/index.cjs"
       }
     },
+    "./core": {
+      "import": {
+        "types": "./dist/core.d.ts",
+        "default": "./dist/core.js"
+      },
+      "require": {
+        "types": "./dist/core.d.cts",
+        "default": "./dist/core.cjs"
+      }
+    },
     "./dist/*": "./dist/*.js",
     "./dist/*.js": "./dist/*.js",
     "./dist/*.cjs": "./dist/*.cjs",

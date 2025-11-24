@@ -67,12 +67,13 @@ export default defineConfig([
   },
   {
     ...DEFAULT_OPTIONS,
-    entry: ["./src/index.ts"],
+    entry: ["./src/index.ts", "./src/core.tsx"],
     format: ["cjs", "esm"],
     loader: {
       ".css": "text",
     },
     outDir: "./dist",
+    splitting: true,
     esbuildPlugins: [
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- babel is not typed
       babel({

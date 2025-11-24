@@ -15,7 +15,6 @@ import { ReactGrabRenderer } from "./components/renderer.js";
 import { getStack, formatStack, getHTMLPreview } from "./instrumentation.js";
 import { isInstrumentationActive } from "bippy";
 import { copyContent } from "./utils/copy-content.js";
-import { playCopySound } from "./utils/play-copy-sound.js";
 import { getElementAtPosition } from "./utils/get-element-at-position.js";
 import { isValidGrabbableElement } from "./utils/is-valid-grabbable-element.js";
 import {
@@ -38,8 +37,84 @@ import type {
   OverlayBounds,
   GrabbedBox,
   ReactGrabAPI,
+  Theme,
+  ReactGrabState,
 } from "./types.js";
 import { getNearestComponentName } from "./instrumentation.js";
+
+const DEFAULT_THEME: Required<Theme> = {
+  hue: 0,
+  selectionBox: {
+    enabled: true,
+    color: undefined,
+    borderRadius: undefined,
+  },
+  dragBox: {
+    enabled: true,
+    color: undefined,
+  },
+  grabbedBoxes: {
+    enabled: true,
+    color: undefined,
+  },
+  elementLabel: {
+    enabled: true,
+    backgroundColor: undefined,
+    textColor: undefined,
+    borderColor: undefined,
+    padding: undefined,
+    cursorOffset: undefined,
+  },
+  successLabels: {
+    enabled: true,
+  },
+  crosshair: {
+    enabled: true,
+    color: undefined,
+  },
+  inputOverlay: {
+    enabled: true,
+  },
+};
+
+const mergeTheme = (userTheme?: Theme): Required<Theme> => {
+  if (!userTheme) return DEFAULT_THEME;
+
+  return {
+    hue: userTheme.hue ?? DEFAULT_THEME.hue,
+    selectionBox: {
+      enabled: userTheme.selectionBox?.enabled ?? DEFAULT_THEME.selectionBox.enabled,
+      color: userTheme.selectionBox?.color ?? DEFAULT_THEME.selectionBox.color,
+      borderRadius: userTheme.selectionBox?.borderRadius ?? DEFAULT_THEME.selectionBox.borderRadius,
+    },
+    dragBox: {
+      enabled: userTheme.dragBox?.enabled ?? DEFAULT_THEME.dragBox.enabled,
+      color: userTheme.dragBox?.color ?? DEFAULT_THEME.dragBox.color,
+    },
+    grabbedBoxes: {
+      enabled: userTheme.grabbedBoxes?.enabled ?? DEFAULT_THEME.grabbedBoxes.enabled,
+      color: userTheme.grabbedBoxes?.color ?? DEFAULT_THEME.grabbedBoxes.color,
+    },
+    elementLabel: {
+      enabled: userTheme.elementLabel?.enabled ?? DEFAULT_THEME.elementLabel.enabled,
+      backgroundColor: userTheme.elementLabel?.backgroundColor ?? DEFAULT_THEME.elementLabel.backgroundColor,
+      textColor: userTheme.elementLabel?.textColor ?? DEFAULT_THEME.elementLabel.textColor,
+      borderColor: userTheme.elementLabel?.borderColor ?? DEFAULT_THEME.elementLabel.borderColor,
+      padding: userTheme.elementLabel?.padding ?? DEFAULT_THEME.elementLabel.padding,
+      cursorOffset: userTheme.elementLabel?.cursorOffset ?? DEFAULT_THEME.elementLabel.cursorOffset,
+    },
+    successLabels: {
+      enabled: userTheme.successLabels?.enabled ?? DEFAULT_THEME.successLabels.enabled,
+    },
+    crosshair: {
+      enabled: userTheme.crosshair?.enabled ?? DEFAULT_THEME.crosshair.enabled,
+      color: userTheme.crosshair?.color ?? DEFAULT_THEME.crosshair.color,
+    },
+    inputOverlay: {
+      enabled: userTheme.inputOverlay?.enabled ?? DEFAULT_THEME.inputOverlay.enabled,
+    },
+  };
+};
 
 let hasInited = false;
 
@@ -48,9 +123,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     enabled: true,
     keyHoldDuration: 200,
     allowActivationInsideInput: true,
-    playCopySound: false,
     ...rawOptions,
   };
+
+  const theme = mergeTheme(options.theme);
 
   if (options.enabled === false || hasInited) {
     return {
@@ -59,6 +135,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       toggle: () => {},
       isActive: () => false,
       dispose: () => {},
+      copyElement: () => Promise.resolve(false),
+      getState: () => ({
+        isActive: false,
+        isDragging: false,
+        isCopying: false,
+        targetElement: null,
+        dragBounds: null,
+      }),
     };
   }
   hasInited = true;
@@ -188,19 +272,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const extractElementTagName = (element: Element) =>
       (element.tagName || "").toLowerCase();
 
-    const extractElementLabelText = (element: Element) => {
+    const extractElementTagNameForSuccess = (element: Element) => {
       const tagName = extractElementTagName(element);
-      const componentName = getNearestComponentName(element);
-
-      if (tagName && componentName) {
-        return `<${tagName}> in ${componentName}`;
-      }
-
-      if (tagName) {
-        return `<${tagName}>`;
-      }
-
-      return "<element>";
+      return tagName ? `<${tagName}>` : "1 element";
     };
 
     const notifyElementsSelected = (elements: Element[]) => {
@@ -261,7 +335,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       extraPrompt?: string,
     ): Promise<boolean> => {
       let didCopy = false;
+      let copiedContent = "";
       const isReactProject = isInstrumentationActive();
+
+      try {
+        await options.onBeforeCopy?.(elements);
+      } catch {}
 
       try {
         const elementSnippetResults = await Promise.allSettled(
@@ -296,10 +375,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             ? `${extraPrompt}\n\n${wrappedSnippets}`
             : wrappedSnippets;
 
-          didCopy = await copyContent(
-            plainTextContent,
-            options.playCopySound ? playCopySound : undefined,
-          );
+          copiedContent = plainTextContent;
+          didCopy = await copyContent(plainTextContent);
         }
 
         if (!didCopy) {
@@ -309,25 +386,35 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               ? `${extraPrompt}\n\n${plainTextContentOnly}`
               : plainTextContentOnly;
 
-            didCopy = await copyContent(
-              contentWithPrompt,
-              options.playCopySound ? playCopySound : undefined,
-            );
+            copiedContent = contentWithPrompt;
+            didCopy = await copyContent(contentWithPrompt);
           }
         }
-      } catch {
+
+        if (didCopy) {
+          try {
+            options.onCopySuccess?.(elements, copiedContent);
+          } catch {}
+        }
+      } catch (error) {
+        try {
+          options.onCopyError?.(error as Error);
+        } catch {}
+
         const plainTextContentOnly = createCombinedTextContent(elements);
         if (plainTextContentOnly.length > 0) {
           const contentWithPrompt = extraPrompt
             ? `${extraPrompt}\n\n${plainTextContentOnly}`
             : plainTextContentOnly;
 
-          didCopy = await copyContent(
-            contentWithPrompt,
-            options.playCopySound ? playCopySound : undefined,
-          );
+          copiedContent = contentWithPrompt;
+          didCopy = await copyContent(contentWithPrompt);
         }
       }
+
+      try {
+        options.onAfterCopy?.(elements, didCopy);
+      } catch {}
 
       return didCopy;
     };
@@ -336,16 +423,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       targetElement: Element,
       extraPrompt?: string,
     ) => {
-      showTemporaryGrabbedBox(
-        createElementBounds(targetElement),
-        targetElement,
-      );
+      try {
+        options.onElementSelect?.(targetElement);
+      } catch {}
+
+      if (theme.grabbedBoxes.enabled) {
+        showTemporaryGrabbedBox(
+          createElementBounds(targetElement),
+          targetElement,
+        );
+      }
       await new Promise((resolve) => requestAnimationFrame(resolve));
 
       const didCopy = await tryCopyWithFallback([targetElement], extraPrompt);
 
-      if (didCopy) {
-        showTemporarySuccessLabel(extractElementLabelText(targetElement));
+      if (didCopy && theme.successLabels.enabled) {
+        showTemporarySuccessLabel(extractElementTagNameForSuccess(targetElement));
       }
 
       notifyElementsSelected([targetElement]);
@@ -357,13 +450,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (targetElements.length === 0) return;
 
       for (const element of targetElements) {
-        showTemporaryGrabbedBox(createElementBounds(element), element);
+        try {
+          options.onElementSelect?.(element);
+        } catch {}
+      }
+
+      if (theme.grabbedBoxes.enabled) {
+        for (const element of targetElements) {
+          showTemporaryGrabbedBox(createElementBounds(element), element);
+        }
       }
       await new Promise((resolve) => requestAnimationFrame(resolve));
 
       const didCopy = await tryCopyWithFallback(targetElements);
 
-      if (didCopy) {
+      if (didCopy && theme.successLabels.enabled) {
         showTemporarySuccessLabel(`${targetElements.length} elements`);
       }
 
@@ -445,9 +546,35 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
     });
 
-    const labelText = createMemo(() => {
+    const labelContent = createMemo(() => {
       const element = targetElement();
-      return element ? extractElementLabelText(element) : "<element>";
+      if (!element) return <span class="font-mono tabular-nums align-middle">{"1 element"}</span>;
+
+      const tagName = extractElementTagName(element);
+      const componentName = getNearestComponentName(element);
+
+      if (tagName && componentName) {
+        return (
+          <>
+            <span class="font-mono tabular-nums align-middle">
+              {"<"}{tagName}{">"}
+            </span>
+            <span class="tabular-nums text-[10px] ml-1 align-middle">
+              {" in "}{componentName}
+            </span>
+          </>
+        );
+      }
+
+      if (tagName) {
+        return (
+          <span class="font-mono tabular-nums align-middle">
+            {"<"}{tagName}{">"}
+          </span>
+        );
+      }
+
+      return <span class="font-mono tabular-nums align-middle">{"1 element"}</span>;
     });
 
     const labelPosition = createMemo(() =>
@@ -469,6 +596,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           if (lastElement && currentElement && lastElement !== currentElement) {
             setLastGrabbedElement(null);
           }
+          if (currentElement) {
+            try {
+              options.onElementHover?.(currentElement);
+            } catch {}
+          }
         },
       ),
     );
@@ -486,6 +618,34 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           }));
 
           setGrabbedBoxes(updatedBoxes);
+        },
+      ),
+    );
+
+    createEffect(
+      on(
+        () => [
+          isActivated(),
+          isDragging(),
+          isCopying(),
+          targetElement(),
+          dragBounds(),
+        ] as const,
+        ([active, dragging, copying, target, drag]) => {
+          try {
+            options.onStateChange?.({
+              isActive: active,
+              isDragging: dragging,
+              isCopying: copying,
+              targetElement: target,
+              dragBounds: drag ? {
+                x: drag.x,
+                y: drag.y,
+                width: drag.width,
+                height: drag.height,
+              } : null,
+            });
+          } catch {}
         },
       ),
     );
@@ -778,9 +938,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         event.preventDefault();
         setIsDragging(true);
-        setDragStartX(event.clientX + window.scrollX);
-        setDragStartY(event.clientY + window.scrollY);
+        const startX = event.clientX + window.scrollX;
+        const startY = event.clientY + window.scrollY;
+        setDragStartX(startX);
+        setDragStartY(startY);
         document.body.style.userSelect = "none";
+
+        try {
+          options.onDragStart?.(startX, startY);
+        } catch {}
       },
       { signal: eventListenerSignal },
     );
@@ -810,6 +976,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           const elements = getElementsInDrag(dragRect, isValidGrabbableElement);
 
           if (elements.length > 0) {
+            try {
+              options.onDragEnd?.(elements, dragRect);
+            } catch {}
             void executeCopyOperation(event.clientX, event.clientY, () =>
               copyMultipleElementsToClipboard(elements),
             );
@@ -820,6 +989,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             );
 
             if (fallbackElements.length > 0) {
+              try {
+                options.onDragEnd?.(fallbackElements, dragRect);
+              } catch {}
               void executeCopyOperation(event.clientX, event.clientY, () =>
                 copyMultipleElementsToClipboard(fallbackElements),
               );
@@ -902,11 +1074,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const rendererRoot = mountRoot(cssText as string);
 
     const selectionVisible = createMemo(
-      () => isRendererActive() && !isDragging() && Boolean(targetElement()),
+      () => theme.selectionBox.enabled && isRendererActive() && !isDragging() && Boolean(targetElement()),
     );
 
     const dragVisible = createMemo(
-      () => isRendererActive() && isDraggingBeyondThreshold(),
+      () => theme.dragBox.enabled && isRendererActive() && isDraggingBeyondThreshold(),
     );
 
     const labelVariant = createMemo(() =>
@@ -914,6 +1086,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const labelVisible = createMemo(() => {
+      if (!theme.elementLabel.enabled) return false;
       if (isInputMode()) return false;
       if (isCopying()) return true;
       if (successLabels().length > 0) return false;
@@ -926,10 +1099,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const crosshairVisible = createMemo(
-      () => isRendererActive() && !isDragging(),
+      () => theme.crosshair.enabled && isRendererActive() && !isDragging(),
     );
 
-    const inputVisible = createMemo(() => isInputMode());
+    const inputVisible = createMemo(() => theme.inputOverlay.enabled && isInputMode());
+
+    const shouldShowGrabbedBoxes = createMemo(() => theme.grabbedBoxes.enabled);
+    const shouldShowSuccessLabels = createMemo(() => theme.successLabels.enabled);
+
+    if (theme.hue !== 0) {
+      rendererRoot.style.filter = `hue-rotate(${theme.hue}deg)`;
+    }
 
     render(
       () => (
@@ -938,10 +1118,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           selectionBounds={selectionBounds()}
           dragVisible={dragVisible()}
           dragBounds={dragBounds()}
-          grabbedBoxes={grabbedBoxes()}
-          successLabels={successLabels()}
+          grabbedBoxes={shouldShowGrabbedBoxes() ? grabbedBoxes() : []}
+          successLabels={shouldShowSuccessLabels() ? successLabels() : []}
           labelVariant={labelVariant()}
-          labelText={labelText()}
+          labelContent={labelContent()}
           labelX={labelPosition().x}
           labelY={labelPosition().y}
           labelVisible={labelVisible()}
@@ -959,10 +1139,41 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           onInputChange={handleInputChange}
           onInputSubmit={handleInputSubmit}
           onInputCancel={handleInputCancel}
+          theme={theme}
         />
       ),
       rendererRoot,
     );
+
+    const copyElementAPI = async (elements: Element | Element[]): Promise<boolean> => {
+      const elementsArray = Array.isArray(elements) ? elements : [elements];
+      if (elementsArray.length === 0) return false;
+
+      try {
+        await options.onBeforeCopy?.(elementsArray);
+      } catch {}
+
+      const didCopy = await tryCopyWithFallback(elementsArray);
+
+      try {
+        options.onAfterCopy?.(elementsArray, didCopy);
+      } catch {}
+
+      return didCopy;
+    };
+
+    const getStateAPI = (): ReactGrabState => ({
+      isActive: isActivated(),
+      isDragging: isDragging(),
+      isCopying: isCopying(),
+      targetElement: targetElement(),
+      dragBounds: dragBounds() ? {
+        x: dragBounds()!.x,
+        y: dragBounds()!.y,
+        width: dragBounds()!.width,
+        height: dragBounds()!.height,
+      } : null,
+    });
 
     return {
       activate: () => {
@@ -984,6 +1195,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
       isActive: () => isActivated(),
       dispose,
+      copyElement: copyElementAPI,
+      getState: getStateAPI,
     };
   });
 };
+
+export type {
+  Options,
+  OverlayBounds,
+  ReactGrabRendererProps,
+  ReactGrabAPI,
+} from "./types.js";
