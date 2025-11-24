@@ -430,7 +430,13 @@ const BlogPostPage = () => {
 
       <div className="px-4 sm:px-8 mb-16">
         <div className="mx-auto max-w-2xl flex flex-col gap-6 text-neutral-400">
-          <p>Here are the latest measurement results from all 20 test cases:</p>
+          <p>
+            Below are the latest measurement results from all 20 test cases. The
+            table below shows a detailed breakdown comparing performance metrics
+            (time, tool calls, tokens) between the control and treatment groups,
+            with speedup percentages indicating how much faster React Grab made
+            the agent for each task.
+          </p>
         </div>
       </div>
 
@@ -444,7 +450,7 @@ const BlogPostPage = () => {
         </div>
       </div>
 
-      <div className="px-4 sm:px-8 pt-24 pb-56">
+      <div className="px-4 sm:px-8 pt-16 pb-56">
         <div className="mx-auto max-w-2xl flex flex-col gap-6 text-neutral-400">
           <div className="flex flex-col gap-4">
             <h3 className="text-lg font-medium text-neutral-200">
@@ -475,7 +481,7 @@ const BlogPostPage = () => {
             </p>
           </div>
 
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 mt-4">
             <h3 className="text-lg font-medium text-neutral-200">
               What&apos;s next
             </h3>
