@@ -126,7 +126,14 @@ const BlogPostPage = () => {
           </div>
 
           <Collapsible
-            header={<span className="text-sm font-medium" style={{ color: "#ff4fff" }}>{'>'} TL;DR: click to see results</span>}
+            header={
+              <span
+                className="text-sm font-medium"
+                style={{ color: "#ff4fff" }}
+              >
+                {">"} TL;DR: click to see results
+              </span>
+            }
             defaultExpanded={false}
           >
             <div className="pt-4">
@@ -307,7 +314,7 @@ const BlogPostPage = () => {
               <p>
                 Each test ran twice: once with React Grab enabled (treatment),
                 once without (control). Both conditions used identical codebases
-                and Claude 4.5 Haiku.
+                and Claude 4.5 Sonnet (in Claude Code).
               </p>
             </div>
           </div>
@@ -452,7 +459,7 @@ const BlogPostPage = () => {
 
       <div className="px-4 sm:px-8 pt-8">
         <div className="mx-auto max-w-2xl">
-          <div className="text-sm text-neutral-500 border-t border-[#2a2a2a] pt-6">
+          <div className="text-sm text-neutral-500 pt-6">
             <p>
               To run the benchmark yourself, check out the{" "}
               <a
@@ -463,16 +470,7 @@ const BlogPostPage = () => {
               >
                 benchmarks directory
               </a>{" "}
-              on GitHub. The benchmark runs{" "}
-              <a
-                href="https://github.com/aidenybai/react-grab/blob/main/packages/benchmarks/test-cases.json"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-neutral-300 hover:text-white underline underline-offset-4"
-              >
-                20 test cases
-              </a>{" "}
-              comparing control (without React Grab) vs treatment (with React Grab) groups using Claude Code.
+              on GitHub.
             </p>
           </div>
         </div>
@@ -485,9 +483,8 @@ const BlogPostPage = () => {
               How it impacts you
             </h3>
             <p>
-              The best use case I&apos;ve seen for React Grab is for
-              low-entropy adjustments like: spacing, layout tweaks, or minor
-              visual changes.
+              The best use case I&apos;ve seen for React Grab is for low-entropy
+              adjustments like: spacing, layout tweaks, or minor visual changes.
             </p>
             <p>
               If you iterate on UI frequently, this can make everyday changes
@@ -553,9 +550,7 @@ const BlogPostPage = () => {
 
           <div className="flex flex-col gap-4">
             <h3 className="text-lg font-medium text-neutral-200">Try it out</h3>
-            <p>
-              React Grab is free and open source. Go try it out!
-            </p>
+            <p>React Grab is free and open source. Go try it out!</p>
             <div className="flex flex-col gap-2">
               <Link
                 href="/"
