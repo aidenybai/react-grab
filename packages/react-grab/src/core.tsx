@@ -55,15 +55,9 @@ let hasInited = false;
 const getScriptOptions = (): Partial<Options> | null => {
   if (typeof window === "undefined") return null;
   try {
-    const scriptElement = document.querySelector(
-      'script[data-react-grab-config][type="application/json"]',
-    );
-    if (!scriptElement) return null;
-
-    const textContent = scriptElement.textContent?.trim();
-    if (!textContent) return null;
-
-    return JSON.parse(textContent) as Partial<Options>;
+    const dataOptions = document.currentScript?.getAttribute("data-options");
+    if (!dataOptions) return null;
+    return JSON.parse(dataOptions) as Partial<Options>;
   } catch {
     return null;
   }
