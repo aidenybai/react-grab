@@ -24,7 +24,7 @@ import { TriangleAlert } from "lucide-react";
 import { useState, useEffect, useRef, Fragment, useCallback } from "react";
 import { detectMobile } from "@/utils/detect-mobile";
 import demoGif from "@/public/demo.gif";
-import Link from "next/link";
+import { BenchmarkTooltip } from "./benchmark-tooltip";
 
 const getConversationBlocks = (): StreamBlock[] => [
   {
@@ -178,13 +178,12 @@ const getConversationBlocks = (): StreamBlock[] => [
           <IconCopilot width={18} height={18} className="translate-y-[2px]" />
           Copilot run up to
         </span>{" "}
-        <Link
+        <BenchmarkTooltip
           href="/blog/intro"
-          rel="noreferrer"
           className="shimmer-text-pink inline-block touch-manipulation py-1"
         >
           <span className="font-bold font-mono">55%</span> faster
-        </Link>
+        </BenchmarkTooltip>
       </span>
     ),
   },
