@@ -6,7 +6,7 @@
     "./components/*": "./components/*.tsx"
   },
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "node ../react-grab/bin/index.cjs next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"

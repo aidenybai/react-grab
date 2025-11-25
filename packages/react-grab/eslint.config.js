@@ -5,6 +5,7 @@ export default tseslint.config(
     ignores: [
       "node_modules/**",
       "dist/**",
+      "bin/**",
       "eslint.config.mjs",
       "bundled_*.mjs",
       "*.mjs",
@@ -21,6 +22,7 @@ export default tseslint.config(
       parserOptions: {
         projectService: true,
         tsconfigRootDir: import.meta.dirname,
+        allowDefaultProject: true,
       },
     },
     rules: {

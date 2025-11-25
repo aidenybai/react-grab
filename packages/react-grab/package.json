@@ -54,6 +54,9 @@
   "module": "dist/index.js",
   "browser": "dist/index.global.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "react-grab": "./bin/index.cjs"
+  },
   "files": [
     "dist",
     "bin",
@@ -77,6 +80,7 @@
   "devDependencies": {
     "@babel/core": "^7.28.5",
     "@babel/preset-typescript": "^7.28.5",
+    "@react-grab/server": "workspace:*",
     "@tailwindcss/cli": "^4.1.17",
     "@types/node": "^20.19.23",
     "babel-preset-solid": "^1.9.10",

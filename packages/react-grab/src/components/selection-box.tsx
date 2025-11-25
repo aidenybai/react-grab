@@ -131,7 +131,7 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
           props.variant !== "grabbed" && "z-2147483646",
           props.variant === "drag" && "border border-dashed border-grab-purple/40 bg-grab-purple/5 will-change-[transform,width,height] cursor-crosshair",
           props.variant === "selection" && "border border-dashed border-grab-purple/50 bg-grab-purple/8",
-          props.variant === "grabbed" && "border border-grab-purple bg-grab-purple/8 transition-opacity duration-300 ease-out"
+          props.variant === "grabbed" && "border border-solid border-grab-purple bg-grab-purple/8 transition-opacity duration-300 ease-out"
         )}
         style={{
           top: `${currentY()}px`,

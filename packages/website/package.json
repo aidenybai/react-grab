@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node ../react-grab/bin/index.cjs next dev",
     "build": "pnpm --filter react-grab build && next build",
     "start": "next start",
     "lint": "eslint"

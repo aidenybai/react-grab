@@ -24,8 +24,12 @@ export const Spinner: Component<SpinnerProps> = (props) => {
   return (
     <span
       ref={spinnerRef}
-      class="inline-block w-2 h-2 border-[1.5px] border-grab-dark-pink border-t-transparent rounded-full mr-1 align-middle"
-      style={props.style}
+      style={{
+        border: "1.5px solid rgb(210, 57, 192)",
+        "border-top-color": "transparent", // not a thing TailwindCSS supports
+        ...props.style,
+      }}
+      class="inline-block w-[8px] h-[8px] border-[1.5px] rounded-full mr-1 align-middle"
     />
   );
 };

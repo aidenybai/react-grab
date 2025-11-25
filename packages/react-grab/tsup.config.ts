@@ -87,4 +87,21 @@ export default defineConfig([
       }),
     ],
   },
+  {
+    banner: {
+      js: banner,
+    },
+    clean: false,
+    dts: true,
+    entry: { server: "./src/server.ts" },
+    external: ["@react-grab/server"],
+    format: ["cjs"],
+    minify: false,
+    outDir: "./dist",
+    platform: "node",
+    sourcemap: false,
+    splitting: false,
+    target: "node18",
+    treeshake: true,
+  },
 ]);

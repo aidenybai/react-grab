@@ -1,9 +1,10 @@
 {
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.15.0",
   "scripts": {
-    "build": "pnpm --filter react-grab build",
-    "dev": "pnpm --filter react-grab dev",
+    "build": "turbo build --filter=react-grab --filter=@react-grab/server",
+    "dev": "turbo dev --filter=react-grab --filter=@react-grab/server",
     "lint": "pnpm --filter react-grab lint",
     "lint:fix": "pnpm --filter react-grab lint:fix",
     "format": "prettier --write .",
@@ -18,7 +19,8 @@
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.10",
-    "prettier": "^3.4.2"
+    "prettier": "^3.4.2",
+    "turbo": "^2.6.1"
   },
   "engines": {
     "node": ">=18",

@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node ../react-grab/bin/index.cjs vite",
     "build": "vite build",
     "preview": "vite preview"
   },
