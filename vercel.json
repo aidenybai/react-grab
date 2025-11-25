@@ -1,5 +1,5 @@
 {
-  "buildCommand": "pnpm --filter react-grab build && pnpm --filter @react-grab/website build",
+  "buildCommand": "pnpm --filter react-grab build && cp packages/react-grab/dist/index.global.js packages/website/public/react-grab.global.js && pnpm --filter @react-grab/website build",
   "installCommand": "pnpm install",
   "headers": [
     {

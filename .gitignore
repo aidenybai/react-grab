@@ -6,3 +6,4 @@ dist
 coverage
 react-grab-extension.zip
 tsup.config.bundled_*.mjs
+packages/website/public/react-grab.global.js
