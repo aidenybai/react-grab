@@ -769,6 +769,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         if (!isTargetKeyCombination(event)) return;
 
+        if (isActivated() || isHoldingKeys()) {
+          event.preventDefault();
+        }
+
         if (isActivated()) {
           if (isToggleMode()) return;
 

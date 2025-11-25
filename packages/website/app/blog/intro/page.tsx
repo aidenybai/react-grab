@@ -6,7 +6,10 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import ReactGrabLogo from "@/public/logo.svg";
 import { highlightCode } from "@/lib/shiki";
-import { BenchmarkCharts, BenchmarkChartsTweet } from "@/components/benchmarks/benchmark-charts";
+import {
+  BenchmarkCharts,
+  BenchmarkChartsTweet,
+} from "@/components/benchmarks/benchmark-charts";
 import { BenchmarkDetailedTable } from "@/components/benchmarks/benchmark-detailed-table";
 import { BenchmarkResult, TestCase } from "@/components/benchmarks/types";
 import { GithubButton } from "@/components/github-button";
@@ -127,16 +130,15 @@ const BlogPostPage = () => {
 
           <Collapsible
             header={
-              <span
-                className="text-sm font-medium"
-                style={{ color: "#ff4fff" }}
-              >
-                {">"} TL;DR: click to see results
+              <span className="text-sm font-medium">
+                TL;DR
               </span>
             }
           >
             <div className="pt-4">
-              <BenchmarkChartsTweet results={resultsData as BenchmarkResult[]} />
+              <BenchmarkChartsTweet
+                results={resultsData as BenchmarkResult[]}
+              />
             </div>
           </Collapsible>
 
@@ -198,7 +200,7 @@ const BlogPostPage = () => {
               Improving the agent is a <em>lot</em> of unsolved research
               problems. It involves training better models (see{" "}
               <a
-                href="https://cursor.com/changelog/2-1#instant-grep-beta"
+                href="https://cursor.com/changelog/2-1"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-neutral-300 hover:text-white underline underline-offset-4"
@@ -232,8 +234,13 @@ const BlogPostPage = () => {
               <p>
                 In my ad-hoc tests, I noticed that referencing the file path
                 (e.g.{" "}
-                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">path/to/component.tsx</code>)
-                or something to <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">grep</code>{" "}
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+                  path/to/component.tsx
+                </code>
+                ) or something to{" "}
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+                  grep
+                </code>{" "}
                 (e.g.{" "}
                 <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
                   className=&quot;flex flex-col gap-5 text-shimmer&quot;

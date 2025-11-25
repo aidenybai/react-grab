@@ -1,6 +1,4 @@
 "use client";
-
-import { useState, useEffect, useRef } from "react";
 import {
   Bar,
   BarChart,
@@ -84,52 +82,27 @@ interface AnimatedBarProps {
   label: string;
 }
 
-const AnimatedBar = ({ targetSeconds, maxSeconds, color, label }: AnimatedBarProps) => {
-  const [currentTime, setCurrentTime] = useState(0);
-  const animationRef = useRef<number | null>(null);
-  const startTimeRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    const animate = (timestamp: number) => {
-      if (!startTimeRef.current) {
-        startTimeRef.current = timestamp;
-      }
-
-      const elapsed = (timestamp - startTimeRef.current) / 1000;
-      const newTime = Math.min(elapsed, maxSeconds);
-      setCurrentTime(newTime);
-
-      if (newTime < maxSeconds) {
-        animationRef.current = requestAnimationFrame(animate);
-      }
-    };
-
-    animationRef.current = requestAnimationFrame(animate);
-
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [maxSeconds]);
-
-  const displayTime = Math.min(currentTime, targetSeconds);
-  const barWidth = (displayTime / maxSeconds) * 100;
-  const isComplete = currentTime >= targetSeconds;
-
+const AnimatedBar = ({
+  targetSeconds,
+  maxSeconds,
+  color,
+  label,
+}: AnimatedBarProps) => {
   const targetWidth = (targetSeconds / maxSeconds) * 100;
+  const animationDuration = targetSeconds;
 
   return (
-    <div className="relative h-7 flex-1">
+    <div className="relative h-5 flex-1">
       <div
-        className="absolute top-0 left-0 h-full rounded-r bg-neutral-800"
+        className="absolute top-0 left-0 h-full bg-neutral-800"
         style={{ width: `${targetWidth}%` }}
       />
       <div
-        className="absolute top-0 left-0 h-full rounded-r"
+        className="absolute top-0 left-0 h-full animate-fill-bar"
         style={{
-          width: `${barWidth}%`,
           backgroundColor: color,
+          animationDuration: `${animationDuration}s`,
+          ["--target-width" as string]: `${targetWidth}%`,
         }}
       />
       <span
@@ -139,7 +112,7 @@ const AnimatedBar = ({ targetSeconds, maxSeconds, color, label }: AnimatedBarPro
           color: color === "#525252" ? "#737373" : color,
         }}
       >
-        {isComplete ? label : `${displayTime.toFixed(1)}s`}
+        {label}
       </span>
     </div>
   );
@@ -170,11 +143,17 @@ export const BenchmarkChartsTweet = ({ results }: BenchmarkChartsProps) => {
   const maxSeconds = Math.ceil(controlDurationSec / 5) * 5;
   const gridLines = Array.from({ length: maxSeconds / 5 + 1 }, (_, i) => i * 5);
 
-  const durationChange = Math.abs(((treatmentStats.avgDuration - controlStats.avgDuration) / controlStats.avgDuration) * 100).toFixed(0);
-  const costChange = Math.abs(((treatmentTotalCost - controlTotalCost) / controlTotalCost) * 100).toFixed(0);
+  const durationChange = Math.abs(
+    ((treatmentStats.avgDuration - controlStats.avgDuration) /
+      controlStats.avgDuration) *
+      100,
+  ).toFixed(0);
+  const costChange = Math.abs(
+    ((treatmentTotalCost - controlTotalCost) / controlTotalCost) * 100,
+  ).toFixed(0);
 
   return (
-    <div className="bg-[#0a0a0a] rounded-xl p-5 max-w-xl mx-auto border border-neutral-800/50">
+    <div className="bg-[#0a0a0a] p-4 max-w-xl mx-auto">
       <div className="relative">
         <div className="flex items-center gap-3">
           <div className="w-20 shrink-0" />
@@ -210,7 +189,7 @@ export const BenchmarkChartsTweet = ({ results }: BenchmarkChartsProps) => {
             <div className="w-20 text-right text-xs font-medium text-[#ff4fff] shrink-0">
               Claude Code + React Grab
             </div>
-            <div className="relative h-7 flex-1">
+            <div className="relative h-5 flex-1">
               <AnimatedBarTreatment
                 targetSeconds={treatmentDurationSec}
                 maxSeconds={maxSeconds}
@@ -240,19 +219,27 @@ export const BenchmarkChartsTweet = ({ results }: BenchmarkChartsProps) => {
         </div>
       </div>
 
-      <div className="mt-3 pt-3 border-t border-neutral-800/50 flex items-center justify-between">
-        <div className="text-[9px] text-neutral-600">
-          *All values are averages across 20 benchmark runs per group
-        </div>
+      <p className="mt-3 text-[10px] text-neutral-600 italic">
+        Above: avg time for Claude Code to complete 20 UI tasks on a{" "}
+        <a
+          href="https://ui.shadcn.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-2 hover:text-neutral-400"
+        >
+          shadcn/ui
+        </a>{" "}
+        dashboard.{" "}
         <a
           href="https://github.com/aidenybai/react-grab/tree/main/packages/benchmarks"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[10px] text-neutral-600 hover:text-neutral-400 underline underline-offset-4"
+          className="underline underline-offset-2 hover:text-neutral-400"
         >
-          github.com/aidenybai/react-grab
+          More info
         </a>
-      </div>
+        .
+      </p>
     </div>
   );
 };
@@ -276,65 +263,36 @@ const AnimatedBarTreatment = ({
   costLabel,
   costChange,
 }: AnimatedBarTreatmentProps) => {
-  const [currentTime, setCurrentTime] = useState(0);
-  const animationRef = useRef<number | null>(null);
-  const startTimeRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    const animate = (timestamp: number) => {
-      if (!startTimeRef.current) {
-        startTimeRef.current = timestamp;
-      }
-
-      const elapsed = (timestamp - startTimeRef.current) / 1000;
-      const newTime = Math.min(elapsed, maxSeconds);
-      setCurrentTime(newTime);
-
-      if (newTime < maxSeconds) {
-        animationRef.current = requestAnimationFrame(animate);
-      }
-    };
-
-    animationRef.current = requestAnimationFrame(animate);
-
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [maxSeconds]);
-
-  const displayTime = Math.min(currentTime, targetSeconds);
-  const barWidth = (displayTime / maxSeconds) * 100;
   const targetWidth = (targetSeconds / maxSeconds) * 100;
-  const isComplete = currentTime >= targetSeconds;
+  const animationDuration = targetSeconds;
 
   return (
     <>
       <div
-        className="absolute top-0 left-0 h-full rounded-r bg-neutral-800"
+        className="absolute top-0 left-0 h-full bg-neutral-800"
         style={{ width: `${targetWidth}%` }}
       />
       <div
-        className="absolute top-0 left-0 h-full rounded-r"
+        className="absolute top-0 left-0 h-full animate-fill-bar"
         style={{
-          width: `${barWidth}%`,
           backgroundColor: color,
+          animationDuration: `${animationDuration}s`,
+          ["--target-width" as string]: `${targetWidth}%`,
         }}
       />
       <span
         className="absolute top-1/2 -translate-y-1/2 flex items-center gap-2 ml-2"
         style={{ left: `${targetWidth}%` }}
       >
-        {isComplete ? (
-          <>
-            <span className="text-xs font-semibold text-[#ff4fff]">{durationLabel}</span>
-            <span className="text-sm font-bold text-emerald-400">↓{durationChange}%</span>
-            <span className="text-[10px] text-neutral-500">({costLabel} ↓{costChange}%)</span>
-          </>
-        ) : (
-          <span className="text-xs font-semibold text-[#ff4fff] tabular-nums">{displayTime.toFixed(1)}s</span>
-        )}
+        <span className="text-xs font-semibold text-[#ff4fff]">
+          {durationLabel}
+        </span>
+        <span className="text-sm font-bold text-emerald-400">
+          ↓{durationChange}%
+        </span>
+        <span className="text-[10px] text-neutral-500">
+          ({costLabel} ↓{costChange}%)
+        </span>
       </span>
     </>
   );

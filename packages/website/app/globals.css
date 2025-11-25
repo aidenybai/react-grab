@@ -117,3 +117,16 @@ body {
 *::-webkit-scrollbar-thumb:hover {
   background-color: #525252;
 }
+
+@keyframes fill-bar {
+  from {
+    width: 0%;
+  }
+  to {
+    width: var(--target-width);
+  }
+}
+
+.animate-fill-bar {
+  animation: fill-bar linear forwards;
+}
