@@ -170,8 +170,8 @@ export const formatStack = (stack: Array<StackFrame>): string => {
 
 export const getFileName = (stack: Array<StackFrame>): string | null => {
   for (const frame of stack) {
-    if (frame.source) {
-      if (isSourceFile(frame.source.fileName)) return frame.source.fileName;
+    if (frame.source && isSourceFile(frame.source.fileName)) {
+      return normalizeFileName(frame.source.fileName);
     }
   }
   return null;
