@@ -552,6 +552,26 @@ const BlogPostPage = () => {
               </a>{" "}
               or open an issue on GitHub.
             </p>
+            <p className="italic text-neutral-500">
+              I&apos;m also very open to fixing issues with the benchmarks. If you spot
+              anything off, please{" "}
+              <a
+                href="mailto:aiden.ybai@gmail.com"
+                className="text-neutral-400 hover:text-white underline underline-offset-4"
+              >
+                email me
+              </a>{" "}
+              or{" "}
+              <a
+                href="https://x.com/aidenybai"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-neutral-400 hover:text-white underline underline-offset-4"
+              >
+                DM me on Twitter
+              </a>
+              .
+            </p>
           </div>
 
           <div className="flex flex-col gap-4">
