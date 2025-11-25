@@ -35,6 +35,10 @@ const nextConfig: NextConfig = {
             },
           ],
         },
+        {
+          source: "/llm.txt",
+          destination: "/llms.txt",
+        },
       ],
     };
   },
