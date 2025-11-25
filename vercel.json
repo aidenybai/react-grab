@@ -1,5 +1,5 @@
 {
-  "buildCommand": "VERSION=BLEEDING_EDGE pnpm --filter react-grab build && pnpm --filter react-grab exec cp dist/index.global.js ../website/public/react-grab.global.js && pnpm --filter @react-grab/website build",
+  "buildCommand": "pnpm --filter react-grab build && pnpm --filter react-grab exec cp dist/index.global.js ../website/public/script.js && pnpm --filter @react-grab/website build",
   "installCommand": "pnpm install",
   "headers": [
     {
@@ -7,8 +7,14 @@
       "headers": [
         { "key": "Access-Control-Allow-Credentials", "value": "true" },
         { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
-        { "key": "Access-Control-Allow-Headers", "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version" }
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET,OPTIONS,PATCH,DELETE,POST,PUT"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
+        }
       ]
     }
   ]
