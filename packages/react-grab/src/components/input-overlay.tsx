@@ -91,12 +91,8 @@ export const InputOverlay: Component<InputOverlayProps> = (props) => {
   const handleInput = (event: InputEvent) => {
     const target = event.target as HTMLTextAreaElement;
     props.onInput(target.value);
-    autoResizeTextarea(target);
-  };
-
-  const autoResizeTextarea = (textarea: HTMLTextAreaElement) => {
-    textarea.style.height = "auto";
-    textarea.style.height = `${textarea.scrollHeight}px`;
+    target.style.height = "auto";
+    target.style.height = `${target.scrollHeight}px`;
   };
 
   createEffect(() => {
