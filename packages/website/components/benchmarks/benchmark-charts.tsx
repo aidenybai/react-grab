@@ -1,4 +1,5 @@
 "use client";
+import { useState, useEffect } from "react";
 import {
   Bar,
   BarChart,
@@ -174,18 +175,6 @@ export const BenchmarkChartsTweet = ({ results }: BenchmarkChartsProps) => {
 
         <div className="space-y-2 relative">
           <div className="flex items-center gap-3">
-            <div className="w-20 text-right text-xs font-medium text-neutral-400 shrink-0">
-              Claude Code
-            </div>
-            <AnimatedBar
-              targetSeconds={controlDurationSec}
-              maxSeconds={maxSeconds}
-              color="#525252"
-              label={`${controlDurationSec.toFixed(1)}s`}
-            />
-          </div>
-
-          <div className="flex items-center gap-3">
             <div className="w-20 text-right text-xs font-medium text-[#ff4fff] shrink-0">
               Claude Code + React Grab
             </div>
@@ -200,6 +189,26 @@ export const BenchmarkChartsTweet = ({ results }: BenchmarkChartsProps) => {
                 costChange={costChange}
               />
             </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="w-20 text-right text-xs font-medium text-neutral-400 shrink-0">
+              Claude Code
+            </div>
+            <AnimatedBar
+              targetSeconds={controlDurationSec}
+              maxSeconds={maxSeconds}
+              color="#525252"
+              label={`${controlDurationSec.toFixed(1)}s`}
+            />
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="w-20 shrink-0" />
+            <LiveCounter
+              targetSeconds={controlDurationSec}
+              maxSeconds={maxSeconds}
+            />
           </div>
         </div>
 
@@ -295,6 +304,42 @@ const AnimatedBarTreatment = ({
         </span>
       </span>
     </>
+  );
+};
+
+interface LiveCounterProps {
+  targetSeconds: number;
+  maxSeconds: number;
+}
+
+const LiveCounter = ({ targetSeconds, maxSeconds }: LiveCounterProps) => {
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  useEffect(() => {
+    const startTime = Date.now();
+    const interval = setInterval(() => {
+      const elapsed = (Date.now() - startTime) / 1000;
+      if (elapsed >= targetSeconds) {
+        setElapsedSeconds(targetSeconds);
+        clearInterval(interval);
+      } else {
+        setElapsedSeconds(elapsed);
+      }
+    }, 50);
+    return () => clearInterval(interval);
+  }, [targetSeconds]);
+
+  const currentWidth = (elapsedSeconds / maxSeconds) * 100;
+
+  return (
+    <div className="relative h-5 flex-1">
+      <span
+        className="absolute top-0 -translate-x-1/2 text-[10px] tabular-nums text-neutral-400"
+        style={{ left: `${currentWidth}%` }}
+      >
+        {elapsedSeconds.toFixed(1)}s
+      </span>
+    </div>
   );
 };
 
