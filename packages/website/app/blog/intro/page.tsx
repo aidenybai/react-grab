@@ -191,7 +191,7 @@ const BlogPostPage = () => {
                 <span className="text-neutral-300 font-medium">
                   Make the agent better at codebase search
                 </span>{" "}
-                (e.g. Instant Grep, SWE-Grep - this is something model/agent
+                (this is something model/agent
                 PROVIDERS control)
               </li>
             </ul>
