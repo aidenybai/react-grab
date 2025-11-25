@@ -498,6 +498,13 @@ const BlogPostPage = () => {
               select an element and give the agent an exact starting point.
             </p>
             <p>
+              React Grab works with{" "}
+              <span className="font-medium text-neutral-300">any</span> IDE or
+              coding tool: Cursor, Claude Code, Copilot, Codex, Zed, Windsurf, you name it.
+              At its core, it just adds extra context to your prompt that helps
+              the agent locate the right code faster.
+            </p>
+            <p>
               We&apos;re finally moves things a bit closer to narrowing the
               intent to output gap (see{" "}
               <a
