@@ -91,11 +91,18 @@ export const InputOverlay: Component<InputOverlayProps> = (props) => {
   const handleInput = (event: InputEvent) => {
     const target = event.target as HTMLTextAreaElement;
     props.onInput(target.value);
+    autoResizeTextarea(target);
+  };
+
+  const autoResizeTextarea = (textarea: HTMLTextAreaElement) => {
+    textarea.style.height = "auto";
+    textarea.style.height = `${textarea.scrollHeight}px`;
   };
 
   createEffect(() => {
     if (props.visible && inputRef) {
       inputRef.focus();
+      inputRef.style.height = "auto";
     } else if (!props.visible && inputRef) {
       inputRef.blur();
     }
@@ -122,12 +129,12 @@ export const InputOverlay: Component<InputOverlayProps> = (props) => {
           value={props.value}
           onInput={handleInput}
           onKeyDown={handleKeyDown}
-          placeholder="e.g., Make this button larger"
+          placeholder="Make a change"
           rows={1}
-          class="w-[240px] px-1 py-0.5 bg-white text-grab-pink border border-grab-pink-border rounded-[3px] text-[11px] leading-tight font-sans outline-none resize-y min-h-[18px]"
+          class="w-[150px] px-1 py-0.5 bg-white text-grab-pink border border-grab-pink-border rounded-[3px] text-[11px] leading-tight font-sans outline-none resize-none min-h-[18px] overflow-hidden"
         />
         <div class="text-[9px] opacity-60 text-center">
-          Enter ⏎ to submit, Escape to cancel
+          Enter ⏎ submit &middot; Esc cancel
         </div>
       </div>
     </div>
