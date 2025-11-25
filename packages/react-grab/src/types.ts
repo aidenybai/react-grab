@@ -174,6 +174,7 @@ export interface Options {
   enabled?: boolean;
   keyHoldDuration?: number;
   allowActivationInsideInput?: boolean;
+  copyFileOnly?: boolean;
   theme?: Theme;
   onActivate?: () => void;
   onDeactivate?: () => void;

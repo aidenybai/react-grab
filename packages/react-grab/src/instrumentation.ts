@@ -168,6 +168,15 @@ export const formatStack = (stack: Array<StackFrame>): string => {
     .join("\n");
 };
 
+export const getFileName = (stack: Array<StackFrame>): string | null => {
+  for (const frame of stack) {
+    if (frame.source) {
+      if (isSourceFile(frame.source.fileName)) return frame.source.fileName;
+    }
+  }
+  return null;
+};
+
 export const getHTMLPreview = (element: Element): string => {
   const tagName = element.tagName.toLowerCase();
   if (!(element instanceof HTMLElement)) {

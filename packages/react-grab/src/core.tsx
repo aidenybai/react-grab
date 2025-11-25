@@ -12,7 +12,12 @@ import { render } from "solid-js/web";
 import { isKeyboardEventTriggeredByInput } from "./utils/is-keyboard-event-triggered-by-input.js";
 import { mountRoot } from "./utils/mount-root.js";
 import { ReactGrabRenderer } from "./components/renderer.js";
-import { getStack, formatStack, getHTMLPreview } from "./instrumentation.js";
+import {
+  getStack,
+  formatStack,
+  getHTMLPreview,
+  getFileName,
+} from "./instrumentation.js";
 import { isInstrumentationActive } from "bippy";
 import { copyContent } from "./utils/copy-content.js";
 import { getElementAtPosition } from "./utils/get-element-at-position.js";
@@ -274,6 +279,35 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       try {
         await options.onBeforeCopy?.(elements);
       } catch {}
+
+      if (options.copyFileOnly && isReactProject) {
+        try {
+          const firstElement = elements[0];
+          if (firstElement) {
+            const stack = await getStack(firstElement);
+            const fileName = getFileName(stack);
+            if (fileName) {
+              copiedContent = `@${fileName}`;
+              didCopy = await copyContent(copiedContent);
+              if (didCopy) {
+                try {
+                  options.onCopySuccess?.(elements, copiedContent);
+                } catch {}
+              }
+            }
+          }
+        } catch (error) {
+          try {
+            options.onCopyError?.(error as Error);
+          } catch {}
+        }
+
+        try {
+          options.onAfterCopy?.(elements, didCopy);
+        } catch {}
+
+        return didCopy;
+      }
 
       try {
         const elementSnippetResults = await Promise.allSettled(
@@ -1281,6 +1315,7 @@ export {
   formatStack,
   getHTMLPreview,
   getNearestComponentName,
+  getFileName,
 } from "./instrumentation.js";
 export { isInstrumentationActive } from "bippy";
 export { DEFAULT_THEME } from "./theme.js";
