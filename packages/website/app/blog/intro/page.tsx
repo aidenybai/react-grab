@@ -556,7 +556,7 @@ const BlogPostPage = () => {
               I&apos;m also very open to fixing issues with the benchmarks. If you spot
               anything off, please{" "}
               <a
-                href="mailto:aiden.ybai@gmail.com"
+                href="mailto:aiden@million.dev"
                 className="text-neutral-400 hover:text-white underline underline-offset-4"
               >
                 email me
