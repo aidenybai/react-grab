@@ -27,7 +27,6 @@ export default function RootLayout({ children }) {
             src="//unpkg.com/react-grab/dist/index.global.js"
             crossOrigin="anonymous"
             strategy="beforeInteractive"
-            data-enabled="true"
           />
         )}
         {/* rest of your scripts go under */}
@@ -56,7 +55,6 @@ export default function Document() {
             src="//unpkg.com/react-grab/dist/index.global.js"
             crossOrigin="anonymous"
             strategy="beforeInteractive"
-            data-enabled="true"
           />
         )}
         {/* rest of your scripts go under */}

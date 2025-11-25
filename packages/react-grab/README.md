@@ -22,7 +22,6 @@ Get started in 1 minute by adding this script tag to your app:
 <script
   src="//unpkg.com/react-grab/dist/index.global.js"
   crossorigin="anonymous"
-  data-enabled="true"
 ></script>
 ```
 
@@ -45,7 +44,6 @@ export default function RootLayout({ children }) {
             src="//unpkg.com/react-grab/dist/index.global.js"
             crossOrigin="anonymous"
             strategy="beforeInteractive"
-            data-enabled="true"
           />
         )}
         {/* rest of your scripts go under */}
@@ -73,7 +71,6 @@ export default function Document() {
             src="//unpkg.com/react-grab/dist/index.global.js"
             crossOrigin="anonymous"
             strategy="beforeInteractive"
-            data-enabled="true"
           />
         )}
         {/* rest of your scripts go under */}
