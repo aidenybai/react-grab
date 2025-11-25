@@ -68,6 +68,7 @@ export default defineConfig([
   },
   {
     ...DEFAULT_OPTIONS,
+    clean: false,
     entry: ["./src/index.ts", "./src/core.tsx"],
     format: ["cjs", "esm"],
     loader: {
