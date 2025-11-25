@@ -1,5 +1,17 @@
 # react-grab
 
+## 0.0.53
+
+### Patch Changes
+
+- fix: focus states
+
+## 0.0.52
+
+### Patch Changes
+
+- fix: copy states
+
 ## 0.0.51
 
 ### Patch Changes

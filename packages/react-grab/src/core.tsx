@@ -32,6 +32,7 @@ import {
   AUTO_SCROLL_EDGE_THRESHOLD_PX,
   AUTO_SCROLL_SPEED_PX,
 } from "./constants.js";
+import { isCLikeKey } from "./utils/is-c-like-key.js";
 import type {
   Options,
   OverlayBounds,
@@ -139,6 +140,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [viewportVersion, setViewportVersion] = createSignal(0);
     const [isInputMode, setIsInputMode] = createSignal(false);
     const [inputText, setInputText] = createSignal("");
+    const [isTouchMode, setIsTouchMode] = createSignal(false);
 
     let holdTimerId: number | null = null;
     let progressAnimationId: number | null = null;
@@ -146,6 +148,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let keydownSpamTimerId: number | null = null;
     let mouseSettleTimerId: number | null = null;
     let autoScrollAnimationId: number | null = null;
+    let previouslyFocusedElement: Element | null = null;
 
     const isRendererActive = createMemo(() => isActivated() && !isCopying());
 
@@ -154,8 +157,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const isTargetKeyCombination = (event: KeyboardEvent) =>
-      // NOTE: we use event.code instead of event.key for keyboard layout compatibility (e.g., AZERTY, QWERTZ)
-      (event.metaKey || event.ctrlKey) && event.code === "KeyC";
+      (event.metaKey || event.ctrlKey) && isCLikeKey(event.key, event.code);
 
     const getAutoScrollDirection = (clientX: number, clientY: number) => {
       return {
@@ -681,6 +683,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const activateRenderer = () => {
       stopProgressAnimation();
+      previouslyFocusedElement = document.activeElement;
       setIsActivated(true);
       document.body.style.cursor = "crosshair";
       options.onActivate?.();
@@ -706,6 +709,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setMouseHasSettled(false);
       stopAutoScroll();
       stopProgressAnimation();
+      if (
+        previouslyFocusedElement instanceof HTMLElement &&
+        document.contains(previouslyFocusedElement)
+      ) {
+        previouslyFocusedElement.focus();
+      }
+      previouslyFocusedElement = null;
       options.onDeactivate?.();
     };
 
@@ -741,14 +751,114 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       deactivateRenderer();
     };
 
+    const handlePointerMove = (clientX: number, clientY: number) => {
+      if (isInputMode()) return;
+
+      setMouseX(clientX);
+      setMouseY(clientY);
+
+      if (mouseSettleTimerId !== null) {
+        window.clearTimeout(mouseSettleTimerId);
+      }
+      setMouseHasSettled(false);
+
+      mouseSettleTimerId = window.setTimeout(() => {
+        setMouseHasSettled(true);
+        mouseSettleTimerId = null;
+      }, 300);
+
+      if (isDragging()) {
+        const direction = getAutoScrollDirection(clientX, clientY);
+        const isNearEdge =
+          direction.top ||
+          direction.bottom ||
+          direction.left ||
+          direction.right;
+
+        if (isNearEdge && autoScrollAnimationId === null) {
+          startAutoScroll();
+        } else if (!isNearEdge && autoScrollAnimationId !== null) {
+          stopAutoScroll();
+        }
+      }
+    };
+
+    const handlePointerDown = (clientX: number, clientY: number) => {
+      if (!isRendererActive() || isCopying()) return false;
+
+      setIsDragging(true);
+      const startX = clientX + window.scrollX;
+      const startY = clientY + window.scrollY;
+      setDragStartX(startX);
+      setDragStartY(startY);
+      document.body.style.userSelect = "none";
+
+      try {
+        options.onDragStart?.(startX, startY);
+      } catch {}
+
+      return true;
+    };
+
+    const handlePointerUp = (clientX: number, clientY: number) => {
+      if (!isDragging()) return;
+
+      const dragDistance = calculateDragDistance(clientX, clientY);
+
+      const wasDragGesture =
+        dragDistance.x > DRAG_THRESHOLD_PX ||
+        dragDistance.y > DRAG_THRESHOLD_PX;
+
+      setIsDragging(false);
+      stopAutoScroll();
+      document.body.style.userSelect = "";
+
+      if (wasDragGesture) {
+        setDidJustDrag(true);
+        const dragRect = calculateDragRectangle(clientX, clientY);
+
+        const elements = getElementsInDrag(dragRect, isValidGrabbableElement);
+
+        if (elements.length > 0) {
+          try {
+            options.onDragEnd?.(elements, dragRect);
+          } catch {}
+          void executeCopyOperation(clientX, clientY, () =>
+            copyMultipleElementsToClipboard(elements),
+          );
+        } else {
+          const fallbackElements = getElementsInDragLoose(
+            dragRect,
+            isValidGrabbableElement,
+          );
+
+          if (fallbackElements.length > 0) {
+            try {
+              options.onDragEnd?.(fallbackElements, dragRect);
+            } catch {}
+            void executeCopyOperation(clientX, clientY, () =>
+              copyMultipleElementsToClipboard(fallbackElements),
+            );
+          }
+        }
+      } else {
+        const element = getElementAtPosition(clientX, clientY);
+        if (!element) return;
+
+        setLastGrabbedElement(element);
+        void executeCopyOperation(clientX, clientY, () =>
+          copySingleElementToClipboard(element),
+        );
+      }
+    };
+
     const abortController = new AbortController();
     const eventListenerSignal = abortController.signal;
 
     window.addEventListener(
       "keydown",
       (event: KeyboardEvent) => {
-        // NOTE: we use event.code instead of event.key for keyboard layout compatibility (e.g., AZERTY, QWERTZ)
-        if (event.code === "Escape" && isHoldingKeys()) {
+        if (event.key === "Escape" && isHoldingKeys()) {
           if (isInputMode()) {
             return;
           }
@@ -756,7 +866,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        if (event.code === "Enter" && isHoldingKeys() && !isInputMode()) {
+        if (event.key === "Enter" && isHoldingKeys() && !isInputMode()) {
           event.preventDefault();
           event.stopPropagation();
           setIsToggleMode(true);
@@ -823,8 +933,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!isHoldingKeys() && !isActivated()) return;
 
         const isReleasingModifier = !event.metaKey && !event.ctrlKey;
-        // NOTE: we use event.code instead of event.key for keyboard layout compatibility (e.g., AZERTY, QWERTZ)
-        const isReleasingC = event.code === "KeyC";
+        const isReleasingC = isCLikeKey(event.key, event.code);
 
         if (isReleasingC || isReleasingModifier) {
           if (isToggleMode()) return;
@@ -837,38 +946,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     window.addEventListener(
       "mousemove",
       (event: MouseEvent) => {
-        if (isInputMode()) return;
-
-        setMouseX(event.clientX);
-        setMouseY(event.clientY);
-
-        if (mouseSettleTimerId !== null) {
-          window.clearTimeout(mouseSettleTimerId);
-        }
-        setMouseHasSettled(false);
-
-        mouseSettleTimerId = window.setTimeout(() => {
-          setMouseHasSettled(true);
-          mouseSettleTimerId = null;
-        }, 300);
-
-        if (isDragging()) {
-          const direction = getAutoScrollDirection(
-            event.clientX,
-            event.clientY,
-          );
-          const isNearEdge =
-            direction.top ||
-            direction.bottom ||
-            direction.left ||
-            direction.right;
-
-          if (isNearEdge && autoScrollAnimationId === null) {
-            startAutoScroll();
-          } else if (!isNearEdge && autoScrollAnimationId !== null) {
-            stopAutoScroll();
-          }
-        }
+        setIsTouchMode(false);
+        handlePointerMove(event.clientX, event.clientY);
       },
       { signal: eventListenerSignal },
     );
@@ -886,78 +965,77 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        if (!isRendererActive() || isCopying()) return;
-
-        event.preventDefault();
-        setIsDragging(true);
-        const startX = event.clientX + window.scrollX;
-        const startY = event.clientY + window.scrollY;
-        setDragStartX(startX);
-        setDragStartY(startY);
-        document.body.style.userSelect = "none";
-
-        try {
-          options.onDragStart?.(startX, startY);
-        } catch {}
+        const didHandle = handlePointerDown(event.clientX, event.clientY);
+        if (didHandle) {
+          event.preventDefault();
+        }
       },
-      { signal: eventListenerSignal },
+      { signal: eventListenerSignal, capture: true },
+    );
+
+    window.addEventListener(
+      "pointerdown",
+      (event: PointerEvent) => {
+        if (!isRendererActive() || isCopying() || isInputMode()) return;
+
+        event.stopPropagation();
+      },
+      { signal: eventListenerSignal, capture: true },
     );
 
     window.addEventListener(
       "mouseup",
       (event: MouseEvent) => {
-        if (!isDragging()) return;
+        handlePointerUp(event.clientX, event.clientY);
+      },
+      { signal: eventListenerSignal },
+    );
 
-        const dragDistance = calculateDragDistance(
-          event.clientX,
-          event.clientY,
-        );
+    window.addEventListener(
+      "touchmove",
+      (event: TouchEvent) => {
+        if (event.touches.length === 0) return;
+        setIsTouchMode(true);
+        handlePointerMove(event.touches[0].clientX, event.touches[0].clientY);
+      },
+      { signal: eventListenerSignal, passive: true },
+    );
 
-        const wasDragGesture =
-          dragDistance.x > DRAG_THRESHOLD_PX ||
-          dragDistance.y > DRAG_THRESHOLD_PX;
+    window.addEventListener(
+      "touchstart",
+      (event: TouchEvent) => {
+        if (event.touches.length === 0) return;
+        setIsTouchMode(true);
 
-        setIsDragging(false);
-        stopAutoScroll();
-        document.body.style.userSelect = "";
+        if (isInputMode()) {
+          const target = event.target as HTMLElement;
+          const isClickingInput = target.closest("[data-react-grab-input]");
 
-        if (wasDragGesture) {
-          setDidJustDrag(true);
-          const dragRect = calculateDragRectangle(event.clientX, event.clientY);
-
-          const elements = getElementsInDrag(dragRect, isValidGrabbableElement);
-
-          if (elements.length > 0) {
-            try {
-              options.onDragEnd?.(elements, dragRect);
-            } catch {}
-            void executeCopyOperation(event.clientX, event.clientY, () =>
-              copyMultipleElementsToClipboard(elements),
-            );
-          } else {
-            const fallbackElements = getElementsInDragLoose(
-              dragRect,
-              isValidGrabbableElement,
-            );
-
-            if (fallbackElements.length > 0) {
-              try {
-                options.onDragEnd?.(fallbackElements, dragRect);
-              } catch {}
-              void executeCopyOperation(event.clientX, event.clientY, () =>
-                copyMultipleElementsToClipboard(fallbackElements),
-              );
-            }
+          if (!isClickingInput) {
+            handleInputCancel();
           }
-        } else {
-          const element = getElementAtPosition(event.clientX, event.clientY);
-          if (!element) return;
-
-          setLastGrabbedElement(element);
-          void executeCopyOperation(event.clientX, event.clientY, () =>
-            copySingleElementToClipboard(element),
-          );
+          return;
         }
+
+        const didHandle = handlePointerDown(
+          event.touches[0].clientX,
+          event.touches[0].clientY,
+        );
+        if (didHandle) {
+          event.preventDefault();
+        }
+      },
+      { signal: eventListenerSignal, passive: false },
+    );
+
+    window.addEventListener(
+      "touchend",
+      (event: TouchEvent) => {
+        if (event.changedTouches.length === 0) return;
+        handlePointerUp(
+          event.changedTouches[0].clientX,
+          event.changedTouches[0].clientY,
+        );
       },
       { signal: eventListenerSignal },
     );
@@ -1068,7 +1146,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const crosshairVisible = createMemo(
-      () => theme().crosshair.enabled && isRendererActive() && !isDragging(),
+      () =>
+        theme().crosshair.enabled &&
+        isRendererActive() &&
+        !isDragging() &&
+        !isTouchMode(),
     );
 
     const inputVisible = createMemo(
