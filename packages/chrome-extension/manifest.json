@@ -3,6 +3,9 @@
   "name": "React Grab",
   "version": "0.0.1",
   "description": "Grab any element on your React app and send it to AI coding assistants like Cursor and Claude Code",
+  "author": "creativerezz",
+  "homepage_url": "https://github.com/aidenybai/react-grab",
+  "minimum_chrome_version": "120",
   "permissions": [
     "activeTab",
     "storage",
@@ -17,8 +20,12 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_start",
       "all_frames": false
     }
@@ -40,8 +47,12 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["content.js"],
-      "matches": ["<all_urls>"]
+      "resources": [
+        "content.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ]
 }
