@@ -20,7 +20,7 @@ Get started in 1 minute by adding this script tag to your app:
 
 ```html
 <script
-  src="//unpkg.com/react-grab/dist/index.global.js"
+  src="//www.react-grab.com/script.js"
   crossorigin="anonymous"
 ></script>
 ```
