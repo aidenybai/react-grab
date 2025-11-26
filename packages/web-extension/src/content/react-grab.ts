@@ -1,48 +1,46 @@
-import { init, getGlobalApi } from "react-grab";
+import { init } from "react-grab";
 import type { ReactGrabAPI } from "react-grab";
 
 declare global {
   interface Window {
-    __REACT_GRAB_EXTENSION_ACTIVE__?: boolean;
+    __REACT_GRAB__?: ReactGrabAPI;
   }
 }
 
-let reactGrabApi: ReactGrabAPI | null = null;
+let extensionApi: ReactGrabAPI | null = null;
 let isExtensionEnabled = true;
 
-const EXTENSION_MARKER = "__REACT_GRAB_EXTENSION_ACTIVE__";
-
-window[EXTENSION_MARKER] = true;
-
 const initializeReactGrab = () => {
-  if (reactGrabApi) {
+  if (window.__REACT_GRAB__) {
+    extensionApi = window.__REACT_GRAB__;
     return;
   }
 
-  const existingApi = getGlobalApi();
-  if (existingApi) {
-    reactGrabApi = existingApi;
-    return;
-  }
-
-  reactGrabApi = init({
-    enabled: isExtensionEnabled,
-    isExtension: true,
-  });
+  extensionApi = init({ enabled: isExtensionEnabled });
+  window.__REACT_GRAB__ = extensionApi;
 };
+
+window.addEventListener("react-grab:init", (event) => {
+  const pageApi = (event as CustomEvent).detail as ReactGrabAPI;
+  if (extensionApi && extensionApi !== pageApi) {
+    extensionApi.dispose();
+  }
+  extensionApi = pageApi;
+  window.__REACT_GRAB__ = pageApi;
+});
 
 const handleToggle = (enabled: boolean) => {
   isExtensionEnabled = enabled;
 
   if (enabled) {
-    if (!reactGrabApi) {
+    if (!extensionApi) {
       initializeReactGrab();
     } else {
-      reactGrabApi.activate();
+      extensionApi.activate();
     }
   } else {
-    if (reactGrabApi) {
-      reactGrabApi.deactivate();
+    if (extensionApi) {
+      extensionApi.deactivate();
     }
   }
 };
@@ -61,9 +59,7 @@ if (isChromeRuntimeAvailable) {
 }
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", () => {
-    initializeReactGrab();
-  });
+  document.addEventListener("DOMContentLoaded", initializeReactGrab);
 } else {
   initializeReactGrab();
 }
