@@ -152,8 +152,35 @@ export interface ReactGrabState {
   isActive: boolean;
   isDragging: boolean;
   isCopying: boolean;
+  isInputMode: boolean;
   targetElement: Element | null;
   dragBounds: DragRect | null;
+}
+
+export type SuccessLabelType = "copy" | "input-submit";
+
+export type ElementLabelVariant = "hover" | "processing" | "success";
+
+export interface InputModeContext {
+  x: number;
+  y: number;
+  targetElement: Element | null;
+}
+
+export interface SuccessLabelContext {
+  x: number;
+  y: number;
+}
+
+export interface CrosshairContext {
+  x: number;
+  y: number;
+}
+
+export interface ElementLabelContext {
+  x: number;
+  y: number;
+  content: string;
 }
 
 export type RenderType =
@@ -188,6 +215,28 @@ export interface Options {
   onCopyError?: (error: Error) => void;
   onStateChange?: (state: ReactGrabState) => void;
   onRender?: (type: RenderType, data: RenderData) => void;
+  onInputModeChange?: (
+    isInputMode: boolean,
+    context: InputModeContext,
+  ) => void;
+  onSuccessLabel?: (
+    text: string,
+    type: SuccessLabelType,
+    context: SuccessLabelContext,
+  ) => void;
+  onSelectionBox?: (
+    visible: boolean,
+    bounds: OverlayBounds | null,
+    element: Element | null,
+  ) => void;
+  onDragBox?: (visible: boolean, bounds: OverlayBounds | null) => void;
+  onGrabbedBox?: (bounds: OverlayBounds, element: Element) => void;
+  onElementLabel?: (
+    visible: boolean,
+    variant: ElementLabelVariant,
+    context: ElementLabelContext,
+  ) => void;
+  onCrosshair?: (visible: boolean, context: CrosshairContext) => void;
 }
 
 export interface ReactGrabAPI {

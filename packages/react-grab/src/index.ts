@@ -20,6 +20,12 @@ export type {
   Rect,
   Position,
   DeepPartial,
+  SuccessLabelType,
+  ElementLabelVariant,
+  InputModeContext,
+  SuccessLabelContext,
+  CrosshairContext,
+  ElementLabelContext,
 } from "./types.js";
 
 import { init } from "./core.js";
