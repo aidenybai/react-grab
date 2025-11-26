@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "React Grab",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Grab React components from any website with Cmd+C. Perfect for Cursor, Claude Code, and other AI coding tools.",
   "author": "Aiden Bai",
   "homepage_url": "https://react-grab.com",
