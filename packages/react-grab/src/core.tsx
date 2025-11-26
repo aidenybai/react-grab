@@ -129,7 +129,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     } catch {}
   };
 
-  logIntro();
+  if (options.log !== false) {
+    logIntro();
+  }
 
   return createRoot((dispose) => {
     const [theme, setTheme] = createSignal(initialTheme);

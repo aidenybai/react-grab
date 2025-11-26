@@ -202,6 +202,7 @@ export interface Options {
   keyHoldDuration?: number;
   allowActivationInsideInput?: boolean;
   copyFileOnly?: boolean;
+  log?: boolean;
   theme?: Theme;
   onActivate?: () => void;
   onDeactivate?: () => void;
