@@ -3,11 +3,11 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Blog - React Grab",
   description:
-    "Updates, insights, and stories about React Grab - the tool that makes coding agents faster at frontend",
+    "Read writing and updates about React Grab",
   openGraph: {
     title: "Blog - React Grab",
     description:
-      "Updates, insights, and stories about React Grab - the tool that makes coding agents faster at frontend",
+      "Read writing and updates about React Grab",
     url: "https://react-grab.com/blog",
     siteName: "React Grab",
     images: [
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Blog - React Grab",
     description:
-      "Updates, insights, and stories about React Grab - the tool that makes coding agents faster at frontend",
+      "Read writing and updates about React Grab",
     images: ["https://react-grab.com/banner.png"],
   },
 };
