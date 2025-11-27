@@ -716,6 +716,20 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     createEffect(
       on(
+        () => [isActivated(), targetElement(), isDragging(), isCopying()] as const,
+        ([active, element, dragging, copying]) => {
+          if (!active) return;
+          if (copying) {
+            document.body.style.cursor = "progress";
+          } else {
+            document.body.style.cursor = element && !dragging ? "copy" : "crosshair";
+          }
+        },
+      ),
+    );
+
+    createEffect(
+      on(
         () =>
           [labelVisible(), labelVariant(), labelContent(), labelPosition()] as const,
         ([visible, variant, content, position]) => {
@@ -817,7 +831,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       stopProgressAnimation();
       previouslyFocusedElement = document.activeElement;
       setIsActivated(true);
-      document.body.style.cursor = "crosshair";
       options.onActivate?.();
     };
 
