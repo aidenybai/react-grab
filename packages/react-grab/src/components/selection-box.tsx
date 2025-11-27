@@ -12,6 +12,14 @@ import {
 } from "../constants.js";
 import { lerp } from "../utils/lerp.js";
 import { cn } from "../utils/cn.js";
+import { IconCopy } from "./icon-copy.js";
+import { IconOpen } from "./icon-open.js";
+import { IconCursor } from "./icon-cursor.js";
+import { IconVSCode } from "./icon-vscode.js";
+import { IconZed } from "./icon-zed.js";
+import { IconWebStorm } from "./icon-webstorm.js";
+
+type Editor = "cursor" | "vscode" | "zed" | "webstorm";
 
 interface SelectionBoxProps {
   variant: "selection" | "grabbed" | "drag";
@@ -19,6 +27,8 @@ interface SelectionBoxProps {
   visible?: boolean;
   lerpFactor?: number;
   createdAt?: number;
+  filePath?: string;
+  lineNumber?: number;
 }
 
 export const SelectionBox: Component<SelectionBoxProps> = (props) => {
@@ -27,6 +37,7 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
   const [currentWidth, setCurrentWidth] = createSignal(props.bounds.width);
   const [currentHeight, setCurrentHeight] = createSignal(props.bounds.height);
   const [opacity, setOpacity] = createSignal(1);
+  const [showOpenDropdown, setShowOpenDropdown] = createSignal(false);
 
   let hasBeenRenderedOnce = false;
   let animationFrameId: number | null = null;
@@ -85,6 +96,7 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
       () => props.bounds,
       (newBounds) => {
         targetBounds = newBounds;
+        setShowOpenDropdown(false);
 
         if (!hasBeenRenderedOnce) {
           setCurrentX(targetBounds.x);
@@ -120,6 +132,37 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
     isAnimating = false;
   });
 
+  const stopEvent = (event: MouseEvent) => {
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    event.preventDefault();
+  };
+
+  const handleOpenClick = (event: MouseEvent) => {
+    stopEvent(event);
+    setShowOpenDropdown(!showOpenDropdown());
+  };
+
+  const handleOpenInEditor = (editor: Editor) => (event: MouseEvent) => {
+    stopEvent(event);
+    setShowOpenDropdown(false);
+
+    if (!props.filePath) return;
+
+    if (editor === "webstorm") {
+      const lineParam = props.lineNumber ? `&line=${props.lineNumber}` : "";
+      window.open(`webstorm://open?file=${props.filePath}${lineParam}`, "_blank");
+      return;
+    }
+
+    const lineParam = props.lineNumber ? `:${props.lineNumber}` : "";
+    const filePath = `${props.filePath}${lineParam}`;
+    window.open(`${editor}://file/${filePath}`, "_blank");
+  };
+
+  const showFullButton = () => currentWidth() >= 100 && currentHeight() >= 30;
+  const showIconOnly = () => currentWidth() >= 45 && currentHeight() >= 26;
+
   return (
     <Show when={props.visible !== false}>
       <div
@@ -143,7 +186,68 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
           opacity: opacity(),
           contain: props.variant === "drag" ? "layout paint size" : undefined,
         }}
-      />
+      >
+        <Show when={props.variant === "selection" && showIconOnly()}>
+          <div class="absolute top-1 right-1 flex gap-0.5">
+            <button
+              class={cn(
+                "text-[10px] font-medium bg-grab-pink-light text-grab-pink border border-grab-pink-border rounded cursor-pointer hover:bg-grab-pink-border transition-colors flex items-center",
+                showFullButton() ? "px-1 py-px gap-0.5" : "p-px"
+              )}
+            >
+              <IconCopy size={10} />
+              <Show when={showFullButton()}>Copy</Show>
+            </button>
+            <div class="relative" data-react-grab-toolbar onMouseDown={stopEvent}>
+              <button
+                class={cn(
+                  "text-[10px] font-medium bg-grab-pink-light text-grab-pink border border-grab-pink-border rounded cursor-pointer hover:bg-grab-pink-border transition-colors flex items-center",
+                  showFullButton() ? "px-1 py-px gap-0.5" : "p-px"
+                )}
+                onClick={handleOpenClick}
+              >
+                <IconOpen size={10} />
+                <Show when={showFullButton()}>Open</Show>
+              </button>
+              <Show when={showOpenDropdown()}>
+                <div
+                  class="absolute top-full right-0 mt-0.5 bg-grab-pink-light border border-grab-pink-border rounded shadow-lg overflow-hidden min-w-[80px] z-2147483647"
+                  data-react-grab-toolbar
+                >
+                  <button
+                    class="w-full px-2 py-1 text-[10px] font-medium text-grab-pink hover:bg-grab-pink-border transition-colors flex items-center gap-1 cursor-pointer"
+                    onClick={handleOpenInEditor("cursor")}
+                  >
+                    <IconCursor size={10} />
+                    Cursor
+                  </button>
+                  <button
+                    class="w-full px-2 py-1 text-[10px] font-medium text-grab-pink hover:bg-grab-pink-border transition-colors flex items-center gap-1 cursor-pointer"
+                    onClick={handleOpenInEditor("vscode")}
+                  >
+                    <IconVSCode size={10} />
+                    VS Code
+                  </button>
+                  <button
+                    class="w-full px-2 py-1 text-[10px] font-medium text-grab-pink hover:bg-grab-pink-border transition-colors flex items-center gap-1 cursor-pointer"
+                    onClick={handleOpenInEditor("zed")}
+                  >
+                    <IconZed size={10} />
+                    Zed
+                  </button>
+                  <button
+                    class="w-full px-2 py-1 text-[10px] font-medium text-grab-pink hover:bg-grab-pink-border transition-colors flex items-center gap-1 cursor-pointer"
+                    onClick={handleOpenInEditor("webstorm")}
+                  >
+                    <IconWebStorm size={10} />
+                    WebStorm
+                  </button>
+                </div>
+              </Show>
+            </div>
+          </div>
+        </Show>
+      </div>
     </Show>
   );
 };

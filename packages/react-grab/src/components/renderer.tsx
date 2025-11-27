@@ -14,6 +14,8 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           variant="selection"
           bounds={props.selectionBounds!}
           visible={props.selectionVisible}
+          filePath={props.selectionFilePath}
+          lineNumber={props.selectionLineNumber}
         />
       </Show>
 

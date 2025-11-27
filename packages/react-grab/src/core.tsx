@@ -19,6 +19,7 @@ import {
   getFileName,
 } from "./instrumentation.js";
 import { isInstrumentationActive } from "bippy";
+import { isSourceFile, normalizeFileName } from "bippy/source";
 import { copyContent } from "./utils/copy-content.js";
 import { getElementAtPosition } from "./utils/get-element-at-position.js";
 import { isValidGrabbableElement } from "./utils/is-valid-grabbable-element.js";
@@ -38,6 +39,7 @@ import {
   AUTO_SCROLL_SPEED_PX,
 } from "./constants.js";
 import { isCLikeKey } from "./utils/is-c-like-key.js";
+import { isEventFromOverlay } from "./utils/is-event-from-overlay.js";
 import type {
   Options,
   OverlayBounds,
@@ -164,6 +166,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [isInputMode, setIsInputMode] = createSignal(false);
     const [inputText, setInputText] = createSignal("");
     const [isTouchMode, setIsTouchMode] = createSignal(false);
+    const [selectionFilePath, setSelectionFilePath] = createSignal<string | undefined>(undefined);
+    const [selectionLineNumber, setSelectionLineNumber] = createSignal<number | undefined>(undefined);
 
     let holdTimerId: number | null = null;
     let progressAnimationId: number | null = null;
@@ -583,6 +587,36 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           if (currentElement) {
             options.onElementHover?.(currentElement);
           }
+        },
+      ),
+    );
+
+    createEffect(
+      on(
+        () => targetElement(),
+        (element) => {
+          const clearSource = () => {
+            setSelectionFilePath(undefined);
+            setSelectionLineNumber(undefined);
+          };
+
+          if (!element) {
+            clearSource();
+            return;
+          }
+
+          getStack(element)
+            .then((stack) => {
+              for (const frame of stack) {
+                if (frame.source && isSourceFile(frame.source.fileName)) {
+                  setSelectionFilePath(normalizeFileName(frame.source.fileName));
+                  setSelectionLineNumber(frame.source.lineNumber);
+                  return;
+                }
+              }
+              clearSource();
+            })
+            .catch(clearSource);
         },
       ),
     );
@@ -1030,6 +1064,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "mousemove",
       (event: MouseEvent) => {
         setIsTouchMode(false);
+        if (isEventFromOverlay(event, "data-react-grab-toolbar")) return;
         handlePointerMove(event.clientX, event.clientY);
       },
       { signal: eventListenerSignal },
@@ -1038,11 +1073,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     window.addEventListener(
       "mousedown",
       (event: MouseEvent) => {
-        if (isInputMode()) {
-          const target = event.target as HTMLElement;
-          const isClickingInput = target.closest("[data-react-grab-input]");
+        if (isEventFromOverlay(event, "data-react-grab-toolbar")) return;
 
-          if (!isClickingInput) {
+        if (isInputMode()) {
+          if (!isEventFromOverlay(event, "data-react-grab-input")) {
             handleInputCancel();
           }
           return;
@@ -1060,7 +1094,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "pointerdown",
       (event: PointerEvent) => {
         if (!isRendererActive() || isCopying() || isInputMode()) return;
-
+        if (isEventFromOverlay(event, "data-react-grab-toolbar")) return;
         event.stopPropagation();
       },
       { signal: eventListenerSignal, capture: true },
@@ -1090,11 +1124,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (event.touches.length === 0) return;
         setIsTouchMode(true);
 
-        if (isInputMode()) {
-          const target = event.target as HTMLElement;
-          const isClickingInput = target.closest("[data-react-grab-input]");
+        if (isEventFromOverlay(event, "data-react-grab-toolbar")) return;
 
-          if (!isClickingInput) {
+        if (isInputMode()) {
+          if (!isEventFromOverlay(event, "data-react-grab-input")) {
             handleInputCancel();
           }
           return;
@@ -1126,6 +1159,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     window.addEventListener(
       "click",
       (event: MouseEvent) => {
+        if (isEventFromOverlay(event, "data-react-grab-toolbar")) return;
+
         if (isRendererActive() || isCopying() || didJustDrag()) {
           event.preventDefault();
           event.stopPropagation();
@@ -1263,6 +1298,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           <ReactGrabRenderer
             selectionVisible={selectionVisible()}
             selectionBounds={selectionBounds()}
+            selectionFilePath={selectionFilePath()}
+            selectionLineNumber={selectionLineNumber()}
             dragVisible={dragVisible()}
             dragBounds={dragBounds()}
             grabbedBoxes={shouldShowGrabbedBoxes() ? grabbedBoxes() : []}

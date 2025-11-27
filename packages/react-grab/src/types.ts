@@ -264,6 +264,8 @@ export interface OverlayBounds {
 export interface ReactGrabRendererProps {
   selectionVisible?: boolean;
   selectionBounds?: OverlayBounds;
+  selectionFilePath?: string;
+  selectionLineNumber?: number;
   dragVisible?: boolean;
   dragBounds?: OverlayBounds;
   grabbedBoxes?: Array<{
