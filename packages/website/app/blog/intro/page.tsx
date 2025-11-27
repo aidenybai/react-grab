@@ -252,7 +252,9 @@ const BlogPostPage = () => {
               </p>
               <p>
                 Turns out, React.js exposes the source location for elements on
-                the page. React Grab walks up the component tree from the
+                the page.
+                <sup className="text-neutral-500 text-[10px] ml-0.5">1</sup>{" "}
+                React Grab walks up the component tree from the
                 element you clicked, collects each component&apos;s component
                 name and source location (file path + line number), and formats
                 that into a readable stack.
@@ -321,6 +323,7 @@ const BlogPostPage = () => {
                 Each test ran twice: once with React Grab enabled (treatment),
                 once without (control). Both conditions used identical codebases
                 and Claude 4.5 Sonnet (in Claude Code).
+                <sup className="text-neutral-500 text-[10px] ml-0.5">2</sup>
               </p>
             </div>
           </div>
@@ -431,6 +434,7 @@ const BlogPostPage = () => {
               55% faster with React Grab
             </span>
             !
+            <sup className="text-neutral-500 text-[10px] ml-0.5">3</sup>
           </p>
         </div>
       </div>
@@ -559,26 +563,6 @@ const BlogPostPage = () => {
               </a>{" "}
               or open an issue on GitHub.
             </p>
-            <p className="italic text-neutral-500">
-              I&apos;m also very open to fixing issues with the benchmarks. If you spot
-              anything off, please{" "}
-              <a
-                href="mailto:aiden@million.dev"
-                className="text-neutral-400 hover:text-white underline underline-offset-4"
-              >
-                email me
-              </a>{" "}
-              or{" "}
-              <a
-                href="https://x.com/aidenybai"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-neutral-400 hover:text-white underline underline-offset-4"
-              >
-                DM me on Twitter
-              </a>
-              .
-            </p>
           </div>
 
           <div className="flex flex-col gap-4">
@@ -596,6 +580,40 @@ const BlogPostPage = () => {
             <div className="flex gap-2">
               <GithubButton />
               <CursorInstallButton />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-4 mt-12 pt-8 border-t border-neutral-800">
+            <h4 className="text-sm font-medium text-neutral-400">Footnotes</h4>
+            <div className="flex flex-col gap-4 text-sm text-neutral-500">
+              <p>
+                <sup className="text-neutral-600 mr-1">1</sup>
+                This only works in development mode. React strips source locations in production builds for performance and bundle size. React Grab detects this and falls back to just showing the component names without file paths. The component tree is still useful for understanding structure, but you lose the direct file references. This only works in production if you have source maps enabled.
+              </p>
+              <p>
+                <sup className="text-neutral-600 mr-1">2</sup>
+                Single trial per test case is a limitation. Agents are non-deterministic, so results can vary significantly between runs. Ideally we&apos;d run each test 5-10 times and report confidence intervals. The 55% speedup is directionally correct but treat the exact number with appropriate skepticism. Future benchmarks will include multiple trials. I&apos;m very open to fixing issues with the benchmarks. If you spot anything off, please{" "}
+                <a
+                  href="mailto:aiden@million.dev"
+                  className="text-neutral-400 hover:text-white underline underline-offset-4"
+                >
+                  email me
+                </a>{" "}
+                or{" "}
+                <a
+                  href="https://x.com/aidenybai"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-neutral-400 hover:text-white underline underline-offset-4"
+                >
+                  DM me on Twitter
+                </a>
+                .
+              </p>
+              <p>
+                <sup className="text-neutral-600 mr-1">3</sup>
+                This is median speedup across all 20 test cases. Some tasks showed 80%+ improvement (simple element lookups), others showed minimal gains (complex multi-file changes where search wasn&apos;t the bottleneck). The variance is high. Your mileage will vary depending on codebase size, component nesting depth, and how descriptive your component names are.
+              </p>
             </div>
           </div>
         </div>
