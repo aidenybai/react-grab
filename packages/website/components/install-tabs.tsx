@@ -45,7 +45,7 @@ const installTabsData: InstallTab[] = [
     description: "Add this inside of your app/layout.tsx:",
     getCode: (hotkey) => {
       const dataOptionsAttr = hotkey
-        ? `\n            data-options={JSON.stringify(${formatDataOptionsForNextjs(hotkey)})}`
+        ? `\n            data-options={JSON.stringify(\n              ${formatDataOptionsForNextjs(hotkey)}\n            )}`
         : "";
       return `import Script from "next/script";
 
@@ -69,7 +69,7 @@ export default function RootLayout({ children }) {
 }`;
     },
     getChangedLines: (hotkey) =>
-      hotkey ? [8, 9, 10, 11, 12, 13, 14, 15, 16] : [8, 9, 10, 11, 12, 13, 14, 15],
+      hotkey ? [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18] : [8, 9, 10, 11, 12, 13, 14, 15],
   },
   {
     id: "next-pages",
@@ -78,7 +78,7 @@ export default function RootLayout({ children }) {
     description: "Add this into your pages/_document.tsx:",
     getCode: (hotkey) => {
       const dataOptionsAttr = hotkey
-        ? `\n            data-options={JSON.stringify(${formatDataOptionsForNextjs(hotkey)})}`
+        ? `\n            data-options={JSON.stringify(\n              ${formatDataOptionsForNextjs(hotkey)}\n            )}`
         : "";
       return `import { Html, Head, Main, NextScript } from "next/document";
 import Script from "next/script";
@@ -106,7 +106,7 @@ export default function Document() {
 }`;
     },
     getChangedLines: (hotkey) =>
-      hotkey ? [9, 10, 11, 12, 13, 14, 15, 16, 17] : [9, 10, 11, 12, 13, 14, 15, 16],
+      hotkey ? [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] : [9, 10, 11, 12, 13, 14, 15, 16],
   },
   {
     id: "vite",
