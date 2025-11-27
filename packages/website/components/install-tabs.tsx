@@ -27,6 +27,16 @@ const formatDataOptions = (hotkey: RecordedHotkey): string => {
   return JSON.stringify({ activationKey });
 };
 
+const formatDataOptionsForNextjs = (hotkey: RecordedHotkey): string => {
+  const parts: string[] = [];
+  if (hotkey.key) parts.push(`key: "${hotkey.key.toLowerCase()}"`);
+  if (hotkey.metaKey) parts.push("metaKey: true");
+  if (hotkey.ctrlKey) parts.push("ctrlKey: true");
+  if (hotkey.shiftKey) parts.push("shiftKey: true");
+  if (hotkey.altKey) parts.push("altKey: true");
+  return `{ activationKey: { ${parts.join(", ")} } }`;
+};
+
 const installTabsData: InstallTab[] = [
   {
     id: "next-app",
@@ -35,7 +45,7 @@ const installTabsData: InstallTab[] = [
     description: "Add this inside of your app/layout.tsx:",
     getCode: (hotkey) => {
       const dataOptionsAttr = hotkey
-        ? `\n            data-options='${formatDataOptions(hotkey)}'`
+        ? `\n            data-options={JSON.stringify(${formatDataOptionsForNextjs(hotkey)})}`
         : "";
       return `import Script from "next/script";
 
@@ -68,7 +78,7 @@ export default function RootLayout({ children }) {
     description: "Add this into your pages/_document.tsx:",
     getCode: (hotkey) => {
       const dataOptionsAttr = hotkey
-        ? `\n            data-options='${formatDataOptions(hotkey)}'`
+        ? `\n            data-options={JSON.stringify(${formatDataOptionsForNextjs(hotkey)})}`
         : "";
       return `import { Html, Head, Main, NextScript } from "next/document";
 import Script from "next/script";
