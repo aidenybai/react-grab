@@ -25,6 +25,7 @@ import { useState, useEffect, useRef, Fragment, useCallback } from "react";
 import { detectMobile } from "@/utils/detect-mobile";
 import demoGif from "@/public/demo.gif";
 import { BenchmarkTooltip } from "./benchmark-tooltip";
+import { HotkeyProvider } from "./hotkey-context";
 
 const getConversationBlocks = (): StreamBlock[] => [
   {
@@ -328,53 +329,55 @@ export const StreamDemo = () => {
   const filteredBlocks = filterMobileBlocks(blocksToRender, isMobile);
 
   return (
-    <div className="min-h-screen bg-black px-4 py-6 sm:px-8 sm:py-8">
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 pt-4 text-base sm:pt-8 sm:text-lg">
-        {filteredBlocks.map((block, index) => {
-          const rendered = renderBlock(
-            block,
-            stream.wasPreloaded ? index : undefined,
-            stream.wasPreloaded,
-            stream.blocks,
-          );
-          if (!rendered) return null;
+    <HotkeyProvider>
+      <div className="min-h-screen bg-black px-4 py-6 sm:px-8 sm:py-8">
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 pt-4 text-base sm:pt-8 sm:text-lg">
+          {filteredBlocks.map((block, index) => {
+            const rendered = renderBlock(
+              block,
+              stream.wasPreloaded ? index : undefined,
+              stream.wasPreloaded,
+              stream.blocks,
+            );
+            if (!rendered) return null;
 
-          const spacing = getBlockSpacing(block.id);
+            const spacing = getBlockSpacing(block.id);
 
-          return (
-            <Fragment key={block.id}>
-              <div className={spacing}>{rendered}</div>
-              {block.id === "message-2" &&
-                stream.isPaused &&
-                !stream.wasPreloaded && (
-                  <GrabElementButton onSelect={handleElementSelect} />
+            return (
+              <Fragment key={block.id}>
+                <div className={spacing}>{rendered}</div>
+                {block.id === "message-2" &&
+                  stream.isPaused &&
+                  !stream.wasPreloaded && (
+                    <GrabElementButton onSelect={handleElementSelect} />
+                  )}
+                {block.id === "message-5" && (
+                  <>
+                    {isMobile && (
+                      <Image
+                        src={demoGif}
+                        alt="React Grab demo"
+                        className="mt-3 w-full rounded-lg border border-white/10"
+                        width={800}
+                        height={450}
+                        priority
+                      />
+                    )}
+                    {stream.wasPreloaded && (
+                      <GrabElementButton
+                        onSelect={handleElementSelect}
+                        showSkip={false}
+                        animationDelay={(index + 1) * 0.03}
+                      />
+                    )}
+                  </>
                 )}
-              {block.id === "message-5" && (
-                <>
-                  {isMobile && (
-                    <Image
-                      src={demoGif}
-                      alt="React Grab demo"
-                      className="mt-3 w-full rounded-lg border border-white/10"
-                      width={800}
-                      height={450}
-                      priority
-                    />
-                  )}
-                  {stream.wasPreloaded && (
-                    <GrabElementButton
-                      onSelect={handleElementSelect}
-                      showSkip={false}
-                      animationDelay={(index + 1) * 0.03}
-                    />
-                  )}
-                </>
-              )}
-            </Fragment>
-          );
-        })}
+              </Fragment>
+            );
+          })}
+        </div>
       </div>
-    </div>
+    </HotkeyProvider>
   );
 };
 

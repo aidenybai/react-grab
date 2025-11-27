@@ -12,14 +12,9 @@ import {
 } from "../constants.js";
 import { lerp } from "../utils/lerp.js";
 import { cn } from "../utils/cn.js";
+import { buildOpenFileUrl } from "../utils/build-open-file-url.js";
 import { IconCopy } from "./icon-copy.js";
 import { IconOpen } from "./icon-open.js";
-import { IconCursor } from "./icon-cursor.js";
-import { IconVSCode } from "./icon-vscode.js";
-import { IconZed } from "./icon-zed.js";
-import { IconWebStorm } from "./icon-webstorm.js";
-
-type Editor = "cursor" | "vscode" | "zed" | "webstorm";
 
 interface SelectionBoxProps {
   variant: "selection" | "grabbed" | "drag";
@@ -38,7 +33,6 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
   const [currentWidth, setCurrentWidth] = createSignal(props.bounds.width);
   const [currentHeight, setCurrentHeight] = createSignal(props.bounds.height);
   const [opacity, setOpacity] = createSignal(1);
-  const [showOpenDropdown, setShowOpenDropdown] = createSignal(false);
 
   let hasBeenRenderedOnce = false;
   let animationFrameId: number | null = null;
@@ -97,7 +91,6 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
       () => props.bounds,
       (newBounds) => {
         targetBounds = newBounds;
-        setShowOpenDropdown(false);
 
         if (!hasBeenRenderedOnce) {
           setCurrentX(targetBounds.x);
@@ -141,28 +134,16 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
 
   const handleOpenClick = (event: MouseEvent) => {
     stopEvent(event);
-    setShowOpenDropdown(!showOpenDropdown());
-  };
-
-  const handleOpenInEditor = (editor: Editor) => (event: MouseEvent) => {
-    stopEvent(event);
-    setShowOpenDropdown(false);
 
     if (!props.filePath) return;
 
-    if (editor === "webstorm") {
-      const lineParam = props.lineNumber ? `&line=${props.lineNumber}` : "";
-      window.open(`webstorm://open?file=${props.filePath}${lineParam}`, "_blank");
-      return;
-    }
-
-    const lineParam = props.lineNumber ? `:${props.lineNumber}` : "";
-    const filePath = `${props.filePath}${lineParam}`;
-    window.open(`${editor}://file/${filePath}`, "_blank");
+    const openFileUrl = buildOpenFileUrl(props.filePath, props.lineNumber);
+    window.open(openFileUrl, "_blank");
   };
 
+  const canFitButtonsInside = () => currentWidth() >= 45 && currentHeight() >= 26;
+  const shouldPlaceOutside = () => !canFitButtonsInside();
   const showFullButton = () => currentWidth() >= 100 && currentHeight() >= 30;
-  const showIconOnly = () => currentWidth() >= 45 && currentHeight() >= 26;
 
   return (
     <Show when={props.visible !== false}>
@@ -186,66 +167,42 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
           transform: props.bounds.transform,
           opacity: opacity(),
           contain: props.variant === "drag" ? "layout paint size" : undefined,
+          overflow: "visible",
         }}
       >
-        <Show when={props.variant === "selection" && showIconOnly() && !props.hideButtons}>
-          <div class="absolute top-1 right-1 flex gap-0.5">
-            <button
-              class={cn(
-                "text-[10px] font-medium bg-grab-pink-light text-grab-pink border border-grab-pink-border rounded cursor-pointer hover:bg-grab-pink-border transition-colors flex items-center",
-                showFullButton() ? "px-1 py-px gap-0.5" : "p-px"
-              )}
-            >
-              <IconCopy size={10} />
-              <Show when={showFullButton()}>Copy</Show>
-            </button>
-            <div class="relative" data-react-grab-toolbar onMouseDown={stopEvent}>
+        <Show when={props.variant === "selection" && !props.hideButtons}>
+          <Show when={shouldPlaceOutside()}>
+            <div class="absolute bottom-full right-0 w-12 h-4" />
+          </Show>
+          <div
+            class={cn(
+              "absolute flex gap-0.5",
+              shouldPlaceOutside()
+                ? "bottom-full right-0 mb-[-8px] pb-2"
+                : "top-1 right-1"
+            )}
+          >
+            <Show when={showFullButton()}>
+              <button
+                class="text-[10px] font-medium bg-grab-pink/70 backdrop-blur-xl text-white rounded cursor-pointer hover:bg-grab-pink transition-all flex items-center px-1 py-px gap-0.5"
+              >
+                <IconCopy size={10} />
+                Copy
+              </button>
+            </Show>
+            <Show when={props.filePath}>
               <button
                 class={cn(
-                  "text-[10px] font-medium bg-grab-pink-light text-grab-pink border border-grab-pink-border rounded cursor-pointer hover:bg-grab-pink-border transition-colors flex items-center",
-                  showFullButton() ? "px-1 py-px gap-0.5" : "p-px"
+                  "text-[10px] font-medium bg-grab-pink/70 backdrop-blur-xl text-white rounded cursor-pointer hover:bg-grab-pink transition-all flex items-center",
+                  showFullButton() ? "px-1 py-px gap-0.5" : "p-0.5"
                 )}
                 onClick={handleOpenClick}
+                data-react-grab-toolbar
               >
                 <IconOpen size={10} />
                 <Show when={showFullButton()}>Open</Show>
               </button>
-              <Show when={showOpenDropdown()}>
-                <div
-                  class="absolute top-full right-0 mt-0.5 bg-grab-pink-light border border-grab-pink-border rounded shadow-lg overflow-hidden min-w-[80px] z-2147483647"
-                  data-react-grab-toolbar
-                >
-                  <button
-                    class="w-full px-2 py-1 text-[10px] font-medium text-grab-pink hover:bg-grab-pink-border transition-colors flex items-center gap-1 cursor-pointer"
-                    onClick={handleOpenInEditor("cursor")}
-                  >
-                    <IconCursor size={10} />
-                    Cursor
-                  </button>
-                  <button
-                    class="w-full px-2 py-1 text-[10px] font-medium text-grab-pink hover:bg-grab-pink-border transition-colors flex items-center gap-1 cursor-pointer"
-                    onClick={handleOpenInEditor("vscode")}
-                  >
-                    <IconVSCode size={10} />
-                    VS Code
-                  </button>
-                  <button
-                    class="w-full px-2 py-1 text-[10px] font-medium text-grab-pink hover:bg-grab-pink-border transition-colors flex items-center gap-1 cursor-pointer"
-                    onClick={handleOpenInEditor("zed")}
-                  >
-                    <IconZed size={10} />
-                    Zed
-                  </button>
-                  <button
-                    class="w-full px-2 py-1 text-[10px] font-medium text-grab-pink hover:bg-grab-pink-border transition-colors flex items-center gap-1 cursor-pointer"
-                    onClick={handleOpenInEditor("webstorm")}
-                  >
-                    <IconWebStorm size={10} />
-                    WebStorm
-                  </button>
-                </div>
-              </Show>
-            </div>
+            </Show>
           </div>
         </Show>
       </div>

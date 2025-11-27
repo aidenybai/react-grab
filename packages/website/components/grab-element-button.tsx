@@ -1,9 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { motion } from "motion/react";
 import { detectMobile } from "@/utils/detect-mobile";
 import { cn } from "@/utils/classnames";
+import { useHotkey } from "./hotkey-context";
+import { getKeyFromCode } from "@/utils/get-key-from-code";
+
+export interface RecordedHotkey {
+  key: string | null;
+  metaKey: boolean;
+  ctrlKey: boolean;
+  shiftKey: boolean;
+  altKey: boolean;
+}
 
 interface GrabElementButtonProps {
   onSelect: (elementTag: string) => void;
@@ -25,16 +35,155 @@ const deactivateReactGrab = () => {
     });
 };
 
+const updateReactGrabHotkey = (hotkey: RecordedHotkey | null) => {
+  if (typeof window === "undefined") return;
+  import("react-grab")
+    .then((reactGrab) => {
+      const api = reactGrab.getGlobalApi();
+      if (api) {
+        api.dispose();
+      }
+      const activationKey = hotkey ? {
+        key: hotkey.key?.toLowerCase() ?? undefined,
+        metaKey: hotkey.metaKey || undefined,
+        ctrlKey: hotkey.ctrlKey || undefined,
+        shiftKey: hotkey.shiftKey || undefined,
+        altKey: hotkey.altKey || undefined,
+      } : undefined;
+      const newApi = reactGrab.init({
+        activationKey,
+        onActivate: () => {
+          window.dispatchEvent(new CustomEvent("react-grab:activated"));
+        },
+        onDeactivate: () => {
+          window.dispatchEvent(new CustomEvent("react-grab:deactivated"));
+        },
+      });
+      reactGrab.setGlobalApi(newApi);
+    })
+    .catch((error) => {
+      console.error("Failed to update react-grab hotkey:", error);
+    });
+};
+
 export const GrabElementButton = ({
   onSelect,
   showSkip = true,
   animationDelay = 0
 }: GrabElementButtonProps) => {
+  const { customHotkey, setCustomHotkey } = useHotkey();
   const [isActivated, setIsActivated] = useState(false);
   const [isMac, setIsMac] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [hideSkip, setHideSkip] = useState(false);
   const [hasAdvanced, setHasAdvanced] = useState(false);
+  const [isRecordingHotkey, setIsRecordingHotkey] = useState(false);
+  const pressedModifiersRef = useRef({
+    metaKey: false,
+    ctrlKey: false,
+    shiftKey: false,
+    altKey: false,
+  });
+  const keyUpTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleHotkeyChange = useCallback((hotkey: RecordedHotkey) => {
+    setCustomHotkey(hotkey);
+    updateReactGrabHotkey(hotkey);
+  }, [setCustomHotkey]);
+
+  const handleHotkeyKeyDown = useCallback((event: KeyboardEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (keyUpTimeoutRef.current) {
+      clearTimeout(keyUpTimeoutRef.current);
+      keyUpTimeoutRef.current = null;
+    }
+
+    if (event.key === "Escape") {
+      setIsRecordingHotkey(false);
+      pressedModifiersRef.current = { metaKey: false, ctrlKey: false, shiftKey: false, altKey: false };
+      return;
+    }
+
+    pressedModifiersRef.current = {
+      metaKey: event.metaKey,
+      ctrlKey: event.ctrlKey,
+      shiftKey: event.shiftKey,
+      altKey: event.altKey,
+    };
+
+    if (["Meta", "Control", "Shift", "Alt"].includes(event.key)) return;
+
+    const keyFromCode = getKeyFromCode(event.code);
+    if (!keyFromCode) return;
+
+    const hasModifier = event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
+    if (!hasModifier) return;
+
+    handleHotkeyChange({
+      key: keyFromCode,
+      metaKey: event.metaKey,
+      ctrlKey: event.ctrlKey,
+      shiftKey: event.shiftKey,
+      altKey: event.altKey,
+    });
+    setIsRecordingHotkey(false);
+    pressedModifiersRef.current = { metaKey: false, ctrlKey: false, shiftKey: false, altKey: false };
+  }, [handleHotkeyChange]);
+
+  const handleHotkeyKeyUp = useCallback((event: KeyboardEvent) => {
+    const modifierMap: Record<string, keyof RecordedHotkey> = {
+      Meta: "metaKey", Control: "ctrlKey", Shift: "shiftKey", Alt: "altKey",
+    };
+    const releasedModifier = modifierMap[event.key];
+    if (!releasedModifier) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const pressedModifiers = pressedModifiersRef.current;
+    const modifiersAtRelease = {
+      metaKey: pressedModifiers.metaKey || event.key === "Meta",
+      ctrlKey: pressedModifiers.ctrlKey || event.key === "Control",
+      shiftKey: pressedModifiers.shiftKey || event.key === "Shift",
+      altKey: pressedModifiers.altKey || event.key === "Alt",
+    };
+
+    const hasAnyModifier = modifiersAtRelease.metaKey || modifiersAtRelease.ctrlKey ||
+                           modifiersAtRelease.shiftKey || modifiersAtRelease.altKey;
+    if (!hasAnyModifier) return;
+
+    if (keyUpTimeoutRef.current) {
+      clearTimeout(keyUpTimeoutRef.current);
+    }
+
+    keyUpTimeoutRef.current = setTimeout(() => {
+      handleHotkeyChange({
+        key: null,
+        ...modifiersAtRelease,
+      });
+      setIsRecordingHotkey(false);
+      pressedModifiersRef.current = { metaKey: false, ctrlKey: false, shiftKey: false, altKey: false };
+      keyUpTimeoutRef.current = null;
+    }, 150);
+  }, [handleHotkeyChange]);
+
+  useEffect(() => {
+    if (isRecordingHotkey) {
+      window.addEventListener("keydown", handleHotkeyKeyDown, true);
+      window.addEventListener("keyup", handleHotkeyKeyUp, true);
+      return () => {
+        window.removeEventListener("keydown", handleHotkeyKeyDown, true);
+        window.removeEventListener("keyup", handleHotkeyKeyUp, true);
+      };
+    }
+  }, [isRecordingHotkey, handleHotkeyKeyDown, handleHotkeyKeyUp]);
+
+  const handleHotkeyClick = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    setIsRecordingHotkey(true);
+  };
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -124,8 +273,26 @@ export const GrabElementButton = ({
           <>
             <span className="flex items-center gap-1.5 text-white">
               <span>Hold</span>
-              <kbd className="inline-flex items-center gap-1 rounded bg-white/10 px-2.5 py-1 font-mono text-base font-semibold">
-                {isMac ? (
+              <kbd
+                onClick={handleHotkeyClick}
+                className={cn(
+                  "inline-flex cursor-pointer items-center gap-1 rounded px-2.5 py-1 font-mono text-base font-semibold transition-all outline-none",
+                  isRecordingHotkey
+                    ? "bg-white/20 ring-2 ring-white/50"
+                    : "bg-white/10 hover:bg-white/20"
+                )}
+              >
+                {isRecordingHotkey ? (
+                  <span className="text-sm text-white/60 animate-pulse">Press keys</span>
+                ) : customHotkey ? (
+                  <>
+                    {customHotkey.metaKey && <span className="text-lg leading-none">⌘</span>}
+                    {customHotkey.ctrlKey && <span className="text-base leading-none">Ctrl</span>}
+                    {customHotkey.shiftKey && <span className="text-base leading-none">⇧</span>}
+                    {customHotkey.altKey && <span className="text-base leading-none">⌥</span>}
+                    {customHotkey.key && <span className="text-sm leading-none">{customHotkey.key}</span>}
+                  </>
+                ) : isMac ? (
                   <>
                     <span className="text-lg leading-none">⌘</span>
                     <span className="text-sm leading-none">C</span>

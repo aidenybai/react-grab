@@ -197,6 +197,14 @@ export interface RenderData {
   props: Record<string, unknown>;
 }
 
+export interface ActivationKey {
+  key?: string;
+  metaKey?: boolean;
+  ctrlKey?: boolean;
+  shiftKey?: boolean;
+  altKey?: boolean;
+}
+
 export interface Options {
   enabled?: boolean;
   keyHoldDuration?: number;
@@ -204,6 +212,8 @@ export interface Options {
   copyFileOnly?: boolean;
   log?: boolean;
   theme?: Theme;
+  activationShortcut?: (event: KeyboardEvent) => boolean;
+  activationKey?: ActivationKey;
   onActivate?: () => void;
   onDeactivate?: () => void;
   onElementHover?: (element: Element) => void;
@@ -238,6 +248,7 @@ export interface Options {
     context: ElementLabelContext,
   ) => void;
   onCrosshair?: (visible: boolean, context: CrosshairContext) => void;
+  onOpenFile?: (filePath: string, lineNumber?: number) => void;
 }
 
 export interface ReactGrabAPI {

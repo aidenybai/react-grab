@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/react";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -51,7 +52,7 @@ const RootLayout = ({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <NuqsAdapter>{children}</NuqsAdapter>
         <Analytics />
       </body>
     </html>

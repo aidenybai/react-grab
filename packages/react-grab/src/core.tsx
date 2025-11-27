@@ -39,7 +39,9 @@ import {
   AUTO_SCROLL_SPEED_PX,
 } from "./constants.js";
 import { isCLikeKey } from "./utils/is-c-like-key.js";
+import { keyMatchesCode, isTargetKeyCombination } from "./utils/hotkey.js";
 import { isEventFromOverlay } from "./utils/is-event-from-overlay.js";
+import { buildOpenFileUrl } from "./utils/build-open-file-url.js";
 import type {
   Options,
   OverlayBounds,
@@ -184,9 +186,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const hasValidMousePosition = createMemo(
       () => mouseX() > OFFSCREEN_POSITION && mouseY() > OFFSCREEN_POSITION,
     );
-
-    const isTargetKeyCombination = (event: KeyboardEvent) =>
-      (event.metaKey || event.ctrlKey) && isCLikeKey(event.key, event.code);
 
     const getAutoScrollDirection = (clientX: number, clientY: number) => {
       return {
@@ -730,6 +729,44 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       ),
     );
 
+    let cursorStyleElement: HTMLStyleElement | null = null;
+
+    const setCursorOverride = (cursor: string | null) => {
+      if (cursor) {
+        if (!cursorStyleElement) {
+          cursorStyleElement = document.createElement("style");
+          cursorStyleElement.setAttribute("data-react-grab-cursor", "");
+          document.head.appendChild(cursorStyleElement);
+        }
+        cursorStyleElement.textContent = `* { cursor: ${cursor} !important; }`;
+      } else if (cursorStyleElement) {
+        cursorStyleElement.remove();
+        cursorStyleElement = null;
+      }
+    };
+
+    createEffect(
+      on(
+        () =>
+          [isActivated(), isCopying(), isDragging(), isInputMode(), targetElement()] as const,
+        ([activated, copying, dragging, inputMode, target]) => {
+          if (copying) {
+            setCursorOverride("progress");
+          } else if (inputMode) {
+            setCursorOverride(null);
+          } else if (activated && dragging) {
+            setCursorOverride("crosshair");
+          } else if (activated && target) {
+            setCursorOverride("copy");
+          } else if (activated) {
+            setCursorOverride("crosshair");
+          } else {
+            setCursorOverride(null);
+          }
+        },
+      ),
+    );
+
     const startProgressAnimation = () => {
       const startTime = Date.now();
       setProgressStartTime(startTime);
@@ -817,7 +854,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       stopProgressAnimation();
       previouslyFocusedElement = document.activeElement;
       setIsActivated(true);
-      document.body.style.cursor = "crosshair";
       options.onActivate?.();
     };
 
@@ -827,7 +863,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setIsActivated(false);
       setIsInputMode(false);
       setInputText("");
-      document.body.style.cursor = "";
       if (isDragging()) {
         setIsDragging(false);
         document.body.style.userSelect = "";
@@ -996,6 +1031,25 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
+        if (event.key.toLowerCase() === "o" && !isInputMode()) {
+          if (isActivated() && (event.metaKey || event.ctrlKey)) {
+            const filePath = selectionFilePath();
+            const lineNumber = selectionLineNumber();
+            if (filePath) {
+              event.preventDefault();
+              event.stopPropagation();
+
+              if (options.onOpenFile) {
+                options.onOpenFile(filePath, lineNumber);
+              } else {
+                const url = buildOpenFileUrl(filePath, lineNumber);
+                window.open(url, "_blank");
+              }
+            }
+            return;
+          }
+        }
+
         if (
           !options.allowActivationInsideInput &&
           isKeyboardEventTriggeredByInput(event)
@@ -1003,7 +1057,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        if (!isTargetKeyCombination(event)) return;
+        if (!isTargetKeyCombination(event, options)) return;
 
         if (isActivated() || isHoldingKeys()) {
           event.preventDefault();
@@ -1044,21 +1098,43 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: KeyboardEvent) => {
         if (!isHoldingKeys() && !isActivated()) return;
 
-        const isReleasingModifier = !event.metaKey && !event.ctrlKey;
-        const isReleasingC = isCLikeKey(event.key, event.code);
+        const hasCustomShortcut = Boolean(options.activationShortcut || options.activationKey);
+
+        const getRequiredModifiers = () => {
+          if (options.activationKey) {
+            const { metaKey, ctrlKey, shiftKey, altKey } = options.activationKey;
+            return { metaKey: !!metaKey, ctrlKey: !!ctrlKey, shiftKey: !!shiftKey, altKey: !!altKey };
+          }
+          return { metaKey: true, ctrlKey: true, shiftKey: false, altKey: false };
+        };
+
+        const requiredModifiers = getRequiredModifiers();
+        const isReleasingModifier = requiredModifiers.metaKey || requiredModifiers.ctrlKey
+          ? !event.metaKey && !event.ctrlKey
+          : (requiredModifiers.shiftKey && !event.shiftKey) ||
+            (requiredModifiers.altKey && !event.altKey);
+
+        const isReleasingActivationKey = options.activationShortcut
+          ? !options.activationShortcut(event)
+          : options.activationKey
+            ? options.activationKey.key
+              ? event.key.toLowerCase() === options.activationKey.key.toLowerCase() ||
+                keyMatchesCode(options.activationKey.key, event.code)
+              : false
+            : isCLikeKey(event.key, event.code);
 
         if (isActivated()) {
           if (isReleasingModifier) {
             if (isToggleMode()) return;
             deactivateRenderer();
-          } else if (isReleasingC && keydownSpamTimerId !== null) {
+          } else if (!hasCustomShortcut && isReleasingActivationKey && keydownSpamTimerId !== null) {
             window.clearTimeout(keydownSpamTimerId);
             keydownSpamTimerId = null;
           }
           return;
         }
 
-        if (isReleasingC || isReleasingModifier) {
+        if (isReleasingActivationKey || isReleasingModifier) {
           if (isToggleMode()) return;
           deactivateRenderer();
         }
@@ -1231,7 +1307,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       stopAutoScroll();
       stopProgressAnimation();
       document.body.style.userSelect = "";
-      document.body.style.cursor = "";
+      setCursorOverride(null);
     });
 
     const rendererRoot = mountRoot(cssText as string);
@@ -1385,7 +1461,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
       },
       isActive: () => isActivated(),
-      dispose,
+      dispose: () => {
+        hasInited = false;
+        dispose();
+      },
       copyElement: copyElementAPI,
       getState: getStateAPI,
       updateTheme: (partialTheme: DeepPartial<Theme>) => {

@@ -11,9 +11,10 @@ import { getClampedElementPosition } from "../utils/get-clamped-element-position
 import { useAnimatedPosition } from "../hooks/use-animated-lerp.js";
 import { useFadeInOut } from "../hooks/use-fade-in-out.js";
 import { getCursorQuadrants } from "../utils/get-cursor-quadrants.js";
+import { cn } from "../utils/cn.js";
 
 interface LabelProps {
-  variant: "hover" | "processing" | "success";
+  variant: "hover" | "processing" | "success" | "action";
   content: JSX.Element;
   x: number;
   y: number;
@@ -87,7 +88,12 @@ export const Label: Component<LabelProps> = (props) => {
     <Show when={props.visible !== false}>
       <div
         ref={labelRef}
-        class="fixed bg-grab-pink-light text-grab-pink border border-grab-pink-border rounded text-[11px] font-medium font-sans pointer-events-none transition-opacity duration-200 ease-in-out overflow-hidden"
+        class={cn(
+          "fixed rounded text-[11px] font-medium font-sans pointer-events-none transition-opacity duration-200 ease-in-out overflow-hidden",
+          props.variant === "action"
+            ? "bg-grab-pink text-white"
+            : "bg-grab-pink-light text-grab-pink border border-grab-pink-border"
+        )}
         style={{
           top: `${computedPosition().top}px`,
           left: `${computedPosition().left}px`,
