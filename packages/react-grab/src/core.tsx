@@ -161,19 +161,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [didJustDrag, setDidJustDrag] = createSignal(false);
     const [copyStartX, setCopyStartX] = createSignal(OFFSCREEN_POSITION);
     const [copyStartY, setCopyStartY] = createSignal(OFFSCREEN_POSITION);
-    const [mouseHasSettled, setMouseHasSettled] = createSignal(false);
     const [viewportVersion, setViewportVersion] = createSignal(0);
     const [isInputMode, setIsInputMode] = createSignal(false);
     const [inputText, setInputText] = createSignal("");
     const [isTouchMode, setIsTouchMode] = createSignal(false);
     const [selectionFilePath, setSelectionFilePath] = createSignal<string | undefined>(undefined);
     const [selectionLineNumber, setSelectionLineNumber] = createSignal<number | undefined>(undefined);
+    const [hasCompletedFirstGrab, setHasCompletedFirstGrab] = createSignal(
+      typeof localStorage !== "undefined" &&
+        localStorage.getItem("react-grab:dismiss-hint") === "true",
+    );
 
     let holdTimerId: number | null = null;
     let progressAnimationId: number | null = null;
     let progressDelayTimerId: number | null = null;
     let keydownSpamTimerId: number | null = null;
-    let mouseSettleTimerId: number | null = null;
     let autoScrollAnimationId: number | null = null;
     let previouslyFocusedElement: Element | null = null;
 
@@ -206,6 +208,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setGrabbedBoxes([...currentBoxes, newBox]);
 
       options.onGrabbedBox?.(bounds, element);
+
+      if (!hasCompletedFirstGrab()) {
+        setHasCompletedFirstGrab(true);
+        try {
+          localStorage.setItem("react-grab:dismiss-hint", "true");
+        } catch {}
+      }
 
       setTimeout(() => {
         setGrabbedBoxes((previousBoxes) =>
@@ -825,11 +834,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       if (holdTimerId) window.clearTimeout(holdTimerId);
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
-      if (mouseSettleTimerId) {
-        window.clearTimeout(mouseSettleTimerId);
-        mouseSettleTimerId = null;
-      }
-      setMouseHasSettled(false);
       stopAutoScroll();
       stopProgressAnimation();
       if (
@@ -879,16 +883,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       setMouseX(clientX);
       setMouseY(clientY);
-
-      if (mouseSettleTimerId !== null) {
-        window.clearTimeout(mouseSettleTimerId);
-      }
-      setMouseHasSettled(false);
-
-      mouseSettleTimerId = window.setTimeout(() => {
-        setMouseHasSettled(true);
-        mouseSettleTimerId = null;
-      }, 300);
 
       if (isDragging()) {
         const direction = getAutoScrollDirection(clientX, clientY);
@@ -1234,7 +1228,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       abortController.abort();
       if (holdTimerId) window.clearTimeout(holdTimerId);
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
-      if (mouseSettleTimerId) window.clearTimeout(mouseSettleTimerId);
       stopAutoScroll();
       stopProgressAnimation();
       document.body.style.userSelect = "";
@@ -1322,7 +1315,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             labelY={labelPosition().y}
             labelVisible={labelVisible()}
             labelZIndex={Z_INDEX_LABEL}
-            labelShowHint={mouseHasSettled()}
+            labelShowHint={!hasCompletedFirstGrab()}
             progressVisible={progressVisible()}
             progress={progress()}
             mouseX={progressPosition().x}
