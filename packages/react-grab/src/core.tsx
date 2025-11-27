@@ -707,9 +707,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     createEffect(
       on(
-        () => [crosshairVisible(), mouseX(), mouseY()] as const,
-        ([visible, x, y]) => {
-          options.onCrosshair?.(Boolean(visible), { x, y });
+        () => [isActivated(), targetElement(), isDragging(), isCopying()] as const,
+        ([active, element, dragging, copying]) => {
+          if (!active) return;
+          if (copying) {
+            document.body.style.cursor = "progress";
+          } else {
+            document.body.style.cursor = element && !dragging ? "copy" : "crosshair";
+          }
         },
       ),
     );
@@ -817,7 +822,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       stopProgressAnimation();
       previouslyFocusedElement = document.activeElement;
       setIsActivated(true);
-      document.body.style.cursor = "crosshair";
       options.onActivate?.();
     };
 
@@ -1268,14 +1272,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => isCopying() && showProgressIndicator() && hasValidMousePosition(),
     );
 
-    const crosshairVisible = createMemo(
-      () =>
-        theme().crosshair.enabled &&
-        isRendererActive() &&
-        !isDragging() &&
-        !isTouchMode(),
-    );
-
     const inputVisible = createMemo(
       () => theme().inputOverlay.enabled && isInputMode(),
     );
@@ -1320,7 +1316,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             progress={progress()}
             mouseX={progressPosition().x}
             mouseY={progressPosition().y}
-            crosshairVisible={crosshairVisible()}
             inputVisible={inputVisible()}
             inputX={mouseX()}
             inputY={mouseY()}

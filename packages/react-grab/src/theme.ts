@@ -27,10 +27,6 @@ export const DEFAULT_THEME: Required<Theme> = {
   successLabels: {
     enabled: true,
   },
-  crosshair: {
-    enabled: true,
-    color: undefined,
-  },
   inputOverlay: {
     enabled: true,
   },
@@ -66,10 +62,6 @@ export const mergeTheme = (userTheme?: Theme): Required<Theme> => {
     successLabels: {
       enabled: userTheme.successLabels?.enabled ?? DEFAULT_THEME.successLabels.enabled,
     },
-    crosshair: {
-      enabled: userTheme.crosshair?.enabled ?? DEFAULT_THEME.crosshair.enabled,
-      color: userTheme.crosshair?.color ?? DEFAULT_THEME.crosshair.color,
-    },
     inputOverlay: {
       enabled: userTheme.inputOverlay?.enabled ?? DEFAULT_THEME.inputOverlay.enabled,
     },
@@ -103,10 +95,6 @@ export const deepMergeTheme = (baseTheme: Required<Theme>, partialTheme: DeepPar
     },
     successLabels: {
       enabled: partialTheme.successLabels?.enabled ?? baseTheme.successLabels.enabled,
-    },
-    crosshair: {
-      enabled: partialTheme.crosshair?.enabled ?? baseTheme.crosshair.enabled,
-      color: partialTheme.crosshair?.color ?? baseTheme.crosshair.color,
     },
     inputOverlay: {
       enabled: partialTheme.inputOverlay?.enabled ?? baseTheme.inputOverlay.enabled,

@@ -13,7 +13,6 @@ export const DRAG_THRESHOLD_PX = 2;
 export const AUTO_SCROLL_EDGE_THRESHOLD_PX = 25;
 export const AUTO_SCROLL_SPEED_PX = 10;
 
-export const Z_INDEX_CROSSHAIR = 2147483645;
 export const Z_INDEX_SELECTION = 2147483646;
 export const Z_INDEX_LABEL = 2147483647;
 

@@ -3,7 +3,6 @@ import type { Component } from "solid-js";
 import type { ReactGrabRendererProps } from "../types.js";
 import { SelectionBox } from "./selection-box.js";
 import { Label } from "./label.js";
-import { Crosshair } from "./crosshair.js";
 import { InputOverlay } from "./input-overlay.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
@@ -17,20 +16,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           filePath={props.selectionFilePath}
           lineNumber={props.selectionLineNumber}
           hideButtons={props.inputVisible}
-        />
-      </Show>
-
-      <Show
-        when={
-          props.crosshairVisible === true &&
-          props.mouseX !== undefined &&
-          props.mouseY !== undefined
-        }
-      >
-        <Crosshair
-          mouseX={props.mouseX!}
-          mouseY={props.mouseY!}
-          visible={true}
         />
       </Show>
 

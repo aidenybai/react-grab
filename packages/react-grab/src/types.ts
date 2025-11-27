@@ -120,22 +120,6 @@ export interface Theme {
     enabled?: boolean;
   };
   /**
-   * The crosshair cursor overlay that helps with precise element targeting
-   * @default true
-   */
-  crosshair?: {
-    /**
-     * Whether to show the crosshair
-     * @default true
-     */
-    enabled?: boolean;
-    /**
-     * Color of the crosshair lines
-     * @default rgba(210, 57, 192) (grab-purple)
-     */
-    color?: string;
-  };
-  /**
    * An input field overlay that can appear for text entry during selection
    * @default true
    */
@@ -172,11 +156,6 @@ export interface SuccessLabelContext {
   y: number;
 }
 
-export interface CrosshairContext {
-  x: number;
-  y: number;
-}
-
 export interface ElementLabelContext {
   x: number;
   y: number;
@@ -189,7 +168,6 @@ export type RenderType =
   | "grabbedBox"
   | "elementLabel"
   | "successLabel"
-  | "crosshair"
   | "inputOverlay";
 
 export interface RenderData {
@@ -237,7 +215,6 @@ export interface Options {
     variant: ElementLabelVariant,
     context: ElementLabelContext,
   ) => void;
-  onCrosshair?: (visible: boolean, context: CrosshairContext) => void;
 }
 
 export interface ReactGrabAPI {
@@ -285,7 +262,6 @@ export interface ReactGrabRendererProps {
   progress?: number;
   mouseX?: number;
   mouseY?: number;
-  crosshairVisible?: boolean;
   inputVisible?: boolean;
   inputX?: number;
   inputY?: number;
