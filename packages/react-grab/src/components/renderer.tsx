@@ -31,6 +31,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           mouseX={props.mouseX!}
           mouseY={props.mouseY!}
           visible={true}
+          canOpen={props.canOpen}
         />
       </Show>
 
@@ -48,6 +49,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
             variant="grabbed"
             bounds={box.bounds}
             createdAt={box.createdAt}
+            canOpen={box.canOpen}
           />
         )}
       </For>
@@ -60,6 +62,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
               content={<>{label.text}</>}
               x={props.mouseX ?? 0}
               y={props.mouseY ?? 0}
+              canOpen={label.canOpen}
             />
           )}
         </For>
@@ -83,6 +86,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           zIndex={props.labelZIndex}
           progress={props.progress}
           showHint={props.labelShowHint}
+          canOpen={props.canOpen}
         />
       </Show>
 

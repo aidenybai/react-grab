@@ -21,6 +21,7 @@ interface LabelProps {
   zIndex?: number;
   progress?: number;
   showHint?: boolean;
+  canOpen?: boolean;
 }
 
 export const Label: Component<LabelProps> = (props) => {
@@ -87,7 +88,7 @@ export const Label: Component<LabelProps> = (props) => {
     <Show when={props.visible !== false}>
       <div
         ref={labelRef}
-        class="fixed bg-grab-pink-light text-grab-pink border border-grab-pink-border rounded text-[11px] font-medium font-sans pointer-events-none transition-opacity duration-200 ease-in-out overflow-hidden"
+        class={`fixed rounded text-[11px] font-medium font-sans pointer-events-none transition-opacity duration-200 ease-in-out overflow-hidden border ${props.canOpen ? "bg-grab-gray-light text-grab-gray border-grab-gray-border" : "bg-grab-pink-light text-grab-pink border-grab-pink-border"}`}
         style={{
           top: `${computedPosition().top}px`,
           left: `${computedPosition().left}px`,
@@ -99,7 +100,7 @@ export const Label: Component<LabelProps> = (props) => {
       >
         <Show when={props.variant === "processing" && props.progress !== undefined}>
           <div
-            class="absolute top-0 left-0 bottom-0 bg-grab-pink/20 rounded-[3px] transition-[width] duration-100 ease-out pointer-events-none"
+            class={`absolute top-0 left-0 bottom-0 rounded-[3px] transition-[width] duration-100 ease-out pointer-events-none ${props.canOpen ? "bg-grab-gray/20" : "bg-grab-pink/20"}`}
             style={{
               width: `${Math.min(100, Math.max(0, (props.progress ?? 0) * 100))}%`,
             }}
@@ -108,7 +109,7 @@ export const Label: Component<LabelProps> = (props) => {
         <div class="relative py-0.5 px-1.5 flex flex-col">
           <div class="flex items-center text-ellipsis whitespace-nowrap">
             <Show when={props.variant === "processing"}>
-              <Spinner />
+              <Spinner canOpen={props.canOpen} />
             </Show>
             <Show when={props.variant === "success"}>
               <span class="inline-block mr-1 font-semibold">

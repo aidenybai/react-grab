@@ -30,6 +30,7 @@ interface SelectionBoxProps {
   filePath?: string;
   lineNumber?: number;
   hideButtons?: boolean;
+  canOpen?: boolean;
 }
 
 export const SelectionBox: Component<SelectionBoxProps> = (props) => {
@@ -174,8 +175,10 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
           props.variant === "grabbed" && "z-2147483645",
           props.variant !== "grabbed" && "z-2147483646",
           props.variant === "drag" && "border border-dashed border-grab-purple/40 bg-grab-purple/5 will-change-[transform,width,height] cursor-crosshair",
-          props.variant === "selection" && "border border-dashed border-grab-purple/50 bg-grab-purple/8",
-          props.variant === "grabbed" && "border border-solid border-grab-purple bg-grab-purple/8 transition-opacity duration-300 ease-out"
+          props.variant === "selection" && !props.filePath && "border border-dashed border-grab-purple/50 bg-grab-purple/8 cursor-copy",
+          props.variant === "selection" && props.filePath && "border border-dashed border-[#6b7280]/50 bg-[#6b7280]/8 cursor-copy",
+          props.variant === "grabbed" && !props.canOpen && "border border-solid border-grab-purple bg-grab-purple/8 transition-opacity duration-300 ease-out",
+          props.variant === "grabbed" && props.canOpen && "border border-solid border-[#6b7280] bg-[#6b7280]/8 transition-opacity duration-300 ease-out"
         )}
         style={{
           top: `${currentY()}px`,

@@ -200,10 +200,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const showTemporaryGrabbedBox = (
       bounds: OverlayBounds,
       element: Element,
+      canOpen?: boolean,
     ) => {
       const boxId = `grabbed-${Date.now()}-${Math.random()}`;
       const createdAt = Date.now();
-      const newBox: GrabbedBox = { id: boxId, bounds, createdAt, element };
+      const newBox: GrabbedBox = { id: boxId, bounds, createdAt, element, canOpen };
       const currentBoxes: GrabbedBox[] = grabbedBoxes();
       setGrabbedBoxes([...currentBoxes, newBox]);
 
@@ -223,11 +224,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, SUCCESS_LABEL_DURATION_MS);
     };
 
-    const showTemporarySuccessLabel = (text: string, type: SuccessLabelType) => {
+    const showTemporarySuccessLabel = (text: string, type: SuccessLabelType, canOpen?: boolean) => {
       const labelId = `success-${Date.now()}-${Math.random()}`;
       setSuccessLabels((previousLabels) => [
         ...previousLabels,
-        { id: labelId, text },
+        { id: labelId, text, canOpen },
       ]);
 
       options.onSuccessLabel?.(text, type, { x: mouseX(), y: mouseY() });
@@ -282,6 +283,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
       });
     };
+
+    createEffect(() => {
+      if (isCopying()) {
+        document.body.style.cursor = "progress";
+      } else {
+        document.body.style.cursor = "";
+      }
+    });
 
     const hasInnerText = (
       element: Element,
@@ -410,6 +419,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       extraPrompt?: string,
     ) => {
       const successLabelType: SuccessLabelType = extraPrompt ? "input-submit" : "copy";
+      const canOpen = !!selectionFilePath();
 
       options.onElementSelect?.(targetElement);
 
@@ -417,6 +427,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         showTemporaryGrabbedBox(
           createElementBounds(targetElement),
           targetElement,
+          canOpen,
         );
       }
       await new Promise((resolve) => requestAnimationFrame(resolve));
@@ -427,6 +438,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         showTemporarySuccessLabel(
           extractElementTagNameForSuccess(targetElement),
           successLabelType,
+          canOpen,
         );
       }
 
@@ -444,7 +456,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (theme().grabbedBoxes.enabled) {
         for (const element of targetElements) {
-          showTemporaryGrabbedBox(createElementBounds(element), element);
+          showTemporaryGrabbedBox(createElementBounds(element), element, false);
         }
       }
       await new Promise((resolve) => requestAnimationFrame(resolve));
@@ -452,7 +464,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const didCopy = await tryCopyWithFallback(targetElements);
 
       if (didCopy && theme().successLabels.enabled) {
-        showTemporarySuccessLabel(`${targetElements.length} elements`, "copy");
+        showTemporarySuccessLabel(`${targetElements.length} elements`, "copy", false);
       }
 
       notifyElementsSelected(targetElements);
@@ -1305,6 +1317,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             selectionBounds={selectionBounds()}
             selectionFilePath={selectionFilePath()}
             selectionLineNumber={selectionLineNumber()}
+            canOpen={!!selectionFilePath()}
             dragVisible={dragVisible()}
             dragBounds={dragBounds()}
             grabbedBoxes={shouldShowGrabbedBoxes() ? grabbedBoxes() : []}

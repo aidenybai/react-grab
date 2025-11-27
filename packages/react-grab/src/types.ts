@@ -266,14 +266,16 @@ export interface ReactGrabRendererProps {
   selectionBounds?: OverlayBounds;
   selectionFilePath?: string;
   selectionLineNumber?: number;
+  canOpen?: boolean;
   dragVisible?: boolean;
   dragBounds?: OverlayBounds;
   grabbedBoxes?: Array<{
     id: string;
     bounds: OverlayBounds;
     createdAt: number;
+    canOpen?: boolean;
   }>;
-  successLabels?: Array<{ id: string; text: string }>;
+  successLabels?: Array<{ id: string; text: string; canOpen?: boolean }>;
   labelVariant?: "hover" | "processing" | "success";
   labelContent?: unknown;
   labelX?: number;
@@ -301,6 +303,7 @@ export interface GrabbedBox {
   bounds: OverlayBounds;
   createdAt: number;
   element: Element;
+  canOpen?: boolean;
 }
 
 export interface Rect {

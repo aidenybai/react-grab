@@ -3,6 +3,7 @@ import type { JSX, Component } from "solid-js";
 
 interface SpinnerProps {
   style?: JSX.CSSProperties;
+  canOpen?: boolean;
 }
 
 export const Spinner: Component<SpinnerProps> = (props) => {
@@ -24,7 +25,7 @@ export const Spinner: Component<SpinnerProps> = (props) => {
   return (
     <span
       ref={spinnerRef}
-      class="inline-block w-2 h-2 border-[1.5px] border-grab-dark-pink border-t-transparent rounded-full mr-1 align-middle"
+      class={`inline-block w-2 h-2 border-[1.5px] border-t-transparent rounded-full mr-1 align-middle ${props.canOpen ? "border-grab-gray" : "border-grab-pink"}`}
       style={props.style}
     />
   );

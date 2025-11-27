@@ -6,6 +6,7 @@ interface CrosshairProps {
   mouseX: number;
   mouseY: number;
   visible?: boolean;
+  canOpen?: boolean;
 }
 
 export const Crosshair: Component<CrosshairProps> = (props) => {
@@ -44,7 +45,7 @@ export const Crosshair: Component<CrosshairProps> = (props) => {
 
     context.clearRect(0, 0, width, height);
 
-    context.strokeStyle = "rgba(210, 57, 192)";
+    context.strokeStyle = props.canOpen ? "rgba(107, 114, 128)" : "rgba(210, 57, 192)";
     context.lineWidth = 1;
 
     context.beginPath();
@@ -74,6 +75,7 @@ export const Crosshair: Component<CrosshairProps> = (props) => {
   createEffect(() => {
     position.x();
     position.y();
+    props.canOpen;
     render();
   });
 
