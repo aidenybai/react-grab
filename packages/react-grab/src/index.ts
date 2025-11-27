@@ -24,7 +24,6 @@ export type {
   ElementLabelVariant,
   InputModeContext,
   SuccessLabelContext,
-  CrosshairContext,
   ElementLabelContext,
 } from "./types.js";
 
