@@ -29,6 +29,7 @@ interface SelectionBoxProps {
   createdAt?: number;
   filePath?: string;
   lineNumber?: number;
+  hideButtons?: boolean;
 }
 
 export const SelectionBox: Component<SelectionBoxProps> = (props) => {
@@ -187,7 +188,7 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
           contain: props.variant === "drag" ? "layout paint size" : undefined,
         }}
       >
-        <Show when={props.variant === "selection" && showIconOnly()}>
+        <Show when={props.variant === "selection" && showIconOnly() && !props.hideButtons}>
           <div class="absolute top-1 right-1 flex gap-0.5">
             <button
               class={cn(

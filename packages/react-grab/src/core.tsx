@@ -1017,6 +1017,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         if (isActivated()) {
           if (isToggleMode()) return;
+          if (event.repeat) return;
 
           if (keydownSpamTimerId !== null) {
             window.clearTimeout(keydownSpamTimerId);
@@ -1051,6 +1052,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         const isReleasingModifier = !event.metaKey && !event.ctrlKey;
         const isReleasingC = isCLikeKey(event.key, event.code);
+
+        if (isActivated()) {
+          if (isReleasingModifier) {
+            if (isToggleMode()) return;
+            deactivateRenderer();
+          } else if (isReleasingC && keydownSpamTimerId !== null) {
+            window.clearTimeout(keydownSpamTimerId);
+            keydownSpamTimerId = null;
+          }
+          return;
+        }
 
         if (isReleasingC || isReleasingModifier) {
           if (isToggleMode()) return;

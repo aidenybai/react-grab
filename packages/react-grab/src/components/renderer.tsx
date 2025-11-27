@@ -16,6 +16,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           visible={props.selectionVisible}
           filePath={props.selectionFilePath}
           lineNumber={props.selectionLineNumber}
+          hideButtons={props.inputVisible}
         />
       </Show>
 
