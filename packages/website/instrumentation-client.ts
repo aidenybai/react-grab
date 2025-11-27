@@ -1,10 +1,12 @@
-import { init, getGlobalApi, setGlobalApi } from "react-grab";
+import { init } from "react-grab/core";
 
-if (typeof window !== "undefined") {
-  const existingApi = getGlobalApi();
-  if (existingApi) {
-    existingApi.dispose();
+declare global {
+  interface Window {
+    __REACT_GRAB__?: ReturnType<typeof init>;
   }
+}
+
+if (typeof window !== "undefined" && !window.__REACT_GRAB__) {
   const api = init({
     onActivate: () => {
       window.dispatchEvent(new CustomEvent("react-grab:activated"));
@@ -13,5 +15,5 @@ if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("react-grab:deactivated"));
     },
   });
-  setGlobalApi(api);
+  window.__REACT_GRAB__ = api;
 }
