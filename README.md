@@ -12,6 +12,12 @@ It makes tools like Cursor, Claude Code, Copilot run up to [**55% faster**](http
 
 ![Demo](https://react-grab.com/demo.gif)
 
+### Chrome Extension
+
+You can also use React Grab as a Chrome Extension! Install it from the Chrome Web Store or build it locally.
+
+![Chrome Extension Demo](packages/chrome-extension/chrome-demo.gif)
+
 ## Install
 
 > [**Install using Cursor**](https://cursor.com/link/prompt?text=1.+Run+curl+-s+https%3A%2F%2Freact-grab.com%2Fllms.txt+%0A2.+Understand+the+content+and+follow+the+instructions+to+install+React+Grab.%0A3.+Tell+the+user+to+refresh+their+local+app+and+explain+how+to+use+React+Grab)
