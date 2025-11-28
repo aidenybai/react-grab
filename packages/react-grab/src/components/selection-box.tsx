@@ -207,17 +207,16 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
               </button>
             </Show>
             <Show when={props.isInputExpanded}>
-              <button
-                class={cn(
-                  "text-[10px] font-medium bg-grab-pink/70 backdrop-blur-xl text-white rounded cursor-pointer hover:bg-grab-pink transition-all flex items-center",
-                  showFullButton() ? "px-1 py-px gap-0.5" : "p-0.5"
-                )}
-                onClick={handleCopyClick}
-                data-react-grab-toolbar
-              >
-                <IconCopy size={10} />
-                <Show when={showFullButton()}>Copy</Show>
-              </button>
+              <Show when={showFullButton()}>
+                <button
+                  class="text-[10px] font-medium bg-grab-pink/70 backdrop-blur-xl text-white rounded cursor-pointer hover:bg-grab-pink transition-all flex items-center px-1 py-px gap-0.5"
+                  onClick={handleCopyClick}
+                  data-react-grab-toolbar
+                >
+                  <IconCopy size={10} />
+                  Copy
+                </button>
+              </Show>
               <Show when={props.filePath}>
                 <button
                   class={cn(

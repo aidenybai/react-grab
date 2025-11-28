@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  type ReactNode,
+} from "react";
 import type { RecordedHotkey } from "./grab-element-button";
 
 interface HotkeyContextValue {
@@ -11,7 +17,9 @@ interface HotkeyContextValue {
 const HotkeyContext = createContext<HotkeyContextValue | null>(null);
 
 export const HotkeyProvider = ({ children }: { children: ReactNode }) => {
-  const [customHotkey, setCustomHotkeyState] = useState<RecordedHotkey | null>(null);
+  const [customHotkey, setCustomHotkeyState] = useState<RecordedHotkey | null>(
+    null,
+  );
 
   const setCustomHotkey = useCallback((hotkey: RecordedHotkey | null) => {
     setCustomHotkeyState(hotkey);
@@ -31,5 +39,3 @@ export const useHotkey = (): HotkeyContextValue => {
   }
   return context;
 };
-
-
