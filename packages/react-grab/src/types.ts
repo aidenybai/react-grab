@@ -301,9 +301,12 @@ export interface ReactGrabRendererProps {
   inputX?: number;
   inputY?: number;
   inputValue?: string;
+  isInputExpanded?: boolean;
   onInputChange?: (value: string) => void;
   onInputSubmit?: () => void;
   onInputCancel?: () => void;
+  onToggleExpand?: () => void;
+  onCopyClick?: () => void;
   theme?: Required<Theme>;
 }
 

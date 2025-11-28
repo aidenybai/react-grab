@@ -1,5 +1,6 @@
-import { createEffect } from "solid-js";
+import { createEffect, createSignal, onMount } from "solid-js";
 import type { Component } from "solid-js";
+import type { OverlayBounds } from "../types.js";
 import {
   VIEWPORT_MARGIN_PX,
   INDICATOR_CLAMP_PADDING_PX,
@@ -15,6 +16,7 @@ interface InputOverlayProps {
   zIndex?: number;
   value: string;
   visible: boolean;
+  selectionBounds?: OverlayBounds;
   onInput: (value: string) => void;
   onSubmit: () => void;
   onCancel: () => void;
@@ -24,49 +26,94 @@ export const InputOverlay: Component<InputOverlayProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
   let inputRef: HTMLTextAreaElement | undefined;
 
+  const [measuredWidth, setMeasuredWidth] = createSignal(0);
+  const [measuredHeight, setMeasuredHeight] = createSignal(0);
+
+  const measureContainer = () => {
+    if (containerRef) {
+      const rect = containerRef.getBoundingClientRect();
+      setMeasuredWidth(rect.width);
+      setMeasuredHeight(rect.height);
+    }
+  };
+
+  onMount(() => {
+    measureContainer();
+  });
+
+  createEffect(() => {
+    if (props.visible) {
+      requestAnimationFrame(measureContainer);
+    }
+  });
+
   const position = useAnimatedPosition({
     x: () => props.x,
     y: () => props.y,
     lerpFactor: 0.3,
   });
 
-  const containerBoundingRect = () => containerRef?.getBoundingClientRect();
-
   const computedPosition = () => {
-    const boundingRect = containerBoundingRect();
-    if (!boundingRect) return { left: position.x(), top: position.y() };
+    const inputWidth = measuredWidth();
+    const inputHeight = measuredHeight();
+
+    if (inputWidth === 0 || inputHeight === 0) {
+      return { left: -9999, top: -9999 };
+    }
 
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
+    if (props.selectionBounds) {
+      const selectionCenterX = props.selectionBounds.x + props.selectionBounds.width / 2;
+      const selectionBottom = props.selectionBounds.y + props.selectionBounds.height;
+
+      let positionLeft = selectionCenterX - inputWidth / 2;
+      let positionTop = selectionBottom + 8;
+
+      if (positionLeft + inputWidth > viewportWidth - VIEWPORT_MARGIN_PX) {
+        positionLeft = viewportWidth - inputWidth - VIEWPORT_MARGIN_PX;
+      }
+      if (positionLeft < VIEWPORT_MARGIN_PX) {
+        positionLeft = VIEWPORT_MARGIN_PX;
+      }
+
+      const fitsBelow = positionTop + inputHeight <= viewportHeight - VIEWPORT_MARGIN_PX;
+      if (!fitsBelow) {
+        positionTop = props.selectionBounds.y - inputHeight - 8;
+      }
+
+      return { left: positionLeft, top: positionTop };
+    }
+
     const quadrants = getCursorQuadrants(
       position.x(),
       position.y(),
-      boundingRect.width,
-      boundingRect.height,
+      inputWidth,
+      inputHeight,
       CURSOR_OFFSET_PX,
     );
 
-    for (const position of quadrants) {
+    for (const quadrantPosition of quadrants) {
       const fitsHorizontally =
-        position.left >= VIEWPORT_MARGIN_PX &&
-        position.left + boundingRect.width <=
+        quadrantPosition.left >= VIEWPORT_MARGIN_PX &&
+        quadrantPosition.left + inputWidth <=
           viewportWidth - VIEWPORT_MARGIN_PX;
       const fitsVertically =
-        position.top >= VIEWPORT_MARGIN_PX &&
-        position.top + boundingRect.height <=
+        quadrantPosition.top >= VIEWPORT_MARGIN_PX &&
+        quadrantPosition.top + inputHeight <=
           viewportHeight - VIEWPORT_MARGIN_PX;
 
       if (fitsHorizontally && fitsVertically) {
-        return position;
+        return quadrantPosition;
       }
     }
 
     const fallback = getClampedElementPosition(
       quadrants[0].left,
       quadrants[0].top,
-      boundingRect.width,
-      boundingRect.height,
+      inputWidth,
+      inputHeight,
     );
 
     fallback.left += INDICATOR_CLAMP_PADDING_PX;
@@ -76,14 +123,13 @@ export const InputOverlay: Component<InputOverlayProps> = (props) => {
   };
 
   const handleKeyDown = (event: KeyboardEvent) => {
-    // NOTE: we use event.code instead of event.key for keyboard layout compatibility (e.g., AZERTY, QWERTZ)
+    event.stopPropagation();
+
     if (event.code === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      event.stopPropagation();
       props.onSubmit();
     } else if (event.code === "Escape") {
       event.preventDefault();
-      event.stopPropagation();
       props.onCancel();
     }
   };
@@ -97,7 +143,9 @@ export const InputOverlay: Component<InputOverlayProps> = (props) => {
 
   createEffect(() => {
     if (props.visible && inputRef) {
-      inputRef.focus();
+      setTimeout(() => {
+        inputRef?.focus();
+      }, 0);
       inputRef.style.height = "auto";
     } else if (!props.visible && inputRef) {
       inputRef.blur();

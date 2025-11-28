@@ -16,7 +16,10 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           visible={props.selectionVisible}
           filePath={props.selectionFilePath}
           lineNumber={props.selectionLineNumber}
-          hideButtons={props.inputVisible}
+          hideButtons={props.inputVisible && !props.isInputExpanded}
+          isInputExpanded={props.isInputExpanded}
+          onToggleExpand={props.onToggleExpand}
+          onCopyClick={props.onCopyClick}
         />
       </Show>
 
@@ -92,6 +95,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         zIndex={props.labelZIndex}
         value={props.inputValue ?? ""}
         visible={props.inputVisible ?? false}
+        selectionBounds={props.isInputExpanded ? props.selectionBounds : undefined}
         onInput={props.onInputChange!}
         onSubmit={props.onInputSubmit!}
         onCancel={props.onInputCancel!}

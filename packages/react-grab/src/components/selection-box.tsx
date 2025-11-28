@@ -15,6 +15,7 @@ import { cn } from "../utils/cn.js";
 import { buildOpenFileUrl } from "../utils/build-open-file-url.js";
 import { IconCopy } from "./icon-copy.js";
 import { IconOpen } from "./icon-open.js";
+import { IconToggle } from "./icon-toggle.js";
 
 interface SelectionBoxProps {
   variant: "selection" | "grabbed" | "drag";
@@ -25,6 +26,9 @@ interface SelectionBoxProps {
   filePath?: string;
   lineNumber?: number;
   hideButtons?: boolean;
+  isInputExpanded?: boolean;
+  onToggleExpand?: () => void;
+  onCopyClick?: () => void;
 }
 
 export const SelectionBox: Component<SelectionBoxProps> = (props) => {
@@ -141,9 +145,20 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
     window.open(openFileUrl, "_blank");
   };
 
+  const handleToggleClick = (event: MouseEvent) => {
+    stopEvent(event);
+    props.onToggleExpand?.();
+  };
+
+  const handleCopyClick = (event: MouseEvent) => {
+    stopEvent(event);
+    props.onCopyClick?.();
+  };
+
   const canFitButtonsInside = () => currentWidth() >= 45 && currentHeight() >= 26;
   const shouldPlaceOutside = () => !canFitButtonsInside();
   const showFullButton = () => currentWidth() >= 100 && currentHeight() >= 30;
+  const showButtons = () => !props.hideButtons || props.isInputExpanded;
 
   return (
     <Show when={props.visible !== false}>
@@ -170,7 +185,7 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
           overflow: "visible",
         }}
       >
-        <Show when={props.variant === "selection" && !props.hideButtons}>
+        <Show when={props.variant === "selection" && showButtons()}>
           <Show when={shouldPlaceOutside()}>
             <div class="absolute bottom-full right-0 w-12 h-4" />
           </Show>
@@ -182,26 +197,40 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
                 : "top-1 right-1"
             )}
           >
-            <Show when={showFullButton()}>
+            <Show when={!props.isInputExpanded}>
               <button
-                class="text-[10px] font-medium bg-grab-pink/70 backdrop-blur-xl text-white rounded cursor-pointer hover:bg-grab-pink transition-all flex items-center px-1 py-px gap-0.5"
+                class="text-[10px] font-medium bg-grab-pink/70 backdrop-blur-xl text-white rounded cursor-pointer hover:bg-grab-pink transition-all flex items-center p-0.5"
+                onClick={handleToggleClick}
+                data-react-grab-toolbar
               >
-                <IconCopy size={10} />
-                Copy
+                <IconToggle size={10} />
               </button>
             </Show>
-            <Show when={props.filePath}>
+            <Show when={props.isInputExpanded}>
               <button
                 class={cn(
                   "text-[10px] font-medium bg-grab-pink/70 backdrop-blur-xl text-white rounded cursor-pointer hover:bg-grab-pink transition-all flex items-center",
                   showFullButton() ? "px-1 py-px gap-0.5" : "p-0.5"
                 )}
-                onClick={handleOpenClick}
+                onClick={handleCopyClick}
                 data-react-grab-toolbar
               >
-                <IconOpen size={10} />
-                <Show when={showFullButton()}>Open</Show>
+                <IconCopy size={10} />
+                <Show when={showFullButton()}>Copy</Show>
               </button>
+              <Show when={props.filePath}>
+                <button
+                  class={cn(
+                    "text-[10px] font-medium bg-grab-pink/70 backdrop-blur-xl text-white rounded cursor-pointer hover:bg-grab-pink transition-all flex items-center",
+                    showFullButton() ? "px-1 py-px gap-0.5" : "p-0.5"
+                  )}
+                  onClick={handleOpenClick}
+                  data-react-grab-toolbar
+                >
+                  <IconOpen size={10} />
+                  <Show when={showFullButton()}>Open</Show>
+                </button>
+              </Show>
             </Show>
           </div>
         </Show>

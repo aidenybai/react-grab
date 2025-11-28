@@ -169,6 +169,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [isTouchMode, setIsTouchMode] = createSignal(false);
     const [selectionFilePath, setSelectionFilePath] = createSignal<string | undefined>(undefined);
     const [selectionLineNumber, setSelectionLineNumber] = createSignal<number | undefined>(undefined);
+    const [isToggleFrozen, setIsToggleFrozen] = createSignal(false);
+    const [isInputExpanded, setIsInputExpanded] = createSignal(false);
     const [hasCompletedFirstGrab, setHasCompletedFirstGrab] = createSignal(
       typeof localStorage !== "undefined" &&
         localStorage.getItem("react-grab:dismiss-hint") === "true",
@@ -863,6 +865,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setIsActivated(false);
       setIsInputMode(false);
       setInputText("");
+      setIsToggleFrozen(false);
+      setIsInputExpanded(false);
       if (isDragging()) {
         setIsDragging(false);
         document.body.style.userSelect = "";
@@ -890,8 +894,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const element = targetElement();
       const prompt = inputText().trim();
-      const currentX = mouseX();
-      const currentY = mouseY();
+      const bounds = selectionBounds();
+
+      const currentX = bounds ? bounds.x + bounds.width / 2 : mouseX();
+      const currentY = bounds ? bounds.y + bounds.height / 2 : mouseY();
+
+      setMouseX(currentX);
+      setMouseY(currentY);
 
       setIsInputMode(false);
       setInputText("");
@@ -913,8 +922,31 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       deactivateRenderer();
     };
 
+    const handleToggleExpand = () => {
+      setIsToggleMode(true);
+      setIsToggleFrozen(true);
+      setIsInputExpanded(true);
+      setIsInputMode(true);
+    };
+
+    const handleCopyClick = () => {
+      const element = targetElement();
+      const currentX = mouseX();
+      const currentY = mouseY();
+
+      if (element) {
+        void executeCopyOperation(currentX, currentY, () =>
+          copySingleElementToClipboard(element),
+        ).then(() => {
+          deactivateRenderer();
+        });
+      } else {
+        deactivateRenderer();
+      }
+    };
+
     const handlePointerMove = (clientX: number, clientY: number) => {
-      if (isInputMode()) return;
+      if (isInputMode() || isToggleFrozen()) return;
 
       setMouseX(clientX);
       setMouseY(clientY);
@@ -1016,6 +1048,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           event.preventDefault();
           event.stopPropagation();
           setIsToggleMode(true);
+          setIsToggleFrozen(true);
+          setIsInputExpanded(true);
 
           if (keydownSpamTimerId !== null) {
             window.clearTimeout(keydownSpamTimerId);
@@ -1097,6 +1131,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "keyup",
       (event: KeyboardEvent) => {
         if (!isHoldingKeys() && !isActivated()) return;
+        if (isInputMode()) return;
 
         const hasCustomShortcut = Boolean(options.activationShortcut || options.activationKey);
 
@@ -1349,7 +1384,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         theme().crosshair.enabled &&
         isRendererActive() &&
         !isDragging() &&
-        !isTouchMode(),
+        !isTouchMode() &&
+        !isToggleFrozen(),
     );
 
     const inputVisible = createMemo(
@@ -1401,9 +1437,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             inputX={mouseX()}
             inputY={mouseY()}
             inputValue={inputText()}
+            isInputExpanded={isInputExpanded()}
             onInputChange={handleInputChange}
             onInputSubmit={handleInputSubmit}
             onInputCancel={handleInputCancel}
+            onToggleExpand={handleToggleExpand}
+            onCopyClick={handleCopyClick}
             theme={theme()}
           />
         ),
