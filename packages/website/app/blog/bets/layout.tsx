@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Some Bets",
+  title: "Some bets",
   description: "Some bets for the future of AI coding and UI development.",
   openGraph: {
-    title: "Some Bets",
+    title: "Some bets",
     description: "Some bets for the future of AI coding and UI development.",
     url: "https://react-grab.com/blog/bets",
     siteName: "React Grab",
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
         url: "https://react-grab.com/banner.png",
         width: 1200,
         height: 630,
-        alt: "React Grab - Some Bets",
+        alt: "React Grab - Some bets",
       },
     ],
     locale: "en_US",
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Some Bets",
+    title: "Some bets",
     description: "Some bets for the future of AI coding and UI development.",
     images: ["https://react-grab.com/banner.png"],
     creator: "@aidenybai",

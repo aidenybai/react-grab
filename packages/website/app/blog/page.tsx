@@ -14,7 +14,7 @@ interface BlogPost {
 const blogPosts: BlogPost[] = [
   {
     slug: "bets",
-    title: "Some Bets",
+    title: "Some bets",
     year: "2025",
   },
   {

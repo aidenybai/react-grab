@@ -27,7 +27,7 @@ const BetsPage = () => {
                   className="w-10 h-10"
                 />
               </Link>
-              <h1 className="text-xl font-medium text-white">Some Bets</h1>
+              <h1 className="text-xl font-medium text-white">Some bets</h1>
             </div>
 
             <div className="text-sm text-neutral-500">
