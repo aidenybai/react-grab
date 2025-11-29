@@ -6,7 +6,7 @@ import { ReactGrabLogo } from "@/components/react-grab-logo";
 import { cn } from "@/utils/classnames";
 import { IconCursor } from "@/components/icon-cursor";
 import { IconVSCode, IconZed, IconWebStorm } from "@/components/icons";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 
 const EDITOR_OPTIONS = ["cursor", "vscode", "zed", "webstorm"] as const;
@@ -48,26 +48,24 @@ const OpenFileContent = () => {
 
   const resolvedFilePath = filePath ?? filePathAlt ?? "";
 
-  const [preferredEditor, setPreferredEditor] = useState<Editor>("cursor");
+  const getInitialEditor = (): { editor: Editor; hasSaved: boolean } => {
+    if (typeof window === "undefined") return { editor: "cursor", hasSaved: false };
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved && EDITORS.some((e) => e.id === saved)) {
+      return { editor: saved as Editor, hasSaved: true };
+    }
+    return { editor: "cursor", hasSaved: false };
+  };
+
+  const [preferredEditor, setPreferredEditor] = useState<Editor>(() => {
+    if (editorParam && EDITORS.some((e) => e.id === editorParam)) return editorParam;
+    return getInitialEditor().editor;
+  });
   const [didAttemptOpen, setDidAttemptOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [hasSavedPreference, setHasSavedPreference] = useState(false);
+  const [hasSavedPreference] = useState(() => getInitialEditor().hasSaved);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved && EDITORS.some((editor) => editor.id === saved)) {
-      setPreferredEditor(saved as Editor);
-      setHasSavedPreference(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (editorParam && EDITORS.some((editor) => editor.id === editorParam)) {
-      setPreferredEditor(editorParam);
-    }
-  }, [editorParam]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -113,14 +111,14 @@ const OpenFileContent = () => {
 
   if (!resolvedFilePath) {
     return (
-      <div className="min-h-screen bg-black px-4 py-6 sm:px-8 sm:py-8">
-        <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 pt-4 text-base sm:pt-8 sm:text-lg">
-          <Link href="/" className="inline-flex" style={{ padding: "2px", transform: "translateX(-3px)" }}>
-            <ReactGrabLogo width={42} height={42} />
-          </Link>
-          <div className="text-white">
+      <div className="flex min-h-screen items-center justify-center bg-black p-4">
+        <div className="w-full max-w-md rounded-lg border border-white/10 bg-[#0d0d0d] p-8 text-center shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
+          <div className="mb-6 flex justify-center">
+            <ReactGrabLogo width={100} height={40} />
+          </div>
+          <div className="text-white/60 text-sm">
             No file specified. Add{" "}
-            <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-sm">?url=path/to/file</code>{" "}
+            <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-xs">?url=path/to/file</code>{" "}
             to the URL.
           </div>
         </div>
@@ -129,56 +127,60 @@ const OpenFileContent = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black px-4 py-6 sm:px-8 sm:py-8">
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 pt-4 text-base sm:pt-8 sm:text-lg">
-        <Link href="/" className="inline-flex" style={{ padding: "2px", transform: "translateX(-3px)" }}>
-          <ReactGrabLogo width={42} height={42} className="logo-shimmer-once" />
+    <div className="flex min-h-screen flex-col items-center justify-center bg-black p-4">
+      <div className="mb-8">
+        <Link href="/">
+          <ReactGrabLogo width={160} height={60} className="logo-shimmer-once" />
         </Link>
+      </div>
 
-        <div className="text-white">
-          Opening{" "}
-          <span className="inline-flex items-center rounded-md bg-[#330039] px-1 py-0.5 text-xs font-mono text-[#ff4fff]">
+      <div className="w-full max-w-lg rounded-lg border border-white/10 bg-[#0d0d0d] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
+        <div className="mb-2 flex flex-wrap items-center gap-2 text-lg text-white/80">
+          <span>Opening</span>
+          <span className="inline-flex items-center rounded bg-white/10 px-2 py-0.5 font-mono text-sm text-white/90">
             {fileName}
           </span>
           {lineNumber && (
             <>
-              {" "}at line{" "}
-              <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-sm">{lineNumber}</code>
+              <span>at line</span>
+              <span className="inline-flex items-center rounded bg-white/10 px-2 py-0.5 font-mono text-sm text-white/90">
+                {lineNumber}
+              </span>
             </>
           )}
         </div>
 
-        <div className="text-white/50 font-mono text-sm break-all">
+        <div className="mb-6 font-mono text-sm text-white/40 break-all">
           {resolvedFilePath}
         </div>
 
-        <div className="flex items-center gap-3 pt-2">
+        <div className="mb-6 inline-flex items-stretch rounded-lg border border-white/10 bg-white/5">
           <div className="relative" ref={dropdownRef}>
             <button
               type="button"
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center gap-2 rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-white transition-colors hover:bg-white/10"
+              className="flex h-full items-center gap-2 rounded-l-lg px-4 py-2.5 text-sm text-white/80 transition-colors hover:bg-white/10"
             >
-              <span className="opacity-80">{selectedEditor?.icon}</span>
+              <span className="opacity-70">{selectedEditor?.icon}</span>
               <span>{selectedEditor?.name}</span>
-              <ChevronDown size={14} className={cn("opacity-50 transition-transform", isDropdownOpen && "rotate-180")} />
+              <ChevronDown size={14} className={cn("opacity-40 transition-transform", isDropdownOpen && "rotate-180")} />
             </button>
 
             {isDropdownOpen && (
-              <div className="absolute left-0 top-full z-10 mt-1 min-w-[140px] overflow-hidden rounded-lg border border-white/20 bg-[#0a0a0a] shadow-lg">
+              <div className="absolute left-0 top-full z-10 mt-1 min-w-[160px] overflow-hidden rounded-lg border border-white/10 bg-[#0d0d0d] shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
                 {EDITORS.map((editor) => (
                   <button
                     key={editor.id}
                     type="button"
                     onClick={() => handleEditorChange(editor.id)}
                     className={cn(
-                      "flex w-full items-center gap-2 px-3 py-2 text-sm transition-colors",
+                      "flex w-full items-center gap-2.5 px-4 py-2.5 text-sm transition-colors",
                       preferredEditor === editor.id
-                        ? "bg-[#330039] text-[#ff4fff]"
-                        : "text-white/70 hover:bg-white/10 hover:text-white"
+                        ? "bg-white/10 text-white"
+                        : "text-white/60 hover:bg-white/10 hover:text-white/90"
                     )}
                   >
-                    <span className="opacity-80">{editor.icon}</span>
+                    <span className="opacity-70">{editor.icon}</span>
                     <span>{editor.name}</span>
                   </button>
                 ))}
@@ -186,60 +188,41 @@ const OpenFileContent = () => {
             )}
           </div>
 
+          <div className="w-px bg-white/10" />
+
           <button
             type="button"
             onClick={handleOpen}
-            className="flex h-10 items-center justify-center gap-2 rounded-lg border border-[#d75fcb] bg-[#330039] px-4 text-sm text-white transition-colors hover:bg-[#4a0052] shadow-[0_0_12px_rgba(215,95,203,0.4)]"
+            className="flex items-center gap-1.5 rounded-r-lg px-4 py-2.5 text-sm text-white/80 transition-colors hover:bg-white/10"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-              <polyline points="15 3 21 3 21 9" />
-              <line x1="10" y1="14" x2="21" y2="3" />
-            </svg>
-            Open
+            <span>Open</span>
+            <ArrowUpRight size={14} className="opacity-50" />
           </button>
         </div>
 
-        <div className="text-white/40 text-xs pt-2 space-y-1">
+        <div className="space-y-1 text-xs text-white/40">
           <p>Your preference will be saved for future use.</p>
-          <p>Only open files from sources you trust.</p>
-        </div>
-
-        <div className="mt-6 pt-4">
-          <button
-            type="button"
-            onClick={() => setIsInfoOpen(!isInfoOpen)}
-            className="flex items-center gap-1 text-white/30 text-xs hover:text-white/50 transition-colors outline-none"
-          >
-            <ChevronRight size={12} className={cn("transition-transform", isInfoOpen && "rotate-90")} />
-            What is React Grab?
-          </button>
-
-          {isInfoOpen && (
-            <div className="mt-2 text-white/40 text-xs space-y-1.5 pl-4">
-              <p>
-                Select any element in your React app and copy its context to AI tools.
-              </p>
-              <Link
-                href="/"
-                className="inline-flex items-center gap-1 text-white/50 hover:text-white/70 text-xs"
-              >
-                Learn more →
-              </Link>
-            </div>
-          )}
+          <p>Only open files from trusted sources.</p>
         </div>
       </div>
+
+      <button
+        type="button"
+        onClick={() => setIsInfoOpen(!isInfoOpen)}
+        className="mt-8 flex items-center gap-1.5 text-xs text-white/25 transition-colors hover:text-white/40 focus:outline-none"
+      >
+        <span>What is React Grab?</span>
+        <ChevronDown size={10} className={cn("transition-transform", isInfoOpen && "rotate-180")} />
+      </button>
+
+      {isInfoOpen && (
+        <p className="mt-2 text-center text-xs text-white/30">
+          Select any element in your React app and copy its context to AI tools.{" "}
+          <Link href="/" className="underline hover:text-white/50">
+            Learn more
+          </Link>
+        </p>
+      )}
     </div>
   );
 };
@@ -248,10 +231,8 @@ const OpenFilePage = () => {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-black px-4 py-6 sm:px-8 sm:py-8">
-          <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 pt-4 sm:pt-8">
-            <ReactGrabLogo width={42} height={42} className="animate-pulse" />
-          </div>
+        <div className="flex min-h-screen items-center justify-center bg-black p-4">
+          <ReactGrabLogo width={160} height={60} className="animate-pulse" />
         </div>
       }
     >
