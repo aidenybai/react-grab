@@ -79,7 +79,7 @@ const BetsPage = () => {
                 >
                   the last framework
                 </a>
-                .
+                .<sup className="text-neutral-500 text-[10px] ml-0.5">1</sup>
               </p>
             </div>
 
@@ -99,9 +99,9 @@ const BetsPage = () => {
                 >
                   RL
                 </a>
-                . Labs are scaling post-training on
-                code, and coding tools are building on top. Good requires taste.
-                Great people will get there eventually but slower.
+                . Labs are scaling post-training on code, and coding tools are
+                building on top. Good requires taste. Great people will get
+                there eventually but slower.
               </p>
             </div>
 
@@ -128,8 +128,9 @@ const BetsPage = () => {
                 ).
               </p>
               <p>
-                Once AI coding becomes commodified, the winners will be those with
-                better taste and ease of use, not those with bleeding edge capability (1% better than the next best).
+                Once AI coding becomes commodified, the winners will be those
+                with better taste and ease of use, not those with bleeding edge
+                capability (1% better than the next best).
               </p>
             </div>
 
@@ -138,8 +139,10 @@ const BetsPage = () => {
                 5. There will only be two form factors for coding with UIs
               </h3>
               <p>
-                Low latency low entropy (sub 100ms), and long background tasks
-                (big refactors, maintenance, scaffolding a{" "}
+                Low latency low entropy (sub 100ms
+                <sup className="text-neutral-500 text-[10px] ml-0.5">2</sup>),
+                and long background tasks (big refactors, maintenance,
+                scaffolding a{" "}
                 <a
                   href="https://cognition.ai/blog/swe-grep"
                   target="_blank"
@@ -156,8 +159,13 @@ const BetsPage = () => {
               <h3 className="text-lg font-medium text-neutral-200 mt-4">
                 6. The gap
               </h3>
-              <p>There is no tool that is good at UI <em>(yet)</em>.</p>
-              <p>No company is going all-in on AI coding for UI.</p>
+              <p>
+                There is no tool that is good at UI <em>(yet)</em>.
+              </p>
+              <p>
+                No company is going all-in on AI coding for UI.
+                <sup className="text-neutral-500 text-[10px] ml-0.5">3</sup>
+              </p>
               <p>
                 If you agree,{" "}
                 <a
@@ -170,6 +178,29 @@ const BetsPage = () => {
                 </a>
                 .
               </p>
+            </div>
+
+            <div className="flex flex-col gap-4 mt-12 pt-8 border-t border-neutral-800">
+              <h4 className="text-sm font-medium text-neutral-400">Footnotes</h4>
+              <div className="flex flex-col gap-4 text-sm text-neutral-500">
+                <p>
+                  <sup className="text-neutral-600 mr-1">1</sup>
+                  Not literally the last framework ever, but the last major
+                  paradigm shift (JSX, hooks, etc)
+                </p>
+                <p>
+                  <sup className="text-neutral-600 mr-1">2</sup>
+                  This is the latency threshold where interactions feel instant,
+                  as anything slower breaks flow.
+                </p>
+                <p>
+                  <sup className="text-neutral-600 mr-1">3</sup>
+                  Vercel/v0 is close but focused on generation, not iteration.
+                  Cursor/Windsurf are general-purpose. There{"'"}s no company
+                  whose entire thesis is &quot;AI coding, but specifically for
+                  UI&quot; with all the specialized tooling that implies.
+                </p>
+              </div>
             </div>
           </div>
         </div>
