@@ -96,6 +96,8 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         value={props.inputValue ?? ""}
         visible={props.inputVisible ?? false}
         selectionBounds={props.isInputExpanded ? props.selectionBounds : undefined}
+        mode={props.inputMode}
+        statusText={props.inputStatusText}
         onInput={props.onInputChange!}
         onSubmit={props.onInputSubmit!}
         onCancel={props.onInputCancel!}

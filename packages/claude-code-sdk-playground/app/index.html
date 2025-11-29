@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Claude Agent SDK Playground</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+      html, body {
+        background-color: #000;
+        min-height: 100vh;
+      }
+
+      ::selection {
+        background: #d75fcb33;
+        color: #d75fcb;
+      }
+
+      * {
+        scrollbar-width: thin;
+        scrollbar-color: #404040 #0d0d0d;
+      }
+
+      *::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+
+      *::-webkit-scrollbar-track {
+        background: #0d0d0d;
+      }
+
+      *::-webkit-scrollbar-thumb {
+        background-color: #404040;
+        border-radius: 3px;
+      }
+
+      *::-webkit-scrollbar-thumb:hover {
+        background-color: #525252;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/main.tsx"></script>
+  </body>
+</html>

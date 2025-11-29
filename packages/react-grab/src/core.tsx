@@ -51,9 +51,18 @@ import type {
   DeepPartial,
   Theme,
   SuccessLabelType,
+  AgentSession,
 } from "./types.js";
 import { getNearestComponentName } from "./instrumentation.js";
 import { mergeTheme, deepMergeTheme } from "./theme.js";
+import { generateSnippet } from "./utils/generate-snippet.js";
+import {
+  createSession,
+  saveSession,
+  loadSession,
+  clearSession,
+  updateSession,
+} from "./utils/agent-session.js";
 
 let hasInited = false;
 
@@ -175,8 +184,77 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       typeof localStorage !== "undefined" &&
         localStorage.getItem("react-grab:dismiss-hint") === "true",
     );
+    const [agentSession, setAgentSession] = createSignal<AgentSession | null>(null);
+    const [inputOverlayMode, setInputOverlayMode] = createSignal<"input" | "output">("input");
+    const [agentStatusText, setAgentStatusText] = createSignal("");
+    const [isAgentProcessing, setIsAgentProcessing] = createSignal(false);
+    const [agentLabelPosition, setAgentLabelPosition] = createSignal({ x: 0, y: 0 });
 
     let holdTimerId: number | null = null;
+    let agentAbortController: AbortController | null = null;
+
+    const tryResumeAgentSession = async () => {
+      const storageType = options.agentSessionStorage ?? "memory";
+      const existingSession = loadSession(storageType);
+
+      if (options.log) {
+        console.log("[React Grab] Checking for session to resume:", { existingSession, storageType });
+      }
+
+      if (!existingSession || !existingSession.isStreaming) {
+        if (options.log) console.log("[React Grab] No session to resume");
+        return;
+      }
+      if (!options.agentProvider?.supportsResume || !options.agentProvider.resume) {
+        if (options.log) console.log("[React Grab] Provider doesn't support resume");
+        clearSession(storageType);
+        return;
+      }
+
+      setAgentSession(existingSession);
+      setAgentStatusText(existingSession.lastStatus || "Resuming...");
+      setIsAgentProcessing(true);
+      setAgentLabelPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+      setIsCopying(true);
+      startProgressAnimation(30000);
+      activateRenderer();
+      options.onAgentResume?.(existingSession);
+
+      agentAbortController = new AbortController();
+
+      try {
+        for await (const status of options.agentProvider.resume(existingSession.id, agentAbortController.signal)) {
+          const currentSession = agentSession();
+          if (!currentSession) break;
+
+          setAgentStatusText(status);
+          const updatedSession = updateSession(currentSession, { lastStatus: status }, storageType);
+          setAgentSession(updatedSession);
+          options.onAgentStatus?.(status, updatedSession);
+        }
+
+        const finalSession = agentSession();
+        if (finalSession) {
+          const completedSession = updateSession(finalSession, { isStreaming: false }, storageType);
+          setAgentSession(completedSession);
+          options.onAgentComplete?.(completedSession);
+        }
+      } catch (error) {
+        const currentSession = agentSession();
+        if (currentSession && error instanceof Error && error.name !== "AbortError") {
+          const errorSession = updateSession(currentSession, { isStreaming: false }, storageType);
+          setAgentSession(errorSession);
+          options.onAgentError?.(error, errorSession);
+        }
+      } finally {
+        agentAbortController = null;
+        clearSession(storageType);
+        setIsCopying(false);
+        setIsAgentProcessing(false);
+        stopProgressAnimation();
+        deactivateRenderer();
+      }
+    };
     let progressAnimationId: number | null = null;
     let progressDelayTimerId: number | null = null;
     let keydownSpamTimerId: number | null = null;
@@ -535,6 +613,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const labelContent = createMemo(() => {
+      if (isAgentProcessing()) {
+        const status = agentStatusText();
+        return (
+          <span class="tabular-nums align-middle">
+            {status || "Please wait…"}
+          </span>
+        );
+      }
+
       const element = targetElement();
       if (!element)
         return (
@@ -575,11 +662,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       );
     });
 
-    const labelPosition = createMemo(() =>
-      isCopying()
+    const labelPosition = createMemo(() => {
+      if (isAgentProcessing()) {
+        return agentLabelPosition();
+      }
+      return isCopying()
         ? { x: copyStartX(), y: copyStartY() }
-        : { x: mouseX(), y: mouseY() },
-    );
+        : { x: mouseX(), y: mouseY() };
+    });
 
     const progressPosition = createMemo(() =>
       isCopying()
@@ -769,8 +859,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       ),
     );
 
-    const startProgressAnimation = () => {
+    const startProgressAnimation = (duration?: number) => {
       const startTime = Date.now();
+      const animationDuration = duration ?? options.keyHoldDuration;
       setProgressStartTime(startTime);
       setShowProgressIndicator(false);
 
@@ -784,7 +875,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (currentStartTime === null) return;
 
         const elapsedTime = Date.now() - currentStartTime;
-        const normalizedTime = elapsedTime / options.keyHoldDuration;
+        const normalizedTime = elapsedTime / animationDuration;
         const easedProgress = 1 - Math.exp(-normalizedTime);
         const maxProgressBeforeCompletion = 0.95;
 
@@ -867,6 +958,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setInputText("");
       setIsToggleFrozen(false);
       setIsInputExpanded(false);
+      setInputOverlayMode("input");
+      setAgentStatusText("");
+      setAgentSession(null);
+      setIsAgentProcessing(false);
+      setAgentLabelPosition({ x: 0, y: 0 });
       if (isDragging()) {
         setIsDragging(false);
         document.body.style.userSelect = "";
@@ -889,7 +985,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setInputText(value);
     };
 
-    const handleInputSubmit = () => {
+    const handleInputSubmit = async () => {
       if (!isInputMode()) return;
 
       const element = targetElement();
@@ -901,6 +997,66 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       setMouseX(currentX);
       setMouseY(currentY);
+
+      if (options.agentProvider && element) {
+        const currentX = mouseX();
+        const currentY = mouseY();
+
+        setInputText("");
+        setIsInputMode(false);
+        setIsAgentProcessing(true);
+        setAgentLabelPosition({ x: currentX, y: currentY });
+        setAgentStatusText("Please wait…");
+        setIsCopying(true);
+        startProgressAnimation(30000);
+
+        const elements = [element];
+        const content = await generateSnippet(elements);
+        const context = { content, prompt };
+        const storageType = options.agentSessionStorage ?? "memory";
+
+        const session = createSession(context);
+        setAgentSession(session);
+        saveSession(session, storageType);
+        options.onAgentStart?.(session);
+
+        agentAbortController = new AbortController();
+
+        try {
+          for await (const status of options.agentProvider.send(context, agentAbortController.signal)) {
+            const currentSession = agentSession();
+            if (!currentSession) break;
+
+            setAgentStatusText(status);
+            const updatedSession = updateSession(currentSession, { lastStatus: status }, storageType);
+            setAgentSession(updatedSession);
+            options.onAgentStatus?.(status, updatedSession);
+          }
+
+          const finalSession = agentSession();
+          if (finalSession) {
+            const completedSession = updateSession(finalSession, { isStreaming: false }, storageType);
+            setAgentSession(completedSession);
+            options.onAgentComplete?.(completedSession);
+          }
+        } catch (error) {
+          const currentSession = agentSession();
+          if (currentSession && error instanceof Error && error.name !== "AbortError") {
+            const errorSession = updateSession(currentSession, { isStreaming: false }, storageType);
+            setAgentSession(errorSession);
+            options.onAgentError?.(error, errorSession);
+          }
+        } finally {
+          agentAbortController = null;
+          clearSession(storageType);
+          setIsCopying(false);
+          setIsAgentProcessing(false);
+          setAgentStatusText("");
+          stopProgressAnimation();
+          deactivateRenderer();
+        }
+        return;
+      }
 
       setIsInputMode(false);
       setInputText("");
@@ -918,6 +1074,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleInputCancel = () => {
       if (!isInputMode()) return;
+
+      if (agentAbortController) {
+        agentAbortController.abort();
+        agentAbortController = null;
+      }
 
       deactivateRenderer();
     };
@@ -1036,12 +1197,25 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     window.addEventListener(
       "keydown",
       (event: KeyboardEvent) => {
-        if (event.key === "Escape" && isHoldingKeys()) {
-          if (isInputMode()) {
+        if (event.key === "Escape") {
+          if (isAgentProcessing() && agentAbortController) {
+            agentAbortController.abort();
+            agentAbortController = null;
+            setIsCopying(false);
+            setIsAgentProcessing(false);
+            setAgentStatusText("");
+            stopProgressAnimation();
+            deactivateRenderer();
             return;
           }
-          deactivateRenderer();
-          return;
+
+          if (isHoldingKeys()) {
+            if (isInputMode()) {
+              return;
+            }
+            deactivateRenderer();
+            return;
+          }
         }
 
         if (event.key === "Enter" && isHoldingKeys() && !isInputMode()) {
@@ -1363,13 +1537,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const labelVariant = createMemo(() =>
-      isCopying() ? "processing" : "hover",
+      isCopying() || isAgentProcessing() ? "processing" : "hover",
     );
 
     const labelVisible = createMemo(() => {
       if (!theme().elementLabel.enabled) return false;
       if (isInputMode()) return false;
-      if (isCopying()) return true;
+      if (isCopying() || isAgentProcessing()) return true;
       if (successLabels().length > 0) return false;
 
       return isRendererActive() && !isDragging() && Boolean(targetElement());
@@ -1438,6 +1612,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             inputY={mouseY()}
             inputValue={inputText()}
             isInputExpanded={isInputExpanded()}
+            inputMode={inputOverlayMode()}
+            inputStatusText={agentStatusText()}
             onInputChange={handleInputChange}
             onInputSubmit={handleInputSubmit}
             onInputCancel={handleInputCancel}
@@ -1448,6 +1624,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         ),
         rendererRoot,
       );
+    }
+
+    if (options.agentProvider) {
+      void tryResumeAgentSession();
     }
 
     const copyElementAPI = async (
@@ -1533,4 +1713,9 @@ export type {
   OverlayBounds,
   ReactGrabRendererProps,
   ReactGrabAPI,
+  AgentContext,
+  AgentSession,
+  AgentProvider,
 } from "./types.js";
+
+export { generateSnippet } from "./utils/generate-snippet.js";

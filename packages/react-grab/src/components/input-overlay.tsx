@@ -1,4 +1,4 @@
-import { createEffect, createSignal, onMount } from "solid-js";
+import { createEffect, createSignal, onMount, Show } from "solid-js";
 import type { Component } from "solid-js";
 import type { OverlayBounds } from "../types.js";
 import {
@@ -17,6 +17,8 @@ interface InputOverlayProps {
   value: string;
   visible: boolean;
   selectionBounds?: OverlayBounds;
+  mode?: "input" | "output";
+  statusText?: string;
   onInput: (value: string) => void;
   onSubmit: () => void;
   onCancel: () => void;
@@ -141,8 +143,10 @@ export const InputOverlay: Component<InputOverlayProps> = (props) => {
     target.style.height = `${target.scrollHeight}px`;
   };
 
+  const isInputMode = () => props.mode !== "output";
+
   createEffect(() => {
-    if (props.visible && inputRef) {
+    if (props.visible && inputRef && isInputMode()) {
       setTimeout(() => {
         inputRef?.focus();
       }, 0);
@@ -167,20 +171,35 @@ export const InputOverlay: Component<InputOverlayProps> = (props) => {
           "calc(100vw - (16px + env(safe-area-inset-left) + env(safe-area-inset-right)))",
       }}
     >
-      <div class="relative p-0.5 px-[3px] flex flex-col gap-0.5">
-        <textarea
-          ref={inputRef}
-          value={props.value}
-          onInput={handleInput}
-          onKeyDown={handleKeyDown}
-          placeholder="Make a change"
-          rows={1}
-          class="w-[150px] px-1 py-0.5 bg-white text-grab-pink border border-grab-pink-border rounded-[3px] text-[11px] leading-tight font-sans outline-none resize-none min-h-[18px] overflow-hidden"
-        />
-        <div class="text-[9px] opacity-60 text-center">
-          Enter ⏎ submit &middot; Esc cancel
+      <Show when={isInputMode()}>
+        <div class="relative p-0.5 px-[3px] flex flex-col gap-0.5">
+          <textarea
+            ref={inputRef}
+            value={props.value}
+            onInput={handleInput}
+            onKeyDown={handleKeyDown}
+            placeholder="Make a change"
+            rows={1}
+            class="w-[150px] px-1 py-0.5 bg-white text-grab-pink border border-grab-pink-border rounded-[3px] text-[11px] leading-tight font-sans outline-none resize-none min-h-[18px] overflow-hidden"
+          />
+          <div class="text-[9px] opacity-60 text-center">
+            Enter ⏎ submit &middot; Esc cancel
+          </div>
         </div>
-      </div>
+      </Show>
+      <Show when={!isInputMode()}>
+        <div class="relative p-1.5 px-2 flex flex-col gap-1 min-w-[150px] max-w-[300px]">
+          <div class="flex items-center gap-1.5">
+            <div class="w-2 h-2 rounded-full bg-grab-pink animate-pulse" />
+            <div class="text-[11px] leading-tight wrap-break-word">
+              {props.statusText || "Please wait..."}
+            </div>
+          </div>
+          <div class="text-[9px] opacity-60 text-center">
+            Esc to cancel
+          </div>
+        </div>
+      </Show>
     </div>
   );
 };

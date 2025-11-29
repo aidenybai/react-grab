@@ -7,6 +7,7 @@ export {
   isInstrumentationActive,
   DEFAULT_THEME,
 } from "./core.js";
+export { generateSnippet } from "./utils/generate-snippet.js";
 export type {
   Options,
   ReactGrabAPI,
@@ -26,6 +27,9 @@ export type {
   SuccessLabelContext,
   CrosshairContext,
   ElementLabelContext,
+  AgentContext,
+  AgentSession,
+  AgentProvider,
 } from "./types.js";
 
 import { init } from "./core.js";

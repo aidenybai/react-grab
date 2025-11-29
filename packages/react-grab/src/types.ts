@@ -205,6 +205,25 @@ export interface ActivationKey {
   altKey?: boolean;
 }
 
+export interface AgentContext {
+  content: string;
+  prompt: string;
+}
+
+export interface AgentSession {
+  id: string;
+  context: AgentContext;
+  lastStatus: string;
+  isStreaming: boolean;
+  createdAt: number;
+}
+
+export interface AgentProvider {
+  send: (context: AgentContext, signal: AbortSignal) => AsyncIterable<string>;
+  resume?: (sessionId: string, signal: AbortSignal) => AsyncIterable<string>;
+  supportsResume?: boolean;
+}
+
 export interface Options {
   enabled?: boolean;
   keyHoldDuration?: number;
@@ -249,6 +268,13 @@ export interface Options {
   ) => void;
   onCrosshair?: (visible: boolean, context: CrosshairContext) => void;
   onOpenFile?: (filePath: string, lineNumber?: number) => void;
+  agentProvider?: AgentProvider;
+  agentSessionStorage?: "memory" | "sessionStorage" | "localStorage";
+  onAgentStart?: (session: AgentSession) => void;
+  onAgentStatus?: (status: string, session: AgentSession) => void;
+  onAgentComplete?: (session: AgentSession) => void;
+  onAgentError?: (error: Error, session: AgentSession) => void;
+  onAgentResume?: (session: AgentSession) => void;
 }
 
 export interface ReactGrabAPI {
@@ -302,6 +328,8 @@ export interface ReactGrabRendererProps {
   inputY?: number;
   inputValue?: string;
   isInputExpanded?: boolean;
+  inputMode?: "input" | "output";
+  inputStatusText?: string;
   onInputChange?: (value: string) => void;
   onInputSubmit?: () => void;
   onInputCancel?: () => void;
