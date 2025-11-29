@@ -1,0 +1,22 @@
+{
+  "name": "@react-grab/chrome-extension",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Chrome extension for React Grab - grab any element and send it to AI coding assistants",
+  "type": "module",
+  "scripts": {
+    "build": "NODE_ENV=production tsup && ./scripts/generate-icons.sh",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist",
+    "icons": "./scripts/generate-icons.sh"
+  },
+  "dependencies": {
+    "html2canvas": "^1.4.1",
+    "react-grab": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.270",
+    "tsup": "^8.2.4",
+    "typescript": "^5"
+  }
+}

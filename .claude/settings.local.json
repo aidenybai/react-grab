@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm install)",
+      "Bash(pnpm build:*)",
+      "Bash(chmod:*)",
+      "Bash(./scripts/generate-icons.sh:*)",
+      "Bash(cat:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm --filter react-grab build:*)",
+      "Bash(pnpm --filter chrome-extension build:*)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "shadcn",
+    "nuxt-ui",
+    "Better Auth",
+    "supabase"
+  ]
+}

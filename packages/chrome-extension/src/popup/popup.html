@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>React Grab</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        width: 400px;
+        min-height: 300px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #ffffff;
+        color: #000000;
+      }
+
+      .header {
+        padding: 16px;
+        border-bottom: 1px solid #e5e5e5;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .header h1 {
+        font-size: 16px;
+        font-weight: 600;
+      }
+
+      .toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .toggle input[type="checkbox"] {
+        width: 40px;
+        height: 24px;
+        cursor: pointer;
+      }
+
+      .settings {
+        padding: 16px;
+        border-bottom: 1px solid #e5e5e5;
+      }
+
+      .settings-group {
+        margin-bottom: 12px;
+      }
+
+      .settings-group label {
+        display: block;
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 4px;
+        color: #666666;
+      }
+
+      .settings-group input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #e5e5e5;
+        border-radius: 4px;
+        font-size: 13px;
+      }
+
+      .elements {
+        max-height: 400px;
+        overflow-y: auto;
+      }
+
+      .element {
+        padding: 12px 16px;
+        border-bottom: 1px solid #e5e5e5;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .element:hover {
+        background: #f5f5f5;
+      }
+
+      .element-thumbnail {
+        width: 80px;
+        height: 60px;
+        border-radius: 4px;
+        border: 1px solid #e5e5e5;
+        object-fit: cover;
+        flex-shrink: 0;
+        cursor: pointer;
+        transition: transform 0.2s;
+      }
+
+      .element-thumbnail:hover {
+        transform: scale(1.05);
+        border-color: #000000;
+      }
+
+      .element-thumbnail-placeholder {
+        width: 80px;
+        height: 60px;
+        border-radius: 4px;
+        border: 1px dashed #d5d5d5;
+        background: #f9f9f9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 24px;
+        color: #d5d5d5;
+      }
+
+      .element-info {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .element-title {
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .element-url {
+        font-size: 11px;
+        color: #666666;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .element-time {
+        font-size: 11px;
+        color: #999999;
+        margin-top: 2px;
+      }
+
+      .element-actions {
+        display: flex;
+        gap: 4px;
+      }
+
+      button {
+        padding: 6px 12px;
+        border: 1px solid #e5e5e5;
+        border-radius: 4px;
+        background: #ffffff;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s;
+      }
+
+      button:hover {
+        background: #f5f5f5;
+        border-color: #d5d5d5;
+      }
+
+      button.danger {
+        color: #dc2626;
+      }
+
+      button.danger:hover {
+        background: #fef2f2;
+        border-color: #fecaca;
+      }
+
+      .empty {
+        padding: 48px 16px;
+        text-align: center;
+        color: #999999;
+        font-size: 13px;
+      }
+
+      .empty small {
+        display: block;
+        margin-top: 8px;
+        font-size: 11px;
+        color: #bbbbbb;
+      }
+
+      .loading {
+        padding: 48px 16px;
+        text-align: center;
+        color: #666666;
+        font-size: 13px;
+      }
+
+      .error {
+        padding: 48px 16px;
+        text-align: center;
+      }
+
+      .error-icon {
+        font-size: 32px;
+        margin-bottom: 12px;
+      }
+
+      .error-message {
+        color: #dc2626;
+        font-size: 13px;
+        margin-bottom: 16px;
+      }
+
+      .retry-btn {
+        background: #000000;
+        color: #ffffff;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .retry-btn:hover {
+        background: #333333;
+      }
+
+      .toast {
+        position: fixed;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background: #000000;
+        color: #ffffff;
+        padding: 12px 16px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        z-index: 2000;
+        transition: transform 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        max-width: 300px;
+        text-align: center;
+      }
+
+      .toast-show {
+        transform: translateX(-50%) translateY(0);
+      }
+
+      .toast-success {
+        background: #16a34a;
+      }
+
+      .toast-error {
+        background: #dc2626;
+      }
+
+      .toast-info {
+        background: #2563eb;
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .footer {
+        padding: 12px 16px;
+        border-top: 1px solid #e5e5e5;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f9f9f9;
+      }
+
+      .footer-text {
+        font-size: 11px;
+        color: #666666;
+      }
+
+      .footer button {
+        font-size: 11px;
+        padding: 4px 8px;
+      }
+
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .modal.active {
+        display: flex;
+      }
+
+      .modal-content {
+        max-width: 90%;
+        max-height: 90%;
+        position: relative;
+      }
+
+      .modal-image {
+        max-width: 100%;
+        max-height: 90vh;
+        border-radius: 8px;
+      }
+
+      .modal-close {
+        position: absolute;
+        top: -40px;
+        right: 0;
+        background: transparent;
+        border: none;
+        color: white;
+        font-size: 32px;
+        cursor: pointer;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        line-height: 1;
+      }
+
+      .modal-close:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>React Grab</h1>
+      <div class="toggle">
+        <label for="enabled">Enabled</label>
+        <input type="checkbox" id="enabled" checked />
+      </div>
+    </div>
+
+    <div class="settings">
+      <div class="settings-group">
+        <label for="hotkey">Hotkey (comma-separated)</label>
+        <input type="text" id="hotkey" placeholder="Meta,C" />
+      </div>
+      <div class="settings-group">
+        <label for="duration">Hold Duration (ms)</label>
+        <input type="number" id="duration" placeholder="500" min="0" step="100" />
+      </div>
+    </div>
+
+    <div id="elements" class="elements"></div>
+
+    <div class="footer">
+      <div class="footer-text">Hold ⌘C and click elements</div>
+      <button id="clearAll" class="danger">Clear All</button>
+    </div>
+
+    <div id="modal" class="modal">
+      <div class="modal-content">
+        <button class="modal-close" id="modalClose">×</button>
+        <img id="modalImage" class="modal-image" src="" alt="Element preview" />
+      </div>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
