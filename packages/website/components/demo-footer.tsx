@@ -31,7 +31,14 @@ export const DemoFooter = () => {
           className="underline underline-offset-4 hover:text-white/80"
         >
           restart demo
-        </button>
+        </button>{" "}
+        &middot;{" "}
+        <a
+          href="/blog"
+          className="underline underline-offset-4 hover:text-white/80"
+        >
+          blog
+        </a>
       </p>
       <p className="mt-3 text-xs text-white/40 sm:hidden">
         (website best viewed on desktop)
