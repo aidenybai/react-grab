@@ -70,8 +70,16 @@ const BetsPage = () => {
                 technology
               </h3>
               <p>
-                Sub-bet: most of web frontends will be made using a flavor of
-                the same base React.
+                Sub-bet: React is probably{" "}
+                <a
+                  href="https://www.youtube.com/watch?v=P1FLEnKZTAE"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-neutral-300 hover:text-white underline underline-offset-4"
+                >
+                  the last framework
+                </a>
+                .
               </p>
             </div>
 
@@ -82,7 +90,16 @@ const BetsPage = () => {
               </h3>
               <p>
                 Fast because code has verifiable rewards (tests pass, code
-                runs), making it ideal for RL. Labs are scaling post-training on
+                runs), making it ideal for{" "}
+                <a
+                  href="https://cursor.com/blog/tab-rl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-neutral-300 hover:text-white underline underline-offset-4"
+                >
+                  RL
+                </a>
+                . Labs are scaling post-training on
                 code, and coding tools are building on top. Good requires taste.
                 Great people will get there eventually but slower.
               </p>
@@ -111,19 +128,27 @@ const BetsPage = () => {
                 ).
               </p>
               <p>
-                Once AI coding becomes commodified, you win on taste/ease of use vs.
-                bleeding edge capability.
+                Once AI coding becomes commodified, the winners will be those with
+                better taste and ease of use, not those with bleeding edge capability (1% better than the next best).
               </p>
             </div>
 
             <div className="flex flex-col gap-3">
               <h3 className="text-lg font-medium text-neutral-200 mt-4">
-                5. There will only be two form factors for UI tasks
+                5. There will only be two form factors for coding with UIs
               </h3>
               <p>
                 Low latency low entropy (sub 100ms), and long background tasks
-                (big refactors, maintenance, scaffolding a well-spec{"'"}d
-                feature).
+                (big refactors, maintenance, scaffolding a{" "}
+                <a
+                  href="https://cognition.ai/blog/swe-grep"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-neutral-300 hover:text-white underline underline-offset-4"
+                >
+                  well-spec{"'"}d feature
+                </a>
+                ).
               </p>
             </div>
 
@@ -131,8 +156,20 @@ const BetsPage = () => {
               <h3 className="text-lg font-medium text-neutral-200 mt-4">
                 6. The gap
               </h3>
-              <p>There is no tool that is good at UI.</p>
-              <p>There is no company willing to fully bet on this.</p>
+              <p>There is no tool that is good at UI <em>(yet)</em>.</p>
+              <p>No company is going all-in on AI coding for UI.</p>
+              <p>
+                If you agree,{" "}
+                <a
+                  href="https://x.com/aidenybai"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-neutral-300 hover:text-white underline underline-offset-4"
+                >
+                  we should chat
+                </a>
+                .
+              </p>
             </div>
           </div>
         </div>
