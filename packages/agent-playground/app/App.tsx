@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef } from "react";
 import { init } from "react-grab/core";
 import type { AgentSession, ReactGrabAPI } from "react-grab/core";
-import { createClaudeAgentProvider } from "../src/client";
+import { createAgentProvider } from "../src/client";
 
-const claudeProvider = createClaudeAgentProvider("http://localhost:3001");
+const agentProvider = createAgentProvider("http://localhost:3001");
 
 const ReactGrabLogo = ({ size = 24 }: { size?: number }) => (
   <svg
@@ -49,7 +49,7 @@ export const App = () => {
 
     const api = init({
       log: true,
-      agentProvider: claudeProvider,
+      agentProvider: agentProvider,
       agentSessionStorage: "sessionStorage",
       onActivate: () => addLog("info", "Activated"),
       onDeactivate: () => addLog("info", "Deactivated"),
@@ -69,10 +69,10 @@ export const App = () => {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <ReactGrabLogo size={28} />
-            <h1 className="text-lg font-bold">Agent SDK Playground</h1>
+            <h1 className="text-lg font-bold">Agent Playground</h1>
           </div>
           <p className="text-sm text-white/50 mb-4">
-            Select any element and send it to Claude Code
+            Select any element and send it to the agent
           </p>
           <button
             onClick={() => apiRef.current?.activate()}

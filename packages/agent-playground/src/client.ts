@@ -55,7 +55,7 @@ async function* streamFromServer(
 
 const sessionContextMap = new Map<string, AgentContext>();
 
-export const createClaudeAgentProvider = (
+export const createAgentProvider = (
   serverUrl: string = DEFAULT_SERVER_URL,
 ): AgentProvider => ({
   send: async function* (context: AgentContext, signal: AbortSignal) {
@@ -81,4 +81,4 @@ export const createClaudeAgentProvider = (
   supportsResume: true,
 });
 
-export const claudeAgentProvider = createClaudeAgentProvider();
+export const defaultAgentProvider = createAgentProvider();

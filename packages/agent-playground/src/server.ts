@@ -82,7 +82,7 @@ app.get("/health", (context) => {
 
 const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 
-console.log(`🚀 Claude Code SDK Playground server running on port ${port}`);
+console.log(`🚀 Agent Playground server running on port ${port}`);
 
 export default {
   port,

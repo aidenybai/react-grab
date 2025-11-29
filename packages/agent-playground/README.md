@@ -1,4 +1,4 @@
-# Claude Code SDK Playground
+# Agent Playground
 
 A test backend and demo app for react-grab's agent provider API using the [Claude Agent SDK](https://platform.claude.com/docs/en/agent-sdk/typescript).
 
@@ -20,7 +20,7 @@ nr dev
 ```
 
 This runs:
-- **Server**: `http://localhost:3001` (Claude Agent SDK backend)
+- **Server**: `http://localhost:3001` (Agent backend)
 - **Demo App**: `http://localhost:5174` (Vite React app with react-grab)
 
 ## Scripts
@@ -41,18 +41,18 @@ The demo app at `http://localhost:5174` includes:
 **How to use:**
 1. Hold `⌘+C` (Mac) or `Ctrl+C` (Windows) and hover over elements
 2. Press `Enter` to open the input prompt
-3. Type your instruction and press `Enter` to send to Claude
+3. Type your instruction and press `Enter` to send to the agent
 
 ## Usage in Your Own App
 
 ```typescript
 import { init } from "react-grab";
-import { createClaudeAgentProvider } from "claude-code-sdk-playground/client";
+import { createAgentProvider } from "agent-playground/client";
 
-const claudeProvider = createClaudeAgentProvider("http://localhost:3001");
+const agentProvider = createAgentProvider("http://localhost:3001");
 
 init({
-  agentProvider: claudeProvider,
+  agentProvider: agentProvider,
   agentSessionStorage: "sessionStorage",
   onAgentStart: (session) => {
     console.log("Agent started:", session.id);
@@ -73,7 +73,7 @@ init({
 
 ### POST /agent
 
-Send a request to the Claude agent.
+Send a request to the agent.
 
 **Request Body:**
 ```json
