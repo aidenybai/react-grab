@@ -567,16 +567,15 @@ const BlogPostPage = () => {
 
           <div className="flex flex-col gap-4">
             <h3 className="text-lg font-medium text-neutral-200">Try it out</h3>
-            <p>React Grab is free and open source. Go try it out!</p>
-            <div className="flex flex-col gap-2">
+            <p>
+              React Grab is free and open source.{" "}
               <Link
                 href="/"
-                className="inline-flex items-center gap-2 text-neutral-300 hover:text-white transition-colors w-fit underline"
+                className="text-neutral-300 hover:text-white underline underline-offset-4 transition-colors"
               >
-                <ArrowLeft size={16} />
-                View demo
+                Go try it out!
               </Link>
-            </div>
+            </p>
             <div className="flex gap-2">
               <GithubButton />
               <CursorInstallButton />

@@ -61,7 +61,6 @@ export default function RootLayout({ children }) {
             strategy="beforeInteractive"${dataOptionsAttr}
           />
         )}
-        {/* rest of your scripts go under */}
       </head>
       <body>{children}</body>
     </html>
@@ -69,7 +68,7 @@ export default function RootLayout({ children }) {
 }`;
     },
     getChangedLines: (hotkey) =>
-      hotkey ? [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18] : [8, 9, 10, 11, 12, 13, 14, 15],
+      hotkey ? [8, 9, 10, 11, 12, 13, 14, 15, 16, 17] : [8, 9, 10, 11, 12, 13, 14],
   },
   {
     id: "next-pages",
@@ -95,7 +94,6 @@ export default function Document() {
             strategy="beforeInteractive"${dataOptionsAttr}
           />
         )}
-        {/* rest of your scripts go under */}
       </Head>
       <body>
         <Main />
@@ -106,7 +104,7 @@ export default function Document() {
 }`;
     },
     getChangedLines: (hotkey) =>
-      hotkey ? [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] : [9, 10, 11, 12, 13, 14, 15, 16],
+      hotkey ? [9, 10, 11, 12, 13, 14, 15, 16, 17, 18] : [9, 10, 11, 12, 13, 14, 15],
   },
   {
     id: "vite",

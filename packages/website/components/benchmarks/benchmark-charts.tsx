@@ -95,11 +95,11 @@ const AnimatedBar = ({
   return (
     <div className="relative h-5 flex-1">
       <div
-        className="absolute top-0 left-0 h-full bg-neutral-800"
+        className="absolute top-0 left-0 h-full bg-neutral-800 rounded"
         style={{ width: `${targetWidth}%` }}
       />
       <div
-        className="absolute top-0 left-0 h-full animate-fill-bar"
+        className="absolute top-0 left-0 h-full animate-fill-bar rounded"
         style={{
           backgroundColor: color,
           animationDuration: `${animationDuration}s`,
@@ -154,7 +154,7 @@ export const BenchmarkChartsTweet = ({ results }: BenchmarkChartsProps) => {
   ).toFixed(0);
 
   return (
-    <div className="bg-[#0a0a0a] p-4 max-w-xl mx-auto">
+    <div className="border border-neutral-800 rounded-lg p-6 max-w-xl mx-auto">
       <div className="relative">
         <div className="flex items-center gap-3">
           <div className="w-20 shrink-0" />
@@ -278,11 +278,11 @@ const AnimatedBarTreatment = ({
   return (
     <>
       <div
-        className="absolute top-0 left-0 h-full bg-neutral-800"
+        className="absolute top-0 left-0 h-full bg-neutral-800 rounded"
         style={{ width: `${targetWidth}%` }}
       />
       <div
-        className="absolute top-0 left-0 h-full animate-fill-bar"
+        className="absolute top-0 left-0 h-full animate-fill-bar rounded"
         style={{
           backgroundColor: color,
           animationDuration: `${animationDuration}s`,

@@ -46,7 +46,6 @@ export default function RootLayout({ children }) {
             strategy="beforeInteractive"
           />
         )}
-        {/* rest of your scripts go under */}
       </head>
       <body>{children}</body>
     </html>
@@ -73,7 +72,6 @@ export default function Document() {
             strategy="beforeInteractive"
           />
         )}
-        {/* rest of your scripts go under */}
       </Head>
       <body>
         <Main />

@@ -1484,6 +1484,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     return {
       activate: () => {
         if (!isActivated()) {
+          setIsToggleMode(true);
           activateRenderer();
         }
       },
@@ -1496,6 +1497,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (isActivated()) {
           deactivateRenderer();
         } else {
+          setIsToggleMode(true);
           activateRenderer();
         }
       },

@@ -21,6 +21,20 @@ interface GrabElementButtonProps {
   animationDelay?: number;
 }
 
+const toggleReactGrab = () => {
+  if (typeof window === "undefined") return;
+  import("react-grab")
+    .then((reactGrab) => {
+      const api = reactGrab.getGlobalApi();
+      if (api) {
+        api.toggle();
+      }
+    })
+    .catch((error) => {
+      console.error("Failed to toggle react-grab:", error);
+    });
+};
+
 const deactivateReactGrab = () => {
   if (typeof window === "undefined") return;
   import("react-grab")
@@ -261,6 +275,7 @@ export const GrabElementButton = ({
       className="hidden flex-col gap-2 py-4 sm:flex sm:flex-row sm:items-center sm:gap-3"
     >
       <button
+        onClick={toggleReactGrab}
         className={cn(
           "flex h-12 w-full items-center justify-center gap-2 rounded-lg px-3 text-sm text-white transition-colors sm:w-auto",
           hasAdvanced
@@ -273,37 +288,35 @@ export const GrabElementButton = ({
           <>
             <span className="flex items-center gap-1.5 text-white">
               <span>Hold</span>
-              <kbd
+              <span
                 onClick={handleHotkeyClick}
                 className={cn(
-                  "inline-flex cursor-pointer items-center gap-1 rounded px-2.5 py-1 font-mono text-base font-semibold transition-all outline-none",
-                  isRecordingHotkey
-                    ? "bg-white/20 ring-2 ring-white/50"
-                    : "bg-white/10 hover:bg-white/20"
+                  "inline-flex cursor-pointer items-center gap-1 transition-all outline-none",
+                  isRecordingHotkey && "ring-2 ring-white/50 rounded"
                 )}
               >
                 {isRecordingHotkey ? (
-                  <span className="text-sm text-white/60 animate-pulse">Press keys</span>
+                  <span className="text-sm text-white/60 animate-pulse px-2 py-1">Press keys</span>
                 ) : customHotkey ? (
                   <>
-                    {customHotkey.metaKey && <span className="text-lg leading-none">⌘</span>}
-                    {customHotkey.ctrlKey && <span className="text-base leading-none">Ctrl</span>}
-                    {customHotkey.shiftKey && <span className="text-base leading-none">⇧</span>}
-                    {customHotkey.altKey && <span className="text-base leading-none">⌥</span>}
-                    {customHotkey.key && <span className="text-sm leading-none">{customHotkey.key}</span>}
+                    {customHotkey.metaKey && <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-sm">⌘</kbd>}
+                    {customHotkey.ctrlKey && <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-xs">Ctrl</kbd>}
+                    {customHotkey.shiftKey && <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-sm">⇧</kbd>}
+                    {customHotkey.altKey && <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-sm">⌥</kbd>}
+                    {customHotkey.key && <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-sm uppercase">{customHotkey.key}</kbd>}
                   </>
                 ) : isMac ? (
                   <>
-                    <span className="text-lg leading-none">⌘</span>
-                    <span className="text-sm leading-none">C</span>
+                    <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-sm">⌘</kbd>
+                    <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-sm">C</kbd>
                   </>
                 ) : (
                   <>
-                    <span className="text-base leading-none">Ctrl</span>
-                    <span className="text-sm leading-none">C</span>
+                    <kbd className="inline-flex items-center justify-center h-7 px-1.5 rounded bg-white/10 hover:bg-white/20 text-xs">Ctrl</kbd>
+                    <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-sm">C</kbd>
                   </>
                 )}
-              </kbd>
+              </span>
               <span>to select element</span>
             </span>
           </>

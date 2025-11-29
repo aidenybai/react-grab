@@ -61,7 +61,7 @@ const MiniChart = ({ isVisible }: { isVisible: boolean }) => {
   const gridLines = [0, 5, 10, 15, 20];
 
   return (
-    <div className="w-80 p-4 select-none">
+    <div className="w-80 py-4 pl-3 pr-5 select-none">
       <div className="relative">
         <div className="flex items-center gap-2">
           <div className="w-16 shrink-0" />
