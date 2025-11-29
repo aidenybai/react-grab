@@ -1,19 +1,23 @@
 import type { Metadata } from "next";
 
+const title = "I made your coding agent 55% faster at frontend";
+const description = "I got tired of watching Claude grep around my codebase every time I wanted to edit a button. So I built a tool that lets me click any element and copy its exact source location. Turns out it makes coding agents 55% faster.";
+const ogImageUrl = `https://react-grab.com/api/og?title=${encodeURIComponent(title)}&subtitle=${encodeURIComponent(description)}`;
+
 export const metadata: Metadata = {
-  title: "I made your coding agent 55% faster at frontend",
-  description: "I got tired of watching Claude grep around my codebase every time I wanted to edit a button. So I built a tool that lets me click any element and copy its exact source location. Turns out it makes coding agents 55% faster.",
+  title,
+  description,
   openGraph: {
-    title: "I made your coding agent 55% faster at frontend",
-    description: "I got tired of watching Claude grep around my codebase every time I wanted to edit a button. So I built a tool that lets me click any element and copy its exact source location. Turns out it makes coding agents 55% faster.",
+    title,
+    description,
     url: "https://react-grab.com/blog/intro",
     siteName: "React Grab",
     images: [
       {
-        url: "https://react-grab.com/banner.png",
+        url: ogImageUrl,
         width: 1200,
         height: 630,
-        alt: "React Grab - I made your coding agent 55% faster at frontend",
+        alt: `React Grab - ${title}`,
       },
     ],
     locale: "en_US",
@@ -23,9 +27,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "I made your coding agent 55% faster at frontend",
-    description: "I got tired of watching Claude grep around my codebase every time I wanted to edit a button. So I built a tool that lets me click any element and copy its exact source location. Turns out it makes coding agents 55% faster.",
-    images: ["https://react-grab.com/banner.png"],
+    title,
+    description,
+    images: [ogImageUrl],
     creator: "@aidenybai",
   },
   alternates: {

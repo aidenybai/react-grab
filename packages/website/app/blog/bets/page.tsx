@@ -81,10 +81,10 @@ const BetsPage = () => {
                 good at UI tasks
               </h3>
               <p>
-                Fast because code has verifiable rewards (tests pass, code runs),
-                making it ideal for RL. Labs are scaling post-training on code,
-                and coding tools are building on top. Good requires taste. Great
-                people will get there eventually but slower.
+                Fast because code has verifiable rewards (tests pass, code
+                runs), making it ideal for RL. Labs are scaling post-training on
+                code, and coding tools are building on top. Good requires taste.
+                Great people will get there eventually but slower.
               </p>
             </div>
 
@@ -109,6 +109,10 @@ const BetsPage = () => {
                   5-20 years
                 </a>
                 ).
+              </p>
+              <p>
+                Once AI coding becomes commodified, you win on taste/ease of use vs.
+                bleeding edge capability.
               </p>
             </div>
 

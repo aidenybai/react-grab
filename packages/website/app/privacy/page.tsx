@@ -1,8 +1,34 @@
 import type { Metadata } from "next";
 
+const title = "Privacy Policy";
+const description = "Privacy policy for React Grab browser extension and website";
+const ogImageUrl = `https://react-grab.com/api/og?title=${encodeURIComponent(title)}&subtitle=${encodeURIComponent(description)}`;
+
 export const metadata: Metadata = {
-  title: "Privacy Policy - React Grab",
-  description: "Privacy policy for React Grab browser extension and website",
+  title: `${title} - React Grab`,
+  description,
+  openGraph: {
+    title: `${title} - React Grab`,
+    description,
+    url: "https://react-grab.com/privacy",
+    siteName: "React Grab",
+    images: [
+      {
+        url: ogImageUrl,
+        width: 1200,
+        height: 630,
+        alt: `React Grab - ${title}`,
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${title} - React Grab`,
+    description,
+    images: [ogImageUrl],
+  },
 };
 
 const PrivacyPage = () => {

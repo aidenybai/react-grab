@@ -1,19 +1,23 @@
 import type { Metadata } from "next";
 
+const title = "Some bets";
+const description = "Some bets for the future of AI coding and UI development.";
+const ogImageUrl = `https://react-grab.com/api/og?title=${encodeURIComponent(title)}&subtitle=${encodeURIComponent(description)}`;
+
 export const metadata: Metadata = {
-  title: "Some bets",
-  description: "Some bets for the future of AI coding and UI development.",
+  title,
+  description,
   openGraph: {
-    title: "Some bets",
-    description: "Some bets for the future of AI coding and UI development.",
+    title,
+    description,
     url: "https://react-grab.com/blog/bets",
     siteName: "React Grab",
     images: [
       {
-        url: "https://react-grab.com/banner.png",
+        url: ogImageUrl,
         width: 1200,
         height: 630,
-        alt: "React Grab - Some bets",
+        alt: `React Grab - ${title}`,
       },
     ],
     locale: "en_US",
@@ -23,9 +27,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Some bets",
-    description: "Some bets for the future of AI coding and UI development.",
-    images: ["https://react-grab.com/banner.png"],
+    title,
+    description,
+    images: [ogImageUrl],
     creator: "@aidenybai",
   },
   alternates: {

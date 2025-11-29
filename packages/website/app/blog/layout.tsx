@@ -1,18 +1,20 @@
 import type { Metadata } from "next";
 
+const title = "Blog";
+const description = "Read writing and updates about React Grab";
+const ogImageUrl = `https://react-grab.com/api/og?title=${encodeURIComponent(title)}&subtitle=${encodeURIComponent(description)}`;
+
 export const metadata: Metadata = {
-  title: "Blog - React Grab",
-  description:
-    "Read writing and updates about React Grab",
+  title: `${title} - React Grab`,
+  description,
   openGraph: {
-    title: "Blog - React Grab",
-    description:
-      "Read writing and updates about React Grab",
+    title: `${title} - React Grab`,
+    description,
     url: "https://react-grab.com/blog",
     siteName: "React Grab",
     images: [
       {
-        url: "https://react-grab.com/banner.png",
+        url: ogImageUrl,
         width: 1200,
         height: 630,
         alt: "React Grab Blog",
@@ -23,10 +25,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Blog - React Grab",
-    description:
-      "Read writing and updates about React Grab",
-    images: ["https://react-grab.com/banner.png"],
+    title: `${title} - React Grab`,
+    description,
+    images: [ogImageUrl],
   },
 };
 
