@@ -39,28 +39,38 @@ Provide clear, concise status updates as you work.`,
       for await (const message of queryResult) {
         if (message.type === "assistant") {
           const textContent = message.message.content
-            .filter((block): block is { type: "text"; text: string } => block.type === "text")
-            .map((block) => block.text)
+            .filter(
+              (block: {
+                type: string;
+              }): block is { type: "text"; text: string } =>
+                block.type === "text",
+            )
+            .map((block: { text: any }) => block.text)
             .join("");
 
           if (textContent) {
-            const statusUpdate = textContent.length > 100
-              ? `${textContent.slice(0, 100)}...`
-              : textContent;
+            const statusUpdate =
+              textContent.length > 100
+                ? `${textContent.slice(0, 100)}...`
+                : textContent;
             await stream.writeSSE({ data: statusUpdate, event: "status" });
           }
         }
 
         if (message.type === "result") {
           await stream.writeSSE({
-            data: message.subtype === "success" ? "Completed successfully" : "Task finished",
-            event: "status"
+            data:
+              message.subtype === "success"
+                ? "Completed successfully"
+                : "Task finished",
+            event: "status",
           });
           await stream.writeSSE({ data: "", event: "done" });
         }
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
       await stream.writeSSE({ data: `Error: ${errorMessage}`, event: "error" });
     }
   });
