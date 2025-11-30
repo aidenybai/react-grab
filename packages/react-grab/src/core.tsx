@@ -1005,7 +1005,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const context = { content, prompt };
         const storage = options.agent.storage;
 
-        const session = createSession(context, { x: positionX, y: positionY });
+        const session = createSession(context, { x: positionX, y: positionY }, bounds ?? undefined);
         session.lastStatus = "Please wait…";
         setAgentSessions((prev) => new Map(prev).set(session.id, session));
         saveSessionById(session, storage);
@@ -1528,13 +1528,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const labelVariant = createMemo(() =>
-      isCopying() || isAgentProcessing() ? "processing" : "hover",
+      isCopying() ? "processing" : "hover",
     );
 
     const labelVisible = createMemo(() => {
       if (!theme().elementLabel.enabled) return false;
       if (isInputMode()) return false;
-      if (isCopying() || isAgentProcessing()) return true;
+      if (isAgentProcessing()) return false;
+      if (isCopying()) return true;
       if (successLabels().length > 0) return false;
 
       return isRendererActive() && !isDragging() && Boolean(targetElement());

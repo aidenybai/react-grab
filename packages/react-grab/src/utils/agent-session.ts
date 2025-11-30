@@ -1,4 +1,9 @@
-import type { AgentContext, AgentSession, AgentSessionStorage } from "../types.js";
+import type {
+  AgentContext,
+  AgentSession,
+  AgentSessionStorage,
+  OverlayBounds,
+} from "../types.js";
 
 const STORAGE_KEY = "react-grab:agent-sessions";
 
@@ -8,6 +13,7 @@ const generateSessionId = (): string =>
 export const createSession = (
   context: AgentContext,
   position: { x: number; y: number },
+  selectionBounds?: OverlayBounds,
 ): AgentSession => ({
   id: generateSessionId(),
   context,
@@ -15,6 +21,7 @@ export const createSession = (
   isStreaming: true,
   createdAt: Date.now(),
   position,
+  selectionBounds,
 });
 
 const getStorage = (

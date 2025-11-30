@@ -217,6 +217,7 @@ export interface AgentSession {
   isStreaming: boolean;
   createdAt: number;
   position: { x: number; y: number };
+  selectionBounds?: OverlayBounds;
 }
 
 export interface AgentProvider {
