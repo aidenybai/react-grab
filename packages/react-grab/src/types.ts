@@ -216,12 +216,29 @@ export interface AgentSession {
   lastStatus: string;
   isStreaming: boolean;
   createdAt: number;
+  position: { x: number; y: number };
 }
 
 export interface AgentProvider {
   send: (context: AgentContext, signal: AbortSignal) => AsyncIterable<string>;
   resume?: (sessionId: string, signal: AbortSignal) => AsyncIterable<string>;
   supportsResume?: boolean;
+}
+
+export interface AgentSessionStorage {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem(key: string): void;
+}
+
+export interface AgentOptions {
+  provider?: AgentProvider;
+  storage?: AgentSessionStorage | null;
+  onStart?: (session: AgentSession) => void;
+  onStatus?: (status: string, session: AgentSession) => void;
+  onComplete?: (session: AgentSession) => void;
+  onError?: (error: Error, session: AgentSession) => void;
+  onResume?: (session: AgentSession) => void;
 }
 
 export interface Options {
@@ -268,13 +285,7 @@ export interface Options {
   ) => void;
   onCrosshair?: (visible: boolean, context: CrosshairContext) => void;
   onOpenFile?: (filePath: string, lineNumber?: number) => void;
-  agentProvider?: AgentProvider;
-  agentSessionStorage?: "memory" | "sessionStorage" | "localStorage";
-  onAgentStart?: (session: AgentSession) => void;
-  onAgentStatus?: (status: string, session: AgentSession) => void;
-  onAgentComplete?: (session: AgentSession) => void;
-  onAgentError?: (error: Error, session: AgentSession) => void;
-  onAgentResume?: (session: AgentSession) => void;
+  agent?: AgentOptions;
 }
 
 export interface ReactGrabAPI {
@@ -330,6 +341,7 @@ export interface ReactGrabRendererProps {
   isInputExpanded?: boolean;
   inputMode?: "input" | "output";
   inputStatusText?: string;
+  agentSessions?: Map<string, AgentSession>;
   onInputChange?: (value: string) => void;
   onInputSubmit?: () => void;
   onInputCancel?: () => void;

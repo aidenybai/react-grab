@@ -58,9 +58,10 @@ import { mergeTheme, deepMergeTheme } from "./theme.js";
 import { generateSnippet } from "./utils/generate-snippet.js";
 import {
   createSession,
-  saveSession,
-  loadSession,
-  clearSession,
+  saveSessionById,
+  loadSessions,
+  clearSessions,
+  clearSessionById,
   updateSession,
 } from "./utils/agent-session.js";
 
@@ -184,75 +185,85 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       typeof localStorage !== "undefined" &&
         localStorage.getItem("react-grab:dismiss-hint") === "true",
     );
-    const [agentSession, setAgentSession] = createSignal<AgentSession | null>(null);
+    const [agentSessions, setAgentSessions] = createSignal<Map<string, AgentSession>>(new Map());
     const [inputOverlayMode, setInputOverlayMode] = createSignal<"input" | "output">("input");
-    const [agentStatusText, setAgentStatusText] = createSignal("");
-    const [isAgentProcessing, setIsAgentProcessing] = createSignal(false);
-    const [agentLabelPosition, setAgentLabelPosition] = createSignal({ x: 0, y: 0 });
 
     let holdTimerId: number | null = null;
-    let agentAbortController: AbortController | null = null;
+    const agentAbortControllers = new Map<string, AbortController>();
 
-    const tryResumeAgentSession = async () => {
-      const storageType = options.agentSessionStorage ?? "memory";
-      const existingSession = loadSession(storageType);
+    const isAgentProcessing = createMemo(() => agentSessions().size > 0);
+
+    const tryResumeAgentSessions = () => {
+      const storage = options.agent?.storage;
+      const existingSessions = loadSessions(storage);
 
       if (options.log) {
-        console.log("[React Grab] Checking for session to resume:", { existingSession, storageType });
+        console.log("[React Grab] Checking for sessions to resume:", { sessionsCount: existingSessions.size, storage });
       }
 
-      if (!existingSession || !existingSession.isStreaming) {
-        if (options.log) console.log("[React Grab] No session to resume");
+      const streamingSessions = Array.from(existingSessions.values()).filter((session) => session.isStreaming);
+      if (streamingSessions.length === 0) {
+        if (options.log) console.log("[React Grab] No sessions to resume");
         return;
       }
-      if (!options.agentProvider?.supportsResume || !options.agentProvider.resume) {
+      if (!options.agent?.provider?.supportsResume || !options.agent.provider.resume) {
         if (options.log) console.log("[React Grab] Provider doesn't support resume");
-        clearSession(storageType);
+        clearSessions(storage);
         return;
       }
 
-      setAgentSession(existingSession);
-      setAgentStatusText(existingSession.lastStatus || "Resuming...");
-      setIsAgentProcessing(true);
-      setAgentLabelPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
-      setIsCopying(true);
-      startProgressAnimation(30000);
+      setAgentSessions(new Map(existingSessions));
       activateRenderer();
-      options.onAgentResume?.(existingSession);
 
-      agentAbortController = new AbortController();
+      for (const existingSession of streamingSessions) {
+        const sessionWithResumeStatus = {
+          ...existingSession,
+          lastStatus: existingSession.lastStatus || "Resuming...",
+          position: existingSession.position ?? { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+        };
+        setAgentSessions((prev) => new Map(prev).set(existingSession.id, sessionWithResumeStatus));
+        options.agent?.onResume?.(sessionWithResumeStatus);
 
-      try {
-        for await (const status of options.agentProvider.resume(existingSession.id, agentAbortController.signal)) {
-          const currentSession = agentSession();
-          if (!currentSession) break;
+        const abortController = new AbortController();
+        agentAbortControllers.set(existingSession.id, abortController);
 
-          setAgentStatusText(status);
-          const updatedSession = updateSession(currentSession, { lastStatus: status }, storageType);
-          setAgentSession(updatedSession);
-          options.onAgentStatus?.(status, updatedSession);
-        }
+        void (async () => {
+          try {
+            for await (const status of options.agent!.provider!.resume!(existingSession.id, abortController.signal)) {
+              const currentSessions = agentSessions();
+              const currentSession = currentSessions.get(existingSession.id);
+              if (!currentSession) break;
 
-        const finalSession = agentSession();
-        if (finalSession) {
-          const completedSession = updateSession(finalSession, { isStreaming: false }, storageType);
-          setAgentSession(completedSession);
-          options.onAgentComplete?.(completedSession);
-        }
-      } catch (error) {
-        const currentSession = agentSession();
-        if (currentSession && error instanceof Error && error.name !== "AbortError") {
-          const errorSession = updateSession(currentSession, { isStreaming: false }, storageType);
-          setAgentSession(errorSession);
-          options.onAgentError?.(error, errorSession);
-        }
-      } finally {
-        agentAbortController = null;
-        clearSession(storageType);
-        setIsCopying(false);
-        setIsAgentProcessing(false);
-        stopProgressAnimation();
-        deactivateRenderer();
+              const updatedSession = updateSession(currentSession, { lastStatus: status }, storage);
+              setAgentSessions((prev) => new Map(prev).set(existingSession.id, updatedSession));
+              options.agent?.onStatus?.(status, updatedSession);
+            }
+
+            const finalSessions = agentSessions();
+            const finalSession = finalSessions.get(existingSession.id);
+            if (finalSession) {
+              const completedSession = updateSession(finalSession, { isStreaming: false }, storage);
+              setAgentSessions((prev) => new Map(prev).set(existingSession.id, completedSession));
+              options.agent?.onComplete?.(completedSession);
+            }
+          } catch (error) {
+            const currentSessions = agentSessions();
+            const currentSession = currentSessions.get(existingSession.id);
+            if (currentSession && error instanceof Error && error.name !== "AbortError") {
+              const errorSession = updateSession(currentSession, { isStreaming: false }, storage);
+              setAgentSessions((prev) => new Map(prev).set(existingSession.id, errorSession));
+              options.agent?.onError?.(error, errorSession);
+            }
+          } finally {
+            agentAbortControllers.delete(existingSession.id);
+            clearSessionById(existingSession.id, storage);
+            setAgentSessions((prev) => {
+              const next = new Map(prev);
+              next.delete(existingSession.id);
+              return next;
+            });
+          }
+        })();
       }
     };
     let progressAnimationId: number | null = null;
@@ -613,15 +624,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const labelContent = createMemo(() => {
-      if (isAgentProcessing()) {
-        const status = agentStatusText();
-        return (
-          <span class="tabular-nums align-middle">
-            {status || "Please wait…"}
-          </span>
-        );
-      }
-
       const element = targetElement();
       if (!element)
         return (
@@ -663,9 +665,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const labelPosition = createMemo(() => {
-      if (isAgentProcessing()) {
-        return agentLabelPosition();
-      }
       return isCopying()
         ? { x: copyStartX(), y: copyStartY() }
         : { x: mouseX(), y: mouseY() };
@@ -959,10 +958,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setIsToggleFrozen(false);
       setIsInputExpanded(false);
       setInputOverlayMode("input");
-      setAgentStatusText("");
-      setAgentSession(null);
-      setIsAgentProcessing(false);
-      setAgentLabelPosition({ x: 0, y: 0 });
       if (isDragging()) {
         setIsDragging(false);
         document.body.style.userSelect = "";
@@ -998,63 +993,67 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setMouseX(currentX);
       setMouseY(currentY);
 
-      if (options.agentProvider && element) {
-        const currentX = mouseX();
-        const currentY = mouseY();
+      if (options.agent?.provider && element) {
+        const positionX = mouseX();
+        const positionY = mouseY();
 
         setInputText("");
         setIsInputMode(false);
-        setIsAgentProcessing(true);
-        setAgentLabelPosition({ x: currentX, y: currentY });
-        setAgentStatusText("Please wait…");
-        setIsCopying(true);
-        startProgressAnimation(30000);
 
         const elements = [element];
         const content = await generateSnippet(elements);
         const context = { content, prompt };
-        const storageType = options.agentSessionStorage ?? "memory";
+        const storage = options.agent.storage;
 
-        const session = createSession(context);
-        setAgentSession(session);
-        saveSession(session, storageType);
-        options.onAgentStart?.(session);
+        const session = createSession(context, { x: positionX, y: positionY });
+        session.lastStatus = "Please wait…";
+        setAgentSessions((prev) => new Map(prev).set(session.id, session));
+        saveSessionById(session, storage);
+        options.agent.onStart?.(session);
 
-        agentAbortController = new AbortController();
+        const abortController = new AbortController();
+        agentAbortControllers.set(session.id, abortController);
 
-        try {
-          for await (const status of options.agentProvider.send(context, agentAbortController.signal)) {
-            const currentSession = agentSession();
-            if (!currentSession) break;
+        deactivateRenderer();
 
-            setAgentStatusText(status);
-            const updatedSession = updateSession(currentSession, { lastStatus: status }, storageType);
-            setAgentSession(updatedSession);
-            options.onAgentStatus?.(status, updatedSession);
+        void (async () => {
+          try {
+            for await (const status of options.agent!.provider!.send(context, abortController.signal)) {
+              const currentSessions = agentSessions();
+              const currentSession = currentSessions.get(session.id);
+              if (!currentSession) break;
+
+              const updatedSession = updateSession(currentSession, { lastStatus: status }, storage);
+              setAgentSessions((prev) => new Map(prev).set(session.id, updatedSession));
+              options.agent?.onStatus?.(status, updatedSession);
+            }
+
+            const finalSessions = agentSessions();
+            const finalSession = finalSessions.get(session.id);
+            if (finalSession) {
+              const completedSession = updateSession(finalSession, { isStreaming: false }, storage);
+              setAgentSessions((prev) => new Map(prev).set(session.id, completedSession));
+              options.agent?.onComplete?.(completedSession);
+            }
+          } catch (error) {
+            const currentSessions = agentSessions();
+            const currentSession = currentSessions.get(session.id);
+            if (currentSession && error instanceof Error && error.name !== "AbortError") {
+              const errorSession = updateSession(currentSession, { isStreaming: false }, storage);
+              setAgentSessions((prev) => new Map(prev).set(session.id, errorSession));
+              options.agent?.onError?.(error, errorSession);
+            }
+          } finally {
+            agentAbortControllers.delete(session.id);
+            clearSessionById(session.id, storage);
+            setAgentSessions((prev) => {
+              const next = new Map(prev);
+              next.delete(session.id);
+              return next;
+            });
           }
+        })();
 
-          const finalSession = agentSession();
-          if (finalSession) {
-            const completedSession = updateSession(finalSession, { isStreaming: false }, storageType);
-            setAgentSession(completedSession);
-            options.onAgentComplete?.(completedSession);
-          }
-        } catch (error) {
-          const currentSession = agentSession();
-          if (currentSession && error instanceof Error && error.name !== "AbortError") {
-            const errorSession = updateSession(currentSession, { isStreaming: false }, storageType);
-            setAgentSession(errorSession);
-            options.onAgentError?.(error, errorSession);
-          }
-        } finally {
-          agentAbortController = null;
-          clearSession(storageType);
-          setIsCopying(false);
-          setIsAgentProcessing(false);
-          setAgentStatusText("");
-          stopProgressAnimation();
-          deactivateRenderer();
-        }
         return;
       }
 
@@ -1074,11 +1073,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleInputCancel = () => {
       if (!isInputMode()) return;
-
-      if (agentAbortController) {
-        agentAbortController.abort();
-        agentAbortController = null;
-      }
 
       deactivateRenderer();
     };
@@ -1198,14 +1192,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "keydown",
       (event: KeyboardEvent) => {
         if (event.key === "Escape") {
-          if (isAgentProcessing() && agentAbortController) {
-            agentAbortController.abort();
-            agentAbortController = null;
-            setIsCopying(false);
-            setIsAgentProcessing(false);
-            setAgentStatusText("");
-            stopProgressAnimation();
-            deactivateRenderer();
+          if (isAgentProcessing()) {
+            agentAbortControllers.forEach((controller) => controller.abort());
+            agentAbortControllers.clear();
+            setAgentSessions(new Map());
+            clearSessions(options.agent?.storage);
             return;
           }
 
@@ -1613,9 +1604,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             inputValue={inputText()}
             isInputExpanded={isInputExpanded()}
             inputMode={inputOverlayMode()}
-            inputStatusText={agentStatusText()}
+            inputStatusText=""
+            agentSessions={agentSessions()}
             onInputChange={handleInputChange}
-            onInputSubmit={handleInputSubmit}
+            onInputSubmit={() => void handleInputSubmit()}
             onInputCancel={handleInputCancel}
             onToggleExpand={handleToggleExpand}
             onCopyClick={handleCopyClick}
@@ -1626,8 +1618,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       );
     }
 
-    if (options.agentProvider) {
-      void tryResumeAgentSession();
+    if (options.agent?.provider) {
+      void tryResumeAgentSessions();
     }
 
     const copyElementAPI = async (

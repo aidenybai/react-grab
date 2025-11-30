@@ -30,6 +30,8 @@ export type {
   AgentContext,
   AgentSession,
   AgentProvider,
+  AgentSessionStorage,
+  AgentOptions,
 } from "./types.js";
 
 import { init } from "./core.js";

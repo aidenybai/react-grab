@@ -89,6 +89,23 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         />
       </Show>
 
+      <For each={props.agentSessions ? Array.from(props.agentSessions.values()) : []}>
+        {(session) => (
+          <Label
+            variant="processing"
+            content={
+              <span class="tabular-nums align-middle">
+                {session.lastStatus || "Please wait…"}
+              </span>
+            }
+            x={session.position.x}
+            y={session.position.y}
+            visible={true}
+            zIndex={props.labelZIndex}
+          />
+        )}
+      </For>
+
       <InputOverlay
         x={props.inputX ?? 0}
         y={props.inputY ?? 0}
