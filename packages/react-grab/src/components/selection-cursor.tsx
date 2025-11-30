@@ -1,5 +1,6 @@
 import { Show, createSignal, createEffect, onCleanup } from "solid-js";
 import type { Component } from "solid-js";
+import { SELECTION_CURSOR_SETTLE_DELAY_MS } from "../constants.js";
 import type { OverlayBounds } from "../types.js";
 import { SelectionBox } from "./selection-box.js";
 
@@ -16,6 +17,20 @@ interface SelectionCursorProps {
 
 export const SelectionCursor: Component<SelectionCursorProps> = (props) => {
   const [isHovered, setIsHovered] = createSignal(false);
+  const [debouncedVisible, setDebouncedVisible] = createSignal(false);
+
+  createEffect(() => {
+    const isVisible = props.visible !== false;
+    // HACK: tracking x/y ensures effect re-runs when position changes
+    void [props.x, props.y];
+
+    setDebouncedVisible(false);
+
+    if (isVisible) {
+      const timeout = setTimeout(() => setDebouncedVisible(true), SELECTION_CURSOR_SETTLE_DELAY_MS);
+      onCleanup(() => clearTimeout(timeout));
+    }
+  });
 
   const handleClick = (event: MouseEvent) => {
     event.preventDefault();
@@ -39,7 +54,7 @@ export const SelectionCursor: Component<SelectionCursorProps> = (props) => {
   });
 
   return (
-    <Show when={props.visible !== false}>
+    <Show when={debouncedVisible()}>
       <Show when={isHovered() && props.elementBounds}>
         <SelectionBox
           variant="selection"
