@@ -51,9 +51,19 @@ import type {
   DeepPartial,
   Theme,
   SuccessLabelType,
+  AgentSession,
 } from "./types.js";
 import { getNearestComponentName } from "./instrumentation.js";
 import { mergeTheme, deepMergeTheme } from "./theme.js";
+import { generateSnippet } from "./utils/generate-snippet.js";
+import {
+  createSession,
+  saveSessionById,
+  loadSessions,
+  clearSessions,
+  clearSessionById,
+  updateSession,
+} from "./utils/agent-session.js";
 
 let hasInited = false;
 
@@ -175,8 +185,95 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       typeof localStorage !== "undefined" &&
         localStorage.getItem("react-grab:dismiss-hint") === "true",
     );
+    const [agentSessions, setAgentSessions] = createSignal<Map<string, AgentSession>>(new Map());
+    const [inputOverlayMode, setInputOverlayMode] = createSignal<"input" | "output">("input");
+
+    const [nativeSelectionCursorX, setNativeSelectionCursorX] = createSignal(OFFSCREEN_POSITION);
+    const [nativeSelectionCursorY, setNativeSelectionCursorY] = createSignal(OFFSCREEN_POSITION);
+    const [hasNativeSelection, setHasNativeSelection] = createSignal(false);
+    const [nativeSelectionElements, setNativeSelectionElements] = createSignal<Element[]>([]);
+    const [nativeSelectionTagName, setNativeSelectionTagName] = createSignal<string | undefined>(undefined);
+    const [nativeSelectionComponentName, setNativeSelectionComponentName] = createSignal<string | undefined>(undefined);
+    const [nativeSelectionBounds, setNativeSelectionBounds] = createSignal<OverlayBounds | undefined>(undefined);
 
     let holdTimerId: number | null = null;
+    const agentAbortControllers = new Map<string, AbortController>();
+
+    const isAgentProcessing = createMemo(() => agentSessions().size > 0);
+
+    const tryResumeAgentSessions = () => {
+      const storage = options.agent?.storage;
+      const existingSessions = loadSessions(storage);
+
+      if (options.log) {
+        console.log("[React Grab] Checking for sessions to resume:", { sessionsCount: existingSessions.size, storage });
+      }
+
+      const streamingSessions = Array.from(existingSessions.values()).filter((session) => session.isStreaming);
+      if (streamingSessions.length === 0) {
+        if (options.log) console.log("[React Grab] No sessions to resume");
+        return;
+      }
+      if (!options.agent?.provider?.supportsResume || !options.agent.provider.resume) {
+        if (options.log) console.log("[React Grab] Provider doesn't support resume");
+        clearSessions(storage);
+        return;
+      }
+
+      setAgentSessions(new Map(existingSessions));
+      activateRenderer();
+
+      for (const existingSession of streamingSessions) {
+        const sessionWithResumeStatus = {
+          ...existingSession,
+          lastStatus: existingSession.lastStatus || "Resuming...",
+          position: existingSession.position ?? { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+        };
+        setAgentSessions((prev) => new Map(prev).set(existingSession.id, sessionWithResumeStatus));
+        options.agent?.onResume?.(sessionWithResumeStatus);
+
+        const abortController = new AbortController();
+        agentAbortControllers.set(existingSession.id, abortController);
+
+        void (async () => {
+          try {
+            for await (const status of options.agent!.provider!.resume!(existingSession.id, abortController.signal)) {
+              const currentSessions = agentSessions();
+              const currentSession = currentSessions.get(existingSession.id);
+              if (!currentSession) break;
+
+              const updatedSession = updateSession(currentSession, { lastStatus: status }, storage);
+              setAgentSessions((prev) => new Map(prev).set(existingSession.id, updatedSession));
+              options.agent?.onStatus?.(status, updatedSession);
+            }
+
+            const finalSessions = agentSessions();
+            const finalSession = finalSessions.get(existingSession.id);
+            if (finalSession) {
+              const completedSession = updateSession(finalSession, { isStreaming: false }, storage);
+              setAgentSessions((prev) => new Map(prev).set(existingSession.id, completedSession));
+              options.agent?.onComplete?.(completedSession);
+            }
+          } catch (error) {
+            const currentSessions = agentSessions();
+            const currentSession = currentSessions.get(existingSession.id);
+            if (currentSession && error instanceof Error && error.name !== "AbortError") {
+              const errorSession = updateSession(currentSession, { isStreaming: false }, storage);
+              setAgentSessions((prev) => new Map(prev).set(existingSession.id, errorSession));
+              options.agent?.onError?.(error, errorSession);
+            }
+          } finally {
+            agentAbortControllers.delete(existingSession.id);
+            clearSessionById(existingSession.id, storage);
+            setAgentSessions((prev) => {
+              const next = new Map(prev);
+              next.delete(existingSession.id);
+              return next;
+            });
+          }
+        })();
+      }
+    };
     let progressAnimationId: number | null = null;
     let progressDelayTimerId: number | null = null;
     let keydownSpamTimerId: number | null = null;
@@ -575,11 +672,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       );
     });
 
-    const labelPosition = createMemo(() =>
-      isCopying()
+    const labelPosition = createMemo(() => {
+      return isCopying()
         ? { x: copyStartX(), y: copyStartY() }
-        : { x: mouseX(), y: mouseY() },
-    );
+        : { x: mouseX(), y: mouseY() };
+    });
 
     const progressPosition = createMemo(() =>
       isCopying()
@@ -769,8 +866,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       ),
     );
 
-    const startProgressAnimation = () => {
+    const startProgressAnimation = (duration?: number) => {
       const startTime = Date.now();
+      const animationDuration = duration ?? options.keyHoldDuration;
       setProgressStartTime(startTime);
       setShowProgressIndicator(false);
 
@@ -784,7 +882,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (currentStartTime === null) return;
 
         const elapsedTime = Date.now() - currentStartTime;
-        const normalizedTime = elapsedTime / options.keyHoldDuration;
+        const normalizedTime = elapsedTime / animationDuration;
         const easedProgress = 1 - Math.exp(-normalizedTime);
         const maxProgressBeforeCompletion = 0.95;
 
@@ -867,6 +965,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setInputText("");
       setIsToggleFrozen(false);
       setIsInputExpanded(false);
+      setInputOverlayMode("input");
       if (isDragging()) {
         setIsDragging(false);
         document.body.style.userSelect = "";
@@ -889,7 +988,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setInputText(value);
     };
 
-    const handleInputSubmit = () => {
+    const handleInputSubmit = async () => {
       if (!isInputMode()) return;
 
       const element = targetElement();
@@ -901,6 +1000,70 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       setMouseX(currentX);
       setMouseY(currentY);
+
+      if (options.agent?.provider && element) {
+        const positionX = mouseX();
+        const positionY = mouseY();
+
+        setInputText("");
+        setIsInputMode(false);
+
+        const elements = [element];
+        const content = await generateSnippet(elements);
+        const context = { content, prompt };
+        const storage = options.agent.storage;
+
+        const session = createSession(context, { x: positionX, y: positionY }, bounds ?? undefined);
+        session.lastStatus = "Please wait…";
+        setAgentSessions((prev) => new Map(prev).set(session.id, session));
+        saveSessionById(session, storage);
+        options.agent.onStart?.(session);
+
+        const abortController = new AbortController();
+        agentAbortControllers.set(session.id, abortController);
+
+        deactivateRenderer();
+
+        void (async () => {
+          try {
+            for await (const status of options.agent!.provider!.send(context, abortController.signal)) {
+              const currentSessions = agentSessions();
+              const currentSession = currentSessions.get(session.id);
+              if (!currentSession) break;
+
+              const updatedSession = updateSession(currentSession, { lastStatus: status }, storage);
+              setAgentSessions((prev) => new Map(prev).set(session.id, updatedSession));
+              options.agent?.onStatus?.(status, updatedSession);
+            }
+
+            const finalSessions = agentSessions();
+            const finalSession = finalSessions.get(session.id);
+            if (finalSession) {
+              const completedSession = updateSession(finalSession, { isStreaming: false }, storage);
+              setAgentSessions((prev) => new Map(prev).set(session.id, completedSession));
+              options.agent?.onComplete?.(completedSession);
+            }
+          } catch (error) {
+            const currentSessions = agentSessions();
+            const currentSession = currentSessions.get(session.id);
+            if (currentSession && error instanceof Error && error.name !== "AbortError") {
+              const errorSession = updateSession(currentSession, { isStreaming: false }, storage);
+              setAgentSessions((prev) => new Map(prev).set(session.id, errorSession));
+              options.agent?.onError?.(error, errorSession);
+            }
+          } finally {
+            agentAbortControllers.delete(session.id);
+            clearSessionById(session.id, storage);
+            setAgentSessions((prev) => {
+              const next = new Map(prev);
+              next.delete(session.id);
+              return next;
+            });
+          }
+        })();
+
+        return;
+      }
 
       setIsInputMode(false);
       setInputText("");
@@ -943,6 +1106,61 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       } else {
         deactivateRenderer();
       }
+    };
+
+    const handleNativeSelectionCopy = async () => {
+      const elements = nativeSelectionElements();
+      if (elements.length === 0) return;
+
+      const currentX = nativeSelectionCursorX();
+      const currentY = nativeSelectionCursorY();
+
+      setHasNativeSelection(false);
+      setNativeSelectionCursorX(OFFSCREEN_POSITION);
+      setNativeSelectionCursorY(OFFSCREEN_POSITION);
+      setNativeSelectionElements([]);
+      setNativeSelectionTagName(undefined);
+      setNativeSelectionComponentName(undefined);
+      setNativeSelectionBounds(undefined);
+
+      window.getSelection()?.removeAllRanges();
+
+      if (elements.length === 1) {
+        await executeCopyOperation(currentX, currentY, () =>
+          copySingleElementToClipboard(elements[0]),
+        );
+      } else {
+        await executeCopyOperation(currentX, currentY, () =>
+          copyMultipleElementsToClipboard(elements),
+        );
+      }
+    };
+
+    const handleNativeSelectionEnter = () => {
+      const elements = nativeSelectionElements();
+      if (elements.length === 0) return;
+
+      const bounds = nativeSelectionBounds();
+      const currentX = bounds ? bounds.x + bounds.width / 2 : nativeSelectionCursorX();
+      const currentY = bounds ? bounds.y + bounds.height / 2 : nativeSelectionCursorY();
+
+      setHasNativeSelection(false);
+      setNativeSelectionCursorX(OFFSCREEN_POSITION);
+      setNativeSelectionCursorY(OFFSCREEN_POSITION);
+      setNativeSelectionElements([]);
+      setNativeSelectionTagName(undefined);
+      setNativeSelectionComponentName(undefined);
+      setNativeSelectionBounds(undefined);
+
+      window.getSelection()?.removeAllRanges();
+
+      setMouseX(currentX);
+      setMouseY(currentY);
+      setIsToggleMode(true);
+      setIsToggleFrozen(true);
+      setIsInputExpanded(true);
+      activateRenderer();
+      setIsInputMode(true);
     };
 
     const handlePointerMove = (clientX: number, clientY: number) => {
@@ -1036,12 +1254,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     window.addEventListener(
       "keydown",
       (event: KeyboardEvent) => {
-        if (event.key === "Escape" && isHoldingKeys()) {
-          if (isInputMode()) {
+        if (event.key === "Escape") {
+          if (isAgentProcessing()) {
+            agentAbortControllers.forEach((controller) => controller.abort());
+            agentAbortControllers.clear();
+            setAgentSessions(new Map());
+            clearSessions(options.agent?.storage);
             return;
           }
-          deactivateRenderer();
-          return;
+
+          if (isHoldingKeys()) {
+            if (isInputMode()) {
+              return;
+            }
+            deactivateRenderer();
+            return;
+          }
         }
 
         if (event.key === "Enter" && isHoldingKeys() && !isInputMode()) {
@@ -1335,6 +1563,87 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       { signal: eventListenerSignal, capture: true },
     );
 
+    let selectionDebounceTimerId: number | null = null;
+
+    document.addEventListener(
+      "selectionchange",
+      () => {
+        if (isRendererActive()) return;
+
+        if (selectionDebounceTimerId !== null) {
+          window.clearTimeout(selectionDebounceTimerId);
+        }
+
+        setHasNativeSelection(false);
+
+        const selection = window.getSelection();
+        if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
+          setNativeSelectionCursorX(OFFSCREEN_POSITION);
+          setNativeSelectionCursorY(OFFSCREEN_POSITION);
+          setNativeSelectionElements([]);
+          setNativeSelectionTagName(undefined);
+          setNativeSelectionComponentName(undefined);
+          setNativeSelectionBounds(undefined);
+          return;
+        }
+
+        selectionDebounceTimerId = window.setTimeout(() => {
+          selectionDebounceTimerId = null;
+
+          const currentSelection = window.getSelection();
+          if (!currentSelection || currentSelection.isCollapsed || currentSelection.rangeCount === 0) {
+            return;
+          }
+
+          const range = currentSelection.getRangeAt(0);
+          const rangeRect = range.getBoundingClientRect();
+
+          if (rangeRect.width === 0 && rangeRect.height === 0) {
+            return;
+          }
+
+          const isBackward = (() => {
+            if (!currentSelection.anchorNode || !currentSelection.focusNode) return false;
+            const position = currentSelection.anchorNode.compareDocumentPosition(currentSelection.focusNode);
+            if (position & Node.DOCUMENT_POSITION_FOLLOWING) return false;
+            if (position & Node.DOCUMENT_POSITION_PRECEDING) return true;
+            return currentSelection.anchorOffset > currentSelection.focusOffset;
+          })();
+
+          const clientRects = range.getClientRects();
+          if (clientRects.length === 0) {
+            return;
+          }
+
+          const cursorRect = isBackward ? clientRects[0] : clientRects[clientRects.length - 1];
+          const cursorX = isBackward ? cursorRect.left : cursorRect.right;
+          const cursorY = cursorRect.top + cursorRect.height / 2;
+
+          setNativeSelectionCursorX(cursorX);
+          setNativeSelectionCursorY(cursorY);
+
+          const container = range.commonAncestorContainer;
+          const element = container.nodeType === Node.ELEMENT_NODE
+            ? (container as Element)
+            : container.parentElement;
+
+          if (element && isValidGrabbableElement(element)) {
+            setNativeSelectionElements([element]);
+            setNativeSelectionTagName(extractElementTagName(element) || undefined);
+            setNativeSelectionComponentName(getNearestComponentName(element) || undefined);
+            setNativeSelectionBounds(createElementBounds(element));
+            setHasNativeSelection(true);
+          } else {
+            setNativeSelectionElements([]);
+            setNativeSelectionTagName(undefined);
+            setNativeSelectionComponentName(undefined);
+            setNativeSelectionBounds(undefined);
+          }
+        }, 150);
+      },
+      { signal: eventListenerSignal },
+    );
+
     onCleanup(() => {
       abortController.abort();
       if (holdTimerId) window.clearTimeout(holdTimerId);
@@ -1369,6 +1678,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const labelVisible = createMemo(() => {
       if (!theme().elementLabel.enabled) return false;
       if (isInputMode()) return false;
+      if (isAgentProcessing()) return false;
       if (isCopying()) return true;
       if (successLabels().length > 0) return false;
 
@@ -1438,16 +1748,31 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             inputY={mouseY()}
             inputValue={inputText()}
             isInputExpanded={isInputExpanded()}
+            inputMode={inputOverlayMode()}
+            inputStatusText=""
+            agentSessions={agentSessions()}
             onInputChange={handleInputChange}
-            onInputSubmit={handleInputSubmit}
+            onInputSubmit={() => void handleInputSubmit()}
             onInputCancel={handleInputCancel}
             onToggleExpand={handleToggleExpand}
             onCopyClick={handleCopyClick}
+            nativeSelectionCursorVisible={hasNativeSelection()}
+            nativeSelectionCursorX={nativeSelectionCursorX()}
+            nativeSelectionCursorY={nativeSelectionCursorY()}
+            nativeSelectionTagName={nativeSelectionTagName()}
+            nativeSelectionComponentName={nativeSelectionComponentName()}
+            nativeSelectionBounds={nativeSelectionBounds()}
+            onNativeSelectionCopy={() => void handleNativeSelectionCopy()}
+            onNativeSelectionEnter={handleNativeSelectionEnter}
             theme={theme()}
           />
         ),
         rendererRoot,
       );
+    }
+
+    if (options.agent?.provider) {
+      void tryResumeAgentSessions();
     }
 
     const copyElementAPI = async (
@@ -1533,4 +1858,9 @@ export type {
   OverlayBounds,
   ReactGrabRendererProps,
   ReactGrabAPI,
+  AgentContext,
+  AgentSession,
+  AgentProvider,
 } from "./types.js";
+
+export { generateSnippet } from "./utils/generate-snippet.js";

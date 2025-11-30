@@ -205,6 +205,43 @@ export interface ActivationKey {
   altKey?: boolean;
 }
 
+export interface AgentContext {
+  content: string;
+  prompt: string;
+}
+
+export interface AgentSession {
+  id: string;
+  context: AgentContext;
+  lastStatus: string;
+  isStreaming: boolean;
+  createdAt: number;
+  position: { x: number; y: number };
+  selectionBounds?: OverlayBounds;
+}
+
+export interface AgentProvider {
+  send: (context: AgentContext, signal: AbortSignal) => AsyncIterable<string>;
+  resume?: (sessionId: string, signal: AbortSignal) => AsyncIterable<string>;
+  supportsResume?: boolean;
+}
+
+export interface AgentSessionStorage {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem(key: string): void;
+}
+
+export interface AgentOptions {
+  provider?: AgentProvider;
+  storage?: AgentSessionStorage | null;
+  onStart?: (session: AgentSession) => void;
+  onStatus?: (status: string, session: AgentSession) => void;
+  onComplete?: (session: AgentSession) => void;
+  onError?: (error: Error, session: AgentSession) => void;
+  onResume?: (session: AgentSession) => void;
+}
+
 export interface Options {
   enabled?: boolean;
   keyHoldDuration?: number;
@@ -249,6 +286,7 @@ export interface Options {
   ) => void;
   onCrosshair?: (visible: boolean, context: CrosshairContext) => void;
   onOpenFile?: (filePath: string, lineNumber?: number) => void;
+  agent?: AgentOptions;
 }
 
 export interface ReactGrabAPI {
@@ -302,11 +340,22 @@ export interface ReactGrabRendererProps {
   inputY?: number;
   inputValue?: string;
   isInputExpanded?: boolean;
+  inputMode?: "input" | "output";
+  inputStatusText?: string;
+  agentSessions?: Map<string, AgentSession>;
   onInputChange?: (value: string) => void;
   onInputSubmit?: () => void;
   onInputCancel?: () => void;
   onToggleExpand?: () => void;
   onCopyClick?: () => void;
+  nativeSelectionCursorVisible?: boolean;
+  nativeSelectionCursorX?: number;
+  nativeSelectionCursorY?: number;
+  nativeSelectionTagName?: string;
+  nativeSelectionComponentName?: string;
+  nativeSelectionBounds?: OverlayBounds;
+  onNativeSelectionCopy?: () => void;
+  onNativeSelectionEnter?: () => void;
   theme?: Required<Theme>;
 }
 

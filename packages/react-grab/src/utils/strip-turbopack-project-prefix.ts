@@ -6,5 +6,3 @@ export const normalizeFileName = (fileName: string): string => {
   const normalized = bippyNormalizeFileName(fileName);
   return normalized.replace(TURBOPACK_PROJECT_PREFIX, "");
 };
-
-
