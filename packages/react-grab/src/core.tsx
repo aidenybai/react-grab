@@ -633,10 +633,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const labelContent = createMemo(() => {
       const element = targetElement();
-      if (!element)
+      const copying = isCopying();
+
+      if (!element) {
         return (
-          <span class="font-mono tabular-nums align-middle">{"1 element"}</span>
+          <span class="tabular-nums align-middle">
+            {copying ? "Please wait…" : "1 element"}
+          </span>
         );
+      }
 
       const tagName = extractElementTagName(element);
       const componentName = getNearestComponentName(element);
@@ -668,7 +673,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       return (
-        <span class="font-mono tabular-nums align-middle">{"1 element"}</span>
+        <span class="tabular-nums align-middle">
+          {copying ? "Please wait…" : "1 element"}
+        </span>
       );
     });
 
