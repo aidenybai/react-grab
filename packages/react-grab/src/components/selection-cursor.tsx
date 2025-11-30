@@ -48,7 +48,7 @@ export const SelectionCursor: Component<SelectionCursorProps> = (props) => {
         />
       </Show>
       <div
-        class="fixed z-[2147483647] group"
+        class="fixed z-2147483647 group"
         style={{
           left: `${props.x}px`,
           top: `${props.y}px`,

@@ -27,6 +27,21 @@ async function* streamFromServer(
 
   const decoder = new TextDecoder();
   let buffer = "";
+  let currentEvent = "";
+  let currentData = "";
+
+  const processEvent = (): { shouldReturn?: boolean; data?: string } => {
+    if (currentEvent === "done") {
+      return { shouldReturn: true };
+    }
+    if (currentEvent === "error") {
+      throw new Error(currentData || "Agent error");
+    }
+    if (currentData) {
+      return { data: currentData };
+    }
+    return {};
+  };
 
   while (true) {
     const { done, value } = await reader.read();
@@ -37,19 +52,40 @@ async function* streamFromServer(
     buffer = lines.pop() || "";
 
     for (const line of lines) {
-      if (line.startsWith("data: ")) {
-        const data = line.slice(6);
-        if (data) {
-          yield data;
+      if (line === "") {
+        const result = processEvent();
+        if (result.shouldReturn) {
+          return;
         }
+        if (result.data) {
+          yield result.data;
+        }
+        currentEvent = "";
+        currentData = "";
+        continue;
       }
-      if (line.startsWith("event: done")) {
-        return;
+
+      if (line.startsWith(":")) {
+        continue;
       }
-      if (line.startsWith("event: error")) {
-        throw new Error("Agent error");
+
+      const colonIndex = line.indexOf(":");
+      if (colonIndex === -1) continue;
+
+      const field = line.slice(0, colonIndex);
+      const fieldValue = line.slice(colonIndex + 1).replace(/^ /, "");
+
+      if (field === "event") {
+        currentEvent = fieldValue;
+      } else if (field === "data") {
+        currentData += currentData ? `\n${fieldValue}` : fieldValue;
       }
     }
+  }
+
+  const finalResult = processEvent();
+  if (finalResult.data) {
+    yield finalResult.data;
   }
 }
 
