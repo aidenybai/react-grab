@@ -13,6 +13,7 @@ import { Label } from "./label.js";
 import { Crosshair } from "./crosshair.js";
 import { InputOverlay } from "./input-overlay.js";
 import { Spinner } from "./spinner.js";
+import { SelectionCursor } from "./selection-cursor.js";
 
 const AGENT_PROGRESS_DURATION_MS = 30000;
 const VIEWPORT_MARGIN_PX = 16;
@@ -242,6 +243,25 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         onSubmit={props.onInputSubmit!}
         onCancel={props.onInputCancel!}
       />
+
+      <Show
+        when={
+          props.nativeSelectionCursorVisible &&
+          props.nativeSelectionCursorX !== undefined &&
+          props.nativeSelectionCursorY !== undefined
+        }
+      >
+        <SelectionCursor
+          x={props.nativeSelectionCursorX!}
+          y={props.nativeSelectionCursorY!}
+          tagName={props.nativeSelectionTagName}
+          componentName={props.nativeSelectionComponentName}
+          elementBounds={props.nativeSelectionBounds}
+          visible={props.nativeSelectionCursorVisible}
+          onClick={props.onNativeSelectionCopy}
+          onEnter={props.onNativeSelectionEnter}
+        />
+      </Show>
     </>
   );
 };

@@ -188,6 +188,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [agentSessions, setAgentSessions] = createSignal<Map<string, AgentSession>>(new Map());
     const [inputOverlayMode, setInputOverlayMode] = createSignal<"input" | "output">("input");
 
+    const [nativeSelectionCursorX, setNativeSelectionCursorX] = createSignal(OFFSCREEN_POSITION);
+    const [nativeSelectionCursorY, setNativeSelectionCursorY] = createSignal(OFFSCREEN_POSITION);
+    const [hasNativeSelection, setHasNativeSelection] = createSignal(false);
+    const [nativeSelectionElements, setNativeSelectionElements] = createSignal<Element[]>([]);
+    const [nativeSelectionTagName, setNativeSelectionTagName] = createSignal<string | undefined>(undefined);
+    const [nativeSelectionComponentName, setNativeSelectionComponentName] = createSignal<string | undefined>(undefined);
+    const [nativeSelectionBounds, setNativeSelectionBounds] = createSignal<OverlayBounds | undefined>(undefined);
+
     let holdTimerId: number | null = null;
     const agentAbortControllers = new Map<string, AbortController>();
 
@@ -1100,6 +1108,61 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
+    const handleNativeSelectionCopy = async () => {
+      const elements = nativeSelectionElements();
+      if (elements.length === 0) return;
+
+      const currentX = nativeSelectionCursorX();
+      const currentY = nativeSelectionCursorY();
+
+      setHasNativeSelection(false);
+      setNativeSelectionCursorX(OFFSCREEN_POSITION);
+      setNativeSelectionCursorY(OFFSCREEN_POSITION);
+      setNativeSelectionElements([]);
+      setNativeSelectionTagName(undefined);
+      setNativeSelectionComponentName(undefined);
+      setNativeSelectionBounds(undefined);
+
+      window.getSelection()?.removeAllRanges();
+
+      if (elements.length === 1) {
+        await executeCopyOperation(currentX, currentY, () =>
+          copySingleElementToClipboard(elements[0]),
+        );
+      } else {
+        await executeCopyOperation(currentX, currentY, () =>
+          copyMultipleElementsToClipboard(elements),
+        );
+      }
+    };
+
+    const handleNativeSelectionEnter = () => {
+      const elements = nativeSelectionElements();
+      if (elements.length === 0) return;
+
+      const bounds = nativeSelectionBounds();
+      const currentX = bounds ? bounds.x + bounds.width / 2 : nativeSelectionCursorX();
+      const currentY = bounds ? bounds.y + bounds.height / 2 : nativeSelectionCursorY();
+
+      setHasNativeSelection(false);
+      setNativeSelectionCursorX(OFFSCREEN_POSITION);
+      setNativeSelectionCursorY(OFFSCREEN_POSITION);
+      setNativeSelectionElements([]);
+      setNativeSelectionTagName(undefined);
+      setNativeSelectionComponentName(undefined);
+      setNativeSelectionBounds(undefined);
+
+      window.getSelection()?.removeAllRanges();
+
+      setMouseX(currentX);
+      setMouseY(currentY);
+      setIsToggleMode(true);
+      setIsToggleFrozen(true);
+      setIsInputExpanded(true);
+      activateRenderer();
+      setIsInputMode(true);
+    };
+
     const handlePointerMove = (clientX: number, clientY: number) => {
       if (isInputMode() || isToggleFrozen()) return;
 
@@ -1500,6 +1563,87 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       { signal: eventListenerSignal, capture: true },
     );
 
+    let selectionDebounceTimerId: number | null = null;
+
+    document.addEventListener(
+      "selectionchange",
+      () => {
+        if (isRendererActive()) return;
+
+        if (selectionDebounceTimerId !== null) {
+          window.clearTimeout(selectionDebounceTimerId);
+        }
+
+        setHasNativeSelection(false);
+
+        const selection = window.getSelection();
+        if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
+          setNativeSelectionCursorX(OFFSCREEN_POSITION);
+          setNativeSelectionCursorY(OFFSCREEN_POSITION);
+          setNativeSelectionElements([]);
+          setNativeSelectionTagName(undefined);
+          setNativeSelectionComponentName(undefined);
+          setNativeSelectionBounds(undefined);
+          return;
+        }
+
+        selectionDebounceTimerId = window.setTimeout(() => {
+          selectionDebounceTimerId = null;
+
+          const currentSelection = window.getSelection();
+          if (!currentSelection || currentSelection.isCollapsed || currentSelection.rangeCount === 0) {
+            return;
+          }
+
+          const range = currentSelection.getRangeAt(0);
+          const rangeRect = range.getBoundingClientRect();
+
+          if (rangeRect.width === 0 && rangeRect.height === 0) {
+            return;
+          }
+
+          const isBackward = (() => {
+            if (!currentSelection.anchorNode || !currentSelection.focusNode) return false;
+            const position = currentSelection.anchorNode.compareDocumentPosition(currentSelection.focusNode);
+            if (position & Node.DOCUMENT_POSITION_FOLLOWING) return false;
+            if (position & Node.DOCUMENT_POSITION_PRECEDING) return true;
+            return currentSelection.anchorOffset > currentSelection.focusOffset;
+          })();
+
+          const clientRects = range.getClientRects();
+          if (clientRects.length === 0) {
+            return;
+          }
+
+          const cursorRect = isBackward ? clientRects[0] : clientRects[clientRects.length - 1];
+          const cursorX = isBackward ? cursorRect.left : cursorRect.right;
+          const cursorY = cursorRect.top + cursorRect.height / 2;
+
+          setNativeSelectionCursorX(cursorX);
+          setNativeSelectionCursorY(cursorY);
+
+          const container = range.commonAncestorContainer;
+          const element = container.nodeType === Node.ELEMENT_NODE
+            ? (container as Element)
+            : container.parentElement;
+
+          if (element && isValidGrabbableElement(element)) {
+            setNativeSelectionElements([element]);
+            setNativeSelectionTagName(extractElementTagName(element) || undefined);
+            setNativeSelectionComponentName(getNearestComponentName(element) || undefined);
+            setNativeSelectionBounds(createElementBounds(element));
+            setHasNativeSelection(true);
+          } else {
+            setNativeSelectionElements([]);
+            setNativeSelectionTagName(undefined);
+            setNativeSelectionComponentName(undefined);
+            setNativeSelectionBounds(undefined);
+          }
+        }, 150);
+      },
+      { signal: eventListenerSignal },
+    );
+
     onCleanup(() => {
       abortController.abort();
       if (holdTimerId) window.clearTimeout(holdTimerId);
@@ -1612,6 +1756,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onInputCancel={handleInputCancel}
             onToggleExpand={handleToggleExpand}
             onCopyClick={handleCopyClick}
+            nativeSelectionCursorVisible={hasNativeSelection()}
+            nativeSelectionCursorX={nativeSelectionCursorX()}
+            nativeSelectionCursorY={nativeSelectionCursorY()}
+            nativeSelectionTagName={nativeSelectionTagName()}
+            nativeSelectionComponentName={nativeSelectionComponentName()}
+            nativeSelectionBounds={nativeSelectionBounds()}
+            onNativeSelectionCopy={() => void handleNativeSelectionCopy()}
+            onNativeSelectionEnter={handleNativeSelectionEnter}
             theme={theme()}
           />
         ),

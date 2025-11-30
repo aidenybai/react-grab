@@ -348,6 +348,14 @@ export interface ReactGrabRendererProps {
   onInputCancel?: () => void;
   onToggleExpand?: () => void;
   onCopyClick?: () => void;
+  nativeSelectionCursorVisible?: boolean;
+  nativeSelectionCursorX?: number;
+  nativeSelectionCursorY?: number;
+  nativeSelectionTagName?: string;
+  nativeSelectionComponentName?: string;
+  nativeSelectionBounds?: OverlayBounds;
+  onNativeSelectionCopy?: () => void;
+  onNativeSelectionEnter?: () => void;
   theme?: Required<Theme>;
 }
 
