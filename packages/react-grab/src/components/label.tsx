@@ -125,7 +125,7 @@ export const Label: Component<LabelProps> = (props) => {
               <div class="mr-1">Copied</div>
             </Show>
             <Show when={props.variant !== "processing"}>
-              {props.content}
+              <span class="font-mono">{props.content}</span>
             </Show>
             <Show when={props.variant === "processing"}>
               {props.content}
