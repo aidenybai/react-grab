@@ -195,11 +195,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [nativeSelectionElements, setNativeSelectionElements] = createSignal<Element[]>([]);
     const [nativeSelectionTagName, setNativeSelectionTagName] = createSignal<string | undefined>(undefined);
     const [nativeSelectionComponentName, setNativeSelectionComponentName] = createSignal<string | undefined>(undefined);
-    const [nativeSelectionBounds, setNativeSelectionBounds] = createSignal<OverlayBounds | undefined>(undefined);
+    const nativeSelectionBounds = createMemo((): OverlayBounds | undefined => {
+      viewportVersion();
+      const elements = nativeSelectionElements();
+      if (elements.length === 0 || !elements[0]) return undefined;
+      return createElementBounds(elements[0]);
+    });
 
     let holdTimerId: number | null = null;
     let activationTimestamp: number | null = null;
     const agentAbortControllers = new Map<string, AbortController>();
+    const agentSessionElements = new Map<string, Element>();
 
     const isAgentProcessing = createMemo(() => agentSessions().size > 0);
 
@@ -260,6 +266,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             }
           } finally {
             agentAbortControllers.delete(existingSession.id);
+            agentSessionElements.delete(existingSession.id);
             clearSessionById(existingSession.id, storage);
             setAgentSessions((prev) => {
               const next = new Map(prev);
@@ -750,6 +757,34 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     createEffect(
       on(
+        () => viewportVersion(),
+        () => {
+          const sessions = agentSessions();
+          if (sessions.size === 0) return;
+
+          const updatedSessions = new Map(sessions);
+          let didUpdate = false;
+
+          for (const [sessionId, session] of sessions) {
+            const element = agentSessionElements.get(sessionId);
+            if (element && document.contains(element)) {
+              const newBounds = createElementBounds(element);
+              if (newBounds) {
+                updatedSessions.set(sessionId, { ...session, selectionBounds: newBounds });
+                didUpdate = true;
+              }
+            }
+          }
+
+          if (didUpdate) {
+            setAgentSessions(updatedSessions);
+          }
+        },
+      ),
+    );
+
+    createEffect(
+      on(
         () =>
           [
             isActivated(),
@@ -1020,6 +1055,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         const session = createSession(context, { x: positionX, y: positionY }, bounds ?? undefined);
         session.lastStatus = "Please wait…";
+        agentSessionElements.set(session.id, element);
         setAgentSessions((prev) => new Map(prev).set(session.id, session));
         saveSessionById(session, storage);
         options.agent.onStart?.(session);
@@ -1058,6 +1094,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             }
           } finally {
             agentAbortControllers.delete(session.id);
+            agentSessionElements.delete(session.id);
             clearSessionById(session.id, storage);
             setAgentSessions((prev) => {
               const next = new Map(prev);
@@ -1126,7 +1163,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setNativeSelectionElements([]);
       setNativeSelectionTagName(undefined);
       setNativeSelectionComponentName(undefined);
-      setNativeSelectionBounds(undefined);
 
       window.getSelection()?.removeAllRanges();
 
@@ -1155,7 +1191,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setNativeSelectionElements([]);
       setNativeSelectionTagName(undefined);
       setNativeSelectionComponentName(undefined);
-      setNativeSelectionBounds(undefined);
 
       window.getSelection()?.removeAllRanges();
 
@@ -1604,7 +1639,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           setNativeSelectionElements([]);
           setNativeSelectionTagName(undefined);
           setNativeSelectionComponentName(undefined);
-          setNativeSelectionBounds(undefined);
           return;
         }
 
@@ -1646,7 +1680,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             setNativeSelectionElements([]);
             setNativeSelectionTagName(undefined);
             setNativeSelectionComponentName(undefined);
-            setNativeSelectionBounds(undefined);
             return;
           }
 
@@ -1662,13 +1695,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             setNativeSelectionElements([element]);
             setNativeSelectionTagName(extractElementTagName(element) || undefined);
             setNativeSelectionComponentName(getNearestComponentName(element) || undefined);
-            setNativeSelectionBounds(createElementBounds(element));
             setHasNativeSelection(true);
           } else {
             setNativeSelectionElements([]);
             setNativeSelectionTagName(undefined);
             setNativeSelectionComponentName(undefined);
-            setNativeSelectionBounds(undefined);
           }
         }, 150);
       },
