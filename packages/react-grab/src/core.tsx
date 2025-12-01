@@ -40,6 +40,7 @@ import {
   AUTO_SCROLL_SPEED_PX,
   LOGO_SVG,
   MODIFIER_KEYS,
+  BLUR_DEACTIVATION_THRESHOLD_MS,
 } from "./constants.js";
 import { isCLikeKey } from "./utils/is-c-like-key.js";
 import { keyMatchesCode, isTargetKeyCombination } from "./utils/hotkey.js";
@@ -197,6 +198,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [nativeSelectionBounds, setNativeSelectionBounds] = createSignal<OverlayBounds | undefined>(undefined);
 
     let holdTimerId: number | null = null;
+    let activationTimestamp: number | null = null;
     const agentAbortControllers = new Map<string, AbortController>();
 
     const isAgentProcessing = createMemo(() => agentSessions().size > 0);
@@ -954,6 +956,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const activateRenderer = () => {
       stopProgressAnimation();
       previouslyFocusedElement = document.activeElement;
+      activationTimestamp = Date.now();
       setIsActivated(true);
       options.onActivate?.();
     };
@@ -975,6 +978,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
       stopAutoScroll();
       stopProgressAnimation();
+      activationTimestamp = null;
       if (
         previouslyFocusedElement instanceof HTMLElement &&
         document.contains(previouslyFocusedElement)
@@ -1542,6 +1546,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => {
         if (document.hidden) {
           setGrabbedBoxes([]);
+          if (
+            isActivated() &&
+            activationTimestamp !== null &&
+            Date.now() - activationTimestamp > BLUR_DEACTIVATION_THRESHOLD_MS
+          ) {
+            deactivateRenderer();
+          }
         }
       },
       { signal: eventListenerSignal },
