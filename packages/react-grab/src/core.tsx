@@ -55,19 +55,10 @@ import type {
   DeepPartial,
   Theme,
   SuccessLabelType,
-  AgentSession,
 } from "./types.js";
 import { getNearestComponentName } from "./instrumentation.js";
 import { mergeTheme, deepMergeTheme } from "./theme.js";
-import { generateSnippet } from "./utils/generate-snippet.js";
-import {
-  createSession,
-  saveSessionById,
-  loadSessions,
-  clearSessions,
-  clearSessionById,
-  updateSession,
-} from "./utils/agent-session.js";
+import { createAgentManager } from "./agent.js";
 
 let hasInited = false;
 
@@ -186,7 +177,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       typeof localStorage !== "undefined" &&
         localStorage.getItem("react-grab:dismiss-hint") === "true",
     );
-    const [agentSessions, setAgentSessions] = createSignal<Map<string, AgentSession>>(new Map());
     const [inputOverlayMode, setInputOverlayMode] = createSignal<"input" | "output">("input");
 
     const [nativeSelectionCursorX, setNativeSelectionCursorX] = createSignal(OFFSCREEN_POSITION);
@@ -204,79 +194,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     let holdTimerId: number | null = null;
     let activationTimestamp: number | null = null;
-    const agentAbortControllers = new Map<string, AbortController>();
-    const agentSessionElements = new Map<string, Element>();
-
-    const isAgentProcessing = createMemo(() => agentSessions().size > 0);
-
-    const tryResumeAgentSessions = () => {
-      const storage = options.agent?.storage;
-      const existingSessions = loadSessions(storage);
-
-      const streamingSessions = Array.from(existingSessions.values()).filter((session) => session.isStreaming);
-      if (streamingSessions.length === 0) {
-        return;
-      }
-      if (!options.agent?.provider?.supportsResume || !options.agent.provider.resume) {
-        clearSessions(storage);
-        return;
-      }
-
-      setAgentSessions(new Map(existingSessions));
-      activateRenderer();
-
-      for (const existingSession of streamingSessions) {
-        const sessionWithResumeStatus = {
-          ...existingSession,
-          lastStatus: existingSession.lastStatus || "Resuming...",
-          position: existingSession.position ?? { x: window.innerWidth / 2, y: window.innerHeight / 2 },
-        };
-        setAgentSessions((prev) => new Map(prev).set(existingSession.id, sessionWithResumeStatus));
-        options.agent?.onResume?.(sessionWithResumeStatus);
-
-        const abortController = new AbortController();
-        agentAbortControllers.set(existingSession.id, abortController);
-
-        void (async () => {
-          try {
-            for await (const status of options.agent!.provider!.resume!(existingSession.id, abortController.signal)) {
-              const currentSessions = agentSessions();
-              const currentSession = currentSessions.get(existingSession.id);
-              if (!currentSession) break;
-
-              const updatedSession = updateSession(currentSession, { lastStatus: status }, storage);
-              setAgentSessions((prev) => new Map(prev).set(existingSession.id, updatedSession));
-              options.agent?.onStatus?.(status, updatedSession);
-            }
-
-            const finalSessions = agentSessions();
-            const finalSession = finalSessions.get(existingSession.id);
-            if (finalSession) {
-              const completedSession = updateSession(finalSession, { isStreaming: false }, storage);
-              setAgentSessions((prev) => new Map(prev).set(existingSession.id, completedSession));
-              options.agent?.onComplete?.(completedSession);
-            }
-          } catch (error) {
-            const currentSessions = agentSessions();
-            const currentSession = currentSessions.get(existingSession.id);
-            if (currentSession && error instanceof Error && error.name !== "AbortError") {
-              const errorSession = updateSession(currentSession, { isStreaming: false }, storage);
-              setAgentSessions((prev) => new Map(prev).set(existingSession.id, errorSession));
-              options.agent?.onError?.(error, errorSession);
-            }
-          } finally {
-            agentAbortControllers.delete(existingSession.id);
-            agentSessionElements.delete(existingSession.id);
-            clearSessionById(existingSession.id, storage);
-            setAgentSessions((prev) => {
-              const next = new Map(prev);
-              next.delete(existingSession.id);
-              return next;
-            });
-          }
-        })();
-      }
-    };
     let progressAnimationId: number | null = null;
     let progressDelayTimerId: number | null = null;
     let keydownSpamTimerId: number | null = null;
@@ -758,28 +675,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     createEffect(
       on(
         () => viewportVersion(),
-        () => {
-          const sessions = agentSessions();
-          if (sessions.size === 0) return;
-
-          const updatedSessions = new Map(sessions);
-          let didUpdate = false;
-
-          for (const [sessionId, session] of sessions) {
-            const element = agentSessionElements.get(sessionId);
-            if (element && document.contains(element)) {
-              const newBounds = createElementBounds(element);
-              if (newBounds) {
-                updatedSessions.set(sessionId, { ...session, selectionBounds: newBounds });
-                didUpdate = true;
-              }
-            }
-          }
-
-          if (didUpdate) {
-            setAgentSessions(updatedSessions);
-          }
-        },
+        () => agentManager.updateSessionBoundsOnViewportChange(),
       ),
     );
 
@@ -1024,11 +920,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       options.onDeactivate?.();
     };
 
+    const agentManager = createAgentManager(options.agent, activateRenderer);
+
     const handleInputChange = (value: string) => {
       setInputText(value);
     };
 
-    const handleInputSubmit = async () => {
+    const handleInputSubmit = () => {
       if (!isInputMode()) return;
 
       const element = targetElement();
@@ -1047,62 +945,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         setInputText("");
         setIsInputMode(false);
-
-        const elements = [element];
-        const content = await generateSnippet(elements);
-        const context = { content, prompt };
-        const storage = options.agent.storage;
-
-        const session = createSession(context, { x: positionX, y: positionY }, bounds ?? undefined);
-        session.lastStatus = "Please wait…";
-        agentSessionElements.set(session.id, element);
-        setAgentSessions((prev) => new Map(prev).set(session.id, session));
-        saveSessionById(session, storage);
-        options.agent.onStart?.(session);
-
-        const abortController = new AbortController();
-        agentAbortControllers.set(session.id, abortController);
-
         deactivateRenderer();
 
-        void (async () => {
-          try {
-            for await (const status of options.agent!.provider!.send(context, abortController.signal)) {
-              const currentSessions = agentSessions();
-              const currentSession = currentSessions.get(session.id);
-              if (!currentSession) break;
-
-              const updatedSession = updateSession(currentSession, { lastStatus: status }, storage);
-              setAgentSessions((prev) => new Map(prev).set(session.id, updatedSession));
-              options.agent?.onStatus?.(status, updatedSession);
-            }
-
-            const finalSessions = agentSessions();
-            const finalSession = finalSessions.get(session.id);
-            if (finalSession) {
-              const completedSession = updateSession(finalSession, { isStreaming: false }, storage);
-              setAgentSessions((prev) => new Map(prev).set(session.id, completedSession));
-              options.agent?.onComplete?.(completedSession);
-            }
-          } catch (error) {
-            const currentSessions = agentSessions();
-            const currentSession = currentSessions.get(session.id);
-            if (currentSession && error instanceof Error && error.name !== "AbortError") {
-              const errorSession = updateSession(currentSession, { isStreaming: false }, storage);
-              setAgentSessions((prev) => new Map(prev).set(session.id, errorSession));
-              options.agent?.onError?.(error, errorSession);
-            }
-          } finally {
-            agentAbortControllers.delete(session.id);
-            agentSessionElements.delete(session.id);
-            clearSessionById(session.id, storage);
-            setAgentSessions((prev) => {
-              const next = new Map(prev);
-              next.delete(session.id);
-              return next;
-            });
-          }
-        })();
+        void agentManager.startSession({
+          element,
+          prompt,
+          position: { x: positionX, y: positionY },
+          selectionBounds: bounds ?? undefined,
+        });
 
         return;
       }
@@ -1295,11 +1145,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "keydown",
       (event: KeyboardEvent) => {
         if (event.key === "Escape") {
-          if (isAgentProcessing()) {
-            agentAbortControllers.forEach((controller) => controller.abort());
-            agentAbortControllers.clear();
-            setAgentSessions(new Map());
-            clearSessions(options.agent?.storage);
+          if (agentManager.isProcessing()) {
+            agentManager.abortAllSessions();
             return;
           }
 
@@ -1740,7 +1587,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const labelVisible = createMemo(() => {
       if (!theme().elementLabel.enabled) return false;
       if (isInputMode()) return false;
-      if (isAgentProcessing()) return false;
+      if (agentManager.isProcessing()) return false;
       if (isCopying()) return true;
       if (successLabels().length > 0) return false;
 
@@ -1812,7 +1659,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             isInputExpanded={isInputExpanded()}
             inputMode={inputOverlayMode()}
             inputStatusText=""
-            agentSessions={agentSessions()}
+            agentSessions={agentManager.sessions()}
             onInputChange={handleInputChange}
             onInputSubmit={() => void handleInputSubmit()}
             onInputCancel={handleInputCancel}
@@ -1834,7 +1681,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     }
 
     if (options.agent?.provider) {
-      void tryResumeAgentSessions();
+      agentManager.tryResumeSessions();
     }
 
     const copyElementAPI = async (

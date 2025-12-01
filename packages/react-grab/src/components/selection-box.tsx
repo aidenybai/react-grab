@@ -8,6 +8,8 @@ import { buildOpenFileUrl } from "../utils/build-open-file-url.js";
 import { IconCopy } from "./icon-copy.js";
 import { IconOpen } from "./icon-open.js";
 
+const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+
 interface SelectionBoxProps {
   variant: "selection" | "grabbed" | "drag" | "processing";
   bounds: OverlayBounds;
@@ -28,12 +30,14 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
   const [currentWidth, setCurrentWidth] = createSignal(props.bounds.width);
   const [currentHeight, setCurrentHeight] = createSignal(props.bounds.height);
   const [opacity, setOpacity] = createSignal(1);
+  const [buttonContainerSize, setButtonContainerSize] = createSignal({ width: 0, height: 0 });
 
   let hasBeenRenderedOnce = false;
   let animationFrameId: number | null = null;
   let fadeTimerId: number | null = null;
   let targetBounds = props.bounds;
   let isAnimating = false;
+  let buttonContainerRef: HTMLDivElement | undefined;
 
   const lerpFactor = () => {
     if (props.lerpFactor !== undefined) return props.lerpFactor;
@@ -146,11 +150,38 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
     props.onCopyClick?.();
   };
 
-  const canFitButtonsInside = () =>
-    currentWidth() >= 45 && currentHeight() >= 26;
+  const measureButtonContainer = () => {
+    if (buttonContainerRef) {
+      const { offsetWidth, offsetHeight } = buttonContainerRef;
+      setButtonContainerSize({ width: offsetWidth, height: offsetHeight });
+    }
+  };
+
+  createEffect(
+    on(
+      () => [props.isInputExpanded, props.filePath],
+      () => queueMicrotask(measureButtonContainer),
+    ),
+  );
+
+  const maxButtonCoverage = 0.25;
+  const canFitButtonsInside = () => {
+    const { width: buttonWidth, height: buttonHeight } = buttonContainerSize();
+    if (buttonWidth === 0 || buttonHeight === 0) return false;
+    return (
+      currentWidth() >= buttonWidth / maxButtonCoverage &&
+      currentHeight() >= buttonHeight / maxButtonCoverage
+    );
+  };
   const shouldPlaceOutside = () => !canFitButtonsInside();
-  const showFullButton = () => currentWidth() >= 100 && currentHeight() >= 30;
+  const shouldCenterButtons = () => {
+    const { width: buttonWidth } = buttonContainerSize();
+    return shouldPlaceOutside() && buttonWidth > currentWidth();
+  };
   const showButtons = () => !props.hideButtons || props.isInputExpanded;
+  const showCopyButton = () => currentWidth() >= 120;
+  const modifierKey = isMac ? "⌘" : "Ctrl+";
+  const showShortcuts = () => currentWidth() >= 200;
 
   return (
     <Show when={props.visible !== false}>
@@ -187,16 +218,25 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
             <div class="absolute bottom-full right-0 w-12 h-4" />
           </Show>
           <div
+            ref={buttonContainerRef}
             class={cn(
               "absolute flex gap-0.5",
               shouldPlaceOutside()
-                ? "bottom-full right-0 mb-[-8px] pb-2"
+                ? shouldCenterButtons()
+                  ? "bottom-full left-1/2 mb-[-8px] pb-2"
+                  : "bottom-full right-0 mb-[-8px] pb-2"
                 : "top-1 right-1",
             )}
+            style={{
+              transform: shouldCenterButtons() ? "translateX(-50%)" : undefined,
+            }}
           >
             <Show when={!props.isInputExpanded}>
               <button
-                class="text-[10px] bg-grab-pink/70 text-white rounded cursor-pointer hover:bg-grab-pink transition-all flex items-center py-0.5 px-1"
+                class={cn(
+                  "text-[10px] bg-grab-pink/70 text-white cursor-pointer hover:bg-grab-pink transition-all flex items-center py-0.5 px-1",
+                  shouldPlaceOutside() ? "rounded-t" : "rounded",
+                )}
                 onClick={handleToggleClick}
                 data-react-grab-toolbar
               >
@@ -204,9 +244,12 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
               </button>
             </Show>
             <Show when={props.isInputExpanded}>
-              <Show when={showFullButton()}>
+              <Show when={showCopyButton()}>
                 <button
-                  class="text-[10px] bg-grab-pink/70 text-white rounded cursor-pointer hover:bg-grab-pink transition-all flex items-center px-1 py-px gap-0.5"
+                  class={cn(
+                    "text-[10px] bg-grab-pink/70 text-white cursor-pointer hover:bg-grab-pink transition-all flex items-center px-1 py-0.5 gap-0.5",
+                    shouldPlaceOutside() ? "rounded-t" : "rounded",
+                  )}
                   onClick={handleCopyClick}
                   data-react-grab-toolbar
                 >
@@ -217,14 +260,17 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
               <Show when={props.filePath}>
                 <button
                   class={cn(
-                    "text-[10px] bg-grab-pink/70 text-white rounded cursor-pointer hover:bg-grab-pink transition-all flex items-center",
-                    showFullButton() ? "px-1 py-px gap-0.5" : "p-0.5",
+                    "text-[10px] bg-grab-pink/70 text-white cursor-pointer hover:bg-grab-pink transition-all flex items-center px-1 py-0.5 gap-0.5",
+                    shouldPlaceOutside() ? "rounded-t" : "rounded",
                   )}
                   onClick={handleOpenClick}
                   data-react-grab-toolbar
                 >
                   <IconOpen size={10} />
-                  <Show when={showFullButton()}>Open</Show>
+                  Open
+                  <Show when={showShortcuts()}>
+                    <span class="text-white/50 ml-0.5">{modifierKey}O</span>
+                  </Show>
                 </button>
               </Show>
             </Show>
