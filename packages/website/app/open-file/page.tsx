@@ -88,6 +88,10 @@ const OpenFileContent = () => {
     );
     window.location.href = url;
     setDidAttemptOpen(true);
+
+    setTimeout(() => {
+      window.close();
+    }, 300);
   }, [resolvedFilePath, preferredEditor, lineNumber]);
 
   useEffect(() => {

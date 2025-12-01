@@ -82,7 +82,6 @@ export const App = () => {
     if (apiRef.current) return;
 
     const api = init({
-      log: true,
       onActivate: () => addLog("info", "Activated"),
       onDeactivate: () => addLog("info", "Deactivated"),
       agent: {

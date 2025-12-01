@@ -32,6 +32,8 @@ app.post("/agent", async (context) => {
 The user has selected an element from their UI and wants you to help modify it.
 Provide clear, concise status updates as you work.`,
           },
+          model: "haiku",
+          permissionMode: "bypassPermissions",
           maxTurns: 10,
         },
       });

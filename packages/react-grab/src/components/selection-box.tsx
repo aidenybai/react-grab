@@ -1,21 +1,12 @@
-import {
-  createSignal,
-  createEffect,
-  onCleanup,
-  Show,
-  on,
-} from "solid-js";
+import { createSignal, createEffect, onCleanup, Show, on } from "solid-js";
 import type { Component } from "solid-js";
 import type { OverlayBounds } from "../types.js";
-import {
-  SELECTION_LERP_FACTOR,
-} from "../constants.js";
+import { SELECTION_LERP_FACTOR } from "../constants.js";
 import { lerp } from "../utils/lerp.js";
 import { cn } from "../utils/cn.js";
 import { buildOpenFileUrl } from "../utils/build-open-file-url.js";
 import { IconCopy } from "./icon-copy.js";
 import { IconOpen } from "./icon-open.js";
-import { IconToggle } from "./icon-toggle.js";
 
 interface SelectionBoxProps {
   variant: "selection" | "grabbed" | "drag" | "processing";
@@ -155,7 +146,8 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
     props.onCopyClick?.();
   };
 
-  const canFitButtonsInside = () => currentWidth() >= 45 && currentHeight() >= 26;
+  const canFitButtonsInside = () =>
+    currentWidth() >= 45 && currentHeight() >= 26;
   const shouldPlaceOutside = () => !canFitButtonsInside();
   const showFullButton = () => currentWidth() >= 100 && currentHeight() >= 30;
   const showButtons = () => !props.hideButtons || props.isInputExpanded;
@@ -169,10 +161,14 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
           props.variant !== "drag" && "pointer-events-auto",
           props.variant === "grabbed" && "z-2147483645",
           props.variant !== "grabbed" && "z-2147483646",
-          props.variant === "drag" && "border border-dashed border-grab-purple/40 bg-grab-purple/5 will-change-[transform,width,height] cursor-crosshair",
-          props.variant === "selection" && "border border-dashed border-grab-purple/50 bg-grab-purple/8",
-          props.variant === "grabbed" && "border border-solid border-grab-purple bg-grab-purple/8 transition-opacity duration-300 ease-out",
-          props.variant === "processing" && "border border-solid border-grab-purple/50 bg-grab-purple/8"
+          props.variant === "drag" &&
+            "border border-dashed border-grab-purple/40 bg-grab-purple/5 will-change-[transform,width,height] cursor-crosshair",
+          props.variant === "selection" &&
+            "border border-dashed border-grab-purple/50 bg-grab-purple/8",
+          props.variant === "grabbed" &&
+            "border border-solid border-grab-purple bg-grab-purple/8 transition-opacity duration-300 ease-out",
+          props.variant === "processing" &&
+            "border border-solid border-grab-purple/50 bg-grab-purple/8",
         )}
         style={{
           top: `${currentY()}px`,
@@ -195,16 +191,16 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
               "absolute flex gap-0.5",
               shouldPlaceOutside()
                 ? "bottom-full right-0 mb-[-8px] pb-2"
-                : "top-1 right-1"
+                : "top-1 right-1",
             )}
           >
             <Show when={!props.isInputExpanded}>
               <button
-                class="text-[10px] font-medium bg-grab-pink/70 backdrop-blur-xl text-white rounded cursor-pointer hover:bg-grab-pink transition-all flex items-center p-0.5"
+                class="text-[9px] bg-grab-pink/70 backdrop-blur-xl text-white rounded cursor-pointer hover:bg-grab-pink transition-all flex items-center py-0.5 px-1"
                 onClick={handleToggleClick}
                 data-react-grab-toolbar
               >
-                <IconToggle size={10} />
+                Enter <span class="text-white/50 ml-1">⏎</span>
               </button>
             </Show>
             <Show when={props.isInputExpanded}>
@@ -222,7 +218,7 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
                 <button
                   class={cn(
                     "text-[10px] font-medium bg-grab-pink/70 backdrop-blur-xl text-white rounded cursor-pointer hover:bg-grab-pink transition-all flex items-center",
-                    showFullButton() ? "px-1 py-px gap-0.5" : "p-0.5"
+                    showFullButton() ? "px-1 py-px gap-0.5" : "p-0.5",
                   )}
                   onClick={handleOpenClick}
                   data-react-grab-toolbar
