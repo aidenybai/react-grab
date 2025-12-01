@@ -1,4 +1,5 @@
 import { isCLikeKey } from "./is-c-like-key.js";
+import { MODIFIER_KEYS } from "../constants.js";
 import type { ActivationKey } from "../types.js";
 
 export const keyMatchesCode = (targetKey: string, code: string): boolean => {
@@ -30,8 +31,7 @@ export const isTargetKeyCombination = (
     const isModifierOnly = !key;
 
     if (isModifierOnly) {
-      const modifierKeys = ["Meta", "Control", "Shift", "Alt"];
-      if (!modifierKeys.includes(event.key)) return false;
+      if (!MODIFIER_KEYS.includes(event.key)) return false;
 
       const metaMatches = metaKey ? (event.metaKey || event.key === "Meta") : true;
       const ctrlMatches = ctrlKey ? (event.ctrlKey || event.key === "Control") : true;

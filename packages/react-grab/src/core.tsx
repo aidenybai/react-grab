@@ -39,6 +39,7 @@ import {
   AUTO_SCROLL_EDGE_THRESHOLD_PX,
   AUTO_SCROLL_SPEED_PX,
   LOGO_SVG,
+  MODIFIER_KEYS,
 } from "./constants.js";
 import { isCLikeKey } from "./utils/is-c-like-key.js";
 import { keyMatchesCode, isTargetKeyCombination } from "./utils/hotkey.js";
@@ -1319,7 +1320,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        if (!isTargetKeyCombination(event, options)) return;
+        if (!isTargetKeyCombination(event, options)) {
+          // NOTE: deactivate when a non-activation key (e.g. V) is pressed while modifier is held,
+          // so mod+C then mod+V doesn't keep the crosshair visible
+          if (isActivated() && !isToggleMode() && (event.metaKey || event.ctrlKey)) {
+            if (!MODIFIER_KEYS.includes(event.key)) {
+              deactivateRenderer();
+            }
+          }
+          return;
+        }
 
         if (isActivated() || isHoldingKeys()) {
           event.preventDefault();

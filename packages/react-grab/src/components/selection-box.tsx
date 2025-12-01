@@ -196,17 +196,17 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
           >
             <Show when={!props.isInputExpanded}>
               <button
-                class="text-[9px] bg-grab-pink/70 backdrop-blur-xl text-white rounded cursor-pointer hover:bg-grab-pink transition-all flex items-center py-0.5 px-1"
+                class="text-[10px] bg-grab-pink/70 text-white rounded cursor-pointer hover:bg-grab-pink transition-all flex items-center py-0.5 px-1"
                 onClick={handleToggleClick}
                 data-react-grab-toolbar
               >
-                Enter <span class="text-white/50 ml-1">⏎</span>
+                Expand <span class="text-white/50 ml-1">⏎</span>
               </button>
             </Show>
             <Show when={props.isInputExpanded}>
               <Show when={showFullButton()}>
                 <button
-                  class="text-[10px] font-medium bg-grab-pink/70 backdrop-blur-xl text-white rounded cursor-pointer hover:bg-grab-pink transition-all flex items-center px-1 py-px gap-0.5"
+                  class="text-[10px] bg-grab-pink/70 text-white rounded cursor-pointer hover:bg-grab-pink transition-all flex items-center px-1 py-px gap-0.5"
                   onClick={handleCopyClick}
                   data-react-grab-toolbar
                 >
@@ -217,7 +217,7 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
               <Show when={props.filePath}>
                 <button
                   class={cn(
-                    "text-[10px] font-medium bg-grab-pink/70 backdrop-blur-xl text-white rounded cursor-pointer hover:bg-grab-pink transition-all flex items-center",
+                    "text-[10px] bg-grab-pink/70 text-white rounded cursor-pointer hover:bg-grab-pink transition-all flex items-center",
                     showFullButton() ? "px-1 py-px gap-0.5" : "p-0.5",
                   )}
                   onClick={handleOpenClick}
