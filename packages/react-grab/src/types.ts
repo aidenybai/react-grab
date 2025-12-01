@@ -247,7 +247,6 @@ export interface Options {
   keyHoldDuration?: number;
   allowActivationInsideInput?: boolean;
   copyFileOnly?: boolean;
-  log?: boolean;
   theme?: Theme;
   activationShortcut?: (event: KeyboardEvent) => boolean;
   activationKey?: ActivationKey;

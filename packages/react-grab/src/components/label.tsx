@@ -124,8 +124,11 @@ export const Label: Component<LabelProps> = (props) => {
             <Show when={props.variant === "success"}>
               <div class="mr-1">Copied</div>
             </Show>
-            <Show when={props.variant !== "processing"}>
+            <Show when={props.variant === "success"}>
               <span class="font-mono">{props.content}</span>
+            </Show>
+            <Show when={props.variant === "hover" || props.variant === "action"}>
+              {props.content}
             </Show>
             <Show when={props.variant === "processing"}>
               {props.content}

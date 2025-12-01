@@ -143,9 +143,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     } catch {}
   };
 
-  if (options.log !== false) {
-    logIntro();
-  }
+  logIntro();
 
   return createRoot((dispose) => {
     const [theme, setTheme] = createSignal(initialTheme);
@@ -205,17 +203,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const storage = options.agent?.storage;
       const existingSessions = loadSessions(storage);
 
-      if (options.log) {
-        console.log("[React Grab] Checking for sessions to resume:", { sessionsCount: existingSessions.size, storage });
-      }
-
       const streamingSessions = Array.from(existingSessions.values()).filter((session) => session.isStreaming);
       if (streamingSessions.length === 0) {
-        if (options.log) console.log("[React Grab] No sessions to resume");
         return;
       }
       if (!options.agent?.provider?.supportsResume || !options.agent.provider.resume) {
-        if (options.log) console.log("[React Grab] Provider doesn't support resume");
         clearSessions(storage);
         return;
       }
