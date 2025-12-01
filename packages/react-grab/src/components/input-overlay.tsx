@@ -85,6 +85,10 @@ export const InputOverlay: Component<InputOverlayProps> = (props) => {
         positionTop = props.selectionBounds.y - inputHeight - 8;
       }
 
+      if (positionTop < VIEWPORT_MARGIN_PX) {
+        positionTop = VIEWPORT_MARGIN_PX;
+      }
+
       return { left: positionLeft, top: positionTop };
     }
 
@@ -160,7 +164,7 @@ export const InputOverlay: Component<InputOverlayProps> = (props) => {
     <div
       ref={containerRef}
       data-react-grab-input
-      class="fixed bg-grab-pink-light text-grab-pink border border-grab-pink-border rounded text-[11px] font-medium font-sans overflow-hidden"
+      class="fixed bg-grab-pink text-white border border-grab-pink rounded text-[11px] font-medium font-sans overflow-hidden shadow-lg"
       style={{
         display: props.visible ? "block" : "none",
         top: `${computedPosition().top}px`,
@@ -180,9 +184,9 @@ export const InputOverlay: Component<InputOverlayProps> = (props) => {
             onKeyDown={handleKeyDown}
             placeholder="Make a change"
             rows={1}
-            class="w-[150px] px-1 py-0.5 bg-white text-grab-pink border border-grab-pink-border rounded-[3px] text-[11px] leading-tight font-sans outline-none resize-none min-h-[18px] overflow-hidden"
+            class="w-[150px] px-1 py-0.5 bg-white/15 text-white border-none rounded-[3px] text-[11px] leading-tight font-sans outline-none resize-none min-h-[18px] overflow-hidden placeholder:text-white/50"
           />
-          <div class="text-[9px] opacity-60 text-center">
+          <div class="text-[9px] opacity-70 text-center">
             Enter ⏎ submit &middot; Esc cancel
           </div>
         </div>
@@ -190,12 +194,12 @@ export const InputOverlay: Component<InputOverlayProps> = (props) => {
       <Show when={!isInputMode()}>
         <div class="relative p-1.5 px-2 flex flex-col gap-1 min-w-[150px] max-w-[300px]">
           <div class="flex items-center gap-1.5">
-            <div class="w-2 h-2 rounded-full bg-grab-pink animate-pulse" />
+            <div class="w-2 h-2 rounded-full bg-white animate-pulse" />
             <div class="text-[11px] leading-tight wrap-break-word">
               {props.statusText || "Please wait..."}
             </div>
           </div>
-          <div class="text-[9px] opacity-60 text-center">
+          <div class="text-[9px] opacity-70 text-center">
             Esc to cancel
           </div>
         </div>
