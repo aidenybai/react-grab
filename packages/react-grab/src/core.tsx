@@ -10,6 +10,7 @@ import {
 } from "solid-js";
 import { render } from "solid-js/web";
 import { isKeyboardEventTriggeredByInput } from "./utils/is-keyboard-event-triggered-by-input.js";
+import { isSelectionInsideEditableElement } from "./utils/is-selection-inside-editable-element.js";
 import { mountRoot } from "./utils/mount-root.js";
 import { ReactGrabRenderer } from "./components/renderer.js";
 import {
@@ -1617,6 +1618,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           const cursorRect = isBackward ? clientRects[0] : clientRects[clientRects.length - 1];
           const cursorX = isBackward ? cursorRect.left : cursorRect.right;
           const cursorY = cursorRect.top + cursorRect.height / 2;
+
+          if (isSelectionInsideEditableElement(cursorX, cursorY)) {
+            setNativeSelectionCursorX(OFFSCREEN_POSITION);
+            setNativeSelectionCursorY(OFFSCREEN_POSITION);
+            setNativeSelectionElements([]);
+            setNativeSelectionTagName(undefined);
+            setNativeSelectionComponentName(undefined);
+            setNativeSelectionBounds(undefined);
+            return;
+          }
 
           setNativeSelectionCursorX(cursorX);
           setNativeSelectionCursorY(cursorY);
