@@ -254,13 +254,13 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               <div
                 class="flex items-center px-1 py-px h-[18px] rounded-[1.5px] gap-[5px]"
                 style={{
-                  background: "#FEC2FF",
+                  "background-image": "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)",
                   "border-width": "0.5px",
                   "border-style": "solid",
-                  "border-color": "#FEC2FF",
+                  "border-color": "#730079",
                 }}
               >
-                <span class="text-[#69006E] text-[12px] leading-4 font-medium tracking-[-0.04em]">
+                <span class="text-[#47004A] text-[12px] leading-4 font-medium tracking-[-0.04em]">
                   {tagDisplay()}
                 </span>
               </div>
@@ -289,13 +289,13 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               <div
                 class="flex items-center px-1 py-px h-[18px] rounded-[1.5px] gap-[5px]"
                 style={{
-                  background: "#FEC2FF",
+                  "background-image": "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)",
                   "border-width": "0.5px",
                   "border-style": "solid",
-                  "border-color": "#FEC2FF",
+                  "border-color": "#730079",
                 }}
               >
-                <span class="text-[#69006E] text-[12px] leading-4 font-medium tracking-[-0.04em]">
+                <span class="text-[#47004A] text-[12px] leading-4 font-medium tracking-[-0.04em]">
                   {tagDisplay()}
                 </span>
               </div>
@@ -333,13 +333,13 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               <div
                 class="flex items-center px-1 py-px h-[18px] rounded-[1.5px] gap-[5px]"
                 style={{
-                  background: "#FEC2FF",
+                  "background-image": "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)",
                   "border-width": "0.5px",
                   "border-style": "solid",
-                  "border-color": "#FEC2FF",
+                  "border-color": "#730079",
                 }}
               >
-                <span class="text-[#69006E] text-[12px] leading-4 font-medium tracking-[-0.04em]">
+                <span class="text-[#47004A] text-[12px] leading-4 font-medium tracking-[-0.04em]">
                   {tagDisplay()}
                 </span>
               </div>
@@ -379,13 +379,13 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 <div
                   class="shrink-0 flex items-center px-1 py-px w-fit h-[18px] rounded-[1.5px] gap-[5px]"
                   style={{
-                    background: "#FEC2FF",
+                    "background-image": "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)",
                     "border-width": "0.5px",
                     "border-style": "solid",
-                    "border-color": "#FEC2FF",
+                    "border-color": "#730079",
                   }}
                 >
-                  <span class="text-[#69006E] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
+                  <span class="text-[#47004A] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
                     {tagDisplay()}
                   </span>
                 </div>
@@ -441,13 +441,13 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 <div
                   class="shrink-0 flex items-center px-1 py-px w-fit h-[18px] rounded-[1.5px] gap-[5px]"
                   style={{
-                    background: "#FEC2FF",
+                    "background-image": "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)",
                     "border-width": "0.5px",
                     "border-style": "solid",
-                    "border-color": "#FEC2FF",
+                    "border-color": "#730079",
                   }}
                 >
-                  <span class="text-[#69006E] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
+                  <span class="text-[#47004A] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
                     {tagDisplay()}
                   </span>
                 </div>
