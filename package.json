@@ -2,7 +2,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "pnpm --filter react-grab build",
+    "build": "pnpm --filter react-grab build && pnpm --filter react-grab-cursor --filter react-grab-claude-code --filter react-grab-ami build",
     "dev": "pnpm --filter react-grab dev",
     "lint": "pnpm --filter react-grab lint",
     "lint:fix": "pnpm --filter react-grab lint:fix",
