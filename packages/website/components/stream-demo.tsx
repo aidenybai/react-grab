@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import {
   useStream,
@@ -8,8 +9,11 @@ import {
 } from "@/hooks/use-stream";
 import { ThoughtBlock } from "./blocks/thought-block";
 import { MessageBlock } from "./blocks/message-block";
-import { CodeBlock } from "./blocks/code-block";
 import { ToolCallsBlock } from "./blocks/tool-calls-block";
+
+const CodeBlock = dynamic(() => import("./blocks/code-block").then((mod) => mod.CodeBlock), {
+  ssr: false,
+});
 import { UserMessage } from "./user-message";
 import { GrabElementButton } from "./grab-element-button";
 import { ReactGrabLogo } from "./react-grab-logo";

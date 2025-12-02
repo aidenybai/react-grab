@@ -8,6 +8,12 @@
     "start": "next start",
     "lint": "eslint"
   },
+  "browserslist": [
+    "chrome >= 91",
+    "firefox >= 90",
+    "safari >= 15",
+    "edge >= 91"
+  ],
   "dependencies": {
     "@vercel/analytics": "^1.5.0",
     "lucide-react": "^0.553.0",
