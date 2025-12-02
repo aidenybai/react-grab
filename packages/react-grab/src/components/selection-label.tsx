@@ -1,7 +1,15 @@
-import { Show, createSignal, createEffect, onMount, onCleanup } from "solid-js";
+import {
+  Show,
+  createSignal,
+  createEffect,
+  onMount,
+  onCleanup,
+  type JSX,
+} from "solid-js";
 import type { Component } from "solid-js";
 import type { OverlayBounds, SelectionLabelStatus } from "../types.js";
 import { VIEWPORT_MARGIN_PX } from "../constants.js";
+import { cn } from "../utils/cn.js";
 import { IconCheckmark } from "./icon-checkmark.js";
 import { IconCursorSimple } from "./icon-cursor-simple.js";
 import { IconOpen } from "./icon-open.js";
@@ -27,15 +35,180 @@ interface SelectionLabelProps {
   onOpen?: () => void;
 }
 
+interface TagBadgeProps {
+  tagName: string;
+  isClickable: boolean;
+  onClick: (event: MouseEvent) => void;
+  onHoverChange?: (hovered: boolean) => void;
+  showMono?: boolean;
+  shrink?: boolean;
+}
+
+interface ActionPillProps {
+  icon: JSX.Element;
+  label: string;
+  onClick?: () => void;
+  asButton?: boolean;
+  dimmed?: boolean;
+  shrink?: boolean;
+}
+
+interface ClickToCopyPillProps {
+  onClick: () => void;
+  asButton?: boolean;
+  dimmed?: boolean;
+  shrink?: boolean;
+}
+
+interface BottomSectionProps {
+  children: JSX.Element;
+}
+
 type ArrowPosition = "bottom" | "top";
 
 const ARROW_HEIGHT = 8;
 const LABEL_GAP = 4;
 const IDLE_TIMEOUT_MS = 150;
 
+const TAG_GRADIENT =
+  "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)";
+
+const TagBadge: Component<TagBadgeProps> = (props) => {
+  const [isHovered, setIsHovered] = createSignal(false);
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+    props.onHoverChange?.(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    props.onHoverChange?.(false);
+  };
+
+  return (
+    <div
+      class={cn(
+        "flex items-center px-1 py-px h-[18px] rounded-[1.5px] gap-[5px] border-[0.5px] border-solid border-label-tag-border",
+        props.shrink && "shrink-0 w-fit",
+        props.isClickable && "cursor-pointer",
+      )}
+      style={{ "background-image": TAG_GRADIENT }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onClick={props.onClick}
+    >
+      <span
+        class={cn(
+          "text-label-tag-text text-[12px] leading-4 font-medium tracking-[-0.04em]",
+          props.showMono && "font-mono",
+          props.shrink && "shrink-0 w-fit h-fit",
+        )}
+      >
+        {props.tagName}
+      </span>
+      <Show when={props.isClickable}>
+        <IconOpen
+          size={10}
+          class={cn(
+            "text-label-tag-border transition-all duration-100",
+            isHovered()
+              ? "opacity-100 scale-100"
+              : "opacity-0 scale-75 -ml-[5px] w-0",
+          )}
+        />
+      </Show>
+    </div>
+  );
+};
+
+const ActionPill: Component<ActionPillProps> = (props) => {
+  const baseClass = cn(
+    "flex items-center h-[18px] rounded-[1.5px] gap-[3px] px-[5px] py-px border-[0.5px] border-solid border-label-gray-border",
+    props.shrink && "shrink-0 w-fit",
+    props.asButton && "cursor-pointer bg-transparent",
+    props.dimmed && "opacity-50 hover:opacity-100 transition-opacity",
+  );
+
+  const content = (
+    <>
+      {props.icon}
+      <span
+        class={cn(
+          "text-black text-[12px] leading-4 font-medium tracking-[-0.04em]",
+          props.shrink && "shrink-0 w-fit h-fit",
+        )}
+      >
+        {props.label}
+      </span>
+    </>
+  );
+
+  return props.asButton ? (
+    <button class={baseClass} onClick={props.onClick}>
+      {content}
+    </button>
+  ) : (
+    <div
+      class={baseClass}
+      role={props.onClick ? "button" : undefined}
+      onClick={props.onClick}
+    >
+      {content}
+    </div>
+  );
+};
+
+const SuccessPill: Component<{ hasAgent?: boolean }> = (props) => (
+  <div class="flex items-center h-[18px] rounded-[1.5px] gap-[3px] px-[5px] py-px bg-label-success-bg border-[0.5px] border-solid border-label-success-border">
+    <IconCheckmark size={9} class="text-label-success-text shrink-0" />
+    <span class="text-label-success-text text-[12px] leading-4 font-medium tracking-[-0.04em]">
+      {props.hasAgent ? "Completed" : "Copied"}
+    </span>
+  </div>
+);
+
+const Arrow: Component<{ position: ArrowPosition; leftPx: number }> = (
+  props,
+) => (
+  <div
+    class="absolute w-0 h-0"
+    style={{
+      left: `${props.leftPx}px`,
+      ...(props.position === "bottom"
+        ? { top: "0", transform: "translateX(-50%) translateY(-100%)" }
+        : { bottom: "0", transform: "translateX(-50%) translateY(100%)" }),
+      "border-left": "8px solid transparent",
+      "border-right": "8px solid transparent",
+      ...(props.position === "bottom"
+        ? { "border-bottom": "8px solid white" }
+        : { "border-top": "8px solid white" }),
+      "z-index": "1",
+    }}
+  />
+);
+
+const ClickToCopyPill: Component<ClickToCopyPillProps> = (props) => (
+  <ActionPill
+    icon={<IconCursorSimple size={9} class="text-black shrink-0" />}
+    label="Click to copy"
+    onClick={props.onClick}
+    asButton={props.asButton}
+    dimmed={props.dimmed}
+    shrink={props.shrink}
+  />
+);
+
+const BottomSection: Component<BottomSectionProps> = (props) => (
+  <div class="shrink-0 flex flex-col items-start px-2 py-[5px] w-full h-fit rounded-bl-[3px] rounded-br-[3px] border-t-[0.5px] border-t-solid border-t-label-divider">
+    {props.children}
+  </div>
+);
+
 export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
   let inputRef: HTMLTextAreaElement | undefined;
+  let isTagCurrentlyHovered = false;
 
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
@@ -43,14 +216,22 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     createSignal<ArrowPosition>("bottom");
   const [viewportVersion, setViewportVersion] = createSignal(0);
   const [isIdle, setIsIdle] = createSignal(false);
-  const [isTagHovered, setIsTagHovered] = createSignal(false);
+
+  const isNotProcessing = () =>
+    props.status !== "copying" &&
+    props.status !== "copied" &&
+    props.status !== "fading";
 
   const measureContainer = () => {
-    if (containerRef && !isTagHovered()) {
+    if (containerRef && !isTagCurrentlyHovered) {
       const rect = containerRef.getBoundingClientRect();
       setMeasuredWidth(rect.width);
       setMeasuredHeight(rect.height);
     }
+  };
+
+  const handleTagHoverChange = (hovered: boolean) => {
+    isTagCurrentlyHovered = hovered;
   };
 
   const handleViewportChange = () => {
@@ -74,9 +255,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       event.code === "Enter" &&
       isIdle() &&
       !props.isInputExpanded &&
-      props.status !== "copying" &&
-      props.status !== "copied" &&
-      props.status !== "fading"
+      isNotProcessing()
     ) {
       event.preventDefault();
       event.stopPropagation();
@@ -208,6 +387,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     event.stopImmediatePropagation();
   };
 
+  const handleSubmit = () => props.onSubmit?.();
+
   return (
     <Show when={props.visible !== false && props.selectionBounds}>
       <div
@@ -224,143 +405,47 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         onMouseDown={stopPropagation}
         onClick={stopPropagation}
       >
-        <Show when={arrowPosition() === "bottom"}>
-          <div
-            class="absolute w-0 h-0"
-            style={{
-              left: `${computedPosition().arrowLeft}px`,
-              top: "0",
-              transform: "translateX(-50%) translateY(-100%)",
-              "border-left": "8px solid transparent",
-              "border-right": "8px solid transparent",
-              "border-bottom": "8px solid white",
-              "z-index": "1",
-            }}
-          />
-        </Show>
-        <Show when={arrowPosition() === "top"}>
-          <div
-            class="absolute w-0 h-0"
-            style={{
-              left: `${computedPosition().arrowLeft}px`,
-              bottom: "0",
-              transform: "translateX(-50%) translateY(100%)",
-              "border-left": "8px solid transparent",
-              "border-right": "8px solid transparent",
-              "border-top": "8px solid white",
-              "z-index": "1",
-            }}
-          />
-        </Show>
+        <Arrow position={arrowPosition()} leftPx={computedPosition().arrowLeft} />
 
         <div
           class="relative flex items-center gap-[5px] bg-white rounded-[3px]"
           style={{
-            padding:
-              props.status === "copying" ||
-              props.status === "copied" ||
-              props.status === "fading"
-                ? "4px"
-                : isIdle() || props.isInputExpanded
-                  ? "0"
-                  : "4px",
+            padding: !isNotProcessing()
+              ? "4px"
+              : isIdle() || props.isInputExpanded
+                ? "0"
+                : "4px",
             "box-shadow": "#00000033 0px 2px 3px",
           }}
         >
           <Show when={props.status === "copied" || props.status === "fading"}>
             <div class="flex items-center gap-[3px]">
-              <div
-                class={`flex items-center px-1 py-px h-[18px] rounded-[1.5px] gap-[5px] ${isTagClickable() ? "cursor-pointer" : ""}`}
-                style={{
-                  "background-image":
-                    "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)",
-                  "border-width": "0.5px",
-                  "border-style": "solid",
-                  "border-color": "#730079",
-                }}
-                onMouseEnter={() => setIsTagHovered(true)}
-                onMouseLeave={() => setIsTagHovered(false)}
+              <TagBadge
+                tagName={tagDisplay()}
+                isClickable={isTagClickable()}
                 onClick={handleTagClick}
-              >
-                <span class="text-[#1E001F] text-[12px] leading-4 font-medium tracking-[-0.04em]">
-                  {tagDisplay()}
-                </span>
-                <Show when={isTagClickable()}>
-                  <IconOpen
-                    size={10}
-                    class={`text-[#730079] transition-all duration-100 ${isTagHovered() ? "opacity-100 scale-100" : "opacity-0 scale-75 -ml-[5px] w-0"}`}
-                  />
-                </Show>
-              </div>
-              <div
-                class="flex items-center h-[18px] rounded-[1.5px] gap-[3px]"
-                style={{
-                  "padding-left": "5px",
-                  "padding-right": "5px",
-                  "padding-top": "1px",
-                  "padding-bottom": "1px",
-                  background: "#D9FFE4",
-                  "border-width": "0.5px",
-                  "border-style": "solid",
-                  "border-color": "#00BB69",
-                }}
-              >
-                <IconCheckmark size={9} class="text-[#006E3B] shrink-0" />
-                <span class="text-[#006E3B] text-[12px] leading-4 font-medium tracking-[-0.04em]">
-                  {props.hasAgent ? "Completed" : "Copied"}
-                </span>
-              </div>
+                onHoverChange={handleTagHoverChange}
+              />
+              <SuccessPill hasAgent={props.hasAgent} />
             </div>
           </Show>
 
           <Show when={props.status === "copying"}>
             <div class="flex items-center gap-[3px] react-grab-shimmer rounded-[3px]">
-              <div
-                class={`flex items-center px-1 py-px h-[18px] rounded-[1.5px] gap-[5px] ${isTagClickable() ? "cursor-pointer" : ""}`}
-                style={{
-                  "background-image":
-                    "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)",
-                  "border-width": "0.5px",
-                  "border-style": "solid",
-                  "border-color": "#730079",
-                }}
-                onMouseEnter={() => setIsTagHovered(true)}
-                onMouseLeave={() => setIsTagHovered(false)}
+              <TagBadge
+                tagName={tagDisplay()}
+                isClickable={isTagClickable()}
                 onClick={handleTagClick}
-              >
-                <span class="text-[#1E001F] text-[12px] leading-4 font-medium tracking-[-0.04em] font-mono">
-                  {tagDisplay()}
-                </span>
-                <Show when={isTagClickable()}>
-                  <IconOpen
-                    size={10}
-                    class={`text-[#730079] transition-all duration-100 ${isTagHovered() ? "opacity-100 scale-100" : "opacity-0 scale-75 -ml-[5px] w-0"}`}
-                  />
-                </Show>
-              </div>
-              <div
-                class="flex items-center h-[18px] rounded-[1.5px] gap-[3px]"
-                style={{
-                  "padding-left": "5px",
-                  "padding-right": "5px",
-                  "padding-top": "1px",
-                  "padding-bottom": "1px",
-                  "border-width": "0.5px",
-                  "border-style": "solid",
-                  "border-color": "#B0B0B0",
-                }}
-              >
-                <IconCursorSimple size={9} class="text-black shrink-0" />
-                <span class="text-black text-[12px] leading-4 font-medium tracking-[-0.04em]">
-                  {props.statusText ?? "Grabbing…"}
-                </span>
-              </div>
+                onHoverChange={handleTagHoverChange}
+                showMono
+              />
+              <ActionPill
+                icon={<IconCursorSimple size={9} class="text-black shrink-0" />}
+                label={props.statusText ?? "Grabbing…"}
+              />
               <Show when={props.hasAgent && props.onAbort}>
                 <button
-                  class="flex items-center justify-center w-[18px] h-[18px] rounded-full cursor-pointer bg-black transition-opacity hover:opacity-80"
-                  style={{
-                    border: "none",
-                  }}
+                  class="flex items-center justify-center w-[18px] h-[18px] rounded-full cursor-pointer bg-black border-none transition-opacity hover:opacity-80"
                   onMouseDown={(event) => {
                     event.preventDefault();
                     event.stopPropagation();
@@ -380,196 +465,60 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             </div>
           </Show>
 
-          {/* State 1: Hover (not idle, not expanded) */}
-          <Show
-            when={
-              props.status !== "copying" &&
-              props.status !== "copied" &&
-              props.status !== "fading" &&
-              !isIdle() &&
-              !props.isInputExpanded
-            }
-          >
+          <Show when={isNotProcessing() && !isIdle() && !props.isInputExpanded}>
             <div class="flex items-center gap-[3px]">
-              <div
-                class={`flex items-center px-1 py-px h-[18px] rounded-[1.5px] gap-[5px] ${isTagClickable() ? "cursor-pointer" : ""}`}
-                style={{
-                  "background-image":
-                    "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)",
-                  "border-width": "0.5px",
-                  "border-style": "solid",
-                  "border-color": "#730079",
-                }}
-                onMouseEnter={() => setIsTagHovered(true)}
-                onMouseLeave={() => setIsTagHovered(false)}
+              <TagBadge
+                tagName={tagDisplay()}
+                isClickable={isTagClickable()}
                 onClick={handleTagClick}
-              >
-                <span class="text-[#1E001F] text-[12px] leading-4 font-medium tracking-[-0.04em] font-mono">
-                  {tagDisplay()}
-                </span>
-                <Show when={isTagClickable()}>
-                  <IconOpen
-                    size={10}
-                    class={`text-[#730079] transition-all duration-100 ${isTagHovered() ? "opacity-100 scale-100" : "opacity-0 scale-75 -ml-[5px] w-0"}`}
-                  />
-                </Show>
-              </div>
-              <button
-                class="flex items-center h-[18px] rounded-[1.5px] gap-[3px] cursor-pointer bg-transparent"
-                style={{
-                  "padding-left": "5px",
-                  "padding-right": "5px",
-                  "padding-top": "1px",
-                  "padding-bottom": "1px",
-                  "border-width": "0.5px",
-                  "border-style": "solid",
-                  "border-color": "#B0B0B0",
-                }}
-                onClick={() => props.onSubmit?.()}
-              >
-                <IconCursorSimple size={9} class="text-black shrink-0" />
-                <span class="text-black text-[12px] leading-4 font-medium tracking-[-0.04em]">
-                  Click to copy
-                </span>
-              </button>
+                onHoverChange={handleTagHoverChange}
+                showMono
+              />
+              <ClickToCopyPill onClick={handleSubmit} asButton />
             </div>
           </Show>
 
-          {/* State 2: Idle (showing "to modify" hint) */}
-          <Show
-            when={
-              props.status !== "copying" &&
-              props.status !== "copied" &&
-              props.status !== "fading" &&
-              isIdle() &&
-              !props.isInputExpanded
-            }
-          >
+          <Show when={isNotProcessing() && isIdle() && !props.isInputExpanded}>
             <div class="shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
               <div class="shrink-0 flex items-center gap-[3px] pt-1 w-fit h-fit px-1">
-                <div
-                  class={`shrink-0 flex items-center px-1 py-px w-fit h-[18px] rounded-[1.5px] gap-[5px] ${isTagClickable() ? "cursor-pointer" : ""}`}
-                  style={{
-                    "background-image":
-                      "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)",
-                    "border-width": "0.5px",
-                    "border-style": "solid",
-                    "border-color": "#730079",
-                  }}
-                  onMouseEnter={() => setIsTagHovered(true)}
-                  onMouseLeave={() => setIsTagHovered(false)}
+                <TagBadge
+                  tagName={tagDisplay()}
+                  isClickable={isTagClickable()}
                   onClick={handleTagClick}
-                >
-                  <span class="text-[#1E001F] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit font-mono">
-                    {tagDisplay()}
-                  </span>
-                  <Show when={isTagClickable()}>
-                    <IconOpen
-                      size={10}
-                      class={`text-[#730079] transition-all duration-100 ${isTagHovered() ? "opacity-100 scale-100" : "opacity-0 scale-75 -ml-[5px] w-0"}`}
-                    />
-                  </Show>
-                </div>
-                <div
-                  class="shrink-0 flex items-center w-fit h-[18px] rounded-[1.5px] gap-[3px] cursor-pointer"
-                  style={{
-                    "padding-left": "5px",
-                    "padding-right": "5px",
-                    "padding-top": "1px",
-                    "padding-bottom": "1px",
-                    "border-width": "0.5px",
-                    "border-style": "solid",
-                    "border-color": "#B0B0B0",
-                  }}
-                  role="button"
-                  onClick={() => props.onSubmit?.()}
-                >
-                  <IconCursorSimple size={9} class="text-black shrink-0" />
-                  <span class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
-                    Click to copy
-                  </span>
-                </div>
+                  onHoverChange={handleTagHoverChange}
+                  showMono
+                  shrink
+                />
+                <ClickToCopyPill onClick={handleSubmit} shrink />
               </div>
-              <div
-                class="shrink-0 flex flex-col items-start px-2 py-[5px] w-full h-fit rounded-bl-[3px] rounded-br-[3px]"
-                style={{
-                  "border-top-width": "0.5px",
-                  "border-top-style": "solid",
-                  "border-top-color": "#DEDEDE",
-                }}
-              >
+              <BottomSection>
                 <div class="shrink-0 flex items-center gap-1 w-full h-[14px]">
-                  <IconReturnKey size={10} class="shrink-0 text-black opacity-[0.65]" />
-                  <span class="text-[#767676] text-[11px] leading-3.5 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
+                  <IconReturnKey
+                    size={10}
+                    class="shrink-0 text-black opacity-[0.65]"
+                  />
+                  <span class="text-label-muted text-[11px] leading-3.5 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
                     to change
                   </span>
                 </div>
-              </div>
+              </BottomSection>
             </div>
           </Show>
 
-          {/* State 3: Input expanded (with textarea and submit icon) */}
-          <Show
-            when={
-              props.status !== "copying" &&
-              props.status !== "copied" &&
-              props.status !== "fading" &&
-              props.isInputExpanded
-            }
-          >
+          <Show when={isNotProcessing() && props.isInputExpanded}>
             <div class="shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
               <div class="shrink-0 flex items-center gap-[3px] pt-1 w-fit h-fit px-1">
-                <div
-                  class={`shrink-0 flex items-center px-1 py-px w-fit h-[18px] rounded-[1.5px] gap-[5px] ${isTagClickable() ? "cursor-pointer" : ""}`}
-                  style={{
-                    "background-image":
-                      "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)",
-                    "border-width": "0.5px",
-                    "border-style": "solid",
-                    "border-color": "#730079",
-                  }}
-                  onMouseEnter={() => setIsTagHovered(true)}
-                  onMouseLeave={() => setIsTagHovered(false)}
+                <TagBadge
+                  tagName={tagDisplay()}
+                  isClickable={isTagClickable()}
                   onClick={handleTagClick}
-                >
-                  <span class="text-[#1E001F] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit font-mono">
-                    {tagDisplay()}
-                  </span>
-                  <Show when={isTagClickable()}>
-                    <IconOpen
-                      size={10}
-                      class={`text-[#730079] transition-all duration-100 ${isTagHovered() ? "opacity-100 scale-100" : "opacity-0 scale-75 -ml-[5px] w-0"}`}
-                    />
-                  </Show>
-                </div>
-                <div
-                  class="shrink-0 flex items-center w-fit h-[18px] rounded-[1.5px] gap-[3px] cursor-pointer transition-opacity hover:opacity-100 opacity-50"
-                  style={{
-                    "padding-left": "5px",
-                    "padding-right": "5px",
-                    "padding-top": "1px",
-                    "padding-bottom": "1px",
-                    "border-width": "0.5px",
-                    "border-style": "solid",
-                    "border-color": "#B0B0B0",
-                  }}
-                  role="button"
-                  onClick={() => props.onSubmit?.()}
-                >
-                  <IconCursorSimple size={9} class="text-black shrink-0" />
-                  <span class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
-                    Click to copy
-                  </span>
-                </div>
+                  onHoverChange={handleTagHoverChange}
+                  showMono
+                  shrink
+                />
+                <ClickToCopyPill onClick={handleSubmit} dimmed shrink />
               </div>
-              <div
-                class="shrink-0 flex flex-col items-start px-2 py-[5px] w-full h-fit rounded-bl-[3px] rounded-br-[3px]"
-                style={{
-                  "border-top-width": "0.5px",
-                  "border-top-style": "solid",
-                  "border-top-color": "#DEDEDE",
-                }}
-              >
+              <BottomSection>
                 <div class="shrink-0 flex justify-between items-start w-full min-h-[14px]">
                   <textarea
                     ref={inputRef}
@@ -587,12 +536,12 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   />
                   <button
                     class="shrink-0 flex items-center gap-1 w-fit h-fit cursor-pointer bg-transparent border-none p-0 ml-1 mt-[2.5px]"
-                    onClick={() => props.onSubmit?.()}
+                    onClick={handleSubmit}
                   >
                     <IconReturnKey size={10} class="shrink-0 text-black" />
                   </button>
                 </div>
-              </div>
+              </BottomSection>
             </div>
           </Show>
         </div>
