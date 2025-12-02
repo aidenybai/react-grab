@@ -1141,52 +1141,42 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const dragRect = calculateDragRectangle(clientX, clientY);
 
         const elements = getElementsInDrag(dragRect, isValidGrabbableElement);
+        const selectedElements = elements.length > 0
+          ? elements
+          : getElementsInDragLoose(dragRect, isValidGrabbableElement);
 
-        if (elements.length > 0) {
-          options.onDragEnd?.(elements, dragRect);
-          const firstElementRect = elements[0].getBoundingClientRect();
+        if (selectedElements.length > 0) {
+          options.onDragEnd?.(selectedElements, dragRect);
+          const firstElement = selectedElements[0];
+          const firstElementRect = firstElement.getBoundingClientRect();
           const bounds: OverlayBounds = {
             x: firstElementRect.left,
             y: firstElementRect.top,
             width: firstElementRect.width,
             height: firstElementRect.height,
             borderRadius: "0px",
-            transform: stripTranslateFromTransform(elements[0]),
+            transform: stripTranslateFromTransform(firstElement),
           };
-          const tagName = extractElementTagName(elements[0]);
-          void executeCopyOperation(
-            clientX,
-            clientY,
-            () => copyMultipleElementsToClipboard(elements),
-            bounds,
-            tagName,
-            elements[0],
-          );
-        } else {
-          const fallbackElements = getElementsInDragLoose(
-            dragRect,
-            isValidGrabbableElement,
-          );
+          const tagName = extractElementTagName(firstElement);
 
-          if (fallbackElements.length > 0) {
-            options.onDragEnd?.(fallbackElements, dragRect);
-            const firstElementRect = fallbackElements[0].getBoundingClientRect();
-            const bounds: OverlayBounds = {
-              x: firstElementRect.left,
-              y: firstElementRect.top,
-              width: firstElementRect.width,
-              height: firstElementRect.height,
-              borderRadius: "0px",
-              transform: stripTranslateFromTransform(fallbackElements[0]),
-            };
-            const tagName = extractElementTagName(fallbackElements[0]);
+          if (options.agent?.provider) {
+            const centerX = bounds.x + bounds.width / 2;
+            const centerY = bounds.y + bounds.height / 2;
+            setMouseX(centerX);
+            setMouseY(centerY);
+            setFrozenElement(firstElement);
+            setIsToggleMode(true);
+            setIsToggleFrozen(true);
+            setIsInputExpanded(true);
+            setIsInputMode(true);
+          } else {
             void executeCopyOperation(
               clientX,
               clientY,
-              () => copyMultipleElementsToClipboard(fallbackElements),
+              () => copyMultipleElementsToClipboard(selectedElements),
               bounds,
               tagName,
-              fallbackElements[0],
+              firstElement,
             );
           }
         }
