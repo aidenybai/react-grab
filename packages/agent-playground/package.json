@@ -7,8 +7,8 @@
     "dev": "vite"
   },
   "dependencies": {
+    "@react-grab/ami": "workspace:*",
     "@react-grab/claude-code": "workspace:*",
-    "ami-sdk": "^0.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-grab": "workspace:*"

@@ -17,12 +17,12 @@ importers:
 
   packages/agent-playground:
     dependencies:
+      '@react-grab/ami':
+        specifier: workspace:*
+        version: link:../react-grab-ami
       '@react-grab/claude-code':
         specifier: workspace:*
         version: link:../react-grab-claude-code
-      ami-sdk:
-        specifier: ^0.0.1
-        version: 0.0.1
       react:
         specifier: ^19.0.0
         version: 19.2.0
@@ -174,6 +174,19 @@ importers:
       typescript-eslint:
         specifier: ^8.46.1
         version: 8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3)
+
+  packages/react-grab-ami:
+    dependencies:
+      ami-sdk:
+        specifier: ^0.0.1
+        version: 0.0.1
+      react-grab:
+        specifier: workspace:*
+        version: link:../react-grab
+    devDependencies:
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
 
   packages/react-grab-claude-code:
     dependencies:

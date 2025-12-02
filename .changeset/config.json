@@ -3,7 +3,7 @@
   "changelog": "@changesets/cli/changelog",
   "commit": false,
   "fixed": [],
-  "linked": [["react-grab", "@react-grab/claude-code"]],
+  "linked": [["react-grab", "@react-grab/claude-code", "@react-grab/ami"]],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",

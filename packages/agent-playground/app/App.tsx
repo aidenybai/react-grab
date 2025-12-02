@@ -1,12 +1,12 @@
 import { useEffect, useState, useRef } from "react";
 import { init } from "react-grab/core";
-import type { AgentSession, ReactGrabAPI } from "react-grab/core";
+import type { AgentProvider, ReactGrabAPI } from "react-grab/core";
 
 const PROVIDER = import.meta.env.VITE_PROVIDER ?? "claude";
 
-const getAgentProvider = async () => {
+const getAgentProvider = async (): Promise<AgentProvider<any>> => {
   if (PROVIDER === "ami") {
-    const { createAmiAgentProvider } = await import("../src/ami/client");
+    const { createAmiAgentProvider } = await import("@react-grab/ami/client");
     return createAmiAgentProvider();
   }
   const { createClaudeAgentProvider } = await import(
@@ -98,11 +98,11 @@ export const App = () => {
         agent: {
           provider: agentProvider,
           storage: sessionStorage,
-          onStart: (session: AgentSession) => addLog("start", session.id),
-          onStatus: (status: string) => addLog("status", status),
+          onStart: (session) => addLog("start", session.id),
+          onStatus: (status) => addLog("status", status),
           onComplete: () => addLog("done", "Complete"),
-          onError: (error: Error) => addLog("error", error.message),
-          onResume: (session: AgentSession) => addLog("resume", session.id),
+          onError: (error) => addLog("error", error.message),
+          onResume: (session) => addLog("resume", session.id),
         },
       });
 
