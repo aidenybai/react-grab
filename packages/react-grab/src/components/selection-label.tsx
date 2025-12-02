@@ -1,4 +1,4 @@
-import { Show, createSignal, createEffect, onMount } from "solid-js";
+import { Show, createSignal, createEffect, onMount, onCleanup } from "solid-js";
 import type { Component } from "solid-js";
 import type { OverlayBounds, SelectionLabelStatus } from "../types.js";
 import { VIEWPORT_MARGIN_PX } from "../constants.js";
@@ -30,6 +30,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
   const [arrowPosition, setArrowPosition] = createSignal<ArrowPosition>("bottom");
+  const [viewportVersion, setViewportVersion] = createSignal(0);
 
   const measureContainer = () => {
     if (containerRef) {
@@ -39,8 +40,19 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     }
   };
 
+  const handleViewportChange = () => {
+    setViewportVersion((version) => version + 1);
+  };
+
   onMount(() => {
     measureContainer();
+    window.addEventListener("scroll", handleViewportChange, true);
+    window.addEventListener("resize", handleViewportChange);
+  });
+
+  onCleanup(() => {
+    window.removeEventListener("scroll", handleViewportChange, true);
+    window.removeEventListener("resize", handleViewportChange);
   });
 
   createEffect(() => {
@@ -63,6 +75,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   });
 
   const computedPosition = () => {
+    viewportVersion();
     const bounds = props.selectionBounds;
     const labelWidth = measuredWidth();
     const labelHeight = measuredHeight();
@@ -125,8 +138,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const handleInput = (event: InputEvent) => {
     const target = event.target as HTMLTextAreaElement;
     props.onInputChange?.(target.value);
-    target.style.height = "auto";
-    target.style.height = `${target.scrollHeight}px`;
   };
 
   const tagDisplay = () => props.tagName || "element";
@@ -252,12 +263,16 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
             <Show when={props.isInputExpanded && props.status !== "copying" && props.status !== "copied" && props.status !== "fading"}>
               {/* Input field */}
-              <div class="relative flex items-start px-[5px] py-px rounded-[3px] bg-white border border-[#DFDFDF]">
+              <div
+                class="grid rounded-[3px] bg-white border border-[#DFDFDF]"
+                style={{ "grid-template-columns": "1fr" }}
+              >
                 <span
-                  class="invisible whitespace-pre-wrap text-[12px] leading-4 font-medium min-w-[100px] max-w-[300px] break-words"
+                  class="invisible whitespace-pre-wrap wrap-break-word text-[12px] leading-4 font-medium min-w-[100px] max-w-[300px] px-[5px] py-px col-start-1 row-start-1"
+                  style={{ "word-break": "break-word", "overflow-wrap": "break-word" }}
                   aria-hidden="true"
                 >
-                  {props.inputValue || "make a change"}
+                  {props.inputValue || "make a change"}{"\u200B"}
                 </span>
                 <textarea
                   ref={inputRef}
@@ -266,7 +281,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   onKeyDown={handleKeyDown}
                   placeholder="make a change"
                   rows={1}
-                  class="absolute inset-0 px-[5px] py-px text-[#4F4F4F] text-[12px] leading-4 font-medium bg-transparent border-none outline-none resize-none min-h-[16px] placeholder:text-[#9F9F9F] placeholder:italic"
+                  class="text-[#4F4F4F] text-[12px] leading-4 font-medium bg-transparent border-none outline-none resize-none min-h-[16px] px-[5px] py-px col-start-1 row-start-1 whitespace-pre-wrap break-words min-w-[100px] max-w-[300px] placeholder:text-[#9F9F9F] placeholder:italic overflow-hidden"
+                  style={{ "word-break": "break-word", "overflow-wrap": "break-word" }}
                 />
               </div>
             </Show>

@@ -266,11 +266,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       );
     };
 
-    const createLabelInstance = (bounds: OverlayBounds, tagName: string, status: SelectionLabelStatus): string => {
+    const createLabelInstance = (bounds: OverlayBounds, tagName: string, status: SelectionLabelStatus, element?: Element): string => {
       const instanceId = `label-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       setLabelInstances((prev) => [
         ...prev,
-        { id: instanceId, bounds, tagName, status, createdAt: Date.now() },
+        { id: instanceId, bounds, tagName, status, createdAt: Date.now(), element },
       ]);
       return instanceId;
     };
@@ -293,6 +293,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       operation: () => Promise<void>,
       bounds?: OverlayBounds,
       tagName?: string,
+      element?: Element,
     ) => {
       setCopyStartX(positionX);
       setCopyStartY(positionY);
@@ -300,7 +301,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       startProgressAnimation();
 
       const instanceId = bounds && tagName
-        ? createLabelInstance(bounds, tagName, "copying")
+        ? createLabelInstance(bounds, tagName, "copying", element)
         : null;
 
       await operation().finally(() => {
@@ -981,6 +982,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           () => copySingleElementToClipboard(element, prompt || undefined),
           bounds,
           tagName,
+          element,
         ).then(() => {
           deactivateRenderer();
         });
@@ -1140,6 +1142,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             () => copyMultipleElementsToClipboard(elements),
             bounds,
             tagName,
+            elements[0],
           );
         } else {
           const fallbackElements = getElementsInDragLoose(
@@ -1165,6 +1168,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               () => copyMultipleElementsToClipboard(fallbackElements),
               bounds,
               tagName,
+              fallbackElements[0],
             );
           }
         }
@@ -1190,6 +1194,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           () => copySingleElementToClipboard(element),
           bounds,
           tagName,
+          element,
         );
       }
     };
@@ -1276,7 +1281,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           }
         }
 
-        if (isActivated() || isHoldingKeys()) {
+        if ((isActivated() || isHoldingKeys()) && !isInputMode()) {
           event.preventDefault();
         }
 
@@ -1642,6 +1647,28 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return isRendererActive() && !isDragging() && Boolean(targetElement());
     });
 
+    const computedLabelInstances = createMemo(() => {
+      viewportVersion();
+      return labelInstances().map((instance) => {
+        if (!instance.element || !document.body.contains(instance.element)) {
+          return instance;
+        }
+        const elementRect = instance.element.getBoundingClientRect();
+        const computedStyle = window.getComputedStyle(instance.element);
+        return {
+          ...instance,
+          bounds: {
+            x: elementRect.left,
+            y: elementRect.top,
+            width: elementRect.width,
+            height: elementRect.height,
+            borderRadius: computedStyle.borderRadius || "0px",
+            transform: stripTranslateFromTransform(instance.element),
+          },
+        };
+      });
+    });
+
     const dragVisible = createMemo(
       () =>
         theme().dragBox.enabled &&
@@ -1696,7 +1723,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             selectionTagName={selectionTagName()}
             selectionLabelVisible={selectionLabelVisible()}
             selectionLabelStatus={selectionLabelStatus()}
-            labelInstances={labelInstances()}
+            labelInstances={computedLabelInstances()}
             dragVisible={dragVisible()}
             dragBounds={dragBounds()}
             grabbedBoxes={shouldShowGrabbedBoxes() ? grabbedBoxes() : []}

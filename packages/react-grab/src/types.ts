@@ -317,6 +317,7 @@ export interface SelectionLabelInstance {
   tagName: string;
   status: SelectionLabelStatus;
   createdAt: number;
+  element?: Element;
 }
 
 export interface ReactGrabRendererProps {
