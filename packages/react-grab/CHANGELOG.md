@@ -4,244 +4,289 @@
 
 ### Patch Changes
 
-- beta
+- add agent session management with abort handling and onAbort callback
+- add session progress animation and status display in AgentLabel component
+- add tagName and selectionBounds to session management for context
+- improve drag-and-drop logic with better bounds calculation for selected elements
+- add shimmer effect css animations to selection label
+- improve selection handling with frozen element for input submission
+- add copied state indicator
+- add debounced cursor visibility with SELECTION_CURSOR_SETTLE_DELAY_MS
+- add checks for editable elements to prevent cursor updates inside text areas
+- add size prop to IconToggle component for customizable dimensions
+- improve button placement logic and visibility handling in selection box
+- integrate BLUR_DEACTIVATION_THRESHOLD_MS for better activation state handling
+- add createLabelInstance function for better label instance tracking
+- improve input overlay styling with placeholder text adjustments
+- add streaming session handling and logging for session resume operations
 
 ## 0.0.54
 
 ### Patch Changes
 
-- log: false
+- disable logging by default (log: false)
+- add browser extension support
+- add script configuration options for minimal instrumentation
+- adjust state management and success label handling
 
 ## 0.0.53
 
 ### Patch Changes
 
-- fix: focus states
+- improve focus state handling
 
 ## 0.0.52
 
 ### Patch Changes
 
-- fix: copy states
+- improve copy state indicators
 
 ## 0.0.51
 
 ### Patch Changes
 
-- fix: jsdocs on theme prop values
+- add detailed jsdoc comments for theme properties
+- enhance Theme interface with properties for selection box, cursor, crosshair, and labels
 
 ## 0.0.50
 
 ### Patch Changes
 
-- feat: extend API
+- add extensibility api for custom integrations
+- increase key hold duration from 150ms to 200ms for better detection
+- improve element bounds calculation
+- add timestamp to version fetch url for cache busting
 
 ## 0.0.49
 
 ### Patch Changes
 
-- fix: reactivation bug
+- allow rapid re-activation of cmd+c shortcut after use
+- prevent default and stop propagation for enter key in cmd+c mode
+- improve styling and update dependencies
 
 ## 0.0.48
 
 ### Patch Changes
 
-- fix: version fetching
+- improve version fetching with timestamp parameter
 
 ## 0.0.47
 
 ### Patch Changes
 
-- fix: use event code instead of event key
+- use event.code instead of event.key for keyboard layout compatibility (dvorak, azerty, etc.)
 
 ## 0.0.46
 
 ### Patch Changes
 
-- fix: non-react projects
+- improve instrumentation checks for non-react projects
+- enhance element handling in core functionality
+- fix redirect issues
 
 ## 0.0.45
 
 ### Patch Changes
 
-- feat: input
+- improve input element handling and fix enter key deactivation
+- enhance clipboard functionality and grabbed box handling
+- update drag and auto-scroll constants for smoother interactions
 
 ## 0.0.44
 
 ### Patch Changes
 
-- fix: new log
+- add debug logging support
 
 ## 0.0.43
 
 ### Patch Changes
 
-- fix: new hooks
+- fix website implementation issues
+- improve hook implementations
 
 ## 0.0.42
 
 ### Patch Changes
 
-- fix: improve cursor
+- improve cursor tracking behavior
 
 ## 0.0.41
 
 ### Patch Changes
 
-- fix: improved copy version
+- code cleanup and improvements
+- improve copy version formatting
 
 ## 0.0.40
 
 ### Patch Changes
 
-- fix: selection opacity
+- add text-only copy with markdown conversion using turndown
+- make cmd+c higher priority over other handlers
+- improve selection opacity handling
+- filter out Primitive. elements from instrumentation
+- remove prompt input from ReactGrabRenderer
+- update selection box styles for improved variant handling
+- fix source location detection
 
 ## 0.0.39
 
 ### Patch Changes
 
-- fix: sourcemaps in prod
+- improve sourcemaps in production builds
+- make success notification follow cursor position after grabbing elements
 
 ## 0.0.38
 
 ### Patch Changes
 
-- fix: multi select
+- add multi-select support
+- add browser extension groundwork
 
 ## 0.0.37
 
 ### Patch Changes
 
-- fix: in Component
+- code cleanup and improvements
 
 ## 0.0.36
 
 ### Patch Changes
 
-- fix: progress indicator
+- show progress indicator during copy operation
 
 ## 0.0.35
 
 ### Patch Changes
 
-- fix: allow copying inside input
+- allow activation while cursor is inside input elements
 
 ## 0.0.34
 
 ### Patch Changes
 
-- fix: click thru
+- improve click-through behavior and cleanup
 
 ## 0.0.33
 
 ### Patch Changes
 
-- fix: bug with optimisitc label
+- major version rewrite with new crosshair design
+- code cleanup and optimizations
 
 ## 0.0.32
 
 ### Patch Changes
 
-- fix: keybind issues
+- fix keybind conflict issues
+- website integration improvements
 
 ## 0.0.31
 
 ### Patch Changes
 
-- fix: screenshotrs
+- improve screenshot capture
 
 ## 0.0.30
 
 ### Patch Changes
 
-- improvements to instrumentaiton
+- improve instrumentation reliability
 
 ## 0.0.29
 
 ### Patch Changes
 
-- fix: crosshair length
+- fix crosshair length calculation
 
 ## 0.0.28
 
 ### Patch Changes
 
-- fix: computed styles
+- add computed styles to grabbed element output
 
 ## 0.0.27
 
 ### Patch Changes
 
-- fix: sources
+- improve source location detection
 
 ## 0.0.26
 
 ### Patch Changes
 
-- performance
+- improve overall performance
 
 ## 0.0.25
 
 ### Patch Changes
 
-- new crosshair
+- add new crosshair design
+- code cleanup
 
 ## 0.0.24
 
 ### Patch Changes
 
-- fix: issues
+- fix various edge cases
 
 ## 0.0.23
 
 ### Patch Changes
 
-- fix: things
+- version bump
 
 ## 0.0.21
 
 ### Patch Changes
 
-- fix: refactor code
+- refactor codebase structure
+- migrate to new architecture
 
 ## 0.0.20
 
 ### Patch Changes
 
-- fix: circular references issue
+- fix circular reference handling
+- enable grabbing of disabled elements (thanks @aymanch-03)
+- refactor event parameter naming in createSelectionOverlay
 
 ## 0.0.19
 
 ### Patch Changes
 
-- fix: react devtools and windows/linux compat
+- add windows and linux path support
+- prevent underlying element click handlers during overlay mode
+- improve react devtools compatibility
 
 ## 0.0.18
 
 ### Patch Changes
 
-- fix: owner stack
+- fix owner stack traversal
 
 ## 0.0.17
 
 ### Patch Changes
 
-- fix: sourcemaps
+- improve sourcemap support
 
 ## 0.0.16
 
 ### Patch Changes
 
-- fix: docs
+- improve documentation
 
 ## 0.0.15
 
 ### Patch Changes
 
-- fix: ux fixes
+- various ux improvements
 
 ## 0.0.14
 
 ### Patch Changes
 
-- fix: key
+- fix keyboard shortcut handling

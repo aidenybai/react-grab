@@ -196,6 +196,43 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setNativeSelectionElements([]);
     };
 
+    const recalculateNativeSelectionCursor = () => {
+      const currentSelection = window.getSelection();
+      if (!currentSelection || currentSelection.isCollapsed || currentSelection.rangeCount === 0) {
+        return;
+      }
+
+      const range = currentSelection.getRangeAt(0);
+      const clientRects = range.getClientRects();
+      if (clientRects.length === 0) return;
+
+      const isBackward = (() => {
+        if (!currentSelection.anchorNode || !currentSelection.focusNode) return false;
+        const position = currentSelection.anchorNode.compareDocumentPosition(currentSelection.focusNode);
+        if (position & Node.DOCUMENT_POSITION_FOLLOWING) return false;
+        if (position & Node.DOCUMENT_POSITION_PRECEDING) return true;
+        return currentSelection.anchorOffset > currentSelection.focusOffset;
+      })();
+
+      const cursorRect = isBackward ? clientRects[0] : clientRects[clientRects.length - 1];
+      const cursorX = isBackward ? cursorRect.left : cursorRect.right;
+      const cursorY = cursorRect.top + cursorRect.height / 2;
+
+      setNativeSelectionCursorX(cursorX);
+      setNativeSelectionCursorY(cursorY);
+    };
+
+    createEffect(
+      on(
+        () => viewportVersion(),
+        () => {
+          if (hasNativeSelection()) {
+            recalculateNativeSelectionCursor();
+          }
+        },
+      ),
+    );
+
     const nativeSelectionBounds = createMemo((): OverlayBounds | undefined => {
       viewportVersion();
       const elements = nativeSelectionElements();

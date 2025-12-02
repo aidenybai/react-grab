@@ -38,6 +38,13 @@ export const DemoFooter = () => {
           className="underline underline-offset-4 hover:text-white/80"
         >
           blog
+        </a>{" "}
+        &middot;{" "}
+        <a
+          href="/changelog"
+          className="underline underline-offset-4 hover:text-white/80"
+        >
+          changelog
         </a>
       </p>
       <p className="mt-3 text-xs text-white/40 sm:hidden">
