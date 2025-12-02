@@ -2,8 +2,8 @@ import { Show, createSignal, createEffect, onMount, onCleanup } from "solid-js";
 import type { Component } from "solid-js";
 import type { OverlayBounds, SelectionLabelStatus } from "../types.js";
 import { VIEWPORT_MARGIN_PX } from "../constants.js";
-import { IconPointer } from "./icon-pointer.js";
-import { IconTextCursor } from "./icon-text-cursor.js";
+import { IconCursorSimple } from "./icon-cursor-simple.js";
+import { IconReturnKey } from "./icon-return-key.js";
 
 interface SelectionLabelProps {
   tagName?: string;
@@ -225,18 +225,17 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         </Show>
 
         <div
-          class="relative flex items-center gap-[5px] rounded-[10px] bg-white"
+          class="relative flex items-center gap-[5px] bg-white"
           style={{
-            padding: (props.status === "copying" || props.status === "copied" || props.status === "fading") 
-              ? "4px" 
-              : (isIdle() || props.isInputExpanded) ? "0" : "4px",
-            "box-shadow": "#00000033 0px 2px 3px",
+            padding: "0",
+            "box-shadow": (props.status === "copying" || props.status === "copied" || props.status === "fading" || (!isIdle() && !props.isInputExpanded)) ? "#00000033 0px 2px 3px" : "none",
+            "border-radius": (props.status === "copying" || props.status === "copied" || props.status === "fading") ? "3px" : ((isIdle() || props.isInputExpanded) ? "1.5px" : "3px"),
           }}
         >
           <Show when={props.status === "copied" || props.status === "fading"}>
-            <div class="flex items-center gap-[3px]">
+            <div class="flex items-center gap-[3px] p-1">
               <div
-                class="flex items-center px-1 py-px h-[18px] rounded-[5px] gap-[5px]"
+                class="flex items-center px-1 py-px h-[18px] rounded-[1.5px] gap-[5px]"
                 style={{
                   background: "#FEC2FF",
                   "border-width": "0.5px",
@@ -249,35 +248,29 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 </span>
               </div>
               <div
-                class="relative flex items-center h-[18px] rounded-[5px] gap-[3px]"
+                class="flex items-center h-[18px] rounded-[1.5px] gap-[3px]"
                 style={{
-                  "padding-left": "19px",
-                  "padding-right": "6px",
+                  "padding-left": "5px",
+                  "padding-right": "5px",
                   "padding-top": "1px",
                   "padding-bottom": "1px",
-                  background: "#FDAFFF",
                   "border-width": "0.5px",
                   "border-style": "solid",
-                  "border-color": "#FDAFFF",
+                  "border-color": "#B0B0B0",
                 }}
               >
-                <div
-                  class="absolute top-0 left-0 w-3.5 h-3.5"
-                  style={{ translate: "4px 2.5px" }}
-                >
-                  <IconPointer size={14} class="text-black" />
-                </div>
+                <IconCursorSimple size={9} class="text-black shrink-0" />
                 <span class="text-black text-[12px] leading-4 font-medium tracking-[-0.04em]">
-                  Grabbed
+                  Copied
                 </span>
               </div>
             </div>
           </Show>
 
           <Show when={props.status === "copying"}>
-            <div class="flex items-center gap-[3px]">
+            <div class="flex items-center gap-[3px] p-1">
               <div
-                class="flex items-center px-1 py-px h-[18px] rounded-[5px] gap-[5px]"
+                class="flex items-center px-1 py-px h-[18px] rounded-[1.5px] gap-[5px]"
                 style={{
                   background: "#FEC2FF",
                   "border-width": "0.5px",
@@ -290,24 +283,18 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 </span>
               </div>
               <div
-                class="relative flex items-center h-[18px] rounded-[5px] gap-[3px]"
+                class="flex items-center h-[18px] rounded-[1.5px] gap-[3px]"
                 style={{
-                  "padding-left": "19px",
-                  "padding-right": "6px",
+                  "padding-left": "5px",
+                  "padding-right": "5px",
                   "padding-top": "1px",
                   "padding-bottom": "1px",
-                  background: "#FDAFFF",
                   "border-width": "0.5px",
                   "border-style": "solid",
-                  "border-color": "#FDAFFF",
+                  "border-color": "#B0B0B0",
                 }}
               >
-                <div
-                  class="absolute top-0 left-0 w-3.5 h-3.5"
-                  style={{ translate: "4px 2.5px" }}
-                >
-                  <IconPointer size={14} class="text-black" />
-                </div>
+                <IconCursorSimple size={9} class="text-black shrink-0" />
                 <span class="text-black text-[12px] leading-4 font-medium tracking-[-0.04em]">
                   {props.statusText ?? "Grabbing…"}
                 </span>
@@ -317,9 +304,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
           {/* State 1: Hover (not idle, not expanded) */}
           <Show when={props.status !== "copying" && props.status !== "copied" && props.status !== "fading" && !isIdle() && !props.isInputExpanded}>
-            <div class="flex items-center gap-[3px]">
+            <div class="flex items-center gap-[3px] p-1">
               <div
-                class="flex items-center px-1 py-px h-[18px] rounded-[5px] gap-[5px]"
+                class="flex items-center px-1 py-px h-[18px] rounded-[1.5px] gap-[5px]"
                 style={{
                   background: "#FEC2FF",
                   "border-width": "0.5px",
@@ -332,10 +319,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 </span>
               </div>
               <button
-                class="relative flex items-center h-[18px] rounded-[5px] gap-[3px] cursor-pointer bg-transparent"
+                class="flex items-center h-[18px] rounded-[1.5px] gap-[3px] cursor-pointer bg-transparent"
                 style={{
-                  "padding-left": "19px",
-                  "padding-right": "6px",
+                  "padding-left": "5px",
+                  "padding-right": "5px",
                   "padding-top": "1px",
                   "padding-bottom": "1px",
                   "border-width": "0.5px",
@@ -344,14 +331,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 }}
                 onClick={() => props.onSubmit?.()}
               >
-                <div
-                  class="absolute top-0 left-0 w-3.5 h-3.5"
-                  style={{ translate: "4px 2.5px" }}
-                >
-                  <IconPointer size={14} class="text-black" />
-                </div>
+                <IconCursorSimple size={9} class="text-black shrink-0" />
                 <span class="text-black text-[12px] leading-4 font-medium tracking-[-0.04em]">
-                  Click to grab
+                  Click to copy
                 </span>
               </button>
             </div>
@@ -362,7 +344,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             <div class="shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
               <div class="shrink-0 flex items-center gap-[3px] pt-1 w-fit h-fit px-1">
                 <div
-                  class="shrink-0 flex items-center px-1 py-px w-fit h-[18px] rounded-[5px] gap-[5px]"
+                  class="shrink-0 flex items-center px-1 py-px w-fit h-[18px] rounded-[1.5px] gap-[5px]"
                   style={{
                     background: "#FEC2FF",
                     "border-width": "0.5px",
@@ -375,10 +357,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   </span>
                 </div>
                 <div
-                  class="relative shrink-0 flex items-center w-fit h-[18px] rounded-[5px] gap-[3px] cursor-pointer"
+                  class="shrink-0 flex items-center w-fit h-[18px] rounded-[1.5px] gap-[3px] cursor-pointer"
                   style={{
-                    "padding-left": "19px",
-                    "padding-right": "6px",
+                    "padding-left": "5px",
+                    "padding-right": "5px",
                     "padding-top": "1px",
                     "padding-bottom": "1px",
                     "border-width": "0.5px",
@@ -388,14 +370,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   role="button"
                   onClick={() => props.onSubmit?.()}
                 >
-                  <div
-                    class="absolute top-0 left-0 w-3.5 h-3.5"
-                    style={{ translate: "4px 2.5px" }}
-                  >
-                    <IconPointer size={14} class="text-black" />
-                  </div>
+                  <IconCursorSimple size={9} class="text-black shrink-0" />
                   <span class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
-                    Click to grab
+                    Click to copy
                   </span>
                 </div>
               </div>
@@ -408,7 +385,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 }}
               >
                 <div class="shrink-0 flex items-center gap-1 w-full h-[14px]">
-                  <IconTextCursor class="shrink-0 text-black opacity-[0.65]" />
+                  <IconReturnKey size={10} class="shrink-0 text-black opacity-[0.41]" />
                   <span class="text-[#767676] text-[11px] leading-3.5 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
                     to modify
                   </span>
@@ -422,7 +399,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             <div class="shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
               <div class="shrink-0 flex items-center gap-[3px] pt-1 w-fit h-fit px-1">
                 <div
-                  class="shrink-0 flex items-center px-1 py-px w-fit h-[18px] rounded-[5px] gap-[5px]"
+                  class="shrink-0 flex items-center px-1 py-px w-fit h-[18px] rounded-[1.5px] gap-[5px]"
                   style={{
                     background: "#FEC2FF",
                     "border-width": "0.5px",
@@ -435,10 +412,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   </span>
                 </div>
                 <div
-                  class="relative shrink-0 flex items-center w-fit h-[18px] rounded-[5px] gap-[3px] cursor-pointer"
+                  class="shrink-0 flex items-center w-fit h-[18px] rounded-[1.5px] gap-[3px] cursor-pointer"
                   style={{
-                    "padding-left": "19px",
-                    "padding-right": "6px",
+                    "padding-left": "5px",
+                    "padding-right": "5px",
                     "padding-top": "1px",
                     "padding-bottom": "1px",
                     "border-width": "0.5px",
@@ -448,14 +425,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   role="button"
                   onClick={() => props.onSubmit?.()}
                 >
-                  <div
-                    class="absolute top-0 left-0 w-3.5 h-3.5"
-                    style={{ translate: "4px 2.5px" }}
-                  >
-                    <IconPointer size={14} class="text-black" />
-                  </div>
+                  <IconCursorSimple size={9} class="text-black shrink-0" />
                   <span class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
-                    Click to grab
+                    Click to copy
                   </span>
                 </div>
               </div>
@@ -485,7 +457,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     class="shrink-0 flex items-center gap-1 w-fit h-fit cursor-pointer bg-transparent border-none p-0 ml-1 mt-[2.5px]"
                     onClick={() => props.onSubmit?.()}
                   >
-                    <IconTextCursor class="shrink-0 text-black opacity-100" />
+                    <IconReturnKey size={10} class="shrink-0 text-black" />
                   </button>
                 </div>
               </div>
