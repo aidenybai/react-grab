@@ -351,7 +351,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   <IconPointer size={14} class="text-black" />
                 </div>
                 <span class="text-black text-[12px] leading-4 font-medium tracking-[-0.04em]">
-                  to grab
+                  Click to grab
                 </span>
               </button>
             </div>
@@ -395,7 +395,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     <IconPointer size={14} class="text-black" />
                   </div>
                   <span class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
-                    to grab
+                    Click to grab
                   </span>
                 </div>
               </div>
@@ -455,7 +455,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     <IconPointer size={14} class="text-black" />
                   </div>
                   <span class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
-                    to grab
+                    Click to grab
                   </span>
                 </div>
               </div>
