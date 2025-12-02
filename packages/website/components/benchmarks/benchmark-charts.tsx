@@ -435,7 +435,6 @@ export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
   return (
     <div>
       <div className="space-y-8">
-        {/* Chart Section */}
         <div className="h-[320px] w-full">
           <div className="mb-4 text-sm text-neutral-500 text-center">
             Normalized to Control = 100%
@@ -541,7 +540,6 @@ export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
           </ResponsiveContainer>
         </div>
 
-        {/* Table Section */}
         <div className="overflow-x-auto flex justify-center">
           <table className="text-sm border-collapse max-w-2xl w-full">
             <thead>

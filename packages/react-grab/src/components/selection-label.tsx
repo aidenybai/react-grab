@@ -163,7 +163,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         onMouseDown={stopPropagation}
         onClick={stopPropagation}
       >
-        {/* Arrow pointing up (when label is below element) */}
         <Show when={arrowPosition() === "bottom"}>
           <div
             class="absolute w-0 h-0"
@@ -178,7 +177,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             }}
           />
         </Show>
-        {/* Arrow pointing down (when label is above element) */}
         <Show when={arrowPosition() === "top"}>
           <div
             class="absolute w-0 h-0"
@@ -194,7 +192,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           />
         </Show>
 
-        {/* Main container */}
         <div
           class="relative flex items-center gap-[7px] rounded-[7px] overflow-hidden bg-white"
           style={{
@@ -202,7 +199,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             "box-shadow": "0 0 0 1px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08)",
           }}
         >
-          {/* Shimmer overlay */}
           <Show when={props.status === "copying"}>
             <div
               class="absolute inset-0 pointer-events-none"
@@ -221,7 +217,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           </Show>
 
           <div class="flex items-center gap-1">
-            {/* Tag pill */}
             <div
               class="flex items-center px-[5px] py-px rounded-[3.5px]"
               style={{
@@ -235,21 +230,18 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             </div>
 
             <Show when={props.status === "copied" || props.status === "fading"}>
-              {/* Copied text */}
               <span class="text-[#A000A6] text-[12px] leading-4 font-medium tracking-[-0.02em] px-0.5">
                 Copied
               </span>
             </Show>
 
             <Show when={props.status === "copying"}>
-              {/* Copying text */}
               <span class="text-[#A000A6] text-[12px] leading-4 font-medium tracking-[-0.02em] px-0.5">
                 Please wait…
               </span>
             </Show>
 
             <Show when={!props.isInputExpanded && props.status !== "copying" && props.status !== "copied" && props.status !== "fading"}>
-              {/* Hint text */}
               <div class="flex items-center px-0.5">
                 <span class="text-[#323232] text-[12px] leading-4 font-medium tracking-[-0.02em]">
                   Hit
@@ -262,7 +254,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             </Show>
 
             <Show when={props.isInputExpanded && props.status !== "copying" && props.status !== "copied" && props.status !== "fading"}>
-              {/* Input field */}
               <div
                 class="grid rounded-[3px] bg-white border border-[#DFDFDF]"
                 style={{ "grid-template-columns": "1fr" }}
@@ -289,10 +280,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           </div>
 
           <Show when={props.isInputExpanded && props.status !== "copying" && props.status !== "copied" && props.status !== "fading"}>
-            {/* Separator */}
             <div class="w-px h-3.5 bg-[#D3D3D3]" />
 
-            {/* Send/Copy button */}
             <button
               class="flex items-center gap-0.5 cursor-pointer hover:opacity-80 transition-opacity bg-transparent border-none p-0"
               onClick={() => props.onSubmit?.()}

@@ -142,7 +142,6 @@ export const SelectionCursor: Component<SelectionCursorProps> = (props) => {
         />
       </Show>
 
-      {/* Cursor dot */}
       <div
         class="fixed z-2147483647"
         style={{
@@ -162,7 +161,6 @@ export const SelectionCursor: Component<SelectionCursorProps> = (props) => {
         />
       </div>
 
-      {/* Label below element */}
       <Show when={isHovered() && props.elementBounds}>
         <div
           ref={labelRef}
@@ -172,13 +170,12 @@ export const SelectionCursor: Component<SelectionCursorProps> = (props) => {
             left: `${computedLabelPosition().left}px`,
           }}
         >
-          {/* Arrow */}
           <div
             class={cn(
-              "absolute w-0 h-0 border-x-[8px] border-x-transparent",
+              "absolute w-0 h-0 border-x-8 border-x-transparent",
               arrowPosition() === "bottom"
-                ? "top-0 -translate-y-full border-b-[8px] border-b-white"
-                : "bottom-0 translate-y-full border-t-[8px] border-t-white"
+                ? "top-0 -translate-y-full border-b-8 border-b-white"
+                : "bottom-0 translate-y-full border-t-8 border-t-white"
             )}
             style={{
               left: `${computedLabelPosition().arrowLeft}px`,
@@ -187,7 +184,6 @@ export const SelectionCursor: Component<SelectionCursorProps> = (props) => {
             }}
           />
 
-          {/* Main container */}
           <div
             class="flex items-center gap-[7px] rounded-[7px] bg-white"
             style={{
@@ -196,7 +192,6 @@ export const SelectionCursor: Component<SelectionCursorProps> = (props) => {
             }}
           >
             <div class="flex items-center gap-1">
-              {/* Tag pill */}
               <div
                 class="flex items-center px-[5px] py-px rounded-[3.5px]"
                 style={{
@@ -209,7 +204,6 @@ export const SelectionCursor: Component<SelectionCursorProps> = (props) => {
                 </span>
               </div>
 
-              {/* Hint text */}
               <div class="flex items-center px-0.5">
                 <span class="text-[#323232] text-[12px] leading-4 font-medium tracking-[-0.02em]">
                   Hit
