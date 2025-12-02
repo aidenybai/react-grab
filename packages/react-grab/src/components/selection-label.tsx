@@ -254,7 +254,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               <div
                 class="flex items-center px-1 py-px h-[18px] rounded-[1.5px] gap-[5px]"
                 style={{
-                  "background-image": "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)",
+                  "background-image":
+                    "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)",
                   "border-width": "0.5px",
                   "border-style": "solid",
                   "border-color": "#730079",
@@ -289,7 +290,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               <div
                 class="flex items-center px-1 py-px h-[18px] rounded-[1.5px] gap-[5px]"
                 style={{
-                  "background-image": "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)",
+                  "background-image":
+                    "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)",
                   "border-width": "0.5px",
                   "border-style": "solid",
                   "border-color": "#730079",
@@ -333,7 +335,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               <div
                 class="flex items-center px-1 py-px h-[18px] rounded-[1.5px] gap-[5px]"
                 style={{
-                  "background-image": "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)",
+                  "background-image":
+                    "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)",
                   "border-width": "0.5px",
                   "border-style": "solid",
                   "border-color": "#730079",
@@ -379,7 +382,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 <div
                   class="shrink-0 flex items-center px-1 py-px w-fit h-[18px] rounded-[1.5px] gap-[5px]"
                   style={{
-                    "background-image": "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)",
+                    "background-image":
+                      "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)",
                     "border-width": "0.5px",
                     "border-style": "solid",
                     "border-color": "#730079",
@@ -418,7 +422,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 }}
               >
                 <div class="shrink-0 flex items-center gap-1 w-full h-[14px]">
-                  <IconReturnKey size={10} class="shrink-0 text-black opacity-[0.41]" />
+                  <IconReturnKey
+                    size={10}
+                    class="shrink-0 text-black opacity-[0.41]"
+                  />
                   <span class="text-[#767676] text-[11px] leading-3.5 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
                     to modify
                   </span>
@@ -441,7 +448,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 <div
                   class="shrink-0 flex items-center px-1 py-px w-fit h-[18px] rounded-[1.5px] gap-[5px]"
                   style={{
-                    "background-image": "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)",
+                    "background-image":
+                      "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)",
                     "border-width": "0.5px",
                     "border-style": "solid",
                     "border-color": "#730079",
@@ -484,6 +492,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     ref={inputRef}
                     class="text-black text-[11px] leading-3.5 tracking-[-0.04em] font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0"
                     style={{
+                      // @ts-expect-error - field-sizing is not in the jsx spec
                       "field-sizing": "content",
                       "min-height": "14px",
                     }}
