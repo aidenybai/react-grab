@@ -91,6 +91,7 @@ export const App = () => {
         onStatus: (status: string) => addLog("status", status),
         onComplete: () => addLog("done", "Complete"),
         onError: (error: Error) => addLog("error", error.message),
+        onResume: (session: AgentSession) => addLog("resume", session.id),
       },
     });
 

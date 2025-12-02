@@ -1,6 +1,7 @@
-import type { AgentContext, AgentProvider } from "react-grab/core";
+import type { AgentContext, AgentProvider, AgentSession } from "react-grab/core";
 
 const DEFAULT_SERVER_URL = "http://localhost:3001";
+const STORAGE_KEY = "react-grab:agent-sessions";
 
 async function* streamFromServer(
   serverUrl: string,
@@ -89,26 +90,26 @@ async function* streamFromServer(
   }
 }
 
-const sessionContextMap = new Map<string, AgentContext>();
-
 export const createAgentProvider = (
   serverUrl: string = DEFAULT_SERVER_URL,
 ): AgentProvider => ({
   send: async function* (context: AgentContext, signal: AbortSignal) {
-    const sessionId = `session-${Date.now()}`;
-    sessionContextMap.set(sessionId, context);
-
     yield* streamFromServer(serverUrl, context, signal);
   },
 
   resume: async function* (sessionId: string, signal: AbortSignal) {
-    const savedSession = sessionStorage.getItem("react-grab:agent-session");
-    if (!savedSession) {
-      throw new Error("No session to resume");
+    const savedSessions = sessionStorage.getItem(STORAGE_KEY);
+    if (!savedSessions) {
+      throw new Error("No sessions to resume");
     }
 
-    const session = JSON.parse(savedSession);
-    const context = session.context as AgentContext;
+    const sessionsObject = JSON.parse(savedSessions) as Record<string, AgentSession>;
+    const session = sessionsObject[sessionId];
+    if (!session) {
+      throw new Error(`Session ${sessionId} not found`);
+    }
+
+    const context = session.context;
 
     yield "Resuming...";
     yield* streamFromServer(serverUrl, context, signal);

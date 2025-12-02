@@ -4,6 +4,7 @@ import type { AgentSession, AgentOptions, OverlayBounds } from "./types.js";
 import {
   createSession,
   saveSessionById,
+  saveSessions,
   loadSessions,
   clearSessions,
   clearSessionById,
@@ -31,7 +32,6 @@ export interface AgentManager {
 
 export const createAgentManager = (
   agentOptions: AgentOptions | undefined,
-  activateRenderer: () => void,
 ): AgentManager => {
   const [sessions, setSessions] = createSignal<Map<string, AgentSession>>(new Map());
   const abortControllers = new Map<string, AbortController>();
@@ -44,6 +44,8 @@ export const createAgentManager = (
     streamIterator: AsyncIterable<string>,
   ) => {
     const storage = agentOptions?.storage;
+    let didComplete = false;
+    let wasAborted = false;
 
     try {
       for await (const status of streamIterator) {
@@ -56,6 +58,7 @@ export const createAgentManager = (
         agentOptions?.onStatus?.(status, updatedSession);
       }
 
+      didComplete = true;
       const finalSessions = sessions();
       const finalSession = finalSessions.get(session.id);
       if (finalSession) {
@@ -66,20 +69,23 @@ export const createAgentManager = (
     } catch (error) {
       const currentSessions = sessions();
       const currentSession = currentSessions.get(session.id);
-      if (currentSession && error instanceof Error && error.name !== "AbortError") {
-        const errorSession = updateSession(currentSession, { isStreaming: false }, storage);
-        setSessions((prev) => new Map(prev).set(session.id, errorSession));
-        agentOptions?.onError?.(error, errorSession);
+      if (error instanceof Error && error.name === "AbortError") {
+        wasAborted = true;
+      } else if (currentSession && error instanceof Error) {
+        agentOptions?.onError?.(error, currentSession);
       }
     } finally {
       abortControllers.delete(session.id);
       sessionElements.delete(session.id);
-      clearSessionById(session.id, storage);
-      setSessions((prev) => {
-        const next = new Map(prev);
-        next.delete(session.id);
-        return next;
-      });
+
+      if (didComplete || wasAborted) {
+        clearSessionById(session.id, storage);
+        setSessions((prev) => {
+          const next = new Map(prev);
+          next.delete(session.id);
+          return next;
+        });
+      }
     }
   };
 
@@ -91,6 +97,7 @@ export const createAgentManager = (
       (session) => session.isStreaming,
     );
     if (streamingSessions.length === 0) {
+      clearSessions(storage);
       return;
     }
     if (!agentOptions?.provider?.supportsResume || !agentOptions.provider.resume) {
@@ -98,8 +105,11 @@ export const createAgentManager = (
       return;
     }
 
-    setSessions(new Map(existingSessions));
-    activateRenderer();
+    const streamingSessionsMap = new Map(
+      streamingSessions.map((session) => [session.id, session]),
+    );
+    setSessions(streamingSessionsMap);
+    saveSessions(streamingSessionsMap, storage);
 
     for (const existingSession of streamingSessions) {
       const sessionWithResumeStatus = {

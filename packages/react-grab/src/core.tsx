@@ -934,7 +934,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       options.onDeactivate?.();
     };
 
-    const agentManager = createAgentManager(options.agent, activateRenderer);
+    const agentManager = createAgentManager(options.agent);
 
     const handleInputChange = (value: string) => {
       setInputText(value);
