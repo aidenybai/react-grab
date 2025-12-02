@@ -260,7 +260,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   "border-color": "#730079",
                 }}
               >
-                <span class="text-[#47004A] text-[12px] leading-4 font-medium tracking-[-0.04em]">
+                <span class="text-[#1E001F] text-[12px] leading-4 font-medium tracking-[-0.04em]">
                   {tagDisplay()}
                 </span>
               </div>
@@ -295,7 +295,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   "border-color": "#730079",
                 }}
               >
-                <span class="text-[#47004A] text-[12px] leading-4 font-medium tracking-[-0.04em]">
+                <span class="text-[#1E001F] text-[12px] leading-4 font-medium tracking-[-0.04em]">
                   {tagDisplay()}
                 </span>
               </div>
@@ -339,7 +339,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   "border-color": "#730079",
                 }}
               >
-                <span class="text-[#47004A] text-[12px] leading-4 font-medium tracking-[-0.04em]">
+                <span class="text-[#1E001F] text-[12px] leading-4 font-medium tracking-[-0.04em]">
                   {tagDisplay()}
                 </span>
               </div>
@@ -385,7 +385,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     "border-color": "#730079",
                   }}
                 >
-                  <span class="text-[#47004A] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
+                  <span class="text-[#1E001F] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
                     {tagDisplay()}
                   </span>
                 </div>
@@ -447,7 +447,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     "border-color": "#730079",
                   }}
                 >
-                  <span class="text-[#47004A] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
+                  <span class="text-[#1E001F] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
                     {tagDisplay()}
                   </span>
                 </div>
