@@ -1,5 +1,5 @@
 {
-  "name": "agent-playground",
+  "name": "@react-grab/agent-playground",
   "version": "0.0.1",
   "private": true,
   "type": "module",
