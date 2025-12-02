@@ -57,6 +57,7 @@ import type {
   SuccessLabelType,
   SelectionLabelStatus,
   SelectionLabelInstance,
+  AgentSession,
 } from "./types.js";
 import { getNearestComponentName } from "./instrumentation.js";
 import { mergeTheme, deepMergeTheme } from "./theme.js";
@@ -943,7 +944,33 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       options.onDeactivate?.();
     };
 
-    const agentManager = createAgentManager(options.agent);
+    const agentOptions = options.agent ? {
+      ...options.agent,
+      onAbort: (session: AgentSession, element: Element | undefined) => {
+        options.agent?.onAbort?.(session, element);
+
+        if (element && document.contains(element)) {
+          const rect = element.getBoundingClientRect();
+          const centerX = rect.left + rect.width / 2;
+          const centerY = rect.top + rect.height / 2;
+
+          setMouseX(centerX);
+          setMouseY(centerY);
+          setFrozenElement(element);
+          setInputText(session.context.prompt);
+          setIsInputExpanded(true);
+          setIsInputMode(true);
+          setIsToggleMode(true);
+          setIsToggleFrozen(true);
+
+          if (!isActivated()) {
+            activateRenderer();
+          }
+        }
+      },
+    } : undefined;
+
+    const agentManager = createAgentManager(agentOptions);
 
     const handleInputChange = (value: string) => {
       setInputText(value);
@@ -1213,6 +1240,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     window.addEventListener(
       "keydown",
       (event: KeyboardEvent) => {
+        if (isInputMode() || isEventFromOverlay(event, "data-react-grab-ignore-events")) {
+          if (event.key === "Escape" && agentManager.isProcessing()) {
+            agentManager.abortAllSessions();
+          }
+          return;
+        }
+
         if (event.key === "Escape") {
           if (agentManager.isProcessing()) {
             agentManager.abortAllSessions();
@@ -1220,9 +1254,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           }
 
           if (isHoldingKeys()) {
-            if (isInputMode()) {
-              return;
-            }
             deactivateRenderer();
             return;
           }
@@ -1499,6 +1530,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           setGrabbedBoxes([]);
           if (
             isActivated() &&
+            !isInputMode() &&
             activationTimestamp !== null &&
             Date.now() - activationTimestamp > BLUR_DEACTIVATION_THRESHOLD_MS
           ) {
@@ -1528,6 +1560,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     document.addEventListener(
       "copy",
       (event: ClipboardEvent) => {
+        if (isInputMode() || isEventFromOverlay(event, "data-react-grab-ignore-events")) {
+          return;
+        }
         if (isRendererActive() || isCopying()) {
           event.preventDefault();
         }
@@ -1738,6 +1773,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             isInputExpanded={isInputExpanded()}
             hasAgent={Boolean(options.agent?.provider)}
             agentSessions={agentManager.sessions()}
+            onAbortSession={(sessionId) => agentManager.abortSession(sessionId)}
             onInputChange={handleInputChange}
             onInputSubmit={() => void handleInputSubmit()}
             onInputCancel={handleInputCancel}

@@ -151,15 +151,27 @@ const runAgent = async (
 export const createAmiAgentProvider = (
   projectId: string = DEFAULT_PROJECT_ID,
 ): AgentProvider => ({
-  send: async function* (context: AgentContext) {
+  send: async function* (context: AgentContext, signal: AbortSignal) {
     const token = await getOrCreateToken();
 
     yield "Please wait...";
 
     const statusQueue: string[] = [];
     let resolveWait: (() => void) | null = null;
+    let aborted = false;
+
+    const handleAbort = () => {
+      aborted = true;
+      if (resolveWait) {
+        resolveWait();
+        resolveWait = null;
+      }
+    };
+
+    signal.addEventListener("abort", handleAbort);
 
     const onStatus = (status: string) => {
+      if (aborted) return;
       statusQueue.push(status);
       if (resolveWait) {
         resolveWait();
@@ -171,6 +183,7 @@ export const createAmiAgentProvider = (
 
     let done = false;
     agentPromise.then((finalStatus) => {
+      if (aborted) return;
       statusQueue.push(finalStatus);
       done = true;
       if (resolveWait) {
@@ -178,6 +191,7 @@ export const createAmiAgentProvider = (
         resolveWait = null;
       }
     }).catch((error) => {
+      if (aborted) return;
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       statusQueue.push(`Error: ${errorMessage}`);
       done = true;
@@ -187,18 +201,31 @@ export const createAmiAgentProvider = (
       }
     });
 
-    while (!done || statusQueue.length > 0) {
-      if (statusQueue.length > 0) {
-        yield statusQueue.shift()!;
-      } else if (!done) {
-        await new Promise<void>((resolve) => {
-          resolveWait = resolve;
-        });
+    try {
+      while (!done && !aborted) {
+        if (signal.aborted) {
+          throw new DOMException("Aborted", "AbortError");
+        }
+        if (statusQueue.length > 0) {
+          yield statusQueue.shift()!;
+        } else {
+          await new Promise<void>((resolve) => {
+            resolveWait = resolve;
+          });
+        }
       }
+      while (statusQueue.length > 0 && !aborted) {
+        yield statusQueue.shift()!;
+      }
+      if (aborted) {
+        throw new DOMException("Aborted", "AbortError");
+      }
+    } finally {
+      signal.removeEventListener("abort", handleAbort);
     }
   },
 
-  resume: async function* (sessionId: string) {
+  resume: async function* (sessionId: string, signal: AbortSignal) {
     const savedSessions = sessionStorage.getItem(STORAGE_KEY);
     if (!savedSessions) {
       throw new Error("No sessions to resume");
@@ -220,8 +247,20 @@ export const createAmiAgentProvider = (
 
     const statusQueue: string[] = [];
     let resolveWait: (() => void) | null = null;
+    let aborted = false;
+
+    const handleAbort = () => {
+      aborted = true;
+      if (resolveWait) {
+        resolveWait();
+        resolveWait = null;
+      }
+    };
+
+    signal.addEventListener("abort", handleAbort);
 
     const onStatus = (status: string) => {
+      if (aborted) return;
       statusQueue.push(status);
       if (resolveWait) {
         resolveWait();
@@ -233,6 +272,7 @@ export const createAmiAgentProvider = (
 
     let done = false;
     agentPromise.then((finalStatus) => {
+      if (aborted) return;
       statusQueue.push(finalStatus);
       done = true;
       if (resolveWait) {
@@ -240,6 +280,7 @@ export const createAmiAgentProvider = (
         resolveWait = null;
       }
     }).catch((error) => {
+      if (aborted) return;
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       statusQueue.push(`Error: ${errorMessage}`);
       done = true;
@@ -249,14 +290,27 @@ export const createAmiAgentProvider = (
       }
     });
 
-    while (!done || statusQueue.length > 0) {
-      if (statusQueue.length > 0) {
-        yield statusQueue.shift()!;
-      } else if (!done) {
-        await new Promise<void>((resolve) => {
-          resolveWait = resolve;
-        });
+    try {
+      while (!done && !aborted) {
+        if (signal.aborted) {
+          throw new DOMException("Aborted", "AbortError");
+        }
+        if (statusQueue.length > 0) {
+          yield statusQueue.shift()!;
+        } else {
+          await new Promise<void>((resolve) => {
+            resolveWait = resolve;
+          });
+        }
       }
+      while (statusQueue.length > 0 && !aborted) {
+        yield statusQueue.shift()!;
+      }
+      if (aborted) {
+        throw new DOMException("Aborted", "AbortError");
+      }
+    } finally {
+      signal.removeEventListener("abort", handleAbort);
     }
   },
 

@@ -4,7 +4,9 @@ import type { OverlayBounds, SelectionLabelStatus } from "../types.js";
 import { VIEWPORT_MARGIN_PX } from "../constants.js";
 import { IconCheckmark } from "./icon-checkmark.js";
 import { IconCursorSimple } from "./icon-cursor-simple.js";
+import { IconOpen } from "./icon-open.js";
 import { IconReturnKey } from "./icon-return-key.js";
+import { IconStop } from "./icon-stop.js";
 
 interface SelectionLabelProps {
   tagName?: string;
@@ -15,10 +17,14 @@ interface SelectionLabelProps {
   hasAgent?: boolean;
   status?: SelectionLabelStatus;
   statusText?: string;
+  filePath?: string;
+  lineNumber?: number;
   onInputChange?: (value: string) => void;
   onSubmit?: () => void;
   onCancel?: () => void;
   onToggleExpand?: () => void;
+  onAbort?: () => void;
+  onOpen?: () => void;
 }
 
 type ArrowPosition = "bottom" | "top";
@@ -37,9 +43,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     createSignal<ArrowPosition>("bottom");
   const [viewportVersion, setViewportVersion] = createSignal(0);
   const [isIdle, setIsIdle] = createSignal(false);
+  const [isTagHovered, setIsTagHovered] = createSignal(false);
 
   const measureContainer = () => {
-    if (containerRef) {
+    if (containerRef && !isTagHovered()) {
       const rect = containerRef.getBoundingClientRect();
       setMeasuredWidth(rect.width);
       setMeasuredHeight(rect.height);
@@ -186,6 +193,16 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   const tagDisplay = () => props.tagName || "element";
 
+  const handleTagClick = (event: MouseEvent) => {
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    if (props.filePath && props.onOpen) {
+      props.onOpen();
+    }
+  };
+
+  const isTagClickable = () => Boolean(props.filePath && props.onOpen);
+
   const stopPropagation = (event: MouseEvent) => {
     event.stopPropagation();
     event.stopImmediatePropagation();
@@ -253,7 +270,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           <Show when={props.status === "copied" || props.status === "fading"}>
             <div class="flex items-center gap-[3px]">
               <div
-                class="flex items-center px-1 py-px h-[18px] rounded-[1.5px] gap-[5px]"
+                class={`flex items-center px-1 py-px h-[18px] rounded-[1.5px] gap-[5px] ${isTagClickable() ? "cursor-pointer" : ""}`}
                 style={{
                   "background-image":
                     "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)",
@@ -261,10 +278,19 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   "border-style": "solid",
                   "border-color": "#730079",
                 }}
+                onMouseEnter={() => setIsTagHovered(true)}
+                onMouseLeave={() => setIsTagHovered(false)}
+                onClick={handleTagClick}
               >
                 <span class="text-[#1E001F] text-[12px] leading-4 font-medium tracking-[-0.04em]">
                   {tagDisplay()}
                 </span>
+                <Show when={isTagClickable()}>
+                  <IconOpen
+                    size={10}
+                    class={`text-[#730079] transition-all duration-100 ${isTagHovered() ? "opacity-100 scale-100" : "opacity-0 scale-75 -ml-[5px] w-0"}`}
+                  />
+                </Show>
               </div>
               <div
                 class="flex items-center h-[18px] rounded-[1.5px] gap-[3px]"
@@ -290,7 +316,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           <Show when={props.status === "copying"}>
             <div class="flex items-center gap-[3px] react-grab-shimmer rounded-[3px]">
               <div
-                class="flex items-center px-1 py-px h-[18px] rounded-[1.5px] gap-[5px]"
+                class={`flex items-center px-1 py-px h-[18px] rounded-[1.5px] gap-[5px] ${isTagClickable() ? "cursor-pointer" : ""}`}
                 style={{
                   "background-image":
                     "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)",
@@ -298,10 +324,19 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   "border-style": "solid",
                   "border-color": "#730079",
                 }}
+                onMouseEnter={() => setIsTagHovered(true)}
+                onMouseLeave={() => setIsTagHovered(false)}
+                onClick={handleTagClick}
               >
-                <span class="text-[#1E001F] text-[12px] leading-4 font-medium tracking-[-0.04em]">
+                <span class="text-[#1E001F] text-[12px] leading-4 font-medium tracking-[-0.04em] font-mono">
                   {tagDisplay()}
                 </span>
+                <Show when={isTagClickable()}>
+                  <IconOpen
+                    size={10}
+                    class={`text-[#730079] transition-all duration-100 ${isTagHovered() ? "opacity-100 scale-100" : "opacity-0 scale-75 -ml-[5px] w-0"}`}
+                  />
+                </Show>
               </div>
               <div
                 class="flex items-center h-[18px] rounded-[1.5px] gap-[3px]"
@@ -320,6 +355,28 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   {props.statusText ?? "Grabbing…"}
                 </span>
               </div>
+              <Show when={props.hasAgent && props.onAbort}>
+                <button
+                  class="flex items-center justify-center w-[18px] h-[18px] rounded-full cursor-pointer bg-black transition-opacity hover:opacity-80"
+                  style={{
+                    border: "none",
+                  }}
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    event.stopImmediatePropagation();
+                  }}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    event.stopImmediatePropagation();
+                    props.onAbort?.();
+                  }}
+                  title="Stop"
+                >
+                  <IconStop size={8} class="text-white" />
+                </button>
+              </Show>
             </div>
           </Show>
 
@@ -335,7 +392,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           >
             <div class="flex items-center gap-[3px]">
               <div
-                class="flex items-center px-1 py-px h-[18px] rounded-[1.5px] gap-[5px]"
+                class={`flex items-center px-1 py-px h-[18px] rounded-[1.5px] gap-[5px] ${isTagClickable() ? "cursor-pointer" : ""}`}
                 style={{
                   "background-image":
                     "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)",
@@ -343,10 +400,19 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   "border-style": "solid",
                   "border-color": "#730079",
                 }}
+                onMouseEnter={() => setIsTagHovered(true)}
+                onMouseLeave={() => setIsTagHovered(false)}
+                onClick={handleTagClick}
               >
-                <span class="text-[#1E001F] text-[12px] leading-4 font-medium tracking-[-0.04em]">
+                <span class="text-[#1E001F] text-[12px] leading-4 font-medium tracking-[-0.04em] font-mono">
                   {tagDisplay()}
                 </span>
+                <Show when={isTagClickable()}>
+                  <IconOpen
+                    size={10}
+                    class={`text-[#730079] transition-all duration-100 ${isTagHovered() ? "opacity-100 scale-100" : "opacity-0 scale-75 -ml-[5px] w-0"}`}
+                  />
+                </Show>
               </div>
               <button
                 class="flex items-center h-[18px] rounded-[1.5px] gap-[3px] cursor-pointer bg-transparent"
@@ -382,7 +448,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             <div class="shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
               <div class="shrink-0 flex items-center gap-[3px] pt-1 w-fit h-fit px-1">
                 <div
-                  class="shrink-0 flex items-center px-1 py-px w-fit h-[18px] rounded-[1.5px] gap-[5px]"
+                  class={`shrink-0 flex items-center px-1 py-px w-fit h-[18px] rounded-[1.5px] gap-[5px] ${isTagClickable() ? "cursor-pointer" : ""}`}
                   style={{
                     "background-image":
                       "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)",
@@ -390,10 +456,19 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     "border-style": "solid",
                     "border-color": "#730079",
                   }}
+                  onMouseEnter={() => setIsTagHovered(true)}
+                  onMouseLeave={() => setIsTagHovered(false)}
+                  onClick={handleTagClick}
                 >
-                  <span class="text-[#1E001F] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
+                  <span class="text-[#1E001F] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit font-mono">
                     {tagDisplay()}
                   </span>
+                  <Show when={isTagClickable()}>
+                    <IconOpen
+                      size={10}
+                      class={`text-[#730079] transition-all duration-100 ${isTagHovered() ? "opacity-100 scale-100" : "opacity-0 scale-75 -ml-[5px] w-0"}`}
+                    />
+                  </Show>
                 </div>
                 <div
                   class="shrink-0 flex items-center w-fit h-[18px] rounded-[1.5px] gap-[3px] cursor-pointer"
@@ -445,7 +520,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             <div class="shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
               <div class="shrink-0 flex items-center gap-[3px] pt-1 w-fit h-fit px-1">
                 <div
-                  class="shrink-0 flex items-center px-1 py-px w-fit h-[18px] rounded-[1.5px] gap-[5px]"
+                  class={`shrink-0 flex items-center px-1 py-px w-fit h-[18px] rounded-[1.5px] gap-[5px] ${isTagClickable() ? "cursor-pointer" : ""}`}
                   style={{
                     "background-image":
                       "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)",
@@ -453,10 +528,19 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     "border-style": "solid",
                     "border-color": "#730079",
                   }}
+                  onMouseEnter={() => setIsTagHovered(true)}
+                  onMouseLeave={() => setIsTagHovered(false)}
+                  onClick={handleTagClick}
                 >
-                  <span class="text-[#1E001F] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
+                  <span class="text-[#1E001F] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit font-mono">
                     {tagDisplay()}
                   </span>
+                  <Show when={isTagClickable()}>
+                    <IconOpen
+                      size={10}
+                      class={`text-[#730079] transition-all duration-100 ${isTagHovered() ? "opacity-100 scale-100" : "opacity-0 scale-75 -ml-[5px] w-0"}`}
+                    />
+                  </Show>
                 </div>
                 <div
                   class="shrink-0 flex items-center w-fit h-[18px] rounded-[1.5px] gap-[3px] cursor-pointer transition-opacity hover:opacity-100 opacity-50"

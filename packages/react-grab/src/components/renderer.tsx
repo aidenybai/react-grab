@@ -1,6 +1,7 @@
 import { Show, For } from "solid-js";
 import type { Component } from "solid-js";
 import type { ReactGrabRendererProps } from "../types.js";
+import { buildOpenFileUrl } from "../utils/build-open-file-url.js";
 import { SelectionBox } from "./selection-box.js";
 import { Crosshair } from "./crosshair.js";
 import { SelectionCursor } from "./selection-cursor.js";
@@ -19,9 +20,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           variant="selection"
           bounds={props.selectionBounds!}
           visible={props.selectionVisible}
-          filePath={props.selectionFilePath}
-          lineNumber={props.selectionLineNumber}
-          isInputExpanded={props.isInputExpanded}
           isFading={props.selectionLabelStatus === "fading"}
         />
       </Show>
@@ -79,6 +77,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
               hasAgent={true}
               status={session.isStreaming ? "copying" : "copied"}
               statusText={truncateStatus(session.lastStatus || "Please wait…")}
+              onAbort={() => props.onAbortSession?.(session.id)}
             />
           </>
         )}
@@ -93,10 +92,18 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           inputValue={props.inputValue}
           hasAgent={props.hasAgent}
           status={props.selectionLabelStatus}
+          filePath={props.selectionFilePath}
+          lineNumber={props.selectionLineNumber}
           onInputChange={props.onInputChange}
           onSubmit={props.onInputSubmit}
           onCancel={props.onInputCancel}
           onToggleExpand={props.onToggleExpand}
+          onOpen={() => {
+            if (props.selectionFilePath) {
+              const openFileUrl = buildOpenFileUrl(props.selectionFilePath, props.selectionLineNumber);
+              window.open(openFileUrl, "_blank");
+            }
+          }}
         />
       </Show>
 

@@ -243,6 +243,7 @@ export interface AgentOptions<T = unknown> {
   onComplete?: (session: AgentSession) => void;
   onError?: (error: Error, session: AgentSession) => void;
   onResume?: (session: AgentSession) => void;
+  onAbort?: (session: AgentSession, element: Element | undefined) => void;
 }
 
 export interface Options {
@@ -344,6 +345,7 @@ export interface ReactGrabRendererProps {
   isInputExpanded?: boolean;
   hasAgent?: boolean;
   agentSessions?: Map<string, AgentSession>;
+  onAbortSession?: (sessionId: string) => void;
   onInputChange?: (value: string) => void;
   onInputSubmit?: () => void;
   onInputCancel?: () => void;

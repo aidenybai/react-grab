@@ -34,6 +34,7 @@
   content: "";
   position: absolute;
   inset: 0;
+  border-radius: inherit;
   background: linear-gradient(
     90deg,
     transparent 0%,
@@ -42,4 +43,5 @@
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
+  pointer-events: none;
 }

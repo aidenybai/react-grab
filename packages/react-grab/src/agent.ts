@@ -25,6 +25,7 @@ export interface AgentManager {
   isProcessing: Accessor<boolean>;
   tryResumeSessions: () => void;
   startSession: (params: StartSessionParams) => Promise<void>;
+  abortSession: (sessionId: string) => void;
   abortAllSessions: () => void;
   updateSessionBoundsOnViewportChange: () => void;
   getSessionElement: (sessionId: string) => Element | undefined;
@@ -72,6 +73,10 @@ export const createAgentManager = (
       const currentSession = currentSessions.get(session.id);
       if (error instanceof Error && error.name === "AbortError") {
         wasAborted = true;
+        if (currentSession) {
+          const element = sessionElements.get(session.id);
+          agentOptions?.onAbort?.(currentSession, element);
+        }
       } else {
         hadError = true;
         if (currentSession) {
@@ -99,11 +104,11 @@ export const createAgentManager = (
         });
       };
 
-      if (didComplete || hadError) {
-        // HACK: Delay removal to show "Complete!" or error message for 1.5 seconds
-        setTimeout(removeSession, 1500);
-      } else if (wasAborted) {
+      if (wasAborted) {
         removeSession();
+      } else if (didComplete || hadError) {
+        // HACK: Delay removal to show status message for 1.5 seconds
+        setTimeout(removeSession, 1500);
       }
     }
   };
@@ -196,6 +201,13 @@ export const createAgentManager = (
     void executeSessionStream(session, streamIterator);
   };
 
+  const abortSession = (sessionId: string) => {
+    const controller = abortControllers.get(sessionId);
+    if (controller) {
+      controller.abort();
+    }
+  };
+
   const abortAllSessions = () => {
     abortControllers.forEach((controller) => controller.abort());
     abortControllers.clear();
@@ -244,6 +256,7 @@ export const createAgentManager = (
     isProcessing,
     tryResumeSessions,
     startSession,
+    abortSession,
     abortAllSessions,
     updateSessionBoundsOnViewportChange,
     getSessionElement,
