@@ -250,7 +250,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           }}
         >
           <Show when={props.status === "copied" || props.status === "fading"}>
-            <div class="flex items-center gap-[3px] p-1">
+            <div class="flex items-center gap-[3px]">
               <div
                 class="flex items-center px-1 py-px h-[18px] rounded-[1.5px] gap-[5px]"
                 style={{
@@ -285,7 +285,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           </Show>
 
           <Show when={props.status === "copying"}>
-            <div class="flex items-center gap-[3px] p-1">
+            <div class="flex items-center gap-[3px]">
               <div
                 class="flex items-center px-1 py-px h-[18px] rounded-[1.5px] gap-[5px]"
                 style={{
