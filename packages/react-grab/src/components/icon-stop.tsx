@@ -29,3 +29,4 @@ export const IconStop: Component<IconStopProps> = (props) => {
   );
 };
 
+

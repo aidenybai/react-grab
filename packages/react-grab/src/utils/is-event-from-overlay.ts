@@ -7,3 +7,4 @@ export const isEventFromOverlay = (event: Event, attribute: string) =>
         target instanceof HTMLElement && target.hasAttribute(attribute),
     );
 
+
