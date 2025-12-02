@@ -2,6 +2,7 @@ import { Show, createSignal, createEffect, onMount, onCleanup } from "solid-js";
 import type { Component } from "solid-js";
 import type { OverlayBounds, SelectionLabelStatus } from "../types.js";
 import { VIEWPORT_MARGIN_PX } from "../constants.js";
+import { IconCheckmark } from "./icon-checkmark.js";
 import { IconCursorSimple } from "./icon-cursor-simple.js";
 import { IconReturnKey } from "./icon-return-key.js";
 
@@ -272,13 +273,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   "padding-right": "5px",
                   "padding-top": "1px",
                   "padding-bottom": "1px",
+                  background: "#D9FFE4",
                   "border-width": "0.5px",
                   "border-style": "solid",
-                  "border-color": "#B0B0B0",
+                  "border-color": "#00BB69",
                 }}
               >
-                <IconCursorSimple size={9} class="text-black shrink-0" />
-                <span class="text-black text-[12px] leading-4 font-medium tracking-[-0.04em]">
+                <IconCheckmark size={9} class="text-[#006E3B] shrink-0" />
+                <span class="text-[#006E3B] text-[12px] leading-4 font-medium tracking-[-0.04em]">
                   Copied
                 </span>
               </div>
