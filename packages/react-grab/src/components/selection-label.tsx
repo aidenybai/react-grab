@@ -195,7 +195,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     <Show when={props.visible !== false && props.selectionBounds}>
       <div
         ref={containerRef}
-        data-react-grab-selection-label
+        data-react-grab-ignore-events
         class="fixed font-sans antialiased transition-opacity duration-300 ease-out"
         style={{
           top: `${computedPosition().top}px`,
@@ -459,7 +459,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   </span>
                 </div>
                 <div
-                  class="shrink-0 flex items-center w-fit h-[18px] rounded-[1.5px] gap-[3px] cursor-pointer"
+                  class="shrink-0 flex items-center w-fit h-[18px] rounded-[1.5px] gap-[3px] cursor-pointer transition-opacity hover:opacity-100 opacity-50"
                   style={{
                     "padding-left": "5px",
                     "padding-right": "5px",

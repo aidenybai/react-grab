@@ -225,7 +225,7 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
                     shouldPlaceOutside() ? "rounded-t" : "rounded",
                   )}
                   onClick={handleOpenClick}
-                  data-react-grab-toolbar
+                  data-react-grab-ignore-events
                 >
                   <IconOpen size={10} />
                   Open
