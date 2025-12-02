@@ -996,17 +996,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setIsInputMode(false);
       setInputText("");
 
-      const tagName = extractElementTagName(element);
-      void executeCopyOperation(
-        currentX,
-        currentY,
-        () => copySingleElementToClipboard(element, prompt || undefined),
-        bounds,
-        tagName,
-        element,
-      ).then(() => {
-        deactivateRenderer();
-      });
+        const tagName = extractElementTagName(element);
+        void executeCopyOperation(
+          currentX,
+          currentY,
+          () => copySingleElementToClipboard(element, prompt || undefined),
+          bounds,
+          tagName,
+          element,
+        ).then(() => {
+          deactivateRenderer();
+        });
     };
 
     const handleInputCancel = () => {
@@ -1399,7 +1399,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
 
         if (isInputMode()) {
-          handleInputCancel();
+            handleInputCancel();
           return;
         }
 
@@ -1449,7 +1449,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
 
         if (isInputMode()) {
-          handleInputCancel();
+            handleInputCancel();
           return;
         }
 

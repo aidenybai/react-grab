@@ -281,14 +281,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               >
                 <IconCheckmark size={9} class="text-[#006E3B] shrink-0" />
                 <span class="text-[#006E3B] text-[12px] leading-4 font-medium tracking-[-0.04em]">
-                  Copied
+                  {props.hasAgent ? "Completed" : "Copied"}
                 </span>
               </div>
             </div>
           </Show>
 
           <Show when={props.status === "copying"}>
-            <div class="flex items-center gap-[3px]">
+            <div class="flex items-center gap-[3px] react-grab-shimmer rounded-[3px]">
               <div
                 class="flex items-center px-1 py-px h-[18px] rounded-[1.5px] gap-[5px]"
                 style={{
