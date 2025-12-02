@@ -309,11 +309,25 @@ export interface OverlayBounds {
   y: number;
 }
 
+export type SelectionLabelStatus = "idle" | "copying" | "copied" | "fading";
+
+export interface SelectionLabelInstance {
+  id: string;
+  bounds: OverlayBounds;
+  tagName: string;
+  status: SelectionLabelStatus;
+  createdAt: number;
+}
+
 export interface ReactGrabRendererProps {
   selectionVisible?: boolean;
   selectionBounds?: OverlayBounds;
   selectionFilePath?: string;
   selectionLineNumber?: number;
+  selectionTagName?: string;
+  selectionLabelVisible?: boolean;
+  selectionLabelStatus?: SelectionLabelStatus;
+  labelInstances?: SelectionLabelInstance[];
   dragVisible?: boolean;
   dragBounds?: OverlayBounds;
   grabbedBoxes?: Array<{
@@ -321,32 +335,18 @@ export interface ReactGrabRendererProps {
     bounds: OverlayBounds;
     createdAt: number;
   }>;
-  successLabels?: Array<{ id: string; text: string }>;
-  labelVariant?: "hover" | "processing" | "success";
-  labelContent?: unknown;
-  labelX?: number;
-  labelY?: number;
-  labelVisible?: boolean;
   labelZIndex?: number;
-  labelShowHint?: boolean;
-  progressVisible?: boolean;
-  progress?: number;
   mouseX?: number;
   mouseY?: number;
   crosshairVisible?: boolean;
-  inputVisible?: boolean;
-  inputX?: number;
-  inputY?: number;
   inputValue?: string;
   isInputExpanded?: boolean;
-  inputMode?: "input" | "output";
-  inputStatusText?: string;
+  hasAgent?: boolean;
   agentSessions?: Map<string, AgentSession>;
   onInputChange?: (value: string) => void;
   onInputSubmit?: () => void;
   onInputCancel?: () => void;
   onToggleExpand?: () => void;
-  onCopyClick?: () => void;
   nativeSelectionCursorVisible?: boolean;
   nativeSelectionCursorX?: number;
   nativeSelectionCursorY?: number;

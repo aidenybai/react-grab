@@ -1,7 +1,6 @@
 import {
   Show,
   For,
-  type JSX,
   createSignal,
   onCleanup,
   onMount,
@@ -9,11 +8,10 @@ import {
 import type { Component } from "solid-js";
 import type { ReactGrabRendererProps, AgentSession } from "../types.js";
 import { SelectionBox } from "./selection-box.js";
-import { Label } from "./label.js";
 import { Crosshair } from "./crosshair.js";
-import { InputOverlay } from "./input-overlay.js";
 import { Spinner } from "./spinner.js";
 import { SelectionCursor } from "./selection-cursor.js";
+import { SelectionLabel } from "./selection-label.js";
 
 const AGENT_PROGRESS_DURATION_MS = 30000;
 const VIEWPORT_MARGIN_PX = 16;
@@ -136,10 +134,8 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           visible={props.selectionVisible}
           filePath={props.selectionFilePath}
           lineNumber={props.selectionLineNumber}
-          hideButtons={props.inputVisible && !props.isInputExpanded}
           isInputExpanded={props.isInputExpanded}
-          onToggleExpand={props.onToggleExpand}
-          onCopyClick={props.onCopyClick}
+          isFading={props.selectionLabelStatus === "fading"}
         />
       </Show>
 
@@ -175,40 +171,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         )}
       </For>
 
-      <Show when={props.labelVariant !== "processing"}>
-        <For each={props.successLabels ?? []}>
-          {(label) => (
-            <Label
-              variant="success"
-              content={<>{label.text}</>}
-              x={props.mouseX ?? 0}
-              y={props.mouseY ?? 0}
-            />
-          )}
-        </For>
-      </Show>
-
-      <Show
-        when={
-          props.labelVisible &&
-          props.labelVariant &&
-          props.labelContent !== undefined &&
-          props.labelX !== undefined &&
-          props.labelY !== undefined
-        }
-      >
-        <Label
-          variant={props.labelVariant as "hover" | "processing" | "success"}
-          content={props.labelContent as JSX.Element}
-          x={props.labelX as number}
-          y={props.labelY as number}
-          visible={props.labelVisible}
-          zIndex={props.labelZIndex}
-          progress={props.progress}
-          showHint={props.labelShowHint}
-        />
-      </Show>
-
       <For
         each={
           props.agentSessions ? Array.from(props.agentSessions.values()) : []
@@ -228,21 +190,32 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         )}
       </For>
 
-      <InputOverlay
-        x={props.inputX ?? 0}
-        y={props.inputY ?? 0}
-        zIndex={props.labelZIndex}
-        value={props.inputValue ?? ""}
-        visible={props.inputVisible ?? false}
-        selectionBounds={
-          props.isInputExpanded ? props.selectionBounds : undefined
-        }
-        mode={props.inputMode}
-        statusText={props.inputStatusText}
-        onInput={props.onInputChange!}
-        onSubmit={props.onInputSubmit!}
-        onCancel={props.onInputCancel!}
-      />
+      <Show when={props.selectionLabelVisible && props.selectionBounds}>
+        <SelectionLabel
+          tagName={props.selectionTagName}
+          selectionBounds={props.selectionBounds}
+          visible={props.selectionLabelVisible}
+          isInputExpanded={props.isInputExpanded}
+          inputValue={props.inputValue}
+          hasAgent={props.hasAgent}
+          status={props.selectionLabelStatus}
+          onInputChange={props.onInputChange}
+          onSubmit={props.onInputSubmit}
+          onCancel={props.onInputCancel}
+          onToggleExpand={props.onToggleExpand}
+        />
+      </Show>
+
+      <For each={props.labelInstances ?? []}>
+        {(instance) => (
+          <SelectionLabel
+            tagName={instance.tagName}
+            selectionBounds={instance.bounds}
+            visible={true}
+            status={instance.status}
+          />
+        )}
+      </For>
 
       <Show
         when={
