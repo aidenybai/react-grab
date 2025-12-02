@@ -32,7 +32,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
-  const [arrowPosition, setArrowPosition] = createSignal<ArrowPosition>("bottom");
+  const [arrowPosition, setArrowPosition] =
+    createSignal<ArrowPosition>("bottom");
   const [viewportVersion, setViewportVersion] = createSignal(0);
   const [isIdle, setIsIdle] = createSignal(false);
 
@@ -61,7 +62,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   };
 
   const handleGlobalKeyDown = (event: KeyboardEvent) => {
-    if (event.code === "Enter" && isIdle() && !props.isInputExpanded && props.status !== "copying" && props.status !== "copied" && props.status !== "fading") {
+    if (
+      event.code === "Enter" &&
+      isIdle() &&
+      !props.isInputExpanded &&
+      props.status !== "copying" &&
+      props.status !== "copied" &&
+      props.status !== "fading"
+    ) {
       event.preventDefault();
       event.stopPropagation();
       props.onToggleExpand?.();
@@ -81,7 +89,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     window.removeEventListener("scroll", handleViewportChange, true);
     window.removeEventListener("resize", handleViewportChange);
     window.removeEventListener("mousemove", resetIdleTimer);
-    window.removeEventListener("keydown", handleGlobalKeyDown, { capture: true });
+    window.removeEventListener("keydown", handleGlobalKeyDown, {
+      capture: true,
+    });
     if (idleTimeout) {
       clearTimeout(idleTimeout);
     }
@@ -134,7 +144,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     }
 
     const totalHeightNeeded = labelHeight + ARROW_HEIGHT + LABEL_GAP;
-    const fitsBelow = positionTop + labelHeight <= viewportHeight - VIEWPORT_MARGIN_PX;
+    const fitsBelow =
+      positionTop + labelHeight <= viewportHeight - VIEWPORT_MARGIN_PX;
 
     if (!fitsBelow) {
       positionTop = selectionTop - totalHeightNeeded;
@@ -149,7 +160,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
     const arrowLeft = Math.max(
       12,
-      Math.min(selectionCenterX - positionLeft, labelWidth - 12)
+      Math.min(selectionCenterX - positionLeft, labelWidth - 12),
     );
 
     return { left: positionLeft, top: positionTop, arrowLeft };
@@ -227,9 +238,15 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         <div
           class="relative flex items-center gap-[5px] bg-white"
           style={{
-            padding: "0",
-            "box-shadow": (props.status === "copying" || props.status === "copied" || props.status === "fading" || (!isIdle() && !props.isInputExpanded)) ? "#00000033 0px 2px 3px" : "none",
-            "border-radius": (props.status === "copying" || props.status === "copied" || props.status === "fading") ? "3px" : ((isIdle() || props.isInputExpanded) ? "1.5px" : "3px"),
+            padding:
+              props.status === "copying" ||
+              props.status === "copied" ||
+              props.status === "fading"
+                ? "4px"
+                : isIdle() || props.isInputExpanded
+                  ? "0"
+                  : "4px",
+            "box-shadow": "#00000033 0px 2px 3px",
           }}
         >
           <Show when={props.status === "copied" || props.status === "fading"}>
@@ -303,8 +320,16 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           </Show>
 
           {/* State 1: Hover (not idle, not expanded) */}
-          <Show when={props.status !== "copying" && props.status !== "copied" && props.status !== "fading" && !isIdle() && !props.isInputExpanded}>
-            <div class="flex items-center gap-[3px] p-1">
+          <Show
+            when={
+              props.status !== "copying" &&
+              props.status !== "copied" &&
+              props.status !== "fading" &&
+              !isIdle() &&
+              !props.isInputExpanded
+            }
+          >
+            <div class="flex items-center gap-[3px]">
               <div
                 class="flex items-center px-1 py-px h-[18px] rounded-[1.5px] gap-[5px]"
                 style={{
@@ -340,7 +365,15 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           </Show>
 
           {/* State 2: Idle (showing "to modify" hint) */}
-          <Show when={props.status !== "copying" && props.status !== "copied" && props.status !== "fading" && isIdle() && !props.isInputExpanded}>
+          <Show
+            when={
+              props.status !== "copying" &&
+              props.status !== "copied" &&
+              props.status !== "fading" &&
+              isIdle() &&
+              !props.isInputExpanded
+            }
+          >
             <div class="shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
               <div class="shrink-0 flex items-center gap-[3px] pt-1 w-fit h-fit px-1">
                 <div
@@ -395,7 +428,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           </Show>
 
           {/* State 3: Input expanded (with textarea and submit icon) */}
-          <Show when={props.status !== "copying" && props.status !== "copied" && props.status !== "fading" && props.isInputExpanded}>
+          <Show
+            when={
+              props.status !== "copying" &&
+              props.status !== "copied" &&
+              props.status !== "fading" &&
+              props.isInputExpanded
+            }
+          >
             <div class="shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
               <div class="shrink-0 flex items-center gap-[3px] pt-1 w-fit h-fit px-1">
                 <div
@@ -444,7 +484,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     ref={inputRef}
                     class="text-black text-[11px] leading-3.5 tracking-[-0.04em] font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0"
                     style={{
-                      "field-sizing": "content",
                       "min-height": "14px",
                     }}
                     value={props.inputValue ?? ""}

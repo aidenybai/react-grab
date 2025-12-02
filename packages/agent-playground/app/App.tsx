@@ -2,12 +2,18 @@ import { useEffect, useState, useRef } from "react";
 import { init } from "react-grab/core";
 import type { AgentProvider, ReactGrabAPI } from "react-grab/core";
 
-const PROVIDER = import.meta.env.VITE_PROVIDER ?? "claude";
+const PROVIDER = import.meta.env.VITE_AGENT_PROVIDER ?? "claude";
 
 const getAgentProvider = async (): Promise<AgentProvider<any>> => {
   if (PROVIDER === "ami") {
     const { createAmiAgentProvider } = await import("@react-grab/ami/client");
     return createAmiAgentProvider();
+  }
+  if (PROVIDER === "cursor") {
+    const { createCursorAgentProvider } = await import(
+      "@react-grab/cursor/client"
+    );
+    return createCursorAgentProvider();
   }
   const { createClaudeAgentProvider } = await import(
     "@react-grab/claude-code/client"
