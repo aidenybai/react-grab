@@ -26,4 +26,3 @@ export const IconCursorSimple: Component<IconCursorSimpleProps> = (props) => {
     </svg>
   );
 };
-

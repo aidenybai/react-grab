@@ -27,4 +27,3 @@ export const IconCheckmark: Component<IconCheckmarkProps> = (props) => {
     </svg>
   );
 };
-

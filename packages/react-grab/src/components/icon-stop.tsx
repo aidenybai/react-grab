@@ -17,16 +17,7 @@ export const IconStop: Component<IconStopProps> = (props) => {
       fill="none"
       class={props.class}
     >
-      <rect
-        x="1"
-        y="1"
-        width="7"
-        height="7"
-        rx="1"
-        fill="currentColor"
-      />
+      <rect x="1" y="1" width="7" height="7" rx="1" fill="currentColor" />
     </svg>
   );
 };
-
-

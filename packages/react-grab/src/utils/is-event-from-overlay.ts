@@ -1,4 +1,3 @@
-// NOTE: Add `data-react-grab-toolbar` attribute to elements that should be ignored by global event handlers
 export const isEventFromOverlay = (event: Event, attribute: string) =>
   event
     .composedPath()
@@ -6,5 +5,3 @@ export const isEventFromOverlay = (event: Event, attribute: string) =>
       (target) =>
         target instanceof HTMLElement && target.hasAttribute(attribute),
     );
-
-

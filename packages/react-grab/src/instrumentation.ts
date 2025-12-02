@@ -17,7 +17,7 @@ import {
 } from "bippy/source";
 import { isCapitalized } from "./utils/is-capitalized.js";
 
-const NEXT_INTERNAL_COMPONENT_NAMES = [
+const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
   "InnerLayoutRouter",
   "RedirectErrorBoundary",
   "RedirectBoundary",
@@ -31,22 +31,17 @@ const NEXT_INTERNAL_COMPONENT_NAMES = [
   "OuterLayoutRouter",
   "body",
   "html",
-  "RedirectErrorBoundary",
-  "RedirectBoundary",
-  "HTTPAccessFallbackErrorBoundary",
-  "HTTPAccessFallbackBoundary",
   "DevRootHTTPAccessFallbackBoundary",
   "AppDevOverlayErrorBoundary",
   "AppDevOverlay",
   "HotReload",
   "Router",
   "ErrorBoundaryHandler",
-  "ErrorBoundary",
   "AppRouter",
   "ServerRoot",
   "SegmentStateProvider",
   "RootErrorBoundary",
-];
+]);
 
 export const checkIsNextProject = (): boolean => {
   return Boolean(document.getElementById("__NEXT_DATA__"));
@@ -54,7 +49,7 @@ export const checkIsNextProject = (): boolean => {
 
 export const checkIsInternalComponentName = (name: string): boolean => {
   if (name.startsWith("_")) return true;
-  if (NEXT_INTERNAL_COMPONENT_NAMES.includes(name)) return true;
+  if (NEXT_INTERNAL_COMPONENT_NAMES.has(name)) return true;
   return false;
 };
 
