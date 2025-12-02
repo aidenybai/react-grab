@@ -484,6 +484,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     ref={inputRef}
                     class="text-black text-[11px] leading-3.5 tracking-[-0.04em] font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0"
                     style={{
+                      "field-sizing": "content",
                       "min-height": "14px",
                     }}
                     value={props.inputValue ?? ""}
