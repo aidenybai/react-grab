@@ -179,7 +179,7 @@ export const createAgentManager = (
 
     const elements = [element];
     const content = await generateSnippet(elements);
-    const context = { content, prompt };
+    const context = { content, prompt, options: agentOptions?.getOptions?.() };
     const tagName = (element.tagName || "").toLowerCase() || undefined;
 
     const session = createSession(context, position, selectionBounds, tagName);

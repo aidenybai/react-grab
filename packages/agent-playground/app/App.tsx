@@ -1,9 +1,19 @@
 import { useEffect, useState, useRef } from "react";
 import { init } from "react-grab/core";
 import type { AgentSession, ReactGrabAPI } from "react-grab/core";
-import { createAmiAgentProvider } from "../src/ami/client";
 
-const agentProvider = createAmiAgentProvider();
+const PROVIDER = import.meta.env.VITE_PROVIDER ?? "claude";
+
+const getAgentProvider = async () => {
+  if (PROVIDER === "ami") {
+    const { createAmiAgentProvider } = await import("../src/ami/client");
+    return createAmiAgentProvider();
+  }
+  const { createClaudeAgentProvider } = await import(
+    "@react-grab/claude-code/client"
+  );
+  return createClaudeAgentProvider();
+};
 
 const ReactGrabLogo = ({ size = 24 }: { size?: number }) => (
   <svg
@@ -81,22 +91,24 @@ export const App = () => {
   useEffect(() => {
     if (apiRef.current) return;
 
-    const api = init({
-      onActivate: () => addLog("info", "Activated"),
-      onDeactivate: () => addLog("info", "Deactivated"),
-      agent: {
-        provider: agentProvider,
-        storage: sessionStorage,
-        onStart: (session: AgentSession) => addLog("start", session.id),
-        onStatus: (status: string) => addLog("status", status),
-        onComplete: () => addLog("done", "Complete"),
-        onError: (error: Error) => addLog("error", error.message),
-        onResume: (session: AgentSession) => addLog("resume", session.id),
-      },
-    });
+    getAgentProvider().then((agentProvider) => {
+      const api = init({
+        onActivate: () => addLog("info", "Activated"),
+        onDeactivate: () => addLog("info", "Deactivated"),
+        agent: {
+          provider: agentProvider,
+          storage: sessionStorage,
+          onStart: (session: AgentSession) => addLog("start", session.id),
+          onStatus: (status: string) => addLog("status", status),
+          onComplete: () => addLog("done", "Complete"),
+          onError: (error: Error) => addLog("error", error.message),
+          onResume: (session: AgentSession) => addLog("resume", session.id),
+        },
+      });
 
-    apiRef.current = api;
-    addLog("info", "Ready");
+      apiRef.current = api;
+      addLog("info", `Ready (${PROVIDER})`);
+    });
   }, []);
 
   return (

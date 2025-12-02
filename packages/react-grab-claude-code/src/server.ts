@@ -1,21 +1,30 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { streamSSE } from "hono/streaming";
-import { query } from "@anthropic-ai/claude-agent-sdk";
+import { serve } from "@hono/node-server";
+import {
+  query,
+  type Options,
+  type SDKAssistantMessage,
+} from "@anthropic-ai/claude-agent-sdk";
+import type { AgentContext } from "react-grab/core";
+import { DEFAULT_PORT } from "./constants";
 
-interface AgentContext {
-  content: string;
-  prompt: string;
-}
+type ContentBlock = SDKAssistantMessage["message"]["content"][number];
+type TextContentBlock = Extract<ContentBlock, { type: "text" }>;
+type ClaudeAgentContext = AgentContext<Options>;
 
-export const createClaudeAgentApp = () => {
+const isTextBlock = (block: ContentBlock): block is TextContentBlock =>
+  block.type === "text";
+
+export const createServer = () => {
   const app = new Hono();
 
   app.use("/*", cors());
 
   app.post("/agent", async (context) => {
-    const body = await context.req.json<AgentContext>();
-    const { content, prompt } = body;
+    const body = await context.req.json<ClaudeAgentContext>();
+    const { content, prompt, options } = body;
 
     const fullPrompt = `${prompt}\n\n${content}`;
 
@@ -26,37 +35,21 @@ export const createClaudeAgentApp = () => {
         const queryResult = query({
           prompt: fullPrompt,
           options: {
-            systemPrompt: {
-              type: "preset",
-              preset: "claude_code",
-              append: `You are helping a user make changes to a React component based on a selected element.
-The user has selected an element from their UI and wants you to help modify it.
-Provide clear, concise status updates as you work.`,
-            },
-            model: "haiku",
-            permissionMode: "bypassPermissions",
-            maxTurns: 10,
+            pathToClaudeCodeExecutable: "claude",
+            cwd: process.cwd(),
+            ...options,
           },
         });
 
         for await (const message of queryResult) {
           if (message.type === "assistant") {
             const textContent = message.message.content
-              .filter(
-                (block: {
-                  type: string;
-                }): block is { type: "text"; text: string } =>
-                  block.type === "text",
-              )
-              .map((block: { text: any }) => block.text)
-              .join("");
+              .filter(isTextBlock)
+              .map((block: TextContentBlock) => block.text)
+              .join(" ");
 
             if (textContent) {
-              const statusUpdate =
-                textContent.length > 100
-                  ? `${textContent.slice(0, 100)}...`
-                  : textContent;
-              await stream.writeSSE({ data: statusUpdate, event: "status" });
+              await stream.writeSSE({ data: textContent, event: "status" });
             }
           }
 
@@ -91,13 +84,11 @@ Provide clear, concise status updates as you work.`,
   return app;
 };
 
-const app = createClaudeAgentApp();
+const app = createServer();
 
-const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
-
-console.log(`🚀 Claude Agent server running on port ${port}`);
-
-export default {
-  port,
+serve({
   fetch: app.fetch,
-};
+  port: DEFAULT_PORT,
+});
+
+console.log("React Grab Claude Code server running on port", DEFAULT_PORT);

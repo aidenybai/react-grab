@@ -205,9 +205,10 @@ export interface ActivationKey {
   altKey?: boolean;
 }
 
-export interface AgentContext {
+export interface AgentContext<T = unknown> {
   content: string;
   prompt: string;
+  options?: T;
 }
 
 export interface AgentSession {
@@ -221,8 +222,8 @@ export interface AgentSession {
   tagName?: string;
 }
 
-export interface AgentProvider {
-  send: (context: AgentContext, signal: AbortSignal) => AsyncIterable<string>;
+export interface AgentProvider<T = unknown> {
+  send: (context: AgentContext<T>, signal: AbortSignal) => AsyncIterable<string>;
   resume?: (sessionId: string, signal: AbortSignal) => AsyncIterable<string>;
   supportsResume?: boolean;
 }
@@ -233,9 +234,10 @@ export interface AgentSessionStorage {
   removeItem(key: string): void;
 }
 
-export interface AgentOptions {
-  provider?: AgentProvider;
+export interface AgentOptions<T = unknown> {
+  provider?: AgentProvider<T>;
   storage?: AgentSessionStorage | null;
+  getOptions?: () => T;
   onStart?: (session: AgentSession) => void;
   onStatus?: (status: string, session: AgentSession) => void;
   onComplete?: (session: AgentSession) => void;
@@ -263,10 +265,7 @@ export interface Options {
   onCopyError?: (error: Error) => void;
   onStateChange?: (state: ReactGrabState) => void;
   onRender?: (type: RenderType, data: RenderData) => void;
-  onInputModeChange?: (
-    isInputMode: boolean,
-    context: InputModeContext,
-  ) => void;
+  onInputModeChange?: (isInputMode: boolean, context: InputModeContext) => void;
   onSuccessLabel?: (
     text: string,
     type: SuccessLabelType,
