@@ -263,7 +263,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
             <Show when={props.status === "copied" || props.status === "fading"}>
               <span class="text-[#A000A6] text-[12px] leading-4 font-medium tracking-[-0.02em] px-0.5">
-                Copied
+                {props.hasAgent ? "Complete!" : "Copied"}
               </span>
             </Show>
 

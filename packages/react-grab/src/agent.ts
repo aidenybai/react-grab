@@ -76,15 +76,22 @@ export const createAgentManager = (
       }
     } finally {
       abortControllers.delete(session.id);
-      sessionElements.delete(session.id);
 
-      if (didComplete || wasAborted) {
+      const removeSession = () => {
+        sessionElements.delete(session.id);
         clearSessionById(session.id, storage);
         setSessions((prev) => {
           const next = new Map(prev);
           next.delete(session.id);
           return next;
         });
+      };
+
+      if (didComplete) {
+        // HACK: Delay removal to show "Complete!" message for 1.5 seconds
+        setTimeout(removeSession, 1500);
+      } else if (wasAborted) {
+        removeSession();
       }
     }
   };

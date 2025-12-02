@@ -76,7 +76,8 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
               tagName={session.tagName}
               selectionBounds={session.selectionBounds}
               visible={true}
-              status="copying"
+              hasAgent={true}
+              status={session.isStreaming ? "copying" : "copied"}
               statusText={truncateStatus(session.lastStatus || "Please wait…")}
             />
           </>
