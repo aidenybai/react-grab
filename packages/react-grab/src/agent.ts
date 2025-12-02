@@ -46,6 +46,7 @@ export const createAgentManager = (
     const storage = agentOptions?.storage;
     let didComplete = false;
     let wasAborted = false;
+    let hadError = false;
 
     try {
       for await (const status of streamIterator) {
@@ -71,8 +72,19 @@ export const createAgentManager = (
       const currentSession = currentSessions.get(session.id);
       if (error instanceof Error && error.name === "AbortError") {
         wasAborted = true;
-      } else if (currentSession && error instanceof Error) {
-        agentOptions?.onError?.(error, currentSession);
+      } else {
+        hadError = true;
+        if (currentSession) {
+          const errorMessage = error instanceof Error ? error.message : "Unknown error";
+          const errorSession = updateSession(currentSession, {
+            lastStatus: `Error: ${errorMessage}`,
+            isStreaming: false,
+          }, storage);
+          setSessions((prev) => new Map(prev).set(session.id, errorSession));
+          if (error instanceof Error) {
+            agentOptions?.onError?.(error, errorSession);
+          }
+        }
       }
     } finally {
       abortControllers.delete(session.id);
@@ -87,13 +99,30 @@ export const createAgentManager = (
         });
       };
 
-      if (didComplete) {
-        // HACK: Delay removal to show "Complete!" message for 1.5 seconds
+      if (didComplete || hadError) {
+        // HACK: Delay removal to show "Complete!" or error message for 1.5 seconds
         setTimeout(removeSession, 1500);
       } else if (wasAborted) {
         removeSession();
       }
     }
+  };
+
+  const tryReacquireElement = (session: AgentSession): Element | undefined => {
+    const { selectionBounds, tagName } = session;
+    if (!selectionBounds) return undefined;
+
+    const centerX = selectionBounds.x + selectionBounds.width / 2;
+    const centerY = selectionBounds.y + selectionBounds.height / 2;
+
+    const element = document.elementFromPoint(centerX, centerY);
+    if (!element) return undefined;
+
+    if (tagName && element.tagName.toLowerCase() !== tagName) {
+      return undefined;
+    }
+
+    return element;
   };
 
   const tryResumeSessions = () => {
@@ -119,6 +148,11 @@ export const createAgentManager = (
     saveSessions(streamingSessionsMap, storage);
 
     for (const existingSession of streamingSessions) {
+      const reacquiredElement = tryReacquireElement(existingSession);
+      if (reacquiredElement) {
+        sessionElements.set(existingSession.id, reacquiredElement);
+      }
+
       const sessionWithResumeStatus = {
         ...existingSession,
         lastStatus: existingSession.lastStatus || "Resuming...",
@@ -177,7 +211,16 @@ export const createAgentManager = (
     let didUpdate = false;
 
     for (const [sessionId, session] of currentSessions) {
-      const element = sessionElements.get(sessionId);
+      let element = sessionElements.get(sessionId);
+
+      if (!element || !document.contains(element)) {
+        const reacquiredElement = tryReacquireElement(session);
+        if (reacquiredElement) {
+          sessionElements.set(sessionId, reacquiredElement);
+          element = reacquiredElement;
+        }
+      }
+
       if (element && document.contains(element)) {
         const newBounds = createElementBounds(element);
         if (newBounds) {

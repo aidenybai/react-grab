@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef } from "react";
 import { init } from "react-grab/core";
 import type { AgentSession, ReactGrabAPI } from "react-grab/core";
-import { createAgentProvider } from "../src/client";
+import { createAmiAgentProvider } from "../src/ami/client";
 
-const agentProvider = createAgentProvider("http://localhost:3001");
+const agentProvider = createAmiAgentProvider();
 
 const ReactGrabLogo = ({ size = 24 }: { size?: number }) => (
   <svg

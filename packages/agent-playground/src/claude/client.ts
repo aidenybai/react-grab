@@ -1,4 +1,8 @@
-import type { AgentContext, AgentProvider, AgentSession } from "react-grab/core";
+import type {
+  AgentContext,
+  AgentProvider,
+  AgentSession,
+} from "react-grab/core";
 
 const DEFAULT_SERVER_URL = "http://localhost:3001";
 const STORAGE_KEY = "react-grab:agent-sessions";
@@ -90,7 +94,7 @@ async function* streamFromServer(
   }
 }
 
-export const createAgentProvider = (
+export const createClaudeAgentProvider = (
   serverUrl: string = DEFAULT_SERVER_URL,
 ): AgentProvider => ({
   send: async function* (context: AgentContext, signal: AbortSignal) {
@@ -103,7 +107,10 @@ export const createAgentProvider = (
       throw new Error("No sessions to resume");
     }
 
-    const sessionsObject = JSON.parse(savedSessions) as Record<string, AgentSession>;
+    const sessionsObject = JSON.parse(savedSessions) as Record<
+      string,
+      AgentSession
+    >;
     const session = sessionsObject[sessionId];
     if (!session) {
       throw new Error(`Session ${sessionId} not found`);
@@ -118,4 +125,4 @@ export const createAgentProvider = (
   supportsResume: true,
 });
 
-export const defaultAgentProvider = createAgentProvider();
+export const defaultClaudeAgentProvider = createClaudeAgentProvider();

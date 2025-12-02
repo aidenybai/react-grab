@@ -1642,7 +1642,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const selectionLabelVisible = createMemo(() => {
       if (!theme().elementLabel.enabled) return false;
-      if (agentManager.isProcessing()) return false;
       if (successLabels().length > 0) return false;
       return isRendererActive() && !isDragging() && Boolean(targetElement());
     });
@@ -1683,7 +1682,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const labelVisible = createMemo(() => {
       if (!theme().elementLabel.enabled) return false;
       if (isInputMode()) return false;
-      if (agentManager.isProcessing()) return false;
       if (isCopying()) return true;
       if (successLabels().length > 0) return false;
 
