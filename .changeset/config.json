@@ -3,7 +3,7 @@
   "changelog": "@changesets/cli/changelog",
   "commit": false,
   "fixed": [],
-  "linked": [],
+  "linked": [["react-grab", "@react-grab/claude-code"]],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
@@ -12,6 +12,7 @@
     "@react-grab/vite-playground",
     "@react-grab/website",
     "@react-grab/web-extension",
-    "@react-grab/benchmarks"
+    "@react-grab/benchmarks",
+    "@react-grab/agent-playground"
   ]
 }
