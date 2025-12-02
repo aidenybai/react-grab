@@ -250,7 +250,6 @@ export interface Options {
   enabled?: boolean;
   keyHoldDuration?: number;
   allowActivationInsideInput?: boolean;
-  copyFileOnly?: boolean;
   theme?: Theme;
   activationShortcut?: (event: KeyboardEvent) => boolean;
   activationKey?: ActivationKey;

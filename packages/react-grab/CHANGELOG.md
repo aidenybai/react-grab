@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.55
+
+### Patch Changes
+
+- beta
+
 ## 0.0.54
 
 ### Patch Changes

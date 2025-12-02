@@ -13,11 +13,7 @@ import { isKeyboardEventTriggeredByInput } from "./utils/is-keyboard-event-trigg
 import { isSelectionInsideEditableElement } from "./utils/is-selection-inside-editable-element.js";
 import { mountRoot } from "./utils/mount-root.js";
 import { ReactGrabRenderer } from "./components/renderer.js";
-import {
-  getStack,
-  formatElementInfo,
-  getFileName,
-} from "./instrumentation.js";
+import { getStack, formatElementInfo } from "./instrumentation.js";
 import { isInstrumentationActive } from "bippy";
 import { isSourceFile, normalizeFileName } from "bippy/source";
 import { copyContent } from "./utils/copy-content.js";
@@ -353,29 +349,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const isReactProject = isInstrumentationActive();
 
       await options.onBeforeCopy?.(elements);
-
-      if (options.copyFileOnly && isReactProject) {
-        try {
-          const firstElement = elements[0];
-          if (firstElement) {
-            const stack = await getStack(firstElement);
-            const fileName = getFileName(stack);
-            if (fileName) {
-              copiedContent = `@${fileName}`;
-              didCopy = await copyContent(copiedContent);
-              if (didCopy) {
-                options.onCopySuccess?.(elements, copiedContent);
-              }
-            }
-          }
-        } catch (error) {
-          options.onCopyError?.(error as Error);
-        }
-
-        options.onAfterCopy?.(elements, didCopy);
-
-        return didCopy;
-      }
 
       try {
         const elementSnippetResults = await Promise.allSettled(
