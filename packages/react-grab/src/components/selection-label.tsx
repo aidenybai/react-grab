@@ -249,16 +249,25 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 </span>
               </div>
               <div
-                class="flex items-center px-1.5 py-px h-[18px] rounded-[5px] gap-[3px]"
+                class="relative flex items-center h-[18px] rounded-[5px] gap-[3px]"
                 style={{
+                  "padding-left": "19px",
+                  "padding-right": "6px",
+                  "padding-top": "1px",
+                  "padding-bottom": "1px",
                   background: "#FDAFFF",
                   "border-width": "0.5px",
                   "border-style": "solid",
                   "border-color": "#FDAFFF",
                 }}
               >
-                <IconPointer size={6} class="text-[#37003A]" />
-                <span class="text-[#37003A] text-[12px] leading-4 font-medium tracking-[-0.04em]">
+                <div
+                  class="absolute top-0 left-0 w-3.5 h-3.5"
+                  style={{ translate: "4px 2.5px" }}
+                >
+                  <IconPointer size={14} class="text-black" />
+                </div>
+                <span class="text-black text-[12px] leading-4 font-medium tracking-[-0.04em]">
                   Grabbed
                 </span>
               </div>
@@ -281,16 +290,26 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 </span>
               </div>
               <div
-                class="flex items-center px-1.5 py-px h-[18px] rounded-[5px] gap-[3px]"
+                class="relative flex items-center h-[18px] rounded-[5px] gap-[3px]"
                 style={{
+                  "padding-left": "19px",
+                  "padding-right": "6px",
+                  "padding-top": "1px",
+                  "padding-bottom": "1px",
                   background: "#FDAFFF",
                   "border-width": "0.5px",
                   "border-style": "solid",
                   "border-color": "#FDAFFF",
                 }}
               >
-                <span class="text-[#37003A] text-[12px] leading-4 font-medium tracking-[-0.04em]">
-                  {props.statusText ?? "grabbing…"}
+                <div
+                  class="absolute top-0 left-0 w-3.5 h-3.5"
+                  style={{ translate: "4px 2.5px" }}
+                >
+                  <IconPointer size={14} class="text-black" />
+                </div>
+                <span class="text-black text-[12px] leading-4 font-medium tracking-[-0.04em]">
+                  {props.statusText ?? "Grabbing…"}
                 </span>
               </div>
             </div>
@@ -313,17 +332,26 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 </span>
               </div>
               <button
-                class="flex items-center px-1.5 py-px h-[18px] rounded-[5px] gap-[3px] cursor-pointer bg-transparent"
+                class="relative flex items-center h-[18px] rounded-[5px] gap-[3px] cursor-pointer bg-transparent"
                 style={{
+                  "padding-left": "19px",
+                  "padding-right": "6px",
+                  "padding-top": "1px",
+                  "padding-bottom": "1px",
                   "border-width": "0.5px",
                   "border-style": "solid",
                   "border-color": "#B0B0B0",
                 }}
                 onClick={() => props.onSubmit?.()}
               >
-                <IconPointer size={6} class="text-black opacity-[0.74]" />
+                <div
+                  class="absolute top-0 left-0 w-3.5 h-3.5"
+                  style={{ translate: "4px 2.5px" }}
+                >
+                  <IconPointer size={14} class="text-black" />
+                </div>
                 <span class="text-black text-[12px] leading-4 font-medium tracking-[-0.04em]">
-                  Click to grab
+                  to grab
                 </span>
               </button>
             </div>
@@ -347,8 +375,12 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   </span>
                 </div>
                 <div
-                  class="shrink-0 flex items-center px-1.5 py-px w-fit h-[18px] rounded-[5px] gap-[3px] cursor-pointer"
+                  class="relative shrink-0 flex items-center w-fit h-[18px] rounded-[5px] gap-[3px] cursor-pointer"
                   style={{
+                    "padding-left": "19px",
+                    "padding-right": "6px",
+                    "padding-top": "1px",
+                    "padding-bottom": "1px",
                     "border-width": "0.5px",
                     "border-style": "solid",
                     "border-color": "#B0B0B0",
@@ -356,9 +388,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   role="button"
                   onClick={() => props.onSubmit?.()}
                 >
-                  <IconPointer size={6} class="shrink-0 text-black opacity-[0.74]" />
+                  <div
+                    class="absolute top-0 left-0 w-3.5 h-3.5"
+                    style={{ translate: "4px 2.5px" }}
+                  >
+                    <IconPointer size={14} class="text-black" />
+                  </div>
                   <span class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
-                    Click to grab
+                    to grab
                   </span>
                 </div>
               </div>
@@ -398,8 +435,12 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   </span>
                 </div>
                 <div
-                  class="shrink-0 flex items-center px-1.5 py-px w-fit h-[18px] rounded-[5px] gap-[3px] cursor-pointer"
+                  class="relative shrink-0 flex items-center w-fit h-[18px] rounded-[5px] gap-[3px] cursor-pointer"
                   style={{
+                    "padding-left": "19px",
+                    "padding-right": "6px",
+                    "padding-top": "1px",
+                    "padding-bottom": "1px",
                     "border-width": "0.5px",
                     "border-style": "solid",
                     "border-color": "#B0B0B0",
@@ -407,9 +448,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   role="button"
                   onClick={() => props.onSubmit?.()}
                 >
-                  <IconPointer size={6} class="shrink-0 text-black opacity-[0.74]" />
+                  <div
+                    class="absolute top-0 left-0 w-3.5 h-3.5"
+                    style={{ translate: "4px 2.5px" }}
+                  >
+                    <IconPointer size={14} class="text-black" />
+                  </div>
                   <span class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
-                    Click to grab
+                    to grab
                   </span>
                 </div>
               </div>
