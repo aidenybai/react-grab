@@ -3,7 +3,7 @@ import type { Component } from "solid-js";
 import { SELECTION_CURSOR_SETTLE_DELAY_MS, VIEWPORT_MARGIN_PX } from "../constants.js";
 import type { OverlayBounds } from "../types.js";
 import { SelectionBox } from "./selection-box.js";
-import { IconReturnKey } from "./icon-return-key.js";
+import { IconPointer } from "./icon-pointer.js";
 import { cn } from "../utils/cn.js";
 
 interface SelectionCursorProps {
@@ -204,15 +204,15 @@ export const SelectionCursor: Component<SelectionCursorProps> = (props) => {
                 </span>
               </div>
 
-              <div class="flex items-center px-0.5">
-                <span class="text-[#323232] text-[12px] leading-4 font-medium tracking-[-0.02em]">
-                  Hit
+              <button
+                class="flex justify-center items-center gap-0.5 px-1.5 py-0.5 cursor-pointer hover:bg-[#F0F0F0] transition-colors bg-transparent border-none rounded-[4px]"
+                onClick={handleClick}
+              >
+                <IconPointer size={13} class="text-black" />
+                <span class="text-black text-[11px] leading-3.5 font-medium tracking-[-0.02em]">
+                  to copy
                 </span>
-                <IconReturnKey size={14} class="mx-1 text-[#323232]" />
-                <span class="text-[#323232] text-[12px] leading-4 font-medium tracking-[-0.02em]">
-                  to edit
-                </span>
-              </div>
+              </button>
             </div>
           </div>
         </div>

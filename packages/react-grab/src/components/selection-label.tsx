@@ -2,7 +2,8 @@ import { Show, createSignal, createEffect, onMount, onCleanup } from "solid-js";
 import type { Component } from "solid-js";
 import type { OverlayBounds, SelectionLabelStatus } from "../types.js";
 import { VIEWPORT_MARGIN_PX } from "../constants.js";
-import { IconReturnKey } from "./icon-return-key.js";
+import { IconPointer } from "./icon-pointer.js";
+import { IconReturnSmall } from "./icon-return-small.js";
 
 interface SelectionLabelProps {
   tagName?: string;
@@ -23,6 +24,7 @@ type ArrowPosition = "bottom" | "top";
 
 const ARROW_HEIGHT = 8;
 const LABEL_GAP = 4;
+const IDLE_TIMEOUT_MS = 150;
 
 export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
@@ -32,6 +34,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
   const [arrowPosition, setArrowPosition] = createSignal<ArrowPosition>("bottom");
   const [viewportVersion, setViewportVersion] = createSignal(0);
+  const [isIdle, setIsIdle] = createSignal(false);
 
   const measureContainer = () => {
     if (containerRef) {
@@ -45,15 +48,43 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     setViewportVersion((version) => version + 1);
   };
 
+  let idleTimeout: ReturnType<typeof setTimeout> | undefined;
+
+  const resetIdleTimer = () => {
+    setIsIdle(false);
+    if (idleTimeout) {
+      clearTimeout(idleTimeout);
+    }
+    idleTimeout = setTimeout(() => {
+      setIsIdle(true);
+    }, IDLE_TIMEOUT_MS);
+  };
+
+  const handleGlobalKeyDown = (event: KeyboardEvent) => {
+    if (event.code === "Enter" && isIdle() && !props.isInputExpanded && props.status !== "copying" && props.status !== "copied" && props.status !== "fading") {
+      event.preventDefault();
+      event.stopPropagation();
+      props.onToggleExpand?.();
+    }
+  };
+
   onMount(() => {
     measureContainer();
     window.addEventListener("scroll", handleViewportChange, true);
     window.addEventListener("resize", handleViewportChange);
+    window.addEventListener("mousemove", resetIdleTimer);
+    window.addEventListener("keydown", handleGlobalKeyDown, { capture: true });
+    resetIdleTimer();
   });
 
   onCleanup(() => {
     window.removeEventListener("scroll", handleViewportChange, true);
     window.removeEventListener("resize", handleViewportChange);
+    window.removeEventListener("mousemove", resetIdleTimer);
+    window.removeEventListener("keydown", handleGlobalKeyDown, { capture: true });
+    if (idleTimeout) {
+      clearTimeout(idleTimeout);
+    }
   });
 
   createEffect(() => {
@@ -63,7 +94,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   });
 
   createEffect(() => {
-    void [props.status, props.isInputExpanded, props.inputValue];
+    void [props.status, props.isInputExpanded, props.inputValue, isIdle()];
     requestAnimationFrame(measureContainer);
   });
 
@@ -194,9 +225,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         </Show>
 
         <div
-          class="relative flex items-center gap-[7px] rounded-[7px] overflow-hidden bg-white"
+          class="relative flex flex-col gap-[5px] rounded-[7px] overflow-hidden bg-white"
           style={{
-            padding: props.isInputExpanded ? "4px 6px 4px 4px" : "3px 7px 3px 3px",
+            padding: "4px 6px 4px 4px",
             "box-shadow": "0 0 0 1px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08)",
           }}
         >
@@ -242,25 +273,61 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               </span>
             </Show>
 
-            <Show when={!props.isInputExpanded && props.status !== "copying" && props.status !== "copied" && props.status !== "fading"}>
-              <div class="flex items-center px-0.5">
-                <span class="text-[#323232] text-[12px] leading-4 font-medium tracking-[-0.02em]">
-                  Hit
+            <Show when={props.status !== "copying" && props.status !== "copied" && props.status !== "fading"}>
+              <button
+                class="flex justify-center items-center gap-0.5 px-1.5 py-0.5 cursor-pointer hover:bg-[#F0F0F0] transition-colors bg-transparent border-none rounded-[4px]"
+                onClick={() => props.onSubmit?.()}
+              >
+                <IconPointer size={13} class="text-black" />
+                <span class="text-black text-[11px] leading-3.5 font-medium tracking-[-0.02em]">
+                  to copy
                 </span>
-                <IconReturnKey size={14} class="mx-1 text-[#323232]" />
-                <span class="text-[#323232] text-[12px] leading-4 font-medium tracking-[-0.02em]">
+              </button>
+            </Show>
+          </div>
+
+          <Show when={isIdle() && !props.isInputExpanded && props.status !== "copying" && props.status !== "copied" && props.status !== "fading"}>
+            <div
+              class="flex justify-between items-center rounded-[5px] p-px"
+              style={{
+                border: "0.5px solid #CBCBCB",
+                "min-width": "215px",
+              }}
+            >
+              <div class="flex items-center gap-[3px] px-[5px] py-0.5">
+                <IconReturnSmall size={9} class="text-black opacity-30" />
+                <span class="text-[#898989] text-[11px] leading-3.5 font-medium tracking-[-0.03em]">
                   to edit
                 </span>
               </div>
-            </Show>
-
-            <Show when={props.isInputExpanded && props.status !== "copying" && props.status !== "copied" && props.status !== "fading"}>
               <div
-                class="grid rounded-[3px] bg-white border border-[#DFDFDF]"
+                class="flex items-center gap-[3px] px-[5px] py-px rounded-sm"
+                style={{
+                  background: "#EDEDED",
+                  border: "0.5px solid #EDEDED",
+                }}
+              >
+                <span class="text-[#898989] text-[11px] leading-3.5 font-medium tracking-[-0.03em]">
+                  Send
+                </span>
+              </div>
+            </div>
+          </Show>
+
+          <Show when={props.isInputExpanded && props.status !== "copying" && props.status !== "copied" && props.status !== "fading"}>
+            <div
+              class="flex justify-between items-center rounded-[5px] p-px"
+              style={{
+                border: "0.5px solid #CBCBCB",
+                "min-width": "215px",
+              }}
+            >
+              <div
+                class="grid flex-1"
                 style={{ "grid-template-columns": "1fr" }}
               >
                 <span
-                  class="invisible whitespace-pre-wrap wrap-break-word text-[12px] leading-4 font-medium min-w-[100px] max-w-[300px] px-[5px] py-px col-start-1 row-start-1"
+                  class="invisible whitespace-pre-wrap wrap-break-word text-[11px] leading-3.5 font-medium min-w-[100px] max-w-[300px] px-[5px] py-0.5 col-start-1 row-start-1"
                   style={{ "word-break": "break-word", "overflow-wrap": "break-word" }}
                   aria-hidden="true"
                 >
@@ -273,25 +340,29 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   onKeyDown={handleKeyDown}
                   placeholder="make a change"
                   rows={1}
-                  class="text-[#4F4F4F] text-[12px] leading-4 font-medium bg-transparent border-none outline-none resize-none min-h-[16px] px-[5px] py-px col-start-1 row-start-1 whitespace-pre-wrap break-words min-w-[100px] max-w-[300px] placeholder:text-[#9F9F9F] placeholder:italic overflow-hidden"
+                  class="text-[#4F4F4F] text-[11px] leading-3.5 font-medium bg-transparent border-none outline-none resize-none min-h-[14px] px-[5px] py-0.5 col-start-1 row-start-1 whitespace-pre-wrap wrap-break-word min-w-[100px] max-w-[300px] placeholder:text-[#898989] overflow-hidden"
                   style={{ "word-break": "break-word", "overflow-wrap": "break-word" }}
                 />
               </div>
-            </Show>
-          </div>
-
-          <Show when={props.isInputExpanded && props.status !== "copying" && props.status !== "copied" && props.status !== "fading"}>
-            <div class="w-px h-3.5 bg-[#D3D3D3]" />
-
-            <button
-              class="flex items-center gap-0.5 cursor-pointer hover:opacity-80 transition-opacity bg-transparent border-none p-0"
-              onClick={() => props.onSubmit?.()}
-            >
-              <IconReturnKey size={14} class="text-black" />
-              <span class="text-black text-[12px] leading-4 font-semibold">
-                {props.hasAgent ? "Send" : "Copy"}
-              </span>
-            </button>
+              <button
+                class="flex items-center gap-[3px] px-[5px] py-px rounded-sm cursor-pointer hover:opacity-80 transition-all border-none"
+                style={{
+                  background: props.inputValue ? "black" : "#EDEDED",
+                  border: props.inputValue ? "0.5px solid black" : "0.5px solid #EDEDED",
+                }}
+                onClick={() => props.onSubmit?.()}
+              >
+                <span
+                  class="text-[11px] leading-3.5 font-medium tracking-[-0.03em]"
+                  style={{ color: props.inputValue ? "white" : "#898989" }}
+                >
+                  {props.hasAgent ? "Send" : "Copy"}
+                </span>
+                <Show when={props.inputValue}>
+                  <IconReturnSmall size={9} class="text-white" />
+                </Show>
+              </button>
+            </div>
           </Show>
         </div>
       </div>
