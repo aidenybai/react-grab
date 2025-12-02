@@ -1,6 +1,7 @@
 node_modules
 .DS_Store
 .env
+.turbo
 .ami-token
 dist
 **/*.tgz
