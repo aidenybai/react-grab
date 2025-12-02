@@ -236,7 +236,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         </Show>
 
         <div
-          class="relative flex items-center gap-[5px] bg-white"
+          class="relative flex items-center gap-[5px] bg-white rounded-[3px]"
           style={{
             padding:
               props.status === "copying" ||
@@ -414,7 +414,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 </div>
               </div>
               <div
-                class="shrink-0 flex flex-col items-start px-2 py-[5px] w-[178px] h-fit rounded-bl-[10px] rounded-br-[10px]"
+                class="shrink-0 flex flex-col items-start px-2 py-[5px] w-full h-fit rounded-bl-[3px] rounded-br-[3px]"
                 style={{
                   "border-top-width": "0.5px",
                   "border-top-style": "solid",
@@ -422,12 +422,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 }}
               >
                 <div class="shrink-0 flex items-center gap-1 w-full h-[14px]">
-                  <IconReturnKey
-                    size={10}
-                    class="shrink-0 text-black opacity-[0.41]"
-                  />
+                  <IconReturnKey size={10} class="shrink-0 text-black opacity-[0.65]" />
                   <span class="text-[#767676] text-[11px] leading-3.5 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
-                    to modify
+                    to change
                   </span>
                 </div>
               </div>
@@ -480,7 +477,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 </div>
               </div>
               <div
-                class="shrink-0 flex flex-col items-start px-2 py-[5px] w-[178px] h-fit rounded-bl-[10px] rounded-br-[10px]"
+                class="shrink-0 flex flex-col items-start px-2 py-[5px] w-full h-fit rounded-bl-[3px] rounded-br-[3px]"
                 style={{
                   "border-top-width": "0.5px",
                   "border-top-style": "solid",
