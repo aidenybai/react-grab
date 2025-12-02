@@ -67,13 +67,15 @@ Provide clear, concise status updates as you work.`,
                 : "Task finished",
             event: "status",
           });
-          await stream.writeSSE({ data: "", event: "done" });
         }
       }
+
+      await stream.writeSSE({ data: "", event: "done" });
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
       await stream.writeSSE({ data: `Error: ${errorMessage}`, event: "error" });
+      await stream.writeSSE({ data: "", event: "done" });
     }
   });
 });
