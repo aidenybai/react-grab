@@ -218,6 +218,7 @@ export interface AgentSession {
   createdAt: number;
   position: { x: number; y: number };
   selectionBounds?: OverlayBounds;
+  tagName?: string;
 }
 
 export interface AgentProvider {

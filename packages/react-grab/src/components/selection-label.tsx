@@ -12,6 +12,7 @@ interface SelectionLabelProps {
   inputValue?: string;
   hasAgent?: boolean;
   status?: SelectionLabelStatus;
+  statusText?: string;
   onInputChange?: (value: string) => void;
   onSubmit?: () => void;
   onCancel?: () => void;
@@ -237,7 +238,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
             <Show when={props.status === "copying"}>
               <span class="text-[#A000A6] text-[12px] leading-4 font-medium tracking-[-0.02em] px-0.5">
-                Please wait…
+                {props.statusText ?? "Please wait…"}
               </span>
             </Show>
 

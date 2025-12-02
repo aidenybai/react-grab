@@ -129,8 +129,9 @@ export const createAgentManager = (
     const elements = [element];
     const content = await generateSnippet(elements);
     const context = { content, prompt };
+    const tagName = (element.tagName || "").toLowerCase() || undefined;
 
-    const session = createSession(context, position, selectionBounds);
+    const session = createSession(context, position, selectionBounds, tagName);
     session.lastStatus = "Please wait…";
     sessionElements.set(session.id, element);
     setSessions((prev) => new Map(prev).set(session.id, session));
