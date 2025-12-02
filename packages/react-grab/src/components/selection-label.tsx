@@ -68,7 +68,6 @@ type ArrowPosition = "bottom" | "top";
 
 const ARROW_HEIGHT = 8;
 const LABEL_GAP = 4;
-const IDLE_TIMEOUT_MS = 150;
 
 const TAG_GRADIENT =
   "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)";
@@ -215,7 +214,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const [arrowPosition, setArrowPosition] =
     createSignal<ArrowPosition>("bottom");
   const [viewportVersion, setViewportVersion] = createSignal(0);
-  const [isIdle, setIsIdle] = createSignal(false);
 
   const isNotProcessing = () =>
     props.status !== "copying" &&
@@ -238,50 +236,15 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     setViewportVersion((version) => version + 1);
   };
 
-  let idleTimeout: ReturnType<typeof setTimeout> | undefined;
-
-  const resetIdleTimer = () => {
-    setIsIdle(false);
-    if (idleTimeout) {
-      clearTimeout(idleTimeout);
-    }
-    idleTimeout = setTimeout(() => {
-      setIsIdle(true);
-    }, IDLE_TIMEOUT_MS);
-  };
-
-  const handleGlobalKeyDown = (event: KeyboardEvent) => {
-    if (
-      event.code === "Enter" &&
-      isIdle() &&
-      !props.isInputExpanded &&
-      isNotProcessing()
-    ) {
-      event.preventDefault();
-      event.stopPropagation();
-      props.onToggleExpand?.();
-    }
-  };
-
   onMount(() => {
     measureContainer();
     window.addEventListener("scroll", handleViewportChange, true);
     window.addEventListener("resize", handleViewportChange);
-    window.addEventListener("mousemove", resetIdleTimer);
-    window.addEventListener("keydown", handleGlobalKeyDown, { capture: true });
-    resetIdleTimer();
   });
 
   onCleanup(() => {
     window.removeEventListener("scroll", handleViewportChange, true);
     window.removeEventListener("resize", handleViewportChange);
-    window.removeEventListener("mousemove", resetIdleTimer);
-    window.removeEventListener("keydown", handleGlobalKeyDown, {
-      capture: true,
-    });
-    if (idleTimeout) {
-      clearTimeout(idleTimeout);
-    }
   });
 
   createEffect(() => {
@@ -291,7 +254,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   });
 
   createEffect(() => {
-    void [props.status, props.isInputExpanded, props.inputValue, isIdle()];
+    void [props.status, props.isInputExpanded, props.inputValue];
     requestAnimationFrame(measureContainer);
   });
 
@@ -410,11 +373,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         <div
           class="relative flex items-center gap-[5px] bg-white rounded-[3px]"
           style={{
-            padding: !isNotProcessing()
-              ? "4px"
-              : isIdle() || props.isInputExpanded
-                ? "0"
-                : "4px",
+            padding: !isNotProcessing() ? "4px" : "0",
             "box-shadow": "#00000033 0px 2px 3px",
           }}
         >
@@ -465,20 +424,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             </div>
           </Show>
 
-          <Show when={isNotProcessing() && !isIdle() && !props.isInputExpanded}>
-            <div class="flex items-center gap-[3px]">
-              <TagBadge
-                tagName={tagDisplay()}
-                isClickable={isTagClickable()}
-                onClick={handleTagClick}
-                onHoverChange={handleTagHoverChange}
-                showMono
-              />
-              <ClickToCopyPill onClick={handleSubmit} asButton />
-            </div>
-          </Show>
-
-          <Show when={isNotProcessing() && isIdle() && !props.isInputExpanded}>
+          <Show when={isNotProcessing() && !props.isInputExpanded}>
             <div class="shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
               <div class="shrink-0 flex items-center gap-[3px] pt-1 w-fit h-fit px-1">
                 <TagBadge
