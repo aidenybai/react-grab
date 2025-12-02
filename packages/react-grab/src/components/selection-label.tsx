@@ -440,10 +440,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               <BottomSection>
                 <div class="shrink-0 flex items-center gap-1 w-full h-[14px]">
                   <IconReturnKey
-                    size={10}
+                    size={12}
                     class="shrink-0 text-black opacity-[0.65]"
                   />
-                  <span class="text-label-muted text-[11px] leading-3.5 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
+                  <span class="text-label-muted text-[12px] leading-3.5 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
                     to change
                   </span>
                 </div>
@@ -468,7 +468,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 <div class="shrink-0 flex justify-between items-start w-full min-h-[14px]">
                   <textarea
                     ref={inputRef}
-                    class="text-black text-[11px] leading-3.5 tracking-[-0.04em] font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0"
+                    class="text-black text-[12px] leading-3.5 tracking-[-0.04em] font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0"
                     style={{
                       // @ts-expect-error - field-sizing is not in the jsx spec
                       "field-sizing": "content",
@@ -484,7 +484,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     class="shrink-0 flex items-center gap-1 w-fit h-fit cursor-pointer bg-transparent border-none p-0 ml-1 mt-[2.5px]"
                     onClick={handleSubmit}
                   >
-                    <IconReturnKey size={10} class="shrink-0 text-black" />
+                    <IconReturnKey size={12} class="shrink-0 text-black" />
                   </button>
                 </div>
               </BottomSection>
