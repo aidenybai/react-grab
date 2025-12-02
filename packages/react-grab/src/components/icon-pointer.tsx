@@ -6,92 +6,22 @@ interface IconPointerProps {
 }
 
 export const IconPointer: Component<IconPointerProps> = (props) => {
-  const size = () => props.size ?? 13;
+  const width = () => props.size ?? 6;
+  const height = () => (props.size ?? 6) * (21 / 12);
 
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      width={size()}
-      height={size()}
-      viewBox="0 0 20 20"
+      width={width()}
+      height={height()}
+      viewBox="0 0 12 21"
+      fill="none"
       class={props.class}
     >
-      <g fill="currentColor">
-        <line
-          x1="9"
-          y1="3"
-          x2="9"
-          y2="4.5"
-          fill="none"
-          stroke="currentColor"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-        />
-        <line
-          x1="13.2426"
-          y1="4.7574"
-          x2="12.182"
-          y2="5.818"
-          fill="none"
-          stroke="currentColor"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-        />
-        <line
-          x1="4.7574"
-          y1="13.2426"
-          x2="5.818"
-          y2="12.182"
-          fill="none"
-          stroke="currentColor"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-        />
-        <line
-          x1="3"
-          y1="9"
-          x2="4.5"
-          y2="9"
-          fill="none"
-          stroke="currentColor"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-        />
-        <line
-          x1="4.7574"
-          y1="4.7574"
-          x2="5.818"
-          y2="5.818"
-          fill="none"
-          stroke="currentColor"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-        />
-        <line
-          x1="17"
-          y1="17"
-          x2="13"
-          y2="13"
-          fill="none"
-          stroke="currentColor"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-        />
-        <path
-          d="m8.9487,8.3162l6.9062,2.3021c.4226.1409.4639.7223.0655.9216l-2.9203,1.4602-1.4602,2.9203c-.1992.3984-.7807.3571-.9216-.0655l-2.3021-6.9062c-.1303-.3909.2416-.7627.6325-.6325Z"
-          stroke="currentColor"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          fill="currentColor"
-        />
-      </g>
+      <path
+        d="M10.1405 18.636L6.40748 9.98307L5.63796 11.495L10.8646 11.8026C11.7083 11.8572 12.1109 10.9367 11.5117 10.334L1.61701 0.283414C1.06311 -0.280254 0.209618 0.0446264 0.193642 0.836866L0.00012689 14.8633C-0.0127441 15.7359 0.956587 16.0931 1.52647 15.4491L4.87551 11.7024L3.23753 11.1233L6.8254 20.0084C7.02067 20.5112 7.48979 20.6737 7.93227 20.4904L9.71488 19.7846C10.1795 19.6084 10.3522 19.1167 10.1405 18.636Z"
+        fill="currentColor"
+      />
     </svg>
   );
 };

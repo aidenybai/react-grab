@@ -3,7 +3,7 @@ import type { Component } from "solid-js";
 import type { OverlayBounds, SelectionLabelStatus } from "../types.js";
 import { VIEWPORT_MARGIN_PX } from "../constants.js";
 import { IconPointer } from "./icon-pointer.js";
-import { IconReturnSmall } from "./icon-return-small.js";
+import { IconTextCursor } from "./icon-text-cursor.js";
 
 interface SelectionLabelProps {
   tagName?: string;
@@ -225,143 +225,224 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         </Show>
 
         <div
-          class="relative flex flex-col gap-[5px] rounded-[7px] overflow-hidden bg-white"
+          class="relative flex items-center gap-[5px] rounded-[10px] bg-white"
           style={{
-            padding: "4px 6px 4px 4px",
-            "box-shadow": "0 0 0 1px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08)",
+            padding: (props.status === "copying" || props.status === "copied" || props.status === "fading") 
+              ? "4px" 
+              : (isIdle() || props.isInputExpanded) ? "0" : "4px",
+            "box-shadow": "#00000033 0px 2px 3px",
           }}
         >
+          <Show when={props.status === "copied" || props.status === "fading"}>
+            <div class="flex items-center gap-[3px]">
+              <div
+                class="flex items-center px-1 py-px h-[18px] rounded-[5px] gap-[5px]"
+                style={{
+                  background: "#FEC2FF",
+                  "border-width": "0.5px",
+                  "border-style": "solid",
+                  "border-color": "#FEC2FF",
+                }}
+              >
+                <span class="text-[#69006E] text-[12px] leading-4 font-medium tracking-[-0.04em]">
+                  {tagDisplay()}
+                </span>
+              </div>
+              <div
+                class="flex items-center px-1.5 py-px h-[18px] rounded-[5px] gap-[3px]"
+                style={{
+                  background: "#FDAFFF",
+                  "border-width": "0.5px",
+                  "border-style": "solid",
+                  "border-color": "#FDAFFF",
+                }}
+              >
+                <IconPointer size={6} class="text-[#37003A]" />
+                <span class="text-[#37003A] text-[12px] leading-4 font-medium tracking-[-0.04em]">
+                  Grabbed
+                </span>
+              </div>
+            </div>
+          </Show>
+
           <Show when={props.status === "copying"}>
-            <div
-              class="absolute inset-0 pointer-events-none"
-              style={{
-                background: "linear-gradient(90deg, transparent 0%, rgba(247,197,236,0.5) 50%, transparent 100%)",
-                "background-size": "200% 100%",
-                animation: "shimmer 1.5s ease-in-out infinite",
-              }}
-            />
-            <style>{`
-              @keyframes shimmer {
-                0% { background-position: 200% 0; }
-                100% { background-position: -200% 0; }
-              }
-            `}</style>
-          </Show>
-
-          <div class="flex items-center gap-1">
-            <div
-              class="flex items-center px-[5px] py-px rounded-[3.5px]"
-              style={{
-                "background-image": "linear-gradient(180deg, oklch(91.9% 0.061 325) 0%, oklch(88.3% 0.090 325) 100%)",
-                border: "0.5px solid #D133D9",
-              }}
-            >
-              <span class="text-[#A000A6] text-[12px] leading-4 font-medium tracking-[-0.02em]">
-                {tagDisplay()}
-              </span>
-            </div>
-
-            <Show when={props.status === "copied" || props.status === "fading"}>
-              <span class="text-[#A000A6] text-[12px] leading-4 font-medium tracking-[-0.02em] px-0.5">
-                {props.hasAgent ? "Complete!" : "Copied"}
-              </span>
-            </Show>
-
-            <Show when={props.status === "copying"}>
-              <span class="text-[#A000A6] text-[12px] leading-4 font-medium tracking-[-0.02em] px-0.5">
-                {props.statusText ?? "Please wait…"}
-              </span>
-            </Show>
-
-            <Show when={props.status !== "copying" && props.status !== "copied" && props.status !== "fading"}>
-              <button
-                class="flex justify-center items-center gap-0.5 px-1.5 py-0.5 cursor-pointer hover:bg-[#F0F0F0] transition-colors bg-transparent border-none rounded-[4px]"
-                onClick={() => props.onSubmit?.()}
+            <div class="flex items-center gap-[3px]">
+              <div
+                class="flex items-center px-1 py-px h-[18px] rounded-[5px] gap-[5px]"
+                style={{
+                  background: "#FEC2FF",
+                  "border-width": "0.5px",
+                  "border-style": "solid",
+                  "border-color": "#FEC2FF",
+                }}
               >
-                <IconPointer size={13} class="text-black" />
-                <span class="text-black text-[11px] leading-3.5 font-medium tracking-[-0.02em]">
-                  to copy
-                </span>
-              </button>
-            </Show>
-          </div>
-
-          <Show when={isIdle() && !props.isInputExpanded && props.status !== "copying" && props.status !== "copied" && props.status !== "fading"}>
-            <div
-              class="flex justify-between items-center rounded-[5px] p-px"
-              style={{
-                border: "0.5px solid #CBCBCB",
-                "min-width": "215px",
-              }}
-            >
-              <div class="flex items-center gap-[3px] px-[5px] py-0.5">
-                <IconReturnSmall size={9} class="text-black opacity-30" />
-                <span class="text-[#898989] text-[11px] leading-3.5 font-medium tracking-[-0.03em]">
-                  to edit
+                <span class="text-[#69006E] text-[12px] leading-4 font-medium tracking-[-0.04em]">
+                  {tagDisplay()}
                 </span>
               </div>
               <div
-                class="flex items-center gap-[3px] px-[5px] py-px rounded-sm"
+                class="flex items-center px-1.5 py-px h-[18px] rounded-[5px] gap-[3px]"
                 style={{
-                  background: "#EDEDED",
-                  border: "0.5px solid #EDEDED",
+                  background: "#FDAFFF",
+                  "border-width": "0.5px",
+                  "border-style": "solid",
+                  "border-color": "#FDAFFF",
                 }}
               >
-                <span class="text-[#898989] text-[11px] leading-3.5 font-medium tracking-[-0.03em]">
-                  Send
+                <span class="text-[#37003A] text-[12px] leading-4 font-medium tracking-[-0.04em]">
+                  {props.statusText ?? "grabbing…"}
                 </span>
               </div>
             </div>
           </Show>
 
-          <Show when={props.isInputExpanded && props.status !== "copying" && props.status !== "copied" && props.status !== "fading"}>
-            <div
-              class="flex justify-between items-center rounded-[5px] p-px"
-              style={{
-                border: "0.5px solid #CBCBCB",
-                "min-width": "215px",
-              }}
-            >
+          {/* State 1: Hover (not idle, not expanded) */}
+          <Show when={props.status !== "copying" && props.status !== "copied" && props.status !== "fading" && !isIdle() && !props.isInputExpanded}>
+            <div class="flex items-center gap-[3px]">
               <div
-                class="grid flex-1"
-                style={{ "grid-template-columns": "1fr" }}
+                class="flex items-center px-1 py-px h-[18px] rounded-[5px] gap-[5px]"
+                style={{
+                  background: "#FEC2FF",
+                  "border-width": "0.5px",
+                  "border-style": "solid",
+                  "border-color": "#FEC2FF",
+                }}
               >
-                <span
-                  class="invisible whitespace-pre-wrap wrap-break-word text-[11px] leading-3.5 font-medium min-w-[100px] max-w-[300px] px-[5px] py-0.5 col-start-1 row-start-1"
-                  style={{ "word-break": "break-word", "overflow-wrap": "break-word" }}
-                  aria-hidden="true"
-                >
-                  {props.inputValue || "make a change"}{"\u200B"}
+                <span class="text-[#69006E] text-[12px] leading-4 font-medium tracking-[-0.04em]">
+                  {tagDisplay()}
                 </span>
-                <textarea
-                  ref={inputRef}
-                  value={props.inputValue ?? ""}
-                  onInput={handleInput}
-                  onKeyDown={handleKeyDown}
-                  placeholder="make a change"
-                  rows={1}
-                  class="text-[#4F4F4F] text-[11px] leading-3.5 font-medium bg-transparent border-none outline-none resize-none min-h-[14px] px-[5px] py-0.5 col-start-1 row-start-1 whitespace-pre-wrap wrap-break-word min-w-[100px] max-w-[300px] placeholder:text-[#898989] overflow-hidden"
-                  style={{ "word-break": "break-word", "overflow-wrap": "break-word" }}
-                />
               </div>
               <button
-                class="flex items-center gap-[3px] px-[5px] py-px rounded-sm cursor-pointer hover:opacity-80 transition-all border-none"
+                class="flex items-center px-1.5 py-px h-[18px] rounded-[5px] gap-[3px] cursor-pointer bg-transparent"
                 style={{
-                  background: props.inputValue ? "black" : "#EDEDED",
-                  border: props.inputValue ? "0.5px solid black" : "0.5px solid #EDEDED",
+                  "border-width": "0.5px",
+                  "border-style": "solid",
+                  "border-color": "#B0B0B0",
                 }}
                 onClick={() => props.onSubmit?.()}
               >
-                <span
-                  class="text-[11px] leading-3.5 font-medium tracking-[-0.03em]"
-                  style={{ color: props.inputValue ? "white" : "#898989" }}
-                >
-                  {props.hasAgent ? "Send" : "Copy"}
+                <IconPointer size={6} class="text-black opacity-[0.74]" />
+                <span class="text-black text-[12px] leading-4 font-medium tracking-[-0.04em]">
+                  Click to grab
                 </span>
-                <Show when={props.inputValue}>
-                  <IconReturnSmall size={9} class="text-white" />
-                </Show>
               </button>
+            </div>
+          </Show>
+
+          {/* State 2: Idle (showing "to modify" hint) */}
+          <Show when={props.status !== "copying" && props.status !== "copied" && props.status !== "fading" && isIdle() && !props.isInputExpanded}>
+            <div class="shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
+              <div class="shrink-0 flex items-center gap-[3px] pt-1 w-fit h-fit px-1">
+                <div
+                  class="shrink-0 flex items-center px-1 py-px w-fit h-[18px] rounded-[5px] gap-[5px]"
+                  style={{
+                    background: "#FEC2FF",
+                    "border-width": "0.5px",
+                    "border-style": "solid",
+                    "border-color": "#FEC2FF",
+                  }}
+                >
+                  <span class="text-[#69006E] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
+                    {tagDisplay()}
+                  </span>
+                </div>
+                <div
+                  class="shrink-0 flex items-center px-1.5 py-px w-fit h-[18px] rounded-[5px] gap-[3px] cursor-pointer"
+                  style={{
+                    "border-width": "0.5px",
+                    "border-style": "solid",
+                    "border-color": "#B0B0B0",
+                  }}
+                  role="button"
+                  onClick={() => props.onSubmit?.()}
+                >
+                  <IconPointer size={6} class="shrink-0 text-black opacity-[0.74]" />
+                  <span class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
+                    Click to grab
+                  </span>
+                </div>
+              </div>
+              <div
+                class="shrink-0 flex flex-col items-start px-2 py-[5px] w-[178px] h-fit rounded-bl-[10px] rounded-br-[10px]"
+                style={{
+                  "border-top-width": "0.5px",
+                  "border-top-style": "solid",
+                  "border-top-color": "#DEDEDE",
+                }}
+              >
+                <div class="shrink-0 flex items-center gap-1 w-full h-[14px]">
+                  <IconTextCursor class="shrink-0 text-black opacity-[0.65]" />
+                  <span class="text-[#767676] text-[11px] leading-3.5 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
+                    to modify
+                  </span>
+                </div>
+              </div>
+            </div>
+          </Show>
+
+          {/* State 3: Input expanded (with textarea and submit icon) */}
+          <Show when={props.status !== "copying" && props.status !== "copied" && props.status !== "fading" && props.isInputExpanded}>
+            <div class="shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
+              <div class="shrink-0 flex items-center gap-[3px] pt-1 w-fit h-fit px-1">
+                <div
+                  class="shrink-0 flex items-center px-1 py-px w-fit h-[18px] rounded-[5px] gap-[5px]"
+                  style={{
+                    background: "#FEC2FF",
+                    "border-width": "0.5px",
+                    "border-style": "solid",
+                    "border-color": "#FEC2FF",
+                  }}
+                >
+                  <span class="text-[#69006E] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
+                    {tagDisplay()}
+                  </span>
+                </div>
+                <div
+                  class="shrink-0 flex items-center px-1.5 py-px w-fit h-[18px] rounded-[5px] gap-[3px] cursor-pointer"
+                  style={{
+                    "border-width": "0.5px",
+                    "border-style": "solid",
+                    "border-color": "#B0B0B0",
+                  }}
+                  role="button"
+                  onClick={() => props.onSubmit?.()}
+                >
+                  <IconPointer size={6} class="shrink-0 text-black opacity-[0.74]" />
+                  <span class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
+                    Click to grab
+                  </span>
+                </div>
+              </div>
+              <div
+                class="shrink-0 flex flex-col items-start px-2 py-[5px] w-[178px] h-fit rounded-bl-[10px] rounded-br-[10px]"
+                style={{
+                  "border-top-width": "0.5px",
+                  "border-top-style": "solid",
+                  "border-top-color": "#DEDEDE",
+                }}
+              >
+                <div class="shrink-0 flex justify-between items-start w-full min-h-[14px]">
+                  <textarea
+                    ref={inputRef}
+                    class="text-black text-[11px] leading-3.5 tracking-[-0.04em] font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0"
+                    style={{
+                      "field-sizing": "content",
+                      "min-height": "14px",
+                    }}
+                    value={props.inputValue ?? ""}
+                    onInput={handleInput}
+                    onKeyDown={handleKeyDown}
+                    placeholder="type to modify..."
+                    rows={1}
+                  />
+                  <button
+                    class="shrink-0 flex items-center gap-1 w-fit h-fit cursor-pointer bg-transparent border-none p-0 ml-1 mt-[2.5px]"
+                    onClick={() => props.onSubmit?.()}
+                  >
+                    <IconTextCursor class="shrink-0 text-black opacity-100" />
+                  </button>
+                </div>
+              </div>
             </div>
           </Show>
         </div>
