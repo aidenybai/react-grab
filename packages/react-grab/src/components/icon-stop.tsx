@@ -28,3 +28,4 @@ export const IconStop: Component<IconStopProps> = (props) => {
     </svg>
   );
 };
+

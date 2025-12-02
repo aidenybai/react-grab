@@ -10,11 +10,11 @@ interface BenchmarkTooltipProps {
   className?: string;
 }
 
-const CONTROL_SECONDS = 17.5;
-const TREATMENT_SECONDS = 7.8;
+const CONTROL_SECONDS = 16.8;
+const TREATMENT_SECONDS = 5.8;
 const MAX_SECONDS = 20;
-const DURATION_CHANGE = "55";
-const COST_CHANGE = "45";
+const DURATION_CHANGE = "66";
+const COST_CHANGE = "60";
 
 const MiniBar = ({
   targetSeconds,

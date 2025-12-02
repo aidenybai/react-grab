@@ -15,8 +15,7 @@ import { mountRoot } from "./utils/mount-root.js";
 import { ReactGrabRenderer } from "./components/renderer.js";
 import {
   getStack,
-  formatStack,
-  getHTMLPreview,
+  formatElementInfo,
   getFileName,
 } from "./instrumentation.js";
 import { isInstrumentationActive } from "bippy";
@@ -243,9 +242,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, SUCCESS_LABEL_DURATION_MS);
     };
 
-    const wrapInSelectedElementTags = (context: string) =>
-      `<selected_element>\n${context}\n</selected_element>`;
-
     const extractElementTagName = (element: Element) =>
       (element.tagName || "").toLowerCase();
 
@@ -383,36 +379,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       try {
         const elementSnippetResults = await Promise.allSettled(
-          elements.map(async (element) => {
-            const htmlPreview = getHTMLPreview(element);
-
-            if (!isReactProject) {
-              return `## HTML Frame:\n${htmlPreview}`;
-            }
-
-            const stack = await getStack(element);
-            const formattedStack = formatStack(stack);
-
-            if (formattedStack) {
-              return `## HTML Frame:\n${htmlPreview}\n\n## Code Location:\n${formattedStack}`;
-            }
-
-            return `## HTML Frame:\n${htmlPreview}`;
-          }),
+          elements.map((element) => formatElementInfo(element)),
         );
 
-        const elementSnippets = elementSnippetResults
-          .map((result) => (result.status === "fulfilled" ? result.value : ""))
-          .filter((snippet) => snippet.trim());
+        const elementSnippets: string[] = [];
+        for (const result of elementSnippetResults) {
+          if (result.status === "fulfilled" && result.value.trim()) {
+            elementSnippets.push(result.value);
+          }
+        }
 
         if (elementSnippets.length > 0) {
-          const wrappedSnippets = elementSnippets
-            .map((snippet) => wrapInSelectedElementTags(snippet))
-            .join("\n\n");
+          const combinedSnippets = elementSnippets.join("\n\n");
 
           const plainTextContent = extraPrompt
-            ? `${extraPrompt}\n\n${wrappedSnippets}`
-            : wrappedSnippets;
+            ? `${extraPrompt}\n\n${combinedSnippets}`
+            : combinedSnippets;
 
           copiedContent = plainTextContent;
           didCopy = await copyContent(plainTextContent);
@@ -1867,8 +1849,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
 export {
   getStack,
-  formatStack,
-  getHTMLPreview,
+  formatElementInfo,
   getNearestComponentName,
   getFileName,
 } from "./instrumentation.js";

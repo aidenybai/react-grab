@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
-const title = "I made your coding agent 55% faster at frontend";
-const description = "I got tired of watching Claude grep around my codebase every time I wanted to edit a button. So I built a tool that lets me click any element and copy its exact source location. Turns out it makes coding agents 55% faster.";
+const title = "I made your coding agent 66% faster at frontend";
+const description = "I got tired of watching Claude grep around my codebase every time I wanted to edit a button. So I built a tool that lets me click any element and copy its exact source location. Turns out it makes coding agents 66% faster.";
 const ogImageUrl = `https://react-grab.com/api/og?title=${encodeURIComponent(title)}&subtitle=${encodeURIComponent(description)}`;
 
 export const metadata: Metadata = {

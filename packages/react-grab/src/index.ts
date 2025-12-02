@@ -1,8 +1,7 @@
 export { init } from "./core.js";
 export {
   getStack,
-  formatStack,
-  getHTMLPreview,
+  formatElementInfo,
   getNearestComponentName,
   isInstrumentationActive,
   DEFAULT_THEME,

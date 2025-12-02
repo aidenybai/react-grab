@@ -32,36 +32,13 @@ const BlogPostPage = () => {
     return mapping;
   }, []);
 
-  const codeExample = `<selected_element>
-
-<a class="ml-auto inline-block text-..." href="#">
+  const codeExample = `<a class="ml-auto inline-block text-..." href="#">
   Forgot your password?
 </a>
+in LoginForm at components/login-form.tsx:46:19`;
 
-  at a in components/login-form.tsx:46:19
-  at div in components/login-form.tsx:44:17
-  at Field in components/ui/field.tsx:87:5
-  at FieldGroup in components/ui/field.tsx:46:5
-  at form in components/login-form.tsx:32:11
-
-</selected_element>`;
-
-  const reactInternalsCodeExample = `<selected_element>
-
-## HTML Frame:
-
-<span class="font-bold">
-  React Grab
-</span>
-
-## Code Location:
-
-  at motion.div
-  at StreamingText in /[project]/packages/website/components/blocks/streaming-text.tsx
-  at MessageBlock in /[project]/packages/website/components/blocks/message-block.tsx
-  at StreamDemo in /[project]/packages/website/components/stream-demo.tsx
-
-</selected_element>`;
+  const reactInternalsCodeExample = `<span class="font-bold">React Grab</span>
+in StreamDemo at components/stream-demo.tsx:42:11`;
 
   useEffect(() => {
     const highlight = async () => {
@@ -109,7 +86,7 @@ const BlogPostPage = () => {
                 />
               </Link>
               <h1 className="text-xl font-medium text-white">
-                I made your coding agent 55% faster at frontend
+                I made your coding agent 66% faster at frontend
               </h1>
             </div>
 
@@ -431,7 +408,7 @@ const BlogPostPage = () => {
           <p>
             …and turns out, Claude Code becomes ~
             <span className="font-medium text-neutral-300">
-              55% faster with React Grab
+              66% faster with React Grab
             </span>
             !
             <sup className="text-neutral-500 text-[10px] ml-0.5">3</sup>
@@ -591,7 +568,7 @@ const BlogPostPage = () => {
               </p>
               <p>
                 <sup className="text-neutral-600 mr-1">2</sup>
-                Single trial per test case is a limitation. Agents are non-deterministic, so results can vary significantly between runs. Ideally we&apos;d run each test 5-10 times and report confidence intervals. The 55% speedup is directionally correct but treat the exact number with appropriate skepticism. Future benchmarks will include multiple trials. I&apos;m very open to fixing issues with the benchmarks. If you spot anything off, please{" "}
+                Single trial per test case is a limitation. Agents are non-deterministic, so results can vary significantly between runs. Ideally we&apos;d run each test 5-10 times and report confidence intervals. The 66% speedup is directionally correct but treat the exact number with appropriate skepticism. Future benchmarks will include multiple trials. I&apos;m very open to fixing issues with the benchmarks. If you spot anything off, please{" "}
                 <a
                   href="mailto:aiden@million.dev"
                   className="text-neutral-400 hover:text-white underline underline-offset-4"

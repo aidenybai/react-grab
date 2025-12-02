@@ -149,23 +149,58 @@ export const getStack = async (
   }
 };
 
-export const formatStack = (stack: Array<StackFrame>): string => {
+export const formatElementInfo = async (element: Element): Promise<string> => {
+  const html = getHTMLPreview(element);
+  const stack = await getStack(element);
   const isNextProject = checkIsNextProject();
-  return stack
-    .map(({ name, source }) => {
-      if (!source) return `  at ${name}`;
-      if (source.fileName.startsWith("about://React/Server")) {
-        return `  at ${name} (Server)`;
+
+  let serverBoundary: string | null = null;
+  let componentName: string | null = null;
+  let fileName: string | null = null;
+  let lineNumber: number | null = null;
+  let columnNumber: number | null = null;
+
+  for (const frame of stack) {
+    if (!frame.source) continue;
+
+    if (frame.source.fileName.startsWith("about://React/Server")) {
+      if (!serverBoundary) serverBoundary = frame.name;
+      continue;
+    }
+
+    if (isSourceFile(frame.source.fileName)) {
+      if (!fileName) {
+        fileName = normalizeFileName(frame.source.fileName);
+        lineNumber = frame.source.lineNumber ?? null;
+        columnNumber = frame.source.columnNumber ?? null;
       }
-      if (!isSourceFile(source.fileName)) return `  at ${name}`;
-      const framePart = `  at ${name} in ${normalizeFileName(source.fileName)}`;
-      if (isNextProject) {
-        return `${framePart}:${source.lineNumber}:${source.columnNumber}`;
+
+      if (!componentName && checkIsSourceComponentName(frame.name)) {
+        componentName = frame.name;
       }
-      // bundlers like vite fuck up the line number and column number
-      return framePart;
-    })
-    .join("\n");
+
+      if (fileName && componentName) {
+        break;
+      }
+    }
+  }
+
+  if (!componentName || !fileName) {
+    return html;
+  }
+
+  let result = `${html}\nin ${componentName} at ${fileName}`;
+
+  // HACK: bundlers like vite mess up the line number and column number
+  if (isNextProject && lineNumber && columnNumber) {
+    result += `:${lineNumber}:${columnNumber}`;
+  }
+
+  if (serverBoundary) {
+    result += ` (via Server: ${serverBoundary})`;
+  }
+
+  return result;
 };
 
 export const getFileName = (stack: Array<StackFrame>): string | null => {
