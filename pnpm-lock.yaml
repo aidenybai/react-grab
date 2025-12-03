@@ -129,8 +129,8 @@ importers:
   packages/react-grab:
     dependencies:
       bippy:
-        specifier: ^0.5.16
-        version: 0.5.16(@types/react@19.2.2)(react@19.2.0)
+        specifier: ^0.5.17
+        version: 0.5.17(@types/react@19.2.2)(react@19.2.0)
       solid-js:
         specifier: ^1.9.10
         version: 1.9.10
@@ -2557,8 +2557,8 @@ packages:
     peerDependencies:
       react: '>=17.0.1'
 
-  bippy@0.5.16:
-    resolution: {integrity: sha512-ihXE13MCbXFC/8aIMS34+pV6fwn0uTE24YK0A6E9Mw5CyBrE35hTQ3R08/wro5y7BdUe70Ygm5thaP61Ilu0gg==}
+  bippy@0.5.17:
+    resolution: {integrity: sha512-mxNjqpASkTK70IuLFdAZk4zJYXa7qZisxzkAfPb/JuXDypazVbqnVCYywcTieY/xyOuzTsVHelwaPenSzNyCwQ==}
     peerDependencies:
       react: '>=17.0.1'
 
@@ -7271,7 +7271,7 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
-  bippy@0.5.16(@types/react@19.2.2)(react@19.2.0):
+  bippy@0.5.17(@types/react@19.2.2)(react@19.2.0):
     dependencies:
       '@types/react-reconciler': 0.28.9(@types/react@19.2.2)
       react: 19.2.0
@@ -7891,7 +7891,7 @@ snapshots:
       eslint: 9.37.0(jiti@2.6.1)
       eslint-import-resolver-node: 0.3.9
       eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1))
-      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1))
+      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.37.0(jiti@2.6.1))
       eslint-plugin-jsx-a11y: 6.10.2(eslint@9.37.0(jiti@2.6.1))
       eslint-plugin-react: 7.37.5(eslint@9.37.0(jiti@2.6.1))
       eslint-plugin-react-hooks: 7.0.1(eslint@9.37.0(jiti@2.6.1))
@@ -7924,7 +7924,7 @@ snapshots:
       tinyglobby: 0.2.15
       unrs-resolver: 1.11.1
     optionalDependencies:
-      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1))
+      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.37.0(jiti@2.6.1))
     transitivePeerDependencies:
       - supports-color
 
@@ -7993,7 +7993,7 @@ snapshots:
       - eslint-import-resolver-webpack
       - supports-color
 
-  eslint-plugin-import@2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)):
+  eslint-plugin-import@2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.37.0(jiti@2.6.1)):
     dependencies:
       '@rtsao/scc': 1.1.0
       array-includes: 3.1.9

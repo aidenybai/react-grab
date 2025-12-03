@@ -150,8 +150,8 @@ export const formatElementInfo = async (element: Element): Promise<string> => {
   const stack = await getStack(element);
   const isNextProject = checkIsNextProject();
 
-  let serverBoundary: string | null = null;
-  let componentName: string | null = null;
+  let serverComponentName: string | null = null;
+  let clientComponentName: string | null = null;
   let fileName: string | null = null;
   let lineNumber: number | null = null;
   let columnNumber: number | null = null;
@@ -160,7 +160,9 @@ export const formatElementInfo = async (element: Element): Promise<string> => {
     if (!frame.source) continue;
 
     if (frame.source.fileName.startsWith("about://React/Server")) {
-      if (!serverBoundary) serverBoundary = frame.name;
+      if (!serverComponentName && checkIsSourceComponentName(frame.name)) {
+        serverComponentName = frame.name;
+      }
       continue;
     }
 
@@ -171,29 +173,33 @@ export const formatElementInfo = async (element: Element): Promise<string> => {
         columnNumber = frame.source.columnNumber ?? null;
       }
 
-      if (!componentName && checkIsSourceComponentName(frame.name)) {
-        componentName = frame.name;
+      if (!clientComponentName && checkIsSourceComponentName(frame.name)) {
+        clientComponentName = frame.name;
       }
 
-      if (fileName && componentName) {
+      if (fileName && clientComponentName) {
         break;
       }
     }
   }
 
+  const componentName = serverComponentName ?? clientComponentName;
+
   if (!componentName || !fileName) {
     return html;
   }
 
-  let result = `${html}\nin ${componentName} at ${fileName}`;
+  let result = `${html}\nin ${componentName}`;
+
+  if (serverComponentName && clientComponentName) {
+    result += ` (Server → Client: ${clientComponentName})`;
+  }
+
+  result += ` at ${fileName}`;
 
   // HACK: bundlers like vite mess up the line number and column number
   if (isNextProject && lineNumber && columnNumber) {
     result += `:${lineNumber}:${columnNumber}`;
-  }
-
-  if (serverBoundary) {
-    result += ` (via Server: ${serverBoundary})`;
   }
 
   return result;
