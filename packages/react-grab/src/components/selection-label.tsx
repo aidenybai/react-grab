@@ -189,9 +189,6 @@ const Arrow: Component<{ position: ArrowPosition; leftPx: number }> = (
   />
 );
 
-const CURSOR_ICON_URL =
-  "https://workers.paper.design/file-assets/01K8D51Q7E2ESJTN18XN2MT96X/01KBGARFKP935S74CWGWFME8MN.svg";
-
 const ClickToCopyPill: Component<ClickToCopyPillProps> = (props) => (
   <div
     class={cn(
@@ -202,10 +199,6 @@ const ClickToCopyPill: Component<ClickToCopyPillProps> = (props) => (
     role={props.onClick ? "button" : undefined}
     onClick={props.onClick}
   >
-    <div
-      class="w-[8.5px] h-[9.5px] shrink-0 bg-cover bg-center"
-      style={{ "background-image": `url(${CURSOR_ICON_URL})` }}
-    />
     <div class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
       Click to copy
     </div>
