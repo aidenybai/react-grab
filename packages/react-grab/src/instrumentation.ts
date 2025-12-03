@@ -188,7 +188,7 @@ export const formatElementInfo = async (element: Element): Promise<string> => {
       lineNumber = frame.source.lineNumber ?? null;
       columnNumber = frame.source.columnNumber ?? null;
       clientComponentName = frame.name;
-      continue;
+      break;
     }
   }
 
