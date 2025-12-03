@@ -58,6 +58,7 @@ interface ClickToCopyPillProps {
   asButton?: boolean;
   dimmed?: boolean;
   shrink?: boolean;
+  hasParent?: boolean;
 }
 
 interface BottomSectionProps {
@@ -214,7 +215,7 @@ const ClickToCopyPill: Component<ClickToCopyPillProps> = (props) => (
     onClick={props.onClick}
   >
     <div class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
-      Copy
+      {props.hasParent ? "Copy" : "Click to copy"}
     </div>
   </div>
 );
@@ -504,7 +505,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           <Show when={isNotProcessing() && !props.isInputExpanded}>
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit px-1.5">
-                <ClickToCopyPill onClick={handleSubmit} shrink />
+                <ClickToCopyPill onClick={handleSubmit} shrink hasParent={!!props.componentName} />
                 <Show when={props.componentName}>
                   <div class="contain-layout shrink-0 flex items-center gap-px w-fit h-fit">
                     <ParentBadge name={props.componentName!} />
@@ -561,7 +562,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           <Show when={isNotProcessing() && props.isInputExpanded}>
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-fit h-fit">
-                <ClickToCopyPill onClick={handleSubmit} dimmed shrink />
+                <ClickToCopyPill onClick={handleSubmit} dimmed shrink hasParent={!!props.componentName} />
                 <Show when={props.componentName}>
                   <div class="contain-layout shrink-0 flex items-center gap-px w-fit h-fit">
                     <ParentBadge name={props.componentName!} />
