@@ -1050,10 +1050,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
             if (element && document.contains(element)) {
               const rect = element.getBoundingClientRect();
-              const centerX = rect.left + rect.width / 2;
               const centerY = rect.top + rect.height / 2;
 
-              setMouseX(centerX);
+              setMouseX(session.position.x);
               setMouseY(centerY);
               setFrozenElement(element);
               setInputText(session.context.prompt);
@@ -1985,10 +1984,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
             if (element && document.contains(element)) {
               const rect = element.getBoundingClientRect();
-              const centerX = rect.left + rect.width / 2;
               const centerY = rect.top + rect.height / 2;
 
-              setMouseX(centerX);
+              setMouseX(session.position.x);
               setMouseY(centerY);
               setFrozenElement(element);
               setInputText(session.context.prompt);

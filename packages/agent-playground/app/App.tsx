@@ -122,7 +122,7 @@ export const App = () => {
             Test Elements
           </div>
           <div className="flex gap-2">
-            <button className="text-sm px-3 py-1.5 bg-white/10 rounded border border-white/30">
+            <button className="text-sm px-3 py-1.5 bg-white/10 rounded border border-white/30 italic">
               Submit
             </button>
             <button className="text-sm px-3 py-1.5 bg-white/10 rounded border border-white/20">
@@ -130,8 +130,8 @@ export const App = () => {
             </button>
           </div>
           <div className="p-3 bg-white/5 rounded text-sm">
-            <div className="font-medium italic">User Card</div>
-            <div className="text-white/50 text-xs mt-1">john@example.com</div>
+            <div className="font-medium">User Card</div>
+            <div className="text-white/50 text-xs mt-1 italic italic">john@example.com</div>
           </div>
           <input
             type="text"
@@ -170,7 +170,7 @@ export const App = () => {
                 return (
                   <div key={i} className="flex gap-3 py-1.5 items-center hover:bg-white/5 px-2 rounded transition-colors">
                     {getStatusBadge()}
-                    <span className="text-white/70 flex-1">{log.message}</span>
+                    <span className="text-white/70 flex-1 italic">{log.message}</span>
                     <span className="text-white/20 text-xs">{log.time.toLocaleTimeString()}</span>
                   </div>
                 );

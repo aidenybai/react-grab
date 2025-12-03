@@ -404,19 +404,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 {props.hasAgent ? "Completed" : "Copied"}
               </div>
             </div>
-            <div class="contain-layout shrink-0 flex items-center gap-px w-fit h-fit">
-              <Show when={props.componentName}>
-                <ParentBadge name={props.componentName!} />
-                <ChevronSeparator />
-              </Show>
-              <TagBadge
-                tagName={tagDisplay()}
-                isClickable={false}
-                onClick={() => {}}
-                showMono
-                shrink
-              />
-            </div>
           </div>
         </Show>
 
@@ -427,10 +414,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           }}
         >
           <Show when={props.status === "copying"}>
-            <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
-              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-fit h-fit">
-                <div class="contain-layout shrink-0 flex items-center px-0 py-px w-fit h-[18px] rounded-[1.5px] gap-[3px]">
-                  <div class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit react-grab-shimmer">
+            <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit max-w-[280px]">
+              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-auto h-fit">
+                <div class="contain-layout flex items-center px-0 py-px w-auto h-fit rounded-[1.5px] gap-[3px]">
+                  <div class="text-black text-[12px] leading-4 tracking-[-0.04em] font-sans font-medium w-auto h-fit whitespace-normal react-grab-shimmer">
                     {props.statusText ?? "Grabbing…"}
                   </div>
                 </div>
