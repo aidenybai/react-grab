@@ -502,9 +502,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 <div class="overflow-hidden min-h-0">
                   <BottomSection>
                     <div class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit">
-                      <span class="text-[#767676] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
-                        Press
-                      </span>
+                    <span class="text-[#767676] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
+                      press
+                    </span>
                       <div
                         class="w-2.5 h-[9px] shrink-0 opacity-[0.41] bg-cover bg-center"
                         style={{ "background-image": `url(${RETURN_KEY_ICON_URL})` }}
@@ -545,7 +545,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     value={props.inputValue ?? ""}
                     onInput={handleInput}
                     onKeyDown={handleKeyDown}
-                    placeholder="type to modify..."
+                    placeholder="type to edit"
                     rows={1}
                   />
                   <button
