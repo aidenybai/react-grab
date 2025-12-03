@@ -329,6 +329,7 @@ export interface ReactGrabRendererProps {
   selectionFilePath?: string;
   selectionLineNumber?: number;
   selectionTagName?: string;
+  selectionComponentName?: string;
   selectionLabelVisible?: boolean;
   selectionLabelStatus?: SelectionLabelStatus;
   labelInstances?: SelectionLabelInstance[];

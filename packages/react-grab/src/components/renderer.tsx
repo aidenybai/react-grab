@@ -86,6 +86,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
       <Show when={props.selectionLabelVisible && props.selectionBounds}>
         <SelectionLabel
           tagName={props.selectionTagName}
+          componentName={props.selectionComponentName}
           selectionBounds={props.selectionBounds}
           visible={props.selectionLabelVisible}
           isInputExpanded={props.isInputExpanded}

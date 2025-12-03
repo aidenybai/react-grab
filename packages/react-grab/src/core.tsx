@@ -6,6 +6,7 @@ import {
   createRoot,
   onCleanup,
   createEffect,
+  createResource,
   on,
   createResource,
 } from "solid-js";
@@ -1775,6 +1776,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return extractElementTagName(element) || undefined;
     });
 
+    const [selectionComponentName] = createResource(
+      () => targetElement(),
+      (element) => {
+        if (!element) return undefined;
+        return getNearestComponentName(element) || undefined;
+      },
+    );
+
     const selectionLabelVisible = createMemo(() => {
       if (!theme().elementLabel.enabled) return false;
       if (successLabels().length > 0) return false;
@@ -1845,6 +1854,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             selectionFilePath={selectionFilePath()}
             selectionLineNumber={selectionLineNumber()}
             selectionTagName={selectionTagName()}
+            selectionComponentName={selectionComponentName()}
             selectionLabelVisible={selectionLabelVisible()}
             selectionLabelStatus={selectionLabelStatus()}
             labelInstances={computedLabelInstances()}

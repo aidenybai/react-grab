@@ -16,6 +16,7 @@ import { IconStop } from "./icon-stop.js";
 
 interface SelectionLabelProps {
   tagName?: string;
+  componentName?: string;
   selectionBounds?: OverlayBounds;
   visible?: boolean;
   isInputExpanded?: boolean;
@@ -509,9 +510,21 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit px-1.5">
                 <ClickToCopyPill onClick={handleSubmit} shrink />
-                <div class="contain-layout shrink-0 flex items-center gap-px w-fit h-fit">
-                  <ParentBadge name="TextareaRoot" />
-                  <ChevronSeparator />
+                <Show when={props.componentName}>
+                  <div class="contain-layout shrink-0 flex items-center gap-px w-fit h-fit">
+                    <ParentBadge name={props.componentName!} />
+                    <ChevronSeparator />
+                    <TagBadge
+                      tagName={tagDisplay()}
+                      isClickable={isTagClickable()}
+                      onClick={handleTagClick}
+                      onHoverChange={handleTagHoverChange}
+                      showMono
+                      shrink
+                    />
+                  </div>
+                </Show>
+                <Show when={!props.componentName}>
                   <TagBadge
                     tagName={tagDisplay()}
                     isClickable={isTagClickable()}
@@ -520,7 +533,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     showMono
                     shrink
                   />
-                </div>
+                </Show>
               </div>
               <div
                 class="grid w-full transition-[grid-template-rows] duration-30 ease-out"
@@ -557,9 +570,22 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-fit h-fit">
                 <ClickToCopyPill onClick={handleSubmit} dimmed shrink />
-                <div class="contain-layout shrink-0 flex items-center gap-px w-fit h-fit">
-                  <ParentBadge name="TextareaRoot" />
-                  <ChevronSeparator />
+                <Show when={props.componentName}>
+                  <div class="contain-layout shrink-0 flex items-center gap-px w-fit h-fit">
+                    <ParentBadge name={props.componentName!} />
+                    <ChevronSeparator />
+                    <TagBadge
+                      tagName={tagDisplay()}
+                      isClickable={isTagClickable()}
+                      onClick={handleTagClick}
+                      onHoverChange={handleTagHoverChange}
+                      showMono
+                      shrink
+                      forceShowIcon
+                    />
+                  </div>
+                </Show>
+                <Show when={!props.componentName}>
                   <TagBadge
                     tagName={tagDisplay()}
                     isClickable={isTagClickable()}
@@ -569,7 +595,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     shrink
                     forceShowIcon
                   />
-                </div>
+                </Show>
               </div>
               <BottomSection>
                 <div class="shrink-0 flex justify-between items-end w-full min-h-4">
