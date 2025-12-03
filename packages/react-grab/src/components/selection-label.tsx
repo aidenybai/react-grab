@@ -547,11 +547,12 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     rows={1}
                   />
                   <button
-                    class="shrink-0 flex items-center gap-1 w-fit h-4 cursor-pointer bg-transparent border-none p-0 ml-1"
+                    class="contain-layout shrink-0 flex flex-col items-start px-[2.5px] py-[2.5px] rounded-xs bg-white [border-width:0.5px] border-solid border-white w-fit h-fit cursor-pointer ml-1"
+                    style={{ "box-shadow": "#0000008C 0px 0px 2px" }}
                     onClick={handleSubmit}
                   >
                     <div
-                      class="w-2.5 h-[9px] shrink-0 bg-cover bg-center"
+                      class="w-2.5 h-[9px] shrink-0 opacity-[0.99] bg-cover bg-center"
                       style={{ "background-image": `url(${RETURN_KEY_ICON_URL})` }}
                     />
                   </button>
