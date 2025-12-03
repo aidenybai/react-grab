@@ -171,6 +171,7 @@ export const formatElementInfo = async (element: Element): Promise<string> => {
   let clientComponentName: string | null = null;
 
   for (const frame of stack) {
+    // HACK: a server component will NOT have a source file name
     if (
       checkIsSourceComponentName(frame.name) &&
       !serverComponentName &&
