@@ -13,7 +13,6 @@ import { cn } from "../utils/cn.js";
 import { IconCheckmark } from "./icon-checkmark.js";
 import { IconCursorSimple } from "./icon-cursor-simple.js";
 import { IconOpen } from "./icon-open.js";
-import { IconReturnKey } from "./icon-return-key.js";
 import { IconStop } from "./icon-stop.js";
 
 interface SelectionLabelProps {
@@ -196,7 +195,7 @@ const ClickToCopyPill: Component<ClickToCopyPillProps> = (props) => (
       props.asButton && "cursor-pointer",
       props.dimmed && "opacity-50 hover:opacity-100 transition-opacity",
     )}
-    role={props.onClick ? "button" : undefined}
+    role="button"
     onClick={props.onClick}
   >
     <div class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
@@ -486,7 +485,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 />
               </div>
               <div
-                class="grid w-full transition-[grid-template-rows] duration-[30ms] ease-out"
+                class="grid w-full transition-[grid-template-rows] duration-30 ease-out"
                 style={{
                   "grid-template-rows": isIdle() ? "1fr" : "0fr",
                 }}
@@ -494,7 +493,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 <div class="overflow-hidden min-h-0">
                   <BottomSection>
                     <div class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit">
-                      <span class="text-[#767676] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
+                      <span class="text-label-muted text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
                         Press
                       </span>
                       <div
@@ -506,8 +505,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                           style={{ "background-image": `url(${RETURN_KEY_ICON_URL})` }}
                         />
                       </div>
-                      <span class="text-[#767676] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
-                        to Edit
+                      <span class="text-label-muted text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
+                        to edit
                       </span>
                     </div>
                   </BottomSection>
