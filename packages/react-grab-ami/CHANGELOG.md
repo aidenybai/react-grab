@@ -1,5 +1,13 @@
 # @react-grab/ami
 
+## 0.0.58
+
+### Patch Changes
+
+- fix: issues with stack
+- Updated dependencies
+  - react-grab@0.0.58
+
 ## 0.0.57
 
 ### Patch Changes

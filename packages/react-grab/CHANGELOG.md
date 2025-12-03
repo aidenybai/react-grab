@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.58
+
+### Patch Changes
+
+- fix: issues with stack
+
 ## 0.0.57
 
 ### Patch Changes
