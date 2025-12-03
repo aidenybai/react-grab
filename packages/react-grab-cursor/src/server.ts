@@ -1,4 +1,5 @@
-import { spawn, execSync } from "node:child_process";
+import { spawn } from "node:child_process";
+import net from "node:net";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { streamSSE } from "hono/streaming";
@@ -195,25 +196,23 @@ export const createServer = () => {
   return app;
 };
 
-const killProcessOnPort = (port: number): void => {
-  try {
-    if (process.platform === "win32") {
-      execSync(
-        `for /f "tokens=5" %a in ('netstat -aon ^| findstr :${port} ^| findstr LISTENING') do taskkill /F /PID %a`,
-        { stdio: "ignore", timeout: 1000, shell: "cmd.exe" },
-      );
-    } else {
-      execSync(`lsof -ti:${port} | xargs kill -9 2>/dev/null`, {
-        stdio: "ignore",
-        timeout: 1000,
-      });
-    }
-  } catch {}
-};
+const isPortInUse = (port: number): Promise<boolean> =>
+  new Promise((resolve) => {
+    const server = net.createServer();
+    server.once("error", () => resolve(true));
+    server.once("listening", () => {
+      server.close();
+      resolve(false);
+    });
+    server.listen(port);
+  });
 
-export const startServer = (port: number = DEFAULT_PORT) => {
-  killProcessOnPort(port);
+export const startServer = async (port: number = DEFAULT_PORT) => {
+  if (await isPortInUse(port)) {
+    return;
+  }
+
   const app = createServer();
   serve({ fetch: app.fetch, port });
-  console.log("React Grab Cursor server running on port", port);
+  console.log(`[React Grab] Server started on port ${port}`);
 };
