@@ -71,6 +71,30 @@ const getScriptOptions = (): Partial<Options> | null => {
 };
 
 export const init = (rawOptions?: Options): ReactGrabAPI => {
+  const initialTheme = mergeTheme(rawOptions?.theme);
+
+  if (typeof window === "undefined") {
+    return {
+      activate: () => {},
+      deactivate: () => {},
+      toggle: () => {},
+      isActive: () => false,
+      dispose: () => {},
+      copyElement: () => Promise.resolve(false),
+      getState: () => ({
+        isActive: false,
+        isDragging: false,
+        isCopying: false,
+        isInputMode: false,
+        targetElement: null,
+        dragBounds: null,
+      }),
+      updateTheme: () => {},
+      getTheme: () => initialTheme,
+      setAgent: () => {},
+    };
+  }
+
   const scriptOptions = getScriptOptions();
 
   const options = {
@@ -81,7 +105,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     ...rawOptions,
   };
 
-  const initialTheme = mergeTheme(options.theme);
+  const mergedTheme = mergeTheme(options.theme);
 
   if (options.enabled === false || hasInited) {
     return {
@@ -100,7 +124,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         dragBounds: null,
       }),
       updateTheme: () => {},
-      getTheme: () => initialTheme,
+      getTheme: () => mergedTheme,
       setAgent: () => {},
     };
   }
@@ -138,7 +162,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   logIntro();
 
   return createRoot((dispose) => {
-    const [theme, setTheme] = createSignal(initialTheme);
+    const [theme, setTheme] = createSignal(mergedTheme);
     const [isHoldingKeys, setIsHoldingKeys] = createSignal(false);
     const [mouseX, setMouseX] = createSignal(OFFSCREEN_POSITION);
     const [mouseY, setMouseY] = createSignal(OFFSCREEN_POSITION);

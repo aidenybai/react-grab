@@ -44,6 +44,7 @@ const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
 ]);
 
 export const checkIsNextProject = (): boolean => {
+  if (typeof document === "undefined") return false;
   return Boolean(document.getElementById("__NEXT_DATA__"));
 };
 

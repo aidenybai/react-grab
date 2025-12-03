@@ -45,6 +45,7 @@ declare global {
 let globalApi: ReactGrabAPI | null = null;
 
 export const getGlobalApi = (): ReactGrabAPI | null => {
+  if (typeof window === "undefined") return globalApi;
   return window.__REACT_GRAB__ ?? globalApi ?? null;
 };
 
