@@ -2,7 +2,6 @@ export { init } from "./core.js";
 export {
   getStack,
   formatElementInfo,
-  getNearestComponentName,
   isInstrumentationActive,
   DEFAULT_THEME,
 } from "./core.js";
