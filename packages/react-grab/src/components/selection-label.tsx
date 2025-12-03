@@ -466,6 +466,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     rows={1}
                     disabled
                   />
+                  <Show when={props.onAbort}>
+                    <button
+                      class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit cursor-pointer ml-1 transition-none hover:scale-105"
+                      onClick={props.onAbort}
+                    >
+                      <div class="shrink-0 w-[7px] h-[7px] rounded-[1px] bg-black" />
+                    </button>
+                  </Show>
                 </div>
               </BottomSection>
             </div>
