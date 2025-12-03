@@ -121,6 +121,96 @@ if (process.env.NODE_ENV === "development") {
 }
 ```
 
+## Coding agent integration (beta)
+
+React Grab can send selected element context directly to your coding agent. This enables a workflow where you select a UI element and an agent automatically makes changes to your codebase.
+
+This means **no copying and pasting** - just select the element and let the agent do the rest.
+
+### Claude Code
+
+Install the Claude Code agent provider:
+
+```bash
+npm install @react-grab/claude-code
+```
+
+#### Server Setup
+
+The server runs on port `4567` and interfaces with the Claude Agent SDK.
+
+**Vite:**
+
+```ts
+// vite.config.ts
+import { startServer } from "@react-grab/claude-code/server";
+
+if (process.env.NODE_ENV === "development") {
+  startServer();
+}
+```
+
+**Next.js:**
+
+```ts
+// next.config.ts
+import { startServer } from "@react-grab/claude-code/server";
+
+if (process.env.NODE_ENV === "development") {
+  startServer();
+}
+```
+
+#### Client Setup
+
+```tsx
+import { attachAgent } from "@react-grab/claude-code/client";
+
+attachAgent();
+```
+
+### Cursor CLI
+
+Install the Cursor agent provider:
+
+```bash
+npm install @react-grab/cursor
+```
+
+#### Server Setup
+
+The server runs on port `5567` and interfaces with the `cursor-agent` CLI.
+
+**Vite:**
+
+```ts
+// vite.config.ts
+import { startServer } from "@react-grab/cursor/server";
+
+if (process.env.NODE_ENV === "development") {
+  startServer();
+}
+```
+
+**Next.js:**
+
+```ts
+// next.config.ts
+import { startServer } from "@react-grab/cursor/server";
+
+if (process.env.NODE_ENV === "development") {
+  startServer();
+}
+```
+
+#### Client Setup
+
+```tsx
+import { attachAgent } from "@react-grab/cursor/client";
+
+attachAgent();
+```
+
 ## Extending React Grab
 
 React Grab provides an public customization API. Check out the [type definitions](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) to see all available options for extending React Grab.

@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.60
+
+### Patch Changes
+
+- fix: loading states
+
 ## 0.0.59
 
 ### Patch Changes
