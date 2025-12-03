@@ -121,7 +121,7 @@ if (process.env.NODE_ENV === "development") {
 }
 ```
 
-## Direct coding agent integration
+## Coding agent integration (beta)
 
 React Grab can send selected element context directly to your coding agent. This enables a workflow where you select a UI element and an agent automatically makes changes to your codebase.
 
