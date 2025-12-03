@@ -131,10 +131,34 @@ const ParentBadge: Component<{ name: string }> = (props) => (
   </div>
 );
 
+const CopiedParentBadge: Component<{ name: string }> = (props) => (
+  <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-1 px-[3px] [border-width:0.5px] border-solid border-[#00553269] py-0">
+    <span class="text-[#00381F] text-[11.5px] leading-3.5 shrink-0 tracking-[-0.08em] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] w-fit h-fit">
+      {props.name}
+    </span>
+  </div>
+);
+
 const ChevronSeparator: Component = () => (
   <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-1 px-[3px] [border-width:0.5px] border-solid border-white py-0">
     <span class="text-[#0C0C0C] text-[11.5px] leading-3.5 shrink-0 tracking-[-0.08em] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] w-fit h-fit">
       &gt;
+    </span>
+  </div>
+);
+
+const CopiedChevronSeparator: Component = () => (
+  <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-1 px-[3px] [border-width:0.5px] border-solid border-[#00553269] py-0">
+    <span class="text-[#00381F] text-[11.5px] leading-3.5 shrink-0 tracking-[-0.08em] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] w-fit h-fit">
+      &gt;
+    </span>
+  </div>
+);
+
+const CopiedTagBadge: Component<{ tagName: string }> = (props) => (
+  <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-0.5 px-[3px] bg-[#005532] [border-width:0.5px] border-solid border-[#005532] py-0">
+    <span class="text-[#A3FFCA] text-[11.5px] leading-3.5 shrink-0 tracking-[-0.08em] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] w-fit h-fit">
+      {props.tagName}
     </span>
   </div>
 );
@@ -445,21 +469,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               </div>
             </div>
             <div class="contain-layout shrink-0 flex items-center gap-px w-fit h-fit">
-              <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-1 px-[3px] [border-width:0.5px] border-solid border-[#00553269] py-0">
-                <span class="text-[#00381F] text-[11.5px] leading-3.5 shrink-0 tracking-[-0.08em] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] w-fit h-fit">
-                  TextareaRoot
-                </span>
-              </div>
-              <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-1 px-[3px] [border-width:0.5px] border-solid border-[#00553269] py-0">
-                <span class="text-[#00381F] text-[11.5px] leading-3.5 shrink-0 tracking-[-0.08em] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] w-fit h-fit">
-                  &gt;
-                </span>
-              </div>
-              <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-0.5 px-[3px] bg-[#005532] [border-width:0.5px] border-solid border-[#005532] py-0">
-                <span class="text-[#A3FFCA] text-[11.5px] leading-3.5 shrink-0 tracking-[-0.08em] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] w-fit h-fit">
-                  {tagDisplay()}
-                </span>
-              </div>
+              <Show when={props.componentName}>
+                <CopiedParentBadge name={props.componentName!} />
+                <CopiedChevronSeparator />
+              </Show>
+              <CopiedTagBadge tagName={tagDisplay()} />
             </div>
           </div>
         </Show>

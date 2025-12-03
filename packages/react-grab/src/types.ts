@@ -220,6 +220,7 @@ export interface AgentSession {
   position: { x: number; y: number };
   selectionBounds?: OverlayBounds;
   tagName?: string;
+  componentName?: string;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

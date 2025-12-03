@@ -72,6 +72,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
             </Show>
             <SelectionLabel
               tagName={session.tagName}
+              componentName={session.componentName}
               selectionBounds={session.selectionBounds}
               visible={true}
               hasAgent={true}
