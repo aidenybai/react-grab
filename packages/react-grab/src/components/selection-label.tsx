@@ -434,30 +434,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     {props.statusText ?? "Grabbing…"}
                   </div>
                 </div>
-                <Show when={props.componentName}>
-                  <div class="contain-layout shrink-0 flex items-center gap-px w-fit h-fit">
-                    <ParentBadge name={props.componentName!} />
-                    <ChevronSeparator />
-                    <TagBadge
-                      tagName={tagDisplay()}
-                      isClickable={isTagClickable()}
-                      onClick={handleTagClick}
-                      onHoverChange={handleTagHoverChange}
-                      showMono
-                      shrink
-                    />
-                  </div>
-                </Show>
-                <Show when={!props.componentName}>
-                  <TagBadge
-                    tagName={tagDisplay()}
-                    isClickable={isTagClickable()}
-                    onClick={handleTagClick}
-                    onHoverChange={handleTagHoverChange}
-                    showMono
-                    shrink
-                  />
-                </Show>
               </div>
               <BottomSection>
                 <div class="shrink-0 flex justify-between items-end w-full min-h-4">

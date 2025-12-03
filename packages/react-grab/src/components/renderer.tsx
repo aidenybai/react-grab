@@ -7,7 +7,7 @@ import { Crosshair } from "./crosshair.js";
 import { SelectionCursor } from "./selection-cursor.js";
 import { SelectionLabel } from "./selection-label.js";
 
-const truncateStatus = (status: string, maxLength = 30): string => {
+const truncateStatus = (status: string, maxLength = 40): string => {
   if (status.length <= maxLength) return status;
   return `${status.slice(0, maxLength)}…`;
 };

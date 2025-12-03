@@ -130,13 +130,13 @@ export const App = () => {
             </button>
           </div>
           <div className="p-3 bg-white/5 rounded text-sm">
-            <div className="font-medium">User Card</div>
+            <div className="font-medium italic">User Card</div>
             <div className="text-white/50 text-xs mt-1">john@example.com</div>
           </div>
           <input
             type="text"
             placeholder="Search..."
-            className="text-sm px-3 py-1.5 bg-white/5 border border-white/10 rounded placeholder:text-white/30 focus:outline-none focus:border-white/20"
+            className="text-sm px-3 py-1.5 bg-white/5 border border-white/10 rounded placeholder:text-white/30 placeholder:italic focus:outline-none focus:border-white/20"
           />
         </div>
 
