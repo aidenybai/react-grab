@@ -2,7 +2,6 @@ import {
   getDisplayName,
   getFiberFromHostInstance,
   getLatestFiber,
-  isCompositeFiber,
   isFiber,
   isHostFiber,
   traverseFiber,
@@ -14,6 +13,8 @@ import {
   getSource,
   isSourceFile,
   normalizeFileName,
+  getSourcesFromStack,
+  getOwnerStack,
 } from "bippy/source";
 import { isCapitalized } from "./utils/is-capitalized.js";
 
@@ -62,35 +63,6 @@ export const checkIsSourceComponentName = (name: string): boolean => {
   return true;
 };
 
-export const getNearestComponentName = (element: Element): string | null => {
-  if (!isInstrumentationActive()) return null;
-
-  try {
-    const fiber = getFiberFromHostInstance(element);
-    if (!fiber) return null;
-
-    let foundComponentName: string | null = null;
-    traverseFiber(
-      fiber,
-      (currentFiber) => {
-        if (isCompositeFiber(currentFiber)) {
-          const displayName = getDisplayName(currentFiber);
-          if (displayName && checkIsSourceComponentName(displayName)) {
-            foundComponentName = displayName;
-            return true;
-          }
-        }
-        return false;
-      },
-      true,
-    );
-
-    return foundComponentName;
-  } catch {
-    return null;
-  }
-};
-
 interface StackFrame {
   name: string;
   source: FiberSource | null;
@@ -109,8 +81,35 @@ export const getStack = async (
   try {
     const maybeFiber = getFiberFromHostInstance(element);
     if (!maybeFiber || !isFiber(maybeFiber)) return [];
-    const fiber = getLatestFiber(maybeFiber);
 
+    const ownerStack = getOwnerStack(maybeFiber);
+    const sources = await getSourcesFromStack(ownerStack);
+
+    if (sources && sources.length > 0) {
+      const stack: Array<StackFrame> = [];
+      for (const source of sources) {
+        if (
+          source.functionName &&
+          !checkIsInternalComponentName(source.functionName)
+        ) {
+          stack.push({
+            name: source.functionName,
+            source: source.fileName
+              ? {
+                  fileName: source.fileName,
+                  lineNumber: source.lineNumber,
+                  columnNumber: source.columnNumber,
+                }
+              : null,
+          });
+        }
+      }
+      if (stack.length > 0) {
+        return stack;
+      }
+    }
+
+    const fiber = getLatestFiber(maybeFiber);
     const unresolvedStack: Array<UnresolvedStackFrame> = [];
 
     traverseFiber(
@@ -145,10 +144,23 @@ export const getStack = async (
   }
 };
 
+export const getNearestComponentName = async (
+  element: Element,
+): Promise<string | null> => {
+  const stack = await getStack(element);
+
+  for (const frame of stack) {
+    if (checkIsSourceComponentName(frame.name)) {
+      return frame.name;
+    }
+  }
+
+  return null;
+};
+
 export const formatElementInfo = async (element: Element): Promise<string> => {
   const html = getHTMLPreview(element);
   const stack = await getStack(element);
-  console.log("stack", stack);
   const isNextProject = checkIsNextProject();
 
   let serverComponentName: string | null = null;
@@ -160,11 +172,9 @@ export const formatElementInfo = async (element: Element): Promise<string> => {
   for (const frame of stack) {
     if (!frame.source) continue;
 
-    if (frame.source.fileName.startsWith("about://React/")) {
-      if (!serverComponentName && checkIsSourceComponentName(frame.name)) {
-        serverComponentName = frame.name;
-      }
-      continue;
+    if (checkIsSourceComponentName(frame.name)) {
+      serverComponentName = frame.name;
+      break;
     }
 
     if (isSourceFile(frame.source.fileName)) {
