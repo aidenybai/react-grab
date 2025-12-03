@@ -487,9 +487,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             </div>
           </Show>
 
-          <Show when={isNotProcessing() && !isIdle() && !props.isInputExpanded}>
-            <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 size-fit">
-              <div class="contain-layout shrink-0 flex items-center gap-1 size-fit py-1 px-1.5">
+          <Show when={isNotProcessing() && !props.isInputExpanded}>
+            <div class="contain-layout shrink-0 flex flex-col justify-center items-start w-fit h-fit">
+              <div class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit py-1 px-1.5">
                 <ClickToCopyPill onClick={handleSubmit} shrink />
                 <TagBadge
                   tagName={tagDisplay()}
@@ -500,36 +500,29 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   shrink
                 />
               </div>
-            </div>
-          </Show>
-
-          <Show when={isNotProcessing() && isIdle() && !props.isInputExpanded}>
-            <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
-              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-fit h-fit">
-                <ClickToCopyPill onClick={handleSubmit} shrink />
-                <TagBadge
-                  tagName={tagDisplay()}
-                  isClickable={isTagClickable()}
-                  onClick={handleTagClick}
-                  onHoverChange={handleTagHoverChange}
-                  showMono
-                  shrink
-                />
-              </div>
-              <BottomSection>
-                <div class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit">
-                  <span class="text-[#767676] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
-                    Press
-                  </span>
-                  <div
-                    class="w-2.5 h-[9px] shrink-0 opacity-[0.41] bg-cover bg-center"
-                    style={{ "background-image": `url(${RETURN_KEY_ICON_URL})` }}
-                  />
-                  <span class="text-[#767676] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
-                    to edit
-                  </span>
+              <div
+                class="grid w-full transition-[grid-template-rows] duration-[30ms] ease-out"
+                style={{
+                  "grid-template-rows": isIdle() ? "1fr" : "0fr",
+                }}
+              >
+                <div class="overflow-hidden min-h-0">
+                  <BottomSection>
+                    <div class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit">
+                      <span class="text-[#767676] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
+                        Press
+                      </span>
+                      <div
+                        class="w-2.5 h-[9px] shrink-0 opacity-[0.41] bg-cover bg-center"
+                        style={{ "background-image": `url(${RETURN_KEY_ICON_URL})` }}
+                      />
+                      <span class="text-[#767676] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
+                        to edit
+                      </span>
+                    </div>
+                  </BottomSection>
                 </div>
-              </BottomSection>
+              </div>
             </div>
           </Show>
 
