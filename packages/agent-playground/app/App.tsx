@@ -118,64 +118,64 @@ export const App = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white text-black p-8">
+    <div className="min-h-screen bg-black text-white p-8">
       <div className="max-w-xl mx-auto flex flex-col gap-8">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <ReactGrabLogo size={28} />
             <h1 className="text-lg font-bold">Agent Playground</h1>
           </div>
-          <p className="text-sm text-black/50 mb-4 italic">
+          <p className="text-sm text-white/50 mb-4 italic">
             Select any element and send it to the agent
           </p>
           <button
             onClick={() => apiRef.current?.activate()}
-            className="text-sm px-3 py-1.5 bg-black text-white hover:bg-black/90 rounded transition-colors italic"
+            className="text-sm px-3 py-1.5 bg-white text-black hover:bg-white/90 rounded transition-colors italic"
           >
             Grab Element
           </button>
         </div>
 
         <div className="flex flex-col gap-3">
-          <div className="text-xs text-black/30 uppercase tracking-wide">
+          <div className="text-xs text-white/30 uppercase tracking-wide">
             Test Elements
           </div>
           <div className="flex gap-2">
-            <button className="text-sm px-3 py-1.5 bg-black/10 rounded border border-black/10">
+            <button className="text-sm px-3 py-1.5 bg-white/10 rounded border border-white/10">
               Submit
             </button>
-            <button className="text-sm px-3 py-1.5 bg-black/10 rounded border border-black/20">
+            <button className="text-sm px-3 py-1.5 bg-white/10 rounded border border-white/20">
               Cancel
             </button>
           </div>
-          <div className="p-3 bg-black/5 rounded text-sm">
+          <div className="p-3 bg-white/5 rounded text-sm">
             <div className="font-medium">User Card</div>
-            <div className="text-black/50 text-xs mt-1">john@example.com</div>
+            <div className="text-white/50 text-xs mt-1">john@example.com</div>
           </div>
           <input
             type="text"
             placeholder="Search..."
-            className="text-sm px-3 py-1.5 bg-black/5 border border-black/10 rounded placeholder:text-black/30 focus:outline-none focus:border-black/20"
+            className="text-sm px-3 py-1.5 bg-white/5 border border-white/10 rounded placeholder:text-white/30 focus:outline-none focus:border-white/20"
           />
         </div>
 
         <div className="flex flex-col gap-2">
-          <div className="text-xs text-black/30 uppercase tracking-wide">
+          <div className="text-xs text-white/30 uppercase tracking-wide">
             Activity
           </div>
-          <div className="bg-black/5 rounded p-3 min-h-[120px] font-mono text-xs">
+          <div className="bg-white/5 rounded p-3 min-h-[120px] font-mono text-xs">
             {logs.length === 0 ? (
-              <span className="text-black/30">Waiting...</span>
+              <span className="text-white/30">Waiting...</span>
             ) : (
               logs.map((log, i) => {
                 const getStatusBadge = () => {
                   const typeStyles: Record<string, { bg: string; text: string; icon: string }> = {
-                    info: { bg: "bg-blue-500/20", text: "text-blue-700", icon: "◆" },
-                    start: { bg: "bg-green-500/20", text: "text-green-700", icon: "▶" },
-                    status: { bg: "bg-cyan-500/20", text: "text-cyan-700", icon: "◉" },
-                    done: { bg: "bg-emerald-500/20", text: "text-emerald-700", icon: "✓" },
-                    error: { bg: "bg-red-500/20", text: "text-red-700", icon: "!" },
-                    resume: { bg: "bg-purple-500/20", text: "text-purple-700", icon: "↻" },
+                    info: { bg: "bg-blue-500/20", text: "text-blue-300", icon: "◆" },
+                    start: { bg: "bg-green-500/20", text: "text-green-300", icon: "▶" },
+                    status: { bg: "bg-cyan-500/20", text: "text-cyan-300", icon: "◉" },
+                    done: { bg: "bg-emerald-500/20", text: "text-emerald-300", icon: "✓" },
+                    error: { bg: "bg-red-500/20", text: "text-red-300", icon: "!" },
+                    resume: { bg: "bg-purple-500/20", text: "text-purple-300", icon: "↻" },
                   };
                   const style = typeStyles[log.type] || typeStyles.info;
 
@@ -187,10 +187,10 @@ export const App = () => {
                 };
 
                 return (
-                  <div key={i} className="flex gap-3 py-1.5 items-center hover:bg-black/5 px-2 rounded transition-colors">
+                  <div key={i} className="flex gap-3 py-1.5 items-center hover:bg-white/5 px-2 rounded transition-colors">
                     {getStatusBadge()}
-                    <span className="text-black/70 flex-1">{log.message}</span>
-                    <span className="text-black/20 text-xs">{log.time.toLocaleTimeString()}</span>
+                    <span className="text-white/70 flex-1">{log.message}</span>
+                    <span className="text-white/20 text-xs">{log.time.toLocaleTimeString()}</span>
                   </div>
                 );
               })
