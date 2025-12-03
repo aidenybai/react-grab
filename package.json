@@ -2,8 +2,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "pnpm --filter react-grab build",
-    "dev": "pnpm --filter react-grab dev",
+    "build": "turbo run build --filter=react-grab --filter=@react-grab/cursor --filter=@react-grab/claude-code --filter=@react-grab/ami",
+    "dev": "turbo dev --filter=react-grab --filter=@react-grab/cursor --filter=@react-grab/claude-code --filter=@react-grab/ami",
     "lint": "pnpm --filter react-grab lint",
     "lint:fix": "pnpm --filter react-grab lint:fix",
     "format": "prettier --write .",
@@ -13,15 +13,18 @@
     "prebump": "cp README.md packages/react-grab/README.md",
     "bump": "changeset && changeset version",
     "release": "pnpm build && changeset publish",
+    "release:beta": "pnpm build && changeset publish --tag beta",
     "extension:dev": "pnpm --filter web-extension dev",
     "extension:build": "pnpm --filter web-extension build"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.10",
-    "prettier": "^3.4.2"
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.3"
   },
   "engines": {
     "node": ">=18",
     "pnpm": ">=8"
-  }
+  },
+  "packageManager": "pnpm@10.24.0"
 }

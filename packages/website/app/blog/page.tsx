@@ -19,7 +19,7 @@ const blogPosts: BlogPost[] = [
   },
   {
     slug: "intro",
-    title: "I made your coding agent 55% faster at frontend",
+    title: "I made your coding agent 66% faster at frontend",
     year: "2025",
   },
 ];

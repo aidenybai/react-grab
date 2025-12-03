@@ -205,9 +205,10 @@ export interface ActivationKey {
   altKey?: boolean;
 }
 
-export interface AgentContext {
+export interface AgentContext<T = unknown> {
   content: string;
   prompt: string;
+  options?: T;
 }
 
 export interface AgentSession {
@@ -218,10 +219,12 @@ export interface AgentSession {
   createdAt: number;
   position: { x: number; y: number };
   selectionBounds?: OverlayBounds;
+  tagName?: string;
 }
 
-export interface AgentProvider {
-  send: (context: AgentContext, signal: AbortSignal) => AsyncIterable<string>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface AgentProvider<T = any> {
+  send: (context: AgentContext<T>, signal: AbortSignal) => AsyncIterable<string>;
   resume?: (sessionId: string, signal: AbortSignal) => AsyncIterable<string>;
   supportsResume?: boolean;
 }
@@ -232,21 +235,23 @@ export interface AgentSessionStorage {
   removeItem(key: string): void;
 }
 
-export interface AgentOptions {
-  provider?: AgentProvider;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface AgentOptions<T = any> {
+  provider?: AgentProvider<T>;
   storage?: AgentSessionStorage | null;
+  getOptions?: () => T;
   onStart?: (session: AgentSession) => void;
   onStatus?: (status: string, session: AgentSession) => void;
   onComplete?: (session: AgentSession) => void;
   onError?: (error: Error, session: AgentSession) => void;
   onResume?: (session: AgentSession) => void;
+  onAbort?: (session: AgentSession, element: Element | undefined) => void;
 }
 
 export interface Options {
   enabled?: boolean;
   keyHoldDuration?: number;
   allowActivationInsideInput?: boolean;
-  copyFileOnly?: boolean;
   theme?: Theme;
   activationShortcut?: (event: KeyboardEvent) => boolean;
   activationKey?: ActivationKey;
@@ -262,10 +267,7 @@ export interface Options {
   onCopyError?: (error: Error) => void;
   onStateChange?: (state: ReactGrabState) => void;
   onRender?: (type: RenderType, data: RenderData) => void;
-  onInputModeChange?: (
-    isInputMode: boolean,
-    context: InputModeContext,
-  ) => void;
+  onInputModeChange?: (isInputMode: boolean, context: InputModeContext) => void;
   onSuccessLabel?: (
     text: string,
     type: SuccessLabelType,
@@ -298,6 +300,7 @@ export interface ReactGrabAPI {
   getState: () => ReactGrabState;
   updateTheme: (theme: DeepPartial<Theme>) => void;
   getTheme: () => Required<Theme>;
+  setAgent: (options: AgentOptions) => void;
 }
 
 export interface OverlayBounds {
@@ -309,11 +312,26 @@ export interface OverlayBounds {
   y: number;
 }
 
+export type SelectionLabelStatus = "idle" | "copying" | "copied" | "fading";
+
+export interface SelectionLabelInstance {
+  id: string;
+  bounds: OverlayBounds;
+  tagName: string;
+  status: SelectionLabelStatus;
+  createdAt: number;
+  element?: Element;
+}
+
 export interface ReactGrabRendererProps {
   selectionVisible?: boolean;
   selectionBounds?: OverlayBounds;
   selectionFilePath?: string;
   selectionLineNumber?: number;
+  selectionTagName?: string;
+  selectionLabelVisible?: boolean;
+  selectionLabelStatus?: SelectionLabelStatus;
+  labelInstances?: SelectionLabelInstance[];
   dragVisible?: boolean;
   dragBounds?: OverlayBounds;
   grabbedBoxes?: Array<{
@@ -321,32 +339,19 @@ export interface ReactGrabRendererProps {
     bounds: OverlayBounds;
     createdAt: number;
   }>;
-  successLabels?: Array<{ id: string; text: string }>;
-  labelVariant?: "hover" | "processing" | "success";
-  labelContent?: unknown;
-  labelX?: number;
-  labelY?: number;
-  labelVisible?: boolean;
   labelZIndex?: number;
-  labelShowHint?: boolean;
-  progressVisible?: boolean;
-  progress?: number;
   mouseX?: number;
   mouseY?: number;
   crosshairVisible?: boolean;
-  inputVisible?: boolean;
-  inputX?: number;
-  inputY?: number;
   inputValue?: string;
   isInputExpanded?: boolean;
-  inputMode?: "input" | "output";
-  inputStatusText?: string;
+  hasAgent?: boolean;
   agentSessions?: Map<string, AgentSession>;
+  onAbortSession?: (sessionId: string) => void;
   onInputChange?: (value: string) => void;
   onInputSubmit?: () => void;
   onInputCancel?: () => void;
   onToggleExpand?: () => void;
-  onCopyClick?: () => void;
   nativeSelectionCursorVisible?: boolean;
   nativeSelectionCursorX?: number;
   nativeSelectionCursorY?: number;

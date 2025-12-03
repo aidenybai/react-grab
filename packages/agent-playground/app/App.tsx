@@ -1,9 +1,7 @@
 import { useEffect, useState, useRef } from "react";
-import { init } from "react-grab/core";
-import type { AgentSession, ReactGrabAPI } from "react-grab/core";
-import { createAgentProvider } from "../src/client";
+import { getGlobalApi, type ReactGrabAPI } from "react-grab";
 
-const agentProvider = createAgentProvider("http://localhost:3001");
+const PROVIDER = import.meta.env.VITE_AGENT_PROVIDER ?? "claude";
 
 const ReactGrabLogo = ({ size = 24 }: { size?: number }) => (
   <svg
@@ -81,21 +79,23 @@ export const App = () => {
   useEffect(() => {
     if (apiRef.current) return;
 
-    const api = init({
-      onActivate: () => addLog("info", "Activated"),
-      onDeactivate: () => addLog("info", "Deactivated"),
-      agent: {
-        provider: agentProvider,
-        storage: sessionStorage,
-        onStart: (session: AgentSession) => addLog("start", session.id),
-        onStatus: (status: string) => addLog("status", status),
-        onComplete: () => addLog("done", "Complete"),
-        onError: (error: Error) => addLog("error", error.message),
-      },
+    const api = getGlobalApi();
+    if (!api) {
+      addLog("error", "React Grab not initialized");
+      return;
+    }
+
+    api.setAgent({
+      storage: sessionStorage,
+      onStart: (session) => addLog("start", session.id),
+      onStatus: (status) => addLog("status", status),
+      onComplete: () => addLog("done", "Complete"),
+      onError: (error) => addLog("error", error.message),
+      onResume: (session) => addLog("resume", session.id),
     });
 
     apiRef.current = api;
-    addLog("info", "Ready");
+    addLog("info", `Ready (${PROVIDER})`);
   }, []);
 
   return (
@@ -106,12 +106,12 @@ export const App = () => {
             <ReactGrabLogo size={28} />
             <h1 className="text-lg font-bold">Agent Playground</h1>
           </div>
-          <p className="text-sm text-white/50 mb-4">
+          <p className="text-sm text-white/50 mb-4 italic">
             Select any element and send it to the agent
           </p>
           <button
             onClick={() => apiRef.current?.activate()}
-            className="text-sm px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded transition-colors"
+            className="text-sm px-3 py-1.5 bg-white text-black hover:bg-white/90 rounded transition-colors italic"
           >
             Grab Element
           </button>
@@ -122,10 +122,10 @@ export const App = () => {
             Test Elements
           </div>
           <div className="flex gap-2">
-            <button className="text-sm px-3 py-1.5 bg-white/10 rounded">
+            <button className="text-sm px-3 py-1.5 bg-white/10 rounded border border-white/10">
               Submit
             </button>
-            <button className="text-sm px-3 py-1.5 bg-white/10 rounded">
+            <button className="text-sm px-3 py-1.5 bg-white/10 rounded border border-white/20">
               Cancel
             </button>
           </div>
@@ -148,12 +148,33 @@ export const App = () => {
             {logs.length === 0 ? (
               <span className="text-white/30">Waiting...</span>
             ) : (
-              logs.map((log, i) => (
-                <div key={i} className="flex gap-3 py-0.5">
-                  <span className="text-white/40 w-12">{log.type}</span>
-                  <span className="text-white/70">{log.message}</span>
-                </div>
-              ))
+              logs.map((log, i) => {
+                const getStatusBadge = () => {
+                  const typeStyles: Record<string, { bg: string; text: string; icon: string }> = {
+                    info: { bg: "bg-blue-500/20", text: "text-blue-300", icon: "◆" },
+                    start: { bg: "bg-green-500/20", text: "text-green-300", icon: "▶" },
+                    status: { bg: "bg-cyan-500/20", text: "text-cyan-300", icon: "◉" },
+                    done: { bg: "bg-emerald-500/20", text: "text-emerald-300", icon: "✓" },
+                    error: { bg: "bg-red-500/20", text: "text-red-300", icon: "!" },
+                    resume: { bg: "bg-purple-500/20", text: "text-purple-300", icon: "↻" },
+                  };
+                  const style = typeStyles[log.type] || typeStyles.info;
+
+                  return (
+                    <span className={`${style.bg} ${style.text} px-2 py-1 rounded text-xs font-medium w-12 flex items-center gap-1`}>
+                      <span>{style.icon}</span>
+                    </span>
+                  );
+                };
+
+                return (
+                  <div key={i} className="flex gap-3 py-1.5 items-center hover:bg-white/5 px-2 rounded transition-colors">
+                    {getStatusBadge()}
+                    <span className="text-white/70 flex-1">{log.message}</span>
+                    <span className="text-white/20 text-xs">{log.time.toLocaleTimeString()}</span>
+                  </div>
+                );
+              })
             )}
           </div>
         </div>

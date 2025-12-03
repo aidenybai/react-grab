@@ -1,129 +1,15 @@
-import {
-  Show,
-  For,
-  type JSX,
-  createSignal,
-  onCleanup,
-  onMount,
-} from "solid-js";
+import { Show, For } from "solid-js";
 import type { Component } from "solid-js";
-import type { ReactGrabRendererProps, AgentSession } from "../types.js";
+import type { ReactGrabRendererProps } from "../types.js";
+import { buildOpenFileUrl } from "../utils/build-open-file-url.js";
 import { SelectionBox } from "./selection-box.js";
-import { Label } from "./label.js";
 import { Crosshair } from "./crosshair.js";
-import { InputOverlay } from "./input-overlay.js";
-import { Spinner } from "./spinner.js";
 import { SelectionCursor } from "./selection-cursor.js";
-
-const AGENT_PROGRESS_DURATION_MS = 30000;
-const VIEWPORT_MARGIN_PX = 16;
+import { SelectionLabel } from "./selection-label.js";
 
 const truncateStatus = (status: string, maxLength = 30): string => {
   if (status.length <= maxLength) return status;
   return `${status.slice(0, maxLength)}…`;
-};
-
-const AgentLabel: Component<{
-  session: AgentSession;
-  zIndex?: number;
-}> = (props) => {
-  let labelRef: HTMLDivElement | undefined;
-  const [progress, setProgress] = createSignal(0);
-  const [measuredWidth, setMeasuredWidth] = createSignal(0);
-  const [measuredHeight, setMeasuredHeight] = createSignal(0);
-
-  const measureLabel = () => {
-    if (labelRef) {
-      const rect = labelRef.getBoundingClientRect();
-      setMeasuredWidth(rect.width);
-      setMeasuredHeight(rect.height);
-    }
-  };
-
-  onMount(() => {
-    measureLabel();
-  });
-
-  const animateProgress = () => {
-    const elapsed = Date.now() - props.session.createdAt;
-    const normalizedTime = elapsed / AGENT_PROGRESS_DURATION_MS;
-    const easedProgress = 1 - Math.exp(-normalizedTime);
-    setProgress(Math.min(easedProgress, 0.95));
-    measureLabel();
-    animationId = requestAnimationFrame(animateProgress);
-  };
-
-  let animationId = requestAnimationFrame(animateProgress);
-
-  onCleanup(() => {
-    if (animationId) cancelAnimationFrame(animationId);
-  });
-
-  const displayStatus = () =>
-    truncateStatus(props.session.lastStatus || "Please wait…");
-
-  const computedPosition = () => {
-    const bounds = props.session.selectionBounds;
-    const labelWidth = measuredWidth();
-    const labelHeight = measuredHeight();
-
-    if (bounds && labelWidth > 0 && labelHeight > 0) {
-      const selectionCenterX = bounds.x + bounds.width / 2;
-      const selectionBottom = bounds.y + bounds.height;
-
-      let positionLeft = selectionCenterX - labelWidth / 2;
-      let positionTop = selectionBottom + 8;
-
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-
-      if (positionLeft + labelWidth > viewportWidth - VIEWPORT_MARGIN_PX) {
-        positionLeft = viewportWidth - labelWidth - VIEWPORT_MARGIN_PX;
-      }
-      if (positionLeft < VIEWPORT_MARGIN_PX) {
-        positionLeft = VIEWPORT_MARGIN_PX;
-      }
-
-      const fitsBelow =
-        positionTop + labelHeight <= viewportHeight - VIEWPORT_MARGIN_PX;
-      if (!fitsBelow) {
-        positionTop = bounds.y - labelHeight - 8;
-      }
-
-      return { left: positionLeft, top: positionTop };
-    }
-
-    return { left: props.session.position.x, top: props.session.position.y };
-  };
-
-  return (
-    <div
-      ref={labelRef}
-      class="fixed rounded text-[11px] font-medium font-sans pointer-events-none overflow-hidden bg-grab-pink-light text-grab-pink border border-grab-pink-border"
-      style={{
-        top: `${computedPosition().top}px`,
-        left: `${computedPosition().left}px`,
-        "z-index": props.zIndex?.toString() ?? "2147483647",
-        "max-width":
-          "calc(100vw - (16px + env(safe-area-inset-left) + env(safe-area-inset-right)))",
-      }}
-    >
-      <Show when={progress() !== undefined}>
-        <div
-          class="absolute top-0 left-0 bottom-0 bg-grab-pink/20 rounded-[3px] transition-[width] duration-100 ease-out pointer-events-none"
-          style={{
-            width: `${Math.min(100, Math.max(0, progress() * 100))}%`,
-          }}
-        />
-      </Show>
-      <div class="relative py-0.5 px-1.5 flex flex-col">
-        <div class="flex items-center text-ellipsis whitespace-nowrap">
-          <Spinner />
-          <span class="tabular-nums align-middle">{displayStatus()}</span>
-        </div>
-      </div>
-    </div>
-  );
 };
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
@@ -134,12 +20,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           variant="selection"
           bounds={props.selectionBounds!}
           visible={props.selectionVisible}
-          filePath={props.selectionFilePath}
-          lineNumber={props.selectionLineNumber}
-          hideButtons={props.inputVisible && !props.isInputExpanded}
-          isInputExpanded={props.isInputExpanded}
-          onToggleExpand={props.onToggleExpand}
-          onCopyClick={props.onCopyClick}
+          isFading={props.selectionLabelStatus === "fading"}
         />
       </Show>
 
@@ -175,40 +56,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         )}
       </For>
 
-      <Show when={props.labelVariant !== "processing"}>
-        <For each={props.successLabels ?? []}>
-          {(label) => (
-            <Label
-              variant="success"
-              content={<>{label.text}</>}
-              x={props.mouseX ?? 0}
-              y={props.mouseY ?? 0}
-            />
-          )}
-        </For>
-      </Show>
-
-      <Show
-        when={
-          props.labelVisible &&
-          props.labelVariant &&
-          props.labelContent !== undefined &&
-          props.labelX !== undefined &&
-          props.labelY !== undefined
-        }
-      >
-        <Label
-          variant={props.labelVariant as "hover" | "processing" | "success"}
-          content={props.labelContent as JSX.Element}
-          x={props.labelX as number}
-          y={props.labelY as number}
-          visible={props.labelVisible}
-          zIndex={props.labelZIndex}
-          progress={props.progress}
-          showHint={props.labelShowHint}
-        />
-      </Show>
-
       <For
         each={
           props.agentSessions ? Array.from(props.agentSessions.values()) : []
@@ -223,26 +70,53 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
                 visible={true}
               />
             </Show>
-            <AgentLabel session={session} zIndex={props.labelZIndex} />
+            <SelectionLabel
+              tagName={session.tagName}
+              selectionBounds={session.selectionBounds}
+              visible={true}
+              hasAgent={true}
+              status={session.isStreaming ? "copying" : "copied"}
+              statusText={truncateStatus(session.lastStatus || "Please wait…")}
+              onAbort={() => props.onAbortSession?.(session.id)}
+            />
           </>
         )}
       </For>
 
-      <InputOverlay
-        x={props.inputX ?? 0}
-        y={props.inputY ?? 0}
-        zIndex={props.labelZIndex}
-        value={props.inputValue ?? ""}
-        visible={props.inputVisible ?? false}
-        selectionBounds={
-          props.isInputExpanded ? props.selectionBounds : undefined
-        }
-        mode={props.inputMode}
-        statusText={props.inputStatusText}
-        onInput={props.onInputChange!}
-        onSubmit={props.onInputSubmit!}
-        onCancel={props.onInputCancel!}
-      />
+      <Show when={props.selectionLabelVisible && props.selectionBounds}>
+        <SelectionLabel
+          tagName={props.selectionTagName}
+          selectionBounds={props.selectionBounds}
+          visible={props.selectionLabelVisible}
+          isInputExpanded={props.isInputExpanded}
+          inputValue={props.inputValue}
+          hasAgent={props.hasAgent}
+          status={props.selectionLabelStatus}
+          filePath={props.selectionFilePath}
+          lineNumber={props.selectionLineNumber}
+          onInputChange={props.onInputChange}
+          onSubmit={props.onInputSubmit}
+          onCancel={props.onInputCancel}
+          onToggleExpand={props.onToggleExpand}
+          onOpen={() => {
+            if (props.selectionFilePath) {
+              const openFileUrl = buildOpenFileUrl(props.selectionFilePath, props.selectionLineNumber);
+              window.open(openFileUrl, "_blank");
+            }
+          }}
+        />
+      </Show>
+
+      <For each={props.labelInstances ?? []}>
+        {(instance) => (
+          <SelectionLabel
+            tagName={instance.tagName}
+            selectionBounds={instance.bounds}
+            visible={true}
+            status={instance.status}
+          />
+        )}
+      </For>
 
       <Show
         when={

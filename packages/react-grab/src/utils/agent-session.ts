@@ -14,6 +14,7 @@ export const createSession = (
   context: AgentContext,
   position: { x: number; y: number },
   selectionBounds?: OverlayBounds,
+  tagName?: string,
 ): AgentSession => ({
   id: generateSessionId(),
   context,
@@ -22,6 +23,7 @@ export const createSession = (
   createdAt: Date.now(),
   position,
   selectionBounds,
+  tagName,
 });
 
 const getStorage = (

@@ -5,6 +5,14 @@
   --color-grab-pink-light: #fde7f7;
   --color-grab-pink-border: #f7c5ec;
   --color-grab-purple: rgb(210, 57, 192);
+  --color-label-tag-border: #730079;
+  --color-label-tag-text: #1E001F;
+  --color-label-gray-border: #B0B0B0;
+  --color-label-success-bg: #D9FFE4;
+  --color-label-success-border: #00BB69;
+  --color-label-success-text: #006E3B;
+  --color-label-divider: #DEDEDE;
+  --color-label-muted: #767676;
 }
 
 @keyframes spin {
@@ -14,4 +22,34 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.react-grab-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.react-grab-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.4) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  pointer-events: none;
 }

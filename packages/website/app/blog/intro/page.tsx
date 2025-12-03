@@ -1,16 +1,11 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useMemo } from "react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import ReactGrabLogo from "@/public/logo.svg";
-import { highlightCode } from "@/lib/shiki";
-import {
-  BenchmarkCharts,
-  BenchmarkChartsTweet,
-} from "@/components/benchmarks/benchmark-charts";
-import { BenchmarkDetailedTable } from "@/components/benchmarks/benchmark-detailed-table";
 import { BenchmarkResult, TestCase } from "@/components/benchmarks/types";
 import { GithubButton } from "@/components/github-button";
 import { CursorInstallButton } from "@/components/cursor-install-button";
@@ -19,11 +14,37 @@ import resultsData from "@/public/results.json";
 import testCasesData from "@/public/test-cases.json";
 import demoGif from "@/public/demo.gif";
 
-const BlogPostPage = () => {
-  const [highlightedCode, setHighlightedCode] = useState<string>("");
-  const [highlightedReactInternalsCode, setHighlightedReactInternalsCode] =
-    useState<string>("");
+const BenchmarkCharts = dynamic(
+  () =>
+    import("@/components/benchmarks/benchmark-charts").then(
+      (mod) => mod.BenchmarkCharts
+    ),
+  { ssr: false }
+);
 
+const BenchmarkChartsTweet = dynamic(
+  () =>
+    import("@/components/benchmarks/benchmark-charts").then(
+      (mod) => mod.BenchmarkChartsTweet
+    ),
+  { ssr: false }
+);
+
+const BenchmarkDetailedTable = dynamic(
+  () =>
+    import("@/components/benchmarks/benchmark-detailed-table").then(
+      (mod) => mod.BenchmarkDetailedTable
+    ),
+  { ssr: false }
+);
+
+const StaticCodeBlock = ({ children }: { children: React.ReactNode }) => (
+  <pre className="text-neutral-300 whitespace-pre font-mono text-xs leading-relaxed">
+    {children}
+  </pre>
+);
+
+const BlogPostPage = () => {
   const testCaseMapping = useMemo(() => {
     const mapping: Record<string, string> = {};
     testCasesData.forEach((testCase: TestCase) => {
@@ -31,61 +52,6 @@ const BlogPostPage = () => {
     });
     return mapping;
   }, []);
-
-  const codeExample = `<selected_element>
-
-<a class="ml-auto inline-block text-..." href="#">
-  Forgot your password?
-</a>
-
-  at a in components/login-form.tsx:46:19
-  at div in components/login-form.tsx:44:17
-  at Field in components/ui/field.tsx:87:5
-  at FieldGroup in components/ui/field.tsx:46:5
-  at form in components/login-form.tsx:32:11
-
-</selected_element>`;
-
-  const reactInternalsCodeExample = `<selected_element>
-
-## HTML Frame:
-
-<span class="font-bold">
-  React Grab
-</span>
-
-## Code Location:
-
-  at motion.div
-  at StreamingText in /[project]/packages/website/components/blocks/streaming-text.tsx
-  at MessageBlock in /[project]/packages/website/components/blocks/message-block.tsx
-  at StreamDemo in /[project]/packages/website/components/stream-demo.tsx
-
-</selected_element>`;
-
-  useEffect(() => {
-    const highlight = async () => {
-      const html = await highlightCode({
-        code: codeExample,
-        lang: "html",
-        showLineNumbers: false,
-      });
-      setHighlightedCode(html);
-    };
-    highlight();
-  }, [codeExample]);
-
-  useEffect(() => {
-    const highlight = async () => {
-      const html = await highlightCode({
-        code: reactInternalsCodeExample,
-        lang: "html",
-        showLineNumbers: false,
-      });
-      setHighlightedReactInternalsCode(html);
-    };
-    highlight();
-  }, [reactInternalsCodeExample]);
 
   return (
     <div className="min-h-screen bg-black font-sans text-white">
@@ -109,7 +75,7 @@ const BlogPostPage = () => {
                 />
               </Link>
               <h1 className="text-xl font-medium text-white">
-                I made your coding agent 55% faster at frontend
+                I made your coding agent 66% faster at frontend
               </h1>
             </div>
 
@@ -263,18 +229,20 @@ const BlogPostPage = () => {
               <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden">
                 <div className="px-3 py-2">
                   <div className="font-mono text-xs overflow-x-auto">
-                    {highlightedReactInternalsCode ? (
-                      <div
-                        dangerouslySetInnerHTML={{
-                          __html: highlightedReactInternalsCode,
-                        }}
-                        className="highlighted-code"
-                      />
-                    ) : (
-                      <pre className="text-neutral-300 whitespace-pre">
-                        {reactInternalsCodeExample}
-                      </pre>
-                    )}
+                    <StaticCodeBlock>
+                      <span className="text-neutral-500">&lt;</span>
+                      <span className="text-[#4ec9b0]">span</span>
+                      <span className="text-neutral-500">&gt;</span>
+                      <span className="text-[#ce9178]">React Grab</span>
+                      <span className="text-neutral-500">&lt;/</span>
+                      <span className="text-[#4ec9b0]">span</span>
+                      <span className="text-neutral-500">&gt;</span>
+                      {"\n"}
+                      <span className="text-neutral-500">in </span>
+                      <span className="text-[#dcdcaa]">StreamDemo</span>
+                      <span className="text-neutral-500"> at </span>
+                      <span className="text-[#9cdcfe]">components/stream-demo.tsx:42:11</span>
+                    </StaticCodeBlock>
                   </div>
                 </div>
               </div>
@@ -383,16 +351,28 @@ const BlogPostPage = () => {
                     &quot;Find the forgot password link in the login form&quot;
                   </div>
                   <div className="font-mono text-xs overflow-x-auto">
-                    {highlightedCode ? (
-                      <div
-                        dangerouslySetInnerHTML={{ __html: highlightedCode }}
-                        className="highlighted-code"
-                      />
-                    ) : (
-                      <pre className="text-neutral-300 whitespace-pre">
-                        {codeExample}
-                      </pre>
-                    )}
+                    <StaticCodeBlock>
+                      <span className="text-neutral-500">&lt;</span>
+                      <span className="text-[#4ec9b0]">a</span>
+                      <span className="text-[#9cdcfe]"> class</span>
+                      <span className="text-neutral-500">=</span>
+                      <span className="text-[#ce9178]">&quot;ml-auto inline-block text-...&quot;</span>
+                      <span className="text-[#9cdcfe]"> href</span>
+                      <span className="text-neutral-500">=</span>
+                      <span className="text-[#ce9178]">&quot;#&quot;</span>
+                      <span className="text-neutral-500">&gt;</span>
+                      {"\n  "}
+                      <span className="text-[#ce9178]">Forgot your password?</span>
+                      {"\n"}
+                      <span className="text-neutral-500">&lt;/</span>
+                      <span className="text-[#4ec9b0]">a</span>
+                      <span className="text-neutral-500">&gt;</span>
+                      {"\n"}
+                      <span className="text-neutral-500">in </span>
+                      <span className="text-[#dcdcaa]">LoginForm</span>
+                      <span className="text-neutral-500"> at </span>
+                      <span className="text-[#9cdcfe]">components/login-form.tsx:46:19</span>
+                    </StaticCodeBlock>
                   </div>
                 </div>
               </div>
@@ -431,7 +411,7 @@ const BlogPostPage = () => {
           <p>
             …and turns out, Claude Code becomes ~
             <span className="font-medium text-neutral-300">
-              55% faster with React Grab
+              66% faster with React Grab
             </span>
             !
             <sup className="text-neutral-500 text-[10px] ml-0.5">3</sup>
@@ -591,7 +571,7 @@ const BlogPostPage = () => {
               </p>
               <p>
                 <sup className="text-neutral-600 mr-1">2</sup>
-                Single trial per test case is a limitation. Agents are non-deterministic, so results can vary significantly between runs. Ideally we&apos;d run each test 5-10 times and report confidence intervals. The 55% speedup is directionally correct but treat the exact number with appropriate skepticism. Future benchmarks will include multiple trials. I&apos;m very open to fixing issues with the benchmarks. If you spot anything off, please{" "}
+                Single trial per test case is a limitation. Agents are non-deterministic, so results can vary significantly between runs. Ideally we&apos;d run each test 5-10 times and report confidence intervals. The 66% speedup is directionally correct but treat the exact number with appropriate skepticism. Future benchmarks will include multiple trials. I&apos;m very open to fixing issues with the benchmarks. If you spot anything off, please{" "}
                 <a
                   href="mailto:aiden@million.dev"
                   className="text-neutral-400 hover:text-white underline underline-offset-4"

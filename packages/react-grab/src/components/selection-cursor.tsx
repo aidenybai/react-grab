@@ -3,6 +3,8 @@ import type { Component } from "solid-js";
 import { SELECTION_CURSOR_SETTLE_DELAY_MS } from "../constants.js";
 import type { OverlayBounds } from "../types.js";
 import { SelectionBox } from "./selection-box.js";
+import { SelectionLabel } from "./selection-label.js";
+import { cn } from "../utils/cn.js";
 
 interface SelectionCursorProps {
   x: number;
@@ -21,7 +23,6 @@ export const SelectionCursor: Component<SelectionCursorProps> = (props) => {
 
   createEffect(() => {
     const isVisible = props.visible !== false;
-    // HACK: tracking x/y ensures effect re-runs when position changes
     void [props.x, props.y];
 
     setDebouncedVisible(false);
@@ -38,21 +39,6 @@ export const SelectionCursor: Component<SelectionCursorProps> = (props) => {
     props.onClick?.();
   };
 
-  createEffect(() => {
-    if (!isHovered()) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Enter" && isHovered()) {
-        event.preventDefault();
-        event.stopPropagation();
-        props.onEnter?.();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown, { capture: true });
-    onCleanup(() => window.removeEventListener("keydown", handleKeyDown, { capture: true }));
-  });
-
   return (
     <Show when={debouncedVisible()}>
       <Show when={isHovered() && props.elementBounds}>
@@ -62,8 +48,9 @@ export const SelectionCursor: Component<SelectionCursorProps> = (props) => {
           visible={true}
         />
       </Show>
+
       <div
-        class="fixed z-2147483647 group"
+        class="fixed z-2147483647"
         style={{
           left: `${props.x}px`,
           top: `${props.y}px`,
@@ -72,23 +59,23 @@ export const SelectionCursor: Component<SelectionCursorProps> = (props) => {
         onMouseLeave={() => setIsHovered(false)}
       >
         <button
-          class="absolute left-0 top-0 -translate-x-1/2 -translate-y-1/2 w-0.5 h-5 bg-grab-pink cursor-pointer group-hover:w-1 group-hover:h-5.5 group-hover:animate-none group-hover:brightness-125 rounded-full animate-pulse transition-[width,height] duration-150"
+          class={cn(
+            "absolute left-0 top-0 -translate-x-1/2 -translate-y-1/2 bg-grab-pink cursor-pointer rounded-full transition-[width,height] duration-150",
+            isHovered() ? "w-1 h-5.5 brightness-125" : "w-0.5 h-5 animate-pulse"
+          )}
           onClick={handleClick}
           data-react-grab-selection-cursor
         />
-        <div class="absolute left-0 top-3 -translate-x-1/2 px-1.5 py-0.5 rounded text-[11px] font-medium font-sans bg-grab-pink-light text-grab-pink border border-grab-pink-border whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none">
-          <span class="mr-1">Copy</span>
-          <Show when={props.tagName}>
-            <span class="font-mono">{"<"}{props.tagName}{">"}</span>
-          </Show>
-          <Show when={!props.tagName}>
-            <span>element</span>
-          </Show>
-          <Show when={props.componentName}>
-            <span class="text-[10px] ml-1 opacity-80">in {props.componentName}</span>
-          </Show>
-        </div>
       </div>
+
+      <Show when={isHovered() && props.elementBounds}>
+        <SelectionLabel
+          tagName={props.tagName}
+          selectionBounds={props.elementBounds}
+          visible={true}
+          onSubmit={props.onClick}
+        />
+      </Show>
     </Show>
   );
 };

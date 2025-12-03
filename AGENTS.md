@@ -10,3 +10,4 @@
 - MUST: Do not type cast ("as") unless absolutely necessary
 - MUST: Keep interfaces or types on the global scope.
 - MUST: Remove unused code and don't repeat yourself.
+- MUST: Always find, think, then implement the most _elegant_ solution.

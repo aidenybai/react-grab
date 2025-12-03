@@ -53,7 +53,6 @@ export default function RootLayout({ children }) {
   return (
     <html>
       <head>
-        {/* put this in the <head> */}
         {process.env.NODE_ENV === "development" && (
           <Script
             src="//unpkg.com/react-grab/dist/index.global.js"
@@ -86,7 +85,6 @@ export default function Document() {
   return (
     <Html lang="en">
       <Head>
-        {/* put this in the <Head> */}
         {process.env.NODE_ENV === "development" && (
           <Script
             src="//unpkg.com/react-grab/dist/index.global.js"

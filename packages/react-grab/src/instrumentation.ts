@@ -17,7 +17,7 @@ import {
 } from "bippy/source";
 import { isCapitalized } from "./utils/is-capitalized.js";
 
-const NEXT_INTERNAL_COMPONENT_NAMES = [
+const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
   "InnerLayoutRouter",
   "RedirectErrorBoundary",
   "RedirectBoundary",
@@ -31,30 +31,26 @@ const NEXT_INTERNAL_COMPONENT_NAMES = [
   "OuterLayoutRouter",
   "body",
   "html",
-  "RedirectErrorBoundary",
-  "RedirectBoundary",
-  "HTTPAccessFallbackErrorBoundary",
-  "HTTPAccessFallbackBoundary",
   "DevRootHTTPAccessFallbackBoundary",
   "AppDevOverlayErrorBoundary",
   "AppDevOverlay",
   "HotReload",
   "Router",
   "ErrorBoundaryHandler",
-  "ErrorBoundary",
   "AppRouter",
   "ServerRoot",
   "SegmentStateProvider",
   "RootErrorBoundary",
-];
+]);
 
 export const checkIsNextProject = (): boolean => {
+  if (typeof document === "undefined") return false;
   return Boolean(document.getElementById("__NEXT_DATA__"));
 };
 
 export const checkIsInternalComponentName = (name: string): boolean => {
   if (name.startsWith("_")) return true;
-  if (NEXT_INTERNAL_COMPONENT_NAMES.includes(name)) return true;
+  if (NEXT_INTERNAL_COMPONENT_NAMES.has(name)) return true;
   return false;
 };
 
@@ -149,23 +145,83 @@ export const getStack = async (
   }
 };
 
-export const formatStack = (stack: Array<StackFrame>): string => {
+export const formatElementInfo = async (element: Element): Promise<string> => {
+  const html = getHTMLPreview(element);
+  const stack = await getStack(element);
   const isNextProject = checkIsNextProject();
-  return stack
-    .map(({ name, source }) => {
-      if (!source) return `  at ${name}`;
-      if (source.fileName.startsWith("about://React/Server")) {
-        return `  at ${name} (Server)`;
+
+  let serverComponentName: string | null = null;
+  let serverFileName: string | null = null;
+  let serverLineNumber: number | null = null;
+  let serverColumnNumber: number | null = null;
+  let clientComponentName: string | null = null;
+  let fileName: string | null = null;
+  let lineNumber: number | null = null;
+  let columnNumber: number | null = null;
+
+  for (const frame of stack) {
+    if (!frame.source) continue;
+
+    const isServerComponent = frame.source.fileName.startsWith(
+      "about://React/Server",
+    );
+
+    if (isServerComponent) {
+      if (!serverComponentName && checkIsSourceComponentName(frame.name)) {
+        serverComponentName = frame.name;
+        const serverPath = frame.source.fileName.replace(
+          "about://React/Server/",
+          "",
+        );
+        if (serverPath && serverPath !== frame.source.fileName) {
+          serverFileName = serverPath;
+          serverLineNumber = frame.source.lineNumber ?? null;
+          serverColumnNumber = frame.source.columnNumber ?? null;
+        }
       }
-      if (!isSourceFile(source.fileName)) return `  at ${name}`;
-      const framePart = `  at ${name} in ${normalizeFileName(source.fileName)}`;
-      if (isNextProject) {
-        return `${framePart}:${source.lineNumber}:${source.columnNumber}`;
+      continue;
+    }
+
+    if (isSourceFile(frame.source.fileName)) {
+      if (!fileName) {
+        fileName = normalizeFileName(frame.source.fileName);
+        lineNumber = frame.source.lineNumber ?? null;
+        columnNumber = frame.source.columnNumber ?? null;
       }
-      // bundlers like vite fuck up the line number and column number
-      return framePart;
-    })
-    .join("\n");
+
+      if (!clientComponentName && checkIsSourceComponentName(frame.name)) {
+        clientComponentName = frame.name;
+      }
+
+      if (fileName && clientComponentName) {
+        break;
+      }
+    }
+  }
+
+  const componentName = serverComponentName ?? clientComponentName;
+  const finalFileName = serverFileName ?? fileName;
+  const finalLineNumber = serverFileName ? serverLineNumber : lineNumber;
+  const finalColumnNumber = serverFileName ? serverColumnNumber : columnNumber;
+
+  if (!componentName || !finalFileName) {
+    return html;
+  }
+
+  let result = `${html}\nin ${componentName}`;
+
+  if (serverComponentName && clientComponentName) {
+    result += ` (Server → client: ${clientComponentName})`;
+  }
+
+  result += ` at ${finalFileName}`;
+
+  // HACK: bundlers like vite mess up the line number and column number
+  if (isNextProject && finalLineNumber && finalColumnNumber) {
+    result += `:${finalLineNumber}:${finalColumnNumber}`;
+  }
+
+  return result;
 };
 
 export const getFileName = (stack: Array<StackFrame>): string | null => {

@@ -1,6 +1,6 @@
 {
   "name": "react-grab",
-  "version": "0.0.54",
+  "version": "0.0.57",
   "description": "Grab any element in your app and give it to Cursor, Claude Code, or other AI coding agents.",
   "keywords": [
     "react",
@@ -95,7 +95,7 @@
     "access": "public"
   },
   "dependencies": {
-    "bippy": "^0.5.16",
+    "bippy": "^0.5.17",
     "solid-js": "^1.9.10"
   }
 }

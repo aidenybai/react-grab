@@ -2,10 +2,13 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["react-grab"],
-  // this causes sources to be mangled
+  // HACK: disable react compiler to avoid issues with source mangling
   reactCompiler: false,
   productionBrowserSourceMaps: true,
   turbopack: {},
+  experimental: {
+    optimizeCss: true,
+  },
   webpack: (config, { dev, isServer }) => {
     if (!isServer && !dev) {
       config.devtool = "source-map";
