@@ -89,7 +89,7 @@ const TagBadge: Component<TagBadgeProps> = (props) => {
   return (
     <div
       class={cn(
-        "contain-layout flex items-center px-[3px] py-0 h-4 rounded-xs gap-[2px] [border-width:0.5px] border-solid border-label-tag-border",
+        "contain-layout flex items-center px-[3px] py-0 h-4 rounded-[1px] gap-[2px] [border-width:0.5px] border-solid border-label-tag-border",
         props.shrink && "shrink-0 w-fit",
         props.isClickable && "cursor-pointer",
       )}
@@ -420,7 +420,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       >
         <Arrow position={arrowPosition()} leftPx={computedPosition().arrowLeft} />
 
-        <div class="[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-sm bg-white antialiased w-fit h-fit p-0">
+        <div class="[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-[2px] bg-white antialiased w-fit h-fit p-0">
           <Show when={props.status === "copied" || props.status === "fading"}>
             <div class="flex items-center gap-[3px] pt-1 pb-1.5 px-1.5">
               <TagBadge
@@ -497,7 +497,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                         Press
                       </span>
                       <div
-                        class="contain-layout shrink-0 flex flex-col items-start p-0.5 rounded-xs bg-white [border-width:0.5px] border-solid border-white w-fit h-fit"
+                        class="contain-layout shrink-0 flex flex-col items-start p-0.5 rounded-[1px] bg-white [border-width:0.5px] border-solid border-white w-fit h-fit"
                         style={{ "box-shadow": "#0000008C 0px 0px 2px" }}
                       >
                         <div
