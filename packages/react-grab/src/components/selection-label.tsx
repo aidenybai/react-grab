@@ -473,8 +473,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           </Show>
 
           <Show when={isNotProcessing() && !props.isInputExpanded}>
-            <div class="contain-layout shrink-0 flex flex-col justify-center items-start w-fit h-fit">
-              <div class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit py-1 px-1.5">
+            <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
+              <div class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit pt-1 px-1.5">
                 <ClickToCopyPill onClick={handleSubmit} shrink />
                 <TagBadge
                   tagName={tagDisplay()}
@@ -494,15 +494,20 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 <div class="overflow-hidden min-h-0">
                   <BottomSection>
                     <div class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit">
-                    <span class="text-[#767676] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
-                      press
-                    </span>
-                      <div
-                        class="w-2.5 h-[9px] shrink-0 opacity-[0.41] bg-cover bg-center"
-                        style={{ "background-image": `url(${RETURN_KEY_ICON_URL})` }}
-                      />
                       <span class="text-[#767676] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
-                        to edit
+                        Press
+                      </span>
+                      <div
+                        class="contain-layout shrink-0 flex flex-col items-start px-[2.5px] py-[2.5px] rounded-xs bg-white [border-width:0.5px] border-solid border-white w-fit h-fit"
+                        style={{ "box-shadow": "#0000008C 0px 0px 2px" }}
+                      >
+                        <div
+                          class="w-2.5 h-[9px] shrink-0 opacity-[0.99] bg-cover bg-center"
+                          style={{ "background-image": `url(${RETURN_KEY_ICON_URL})` }}
+                        />
+                      </div>
+                      <span class="text-[#767676] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
+                        to Edit
                       </span>
                     </div>
                   </BottomSection>
