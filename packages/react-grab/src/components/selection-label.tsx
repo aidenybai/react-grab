@@ -542,10 +542,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                       <span class="text-[#767676] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
                         Press
                       </span>
-                      <div
-                        class="contain-layout shrink-0 flex flex-col items-start rounded-xs bg-white [border-width:0.5px] border-solid border-white p-0.5 w-fit h-fit"
-                        style={{ "box-shadow": "#0000008C 0px 0px 2px" }}
-                      >
+                      <div class="contain-layout shrink-0 flex flex-col items-start rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] p-0.5 w-fit h-fit">
                         <div
                           class="w-2.5 h-[9px] shrink-0 opacity-[0.99] bg-cover bg-center"
                           style={{ "background-image": `url(${RETURN_KEY_ICON_URL})` }}
@@ -609,8 +606,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     rows={1}
                   />
                   <button
-                    class="contain-layout shrink-0 flex flex-col items-start p-0.5 rounded-xs bg-white [border-width:0.5px] border-solid border-white w-fit h-fit cursor-pointer ml-1 transition-none hover:scale-105 hover:shadow-md"
-                    style={{ "box-shadow": "#0000008C 0px 0px 2px" }}
+                    class="contain-layout shrink-0 flex flex-col items-start p-0.5 rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] w-fit h-fit cursor-pointer ml-1 transition-none hover:scale-105"
                     onClick={handleSubmit}
                   >
                     <div
