@@ -199,7 +199,7 @@ export const createAgentManager = (
     const content = await generateSnippet(elements);
     const context = { content, prompt, options: agentOptions?.getOptions?.() };
     const tagName = (element.tagName || "").toLowerCase() || undefined;
-    const componentName = getNearestComponentName(element) || undefined;
+    const componentName = await getNearestComponentName(element) || undefined;
 
     const session = createSession(context, position, selectionBounds, tagName, componentName);
     session.lastStatus = "Please wait…";

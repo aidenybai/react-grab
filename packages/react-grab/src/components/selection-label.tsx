@@ -131,37 +131,10 @@ const ParentBadge: Component<{ name: string }> = (props) => (
   </div>
 );
 
-const CopiedParentBadge: Component<{ name: string }> = (props) => (
-  <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-1 px-[3px] [border-width:0.5px] border-solid border-[#00553269] py-0">
-    <span class="text-[#00381F] text-[11.5px] leading-3.5 shrink-0 tracking-[-0.08em] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] w-fit h-fit">
-      {props.name}
-    </span>
-  </div>
-);
-
 const ChevronSeparator: Component = () => (
   <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-1 px-[3px] [border-width:0.5px] border-solid border-white py-0">
     <span class="text-[#0C0C0C] text-[11.5px] leading-3.5 shrink-0 tracking-[-0.08em] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] w-fit h-fit">
       &gt;
-    </span>
-  </div>
-);
-
-const CopiedChevronSeparator: Component = () => (
-  <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-1 px-[3px] [border-width:0.5px] border-solid border-[#A3FFCA] py-0">
-    <span class="text-[#00381F] text-[11.5px] leading-3.5 shrink-0 tracking-[-0.08em] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] w-fit h-fit">
-      &gt;
-    </span>
-  </div>
-);
-
-const CopiedTagBadge: Component<{ tagName: string }> = (props) => (
-  <div
-    class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-0.5 px-[3px] [border-width:0.5px] border-solid border-[#001D0E] py-0"
-    style={{ "background-image": "linear-gradient(in oklab 180deg, oklab(39.6% -0.086 0.036) 0%, oklab(33.9% -0.074 0.031) 100%)" }}
-  >
-    <span class="text-[#A3FFCA] text-[11.5px] leading-3.5 shrink-0 tracking-[-0.08em] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] w-fit h-fit">
-      {props.tagName}
     </span>
   </div>
 );
@@ -447,7 +420,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       <div
         ref={containerRef}
         data-react-grab-ignore-events
-        class="fixed font-sans antialiased transition-opacity duration-300 ease-out [filter:drop-shadow(0px_0px_4px_#00000082)]"
+        class="fixed font-sans antialiased transition-opacity duration-300 ease-out [filter:drop-shadow(0px_0px_4px_#51515180)]"
         style={{
           top: `${computedPosition().top}px`,
           left: `${computedPosition().left}px`,
@@ -461,22 +434,27 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         <Arrow
           position={arrowPosition()}
           leftPx={computedPosition().arrowLeft}
-          color={props.status === "copied" || props.status === "fading" ? "#A3FFCA" : undefined}
         />
 
         <Show when={props.status === "copied" || props.status === "fading"}>
-          <div class="[font-synthesis:none] contain-layout shrink-0 flex items-center gap-1 rounded-xs bg-[#A3FFCA] antialiased w-fit h-fit py-1 px-1.5">
+          <div class="[font-synthesis:none] contain-layout shrink-0 flex items-center gap-1 rounded-xs bg-white antialiased w-fit h-fit py-1 px-1.5">
             <div class="contain-layout shrink-0 flex items-center px-0 py-px w-fit h-[18px] rounded-[1.5px] gap-[3px]">
-              <div class="text-[#00381F] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
+              <div class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
                 {props.hasAgent ? "Completed" : "Copied"}
               </div>
             </div>
             <div class="contain-layout shrink-0 flex items-center gap-px w-fit h-fit">
               <Show when={props.componentName}>
-                <CopiedParentBadge name={props.componentName!} />
-                <CopiedChevronSeparator />
+                <ParentBadge name={props.componentName!} />
+                <ChevronSeparator />
               </Show>
-              <CopiedTagBadge tagName={tagDisplay()} />
+              <TagBadge
+                tagName={tagDisplay()}
+                isClickable={false}
+                onClick={() => {}}
+                showMono
+                shrink
+              />
             </div>
           </div>
         </Show>
