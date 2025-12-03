@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, execSync } from "node:child_process";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { streamSSE } from "hono/streaming";
@@ -195,7 +195,24 @@ export const createServer = () => {
   return app;
 };
 
+const killProcessOnPort = (port: number): void => {
+  try {
+    if (process.platform === "win32") {
+      execSync(
+        `for /f "tokens=5" %a in ('netstat -aon ^| findstr :${port} ^| findstr LISTENING') do taskkill /F /PID %a`,
+        { stdio: "ignore", timeout: 1000, shell: "cmd.exe" },
+      );
+    } else {
+      execSync(`lsof -ti:${port} | xargs kill -9 2>/dev/null`, {
+        stdio: "ignore",
+        timeout: 1000,
+      });
+    }
+  } catch {}
+};
+
 export const startServer = (port: number = DEFAULT_PORT) => {
+  killProcessOnPort(port);
   const app = createServer();
   serve({ fetch: app.fetch, port });
   console.log("React Grab Cursor server running on port", port);
