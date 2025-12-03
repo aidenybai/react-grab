@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.59
+
+### Patch Changes
+
+- fix: improve component name
+
 ## 0.0.58
 
 ### Patch Changes

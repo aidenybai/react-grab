@@ -1,6 +1,6 @@
 {
   "name": "@react-grab/claude-code",
-  "version": "0.0.58",
+  "version": "0.0.59",
   "type": "module",
   "exports": {
     "./client": {

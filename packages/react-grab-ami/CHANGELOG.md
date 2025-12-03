@@ -1,5 +1,13 @@
 # @react-grab/ami
 
+## 0.0.59
+
+### Patch Changes
+
+- fix: improve component name
+- Updated dependencies
+  - react-grab@0.0.59
+
 ## 0.0.58
 
 ### Patch Changes
