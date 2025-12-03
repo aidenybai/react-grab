@@ -190,7 +190,7 @@ export const formatElementInfo = async (element: Element): Promise<string> => {
   let result = html;
 
   if (serverComponentName) {
-    result += `\n  in ${serverComponentName} (Server)\n`;
+    result += `\n  in ${serverComponentName} (Server)`;
   }
 
   if (fileName) {
