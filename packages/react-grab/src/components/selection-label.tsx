@@ -447,7 +447,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       <div
         ref={containerRef}
         data-react-grab-ignore-events
-        class="fixed font-sans antialiased transition-opacity duration-300 ease-out"
+        class="fixed font-sans antialiased transition-opacity duration-300 ease-out [filter:drop-shadow(0px_0px_4px_#00000082)]"
         style={{
           top: `${computedPosition().top}px`,
           left: `${computedPosition().left}px`,
@@ -482,7 +482,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         </Show>
 
         <div
-          class="[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-xs bg-white [box-shadow:#00000033_0px_2px_3px] antialiased w-fit h-fit p-0"
+          class="[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-xs bg-white antialiased w-fit h-fit p-0"
           style={{
             display: props.status === "copied" || props.status === "fading" ? "none" : undefined,
           }}
