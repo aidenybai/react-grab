@@ -42,6 +42,7 @@ interface TagBadgeProps {
   onHoverChange?: (hovered: boolean) => void;
   showMono?: boolean;
   shrink?: boolean;
+  forceShowIcon?: boolean;
 }
 
 interface ActionPillProps {
@@ -108,12 +109,12 @@ const TagBadge: Component<TagBadgeProps> = (props) => {
       >
         {props.tagName}
       </span>
-      <Show when={props.isClickable}>
+      <Show when={props.isClickable || props.forceShowIcon}>
         <IconOpen
           size={10}
           class={cn(
             "text-label-tag-border transition-all duration-100",
-            isHovered()
+            isHovered() || props.forceShowIcon
               ? "opacity-100 scale-100"
               : "opacity-0 scale-75 -ml-[2px] w-0",
           )}
@@ -521,6 +522,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   onHoverChange={handleTagHoverChange}
                   showMono
                   shrink
+                  forceShowIcon
                 />
               </div>
               <BottomSection>
