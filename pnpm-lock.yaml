@@ -129,8 +129,8 @@ importers:
   packages/react-grab:
     dependencies:
       bippy:
-        specifier: ^0.5.20
-        version: 0.5.20(@types/react@19.2.2)(react@19.2.0)
+        specifier: ^0.5.21
+        version: 0.5.21(@types/react@19.2.2)(react@19.2.0)
       solid-js:
         specifier: ^1.9.10
         version: 1.9.10
@@ -2557,8 +2557,8 @@ packages:
     peerDependencies:
       react: '>=17.0.1'
 
-  bippy@0.5.20:
-    resolution: {integrity: sha512-XDCPp+aUjCS1SDZHxqpG82rL+x6KTpAX5W43BJclrSgmF5fxbbrSKjLvwJa/aGdSrvgdXVT4APfeNgJcdszyDA==}
+  bippy@0.5.21:
+    resolution: {integrity: sha512-bSdfGzJXnx3Dqc4W9N/Bie9/YfIVf9AyHgLLlbtsZN3Xt+IUgSJG5pyEstFV0HCXjq9pTPh18JbpO81gaelh5w==}
     peerDependencies:
       react: '>=17.0.1'
 
@@ -7271,7 +7271,7 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
-  bippy@0.5.20(@types/react@19.2.2)(react@19.2.0):
+  bippy@0.5.21(@types/react@19.2.2)(react@19.2.0):
     dependencies:
       '@types/react-reconciler': 0.28.9(@types/react@19.2.2)
       react: 19.2.0

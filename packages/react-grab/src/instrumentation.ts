@@ -171,7 +171,11 @@ export const formatElementInfo = async (element: Element): Promise<string> => {
   let clientComponentName: string | null = null;
 
   for (const frame of stack) {
-    if (checkIsSourceComponentName(frame.name) && !serverComponentName) {
+    if (
+      checkIsSourceComponentName(frame.name) &&
+      !serverComponentName &&
+      !frame.source?.fileName
+    ) {
       serverComponentName = frame.name;
       continue;
     }
