@@ -89,7 +89,7 @@ const TagBadge: Component<TagBadgeProps> = (props) => {
   return (
     <div
       class={cn(
-        "contain-layout flex items-center px-[3px] py-0 h-4 rounded-xs gap-[5px] [border-width:0.5px] border-solid border-label-tag-border",
+        "contain-layout flex items-center px-[3px] py-0 h-4 rounded-xs gap-[2px] [border-width:0.5px] border-solid border-label-tag-border",
         props.shrink && "shrink-0 w-fit",
         props.isClickable && "cursor-pointer",
       )}
@@ -115,7 +115,7 @@ const TagBadge: Component<TagBadgeProps> = (props) => {
             "text-label-tag-border transition-all duration-100",
             isHovered()
               ? "opacity-100 scale-100"
-              : "opacity-0 scale-75 -ml-[5px] w-0",
+              : "opacity-0 scale-75 -ml-[2px] w-0",
           )}
         />
       </Show>
