@@ -10,9 +10,7 @@ import type { Component } from "solid-js";
 import type { OverlayBounds, SelectionLabelStatus } from "../types.js";
 import { VIEWPORT_MARGIN_PX } from "../constants.js";
 import { cn } from "../utils/cn.js";
-import { IconCursorSimple } from "./icon-cursor-simple.js";
 import { IconOpen } from "./icon-open.js";
-import { IconStop } from "./icon-stop.js";
 
 interface SelectionLabelProps {
   tagName?: string;
@@ -42,15 +40,6 @@ interface TagBadgeProps {
   showMono?: boolean;
   shrink?: boolean;
   forceShowIcon?: boolean;
-}
-
-interface ActionPillProps {
-  icon: JSX.Element;
-  label: string;
-  onClick?: () => void;
-  asButton?: boolean;
-  dimmed?: boolean;
-  shrink?: boolean;
 }
 
 interface ClickToCopyPillProps {
@@ -139,43 +128,6 @@ const ChevronSeparator: Component = () => (
     </span>
   </div>
 );
-
-const ActionPill: Component<ActionPillProps> = (props) => {
-  const baseClass = cn(
-    "flex items-center h-[18px] rounded-[1.5px] gap-[3px] px-[5px] py-px border-[0.5px] border-solid border-label-gray-border",
-    props.shrink && "shrink-0 w-fit",
-    props.asButton && "cursor-pointer bg-transparent",
-    props.dimmed && "opacity-50 hover:opacity-100 transition-opacity",
-  );
-
-  const content = (
-    <>
-      {props.icon}
-      <span
-        class={cn(
-          "text-black text-[12px] leading-4 font-medium tracking-[-0.04em]",
-          props.shrink && "shrink-0 w-fit h-fit",
-        )}
-      >
-        {props.label}
-      </span>
-    </>
-  );
-
-  return props.asButton ? (
-    <button class={baseClass} onClick={props.onClick}>
-      {content}
-    </button>
-  ) : (
-    <div
-      class={baseClass}
-      role={props.onClick ? "button" : undefined}
-      onClick={props.onClick}
-    >
-      {content}
-    </div>
-  );
-};
 
 interface ArrowProps {
   position: ArrowPosition;
@@ -467,38 +419,55 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           }}
         >
           <Show when={props.status === "copying"}>
-            <div class="flex items-center gap-[3px] react-grab-shimmer rounded-[3px] pt-1 pb-1.5 px-1.5">
-              <TagBadge
-                tagName={tagDisplay()}
-                isClickable={isTagClickable()}
-                onClick={handleTagClick}
-                onHoverChange={handleTagHoverChange}
-                showMono
-                shrink
-              />
-              <ActionPill
-                icon={<IconCursorSimple size={9} class="text-black shrink-0" />}
-                label={props.statusText ?? "Grabbing…"}
-              />
-              <Show when={props.hasAgent && props.onAbort}>
-                <button
-                  class="flex items-center justify-center w-[18px] h-[18px] rounded-full cursor-pointer bg-black border-none transition-opacity hover:opacity-80"
-                  onMouseDown={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    event.stopImmediatePropagation();
-                  }}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    event.stopImmediatePropagation();
-                    props.onAbort?.();
-                  }}
-                  title="Stop"
-                >
-                  <IconStop size={8} class="text-white" />
-                </button>
-              </Show>
+            <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
+              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-fit h-fit">
+                <div class="contain-layout shrink-0 flex items-center px-0 py-px w-fit h-[18px] rounded-[1.5px] gap-[3px]">
+                  <div class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit react-grab-shimmer">
+                    {props.statusText ?? "Grabbing…"}
+                  </div>
+                </div>
+                <Show when={props.componentName}>
+                  <div class="contain-layout shrink-0 flex items-center gap-px w-fit h-fit">
+                    <ParentBadge name={props.componentName!} />
+                    <ChevronSeparator />
+                    <TagBadge
+                      tagName={tagDisplay()}
+                      isClickable={isTagClickable()}
+                      onClick={handleTagClick}
+                      onHoverChange={handleTagHoverChange}
+                      showMono
+                      shrink
+                    />
+                  </div>
+                </Show>
+                <Show when={!props.componentName}>
+                  <TagBadge
+                    tagName={tagDisplay()}
+                    isClickable={isTagClickable()}
+                    onClick={handleTagClick}
+                    onHoverChange={handleTagHoverChange}
+                    showMono
+                    shrink
+                  />
+                </Show>
+              </div>
+              <BottomSection>
+                <div class="shrink-0 flex justify-between items-end w-full min-h-4">
+                  <textarea
+                    ref={inputRef}
+                    class="text-black text-[12px] leading-4 tracking-[-0.04em] font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 opacity-50"
+                    style={{
+                      // @ts-expect-error - field-sizing is not in the jsx spec
+                      "field-sizing": "content",
+                      "min-height": "16px",
+                    }}
+                    value={props.inputValue ?? ""}
+                    placeholder="type to edit"
+                    rows={1}
+                    disabled
+                  />
+                </div>
+              </BottomSection>
             </div>
           </Show>
 
