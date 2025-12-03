@@ -151,6 +151,9 @@ export const formatElementInfo = async (element: Element): Promise<string> => {
   const isNextProject = checkIsNextProject();
 
   let serverComponentName: string | null = null;
+  let serverFileName: string | null = null;
+  let serverLineNumber: number | null = null;
+  let serverColumnNumber: number | null = null;
   let clientComponentName: string | null = null;
   let fileName: string | null = null;
   let lineNumber: number | null = null;
@@ -159,9 +162,22 @@ export const formatElementInfo = async (element: Element): Promise<string> => {
   for (const frame of stack) {
     if (!frame.source) continue;
 
-    if (frame.source.fileName.startsWith("about://React/Server")) {
+    const isServerComponent = frame.source.fileName.startsWith(
+      "about://React/Server",
+    );
+
+    if (isServerComponent) {
       if (!serverComponentName && checkIsSourceComponentName(frame.name)) {
         serverComponentName = frame.name;
+        const serverPath = frame.source.fileName.replace(
+          "about://React/Server/",
+          "",
+        );
+        if (serverPath && serverPath !== frame.source.fileName) {
+          serverFileName = serverPath;
+          serverLineNumber = frame.source.lineNumber ?? null;
+          serverColumnNumber = frame.source.columnNumber ?? null;
+        }
       }
       continue;
     }
@@ -184,22 +200,25 @@ export const formatElementInfo = async (element: Element): Promise<string> => {
   }
 
   const componentName = serverComponentName ?? clientComponentName;
+  const finalFileName = serverFileName ?? fileName;
+  const finalLineNumber = serverFileName ? serverLineNumber : lineNumber;
+  const finalColumnNumber = serverFileName ? serverColumnNumber : columnNumber;
 
-  if (!componentName || !fileName) {
+  if (!componentName || !finalFileName) {
     return html;
   }
 
   let result = `${html}\nin ${componentName}`;
 
   if (serverComponentName && clientComponentName) {
-    result += ` (Server → Client: ${clientComponentName})`;
+    result += ` (Server → client: ${clientComponentName})`;
   }
 
-  result += ` at ${fileName}`;
+  result += ` at ${finalFileName}`;
 
   // HACK: bundlers like vite mess up the line number and column number
-  if (isNextProject && lineNumber && columnNumber) {
-    result += `:${lineNumber}:${columnNumber}`;
+  if (isNextProject && finalLineNumber && finalColumnNumber) {
+    result += `:${finalLineNumber}:${finalColumnNumber}`;
   }
 
   return result;
