@@ -549,7 +549,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                         />
                       </div>
                       <span class="text-[#767676] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
-                        to Edit
+                        to edit
                       </span>
                     </div>
                   </BottomSection>
