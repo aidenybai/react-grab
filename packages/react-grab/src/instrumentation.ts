@@ -196,7 +196,7 @@ export const formatElementInfo = async (element: Element): Promise<string> => {
 
   const componentName = serverComponentName ?? clientComponentName;
 
-  if (!componentName || !fileName) {
+  if (!componentName) {
     return html;
   }
 
@@ -206,11 +206,13 @@ export const formatElementInfo = async (element: Element): Promise<string> => {
     result += ` (Server, is child of client: ${clientComponentName})`;
   }
 
-  result += ` at ${fileName}`;
+  if (fileName) {
+    result += ` at ${fileName}`;
 
-  // HACK: bundlers like vite mess up the line number and column number
-  if (isNextProject && lineNumber && columnNumber) {
-    result += `:${lineNumber}:${columnNumber}`;
+    // HACK: bundlers like vite mess up the line number and column number
+    if (isNextProject && lineNumber && columnNumber) {
+      result += `:${lineNumber}:${columnNumber}`;
+    }
   }
 
   return result;
