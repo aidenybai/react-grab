@@ -1086,6 +1086,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       const bounds = createElementBounds(element);
+      const labelPositionX = mouseX();
       const currentX = bounds.x + bounds.width / 2;
       const currentY = bounds.y + bounds.height / 2;
 
@@ -1098,7 +1099,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         void agentManager.startSession({
           element,
           prompt,
-          position: { x: currentX, y: currentY },
+          position: { x: labelPositionX, y: currentY },
           selectionBounds: bounds,
         });
 

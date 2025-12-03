@@ -74,6 +74,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
               tagName={session.tagName}
               componentName={session.componentName}
               selectionBounds={session.selectionBounds}
+              mouseX={session.position.x}
               visible={true}
               hasAgent={true}
               status={session.isStreaming ? "copying" : "copied"}
