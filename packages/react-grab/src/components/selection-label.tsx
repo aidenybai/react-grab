@@ -497,7 +497,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                         Press
                       </span>
                       <div
-                        class="contain-layout shrink-0 flex flex-col items-start px-[2.5px] py-[2.5px] rounded-xs bg-white [border-width:0.5px] border-solid border-white w-fit h-fit"
+                        class="contain-layout shrink-0 flex flex-col items-start p-0.5 rounded-xs bg-white [border-width:0.5px] border-solid border-white w-fit h-fit"
                         style={{ "box-shadow": "#0000008C 0px 0px 2px" }}
                       >
                         <div
@@ -546,12 +546,15 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     rows={1}
                   />
                   <button
-                    class="contain-layout shrink-0 flex flex-col items-start px-[2.5px] py-[2.5px] rounded-xs bg-white [border-width:0.5px] border-solid border-white w-fit h-fit cursor-pointer ml-1"
+                    class="contain-layout shrink-0 flex flex-col items-start p-0.5 rounded-xs bg-white [border-width:0.5px] border-solid border-white w-fit h-fit cursor-pointer ml-1 transition-all duration-100 hover:scale-105 hover:shadow-md"
                     style={{ "box-shadow": "#0000008C 0px 0px 2px" }}
                     onClick={handleSubmit}
                   >
                     <div
-                      class="w-2.5 h-[9px] shrink-0 opacity-[0.99] bg-cover bg-center"
+                      class={cn(
+                        "w-2.5 h-[9px] shrink-0 bg-cover bg-center transition-opacity duration-100",
+                        props.inputValue ? "opacity-[0.99]" : "opacity-50",
+                      )}
                       style={{ "background-image": `url(${RETURN_KEY_ICON_URL})` }}
                     />
                   </button>
