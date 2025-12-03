@@ -16,6 +16,7 @@ interface SelectionLabelProps {
   tagName?: string;
   componentName?: string;
   selectionBounds?: OverlayBounds;
+  mouseX?: number;
   visible?: boolean;
   isInputExpanded?: boolean;
   inputValue?: string;
@@ -114,7 +115,7 @@ const TagBadge: Component<TagBadgeProps> = (props) => {
 };
 
 const ParentBadge: Component<{ name: string }> = (props) => (
-  <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-1 px-[3px] [border-width:0.5px] border-solid border-[#B3B3B3] py-0">
+  <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-1 px-[3px] [border-width:0.5px] border-solid border-[#B3B3B3] py-0 bg-[#F7F7F7]">
     <span class="text-[#0C0C0C] text-[11.5px] leading-3.5 shrink-0 tracking-[-0.08em] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] w-fit h-fit">
       {props.name}
     </span>
@@ -175,8 +176,14 @@ const ClickToCopyPill: Component<ClickToCopyPillProps> = (props) => (
 const RETURN_KEY_ICON_URL =
   "https://workers.paper.design/file-assets/01K8D51Q7E2ESJTN18XN2MT96X/01KBEJ7N5GQ0ZZ7K456R42AP4V.svg";
 
+const BOTTOM_SECTION_GRADIENT =
+  "linear-gradient(in oklab 180deg, oklab(100% 0 0) 0%, oklab(96.1% 0 0) 5.92%)";
+
 const BottomSection: Component<BottomSectionProps> = (props) => (
-  <div class="contain-layout shrink-0 flex flex-col items-start px-2 py-[5px] w-auto h-fit rounded-bl-[3px] rounded-br-[3px] self-stretch bg-[#F2F2F2] [border-top-width:0.5px] border-t-solid border-t-[#B6B6B6] rounded-t-none">
+  <div
+    class="[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start px-2 py-[5px] w-auto h-fit self-stretch [border-top-width:0.5px] border-t-solid border-t-[#D9D9D9] antialiased rounded-t-none rounded-b-xs"
+    style={{ "background-image": BOTTOM_SECTION_GRADIENT }}
+  >
     {props.children}
   </div>
 );
@@ -296,10 +303,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     const viewportHeight = window.innerHeight;
 
     const selectionCenterX = bounds.x + bounds.width / 2;
+    const cursorX = props.mouseX ?? selectionCenterX;
     const selectionBottom = bounds.y + bounds.height;
     const selectionTop = bounds.y;
 
-    let positionLeft = selectionCenterX - labelWidth / 2;
+    let positionLeft = cursorX - labelWidth / 2;
     let positionTop = selectionBottom + ARROW_HEIGHT + LABEL_GAP;
 
     if (positionLeft + labelWidth > viewportWidth - VIEWPORT_MARGIN_PX) {
@@ -326,7 +334,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
     const arrowLeft = Math.max(
       12,
-      Math.min(selectionCenterX - positionLeft, labelWidth - 12),
+      Math.min(cursorX - positionLeft, labelWidth - 12),
     );
 
     return { left: positionLeft, top: positionTop, arrowLeft };
