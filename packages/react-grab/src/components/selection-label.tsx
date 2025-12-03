@@ -10,14 +10,13 @@ import type { Component } from "solid-js";
 import type { OverlayBounds, SelectionLabelStatus } from "../types.js";
 import { VIEWPORT_MARGIN_PX } from "../constants.js";
 import { cn } from "../utils/cn.js";
-import { IconCursorSimple } from "./icon-cursor-simple.js";
 import { IconOpen } from "./icon-open.js";
-import { IconStop } from "./icon-stop.js";
 
 interface SelectionLabelProps {
   tagName?: string;
   componentName?: string;
   selectionBounds?: OverlayBounds;
+  mouseX?: number;
   visible?: boolean;
   isInputExpanded?: boolean;
   inputValue?: string;
@@ -42,15 +41,6 @@ interface TagBadgeProps {
   showMono?: boolean;
   shrink?: boolean;
   forceShowIcon?: boolean;
-}
-
-interface ActionPillProps {
-  icon: JSX.Element;
-  label: string;
-  onClick?: () => void;
-  asButton?: boolean;
-  dimmed?: boolean;
-  shrink?: boolean;
 }
 
 interface ClickToCopyPillProps {
@@ -125,7 +115,7 @@ const TagBadge: Component<TagBadgeProps> = (props) => {
 };
 
 const ParentBadge: Component<{ name: string }> = (props) => (
-  <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-1 px-[3px] [border-width:0.5px] border-solid border-[#B3B3B3] py-0">
+  <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-1 px-[3px] [border-width:0.5px] border-solid border-[#B3B3B3] py-0 bg-[#F7F7F7]">
     <span class="text-[#0C0C0C] text-[11.5px] leading-3.5 shrink-0 tracking-[-0.08em] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] w-fit h-fit">
       {props.name}
     </span>
@@ -139,43 +129,6 @@ const ChevronSeparator: Component = () => (
     </span>
   </div>
 );
-
-const ActionPill: Component<ActionPillProps> = (props) => {
-  const baseClass = cn(
-    "flex items-center h-[18px] rounded-[1.5px] gap-[3px] px-[5px] py-px border-[0.5px] border-solid border-label-gray-border",
-    props.shrink && "shrink-0 w-fit",
-    props.asButton && "cursor-pointer bg-transparent",
-    props.dimmed && "opacity-50 hover:opacity-100 transition-opacity",
-  );
-
-  const content = (
-    <>
-      {props.icon}
-      <span
-        class={cn(
-          "text-black text-[12px] leading-4 font-medium tracking-[-0.04em]",
-          props.shrink && "shrink-0 w-fit h-fit",
-        )}
-      >
-        {props.label}
-      </span>
-    </>
-  );
-
-  return props.asButton ? (
-    <button class={baseClass} onClick={props.onClick}>
-      {content}
-    </button>
-  ) : (
-    <div
-      class={baseClass}
-      role={props.onClick ? "button" : undefined}
-      onClick={props.onClick}
-    >
-      {content}
-    </div>
-  );
-};
 
 interface ArrowProps {
   position: ArrowPosition;
@@ -223,8 +176,14 @@ const ClickToCopyPill: Component<ClickToCopyPillProps> = (props) => (
 const RETURN_KEY_ICON_URL =
   "https://workers.paper.design/file-assets/01K8D51Q7E2ESJTN18XN2MT96X/01KBEJ7N5GQ0ZZ7K456R42AP4V.svg";
 
+const BOTTOM_SECTION_GRADIENT =
+  "linear-gradient(in oklab 180deg, oklab(100% 0 0) 0%, oklab(96.1% 0 0) 5.92%)";
+
 const BottomSection: Component<BottomSectionProps> = (props) => (
-  <div class="contain-layout shrink-0 flex flex-col items-start px-2 py-[5px] w-auto h-fit rounded-bl-[3px] rounded-br-[3px] self-stretch bg-[#F2F2F2] [border-top-width:0.5px] border-t-solid border-t-[#B6B6B6] rounded-t-none">
+  <div
+    class="[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start px-2 py-[5px] w-auto h-fit self-stretch [border-top-width:0.5px] border-t-solid border-t-[#D9D9D9] antialiased rounded-t-none rounded-b-xs"
+    style={{ "background-image": BOTTOM_SECTION_GRADIENT }}
+  >
     {props.children}
   </div>
 );
@@ -344,10 +303,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     const viewportHeight = window.innerHeight;
 
     const selectionCenterX = bounds.x + bounds.width / 2;
+    const cursorX = props.mouseX ?? selectionCenterX;
     const selectionBottom = bounds.y + bounds.height;
     const selectionTop = bounds.y;
 
-    let positionLeft = selectionCenterX - labelWidth / 2;
+    let positionLeft = cursorX - labelWidth / 2;
     let positionTop = selectionBottom + ARROW_HEIGHT + LABEL_GAP;
 
     if (positionLeft + labelWidth > viewportWidth - VIEWPORT_MARGIN_PX) {
@@ -374,7 +334,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
     const arrowLeft = Math.max(
       12,
-      Math.min(selectionCenterX - positionLeft, labelWidth - 12),
+      Math.min(cursorX - positionLeft, labelWidth - 12),
     );
 
     return { left: positionLeft, top: positionTop, arrowLeft };
@@ -444,19 +404,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 {props.hasAgent ? "Completed" : "Copied"}
               </div>
             </div>
-            <div class="contain-layout shrink-0 flex items-center gap-px w-fit h-fit">
-              <Show when={props.componentName}>
-                <ParentBadge name={props.componentName!} />
-                <ChevronSeparator />
-              </Show>
-              <TagBadge
-                tagName={tagDisplay()}
-                isClickable={false}
-                onClick={() => {}}
-                showMono
-                shrink
-              />
-            </div>
           </div>
         </Show>
 
@@ -467,38 +414,39 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           }}
         >
           <Show when={props.status === "copying"}>
-            <div class="flex items-center gap-[3px] react-grab-shimmer rounded-[3px] pt-1 pb-1.5 px-1.5">
-              <TagBadge
-                tagName={tagDisplay()}
-                isClickable={isTagClickable()}
-                onClick={handleTagClick}
-                onHoverChange={handleTagHoverChange}
-                showMono
-                shrink
-              />
-              <ActionPill
-                icon={<IconCursorSimple size={9} class="text-black shrink-0" />}
-                label={props.statusText ?? "Grabbing…"}
-              />
-              <Show when={props.hasAgent && props.onAbort}>
-                <button
-                  class="flex items-center justify-center w-[18px] h-[18px] rounded-full cursor-pointer bg-black border-none transition-opacity hover:opacity-80"
-                  onMouseDown={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    event.stopImmediatePropagation();
-                  }}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    event.stopImmediatePropagation();
-                    props.onAbort?.();
-                  }}
-                  title="Stop"
-                >
-                  <IconStop size={8} class="text-white" />
-                </button>
-              </Show>
+            <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit max-w-[280px]">
+              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-auto h-fit">
+                <div class="contain-layout flex items-center px-0 py-px w-auto h-fit rounded-[1.5px] gap-[3px]">
+                  <div class="text-black text-[12px] leading-4 tracking-[-0.04em] font-sans font-medium w-auto h-fit whitespace-normal react-grab-shimmer">
+                    {props.statusText ?? "Grabbing…"}
+                  </div>
+                </div>
+              </div>
+              <BottomSection>
+                <div class="shrink-0 flex justify-between items-end w-full min-h-4">
+                  <textarea
+                    ref={inputRef}
+                    class="text-black text-[12px] leading-4 tracking-[-0.04em] font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 opacity-50"
+                    style={{
+                      // @ts-expect-error - field-sizing is not in the jsx spec
+                      "field-sizing": "content",
+                      "min-height": "16px",
+                    }}
+                    value={props.inputValue ?? ""}
+                    placeholder="type to edit"
+                    rows={1}
+                    disabled
+                  />
+                  <Show when={props.onAbort}>
+                    <button
+                      class="contain-layout shrink-0 flex flex-col items-start rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] p-1 size-fit cursor-pointer ml-1 transition-none hover:scale-105"
+                      onClick={props.onAbort}
+                    >
+                      <div class="shrink-0 w-[7px] h-[7px] rounded-[1px] bg-black" />
+                    </button>
+                  </Show>
+                </div>
+              </BottomSection>
             </div>
           </Show>
 
@@ -543,7 +491,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                       <span class="text-[#767676] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
                         Press
                       </span>
-                      <div class="contain-layout shrink-0 flex flex-col items-start rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] p-0.5 w-fit h-fit">
+                      <div class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit">
                         <div
                           class="w-2.5 h-[9px] shrink-0 opacity-[0.99] bg-cover bg-center"
                           style={{ "background-image": `url(${RETURN_KEY_ICON_URL})` }}
@@ -607,7 +555,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     rows={1}
                   />
                   <button
-                    class="contain-layout shrink-0 flex flex-col items-start p-0.5 rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] w-fit h-fit cursor-pointer ml-1 transition-none hover:scale-105"
+                    class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit cursor-pointer ml-1 transition-none hover:scale-105"
                     onClick={handleSubmit}
                   >
                     <div

@@ -925,7 +925,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           } else if (activated && dragging) {
             setCursorOverride("crosshair");
           } else if (activated && target) {
-            setCursorOverride("copy");
+            setCursorOverride("default");
           } else if (activated) {
             setCursorOverride("crosshair");
           } else {
@@ -1050,10 +1050,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
             if (element && document.contains(element)) {
               const rect = element.getBoundingClientRect();
-              const centerX = rect.left + rect.width / 2;
               const centerY = rect.top + rect.height / 2;
 
-              setMouseX(centerX);
+              setMouseX(session.position.x);
               setMouseY(centerY);
               setFrozenElement(element);
               setInputText(session.context.prompt);
@@ -1086,6 +1085,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       const bounds = createElementBounds(element);
+      const labelPositionX = mouseX();
       const currentX = bounds.x + bounds.width / 2;
       const currentY = bounds.y + bounds.height / 2;
 
@@ -1098,7 +1098,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         void agentManager.startSession({
           element,
           prompt,
-          position: { x: currentX, y: currentY },
+          position: { x: labelPositionX, y: currentY },
           selectionBounds: bounds,
         });
 
@@ -1984,10 +1984,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
             if (element && document.contains(element)) {
               const rect = element.getBoundingClientRect();
-              const centerX = rect.left + rect.width / 2;
               const centerY = rect.top + rect.height / 2;
 
-              setMouseX(centerX);
+              setMouseX(session.position.x);
               setMouseY(centerY);
               setFrozenElement(element);
               setInputText(session.context.prompt);

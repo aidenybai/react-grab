@@ -7,11 +7,6 @@ import { Crosshair } from "./crosshair.js";
 import { SelectionCursor } from "./selection-cursor.js";
 import { SelectionLabel } from "./selection-label.js";
 
-const truncateStatus = (status: string, maxLength = 30): string => {
-  if (status.length <= maxLength) return status;
-  return `${status.slice(0, maxLength)}…`;
-};
-
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
   return (
     <>
@@ -74,10 +69,12 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
               tagName={session.tagName}
               componentName={session.componentName}
               selectionBounds={session.selectionBounds}
+              mouseX={session.position.x}
               visible={true}
               hasAgent={true}
               status={session.isStreaming ? "copying" : "copied"}
-              statusText={truncateStatus(session.lastStatus || "Please wait…")}
+              statusText={session.lastStatus || "Please wait…"}
+              inputValue={session.context.prompt}
               onAbort={() => props.onAbortSession?.(session.id)}
             />
           </>
@@ -89,6 +86,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           tagName={props.selectionTagName}
           componentName={props.selectionComponentName}
           selectionBounds={props.selectionBounds}
+          mouseX={props.mouseX}
           visible={props.selectionLabelVisible}
           isInputExpanded={props.isInputExpanded}
           inputValue={props.inputValue}
