@@ -319,6 +319,7 @@ export interface SelectionLabelInstance {
   id: string;
   bounds: OverlayBounds;
   tagName: string;
+  componentName?: string;
   status: SelectionLabelStatus;
   createdAt: number;
   element?: Element;

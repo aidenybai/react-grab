@@ -113,6 +113,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         {(instance) => (
           <SelectionLabel
             tagName={instance.tagName}
+            componentName={instance.componentName}
             selectionBounds={instance.bounds}
             visible={true}
             status={instance.status}
