@@ -148,6 +148,7 @@ export const getStack = async (
 export const formatElementInfo = async (element: Element): Promise<string> => {
   const html = getHTMLPreview(element);
   const stack = await getStack(element);
+  console.log("stack", stack);
   const isNextProject = checkIsNextProject();
 
   let serverComponentName: string | null = null;
