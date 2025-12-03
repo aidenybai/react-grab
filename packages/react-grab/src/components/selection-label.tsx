@@ -68,6 +68,7 @@ type ArrowPosition = "bottom" | "top";
 
 const ARROW_HEIGHT = 8;
 const LABEL_GAP = 4;
+const IDLE_TIMEOUT_MS = 400;
 
 const TAG_GRADIENT =
   "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)";
@@ -88,7 +89,7 @@ const TagBadge: Component<TagBadgeProps> = (props) => {
   return (
     <div
       class={cn(
-        "flex items-center px-1 py-px h-[18px] rounded-[1.5px] gap-[5px] border-[0.5px] border-solid border-label-tag-border",
+        "contain-layout flex items-center px-[3px] py-0 h-4 rounded-xs gap-[5px] [border-width:0.5px] border-solid border-label-tag-border",
         props.shrink && "shrink-0 w-fit",
         props.isClickable && "cursor-pointer",
       )}
@@ -99,9 +100,10 @@ const TagBadge: Component<TagBadgeProps> = (props) => {
     >
       <span
         class={cn(
-          "text-label-tag-text text-[12px] leading-4 font-medium tracking-[-0.04em]",
-          props.showMono && "font-mono",
-          props.shrink && "shrink-0 w-fit h-fit",
+          "text-[#47004A] text-[11.5px] leading-3.5 shrink-0 w-fit h-fit",
+          props.showMono
+            ? "tracking-[-0.08em] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace]"
+            : "tracking-[-0.04em] font-medium",
         )}
       >
         {props.tagName}
@@ -187,19 +189,39 @@ const Arrow: Component<{ position: ArrowPosition; leftPx: number }> = (
   />
 );
 
+const CURSOR_ICON_URL =
+  "https://workers.paper.design/file-assets/01K8D51Q7E2ESJTN18XN2MT96X/01KBGARFKP935S74CWGWFME8MN.svg";
+
 const ClickToCopyPill: Component<ClickToCopyPillProps> = (props) => (
-  <ActionPill
-    icon={<IconCursorSimple size={9} class="text-black shrink-0" />}
-    label="Click to copy"
+  <div
+    class={cn(
+      "contain-layout shrink-0 flex items-center px-0 py-px w-fit h-[18px] rounded-[1.5px] gap-[3px]",
+      props.asButton && "cursor-pointer",
+      props.dimmed && "opacity-50 hover:opacity-100 transition-opacity",
+    )}
+    role={props.onClick ? "button" : undefined}
     onClick={props.onClick}
-    asButton={props.asButton}
-    dimmed={props.dimmed}
-    shrink={props.shrink}
-  />
+  >
+    <div
+      class="w-[8.5px] h-[9.5px] shrink-0 bg-cover bg-center"
+      style={{ "background-image": `url(${CURSOR_ICON_URL})` }}
+    />
+    <div class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
+      Click to copy
+    </div>
+  </div>
 );
 
+const BOTTOM_GRADIENT =
+  "linear-gradient(in oklab 180deg, oklab(92.9% 0 0) 0%, oklab(100% 0 0) 100%)";
+const RETURN_KEY_ICON_URL =
+  "https://workers.paper.design/file-assets/01K8D51Q7E2ESJTN18XN2MT96X/01KBEJ7N5GQ0ZZ7K456R42AP4V.svg";
+
 const BottomSection: Component<BottomSectionProps> = (props) => (
-  <div class="shrink-0 flex flex-col items-start px-2 py-[5px] w-full h-fit rounded-bl-[3px] rounded-br-[3px] border-t-[0.5px] border-t-solid border-t-label-divider">
+  <div
+    class="contain-layout shrink-0 flex flex-col items-start px-2 py-[5px] w-auto h-fit rounded-bl-[3px] rounded-br-[3px] self-stretch rounded-t-none"
+    style={{ "background-image": BOTTOM_GRADIENT }}
+  >
     {props.children}
   </div>
 );
@@ -214,6 +236,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const [arrowPosition, setArrowPosition] =
     createSignal<ArrowPosition>("bottom");
   const [viewportVersion, setViewportVersion] = createSignal(0);
+  const [isIdle, setIsIdle] = createSignal(false);
 
   const isNotProcessing = () =>
     props.status !== "copying" &&
@@ -236,15 +259,53 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     setViewportVersion((version) => version + 1);
   };
 
+  let idleTimeout: ReturnType<typeof setTimeout> | undefined;
+
+  const resetIdleTimer = () => {
+    setIsIdle(false);
+    if (idleTimeout) {
+      clearTimeout(idleTimeout);
+    }
+    idleTimeout = setTimeout(() => {
+      setIsIdle(true);
+    }, IDLE_TIMEOUT_MS);
+  };
+
+  const handleGlobalKeyDown = (event: KeyboardEvent) => {
+    if (
+      event.code === "Enter" &&
+      isIdle() &&
+      !props.isInputExpanded &&
+      isNotProcessing()
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      props.onToggleExpand?.();
+    }
+  };
+
   onMount(() => {
     measureContainer();
     window.addEventListener("scroll", handleViewportChange, true);
     window.addEventListener("resize", handleViewportChange);
+    window.addEventListener("keydown", handleGlobalKeyDown, { capture: true });
+    resetIdleTimer();
   });
 
   onCleanup(() => {
     window.removeEventListener("scroll", handleViewportChange, true);
     window.removeEventListener("resize", handleViewportChange);
+    window.removeEventListener("keydown", handleGlobalKeyDown, {
+      capture: true,
+    });
+    if (idleTimeout) {
+      clearTimeout(idleTimeout);
+    }
+  });
+
+  createEffect(() => {
+    void props.selectionBounds;
+    resetIdleTimer();
   });
 
   createEffect(() => {
@@ -254,7 +315,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   });
 
   createEffect(() => {
-    void [props.status, props.isInputExpanded, props.inputValue];
+    void props.status;
     requestAnimationFrame(measureContainer);
   });
 
@@ -371,32 +432,34 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         <Arrow position={arrowPosition()} leftPx={computedPosition().arrowLeft} />
 
         <div
-          class="relative flex items-center gap-[5px] bg-white rounded-[3px]"
+          class="[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-sm bg-white antialiased w-fit h-fit p-0"
           style={{
-            padding: !isNotProcessing() ? "4px" : "0",
             "box-shadow": "#00000033 0px 2px 3px",
           }}
         >
           <Show when={props.status === "copied" || props.status === "fading"}>
-            <div class="flex items-center gap-[3px]">
-              <TagBadge
-                tagName={tagDisplay()}
-                isClickable={isTagClickable()}
-                onClick={handleTagClick}
-                onHoverChange={handleTagHoverChange}
-              />
-              <SuccessPill hasAgent={props.hasAgent} />
-            </div>
-          </Show>
-
-          <Show when={props.status === "copying"}>
-            <div class="flex items-center gap-[3px] react-grab-shimmer rounded-[3px]">
+            <div class="flex items-center gap-[3px] pt-1 pb-1.5 px-1.5">
               <TagBadge
                 tagName={tagDisplay()}
                 isClickable={isTagClickable()}
                 onClick={handleTagClick}
                 onHoverChange={handleTagHoverChange}
                 showMono
+                shrink
+              />
+              <SuccessPill hasAgent={props.hasAgent} />
+            </div>
+          </Show>
+
+          <Show when={props.status === "copying"}>
+            <div class="flex items-center gap-[3px] react-grab-shimmer rounded-[3px] pt-1 pb-1.5 px-1.5">
+              <TagBadge
+                tagName={tagDisplay()}
+                isClickable={isTagClickable()}
+                onClick={handleTagClick}
+                onHoverChange={handleTagHoverChange}
+                showMono
+                shrink
               />
               <ActionPill
                 icon={<IconCursorSimple size={9} class="text-black shrink-0" />}
@@ -424,9 +487,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             </div>
           </Show>
 
-          <Show when={isNotProcessing() && !props.isInputExpanded}>
-            <div class="shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
-              <div class="shrink-0 flex items-center gap-[3px] pt-1 w-fit h-fit px-1">
+          <Show when={isNotProcessing() && !isIdle() && !props.isInputExpanded}>
+            <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 size-fit">
+              <div class="contain-layout shrink-0 flex items-center gap-1 size-fit py-1 px-1.5">
+                <ClickToCopyPill onClick={handleSubmit} shrink />
                 <TagBadge
                   tagName={tagDisplay()}
                   isClickable={isTagClickable()}
@@ -435,16 +499,34 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   showMono
                   shrink
                 />
+              </div>
+            </div>
+          </Show>
+
+          <Show when={isNotProcessing() && isIdle() && !props.isInputExpanded}>
+            <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
+              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-fit h-fit">
                 <ClickToCopyPill onClick={handleSubmit} shrink />
+                <TagBadge
+                  tagName={tagDisplay()}
+                  isClickable={isTagClickable()}
+                  onClick={handleTagClick}
+                  onHoverChange={handleTagHoverChange}
+                  showMono
+                  shrink
+                />
               </div>
               <BottomSection>
-                <div class="shrink-0 flex items-center gap-1 w-full h-[14px]">
-                  <IconReturnKey
-                    size={12}
-                    class="shrink-0 text-black opacity-[0.65]"
+                <div class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit">
+                  <span class="text-[#767676] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
+                    Press
+                  </span>
+                  <div
+                    class="w-2.5 h-[9px] shrink-0 opacity-[0.41] bg-cover bg-center"
+                    style={{ "background-image": `url(${RETURN_KEY_ICON_URL})` }}
                   />
-                  <span class="text-label-muted text-[12px] leading-3.5 shrink-0 tracking-[-0.04em] font-medium w-fit h-fit">
-                    to change
+                  <span class="text-[#767676] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
+                    to edit
                   </span>
                 </div>
               </BottomSection>
@@ -452,8 +534,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           </Show>
 
           <Show when={isNotProcessing() && props.isInputExpanded}>
-            <div class="shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
-              <div class="shrink-0 flex items-center gap-[3px] pt-1 w-fit h-fit px-1">
+            <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
+              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-fit h-fit">
+                <ClickToCopyPill onClick={handleSubmit} dimmed shrink />
                 <TagBadge
                   tagName={tagDisplay()}
                   isClickable={isTagClickable()}
@@ -462,17 +545,16 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   showMono
                   shrink
                 />
-                <ClickToCopyPill onClick={handleSubmit} dimmed shrink />
               </div>
               <BottomSection>
-                <div class="shrink-0 flex justify-between items-start w-full min-h-[14px]">
+                <div class="shrink-0 flex justify-between items-center w-full min-h-4">
                   <textarea
                     ref={inputRef}
-                    class="text-black text-[12px] leading-3.5 tracking-[-0.04em] font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0"
+                    class="text-black text-[12px] leading-4 tracking-[-0.04em] font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0"
                     style={{
                       // @ts-expect-error - field-sizing is not in the jsx spec
                       "field-sizing": "content",
-                      "min-height": "14px",
+                      "min-height": "16px",
                     }}
                     value={props.inputValue ?? ""}
                     onInput={handleInput}
@@ -481,10 +563,13 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     rows={1}
                   />
                   <button
-                    class="shrink-0 flex items-center gap-1 w-fit h-fit cursor-pointer bg-transparent border-none p-0 ml-1 mt-[2.5px]"
+                    class="shrink-0 flex items-center gap-1 w-fit h-4 cursor-pointer bg-transparent border-none p-0 ml-1"
                     onClick={handleSubmit}
                   >
-                    <IconReturnKey size={12} class="shrink-0 text-black" />
+                    <div
+                      class="w-2.5 h-[9px] shrink-0 bg-cover bg-center"
+                      style={{ "background-image": `url(${RETURN_KEY_ICON_URL})` }}
+                    />
                   </button>
                 </div>
               </BottomSection>
