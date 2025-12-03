@@ -29,14 +29,26 @@ export interface AgentManager {
   abortAllSessions: () => void;
   updateSessionBoundsOnViewportChange: () => void;
   getSessionElement: (sessionId: string) => Element | undefined;
+  setOptions: (options: AgentOptions) => void;
+  getOptions: () => AgentOptions | undefined;
 }
 
 export const createAgentManager = (
-  agentOptions: AgentOptions | undefined,
+  initialAgentOptions: AgentOptions | undefined,
 ): AgentManager => {
   const [sessions, setSessions] = createSignal<Map<string, AgentSession>>(new Map());
   const abortControllers = new Map<string, AbortController>();
   const sessionElements = new Map<string, Element>();
+
+  let agentOptions = initialAgentOptions;
+
+  const setOptions = (options: AgentOptions) => {
+    agentOptions = options;
+  };
+
+  const getOptions = (): AgentOptions | undefined => {
+    return agentOptions;
+  };
 
   const isProcessing = (): boolean => sessions().size > 0;
 
@@ -260,5 +272,7 @@ export const createAgentManager = (
     abortAllSessions,
     updateSessionBoundsOnViewportChange,
     getSessionElement,
+    setOptions,
+    getOptions,
   };
 };

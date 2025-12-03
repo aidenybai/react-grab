@@ -1,25 +1,7 @@
 import { useEffect, useState, useRef } from "react";
-import { init } from "react-grab/core";
-import type { AgentProvider, ReactGrabAPI } from "react-grab/core";
+import { getGlobalApi, type ReactGrabAPI } from "react-grab";
 
 const PROVIDER = import.meta.env.VITE_AGENT_PROVIDER ?? "claude";
-
-const getAgentProvider = async (): Promise<AgentProvider<any>> => {
-  if (PROVIDER === "ami") {
-    const { createAmiAgentProvider } = await import("@react-grab/ami/client");
-    return createAmiAgentProvider();
-  }
-  if (PROVIDER === "cursor") {
-    const { createCursorAgentProvider } = await import(
-      "@react-grab/cursor/client"
-    );
-    return createCursorAgentProvider();
-  }
-  const { createClaudeAgentProvider } = await import(
-    "@react-grab/claude-code/client"
-  );
-  return createClaudeAgentProvider();
-};
 
 const ReactGrabLogo = ({ size = 24 }: { size?: number }) => (
   <svg
@@ -97,24 +79,23 @@ export const App = () => {
   useEffect(() => {
     if (apiRef.current) return;
 
-    getAgentProvider().then((agentProvider) => {
-      const api = init({
-        onActivate: () => addLog("info", "Activated"),
-        onDeactivate: () => addLog("info", "Deactivated"),
-        agent: {
-          provider: agentProvider,
-          storage: sessionStorage,
-          onStart: (session) => addLog("start", session.id),
-          onStatus: (status) => addLog("status", status),
-          onComplete: () => addLog("done", "Complete"),
-          onError: (error) => addLog("error", error.message),
-          onResume: (session) => addLog("resume", session.id),
-        },
-      });
+    const api = getGlobalApi();
+    if (!api) {
+      addLog("error", "React Grab not initialized");
+      return;
+    }
 
-      apiRef.current = api;
-      addLog("info", `Ready (${PROVIDER})`);
+    api.setAgent({
+      storage: sessionStorage,
+      onStart: (session) => addLog("start", session.id),
+      onStatus: (status) => addLog("status", status),
+      onComplete: () => addLog("done", "Complete"),
+      onError: (error) => addLog("error", error.message),
+      onResume: (session) => addLog("resume", session.id),
     });
+
+    apiRef.current = api;
+    addLog("info", `Ready (${PROVIDER})`);
   }, []);
 
   return (

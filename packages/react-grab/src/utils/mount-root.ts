@@ -33,7 +33,16 @@ export const mountRoot = (cssText?: string) => {
   shadowRoot.appendChild(root);
 
   const doc = document.body ?? document.documentElement;
+  // HACK: wait for hydration (in case something blows away the DOM)
   doc.appendChild(host);
+
+  // HACK:double check after a short delay since
+  // something might have blown away the DOM
+  setTimeout(() => {
+    if (!doc.contains(host)) {
+      doc.appendChild(host);
+    }
+  }, 1_000);
 
   return root;
 };

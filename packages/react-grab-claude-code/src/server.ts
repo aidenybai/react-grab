@@ -84,11 +84,8 @@ export const createServer = () => {
   return app;
 };
 
-const app = createServer();
-
-serve({
-  fetch: app.fetch,
-  port: DEFAULT_PORT,
-});
-
-console.log("React Grab Claude Code server running on port", DEFAULT_PORT);
+export const startServer = (port: number = DEFAULT_PORT) => {
+  const app = createServer();
+  serve({ fetch: app.fetch, port });
+  console.log("React Grab Claude Code server running on port", port);
+};

@@ -222,7 +222,8 @@ export interface AgentSession {
   tagName?: string;
 }
 
-export interface AgentProvider<T = unknown> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface AgentProvider<T = any> {
   send: (context: AgentContext<T>, signal: AbortSignal) => AsyncIterable<string>;
   resume?: (sessionId: string, signal: AbortSignal) => AsyncIterable<string>;
   supportsResume?: boolean;
@@ -234,7 +235,8 @@ export interface AgentSessionStorage {
   removeItem(key: string): void;
 }
 
-export interface AgentOptions<T = unknown> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface AgentOptions<T = any> {
   provider?: AgentProvider<T>;
   storage?: AgentSessionStorage | null;
   getOptions?: () => T;
@@ -298,6 +300,7 @@ export interface ReactGrabAPI {
   getState: () => ReactGrabState;
   updateTheme: (theme: DeepPartial<Theme>) => void;
   getTheme: () => Required<Theme>;
+  setAgent: (options: AgentOptions) => void;
 }
 
 export interface OverlayBounds {

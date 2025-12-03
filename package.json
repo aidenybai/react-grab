@@ -3,7 +3,7 @@
   "type": "module",
   "scripts": {
     "build": "turbo run build --filter=react-grab --filter=@react-grab/cursor --filter=@react-grab/claude-code --filter=@react-grab/ami",
-    "dev": "pnpm --filter react-grab dev",
+    "dev": "turbo dev --filter=react-grab --filter=@react-grab/cursor --filter=@react-grab/claude-code --filter=@react-grab/ami",
     "lint": "pnpm --filter react-grab lint",
     "lint:fix": "pnpm --filter react-grab lint:fix",
     "format": "prettier --write .",

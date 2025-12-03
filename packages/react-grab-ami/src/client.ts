@@ -13,6 +13,8 @@ import type {
   AgentContext,
   AgentProvider,
   AgentSession,
+  init,
+  ReactGrabAPI,
 } from "react-grab/core";
 
 const STORAGE_KEY = "react-grab:agent-sessions";
@@ -120,9 +122,7 @@ const runAgent = async (
     for (const part of message.parts) {
       if (part.type === "text" && part.text) {
         const statusUpdate =
-          part.text.length > 100
-            ? `${part.text.slice(0, 100)}...`
-            : part.text;
+          part.text.length > 100 ? `${part.text.slice(0, 100)}...` : part.text;
         onStatus(statusUpdate);
       }
     }
@@ -182,24 +182,27 @@ export const createAmiAgentProvider = (
     const agentPromise = runAgent(context, token, projectId, onStatus);
 
     let done = false;
-    agentPromise.then((finalStatus) => {
-      if (aborted) return;
-      statusQueue.push(finalStatus);
-      done = true;
-      if (resolveWait) {
-        resolveWait();
-        resolveWait = null;
-      }
-    }).catch((error) => {
-      if (aborted) return;
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      statusQueue.push(`Error: ${errorMessage}`);
-      done = true;
-      if (resolveWait) {
-        resolveWait();
-        resolveWait = null;
-      }
-    });
+    agentPromise
+      .then((finalStatus) => {
+        if (aborted) return;
+        statusQueue.push(finalStatus);
+        done = true;
+        if (resolveWait) {
+          resolveWait();
+          resolveWait = null;
+        }
+      })
+      .catch((error) => {
+        if (aborted) return;
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        statusQueue.push(`Error: ${errorMessage}`);
+        done = true;
+        if (resolveWait) {
+          resolveWait();
+          resolveWait = null;
+        }
+      });
 
     try {
       while (!done && !aborted) {
@@ -271,24 +274,27 @@ export const createAmiAgentProvider = (
     const agentPromise = runAgent(context, token, DEFAULT_PROJECT_ID, onStatus);
 
     let done = false;
-    agentPromise.then((finalStatus) => {
-      if (aborted) return;
-      statusQueue.push(finalStatus);
-      done = true;
-      if (resolveWait) {
-        resolveWait();
-        resolveWait = null;
-      }
-    }).catch((error) => {
-      if (aborted) return;
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      statusQueue.push(`Error: ${errorMessage}`);
-      done = true;
-      if (resolveWait) {
-        resolveWait();
-        resolveWait = null;
-      }
-    });
+    agentPromise
+      .then((finalStatus) => {
+        if (aborted) return;
+        statusQueue.push(finalStatus);
+        done = true;
+        if (resolveWait) {
+          resolveWait();
+          resolveWait = null;
+        }
+      })
+      .catch((error) => {
+        if (aborted) return;
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        statusQueue.push(`Error: ${errorMessage}`);
+        done = true;
+        if (resolveWait) {
+          resolveWait();
+          resolveWait = null;
+        }
+      });
 
     try {
       while (!done && !aborted) {
@@ -317,4 +323,29 @@ export const createAmiAgentProvider = (
   supportsResume: true,
 });
 
-export const defaultAmiAgentProvider = createAmiAgentProvider();
+declare global {
+  interface Window {
+    __REACT_GRAB__?: ReturnType<typeof init>;
+  }
+}
+
+export const attachAgent = async () => {
+  if (typeof window === "undefined") return;
+
+  const provider = createAmiAgentProvider();
+
+  const api = window.__REACT_GRAB__;
+  if (api) {
+    api.setAgent({ provider });
+    return;
+  }
+
+  window.addEventListener(
+    "react-grab:init",
+    (event: Event) => {
+      const customEvent = event as CustomEvent<ReactGrabAPI>;
+      customEvent.detail.setAgent({ provider });
+    },
+    { once: true },
+  );
+};

@@ -52,6 +52,7 @@ import type {
   SelectionLabelStatus,
   SelectionLabelInstance,
   AgentSession,
+  AgentOptions,
 } from "./types.js";
 import { mergeTheme, deepMergeTheme } from "./theme.js";
 import { createAgentManager } from "./agent.js";
@@ -100,6 +101,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }),
       updateTheme: () => {},
       getTheme: () => initialTheme,
+      setAgent: () => {},
     };
   }
   hasInited = true;
@@ -169,6 +171,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [isToggleFrozen, setIsToggleFrozen] = createSignal(false);
     const [isInputExpanded, setIsInputExpanded] = createSignal(false);
     const [frozenElement, setFrozenElement] = createSignal<Element | null>(null);
+    const [hasAgentProvider, setHasAgentProvider] = createSignal(Boolean(options.agent?.provider));
 
     const [nativeSelectionCursorX, setNativeSelectionCursorX] = createSignal(OFFSCREEN_POSITION);
     const [nativeSelectionCursorY, setNativeSelectionCursorY] = createSignal(OFFSCREEN_POSITION);
@@ -367,9 +370,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
 
         if (isToggleMode()) {
-          setTimeout(() => {
-            deactivateRenderer();
-          }, COPIED_LABEL_DURATION_MS + 350);
+          deactivateRenderer();
         }
       });
     };
@@ -981,7 +982,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setMouseX(currentX);
       setMouseY(currentY);
 
-      if (options.agent?.provider && prompt) {
+      if (hasAgentProvider() && prompt) {
         deactivateRenderer();
 
         void agentManager.startSession({
@@ -1150,7 +1151,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           };
           const tagName = extractElementTagName(firstElement);
 
-          if (options.agent?.provider) {
+          if (hasAgentProvider()) {
             const centerX = bounds.x + bounds.width / 2;
             const centerY = bounds.y + bounds.height / 2;
             setMouseX(centerX);
@@ -1705,7 +1706,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             crosshairVisible={crosshairVisible()}
             inputValue={inputText()}
             isInputExpanded={isInputExpanded()}
-            hasAgent={Boolean(options.agent?.provider)}
+            hasAgent={hasAgentProvider()}
             agentSessions={agentManager.sessions()}
             onAbortSession={(sessionId) => agentManager.abortSession(sessionId)}
             onInputChange={handleInputChange}
@@ -1727,7 +1728,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       );
     }
 
-    if (options.agent?.provider) {
+    if (hasAgentProvider()) {
       agentManager.tryResumeSessions();
     }
 
@@ -1795,6 +1796,38 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         setTheme(mergedTheme);
       },
       getTheme: () => theme(),
+      setAgent: (newAgentOptions: AgentOptions) => {
+        const existingOptions = agentManager.getOptions();
+        const mergedOptions: AgentOptions = {
+          ...existingOptions,
+          ...newAgentOptions,
+          provider: newAgentOptions.provider ?? existingOptions?.provider,
+          onAbort: (session: AgentSession, element: Element | undefined) => {
+            newAgentOptions?.onAbort?.(session, element);
+
+            if (element && document.contains(element)) {
+              const rect = element.getBoundingClientRect();
+              const centerX = rect.left + rect.width / 2;
+              const centerY = rect.top + rect.height / 2;
+
+              setMouseX(centerX);
+              setMouseY(centerY);
+              setFrozenElement(element);
+              setInputText(session.context.prompt);
+              setIsInputExpanded(true);
+              setIsInputMode(true);
+              setIsToggleMode(true);
+              setIsToggleFrozen(true);
+
+              if (!isActivated()) {
+                activateRenderer();
+              }
+            }
+          },
+        };
+        agentManager.setOptions(mergedOptions);
+        setHasAgentProvider(Boolean(mergedOptions.provider));
+      },
     };
   });
 };

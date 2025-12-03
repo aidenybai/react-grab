@@ -45,7 +45,7 @@ const applyClaudePatches = async (outputFile: string) => {
   // PATCH 1: Replace broken __dirname-based path resolution with system "claude" default
   const patched1 = content.replace(
     /let pathToClaudeCodeExecutable = rest\.pathToClaudeCodeExecutable;\s*if \(!pathToClaudeCodeExecutable\) \{[\s\S]*?pathToClaudeCodeExecutable = [^;]+;[\s\S]*?\}/,
-    `let pathToClaudeCodeExecutable = rest.pathToClaudeCodeExecutable || "claude";`
+    `let pathToClaudeCodeExecutable = rest.pathToClaudeCodeExecutable || "claude";`,
   );
 
   if (content !== patched1) {
@@ -60,7 +60,7 @@ const applyClaudePatches = async (outputFile: string) => {
       if (!isPathCommand && !fs2.existsSync(pathToClaudeCodeExecutable)) {
         const errorMessage = isNativeBinary(pathToClaudeCodeExecutable) ? \`Claude Code native binary not found at \${pathToClaudeCodeExecutable}. Please ensure Claude Code is installed via native installer or specify a valid path with options.pathToClaudeCodeExecutable.\` : \`Claude Code executable not found at \${pathToClaudeCodeExecutable}. Is options.pathToClaudeCodeExecutable set?\`;
         throw new ReferenceError(errorMessage);
-      }`
+      }`,
   );
 
   if (content !== patched2) {
@@ -69,17 +69,20 @@ const applyClaudePatches = async (outputFile: string) => {
   }
 
   if (patchCount === 0) {
-    console.warn("⚠ Claude Code patches not applied - bundle may have changed");
+    console.warn(
+      "⚠ Claude Code patches not applied - bundle may have changed",
+    );
   } else {
     await fsp.writeFile(outputFile, content);
-    console.log(`✓ Applied ${patchCount} Claude Code patches for PATH command support`);
+    console.log(
+      `✓ Applied ${patchCount} Claude Code patches for PATH command support`,
+    );
   }
 };
 
 export default defineConfig([
   {
     entry: {
-      client: "./src/client.ts",
       server: "./src/server.ts",
     },
     format: ["cjs", "esm"],
@@ -95,5 +98,17 @@ export default defineConfig([
       await applyClaudePatches(path.join(__dirname, "dist", "server.cjs"));
       await applyClaudePatches(path.join(__dirname, "dist", "server.js"));
     },
+  },
+  {
+    entry: {
+      client: "./src/client.ts",
+    },
+    format: ["cjs", "esm"],
+    dts: true,
+    splitting: false,
+    sourcemap: false,
+    target: "esnext",
+    platform: "browser",
+    treeshake: true,
   },
 ]);

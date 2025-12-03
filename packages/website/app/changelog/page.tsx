@@ -39,12 +39,7 @@ export const metadata: Metadata = {
 };
 
 const getChangelog = () => {
-  const changelogPath = join(
-    process.cwd(),
-    "..",
-    "react-grab",
-    "CHANGELOG.md"
-  );
+  const changelogPath = join(process.cwd(), "..", "react-grab", "CHANGELOG.md");
   const content = readFileSync(changelogPath, "utf-8");
   return parseChangelog(content);
 };

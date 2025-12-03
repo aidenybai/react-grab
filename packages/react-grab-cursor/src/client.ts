@@ -2,6 +2,8 @@ import type {
   AgentContext,
   AgentProvider,
   AgentSession,
+  init,
+  ReactGrabAPI,
 } from "react-grab/core";
 import { DEFAULT_PORT } from "./constants.js";
 
@@ -90,14 +92,19 @@ export const createCursorAgentProvider = (
 ): AgentProvider<CursorAgentOptions> => {
   const { serverUrl = DEFAULT_SERVER_URL, getOptions } = providerOptions;
 
-  const mergeOptions = (contextOptions?: CursorAgentOptions): CursorAgentOptions => ({
+  const mergeOptions = (
+    contextOptions?: CursorAgentOptions,
+  ): CursorAgentOptions => ({
     ...(getOptions?.() ?? {}),
     ...(contextOptions ?? {}),
   });
 
   return {
     send: async function* (context: CursorAgentContext, signal: AbortSignal) {
-      const mergedContext = { ...context, options: mergeOptions(context.options) };
+      const mergedContext = {
+        ...context,
+        options: mergeOptions(context.options),
+      };
       yield* streamFromServer(serverUrl, mergedContext, signal);
     },
 
@@ -117,7 +124,10 @@ export const createCursorAgentProvider = (
       }
 
       const context = session.context as CursorAgentContext;
-      const mergedContext = { ...context, options: mergeOptions(context.options) };
+      const mergedContext = {
+        ...context,
+        options: mergeOptions(context.options),
+      };
 
       yield "Resuming...";
       yield* streamFromServer(serverUrl, mergedContext, signal);
@@ -127,4 +137,29 @@ export const createCursorAgentProvider = (
   };
 };
 
-export const defaultCursorAgentProvider = createCursorAgentProvider();
+declare global {
+  interface Window {
+    __REACT_GRAB__?: ReturnType<typeof init>;
+  }
+}
+
+export const attachAgent = async () => {
+  if (typeof window === "undefined") return;
+
+  const provider = createCursorAgentProvider();
+
+  const api = window.__REACT_GRAB__;
+  if (api) {
+    api.setAgent({ provider });
+    return;
+  }
+
+  window.addEventListener(
+    "react-grab:init",
+    (event: Event) => {
+      const customEvent = event as CustomEvent<ReactGrabAPI>;
+      customEvent.detail.setAgent({ provider });
+    },
+    { once: true },
+  );
+};
