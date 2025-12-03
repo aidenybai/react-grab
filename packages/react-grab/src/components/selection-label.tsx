@@ -148,7 +148,7 @@ const ChevronSeparator: Component = () => (
 );
 
 const CopiedChevronSeparator: Component = () => (
-  <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-1 px-[3px] [border-width:0.5px] border-solid border-[#00553269] py-0">
+  <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-1 px-[3px] [border-width:0.5px] border-solid border-[#A3FFCA] py-0">
     <span class="text-[#00381F] text-[11.5px] leading-3.5 shrink-0 tracking-[-0.08em] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] w-fit h-fit">
       &gt;
     </span>
@@ -156,7 +156,10 @@ const CopiedChevronSeparator: Component = () => (
 );
 
 const CopiedTagBadge: Component<{ tagName: string }> = (props) => (
-  <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-0.5 px-[3px] bg-[#005532] [border-width:0.5px] border-solid border-[#005532] py-0">
+  <div
+    class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-0.5 px-[3px] [border-width:0.5px] border-solid border-[#001D0E] py-0"
+    style={{ "background-image": "linear-gradient(in oklab 180deg, oklab(39.6% -0.086 0.036) 0%, oklab(33.9% -0.074 0.031) 100%)" }}
+  >
     <span class="text-[#A3FFCA] text-[11.5px] leading-3.5 shrink-0 tracking-[-0.08em] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] w-fit h-fit">
       {props.tagName}
     </span>
