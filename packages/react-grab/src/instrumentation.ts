@@ -170,12 +170,12 @@ export const formatElementInfo = async (element: Element): Promise<string> => {
   let columnNumber: number | null = null;
 
   for (const frame of stack) {
-    if (!frame.source) continue;
-
     if (checkIsSourceComponentName(frame.name)) {
       serverComponentName = frame.name;
       break;
     }
+
+    if (!frame.source) continue;
 
     if (isSourceFile(frame.source.fileName)) {
       if (!fileName) {
