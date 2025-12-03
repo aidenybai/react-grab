@@ -10,7 +10,6 @@ import type { Component } from "solid-js";
 import type { OverlayBounds, SelectionLabelStatus } from "../types.js";
 import { VIEWPORT_MARGIN_PX } from "../constants.js";
 import { cn } from "../utils/cn.js";
-import { IconCheckmark } from "./icon-checkmark.js";
 import { IconCursorSimple } from "./icon-cursor-simple.js";
 import { IconOpen } from "./icon-open.js";
 import { IconStop } from "./icon-stop.js";
@@ -176,33 +175,32 @@ const ActionPill: Component<ActionPillProps> = (props) => {
   );
 };
 
-const SuccessPill: Component<{ hasAgent?: boolean }> = (props) => (
-  <div class="flex items-center h-[18px] rounded-[1.5px] gap-[3px] px-[5px] py-px bg-label-success-bg border-[0.5px] border-solid border-label-success-border">
-    <IconCheckmark size={9} class="text-label-success-text shrink-0" />
-    <span class="text-label-success-text text-[12px] leading-4 font-medium tracking-[-0.04em]">
-      {props.hasAgent ? "Completed" : "Copied"}
-    </span>
-  </div>
-);
+interface ArrowProps {
+  position: ArrowPosition;
+  leftPx: number;
+  color?: string;
+}
 
-const Arrow: Component<{ position: ArrowPosition; leftPx: number }> = (
-  props,
-) => (
-  <div
-    class="absolute w-0 h-0"
-    style={{
-      left: `${props.leftPx}px`,
-      ...(props.position === "bottom"
-        ? { top: "0", transform: "translateX(-50%) translateY(-100%)" }
-        : { bottom: "0", transform: "translateX(-50%) translateY(100%)" }),
-      "border-left": "8px solid transparent",
-      "border-right": "8px solid transparent",
-      ...(props.position === "bottom"
-        ? { "border-bottom": "8px solid white" }
-        : { "border-top": "8px solid white" }),
-    }}
-  />
-);
+const Arrow: Component<ArrowProps> = (props) => {
+  const arrowColor = () => props.color ?? "white";
+
+  return (
+    <div
+      class="absolute w-0 h-0"
+      style={{
+        left: `${props.leftPx}px`,
+        ...(props.position === "bottom"
+          ? { top: "0", transform: "translateX(-50%) translateY(-100%)" }
+          : { bottom: "0", transform: "translateX(-50%) translateY(100%)" }),
+        "border-left": "8px solid transparent",
+        "border-right": "8px solid transparent",
+        ...(props.position === "bottom"
+          ? { "border-bottom": `8px solid ${arrowColor()}` }
+          : { "border-top": `8px solid ${arrowColor()}` }),
+      }}
+    />
+  );
+};
 
 const ClickToCopyPill: Component<ClickToCopyPillProps> = (props) => (
   <div
@@ -432,23 +430,45 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         onMouseDown={stopPropagation}
         onClick={stopPropagation}
       >
-        <Arrow position={arrowPosition()} leftPx={computedPosition().arrowLeft} />
+        <Arrow
+          position={arrowPosition()}
+          leftPx={computedPosition().arrowLeft}
+          color={props.status === "copied" || props.status === "fading" ? "#A3FFCA" : undefined}
+        />
 
-        <div class="[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-xs bg-white [box-shadow:#00000033_0px_2px_3px] antialiased w-fit h-fit p-0">
-          <Show when={props.status === "copied" || props.status === "fading"}>
-            <div class="flex items-center gap-[3px] pt-1 pb-1.5 px-1.5">
-              <TagBadge
-                tagName={tagDisplay()}
-                isClickable={isTagClickable()}
-                onClick={handleTagClick}
-                onHoverChange={handleTagHoverChange}
-                showMono
-                shrink
-              />
-              <SuccessPill hasAgent={props.hasAgent} />
+        <Show when={props.status === "copied" || props.status === "fading"}>
+          <div class="[font-synthesis:none] contain-layout shrink-0 flex items-center gap-1 rounded-xs bg-[#A3FFCA] antialiased w-fit h-fit py-1 px-1.5">
+            <div class="contain-layout shrink-0 flex items-center px-0 py-px w-fit h-[18px] rounded-[1.5px] gap-[3px]">
+              <div class="text-[#00381F] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
+                {props.hasAgent ? "Completed" : "Copied"}
+              </div>
             </div>
-          </Show>
+            <div class="contain-layout shrink-0 flex items-center gap-px w-fit h-fit">
+              <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-1 px-[3px] [border-width:0.5px] border-solid border-[#00553269] py-0">
+                <span class="text-[#00381F] text-[11.5px] leading-3.5 shrink-0 tracking-[-0.08em] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] w-fit h-fit">
+                  TextareaRoot
+                </span>
+              </div>
+              <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-1 px-[3px] [border-width:0.5px] border-solid border-[#00553269] py-0">
+                <span class="text-[#00381F] text-[11.5px] leading-3.5 shrink-0 tracking-[-0.08em] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] w-fit h-fit">
+                  &gt;
+                </span>
+              </div>
+              <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-0.5 px-[3px] bg-[#005532] [border-width:0.5px] border-solid border-[#005532] py-0">
+                <span class="text-[#A3FFCA] text-[11.5px] leading-3.5 shrink-0 tracking-[-0.08em] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] w-fit h-fit">
+                  {tagDisplay()}
+                </span>
+              </div>
+            </div>
+          </div>
+        </Show>
 
+        <div
+          class="[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-xs bg-white [box-shadow:#00000033_0px_2px_3px] antialiased w-fit h-fit p-0"
+          style={{
+            display: props.status === "copied" || props.status === "fading" ? "none" : undefined,
+          }}
+        >
           <Show when={props.status === "copying"}>
             <div class="flex items-center gap-[3px] react-grab-shimmer rounded-[3px] pt-1 pb-1.5 px-1.5">
               <TagBadge
