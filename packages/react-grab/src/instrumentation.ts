@@ -163,51 +163,38 @@ export const formatElementInfo = async (element: Element): Promise<string> => {
   const stack = await getStack(element);
   const isNextProject = checkIsNextProject();
 
-  let serverComponentName: string | null = null;
-  let clientComponentName: string | null = null;
   let fileName: string | null = null;
   let lineNumber: number | null = null;
   let columnNumber: number | null = null;
 
+  let serverComponentName: string | null = null;
+  let clientComponentName: string | null = null;
+
   for (const frame of stack) {
-    if (checkIsSourceComponentName(frame.name)) {
+    if (checkIsSourceComponentName(frame.name) && !serverComponentName) {
       serverComponentName = frame.name;
-      break;
+      continue;
     }
 
     if (!frame.source) continue;
 
-    if (isSourceFile(frame.source.fileName)) {
-      if (!fileName) {
-        fileName = normalizeFileName(frame.source.fileName);
-        lineNumber = frame.source.lineNumber ?? null;
-        columnNumber = frame.source.columnNumber ?? null;
-      }
-
-      if (!clientComponentName && checkIsSourceComponentName(frame.name)) {
-        clientComponentName = frame.name;
-      }
-
-      if (fileName && clientComponentName) {
-        break;
-      }
+    if (isSourceFile(frame.source.fileName) && !fileName) {
+      fileName = normalizeFileName(frame.source.fileName);
+      lineNumber = frame.source.lineNumber ?? null;
+      columnNumber = frame.source.columnNumber ?? null;
+      clientComponentName = frame.name;
+      continue;
     }
   }
 
-  const componentName = serverComponentName ?? clientComponentName;
+  let result = html;
 
-  if (!componentName) {
-    return html;
-  }
-
-  let result = `${html}\nin ${componentName}`;
-
-  if (serverComponentName && clientComponentName) {
-    result += ` (Server, is child of client: ${clientComponentName})`;
+  if (serverComponentName) {
+    result += `\n  in ${serverComponentName} (Server)\n`;
   }
 
   if (fileName) {
-    result += ` at ${fileName}`;
+    result += `\n${clientComponentName ? `  in ${clientComponentName}` : ""} at ${fileName}`;
 
     // HACK: bundlers like vite mess up the line number and column number
     if (isNextProject && lineNumber && columnNumber) {
