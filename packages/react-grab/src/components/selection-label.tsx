@@ -184,7 +184,6 @@ const Arrow: Component<{ position: ArrowPosition; leftPx: number }> = (
       ...(props.position === "bottom"
         ? { "border-bottom": "8px solid white" }
         : { "border-top": "8px solid white" }),
-      "z-index": "1",
     }}
   />
 );
@@ -205,16 +204,11 @@ const ClickToCopyPill: Component<ClickToCopyPillProps> = (props) => (
   </div>
 );
 
-const BOTTOM_GRADIENT =
-  "linear-gradient(in oklab 180deg, oklab(92.9% 0 0) 0%, oklab(100% 0 0) 100%)";
 const RETURN_KEY_ICON_URL =
   "https://workers.paper.design/file-assets/01K8D51Q7E2ESJTN18XN2MT96X/01KBEJ7N5GQ0ZZ7K456R42AP4V.svg";
 
 const BottomSection: Component<BottomSectionProps> = (props) => (
-  <div
-    class="contain-layout shrink-0 flex flex-col items-start px-2 py-[5px] w-auto h-fit rounded-bl-[3px] rounded-br-[3px] self-stretch rounded-t-none"
-    style={{ "background-image": BOTTOM_GRADIENT }}
-  >
+  <div class="contain-layout shrink-0 flex flex-col items-start px-2 py-[5px] w-auto h-fit rounded-bl-[3px] rounded-br-[3px] self-stretch bg-[#F2F2F2] [border-top-width:0.5px] border-t-solid border-t-[#B6B6B6] rounded-t-none">
     {props.children}
   </div>
 );
@@ -418,18 +412,15 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           "z-index": "2147483647",
           "pointer-events": props.visible ? "auto" : "none",
           opacity: props.status === "fading" ? 0 : 1,
+          filter:
+            "drop-shadow(0 4px 8px rgba(0,0,0,0.3)) drop-shadow(0 12px 28px rgba(0,0,0,0.35))",
         }}
         onMouseDown={stopPropagation}
         onClick={stopPropagation}
       >
         <Arrow position={arrowPosition()} leftPx={computedPosition().arrowLeft} />
 
-        <div
-          class="[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-sm bg-white antialiased w-fit h-fit p-0"
-          style={{
-            "box-shadow": "#00000033 0px 2px 3px",
-          }}
-        >
+        <div class="[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-sm bg-white antialiased w-fit h-fit p-0">
           <Show when={props.status === "copied" || props.status === "fading"}>
             <div class="flex items-center gap-[3px] pt-1 pb-1.5 px-1.5">
               <TagBadge
