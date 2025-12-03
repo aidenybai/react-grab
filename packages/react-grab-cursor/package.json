@@ -1,6 +1,6 @@
 {
   "name": "@react-grab/cursor",
-  "version": "0.0.56",
+  "version": "0.0.57",
   "type": "module",
   "exports": {
     "./client": {
