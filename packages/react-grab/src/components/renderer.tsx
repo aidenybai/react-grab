@@ -72,6 +72,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
             </Show>
             <SelectionLabel
               tagName={session.tagName}
+              componentName={session.componentName}
               selectionBounds={session.selectionBounds}
               visible={true}
               hasAgent={true}
@@ -86,6 +87,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
       <Show when={props.selectionLabelVisible && props.selectionBounds}>
         <SelectionLabel
           tagName={props.selectionTagName}
+          componentName={props.selectionComponentName}
           selectionBounds={props.selectionBounds}
           visible={props.selectionLabelVisible}
           isInputExpanded={props.isInputExpanded}
@@ -111,6 +113,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         {(instance) => (
           <SelectionLabel
             tagName={instance.tagName}
+            componentName={instance.componentName}
             selectionBounds={instance.bounds}
             visible={true}
             status={instance.status}

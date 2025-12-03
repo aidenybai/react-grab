@@ -10,13 +10,13 @@ import type { Component } from "solid-js";
 import type { OverlayBounds, SelectionLabelStatus } from "../types.js";
 import { VIEWPORT_MARGIN_PX } from "../constants.js";
 import { cn } from "../utils/cn.js";
-import { IconCheckmark } from "./icon-checkmark.js";
 import { IconCursorSimple } from "./icon-cursor-simple.js";
 import { IconOpen } from "./icon-open.js";
 import { IconStop } from "./icon-stop.js";
 
 interface SelectionLabelProps {
   tagName?: string;
+  componentName?: string;
   selectionBounds?: OverlayBounds;
   visible?: boolean;
   isInputExpanded?: boolean;
@@ -89,7 +89,7 @@ const TagBadge: Component<TagBadgeProps> = (props) => {
   return (
     <div
       class={cn(
-        "contain-layout flex items-center px-[3px] py-0 h-4 rounded-[1px] gap-[2px] [border-width:0.5px] border-solid border-label-tag-border",
+        "contain-layout flex items-center px-[3px] py-0 h-4 rounded-[1px] gap-0.5 [border-width:0.5px] border-solid border-label-tag-border",
         props.shrink && "shrink-0 w-fit",
         props.isClickable && "cursor-pointer",
       )}
@@ -122,6 +122,49 @@ const TagBadge: Component<TagBadgeProps> = (props) => {
     </div>
   );
 };
+
+const ParentBadge: Component<{ name: string }> = (props) => (
+  <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-1 px-[3px] [border-width:0.5px] border-solid border-[#B3B3B3] py-0">
+    <span class="text-[#0C0C0C] text-[11.5px] leading-3.5 shrink-0 tracking-[-0.08em] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] w-fit h-fit">
+      {props.name}
+    </span>
+  </div>
+);
+
+const CopiedParentBadge: Component<{ name: string }> = (props) => (
+  <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-1 px-[3px] [border-width:0.5px] border-solid border-[#00553269] py-0">
+    <span class="text-[#00381F] text-[11.5px] leading-3.5 shrink-0 tracking-[-0.08em] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] w-fit h-fit">
+      {props.name}
+    </span>
+  </div>
+);
+
+const ChevronSeparator: Component = () => (
+  <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-1 px-[3px] [border-width:0.5px] border-solid border-white py-0">
+    <span class="text-[#0C0C0C] text-[11.5px] leading-3.5 shrink-0 tracking-[-0.08em] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] w-fit h-fit">
+      &gt;
+    </span>
+  </div>
+);
+
+const CopiedChevronSeparator: Component = () => (
+  <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-1 px-[3px] [border-width:0.5px] border-solid border-[#A3FFCA] py-0">
+    <span class="text-[#00381F] text-[11.5px] leading-3.5 shrink-0 tracking-[-0.08em] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] w-fit h-fit">
+      &gt;
+    </span>
+  </div>
+);
+
+const CopiedTagBadge: Component<{ tagName: string }> = (props) => (
+  <div
+    class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-0.5 px-[3px] [border-width:0.5px] border-solid border-[#001D0E] py-0"
+    style={{ "background-image": "linear-gradient(in oklab 180deg, oklab(39.6% -0.086 0.036) 0%, oklab(33.9% -0.074 0.031) 100%)" }}
+  >
+    <span class="text-[#A3FFCA] text-[11.5px] leading-3.5 shrink-0 tracking-[-0.08em] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] w-fit h-fit">
+      {props.tagName}
+    </span>
+  </div>
+);
 
 const ActionPill: Component<ActionPillProps> = (props) => {
   const baseClass = cn(
@@ -160,33 +203,32 @@ const ActionPill: Component<ActionPillProps> = (props) => {
   );
 };
 
-const SuccessPill: Component<{ hasAgent?: boolean }> = (props) => (
-  <div class="flex items-center h-[18px] rounded-[1.5px] gap-[3px] px-[5px] py-px bg-label-success-bg border-[0.5px] border-solid border-label-success-border">
-    <IconCheckmark size={9} class="text-label-success-text shrink-0" />
-    <span class="text-label-success-text text-[12px] leading-4 font-medium tracking-[-0.04em]">
-      {props.hasAgent ? "Completed" : "Copied"}
-    </span>
-  </div>
-);
+interface ArrowProps {
+  position: ArrowPosition;
+  leftPx: number;
+  color?: string;
+}
 
-const Arrow: Component<{ position: ArrowPosition; leftPx: number }> = (
-  props,
-) => (
-  <div
-    class="absolute w-0 h-0"
-    style={{
-      left: `${props.leftPx}px`,
-      ...(props.position === "bottom"
-        ? { top: "0", transform: "translateX(-50%) translateY(-100%)" }
-        : { bottom: "0", transform: "translateX(-50%) translateY(100%)" }),
-      "border-left": "8px solid transparent",
-      "border-right": "8px solid transparent",
-      ...(props.position === "bottom"
-        ? { "border-bottom": "8px solid white" }
-        : { "border-top": "8px solid white" }),
-    }}
-  />
-);
+const Arrow: Component<ArrowProps> = (props) => {
+  const arrowColor = () => props.color ?? "white";
+
+  return (
+    <div
+      class="absolute w-0 h-0"
+      style={{
+        left: `${props.leftPx}px`,
+        ...(props.position === "bottom"
+          ? { top: "0", transform: "translateX(-50%) translateY(-100%)" }
+          : { bottom: "0", transform: "translateX(-50%) translateY(100%)" }),
+        "border-left": "8px solid transparent",
+        "border-right": "8px solid transparent",
+        ...(props.position === "bottom"
+          ? { "border-bottom": `8px solid ${arrowColor()}` }
+          : { "border-top": `8px solid ${arrowColor()}` }),
+      }}
+    />
+  );
+};
 
 const ClickToCopyPill: Component<ClickToCopyPillProps> = (props) => (
   <div
@@ -199,7 +241,7 @@ const ClickToCopyPill: Component<ClickToCopyPillProps> = (props) => (
     onClick={props.onClick}
   >
     <div class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
-      Click to copy
+      Copy
     </div>
   </div>
 );
@@ -412,29 +454,39 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           "z-index": "2147483647",
           "pointer-events": props.visible ? "auto" : "none",
           opacity: props.status === "fading" ? 0 : 1,
-          filter:
-            "drop-shadow(0 1px 2px rgba(0,0,0,0.2)) drop-shadow(0 2px 4px rgba(0,0,0,0.25))",
         }}
         onMouseDown={stopPropagation}
         onClick={stopPropagation}
       >
-        <Arrow position={arrowPosition()} leftPx={computedPosition().arrowLeft} />
+        <Arrow
+          position={arrowPosition()}
+          leftPx={computedPosition().arrowLeft}
+          color={props.status === "copied" || props.status === "fading" ? "#A3FFCA" : undefined}
+        />
 
-        <div class="[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-[2px] bg-white antialiased w-fit h-fit p-0">
-          <Show when={props.status === "copied" || props.status === "fading"}>
-            <div class="flex items-center gap-[3px] pt-1 pb-1.5 px-1.5">
-              <TagBadge
-                tagName={tagDisplay()}
-                isClickable={isTagClickable()}
-                onClick={handleTagClick}
-                onHoverChange={handleTagHoverChange}
-                showMono
-                shrink
-              />
-              <SuccessPill hasAgent={props.hasAgent} />
+        <Show when={props.status === "copied" || props.status === "fading"}>
+          <div class="[font-synthesis:none] contain-layout shrink-0 flex items-center gap-1 rounded-xs bg-[#A3FFCA] antialiased w-fit h-fit py-1 px-1.5">
+            <div class="contain-layout shrink-0 flex items-center px-0 py-px w-fit h-[18px] rounded-[1.5px] gap-[3px]">
+              <div class="text-[#00381F] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
+                {props.hasAgent ? "Completed" : "Copied"}
+              </div>
             </div>
-          </Show>
+            <div class="contain-layout shrink-0 flex items-center gap-px w-fit h-fit">
+              <Show when={props.componentName}>
+                <CopiedParentBadge name={props.componentName!} />
+                <CopiedChevronSeparator />
+              </Show>
+              <CopiedTagBadge tagName={tagDisplay()} />
+            </div>
+          </div>
+        </Show>
 
+        <div
+          class="[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-xs bg-white [box-shadow:#00000033_0px_2px_3px] antialiased w-fit h-fit p-0"
+          style={{
+            display: props.status === "copied" || props.status === "fading" ? "none" : undefined,
+          }}
+        >
           <Show when={props.status === "copying"}>
             <div class="flex items-center gap-[3px] react-grab-shimmer rounded-[3px] pt-1 pb-1.5 px-1.5">
               <TagBadge
@@ -473,16 +525,32 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
           <Show when={isNotProcessing() && !props.isInputExpanded}>
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
-              <div class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit pt-1 px-1.5">
+              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit px-1.5">
                 <ClickToCopyPill onClick={handleSubmit} shrink />
-                <TagBadge
-                  tagName={tagDisplay()}
-                  isClickable={isTagClickable()}
-                  onClick={handleTagClick}
-                  onHoverChange={handleTagHoverChange}
-                  showMono
-                  shrink
-                />
+                <Show when={props.componentName}>
+                  <div class="contain-layout shrink-0 flex items-center gap-px w-fit h-fit">
+                    <ParentBadge name={props.componentName!} />
+                    <ChevronSeparator />
+                    <TagBadge
+                      tagName={tagDisplay()}
+                      isClickable={isTagClickable()}
+                      onClick={handleTagClick}
+                      onHoverChange={handleTagHoverChange}
+                      showMono
+                      shrink
+                    />
+                  </div>
+                </Show>
+                <Show when={!props.componentName}>
+                  <TagBadge
+                    tagName={tagDisplay()}
+                    isClickable={isTagClickable()}
+                    onClick={handleTagClick}
+                    onHoverChange={handleTagHoverChange}
+                    showMono
+                    shrink
+                  />
+                </Show>
               </div>
               <div
                 class="grid w-full transition-[grid-template-rows] duration-30 ease-out"
@@ -493,11 +561,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 <div class="overflow-hidden min-h-0">
                   <BottomSection>
                     <div class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit">
-                      <span class="text-label-muted text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
+                      <span class="text-[#767676] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
                         Press
                       </span>
                       <div
-                        class="contain-layout shrink-0 flex flex-col items-start p-0.5 rounded-[1px] bg-white [border-width:0.5px] border-solid border-white w-fit h-fit"
+                        class="contain-layout shrink-0 flex flex-col items-start rounded-xs bg-white [border-width:0.5px] border-solid border-white p-0.5 w-fit h-fit"
                         style={{ "box-shadow": "#0000008C 0px 0px 2px" }}
                       >
                         <div
@@ -505,8 +573,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                           style={{ "background-image": `url(${RETURN_KEY_ICON_URL})` }}
                         />
                       </div>
-                      <span class="text-label-muted text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
-                        to edit
+                      <span class="text-[#767676] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
+                        to Edit
                       </span>
                     </div>
                   </BottomSection>
@@ -519,15 +587,32 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-fit h-fit">
                 <ClickToCopyPill onClick={handleSubmit} dimmed shrink />
-                <TagBadge
-                  tagName={tagDisplay()}
-                  isClickable={isTagClickable()}
-                  onClick={handleTagClick}
-                  onHoverChange={handleTagHoverChange}
-                  showMono
-                  shrink
-                  forceShowIcon
-                />
+                <Show when={props.componentName}>
+                  <div class="contain-layout shrink-0 flex items-center gap-px w-fit h-fit">
+                    <ParentBadge name={props.componentName!} />
+                    <ChevronSeparator />
+                    <TagBadge
+                      tagName={tagDisplay()}
+                      isClickable={isTagClickable()}
+                      onClick={handleTagClick}
+                      onHoverChange={handleTagHoverChange}
+                      showMono
+                      shrink
+                      forceShowIcon
+                    />
+                  </div>
+                </Show>
+                <Show when={!props.componentName}>
+                  <TagBadge
+                    tagName={tagDisplay()}
+                    isClickable={isTagClickable()}
+                    onClick={handleTagClick}
+                    onHoverChange={handleTagHoverChange}
+                    showMono
+                    shrink
+                    forceShowIcon
+                  />
+                </Show>
               </div>
               <BottomSection>
                 <div class="shrink-0 flex justify-between items-end w-full min-h-4">

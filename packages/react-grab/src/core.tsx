@@ -6,8 +6,8 @@ import {
   createRoot,
   onCleanup,
   createEffect,
-  on,
   createResource,
+  on,
 } from "solid-js";
 import { render } from "solid-js/web";
 import { isKeyboardEventTriggeredByInput } from "./utils/is-keyboard-event-triggered-by-input.js";
@@ -380,6 +380,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const createLabelInstance = (
       bounds: OverlayBounds,
       tagName: string,
+      componentName: string | undefined,
       status: SelectionLabelStatus,
       element?: Element,
     ): string => {
@@ -390,6 +391,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           id: instanceId,
           bounds,
           tagName,
+          componentName,
           status,
           createdAt: Date.now(),
           element,
@@ -421,6 +423,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       operation: () => Promise<void>,
       bounds?: OverlayBounds,
       tagName?: string,
+      componentName?: string,
       element?: Element,
     ) => {
       setCopyStartX(positionX);
@@ -430,7 +433,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const instanceId =
         bounds && tagName
-          ? createLabelInstance(bounds, tagName, "copying", element)
+          ? createLabelInstance(bounds, tagName, componentName, "copying", element)
           : null;
 
       await operation().finally(() => {
@@ -1106,15 +1109,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setInputText("");
 
       const tagName = extractElementTagName(element);
-      void executeCopyOperation(
-        currentX,
-        currentY,
-        () => copySingleElementToClipboard(element, prompt || undefined),
-        bounds,
-        tagName,
-        element,
-      ).then(() => {
-        deactivateRenderer();
+      void getNearestComponentName(element).then((componentName) => {
+        void executeCopyOperation(
+          currentX,
+          currentY,
+          () => copySingleElementToClipboard(element, prompt || undefined),
+          bounds,
+          tagName,
+          componentName ?? undefined,
+          element,
+        ).then(() => {
+          deactivateRenderer();
+        });
       });
     };
 
@@ -1144,6 +1150,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       clearNativeSelectionState();
       window.getSelection()?.removeAllRanges();
 
+      const componentName = nativeSelectionComponentName();
+
       if (elements.length === 1) {
         await executeCopyOperation(
           currentX,
@@ -1151,6 +1159,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           () => copySingleElementToClipboard(elements[0]),
           bounds,
           tagName,
+          componentName,
         );
       } else {
         await executeCopyOperation(
@@ -1159,6 +1168,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           () => copyMultipleElementsToClipboard(elements),
           bounds,
           tagName,
+          componentName,
         );
       }
     };
@@ -1273,14 +1283,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             setIsInputExpanded(true);
             setIsInputMode(true);
           } else {
-            void executeCopyOperation(
-              clientX,
-              clientY,
-              () => copyMultipleElementsToClipboard(selectedElements),
-              bounds,
-              tagName,
-              firstElement,
-            );
+            void getNearestComponentName(firstElement).then((componentName) => {
+              void executeCopyOperation(
+                clientX,
+                clientY,
+                () => copyMultipleElementsToClipboard(selectedElements),
+                bounds,
+                tagName,
+                componentName ?? undefined,
+                firstElement,
+              );
+            });
           }
         }
       } else {
@@ -1290,14 +1303,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         setLastGrabbedElement(element);
         const bounds = createElementBounds(element);
         const tagName = extractElementTagName(element);
-        void executeCopyOperation(
-          clientX,
-          clientY,
-          () => copySingleElementToClipboard(element),
-          bounds,
-          tagName,
-          element,
-        );
+        void getNearestComponentName(element).then((componentName) => {
+          void executeCopyOperation(
+            clientX,
+            clientY,
+            () => copySingleElementToClipboard(element),
+            bounds,
+            tagName,
+            componentName ?? undefined,
+            element,
+          );
+        });
       }
     };
 
@@ -1775,6 +1791,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return extractElementTagName(element) || undefined;
     });
 
+    const [selectionComponentName] = createResource(
+      () => targetElement(),
+      async (element) => {
+        if (!element) return undefined;
+        const name = await getNearestComponentName(element);
+        return name ?? undefined;
+      },
+    );
+
     const selectionLabelVisible = createMemo(() => {
       if (!theme().elementLabel.enabled) return false;
       if (successLabels().length > 0) return false;
@@ -1845,6 +1870,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             selectionFilePath={selectionFilePath()}
             selectionLineNumber={selectionLineNumber()}
             selectionTagName={selectionTagName()}
+            selectionComponentName={selectionComponentName()}
             selectionLabelVisible={selectionLabelVisible()}
             selectionLabelStatus={selectionLabelStatus()}
             labelInstances={computedLabelInstances()}

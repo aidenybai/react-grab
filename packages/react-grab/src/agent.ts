@@ -12,6 +12,7 @@ import {
 } from "./utils/agent-session.js";
 import { createElementBounds } from "./utils/create-element-bounds.js";
 import { generateSnippet } from "./utils/generate-snippet.js";
+import { getNearestComponentName } from "./instrumentation.js";
 
 interface StartSessionParams {
   element: Element;
@@ -198,8 +199,9 @@ export const createAgentManager = (
     const content = await generateSnippet(elements);
     const context = { content, prompt, options: agentOptions?.getOptions?.() };
     const tagName = (element.tagName || "").toLowerCase() || undefined;
+    const componentName = getNearestComponentName(element) || undefined;
 
-    const session = createSession(context, position, selectionBounds, tagName);
+    const session = createSession(context, position, selectionBounds, tagName, componentName);
     session.lastStatus = "Please wait…";
     sessionElements.set(session.id, element);
     setSessions((prev) => new Map(prev).set(session.id, session));
