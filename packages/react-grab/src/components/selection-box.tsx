@@ -128,7 +128,7 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
           props.variant === "selection" &&
             "border border-solid border-grab-purple/50 bg-grab-purple/8 transition-opacity duration-100 ease-out",
           props.variant === "grabbed" &&
-            "border border-solid border-grab-purple bg-grab-purple/8 transition-opacity duration-300 ease-out",
+            "border border-solid react-grab-flash",
           props.variant === "processing" && !props.isCompleted &&
             "border border-solid border-grab-purple/50 bg-grab-purple/8",
           props.variant === "processing" && props.isCompleted &&
