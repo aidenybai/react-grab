@@ -36,7 +36,10 @@ const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
 
 export const checkIsNextProject = (): boolean => {
   if (typeof document === "undefined") return false;
-  return Boolean(document.getElementById("__NEXT_DATA__"));
+  return Boolean(
+    document.getElementById("__NEXT_DATA__") ||
+      document.querySelector("nextjs-portal"),
+  );
 };
 
 export const checkIsInternalComponentName = (name: string): boolean => {
@@ -85,7 +88,6 @@ export const getElementContext = async (element: Element): Promise<string> => {
 
   const stackContext: string[] = [];
   if (stack) {
-    console.log(stack);
     for (const frame of stack) {
       if (
         frame.isServer &&
