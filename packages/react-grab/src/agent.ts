@@ -91,16 +91,36 @@ export const createAgentManager = (
           agentOptions?.onAbort?.(currentSession, element);
         }
       } else {
-        hadError = true;
-        if (currentSession) {
-          const errorMessage = error instanceof Error ? error.message : "Unknown error";
-          const errorSession = updateSession(currentSession, {
-            lastStatus: `Error: ${errorMessage}`,
-            isStreaming: false,
-          }, storage);
-          setSessions((prev) => new Map(prev).set(session.id, errorSession));
-          if (error instanceof Error) {
-            agentOptions?.onError?.(error, errorSession);
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        const lowerMessage = errorMessage.toLowerCase();
+        const isNetworkError =
+          lowerMessage.includes("network") ||
+          lowerMessage.includes("fetch") ||
+          lowerMessage.includes("load failed") ||
+          lowerMessage.includes("cancelled") ||
+          lowerMessage.includes("canceled") ||
+          lowerMessage.includes("aborted");
+
+        if (isNetworkError) {
+          // Don't mark as non-streaming on network errors (e.g., page reload)
+          // This allows the session to be resumed
+          if (currentSession) {
+            const errorSession = updateSession(currentSession, {
+              lastStatus: `Error: ${errorMessage}`,
+            }, storage);
+            setSessions((prev) => new Map(prev).set(session.id, errorSession));
+          }
+        } else {
+          hadError = true;
+          if (currentSession) {
+            const errorSession = updateSession(currentSession, {
+              lastStatus: `Error: ${errorMessage}`,
+              isStreaming: false,
+            }, storage);
+            setSessions((prev) => new Map(prev).set(session.id, errorSession));
+            if (error instanceof Error) {
+              agentOptions?.onError?.(error, errorSession);
+            }
           }
         }
       }
@@ -145,19 +165,40 @@ export const createAgentManager = (
 
   const tryResumeSessions = () => {
     const storage = agentOptions?.storage;
+    if (!storage) {
+      console.log("[react-grab] tryResumeSessions: no storage configured");
+      return;
+    }
+
     const existingSessions = loadSessions(storage);
+    console.log("[react-grab] tryResumeSessions: loaded sessions", {
+      count: existingSessions.size,
+      sessions: Array.from(existingSessions.values()).map((s) => ({
+        id: s.id,
+        isStreaming: s.isStreaming,
+        lastStatus: s.lastStatus,
+      })),
+    });
+
+    if (existingSessions.size === 0) {
+      return;
+    }
 
     const streamingSessions = Array.from(existingSessions.values()).filter(
       (session) => session.isStreaming,
     );
     if (streamingSessions.length === 0) {
+      console.log("[react-grab] tryResumeSessions: no streaming sessions, clearing");
       clearSessions(storage);
       return;
     }
     if (!agentOptions?.provider?.supportsResume || !agentOptions.provider.resume) {
+      console.log("[react-grab] tryResumeSessions: provider doesn't support resume");
       clearSessions(storage);
       return;
     }
+
+    console.log("[react-grab] tryResumeSessions: resuming", streamingSessions.length, "sessions");
 
     const streamingSessionsMap = new Map(
       streamingSessions.map((session) => [session.id, session]),

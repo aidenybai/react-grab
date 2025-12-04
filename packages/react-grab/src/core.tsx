@@ -2079,6 +2079,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         };
         agentManager.setOptions(mergedOptions);
         setHasAgentProvider(Boolean(mergedOptions.provider));
+        agentManager.tryResumeSessions();
       },
     };
   });
