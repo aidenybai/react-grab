@@ -67,7 +67,7 @@ export default function RootLayout({ children }) {
 }`;
     },
     getChangedLines: (hotkey) =>
-      hotkey ? [8, 9, 10, 11, 12, 13, 14, 15, 16, 17] : [8, 9, 10, 11, 12, 13, 14],
+      hotkey ? [8, 9, 10, 11, 12, 13, 14, 15, 16, 17] : [8, 9, 10, 11, 12, 13],
   },
   {
     id: "next-pages",
@@ -102,7 +102,7 @@ export default function Document() {
 }`;
     },
     getChangedLines: (hotkey) =>
-      hotkey ? [9, 10, 11, 12, 13, 14, 15, 16, 17, 18] : [9, 10, 11, 12, 13, 14, 15],
+      hotkey ? [9, 10, 11, 12, 13, 14, 15, 16, 17, 18] : [9, 10, 11, 12, 13, 14],
   },
   {
     id: "vite",

@@ -383,6 +383,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       componentName: string | undefined,
       status: SelectionLabelStatus,
       element?: Element,
+      mouseX?: number,
     ): string => {
       const instanceId = `label-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       setLabelInstances((prev) => [
@@ -395,6 +396,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           status,
           createdAt: Date.now(),
           element,
+          mouseX,
         },
       ]);
       return instanceId;
@@ -433,7 +435,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const instanceId =
         bounds && tagName
-          ? createLabelInstance(bounds, tagName, componentName, "copying", element)
+          ? createLabelInstance(bounds, tagName, componentName, "copying", element, positionX)
           : null;
 
       await operation().finally(() => {

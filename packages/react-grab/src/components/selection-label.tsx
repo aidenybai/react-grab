@@ -334,7 +334,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
     const arrowLeft = Math.max(
       12,
-      Math.min(cursorX - positionLeft, labelWidth - 12),
+      Math.min(selectionCenterX - positionLeft, labelWidth - 12),
     );
 
     return { left: positionLeft, top: positionTop, arrowLeft };

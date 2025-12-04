@@ -323,6 +323,7 @@ export interface SelectionLabelInstance {
   status: SelectionLabelStatus;
   createdAt: number;
   element?: Element;
+  mouseX?: number;
 }
 
 export interface ReactGrabRendererProps {
