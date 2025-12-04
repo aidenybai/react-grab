@@ -237,6 +237,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [hasAgentProvider, setHasAgentProvider] = createSignal(
       Boolean(options.agent?.provider),
     );
+    const [micToggleVersion, setMicToggleVersion] = createSignal(0);
 
     const [nativeSelectionCursorX, setNativeSelectionCursorX] =
       createSignal(OFFSCREEN_POSITION);
@@ -1396,6 +1397,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           if (event.key === "Escape" && agentManager.isProcessing()) {
             agentManager.abortAllSessions();
           }
+
+          if (
+            isInputMode() &&
+            (event.metaKey || event.ctrlKey) &&
+            isTargetKeyCombination(event, options)
+          ) {
+            event.preventDefault();
+            event.stopPropagation();
+            setMicToggleVersion((version) => version + 1);
+          }
+
           return;
         }
 
@@ -1966,6 +1978,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onInputSubmit={() => void handleInputSubmit()}
             onInputCancel={handleInputCancel}
             onToggleExpand={handleToggleExpand}
+            micToggleVersion={micToggleVersion()}
             nativeSelectionCursorVisible={hasNativeSelection()}
             nativeSelectionCursorX={nativeSelectionCursorX()}
             nativeSelectionCursorY={nativeSelectionCursorY()}

@@ -27,6 +27,7 @@ interface SelectionLabelProps {
   statusText?: string;
   filePath?: string;
   lineNumber?: number;
+  micToggleVersion?: number;
   onInputChange?: (value: string) => void;
   onSubmit?: () => void;
   onCancel?: () => void;
@@ -305,6 +306,21 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     } else {
       speechRecognition.stop();
     }
+  });
+
+  let previousMicToggleVersion: number | undefined;
+  createEffect(() => {
+    const currentVersion = props.micToggleVersion;
+    if (
+      currentVersion !== undefined &&
+      previousMicToggleVersion !== undefined &&
+      currentVersion !== previousMicToggleVersion &&
+      props.isInputExpanded &&
+      speechRecognition.isSupported()
+    ) {
+      speechRecognition.toggle();
+    }
+    previousMicToggleVersion = currentVersion;
   });
 
   const computedPosition = () => {
