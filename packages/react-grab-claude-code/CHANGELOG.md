@@ -1,5 +1,13 @@
 # @react-grab/claude-code
 
+## 0.0.67
+
+### Patch Changes
+
+- fix: logs
+- Updated dependencies
+  - react-grab@0.0.67
+
 ## 0.0.66
 
 ### Patch Changes
