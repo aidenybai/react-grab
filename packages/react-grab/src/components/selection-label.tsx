@@ -382,16 +382,13 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       <div
         ref={containerRef}
         data-react-grab-ignore-events
-        class="fixed font-sans antialiased transition-[opacity,filter] duration-100 ease-out filter-[drop-shadow(0px_0px_4px_#51515180)]"
+        class="fixed font-sans antialiased transition-opacity duration-300 ease-out filter-[drop-shadow(0px_0px_4px_#51515180)]"
         style={{
           top: `${computedPosition().top}px`,
           left: `${computedPosition().left}px`,
           "z-index": "2147483647",
           "pointer-events": props.visible ? "auto" : "none",
           opacity: props.status === "fading" ? 0 : 1,
-          filter: props.isStale
-            ? "blur(4px) drop-shadow(0px 0px 4px #51515180)"
-            : "drop-shadow(0px 0px 4px #51515180)",
         }}
         onMouseDown={stopPropagation}
         onClick={stopPropagation}
