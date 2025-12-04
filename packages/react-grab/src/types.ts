@@ -253,6 +253,7 @@ export interface Options {
   enabled?: boolean;
   keyHoldDuration?: number;
   allowActivationInsideInput?: boolean;
+  maxContextLines?: number;
   theme?: Theme;
   activationShortcut?: (event: KeyboardEvent) => boolean;
   activationKey?: ActivationKey;

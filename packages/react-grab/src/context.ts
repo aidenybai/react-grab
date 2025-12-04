@@ -81,7 +81,15 @@ export const getNearestComponentName = async (
   return null;
 };
 
-export const getElementContext = async (element: Element): Promise<string> => {
+interface GetElementContextOptions {
+  maxLines?: number;
+}
+
+export const getElementContext = async (
+  element: Element,
+  options: GetElementContextOptions = {},
+): Promise<string> => {
+  const { maxLines = 3 } = options;
   const html = getHTMLPreview(element);
   const stack = await getStack(element);
   const isNextProject = checkIsNextProject();
@@ -89,6 +97,8 @@ export const getElementContext = async (element: Element): Promise<string> => {
   const stackContext: string[] = [];
   if (stack) {
     for (const frame of stack) {
+      if (stackContext.length >= maxLines) break;
+
       if (
         frame.isServer &&
         (!frame.functionName || checkIsSourceComponentName(frame.functionName))

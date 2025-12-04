@@ -1,8 +1,15 @@
 import { getElementContext } from "../context.js";
 
-export const generateSnippet = async (elements: Element[]): Promise<string> => {
+interface GenerateSnippetOptions {
+  maxLines?: number;
+}
+
+export const generateSnippet = async (
+  elements: Element[],
+  options: GenerateSnippetOptions = {},
+): Promise<string> => {
   const elementSnippetResults = await Promise.allSettled(
-    elements.map((element) => getElementContext(element)),
+    elements.map((element) => getElementContext(element, options)),
   );
 
   const elementSnippets = elementSnippetResults

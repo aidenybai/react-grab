@@ -106,6 +106,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     enabled: true,
     keyHoldDuration: 200,
     allowActivationInsideInput: true,
+    maxContextLines: 3,
     ...scriptOptions,
     ...rawOptions,
   };
@@ -496,7 +497,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       try {
         const elementSnippetResults = await Promise.allSettled(
-          elements.map((element) => getElementContext(element)),
+          elements.map((element) =>
+            getElementContext(element, { maxLines: options.maxContextLines }),
+          ),
         );
 
         const elementSnippets: string[] = [];
