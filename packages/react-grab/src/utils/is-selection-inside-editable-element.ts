@@ -23,11 +23,12 @@ export const isSelectionInsideEditableElement = (cursorX?: number, cursorY?: num
   }
 
   if (cursorX !== undefined && cursorY !== undefined) {
-    const elementsAtPoint = document.elementsFromPoint(cursorX, cursorY);
-    for (const element of elementsAtPoint) {
+    let element = document.elementFromPoint(cursorX, cursorY);
+    while (element) {
       if (isEditableElement(element)) {
         return true;
       }
+      element = element.parentElement;
     }
   }
 
