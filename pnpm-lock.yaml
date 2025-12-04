@@ -200,6 +200,9 @@ importers:
         specifier: workspace:*
         version: link:../react-grab
     devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.23
       tsup:
         specifier: ^8.4.0
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
@@ -216,6 +219,9 @@ importers:
         specifier: workspace:*
         version: link:../react-grab
     devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.23
       tsup:
         specifier: ^8.4.0
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
