@@ -1,5 +1,13 @@
 # @react-grab/claude-code
 
+## 0.0.62
+
+### Patch Changes
+
+- fix: stream resumption
+- Updated dependencies
+  - react-grab@0.0.62
+
 ## 0.0.61
 
 ### Patch Changes

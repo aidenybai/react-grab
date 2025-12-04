@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.62
+
+### Patch Changes
+
+- fix: stream resumption
+
 ## 0.0.61
 
 ### Patch Changes
