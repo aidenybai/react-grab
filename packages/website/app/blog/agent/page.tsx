@@ -9,6 +9,7 @@ import { highlightCode } from "@/lib/shiki";
 import { IconClaude } from "@/components/icon-claude";
 import { IconCursor } from "@/components/icon-cursor";
 import { IconCopilot } from "@/components/icon-copilot";
+import { IconOpencode } from "@/components/icon-opencode";
 import { GithubButton } from "@/components/github-button";
 import { CursorInstallButton } from "@/components/cursor-install-button";
 import demoGif from "@/public/demo.gif";
@@ -38,7 +39,7 @@ const HighlightedCodeBlock = ({ code, lang }: HighlightedCodeBlockProps) => {
         setDidCopy(true);
         setTimeout(() => setDidCopy(false), 1200);
       })
-      .catch(() => {});
+      .catch(() => { });
   };
 
   return (
@@ -144,6 +145,7 @@ const AgentPage = () => {
                   It still works with any AI coding tool
                   (<IconClaude width={12} height={12} className="inline -translate-y-px mx-0.5" />Claude Code,{" "}
                   <IconCursor width={12} height={12} className="inline -translate-y-px mx-0.5 text-white" />Cursor,{" "}
+                  <IconOpencode width={12} height={12} className="inline -translate-y-px mx-0.5" />Opencode,{" "}
                   <IconCopilot width={12} height={12} className="inline -translate-y-px mx-0.5 text-white" />Copilot, etc.)
                 </li>
                 <li>
@@ -529,6 +531,104 @@ export default function RootLayout({ children }) {
                 </code>{" "}
                 again to run it.
               </p>
+
+              <h4 className="text-base font-medium text-neutral-300 mt-8 flex items-center gap-1.5">
+                <IconOpencode width={14} height={14} />
+                Opencode
+              </h4>
+
+              <p className="text-sm font-medium text-neutral-400">
+                Server Setup
+              </p>
+              <p>
+                The server runs on port{" "}
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+                  6567
+                </code>{" "}
+                and interfaces with the{" "}
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+                  opencode
+                </code>{" "}
+                CLI. Add to your{" "}
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+                  package.json
+                </code>
+                :
+              </p>
+              <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden">
+                <div className="px-3 py-2">
+                  <HighlightedCodeBlock
+                    lang="json"
+                    code={`{
+  "scripts": {
+    "dev": "npx @react-grab/opencode@latest && next dev"
+  }
+}`}
+                  />
+                </div>
+              </div>
+
+              <p className="text-sm font-medium text-neutral-400 mt-4">
+                Client Setup
+              </p>
+              <p>
+                Add the Opencode client script in your{" "}
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+                  &lt;head&gt;
+                </code>
+                :
+              </p>
+              <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden">
+                <div className="px-3 py-2">
+                  <HighlightedCodeBlock
+                    lang="html"
+                    code={`<script src="//unpkg.com/react-grab/dist/index.global.js"></script>
+<script src="//unpkg.com/@react-grab/opencode/dist/client.global.js"></script>`}
+                  />
+                </div>
+              </div>
+
+              <p className="mt-4">
+                Or using Next.js{" "}
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+                  Script
+                </code>{" "}
+                component in your{" "}
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+                  app/layout.tsx
+                </code>
+                :
+              </p>
+              <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden">
+                <div className="px-3 py-2">
+                  <HighlightedCodeBlock
+                    lang="tsx"
+                    code={`import Script from "next/script";
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <head>
+        {process.env.NODE_ENV === "development" && (
+          <>
+            <Script
+              src="//unpkg.com/react-grab/dist/index.global.js"
+              strategy="beforeInteractive"
+            />
+            <Script
+              src="//unpkg.com/@react-grab/opencode/dist/client.global.js"
+              strategy="lazyOnload"
+            />
+          </>
+        )}
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}`}
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="flex flex-col gap-3">
@@ -590,6 +690,15 @@ export default function RootLayout({ children }) {
                   className="text-neutral-300 hover:text-white underline underline-offset-4"
                 >
                   @react-grab/cursor
+                </a>
+                ,{" "}
+                <a
+                  href="https://github.com/aidenybai/react-grab/tree/main/packages/react-grab-opencode"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-neutral-300 hover:text-white underline underline-offset-4"
+                >
+                  @react-grab/opencode
                 </a>
                 .
               </p>
