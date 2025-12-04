@@ -2,8 +2,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "turbo run build --filter=react-grab --filter=@react-grab/cursor --filter=@react-grab/claude-code --filter=@react-grab/ami --filter=@react-grab/opencode --filter=@react-grab/cli",
-    "dev": "turbo dev --filter=react-grab --filter=@react-grab/cursor --filter=@react-grab/claude-code --filter=@react-grab/ami --filter=@react-grab/opencode --filter=@react-grab/cli",
+    "build": "turbo run build --filter=react-grab --filter=@react-grab/cursor --filter=@react-grab/claude-code --filter=@react-grab/ami --filter=@react-grab/opencode --filter=@react-grab/cli --filter=@react-grab/codex",
+    "dev": "turbo dev --filter=react-grab --filter=@react-grab/cursor --filter=@react-grab/claude-code --filter=@react-grab/ami --filter=@react-grab/opencode --filter=@react-grab/cli --filter=@react-grab/codex",
     "lint": "pnpm --filter react-grab lint",
     "lint:fix": "pnpm --filter react-grab lint:fix",
     "format": "prettier --write .",
