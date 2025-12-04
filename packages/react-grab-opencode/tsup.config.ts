@@ -1,14 +1,14 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig([
-    // Server + CLI build (Node.js)
     {
         entry: {
             server: "./src/server.ts",
             cli: "./src/cli.ts",
         },
         format: ["cjs", "esm"],
-        dts: false, // Skip DTS for now due to cross-package type resolution issues
+        // HACK: Skip DTS for now due to cross-package type resolution issues
+        dts: false,
         clean: false,
         splitting: false,
         sourcemap: false,
@@ -17,13 +17,13 @@ export default defineConfig([
         treeshake: true,
         noExternal: [/.*/],
     },
-    // Client build (Browser - ESM/CJS)
     {
         entry: {
             client: "./src/client.ts",
         },
         format: ["cjs", "esm"],
-        dts: false, // Skip DTS for now
+        // HACK: Skip DTS for now
+        dts: false,
         clean: false,
         splitting: false,
         sourcemap: false,
@@ -31,7 +31,6 @@ export default defineConfig([
         platform: "browser",
         treeshake: true,
     },
-    // Client build (Browser - IIFE for script tag)
     {
         entry: ["./src/client.ts"],
         format: ["iife"],

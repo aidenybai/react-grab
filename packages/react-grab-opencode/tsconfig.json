@@ -11,6 +11,7 @@
         "noEmit": true
     },
     "include": [
-        "src"
+        "src",
+        "tsup.config.ts"
     ]
 }
