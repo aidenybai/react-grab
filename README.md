@@ -146,6 +146,34 @@ The server runs on port `4567` and interfaces with the Claude Agent SDK. Add to 
 <script src="//unpkg.com/@react-grab/claude-code/dist/client.global.js"></script>
 ```
 
+Or using Next.js `Script` component in your `app/layout.tsx`:
+
+```jsx
+import Script from "next/script";
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <head>
+        {process.env.NODE_ENV === "development" && (
+          <>
+            <Script
+              src="//unpkg.com/react-grab/dist/index.global.js"
+              strategy="beforeInteractive"
+            />
+            <Script
+              src="//unpkg.com/@react-grab/claude-code/dist/client.global.js"
+              strategy="lazyOnload"
+            />
+          </>
+        )}
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}
+```
+
 ### Cursor CLI
 
 #### Server Setup
@@ -166,6 +194,34 @@ The server runs on port `5567` and interfaces with the `cursor-agent` CLI. Add t
 <script src="//unpkg.com/react-grab/dist/index.global.js"></script>
 <!-- add this in the <head> -->
 <script src="//unpkg.com/@react-grab/cursor/dist/client.global.js"></script>
+```
+
+Or using Next.js `Script` component in your `app/layout.tsx`:
+
+```jsx
+import Script from "next/script";
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <head>
+        {process.env.NODE_ENV === "development" && (
+          <>
+            <Script
+              src="//unpkg.com/react-grab/dist/index.global.js"
+              strategy="beforeInteractive"
+            />
+            <Script
+              src="//unpkg.com/@react-grab/cursor/dist/client.global.js"
+              strategy="lazyOnload"
+            />
+          </>
+        )}
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}
 ```
 
 ## Extending React Grab

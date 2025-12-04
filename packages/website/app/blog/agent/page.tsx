@@ -360,6 +360,48 @@ const AgentPage = () => {
                 </div>
               </div>
 
+              <p className="mt-4">
+                Or using Next.js{" "}
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+                  Script
+                </code>{" "}
+                component in your{" "}
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+                  app/layout.tsx
+                </code>
+                :
+              </p>
+              <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden">
+                <div className="px-3 py-2">
+                  <HighlightedCodeBlock
+                    lang="tsx"
+                    code={`import Script from "next/script";
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <head>
+        {process.env.NODE_ENV === "development" && (
+          <>
+            <Script
+              src="//unpkg.com/react-grab/dist/index.global.js"
+              strategy="beforeInteractive"
+            />
+            <Script
+              src="//unpkg.com/@react-grab/claude-code/dist/client.global.js"
+              strategy="lazyOnload"
+            />
+          </>
+        )}
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}`}
+                  />
+                </div>
+              </div>
+
               <h4 className="text-base font-medium text-neutral-300 mt-8 flex items-center gap-1.5">
                 <IconCursor width={14} height={14} />
                 Cursor CLI
@@ -412,6 +454,48 @@ const AgentPage = () => {
                     lang="html"
                     code={`<script src="//unpkg.com/react-grab/dist/index.global.js"></script>
 <script src="//unpkg.com/@react-grab/cursor/dist/client.global.js"></script>`}
+                  />
+                </div>
+              </div>
+
+              <p className="mt-4">
+                Or using Next.js{" "}
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+                  Script
+                </code>{" "}
+                component in your{" "}
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+                  app/layout.tsx
+                </code>
+                :
+              </p>
+              <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden">
+                <div className="px-3 py-2">
+                  <HighlightedCodeBlock
+                    lang="tsx"
+                    code={`import Script from "next/script";
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <head>
+        {process.env.NODE_ENV === "development" && (
+          <>
+            <Script
+              src="//unpkg.com/react-grab/dist/index.global.js"
+              strategy="beforeInteractive"
+            />
+            <Script
+              src="//unpkg.com/@react-grab/cursor/dist/client.global.js"
+              strategy="lazyOnload"
+            />
+          </>
+        )}
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}`}
                   />
                 </div>
               </div>
