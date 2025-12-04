@@ -55,7 +55,7 @@ export const checkIsSourceComponentName = (name: string): boolean => {
 export const getStack = async (
   element: Element,
 ): Promise<StackFrame[] | null> => {
-  if (isInstrumentationActive()) return [];
+  if (!isInstrumentationActive()) return [];
   const fiber = getFiberFromHostInstance(element);
   if (!fiber) return null;
   return await getOwnerStack(fiber);
