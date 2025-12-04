@@ -72,37 +72,36 @@ export const useStream = ({
     })),
   }));
 
-  const hasCheckedStorage = useRef(false);
+  const [hasCheckedStorage, setHasCheckedStorage] = useState(false);
 
   useEffect(() => {
-    if (hasCheckedStorage.current) return;
-    hasCheckedStorage.current = true;
+    if (hasCheckedStorage) return;
 
     if (typeof window !== "undefined") {
       const hasCompleted = localStorage.getItem(storageKey) === "true";
 
       if (hasCompleted) {
-        setTimeout(() => {
-          setState({
-            currentBlockIndex: blocks.length,
-            currentContent: "",
-            status: "complete",
-            wasPreloaded: true,
-            isPaused: false,
-            blocks: blocks.map((block) => ({
-              id: block.id,
-              type: block.type,
-              content: block.content,
-              chunks: [],
-              status: "complete" as StreamStatus,
-              duration: block.duration,
-              metadata: block.metadata,
-            })),
-          });
-        }, 0);
+        setState({
+          currentBlockIndex: blocks.length,
+          currentContent: "",
+          status: "complete",
+          wasPreloaded: true,
+          isPaused: false,
+          blocks: blocks.map((block) => ({
+            id: block.id,
+            type: block.type,
+            content: block.content,
+            chunks: [],
+            status: "complete" as StreamStatus,
+            duration: block.duration,
+            metadata: block.metadata,
+          })),
+        });
       }
+
+      setHasCheckedStorage(true);
     }
-  }, [blocks, storageKey]);
+  }, [blocks, storageKey, hasCheckedStorage]);
 
   const streamingRef = useRef(false);
   const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
@@ -116,7 +115,7 @@ export const useStream = ({
   }, [blocks]);
 
   useEffect(() => {
-    if (streamingRef.current || blocks.length === 0 || !hasCheckedStorage.current) return;
+    if (streamingRef.current || blocks.length === 0 || !hasCheckedStorage) return;
 
     const hasCompleted = typeof window !== "undefined" && localStorage.getItem(storageKey) === "true";
     if (hasCompleted) return;
@@ -381,7 +380,7 @@ export const useStream = ({
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [blocks, chunkSize, chunkDelayMs, blockDelayMs, storageKey, pauseAtBlockId]);
+  }, [blocks, chunkSize, chunkDelayMs, blockDelayMs, storageKey, pauseAtBlockId, hasCheckedStorage]);
 
   const resume = () => {
     if (resumeCallbackRef.current) {

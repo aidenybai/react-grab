@@ -122,7 +122,7 @@ if (process.env.NODE_ENV === "development") {
 
 React Grab can send selected element context directly to your coding agent. This enables a workflow where you select a UI element and an agent automatically makes changes to your codebase.
 
-This means **no copying and pasting** - just select the element and let the agent do the rest.
+This means **no copying and pasting** - just select the element and let the agent do the rest. [Learn more →](https://react-grab.com/blog/agent)
 
 ### Claude Code
 
