@@ -435,7 +435,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const instanceId =
         bounds && tagName
-          ? createLabelInstance(bounds, tagName, componentName, "copying", element, positionX)
+          ? createLabelInstance(
+              bounds,
+              tagName,
+              componentName,
+              "copying",
+              element,
+              positionX,
+            )
           : null;
 
       await operation().finally(() => {
@@ -762,12 +769,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
           getStack(element)
             .then((stack) => {
+              if (!stack) return;
               for (const frame of stack) {
-                if (frame.source && isSourceFile(frame.source.fileName)) {
+                if (frame.fileName && isSourceFile(frame.fileName)) {
                   setSelectionFilePath(
-                    normalizeFileName(frame.source.fileName),
+                    normalizeFileName(frame.fileName),
                   );
-                  setSelectionLineNumber(frame.source.lineNumber);
+                  setSelectionLineNumber(frame.lineNumber);
                   return;
                 }
               }
@@ -2010,7 +2018,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   });
 };
 
-export { getStack, getElementContext as formatElementInfo, getFileName } from "./context.js";
+export {
+  getStack,
+  getElementContext as formatElementInfo,
+  getFileName,
+} from "./context.js";
 export { isInstrumentationActive } from "bippy";
 export { DEFAULT_THEME } from "./theme.js";
 
