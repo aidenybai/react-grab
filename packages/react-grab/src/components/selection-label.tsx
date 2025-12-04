@@ -49,6 +49,7 @@ interface ClickToCopyPillProps {
   dimmed?: boolean;
   shrink?: boolean;
   hasParent?: boolean;
+  hasAgent?: boolean;
 }
 
 interface BottomSectionProps {
@@ -157,21 +158,29 @@ const Arrow: Component<ArrowProps> = (props) => {
   );
 };
 
-const ClickToCopyPill: Component<ClickToCopyPillProps> = (props) => (
-  <div
-    class={cn(
-      "contain-layout shrink-0 flex items-center px-0 py-px w-fit h-[18px] rounded-[1.5px] gap-[3px]",
-      props.asButton && "cursor-pointer",
-      props.dimmed && "opacity-50 hover:opacity-100 transition-opacity",
-    )}
-    role="button"
-    onClick={props.onClick}
-  >
-    <div class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
-      {props.hasParent ? "Copy" : "Click to copy"}
+const ClickToCopyPill: Component<ClickToCopyPillProps> = (props) => {
+  const labelText = () => {
+    if (props.hasAgent) return "Selecting";
+    if (props.hasParent) return "Copy";
+    return "Click to copy";
+  };
+
+  return (
+    <div
+      class={cn(
+        "contain-layout shrink-0 flex items-center px-0 py-px w-fit h-[18px] rounded-[1.5px] gap-[3px]",
+        props.asButton && "cursor-pointer",
+        props.dimmed && "opacity-50 hover:opacity-100 transition-opacity",
+      )}
+      role="button"
+      onClick={props.onClick}
+    >
+      <div class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
+        {labelText()}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const RETURN_KEY_ICON_URL =
   "https://workers.paper.design/file-assets/01K8D51Q7E2ESJTN18XN2MT96X/01KBEJ7N5GQ0ZZ7K456R42AP4V.svg";
@@ -453,7 +462,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           <Show when={isNotProcessing() && !props.isInputExpanded}>
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit px-1.5">
-                <ClickToCopyPill onClick={handleSubmit} shrink hasParent={!!props.componentName} />
+                <ClickToCopyPill onClick={handleSubmit} shrink hasParent={!!props.componentName} hasAgent={props.hasAgent} />
                 <Show when={props.componentName}>
                   <div class="contain-layout shrink-0 flex items-center gap-px w-fit h-fit">
                     <ParentBadge name={props.componentName!} />
@@ -510,7 +519,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           <Show when={isNotProcessing() && props.isInputExpanded}>
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-fit h-fit">
-                <ClickToCopyPill onClick={handleSubmit} dimmed shrink hasParent={!!props.componentName} />
+                <ClickToCopyPill onClick={handleSubmit} dimmed shrink hasParent={!!props.componentName} hasAgent={props.hasAgent} />
                 <Show when={props.componentName}>
                   <div class="contain-layout shrink-0 flex items-center gap-px w-fit h-fit">
                     <ParentBadge name={props.componentName!} />
