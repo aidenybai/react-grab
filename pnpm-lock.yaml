@@ -220,11 +220,33 @@ importers:
         specifier: ^8.4.0
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
 
+  packages/react-grab-opencode:
+    dependencies:
+      '@hono/node-server':
+        specifier: ^1.19.6
+        version: 1.19.6(hono@4.10.7)
+      '@opencode-ai/sdk':
+        specifier: ^1.0.0
+        version: 1.0.132
+      hono:
+        specifier: ^4.0.0
+        version: 4.10.7
+      react-grab:
+        specifier: workspace:*
+        version: link:../react-grab
+    devDependencies:
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
+
   packages/vite-playground:
     dependencies:
       '@react-grab/next-playground':
         specifier: workspace:*
         version: link:../next-playground
+      '@react-grab/opencode':
+        specifier: workspace:*
+        version: link:../react-grab-opencode
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -1544,6 +1566,9 @@ packages:
   '@nolyfill/is-core-module@1.0.39':
     resolution: {integrity: sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==}
     engines: {node: '>=12.4.0'}
+
+  '@opencode-ai/sdk@1.0.132':
+    resolution: {integrity: sha512-3A9XjPKnJmRnnu1E3QjI3p6cjtQhsCYdV/xuYOf6FrNSyMYMlGTVI5cXDB1e7flMJBiciBXt1ba9QFukG4+Lpg==}
 
   '@opentelemetry/api@1.9.0':
     resolution: {integrity: sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg==}
@@ -6374,6 +6399,8 @@ snapshots:
       fastq: 1.19.1
 
   '@nolyfill/is-core-module@1.0.39': {}
+
+  '@opencode-ai/sdk@1.0.132': {}
 
   '@opentelemetry/api@1.9.0': {}
 

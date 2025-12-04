@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@react-grab/next-playground": "workspace:*",
+    "@react-grab/opencode": "workspace:*",
     "react-grab": "workspace:*",
     "clsx": "^2.1.1",
     "react": "19.1.2",
