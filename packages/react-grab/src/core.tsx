@@ -173,10 +173,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [isHoldingKeys, setIsHoldingKeys] = createSignal(false);
     const [mouseX, setMouseX] = createSignal(OFFSCREEN_POSITION);
     const [mouseY, setMouseY] = createSignal(OFFSCREEN_POSITION);
-    const [elementDetectionX, setElementDetectionX] =
-      createSignal(OFFSCREEN_POSITION);
-    const [elementDetectionY, setElementDetectionY] =
-      createSignal(OFFSCREEN_POSITION);
+    const [optimisticElement, setOptimisticElement] =
+      createSignal<Element | null>(null);
+    const [bestCandidateElement, setBestCandidateElement] =
+      createSignal<Element | null>(null);
     const [isElementDetectionStale, setIsElementDetectionStale] =
       createSignal(false);
     let lastElementDetectionTime = 0;
@@ -619,7 +619,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const targetElement = createMemo(() => {
       if (!isRendererActive() || isDragging()) return null;
-      return getElementAtPosition(elementDetectionX(), elementDetectionY());
+      return bestCandidateElement() ?? optimisticElement();
     });
 
     createEffect(() => {
@@ -1225,11 +1225,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setMouseX(clientX);
       setMouseY(clientY);
 
+      const quickElement = document.elementFromPoint(clientX, clientY);
+      if (quickElement && !quickElement.closest("[data-react-grab]")) {
+        setOptimisticElement(quickElement);
+      }
+
       const now = performance.now();
       if (now - lastElementDetectionTime >= ELEMENT_DETECTION_THROTTLE_MS) {
         lastElementDetectionTime = now;
-        setElementDetectionX(clientX);
-        setElementDetectionY(clientY);
+        const candidate = getElementAtPosition(clientX, clientY);
+        setBestCandidateElement(candidate);
         setIsElementDetectionStale(false);
       } else {
         setIsElementDetectionStale(true);
