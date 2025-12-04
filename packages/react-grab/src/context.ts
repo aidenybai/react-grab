@@ -137,15 +137,6 @@ export const getElementContext = async (
   return `${html}${stackContext.join("")}`;
 };
 
-export const getFileName = (stack: Array<StackFrame>): string | null => {
-  for (const frame of stack) {
-    if (frame.fileName && isSourceFile(frame.fileName)) {
-      return normalizeFileName(frame.fileName);
-    }
-  }
-  return null;
-};
-
 export const getHTMLPreview = (element: Element): string => {
   const tagName = element.tagName.toLowerCase();
   if (!(element instanceof HTMLElement)) {

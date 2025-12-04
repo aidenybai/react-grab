@@ -574,11 +574,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     value={props.inputValue ?? ""}
                     onInput={handleInput}
                     onKeyDown={handleKeyDown}
-                    placeholder={speechRecognition.isListening() ? "listening..." : "type or speak to edit"}
+                    placeholder={speechRecognition.isListening() ? "listening..." : props.hasAgent ? "type or speak to edit" : "type to edit"}
                     rows={1}
                   />
                   <div class="flex items-center gap-0.5 ml-1">
-                    <Show when={speechRecognition.isSupported()}>
+                    <Show when={props.hasAgent && speechRecognition.isSupported()}>
                       <button
                         class={cn(
                           "contain-layout shrink-0 flex items-center justify-center px-[3px] py-[3px] rounded-xs [border-width:0.5px] border-solid size-fit cursor-pointer transition-all hover:scale-105",

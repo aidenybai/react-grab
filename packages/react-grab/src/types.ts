@@ -15,7 +15,6 @@ export interface Theme {
   hue?: number;
   /**
    * The highlight box that appears when hovering over an element before selecting it
-   * @default true
    */
   selectionBox?: {
     /**
@@ -23,22 +22,9 @@ export interface Theme {
      * @default true
      */
     enabled?: boolean;
-    /**
-     * The border/outline color of the selection box.
-     * When undefined, falls back to grab-purple (rgb(210, 57, 192)) with opacity modifiers (50% border, 8% fill).
-     * When set, this color is used as the base for both the border and fill with the same opacity modifiers.
-     * @default undefined
-     */
-    color?: string;
-    /**
-     * Rounded corners of the selection box (e.g., "4px")
-     * @default 0px
-     */
-    borderRadius?: string;
   };
   /**
    * The rectangular selection area that appears when clicking and dragging to select multiple elements
-   * @default true
    */
   dragBox?: {
     /**
@@ -46,17 +32,9 @@ export interface Theme {
      * @default true
      */
     enabled?: boolean;
-    /**
-     * The fill color and border of the drag rectangle.
-     * When undefined, falls back to grab-purple (rgb(210, 57, 192)) with opacity modifiers (40% border, 5% fill).
-     * When set, this color is used as the base for both the border and fill with the same opacity modifiers.
-     * @default undefined
-     */
-    color?: string;
   };
   /**
    * Brief flash/highlight boxes that appear on elements immediately after they're successfully grabbed/copied
-   * @default true
    */
   grabbedBoxes?: {
     /**
@@ -64,17 +42,9 @@ export interface Theme {
      * @default true
      */
     enabled?: boolean;
-    /**
-     * The color of the flash boxes.
-     * When undefined, falls back to grab-purple (rgb(210, 57, 192)) with opacity modifiers (100% border, 8% fill).
-     * When set, this color is used as the base for both the border and fill with the same opacity modifiers.
-     * @default undefined
-     */
-    color?: string;
   };
   /**
    * The floating label that follows the cursor showing information about the currently hovered element
-   * @default true
    */
   elementLabel?: {
     /**
@@ -82,35 +52,9 @@ export interface Theme {
      * @default true
      */
     enabled?: boolean;
-    /**
-     * Background color of the label box
-     * @default #fde7f7 (grab-pink-light)
-     */
-    backgroundColor?: string;
-    /**
-     * Color of the text inside the label
-     * @default #b21c8e (grab-pink)
-     */
-    textColor?: string;
-    /**
-     * Border color around the label
-     * @default #f7c5ec (grab-pink-border)
-     */
-    borderColor?: string;
-    /**
-     * Internal spacing of the label (e.g., "4px 8px")
-     * @default "2px 6px"
-     */
-    padding?: string;
-    /**
-     * Distance in pixels the label appears from the cursor
-     * @default 14
-     */
-    cursorOffset?: number;
   };
   /**
    * Text labels that appear after successful operations (like "Copied!" messages)
-   * @default true
    */
   successLabels?: {
     /**
@@ -121,27 +65,10 @@ export interface Theme {
   };
   /**
    * The crosshair cursor overlay that helps with precise element targeting
-   * @default true
    */
   crosshair?: {
     /**
      * Whether to show the crosshair
-     * @default true
-     */
-    enabled?: boolean;
-    /**
-     * Color of the crosshair lines
-     * @default rgba(210, 57, 192) (grab-purple)
-     */
-    color?: string;
-  };
-  /**
-   * An input field overlay that can appear for text entry during selection
-   * @default true
-   */
-  inputOverlay?: {
-    /**
-     * Whether to show the input overlay when needed
      * @default true
      */
     enabled?: boolean;
@@ -181,20 +108,6 @@ export interface ElementLabelContext {
   x: number;
   y: number;
   content: string;
-}
-
-export type RenderType =
-  | "selectionBox"
-  | "dragBox"
-  | "grabbedBox"
-  | "elementLabel"
-  | "successLabel"
-  | "crosshair"
-  | "inputOverlay";
-
-export interface RenderData {
-  ref: HTMLElement | undefined;
-  props: Record<string, unknown>;
 }
 
 export interface ActivationKey {
@@ -268,7 +181,6 @@ export interface Options {
   onCopySuccess?: (elements: Element[], content: string) => void;
   onCopyError?: (error: Error) => void;
   onStateChange?: (state: ReactGrabState) => void;
-  onRender?: (type: RenderType, data: RenderData) => void;
   onInputModeChange?: (isInputMode: boolean, context: InputModeContext) => void;
   onSuccessLabel?: (
     text: string,
@@ -387,9 +299,4 @@ export interface DragRect {
   y: number;
   width: number;
   height: number;
-}
-
-export interface Position {
-  left: number;
-  top: number;
 }

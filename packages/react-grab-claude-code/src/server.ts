@@ -38,6 +38,7 @@ export const createServer = () => {
           options: {
             pathToClaudeCodeExecutable: "claude",
             cwd: process.cwd(),
+            includePartialMessages: true,
             ...options,
           },
         });
