@@ -139,6 +139,21 @@ interface GetElementContextOptions {
   maxLines?: number;
 }
 
+const formatFileName = (fileName: string): string => {
+  const normalized = normalizeFileName(fileName);
+
+  // For Vite projects, try to create a dev server URL format
+  if (typeof window !== 'undefined' && window.location.port) {
+    // Extract src path if it exists
+    const srcMatch = normalized.match(/\/src\/.+$/);
+    if (srcMatch) {
+      return `//${window.location.host}${srcMatch[0]}`;
+    }
+  }
+
+  return normalized;
+};
+
 export const getElementContext = async (
   element: Element,
   options: GetElementContextOptions = {},
@@ -168,7 +183,9 @@ export const getElementContext = async (
         continue;
       }
 
-      const framePart = `\n  at ${frame.name} in ${normalizeFileName(frame.source.fileName)}`;
+      const formattedFileName = formatFileName(frame.source.fileName);
+      const framePart = `\n  at ${frame.name} in ${formattedFileName}`;
+
       if (isNextProject) {
         stackContext.push(
           `${framePart}:${frame.source.lineNumber}:${frame.source.columnNumber}`,
