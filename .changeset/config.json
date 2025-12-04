@@ -8,7 +8,8 @@
       "react-grab",
       "@react-grab/claude-code",
       "@react-grab/ami",
-      "@react-grab/cursor"
+      "@react-grab/cursor",
+      "@react-grab/opencode"
     ]
   ],
   "access": "public",
