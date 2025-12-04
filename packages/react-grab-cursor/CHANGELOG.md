@@ -1,5 +1,13 @@
 # @react-grab/cursor
 
+## 0.0.63
+
+### Patch Changes
+
+- fix: x positioning of selection label
+- Updated dependencies
+  - react-grab@0.0.63
+
 ## 0.0.62
 
 ### Patch Changes
