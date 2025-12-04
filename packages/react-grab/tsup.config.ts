@@ -35,7 +35,6 @@ const DEFAULT_OPTIONS: Options = {
   noExternal: ["clsx", "tailwind-merge", "solid-js", "bippy"],
   onSuccess: process.env.COPY ? "pbcopy < ./dist/index.global.js" : undefined,
   outDir: "./dist",
-  platform: "browser",
   sourcemap: false,
   splitting: false,
   target: "esnext",
@@ -53,6 +52,7 @@ export default defineConfig([
     },
     minify: process.env.NODE_ENV === "production",
     outDir: "./dist",
+    platform: "browser",
     esbuildPlugins: [
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- babel is not typed
       babel({
@@ -75,6 +75,7 @@ export default defineConfig([
       ".css": "text",
     },
     outDir: "./dist",
+    platform: "neutral",
     splitting: true,
     esbuildPlugins: [
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- babel is not typed
