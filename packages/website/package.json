@@ -18,11 +18,11 @@
     "@vercel/analytics": "^1.5.0",
     "lucide-react": "^0.553.0",
     "motion": "^12.23.24",
-    "next": "16.0.3",
+    "next": "16.0.7",
     "nuqs": "^2.8.1",
     "pretty-ms": "^9.3.0",
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
+    "react": "19.2.1",
+    "react-dom": "19.2.1",
     "react-grab": "workspace:*",
     "recharts": "^3.4.1",
     "shiki": "^1.24.3"
@@ -33,7 +33,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.0.3",
+    "eslint-config-next": "16.0.7",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
