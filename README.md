@@ -133,7 +133,7 @@ The server runs on port `4567` and interfaces with the Claude Agent SDK. Add to 
 ```json
 {
   "scripts": {
-    "dev": "npx @react-grab/claude-code && next dev"
+    "dev": "npx @react-grab/claude-code@latest && next dev"
   }
 }
 ```
@@ -183,7 +183,7 @@ The server runs on port `5567` and interfaces with the `cursor-agent` CLI. Add t
 ```json
 {
   "scripts": {
-    "dev": "npx @react-grab/cursor && next dev"
+    "dev": "npx @react-grab/cursor@latest && next dev"
   }
 }
 ```

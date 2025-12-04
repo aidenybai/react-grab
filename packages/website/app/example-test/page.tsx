@@ -10,10 +10,6 @@ interface TodoItem {
 }
 
 const ExampleTestPage = () => {
-  if (process.env.NODE_ENV === "production") {
-    return <div>This page is only available in development mode.</div>;
-  }
-
   const [todos, setTodos] = useState<TodoItem[]>([
     { id: 1, text: "Fix the header alignment", completed: false },
     { id: 2, text: "Update dependencies", completed: true },
@@ -22,6 +18,10 @@ const ExampleTestPage = () => {
     { id: 5, text: "Deploy to production", completed: false },
   ]);
   const [inputValue, setInputValue] = useState("");
+
+  if (process.env.NODE_ENV === "production") {
+    return <div>This page is only available in development mode.</div>;
+  }
 
   const addTodo = () => {
     if (inputValue) {

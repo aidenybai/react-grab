@@ -12,6 +12,7 @@ interface SelectionBoxProps {
   lerpFactor?: number;
   createdAt?: number;
   isFading?: boolean;
+  isCompleted?: boolean;
 }
 
 export const SelectionBox: Component<SelectionBoxProps> = (props) => {
@@ -128,8 +129,10 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
             "border border-solid border-grab-purple/50 bg-grab-purple/8 transition-opacity duration-100 ease-out",
           props.variant === "grabbed" &&
             "border border-solid border-grab-purple bg-grab-purple/8 transition-opacity duration-300 ease-out",
-          props.variant === "processing" &&
+          props.variant === "processing" && !props.isCompleted &&
             "border border-solid border-grab-purple/50 bg-grab-purple/8",
+          props.variant === "processing" && props.isCompleted &&
+            "border border-solid react-grab-flash",
         )}
         style={{
           top: `${currentY()}px`,

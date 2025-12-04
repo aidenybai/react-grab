@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizeCss: true,
   },
+  devIndicators: false,
   webpack: (config, { dev, isServer }) => {
     if (!isServer && !dev) {
       config.devtool = "source-map";

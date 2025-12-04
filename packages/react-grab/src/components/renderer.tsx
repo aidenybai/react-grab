@@ -63,6 +63,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
                 variant="processing"
                 bounds={session.selectionBounds!}
                 visible={true}
+                isCompleted={!session.isStreaming}
               />
             </Show>
             <SelectionLabel

@@ -334,7 +334,7 @@ const AgentPage = () => {
                     lang="json"
                     code={`{
   "scripts": {
-    "dev": "npx @react-grab/claude-code && next dev"
+    "dev": "npx @react-grab/claude-code@latest && next dev"
   }
 }`}
                   />
@@ -433,7 +433,7 @@ export default function RootLayout({ children }) {
                     lang="json"
                     code={`{
   "scripts": {
-    "dev": "npx @react-grab/cursor && next dev"
+    "dev": "npx @react-grab/cursor@latest && next dev"
   }
 }`}
                   />

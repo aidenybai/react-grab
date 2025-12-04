@@ -23,7 +23,7 @@ The server runs on port `4567` by default.
 Start the server in the background before running your dev server:
 
 ```bash
-npx @react-grab/claude-code && pnpm run dev
+npx @react-grab/claude-code@latest && pnpm run dev
 ```
 
 The server will run as a detached background process. **Note:** Stopping your dev server (Ctrl+C) won't stop the React Grab server. To stop it:

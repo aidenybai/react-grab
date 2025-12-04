@@ -151,7 +151,7 @@ export const attachAgent = async () => {
 
   const api = window.__REACT_GRAB__;
   if (api) {
-    api.setAgent({ provider });
+    api.setAgent({ provider, storage: sessionStorage });
     return;
   }
 
@@ -159,7 +159,7 @@ export const attachAgent = async () => {
     "react-grab:init",
     (event: Event) => {
       const customEvent = event as CustomEvent<ReactGrabAPI>;
-      customEvent.detail.setAgent({ provider });
+      customEvent.detail.setAgent({ provider, storage: sessionStorage });
     },
     { once: true },
   );
