@@ -12,7 +12,7 @@ import {
 } from "./utils/agent-session.js";
 import { createElementBounds } from "./utils/create-element-bounds.js";
 import { generateSnippet } from "./utils/generate-snippet.js";
-import { getNearestComponentName } from "./instrumentation.js";
+import { getNearestComponentName } from "./context.js";
 
 interface StartSessionParams {
   element: Element;

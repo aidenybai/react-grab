@@ -18,7 +18,7 @@ import {
   getStack,
   getElementContext,
   getNearestComponentName,
-} from "./instrumentation.js";
+} from "./context.js";
 import { isSourceFile, normalizeFileName } from "bippy/source";
 import { copyContent } from "./utils/copy-content.js";
 import { getElementAtPosition } from "./utils/get-element-at-position.js";
@@ -2010,7 +2010,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   });
 };
 
-export { getStack, getElementContext as formatElementInfo, getFileName } from "./instrumentation.js";
+export { getStack, getElementContext as formatElementInfo, getFileName } from "./context.js";
 export { isInstrumentationActive } from "bippy";
 export { DEFAULT_THEME } from "./theme.js";
 

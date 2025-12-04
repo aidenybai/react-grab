@@ -82,54 +82,44 @@ export const getElementContext = async (element: Element): Promise<string> => {
   const stack = await getStack(element);
   const isNextProject = checkIsNextProject();
 
-  let fileName: string | null = null;
-  let lineNumber: number | null = null;
-  let columnNumber: number | null = null;
-
-  let serverComponentName: string | null = null;
-  let clientComponentName: string | null = null;
-
+  const stackContext: string[] = [];
   if (stack) {
     for (const frame of stack) {
-      // HACK: a server component will NOT have a source file name
+      if (frame.isServer) {
+        stackContext.push(
+          `\n  in ${frame.functionName || "<anonymous>"} (at Server)`,
+        );
+      }
       if (
-        frame.functionName &&
-        checkIsSourceComponentName(frame.functionName) &&
-        !serverComponentName &&
-        !frame.fileName
+        frame.fileName &&
+        frame.isSymbolicated &&
+        isSourceFile(frame.fileName)
       ) {
-        serverComponentName = frame.functionName;
-        continue;
-      }
+        let line = "\n  in ";
+        const hasComponentName =
+          frame.functionName && checkIsSourceComponentName(frame.functionName);
 
-      if (!frame.fileName) continue;
+        if (hasComponentName) {
+          line += `${frame.functionName} (at `;
+        }
 
-      if (isSourceFile(frame.fileName) && !fileName) {
-        fileName = normalizeFileName(frame.fileName);
-        lineNumber = frame.lineNumber ?? null;
-        columnNumber = frame.columnNumber ?? null;
-        clientComponentName = frame.functionName ?? null;
-        break;
+        line += normalizeFileName(frame.fileName);
+
+        // HACK: bundlers like vite mess up the line number and column number
+        if (isNextProject && frame.lineNumber && frame.columnNumber) {
+          line += `:${frame.lineNumber}:${frame.columnNumber}`;
+        }
+
+        if (hasComponentName) {
+          line += `)`;
+        }
+
+        stackContext.push(line);
       }
     }
   }
 
-  let result = html;
-
-  if (serverComponentName) {
-    result += `\n  in ${serverComponentName} (Server)`;
-  }
-
-  if (fileName) {
-    result += `\n${clientComponentName ? `  in ${clientComponentName}` : ""} at ${fileName}`;
-
-    // HACK: bundlers like vite mess up the line number and column number
-    if (isNextProject && lineNumber && columnNumber) {
-      result += `:${lineNumber}:${columnNumber}`;
-    }
-  }
-
-  return result;
+  return `${html}\n${stackContext.join("\n")}`;
 };
 
 export const getFileName = (stack: Array<StackFrame>): string | null => {

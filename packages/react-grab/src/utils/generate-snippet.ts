@@ -1,4 +1,4 @@
-import { getElementContext } from "../instrumentation.js";
+import { getElementContext } from "../context.js";
 
 export const generateSnippet = async (elements: Element[]): Promise<string> => {
   const elementSnippetResults = await Promise.allSettled(
