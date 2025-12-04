@@ -59,8 +59,9 @@ const RootLayout = ({
       >
         <NuqsAdapter>{children}</NuqsAdapter>
         <Analytics />
-        {process.env.NODE_ENV === "development" && <Script
-          src="//unpkg.com/@react-grab/cursor/dist/client.global.js"
+        {process.env.NODE_ENV === "development" && (
+          <Script
+            src="//unpkg.com/@react-grab/cursor/dist/client.global.js"
             strategy="lazyOnload"
           />
         )}
