@@ -166,19 +166,10 @@ export const createAgentManager = (
   const tryResumeSessions = () => {
     const storage = agentOptions?.storage;
     if (!storage) {
-      console.log("[react-grab] tryResumeSessions: no storage configured");
       return;
     }
 
     const existingSessions = loadSessions(storage);
-    console.log("[react-grab] tryResumeSessions: loaded sessions", {
-      count: existingSessions.size,
-      sessions: Array.from(existingSessions.values()).map((s) => ({
-        id: s.id,
-        isStreaming: s.isStreaming,
-        lastStatus: s.lastStatus,
-      })),
-    });
 
     if (existingSessions.size === 0) {
       return;
@@ -188,17 +179,13 @@ export const createAgentManager = (
       (session) => session.isStreaming,
     );
     if (streamingSessions.length === 0) {
-      console.log("[react-grab] tryResumeSessions: no streaming sessions, clearing");
       clearSessions(storage);
       return;
     }
     if (!agentOptions?.provider?.supportsResume || !agentOptions.provider.resume) {
-      console.log("[react-grab] tryResumeSessions: provider doesn't support resume");
       clearSessions(storage);
       return;
     }
-
-    console.log("[react-grab] tryResumeSessions: resuming", streamingSessions.length, "sessions");
 
     const streamingSessionsMap = new Map(
       streamingSessions.map((session) => [session.id, session]),
