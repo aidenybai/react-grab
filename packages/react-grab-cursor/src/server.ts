@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import net from "node:net";
+import { pathToFileURL } from "node:url";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { streamSSE } from "hono/streaming";
@@ -217,6 +218,6 @@ export const startServer = async (port: number = DEFAULT_PORT) => {
   console.log(`[React Grab] Server started on port ${port}`);
 };
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   startServer(DEFAULT_PORT).catch(console.error);
 }
