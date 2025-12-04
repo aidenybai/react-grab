@@ -797,9 +797,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             .then((stack) => {
               if (!stack) return;
               for (const frame of stack) {
-                if (frame.fileName && isSourceFile(frame.fileName)) {
-                  setSelectionFilePath(normalizeFileName(frame.fileName));
-                  setSelectionLineNumber(frame.lineNumber);
+                if (frame.source && isSourceFile(frame.source.fileName)) {
+                  setSelectionFilePath(normalizeFileName(frame.source.fileName));
+                  setSelectionLineNumber(frame.source.lineNumber);
                   return;
                 }
               }

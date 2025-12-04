@@ -1,11 +1,20 @@
 import {
   isSourceFile,
   normalizeFileName,
-  getOwnerStack,
-  StackFrame,
+  getSource,
+  FiberSource,
 } from "bippy/source";
 import { isCapitalized } from "./utils/is-capitalized.js";
-import { getFiberFromHostInstance, isInstrumentationActive } from "bippy";
+import {
+  getFiberFromHostInstance,
+  isInstrumentationActive,
+  getLatestFiber,
+  isFiber,
+  isHostFiber,
+  isCompositeFiber,
+  getDisplayName,
+  traverseFiber,
+} from "bippy";
 
 const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
   "InnerLayoutRouter",
@@ -56,25 +65,70 @@ export const checkIsSourceComponentName = (name: string): boolean => {
   return true;
 };
 
+interface StackFrame {
+  name: string;
+  source: FiberSource | null;
+}
+
+interface UnresolvedStackFrame {
+  name: string;
+  sourcePromise: Promise<FiberSource | null>;
+}
+
 export const getStack = async (
   element: Element,
 ): Promise<StackFrame[] | null> => {
   if (!isInstrumentationActive()) return [];
-  const fiber = getFiberFromHostInstance(element);
-  if (!fiber) return null;
-  return await getOwnerStack(fiber);
+
+  try {
+    const maybeFiber = getFiberFromHostInstance(element);
+    if (!maybeFiber || !isFiber(maybeFiber)) return [];
+    const fiber = getLatestFiber(maybeFiber);
+
+    const unresolvedStack: Array<UnresolvedStackFrame> = [];
+
+    traverseFiber(
+      fiber,
+      (currentFiber) => {
+        const displayName = isHostFiber(currentFiber)
+          ? typeof currentFiber.type === "string"
+            ? currentFiber.type
+            : null
+          : getDisplayName(currentFiber);
+
+        if (displayName && !checkIsInternalComponentName(displayName)) {
+          unresolvedStack.push({
+            name: displayName,
+            sourcePromise: getSource(currentFiber),
+          });
+        }
+      },
+      true,
+    );
+
+    const resolvedStack = await Promise.all(
+      unresolvedStack.map(async (frame) => ({
+        name: frame.name,
+        source: await frame.sourcePromise,
+      })),
+    );
+
+    return resolvedStack.filter((frame) => frame.source !== null);
+  } catch {
+    return [];
+  }
 };
 
 export const getNearestComponentName = async (
   element: Element,
 ): Promise<string | null> => {
-  if (isInstrumentationActive()) return null;
+  if (!isInstrumentationActive()) return null;
   const stack = await getStack(element);
   if (!stack) return null;
 
   for (const frame of stack) {
-    if (frame.functionName && checkIsSourceComponentName(frame.functionName)) {
-      return frame.functionName;
+    if (frame.name && checkIsSourceComponentName(frame.name)) {
+      return frame.name;
     }
   }
 
@@ -89,7 +143,7 @@ export const getElementContext = async (
   element: Element,
   options: GetElementContextOptions = {},
 ): Promise<string> => {
-  const { maxLines = 3 } = options;
+  const { maxLines = 10 } = options;
   const html = getHTMLPreview(element);
   const stack = await getStack(element);
   const isNextProject = checkIsNextProject();
@@ -99,36 +153,29 @@ export const getElementContext = async (
     for (const frame of stack) {
       if (stackContext.length >= maxLines) break;
 
-      if (
-        frame.isServer &&
-        (!frame.functionName || checkIsSourceComponentName(frame.functionName))
-      ) {
-        stackContext.push(
-          `\n  in ${frame.functionName || "<anonymous>"} (at Server)`,
-        );
+      if (!frame.source) {
+        stackContext.push(`\n  at ${frame.name}`);
         continue;
       }
-      if (frame.fileName && isSourceFile(frame.fileName)) {
-        let line = "\n  in ";
-        const hasComponentName =
-          frame.functionName && checkIsSourceComponentName(frame.functionName);
 
-        if (hasComponentName) {
-          line += `${frame.functionName} (at `;
-        }
+      if (frame.source.fileName.startsWith("about://React/Server")) {
+        stackContext.push(`\n  at ${frame.name} (Server)`);
+        continue;
+      }
 
-        line += normalizeFileName(frame.fileName);
+      if (!isSourceFile(frame.source.fileName)) {
+        stackContext.push(`\n  at ${frame.name}`);
+        continue;
+      }
 
-        // HACK: bundlers like vite mess up the line number and column number
-        if (isNextProject && frame.lineNumber && frame.columnNumber) {
-          line += `:${frame.lineNumber}:${frame.columnNumber}`;
-        }
-
-        if (hasComponentName) {
-          line += `)`;
-        }
-
-        stackContext.push(line);
+      const framePart = `\n  at ${frame.name} in ${normalizeFileName(frame.source.fileName)}`;
+      if (isNextProject) {
+        stackContext.push(
+          `${framePart}:${frame.source.lineNumber}:${frame.source.columnNumber}`,
+        );
+      } else {
+        // bundlers like vite mess up the line number and column number
+        stackContext.push(framePart);
       }
     }
   }
@@ -138,8 +185,8 @@ export const getElementContext = async (
 
 export const getFileName = (stack: Array<StackFrame>): string | null => {
   for (const frame of stack) {
-    if (frame.fileName && isSourceFile(frame.fileName)) {
-      return normalizeFileName(frame.fileName);
+    if (frame.source && isSourceFile(frame.source.fileName)) {
+      return normalizeFileName(frame.source.fileName);
     }
   }
   return null;
