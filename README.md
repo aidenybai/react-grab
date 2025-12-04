@@ -19,10 +19,7 @@ It makes tools like Cursor, Claude Code, Copilot run up to [**66% faster**](http
 Get started in 1 minute by adding this script tag to your app:
 
 ```html
-<script
-  src="//www.react-grab.com/script.js"
-  crossorigin="anonymous"
-></script>
+<script src="//www.react-grab.com/script.js" crossorigin="anonymous"></script>
 ```
 
 If you're using a React framework or build tool, view instructions below:
@@ -126,6 +123,8 @@ if (process.env.NODE_ENV === "development") {
 React Grab can send selected element context directly to your coding agent. This enables a workflow where you select a UI element and an agent automatically makes changes to your codebase.
 
 This means **no copying and pasting** - just select the element and let the agent do the rest.
+
+First, install React Grab normally, then install the coding agent provider:
 
 ### Claude Code
 
