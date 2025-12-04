@@ -87,7 +87,10 @@ export const getElementContext = async (element: Element): Promise<string> => {
   if (stack) {
     console.log(stack);
     for (const frame of stack) {
-      if (frame.isServer) {
+      if (
+        frame.isServer &&
+        (!frame.functionName || checkIsSourceComponentName(frame.functionName))
+      ) {
         stackContext.push(
           `\n  in ${frame.functionName || "<anonymous>"} (at Server)`,
         );
