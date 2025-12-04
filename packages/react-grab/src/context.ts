@@ -31,6 +31,7 @@ const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
   "ServerRoot",
   "SegmentStateProvider",
   "RootErrorBoundary",
+  "LoadableComponent",
 ]);
 
 export const checkIsNextProject = (): boolean => {
@@ -90,12 +91,9 @@ export const getElementContext = async (element: Element): Promise<string> => {
         stackContext.push(
           `\n  in ${frame.functionName || "<anonymous>"} (at Server)`,
         );
+        continue;
       }
-      if (
-        frame.fileName &&
-        frame.isSymbolicated &&
-        isSourceFile(frame.fileName)
-      ) {
+      if (frame.fileName && isSourceFile(frame.fileName)) {
         let line = "\n  in ";
         const hasComponentName =
           frame.functionName && checkIsSourceComponentName(frame.functionName);
