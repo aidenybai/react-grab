@@ -357,7 +357,6 @@ export interface ReactGrabRendererProps {
   onInputSubmit?: () => void;
   onInputCancel?: () => void;
   onToggleExpand?: () => void;
-  micToggleVersion?: number;
   nativeSelectionCursorVisible?: boolean;
   nativeSelectionCursorX?: number;
   nativeSelectionCursorY?: number;
