@@ -90,7 +90,7 @@ const AgentPage = () => {
                 <Image
                   src={ReactGrabLogo}
                   alt="React Grab"
-                  className="w-10 h-10"
+                  className="w-16 h-16"
                 />
               </Link>
               <h1 className="text-xl font-medium text-white">
@@ -204,12 +204,8 @@ const AgentPage = () => {
                 <Image src={demoGif} alt="React Grab demo" />
               </div>
               <p>
-                Now, instead of guessing where &quot;the forgot password
-                link&quot; might live, the agent jumps straight to{" "}
-                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
-                  components/login-form.tsx:46:19
-                </code>
-                .
+                Now, instead of guessing where an element might live, the agent
+                jumps straight to the exact file, line, and column.
               </p>
               <p>
                 In the benchmarks I ran on a shadcn dashboard, that alone made
