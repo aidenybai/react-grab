@@ -17,22 +17,7 @@ yarn add @react-grab/ami
 ## Usage
 
 ```tsx
-import { init } from "react-grab/core";
-import { createAmiAgentProvider } from "@react-grab/ami/client";
+import { attachAgent } from "@react-grab/ami/client";
 
-const agentProvider = createAmiAgentProvider();
-
-init({
-  agent: {
-    provider: agentProvider,
-  },
-});
-```
-
-## Configuration
-
-You can optionally pass a custom project ID:
-
-```tsx
-const agentProvider = createAmiAgentProvider("my-project-id");
+attachAgent();
 ```

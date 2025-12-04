@@ -22,42 +22,31 @@ The server runs on port `4567` by default.
 
 ```ts
 // vite.config.ts
-import "@react-grab/claude-code/server";
+import { startServer } from "@react-grab/claude-code/server";
+
+if (process.env.NODE_ENV === "development") {
+  startServer();
+}
 ```
 
 ### Next.js
 
 ```ts
 // next.config.ts
-import "@react-grab/claude-code/server";
+import { startServer } from "@react-grab/claude-code/server";
+
+if (process.env.NODE_ENV === "development") {
+  startServer();
+}
 ```
 
 ## Client Usage
 
 ```tsx
 import { init } from "react-grab/core";
-import { createClaudeAgentProvider } from "@react-grab/claude-code/client";
+import { attachAgent } from "@react-grab/claude-code/client";
 
-const agentProvider = createClaudeAgentProvider();
-
-init({
-  agent: {
-    provider: agentProvider,
-  },
-});
-```
-
-## Configuration
-
-You can customize the server URL and default options:
-
-```tsx
-const agentProvider = createClaudeAgentProvider({
-  getOptions: () => ({
-    model: "opus",
-    maxTurns: 20,
-  }),
-});
+attachAgent();
 ```
 
 ## How It Works

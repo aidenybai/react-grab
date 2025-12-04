@@ -22,42 +22,31 @@ The server runs on port `5567` by default.
 
 ```ts
 // vite.config.ts
-import "@react-grab/cursor/server";
+import { startServer } from "@react-grab/cursor/server";
+
+if (process.env.NODE_ENV === "development") {
+  startServer();
+}
 ```
 
 ### Next.js
 
 ```ts
 // next.config.ts
-import "@react-grab/cursor/server";
+import { startServer } from "@react-grab/cursor/server";
+
+if (process.env.NODE_ENV === "development") {
+  startServer();
+}
 ```
 
 ## Client Usage
 
 ```tsx
 import { init } from "react-grab/core";
-import { createCursorAgentProvider } from "@react-grab/cursor/client";
+import { attachAgent } from "@react-grab/cursor/client";
 
-const agentProvider = createCursorAgentProvider();
-
-init({
-  agent: {
-    provider: agentProvider,
-  },
-});
-```
-
-## Configuration
-
-You can customize the server URL and default options:
-
-```tsx
-const agentProvider = createCursorAgentProvider({
-  getOptions: () => ({
-    model: "composer-1",
-    workspace: "/path/to/workspace",
-  }),
-});
+attachAgent();
 ```
 
 ## How It Works
