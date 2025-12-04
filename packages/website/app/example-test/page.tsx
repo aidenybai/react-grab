@@ -52,6 +52,8 @@ const TodoInput = ({ value, onChange, onAdd }: TodoInputProps) => {
   );
 };
 
+TodoInput.displayName = "TodoInput";
+
 const TodoItemRow = ({ todo, onToggle, onDelete }: TodoItemRowProps) => {
   return (
     <div
@@ -113,6 +115,8 @@ const TodoItemRow = ({ todo, onToggle, onDelete }: TodoItemRowProps) => {
   );
 };
 
+TodoItemRow.displayName = "TodoItemRow";
+
 const TodoFooter = ({
   completedCount,
   totalCount,
@@ -134,6 +138,8 @@ const TodoFooter = ({
     </div>
   );
 };
+
+TodoFooter.displayName = "TodoFooter";
 
 const TodoStatistics = ({
   totalCount,
@@ -160,6 +166,8 @@ const TodoStatistics = ({
     </div>
   );
 };
+
+TodoStatistics.displayName = "TodoStatistics";
 
 const ExampleTestPage = () => {
   const [todos, setTodos] = useState<TodoItem[]>([

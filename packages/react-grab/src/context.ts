@@ -68,7 +68,7 @@ export const getStack = async (
 export const getNearestComponentName = async (
   element: Element,
 ): Promise<string | null> => {
-  if (isInstrumentationActive()) return null;
+  if (!isInstrumentationActive()) return null;
   const stack = await getStack(element);
   if (!stack) return null;
 
