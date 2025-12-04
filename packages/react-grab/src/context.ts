@@ -32,6 +32,7 @@ const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
   "SegmentStateProvider",
   "RootErrorBoundary",
   "LoadableComponent",
+  "MotionDOMComponent",
 ]);
 
 export const checkIsNextProject = (): boolean => {
