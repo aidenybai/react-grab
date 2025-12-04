@@ -124,7 +124,7 @@ React Grab can send selected element context directly to your coding agent. This
 
 This means **no copying and pasting** - just select the element and let the agent do the rest. [Learn more →](https://react-grab.com/blog/agent)
 
-https://react-grab.com/agent.mp4
+https://github.com/user-attachments/assets/c252735a-0d65-4d5a-b298-b1063b7b1d71
 
 ### Claude Code
 
