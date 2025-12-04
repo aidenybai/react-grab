@@ -120,7 +120,7 @@ export const getElementContext = async (element: Element): Promise<string> => {
     }
   }
 
-  return `${html}\n${stackContext.join("\n")}`;
+  return `${html}\n${stackContext.join("")}`;
 };
 
 export const getFileName = (stack: Array<StackFrame>): string | null => {

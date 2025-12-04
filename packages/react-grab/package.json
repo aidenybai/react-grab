@@ -95,7 +95,7 @@
     "access": "public"
   },
   "dependencies": {
-    "bippy": "^0.5.24",
+    "bippy": "^0.5.25",
     "solid-js": "^1.9.10"
   }
 }
