@@ -1,5 +1,13 @@
 # @react-grab/ami
 
+## 0.0.65
+
+### Patch Changes
+
+- fix: instrumentation
+- Updated dependencies
+  - react-grab@0.0.65
+
 ## 0.0.64
 
 ### Patch Changes
