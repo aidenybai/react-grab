@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import ReactGrabLogo from "@/public/logo.svg";
+import { GithubButton } from "@/components/github-button";
+import { CursorInstallButton } from "@/components/cursor-install-button";
 
 const BetsPage = () => {
   return (
@@ -196,6 +198,23 @@ const BetsPage = () => {
                 </a>
                 .
               </p>
+            </div>
+
+            <div className="flex flex-col gap-4 mt-8">
+              <h3 className="text-lg font-medium text-neutral-200">Try it out</h3>
+              <p>
+                React Grab is free and open source.{" "}
+                <Link
+                  href="/"
+                  className="text-neutral-300 hover:text-white underline underline-offset-4 transition-colors"
+                >
+                  Go try it out!
+                </Link>
+              </p>
+              <div className="flex gap-2">
+                <GithubButton />
+                <CursorInstallButton />
+              </div>
             </div>
 
             <div className="flex flex-col gap-4 mt-12 pt-8 border-t border-neutral-800">
