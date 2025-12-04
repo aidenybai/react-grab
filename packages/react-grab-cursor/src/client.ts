@@ -54,7 +54,10 @@ async function* streamSSE(stream: ReadableStream<Uint8Array>) {
         buffer = buffer.slice(boundary + 2);
 
         if (eventType === "done") return;
-        if (eventType === "error") throw new Error(data || "Agent error");
+        if (eventType === "error") {
+          console.error("[react-grab]", data || "Agent error");
+          return;
+        }
         if (data) yield data;
       }
 

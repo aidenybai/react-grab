@@ -75,7 +75,6 @@ export const createServer = () => {
           data: `Error: ${errorMessage}`,
           event: "error",
         });
-        await stream.writeSSE({ data: "", event: "done" });
       }
     });
   });
