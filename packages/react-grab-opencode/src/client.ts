@@ -29,30 +29,30 @@ interface SSEEvent {
     data: string;
 }
 
-const parseSSEEvent = (eventBlock: string): SSEEvent => {
+const parseServerSentEvent = (eventStringBlock: string): SSEEvent => {
     let eventType = "";
     let data = "";
-    for (const line of eventBlock.split("\n")) {
+    for (const line of eventStringBlock.split("\n")) {
         if (line.startsWith("event:")) eventType = line.slice(6).trim();
         else if (line.startsWith("data:")) data = line.slice(5).trim();
     }
     return { eventType, data };
 };
 
-async function* streamSSE(stream: ReadableStream<Uint8Array>) {
-    const reader = stream.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
+const streamSSE = async function* (stream: ReadableStream<Uint8Array>) {
+    const streamReader = stream.getReader();
+    const textDecoder = new TextDecoder();
+    let textBuffer = "";
 
     try {
         while (true) {
-            const { done, value } = await reader.read();
-            if (value) buffer += decoder.decode(value, { stream: true });
+            const { done, value } = await streamReader.read();
+            if (value) textBuffer += textDecoder.decode(value, { stream: true });
 
-            let boundary;
-            while ((boundary = buffer.indexOf("\n\n")) !== -1) {
-                const { eventType, data } = parseSSEEvent(buffer.slice(0, boundary));
-                buffer = buffer.slice(boundary + 2);
+            let boundaryIndex;
+            while ((boundaryIndex = textBuffer.indexOf("\n\n")) !== -1) {
+                const { eventType, data } = parseServerSentEvent(textBuffer.slice(0, boundaryIndex));
+                textBuffer = textBuffer.slice(boundaryIndex + 2);
 
                 if (eventType === "done") return;
                 if (eventType === "error") throw new Error(data || "Agent error");
@@ -62,11 +62,11 @@ async function* streamSSE(stream: ReadableStream<Uint8Array>) {
             if (done) break;
         }
     } finally {
-        reader.releaseLock();
+        streamReader.releaseLock();
     }
-}
+};
 
-async function* streamFromServer(
+const streamFromServer = async function* (
     serverUrl: string,
     context: OpencodeAgentContext,
     signal: AbortSignal,
@@ -87,12 +87,12 @@ async function* streamFromServer(
     }
 
     yield* streamSSE(response.body);
-}
+};
 
 export const createOpencodeAgentProvider = (
-    providerOptions: OpencodeAgentProviderOptions = {},
+    options: OpencodeAgentProviderOptions = {},
 ): AgentProvider<OpencodeAgentOptions> => {
-    const { serverUrl = DEFAULT_SERVER_URL, getOptions } = providerOptions;
+    const { serverUrl = DEFAULT_SERVER_URL, getOptions } = options;
 
     const mergeOptions = (
         contextOptions?: OpencodeAgentOptions,
@@ -103,36 +103,33 @@ export const createOpencodeAgentProvider = (
 
     return {
         send: async function* (context: OpencodeAgentContext, signal: AbortSignal) {
-            const mergedContext = {
+            const combinedContext = {
                 ...context,
                 options: mergeOptions(context.options),
             };
-            yield* streamFromServer(serverUrl, mergedContext, signal);
+            yield* streamFromServer(serverUrl, combinedContext, signal);
         },
 
         resume: async function* (sessionId: string, signal: AbortSignal, storage: AgentSessionStorage) {
-            const savedSessions = storage.getItem(STORAGE_KEY);
-            if (!savedSessions) {
+            const storedSessions = storage.getItem(STORAGE_KEY);
+            if (!storedSessions) {
                 throw new Error("No sessions to resume");
             }
 
-            const sessionsObject = JSON.parse(savedSessions) as Record<
-                string,
-                AgentSession
-            >;
-            const session = sessionsObject[sessionId];
+            const parsedSessions: Record<string, AgentSession> = JSON.parse(storedSessions);
+            const session = parsedSessions[sessionId];
             if (!session) {
                 throw new Error(`Session ${sessionId} not found`);
             }
 
             const context = session.context as OpencodeAgentContext;
-            const mergedContext = {
+            const combinedContext = {
                 ...context,
                 options: mergeOptions(context.options),
             };
 
             yield "Resuming...";
-            yield* streamFromServer(serverUrl, mergedContext, signal);
+            yield* streamFromServer(serverUrl, combinedContext, signal);
         },
 
         supportsResume: true,
@@ -159,8 +156,12 @@ export const attachAgent = async () => {
     window.addEventListener(
         "react-grab:init",
         (event: Event) => {
-            const customEvent = event as CustomEvent<ReactGrabAPI>;
-            customEvent.detail.setAgent({ provider, storage: sessionStorage });
+            if (event instanceof CustomEvent) {
+                const customEvent = event;
+                if (customEvent.detail && typeof customEvent.detail.setAgent === 'function') {
+                    (customEvent.detail as ReactGrabAPI).setAgent({ provider, storage: sessionStorage });
+                }
+            }
         },
         { once: true },
     );

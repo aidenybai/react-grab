@@ -9,10 +9,9 @@ import { serve } from "@hono/node-server";
 import type { AgentContext } from "react-grab/core";
 import { DEFAULT_PORT } from "./constants.js";
 
-// Ensure npm's global bin directory is FIRST in PATH for opencode to be found
-const npmGlobalDir = join(homedir(), "AppData", "Roaming", "npm");
-if (!process.env.PATH?.startsWith(npmGlobalDir)) {
-    process.env.PATH = `${npmGlobalDir};${process.env.PATH}`;
+const npmGlobalDirectory = join(homedir(), "AppData", "Roaming", "npm");
+if (!process.env.PATH?.startsWith(npmGlobalDirectory)) {
+    process.env.PATH = `${npmGlobalDirectory};${process.env.PATH}`;
 }
 
 export interface OpencodeAgentOptions {
@@ -23,37 +22,32 @@ export interface OpencodeAgentOptions {
 
 type OpencodeAgentContext = AgentContext<OpencodeAgentOptions>;
 
-// Run opencode with prompt via stdin, attaching to external server
-const runOpencodePrompt = async (
+const executeOpencodePrompt = async (
     prompt: string,
     options?: OpencodeAgentOptions,
     onOutput?: (text: string) => void
 ): Promise<string> => {
-    // Sanitize prompt: escape HTML tags for safety
-    const sanitizedPrompt = prompt
-        .replace(/<(\w+)>/g, "[$1]")  // Convert <tag> to [tag]
-        .replace(/<\/(\w+)>/g, "[/$1]")  // Convert </tag> to [/tag]
-        .replace(/</g, "(")  // Any remaining < becomes (
-        .replace(/>/g, ")");  // Any remaining > becomes )
+    const safePrompt = prompt
+        .replace(/<(\w+)>/g, "[$1]")
+        .replace(/<\/(\w+)>/g, "[/$1]")
+        .replace(/</g, "(")
+        .replace(/>/g, ")");
 
-    console.log("[Opencode] Running with prompt:", sanitizedPrompt.substring(0, 100) + "...");
+    console.log("[Opencode] Running with prompt:", safePrompt.substring(0, 100) + "...");
 
     return new Promise((resolve, reject) => {
-        // Build args array with --attach to connect to external server
-        const args = ["run", "--format", "json", "--attach", "http://127.0.0.1:4096"];
+        const opencodeArguments = ["run", "--format", "json", "--attach", "http://127.0.0.1:4096"];
 
-        // Use custom 'react-grab' agent if not specified
-        args.push("--agent", options?.agent || "react-grab");
+        opencodeArguments.push("--agent", options?.agent || "react-grab");
 
         if (options?.model) {
-            args.push("--model", options.model);
+            opencodeArguments.push("--model", options.model);
         }
 
         console.log("[Opencode] Options received:", JSON.stringify(options));
-        console.log("[Opencode] Args v2:", args.join(" "), "(prompt via stdin)");
+        console.log("[Opencode] Args v2:", opencodeArguments.join(" "), "(prompt via stdin)");
 
-        // Set permission to auto-allow external directory access (avoids interactive prompts)
-        const env = {
+        const environmentVariables = {
             ...process.env,
             OPENCODE_PERMISSION: JSON.stringify({
                 external_directory: "allow",
@@ -61,82 +55,78 @@ const runOpencodePrompt = async (
             }),
         };
 
-        const proc = spawn("opencode", args, {
-            env,
+        const childProcess = spawn("opencode", opencodeArguments, {
+            env: environmentVariables,
             cwd: options?.directory ?? process.cwd(),
             windowsHide: true,
             shell: true,
             stdio: ["pipe", "pipe", "pipe"],
         });
 
-        // Send prompt via stdin - this avoids ALL shell escaping issues
-        if (proc.stdin) {
-            proc.stdin.write(sanitizedPrompt);
-            proc.stdin.end();
+        if (childProcess.stdin) {
+            childProcess.stdin.write(safePrompt);
+            childProcess.stdin.end();
         }
 
-        let stdout = "";
-        let stderr = "";
+        let standardOutput = "";
+        let standardError = "";
 
-        proc.stdout?.on("data", (chunk: Buffer) => {
-            const text = chunk.toString();
-            stdout += text;
+        childProcess.stdout?.on("data", (dataChunk: Buffer) => {
+            const text = dataChunk.toString();
+            standardOutput += text;
 
-            // Parse and log events in detail
-            const lines = text.split("\n").filter(Boolean);
-            for (const line of lines) {
+            const outputLines = text.split("\n").filter(Boolean);
+            for (const outputLine of outputLines) {
                 try {
-                    const event = JSON.parse(line);
-                    // Log detailed info for tool_use events
-                    if (event.type === "tool_use" && event.part) {
+                    const parsedEvent = JSON.parse(outputLine);
+                    if (parsedEvent.type === "tool_use" && parsedEvent.part) {
                         console.log("[Opencode tool_use]", JSON.stringify({
-                            tool: event.part.tool,
-                            title: event.part.state?.title,
-                            input: event.part.state?.input,
+                            tool: parsedEvent.part.tool,
+                            title: parsedEvent.part.state?.title,
+                            input: parsedEvent.part.state?.input,
                         }, null, 2));
                     } else {
-                        console.log("[Opencode event]", event.type, event.part?.type || "");
+                        console.log("[Opencode event]", parsedEvent.type, parsedEvent.part?.type || "");
                     }
 
-                    if (onOutput && event.type === "text" && event.part?.text) {
-                        onOutput(event.part.text);
+                    if (onOutput && parsedEvent.type === "text" && parsedEvent.part?.text) {
+                        onOutput(parsedEvent.part.text);
                     }
                 } catch {
-                    // Ignore parse errors
                 }
             }
         });
 
-        proc.stderr?.on("data", (chunk: Buffer) => {
-            const text = chunk.toString();
-            stderr += text;
+        childProcess.stderr?.on("data", (dataChunk: Buffer) => {
+            const text = dataChunk.toString();
+            standardError += text;
             console.log("[Opencode stderr]", text.trim());
         });
 
-        proc.on("error", (error: Error) => {
+        childProcess.on("error", (error: Error) => {
             reject(error);
         });
 
-        proc.on("exit", (code: number | null) => {
+        childProcess.on("exit", (code: number | null) => {
             if (code === 0) {
-                resolve(stdout);
+                resolve(standardOutput);
             } else {
-                reject(new Error(`opencode run exited with code ${code}. stderr: ${stderr}`));
+                reject(new Error(`opencode run exited with code ${code}. stderr: ${standardError}`));
             }
         });
     });
 };
 
 export const createServer = () => {
-    const app = new Hono();
+    const honoApplication = new Hono();
 
-    app.use("/*", cors());
+    honoApplication.use("/*", cors());
 
-    app.post("/agent", async (context) => {
-        const body = await context.req.json<OpencodeAgentContext>();
-        const { content, prompt, options } = body;
+    honoApplication.post("/agent", async (context) => {
+        const requestBody = await context.req.json<OpencodeAgentContext>();
+        const { content, prompt, options } = requestBody;
 
-        const fullPrompt = `
+        const formattedPrompt = `
 User Request: ${prompt}
 
 Context:
@@ -150,18 +140,18 @@ ${content}
             try {
                 await stream.writeSSE({ data: "Starting Opencode...", event: "status" });
 
-                let lastText = "";
-                const result = await runOpencodePrompt(fullPrompt, options, (text) => {
-                    if (text !== lastText) {
+                let previousText = "";
+                const executionResult = await executeOpencodePrompt(formattedPrompt, options, (text) => {
+                    if (text !== previousText) {
                         stream.writeSSE({
                             data: text.length > 80 ? "..." + text.slice(-80) : text,
                             event: "status"
                         }).catch(() => { });
-                        lastText = text;
+                        previousText = text;
                     }
                 });
 
-                console.log("[Opencode] Completed. Result length:", result.length);
+                console.log("[Opencode] Completed. Result length:", executionResult.length);
                 await stream.writeSSE({ data: "Completed successfully", event: "status" });
                 await stream.writeSSE({ data: "", event: "done" });
 
@@ -177,22 +167,22 @@ ${content}
         });
     });
 
-    app.get("/health", (context) => {
+    honoApplication.get("/health", (context) => {
         return context.json({ status: "ok", provider: "opencode" });
     });
 
-    return app;
+    return honoApplication;
 };
 
 const isPortInUse = (port: number): Promise<boolean> =>
     new Promise((resolve) => {
-        const server = net.createServer();
-        server.once("error", () => resolve(true));
-        server.once("listening", () => {
-            server.close();
+        const netServer = net.createServer();
+        netServer.once("error", () => resolve(true));
+        netServer.once("listening", () => {
+            netServer.close();
             resolve(false);
         });
-        server.listen(port);
+        netServer.listen(port);
     });
 
 export const startServer = async (port: number = DEFAULT_PORT) => {
@@ -200,8 +190,8 @@ export const startServer = async (port: number = DEFAULT_PORT) => {
         return;
     }
 
-    const app = createServer();
-    serve({ fetch: app.fetch, port });
+    const honoApplication = createServer();
+    serve({ fetch: honoApplication.fetch, port });
     console.log(`[React Grab] Opencode server started on port ${port}`);
 };
 
