@@ -1,7 +1,20 @@
 import { useEffect, useState, useRef } from "react";
-import { getGlobalApi, type ReactGrabAPI } from "react-grab";
 
-const PROVIDER = import.meta.env.VITE_AGENT_PROVIDER ?? "claude";
+declare global {
+  interface Window {
+    __REACT_GRAB__?: {
+      activate: () => void;
+      setAgent: (options: {
+        storage?: Storage;
+        onStart?: (session: { id: string }) => void;
+        onStatus?: (status: string) => void;
+        onComplete?: () => void;
+        onError?: (error: Error) => void;
+        onResume?: (session: { id: string }) => void;
+      }) => void;
+    };
+  }
+}
 
 const ReactGrabLogo = ({ size = 24 }: { size?: number }) => (
   <svg
@@ -70,16 +83,17 @@ export const App = () => {
   const [logs, setLogs] = useState<
     Array<{ type: string; message: string; time: Date }>
   >([]);
-  const apiRef = useRef<ReactGrabAPI | null>(null);
+  const didInit = useRef(false);
 
   const addLog = (type: string, message: string) => {
     setLogs((prev) => [...prev, { type, message, time: new Date() }]);
   };
 
   useEffect(() => {
-    if (apiRef.current) return;
+    if (didInit.current) return;
+    didInit.current = true;
 
-    const api = getGlobalApi();
+    const api = window.__REACT_GRAB__;
     if (!api) {
       addLog("error", "React Grab not initialized");
       return;
@@ -94,8 +108,7 @@ export const App = () => {
       onResume: (session) => addLog("resume", session.id),
     });
 
-    apiRef.current = api;
-    addLog("info", `Ready (${PROVIDER})`);
+    addLog("info", "Ready");
   }, []);
 
   return (
@@ -110,7 +123,7 @@ export const App = () => {
             Select any element and send it to the agent
           </p>
           <button
-            onClick={() => apiRef.current?.activate()}
+            onClick={() => window.__REACT_GRAB__?.activate()}
             className="text-sm px-3 py-1.5 bg-white text-black hover:bg-white/90 rounded transition-colors italic"
           >
             Grab Element

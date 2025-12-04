@@ -4,12 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite"
+    "dev": "node ../react-grab-claude-code/dist/cli.js && vite",
+    "dev:claude": "node ../react-grab-claude-code/dist/cli.js && vite",
+    "dev:cursor": "node ../react-grab-cursor/dist/cli.js && vite"
   },
   "dependencies": {
-    "@react-grab/ami": "workspace:*",
-    "@react-grab/claude-code": "workspace:*",
-    "@react-grab/cursor": "workspace:*",
     "react": "19.0.1",
     "react-dom": "19.0.1",
     "react-grab": "workspace:*"

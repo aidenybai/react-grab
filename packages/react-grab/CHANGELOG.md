@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.61
+
+### Patch Changes
+
+- fix: improved installation strategy
+
 ## 0.0.60
 
 ### Patch Changes

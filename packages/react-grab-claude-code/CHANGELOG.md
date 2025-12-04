@@ -1,5 +1,13 @@
 # @react-grab/claude-code
 
+## 0.0.61
+
+### Patch Changes
+
+- fix: improved installation strategy
+- Updated dependencies
+  - react-grab@0.0.61
+
 ## 0.0.60
 
 ### Patch Changes
