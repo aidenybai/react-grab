@@ -185,7 +185,7 @@ const AgentPage = () => {
               <p>
                 You pressed{" "}
                 <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
-                  Cmd+C
+                  ⌘C
                 </code>{" "}
                 (or{" "}
                 <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
@@ -264,7 +264,7 @@ in AuthLayout at app/(auth)/layout.tsx:12:5`}
               <p>
                 You still hold a key and click an element. React Grab still
                 gathers the React component stack, file paths, line numbers, and
-                nearby DOM. But instead of putting that text on your clipboard,
+                nearby HTML. But instead of putting that text on your clipboard,
                 it opens a small panel next to the page.
               </p>
               <p>
@@ -411,13 +411,20 @@ in AuthLayout at app/(auth)/layout.tsx:12:5`}
               </div>
 
               <p className="mt-4">
-                After that, you use React Grab the way you always have. Hold the
-                shortcut, click an element, but now you also get a place to type
-                instructions, pick agents, and apply patches.
-              </p>
-              <p>
-                The goal is to keep it &quot;one more thing you wire in&quot;
-                rather than &quot;a new environment you have to live in.&quot;
+                Hold{" "}
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+                  ⌘C
+                </code>
+                , click an element, then press{" "}
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+                  Enter
+                </code>{" "}
+                to open the prompt. Type your query, pick an agent from the
+                dropdown, and hit{" "}
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+                  Enter
+                </code>{" "}
+                again to run it.
               </p>
             </div>
 
