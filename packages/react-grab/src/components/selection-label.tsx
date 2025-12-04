@@ -381,7 +381,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       <div
         ref={containerRef}
         data-react-grab-ignore-events
-        class="fixed font-sans antialiased transition-opacity duration-300 ease-out [filter:drop-shadow(0px_0px_4px_#51515180)]"
+        class="fixed font-sans antialiased transition-opacity duration-300 ease-out filter-[drop-shadow(0px_0px_4px_#51515180)]"
         style={{
           top: `${computedPosition().top}px`,
           left: `${computedPosition().left}px`,
@@ -488,7 +488,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 <div class="overflow-hidden min-h-0">
                   <BottomSection>
                     <div class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit">
-                      <span class="text-[#767676] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
+                      <span class="text-label-muted text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
                         Press
                       </span>
                       <div class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit">
@@ -497,7 +497,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                           style={{ "background-image": `url(${RETURN_KEY_ICON_URL})` }}
                         />
                       </div>
-                      <span class="text-[#767676] text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
+                      <span class="text-label-muted text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
                         to edit
                       </span>
                     </div>
