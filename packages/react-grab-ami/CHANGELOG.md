@@ -1,5 +1,13 @@
 # @react-grab/ami
 
+## 0.0.64
+
+### Patch Changes
+
+- fix: stream resumption
+- Updated dependencies
+  - react-grab@0.0.64
+
 ## 0.0.63
 
 ### Patch Changes
