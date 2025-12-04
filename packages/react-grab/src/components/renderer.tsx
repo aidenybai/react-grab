@@ -94,6 +94,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           status={props.selectionLabelStatus}
           filePath={props.selectionFilePath}
           lineNumber={props.selectionLineNumber}
+          isStale={props.isElementDetectionStale}
           onInputChange={props.onInputChange}
           onSubmit={props.onInputSubmit}
           onCancel={props.onInputCancel}

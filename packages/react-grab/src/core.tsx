@@ -177,6 +177,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       createSignal(OFFSCREEN_POSITION);
     const [elementDetectionY, setElementDetectionY] =
       createSignal(OFFSCREEN_POSITION);
+    const [isElementDetectionStale, setIsElementDetectionStale] =
+      createSignal(false);
     let lastElementDetectionTime = 0;
     const [isDragging, setIsDragging] = createSignal(false);
     const [dragStartX, setDragStartX] = createSignal(OFFSCREEN_POSITION);
@@ -1228,6 +1230,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         lastElementDetectionTime = now;
         setElementDetectionX(clientX);
         setElementDetectionY(clientY);
+        setIsElementDetectionStale(false);
+      } else {
+        setIsElementDetectionStale(true);
       }
 
       if (isDragging()) {
@@ -1899,6 +1904,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             selectionComponentName={selectionComponentName()}
             selectionLabelVisible={selectionLabelVisible()}
             selectionLabelStatus={selectionLabelStatus()}
+            isElementDetectionStale={isElementDetectionStale()}
             labelInstances={computedLabelInstances()}
             dragVisible={dragVisible()}
             dragBounds={dragBounds()}
