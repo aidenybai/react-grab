@@ -48,13 +48,20 @@ export const ToolCallsBlock = ({ block, allBlocks }: ToolCallsBlockProps) => {
         )}
       >
         <div className="flex flex-col gap-2 mt-2">
-          {grepBlocks.map((grepBlock, index) => (
-            <GrepToolCallBlock
-              key={grepBlock.id}
-              parameter={grepBlock.metadata?.parameter as string}
-              isStreaming={grepBlock.status === "streaming"}
-            />
-          ))}
+          {grepBlocks.map((grepBlock, index) => {
+            const result = typeof grepBlock.content === "string" && grepBlock.content
+              ? grepBlock.content
+              : (grepBlock.metadata?.result as string | undefined);
+            
+            return (
+              <GrepToolCallBlock
+                key={grepBlock.id}
+                parameter={grepBlock.metadata?.parameter as string}
+                result={result}
+                isStreaming={grepBlock.status === "streaming"}
+              />
+            );
+          })}
         </div>
       </Collapsible>
     );
