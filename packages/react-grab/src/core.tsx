@@ -172,11 +172,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [isHoldingKeys, setIsHoldingKeys] = createSignal(false);
     const [mouseX, setMouseX] = createSignal(OFFSCREEN_POSITION);
     const [mouseY, setMouseY] = createSignal(OFFSCREEN_POSITION);
-    const [elementDetectionX, setElementDetectionX] =
-      createSignal(OFFSCREEN_POSITION);
-    const [elementDetectionY, setElementDetectionY] =
-      createSignal(OFFSCREEN_POSITION);
-    const ELEMENT_DETECTION_THRESHOLD_PX = 8;
     const [isDragging, setIsDragging] = createSignal(false);
     const [dragStartX, setDragStartX] = createSignal(OFFSCREEN_POSITION);
     const [dragStartY, setDragStartY] = createSignal(OFFSCREEN_POSITION);
@@ -616,7 +611,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const targetElement = createMemo(() => {
       if (!isRendererActive() || isDragging()) return null;
-      return getElementAtPosition(elementDetectionX(), elementDetectionY());
+      return getElementAtPosition(mouseX(), mouseY());
     });
 
     createEffect(() => {
@@ -1221,16 +1216,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       setMouseX(clientX);
       setMouseY(clientY);
-
-      const deltaX = Math.abs(clientX - elementDetectionX());
-      const deltaY = Math.abs(clientY - elementDetectionY());
-      if (
-        deltaX > ELEMENT_DETECTION_THRESHOLD_PX ||
-        deltaY > ELEMENT_DETECTION_THRESHOLD_PX
-      ) {
-        setElementDetectionX(clientX);
-        setElementDetectionY(clientY);
-      }
 
       if (isDragging()) {
         const direction = getAutoScrollDirection(clientX, clientY);
@@ -1991,6 +1976,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isActive: () => isActivated(),
       dispose: () => {
         hasInited = false;
+        if (elementDetectionRafId !== null) {
+          cancelAnimationFrame(elementDetectionRafId);
+          elementDetectionRafId = null;
+        }
         dispose();
       },
       copyElement: copyElementAPI,
