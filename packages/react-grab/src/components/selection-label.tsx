@@ -10,7 +10,9 @@ import type { Component } from "solid-js";
 import type { OverlayBounds, SelectionLabelStatus } from "../types.js";
 import { VIEWPORT_MARGIN_PX } from "../constants.js";
 import { cn } from "../utils/cn.js";
+import { useSpeechRecognition } from "../utils/speech-recognition.js";
 import { IconOpen } from "./icon-open.js";
+import { IconMic } from "./icon-mic.js";
 
 interface SelectionLabelProps {
   tagName?: string;
@@ -209,6 +211,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const [viewportVersion, setViewportVersion] = createSignal(0);
   const [isIdle, setIsIdle] = createSignal(false);
 
+  const speechRecognition = useSpeechRecognition({
+    onTranscript: (transcript) => props.onInputChange?.(transcript),
+    getCurrentValue: () => props.inputValue ?? "",
+  });
+
   const isNotProcessing = () =>
     props.status !== "copying" &&
     props.status !== "copied" &&
@@ -295,6 +302,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       setTimeout(() => {
         inputRef?.focus();
       }, 0);
+    } else {
+      speechRecognition.stop();
     }
   });
 
@@ -354,9 +363,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
     if (event.code === "Enter" && !event.shiftKey) {
       event.preventDefault();
+      speechRecognition.stop();
       props.onSubmit?.();
     } else if (event.code === "Escape") {
       event.preventDefault();
+      speechRecognition.stop();
       props.onCancel?.();
     }
   };
@@ -383,7 +394,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     event.stopImmediatePropagation();
   };
 
-  const handleSubmit = () => props.onSubmit?.();
+  const handleSubmit = () => {
+    speechRecognition.stop();
+    props.onSubmit?.();
+  };
 
   return (
     <Show when={props.visible !== false && props.selectionBounds}>
@@ -435,7 +449,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 <div class="shrink-0 flex justify-between items-end w-full min-h-4">
                   <textarea
                     ref={inputRef}
-                    class="text-black text-[12px] leading-4 tracking-[-0.04em] font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 opacity-50"
+                    class="text-black text-[12px] leading-4 tracking-[-0.04em] font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 opacity-50 break-all"
                     style={{
                       // @ts-expect-error - field-sizing is not in the jsx spec
                       "field-sizing": "content",
@@ -517,7 +531,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           </Show>
 
           <Show when={isNotProcessing() && props.isInputExpanded}>
-            <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
+            <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit max-w-[280px]">
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-fit h-fit">
                 <ClickToCopyPill onClick={handleSubmit} dimmed shrink hasParent={!!props.componentName} hasAgent={props.hasAgent} />
                 <Show when={props.componentName}>
@@ -551,7 +565,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 <div class="shrink-0 flex justify-between items-end w-full min-h-4">
                   <textarea
                     ref={inputRef}
-                    class="text-black text-[12px] leading-4 tracking-[-0.04em] font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0"
+                    class="text-black text-[12px] leading-4 tracking-[-0.04em] font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 break-all"
                     style={{
                       // @ts-expect-error - field-sizing is not in the jsx spec
                       "field-sizing": "content",
@@ -560,21 +574,37 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     value={props.inputValue ?? ""}
                     onInput={handleInput}
                     onKeyDown={handleKeyDown}
-                    placeholder="type to edit"
+                    placeholder={speechRecognition.isListening() ? "listening..." : "type or speak to edit"}
                     rows={1}
                   />
-                  <button
-                    class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit cursor-pointer ml-1 transition-none hover:scale-105"
-                    onClick={handleSubmit}
-                  >
-                    <div
-                      class={cn(
-                        "w-2.5 h-[9px] shrink-0 bg-cover bg-center transition-opacity duration-100",
-                        props.inputValue ? "opacity-[0.99]" : "opacity-50",
-                      )}
-                      style={{ "background-image": `url(${RETURN_KEY_ICON_URL})` }}
-                    />
-                  </button>
+                  <div class="flex items-center gap-0.5 ml-1">
+                    <Show when={speechRecognition.isSupported()}>
+                      <button
+                        class={cn(
+                          "contain-layout shrink-0 flex items-center justify-center px-[3px] py-[3px] rounded-xs [border-width:0.5px] border-solid size-fit cursor-pointer transition-all hover:scale-105",
+                          speechRecognition.isListening()
+                            ? "bg-grab-purple border-grab-purple text-white"
+                            : "bg-white border-[#B3B3B3] text-black/50 hover:text-black",
+                        )}
+                        onClick={speechRecognition.toggle}
+                        title={speechRecognition.isListening() ? "Stop listening" : "Start voice input"}
+                      >
+                        <IconMic size={11} class={speechRecognition.isListening() ? "animate-pulse" : ""} />
+                      </button>
+                    </Show>
+                    <button
+                      class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit cursor-pointer transition-none hover:scale-105"
+                      onClick={handleSubmit}
+                    >
+                      <div
+                        class={cn(
+                          "w-2.5 h-[9px] shrink-0 bg-cover bg-center transition-opacity duration-100",
+                          props.inputValue ? "opacity-[0.99]" : "opacity-50",
+                        )}
+                        style={{ "background-image": `url(${RETURN_KEY_ICON_URL})` }}
+                      />
+                    </button>
+                  </div>
                 </div>
               </BottomSection>
             </div>
