@@ -95,7 +95,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           status={props.selectionLabelStatus}
           filePath={props.selectionFilePath}
           lineNumber={props.selectionLineNumber}
-          micToggleVersion={props.micToggleVersion}
           onInputChange={props.onInputChange}
           onSubmit={props.onInputSubmit}
           onCancel={props.onInputCancel}
