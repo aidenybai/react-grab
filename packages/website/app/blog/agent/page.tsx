@@ -170,6 +170,17 @@ const AgentPage = () => {
                   You can make changes to your code without leaving the browser
                 </li>
               </ul>
+              <div className="py-4">
+                <video
+                  src="/agent.mp4"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  controls
+                  className="w-full rounded-lg"
+                />
+              </div>
             </div>
 
             <div className="flex flex-col gap-3">
