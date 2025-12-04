@@ -1,8 +1,8 @@
-import { formatElementInfo } from "../instrumentation.js";
+import { getElementContext } from "../instrumentation.js";
 
 export const generateSnippet = async (elements: Element[]): Promise<string> => {
   const elementSnippetResults = await Promise.allSettled(
-    elements.map((element) => formatElementInfo(element)),
+    elements.map((element) => getElementContext(element)),
   );
 
   const elementSnippets = elementSnippetResults

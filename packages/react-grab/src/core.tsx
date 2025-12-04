@@ -16,7 +16,7 @@ import { mountRoot } from "./utils/mount-root.js";
 import { ReactGrabRenderer } from "./components/renderer.js";
 import {
   getStack,
-  formatElementInfo,
+  getElementContext,
   getNearestComponentName,
 } from "./instrumentation.js";
 import { isSourceFile, normalizeFileName } from "bippy/source";
@@ -489,7 +489,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       try {
         const elementSnippetResults = await Promise.allSettled(
-          elements.map((element) => formatElementInfo(element)),
+          elements.map((element) => getElementContext(element)),
         );
 
         const elementSnippets: string[] = [];
@@ -2010,7 +2010,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   });
 };
 
-export { getStack, formatElementInfo, getFileName } from "./instrumentation.js";
+export { getStack, getElementContext as formatElementInfo, getFileName } from "./instrumentation.js";
 export { isInstrumentationActive } from "bippy";
 export { DEFAULT_THEME } from "./theme.js";
 

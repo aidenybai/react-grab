@@ -1,22 +1,11 @@
 import {
-  getDisplayName,
-  getFiberFromHostInstance,
-  getLatestFiber,
-  isFiber,
-  isHostFiber,
-  traverseFiber,
-  isInstrumentationActive,
-} from "bippy";
-
-import {
-  FiberSource,
-  getSource,
   isSourceFile,
   normalizeFileName,
-  getSourcesFromStack,
   getOwnerStack,
+  StackFrame,
 } from "bippy/source";
 import { isCapitalized } from "./utils/is-capitalized.js";
+import { getFiberFromHostInstance, isInstrumentationActive } from "bippy";
 
 const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
   "InnerLayoutRouter",
@@ -63,102 +52,32 @@ export const checkIsSourceComponentName = (name: string): boolean => {
   return true;
 };
 
-interface StackFrame {
-  name: string;
-  source: FiberSource | null;
-}
-
-interface UnresolvedStackFrame {
-  name: string;
-  sourcePromise: Promise<FiberSource | null>;
-}
-
 export const getStack = async (
   element: Element,
-): Promise<Array<StackFrame>> => {
-  if (!isInstrumentationActive()) return [];
-
-  try {
-    const maybeFiber = getFiberFromHostInstance(element);
-    if (!maybeFiber || !isFiber(maybeFiber)) return [];
-
-    const ownerStack = getOwnerStack(maybeFiber);
-    const sources = await getSourcesFromStack(ownerStack);
-
-    if (sources && sources.length > 0) {
-      const stack: Array<StackFrame> = [];
-      for (const source of sources) {
-        if (
-          source.functionName &&
-          !checkIsInternalComponentName(source.functionName)
-        ) {
-          stack.push({
-            name: source.functionName,
-            source: source.fileName
-              ? {
-                  fileName: source.fileName,
-                  lineNumber: source.lineNumber,
-                  columnNumber: source.columnNumber,
-                }
-              : null,
-          });
-        }
-      }
-      if (stack.length > 0) {
-        return stack;
-      }
-    }
-
-    const fiber = getLatestFiber(maybeFiber);
-    const unresolvedStack: Array<UnresolvedStackFrame> = [];
-
-    traverseFiber(
-      fiber,
-      (currentFiber) => {
-        const displayName = isHostFiber(currentFiber)
-          ? typeof currentFiber.type === "string"
-            ? currentFiber.type
-            : null
-          : getDisplayName(currentFiber);
-
-        if (displayName && !checkIsInternalComponentName(displayName)) {
-          unresolvedStack.push({
-            name: displayName,
-            sourcePromise: getSource(currentFiber),
-          });
-        }
-      },
-      true,
-    );
-
-    const resolvedStack = await Promise.all(
-      unresolvedStack.map(async (frame) => ({
-        name: frame.name,
-        source: await frame.sourcePromise,
-      })),
-    );
-
-    return resolvedStack.filter((frame) => frame.source !== null);
-  } catch {
-    return [];
-  }
+): Promise<StackFrame[] | null> => {
+  if (isInstrumentationActive()) return [];
+  const fiber = getFiberFromHostInstance(element);
+  if (!fiber) return null;
+  return await getOwnerStack(fiber);
 };
 
 export const getNearestComponentName = async (
   element: Element,
 ): Promise<string | null> => {
+  if (isInstrumentationActive()) return null;
   const stack = await getStack(element);
+  if (!stack) return null;
 
   for (const frame of stack) {
-    if (checkIsSourceComponentName(frame.name)) {
-      return frame.name;
+    if (frame.functionName && checkIsSourceComponentName(frame.functionName)) {
+      return frame.functionName;
     }
   }
 
   return null;
 };
 
-export const formatElementInfo = async (element: Element): Promise<string> => {
+export const getElementContext = async (element: Element): Promise<string> => {
   const html = getHTMLPreview(element);
   const stack = await getStack(element);
   const isNextProject = checkIsNextProject();
@@ -170,25 +89,28 @@ export const formatElementInfo = async (element: Element): Promise<string> => {
   let serverComponentName: string | null = null;
   let clientComponentName: string | null = null;
 
-  for (const frame of stack) {
-    // HACK: a server component will NOT have a source file name
-    if (
-      checkIsSourceComponentName(frame.name) &&
-      !serverComponentName &&
-      !frame.source?.fileName
-    ) {
-      serverComponentName = frame.name;
-      continue;
-    }
+  if (stack) {
+    for (const frame of stack) {
+      // HACK: a server component will NOT have a source file name
+      if (
+        frame.functionName &&
+        checkIsSourceComponentName(frame.functionName) &&
+        !serverComponentName &&
+        !frame.fileName
+      ) {
+        serverComponentName = frame.functionName;
+        continue;
+      }
 
-    if (!frame.source) continue;
+      if (!frame.fileName) continue;
 
-    if (isSourceFile(frame.source.fileName) && !fileName) {
-      fileName = normalizeFileName(frame.source.fileName);
-      lineNumber = frame.source.lineNumber ?? null;
-      columnNumber = frame.source.columnNumber ?? null;
-      clientComponentName = frame.name;
-      break;
+      if (isSourceFile(frame.fileName) && !fileName) {
+        fileName = normalizeFileName(frame.fileName);
+        lineNumber = frame.lineNumber ?? null;
+        columnNumber = frame.columnNumber ?? null;
+        clientComponentName = frame.functionName ?? null;
+        break;
+      }
     }
   }
 
@@ -212,8 +134,8 @@ export const formatElementInfo = async (element: Element): Promise<string> => {
 
 export const getFileName = (stack: Array<StackFrame>): string | null => {
   for (const frame of stack) {
-    if (frame.source && isSourceFile(frame.source.fileName)) {
-      return normalizeFileName(frame.source.fileName);
+    if (frame.fileName && isSourceFile(frame.fileName)) {
+      return normalizeFileName(frame.fileName);
     }
   }
   return null;
