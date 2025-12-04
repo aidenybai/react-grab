@@ -63,6 +63,24 @@ import type {
 import { mergeTheme, deepMergeTheme } from "./theme.js";
 import { createAgentManager } from "./agent.js";
 
+const onIdle = (callback: () => void) => {
+  if ("scheduler" in globalThis) {
+    return (
+      globalThis as unknown as {
+        scheduler: {
+          postTask: (cb: () => void, opts: { priority: string }) => void;
+        };
+      }
+    ).scheduler.postTask(callback, {
+      priority: "background",
+    });
+  }
+  if ("requestIdleCallback" in window) {
+    return requestIdleCallback(callback);
+  }
+  return setTimeout(callback, 0);
+};
+
 let hasInited = false;
 
 const getScriptOptions = (): Partial<Options> | null => {
@@ -173,12 +191,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [isHoldingKeys, setIsHoldingKeys] = createSignal(false);
     const [mouseX, setMouseX] = createSignal(OFFSCREEN_POSITION);
     const [mouseY, setMouseY] = createSignal(OFFSCREEN_POSITION);
-    const [optimisticElement, setOptimisticElement] =
-      createSignal<Element | null>(null);
-    const [bestCandidateElement, setBestCandidateElement] =
-      createSignal<Element | null>(null);
-    const [isElementDetectionStale, setIsElementDetectionStale] =
-      createSignal(false);
+    const [detectedElement, setDetectedElement] = createSignal<Element | null>(
+      null,
+    );
     let lastElementDetectionTime = 0;
     const [isDragging, setIsDragging] = createSignal(false);
     const [dragStartX, setDragStartX] = createSignal(OFFSCREEN_POSITION);
@@ -619,7 +634,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const targetElement = createMemo(() => {
       if (!isRendererActive() || isDragging()) return null;
-      return bestCandidateElement() ?? optimisticElement();
+      return detectedElement();
     });
 
     createEffect(() => {
@@ -783,9 +798,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               if (!stack) return;
               for (const frame of stack) {
                 if (frame.fileName && isSourceFile(frame.fileName)) {
-                  setSelectionFilePath(
-                    normalizeFileName(frame.fileName),
-                  );
+                  setSelectionFilePath(normalizeFileName(frame.fileName));
                   setSelectionLineNumber(frame.lineNumber);
                   return;
                 }
@@ -1225,19 +1238,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setMouseX(clientX);
       setMouseY(clientY);
 
-      const quickElement = document.elementFromPoint(clientX, clientY);
-      if (quickElement && !quickElement.closest("[data-react-grab]")) {
-        setOptimisticElement(quickElement);
-      }
-
       const now = performance.now();
       if (now - lastElementDetectionTime >= ELEMENT_DETECTION_THROTTLE_MS) {
         lastElementDetectionTime = now;
-        const candidate = getElementAtPosition(clientX, clientY);
-        setBestCandidateElement(candidate);
-        setIsElementDetectionStale(false);
-      } else {
-        setIsElementDetectionStale(true);
+        onIdle(() => {
+          const candidate = getElementAtPosition(clientX, clientY);
+          setDetectedElement(candidate);
+        });
       }
 
       if (isDragging()) {
@@ -1909,7 +1916,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             selectionComponentName={selectionComponentName()}
             selectionLabelVisible={selectionLabelVisible()}
             selectionLabelStatus={selectionLabelStatus()}
-            isElementDetectionStale={isElementDetectionStale()}
             labelInstances={computedLabelInstances()}
             dragVisible={dragVisible()}
             dragBounds={dragBounds()}

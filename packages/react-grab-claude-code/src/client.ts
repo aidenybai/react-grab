@@ -171,3 +171,5 @@ export const attachAgent = async () => {
     { once: true },
   );
 };
+
+attachAgent();

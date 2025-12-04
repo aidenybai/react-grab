@@ -2,6 +2,9 @@
   "name": "@react-grab/cursor",
   "version": "0.0.60",
   "type": "module",
+  "bin": {
+    "react-grab-cursor": "./dist/cli.js"
+  },
   "exports": {
     "./client": {
       "types": "./dist/client.d.ts",
@@ -12,14 +15,17 @@
       "types": "./dist/server.d.ts",
       "import": "./dist/server.js",
       "require": "./dist/server.cjs"
-    }
+    },
+    "./dist/*": "./dist/*.js",
+    "./dist/*.js": "./dist/*.js"
   },
+  "browser": "dist/client.global.js",
   "files": [
     "dist"
   ],
   "scripts": {
     "dev": "tsup --watch",
-    "build": "NODE_ENV=production tsup"
+    "build": "rm -rf dist && NODE_ENV=production tsup"
   },
   "devDependencies": {
     "tsup": "^8.4.0"

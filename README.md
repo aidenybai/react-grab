@@ -124,90 +124,48 @@ React Grab can send selected element context directly to your coding agent. This
 
 This means **no copying and pasting** - just select the element and let the agent do the rest.
 
-First, install React Grab normally, then install the coding agent provider:
-
 ### Claude Code
-
-Install the Claude Code agent provider:
-
-```bash
-npm install @react-grab/claude-code
-```
 
 #### Server Setup
 
-The server runs on port `4567` and interfaces with the Claude Agent SDK.
+The server runs on port `4567` and interfaces with the Claude Agent SDK. Add to your `package.json`:
 
-**Vite:**
-
-```ts
-// vite.config.ts
-import { startServer } from "@react-grab/claude-code/server";
-
-if (process.env.NODE_ENV === "development") {
-  startServer();
-}
-```
-
-**Next.js:**
-
-```ts
-// next.config.ts
-import { startServer } from "@react-grab/claude-code/server";
-
-if (process.env.NODE_ENV === "development") {
-  startServer();
+```json
+{
+  "scripts": {
+    "dev": "npx @react-grab/claude-code && next dev"
+  }
 }
 ```
 
 #### Client Setup
 
-```tsx
-import { attachAgent } from "@react-grab/claude-code/client";
-
-attachAgent();
+```html
+<script src="//unpkg.com/react-grab/dist/index.global.js"></script>
+<!-- add this in the <head> -->
+<script src="//unpkg.com/@react-grab/claude-code/dist/client.global.js"></script>
 ```
 
 ### Cursor CLI
 
-Install the Cursor agent provider:
-
-```bash
-npm install @react-grab/cursor
-```
-
 #### Server Setup
 
-The server runs on port `5567` and interfaces with the `cursor-agent` CLI.
+The server runs on port `5567` and interfaces with the `cursor-agent` CLI. Add to your `package.json`:
 
-**Vite:**
-
-```ts
-// vite.config.ts
-import { startServer } from "@react-grab/cursor/server";
-
-if (process.env.NODE_ENV === "development") {
-  startServer();
-}
-```
-
-**Next.js:**
-
-```ts
-// next.config.ts
-import { startServer } from "@react-grab/cursor/server";
-
-if (process.env.NODE_ENV === "development") {
-  startServer();
+```json
+{
+  "scripts": {
+    "dev": "npx @react-grab/cursor && next dev"
+  }
 }
 ```
 
 #### Client Setup
 
-```tsx
-import { attachAgent } from "@react-grab/cursor/client";
-
-attachAgent();
+```html
+<script src="//unpkg.com/react-grab/dist/index.global.js"></script>
+<!-- add this in the <head> -->
+<script src="//unpkg.com/@react-grab/cursor/dist/client.global.js"></script>
 ```
 
 ## Extending React Grab

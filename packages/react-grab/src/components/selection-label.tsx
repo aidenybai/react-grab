@@ -25,7 +25,6 @@ interface SelectionLabelProps {
   statusText?: string;
   filePath?: string;
   lineNumber?: number;
-  isStale?: boolean;
   onInputChange?: (value: string) => void;
   onSubmit?: () => void;
   onCancel?: () => void;

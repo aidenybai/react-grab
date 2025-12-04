@@ -105,3 +105,7 @@ export const startServer = async (port: number = DEFAULT_PORT) => {
   serve({ fetch: app.fetch, port });
   console.log(`[React Grab] Server started on port ${port}`);
 };
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  startServer(DEFAULT_PORT).catch(console.error);
+}

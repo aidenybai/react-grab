@@ -18,6 +18,24 @@ yarn add @react-grab/cursor
 
 The server runs on port `5567` by default.
 
+### Quick Start (CLI)
+
+Start the server in the background before running your dev server:
+
+```bash
+npx @react-grab/cursor && pnpm run dev
+```
+
+The server will run as a detached background process. **Note:** Stopping your dev server (Ctrl+C) won't stop the React Grab server. To stop it:
+
+```bash
+pkill -f "react-grab.*server"
+```
+
+### Recommended: Config File (Automatic Lifecycle)
+
+For better lifecycle management, start the server from your config file. This ensures the server stops when your dev server stops:
+
 ### Vite
 
 ```ts
@@ -42,8 +60,16 @@ if (process.env.NODE_ENV === "development") {
 
 ## Client Usage
 
+### Script Tag
+
+```html
+<script src="//unpkg.com/react-grab/dist/index.global.js"></script>
+<script src="//unpkg.com/@react-grab/cursor/dist/client.global.js"></script>
+```
+
+### ES Module
+
 ```tsx
-import { init } from "react-grab/core";
 import { attachAgent } from "@react-grab/cursor/client";
 
 attachAgent();
