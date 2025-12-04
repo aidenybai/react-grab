@@ -226,7 +226,7 @@ export interface AgentSession {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface AgentProvider<T = any> {
   send: (context: AgentContext<T>, signal: AbortSignal) => AsyncIterable<string>;
-  resume?: (sessionId: string, signal: AbortSignal) => AsyncIterable<string>;
+  resume?: (sessionId: string, signal: AbortSignal, storage: AgentSessionStorage) => AsyncIterable<string>;
   supportsResume?: boolean;
 }
 

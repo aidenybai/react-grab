@@ -67,6 +67,36 @@ if (process.env.NODE_ENV === "development") {
 <script src="//unpkg.com/@react-grab/claude-code/dist/client.global.js"></script>
 ```
 
+### Next.js
+
+Using the `Script` component in your `app/layout.tsx`:
+
+```jsx
+import Script from "next/script";
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <head>
+        {process.env.NODE_ENV === "development" && (
+          <>
+            <Script
+              src="//unpkg.com/react-grab/dist/index.global.js"
+              strategy="beforeInteractive"
+            />
+            <Script
+              src="//unpkg.com/@react-grab/claude-code/dist/client.global.js"
+              strategy="lazyOnload"
+            />
+          </>
+        )}
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}
+```
+
 ### ES Module
 
 ```tsx

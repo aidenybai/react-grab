@@ -4,19 +4,30 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import ReactGrabLogo from "@/public/logo.svg";
+import { GithubButton } from "@/components/github-button";
+import { CursorInstallButton } from "@/components/cursor-install-button";
 
 const BetsPage = () => {
   return (
     <div className="min-h-screen bg-black font-sans text-white">
       <div className="px-4 sm:px-8 pt-12 sm:pt-16 pb-56">
         <div className="mx-auto max-w-2xl flex flex-col gap-6">
-          <Link
-            href="/"
-            className="text-sm text-neutral-400 hover:text-white transition-colors flex items-center gap-2"
-          >
-            <ArrowLeft size={16} />
-            Back to home
-          </Link>
+          <div className="flex items-center gap-2 text-sm text-neutral-400 opacity-50 hover:opacity-100 transition-opacity">
+            <Link
+              href="/"
+              className="hover:text-white transition-colors flex items-center gap-2 underline underline-offset-4"
+            >
+              <ArrowLeft size={16} />
+              Back to home
+            </Link>
+            <span>·</span>
+            <Link
+              href="/blog"
+              className="hover:text-white transition-colors underline underline-offset-4"
+            >
+              Read more posts
+            </Link>
+          </div>
 
           <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-2">
@@ -39,6 +50,15 @@ const BetsPage = () => {
                 className="text-neutral-300 hover:text-white underline underline-offset-4"
               >
                 Aiden Bai
+              </a>
+              {", "}
+              <a
+                href="https://x.com/nisargptel"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-neutral-300 hover:text-white underline underline-offset-4"
+              >
+                Nisarg Patel
               </a>
               {" · "}
               <span>November 29, 2025</span>
@@ -178,6 +198,23 @@ const BetsPage = () => {
                 </a>
                 .
               </p>
+            </div>
+
+            <div className="flex flex-col gap-4 mt-8">
+              <h3 className="text-lg font-medium text-neutral-200">Try it out</h3>
+              <p>
+                React Grab is free and open source.{" "}
+                <Link
+                  href="/"
+                  className="text-neutral-300 hover:text-white underline underline-offset-4 transition-colors"
+                >
+                  Go try it out!
+                </Link>
+              </p>
+              <div className="flex gap-2">
+                <GithubButton />
+                <CursorInstallButton />
+              </div>
             </div>
 
             <div className="flex flex-col gap-4 mt-12 pt-8 border-t border-neutral-800">

@@ -57,13 +57,22 @@ const BlogPostPage = () => {
     <div className="min-h-screen bg-black font-sans text-white">
       <div className="px-4 sm:px-8 pt-12 sm:pt-16">
         <div className="mx-auto max-w-2xl flex flex-col gap-6">
-          <Link
-            href="/"
-            className="text-sm text-neutral-400 hover:text-white transition-colors flex items-center gap-2"
-          >
-            <ArrowLeft size={16} />
-            Back to home
-          </Link>
+          <div className="flex items-center gap-2 text-sm text-neutral-400 opacity-50 hover:opacity-100 transition-opacity">
+            <Link
+              href="/"
+              className="hover:text-white transition-colors flex items-center gap-2 underline underline-offset-4"
+            >
+              <ArrowLeft size={16} />
+              Back to home
+            </Link>
+            <span>·</span>
+            <Link
+              href="/blog"
+              className="hover:text-white transition-colors underline underline-offset-4"
+            >
+              Read more posts
+            </Link>
+          </div>
 
           <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-2">

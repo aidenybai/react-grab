@@ -182,7 +182,7 @@ export const createAgentManager = (
       const abortController = new AbortController();
       abortControllers.set(existingSession.id, abortController);
 
-      const streamIterator = agentOptions.provider.resume(existingSession.id, abortController.signal);
+      const streamIterator = agentOptions.provider.resume(existingSession.id, abortController.signal, storage!);
       void executeSessionStream(existingSession, streamIterator);
     }
   };

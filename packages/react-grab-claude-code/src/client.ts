@@ -2,6 +2,7 @@ import type {
   AgentContext,
   AgentProvider,
   AgentSession,
+  AgentSessionStorage,
   init,
   ReactGrabAPI,
 } from "react-grab/core";
@@ -116,8 +117,8 @@ export const createClaudeAgentProvider = (
       yield* streamFromServer(serverUrl, mergedContext, signal);
     },
 
-    resume: async function* (sessionId: string, signal: AbortSignal) {
-      const savedSessions = sessionStorage.getItem(STORAGE_KEY);
+    resume: async function* (sessionId: string, signal: AbortSignal, storage: AgentSessionStorage) {
+      const savedSessions = storage.getItem(STORAGE_KEY);
       if (!savedSessions) {
         throw new Error("No sessions to resume");
       }

@@ -207,6 +207,18 @@ const getConversationBlocks = (): StreamBlock[] => [
     content: <InstallTabs />,
   },
   {
+    id: "agent-note",
+    type: "message",
+    content: (
+      <span className="text-sm text-white/50">
+        Want to integrate directly with your coding agent?{" "}
+        <a href="/blog/agent" className="underline hover:text-white/70">
+          See our agent integration guide
+        </a>
+      </span>
+    ),
+  },
+  {
     id: "message-7",
     type: "message",
     content: (

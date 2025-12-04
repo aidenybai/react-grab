@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     ],
     locale: "en_US",
     type: "article",
-    authors: ["Aiden Bai"],
+    authors: ["Aiden Bai", "Nisarg Patel"],
     publishedTime: "2025-11-29T00:00:00Z",
   },
   twitter: {

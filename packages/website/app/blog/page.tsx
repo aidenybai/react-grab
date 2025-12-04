@@ -35,7 +35,7 @@ const BlogPage = () => {
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 pt-4 text-base sm:pt-8">
         <Link
           href="/"
-          className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-colors mb-4"
+          className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-all mb-4 underline underline-offset-4 opacity-50 hover:opacity-100"
         >
           <ArrowLeft size={16} />
           Back to home

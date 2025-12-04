@@ -2066,6 +2066,7 @@ export type {
   ReactGrabAPI,
   AgentContext,
   AgentSession,
+  AgentSessionStorage,
   AgentProvider,
 } from "./types.js";
 

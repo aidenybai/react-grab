@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Analytics } from "@vercel/analytics/react";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -58,6 +59,12 @@ const RootLayout = ({
       >
         <NuqsAdapter>{children}</NuqsAdapter>
         <Analytics />
+        {process.env.NODE_ENV === "development" && (
+          <Script
+            src="//unpkg.com/@react-grab/cursor/dist/client.global.js"
+            strategy="lazyOnload"
+          />
+        )}
       </body>
     </html>
   );
