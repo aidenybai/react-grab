@@ -217,6 +217,8 @@ export const startServer = async (port: number = DEFAULT_PORT) => {
   console.log(`[React Grab] Server started on port ${port}`);
 };
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+import { pathToFileURL } from "node:url";
+
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   startServer(DEFAULT_PORT).catch(console.error);
 }
