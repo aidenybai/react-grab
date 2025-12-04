@@ -1,6 +1,6 @@
 import { createSignal } from "solid-js";
 import type { Accessor } from "solid-js";
-import type { AgentSession, AgentOptions, OverlayBounds } from "./types.js";
+import type { AgentContext, AgentSession, AgentOptions, OverlayBounds } from "./types.js";
 import {
   createSession,
   saveSessionById,
@@ -37,7 +37,9 @@ export interface AgentManager {
 export const createAgentManager = (
   initialAgentOptions: AgentOptions | undefined,
 ): AgentManager => {
-  const [sessions, setSessions] = createSignal<Map<string, AgentSession>>(new Map());
+  const [sessions, setSessions] = createSignal<Map<string, AgentSession>>(
+    new Map(),
+  );
   const abortControllers = new Map<string, AbortController>();
   const sessionElements = new Map<string, Element>();
 
@@ -68,7 +70,11 @@ export const createAgentManager = (
         const currentSession = currentSessions.get(session.id);
         if (!currentSession) break;
 
-        const updatedSession = updateSession(currentSession, { lastStatus: status }, storage);
+        const updatedSession = updateSession(
+          currentSession,
+          { lastStatus: status },
+          storage,
+        );
         setSessions((prev) => new Map(prev).set(session.id, updatedSession));
         agentOptions?.onStatus?.(status, updatedSession);
       }
@@ -77,7 +83,11 @@ export const createAgentManager = (
       const finalSessions = sessions();
       const finalSession = finalSessions.get(session.id);
       if (finalSession) {
-        const completedSession = updateSession(finalSession, { isStreaming: false }, storage);
+        const completedSession = updateSession(
+          finalSession,
+          { isStreaming: false },
+          storage,
+        );
         setSessions((prev) => new Map(prev).set(session.id, completedSession));
         agentOptions?.onComplete?.(completedSession);
       }
@@ -91,16 +101,45 @@ export const createAgentManager = (
           agentOptions?.onAbort?.(currentSession, element);
         }
       } else {
-        hadError = true;
-        if (currentSession) {
-          const errorMessage = error instanceof Error ? error.message : "Unknown error";
-          const errorSession = updateSession(currentSession, {
-            lastStatus: `Error: ${errorMessage}`,
-            isStreaming: false,
-          }, storage);
-          setSessions((prev) => new Map(prev).set(session.id, errorSession));
-          if (error instanceof Error) {
-            agentOptions?.onError?.(error, errorSession);
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        const lowerMessage = errorMessage.toLowerCase();
+        const isNetworkError =
+          lowerMessage.includes("network") ||
+          lowerMessage.includes("fetch") ||
+          lowerMessage.includes("load failed") ||
+          lowerMessage.includes("cancelled") ||
+          lowerMessage.includes("canceled") ||
+          lowerMessage.includes("aborted");
+
+        if (isNetworkError) {
+          // Don't mark as non-streaming on network errors (e.g., page reload)
+          // This allows the session to be resumed
+          if (currentSession) {
+            const errorSession = updateSession(
+              currentSession,
+              {
+                lastStatus: `Error: ${errorMessage}`,
+              },
+              storage,
+            );
+            setSessions((prev) => new Map(prev).set(session.id, errorSession));
+          }
+        } else {
+          hadError = true;
+          if (currentSession) {
+            const errorSession = updateSession(
+              currentSession,
+              {
+                lastStatus: `Error: ${errorMessage}`,
+                isStreaming: false,
+              },
+              storage,
+            );
+            setSessions((prev) => new Map(prev).set(session.id, errorSession));
+            if (error instanceof Error) {
+              agentOptions?.onError?.(error, errorSession);
+            }
           }
         }
       }
@@ -145,7 +184,15 @@ export const createAgentManager = (
 
   const tryResumeSessions = () => {
     const storage = agentOptions?.storage;
+    if (!storage) {
+      return;
+    }
+
     const existingSessions = loadSessions(storage);
+
+    if (existingSessions.size === 0) {
+      return;
+    }
 
     const streamingSessions = Array.from(existingSessions.values()).filter(
       (session) => session.isStreaming,
@@ -154,7 +201,10 @@ export const createAgentManager = (
       clearSessions(storage);
       return;
     }
-    if (!agentOptions?.provider?.supportsResume || !agentOptions.provider.resume) {
+    if (
+      !agentOptions?.provider?.supportsResume ||
+      !agentOptions.provider.resume
+    ) {
       clearSessions(storage);
       return;
     }
@@ -174,15 +224,24 @@ export const createAgentManager = (
       const sessionWithResumeStatus = {
         ...existingSession,
         lastStatus: existingSession.lastStatus || "Resuming...",
-        position: existingSession.position ?? { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+        position: existingSession.position ?? {
+          x: window.innerWidth / 2,
+          y: window.innerHeight / 2,
+        },
       };
-      setSessions((prev) => new Map(prev).set(existingSession.id, sessionWithResumeStatus));
+      setSessions((prev) =>
+        new Map(prev).set(existingSession.id, sessionWithResumeStatus),
+      );
       agentOptions?.onResume?.(sessionWithResumeStatus);
 
       const abortController = new AbortController();
       abortControllers.set(existingSession.id, abortController);
 
-      const streamIterator = agentOptions.provider.resume(existingSession.id, abortController.signal, storage!);
+      const streamIterator = agentOptions.provider.resume(
+        existingSession.id,
+        abortController.signal,
+        storage,
+      );
       void executeSessionStream(existingSession, streamIterator);
     }
   };
@@ -197,11 +256,21 @@ export const createAgentManager = (
 
     const elements = [element];
     const content = await generateSnippet(elements);
-    const context = { content, prompt, options: agentOptions?.getOptions?.() };
+    const context: AgentContext = {
+      content,
+      prompt,
+      options: agentOptions?.getOptions?.() as unknown,
+    };
     const tagName = (element.tagName || "").toLowerCase() || undefined;
-    const componentName = await getNearestComponentName(element) || undefined;
+    const componentName = (await getNearestComponentName(element)) || undefined;
 
-    const session = createSession(context, position, selectionBounds, tagName, componentName);
+    const session = createSession(
+      context,
+      position,
+      selectionBounds,
+      tagName,
+      componentName,
+    );
     session.lastStatus = "Please wait…";
     sessionElements.set(session.id, element);
     setSessions((prev) => new Map(prev).set(session.id, session));
@@ -211,7 +280,10 @@ export const createAgentManager = (
     const abortController = new AbortController();
     abortControllers.set(session.id, abortController);
 
-    const streamIterator = agentOptions.provider.send(context, abortController.signal);
+    const streamIterator = agentOptions.provider.send(
+      context,
+      abortController.signal,
+    );
     void executeSessionStream(session, streamIterator);
   };
 
@@ -250,7 +322,10 @@ export const createAgentManager = (
       if (element && document.contains(element)) {
         const newBounds = createElementBounds(element);
         if (newBounds) {
-          updatedSessions.set(sessionId, { ...session, selectionBounds: newBounds });
+          updatedSessions.set(sessionId, {
+            ...session,
+            selectionBounds: newBounds,
+          });
           didUpdate = true;
         }
       }

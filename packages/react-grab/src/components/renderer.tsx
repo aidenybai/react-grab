@@ -63,6 +63,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
                 variant="processing"
                 bounds={session.selectionBounds!}
                 visible={true}
+                isCompleted={!session.isStreaming}
               />
             </Show>
             <SelectionLabel
@@ -94,6 +95,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           status={props.selectionLabelStatus}
           filePath={props.selectionFilePath}
           lineNumber={props.selectionLineNumber}
+          micToggleVersion={props.micToggleVersion}
           onInputChange={props.onInputChange}
           onSubmit={props.onInputSubmit}
           onCancel={props.onInputCancel}

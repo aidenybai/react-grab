@@ -33,6 +33,28 @@
   }
 }
 
+@keyframes flash {
+  0% {
+    opacity: 1;
+    border-color: rgb(210, 57, 192);
+    background-color: rgba(210, 57, 192, 0.25);
+  }
+  50% {
+    opacity: 1;
+    border-color: rgb(230, 80, 210);
+    background-color: rgba(210, 57, 192, 0.45);
+  }
+  100% {
+    opacity: 1;
+    border-color: rgba(210, 57, 192, 0.5);
+    background-color: rgba(210, 57, 192, 0.08);
+  }
+}
+
+.react-grab-flash {
+  animation: flash 0.4s ease-out forwards;
+}
+
 .react-grab-shimmer {
   position: relative;
   overflow: hidden;

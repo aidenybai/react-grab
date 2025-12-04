@@ -10,7 +10,7 @@ It makes tools like Cursor, Claude Code, Copilot run up to [**66% faster**](http
 
 ### [Try out a demo! →](https://react-grab.com)
 
-![Demo](https://react-grab.com/demo.gif)
+https://github.com/user-attachments/assets/fdb34329-b471-4b39-b433-0b1a27a94bd8
 
 ## Install
 
@@ -133,7 +133,7 @@ The server runs on port `4567` and interfaces with the Claude Agent SDK. Add to 
 ```json
 {
   "scripts": {
-    "dev": "npx @react-grab/claude-code && next dev"
+    "dev": "npx @react-grab/claude-code@latest && next dev"
   }
 }
 ```
@@ -183,7 +183,7 @@ The server runs on port `5567` and interfaces with the `cursor-agent` CLI. Add t
 ```json
 {
   "scripts": {
-    "dev": "npx @react-grab/cursor && next dev"
+    "dev": "npx @react-grab/cursor@latest && next dev"
   }
 }
 ```

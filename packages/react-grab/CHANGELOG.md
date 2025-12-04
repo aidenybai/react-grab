@@ -1,5 +1,35 @@
 # react-grab
 
+## 0.0.67
+
+### Patch Changes
+
+- fix: logs
+
+## 0.0.66
+
+### Patch Changes
+
+- fix: flash animation
+
+## 0.0.65
+
+### Patch Changes
+
+- fix: instrumentation
+
+## 0.0.64
+
+### Patch Changes
+
+- fix: stream resumption
+
+## 0.0.63
+
+### Patch Changes
+
+- fix: x positioning of selection label
+
 ## 0.0.62
 
 ### Patch Changes

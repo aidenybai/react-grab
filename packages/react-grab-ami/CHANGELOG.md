@@ -1,5 +1,45 @@
 # @react-grab/ami
 
+## 0.0.67
+
+### Patch Changes
+
+- fix: logs
+- Updated dependencies
+  - react-grab@0.0.67
+
+## 0.0.66
+
+### Patch Changes
+
+- fix: flash animation
+- Updated dependencies
+  - react-grab@0.0.66
+
+## 0.0.65
+
+### Patch Changes
+
+- fix: instrumentation
+- Updated dependencies
+  - react-grab@0.0.65
+
+## 0.0.64
+
+### Patch Changes
+
+- fix: stream resumption
+- Updated dependencies
+  - react-grab@0.0.64
+
+## 0.0.63
+
+### Patch Changes
+
+- fix: x positioning of selection label
+- Updated dependencies
+  - react-grab@0.0.63
+
 ## 0.0.62
 
 ### Patch Changes

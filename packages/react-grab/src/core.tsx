@@ -218,6 +218,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [didJustDrag, setDidJustDrag] = createSignal(false);
     const [copyStartX, setCopyStartX] = createSignal(OFFSCREEN_POSITION);
     const [copyStartY, setCopyStartY] = createSignal(OFFSCREEN_POSITION);
+    const [copyOffsetFromCenterX, setCopyOffsetFromCenterX] = createSignal(0);
     const [viewportVersion, setViewportVersion] = createSignal(0);
     const [isInputMode, setIsInputMode] = createSignal(false);
     const [inputText, setInputText] = createSignal("");
@@ -236,6 +237,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [hasAgentProvider, setHasAgentProvider] = createSignal(
       Boolean(options.agent?.provider),
     );
+    const [micToggleVersion, setMicToggleVersion] = createSignal(0);
 
     const [nativeSelectionCursorX, setNativeSelectionCursorX] =
       createSignal(OFFSCREEN_POSITION);
@@ -454,6 +456,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     ) => {
       setCopyStartX(positionX);
       setCopyStartY(positionY);
+      if (bounds) {
+        const selectionCenterX = bounds.x + bounds.width / 2;
+        setCopyOffsetFromCenterX(positionX - selectionCenterX);
+      } else {
+        setCopyOffsetFromCenterX(0);
+      }
       setIsCopying(true);
       startProgressAnimation();
 
@@ -759,11 +767,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       );
     });
 
-    const cursorPosition = createMemo(() =>
-      isCopying()
-        ? { x: copyStartX(), y: copyStartY() }
-        : { x: mouseX(), y: mouseY() },
-    );
+    const cursorPosition = createMemo(() => {
+      if (isCopying() || isInputExpanded()) {
+        viewportVersion();
+        const element = frozenElement() || targetElement();
+        if (element) {
+          const bounds = createElementBounds(element);
+          const selectionCenterX = bounds.x + bounds.width / 2;
+          return { x: selectionCenterX + copyOffsetFromCenterX(), y: copyStartY() };
+        }
+        return { x: copyStartX(), y: copyStartY() };
+      }
+      return { x: mouseX(), y: mouseY() };
+    });
 
     createEffect(
       on(
@@ -1165,6 +1181,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleToggleExpand = () => {
+      const element = frozenElement() || targetElement();
+      if (element) {
+        const bounds = createElementBounds(element);
+        const selectionCenterX = bounds.x + bounds.width / 2;
+        setCopyStartX(mouseX());
+        setCopyStartY(mouseY());
+        setCopyOffsetFromCenterX(mouseX() - selectionCenterX);
+      }
       setIsToggleMode(true);
       setIsToggleFrozen(true);
       setIsInputExpanded(true);
@@ -1373,6 +1397,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           if (event.key === "Escape" && agentManager.isProcessing()) {
             agentManager.abortAllSessions();
           }
+
+          if (
+            isInputMode() &&
+            (event.metaKey || event.ctrlKey) &&
+            isTargetKeyCombination(event, options)
+          ) {
+            event.preventDefault();
+            event.stopPropagation();
+            setMicToggleVersion((version) => version + 1);
+          }
+
           return;
         }
 
@@ -1391,6 +1426,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (event.key === "Enter" && isHoldingKeys() && !isInputMode()) {
           event.preventDefault();
           event.stopPropagation();
+
+          const element = frozenElement() || targetElement();
+          if (element) {
+            const bounds = createElementBounds(element);
+            const selectionCenterX = bounds.x + bounds.width / 2;
+            setCopyStartX(mouseX());
+            setCopyStartY(mouseY());
+            setCopyOffsetFromCenterX(mouseX() - selectionCenterX);
+          }
+
           setIsToggleMode(true);
           setIsToggleFrozen(true);
           setIsInputExpanded(true);
@@ -1933,6 +1978,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onInputSubmit={() => void handleInputSubmit()}
             onInputCancel={handleInputCancel}
             onToggleExpand={handleToggleExpand}
+            micToggleVersion={micToggleVersion()}
             nativeSelectionCursorVisible={hasNativeSelection()}
             nativeSelectionCursorX={nativeSelectionCursorX()}
             nativeSelectionCursorY={nativeSelectionCursorY()}
@@ -2046,6 +2092,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         };
         agentManager.setOptions(mergedOptions);
         setHasAgentProvider(Boolean(mergedOptions.provider));
+        agentManager.tryResumeSessions();
       },
     };
   });

@@ -170,6 +170,17 @@ const AgentPage = () => {
                   You can make changes to your code without leaving the browser
                 </li>
               </ul>
+              <div className="py-4">
+                <video
+                  src="/agent.mp4"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  controls
+                  className="w-full rounded-lg"
+                />
+              </div>
             </div>
 
             <div className="flex flex-col gap-3">
@@ -334,7 +345,7 @@ const AgentPage = () => {
                     lang="json"
                     code={`{
   "scripts": {
-    "dev": "npx @react-grab/claude-code && next dev"
+    "dev": "npx @react-grab/claude-code@latest && next dev"
   }
 }`}
                   />
@@ -433,7 +444,7 @@ export default function RootLayout({ children }) {
                     lang="json"
                     code={`{
   "scripts": {
-    "dev": "npx @react-grab/cursor && next dev"
+    "dev": "npx @react-grab/cursor@latest && next dev"
   }
 }`}
                   />
