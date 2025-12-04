@@ -22,6 +22,7 @@ import {
 import { isSourceFile, normalizeFileName } from "bippy/source";
 import { copyContent } from "./utils/copy-content.js";
 import { getElementAtPosition } from "./utils/get-element-at-position.js";
+import { getGrabbableElementFromTarget } from "./utils/get-grabbable-element-from-target.js";
 import { isValidGrabbableElement } from "./utils/is-valid-grabbable-element.js";
 import {
   getElementsInDrag,
@@ -172,11 +173,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [isHoldingKeys, setIsHoldingKeys] = createSignal(false);
     const [mouseX, setMouseX] = createSignal(OFFSCREEN_POSITION);
     const [mouseY, setMouseY] = createSignal(OFFSCREEN_POSITION);
-    const [elementDetectionX, setElementDetectionX] =
-      createSignal(OFFSCREEN_POSITION);
-    const [elementDetectionY, setElementDetectionY] =
-      createSignal(OFFSCREEN_POSITION);
-    let elementDetectionRafId: number | null = null;
+    const [detectedTargetElement, setDetectedTargetElement] =
+      createSignal<Element | null>(null);
     const [isDragging, setIsDragging] = createSignal(false);
     const [dragStartX, setDragStartX] = createSignal(OFFSCREEN_POSITION);
     const [dragStartY, setDragStartY] = createSignal(OFFSCREEN_POSITION);
@@ -616,7 +614,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const targetElement = createMemo(() => {
       if (!isRendererActive() || isDragging()) return null;
-      return getElementAtPosition(elementDetectionX(), elementDetectionY());
+      return detectedTargetElement();
     });
 
     createEffect(() => {
@@ -1216,19 +1214,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setIsInputMode(true);
     };
 
-    const handlePointerMove = (clientX: number, clientY: number) => {
+    const handlePointerMove = (
+      clientX: number,
+      clientY: number,
+      target?: EventTarget | null,
+    ) => {
       if (isInputMode() || isToggleFrozen()) return;
 
       setMouseX(clientX);
       setMouseY(clientY);
 
-      if (elementDetectionRafId === null) {
-        elementDetectionRafId = requestAnimationFrame(() => {
-          setElementDetectionX(clientX);
-          setElementDetectionY(clientY);
-          elementDetectionRafId = null;
-        });
-      }
+      const element = getGrabbableElementFromTarget(target ?? null);
+      setDetectedTargetElement(element);
 
       if (isDragging()) {
         const direction = getAutoScrollDirection(clientX, clientY);
@@ -1544,7 +1541,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: MouseEvent) => {
         setIsTouchMode(false);
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        handlePointerMove(event.clientX, event.clientY);
+        handlePointerMove(event.clientX, event.clientY, event.target);
       },
       { signal: eventListenerSignal },
     );
@@ -1591,7 +1588,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (event.touches.length === 0) return;
         setIsTouchMode(true);
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        handlePointerMove(event.touches[0].clientX, event.touches[0].clientY);
+        handlePointerMove(
+          event.touches[0].clientX,
+          event.touches[0].clientY,
+          event.touches[0].target,
+        );
       },
       { signal: eventListenerSignal, passive: true },
     );
@@ -1989,10 +1990,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isActive: () => isActivated(),
       dispose: () => {
         hasInited = false;
-        if (elementDetectionRafId !== null) {
-          cancelAnimationFrame(elementDetectionRafId);
-          elementDetectionRafId = null;
-        }
         dispose();
       },
       copyElement: copyElementAPI,
