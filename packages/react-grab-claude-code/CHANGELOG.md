@@ -1,5 +1,13 @@
 # @react-grab/claude-code
 
+## 0.0.66
+
+### Patch Changes
+
+- fix: flash animation
+- Updated dependencies
+  - react-grab@0.0.66
+
 ## 0.0.65
 
 ### Patch Changes

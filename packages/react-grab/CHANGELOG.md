@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.66
+
+### Patch Changes
+
+- fix: flash animation
+
 ## 0.0.65
 
 ### Patch Changes
