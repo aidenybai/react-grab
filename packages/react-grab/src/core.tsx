@@ -172,6 +172,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [isHoldingKeys, setIsHoldingKeys] = createSignal(false);
     const [mouseX, setMouseX] = createSignal(OFFSCREEN_POSITION);
     const [mouseY, setMouseY] = createSignal(OFFSCREEN_POSITION);
+    const [elementDetectionX, setElementDetectionX] =
+      createSignal(OFFSCREEN_POSITION);
+    const [elementDetectionY, setElementDetectionY] =
+      createSignal(OFFSCREEN_POSITION);
+    let elementDetectionRafId: number | null = null;
     const [isDragging, setIsDragging] = createSignal(false);
     const [dragStartX, setDragStartX] = createSignal(OFFSCREEN_POSITION);
     const [dragStartY, setDragStartY] = createSignal(OFFSCREEN_POSITION);
@@ -611,7 +616,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const targetElement = createMemo(() => {
       if (!isRendererActive() || isDragging()) return null;
-      return getElementAtPosition(mouseX(), mouseY());
+      return getElementAtPosition(elementDetectionX(), elementDetectionY());
     });
 
     createEffect(() => {
@@ -1216,6 +1221,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       setMouseX(clientX);
       setMouseY(clientY);
+
+      if (elementDetectionRafId === null) {
+        elementDetectionRafId = requestAnimationFrame(() => {
+          setElementDetectionX(clientX);
+          setElementDetectionY(clientY);
+          elementDetectionRafId = null;
+        });
+      }
 
       if (isDragging()) {
         const direction = getAutoScrollDirection(clientX, clientY);
@@ -1976,6 +1989,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isActive: () => isActivated(),
       dispose: () => {
         hasInited = false;
+        if (elementDetectionRafId !== null) {
+          cancelAnimationFrame(elementDetectionRafId);
+          elementDetectionRafId = null;
+        }
         dispose();
       },
       copyElement: copyElementAPI,
