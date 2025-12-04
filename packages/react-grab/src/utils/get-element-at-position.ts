@@ -4,13 +4,12 @@ export const getElementAtPosition = (
   clientX: number,
   clientY: number,
 ): Element | null => {
-  let element = document.elementFromPoint(clientX, clientY);
+  const elementsAtPoint = document.elementsFromPoint(clientX, clientY);
 
-  while (element) {
-    if (isValidGrabbableElement(element)) {
-      return element;
+  for (const candidateElement of elementsAtPoint) {
+    if (isValidGrabbableElement(candidateElement)) {
+      return candidateElement;
     }
-    element = element.parentElement;
   }
 
   return null;

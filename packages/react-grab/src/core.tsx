@@ -176,7 +176,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       createSignal(OFFSCREEN_POSITION);
     const [elementDetectionY, setElementDetectionY] =
       createSignal(OFFSCREEN_POSITION);
-    let elementDetectionRafId: number | null = null;
+    const ELEMENT_DETECTION_THRESHOLD_PX = 8;
     const [isDragging, setIsDragging] = createSignal(false);
     const [dragStartX, setDragStartX] = createSignal(OFFSCREEN_POSITION);
     const [dragStartY, setDragStartY] = createSignal(OFFSCREEN_POSITION);
@@ -1222,12 +1222,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setMouseX(clientX);
       setMouseY(clientY);
 
-      if (elementDetectionRafId === null) {
-        elementDetectionRafId = requestAnimationFrame(() => {
-          setElementDetectionX(clientX);
-          setElementDetectionY(clientY);
-          elementDetectionRafId = null;
-        });
+      const deltaX = Math.abs(clientX - elementDetectionX());
+      const deltaY = Math.abs(clientY - elementDetectionY());
+      if (
+        deltaX > ELEMENT_DETECTION_THRESHOLD_PX ||
+        deltaY > ELEMENT_DETECTION_THRESHOLD_PX
+      ) {
+        setElementDetectionX(clientX);
+        setElementDetectionY(clientY);
       }
 
       if (isDragging()) {
@@ -1989,10 +1991,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isActive: () => isActivated(),
       dispose: () => {
         hasInited = false;
-        if (elementDetectionRafId !== null) {
-          cancelAnimationFrame(elementDetectionRafId);
-          elementDetectionRafId = null;
-        }
         dispose();
       },
       copyElement: copyElementAPI,

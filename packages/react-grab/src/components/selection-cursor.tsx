@@ -72,6 +72,7 @@ export const SelectionCursor: Component<SelectionCursorProps> = (props) => {
         <SelectionLabel
           tagName={props.tagName}
           selectionBounds={props.elementBounds}
+          mouseX={props.x}
           visible={true}
           onSubmit={props.onClick}
         />
