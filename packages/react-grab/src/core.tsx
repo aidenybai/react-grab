@@ -1976,10 +1976,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isActive: () => isActivated(),
       dispose: () => {
         hasInited = false;
-        if (elementDetectionRafId !== null) {
-          cancelAnimationFrame(elementDetectionRafId);
-          elementDetectionRafId = null;
-        }
         dispose();
       },
       copyElement: copyElementAPI,
