@@ -291,7 +291,7 @@ export const detectReactGrab = (projectRoot: string): boolean => {
   return filesToCheck.some(hasReactGrabInFile);
 };
 
-const AGENT_PACKAGES = ["@react-grab/claude-code", "@react-grab/cursor", "@react-grab/opencode"];
+const AGENT_PACKAGES = ["@react-grab/claude-code", "@react-grab/cursor", "@react-grab/opencode", "@react-grab/codex"];
 
 export const detectUnsupportedFramework = (projectRoot: string): UnsupportedFramework => {
   const packageJsonPath = join(projectRoot, "package.json");

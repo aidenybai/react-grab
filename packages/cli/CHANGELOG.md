@@ -5,6 +5,7 @@
 ### Patch Changes
 
 - fix: ux nits
+- feat: add Codex agent integration to CLI
 
 ## 0.0.70
 

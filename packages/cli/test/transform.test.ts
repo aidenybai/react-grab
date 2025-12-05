@@ -162,6 +162,17 @@ describe("previewTransform - Vite", () => {
     expect(result.newContent).toContain("@react-grab/opencode");
   });
 
+  it("should add React Grab with codex agent to index.html", () => {
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("index.html"));
+    mockReadFileSync.mockReturnValue(indexContent);
+
+    const result = previewTransform("/test", "vite", "unknown", "codex", false);
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain("react-grab");
+    expect(result.newContent).toContain("@react-grab/codex");
+  });
+
   it("should add agent to existing React Grab installation", () => {
     const indexWithReactGrab = `<!doctype html>
 <html lang="en">
@@ -500,6 +511,16 @@ describe("previewPackageJsonTransform", () => {
     expect(result.newContent).toContain("npx @react-grab/opencode@latest &&");
   });
 
+  it("should add codex prefix to dev script", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(packageJsonContent);
+
+    const result = previewPackageJsonTransform("/test", "codex", []);
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain("npx @react-grab/codex@latest &&");
+  });
+
   it("should skip when agent is none", () => {
     const result = previewPackageJsonTransform("/test", "none", []);
 
@@ -533,7 +554,7 @@ describe("previewPackageJsonTransform", () => {
       {
         name: "my-app",
         scripts: {
-          dev: "npx @react-grab/claude-code@latest && next dev",
+          dev: "npx @react-grab/codex@latest && next dev",
         },
       },
       null,
@@ -543,7 +564,7 @@ describe("previewPackageJsonTransform", () => {
     mockExistsSync.mockReturnValue(true);
     mockReadFileSync.mockReturnValue(packageJsonWithAgent);
 
-    const result = previewPackageJsonTransform("/test", "cursor", ["claude-code"]);
+    const result = previewPackageJsonTransform("/test", "cursor", ["codex"]);
 
     expect(result.success).toBe(true);
     expect(result.noChanges).toBe(true);

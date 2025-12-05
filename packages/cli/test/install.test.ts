@@ -27,7 +27,7 @@ describe("getPackagesToInstall", () => {
   });
 
   it("should handle all agent types", () => {
-    const agents = ["claude-code", "cursor", "opencode"] as const;
+    const agents = ["claude-code", "cursor", "opencode", "codex"] as const;
 
     for (const agent of agents) {
       const packages = getPackagesToInstall(agent, false);

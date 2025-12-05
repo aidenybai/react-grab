@@ -73,6 +73,7 @@ const PACKAGE_MANAGER_NAMES: Record<PackageManager, string> = {
 const AGENT_NAMES: Record<string, string> = {
   "claude-code": "Claude Code",
   cursor: "Cursor",
+  codex: "Codex",
   opencode: "Opencode",
 };
 
@@ -258,7 +259,7 @@ const parseArgs = async (): Promise<CliArgs> => {
     .option("agent", {
       alias: "a",
       type: "string",
-      choices: ["claude-code", "cursor", "opencode", "none"] as const,
+      choices: ["claude-code", "cursor", "opencode", "codex", "none"] as const,
       description:
         "Agent integration to automatically forward selected elements to agent instead of copying to clipboard",
     })
@@ -284,6 +285,10 @@ const parseArgs = async (): Promise<CliArgs> => {
       "$0 -a cursor -y",
       "Add Cursor agent integration non-interactively",
     )
+    .example(
+      "$0 -a codex -y",
+      "Add Codex agent integration non-interactively",
+    )
     .example("$0 -p pnpm -a claude-code", "Use pnpm and add Claude Code agent")
     .example(
       "$0 --skip-install",
@@ -293,6 +298,7 @@ const parseArgs = async (): Promise<CliArgs> => {
       `${pc.bold("Agent Integrations:")}\n` +
         `  ${pc.cyan("claude-code")}  Connect React Grab to Claude Code\n` +
         `  ${pc.cyan("cursor")}       Connect React Grab to Cursor IDE\n` +
+        `  ${pc.cyan("codex")}        Connect React Grab to Codex CLI\n` +
         `  ${pc.cyan("opencode")}     Connect React Grab to Opencode\n\n` +
         `${pc.bold("Supported Frameworks:")}\n` +
         `  ${pc.cyan("next")}     Next.js (App Router & Pages Router)\n` +
@@ -496,6 +502,7 @@ const main = async () => {
     const availableAgents = [
       { name: "Claude Code", value: "claude-code" as const },
       { name: "Cursor", value: "cursor" as const },
+      { name: "Codex", value: "codex" as const },
       { name: "Opencode", value: "opencode" as const },
     ].filter((agent) => !projectInfo.installedAgents.includes(agent.value));
 
@@ -511,7 +518,7 @@ const main = async () => {
     } else {
       const wantAgentIntegration = await confirm({
         message:
-          "Do you want to add an agent integration (Claude Code, Cursor, or Opencode)?",
+          "Do you want to add an agent integration (Claude Code, Cursor, Codex, or Opencode)?",
         default: false,
       });
 

@@ -32,7 +32,7 @@ describe("Next.js App Router templates", () => {
   });
 
   it("should include all agent types correctly", () => {
-    const agents = ["claude-code", "cursor", "opencode"] as const;
+    const agents = ["claude-code", "cursor", "opencode", "codex"] as const;
 
     for (const agent of agents) {
       const script = NEXT_APP_ROUTER_SCRIPT_WITH_AGENT(agent);
@@ -52,6 +52,13 @@ describe("Vite templates", () => {
 
     expect(script).toContain("react-grab");
     expect(script).toContain("@react-grab/opencode");
+  });
+
+  it("should generate script with codex agent", () => {
+    const script = VITE_SCRIPT_WITH_AGENT("codex");
+
+    expect(script).toContain("react-grab");
+    expect(script).toContain("@react-grab/codex");
   });
 
   it("should return basic script when agent is none", () => {
