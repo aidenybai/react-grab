@@ -847,23 +847,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     createEffect(
       on(
         () => viewportVersion(),
-        () => {
-          const currentBoxes = grabbedBoxes();
-          if (currentBoxes.length === 0) return;
-
-          const updatedBoxes = currentBoxes.map((box) => ({
-            ...box,
-            bounds: createElementBounds(box.element),
-          }));
-
-          setGrabbedBoxes(updatedBoxes);
-        },
-      ),
-    );
-
-    createEffect(
-      on(
-        () => viewportVersion(),
         () => agentManager.updateSessionBoundsOnViewportChange(),
       ),
     );
@@ -1437,6 +1420,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (event.key === "Enter" && isHoldingKeys() && !isInputMode()) {
           event.preventDefault();
           event.stopPropagation();
+          event.stopImmediatePropagation();
 
           const element = frozenElement() || targetElement();
           if (element) {
@@ -1508,6 +1492,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         if ((isActivated() || isHoldingKeys()) && !isInputMode()) {
           event.preventDefault();
+          if (event.key === "Enter") {
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+          }
         }
 
         if (isActivated()) {
