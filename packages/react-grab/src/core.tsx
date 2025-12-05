@@ -1682,6 +1682,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     window.addEventListener(
       "mousedown",
       (event: MouseEvent) => {
+        if (event.button !== 0) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
 
         if (isInputMode()) {
@@ -1701,6 +1702,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     window.addEventListener(
       "pointerdown",
       (event: PointerEvent) => {
+        if (event.button !== 0) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (!isRendererActive() || isCopying() || isInputMode()) return;
         event.stopPropagation();
@@ -1711,6 +1713,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     window.addEventListener(
       "mouseup",
       (event: MouseEvent) => {
+        if (event.button !== 0) return;
         handlePointerUp(event.clientX, event.clientY);
       },
       { signal: eventListenerSignal },
