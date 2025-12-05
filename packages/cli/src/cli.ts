@@ -378,7 +378,7 @@ const main = async () => {
         }
       }
 
-      const shouldInstallReactGrab = action === "install-all" && !projectInfo.hasReactGrab;
+      const shouldInstallReactGrab = (action === "install-all" || action === "add-agent") && !projectInfo.hasReactGrab;
       const shouldInstallAgent = agentIntegration !== "none" && !projectInfo.installedAgents.includes(agentIntegration);
 
       if (!args.skipInstall && (shouldInstallReactGrab || shouldInstallAgent)) {

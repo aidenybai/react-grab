@@ -28,6 +28,20 @@ export interface PackageJsonTransformResult {
   noChanges?: boolean;
 }
 
+const hasReactGrabCode = (content: string): boolean => {
+  const fuzzyPatterns = [
+    /["'`][^"'`]*react-grab/,
+    /react-grab[^"'`]*["'`]/,
+    /<[^>]*react-grab/i,
+    /import[^;]*react-grab/i,
+    /require[^)]*react-grab/i,
+    /from\s+[^;]*react-grab/i,
+    /src[^>]*react-grab/i,
+    /href[^>]*react-grab/i,
+  ];
+  return fuzzyPatterns.some((pattern) => pattern.test(content));
+};
+
 const findLayoutFile = (projectRoot: string): string | null => {
   const possiblePaths = [
     join(projectRoot, "app", "layout.tsx"),
@@ -43,6 +57,31 @@ const findLayoutFile = (projectRoot: string): string | null => {
   }
 
   return null;
+};
+
+const findInstrumentationFile = (projectRoot: string): string | null => {
+  const possiblePaths = [
+    join(projectRoot, "instrumentation-client.ts"),
+    join(projectRoot, "instrumentation-client.js"),
+    join(projectRoot, "src", "instrumentation-client.ts"),
+    join(projectRoot, "src", "instrumentation-client.js"),
+  ];
+
+  for (const filePath of possiblePaths) {
+    if (existsSync(filePath)) {
+      return filePath;
+    }
+  }
+
+  return null;
+};
+
+const hasReactGrabInInstrumentation = (projectRoot: string): boolean => {
+  const instrumentationPath = findInstrumentationFile(projectRoot);
+  if (!instrumentationPath) return false;
+
+  const content = readFileSync(instrumentationPath, "utf-8");
+  return hasReactGrabCode(content);
 };
 
 const findDocumentFile = (projectRoot: string): string | null => {
@@ -128,7 +167,7 @@ const addAgentToExistingNextApp = (
             />`;
 
   const reactGrabScriptMatch = originalContent.match(
-    /<Script[^>]*src="[^"]*react-grab[^"]*"[^>]*\/?>/
+    /<(?:Script|script|NextScript)[^>]*react-grab[^>]*\/?>/is
   );
 
   if (reactGrabScriptMatch) {
@@ -265,17 +304,18 @@ const transformNextAppRouter = (
 
   const originalContent = readFileSync(layoutPath, "utf-8");
   let newContent = originalContent;
-  const hasReactGrabInFile = originalContent.includes("react-grab");
+  const hasReactGrabInFile = hasReactGrabCode(originalContent);
+  const hasReactGrabInInstrumentationFile = hasReactGrabInInstrumentation(projectRoot);
 
   if (hasReactGrabInFile && reactGrabAlreadyConfigured) {
     return addAgentToExistingNextApp(originalContent, agent, layoutPath);
   }
 
-  if (hasReactGrabInFile) {
+  if (hasReactGrabInFile || hasReactGrabInInstrumentationFile) {
     return {
       success: true,
       filePath: layoutPath,
-      message: "React Grab is already installed in this file",
+      message: "React Grab is already installed" + (hasReactGrabInInstrumentationFile ? " in instrumentation-client" : " in this file"),
       noChanges: true,
     };
   }
@@ -349,17 +389,18 @@ const transformNextPagesRouter = (
 
   const originalContent = readFileSync(documentPath, "utf-8");
   let newContent = originalContent;
-  const hasReactGrabInFile = originalContent.includes("react-grab");
+  const hasReactGrabInFile = hasReactGrabCode(originalContent);
+  const hasReactGrabInInstrumentationFile = hasReactGrabInInstrumentation(projectRoot);
 
   if (hasReactGrabInFile && reactGrabAlreadyConfigured) {
     return addAgentToExistingNextApp(originalContent, agent, documentPath);
   }
 
-  if (hasReactGrabInFile) {
+  if (hasReactGrabInFile || hasReactGrabInInstrumentationFile) {
     return {
       success: true,
       filePath: documentPath,
-      message: "React Grab is already installed in this file",
+      message: "React Grab is already installed" + (hasReactGrabInInstrumentationFile ? " in instrumentation-client" : " in this file"),
       noChanges: true,
     };
   }
@@ -404,7 +445,7 @@ const transformVite = (
 
   const originalContent = readFileSync(indexPath, "utf-8");
   let newContent = originalContent;
-  const hasReactGrabInFile = originalContent.includes("react-grab");
+  const hasReactGrabInFile = hasReactGrabCode(originalContent);
 
   if (hasReactGrabInFile && reactGrabAlreadyConfigured) {
     return addAgentToExistingVite(originalContent, agent, indexPath);
@@ -451,7 +492,7 @@ const transformWebpack = (
   }
 
   const originalContent = readFileSync(entryPath, "utf-8");
-  const hasReactGrabInFile = originalContent.includes("react-grab");
+  const hasReactGrabInFile = hasReactGrabCode(originalContent);
 
   if (hasReactGrabInFile && reactGrabAlreadyConfigured) {
     return addAgentToExistingWebpack(originalContent, agent, entryPath);
