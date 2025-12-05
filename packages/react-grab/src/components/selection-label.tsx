@@ -615,7 +615,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     }
                     rows={1}
                   />
-                  <div class="flex items-center gap-0.5 ml-1">
+                  <div class="flex items-center gap-0.5 ml-1 w-[17px] h-[17px] justify-end">
                     <Show
                       when={
                         props.hasAgent &&
