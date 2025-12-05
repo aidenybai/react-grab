@@ -1,6 +1,6 @@
 {
   "name": "@react-grab/claude-code",
-  "version": "0.0.69",
+  "version": "0.0.70",
   "type": "module",
   "bin": {
     "react-grab-claude-code": "./dist/cli.js"

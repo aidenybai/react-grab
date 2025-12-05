@@ -1,5 +1,13 @@
 # @react-grab/cursor
 
+## 0.0.70
+
+### Patch Changes
+
+- fix: react-grab cli flow when agents is used
+- Updated dependencies
+  - react-grab@0.0.70
+
 ## 0.0.69
 
 ### Patch Changes

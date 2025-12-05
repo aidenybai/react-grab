@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.70
+
+### Patch Changes
+
+- fix: react-grab cli flow when agents is used
+
 ## 0.0.69
 
 ### Patch Changes
