@@ -1445,7 +1445,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         blockEnterIfNeeded(event);
 
         const isEnterToActivateInput =
-          event.key === "Enter" && isHoldingKeys() && !isInputMode();
+          event.code === "Enter" && isHoldingKeys() && !isInputMode();
 
         if (
           isInputMode() ||
@@ -1470,7 +1470,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           }
         }
 
-        if (event.key === "Enter" && isHoldingKeys() && !isInputMode()) {
+        if (event.code === "Enter" && isHoldingKeys() && !isInputMode()) {
           event.preventDefault();
           event.stopPropagation();
           event.stopImmediatePropagation();
@@ -1534,18 +1534,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             !isToggleMode() &&
             (event.metaKey || event.ctrlKey)
           ) {
-            if (!MODIFIER_KEYS.includes(event.key) && event.key !== "Enter") {
+            if (!MODIFIER_KEYS.includes(event.key) && event.code !== "Enter") {
               deactivateRenderer();
             }
           }
-          if (event.key !== "Enter" || !isHoldingKeys()) {
+          if (event.code !== "Enter" || !isHoldingKeys()) {
             return;
           }
         }
 
         if ((isActivated() || isHoldingKeys()) && !isInputMode()) {
           event.preventDefault();
-          if (event.key === "Enter") {
+          if (event.code === "Enter") {
             event.stopPropagation();
             event.stopImmediatePropagation();
           }
