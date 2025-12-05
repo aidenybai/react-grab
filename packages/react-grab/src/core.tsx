@@ -1059,6 +1059,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const activateRenderer = () => {
       stopProgressAnimation();
       previouslyFocusedElement = document.activeElement;
+      if (previouslyFocusedElement instanceof HTMLElement) {
+        previouslyFocusedElement.blur();
+      }
       activationTimestamp = Date.now();
       setIsActivated(true);
       options.onActivate?.();
@@ -1397,6 +1400,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation();
+        const activeElement = document.activeElement;
+        if (activeElement instanceof HTMLElement) {
+          activeElement.blur();
+        }
         return true;
       }
       return false;
