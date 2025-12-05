@@ -103,50 +103,72 @@ interface CliArgs {
 
 const parseArgs = async (): Promise<CliArgs> => {
   const argv = await yargs(hideBin(process.argv))
-    .usage("Usage: $0 [options]")
+    .scriptName("react-grab")
+    .usage(
+      `${pc.magenta("⚛")} ${pc.bold("React Grab CLI")} ${pc.gray(`v${VERSION}`)}\n\n` +
+        `${pc.cyan("Usage:")} $0 [options]\n\n` +
+        `React Grab adds AI-powered context selection to your React application,\n` +
+        `allowing you to select components and copy their context for AI assistants.\n\n` +
+        `The CLI auto-detects your project configuration (framework, package manager,\n` +
+        `router type) and installs React Grab with optional agent integrations.`
+    )
     .option("framework", {
       alias: "f",
       type: "string",
       choices: ["next", "vite", "webpack"] as const,
-      description: "Framework to configure (next, vite, webpack)",
+      description: "Override detected framework",
     })
     .option("package-manager", {
       alias: "p",
       type: "string",
       choices: ["npm", "yarn", "pnpm", "bun"] as const,
-      description: "Package manager to use",
+      description: "Override detected package manager",
     })
     .option("router", {
       alias: "r",
       type: "string",
       choices: ["app", "pages"] as const,
-      description: "Next.js router type (app or pages)",
+      description: "Next.js router type (only for Next.js projects)",
     })
     .option("agent", {
       alias: "a",
       type: "string",
       choices: ["claude-code", "cursor", "opencode", "none"] as const,
-      description: "Agent integration to add",
+      description: "Agent integration to automatically forward selected elements to agent instead of copying to clipboard",
     })
     .option("yes", {
       alias: "y",
       type: "boolean",
       default: false,
-      description: "Skip all confirmation prompts",
+      description: "Skip all prompts and use auto-detected/default values",
     })
     .option("skip-install", {
       type: "boolean",
       default: false,
-      description: "Skip package installation (only modify files)",
+      description: "Only modify config files, skip npm/yarn/pnpm install",
     })
     .help()
     .alias("help", "h")
     .version(VERSION)
     .alias("version", "v")
-    .example("$0", "Run interactive setup")
-    .example("$0 -y", "Auto-detect and install without prompts")
-    .example("$0 -f next -r app -a cursor", "Install for Next.js App Router with Cursor agent")
-    .example("$0 -p pnpm -a claude-code -y", "Use pnpm and add Claude Code agent")
+    .example("$0", "Run interactive setup with prompts")
+    .example("$0 -y", "Auto-detect everything and install without prompts")
+    .example("$0 -f next -r app", "Configure for Next.js App Router")
+    .example("$0 -a cursor -y", "Add Cursor agent integration non-interactively")
+    .example("$0 -p pnpm -a claude-code", "Use pnpm and add Claude Code agent")
+    .example("$0 --skip-install", "Only modify files, install packages manually")
+    .epilog(
+      `${pc.bold("Agent Integrations:")}\n` +
+        `  ${pc.cyan("claude-code")}  Connect React Grab to Claude Code\n` +
+        `  ${pc.cyan("cursor")}       Connect React Grab to Cursor IDE\n` +
+        `  ${pc.cyan("opencode")}     Connect React Grab to Opencode\n\n` +
+        `${pc.bold("Supported Frameworks:")}\n` +
+        `  ${pc.cyan("next")}     Next.js (App Router & Pages Router)\n` +
+        `  ${pc.cyan("vite")}     Vite-based React projects\n` +
+        `  ${pc.cyan("webpack")}  Webpack-based React projects\n\n` +
+        `${pc.bold("Documentation:")} ${pc.underline(DOCS_URL)}`
+    )
+    .wrap(Math.min(100, process.stdout.columns || 80))
     .parse();
 
   return {
