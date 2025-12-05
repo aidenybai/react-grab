@@ -1,6 +1,11 @@
 import { createSignal } from "solid-js";
 import type { Accessor } from "solid-js";
-import type { AgentContext, AgentSession, AgentOptions, OverlayBounds } from "./types.js";
+import type {
+  AgentContext,
+  AgentSession,
+  AgentOptions,
+  OverlayBounds,
+} from "./types.js";
 import {
   createSession,
   saveSessionById,

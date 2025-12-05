@@ -6,7 +6,13 @@ export type StreamStatus = "pending" | "streaming" | "complete";
 
 export interface StreamBlock {
   id: string;
-  type: "thought" | "message" | "tool_call" | "planning" | "user_message" | "code_block";
+  type:
+    | "thought"
+    | "message"
+    | "tool_call"
+    | "planning"
+    | "user_message"
+    | "code_block";
   content: string | ReactNode | Array<string | ReactNode>;
   duration?: number;
   metadata?: Record<string, unknown>;
@@ -19,7 +25,13 @@ interface StreamChunk {
 
 export interface StreamRenderedBlock {
   id: string;
-  type: "thought" | "message" | "tool_call" | "planning" | "user_message" | "code_block";
+  type:
+    | "thought"
+    | "message"
+    | "tool_call"
+    | "planning"
+    | "user_message"
+    | "code_block";
   content: string | ReactNode | Array<string | ReactNode>;
   chunks: StreamChunk[];
   status: StreamStatus;
@@ -115,9 +127,12 @@ export const useStream = ({
   }, [blocks]);
 
   useEffect(() => {
-    if (streamingRef.current || blocks.length === 0 || !hasCheckedStorage) return;
+    if (streamingRef.current || blocks.length === 0 || !hasCheckedStorage)
+      return;
 
-    const hasCompleted = typeof window !== "undefined" && localStorage.getItem(storageKey) === "true";
+    const hasCompleted =
+      typeof window !== "undefined" &&
+      localStorage.getItem(storageKey) === "true";
     if (hasCompleted) return;
 
     streamingRef.current = true;
@@ -145,12 +160,15 @@ export const useStream = ({
       const isToolCall = currentBlock.type === "tool_call";
       const isArray = Array.isArray(blockContent);
       const textContent = isArray
-        ? blockContent.filter((item): item is string => typeof item === "string").join("")
-        : typeof blockContent === "string"
         ? blockContent
-        : "";
+            .filter((item): item is string => typeof item === "string")
+            .join("")
+        : typeof blockContent === "string"
+          ? blockContent
+          : "";
       const isReactNode = typeof blockContent !== "string" && !isArray;
-      const isInstantBlock = currentBlock.type === "user_message" || isReactNode;
+      const isInstantBlock =
+        currentBlock.type === "user_message" || isReactNode;
 
       if (currentCharIdx === 0) {
         setState((prev) => {
@@ -192,7 +210,10 @@ export const useStream = ({
             currentCharIdxRef.current = 0;
 
             const justCompletedToolBlock = currentBlocks[currentBlockIdx];
-            if (pauseAtBlockId && justCompletedToolBlock.id === pauseAtBlockId) {
+            if (
+              pauseAtBlockId &&
+              justCompletedToolBlock.id === pauseAtBlockId
+            ) {
               setState((prev) => ({
                 ...prev,
                 isPaused: true,
@@ -281,7 +302,10 @@ export const useStream = ({
 
       if (typeof blockContent !== "string" && !isArray) return;
 
-      const endIdx = Math.min(currentCharIdx + (chunkSize || 4), textContent.length);
+      const endIdx = Math.min(
+        currentCharIdx + (chunkSize || 4),
+        textContent.length,
+      );
       const chunk = textContent.slice(currentCharIdx, endIdx);
 
       setState((prev) => {
@@ -291,16 +315,21 @@ export const useStream = ({
 
         const nextChunkId = `${existingBlock.id}-${existingBlock.chunks.length}`;
 
-        const existingTextContent = typeof existingBlock.content === "string"
-          ? existingBlock.content
-          : Array.isArray(existingBlock.content)
-          ? existingBlock.content.filter((item): item is string => typeof item === "string").join("")
-          : "";
+        const existingTextContent =
+          typeof existingBlock.content === "string"
+            ? existingBlock.content
+            : Array.isArray(existingBlock.content)
+              ? existingBlock.content
+                  .filter((item): item is string => typeof item === "string")
+                  .join("")
+              : "";
 
         const newTextContent = existingTextContent + chunk;
 
         const newContent = isArray
-          ? blockContent.map(item => typeof item === "string" ? newTextContent : item)
+          ? blockContent.map((item) =>
+              typeof item === "string" ? newTextContent : item,
+            )
           : newTextContent;
 
         newBlocks[currentBlockIdx] = {
@@ -380,7 +409,15 @@ export const useStream = ({
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [blocks, chunkSize, chunkDelayMs, blockDelayMs, storageKey, pauseAtBlockId, hasCheckedStorage]);
+  }, [
+    blocks,
+    chunkSize,
+    chunkDelayMs,
+    blockDelayMs,
+    storageKey,
+    pauseAtBlockId,
+    hasCheckedStorage,
+  ]);
 
   const resume = () => {
     if (resumeCallbackRef.current) {

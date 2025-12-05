@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 
 const title = "React Grab for Agents";
-const description = "React Grab used to stop at copying context for your coding agent. Now it can directly talk to the agent to edit the code directly from the browser.";
+const description =
+  "React Grab used to stop at copying context for your coding agent. Now it can directly talk to the agent to edit the code directly from the browser.";
 const ogImageUrl = `https://react-grab.com/api/og?title=${encodeURIComponent(title)}&subtitle=${encodeURIComponent(description)}`;
 
 export const metadata: Metadata = {

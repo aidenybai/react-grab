@@ -11,9 +11,12 @@ import { ThoughtBlock } from "./blocks/thought-block";
 import { MessageBlock } from "./blocks/message-block";
 import { ToolCallsBlock } from "./blocks/tool-calls-block";
 
-const CodeBlock = dynamic(() => import("./blocks/code-block").then((mod) => mod.CodeBlock), {
-  ssr: false,
-});
+const CodeBlock = dynamic(
+  () => import("./blocks/code-block").then((mod) => mod.CodeBlock),
+  {
+    ssr: false,
+  },
+);
 import { UserMessage } from "./user-message";
 import { GrabElementButton } from "./grab-element-button";
 import { ReactGrabLogo } from "./react-grab-logo";
@@ -307,30 +310,33 @@ export const StreamDemo = () => {
     }
   }, [updatedBlocks, stream]);
 
-  const handleElementSelect = useCallback((elementTag: string) => {
-    const newBlocks = updatedBlocks.map((block) => {
-      if (block.id === "user-2") {
-        return {
-          ...block,
-          content: (
-            <div className="flex items-center gap-1 flex-wrap">
-              Here{"'"}s the element
-              <span
-                key="badge"
-                className="inline-flex items-center rounded-md bg-[#330039] px-1 py-0.5 text-xs font-mono text-[#ff4fff]"
-              >
-                {`<${elementTag}>`}
-              </span>
-            </div>
-          ),
-        };
-      }
-      return block;
-    });
+  const handleElementSelect = useCallback(
+    (elementTag: string) => {
+      const newBlocks = updatedBlocks.map((block) => {
+        if (block.id === "user-2") {
+          return {
+            ...block,
+            content: (
+              <div className="flex items-center gap-1 flex-wrap">
+                Here{"'"}s the element
+                <span
+                  key="badge"
+                  className="inline-flex items-center rounded-md bg-[#330039] px-1 py-0.5 text-xs font-mono text-[#ff4fff]"
+                >
+                  {`<${elementTag}>`}
+                </span>
+              </div>
+            ),
+          };
+        }
+        return block;
+      });
 
-    shouldResumeRef.current = true;
-    setUpdatedBlocks(newBlocks);
-  }, [updatedBlocks]);
+      shouldResumeRef.current = true;
+      setUpdatedBlocks(newBlocks);
+    },
+    [updatedBlocks],
+  );
 
   const reactGrabStartId = "message-4";
   const reactGrabStartIndex = stream.blocks.findIndex(

@@ -27,7 +27,11 @@ const EDITORS: EditorOption[] = [
 
 const STORAGE_KEY = "react-grab-preferred-editor";
 
-const getEditorUrl = (editor: Editor, filePath: string, lineNumber?: number): string => {
+const getEditorUrl = (
+  editor: Editor,
+  filePath: string,
+  lineNumber?: number,
+): string => {
   if (editor === "webstorm") {
     const lineParam = lineNumber ? `&line=${lineNumber}` : "";
     return `webstorm://open?file=${filePath}${lineParam}`;
@@ -43,13 +47,14 @@ const OpenFileContent = () => {
   const [lineNumber] = useQueryState("line");
   const [editorParam, setEditorParam] = useQueryState(
     "editor",
-    parseAsStringLiteral(EDITOR_OPTIONS)
+    parseAsStringLiteral(EDITOR_OPTIONS),
   );
 
   const resolvedFilePath = filePath ?? filePathAlt ?? "";
 
   const getInitialEditor = (): { editor: Editor; hasSaved: boolean } => {
-    if (typeof window === "undefined") return { editor: "cursor", hasSaved: false };
+    if (typeof window === "undefined")
+      return { editor: "cursor", hasSaved: false };
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved && EDITORS.some((e) => e.id === saved)) {
       return { editor: saved as Editor, hasSaved: true };
@@ -58,7 +63,8 @@ const OpenFileContent = () => {
   };
 
   const [preferredEditor, setPreferredEditor] = useState<Editor>(() => {
-    if (editorParam && EDITORS.some((e) => e.id === editorParam)) return editorParam;
+    if (editorParam && EDITORS.some((e) => e.id === editorParam))
+      return editorParam;
     return getInitialEditor().editor;
   });
   const [didAttemptOpen, setDidAttemptOpen] = useState(false);
@@ -69,7 +75,10 @@ const OpenFileContent = () => {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsDropdownOpen(false);
       }
     };
@@ -84,7 +93,7 @@ const OpenFileContent = () => {
     const url = getEditorUrl(
       preferredEditor,
       resolvedFilePath,
-      lineNumber ? parseInt(lineNumber, 10) : undefined
+      lineNumber ? parseInt(lineNumber, 10) : undefined,
     );
     window.location.href = url;
     setDidAttemptOpen(true);
@@ -122,7 +131,9 @@ const OpenFileContent = () => {
           </div>
           <div className="text-white/60 text-sm">
             No file specified. Add{" "}
-            <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-xs">?url=path/to/file</code>{" "}
+            <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-xs">
+              ?url=path/to/file
+            </code>{" "}
             to the URL.
           </div>
         </div>
@@ -134,7 +145,11 @@ const OpenFileContent = () => {
     <div className="flex min-h-screen flex-col items-center justify-center bg-black p-4">
       <div className="mb-8">
         <Link href="/">
-          <ReactGrabLogo width={160} height={60} className="logo-shimmer-once" />
+          <ReactGrabLogo
+            width={160}
+            height={60}
+            className="logo-shimmer-once"
+          />
         </Link>
       </div>
 
@@ -167,7 +182,13 @@ const OpenFileContent = () => {
             >
               <span className="opacity-70">{selectedEditor?.icon}</span>
               <span>{selectedEditor?.name}</span>
-              <ChevronDown size={14} className={cn("opacity-40 transition-transform", isDropdownOpen && "rotate-180")} />
+              <ChevronDown
+                size={14}
+                className={cn(
+                  "opacity-40 transition-transform",
+                  isDropdownOpen && "rotate-180",
+                )}
+              />
             </button>
 
             {isDropdownOpen && (
@@ -181,7 +202,7 @@ const OpenFileContent = () => {
                       "flex w-full items-center gap-2.5 px-4 py-2.5 text-sm transition-colors",
                       preferredEditor === editor.id
                         ? "bg-white/10 text-white"
-                        : "text-white/60 hover:bg-white/10 hover:text-white/90"
+                        : "text-white/60 hover:bg-white/10 hover:text-white/90",
                     )}
                   >
                     <span className="opacity-70">{editor.icon}</span>
@@ -216,7 +237,10 @@ const OpenFileContent = () => {
         className="mt-8 flex items-center gap-1.5 text-xs text-white/25 transition-colors hover:text-white/40 focus:outline-none"
       >
         <span>What is React Grab?</span>
-        <ChevronDown size={10} className={cn("transition-transform", isInfoOpen && "rotate-180")} />
+        <ChevronDown
+          size={10}
+          className={cn("transition-transform", isInfoOpen && "rotate-180")}
+        />
       </button>
 
       {isInfoOpen && (

@@ -23,8 +23,11 @@ const DEFAULT_OPTIONS: Options = {
     NODE_ENV: process.env.NODE_ENV ?? "development",
     VERSION:
       process.env.VERSION ??
-      (JSON.parse(fs.readFileSync("package.json", "utf8")) as { version: string })
-        .version,
+      (
+        JSON.parse(fs.readFileSync("package.json", "utf8")) as {
+          version: string;
+        }
+      ).version,
   },
   external: [],
   format: [],

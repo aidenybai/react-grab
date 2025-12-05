@@ -181,6 +181,6 @@ export const GET = async (request: Request) => {
           weight: 400,
         },
       ],
-    }
+    },
   );
 };

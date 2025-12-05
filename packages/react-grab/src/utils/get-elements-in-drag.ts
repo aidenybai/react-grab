@@ -57,7 +57,10 @@ const filterElementsInDrag = (
     };
 
     if (shouldCheckCoverage) {
-      const intersectionArea = calculateIntersectionArea(dragBounds, elementBounds);
+      const intersectionArea = calculateIntersectionArea(
+        dragBounds,
+        elementBounds,
+      );
       const elementArea = Math.max(0, elementRect.width * elementRect.height);
       const hasMajorityCoverage =
         elementArea > 0 &&
@@ -78,8 +81,9 @@ const filterElementsInDrag = (
 
 const removeNestedElements = (elements: Element[]): Element[] => {
   return elements.filter((element) => {
-    return !elements.some((otherElement) =>
-      otherElement !== element && otherElement.contains(element)
+    return !elements.some(
+      (otherElement) =>
+        otherElement !== element && otherElement.contains(element),
     );
   });
 };
@@ -88,7 +92,11 @@ export const getElementsInDrag = (
   dragRect: DragRect,
   isValidGrabbableElement: (element: Element) => boolean,
 ): Element[] => {
-  const elements = filterElementsInDrag(dragRect, isValidGrabbableElement, true);
+  const elements = filterElementsInDrag(
+    dragRect,
+    isValidGrabbableElement,
+    true,
+  );
   const uniqueElements = removeNestedElements(elements);
 
   return uniqueElements;
@@ -98,7 +106,11 @@ export const getElementsInDragLoose = (
   dragRect: DragRect,
   isValidGrabbableElement: (element: Element) => boolean,
 ): Element[] => {
-  const elements = filterElementsInDrag(dragRect, isValidGrabbableElement, false);
+  const elements = filterElementsInDrag(
+    dragRect,
+    isValidGrabbableElement,
+    false,
+  );
   const uniqueElements = removeNestedElements(elements);
 
   return uniqueElements;

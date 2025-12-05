@@ -30,19 +30,23 @@ const mergeThemeWithBase = (
   enabled: partialTheme.enabled ?? baseTheme.enabled,
   hue: partialTheme.hue ?? baseTheme.hue,
   selectionBox: {
-    enabled: partialTheme.selectionBox?.enabled ?? baseTheme.selectionBox.enabled,
+    enabled:
+      partialTheme.selectionBox?.enabled ?? baseTheme.selectionBox.enabled,
   },
   dragBox: {
     enabled: partialTheme.dragBox?.enabled ?? baseTheme.dragBox.enabled,
   },
   grabbedBoxes: {
-    enabled: partialTheme.grabbedBoxes?.enabled ?? baseTheme.grabbedBoxes.enabled,
+    enabled:
+      partialTheme.grabbedBoxes?.enabled ?? baseTheme.grabbedBoxes.enabled,
   },
   elementLabel: {
-    enabled: partialTheme.elementLabel?.enabled ?? baseTheme.elementLabel.enabled,
+    enabled:
+      partialTheme.elementLabel?.enabled ?? baseTheme.elementLabel.enabled,
   },
   successLabels: {
-    enabled: partialTheme.successLabels?.enabled ?? baseTheme.successLabels.enabled,
+    enabled:
+      partialTheme.successLabels?.enabled ?? baseTheme.successLabels.enabled,
   },
   crosshair: {
     enabled: partialTheme.crosshair?.enabled ?? baseTheme.crosshair.enabled,

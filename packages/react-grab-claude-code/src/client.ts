@@ -120,7 +120,11 @@ export const createClaudeAgentProvider = (
       yield* streamFromServer(serverUrl, mergedContext, signal);
     },
 
-    resume: async function* (sessionId: string, signal: AbortSignal, storage: AgentSessionStorage) {
+    resume: async function* (
+      sessionId: string,
+      signal: AbortSignal,
+      storage: AgentSessionStorage,
+    ) {
       const savedSessions = storage.getItem(STORAGE_KEY);
       if (!savedSessions) {
         throw new Error("No sessions to resume");

@@ -9,9 +9,11 @@ const applyColorOverrides = (html: string): string => {
 };
 
 const removeBackground = (html: string): string => {
-  return html.replace(/style="[^"]*background-color:[^;"]*;?[^"]*"/gi, (match) => {
-    return match.replace(/background-color:[^;"]*;?/gi, '');
-  }).replace(/style=""/g, '');
+  return html
+    .replace(/style="[^"]*background-color:[^;"]*;?[^"]*"/gi, (match) => {
+      return match.replace(/background-color:[^;"]*;?/gi, "");
+    })
+    .replace(/style=""/g, "");
 };
 
 const injectLineNumbers = (html: string): string => {
@@ -35,7 +37,10 @@ const getHighlighter = async () => {
   return highlighterInstance;
 };
 
-const highlightChangedLines = (html: string, changedLines?: number[]): string => {
+const highlightChangedLines = (
+  html: string,
+  changedLines?: number[],
+): string => {
   if (!changedLines || changedLines.length === 0) return html;
 
   let lineNumber = 0;

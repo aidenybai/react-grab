@@ -21,7 +21,12 @@ const formatDuration = (milliseconds: number): string => {
   return `${minutes}m ${remainingSeconds}s`;
 };
 
-export const Timer = ({ isRunning, startTime, endTime, maxDurationMs }: TimerProps) => {
+export const Timer = ({
+  isRunning,
+  startTime,
+  endTime,
+  maxDurationMs,
+}: TimerProps) => {
   const [elapsed, setElapsed] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
@@ -63,7 +68,9 @@ export const Timer = ({ isRunning, startTime, endTime, maxDurationMs }: TimerPro
 
   if (!startTime) return null;
 
-  const clampedElapsed = maxDurationMs ? Math.min(elapsed, maxDurationMs) : elapsed;
+  const clampedElapsed = maxDurationMs
+    ? Math.min(elapsed, maxDurationMs)
+    : elapsed;
 
   if (clampedElapsed < 1000) return null;
 

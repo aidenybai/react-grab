@@ -229,7 +229,11 @@ export const createAmiAgentProvider = (
     }
   },
 
-  resume: async function* (sessionId: string, signal: AbortSignal, storage: AgentSessionStorage) {
+  resume: async function* (
+    sessionId: string,
+    signal: AbortSignal,
+    storage: AgentSessionStorage,
+  ) {
     const savedSessions = storage.getItem(STORAGE_KEY);
     if (!savedSessions) {
       throw new Error("No sessions to resume");

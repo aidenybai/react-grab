@@ -433,7 +433,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         <div
           class="[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-xs bg-white antialiased w-fit h-fit p-0"
           style={{
-            display: props.status === "copied" || props.status === "fading" ? "none" : undefined,
+            display:
+              props.status === "copied" || props.status === "fading"
+                ? "none"
+                : undefined,
           }}
         >
           <Show when={props.status === "copying"}>
@@ -476,7 +479,12 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           <Show when={isNotProcessing() && !props.isInputExpanded}>
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit px-1.5">
-                <ClickToCopyPill onClick={handleSubmit} shrink hasParent={!!props.componentName} hasAgent={props.hasAgent} />
+                <ClickToCopyPill
+                  onClick={handleSubmit}
+                  shrink
+                  hasParent={!!props.componentName}
+                  hasAgent={props.hasAgent}
+                />
                 <Show when={props.componentName}>
                   <div class="contain-layout shrink-0 flex items-center gap-px w-fit h-fit">
                     <ParentBadge name={props.componentName!} />
@@ -517,7 +525,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                       <div class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit">
                         <div
                           class="w-2.5 h-[9px] shrink-0 opacity-[0.99] bg-cover bg-center"
-                          style={{ "background-image": `url(${RETURN_KEY_ICON_URL})` }}
+                          style={{
+                            "background-image": `url(${RETURN_KEY_ICON_URL})`,
+                          }}
                         />
                       </div>
                       <span class="text-label-muted text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
@@ -533,7 +543,13 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           <Show when={isNotProcessing() && props.isInputExpanded}>
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit max-w-[280px]">
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-fit h-fit">
-                <ClickToCopyPill onClick={handleSubmit} dimmed shrink hasParent={!!props.componentName} hasAgent={props.hasAgent} />
+                <ClickToCopyPill
+                  onClick={handleSubmit}
+                  dimmed
+                  shrink
+                  hasParent={!!props.componentName}
+                  hasAgent={props.hasAgent}
+                />
                 <Show when={props.componentName}>
                   <div class="contain-layout shrink-0 flex items-center gap-px w-fit h-fit">
                     <ParentBadge name={props.componentName!} />
@@ -574,11 +590,19 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     value={props.inputValue ?? ""}
                     onInput={handleInput}
                     onKeyDown={handleKeyDown}
-                    placeholder={speechRecognition.isListening() ? "listening..." : props.hasAgent ? "type or speak to edit" : "type to edit"}
+                    placeholder={
+                      speechRecognition.isListening()
+                        ? "listening..."
+                        : props.hasAgent
+                          ? "type or speak to edit"
+                          : "type to edit"
+                    }
                     rows={1}
                   />
                   <div class="flex items-center gap-0.5 ml-1">
-                    <Show when={props.hasAgent && speechRecognition.isSupported()}>
+                    <Show
+                      when={props.hasAgent && speechRecognition.isSupported()}
+                    >
                       <button
                         class={cn(
                           "contain-layout shrink-0 flex items-center justify-center px-[3px] py-[3px] rounded-xs [border-width:0.5px] border-solid size-fit cursor-pointer transition-all hover:scale-105",
@@ -587,9 +611,20 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                             : "bg-white border-[#B3B3B3] text-black/50 hover:text-black",
                         )}
                         onClick={speechRecognition.toggle}
-                        title={speechRecognition.isListening() ? "Stop listening" : "Start voice input"}
+                        title={
+                          speechRecognition.isListening()
+                            ? "Stop listening"
+                            : "Start voice input"
+                        }
                       >
-                        <IconMic size={11} class={speechRecognition.isListening() ? "animate-pulse" : ""} />
+                        <IconMic
+                          size={11}
+                          class={
+                            speechRecognition.isListening()
+                              ? "animate-pulse"
+                              : ""
+                          }
+                        />
                       </button>
                     </Show>
                     <button
@@ -601,7 +636,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                           "w-2.5 h-[9px] shrink-0 bg-cover bg-center transition-opacity duration-100",
                           props.inputValue ? "opacity-[0.99]" : "opacity-50",
                         )}
-                        style={{ "background-image": `url(${RETURN_KEY_ICON_URL})` }}
+                        style={{
+                          "background-image": `url(${RETURN_KEY_ICON_URL})`,
+                        }}
                       />
                     </button>
                   </div>

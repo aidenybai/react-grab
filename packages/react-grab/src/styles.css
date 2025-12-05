@@ -6,12 +6,12 @@
   --color-grab-pink-border: #f7c5ec;
   --color-grab-purple: rgb(210, 57, 192);
   --color-label-tag-border: #730079;
-  --color-label-tag-text: #1E001F;
-  --color-label-gray-border: #B0B0B0;
-  --color-label-success-bg: #D9FFE4;
-  --color-label-success-border: #00BB69;
-  --color-label-success-text: #006E3B;
-  --color-label-divider: #DEDEDE;
+  --color-label-tag-text: #1e001f;
+  --color-label-gray-border: #b0b0b0;
+  --color-label-success-bg: #d9ffe4;
+  --color-label-success-border: #00bb69;
+  --color-label-success-text: #006e3b;
+  --color-label-divider: #dedede;
   --color-label-muted: #767676;
 }
 

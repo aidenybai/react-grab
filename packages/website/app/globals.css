@@ -144,40 +144,48 @@ body {
 }
 
 @keyframes rainbow-glow {
-  0%, 100% {
-    box-shadow: 0 0 20px rgba(255, 0, 0, 0.5),
-                0 0 40px rgba(255, 127, 0, 0.4),
-                0 0 60px rgba(255, 255, 0, 0.3);
+  0%,
+  100% {
+    box-shadow:
+      0 0 20px rgba(255, 0, 0, 0.5),
+      0 0 40px rgba(255, 127, 0, 0.4),
+      0 0 60px rgba(255, 255, 0, 0.3);
   }
   16.66% {
-    box-shadow: 0 0 20px rgba(255, 127, 0, 0.5),
-                0 0 40px rgba(255, 255, 0, 0.4),
-                0 0 60px rgba(0, 255, 0, 0.3);
+    box-shadow:
+      0 0 20px rgba(255, 127, 0, 0.5),
+      0 0 40px rgba(255, 255, 0, 0.4),
+      0 0 60px rgba(0, 255, 0, 0.3);
   }
   33.33% {
-    box-shadow: 0 0 20px rgba(255, 255, 0, 0.5),
-                0 0 40px rgba(0, 255, 0, 0.4),
-                0 0 60px rgba(0, 255, 127, 0.3);
+    box-shadow:
+      0 0 20px rgba(255, 255, 0, 0.5),
+      0 0 40px rgba(0, 255, 0, 0.4),
+      0 0 60px rgba(0, 255, 127, 0.3);
   }
   50% {
-    box-shadow: 0 0 20px rgba(0, 255, 0, 0.5),
-                0 0 40px rgba(0, 255, 127, 0.4),
-                0 0 60px rgba(0, 127, 255, 0.3);
+    box-shadow:
+      0 0 20px rgba(0, 255, 0, 0.5),
+      0 0 40px rgba(0, 255, 127, 0.4),
+      0 0 60px rgba(0, 127, 255, 0.3);
   }
   66.66% {
-    box-shadow: 0 0 20px rgba(0, 255, 127, 0.5),
-                0 0 40px rgba(0, 127, 255, 0.4),
-                0 0 60px rgba(127, 0, 255, 0.3);
+    box-shadow:
+      0 0 20px rgba(0, 255, 127, 0.5),
+      0 0 40px rgba(0, 127, 255, 0.4),
+      0 0 60px rgba(127, 0, 255, 0.3);
   }
   83.33% {
-    box-shadow: 0 0 20px rgba(0, 127, 255, 0.5),
-                0 0 40px rgba(127, 0, 255, 0.4),
-                0 0 60px rgba(255, 0, 127, 0.3);
+    box-shadow:
+      0 0 20px rgba(0, 127, 255, 0.5),
+      0 0 40px rgba(127, 0, 255, 0.4),
+      0 0 60px rgba(255, 0, 127, 0.3);
   }
 }
 
 @keyframes rainbow-pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
@@ -198,14 +206,17 @@ body {
     #ff0000 100%
   );
   background-size: 200% 100%;
-  animation: rainbow 3s linear infinite, rainbow-glow 2s ease-in-out infinite, rainbow-pulse 2s ease-in-out infinite;
+  animation:
+    rainbow 3s linear infinite,
+    rainbow-glow 2s ease-in-out infinite,
+    rainbow-pulse 2s ease-in-out infinite;
   border: 2px solid transparent;
   position: relative;
   overflow: hidden;
 }
 
 .rainbow-button::before {
-  content: '';
+  content: "";
   position: absolute;
   top: -2px;
   left: -2px;

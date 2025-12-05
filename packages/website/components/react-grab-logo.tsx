@@ -16,7 +16,12 @@ export const ReactGrabLogo = ({
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
     className={className}
-    style={{ display: "inline-block", verticalAlign: "middle", marginRight: 8, cursor: "pointer" }}
+    style={{
+      display: "inline-block",
+      verticalAlign: "middle",
+      marginRight: 8,
+      cursor: "pointer",
+    }}
   >
     <g clipPath="url(#clip0_0_3)">
       <mask

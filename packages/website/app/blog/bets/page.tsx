@@ -201,7 +201,9 @@ const BetsPage = () => {
             </div>
 
             <div className="flex flex-col gap-4 mt-8">
-              <h3 className="text-lg font-medium text-neutral-200">Try it out</h3>
+              <h3 className="text-lg font-medium text-neutral-200">
+                Try it out
+              </h3>
               <p>
                 React Grab is free and open source.{" "}
                 <Link
@@ -218,7 +220,9 @@ const BetsPage = () => {
             </div>
 
             <div className="flex flex-col gap-4 mt-12 pt-8 border-t border-neutral-800">
-              <h4 className="text-sm font-medium text-neutral-400">Footnotes</h4>
+              <h4 className="text-sm font-medium text-neutral-400">
+                Footnotes
+              </h4>
               <div className="flex flex-col gap-4 text-sm text-neutral-500">
                 <p>
                   <sup className="text-neutral-600 mr-1">1</sup>

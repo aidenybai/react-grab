@@ -144,7 +144,9 @@ export const App = () => {
           </div>
           <div className="p-3 bg-white/5 rounded text-sm">
             <div className="font-medium">User Card</div>
-            <div className="text-white/50 text-xs mt-1 italic italic">john@example.com</div>
+            <div className="text-white/50 text-xs mt-1 italic italic">
+              john@example.com
+            </div>
           </div>
           <input
             type="text"
@@ -163,28 +165,64 @@ export const App = () => {
             ) : (
               logs.map((log, i) => {
                 const getStatusBadge = () => {
-                  const typeStyles: Record<string, { bg: string; text: string; icon: string }> = {
-                    info: { bg: "bg-blue-500/20", text: "text-blue-300", icon: "◆" },
-                    start: { bg: "bg-green-500/20", text: "text-green-300", icon: "▶" },
-                    status: { bg: "bg-cyan-500/20", text: "text-cyan-300", icon: "◉" },
-                    done: { bg: "bg-emerald-500/20", text: "text-emerald-300", icon: "✓" },
-                    error: { bg: "bg-red-500/20", text: "text-red-300", icon: "!" },
-                    resume: { bg: "bg-purple-500/20", text: "text-purple-300", icon: "↻" },
+                  const typeStyles: Record<
+                    string,
+                    { bg: string; text: string; icon: string }
+                  > = {
+                    info: {
+                      bg: "bg-blue-500/20",
+                      text: "text-blue-300",
+                      icon: "◆",
+                    },
+                    start: {
+                      bg: "bg-green-500/20",
+                      text: "text-green-300",
+                      icon: "▶",
+                    },
+                    status: {
+                      bg: "bg-cyan-500/20",
+                      text: "text-cyan-300",
+                      icon: "◉",
+                    },
+                    done: {
+                      bg: "bg-emerald-500/20",
+                      text: "text-emerald-300",
+                      icon: "✓",
+                    },
+                    error: {
+                      bg: "bg-red-500/20",
+                      text: "text-red-300",
+                      icon: "!",
+                    },
+                    resume: {
+                      bg: "bg-purple-500/20",
+                      text: "text-purple-300",
+                      icon: "↻",
+                    },
                   };
                   const style = typeStyles[log.type] || typeStyles.info;
 
                   return (
-                    <span className={`${style.bg} ${style.text} px-2 py-1 rounded text-xs font-medium w-12 flex items-center gap-1`}>
+                    <span
+                      className={`${style.bg} ${style.text} px-2 py-1 rounded text-xs font-medium w-12 flex items-center gap-1`}
+                    >
                       <span>{style.icon}</span>
                     </span>
                   );
                 };
 
                 return (
-                  <div key={i} className="flex gap-3 py-1.5 items-center hover:bg-white/5 px-2 rounded transition-colors">
+                  <div
+                    key={i}
+                    className="flex gap-3 py-1.5 items-center hover:bg-white/5 px-2 rounded transition-colors"
+                  >
                     {getStatusBadge()}
-                    <span className="text-white/70 flex-1 italic">{log.message}</span>
-                    <span className="text-white/20 text-xs">{log.time.toLocaleTimeString()}</span>
+                    <span className="text-white/70 flex-1 italic">
+                      {log.message}
+                    </span>
+                    <span className="text-white/20 text-xs">
+                      {log.time.toLocaleTimeString()}
+                    </span>
                   </div>
                 );
               })

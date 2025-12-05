@@ -9,7 +9,10 @@ const isEditableElement = (element: Element): boolean => {
   return false;
 };
 
-export const isSelectionInsideEditableElement = (cursorX?: number, cursorY?: number): boolean => {
+export const isSelectionInsideEditableElement = (
+  cursorX?: number,
+  cursorY?: number,
+): boolean => {
   const activeElement = document.activeElement;
 
   if (activeElement) {

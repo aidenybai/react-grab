@@ -10,4 +10,3 @@ export const buildOpenFileUrl = (
   const lineParam = lineNumber ? `&line=${lineNumber}` : "";
   return `${BASE_URL}/open-file?url=${encodeURIComponent(filePath)}${lineParam}`;
 };
-

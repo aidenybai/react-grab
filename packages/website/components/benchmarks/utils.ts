@@ -16,7 +16,7 @@ const getGradientColor = (changePercent: number): string => {
 
 export const calculateChange = (
   controlVal?: number,
-  treatmentVal?: number
+  treatmentVal?: number,
 ): ChangeInfo => {
   if (controlVal === undefined || treatmentVal === undefined)
     return { change: "", bgColor: "transparent" };
@@ -48,9 +48,7 @@ export const calculateChange = (
 export const calculateStats = (results: BenchmarkResult[]): Stats => {
   const successCount = results.filter((r) => r.success).length;
   return {
-    successRate: parseFloat(
-      ((successCount / results.length) * 100).toFixed(1)
-    ),
+    successRate: parseFloat(((successCount / results.length) * 100).toFixed(1)),
     avgCost: results.reduce((sum, r) => sum + r.costUsd, 0) / results.length,
     avgDuration:
       results.reduce((sum, r) => sum + r.durationMs, 0) / results.length,

@@ -102,7 +102,9 @@ export default function Document() {
 }`;
     },
     getChangedLines: (hotkey) =>
-      hotkey ? [9, 10, 11, 12, 13, 14, 15, 16, 17, 18] : [9, 10, 11, 12, 13, 14],
+      hotkey
+        ? [9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+        : [9, 10, 11, 12, 13, 14],
   },
   {
     id: "vite",
@@ -154,7 +156,8 @@ export default function Document() {
     id: "webpack",
     label: "Webpack",
     fileName: "src/index.tsx",
-    description: "First npm install react-grab, then add this at the top of your main entry file:",
+    description:
+      "First npm install react-grab, then add this at the top of your main entry file:",
     getCode: (hotkey) => {
       if (hotkey) {
         const optionsArg = formatDataOptions(hotkey);
@@ -194,19 +197,23 @@ root.render(
   </React.StrictMode>
 );`;
     },
-    getChangedLines: (hotkey) =>
-      hotkey ? [5, 6, 7, 8, 9] : [5, 6, 7],
+    getChangedLines: (hotkey) => (hotkey ? [5, 6, 7, 8, 9] : [5, 6, 7]),
   },
 ];
 
 export const InstallTabs = () => {
   const { customHotkey } = useHotkey();
-  const [activeTabId, setActiveTabId] = useState<string>(installTabsData[0]?.id);
+  const [activeTabId, setActiveTabId] = useState<string>(
+    installTabsData[0]?.id,
+  );
   const [didCopy, setDidCopy] = useState(false);
-  const [highlightedCodes, setHighlightedCodes] = useState<Record<string, string>>({});
+  const [highlightedCodes, setHighlightedCodes] = useState<
+    Record<string, string>
+  >({});
   const [isMobile, setIsMobile] = useState(false);
 
-  const activeTab = installTabsData.find((tab) => tab.id === activeTabId) ?? installTabsData[0];
+  const activeTab =
+    installTabsData.find((tab) => tab.id === activeTabId) ?? installTabsData[0];
   const activeCode = activeTab.getCode(customHotkey ?? null);
   const activeChangedLines = activeTab.getChangedLines(customHotkey ?? null);
 
@@ -214,23 +221,26 @@ export const InstallTabs = () => {
     setIsMobile(detectMobile());
   }, []);
 
-  const updateHighlightedCodes = useCallback(async (hotkey: RecordedHotkey | null) => {
-    const results = await Promise.all(
-      installTabsData.map(async (tab) => ({
-        id: tab.id,
-        html: await highlightCode({
-          code: tab.getCode(hotkey),
-          lang: "tsx",
-          changedLines: tab.getChangedLines(hotkey),
-        }),
-      }))
-    );
-    const codes: Record<string, string> = {};
-    results.forEach((result) => {
-      codes[result.id] = result.html;
-    });
-    setHighlightedCodes(codes);
-  }, []);
+  const updateHighlightedCodes = useCallback(
+    async (hotkey: RecordedHotkey | null) => {
+      const results = await Promise.all(
+        installTabsData.map(async (tab) => ({
+          id: tab.id,
+          html: await highlightCode({
+            code: tab.getCode(hotkey),
+            lang: "tsx",
+            changedLines: tab.getChangedLines(hotkey),
+          }),
+        })),
+      );
+      const codes: Record<string, string> = {};
+      results.forEach((result) => {
+        codes[result.id] = result.html;
+      });
+      setHighlightedCodes(codes);
+    },
+    [],
+  );
 
   useEffect(() => {
     updateHighlightedCodes(customHotkey ?? null);
@@ -275,7 +285,7 @@ export const InstallTabs = () => {
                 "border-b pb-2 font-sans text-[13px] transition-colors",
                 isActive
                   ? "border-white text-white"
-                  : "border-transparent text-white/60 hover:text-white"
+                  : "border-transparent text-white/60 hover:text-white",
               )}
               onClick={() => setActiveTabId(tab.id)}
             >
@@ -287,7 +297,9 @@ export const InstallTabs = () => {
       <div className="bg-black/60 relative">
         <div className="flex items-center justify-between gap-2 flex-wrap border-b border-white/10 px-4 py-2 text-[11px] text-white/60">
           <span>{activeTab.description}</span>
-          <span className="font-mono text-[11px] text-white/40">{activeTab.fileName}</span>
+          <span className="font-mono text-[11px] text-white/40">
+            {activeTab.fileName}
+          </span>
         </div>
         <div className="relative">
           <div className="group relative">
