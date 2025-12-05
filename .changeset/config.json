@@ -10,7 +10,8 @@
       "@react-grab/ami",
       "@react-grab/cursor",
       "@react-grab/opencode",
-      "@react-grab/cli"
+      "@react-grab/cli",
+      "@react-grab/codex"
     ]
   ],
   "access": "public",
