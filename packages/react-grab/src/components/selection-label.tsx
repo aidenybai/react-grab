@@ -494,7 +494,12 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
           <Show when={isNotProcessing() && !props.isInputExpanded}>
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
-              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit px-1.5">
+              <div
+                class={cn(
+                  "contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5",
+                  props.componentName ? "pr-1.5" : "pr-1",
+                )}
+              >
                 <ClickToCopyPill
                   onClick={handleSubmit}
                   shrink
@@ -527,12 +532,12 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 </Show>
               </div>
               <div
-                class="grid w-full transition-[grid-template-rows] duration-30 ease-out"
+                class="grid transition-[grid-template-rows] duration-30 ease-out"
                 style={{
                   "grid-template-rows": isIdle() ? "1fr" : "0fr",
                 }}
               >
-                <div class="overflow-hidden min-h-0">
+                <div class={cn("overflow-hidden min-h-0", !isIdle() && "w-0")}>
                   <BottomSection>
                     <div class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit">
                       <span class="text-label-muted text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
@@ -558,7 +563,12 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
           <Show when={isNotProcessing() && props.isInputExpanded}>
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit max-w-[280px]">
-              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-fit h-fit">
+              <div
+                class={cn(
+                  "contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5",
+                  props.componentName ? "pr-1.5" : "pr-1",
+                )}
+              >
                 <ClickToCopyPill
                   onClick={handleSubmit}
                   dimmed
