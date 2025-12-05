@@ -1391,6 +1391,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     window.addEventListener(
       "keydown",
       (event: KeyboardEvent) => {
+        if (event.key === "Enter" && isActivated() && !isInputMode()) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+        }
+
         const isEnterToActivateInput =
           event.key === "Enter" && isHoldingKeys() && !isInputMode();
 
@@ -1531,6 +1537,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     window.addEventListener(
       "keyup",
       (event: KeyboardEvent) => {
+        if (event.key === "Enter" && isActivated() && !isInputMode()) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          return;
+        }
+
         if (!isHoldingKeys() && !isActivated()) return;
         if (isInputMode()) return;
 
