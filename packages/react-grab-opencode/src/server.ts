@@ -1,4 +1,5 @@
 import net from "node:net";
+import { execSync } from "node:child_process";
 import { createOpencode } from "@opencode-ai/sdk";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -145,9 +146,26 @@ const isPortInUse = (port: number): Promise<boolean> =>
     netServer.listen(port);
   });
 
-export const startServer = async (port: number = DEFAULT_PORT) => {
+const killProcessOnPort = (port: number): void => {
+  try {
+    execSync(`lsof -i :${port} | grep LISTEN | awk '{print $2}' | xargs kill -9 2>/dev/null`, {
+      stdio: "ignore",
+    });
+    console.log(`${pc.yellow("⚠")} Killed existing process on port ${port}`);
+  } catch {
+    // No process to kill
+  }
+};
+
+export const startServer = async (port: number = DEFAULT_PORT, killExisting: boolean = false) => {
   if (await isPortInUse(port)) {
-    return;
+    if (killExisting) {
+      killProcessOnPort(port);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    } else {
+      console.log(`${pc.yellow("⚠")} Port ${port} is already in use`);
+      return;
+    }
   }
 
   const honoApplication = createServer();

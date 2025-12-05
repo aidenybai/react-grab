@@ -25,10 +25,12 @@
   ],
   "scripts": {
     "dev": "tsup --watch",
-    "build": "rm -rf dist && NODE_ENV=production tsup"
+    "build": "rm -rf dist && NODE_ENV=production tsup",
+    "serve": "NODE_ENV=development tsx --inspect src/cli.ts --kill"
   },
   "devDependencies": {
-    "tsup": "^8.4.0"
+    "tsup": "^8.4.0",
+    "tsx": "^4.19.2"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.6",
