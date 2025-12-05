@@ -2,7 +2,7 @@ import { confirm, select } from "@inquirer/prompts";
 import pc from "picocolors";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-import { detectProject, type Framework, type PackageManager, type UnsupportedFramework } from "./detect.js";
+import { detectProject, findWorkspaceProjects, type Framework, type PackageManager, type UnsupportedFramework } from "./detect.js";
 import { printDiff } from "./diff.js";
 import { getPackagesToInstall, installPackages } from "./install.js";
 import type { AgentIntegration } from "./templates.js";
@@ -57,17 +57,27 @@ const showManualInstructions = (framework: Framework, nextRouterType?: string) =
   if (framework === "next" && nextRouterType === "app") {
     console.log(`${pc.bold("Next.js App Router:")}`);
     console.log(`  1. Install: ${pc.cyan("npm install -D react-grab")}`);
-    console.log(`  2. Add to ${pc.cyan("app/layout.tsx")}:`);
+    console.log(`  2. Add to ${pc.cyan("app/layout.tsx")} inside <head>:`);
     console.log(`     ${pc.gray('import Script from "next/script";')}`);
-    console.log(`     ${pc.gray("// Inside <head> or after <html>:")}`);
-    console.log(`     ${pc.gray('<Script src="//unpkg.com/react-grab/dist/index.global.js" strategy="beforeInteractive" />')}`);
+    console.log(`     ${pc.gray('{process.env.NODE_ENV === "development" && (')}`);
+    console.log(`     ${pc.gray('  <Script')}`);
+    console.log(`     ${pc.gray('    src="//unpkg.com/react-grab/dist/index.global.js"')}`);
+    console.log(`     ${pc.gray('    crossOrigin="anonymous"')}`);
+    console.log(`     ${pc.gray('    strategy="beforeInteractive"')}`);
+    console.log(`     ${pc.gray('  />')}`);
+    console.log(`     ${pc.gray(')}')}`);
   } else if (framework === "next" && nextRouterType === "pages") {
     console.log(`${pc.bold("Next.js Pages Router:")}`);
     console.log(`  1. Install: ${pc.cyan("npm install -D react-grab")}`);
-    console.log(`  2. Create or edit ${pc.cyan("pages/_document.tsx")}:`);
+    console.log(`  2. Add to ${pc.cyan("pages/_document.tsx")} inside <Head>:`);
     console.log(`     ${pc.gray('import Script from "next/script";')}`);
-    console.log(`     ${pc.gray("// Inside <Head>:")}`);
-    console.log(`     ${pc.gray('<Script src="//unpkg.com/react-grab/dist/index.global.js" strategy="beforeInteractive" />')}`);
+    console.log(`     ${pc.gray('{process.env.NODE_ENV === "development" && (')}`);
+    console.log(`     ${pc.gray('  <Script')}`);
+    console.log(`     ${pc.gray('    src="//unpkg.com/react-grab/dist/index.global.js"')}`);
+    console.log(`     ${pc.gray('    crossOrigin="anonymous"')}`);
+    console.log(`     ${pc.gray('    strategy="beforeInteractive"')}`);
+    console.log(`     ${pc.gray('  />')}`);
+    console.log(`     ${pc.gray(')}')}`);
   } else if (framework === "vite") {
     console.log(`${pc.bold("Vite:")}`);
     console.log(`  1. Install: ${pc.cyan("npm install -D react-grab")}`);
@@ -83,10 +93,31 @@ const showManualInstructions = (framework: Framework, nextRouterType?: string) =
     console.log(`     ${pc.gray('  import("react-grab");')}`);
     console.log(`     ${pc.gray("}")}`);
   } else {
-    console.log(`${pc.bold("Generic Setup:")}`);
-    console.log(`  1. Install: ${pc.cyan("npm install -D react-grab")}`);
-    console.log(`  2. Add the script to your HTML or entry file.`);
-    console.log(`  3. See docs for framework-specific instructions.`);
+    console.log(`${pc.bold("Next.js App Router:")} Add to ${pc.cyan("app/layout.tsx")} inside <head>:`);
+    console.log(`     ${pc.gray('import Script from "next/script";')}`);
+    console.log(`     ${pc.gray('{process.env.NODE_ENV === "development" && (')}`);
+    console.log(`     ${pc.gray('  <Script src="//unpkg.com/react-grab/dist/index.global.js" strategy="beforeInteractive" />')}`);
+    console.log(`     ${pc.gray(')}')}`);
+    console.log("");
+    console.log(`${pc.bold("Next.js Pages Router:")} Add to ${pc.cyan("pages/_document.tsx")} inside <Head>:`);
+    console.log(`     ${pc.gray('import Script from "next/script";')}`);
+    console.log(`     ${pc.gray('{process.env.NODE_ENV === "development" && (')}`);
+    console.log(`     ${pc.gray('  <Script src="//unpkg.com/react-grab/dist/index.global.js" strategy="beforeInteractive" />')}`);
+    console.log(`     ${pc.gray(')}')}`);
+    console.log("");
+    console.log(`${pc.bold("Vite:")} Add to ${pc.cyan("index.html")} inside <head>:`);
+    console.log(`     ${pc.gray('<script type="module">')}`);
+    console.log(`     ${pc.gray('  if (import.meta.env.DEV) { import("react-grab"); }')}`);
+    console.log(`     ${pc.gray("</script>")}`);
+    console.log("");
+    console.log(`${pc.bold("Webpack:")} Add to entry file (e.g., ${pc.cyan("src/index.tsx")}):`);
+    console.log(`     ${pc.gray('if (process.env.NODE_ENV === "development") {')}`);
+    console.log(`     ${pc.gray('  import("react-grab");')}`);
+    console.log(`     ${pc.gray("}")}`);
+    console.log("");
+    console.log(`For full instructions, visit:`);
+    console.log(`  ${pc.cyan("https://github.com/aidenybai/react-grab#readme")}`);
+    return;
   }
 
   showDocsLink();
@@ -215,9 +246,47 @@ const main = async () => {
   }
 
   if (projectInfo.framework === "unknown") {
-    console.log(`${pc.yellow("⚠️")} ${pc.yellow("Could not detect framework automatically.")}\n`);
-    showManualInstructions("unknown");
-    process.exit(0);
+    if (projectInfo.isMonorepo && !isNonInteractive) {
+      const workspaceProjects = findWorkspaceProjects(projectInfo.projectRoot);
+      const reactProjects = workspaceProjects.filter((p) => p.hasReact || p.framework !== "unknown");
+
+      if (reactProjects.length > 0) {
+        console.log(`${pc.cyan("ℹ")} ${pc.cyan("Found React projects in this monorepo:")}\n`);
+
+        const selectedProject = await select({
+          message: "Select a project to install React Grab:",
+          choices: reactProjects.map((project) => ({
+            name: `${project.name} ${pc.gray(`(${FRAMEWORK_NAMES[project.framework] || "React"})`)}`,
+            value: project.path,
+          })),
+        });
+
+        console.log(`\n${pc.magenta("⚛")} Switching to ${pc.cyan(selectedProject)}...\n`);
+        process.chdir(selectedProject);
+
+        const newProjectInfo = await detectProject(selectedProject);
+        projectInfo.framework = newProjectInfo.framework;
+        projectInfo.nextRouterType = newProjectInfo.nextRouterType;
+        projectInfo.hasReactGrab = newProjectInfo.hasReactGrab;
+        projectInfo.installedAgents = newProjectInfo.installedAgents;
+        projectInfo.projectRoot = newProjectInfo.projectRoot;
+
+        console.log(`- Framework:       ${pc.cyan(FRAMEWORK_NAMES[newProjectInfo.framework])}`);
+        if (newProjectInfo.framework === "next") {
+          console.log(`- Router Type:     ${pc.cyan(newProjectInfo.nextRouterType === "app" ? "App Router" : "Pages Router")}`);
+        }
+        console.log(`- React Grab:      ${newProjectInfo.hasReactGrab ? pc.green("Installed") : pc.yellow("Not installed")}`);
+        console.log("");
+      } else {
+        console.log(`${pc.yellow("⚠️")} ${pc.yellow("Could not detect framework automatically.")}\n`);
+        showManualInstructions("unknown");
+        process.exit(0);
+      }
+    } else {
+      console.log(`${pc.yellow("⚠️")} ${pc.yellow("Could not detect framework automatically.")}\n`);
+      showManualInstructions("unknown");
+      process.exit(0);
+    }
   }
 
   let action: ActionType = "install-all";
@@ -422,9 +491,9 @@ const main = async () => {
 
   console.log(`\n${pc.green("Done!")}`);
   console.log(`\nNext steps:`);
-  console.log(`  - Start your development server`);
-  console.log(`  - Select an element to copy its context`);
-  console.log(`  - Learn more at ${pc.cyan(DOCS_URL)}\n`);
+  console.log(`- Start your development server`);
+  console.log(`- Select an element to copy its context`);
+  console.log(`- Learn more at ${pc.cyan(DOCS_URL)}\n`);
 
   if (agentIntegration !== "none") {
     console.log(`${pc.magenta("⚛")} Agent: ${pc.cyan(AGENT_NAMES[agentIntegration])}`);

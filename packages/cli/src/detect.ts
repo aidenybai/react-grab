@@ -1,5 +1,5 @@
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { basename, join } from "node:path";
 import { detect } from "@antfu/ni";
 
 export type PackageManager = "npm" | "yarn" | "pnpm" | "bun";
@@ -99,24 +99,196 @@ export const detectMonorepo = (projectRoot: string): boolean => {
   return false;
 };
 
-export const detectReactGrab = (projectRoot: string): boolean => {
-  const packageJsonPath = join(projectRoot, "package.json");
+export interface WorkspaceProject {
+  name: string;
+  path: string;
+  framework: Framework;
+  hasReact: boolean;
+}
 
-  if (!existsSync(packageJsonPath)) {
-    return false;
+const getWorkspacePatterns = (projectRoot: string): string[] => {
+  const patterns: string[] = [];
+
+  const pnpmWorkspacePath = join(projectRoot, "pnpm-workspace.yaml");
+  if (existsSync(pnpmWorkspacePath)) {
+    const content = readFileSync(pnpmWorkspacePath, "utf-8");
+    const lines = content.split("\n");
+    let inPackages = false;
+
+    for (const line of lines) {
+      if (line.match(/^packages:\s*$/)) {
+        inPackages = true;
+        continue;
+      }
+      if (inPackages) {
+        if (line.match(/^[a-zA-Z]/) || line.trim() === "") {
+          if (line.match(/^[a-zA-Z]/)) inPackages = false;
+          continue;
+        }
+        const match = line.match(/^\s*-\s*['"]?([^'"#\n]+?)['"]?\s*$/);
+        if (match) {
+          patterns.push(match[1].trim());
+        }
+      }
+    }
   }
+
+  const lernaJsonPath = join(projectRoot, "lerna.json");
+  if (existsSync(lernaJsonPath)) {
+    try {
+      const lernaJson = JSON.parse(readFileSync(lernaJsonPath, "utf-8"));
+      if (Array.isArray(lernaJson.packages)) {
+        patterns.push(...lernaJson.packages);
+      }
+    } catch {
+      // Continue
+    }
+  }
+
+  const packageJsonPath = join(projectRoot, "package.json");
+  if (existsSync(packageJsonPath)) {
+    try {
+      const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+      if (Array.isArray(packageJson.workspaces)) {
+        patterns.push(...packageJson.workspaces);
+      } else if (packageJson.workspaces?.packages) {
+        patterns.push(...packageJson.workspaces.packages);
+      }
+    } catch {
+      // Continue
+    }
+  }
+
+  return [...new Set(patterns)];
+};
+
+const expandWorkspacePattern = (projectRoot: string, pattern: string): string[] => {
+  const results: string[] = [];
+  const cleanPattern = pattern.replace(/\/\*$/, "");
+  const basePath = join(projectRoot, cleanPattern);
+
+  if (!existsSync(basePath)) return results;
+
+  try {
+    const entries = readdirSync(basePath, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        const packageJsonPath = join(basePath, entry.name, "package.json");
+        if (existsSync(packageJsonPath)) {
+          results.push(join(basePath, entry.name));
+        }
+      }
+    }
+  } catch {
+    return results;
+  }
+
+  return results;
+};
+
+const hasReactDependency = (projectPath: string): boolean => {
+  const packageJsonPath = join(projectPath, "package.json");
+  if (!existsSync(packageJsonPath)) return false;
 
   try {
     const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
-    const allDependencies = {
-      ...packageJson.dependencies,
-      ...packageJson.devDependencies,
-    };
-
-    return Boolean(allDependencies["react-grab"]);
+    const allDeps = { ...packageJson.dependencies, ...packageJson.devDependencies };
+    return Boolean(allDeps["react"] || allDeps["react-dom"]);
   } catch {
     return false;
   }
+};
+
+export const findWorkspaceProjects = (projectRoot: string): WorkspaceProject[] => {
+  const patterns = getWorkspacePatterns(projectRoot);
+  const projects: WorkspaceProject[] = [];
+
+  for (const pattern of patterns) {
+    const projectPaths = expandWorkspacePattern(projectRoot, pattern);
+    for (const projectPath of projectPaths) {
+      const framework = detectFramework(projectPath);
+      const hasReact = hasReactDependency(projectPath);
+
+      if (hasReact || framework !== "unknown") {
+        const packageJsonPath = join(projectPath, "package.json");
+        let name = basename(projectPath);
+        try {
+          const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+          name = packageJson.name || name;
+        } catch {
+          // Use directory name
+        }
+
+        projects.push({
+          name,
+          path: projectPath,
+          framework,
+          hasReact,
+        });
+      }
+    }
+  }
+
+  return projects;
+};
+
+const hasReactGrabInFile = (filePath: string): boolean => {
+  if (!existsSync(filePath)) return false;
+  try {
+    const content = readFileSync(filePath, "utf-8");
+    const fuzzyPatterns = [
+      /["'`][^"'`]*react-grab/,
+      /react-grab[^"'`]*["'`]/,
+      /<[^>]*react-grab/i,
+      /import[^;]*react-grab/i,
+      /require[^)]*react-grab/i,
+      /from\s+[^;]*react-grab/i,
+      /src[^>]*react-grab/i,
+    ];
+    return fuzzyPatterns.some((pattern) => pattern.test(content));
+  } catch {
+    return false;
+  }
+};
+
+export const detectReactGrab = (projectRoot: string): boolean => {
+  const packageJsonPath = join(projectRoot, "package.json");
+
+  if (existsSync(packageJsonPath)) {
+    try {
+      const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+      const allDependencies = {
+        ...packageJson.dependencies,
+        ...packageJson.devDependencies,
+      };
+      if (allDependencies["react-grab"]) {
+        return true;
+      }
+    } catch {
+      // Continue to file checks
+    }
+  }
+
+  const filesToCheck = [
+    join(projectRoot, "app", "layout.tsx"),
+    join(projectRoot, "app", "layout.jsx"),
+    join(projectRoot, "src", "app", "layout.tsx"),
+    join(projectRoot, "src", "app", "layout.jsx"),
+    join(projectRoot, "pages", "_document.tsx"),
+    join(projectRoot, "pages", "_document.jsx"),
+    join(projectRoot, "instrumentation-client.ts"),
+    join(projectRoot, "instrumentation-client.js"),
+    join(projectRoot, "src", "instrumentation-client.ts"),
+    join(projectRoot, "src", "instrumentation-client.js"),
+    join(projectRoot, "index.html"),
+    join(projectRoot, "public", "index.html"),
+    join(projectRoot, "src", "index.tsx"),
+    join(projectRoot, "src", "index.ts"),
+    join(projectRoot, "src", "main.tsx"),
+    join(projectRoot, "src", "main.ts"),
+  ];
+
+  return filesToCheck.some(hasReactGrabInFile);
 };
 
 const AGENT_PACKAGES = ["@react-grab/claude-code", "@react-grab/cursor", "@react-grab/opencode"];

@@ -1487,9 +1487,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
 
         if (!isTargetKeyCombination(event, options)) {
-          // NOTE: deactivate when a non-activation key (e.g. V) is pressed while modifier is held,
-          // so mod+C then mod+V doesn't keep the crosshair visible
-          // But allow Enter to pass through for input mode activation
           if (
             isActivated() &&
             !isToggleMode() &&
@@ -1499,7 +1496,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               deactivateRenderer();
             }
           }
-          if (event.key !== "Enter") {
+          if (event.key !== "Enter" || !isHoldingKeys()) {
             return;
           }
         }
