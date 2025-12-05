@@ -457,7 +457,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 <div class="shrink-0 flex justify-between items-end w-full min-h-4">
                   <textarea
                     ref={inputRef}
-                    class="text-black text-[12px] leading-4 tracking-[-0.04em] font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 opacity-50 break-all overflow-y-auto"
+                    class="text-black text-[12px] leading-4 tracking-[-0.04em] font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 opacity-50 wrap-break-word overflow-y-auto"
                     style={{
                       // @ts-expect-error - field-sizing is not in the jsx spec
                       "field-sizing": "content",
@@ -611,7 +611,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 <div class="shrink-0 flex justify-between items-end w-full min-h-4">
                   <textarea
                     ref={inputRef}
-                    class="text-black text-[12px] leading-4 tracking-[-0.04em] font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 break-all overflow-y-auto"
+                    class="text-black text-[12px] leading-4 tracking-[-0.04em] font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 wrap-break-word overflow-y-auto"
                     style={{
                       // @ts-expect-error - field-sizing is not in the jsx spec
                       "field-sizing": "content",
