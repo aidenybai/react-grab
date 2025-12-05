@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { accessSync, constants, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Framework, NextRouterType } from "./detect.js";
 import {
@@ -316,7 +316,25 @@ const transformNextPagesRouter = (
       success: false,
       filePath: "",
       message:
-        "Could not find pages/_document.tsx. Please create one or add React Grab manually.",
+        "Could not find pages/_document.tsx or pages/_document.jsx.\n\n" +
+        "To set up React Grab with Pages Router, create pages/_document.tsx with:\n\n" +
+        '  import { Html, Head, Main, NextScript } from "next/document";\n' +
+        '  import Script from "next/script";\n\n' +
+        "  export default function Document() {\n" +
+        "    return (\n" +
+        "      <Html>\n" +
+        "        <Head>\n" +
+        '          {process.env.NODE_ENV === "development" && (\n' +
+        '            <Script src="//unpkg.com/react-grab/dist/index.global.js" strategy="beforeInteractive" />\n' +
+        "          )}\n" +
+        "        </Head>\n" +
+        "        <body>\n" +
+        "          <Main />\n" +
+        "          <NextScript />\n" +
+        "        </body>\n" +
+        "      </Html>\n" +
+        "    );\n" +
+        "  }",
     };
   }
 
@@ -480,10 +498,35 @@ export const previewTransform = (
   }
 };
 
-export const applyTransform = (result: TransformResult): void => {
-  if (result.success && result.newContent && result.filePath) {
-    writeFileSync(result.filePath, result.newContent);
+const canWriteToFile = (filePath: string): boolean => {
+  try {
+    accessSync(filePath, constants.W_OK);
+    return true;
+  } catch {
+    return false;
   }
+};
+
+export const applyTransform = (result: TransformResult): { success: boolean; error?: string } => {
+  if (result.success && result.newContent && result.filePath) {
+    if (!canWriteToFile(result.filePath)) {
+      return {
+        success: false,
+        error: `Cannot write to ${result.filePath}. Check file permissions.`,
+      };
+    }
+
+    try {
+      writeFileSync(result.filePath, result.newContent);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: `Failed to write to ${result.filePath}: ${error instanceof Error ? error.message : "Unknown error"}`,
+      };
+    }
+  }
+  return { success: true };
 };
 
 export const transformProject = (
@@ -492,8 +535,11 @@ export const transformProject = (
   nextRouterType: NextRouterType,
   agent: AgentIntegration,
   reactGrabAlreadyConfigured: boolean = false
-): TransformResult => {
+): TransformResult & { writeError?: string } => {
   const result = previewTransform(projectRoot, framework, nextRouterType, agent, reactGrabAlreadyConfigured);
-  applyTransform(result);
+  const writeResult = applyTransform(result);
+  if (!writeResult.success) {
+    return { ...result, success: false, writeError: writeResult.error };
+  }
   return result;
 };

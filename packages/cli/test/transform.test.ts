@@ -5,13 +5,16 @@ vi.mock("node:fs", () => ({
   existsSync: vi.fn(),
   readFileSync: vi.fn(),
   writeFileSync: vi.fn(),
+  accessSync: vi.fn(),
+  constants: { W_OK: 2 },
 }));
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, accessSync } from "node:fs";
 
 const mockExistsSync = vi.mocked(existsSync);
 const mockReadFileSync = vi.mocked(readFileSync);
 const mockWriteFileSync = vi.mocked(writeFileSync);
+const mockAccessSync = vi.mocked(accessSync);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -218,6 +221,130 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   });
 });
 
+describe("previewTransform - Next.js Pages Router", () => {
+  it("should fail with helpful message when _document.tsx not found", () => {
+    mockExistsSync.mockReturnValue(false);
+
+    const result = previewTransform("/test", "next", "pages", "none", false);
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("Could not find pages/_document.tsx");
+    expect(result.message).toContain("import { Html, Head, Main, NextScript }");
+    expect(result.message).toContain("export default function Document()");
+  });
+
+  it("should add React Grab to existing _document.tsx", () => {
+    const documentContent = `import { Html, Head, Main, NextScript } from "next/document";
+
+export default function Document() {
+  return (
+    <Html>
+      <Head></Head>
+      <body>
+        <Main />
+        <NextScript />
+      </body>
+    </Html>
+  );
+}`;
+
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("_document.tsx"));
+    mockReadFileSync.mockReturnValue(documentContent);
+
+    const result = previewTransform("/test", "next", "pages", "none", false);
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain("react-grab");
+    expect(result.newContent).toContain('import Script from "next/script"');
+  });
+
+  it("should add agent to existing Pages Router installation", () => {
+    const documentWithReactGrab = `import { Html, Head, Main, NextScript } from "next/document";
+import Script from "next/script";
+
+export default function Document() {
+  return (
+    <Html>
+      <Head>
+        <Script src="//unpkg.com/react-grab/dist/index.global.js" strategy="beforeInteractive" />
+      </Head>
+      <body>
+        <Main />
+        <NextScript />
+      </body>
+    </Html>
+  );
+}`;
+
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("_document.tsx"));
+    mockReadFileSync.mockReturnValue(documentWithReactGrab);
+
+    const result = previewTransform("/test", "next", "pages", "cursor", true);
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain("@react-grab/cursor");
+  });
+});
+
+describe("previewTransform - Vite edge cases", () => {
+  it("should handle uppercase HEAD tag", () => {
+    const indexContent = `<!doctype html>
+<html lang="en">
+  <HEAD>
+    <meta charset="UTF-8" />
+  </HEAD>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>`;
+
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("index.html"));
+    mockReadFileSync.mockReturnValue(indexContent);
+
+    const result = previewTransform("/test", "vite", "unknown", "none", false);
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain('import("react-grab")');
+  });
+
+  it("should fail when index.html not found", () => {
+    mockExistsSync.mockReturnValue(false);
+
+    const result = previewTransform("/test", "vite", "unknown", "none", false);
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("Could not find index.html");
+  });
+});
+
+describe("previewTransform - Webpack edge cases", () => {
+  it("should fail when entry file not found", () => {
+    mockExistsSync.mockReturnValue(false);
+
+    const result = previewTransform("/test", "webpack", "unknown", "none", false);
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("Could not find entry file");
+  });
+
+  it("should add agent to existing Webpack installation", () => {
+    const entryWithReactGrab = `if (process.env.NODE_ENV === "development") {
+  import("react-grab");
+}
+
+import React from "react";
+import ReactDOM from "react-dom/client";`;
+
+    mockExistsSync.mockImplementation((path) => String(path).endsWith("index.tsx"));
+    mockReadFileSync.mockReturnValue(entryWithReactGrab);
+
+    const result = previewTransform("/test", "webpack", "unknown", "opencode", true);
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain("@react-grab/opencode");
+  });
+});
+
 describe("previewTransform - Unknown framework", () => {
   it("should fail for unknown framework", () => {
     const result = previewTransform("/test", "unknown", "unknown", "none", false);
@@ -228,7 +355,9 @@ describe("previewTransform - Unknown framework", () => {
 });
 
 describe("applyTransform", () => {
-  it("should write file when result has newContent", () => {
+  it("should write file when result has newContent and file is writable", () => {
+    mockAccessSync.mockImplementation(() => undefined);
+
     const result = {
       success: true,
       filePath: "/test/file.tsx",
@@ -237,9 +366,30 @@ describe("applyTransform", () => {
       newContent: "new",
     };
 
-    applyTransform(result);
+    const writeResult = applyTransform(result);
 
+    expect(writeResult.success).toBe(true);
     expect(mockWriteFileSync).toHaveBeenCalledWith("/test/file.tsx", "new");
+  });
+
+  it("should return error when file is not writable", () => {
+    mockAccessSync.mockImplementation(() => {
+      throw new Error("EACCES");
+    });
+
+    const result = {
+      success: true,
+      filePath: "/test/file.tsx",
+      message: "Test",
+      originalContent: "old",
+      newContent: "new",
+    };
+
+    const writeResult = applyTransform(result);
+
+    expect(writeResult.success).toBe(false);
+    expect(writeResult.error).toContain("Cannot write to");
+    expect(mockWriteFileSync).not.toHaveBeenCalled();
   });
 
   it("should not write file when result has no newContent", () => {
@@ -250,8 +400,9 @@ describe("applyTransform", () => {
       noChanges: true,
     };
 
-    applyTransform(result);
+    const writeResult = applyTransform(result);
 
+    expect(writeResult.success).toBe(true);
     expect(mockWriteFileSync).not.toHaveBeenCalled();
   });
 
@@ -262,8 +413,45 @@ describe("applyTransform", () => {
       message: "Error",
     };
 
-    applyTransform(result);
+    const writeResult = applyTransform(result);
 
+    expect(writeResult.success).toBe(true);
+    expect(mockWriteFileSync).not.toHaveBeenCalled();
+  });
+
+  it("should return error when writeFileSync throws", () => {
+    mockAccessSync.mockImplementation(() => undefined);
+    mockWriteFileSync.mockImplementation(() => {
+      throw new Error("Disk full");
+    });
+
+    const result = {
+      success: true,
+      filePath: "/test/file.tsx",
+      message: "Test",
+      originalContent: "old",
+      newContent: "new",
+    };
+
+    const writeResult = applyTransform(result);
+
+    expect(writeResult.success).toBe(false);
+    expect(writeResult.error).toContain("Failed to write to");
+    expect(writeResult.error).toContain("Disk full");
+  });
+
+  it("should not write when filePath is empty", () => {
+    const result = {
+      success: true,
+      filePath: "",
+      message: "Test",
+      originalContent: "old",
+      newContent: "new",
+    };
+
+    const writeResult = applyTransform(result);
+
+    expect(writeResult.success).toBe(true);
     expect(mockWriteFileSync).not.toHaveBeenCalled();
   });
 });

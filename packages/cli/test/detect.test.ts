@@ -5,6 +5,7 @@ import {
   detectNextRouterType,
   detectReactGrab,
   detectInstalledAgents,
+  detectUnsupportedFramework,
 } from "../src/detect.js";
 
 vi.mock("node:fs", () => ({
@@ -60,6 +61,13 @@ describe("detectFramework", () => {
 
   it("should return unknown when no package.json exists", () => {
     mockExistsSync.mockReturnValue(false);
+
+    expect(detectFramework("/test")).toBe("unknown");
+  });
+
+  it("should return unknown for malformed package.json", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue("{ invalid json }");
 
     expect(detectFramework("/test")).toBe("unknown");
   });
@@ -199,6 +207,13 @@ describe("detectReactGrab", () => {
 
     expect(detectReactGrab("/test")).toBe(false);
   });
+
+  it("should return false for malformed package.json", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue("not valid json");
+
+    expect(detectReactGrab("/test")).toBe(false);
+  });
 });
 
 describe("detectInstalledAgents", () => {
@@ -232,5 +247,83 @@ describe("detectInstalledAgents", () => {
     mockExistsSync.mockReturnValue(false);
 
     expect(detectInstalledAgents("/test")).toEqual([]);
+  });
+
+  it("should return empty array for malformed package.json", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue("{ broken }");
+
+    expect(detectInstalledAgents("/test")).toEqual([]);
+  });
+});
+
+describe("detectMonorepo", () => {
+  it("should return false for malformed package.json", () => {
+    mockExistsSync.mockImplementation((path) => {
+      return String(path).endsWith("package.json");
+    });
+    mockReadFileSync.mockReturnValue("invalid");
+
+    expect(detectMonorepo("/test")).toBe(false);
+  });
+});
+
+describe("detectUnsupportedFramework", () => {
+  it("should detect Remix", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(
+      JSON.stringify({ dependencies: { "@remix-run/react": "2.0.0" } })
+    );
+
+    expect(detectUnsupportedFramework("/test")).toBe("remix");
+  });
+
+  it("should detect Astro", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(
+      JSON.stringify({ devDependencies: { astro: "4.0.0" } })
+    );
+
+    expect(detectUnsupportedFramework("/test")).toBe("astro");
+  });
+
+  it("should detect SvelteKit", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(
+      JSON.stringify({ devDependencies: { "@sveltejs/kit": "2.0.0" } })
+    );
+
+    expect(detectUnsupportedFramework("/test")).toBe("sveltekit");
+  });
+
+  it("should detect Gatsby", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(
+      JSON.stringify({ dependencies: { gatsby: "5.0.0" } })
+    );
+
+    expect(detectUnsupportedFramework("/test")).toBe("gatsby");
+  });
+
+  it("should return null for supported frameworks", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(
+      JSON.stringify({ dependencies: { next: "14.0.0" } })
+    );
+
+    expect(detectUnsupportedFramework("/test")).toBe(null);
+  });
+
+  it("should return null when no package.json exists", () => {
+    mockExistsSync.mockReturnValue(false);
+
+    expect(detectUnsupportedFramework("/test")).toBe(null);
+  });
+
+  it("should return null for malformed package.json", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue("invalid json");
+
+    expect(detectUnsupportedFramework("/test")).toBe(null);
   });
 });
