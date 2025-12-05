@@ -131,6 +131,7 @@ export interface AgentProvider<T = any> {
     storage: AgentSessionStorage,
   ) => AsyncIterable<string>;
   supportsResume?: boolean;
+  checkConnection?: () => Promise<boolean>;
 }
 
 export interface AgentSessionStorage {
@@ -248,6 +249,7 @@ export interface ReactGrabRendererProps {
   inputValue?: string;
   isInputExpanded?: boolean;
   hasAgent?: boolean;
+  isAgentConnected?: boolean;
   agentSessions?: Map<string, AgentSession>;
   onAbortSession?: (sessionId: string) => void;
   onInputChange?: (value: string) => void;

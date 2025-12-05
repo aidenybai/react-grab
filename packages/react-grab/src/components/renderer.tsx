@@ -73,6 +73,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
               mouseX={session.position.x}
               visible={true}
               hasAgent={true}
+              isAgentConnected={true}
               status={session.isStreaming ? "copying" : "copied"}
               statusText={session.lastStatus || "Thinking…"}
               inputValue={session.context.prompt}
@@ -92,6 +93,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           isInputExpanded={props.isInputExpanded}
           inputValue={props.inputValue}
           hasAgent={props.hasAgent}
+          isAgentConnected={props.isAgentConnected}
           status={props.selectionLabelStatus}
           filePath={props.selectionFilePath}
           lineNumber={props.selectionLineNumber}

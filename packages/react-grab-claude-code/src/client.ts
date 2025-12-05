@@ -7,7 +7,7 @@ import type {
   ReactGrabAPI,
 } from "react-grab/core";
 import type { Options as ClaudeOptions } from "@anthropic-ai/claude-agent-sdk";
-import { DEFAULT_PORT } from "./constants.js";
+import { CONNECTION_CHECK_TTL_MS, DEFAULT_PORT } from "./constants.js";
 
 const DEFAULT_SERVER_URL = `http://localhost:${DEFAULT_PORT}`;
 const STORAGE_KEY = "react-grab:agent-sessions";
@@ -131,6 +131,8 @@ export const createClaudeAgentProvider = (
 ): AgentProvider<ClaudeOptions> => {
   const { serverUrl = DEFAULT_SERVER_URL, getOptions } = providerOptions;
 
+  let connectionCache: { result: boolean; timestamp: number } | null = null;
+
   const mergeOptions = (contextOptions?: ClaudeOptions): ClaudeOptions => ({
     ...DEFAULT_OPTIONS,
     ...(getOptions?.() ?? {}),
@@ -176,6 +178,23 @@ export const createClaudeAgentProvider = (
     },
 
     supportsResume: true,
+
+    checkConnection: async () => {
+      const now = Date.now();
+      if (connectionCache && now - connectionCache.timestamp < CONNECTION_CHECK_TTL_MS) {
+        return connectionCache.result;
+      }
+
+      try {
+        const response = await fetch(`${serverUrl}/health`, { method: "GET" });
+        const result = response.ok;
+        connectionCache = { result, timestamp: now };
+        return result;
+      } catch {
+        connectionCache = { result: false, timestamp: now };
+        return false;
+      }
+    },
   };
 };
 

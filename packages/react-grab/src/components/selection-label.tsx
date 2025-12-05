@@ -23,6 +23,7 @@ interface SelectionLabelProps {
   isInputExpanded?: boolean;
   inputValue?: string;
   hasAgent?: boolean;
+  isAgentConnected?: boolean;
   status?: SelectionLabelStatus;
   statusText?: string;
   filePath?: string;
@@ -625,7 +626,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     placeholder={
                       speechRecognition.isListening()
                         ? "listening..."
-                        : props.hasAgent
+                        : props.hasAgent && props.isAgentConnected
                           ? "type to edit"
                           : "type prompt"
                     }

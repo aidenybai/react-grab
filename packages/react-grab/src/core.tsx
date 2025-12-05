@@ -235,6 +235,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [hasAgentProvider, setHasAgentProvider] = createSignal(
       Boolean(options.agent?.provider),
     );
+    const [isAgentConnected, setIsAgentConnected] = createSignal(false);
 
     const elementInputCache = new WeakMap<Element, string>();
 
@@ -1428,7 +1429,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       capture: true,
     });
 
-
     window.addEventListener(
       "keydown",
       (event: KeyboardEvent) => {
@@ -1539,7 +1539,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             !isToggleMode() &&
             (event.metaKey || event.ctrlKey)
           ) {
-            if (!MODIFIER_KEYS.includes(event.key) && !isEnterCode(event.code)) {
+            if (
+              !MODIFIER_KEYS.includes(event.key) &&
+              !isEnterCode(event.code)
+            ) {
               deactivateRenderer();
             }
           }
@@ -2050,6 +2053,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             inputValue={inputText()}
             isInputExpanded={isInputExpanded()}
             hasAgent={hasAgentProvider()}
+            isAgentConnected={isAgentConnected()}
             agentSessions={agentManager.sessions()}
             onAbortSession={(sessionId) => agentManager.abortSession(sessionId)}
             onInputChange={handleInputChange}
@@ -2169,6 +2173,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         };
         agentManager.setOptions(mergedOptions);
         setHasAgentProvider(Boolean(mergedOptions.provider));
+
+        if (mergedOptions.provider?.checkConnection) {
+          void mergedOptions.provider.checkConnection().then((connected) => {
+            setIsAgentConnected(connected);
+          });
+        }
+
         agentManager.tryResumeSessions();
       },
     };

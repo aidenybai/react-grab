@@ -149,184 +149,207 @@ const runAgent = async (
     : `Task finished (${status})`;
 };
 
+const CONNECTION_CHECK_TTL_MS = 5000;
+
 export const createAmiAgentProvider = (
   projectId: string = DEFAULT_PROJECT_ID,
-): AgentProvider => ({
-  send: async function* (context: AgentContext, signal: AbortSignal) {
-    const token = await getOrCreateToken();
+): AgentProvider => {
+  let connectionCache: { result: boolean; timestamp: number } | null = null;
 
-    yield "Please wait...";
+  return {
+    send: async function* (context: AgentContext, signal: AbortSignal) {
+      const token = await getOrCreateToken();
 
-    const statusQueue: string[] = [];
-    let resolveWait: (() => void) | null = null;
-    let aborted = false;
+      yield "Please wait...";
 
-    const handleAbort = () => {
-      aborted = true;
-      if (resolveWait) {
-        resolveWait();
-        resolveWait = null;
-      }
-    };
+      const statusQueue: string[] = [];
+      let resolveWait: (() => void) | null = null;
+      let aborted = false;
 
-    signal.addEventListener("abort", handleAbort);
-
-    const onStatus = (status: string) => {
-      if (aborted) return;
-      statusQueue.push(status);
-      if (resolveWait) {
-        resolveWait();
-        resolveWait = null;
-      }
-    };
-
-    const agentPromise = runAgent(context, token, projectId, onStatus);
-
-    let done = false;
-    agentPromise
-      .then((finalStatus) => {
-        if (aborted) return;
-        statusQueue.push(finalStatus);
-        done = true;
+      const handleAbort = () => {
+        aborted = true;
         if (resolveWait) {
           resolveWait();
           resolveWait = null;
         }
-      })
-      .catch((error) => {
+      };
+
+      signal.addEventListener("abort", handleAbort);
+
+      const onStatus = (status: string) => {
         if (aborted) return;
-        const errorMessage =
-          error instanceof Error ? error.message : "Unknown error";
-        statusQueue.push(`Error: ${errorMessage}`);
-        done = true;
+        statusQueue.push(status);
         if (resolveWait) {
           resolveWait();
           resolveWait = null;
         }
-      });
+      };
 
-    try {
-      while (!done && !aborted) {
-        if (signal.aborted) {
+      const agentPromise = runAgent(context, token, projectId, onStatus);
+
+      let done = false;
+      agentPromise
+        .then((finalStatus) => {
+          if (aborted) return;
+          statusQueue.push(finalStatus);
+          done = true;
+          if (resolveWait) {
+            resolveWait();
+            resolveWait = null;
+          }
+        })
+        .catch((error) => {
+          if (aborted) return;
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
+          statusQueue.push(`Error: ${errorMessage}`);
+          done = true;
+          if (resolveWait) {
+            resolveWait();
+            resolveWait = null;
+          }
+        });
+
+      try {
+        while (!done && !aborted) {
+          if (signal.aborted) {
+            throw new DOMException("Aborted", "AbortError");
+          }
+          if (statusQueue.length > 0) {
+            yield statusQueue.shift()!;
+          } else {
+            await new Promise<void>((resolve) => {
+              resolveWait = resolve;
+            });
+          }
+        }
+        while (statusQueue.length > 0 && !aborted) {
+          yield statusQueue.shift()!;
+        }
+        if (aborted) {
           throw new DOMException("Aborted", "AbortError");
         }
-        if (statusQueue.length > 0) {
+      } finally {
+        signal.removeEventListener("abort", handleAbort);
+      }
+    },
+
+    resume: async function* (
+      sessionId: string,
+      signal: AbortSignal,
+      storage: AgentSessionStorage,
+    ) {
+      const savedSessions = storage.getItem(STORAGE_KEY);
+      if (!savedSessions) {
+        throw new Error("No sessions to resume");
+      }
+
+      const sessionsObject = JSON.parse(savedSessions) as Record<
+        string,
+        AgentSession
+      >;
+      const session = sessionsObject[sessionId];
+      if (!session) {
+        throw new Error(`Session ${sessionId} not found`);
+      }
+
+      const context = session.context;
+      const token = await getOrCreateToken();
+
+      yield "Resuming...";
+
+      const statusQueue: string[] = [];
+      let resolveWait: (() => void) | null = null;
+      let aborted = false;
+
+      const handleAbort = () => {
+        aborted = true;
+        if (resolveWait) {
+          resolveWait();
+          resolveWait = null;
+        }
+      };
+
+      signal.addEventListener("abort", handleAbort);
+
+      const onStatus = (status: string) => {
+        if (aborted) return;
+        statusQueue.push(status);
+        if (resolveWait) {
+          resolveWait();
+          resolveWait = null;
+        }
+      };
+
+      const agentPromise = runAgent(context, token, DEFAULT_PROJECT_ID, onStatus);
+
+      let done = false;
+      agentPromise
+        .then((finalStatus) => {
+          if (aborted) return;
+          statusQueue.push(finalStatus);
+          done = true;
+          if (resolveWait) {
+            resolveWait();
+            resolveWait = null;
+          }
+        })
+        .catch((error) => {
+          if (aborted) return;
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
+          statusQueue.push(`Error: ${errorMessage}`);
+          done = true;
+          if (resolveWait) {
+            resolveWait();
+            resolveWait = null;
+          }
+        });
+
+      try {
+        while (!done && !aborted) {
+          if (signal.aborted) {
+            throw new DOMException("Aborted", "AbortError");
+          }
+          if (statusQueue.length > 0) {
+            yield statusQueue.shift()!;
+          } else {
+            await new Promise<void>((resolve) => {
+              resolveWait = resolve;
+            });
+          }
+        }
+        while (statusQueue.length > 0 && !aborted) {
           yield statusQueue.shift()!;
-        } else {
-          await new Promise<void>((resolve) => {
-            resolveWait = resolve;
-          });
         }
-      }
-      while (statusQueue.length > 0 && !aborted) {
-        yield statusQueue.shift()!;
-      }
-      if (aborted) {
-        throw new DOMException("Aborted", "AbortError");
-      }
-    } finally {
-      signal.removeEventListener("abort", handleAbort);
-    }
-  },
-
-  resume: async function* (
-    sessionId: string,
-    signal: AbortSignal,
-    storage: AgentSessionStorage,
-  ) {
-    const savedSessions = storage.getItem(STORAGE_KEY);
-    if (!savedSessions) {
-      throw new Error("No sessions to resume");
-    }
-
-    const sessionsObject = JSON.parse(savedSessions) as Record<
-      string,
-      AgentSession
-    >;
-    const session = sessionsObject[sessionId];
-    if (!session) {
-      throw new Error(`Session ${sessionId} not found`);
-    }
-
-    const context = session.context;
-    const token = await getOrCreateToken();
-
-    yield "Resuming...";
-
-    const statusQueue: string[] = [];
-    let resolveWait: (() => void) | null = null;
-    let aborted = false;
-
-    const handleAbort = () => {
-      aborted = true;
-      if (resolveWait) {
-        resolveWait();
-        resolveWait = null;
-      }
-    };
-
-    signal.addEventListener("abort", handleAbort);
-
-    const onStatus = (status: string) => {
-      if (aborted) return;
-      statusQueue.push(status);
-      if (resolveWait) {
-        resolveWait();
-        resolveWait = null;
-      }
-    };
-
-    const agentPromise = runAgent(context, token, DEFAULT_PROJECT_ID, onStatus);
-
-    let done = false;
-    agentPromise
-      .then((finalStatus) => {
-        if (aborted) return;
-        statusQueue.push(finalStatus);
-        done = true;
-        if (resolveWait) {
-          resolveWait();
-          resolveWait = null;
-        }
-      })
-      .catch((error) => {
-        if (aborted) return;
-        const errorMessage =
-          error instanceof Error ? error.message : "Unknown error";
-        statusQueue.push(`Error: ${errorMessage}`);
-        done = true;
-        if (resolveWait) {
-          resolveWait();
-          resolveWait = null;
-        }
-      });
-
-    try {
-      while (!done && !aborted) {
-        if (signal.aborted) {
+        if (aborted) {
           throw new DOMException("Aborted", "AbortError");
         }
-        if (statusQueue.length > 0) {
-          yield statusQueue.shift()!;
-        } else {
-          await new Promise<void>((resolve) => {
-            resolveWait = resolve;
-          });
-        }
+      } finally {
+        signal.removeEventListener("abort", handleAbort);
       }
-      while (statusQueue.length > 0 && !aborted) {
-        yield statusQueue.shift()!;
-      }
-      if (aborted) {
-        throw new DOMException("Aborted", "AbortError");
-      }
-    } finally {
-      signal.removeEventListener("abort", handleAbort);
-    }
-  },
+    },
 
-  supportsResume: true,
-});
+    supportsResume: true,
+
+    checkConnection: async () => {
+      const now = Date.now();
+      if (connectionCache && now - connectionCache.timestamp < CONNECTION_CHECK_TTL_MS) {
+        return connectionCache.result;
+      }
+
+      try {
+        const response = await fetch(AMI_BRIDGE_URL, { method: "HEAD" });
+        const result = response.ok;
+        connectionCache = { result, timestamp: now };
+        return result;
+      } catch {
+        connectionCache = { result: false, timestamp: now };
+        return false;
+      }
+    },
+  };
+};
 
 declare global {
   interface Window {
