@@ -239,6 +239,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       Boolean(options.agent?.provider),
     );
 
+    const elementInputCache = new WeakMap<Element, string>();
+
     const [nativeSelectionCursorX, setNativeSelectionCursorX] =
       createSignal(OFFSCREEN_POSITION);
     const [nativeSelectionCursorY, setNativeSelectionCursorY] =
@@ -1144,6 +1146,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setMouseY(currentY);
 
       if (hasAgentProvider() && prompt) {
+        elementInputCache.delete(element);
         deactivateRenderer();
 
         void agentManager.startSession({
@@ -1158,6 +1161,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       setIsInputMode(false);
       setInputText("");
+      elementInputCache.delete(element);
 
       const tagName = extractElementTagName(element);
       void getNearestComponentName(element).then((componentName) => {
@@ -1178,6 +1182,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handleInputCancel = () => {
       if (!isInputMode()) return;
 
+      const element = frozenElement() || targetElement();
+      const currentInput = inputText().trim();
+      if (element && currentInput) {
+        elementInputCache.set(element, currentInput);
+      }
+
       deactivateRenderer();
     };
 
@@ -1189,6 +1199,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         setCopyStartX(mouseX());
         setCopyStartY(mouseY());
         setCopyOffsetFromCenterX(mouseX() - selectionCenterX);
+
+        const cachedInput = elementInputCache.get(element);
+        if (cachedInput) {
+          setInputText(cachedInput);
+        }
       }
       setIsToggleMode(true);
       setIsToggleFrozen(true);
@@ -1504,6 +1519,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             setCopyStartX(mouseX());
             setCopyStartY(mouseY());
             setCopyOffsetFromCenterX(mouseX() - selectionCenterX);
+
+            const cachedInput = elementInputCache.get(element);
+            if (cachedInput) {
+              setInputText(cachedInput);
+            }
           }
 
           setIsToggleMode(true);
