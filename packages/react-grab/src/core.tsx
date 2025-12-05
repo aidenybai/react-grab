@@ -1459,6 +1459,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const isEnterToActivateInput =
           isEnterCode(event.code) && isHoldingKeys() && !isInputMode();
 
+        if (isInputMode() && isTargetKeyCombination(event, options)) {
+          event.preventDefault();
+          event.stopPropagation();
+          setIsInputMode(false);
+          setInputText("");
+          setIsToggleFrozen(false);
+          setIsInputExpanded(false);
+          return;
+        }
+
         if (
           isInputMode() ||
           (isEventFromOverlay(event, "data-react-grab-ignore-events") &&
