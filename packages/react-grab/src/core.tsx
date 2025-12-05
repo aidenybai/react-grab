@@ -1388,14 +1388,37 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const abortController = new AbortController();
     const eventListenerSignal = abortController.signal;
 
+    const blockEnterIfNeeded = (event: KeyboardEvent) => {
+      const isEnterKey = event.key === "Enter" || event.code === "Enter";
+      const isOverlayActive = isActivated() || isHoldingKeys();
+      const shouldBlockEnter = isEnterKey && isOverlayActive && !isInputMode();
+
+      if (shouldBlockEnter) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        return true;
+      }
+      return false;
+    };
+
+    document.addEventListener("keydown", blockEnterIfNeeded, {
+      signal: eventListenerSignal,
+      capture: true,
+    });
+    document.addEventListener("keyup", blockEnterIfNeeded, {
+      signal: eventListenerSignal,
+      capture: true,
+    });
+    document.addEventListener("keypress", blockEnterIfNeeded, {
+      signal: eventListenerSignal,
+      capture: true,
+    });
+
     window.addEventListener(
       "keydown",
       (event: KeyboardEvent) => {
-        if (event.key === "Enter" && isActivated() && !isInputMode()) {
-          event.preventDefault();
-          event.stopPropagation();
-          event.stopImmediatePropagation();
-        }
+        blockEnterIfNeeded(event);
 
         const isEnterToActivateInput =
           event.key === "Enter" && isHoldingKeys() && !isInputMode();
@@ -1537,12 +1560,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     window.addEventListener(
       "keyup",
       (event: KeyboardEvent) => {
-        if (event.key === "Enter" && isActivated() && !isInputMode()) {
-          event.preventDefault();
-          event.stopPropagation();
-          event.stopImmediatePropagation();
-          return;
-        }
+        if (blockEnterIfNeeded(event)) return;
 
         if (!isHoldingKeys() && !isActivated()) return;
         if (isInputMode()) return;
@@ -1609,6 +1627,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
       { signal: eventListenerSignal, capture: true },
     );
+
+    window.addEventListener("keypress", blockEnterIfNeeded, {
+      signal: eventListenerSignal,
+      capture: true,
+    });
 
     window.addEventListener(
       "mousemove",
