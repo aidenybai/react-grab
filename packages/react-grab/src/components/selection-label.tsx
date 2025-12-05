@@ -468,10 +468,23 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   />
                   <Show when={props.onAbort}>
                     <button
+                      data-react-grab-ignore-events
                       class="contain-layout shrink-0 flex flex-col items-start rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] p-1 size-fit cursor-pointer ml-1 transition-none hover:scale-105"
-                      onClick={props.onAbort}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onMouseDown={(event) => event.stopPropagation()}
+                      onPointerUp={(event) => {
+                        event.stopPropagation();
+                        props.onAbort?.();
+                      }}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        props.onAbort?.();
+                      }}
                     >
-                      <div class="shrink-0 w-[7px] h-[7px] rounded-[1px] bg-black" />
+                      <div
+                        data-react-grab-ignore-events
+                        class="shrink-0 w-[7px] h-[7px] rounded-[1px] bg-black pointer-events-none"
+                      />
                     </button>
                   </Show>
                 </div>

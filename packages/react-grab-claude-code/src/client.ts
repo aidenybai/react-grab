@@ -47,14 +47,35 @@ const parseSSEEvent = (eventBlock: string): SSEEvent => {
   return { eventType, data };
 };
 
-async function* streamSSE(stream: ReadableStream<Uint8Array>) {
+async function* streamSSE(
+  stream: ReadableStream<Uint8Array>,
+  signal: AbortSignal,
+) {
   const reader = stream.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  let aborted = false;
+
+  const onAbort = () => {
+    aborted = true;
+    reader.cancel().catch(() => {});
+  };
+
+  signal.addEventListener("abort", onAbort);
 
   try {
+    if (signal.aborted) {
+      throw new DOMException("Aborted", "AbortError");
+    }
+
     while (true) {
-      const { done, value } = await reader.read();
+      const result = await reader.read();
+
+      if (aborted || signal.aborted) {
+        throw new DOMException("Aborted", "AbortError");
+      }
+
+      const { done, value } = result;
       if (value) buffer += decoder.decode(value, { stream: true });
 
       let boundary;
@@ -73,7 +94,12 @@ async function* streamSSE(stream: ReadableStream<Uint8Array>) {
       if (done) break;
     }
   } finally {
-    reader.releaseLock();
+    signal.removeEventListener("abort", onAbort);
+    try {
+      reader.releaseLock();
+    } catch {
+      // Reader may already be released after cancel
+    }
   }
 }
 
@@ -97,7 +123,7 @@ async function* streamFromServer(
     throw new Error("No response body");
   }
 
-  yield* streamSSE(response.body);
+  yield* streamSSE(response.body, signal);
 }
 
 export const createClaudeAgentProvider = (

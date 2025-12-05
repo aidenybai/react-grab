@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { ReactNode } from "react";
+import { ReactNode, isValidElement } from "react";
 
 interface StreamingTextProps {
   content: string | ReactNode | Array<string | ReactNode>;
@@ -63,6 +63,25 @@ export const StreamingText = ({
 
   if (typeof content !== "string") {
     if (isInstantContent) {
+      if (isValidElement(content) && content.type === "div") {
+        const { className, style, children, ...restProps } = content.props;
+        return (
+          <motion.div
+            className={className}
+            style={style}
+            {...restProps}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{
+              duration: 0.4,
+              ease: "easeOut",
+              delay: animationDelay,
+            }}
+          >
+            {children}
+          </motion.div>
+        );
+      }
       return (
         <motion.div
           initial={{ opacity: 0 }}

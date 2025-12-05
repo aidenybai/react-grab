@@ -39,14 +39,35 @@ const parseServerSentEvent = (eventStringBlock: string): SSEEvent => {
   return { eventType, data };
 };
 
-const streamSSE = async function* (stream: ReadableStream<Uint8Array>) {
+const streamSSE = async function* (
+  stream: ReadableStream<Uint8Array>,
+  signal: AbortSignal,
+) {
   const streamReader = stream.getReader();
   const textDecoder = new TextDecoder();
   let textBuffer = "";
+  let aborted = false;
+
+  const onAbort = () => {
+    aborted = true;
+    streamReader.cancel().catch(() => {});
+  };
+
+  signal.addEventListener("abort", onAbort);
 
   try {
+    if (signal.aborted) {
+      throw new DOMException("Aborted", "AbortError");
+    }
+
     while (true) {
-      const { done, value } = await streamReader.read();
+      const result = await streamReader.read();
+
+      if (aborted || signal.aborted) {
+        throw new DOMException("Aborted", "AbortError");
+      }
+
+      const { done, value } = result;
       if (value) textBuffer += textDecoder.decode(value, { stream: true });
 
       let boundaryIndex;
@@ -64,7 +85,12 @@ const streamSSE = async function* (stream: ReadableStream<Uint8Array>) {
       if (done) break;
     }
   } finally {
-    streamReader.releaseLock();
+    signal.removeEventListener("abort", onAbort);
+    try {
+      streamReader.releaseLock();
+    } catch {
+      // Reader may already be released after cancel
+    }
   }
 };
 
@@ -88,7 +114,7 @@ const streamFromServer = async function* (
     throw new Error("No response body");
   }
 
-  yield* streamSSE(response.body);
+  yield* streamSSE(response.body, signal);
 };
 
 export const createOpencodeAgentProvider = (

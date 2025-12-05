@@ -63,6 +63,7 @@ export const createServer = () => {
     const { content, prompt, options } = body;
 
     const fullPrompt = `${prompt}\n\n${content}`;
+    const requestSignal = context.req.raw.signal;
 
     return streamSSE(context, async (stream) => {
       const cursorAgentArgs = [
@@ -89,6 +90,14 @@ export const createServer = () => {
           stdio: ["pipe", "pipe", "pipe"],
           env: { ...process.env },
         });
+
+        const killProcess = () => {
+          if (!cursorProcess.killed) {
+            cursorProcess.kill("SIGTERM");
+          }
+        };
+
+        requestSignal.addEventListener("abort", killProcess);
 
         let buffer = "";
 
@@ -164,7 +173,8 @@ export const createServer = () => {
 
         await new Promise<void>((resolve, reject) => {
           cursorProcess.on("close", (code) => {
-            if (code === 0) {
+            requestSignal.removeEventListener("abort", killProcess);
+            if (code === 0 || cursorProcess.killed) {
               resolve();
             } else {
               reject(new Error(`cursor-agent exited with code ${code}`));
@@ -172,6 +182,7 @@ export const createServer = () => {
           });
 
           cursorProcess.on("error", (error) => {
+            requestSignal.removeEventListener("abort", killProcess);
             reject(error);
           });
         });
