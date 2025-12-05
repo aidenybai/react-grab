@@ -1,32 +1,77 @@
 # @react-grab/opencode
 
-Opencode integration for React Grab - Send UI element context directly to the Opencode terminal AI coding agent.
+Opencode agent provider for React Grab. Requires running a local server that interfaces with the Opencode CLI.
 
 ## Installation
 
-### Server Setup
+```bash
+npm install @react-grab/opencode
+# or
+pnpm add @react-grab/opencode
+# or
+bun add @react-grab/opencode
+# or
+yarn add @react-grab/opencode
+```
 
-The server runs on port `6567` and interfaces with the Opencode CLI. Add to your `package.json`:
+## Server Setup
 
-```json
-{
-  "scripts": {
-    "dev": "npx @react-grab/opencode@latest && next dev"
-  }
+The server runs on port `6567` by default.
+
+### Quick Start (CLI)
+
+Start the server in the background before running your dev server:
+
+```bash
+npx @react-grab/opencode@latest && pnpm run dev
+```
+
+The server will run as a detached background process. **Note:** Stopping your dev server (Ctrl+C) won't stop the React Grab server. To stop it:
+
+```bash
+pkill -f "react-grab.*server"
+```
+
+### Recommended: Config File (Automatic Lifecycle)
+
+For better lifecycle management, start the server from your config file. This ensures the server stops when your dev server stops:
+
+### Vite
+
+```ts
+// vite.config.ts
+import { startServer } from "@react-grab/opencode/server";
+
+if (process.env.NODE_ENV === "development") {
+  startServer();
+}
+```
+
+### Next.js
+
+```ts
+// next.config.ts
+import { startServer } from "@react-grab/opencode/server";
+
+if (process.env.NODE_ENV === "development") {
+  startServer();
 }
 ```
 
 > **Note:** You must have [Opencode](https://opencode.ai) installed (`npm i -g opencode-ai@latest`).
 
-### Client Setup
+## Client Usage
+
+### Script Tag
 
 ```html
 <script src="//unpkg.com/react-grab/dist/index.global.js"></script>
-<!-- add this in the <head> -->
 <script src="//unpkg.com/@react-grab/opencode/dist/client.global.js"></script>
 ```
 
-Or using Next.js `Script` component in your `app/layout.tsx`:
+### Next.js
+
+Using the `Script` component in your `app/layout.tsx`:
 
 ```jsx
 import Script from "next/script";
@@ -54,13 +99,13 @@ export default function RootLayout({ children }) {
 }
 ```
 
-## Usage
+### ES Module
 
-1. Start the Opencode server alongside your dev server
-2. Press `Cmd/Ctrl + Shift + E` to activate React Grab
-3. Click on any element to select it
-4. Type your prompt (e.g., "make this button blue")
-5. The prompt will be sent to Opencode with the element context
+```tsx
+import { attachAgent } from "@react-grab/opencode/client";
+
+attachAgent();
+```
 
 ## Options
 
@@ -79,6 +124,19 @@ const provider = createOpencodeAgentProvider({
 });
 ```
 
-## License
+## How It Works
 
-MIT
+```
+┌─────────────────┐      HTTP       ┌─────────────────┐     stdin      ┌─────────────────┐
+│                 │  localhost:6567 │                 │                │                 │
+│   React Grab    │ ──────────────► │     Server      │ ─────────────► │    opencode     │
+│    (Browser)    │ ◄────────────── │   (Node.js)     │ ◄───────────── │      (CLI)      │
+│                 │       SSE       │                 │     stdout     │                 │
+└─────────────────┘                 └─────────────────┘                └─────────────────┘
+      Client                              Server                            Agent
+```
+
+1. **React Grab** sends the selected element context to the server via HTTP POST
+2. **Server** receives the request and spawns the `opencode` CLI process
+3. **Opencode** processes the request and streams JSON responses to stdout
+4. **Server** relays status updates to the client via Server-Sent Events (SSE)

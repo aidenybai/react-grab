@@ -1,6 +1,6 @@
 # Agent Playground
 
-A test backend and demo app for react-grab's agent provider API using the [Claude Agent SDK](https://platform.claude.com/docs/en/agent-sdk/typescript).
+A demo app for testing react-grab's agent provider API with multiple agent backends.
 
 ## Setup
 
@@ -10,34 +10,28 @@ A test backend and demo app for react-grab's agent provider API using the [Claud
 ni
 ```
 
-2. Set your Anthropic API key:
+2. Start the demo app with your preferred agent:
 
 ```bash
-export ANTHROPIC_API_KEY=your-api-key
+nr dev:claude    # Claude Code (default)
+nr dev:cursor    # Cursor
+nr dev:opencode  # Opencode
 ```
 
-3. Start both the server and demo app:
-
-```bash
-nr dev
-```
-
-This runs:
-
-- **Server**: `http://localhost:3001` (Agent backend)
-- **Demo App**: `http://localhost:5174` (Vite React app with react-grab)
+The demo app runs at `http://localhost:5174`.
 
 ## Scripts
 
-| Command         | Description                          |
-| --------------- | ------------------------------------ |
-| `nr dev`        | Run both server and app concurrently |
-| `nr dev:server` | Run only the backend server          |
-| `nr dev:app`    | Run only the Vite demo app           |
+| Command          | Description                      |
+| ---------------- | -------------------------------- |
+| `nr dev`         | Run with Claude Code (default)   |
+| `nr dev:claude`  | Run with Claude Code             |
+| `nr dev:cursor`  | Run with Cursor                  |
+| `nr dev:opencode`| Run with Opencode                |
 
 ## Demo App
 
-The demo app at `http://localhost:5174` includes:
+The demo app includes:
 
 - Example UI components to test with react-grab
 - Agent activity logs panel
@@ -45,53 +39,13 @@ The demo app at `http://localhost:5174` includes:
 
 **How to use:**
 
-1. Hold `⌘+C` (Mac) or `Ctrl+C` (Windows) and hover over elements
-2. Press `Enter` to open the input prompt
+1. Click "Grab Element" or press `Cmd/Ctrl + Shift + E`
+2. Hover over elements and click to select
 3. Type your instruction and press `Enter` to send to the agent
 
-## Usage in Your Own App
+## Supported Agents
 
-```typescript
-import { init } from "react-grab";
-import { createAgentProvider } from "agent-playground/client";
-
-const agentProvider = createAgentProvider("http://localhost:3001");
-
-init({
-  agentProvider: agentProvider,
-  agentSessionStorage: "sessionStorage",
-  onAgentStart: (session) => {
-    console.log("Agent started:", session.id);
-  },
-  onAgentStatus: (status, session) => {
-    console.log("Status update:", status);
-  },
-  onAgentComplete: (session) => {
-    console.log("Agent completed!");
-  },
-  onAgentError: (error, session) => {
-    console.error("Agent error:", error);
-  },
-});
-```
-
-## API Endpoints
-
-### POST /agent
-
-Send a request to the agent.
-
-**Request Body:**
-
-```json
-{
-  "content": "<selected_element>...</selected_element>",
-  "prompt": "User's instruction"
-}
-```
-
-**Response:** Server-Sent Events (SSE) stream with status updates.
-
-### GET /health
-
-Health check endpoint.
+- **Claude Code** - Uses the Claude Agent SDK (port 4567)
+- **Cursor** - Uses the Cursor Agent CLI (port 5567)
+- **Opencode** - Uses the Opencode CLI (port 6567)
+- **Ami** - Client-only, connects to ami.dev (no local server)
