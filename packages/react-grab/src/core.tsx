@@ -1408,9 +1408,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     window.addEventListener(
       "keydown",
       (event: KeyboardEvent) => {
+        const isEnterToActivateInput =
+          event.key === "Enter" && isHoldingKeys() && !isInputMode();
+
         if (
           isInputMode() ||
-          isEventFromOverlay(event, "data-react-grab-ignore-events")
+          (isEventFromOverlay(event, "data-react-grab-ignore-events") &&
+            !isEnterToActivateInput)
         ) {
           if (event.key === "Escape" && agentManager.isProcessing()) {
             agentManager.abortAllSessions();
