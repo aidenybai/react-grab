@@ -54,16 +54,6 @@ export interface Theme {
     enabled?: boolean;
   };
   /**
-   * Text labels that appear after successful operations (like "Copied!" messages)
-   */
-  successLabels?: {
-    /**
-     * Whether to show success feedback labels
-     * @default true
-     */
-    enabled?: boolean;
-  };
-  /**
    * The crosshair cursor overlay that helps with precise element targeting
    */
   crosshair?: {
@@ -84,19 +74,12 @@ export interface ReactGrabState {
   dragBounds: DragRect | null;
 }
 
-export type SuccessLabelType = "copy" | "input-submit";
-
 export type ElementLabelVariant = "hover" | "processing" | "success";
 
 export interface InputModeContext {
   x: number;
   y: number;
   targetElement: Element | null;
-}
-
-export interface SuccessLabelContext {
-  x: number;
-  y: number;
 }
 
 export interface CrosshairContext {
@@ -189,11 +172,6 @@ export interface Options {
   onCopyError?: (error: Error) => void;
   onStateChange?: (state: ReactGrabState) => void;
   onInputModeChange?: (isInputMode: boolean, context: InputModeContext) => void;
-  onSuccessLabel?: (
-    text: string,
-    type: SuccessLabelType,
-    context: SuccessLabelContext,
-  ) => void;
   onSelectionBox?: (
     visible: boolean,
     bounds: OverlayBounds | null,

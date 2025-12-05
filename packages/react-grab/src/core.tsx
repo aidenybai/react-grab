@@ -55,7 +55,6 @@ import type {
   ReactGrabState,
   DeepPartial,
   Theme,
-  SuccessLabelType,
   SelectionLabelStatus,
   SelectionLabelInstance,
   AgentSession,
@@ -211,12 +210,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       number | null
     >(null);
     const [grabbedBoxes, setGrabbedBoxes] = createSignal<GrabbedBox[]>([]);
-    const [successLabels, setSuccessLabels] = createSignal<
-      Array<{ id: string; text: string }>
-    >([]);
     const [isActivated, setIsActivated] = createSignal(false);
     const [isToggleMode, setIsToggleMode] = createSignal(false);
     const [didJustDrag, setDidJustDrag] = createSignal(false);
+    const [didJustCopy, setDidJustCopy] = createSignal(false);
     const [copyStartX, setCopyStartX] = createSignal(OFFSCREEN_POSITION);
     const [copyStartY, setCopyStartY] = createSignal(OFFSCREEN_POSITION);
     const [copyOffsetFromCenterX, setCopyOffsetFromCenterX] = createSignal(0);
@@ -367,30 +364,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, SUCCESS_LABEL_DURATION_MS);
     };
 
-    const showTemporarySuccessLabel = (
-      text: string,
-      type: SuccessLabelType,
-    ) => {
-      const labelId = `success-${Date.now()}-${Math.random()}`;
-      setSuccessLabels((previousLabels) => [
-        ...previousLabels,
-        { id: labelId, text },
-      ]);
-
-      options.onSuccessLabel?.(text, type, { x: mouseX(), y: mouseY() });
-
-      setTimeout(() => {
-        setSuccessLabels((previousLabels) =>
-          previousLabels.filter((label) => label.id !== labelId),
-        );
-      }, SUCCESS_LABEL_DURATION_MS);
-    };
-
-    const extractElementTagNameForSuccess = (element: Element) => {
-      const tagName = extractElementTagName(element);
-      return tagName ? `<${tagName}>` : "1 element";
-    };
-
     const notifyElementsSelected = (elements: Element[]) => {
       const elementsPayload = elements.map((element) => ({
         tagName: extractElementTagName(element),
@@ -481,6 +454,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       await operation().finally(() => {
         setIsCopying(false);
+        setDidJustCopy(true);
         stopProgressAnimation();
 
         if (instanceId) {
@@ -591,10 +565,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       targetElement: Element,
       extraPrompt?: string,
     ) => {
-      const successLabelType: SuccessLabelType = extraPrompt
-        ? "input-submit"
-        : "copy";
-
       options.onElementSelect?.(targetElement);
 
       if (theme().grabbedBoxes.enabled) {
@@ -605,14 +575,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       await new Promise((resolve) => requestAnimationFrame(resolve));
 
-      const didCopy = await tryCopyWithFallback([targetElement], extraPrompt);
-
-      if (didCopy && theme().successLabels.enabled) {
-        showTemporarySuccessLabel(
-          extractElementTagNameForSuccess(targetElement),
-          successLabelType,
-        );
-      }
+      await tryCopyWithFallback([targetElement], extraPrompt);
 
       notifyElementsSelected([targetElement]);
     };
@@ -633,11 +596,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       await new Promise((resolve) => requestAnimationFrame(resolve));
 
-      const didCopy = await tryCopyWithFallback(targetElements);
-
-      if (didCopy && theme().successLabels.enabled) {
-        showTemporarySuccessLabel(`${targetElements.length} elements`, "copy");
-      }
+      await tryCopyWithFallback(targetElements);
 
       notifyElementsSelected(targetElements);
     };
@@ -1076,6 +1035,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setIsInputExpanded(false);
       setFrozenElement(null);
       setSelectionLabelStatus("idle");
+      setDidJustCopy(false);
       if (isDragging()) {
         setIsDragging(false);
         document.body.style.userSelect = "";
@@ -1275,6 +1235,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handlePointerMove = (clientX: number, clientY: number) => {
       if (isInputMode() || isToggleFrozen()) return;
 
+      setDidJustCopy(false);
       setMouseX(clientX);
       setMouseY(clientY);
 
@@ -1986,6 +1947,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const selectionVisible = createMemo(() => {
       if (!theme().selectionBox.enabled) return false;
+      if (didJustCopy()) return false;
       return isRendererActive() && !isDragging() && Boolean(targetElement());
     });
 
@@ -2006,7 +1968,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const selectionLabelVisible = createMemo(() => {
       if (!theme().elementLabel.enabled) return false;
-      if (successLabels().length > 0) return false;
+      if (didJustCopy()) return false;
       return isRendererActive() && !isDragging() && Boolean(targetElement());
     });
 
@@ -2038,8 +2000,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!theme().elementLabel.enabled) return false;
       if (isInputMode()) return false;
       if (isCopying()) return true;
-      if (successLabels().length > 0) return false;
-
       return isRendererActive() && !isDragging() && Boolean(targetElement());
     });
 

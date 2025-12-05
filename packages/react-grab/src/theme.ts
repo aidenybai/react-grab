@@ -15,9 +15,6 @@ export const DEFAULT_THEME: Required<Theme> = {
   elementLabel: {
     enabled: true,
   },
-  successLabels: {
-    enabled: true,
-  },
   crosshair: {
     enabled: true,
   },
@@ -43,10 +40,6 @@ const mergeThemeWithBase = (
   elementLabel: {
     enabled:
       partialTheme.elementLabel?.enabled ?? baseTheme.elementLabel.enabled,
-  },
-  successLabels: {
-    enabled:
-      partialTheme.successLabels?.enabled ?? baseTheme.successLabels.enabled,
   },
   crosshair: {
     enabled: partialTheme.crosshair?.enabled ?? baseTheme.crosshair.enabled,
