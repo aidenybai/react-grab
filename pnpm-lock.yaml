@@ -117,6 +117,9 @@ importers:
       '@eslint/eslintrc':
         specifier: ^3
         version: 3.3.1
+      '@react-grab/claude-code':
+        specifier: ^0.0.68
+        version: 0.0.68(@types/react@19.2.2)(react@19.0.1)(zod@4.1.13)
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.1.15
@@ -1843,6 +1846,10 @@ packages:
   '@pnpm/npm-conf@2.3.1':
     resolution: {integrity: sha512-c83qWb22rNRuB0UaVCI0uRPNRr8Z0FWnEIvT47jiHAmOIUHbBOg5XvV7pM5x+rKn9HRpjxquDbXYSXr3fAKFcw==}
     engines: {node: '>=12'}
+
+  '@react-grab/claude-code@0.0.68':
+    resolution: {integrity: sha512-qezHeBJvOM9B8uy12acr7TOHxLFqnrNpyE5tYWQ/amFAU4q0bNbUywd9V5+FL0AMhQW+5ruH3407jWqiHFkKOQ==}
+    hasBin: true
 
   '@reduxjs/toolkit@2.10.1':
     resolution: {integrity: sha512-/U17EXQ9Do9Yx4DlNGU6eVNfZvFJfYpUtRRdLf19PbPjdWBxNlxGZXywQZ1p1Nz8nMkWplTI7iD/23m07nolDA==}
@@ -4707,6 +4714,9 @@ packages:
     peerDependencies:
       react: ^19.2.1
 
+  react-grab@0.0.68:
+    resolution: {integrity: sha512-cIKbA8U78D2AYp5tVCpVtfOiE8ieC1GGiUGvckPH88D88XXi/lcSGw1RV/HBH0VkCgjKKTs3Cf558aFDktPOZQ==}
+
   react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
 
@@ -6936,6 +6946,18 @@ snapshots:
       '@pnpm/network.ca-file': 1.0.2
       config-chain: 1.1.13
 
+  '@react-grab/claude-code@0.0.68(@types/react@19.2.2)(react@19.0.1)(zod@4.1.13)':
+    dependencies:
+      '@anthropic-ai/claude-agent-sdk': 0.1.46(zod@4.1.13)
+      '@hono/node-server': 1.19.6(hono@4.10.7)
+      hono: 4.10.7
+      picocolors: 1.1.1
+      react-grab: 0.0.68(@types/react@19.2.2)(react@19.0.1)
+    transitivePeerDependencies:
+      - '@types/react'
+      - react
+      - zod
+
   '@reduxjs/toolkit@2.10.1(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.1)(redux@5.0.1))(react@19.2.1)':
     dependencies:
       '@standard-schema/spec': 1.0.0
@@ -7812,6 +7834,13 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
+  bippy@0.5.25(@types/react@19.2.2)(react@19.0.1):
+    dependencies:
+      '@types/react-reconciler': 0.28.9(@types/react@19.2.2)
+      react: 19.0.1
+    transitivePeerDependencies:
+      - '@types/react'
+
   bippy@0.5.25(@types/react@19.2.2)(react@19.2.1):
     dependencies:
       '@types/react-reconciler': 0.28.9(@types/react@19.2.2)
@@ -8450,7 +8479,7 @@ snapshots:
       eslint: 9.37.0(jiti@2.6.1)
       eslint-import-resolver-node: 0.3.9
       eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1))
-      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1))
+      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.37.0(jiti@2.6.1))
       eslint-plugin-jsx-a11y: 6.10.2(eslint@9.37.0(jiti@2.6.1))
       eslint-plugin-react: 7.37.5(eslint@9.37.0(jiti@2.6.1))
       eslint-plugin-react-hooks: 7.0.1(eslint@9.37.0(jiti@2.6.1))
@@ -8483,7 +8512,7 @@ snapshots:
       tinyglobby: 0.2.15
       unrs-resolver: 1.11.1
     optionalDependencies:
-      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1))
+      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.37.0(jiti@2.6.1))
     transitivePeerDependencies:
       - supports-color
 
@@ -8552,7 +8581,7 @@ snapshots:
       - eslint-import-resolver-webpack
       - supports-color
 
-  eslint-plugin-import@2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)):
+  eslint-plugin-import@2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.37.0(jiti@2.6.1)):
     dependencies:
       '@rtsao/scc': 1.1.0
       array-includes: 3.1.9
@@ -9933,6 +9962,14 @@ snapshots:
     dependencies:
       react: 19.2.1
       scheduler: 0.27.0
+
+  react-grab@0.0.68(@types/react@19.2.2)(react@19.0.1):
+    dependencies:
+      bippy: 0.5.25(@types/react@19.2.2)(react@19.0.1)
+      solid-js: 1.9.10
+    transitivePeerDependencies:
+      - '@types/react'
+      - react
 
   react-is@16.13.1: {}
 

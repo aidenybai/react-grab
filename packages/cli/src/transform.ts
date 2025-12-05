@@ -19,6 +19,15 @@ export interface TransformResult {
   noChanges?: boolean;
 }
 
+export interface PackageJsonTransformResult {
+  success: boolean;
+  filePath: string;
+  message: string;
+  originalContent?: string;
+  newContent?: string;
+  noChanges?: boolean;
+}
+
 const findLayoutFile = (projectRoot: string): string | null => {
   const possiblePaths = [
     join(projectRoot, "app", "layout.tsx"),
@@ -542,4 +551,123 @@ export const transformProject = (
     return { ...result, success: false, writeError: writeResult.error };
   }
   return result;
+};
+
+const AGENT_PREFIXES: Record<string, string> = {
+  "claude-code": "npx @react-grab/claude-code@latest &&",
+  cursor: "npx @react-grab/cursor@latest &&",
+  opencode: "npx @react-grab/opencode@latest &&",
+};
+
+export const previewPackageJsonTransform = (
+  projectRoot: string,
+  agent: AgentIntegration,
+  installedAgents: string[]
+): PackageJsonTransformResult => {
+  if (agent === "none") {
+    return {
+      success: true,
+      filePath: "",
+      message: "No agent selected, skipping package.json modification",
+      noChanges: true,
+    };
+  }
+
+  const packageJsonPath = join(projectRoot, "package.json");
+
+  if (!existsSync(packageJsonPath)) {
+    return {
+      success: false,
+      filePath: "",
+      message: "Could not find package.json",
+    };
+  }
+
+  const originalContent = readFileSync(packageJsonPath, "utf-8");
+  const agentPrefix = AGENT_PREFIXES[agent];
+
+  if (!agentPrefix) {
+    return {
+      success: false,
+      filePath: packageJsonPath,
+      message: `Unknown agent: ${agent}`,
+    };
+  }
+
+  if (originalContent.includes(agentPrefix)) {
+    return {
+      success: true,
+      filePath: packageJsonPath,
+      message: `Agent ${agent} dev script is already configured`,
+      noChanges: true,
+    };
+  }
+
+  try {
+    const packageJson = JSON.parse(originalContent);
+
+    if (!packageJson.scripts?.dev) {
+      return {
+        success: false,
+        filePath: packageJsonPath,
+        message: 'No "dev" script found in package.json',
+      };
+    }
+
+    const currentDevScript = packageJson.scripts.dev;
+
+    for (const installedAgent of installedAgents) {
+      const existingPrefix = AGENT_PREFIXES[installedAgent];
+      if (existingPrefix && currentDevScript.includes(existingPrefix)) {
+        return {
+          success: true,
+          filePath: packageJsonPath,
+          message: `Agent ${installedAgent} is already in dev script`,
+          noChanges: true,
+        };
+      }
+    }
+
+    packageJson.scripts.dev = `${agentPrefix} ${currentDevScript}`;
+
+    const newContent = JSON.stringify(packageJson, null, 2) + "\n";
+
+    return {
+      success: true,
+      filePath: packageJsonPath,
+      message: `Add ${agent} server to dev script`,
+      originalContent,
+      newContent,
+    };
+  } catch {
+    return {
+      success: false,
+      filePath: packageJsonPath,
+      message: "Failed to parse package.json",
+    };
+  }
+};
+
+export const applyPackageJsonTransform = (
+  result: PackageJsonTransformResult
+): { success: boolean; error?: string } => {
+  if (result.success && result.newContent && result.filePath) {
+    if (!canWriteToFile(result.filePath)) {
+      return {
+        success: false,
+        error: `Cannot write to ${result.filePath}. Check file permissions.`,
+      };
+    }
+
+    try {
+      writeFileSync(result.filePath, result.newContent);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: `Failed to write to ${result.filePath}: ${error instanceof Error ? error.message : "Unknown error"}`,
+      };
+    }
+  }
+  return { success: true };
 };

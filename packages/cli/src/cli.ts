@@ -6,7 +6,12 @@ import { detectProject, type Framework, type PackageManager, type UnsupportedFra
 import { printDiff } from "./diff.js";
 import { getPackagesToInstall, installPackages } from "./install.js";
 import type { AgentIntegration } from "./templates.js";
-import { applyTransform, previewTransform } from "./transform.js";
+import {
+  applyPackageJsonTransform,
+  applyTransform,
+  previewPackageJsonTransform,
+  previewTransform,
+} from "./transform.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
 
@@ -324,27 +329,52 @@ const main = async () => {
       projectInfo.hasReactGrab || action === "add-agent"
     );
 
+    const packageJsonResult = previewPackageJsonTransform(
+      projectInfo.projectRoot,
+      agentIntegration,
+      projectInfo.installedAgents
+    );
+
     if (!result.success) {
       console.error(`${pc.red("Error:")} ${result.message}`);
       showDocsLink();
       process.exit(1);
     }
 
-    if (result.noChanges) {
+    const hasLayoutChanges = !result.noChanges && result.originalContent && result.newContent;
+    const hasPackageJsonChanges =
+      packageJsonResult.success && !packageJsonResult.noChanges && packageJsonResult.originalContent && packageJsonResult.newContent;
+
+    if (result.noChanges && packageJsonResult.noChanges) {
       console.log(`${pc.cyan("Info:")} ${result.message}`);
-    } else if (result.originalContent && result.newContent) {
-      printDiff(result.filePath, result.originalContent, result.newContent);
-      showAccuracyWarning();
+      if (packageJsonResult.message) {
+        console.log(`${pc.cyan("Info:")} ${packageJsonResult.message}`);
+      }
+    } else {
+      if (hasLayoutChanges) {
+        printDiff(result.filePath, result.originalContent!, result.newContent!);
+      }
 
-      if (!isNonInteractive) {
-        const confirmChanges = await confirm({
-          message: "Apply these changes?",
-          default: true,
-        });
+      if (hasPackageJsonChanges) {
+        if (hasLayoutChanges) {
+          console.log("");
+        }
+        printDiff(packageJsonResult.filePath, packageJsonResult.originalContent!, packageJsonResult.newContent!);
+      }
 
-        if (!confirmChanges) {
-          console.log(`\n${pc.yellow("Changes cancelled.")}\n`);
-          process.exit(0);
+      if (hasLayoutChanges || hasPackageJsonChanges) {
+        showAccuracyWarning();
+
+        if (!isNonInteractive) {
+          const confirmChanges = await confirm({
+            message: "Apply these changes?",
+            default: true,
+          });
+
+          if (!confirmChanges) {
+            console.log(`\n${pc.yellow("Changes cancelled.")}\n`);
+            process.exit(0);
+          }
         }
       }
 
@@ -368,13 +398,25 @@ const main = async () => {
         }
       }
 
-      const writeResult = applyTransform(result);
-      if (!writeResult.success) {
-        console.error(`\n${pc.red("Error:")} ${writeResult.error}`);
-        showDocsLink();
-        process.exit(1);
+      if (hasLayoutChanges) {
+        const writeResult = applyTransform(result);
+        if (!writeResult.success) {
+          console.error(`\n${pc.red("Error:")} ${writeResult.error}`);
+          showDocsLink();
+          process.exit(1);
+        }
+        console.log(`\n${pc.green("Applied:")} ${result.filePath}`);
       }
-      console.log(`\n${pc.green("Applied:")} ${result.filePath}`);
+
+      if (hasPackageJsonChanges) {
+        const packageJsonWriteResult = applyPackageJsonTransform(packageJsonResult);
+        if (!packageJsonWriteResult.success) {
+          console.error(`\n${pc.red("Error:")} ${packageJsonWriteResult.error}`);
+          showDocsLink();
+          process.exit(1);
+        }
+        console.log(`${pc.green("Applied:")} ${packageJsonResult.filePath}`);
+      }
     }
   }
 

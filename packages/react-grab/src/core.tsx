@@ -547,7 +547,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             : combinedSnippets;
 
           copiedContent = plainTextContent;
-          didCopy = await copyContent(plainTextContent);
+          didCopy = copyContent(plainTextContent);
         }
 
         if (!didCopy) {
@@ -558,7 +558,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               : plainTextContentOnly;
 
             copiedContent = contentWithPrompt;
-            didCopy = await copyContent(contentWithPrompt);
+            didCopy = copyContent(contentWithPrompt);
           }
         }
 
@@ -575,7 +575,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             : plainTextContentOnly;
 
           copiedContent = contentWithPrompt;
-          didCopy = await copyContent(contentWithPrompt);
+          didCopy = copyContent(contentWithPrompt);
         }
       }
 

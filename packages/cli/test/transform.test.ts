@@ -1,5 +1,5 @@
 import { vi, describe, expect, it, beforeEach } from "vitest";
-import { previewTransform, applyTransform } from "../src/transform.js";
+import { previewTransform, applyTransform, previewPackageJsonTransform, applyPackageJsonTransform } from "../src/transform.js";
 
 vi.mock("node:fs", () => ({
   existsSync: vi.fn(),
@@ -450,6 +450,197 @@ describe("applyTransform", () => {
     };
 
     const writeResult = applyTransform(result);
+
+    expect(writeResult.success).toBe(true);
+    expect(mockWriteFileSync).not.toHaveBeenCalled();
+  });
+});
+
+describe("previewPackageJsonTransform", () => {
+  const packageJsonContent = JSON.stringify(
+    {
+      name: "my-app",
+      scripts: {
+        dev: "next dev --turbopack",
+        build: "next build",
+      },
+    },
+    null,
+    2
+  );
+
+  it("should add agent prefix to dev script", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(packageJsonContent);
+
+    const result = previewPackageJsonTransform("/test", "cursor", []);
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain("npx @react-grab/cursor@latest &&");
+    expect(result.newContent).toContain("next dev --turbopack");
+  });
+
+  it("should add claude-code prefix to dev script", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(packageJsonContent);
+
+    const result = previewPackageJsonTransform("/test", "claude-code", []);
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain("npx @react-grab/claude-code@latest &&");
+  });
+
+  it("should add opencode prefix to dev script", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(packageJsonContent);
+
+    const result = previewPackageJsonTransform("/test", "opencode", []);
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain("npx @react-grab/opencode@latest &&");
+  });
+
+  it("should skip when agent is none", () => {
+    const result = previewPackageJsonTransform("/test", "none", []);
+
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBe(true);
+  });
+
+  it("should not duplicate if agent is already configured", () => {
+    const packageJsonWithAgent = JSON.stringify(
+      {
+        name: "my-app",
+        scripts: {
+          dev: "npx @react-grab/cursor@latest && next dev --turbopack",
+        },
+      },
+      null,
+      2
+    );
+
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(packageJsonWithAgent);
+
+    const result = previewPackageJsonTransform("/test", "cursor", []);
+
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBe(true);
+  });
+
+  it("should not add another agent if one is already installed", () => {
+    const packageJsonWithAgent = JSON.stringify(
+      {
+        name: "my-app",
+        scripts: {
+          dev: "npx @react-grab/claude-code@latest && next dev",
+        },
+      },
+      null,
+      2
+    );
+
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(packageJsonWithAgent);
+
+    const result = previewPackageJsonTransform("/test", "cursor", ["claude-code"]);
+
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBe(true);
+  });
+
+  it("should fail when package.json not found", () => {
+    mockExistsSync.mockReturnValue(false);
+
+    const result = previewPackageJsonTransform("/test", "cursor", []);
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("Could not find package.json");
+  });
+
+  it("should fail when no dev script exists", () => {
+    const packageJsonNoDev = JSON.stringify(
+      {
+        name: "my-app",
+        scripts: {
+          build: "next build",
+        },
+      },
+      null,
+      2
+    );
+
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(packageJsonNoDev);
+
+    const result = previewPackageJsonTransform("/test", "cursor", []);
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('No "dev" script found');
+  });
+
+  it("should fail when package.json is invalid JSON", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue("{ invalid json }");
+
+    const result = previewPackageJsonTransform("/test", "cursor", []);
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("Failed to parse package.json");
+  });
+});
+
+describe("applyPackageJsonTransform", () => {
+  it("should write file when result has newContent and file is writable", () => {
+    vi.clearAllMocks();
+    mockAccessSync.mockReturnValue(undefined);
+    mockWriteFileSync.mockReturnValue(undefined);
+
+    const result = {
+      success: true,
+      filePath: "/test/package.json",
+      message: "Test",
+      originalContent: "old",
+      newContent: "new",
+    };
+
+    const writeResult = applyPackageJsonTransform(result);
+
+    expect(writeResult.success).toBe(true);
+    expect(mockWriteFileSync).toHaveBeenCalledWith("/test/package.json", "new");
+  });
+
+  it("should return error when file is not writable", () => {
+    vi.clearAllMocks();
+    mockAccessSync.mockImplementation(() => {
+      throw new Error("EACCES");
+    });
+
+    const result = {
+      success: true,
+      filePath: "/test/package.json",
+      message: "Test",
+      originalContent: "old",
+      newContent: "new",
+    };
+
+    const writeResult = applyPackageJsonTransform(result);
+
+    expect(writeResult.success).toBe(false);
+    expect(writeResult.error).toContain("Cannot write to");
+  });
+
+  it("should not write file when result has noChanges", () => {
+    vi.clearAllMocks();
+
+    const result = {
+      success: true,
+      filePath: "/test/package.json",
+      message: "Test",
+      noChanges: true,
+    };
+
+    const writeResult = applyPackageJsonTransform(result);
 
     expect(writeResult.success).toBe(true);
     expect(mockWriteFileSync).not.toHaveBeenCalled();

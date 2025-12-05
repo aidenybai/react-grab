@@ -1,46 +1,41 @@
-const waitForFocus = (): Promise<void> => {
-  if (document.hasFocus()) {
-    return new Promise((resolve) => setTimeout(resolve, 50));
-  }
-  return new Promise((resolve) => {
-    const onFocus = () => {
-      window.removeEventListener("focus", onFocus);
-      setTimeout(resolve, 50);
-    };
-    window.addEventListener("focus", onFocus);
-    window.focus();
-  });
-};
+import { VERSION } from "../constants.js";
 
-export const copyContent = async (
+const REACT_GRAB_MIME_TYPE = "application/x-react-grab";
+
+export const copyContent = (
   content: string,
   onSuccess?: () => void,
-): Promise<boolean> => {
-  await waitForFocus();
+): boolean => {
+  const metadata = JSON.stringify({
+    version: VERSION,
+    content,
+    timestamp: Date.now(),
+  });
+
+  const copyHandler = (event: ClipboardEvent) => {
+    event.preventDefault();
+    event.clipboardData?.setData("text/plain", content);
+    event.clipboardData?.setData(REACT_GRAB_MIME_TYPE, metadata);
+  };
+
+  document.addEventListener("copy", copyHandler);
+
+  const textarea = document.createElement("textarea");
+  textarea.value = content;
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  textarea.ariaHidden = "true";
+  document.body.appendChild(textarea);
+  textarea.select();
 
   try {
-    await navigator.clipboard.writeText(content);
-    onSuccess?.();
-    return true;
-  } catch {
-    return copyContentFallback(content, onSuccess);
-  }
-};
-
-const copyContentFallback = (content: string, onSuccess?: () => void) => {
-  if (!document.execCommand) return false;
-  const el = document.createElement("textarea");
-  el.value = String(content);
-  el.style.clipPath = "inset(50%)";
-  el.ariaHidden = "true";
-  const doc = document.body || document.documentElement;
-  doc.append(el);
-  try {
-    el.select();
-    const result = document.execCommand("copy");
-    if (result) onSuccess?.();
-    return result;
+    const didCopySucceed = document.execCommand("copy");
+    if (didCopySucceed) {
+      onSuccess?.();
+    }
+    return didCopySucceed;
   } finally {
-    el.remove();
+    document.removeEventListener("copy", copyHandler);
+    textarea.remove();
   }
 };
