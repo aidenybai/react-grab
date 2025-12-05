@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node ../react-grab-claude-code/dist/cli.js && vite",
     "dev:claude": "node ../react-grab-claude-code/dist/cli.js && vite",
-    "dev:cursor": "node ../react-grab-cursor/dist/cli.js && vite"
+    "dev:cursor": "node ../react-grab-cursor/dist/cli.js && vite",
+    "dev:opencode": "node ../react-grab-opencode/dist/cli.js && vite"
   },
   "dependencies": {
     "react": "19.0.1",

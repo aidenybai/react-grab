@@ -46,6 +46,30 @@ export default defineConfig({
               return;
             }
           }
+          if (req.url?.startsWith("/@react-grab-opencode/")) {
+            const filePath = path.join(
+              __dirname,
+              "../react-grab-opencode/dist",
+              req.url.replace("/@react-grab-opencode/", ""),
+            );
+            if (fs.existsSync(filePath)) {
+              res.setHeader("Content-Type", "application/javascript");
+              fs.createReadStream(filePath).pipe(res);
+              return;
+            }
+          }
+          if (req.url?.startsWith("/@react-grab-ami/")) {
+            const filePath = path.join(
+              __dirname,
+              "../react-grab-ami/dist",
+              req.url.replace("/@react-grab-ami/", ""),
+            );
+            if (fs.existsSync(filePath)) {
+              res.setHeader("Content-Type", "application/javascript");
+              fs.createReadStream(filePath).pipe(res);
+              return;
+            }
+          }
           next();
         });
       },
