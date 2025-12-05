@@ -1390,20 +1390,20 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const blockEnterIfNeeded = (event: KeyboardEvent) => {
       const isEnterKey = event.key === "Enter" || event.code === "Enter";
-      if (!isEnterKey) return false;
-      if (isInputMode()) return false;
+      const isOverlayActive = isActivated() || isHoldingKeys();
+      const shouldBlockEnter = isEnterKey && isOverlayActive && !isInputMode();
 
-      const overlayExists = document.querySelector("[data-react-grab]") !== null;
-      const isReactGrabActive =
-        isActivated() ||
-        isHoldingKeys() ||
-        isToggleMode() ||
-        isToggleFrozen() ||
-        isInputExpanded() ||
-        isCopying() ||
-        overlayExists;
+      if (isEnterKey) {
+        console.log("[react-grab] blockEnterIfNeeded", {
+          isActivated: isActivated(),
+          isHoldingKeys: isHoldingKeys(),
+          isInputMode: isInputMode(),
+          shouldBlockEnter,
+        });
+      }
 
-      if (isReactGrabActive) {
+      if (shouldBlockEnter) {
+        console.log("[react-grab] BLOCKING Enter key");
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation();
@@ -1488,7 +1488,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        if (event.key?.toLowerCase() === "o" && !isInputMode()) {
+        if (event.key.toLowerCase() === "o" && !isInputMode()) {
           if (isActivated() && (event.metaKey || event.ctrlKey)) {
             const filePath = selectionFilePath();
             const lineNumber = selectionLineNumber();
@@ -1609,7 +1609,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           ? !options.activationShortcut(event)
           : options.activationKey
             ? options.activationKey.key
-              ? event.key?.toLowerCase() ===
+              ? event.key.toLowerCase() ===
                   options.activationKey.key.toLowerCase() ||
                 keyMatchesCode(options.activationKey.key, event.code)
               : false
