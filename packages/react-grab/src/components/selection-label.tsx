@@ -604,7 +604,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   />
                   <div class="flex items-center gap-0.5 ml-1">
                     <Show
-                      when={props.hasAgent && speechRecognition.isSupported()}
+                      when={
+                        props.hasAgent &&
+                        speechRecognition.isSupported() &&
+                        !props.inputValue
+                      }
                     >
                       <button
                         class={cn(

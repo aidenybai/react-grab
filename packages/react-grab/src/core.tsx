@@ -41,6 +41,7 @@ import {
   LOGO_SVG,
   MODIFIER_KEYS,
   BLUR_DEACTIVATION_THRESHOLD_MS,
+  BOUNDS_RECALC_INTERVAL_MS,
 } from "./constants.js";
 import { isCLikeKey } from "./utils/is-c-like-key.js";
 import { keyMatchesCode, isTargetKeyCombination } from "./utils/hotkey.js";
@@ -1757,6 +1758,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
       { signal: eventListenerSignal },
     );
+
+    const boundsRecalcIntervalId = setInterval(() => {
+      setViewportVersion((version) => version + 1);
+    }, BOUNDS_RECALC_INTERVAL_MS);
+
+    onCleanup(() => clearInterval(boundsRecalcIntervalId));
 
     document.addEventListener(
       "copy",
