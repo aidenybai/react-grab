@@ -1,5 +1,13 @@
 # @react-grab/ami
 
+## 0.0.71
+
+### Patch Changes
+
+- fix: ux nits
+- Updated dependencies
+  - react-grab@0.0.71
+
 ## 0.0.70
 
 ### Patch Changes

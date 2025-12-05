@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.71
+
+### Patch Changes
+
+- fix: ux nits
+
 ## 0.0.70
 
 ### Patch Changes
