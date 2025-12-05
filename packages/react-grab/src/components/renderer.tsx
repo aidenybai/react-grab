@@ -74,7 +74,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
               visible={true}
               hasAgent={true}
               status={session.isStreaming ? "copying" : "copied"}
-              statusText={session.lastStatus || "Please wait…"}
+              statusText={session.lastStatus || "Thinking…"}
               inputValue={session.context.prompt}
               onAbort={() => props.onAbortSession?.(session.id)}
             />

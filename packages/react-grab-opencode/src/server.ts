@@ -43,7 +43,7 @@ const executeOpencodePrompt = async (
 ): Promise<void> => {
   const client = await getOpencodeClient();
 
-  onStatus?.("Planning next moves...");
+  onStatus?.("Thinking...");
 
   const sessionResponse = await client.session.create({
     body: { title: "React Grab Session" },

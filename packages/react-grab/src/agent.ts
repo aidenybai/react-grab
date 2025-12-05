@@ -276,7 +276,7 @@ export const createAgentManager = (
       tagName,
       componentName,
     );
-    session.lastStatus = "Please wait…";
+    session.lastStatus = "Thinking…";
     sessionElements.set(session.id, element);
     setSessions((prev) => new Map(prev).set(session.id, session));
     saveSessionById(session, storage);

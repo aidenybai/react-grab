@@ -741,7 +741,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!element) {
         return (
           <span class="tabular-nums align-middle">
-            {copying ? "Please wait…" : "1 element"}
+            {copying ? "Processing…" : "1 element"}
           </span>
         );
       }
@@ -777,7 +777,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       return (
         <span class="tabular-nums align-middle">
-          {copying ? "Please wait…" : "1 element"}
+          {copying ? "Processing…" : "1 element"}
         </span>
       );
     });

@@ -35,7 +35,7 @@ export const createServer = () => {
 
     return streamSSE(context, async (stream) => {
       try {
-        await stream.writeSSE({ data: "Please wait...", event: "status" });
+        await stream.writeSSE({ data: "Thinking...", event: "status" });
 
         const queryResult = query({
           prompt: fullPrompt,

@@ -84,7 +84,7 @@ export const createServer = () => {
       }
 
       try {
-        await stream.writeSSE({ data: "Planning next moves", event: "status" });
+        await stream.writeSSE({ data: "Thinking...", event: "status" });
 
         const cursorProcess = spawn("cursor-agent", cursorAgentArgs, {
           stdio: ["pipe", "pipe", "pipe"],
@@ -109,7 +109,7 @@ export const createServer = () => {
             case "system":
               if (event.subtype === "init") {
                 await stream.writeSSE({
-                  data: "Planning next moves",
+                  data: "Thinking...",
                   event: "status",
                 });
               }
