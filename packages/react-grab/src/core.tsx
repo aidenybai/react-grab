@@ -641,7 +641,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const targetElement = createMemo(() => {
       if (!isRendererActive() || isDragging()) return null;
-      return detectedElement();
+      const element = detectedElement();
+      if (element && !document.contains(element)) return null;
+      return element;
+    });
+
+    createEffect(() => {
+      const element = detectedElement();
+      if (!element) return;
+
+      const intervalId = setInterval(() => {
+        if (!document.contains(element)) {
+          setDetectedElement(null);
+        }
+      }, 100);
+
+      onCleanup(() => clearInterval(intervalId));
     });
 
     createEffect(() => {

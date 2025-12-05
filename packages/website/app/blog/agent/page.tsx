@@ -357,7 +357,27 @@ const AgentPage = () => {
                 framework.
               </p>
 
-              <h4 className="text-base font-medium text-neutral-300 mt-4 flex items-center gap-1.5">
+              <h4 className="text-base font-medium text-neutral-300 mt-4">
+                CLI (Recommended)
+              </h4>
+              <p>
+                Run this command at your project root to automatically install
+                React Grab:
+              </p>
+              <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden">
+                <div className="px-3 py-2">
+                  <HighlightedCodeBlock
+                    lang="bash"
+                    code={`npx @react-grab/cli@latest`}
+                  />
+                </div>
+              </div>
+              <p className="text-sm text-neutral-500">
+                The CLI will detect your framework and add the necessary scripts
+                automatically.
+              </p>
+
+              <h4 className="text-base font-medium text-neutral-300 mt-8 flex items-center gap-1.5">
                 <IconClaude width={14} height={14} />
                 Claude Code
               </h4>

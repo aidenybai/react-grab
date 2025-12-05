@@ -196,30 +196,9 @@ const getConversationBlocks = (): StreamBlock[] => [
     ),
   },
   {
-    id: "message-6",
-    type: "message",
-    content: (
-      <span className="hidden sm:inline">
-        It takes 1 script tag to get started:
-      </span>
-    ),
-  },
-  {
     id: "install-tabs-1",
     type: "message",
-    content: <InstallTabs />,
-  },
-  {
-    id: "agent-note",
-    type: "message",
-    content: (
-      <span className="text-sm text-white/50">
-        Want to integrate directly with your coding agent?{" "}
-        <a href="/blog/agent" className="underline hover:text-white/70">
-          See our agent integration guide
-        </a>
-      </span>
-    ),
+    content: <InstallTabs showHeading showAgentNote />,
   },
   {
     id: "message-7",

@@ -31,7 +31,7 @@ const getHighlighter = async () => {
   if (!highlighterInstance) {
     highlighterInstance = await createHighlighter({
       themes: ["vesper"],
-      langs: ["typescript", "javascript", "tsx", "jsx", "html", "json"],
+      langs: ["typescript", "javascript", "tsx", "jsx", "html", "json", "bash"],
     });
   }
   return highlighterInstance;

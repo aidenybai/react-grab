@@ -4,7 +4,35 @@ Grab any element in your app and give it to Cursor, Claude Code, or other AI cod
 
 ## Installation
 
-Always install the latest version of React Grab. Use the correct package manager for your project.
+### CLI (Recommended)
+
+Run this command at your project root. Use the `-y` flag to skip interactive prompts (required for non-interactive environments):
+
+```bash
+npx @react-grab/cli@latest -y
+```
+
+CLI Options:
+```
+Options:
+  -f, --framework        Override detected framework [choices: "next", "vite", "webpack"]
+  -p, --package-manager  Override detected package manager [choices: "npm", "yarn", "pnpm", "bun"]
+  -r, --router           Next.js router type [choices: "app", "pages"]
+  -a, --agent            Agent integration [choices: "claude-code", "cursor", "opencode", "none"]
+  -y, --yes              Skip all prompts and use auto-detected/default values
+      --skip-install     Only modify config files, skip package install
+
+Examples:
+  npx @react-grab/cli@latest -y                    # Auto-detect and install without prompts
+  npx @react-grab/cli@latest -f next -r app -y    # Configure for Next.js App Router
+  npx @react-grab/cli@latest -a cursor -y          # Add Cursor agent integration
+```
+
+The CLI will detect your framework and add the necessary scripts automatically.
+
+### Manual Installation
+
+If you prefer manual installation, use the correct package manager for your project:
 
 ```bash
 npm install react-grab@latest

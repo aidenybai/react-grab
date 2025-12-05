@@ -12,6 +12,7 @@ interface InstallTab {
   label: string;
   fileName: string;
   description: string;
+  lang?: "tsx" | "bash";
   getCode: (hotkey: RecordedHotkey | null) => string;
   getChangedLines: (hotkey: RecordedHotkey | null) => number[];
 }
@@ -38,6 +39,15 @@ const formatDataOptionsForNextjs = (hotkey: RecordedHotkey): string => {
 };
 
 const installTabsData: InstallTab[] = [
+  {
+    id: "cli",
+    label: "CLI (Recommended)",
+    fileName: "terminal",
+    description: "Run this command at your project root:",
+    lang: "bash",
+    getCode: () => `npx @react-grab/cli@latest`,
+    getChangedLines: () => [],
+  },
   {
     id: "next-app",
     label: "Next.js (App)",
@@ -67,7 +77,7 @@ export default function RootLayout({ children }) {
 }`;
     },
     getChangedLines: (hotkey) =>
-      hotkey ? [8, 9, 10, 11, 12, 13, 14, 15, 16, 17] : [8, 9, 10, 11, 12, 13],
+      hotkey ? [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17] : [7, 8, 9, 10, 11, 12, 13],
   },
   {
     id: "next-pages",
@@ -103,8 +113,8 @@ export default function Document() {
     },
     getChangedLines: (hotkey) =>
       hotkey
-        ? [9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
-        : [9, 10, 11, 12, 13, 14],
+        ? [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+        : [8, 9, 10, 11, 12, 13, 14],
   },
   {
     id: "vite",
@@ -201,7 +211,15 @@ root.render(
   },
 ];
 
-export const InstallTabs = () => {
+interface InstallTabsProps {
+  showHeading?: boolean;
+  showAgentNote?: boolean;
+}
+
+export const InstallTabs = ({
+  showHeading = false,
+  showAgentNote = false,
+}: InstallTabsProps) => {
   const { customHotkey } = useHotkey();
   const [activeTabId, setActiveTabId] = useState<string>(
     installTabsData[0]?.id,
@@ -218,6 +236,7 @@ export const InstallTabs = () => {
   const activeChangedLines = activeTab.getChangedLines(customHotkey ?? null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMobile(detectMobile());
   }, []);
 
@@ -228,7 +247,7 @@ export const InstallTabs = () => {
           id: tab.id,
           html: await highlightCode({
             code: tab.getCode(hotkey),
-            lang: "tsx",
+            lang: tab.lang ?? "tsx",
             changedLines: tab.getChangedLines(hotkey),
           }),
         })),
@@ -243,18 +262,20 @@ export const InstallTabs = () => {
   );
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     updateHighlightedCodes(customHotkey ?? null);
   }, [customHotkey, updateHighlightedCodes]);
 
   const handleCopyClick = () => {
     if (typeof navigator === "undefined" || !navigator.clipboard) return;
 
-    const textToCopy = activeChangedLines
-      ? activeCode
-          .split("\n")
-          .filter((_, index) => activeChangedLines.includes(index + 1))
-          .join("\n")
-      : activeCode;
+    const textToCopy =
+      activeChangedLines.length > 0
+        ? activeCode
+            .split("\n")
+            .filter((_, index) => activeChangedLines.includes(index + 1))
+            .join("\n")
+        : activeCode;
 
     navigator.clipboard
       .writeText(textToCopy)
@@ -271,8 +292,17 @@ export const InstallTabs = () => {
     return null;
   }
 
+  const headingText =
+    activeTabId === "cli"
+      ? "Run this command to get started:"
+      : "It takes 1 script tag to get started:";
+
   return (
-    <div className="mt-4 overflow-hidden rounded-lg border border-white/10 bg-white/5 text-sm text-white shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
+    <div>
+      {showHeading && (
+        <span className="hidden sm:inline text-white">{headingText}</span>
+      )}
+      <div className="mt-4 overflow-hidden rounded-lg border border-white/10 bg-white/5 text-sm text-white shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
       <div className="flex items-center gap-4 border-b border-white/10 px-4 pt-2">
         {installTabsData.map((tab) => {
           const isActive = tab.id === activeTab.id;
@@ -312,17 +342,34 @@ export const InstallTabs = () => {
             </button>
             {highlightedCode ? (
               <div
-                className="overflow-x-auto px-4 py-3 font-mono text-[13px] leading-relaxed highlighted-code"
+                className={cn(
+                  "overflow-x-auto px-4 py-3 font-mono leading-relaxed highlighted-code",
+                  activeTabId === "cli" ? "text-base" : "text-[13px]",
+                )}
                 dangerouslySetInnerHTML={{ __html: highlightedCode }}
               />
             ) : (
-              <pre className="overflow-x-auto px-4 py-3 font-mono text-[13px] leading-relaxed text-white/80">
+              <pre
+                className={cn(
+                  "overflow-x-auto px-4 py-3 font-mono leading-relaxed text-white/80",
+                  activeTabId === "cli" ? "text-base" : "text-[13px]",
+                )}
+              >
                 <code>{activeCode}</code>
               </pre>
             )}
           </div>
         </div>
       </div>
+      </div>
+      {showAgentNote && activeTabId !== "cli" && (
+        <span className="mt-4 block text-sm text-white/50">
+          Want to integrate directly with your coding agent?{" "}
+          <a href="/blog/agent" className="underline hover:text-white/70">
+            See our agent integration guide
+          </a>
+        </span>
+      )}
     </div>
   );
 };
