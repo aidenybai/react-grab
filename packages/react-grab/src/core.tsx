@@ -1388,22 +1388,36 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const abortController = new AbortController();
     const eventListenerSignal = abortController.signal;
 
+    const claimedEvents = new WeakSet<KeyboardEvent>();
+
+    const originalKeyDescriptor = Object.getOwnPropertyDescriptor(
+      KeyboardEvent.prototype,
+      "key",
+    ) as PropertyDescriptor & { get?: () => string };
+
+    if (originalKeyDescriptor?.get) {
+      const originalGetter = originalKeyDescriptor.get;
+      Object.defineProperty(KeyboardEvent.prototype, "key", {
+        get(this: KeyboardEvent) {
+          if (claimedEvents.has(this)) {
+            return "";
+          }
+          return originalGetter.call(this);
+        },
+        configurable: true,
+      });
+    }
+
     const blockEnterIfNeeded = (event: KeyboardEvent) => {
-      const isEnterKey = event.key === "Enter" || event.code === "Enter";
+      const originalKey = originalKeyDescriptor?.get
+        ? originalKeyDescriptor.get.call(event)
+        : event.key;
+      const isEnterKey = originalKey === "Enter" || event.code === "Enter";
       const isOverlayActive = isActivated() || isHoldingKeys();
       const shouldBlockEnter = isEnterKey && isOverlayActive && !isInputMode();
 
-      if (isEnterKey) {
-        console.log("[react-grab] blockEnterIfNeeded", {
-          isActivated: isActivated(),
-          isHoldingKeys: isHoldingKeys(),
-          isInputMode: isInputMode(),
-          shouldBlockEnter,
-        });
-      }
-
       if (shouldBlockEnter) {
-        console.log("[react-grab] BLOCKING Enter key");
+        claimedEvents.add(event);
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation();
