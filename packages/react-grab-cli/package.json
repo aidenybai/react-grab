@@ -1,0 +1,35 @@
+{
+  "name": "@react-grab/cli",
+  "version": "0.0.1",
+  "type": "module",
+  "bin": {
+    "react-grab": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/cli.d.ts",
+      "import": "./dist/cli.js",
+      "require": "./dist/cli.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsup --watch",
+    "build": "rm -rf dist && NODE_ENV=production tsup",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/yargs": "^17.0.33",
+    "tsup": "^8.4.0",
+    "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "@antfu/ni": "^0.23.0",
+    "@inquirer/prompts": "^7.5.0",
+    "picocolors": "^1.1.1",
+    "yargs": "^17.7.2"
+  }
+}

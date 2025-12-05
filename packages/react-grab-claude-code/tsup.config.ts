@@ -33,6 +33,8 @@ import fsp from "node:fs/promises";
 import path from "node:path";
 import { defineConfig } from "tsup";
 
+const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8")) as { version: string };
+
 const applyClaudePatches = async (outputFile: string) => {
   if (!fs.existsSync(outputFile)) {
     console.error("Output file not found:", outputFile);
@@ -95,6 +97,9 @@ export default defineConfig([
     platform: "node",
     treeshake: true,
     noExternal: [/.*/],
+    env: {
+      VERSION: process.env.VERSION ?? packageJson.version,
+    },
     onSuccess: async () => {
       await applyClaudePatches(path.join(__dirname, "dist", "server.cjs"));
       await applyClaudePatches(path.join(__dirname, "dist", "server.js"));

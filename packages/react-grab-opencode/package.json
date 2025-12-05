@@ -1,6 +1,6 @@
 {
   "name": "@react-grab/opencode",
-  "version": "0.0.1",
+  "version": "0.0.67",
   "description": "Opencode integration for React Grab - Send UI element context directly to Opencode terminal AI agent",
   "keywords": [
     "react",
@@ -51,6 +51,7 @@
     "@hono/node-server": "^1.19.6",
     "@opencode-ai/sdk": "^1.0.0",
     "hono": "^4.0.0",
+    "picocolors": "^1.1.1",
     "react-grab": "workspace:*"
   },
   "devDependencies": {

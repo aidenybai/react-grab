@@ -1,4 +1,7 @@
+import fs from "node:fs";
 import { defineConfig } from "tsup";
+
+const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8")) as { version: string };
 
 export default defineConfig([
   {
@@ -15,6 +18,9 @@ export default defineConfig([
     platform: "node",
     treeshake: true,
     noExternal: [/.*/],
+    env: {
+      VERSION: process.env.VERSION ?? packageJson.version,
+    },
   },
   {
     entry: {

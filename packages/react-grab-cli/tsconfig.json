@@ -10,5 +10,5 @@
     "declarationMap": true,
     "noEmit": true
   },
-  "include": ["src", "tsup.config.ts", "src/server.ts"]
+  "include": ["src"]
 }

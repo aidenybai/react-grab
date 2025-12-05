@@ -5,8 +5,11 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { streamSSE } from "hono/streaming";
 import { serve } from "@hono/node-server";
+import pc from "picocolors";
 import type { AgentContext } from "react-grab/core";
 import { DEFAULT_PORT } from "./constants.js";
+
+const VERSION = process.env.VERSION ?? "0.0.0";
 
 interface CursorAgentOptions {
   model?: string;
@@ -214,7 +217,8 @@ export const startServer = async (port: number = DEFAULT_PORT) => {
 
   const app = createServer();
   serve({ fetch: app.fetch, port });
-  console.log(`[React Grab] Server started on port ${port}`);
+  console.log(`${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`);
+  console.log(`- Local:    ${pc.cyan(`http://localhost:${port}`)}`);
 };
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
