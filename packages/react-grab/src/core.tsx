@@ -428,6 +428,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       tagName?: string,
       componentName?: string,
       element?: Element,
+      shouldDeactivateAfter?: boolean,
     ) => {
       setCopyStartX(positionX);
       setCopyStartY(positionY);
@@ -469,7 +470,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           }, COPIED_LABEL_DURATION_MS);
         }
 
-        if (isToggleMode()) {
+        if (isToggleMode() || shouldDeactivateAfter) {
           deactivateRenderer();
         }
       });
@@ -1336,6 +1337,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 tagName,
                 componentName ?? undefined,
                 firstElement,
+                true,
               );
             });
           }
