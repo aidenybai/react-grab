@@ -610,8 +610,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                       speechRecognition.isListening()
                         ? "listening..."
                         : props.hasAgent
-                          ? "type or speak to edit"
-                          : "type to edit"
+                          ? "type to edit"
+                          : "type prompt"
                     }
                     rows={1}
                   />
@@ -625,10 +625,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     >
                       <button
                         class={cn(
-                          "contain-layout shrink-0 flex items-center justify-center px-[3px] py-[3px] rounded-xs [border-width:0.5px] border-solid size-fit cursor-pointer transition-all hover:scale-105",
+                          "contain-layout shrink-0 flex items-center justify-center px-[2px] py-[2px] rounded-xs [border-width:0.5px] border-solid size-fit cursor-pointer transition-all hover:scale-105",
                           speechRecognition.isListening()
                             ? "bg-grab-purple border-grab-purple text-white"
-                            : "bg-white border-[#B3B3B3] text-black/50 hover:text-black",
+                            : "bg-white border-[#B3B3B3] text-black",
                         )}
                         onClick={speechRecognition.toggle}
                         title={
@@ -647,20 +647,19 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                         />
                       </button>
                     </Show>
-                    <button
-                      class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit cursor-pointer transition-none hover:scale-105"
-                      onClick={handleSubmit}
-                    >
-                      <div
-                        class={cn(
-                          "w-2.5 h-[9px] shrink-0 bg-cover bg-center transition-opacity duration-100",
-                          props.inputValue ? "opacity-[0.99]" : "opacity-50",
-                        )}
-                        style={{
-                          "background-image": `url(${RETURN_KEY_ICON_URL})`,
-                        }}
-                      />
-                    </button>
+                    <Show when={props.inputValue}>
+                      <button
+                        class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit cursor-pointer transition-all hover:scale-105"
+                        onClick={handleSubmit}
+                      >
+                        <div
+                          class="w-2.5 h-[9px] shrink-0 bg-cover bg-center opacity-[0.99]"
+                          style={{
+                            "background-image": `url(${RETURN_KEY_ICON_URL})`,
+                          }}
+                        />
+                      </button>
+                    </Show>
                   </div>
                 </div>
               </BottomSection>
