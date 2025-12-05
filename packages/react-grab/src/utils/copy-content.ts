@@ -1,3 +1,5 @@
+import { VERSION } from "../constants.js";
+
 const waitForFocus = (): Promise<void> => {
   if (document.hasFocus()) {
     return new Promise((resolve) => setTimeout(resolve, 50));
@@ -12,6 +14,12 @@ const waitForFocus = (): Promise<void> => {
   });
 };
 
+const REACT_GRAB_MIME_TYPE = "application/x-react-grab";
+
+const supportsClipboardItem = (): boolean =>
+  typeof ClipboardItem !== "undefined" &&
+  typeof navigator?.clipboard?.write === "function";
+
 export const copyContent = async (
   content: string,
   onSuccess?: () => void,
@@ -19,16 +27,30 @@ export const copyContent = async (
   await waitForFocus();
 
   try {
-    try {
-      await navigator.clipboard.writeText(content);
-      onSuccess?.();
-      return true;
-    } catch {
-      const result = copyContentFallback(content, onSuccess);
-      return result;
+    if (supportsClipboardItem()) {
+      try {
+        const metadata = JSON.stringify({ version: VERSION, content });
+        const clipboardItems: Record<string, Blob> = {
+          "text/plain": new Blob([content], { type: "text/plain" }),
+          [REACT_GRAB_MIME_TYPE]: new Blob([metadata], {
+            type: REACT_GRAB_MIME_TYPE,
+          }),
+        };
+
+        await navigator.clipboard.write([new ClipboardItem(clipboardItems)]);
+        onSuccess?.();
+        return true;
+      } catch {
+        const result = copyContentFallback(content, onSuccess);
+        return result;
+      }
     }
+
+    await navigator.clipboard.writeText(content);
+    onSuccess?.();
+    return true;
   } catch {
-    return false;
+    return copyContentFallback(content, onSuccess);
   }
 };
 

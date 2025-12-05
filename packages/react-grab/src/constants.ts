@@ -1,3 +1,5 @@
+export const VERSION = process.env.VERSION as string;
+
 export const VIEWPORT_MARGIN_PX = 8;
 export const OFFSCREEN_POSITION = -1000;
 
