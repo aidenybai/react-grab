@@ -226,6 +226,56 @@ export default function RootLayout({ children }) {
 }
 ```
 
+### Codex CLI
+
+#### Server Setup
+
+The server runs on port `6567` and interfaces with the Codex CLI. Add to your `package.json`:
+
+```json
+{
+  "scripts": {
+    "dev": "npx @react-grab/codex@latest && next dev"
+  }
+}
+```
+
+#### Client Setup
+
+```html
+<script src="//unpkg.com/react-grab/dist/index.global.js"></script>
+<!-- add this in the <head> -->
+<script src="//unpkg.com/@react-grab/codex/dist/client.global.js"></script>
+```
+
+Or using Next.js `Script` component in your `app/layout.tsx`:
+
+```jsx
+import Script from "next/script";
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <head>
+        {process.env.NODE_ENV === "development" && (
+          <>
+            <Script
+              src="//unpkg.com/react-grab/dist/index.global.js"
+              strategy="beforeInteractive"
+            />
+            <Script
+              src="//unpkg.com/@react-grab/codex/dist/client.global.js"
+              strategy="lazyOnload"
+            />
+          </>
+        )}
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}
+```
+
 ### Opencode
 
 #### Server Setup
