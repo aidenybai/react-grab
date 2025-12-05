@@ -790,6 +790,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             return;
           }
 
+          // Prefer DOM attributes (added by tools like lovable-tagger)
+          const componentPath = element.getAttribute("data-component-path");
+          const componentLine = element.getAttribute("data-component-line");
+
+          if (componentPath) {
+            setSelectionFilePath(componentPath);
+            setSelectionLineNumber(
+              componentLine ? parseInt(componentLine, 10) : undefined,
+            );
+            return;
+          }
+
+          // Fallback to React Fiber stack
           getStack(element)
             .then((stack) => {
               if (!stack) return;

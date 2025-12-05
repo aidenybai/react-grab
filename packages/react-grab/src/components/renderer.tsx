@@ -7,6 +7,36 @@ import { Crosshair } from "./crosshair.js";
 import { SelectionCursor } from "./selection-cursor.js";
 import { SelectionLabel } from "./selection-label.js";
 
+// Declare globals which are injected by Vite's define config
+declare const __PROJECT_ROOT__: string | undefined;
+declare const __PREFERRED_EDITOR__: string | undefined;
+
+// Editor URL schemes for common frontend editors
+const EDITOR_URL_SCHEMES: Record<string, string> = {
+  vscode: "vscode://file{file}:{line}:{column}",
+  cursor: "cursor://file{file}:{line}:{column}",
+  windsurf: "windsurf://file{file}:{line}:{column}",
+  trae: "trae://file{file}:{line}:{column}",
+  webstorm: "webstorm://open?file={file}&line={line}&column={column}",
+  zed: "zed://file{file}:{line}:{column}",
+};
+
+function getPreferredEditor(): string {
+  // Read from Vite's define config (set via REACT_GRAB_EDITOR env var)
+  if (typeof __PREFERRED_EDITOR__ !== "undefined" && __PREFERRED_EDITOR__ in EDITOR_URL_SCHEMES) {
+    return __PREFERRED_EDITOR__;
+  }
+  return "vscode"; // Default
+}
+
+function buildEditorUrl(editor: string, filePath: string, line: number, column: number): string {
+  const scheme = EDITOR_URL_SCHEMES[editor] || EDITOR_URL_SCHEMES.vscode;
+  return scheme
+    .replace("{file}", filePath)
+    .replace("{line}", String(line))
+    .replace("{column}", String(column));
+}
+
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
   return (
     <>
@@ -103,11 +133,42 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           onToggleExpand={props.onToggleExpand}
           onOpen={() => {
             if (props.selectionFilePath) {
-              const openFileUrl = buildOpenFileUrl(
-                props.selectionFilePath,
-                props.selectionLineNumber,
-              );
-              window.open(openFileUrl, "_blank");
+              // Clean up the file path - remove localhost URL prefix if present
+              let cleanPath = props.selectionFilePath;
+              try {
+                if (cleanPath.includes("localhost")) {
+                  const url = new URL(cleanPath, window.location.origin);
+                  cleanPath = url.pathname;
+                }
+              } catch {
+                const match = cleanPath.match(/localhost:\d+(.+)/);
+                if (match) {
+                  cleanPath = match[1];
+                }
+              }
+
+              const projectRoot = typeof __PROJECT_ROOT__ !== "undefined" ? __PROJECT_ROOT__ : "";
+
+              if (projectRoot) {
+                // Ensure proper path joining
+                const normalizedRoot = projectRoot.endsWith("/") ? projectRoot : projectRoot + "/";
+                const normalizedPath = cleanPath.startsWith("/") ? cleanPath.slice(1) : cleanPath;
+                const absolutePath = normalizedRoot + normalizedPath;
+                const line = props.selectionLineNumber || 1;
+                const editor = getPreferredEditor();
+                const editorUrl = buildEditorUrl(editor, absolutePath, line, 1);
+
+                const link = document.createElement("a");
+                link.href = editorUrl;
+                link.click();
+              } else {
+                // Fallback to react-grab.com/open-file
+                const openFileUrl = buildOpenFileUrl(
+                  props.selectionFilePath,
+                  props.selectionLineNumber,
+                );
+                window.open(openFileUrl, "_blank");
+              }
             }
           }}
         />
