@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.68
+
+### Patch Changes
+
+- feat: opencode and cli installer
+
 ## 0.0.67
 
 ### Patch Changes

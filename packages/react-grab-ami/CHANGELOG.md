@@ -1,5 +1,13 @@
 # @react-grab/ami
 
+## 0.0.68
+
+### Patch Changes
+
+- feat: opencode and cli installer
+- Updated dependencies
+  - react-grab@0.0.68
+
 ## 0.0.67
 
 ### Patch Changes
