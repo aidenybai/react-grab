@@ -327,9 +327,20 @@ export const createAgentManager = (
       if (element && document.contains(element)) {
         const newBounds = createElementBounds(element);
         if (newBounds) {
+          const oldBounds = session.selectionBounds;
+          let updatedPosition = session.position;
+
+          if (oldBounds) {
+            const oldCenterX = oldBounds.x + oldBounds.width / 2;
+            const offsetX = session.position.x - oldCenterX;
+            const newCenterX = newBounds.x + newBounds.width / 2;
+            updatedPosition = { ...session.position, x: newCenterX + offsetX };
+          }
+
           updatedSessions.set(sessionId, {
             ...session,
             selectionBounds: newBounds,
+            position: updatedPosition,
           });
           didUpdate = true;
         }

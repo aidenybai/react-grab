@@ -1,7 +1,5 @@
 import net from "node:net";
-import { spawn } from "node:child_process";
-import { join } from "node:path";
-import { homedir } from "node:os";
+import { createOpencode } from "@opencode-ai/sdk";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { streamSSE } from "hono/streaming";
@@ -12,11 +10,6 @@ import { DEFAULT_PORT } from "./constants.js";
 
 const VERSION = process.env.VERSION ?? "0.0.0";
 
-const npmGlobalDirectory = join(homedir(), "AppData", "Roaming", "npm");
-if (!process.env.PATH?.startsWith(npmGlobalDirectory)) {
-  process.env.PATH = `${npmGlobalDirectory};${process.env.PATH}`;
-}
-
 export interface OpencodeAgentOptions {
   model?: string;
   agent?: string;
@@ -25,93 +18,65 @@ export interface OpencodeAgentOptions {
 
 type OpencodeAgentContext = AgentContext<OpencodeAgentOptions>;
 
+interface OpencodeInstance {
+  client: Awaited<ReturnType<typeof createOpencode>>["client"];
+  server: Awaited<ReturnType<typeof createOpencode>>["server"];
+}
+
+let opencodeInstance: OpencodeInstance | null = null;
+
+const getOpencodeClient = async () => {
+  if (!opencodeInstance) {
+    const instance = await createOpencode({
+      hostname: "127.0.0.1",
+      port: 4096,
+    });
+    opencodeInstance = instance;
+  }
+  return opencodeInstance.client;
+};
+
 const executeOpencodePrompt = async (
   prompt: string,
   options?: OpencodeAgentOptions,
-  onOutput?: (text: string) => void,
-): Promise<string> => {
-  const safePrompt = prompt
-    .replace(/<(\w+)>/g, "[$1]")
-    .replace(/<\/(\w+)>/g, "[/$1]")
-    .replace(/</g, "(")
-    .replace(/>/g, ")");
+  onStatus?: (text: string) => void,
+): Promise<void> => {
+  const client = await getOpencodeClient();
 
-  return new Promise((resolve, reject) => {
-    const opencodeArguments = [
-      "run",
-      "--format",
-      "json",
-      "--attach",
-      "http://127.0.0.1:4096",
-    ];
+  onStatus?.("Planning next moves...");
 
-    opencodeArguments.push("--agent", options?.agent || "react-grab");
-
-    if (options?.model) {
-      opencodeArguments.push("--model", options.model);
-    }
-
-    const environmentVariables = {
-      ...process.env,
-      OPENCODE_PERMISSION: JSON.stringify({
-        external_directory: "allow",
-        edit: "allow",
-      }),
-    };
-
-    const childProcess = spawn("opencode", opencodeArguments, {
-      env: environmentVariables,
-      cwd: options?.directory ?? process.cwd(),
-      windowsHide: true,
-      shell: true,
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-
-    if (childProcess.stdin) {
-      childProcess.stdin.write(safePrompt);
-      childProcess.stdin.end();
-    }
-
-    let standardOutput = "";
-    let standardError = "";
-
-    childProcess.stdout?.on("data", (dataChunk: Buffer) => {
-      const text = dataChunk.toString();
-      standardOutput += text;
-
-      if (onOutput) {
-        const outputLines = text.split("\n").filter(Boolean);
-        for (const outputLine of outputLines) {
-          try {
-            const parsedEvent = JSON.parse(outputLine);
-            if (parsedEvent.type === "text" && parsedEvent.part?.text) {
-              onOutput(parsedEvent.part.text);
-            }
-          } catch {}
-        }
-      }
-    });
-
-    childProcess.stderr?.on("data", (dataChunk: Buffer) => {
-      standardError += dataChunk.toString();
-    });
-
-    childProcess.on("error", (error: Error) => {
-      reject(error);
-    });
-
-    childProcess.on("exit", (code: number | null) => {
-      if (code === 0) {
-        resolve(standardOutput);
-      } else {
-        reject(
-          new Error(
-            `opencode run exited with code ${code}. stderr: ${standardError}`,
-          ),
-        );
-      }
-    });
+  const sessionResponse = await client.session.create({
+    body: { title: "React Grab Session" },
   });
+
+  if (sessionResponse.error || !sessionResponse.data) {
+    throw new Error("Failed to create session");
+  }
+
+  const sessionId = sessionResponse.data.id;
+
+  const modelConfig = options?.model
+    ? {
+        providerID: options.model.split("/")[0],
+        modelID: options.model.split("/")[1] || options.model,
+      }
+    : undefined;
+
+  const promptResponse = await client.session.prompt({
+    path: { id: sessionId },
+    body: {
+      ...(modelConfig && { model: modelConfig }),
+      parts: [{ type: "text", text: prompt }],
+    },
+  });
+
+  if (promptResponse.data?.parts) {
+    for (const part of promptResponse.data.parts) {
+      if (part.type === "text" && part.text) {
+        onStatus?.(part.text);
+      }
+    }
+  }
 };
 
 export const createServer = () => {
@@ -132,25 +97,16 @@ ${content}
 
     return streamSSE(context, async (stream) => {
       try {
-        await stream.writeSSE({
-          data: "Starting Opencode...",
-          event: "status",
-        });
-
-        let previousText = "";
         await executeOpencodePrompt(
           formattedPrompt,
           options,
           (text) => {
-            if (text !== previousText) {
-              stream
-                .writeSSE({
-                  data: text.length > 80 ? "..." + text.slice(-80) : text,
-                  event: "status",
-                })
-                .catch(() => {});
-              previousText = text;
-            }
+            stream
+              .writeSSE({
+                data: text,
+                event: "status",
+              })
+              .catch(() => {});
           },
         );
 

@@ -1,27 +1,10 @@
 {
   "name": "@react-grab/opencode",
   "version": "0.0.67",
-  "description": "Opencode integration for React Grab - Send UI element context directly to Opencode terminal AI agent",
-  "keywords": [
-    "react",
-    "grab",
-    "opencode",
-    "agent",
-    "ai",
-    "terminal"
-  ],
-  "homepage": "https://react-grab.com",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/aidenybai/react-grab.git",
-    "directory": "packages/react-grab-opencode"
-  },
-  "license": "MIT",
-  "author": {
-    "name": "Aiden Bai",
-    "email": "aiden@million.dev"
-  },
   "type": "module",
+  "bin": {
+    "react-grab-opencode": "./dist/cli.js"
+  },
   "exports": {
     "./client": {
       "types": "./dist/client.d.ts",
@@ -37,15 +20,15 @@
     "./dist/*.js": "./dist/*.js"
   },
   "browser": "dist/client.global.js",
-  "bin": {
-    "react-grab-opencode": "./dist/cli.js"
-  },
   "files": [
     "dist"
   ],
   "scripts": {
     "dev": "tsup --watch",
-    "build": "tsup"
+    "build": "rm -rf dist && NODE_ENV=production tsup"
+  },
+  "devDependencies": {
+    "tsup": "^8.4.0"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.6",
@@ -53,8 +36,5 @@
     "hono": "^4.0.0",
     "picocolors": "^1.1.1",
     "react-grab": "workspace:*"
-  },
-  "devDependencies": {
-    "tsup": "^8.4.0"
   }
 }

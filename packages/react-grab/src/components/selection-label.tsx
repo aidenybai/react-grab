@@ -258,6 +258,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     ) {
       event.preventDefault();
       event.stopPropagation();
+      event.stopImmediatePropagation();
       props.onToggleExpand?.();
     }
   };
@@ -360,6 +361,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   const handleKeyDown = (event: KeyboardEvent) => {
     event.stopPropagation();
+    event.stopImmediatePropagation();
 
     if (event.code === "Enter" && !event.shiftKey) {
       event.preventDefault();
@@ -389,7 +391,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   const isTagClickable = () => Boolean(props.filePath && props.onOpen);
 
-  const stopPropagation = (event: MouseEvent) => {
+  const stopPropagation = (event: Event) => {
     event.stopPropagation();
     event.stopImmediatePropagation();
   };
@@ -412,6 +414,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           "pointer-events": props.visible ? "auto" : "none",
           opacity: props.status === "fading" ? 0 : 1,
         }}
+        onPointerDown={stopPropagation}
         onMouseDown={stopPropagation}
         onClick={stopPropagation}
       >
