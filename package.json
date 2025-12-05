@@ -26,5 +26,9 @@
     "node": ">=18",
     "pnpm": ">=8"
   },
-  "packageManager": "pnpm@10.24.0"
+  "packageManager": "pnpm@10.24.0",
+  "workspaces": [
+    "packages/*",
+    "packages/benchmarks/next-app"
+  ]
 }

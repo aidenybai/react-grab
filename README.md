@@ -224,6 +224,58 @@ export default function RootLayout({ children }) {
 }
 ```
 
+### Opencode
+
+#### Server Setup
+
+The server runs on port `6567` and interfaces with the Opencode CLI. Add to your `package.json`:
+
+```json
+{
+  "scripts": {
+    "dev": "npx @react-grab/opencode@latest && next dev"
+  }
+}
+```
+
+> **Note:** You must have [Opencode](https://opencode.ai) installed (`npm i -g opencode-ai@latest`).
+
+#### Client Setup
+
+```html
+<script src="//unpkg.com/react-grab/dist/index.global.js"></script>
+<!-- add this in the <head> -->
+<script src="//unpkg.com/@react-grab/opencode/dist/client.global.js"></script>
+```
+
+Or using Next.js `Script` component in your `app/layout.tsx`:
+
+```jsx
+import Script from "next/script";
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <head>
+        {process.env.NODE_ENV === "development" && (
+          <>
+            <Script
+              src="//unpkg.com/react-grab/dist/index.global.js"
+              strategy="beforeInteractive"
+            />
+            <Script
+              src="//unpkg.com/@react-grab/opencode/dist/client.global.js"
+              strategy="lazyOnload"
+            />
+          </>
+        )}
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}
+```
+
 ## Extending React Grab
 
 React Grab provides an public customization API. Check out the [type definitions](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) to see all available options for extending React Grab.
