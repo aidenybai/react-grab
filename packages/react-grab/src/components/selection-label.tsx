@@ -365,6 +365,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
     if (event.code === "Enter" && !event.shiftKey) {
       event.preventDefault();
+      if (!props.inputValue?.trim()) return;
       speechRecognition.stop();
       props.onSubmit?.();
     } else if (event.code === "Escape") {
@@ -397,6 +398,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   };
 
   const handleSubmit = () => {
+    if (props.isInputExpanded && !props.inputValue?.trim()) return;
     speechRecognition.stop();
     props.onSubmit?.();
   };
