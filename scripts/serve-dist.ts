@@ -3,7 +3,7 @@ import { readdir, stat } from "fs/promises";
 
 const PORT = 3456;
 
-const PACKAGES_DIR = join(import.meta.dir, "packages");
+const PACKAGES_DIR = join(import.meta.dir, "../packages");
 
 const DIST_MAPPINGS: Record<string, string> = {
   "react-grab": join(PACKAGES_DIR, "react-grab/dist"),

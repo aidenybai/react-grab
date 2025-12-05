@@ -1389,21 +1389,32 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const eventListenerSignal = abortController.signal;
 
     const claimedEvents = new WeakSet<KeyboardEvent>();
+    const isEnterCode = (code: string) =>
+      code === "Enter" || code === "NumpadEnter";
 
     const originalKeyDescriptor = Object.getOwnPropertyDescriptor(
       KeyboardEvent.prototype,
       "key",
     ) as PropertyDescriptor & { get?: () => string };
 
-    if (originalKeyDescriptor?.get) {
+    let didPatchKeyboardEvent = false;
+    if (
+      originalKeyDescriptor?.get &&
+      !(originalKeyDescriptor.get as { __reactGrabPatched?: boolean })
+        .__reactGrabPatched
+    ) {
+      didPatchKeyboardEvent = true;
       const originalGetter = originalKeyDescriptor.get;
+      const patchedGetter = function (this: KeyboardEvent) {
+        if (claimedEvents.has(this)) {
+          return "";
+        }
+        return originalGetter.call(this);
+      };
+      (patchedGetter as { __reactGrabPatched?: boolean }).__reactGrabPatched =
+        true;
       Object.defineProperty(KeyboardEvent.prototype, "key", {
-        get(this: KeyboardEvent) {
-          if (claimedEvents.has(this)) {
-            return "";
-          }
-          return originalGetter.call(this);
-        },
+        get: patchedGetter,
         configurable: true,
       });
     }
@@ -1412,7 +1423,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const originalKey = originalKeyDescriptor?.get
         ? originalKeyDescriptor.get.call(event)
         : event.key;
-      const isEnterKey = originalKey === "Enter" || event.code === "Enter";
+      const isEnterKey = originalKey === "Enter" || isEnterCode(event.code);
       const isOverlayActive = isActivated() || isHoldingKeys();
       const shouldBlockEnter = isEnterKey && isOverlayActive && !isInputMode();
 
@@ -1439,13 +1450,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       capture: true,
     });
 
+
     window.addEventListener(
       "keydown",
       (event: KeyboardEvent) => {
         blockEnterIfNeeded(event);
 
         const isEnterToActivateInput =
-          event.code === "Enter" && isHoldingKeys() && !isInputMode();
+          isEnterCode(event.code) && isHoldingKeys() && !isInputMode();
 
         if (
           isInputMode() ||
@@ -1470,7 +1482,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           }
         }
 
-        if (event.code === "Enter" && isHoldingKeys() && !isInputMode()) {
+        if (isEnterCode(event.code) && isHoldingKeys() && !isInputMode()) {
           event.preventDefault();
           event.stopPropagation();
           event.stopImmediatePropagation();
@@ -1534,18 +1546,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             !isToggleMode() &&
             (event.metaKey || event.ctrlKey)
           ) {
-            if (!MODIFIER_KEYS.includes(event.key) && event.code !== "Enter") {
+            if (!MODIFIER_KEYS.includes(event.key) && !isEnterCode(event.code)) {
               deactivateRenderer();
             }
           }
-          if (event.code !== "Enter" || !isHoldingKeys()) {
+          if (!isEnterCode(event.code) || !isHoldingKeys()) {
             return;
           }
         }
 
         if ((isActivated() || isHoldingKeys()) && !isInputMode()) {
           event.preventDefault();
-          if (event.code === "Enter") {
+          if (isEnterCode(event.code)) {
             event.stopPropagation();
             event.stopImmediatePropagation();
           }
@@ -1689,8 +1701,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     window.addEventListener(
       "pointerdown",
       (event: PointerEvent) => {
-        if (!isRendererActive() || isCopying() || isInputMode()) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
+        if (!isRendererActive() || isCopying() || isInputMode()) return;
         event.stopPropagation();
       },
       { signal: eventListenerSignal, capture: true },
@@ -1868,6 +1880,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           const rangeRect = range.getBoundingClientRect();
 
           if (rangeRect.width === 0 && rangeRect.height === 0) {
+            clearNativeSelectionState();
             return;
           }
 
@@ -1885,6 +1898,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
           const clientRects = range.getClientRects();
           if (clientRects.length === 0) {
+            clearNativeSelectionState();
             return;
           }
 
@@ -1899,9 +1913,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             return;
           }
 
-          setNativeSelectionCursorX(cursorX);
-          setNativeSelectionCursorY(cursorY);
-
           const container = range.commonAncestorContainer;
           const element =
             container.nodeType === Node.ELEMENT_NODE
@@ -1909,10 +1920,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               : container.parentElement;
 
           if (element && isValidGrabbableElement(element)) {
+            setNativeSelectionCursorX(cursorX);
+            setNativeSelectionCursorY(cursorY);
             setNativeSelectionElements([element]);
             setHasNativeSelection(true);
           } else {
-            setNativeSelectionElements([]);
+            clearNativeSelectionState();
           }
         }, 150);
       },
@@ -1927,6 +1940,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       stopProgressAnimation();
       document.body.style.userSelect = "";
       setCursorOverride(null);
+      if (didPatchKeyboardEvent && originalKeyDescriptor) {
+        Object.defineProperty(
+          KeyboardEvent.prototype,
+          "key",
+          originalKeyDescriptor,
+        );
+      }
     });
 
     const rendererRoot = mountRoot(cssText as string);
