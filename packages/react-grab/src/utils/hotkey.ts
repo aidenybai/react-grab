@@ -33,13 +33,22 @@ export const isTargetKeyCombination = (
     if (isModifierOnly) {
       if (!MODIFIER_KEYS.includes(event.key)) return false;
 
-      const metaMatches = metaKey ? (event.metaKey || event.key === "Meta") : true;
-      const ctrlMatches = ctrlKey ? (event.ctrlKey || event.key === "Control") : true;
-      const shiftMatches = shiftKey ? (event.shiftKey || event.key === "Shift") : true;
-      const altMatches = altKey ? (event.altKey || event.key === "Alt") : true;
+      const metaMatches = metaKey
+        ? event.metaKey || event.key === "Meta"
+        : true;
+      const ctrlMatches = ctrlKey
+        ? event.ctrlKey || event.key === "Control"
+        : true;
+      const shiftMatches = shiftKey
+        ? event.shiftKey || event.key === "Shift"
+        : true;
+      const altMatches = altKey ? event.altKey || event.key === "Alt" : true;
 
-      const allRequiredModifiersPressed = metaMatches && ctrlMatches && shiftMatches && altMatches;
-      const requiredModifierCount = [metaKey, ctrlKey, shiftKey, altKey].filter(Boolean).length;
+      const allRequiredModifiersPressed =
+        metaMatches && ctrlMatches && shiftMatches && altMatches;
+      const requiredModifierCount = [metaKey, ctrlKey, shiftKey, altKey].filter(
+        Boolean,
+      ).length;
       const pressedModifierCount = [
         event.metaKey || event.key === "Meta",
         event.ctrlKey || event.key === "Control",
@@ -47,7 +56,10 @@ export const isTargetKeyCombination = (
         event.altKey || event.key === "Alt",
       ].filter(Boolean).length;
 
-      return allRequiredModifiersPressed && pressedModifierCount >= requiredModifierCount;
+      return (
+        allRequiredModifiersPressed &&
+        pressedModifierCount >= requiredModifierCount
+      );
     }
 
     const keyMatches =

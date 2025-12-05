@@ -49,10 +49,11 @@ export const ToolCallsBlock = ({ block, allBlocks }: ToolCallsBlockProps) => {
       >
         <div className="flex flex-col gap-2 mt-2">
           {grepBlocks.map((grepBlock, index) => {
-            const result = typeof grepBlock.content === "string" && grepBlock.content
-              ? grepBlock.content
-              : (grepBlock.metadata?.result as string | undefined);
-            
+            const result =
+              typeof grepBlock.content === "string" && grepBlock.content
+                ? grepBlock.content
+                : (grepBlock.metadata?.result as string | undefined);
+
             return (
               <GrepToolCallBlock
                 key={grepBlock.id}

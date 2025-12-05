@@ -773,7 +773,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (element) {
           const bounds = createElementBounds(element);
           const selectionCenterX = bounds.x + bounds.width / 2;
-          return { x: selectionCenterX + copyOffsetFromCenterX(), y: copyStartY() };
+          return {
+            x: selectionCenterX + copyOffsetFromCenterX(),
+            y: copyStartY(),
+          };
         }
         return { x: copyStartX(), y: copyStartY() };
       }

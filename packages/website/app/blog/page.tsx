@@ -55,12 +55,15 @@ const BlogPage = () => {
 
         <div className="flex flex-col gap-1">
           <div className="text-white font-bold">Blog</div>
-          <div className="text-sm text-neutral-500">Posts from the React Grab team</div>
+          <div className="text-sm text-neutral-500">
+            Posts from the React Grab team
+          </div>
         </div>
 
         <div className="flex flex-col mt-8">
           {blogPosts.map((post, index) => {
-            const showYear = index === 0 || blogPosts[index - 1].year !== post.year;
+            const showYear =
+              index === 0 || blogPosts[index - 1].year !== post.year;
 
             return (
               <Link

@@ -72,9 +72,9 @@ import { createOpencodeAgentProvider } from "@react-grab/opencode/client";
 const provider = createOpencodeAgentProvider({
   serverUrl: "http://localhost:6567", // Custom server URL
   getOptions: () => ({
-    model: "claude-sonnet-4-20250514",  // AI model to use
-    agent: "build",                      // Agent type: "build" or "plan"
-    directory: "/path/to/project",       // Project directory
+    model: "claude-sonnet-4-20250514", // AI model to use
+    agent: "build", // Agent type: "build" or "plan"
+    directory: "/path/to/project", // Project directory
   }),
 });
 ```

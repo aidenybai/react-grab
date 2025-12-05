@@ -7,10 +7,12 @@ This directory contains the benchmark suite used to measure React Grab's impact 
 The benchmark uses the [shadcn/ui dashboard](https://github.com/shadcn-ui/ui) as the test codebase - a Next.js application with auth, data tables, charts, and form components. Each test case represents a real-world task that developers commonly perform when working with coding agents.
 
 Each test runs twice:
+
 - **Control**: Without React Grab output (agent must search the codebase)
 - **Treatment**: With React Grab output (agent receives exact component stack)
 
 The benchmark measures:
+
 - Time to completion (`durationMs`)
 - Number of tool calls (`toolCalls`)
 - Token usage (`inputTokens`, `outputTokens`, `totalTokens`)
@@ -60,6 +62,7 @@ bun index.ts
 ```
 
 The benchmark will:
+
 1. Generate `test-cases.json` from the test cases
 2. Run all 40 tests (20 control + 20 treatment) in batches of 5
 3. Save results incrementally to `results.json`
@@ -99,6 +102,7 @@ See [`test-cases.json`](./test-cases.json) for the full list of test cases and t
 ## Cost Considerations
 
 Running the full benchmark suite (40 tests) will incur API costs. Each test uses:
+
 - Claude Code Sonnet for the main task
 - Claude Haiku 4.5 for result grading
 
@@ -116,14 +120,17 @@ You can modify the benchmark by:
 ## Troubleshooting
 
 **Error: Provider metadata not found**
+
 - Ensure you have a valid Anthropic API key set
 - Check that you have access to Claude Code API
 
 **Tests failing**
+
 - Verify the `shadcn-dashboard` directory exists and is properly set up
 - Check that the expected files in test cases match the actual codebase structure
 
 **Out of memory errors**
+
 - Reduce `BATCH_SIZE` in `index.ts` to run fewer tests concurrently
 
 ## Caveats & Future Improvements

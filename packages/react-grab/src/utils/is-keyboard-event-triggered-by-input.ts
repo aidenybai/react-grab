@@ -41,9 +41,7 @@ const isCustomElement = (element: HTMLElement): boolean => {
   );
 };
 
-const isReadonlyArray = (
-  value: unknown,
-): value is readonly unknown[] => {
+const isReadonlyArray = (value: unknown): value is readonly unknown[] => {
   return Array.isArray(value);
 };
 

@@ -101,7 +101,10 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           onToggleExpand={props.onToggleExpand}
           onOpen={() => {
             if (props.selectionFilePath) {
-              const openFileUrl = buildOpenFileUrl(props.selectionFilePath, props.selectionLineNumber);
+              const openFileUrl = buildOpenFileUrl(
+                props.selectionFilePath,
+                props.selectionLineNumber,
+              );
               window.open(openFileUrl, "_blank");
             }
           }}

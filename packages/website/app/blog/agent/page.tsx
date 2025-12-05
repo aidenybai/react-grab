@@ -39,7 +39,7 @@ const HighlightedCodeBlock = ({ code, lang }: HighlightedCodeBlockProps) => {
         setDidCopy(true);
         setTimeout(() => setDidCopy(false), 1200);
       })
-      .catch(() => { });
+      .catch(() => {});
   };
 
   return (
@@ -140,8 +140,8 @@ const AgentPage = () => {
               <h3 className="text-lg font-medium text-neutral-200">TL;DR</h3>
               <p>
                 React Grab used to stop at copying context for your coding
-                agent. Now it can directly talk to the agent to edit the code
-                -- all from the browser.
+                agent. Now it can directly talk to the agent to edit the code --
+                all from the browser.
               </p>
             </div>
 
@@ -152,11 +152,31 @@ const AgentPage = () => {
               <ul className="list-disc space-y-2 pl-6">
                 <li>React Grab is still free and open source</li>
                 <li>
-                  It still works with any AI coding tool
-                  (<IconClaude width={12} height={12} className="inline -translate-y-px mx-0.5" />Claude Code,{" "}
-                  <IconCursor width={12} height={12} className="inline -translate-y-px mx-0.5 text-white" />Cursor,{" "}
-                  <IconOpencode width={12} height={12} className="inline -translate-y-px mx-0.5" />Opencode,{" "}
-                  <IconCopilot width={12} height={12} className="inline -translate-y-px mx-0.5 text-white" />Copilot, etc.)
+                  It still works with any AI coding tool (
+                  <IconClaude
+                    width={12}
+                    height={12}
+                    className="inline -translate-y-px mx-0.5"
+                  />
+                  Claude Code,{" "}
+                  <IconCursor
+                    width={12}
+                    height={12}
+                    className="inline -translate-y-px mx-0.5 text-white"
+                  />
+                  Cursor,{" "}
+                  <IconOpencode
+                    width={12}
+                    height={12}
+                    className="inline -translate-y-px mx-0.5"
+                  />
+                  Opencode,{" "}
+                  <IconCopilot
+                    width={12}
+                    height={12}
+                    className="inline -translate-y-px mx-0.5 text-white"
+                  />
+                  Copilot, etc.)
                 </li>
                 <li>
                   The core idea is still &quot;click an element, get real React
@@ -199,7 +219,9 @@ const AgentPage = () => {
               <h3 className="text-lg font-medium text-neutral-200 mt-8">
                 How React Grab started
               </h3>
-              <p>React Grab came from a simple (but very relevant!) annoyance.</p>
+              <p>
+                React Grab came from a simple (but very relevant!) annoyance.
+              </p>
               <p>
                 Coding agents are good at generating code, but bad at guessing
                 what I actually want. The loop looked like this:
@@ -238,8 +260,7 @@ const AgentPage = () => {
                 <Link href="/blog/intro" className="shimmer-text-pink">
                   66% faster
                 </Link>{" "}
-                on average
-                for a set of UI tasks.
+                on average for a set of UI tasks.
                 <sup className="text-neutral-500 text-[10px] ml-0.5">1</sup> The
                 agent did fewer tool calls, read fewer files, and got to the
                 edit sooner, because it no longer had to search.
@@ -264,7 +285,11 @@ const AgentPage = () => {
               </p>
               <p>
                 The browser had the best view of your intent. The agent had the
-                power to edit the code. Why not put the agent <span className="text-neutral-300 font-medium">in the browser</span>?
+                power to edit the code. Why not put the agent{" "}
+                <span className="text-neutral-300 font-medium">
+                  in the browser
+                </span>
+                ?
               </p>
               <p className="text-sm text-neutral-500 mt-2">
                 (Theo{" "}
@@ -306,10 +331,10 @@ const AgentPage = () => {
                 again, and the agent starts working.
               </p>
               <p>
-                React Grab sends the context (file paths, line numbers, component
-                stack, nearby HTML) along with your prompt to the agent. The
-                agent edits your files directly while the label streams back
-                status updates. When it finishes, the label shows
+                React Grab sends the context (file paths, line numbers,
+                component stack, nearby HTML) along with your prompt to the
+                agent. The agent edits your files directly while the label
+                streams back status updates. When it finishes, the label shows
                 &quot;Completed&quot; and your app reloads with the changes.
               </p>
               <p>You never leave the browser. You never touch the clipboard.</p>
@@ -724,15 +749,22 @@ export default function RootLayout({ children }) {
                 an API, you can add a provider.
               </p>
               <p>
-                However, I do not think the long term story is just &quot;wire up
-                whatever you already have.&quot; There is a missing piece: a
+                However, I do not think the long term story is just &quot;wire
+                up whatever you already have.&quot; There is a missing piece: a
                 coding agent designed specifically for UI work, built around the
                 way React Grab represents context.
               </p>
               <p>
                 Soon, we{"'"}ll be releasing{" "}
-                <a href="https://ami.dev" target="_blank" rel="noopener noreferrer" className="text-neutral-300 font-medium underline underline-offset-4 hover:text-white">Ami</a>.
-                <sup className="text-neutral-500 text-[10px] ml-0.5">3</sup>
+                <a
+                  href="https://ami.dev"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-neutral-300 font-medium underline underline-offset-4 hover:text-white"
+                >
+                  Ami
+                </a>
+                .<sup className="text-neutral-500 text-[10px] ml-0.5">3</sup>
               </p>
               <p>
                 The idea is that React Grab handles the UI side: selections,
@@ -752,7 +784,9 @@ export default function RootLayout({ children }) {
             </div>
 
             <div className="flex flex-col gap-4 mt-8">
-              <h3 className="text-lg font-medium text-neutral-200">Try it out</h3>
+              <h3 className="text-lg font-medium text-neutral-200">
+                Try it out
+              </h3>
               <p>
                 React Grab is free and open source.{" "}
                 <Link
@@ -769,7 +803,9 @@ export default function RootLayout({ children }) {
             </div>
 
             <div className="flex flex-col gap-4 mt-12 pt-8 border-t border-neutral-800">
-              <h4 className="text-sm font-medium text-neutral-400">Footnotes</h4>
+              <h4 className="text-sm font-medium text-neutral-400">
+                Footnotes
+              </h4>
               <div className="flex flex-col gap-4 text-sm text-neutral-500">
                 <p>
                   <sup className="text-neutral-600 mr-1">1</sup>

@@ -54,7 +54,7 @@ export const BenchmarkDetailedTable = ({
         acc[result.testName][result.type] = result;
         return acc;
       },
-      {}
+      {},
     );
     return grouped;
   }, [results]);
@@ -66,7 +66,7 @@ export const BenchmarkDetailedTable = ({
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       entries = entries.filter(([testName]) =>
-        testName.toLowerCase().includes(query)
+        testName.toLowerCase().includes(query),
       );
     }
 
@@ -128,11 +128,10 @@ export const BenchmarkDetailedTable = ({
         <div>
           <h3 className="text-sm font-medium text-neutral-200">Results</h3>
           <p className="text-xs text-neutral-500 mt-1">
-            Performance metrics per test: tokens, cost (USD), duration, and tool calls. React Grab shows % change vs. Control.
+            Performance metrics per test: tokens, cost (USD), duration, and tool
+            calls. React Grab shows % change vs. Control.
             {lastRunDate && (
-              <span className="ml-2">
-                Last run: {lastRunDate}
-              </span>
+              <span className="ml-2">Last run: {lastRunDate}</span>
             )}
           </p>
         </div>
@@ -161,7 +160,11 @@ export const BenchmarkDetailedTable = ({
               >
                 <div className="flex items-center">
                   Test Name
-                  <SortIcon field="testName" sortField={sortField} sortDirection={sortDirection} />
+                  <SortIcon
+                    field="testName"
+                    sortField={sortField}
+                    sortDirection={sortDirection}
+                  />
                 </div>
               </th>
               <th
@@ -171,7 +174,11 @@ export const BenchmarkDetailedTable = ({
               >
                 <div className="flex items-center">
                   Input Tokens
-                  <SortIcon field="inputTokens" sortField={sortField} sortDirection={sortDirection} />
+                  <SortIcon
+                    field="inputTokens"
+                    sortField={sortField}
+                    sortDirection={sortDirection}
+                  />
                 </div>
               </th>
               <th
@@ -181,7 +188,11 @@ export const BenchmarkDetailedTable = ({
               >
                 <div className="flex items-center">
                   Output Tokens
-                  <SortIcon field="outputTokens" sortField={sortField} sortDirection={sortDirection} />
+                  <SortIcon
+                    field="outputTokens"
+                    sortField={sortField}
+                    sortDirection={sortDirection}
+                  />
                 </div>
               </th>
               <th
@@ -191,7 +202,11 @@ export const BenchmarkDetailedTable = ({
               >
                 <div className="flex items-center">
                   Cost
-                  <SortIcon field="cost" sortField={sortField} sortDirection={sortDirection} />
+                  <SortIcon
+                    field="cost"
+                    sortField={sortField}
+                    sortDirection={sortDirection}
+                  />
                 </div>
               </th>
               <th
@@ -201,7 +216,11 @@ export const BenchmarkDetailedTable = ({
               >
                 <div className="flex items-center">
                   Duration
-                  <SortIcon field="duration" sortField={sortField} sortDirection={sortDirection} />
+                  <SortIcon
+                    field="duration"
+                    sortField={sortField}
+                    sortDirection={sortDirection}
+                  />
                 </div>
               </th>
               <th
@@ -211,7 +230,11 @@ export const BenchmarkDetailedTable = ({
               >
                 <div className="flex items-center">
                   Tool Calls
-                  <SortIcon field="toolCalls" sortField={sortField} sortDirection={sortDirection} />
+                  <SortIcon
+                    field="toolCalls"
+                    sortField={sortField}
+                    sortDirection={sortDirection}
+                  />
                 </div>
               </th>
             </tr>
@@ -307,23 +330,23 @@ export const BenchmarkDetailedTable = ({
 
                 const inputChange = calculateChange(
                   control.inputTokens,
-                  treatment.inputTokens
+                  treatment.inputTokens,
                 );
                 const outputChange = calculateChange(
                   control.outputTokens,
-                  treatment.outputTokens
+                  treatment.outputTokens,
                 );
                 const costChange = calculateChange(
                   control.costUsd,
-                  treatment.costUsd
+                  treatment.costUsd,
                 );
                 const durationChange = calculateChange(
                   control.durationMs,
-                  treatment.durationMs
+                  treatment.durationMs,
                 );
                 const toolCallsChange = calculateChange(
                   control.toolCalls,
-                  treatment.toolCalls
+                  treatment.toolCalls,
                 );
 
                 const prompt = testCaseMap[testName] || "";
@@ -346,7 +369,12 @@ export const BenchmarkDetailedTable = ({
                     </td>
                     <td
                       className="py-2 px-3 text-neutral-300 tabular-nums text-xs"
-                      style={{ backgroundColor: inputChange.bgColor !== 'transparent' ? inputChange.bgColor : 'transparent' }}
+                      style={{
+                        backgroundColor:
+                          inputChange.bgColor !== "transparent"
+                            ? inputChange.bgColor
+                            : "transparent",
+                      }}
                     >
                       {treatment.inputTokens
                         ? treatment.inputTokens.toLocaleString()
@@ -364,7 +392,12 @@ export const BenchmarkDetailedTable = ({
                     </td>
                     <td
                       className="py-2 px-3 text-neutral-300 tabular-nums text-xs"
-                      style={{ backgroundColor: outputChange.bgColor !== 'transparent' ? outputChange.bgColor : 'transparent' }}
+                      style={{
+                        backgroundColor:
+                          outputChange.bgColor !== "transparent"
+                            ? outputChange.bgColor
+                            : "transparent",
+                      }}
                     >
                       {treatment.outputTokens
                         ? treatment.outputTokens.toLocaleString()
@@ -382,7 +415,12 @@ export const BenchmarkDetailedTable = ({
                     </td>
                     <td
                       className="py-2 px-3 text-neutral-300 tabular-nums text-xs"
-                      style={{ backgroundColor: costChange.bgColor !== 'transparent' ? costChange.bgColor : 'transparent' }}
+                      style={{
+                        backgroundColor:
+                          costChange.bgColor !== "transparent"
+                            ? costChange.bgColor
+                            : "transparent",
+                      }}
                     >
                       {treatment.costUsd !== undefined
                         ? "$" + treatment.costUsd.toFixed(2)
@@ -394,13 +432,16 @@ export const BenchmarkDetailedTable = ({
                       )}
                     </td>
                     <td className="py-2 px-3 text-neutral-400 tabular-nums text-xs">
-                      {control.durationMs
-                        ? prettyMs(control.durationMs)
-                        : "-"}
+                      {control.durationMs ? prettyMs(control.durationMs) : "-"}
                     </td>
                     <td
                       className="py-2 px-3 text-neutral-300 tabular-nums text-xs"
-                      style={{ backgroundColor: durationChange.bgColor !== 'transparent' ? durationChange.bgColor : 'transparent' }}
+                      style={{
+                        backgroundColor:
+                          durationChange.bgColor !== "transparent"
+                            ? durationChange.bgColor
+                            : "transparent",
+                      }}
                     >
                       {treatment.durationMs
                         ? prettyMs(treatment.durationMs)
@@ -418,7 +459,12 @@ export const BenchmarkDetailedTable = ({
                     </td>
                     <td
                       className="py-2 px-3 text-neutral-300 tabular-nums text-xs"
-                      style={{ backgroundColor: toolCallsChange.bgColor !== 'transparent' ? toolCallsChange.bgColor : 'transparent' }}
+                      style={{
+                        backgroundColor:
+                          toolCallsChange.bgColor !== "transparent"
+                            ? toolCallsChange.bgColor
+                            : "transparent",
+                      }}
                     >
                       {treatment.toolCalls !== undefined
                         ? treatment.toolCalls

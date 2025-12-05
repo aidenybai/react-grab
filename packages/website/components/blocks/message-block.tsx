@@ -11,7 +11,11 @@ interface MessageBlockProps {
 export const MessageBlock = ({ block, animationDelay }: MessageBlockProps) => {
   return (
     <div className="text-white">
-      <StreamingText content={block.content} chunks={block.chunks || []} animationDelay={animationDelay} />
+      <StreamingText
+        content={block.content}
+        chunks={block.chunks || []}
+        animationDelay={animationDelay}
+      />
     </div>
   );
 };

@@ -218,7 +218,11 @@ const ExampleTestPage = () => {
         <h1 className="text-white text-2xl font-bold mb-2 pl-8">My Todos</h1>
         <p className="text-zinc-400 text-sm mb-8 pl-2">Track your tasks</p>
 
-        <TodoInput value={inputValue} onChange={setInputValue} onAdd={addTodo} />
+        <TodoInput
+          value={inputValue}
+          onChange={setInputValue}
+          onAdd={addTodo}
+        />
 
         <div className="space-y-3 px-4">
           {todos.map((todo) => (

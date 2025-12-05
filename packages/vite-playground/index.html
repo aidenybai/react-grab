@@ -1,24 +1,26 @@
 <!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script type="module">
+      if (import.meta.env.DEV) {
+        import("react-grab")
+          .then(() => console.log("[React Grab] Loaded"))
+          .catch((e) => console.error("[React Grab] Failed to load:", e));
+        import("@react-grab/opencode/client")
+          .then(() => console.log("[Opencode Client] Loaded"))
+          .catch((e) => console.error("[Opencode Client] Failed to load:", e));
+      }
+    </script>
 
-<head>
-  <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-  <script type="module">
-    if (import.meta.env.DEV) {
-      import("react-grab").then(() => console.log("[React Grab] Loaded")).catch(e => console.error("[React Grab] Failed to load:", e));
-      import("@react-grab/opencode/client").then(() => console.log("[Opencode Client] Loaded")).catch(e => console.error("[Opencode Client] Failed to load:", e));
-    }
-  </script>
+    <title>Kitchen Sink - Vite</title>
+  </head>
 
-  <title>Kitchen Sink - Vite</title>
-</head>
-
-<body>
-  <div id="root"></div>
-  <script type="module" src="/src/main.tsx"></script>
-</body>
-
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>

@@ -28,7 +28,10 @@ export const SelectionCursor: Component<SelectionCursorProps> = (props) => {
     setDebouncedVisible(false);
 
     if (isVisible) {
-      const timeout = setTimeout(() => setDebouncedVisible(true), SELECTION_CURSOR_SETTLE_DELAY_MS);
+      const timeout = setTimeout(
+        () => setDebouncedVisible(true),
+        SELECTION_CURSOR_SETTLE_DELAY_MS,
+      );
       onCleanup(() => clearTimeout(timeout));
     }
   });
@@ -61,7 +64,9 @@ export const SelectionCursor: Component<SelectionCursorProps> = (props) => {
         <button
           class={cn(
             "absolute left-0 top-0 -translate-x-1/2 -translate-y-1/2 bg-grab-pink cursor-pointer rounded-full transition-[width,height] duration-150",
-            isHovered() ? "w-1 h-5.5 brightness-125" : "w-0.5 h-5 animate-pulse"
+            isHovered()
+              ? "w-1 h-5.5 brightness-125"
+              : "w-0.5 h-5 animate-pulse",
           )}
           onClick={handleClick}
           data-react-grab-selection-cursor

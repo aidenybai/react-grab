@@ -20,13 +20,15 @@ export const CodeBlock = ({ block }: CodeBlockProps) => {
       if (typeof block.content === "string") {
         const code = block.content;
         const lang = block.metadata?.lang || "typescript";
-        const changedLines = block.metadata?.changedLines as number[] | undefined;
+        const changedLines = block.metadata?.changedLines as
+          | number[]
+          | undefined;
 
         const html = await highlightCode({
           code,
           lang: lang as string,
           showLineNumbers: false,
-          changedLines
+          changedLines,
         });
         setHighlightedCode(html);
 
@@ -51,7 +53,10 @@ export const CodeBlock = ({ block }: CodeBlockProps) => {
             />
           ) : (
             <pre className="text-[#d4d4d4]">
-              <StreamingText content={block.content} chunks={block.chunks || []} />
+              <StreamingText
+                content={block.content}
+                chunks={block.chunks || []}
+              />
             </pre>
           )}
         </div>

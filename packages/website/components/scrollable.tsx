@@ -32,7 +32,7 @@ export const Scrollable = ({
         const scrollRatio = element.clientHeight / element.scrollHeight;
         const newScrollbarHeight = Math.max(
           element.clientHeight * scrollRatio,
-          20
+          20,
         );
         setScrollbarHeight(newScrollbarHeight);
 
@@ -92,9 +92,7 @@ export const Scrollable = ({
       >
         {children}
       </div>
-      <div
-        className="absolute bottom-0 left-0 right-0 h-8 pointer-events-none bg-linear-to-t from-black/50 to-transparent"
-      />
+      <div className="absolute bottom-0 left-0 right-0 h-8 pointer-events-none bg-linear-to-t from-black/50 to-transparent" />
       {showScrollbar && (
         <div
           className={`absolute right-0 top-0 w-1 transition-opacity duration-200 ${

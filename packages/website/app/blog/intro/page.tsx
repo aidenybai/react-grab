@@ -17,25 +17,25 @@ import demoGif from "@/public/demo.gif";
 const BenchmarkCharts = dynamic(
   () =>
     import("@/components/benchmarks/benchmark-charts").then(
-      (mod) => mod.BenchmarkCharts
+      (mod) => mod.BenchmarkCharts,
     ),
-  { ssr: false }
+  { ssr: false },
 );
 
 const BenchmarkChartsTweet = dynamic(
   () =>
     import("@/components/benchmarks/benchmark-charts").then(
-      (mod) => mod.BenchmarkChartsTweet
+      (mod) => mod.BenchmarkChartsTweet,
     ),
-  { ssr: false }
+  { ssr: false },
 );
 
 const BenchmarkDetailedTable = dynamic(
   () =>
     import("@/components/benchmarks/benchmark-detailed-table").then(
-      (mod) => mod.BenchmarkDetailedTable
+      (mod) => mod.BenchmarkDetailedTable,
     ),
-  { ssr: false }
+  { ssr: false },
 );
 
 const StaticCodeBlock = ({ children }: { children: React.ReactNode }) => (
@@ -104,11 +104,7 @@ const BlogPostPage = () => {
           </div>
 
           <Collapsible
-            header={
-              <span className="text-sm font-medium">
-                TL;DR
-              </span>
-            }
+            header={<span className="text-sm font-medium">TL;DR</span>}
           >
             <div className="pt-4">
               <BenchmarkChartsTweet
@@ -166,8 +162,7 @@ const BlogPostPage = () => {
                 <span className="text-neutral-300 font-medium">
                   Make the agent better at codebase search
                 </span>{" "}
-                (this is something model/agent
-                PROVIDERS control)
+                (this is something model/agent PROVIDERS control)
               </li>
             </ul>
 
@@ -228,11 +223,13 @@ const BlogPostPage = () => {
               <p>
                 Turns out, React.js exposes the source location for elements on
                 the page.
-                <sup className="text-neutral-500 text-[10px] ml-0.5">1</sup>{" "}
-                React Grab walks up the component tree from the
-                element you clicked, collects each component&apos;s component
-                name and source location (file path + line number), and formats
-                that into a readable stack.
+                <sup className="text-neutral-500 text-[10px] ml-0.5">
+                  1
+                </sup>{" "}
+                React Grab walks up the component tree from the element you
+                clicked, collects each component&apos;s component name and
+                source location (file path + line number), and formats that into
+                a readable stack.
               </p>
               <p>It looks something like this:</p>
               <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden">
@@ -250,7 +247,9 @@ const BlogPostPage = () => {
                       <span className="text-neutral-500">in </span>
                       <span className="text-[#dcdcaa]">StreamDemo</span>
                       <span className="text-neutral-500"> at </span>
-                      <span className="text-[#9cdcfe]">components/stream-demo.tsx:42:11</span>
+                      <span className="text-[#9cdcfe]">
+                        components/stream-demo.tsx:42:11
+                      </span>
                     </StaticCodeBlock>
                   </div>
                 </div>
@@ -365,13 +364,17 @@ const BlogPostPage = () => {
                       <span className="text-[#4ec9b0]">a</span>
                       <span className="text-[#9cdcfe]"> class</span>
                       <span className="text-neutral-500">=</span>
-                      <span className="text-[#ce9178]">&quot;ml-auto inline-block text-...&quot;</span>
+                      <span className="text-[#ce9178]">
+                        &quot;ml-auto inline-block text-...&quot;
+                      </span>
                       <span className="text-[#9cdcfe]"> href</span>
                       <span className="text-neutral-500">=</span>
                       <span className="text-[#ce9178]">&quot;#&quot;</span>
                       <span className="text-neutral-500">&gt;</span>
                       {"\n  "}
-                      <span className="text-[#ce9178]">Forgot your password?</span>
+                      <span className="text-[#ce9178]">
+                        Forgot your password?
+                      </span>
                       {"\n"}
                       <span className="text-neutral-500">&lt;/</span>
                       <span className="text-[#4ec9b0]">a</span>
@@ -380,7 +383,9 @@ const BlogPostPage = () => {
                       <span className="text-neutral-500">in </span>
                       <span className="text-[#dcdcaa]">LoginForm</span>
                       <span className="text-neutral-500"> at </span>
-                      <span className="text-[#9cdcfe]">components/login-form.tsx:46:19</span>
+                      <span className="text-[#9cdcfe]">
+                        components/login-form.tsx:46:19
+                      </span>
                     </StaticCodeBlock>
                   </div>
                 </div>
@@ -422,8 +427,7 @@ const BlogPostPage = () => {
             <span className="font-medium text-neutral-300">
               66% faster with React Grab
             </span>
-            !
-            <sup className="text-neutral-500 text-[10px] ml-0.5">3</sup>
+            !<sup className="text-neutral-500 text-[10px] ml-0.5">3</sup>
           </p>
         </div>
       </div>
@@ -493,9 +497,9 @@ const BlogPostPage = () => {
             <p>
               React Grab works with{" "}
               <span className="font-medium text-neutral-300">any</span> IDE or
-              coding tool: Cursor, Claude Code, Copilot, Codex, Zed, Windsurf, you name it.
-              At its core, it just adds extra context to your prompt that helps
-              the agent locate the right code faster.
+              coding tool: Cursor, Claude Code, Copilot, Codex, Zed, Windsurf,
+              you name it. At its core, it just adds extra context to your
+              prompt that helps the agent locate the right code faster.
             </p>
             <p>
               We&apos;re finally moves things a bit closer to narrowing the
@@ -576,11 +580,24 @@ const BlogPostPage = () => {
             <div className="flex flex-col gap-4 text-sm text-neutral-500">
               <p>
                 <sup className="text-neutral-600 mr-1">1</sup>
-                This only works in development mode. React strips source locations in production builds for performance and bundle size. React Grab detects this and falls back to just showing the component names without file paths. The component tree is still useful for understanding structure, but you lose the direct file references. This only works in production if you have source maps enabled.
+                This only works in development mode. React strips source
+                locations in production builds for performance and bundle size.
+                React Grab detects this and falls back to just showing the
+                component names without file paths. The component tree is still
+                useful for understanding structure, but you lose the direct file
+                references. This only works in production if you have source
+                maps enabled.
               </p>
               <p>
                 <sup className="text-neutral-600 mr-1">2</sup>
-                Single trial per test case is a limitation. Agents are non-deterministic, so results can vary significantly between runs. Ideally we&apos;d run each test 5-10 times and report confidence intervals. The 66% speedup is directionally correct but treat the exact number with appropriate skepticism. Future benchmarks will include multiple trials. I&apos;m very open to fixing issues with the benchmarks. If you spot anything off, please{" "}
+                Single trial per test case is a limitation. Agents are
+                non-deterministic, so results can vary significantly between
+                runs. Ideally we&apos;d run each test 5-10 times and report
+                confidence intervals. The 66% speedup is directionally correct
+                but treat the exact number with appropriate skepticism. Future
+                benchmarks will include multiple trials. I&apos;m very open to
+                fixing issues with the benchmarks. If you spot anything off,
+                please{" "}
                 <a
                   href="mailto:aiden@million.dev"
                   className="text-neutral-400 hover:text-white underline underline-offset-4"
@@ -600,7 +617,12 @@ const BlogPostPage = () => {
               </p>
               <p>
                 <sup className="text-neutral-600 mr-1">3</sup>
-                This is median speedup across all 20 test cases. Some tasks showed 80%+ improvement (simple element lookups), others showed minimal gains (complex multi-file changes where search wasn&apos;t the bottleneck). The variance is high. Your mileage will vary depending on codebase size, component nesting depth, and how descriptive your component names are.
+                This is median speedup across all 20 test cases. Some tasks
+                showed 80%+ improvement (simple element lookups), others showed
+                minimal gains (complex multi-file changes where search
+                wasn&apos;t the bottleneck). The variance is high. Your mileage
+                will vary depending on codebase size, component nesting depth,
+                and how descriptive your component names are.
               </p>
             </div>
           </div>

@@ -9,7 +9,10 @@ const parseMatrixValue = (value: string): number | null => {
   return isValidNumber(parsedValue) ? parsedValue : null;
 };
 
-const parseMatrixValues = (valuesString: string, expectedLength: number): number[] | null => {
+const parseMatrixValues = (
+  valuesString: string,
+  expectedLength: number,
+): number[] | null => {
   const rawValues = valuesString.split(",");
 
   if (rawValues.length !== expectedLength) {
@@ -28,13 +31,26 @@ const parseMatrixValues = (valuesString: string, expectedLength: number): number
   return parsedValues;
 };
 
-const isIdentityMatrix2d = (a: number, b: number, c: number, d: number): boolean =>
-  a === 1 && b === 0 && c === 0 && d === 1;
+const isIdentityMatrix2d = (
+  a: number,
+  b: number,
+  c: number,
+  d: number,
+): boolean => a === 1 && b === 0 && c === 0 && d === 1;
 
 const isIdentityMatrix3d = (values: number[]): boolean =>
-  values[0] === 1 && values[1] === 0 && values[2] === 0 && values[3] === 0 &&
-  values[4] === 0 && values[5] === 1 && values[6] === 0 && values[7] === 0 &&
-  values[8] === 0 && values[9] === 0 && values[10] === 1 && values[11] === 0 &&
+  values[0] === 1 &&
+  values[1] === 0 &&
+  values[2] === 0 &&
+  values[3] === 0 &&
+  values[4] === 0 &&
+  values[5] === 1 &&
+  values[6] === 0 &&
+  values[7] === 0 &&
+  values[8] === 0 &&
+  values[9] === 0 &&
+  values[10] === 1 &&
+  values[11] === 0 &&
   values[15] === 1;
 
 /**

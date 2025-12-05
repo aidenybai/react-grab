@@ -31,21 +31,34 @@ const mergeThemeWithBase = (
   hue: partialTheme.hue ?? baseTheme.hue,
   selectionBox: {
     enabled: partialTheme.selectionBox?.enabled ?? baseTheme.selectionBox.enabled,
+    color: partialTheme.selectionBox?.color ?? baseTheme.selectionBox.color,
+    borderRadius: partialTheme.selectionBox?.borderRadius ?? baseTheme.selectionBox.borderRadius,
   },
   dragBox: {
     enabled: partialTheme.dragBox?.enabled ?? baseTheme.dragBox.enabled,
   },
   grabbedBoxes: {
     enabled: partialTheme.grabbedBoxes?.enabled ?? baseTheme.grabbedBoxes.enabled,
+    color: partialTheme.grabbedBoxes?.color ?? baseTheme.grabbedBoxes.color,
   },
   elementLabel: {
     enabled: partialTheme.elementLabel?.enabled ?? baseTheme.elementLabel.enabled,
+    backgroundColor: partialTheme.elementLabel?.backgroundColor ?? baseTheme.elementLabel.backgroundColor,
+    textColor: partialTheme.elementLabel?.textColor ?? baseTheme.elementLabel.textColor,
+    borderColor: partialTheme.elementLabel?.borderColor ?? baseTheme.elementLabel.borderColor,
+    padding: partialTheme.elementLabel?.padding ?? baseTheme.elementLabel.padding,
+    cursorOffset: partialTheme.elementLabel?.cursorOffset ?? baseTheme.elementLabel.cursorOffset,
   },
   successLabels: {
-    enabled: partialTheme.successLabels?.enabled ?? baseTheme.successLabels.enabled,
+    enabled:
+      partialTheme.successLabels?.enabled ?? baseTheme.successLabels.enabled,
   },
   crosshair: {
     enabled: partialTheme.crosshair?.enabled ?? baseTheme.crosshair.enabled,
+    color: partialTheme.crosshair?.color ?? baseTheme.crosshair.color,
+  },
+  inputOverlay: {
+    enabled: partialTheme.inputOverlay?.enabled ?? baseTheme.inputOverlay.enabled,
   },
 });
 
