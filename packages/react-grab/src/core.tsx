@@ -1615,6 +1615,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const didHandle = handlePointerDown(event.clientX, event.clientY);
         if (didHandle) {
           event.preventDefault();
+          event.stopPropagation();
         }
       },
       { signal: eventListenerSignal, capture: true },
