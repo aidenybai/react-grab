@@ -63,7 +63,7 @@ export const isTargetKeyCombination = (
     }
 
     const keyMatches =
-      event.key.toLowerCase() === key.toLowerCase() ||
+      event.key?.toLowerCase() === key.toLowerCase() ||
       keyMatchesCode(key, event.code);
     const hasModifier = metaKey || ctrlKey || shiftKey || altKey;
     const modifiersMatch = hasModifier

@@ -1059,9 +1059,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const activateRenderer = () => {
       stopProgressAnimation();
       previouslyFocusedElement = document.activeElement;
-      if (previouslyFocusedElement instanceof HTMLElement) {
-        previouslyFocusedElement.blur();
-      }
       activationTimestamp = Date.now();
       setIsActivated(true);
       options.onActivate?.();
@@ -1393,17 +1390,23 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const blockEnterIfNeeded = (event: KeyboardEvent) => {
       const isEnterKey = event.key === "Enter" || event.code === "Enter";
-      const isOverlayActive = isActivated() || isHoldingKeys();
-      const shouldBlockEnter = isEnterKey && isOverlayActive && !isInputMode();
+      if (!isEnterKey) return false;
+      if (isInputMode()) return false;
 
-      if (shouldBlockEnter) {
+      const overlayExists = document.querySelector("[data-react-grab]") !== null;
+      const isReactGrabActive =
+        isActivated() ||
+        isHoldingKeys() ||
+        isToggleMode() ||
+        isToggleFrozen() ||
+        isInputExpanded() ||
+        isCopying() ||
+        overlayExists;
+
+      if (isReactGrabActive) {
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation();
-        const activeElement = document.activeElement;
-        if (activeElement instanceof HTMLElement) {
-          activeElement.blur();
-        }
         return true;
       }
       return false;
@@ -1485,7 +1488,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        if (event.key.toLowerCase() === "o" && !isInputMode()) {
+        if (event.key?.toLowerCase() === "o" && !isInputMode()) {
           if (isActivated() && (event.metaKey || event.ctrlKey)) {
             const filePath = selectionFilePath();
             const lineNumber = selectionLineNumber();
@@ -1606,7 +1609,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           ? !options.activationShortcut(event)
           : options.activationKey
             ? options.activationKey.key
-              ? event.key.toLowerCase() ===
+              ? event.key?.toLowerCase() ===
                   options.activationKey.key.toLowerCase() ||
                 keyMatchesCode(options.activationKey.key, event.code)
               : false
