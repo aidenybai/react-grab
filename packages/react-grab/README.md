@@ -278,6 +278,48 @@ export default function RootLayout({ children }) {
 }
 ```
 
+## Open in Editor
+
+React Grab can automatically open the source file in your editor after copying an element. This streamlines the workflow - select an element, copy it, and the file opens at the exact line.
+
+```typescript
+import { init } from "react-grab/core";
+
+init({
+  openInEditor: {
+    enabled: true,
+    editor: "auto", // or "vscode", "cursor", "webstorm", "zed", etc.
+  },
+});
+```
+
+### Supported Editors
+
+- `auto` - Automatically detect the running editor (default)
+- `vscode` - Visual Studio Code
+- `cursor` - Cursor
+- `webstorm` - WebStorm
+- `phpstorm` - PhpStorm
+- `idea` - IntelliJ IDEA
+- `zed` - Zed
+- `sublime` - Sublime Text
+- `atom` - Atom
+- `vim` - MacVim
+- `emacs` - Emacs
+
+### Custom URL Scheme
+
+For editors not in the preset list, you can provide a custom URL scheme:
+
+```typescript
+init({
+  openInEditor: {
+    enabled: true,
+    customUrlScheme: "myeditor://open?file={file}&line={line}&column={column}",
+  },
+});
+```
+
 ## Extending React Grab
 
 React Grab provides an public customization API. Check out the [type definitions](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) to see all available options for extending React Grab.
@@ -295,6 +337,12 @@ const api = init({
     elementLabel: {
       enabled: false, // disable element label
     },
+  },
+
+  // Auto open in editor after copying
+  openInEditor: {
+    enabled: true,
+    editor: "cursor", // or "vscode", "auto", etc.
   },
 
   onElementSelect: (element) => {

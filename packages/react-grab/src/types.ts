@@ -2,6 +2,41 @@ export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
 };
 
+/**
+ * Supported editor types for "Open in Editor" feature
+ */
+export type EditorType =
+  | "auto"
+  | "vscode"
+  | "cursor"
+  | "webstorm"
+  | "phpstorm"
+  | "idea"
+  | "zed"
+  | "sublime"
+  | "atom"
+  | "emacs"
+  | "vim";
+
+export interface OpenInEditorOptions {
+  /**
+   * Whether to automatically open the file in editor after copying
+   * @default false
+   */
+  enabled?: boolean;
+  /**
+   * Which editor to use. 'auto' will try to detect the running editor.
+   * @default 'auto'
+   */
+  editor?: EditorType;
+  /**
+   * Custom URL scheme for editors not in the preset list
+   * Use {file}, {line}, {column} as placeholders
+   * Example: "myeditor://open?file={file}&line={line}"
+   */
+  customUrlScheme?: string;
+}
+
 export interface Theme {
   /**
    * Globally toggle the entire overlay
@@ -186,6 +221,10 @@ export interface Options {
   ) => void;
   onCrosshair?: (visible: boolean, context: CrosshairContext) => void;
   onOpenFile?: (filePath: string, lineNumber?: number) => void;
+  /**
+   * Options for automatically opening the file in editor after copying
+   */
+  openInEditor?: OpenInEditorOptions;
   agent?: AgentOptions;
 }
 

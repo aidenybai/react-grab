@@ -25,6 +25,8 @@ export type {
   AgentProvider,
   AgentSessionStorage,
   AgentOptions,
+  EditorType,
+  OpenInEditorOptions,
 } from "./types.js";
 
 import { init } from "./core.js";

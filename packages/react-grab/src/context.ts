@@ -137,6 +137,31 @@ export const getElementContext = async (
   return `${html}${stackContext.join("")}`;
 };
 
+export interface FileLocation {
+  filePath: string;
+  lineNumber?: number;
+  columnNumber?: number;
+}
+
+export const getFileLocation = async (
+  element: Element,
+): Promise<FileLocation | null> => {
+  const stack = await getStack(element);
+  if (!stack) return null;
+
+  for (const frame of stack) {
+    if (frame.fileName && isSourceFile(frame.fileName)) {
+      return {
+        filePath: normalizeFileName(frame.fileName),
+        lineNumber: frame.lineNumber,
+        columnNumber: frame.columnNumber,
+      };
+    }
+  }
+
+  return null;
+};
+
 export const getHTMLPreview = (element: Element): string => {
   const tagName = element.tagName.toLowerCase();
   if (!(element instanceof HTMLElement)) {

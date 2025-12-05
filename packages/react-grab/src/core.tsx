@@ -18,7 +18,9 @@ import {
   getStack,
   getElementContext,
   getNearestComponentName,
+  getFileLocation,
 } from "./context.js";
+import { openInEditor } from "./utils/open-in-editor.js";
 import { isSourceFile, normalizeFileName } from "bippy/source";
 import { copyContent } from "./utils/copy-content.js";
 import { getElementAtPosition } from "./utils/get-element-at-position.js";
@@ -541,6 +543,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         if (didCopy) {
           options.onCopySuccess?.(elements, copiedContent);
+
+          // Auto open in editor if enabled
+          if (options.openInEditor?.enabled && elements.length > 0) {
+            const fileLocation = await getFileLocation(elements[0]);
+            if (fileLocation) {
+              openInEditor(fileLocation.filePath, {
+                ...options.openInEditor,
+                lineNumber: fileLocation.lineNumber,
+                column: fileLocation.columnNumber,
+              });
+            }
+          }
         }
       } catch (error) {
         options.onCopyError?.(error as Error);
