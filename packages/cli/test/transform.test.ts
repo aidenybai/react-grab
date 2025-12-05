@@ -554,7 +554,7 @@ describe("previewPackageJsonTransform", () => {
       {
         name: "my-app",
         scripts: {
-          dev: "npx @react-grab/codex@latest && next dev",
+          dev: "npx @react-grab/claude-code@latest && next dev",
         },
       },
       null,
@@ -564,7 +564,7 @@ describe("previewPackageJsonTransform", () => {
     mockExistsSync.mockReturnValue(true);
     mockReadFileSync.mockReturnValue(packageJsonWithAgent);
 
-    const result = previewPackageJsonTransform("/test", "cursor", ["codex"]);
+    const result = previewPackageJsonTransform("/test", "cursor", ["claude-code"]);
 
     expect(result.success).toBe(true);
     expect(result.noChanges).toBe(true);
