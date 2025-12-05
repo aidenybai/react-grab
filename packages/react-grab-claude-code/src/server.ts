@@ -107,7 +107,7 @@ export const startServer = async (port: number = DEFAULT_PORT) => {
 
   const app = createServer();
   serve({ fetch: app.fetch, port });
-  console.log(`${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`);
+  console.log(`${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim("(Claude Code)")}`);
   console.log(`- Local:    ${pc.cyan(`http://localhost:${port}`)}`);
 };
 

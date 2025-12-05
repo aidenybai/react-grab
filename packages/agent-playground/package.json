@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node ../react-grab-claude-code/dist/cli.js && VITE_PROVIDER=claude vite",
-    "dev:claude": "VITE_PROVIDER=claude node ../react-grab-claude-code/dist/cli.js && vite",
+    "dev": "vite",
+    "dev:claude": "node ../react-grab-claude-code/dist/cli.js && VITE_PROVIDER=claude vite",
     "dev:cursor": "node ../react-grab-cursor/dist/cli.js && VITE_PROVIDER=cursor vite",
     "dev:opencode": "node ../react-grab-opencode/dist/cli.js && VITE_PROVIDER=opencode vite",
     "dev:ami": "VITE_PROVIDER=ami vite"
