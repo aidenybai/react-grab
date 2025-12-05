@@ -130,3 +130,107 @@ body {
 .animate-fill-bar {
   animation: fill-bar linear forwards;
 }
+
+@keyframes rainbow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes rainbow-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.5),
+                0 0 40px rgba(255, 127, 0, 0.4),
+                0 0 60px rgba(255, 255, 0, 0.3);
+  }
+  16.66% {
+    box-shadow: 0 0 20px rgba(255, 127, 0, 0.5),
+                0 0 40px rgba(255, 255, 0, 0.4),
+                0 0 60px rgba(0, 255, 0, 0.3);
+  }
+  33.33% {
+    box-shadow: 0 0 20px rgba(255, 255, 0, 0.5),
+                0 0 40px rgba(0, 255, 0, 0.4),
+                0 0 60px rgba(0, 255, 127, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.5),
+                0 0 40px rgba(0, 255, 127, 0.4),
+                0 0 60px rgba(0, 127, 255, 0.3);
+  }
+  66.66% {
+    box-shadow: 0 0 20px rgba(0, 255, 127, 0.5),
+                0 0 40px rgba(0, 127, 255, 0.4),
+                0 0 60px rgba(127, 0, 255, 0.3);
+  }
+  83.33% {
+    box-shadow: 0 0 20px rgba(0, 127, 255, 0.5),
+                0 0 40px rgba(127, 0, 255, 0.4),
+                0 0 60px rgba(255, 0, 127, 0.3);
+  }
+}
+
+@keyframes rainbow-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.rainbow-button {
+  background: linear-gradient(
+    90deg,
+    #ff0000 0%,
+    #ff7f00 14.28%,
+    #ffff00 28.56%,
+    #00ff00 42.84%,
+    #007fff 57.12%,
+    #7f00ff 71.4%,
+    #ff0080 85.68%,
+    #ff0000 100%
+  );
+  background-size: 200% 100%;
+  animation: rainbow 3s linear infinite, rainbow-glow 2s ease-in-out infinite, rainbow-pulse 2s ease-in-out infinite;
+  border: 2px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.rainbow-button::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(
+    90deg,
+    #ff0000 0%,
+    #ff7f00 14.28%,
+    #ffff00 28.56%,
+    #00ff00 42.84%,
+    #007fff 57.12%,
+    #7f00ff 71.4%,
+    #ff0080 85.68%,
+    #ff0000 100%
+  );
+  background-size: 200% 100%;
+  animation: rainbow 3s linear infinite;
+  z-index: -1;
+  border-radius: inherit;
+  filter: blur(8px);
+  opacity: 0.7;
+}
+
+.rainbow-button:hover {
+  animation-duration: 1.5s, 1s, 1.5s;
+  transform: scale(1.08);
+}

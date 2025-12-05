@@ -291,9 +291,7 @@ const api = init({
       enabled: false, // disable crosshair
     },
     elementLabel: {
-      // when hovering over an element
-      backgroundColor: "#000000",
-      textColor: "#ffffff",
+      enabled: false, // disable element label
     },
   },
 

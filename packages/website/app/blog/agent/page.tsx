@@ -123,6 +123,16 @@ const AgentPage = () => {
               {" · "}
               <span>December 4, 2025</span>
             </div>
+            <p className="text-sm text-neutral-500 italic">
+              <a
+                href="https://www.youtube.com/watch?v=3CRs8kusyhE"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-neutral-300 underline underline-offset-4"
+              >
+                Prefer a video breakdown?
+              </a>
+            </p>
           </div>
 
           <div className="flex flex-col gap-4 text-neutral-400">

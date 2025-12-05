@@ -2088,7 +2088,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 export {
   getStack,
   getElementContext as formatElementInfo,
-  getFileName,
 } from "./context.js";
 export { isInstrumentationActive } from "bippy";
 export { DEFAULT_THEME } from "./theme.js";
