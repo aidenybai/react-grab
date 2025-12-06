@@ -1852,13 +1852,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             setDidJustDrag(false);
           }
 
-      if (isToggleMode() && !isCopying() && !hadDrag) {
-        if (!isHoldingKeys()) {
-          deactivateRenderer();
-        } else {
-          setIsToggleMode(false);
-        }
-      }
+          if (isToggleMode() && !isCopying()) {
+            if (!isHoldingKeys()) {
+              deactivateRenderer();
+            } else {
+              setIsToggleMode(false);
+            }
+          }
         }
       },
       { signal: eventListenerSignal, capture: true },
