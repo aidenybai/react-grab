@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "npx @react-grab/cursor@latest && next dev",
+    "dev": "next dev",
     "build": "pnpm --filter react-grab build && next build",
     "start": "next start",
     "lint": "eslint"
