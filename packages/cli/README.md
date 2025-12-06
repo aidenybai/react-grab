@@ -38,7 +38,7 @@ npx @react-grab/cli -p pnpm -a claude-code -y
 | `--framework` | `-f` | Framework to configure | `next`, `vite`, `webpack` |
 | `--package-manager` | `-p` | Package manager to use | `npm`, `yarn`, `pnpm`, `bun` |
 | `--router` | `-r` | Next.js router type | `app`, `pages` |
-| `--agent` | `-a` | Agent integration to add | `claude-code`, `cursor`, `opencode`, `none` |
+| `--agent` | `-a` | Agent integration to add | `claude-code`, `cursor`, `codex`, `opencode`, `none` |
 | `--yes` | `-y` | Skip all confirmation prompts | - |
 | `--skip-install` | - | Skip package installation (only modify files) | - |
 | `--help` | `-h` | Show help | - |
@@ -55,6 +55,9 @@ npx @react-grab/cli -y
 
 # Next.js App Router with Cursor agent
 npx @react-grab/cli -f next -r app -a cursor -y
+
+# Next.js App Router with Codex agent
+npx @react-grab/cli -f next -r app -a codex -y
 
 # Vite with Claude Code agent using pnpm
 npx @react-grab/cli -f vite -p pnpm -a claude-code -y
@@ -81,6 +84,7 @@ The CLI can optionally set up agent integrations for:
 
 - **Claude Code** (`-a claude-code`) - Send selected elements to Claude Code
 - **Cursor** (`-a cursor`) - Send selected elements to Cursor
+- **Codex** (`-a codex`) - Send selected elements to Codex
 - **Opencode** (`-a opencode`) - Send selected elements to Opencode
 
 ## Manual Installation

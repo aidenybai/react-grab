@@ -224,6 +224,7 @@ describe("detectInstalledAgents", () => {
         devDependencies: {
           "@react-grab/cursor": "1.0.0",
           "@react-grab/claude-code": "1.0.0",
+          "@react-grab/codex": "1.0.0",
         },
       })
     );
@@ -231,6 +232,7 @@ describe("detectInstalledAgents", () => {
     const agents = detectInstalledAgents("/test");
     expect(agents).toContain("cursor");
     expect(agents).toContain("claude-code");
+    expect(agents).toContain("codex");
     expect(agents).not.toContain("opencode");
   });
 

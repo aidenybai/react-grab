@@ -570,6 +570,54 @@ export default function RootLayout({ children }) {
                 </div>
               </div>
 
+              <h4 className="text-base font-medium text-neutral-300 mt-8">
+                Codex CLI
+              </h4>
+
+              <p className="text-sm font-medium text-neutral-400">
+                Server Setup
+              </p>
+              <p>
+                The server runs on port{" "}
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+                  6567
+                </code>{" "}
+                and bridges React Grab to the Codex CLI. Add to your{" "}
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+                  package.json
+                </code>
+                :
+              </p>
+              <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden">
+                <div className="px-3 py-2">
+                  <HighlightedCodeBlock
+                    lang="json"
+                    code={`{
+  "scripts": {
+    "dev": "npx @react-grab/codex@latest && next dev"
+  }
+}`}
+                  />
+                </div>
+              </div>
+
+              <p className="text-sm font-medium text-neutral-400 mt-4">
+                Client Setup
+              </p>
+              <p>
+                Use the Codex client in your browser code:
+              </p>
+              <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden">
+                <div className="px-3 py-2">
+                  <HighlightedCodeBlock
+                    lang="tsx"
+                    code={`import { attachAgent } from "@react-grab/codex/client";
+
+attachAgent();`}
+                  />
+                </div>
+              </div>
+
               <p className="mt-4">
                 Hold{" "}
                 <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">

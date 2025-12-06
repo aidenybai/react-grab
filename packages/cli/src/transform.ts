@@ -597,6 +597,7 @@ export const transformProject = (
 const AGENT_PREFIXES: Record<string, string> = {
   "claude-code": "npx @react-grab/claude-code@latest &&",
   cursor: "npx @react-grab/cursor@latest &&",
+  codex: "npx @react-grab/codex@latest &&",
   opencode: "npx @react-grab/opencode@latest &&",
 };
 
