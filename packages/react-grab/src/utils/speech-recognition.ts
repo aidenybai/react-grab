@@ -73,7 +73,7 @@ export const useSpeechRecognition = (
       let baseValue: string;
       if (lastInterimText && currentValue.endsWith(lastInterimText)) {
         baseValue = currentValue.slice(0, -lastInterimText.length);
-      } else if (currentValue === lastValueWeSet) {
+      } else if (currentValue === lastValueWeSet && lastInterimText) {
         baseValue = currentValue.slice(0, -lastInterimText.length);
       } else {
         baseValue = currentValue;
