@@ -457,6 +457,15 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     event.stopImmediatePropagation();
   };
 
+  const handleContainerPointerDown = (event: PointerEvent) => {
+    stopPropagation(event);
+    const isEditableInputVisible =
+      isNotProcessing() && props.isInputExpanded && !props.isPendingDismiss;
+    if (isEditableInputVisible && inputRef) {
+      inputRef.focus();
+    }
+  };
+
   const handleSubmit = () => {
     if (props.isInputExpanded && !props.inputValue?.trim()) return;
     speechRecognition.stop();
@@ -465,21 +474,21 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   return (
     <Show when={props.visible !== false && props.selectionBounds}>
-      <div
-        ref={containerRef}
-        data-react-grab-ignore-events
-        class="fixed font-sans antialiased transition-opacity duration-300 ease-out filter-[drop-shadow(0px_0px_4px_#51515180)] select-none"
-        style={{
-          top: `${computedPosition().top}px`,
-          left: `${computedPosition().left}px`,
-          "z-index": "2147483647",
-          "pointer-events": props.isInputExpanded ? "auto" : "none",
-          opacity: props.status === "fading" ? 0 : 1,
-        }}
-        onPointerDown={stopPropagation}
-        onMouseDown={stopPropagation}
-        onClick={stopPropagation}
-      >
+        <div
+          ref={containerRef}
+          data-react-grab-ignore-events
+          class="fixed font-sans antialiased transition-opacity duration-300 ease-out filter-[drop-shadow(0px_0px_4px_#51515180)] select-none"
+          style={{
+            top: `${computedPosition().top}px`,
+            left: `${computedPosition().left}px`,
+            "z-index": "2147483647",
+            "pointer-events": props.isInputExpanded ? "auto" : "none",
+            opacity: props.status === "fading" ? 0 : 1,
+          }}
+          onPointerDown={handleContainerPointerDown}
+          onMouseDown={stopPropagation}
+          onClick={stopPropagation}
+        >
         <Arrow
           position={arrowPosition()}
           leftPx={computedPosition().arrowLeft}
