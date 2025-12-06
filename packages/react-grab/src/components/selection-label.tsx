@@ -620,7 +620,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 </Show>
               </div>
               <div
-                class="grid transition-[grid-template-rows] duration-30 ease-out"
+                class="grid transition-[grid-template-rows] duration-30 ease-out self-stretch"
                 style={{
                   "grid-template-rows": isIdle() ? "1fr" : "0fr",
                 }}
