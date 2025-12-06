@@ -286,6 +286,8 @@ React Grab provides an public customization API. Check out the [type definitions
 import { init } from "react-grab/core";
 
 const api = init({
+  voiceMode: true, // auto-start speech recognition when input expands
+
   theme: {
     enabled: true, // disable all UI by setting to false
     hue: 180, // shift colors by 180 degrees (pink → cyan/turquoise)

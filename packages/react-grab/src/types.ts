@@ -188,6 +188,7 @@ export interface Options {
   onCrosshair?: (visible: boolean, context: CrosshairContext) => void;
   onOpenFile?: (filePath: string, lineNumber?: number) => void;
   agent?: AgentOptions;
+  voiceMode?: boolean;
 }
 
 export interface ReactGrabAPI {
@@ -268,6 +269,7 @@ export interface ReactGrabRendererProps {
   onNativeSelectionCopy?: () => void;
   onNativeSelectionEnter?: () => void;
   theme?: Required<Theme>;
+  voiceMode?: boolean;
 }
 
 export interface GrabbedBox {

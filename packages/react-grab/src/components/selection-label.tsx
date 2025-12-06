@@ -38,6 +38,7 @@ interface SelectionLabelProps {
   isPendingDismiss?: boolean;
   onConfirmDismiss?: () => void;
   onCancelDismiss?: () => void;
+  voiceMode?: boolean;
 }
 
 interface TagBadgeProps {
@@ -368,6 +369,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     if (props.isInputExpanded && inputRef) {
       setTimeout(() => {
         inputRef?.focus();
+        // Auto-start voice recognition when in voiceMode
+        if (props.voiceMode && speechRecognition.isSupported()) {
+          speechRecognition.start();
+        }
       }, 0);
     } else {
       speechRecognition.stop();

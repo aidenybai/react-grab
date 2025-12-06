@@ -2173,6 +2173,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onNativeSelectionCopy={() => void handleNativeSelectionCopy()}
             onNativeSelectionEnter={handleNativeSelectionEnter}
             theme={theme()}
+            voiceMode={options.voiceMode}
           />
         ),
         rendererRoot,
