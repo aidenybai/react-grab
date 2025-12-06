@@ -2078,6 +2078,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
     });
 
+    const computedGrabbedBoxes = createMemo(() => {
+      viewportVersion();
+      return grabbedBoxes().map((box) => {
+        if (!box.element || !document.body.contains(box.element)) {
+          return box;
+        }
+        return {
+          ...box,
+          bounds: createElementBounds(box.element),
+        };
+      });
+    });
+
     const dragVisible = createMemo(
       () =>
         theme().dragBox.enabled &&
@@ -2133,7 +2146,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             labelInstances={computedLabelInstances()}
             dragVisible={dragVisible()}
             dragBounds={dragBounds()}
-            grabbedBoxes={shouldShowGrabbedBoxes() ? grabbedBoxes() : []}
+            grabbedBoxes={shouldShowGrabbedBoxes() ? computedGrabbedBoxes() : []}
             labelZIndex={Z_INDEX_LABEL}
             mouseX={cursorPosition().x}
             mouseY={cursorPosition().y}
