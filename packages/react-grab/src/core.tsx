@@ -1440,7 +1440,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         : event.key;
       const isEnterKey = originalKey === "Enter" || isEnterCode(event.code);
       const isOverlayActive = isActivated() || isHoldingKeys();
-      const shouldBlockEnter = isEnterKey && isOverlayActive && !isInputMode();
+      const shouldBlockEnter =
+        isEnterKey && isOverlayActive && !isInputMode() && !isToggleMode();
 
       if (shouldBlockEnter) {
         claimedEvents.add(event);
