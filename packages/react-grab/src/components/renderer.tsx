@@ -11,13 +11,14 @@ import { SelectionLabel } from "./selection-label.js";
 declare const __PROJECT_ROOT__: string | undefined;
 declare const __PREFERRED_EDITOR__: string | undefined;
 
-// Editor URL schemes for common frontend editors
+// Editor URL schemes for common editors
 const EDITOR_URL_SCHEMES: Record<string, string> = {
   vscode: "vscode://file{file}:{line}:{column}",
   cursor: "cursor://file{file}:{line}:{column}",
   windsurf: "windsurf://file{file}:{line}:{column}",
   trae: "trae://file{file}:{line}:{column}",
   webstorm: "webstorm://open?file={file}&line={line}&column={column}",
+  rider: "rider://open?file={file}&line={line}&column={column}",
   zed: "zed://file{file}:{line}:{column}",
 };
 
