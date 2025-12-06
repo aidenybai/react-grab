@@ -1,5 +1,5 @@
 import net from "node:net";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -10,6 +10,15 @@ import type { AgentContext } from "react-grab/core";
 import { DEFAULT_PORT } from "./constants.js";
 
 const VERSION = process.env.VERSION ?? "0.0.0";
+
+const isGeminiCliInstalled = (): boolean => {
+  try {
+    const result = spawnSync("gemini", ["--version"], { stdio: "pipe" });
+    return result.status === 0;
+  } catch {
+    return false;
+  }
+};
 
 export interface GeminiAgentOptions {
   model?: string;
@@ -102,10 +111,13 @@ const executeGeminiPrompt = (
       }
     });
 
+    let stderrBuffer = "";
+
     geminiProcess.stderr.on("data", (data: Buffer) => {
-      const errorText = data.toString().trim();
-      if (errorText) {
-        console.error("[gemini stderr]", errorText);
+      const errorText = data.toString();
+      stderrBuffer += errorText;
+      if (errorText.trim()) {
+        console.error("[gemini stderr]", errorText.trim());
       }
     });
 
@@ -117,7 +129,11 @@ const executeGeminiPrompt = (
       } else if (code === 0) {
         resolve();
       } else {
-        reject(new Error(`Gemini CLI exited with code ${code}`));
+        const errorDetail = stderrBuffer.trim();
+        const message = errorDetail
+          ? `Gemini CLI error: ${errorDetail}`
+          : `Gemini CLI exited with code ${code}`;
+        reject(new Error(message));
       }
     });
 
@@ -207,6 +223,14 @@ export const startServer = async (
   port: number = DEFAULT_PORT,
 ): Promise<boolean> => {
   if (await isPortInUse(port)) {
+    return false;
+  }
+
+  if (!isGeminiCliInstalled()) {
+    console.error(
+      `${pc.red("✗")} Gemini CLI not found. Please install it first:`,
+    );
+    console.error(`  ${pc.cyan("npm install -g @google/gemini-cli")}`);
     return false;
   }
 
