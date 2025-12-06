@@ -52,6 +52,10 @@ const executeGeminiPrompt = (
       args.push("--model", options.model);
     }
 
+    if (options?.sandbox) {
+      args.push("--sandbox");
+    }
+
     // Append prompt as positional argument at the end
     args.push(prompt);
 
