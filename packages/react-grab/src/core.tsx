@@ -1363,6 +1363,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             setIsToggleMode(true);
             setIsToggleFrozen(true);
             setIsInputExpanded(true);
+            if (!isActivated()) {
+              activateRenderer();
+            }
             setIsInputMode(true);
           } else {
             void getNearestComponentName(firstElement).then((componentName) => {
