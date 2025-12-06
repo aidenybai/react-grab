@@ -34,22 +34,17 @@
 }
 
 .react-grab-shimmer {
-  position: relative;
-  overflow: hidden;
-}
-
-.react-grab-shimmer::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
   background: linear-gradient(
     90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.4) 50%,
-    transparent 100%
+    #000000 0%,
+    #000000 35%,
+    #888888 50%,
+    #000000 65%,
+    #000000 100%
   );
   background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   animation: shimmer 1.5s ease-in-out infinite;
-  pointer-events: none;
 }

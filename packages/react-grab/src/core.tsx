@@ -1663,7 +1663,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
 
         holdTimerId = window.setTimeout(() => {
-          setIsToggleMode(true);
           activateRenderer();
         }, options.keyHoldDuration);
       },
