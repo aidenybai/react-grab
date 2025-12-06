@@ -76,8 +76,7 @@ async function* streamSSE(
 
         if (eventType === "done") return;
         if (eventType === "error") {
-          console.error("[react-grab]", data || "Agent error");
-          return;
+          throw new Error(data || "Agent error");
         }
         if (data) yield data;
       }

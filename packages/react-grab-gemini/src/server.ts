@@ -36,6 +36,10 @@ const executeGeminiPrompt = async (
   return new Promise((resolve, reject) => {
     const args = ["-p", prompt, "--output-format", "stream-json"];
 
+    if (options?.model) {
+      args.push("--model", options.model);
+    }
+
     if (options?.sandbox === false) {
       args.push("--sandbox", "false");
     }
@@ -197,9 +201,11 @@ const isPortInUse = (port: number): Promise<boolean> =>
     server.listen(port);
   });
 
-export const startServer = async (port: number = DEFAULT_PORT) => {
+export const startServer = async (
+  port: number = DEFAULT_PORT,
+): Promise<boolean> => {
   if (await isPortInUse(port)) {
-    return;
+    return false;
   }
 
   const app = createServer();
@@ -208,6 +214,7 @@ export const startServer = async (port: number = DEFAULT_PORT) => {
     `${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim("(Gemini CLI)")}`,
   );
   console.log(`- Local:    ${pc.cyan(`http://localhost:${port}`)}`);
+  return true;
 };
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
