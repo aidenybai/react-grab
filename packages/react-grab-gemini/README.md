@@ -26,7 +26,7 @@ pnpm add @react-grab/gemini
 npx @react-grab/gemini
 ```
 
-This will start the React Grab bridge server on port 5567.
+This will start the React Grab bridge server on port 5568.
 
 ### 2. Add the client to your app
 
@@ -56,13 +56,13 @@ Once both the server and client are running, React Grab will automatically use G
 
 ### Server URL
 
-By default, the client connects to `http://localhost:5567`. You can customize this:
+By default, the client connects to `http://localhost:5568`. You can customize this:
 
 ```javascript
 import { createGeminiAgentProvider } from "@react-grab/gemini/client";
 
 const provider = createGeminiAgentProvider({
-  serverUrl: "http://localhost:5567",
+  serverUrl: "http://localhost:5568",
 });
 ```
 

@@ -27,7 +27,7 @@ interface GeminiStreamEvent {
   delta?: boolean;
 }
 
-const executeGeminiPrompt = async (
+const executeGeminiPrompt = (
   prompt: string,
   options: GeminiAgentOptions | undefined,
   onStatus: (text: string) => void,
@@ -76,10 +76,12 @@ const executeGeminiPrompt = async (
 
           // Handle different event types from Gemini CLI
           // Format: {"type":"message","role":"assistant","content":"...","delta":true}
-          if (event.type === "message" && event.role === "assistant" && event.content) {
-            onStatus(event.content);
-          } else if (event.type === "text" && event.content) {
-            onStatus(event.content);
+          const textContent = event.content || event.text || event.message;
+
+          if (event.type === "message" && event.role === "assistant" && textContent) {
+            onStatus(textContent);
+          } else if (event.type === "text" && textContent) {
+            onStatus(textContent);
           } else if (event.type === "thinking") {
             onStatus("Thinking...");
           } else if (event.type === "tool_use") {
