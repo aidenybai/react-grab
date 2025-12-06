@@ -43,18 +43,23 @@ const executeGeminiPrompt = (
   signal: AbortSignal,
 ): Promise<void> => {
   return new Promise((resolve, reject) => {
-    const args = ["-p", prompt, "--output-format", "stream-json"];
+    // Build args: use positional prompt (not deprecated -p flag)
+    // --yolo: auto-approve all tool calls (like Claude's bypassPermissions)
+    // --output-format stream-json: for streaming responses
+    const args = ["--output-format", "stream-json", "--yolo"];
 
     if (options?.model) {
       args.push("--model", options.model);
     }
 
-    if (options?.sandbox === false) {
-      args.push("--sandbox", "false");
-    }
+    // Append prompt as positional argument at the end
+    args.push(prompt);
+
+    const cwd = process.cwd();
+    console.log(`[gemini] Executing in: ${cwd}`);
 
     const geminiProcess = spawn("gemini", args, {
-      cwd: process.cwd(),
+      cwd,
       stdio: ["pipe", "pipe", "pipe"],
     });
 
