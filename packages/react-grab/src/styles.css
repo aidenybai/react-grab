@@ -26,10 +26,10 @@
 
 @keyframes text-shimmer {
   from {
-    background-position: 100% center;
+    background-position: 100% center, 0 0;
   }
   to {
-    background-position: -100% center;
+    background-position: -100% center, 0 0;
   }
 }
 
