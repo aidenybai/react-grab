@@ -23,16 +23,3 @@
     transform: rotate(360deg);
   }
 }
-
-@keyframes shiny-text {
-  0% {
-    background-position: -100% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-}
-
-.animate-shiny-text {
-  animation: shiny-text 2s ease-in-out infinite;
-}

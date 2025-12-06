@@ -532,10 +532,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit max-w-[280px]">
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-auto h-fit">
                 <div class="contain-layout flex items-center px-0 py-px w-auto h-fit rounded-[1.5px] gap-[3px]">
-                  <span
-                    class="text-[12px] leading-4 tracking-[-0.04em] font-sans font-medium w-auto h-fit whitespace-normal text-[#a1a1aa] animate-shiny-text bg-[length:var(--shiny-width)_100%] bg-clip-text [background-position:0_0] bg-no-repeat bg-gradient-to-r from-transparent via-black via-50% to-transparent"
-                    style={{ "--shiny-width": "100px" }}
-                  >
+                  <span class="text-[12px] leading-4 tracking-[-0.04em] font-sans font-medium w-auto h-fit whitespace-normal text-[#71717a] animate-pulse">
                     {props.statusText ?? "Grabbing…"}
                   </span>
                 </div>
