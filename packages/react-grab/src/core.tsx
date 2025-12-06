@@ -1474,6 +1474,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const isEnterToActivateInput =
           isEnterCode(event.code) && isHoldingKeys() && !isInputMode();
 
+        if (isEnterCode(event.code)) {
+          console.log('[react-grab] Enter pressed:', {
+            isHoldingKeys: isHoldingKeys(),
+            isInputMode: isInputMode(),
+            isToggleMode: isToggleMode(),
+            isActivated: isActivated(),
+          });
+        }
+
         if (isInputMode() && isTargetKeyCombination(event, options)) {
           event.preventDefault();
           event.stopPropagation();
@@ -1548,6 +1557,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
 
         if (isEnterCode(event.code) && isHoldingKeys() && !isInputMode()) {
+          console.log('[react-grab] Enter while holding - opening input mode');
           event.preventDefault();
           event.stopPropagation();
           event.stopImmediatePropagation();
