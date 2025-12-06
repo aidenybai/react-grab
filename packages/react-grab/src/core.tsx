@@ -1855,7 +1855,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             setDidJustDrag(false);
           }
 
-          if (isToggleMode() && !isCopying()) {
+          if (isToggleMode() && !isCopying() && !isInputMode()) {
             if (!isHoldingKeys()) {
               deactivateRenderer();
             } else {
