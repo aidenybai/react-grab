@@ -1363,9 +1363,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             setIsToggleMode(true);
             setIsToggleFrozen(true);
             setIsInputExpanded(true);
-            if (!isActivated()) {
-              activateRenderer();
-            }
             setIsInputMode(true);
           } else {
             void getNearestComponentName(firstElement).then((componentName) => {
@@ -1718,7 +1715,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         if (isActivated()) {
           if (isReleasingModifier) {
-            if (isToggleMode() || isDragging()) return;
+            if (isToggleMode()) return;
             deactivateRenderer();
           } else if (
             !hasCustomShortcut &&
@@ -1855,13 +1852,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             setDidJustDrag(false);
           }
 
-          if (isToggleMode() && !isCopying() && !isInputMode()) {
-            if (!isHoldingKeys()) {
-              deactivateRenderer();
-            } else {
-              setIsToggleMode(false);
-            }
-          }
+      if (isToggleMode() && !isCopying() && !hadDrag) {
+        if (!isHoldingKeys()) {
+          deactivateRenderer();
+        } else {
+          setIsToggleMode(false);
+        }
+      }
         }
       },
       { signal: eventListenerSignal, capture: true },
