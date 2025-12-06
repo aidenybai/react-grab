@@ -206,6 +206,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     >([]);
     const [lastGrabbedElement, setLastGrabbedElement] =
       createSignal<Element | null>(null);
+    const [lastCopiedElement, setLastCopiedElement] =
+      createSignal<Element | null>(null);
     const [progressStartTime, setProgressStartTime] = createSignal<
       number | null
     >(null);
@@ -458,6 +460,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       await operation().finally(() => {
         setIsCopying(false);
         setDidJustCopy(true);
+        if (element) {
+          setLastCopiedElement(element);
+        }
         stopProgressAnimation();
 
         if (instanceId) {
@@ -1093,6 +1098,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleInputSubmit = () => {
+      setLastCopiedElement(null);
       const element = frozenElement() || targetElement();
       const prompt = isInputMode() ? inputText().trim() : "";
 
@@ -1125,7 +1131,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       setIsInputMode(false);
       setInputText("");
-      elementInputCache.delete(element);
+      if (prompt) {
+        elementInputCache.set(element, prompt);
+      } else {
+        elementInputCache.delete(element);
+      }
 
       const tagName = extractElementTagName(element);
       void getNearestComponentName(element).then((componentName) => {
@@ -1144,6 +1154,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleInputCancel = () => {
+      setLastCopiedElement(null);
       if (!isInputMode()) return;
 
       const currentInput = inputText().trim();
@@ -1485,6 +1496,45 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             deactivateRenderer();
             return;
           }
+        }
+
+        const copiedElement = lastCopiedElement();
+        if (
+          isEnterCode(event.code) &&
+          !isHoldingKeys() &&
+          !isInputMode() &&
+          !isActivated() &&
+          copiedElement &&
+          document.contains(copiedElement)
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+
+          const bounds = createElementBounds(copiedElement);
+          const selectionCenterX = bounds.x + bounds.width / 2;
+          const centerY = bounds.y + bounds.height / 2;
+
+          setMouseX(selectionCenterX);
+          setMouseY(centerY);
+          setCopyStartX(selectionCenterX);
+          setCopyStartY(centerY);
+          setCopyOffsetFromCenterX(0);
+          setFrozenElement(copiedElement);
+          setLastCopiedElement(null);
+          setLabelInstances([]);
+
+          const cachedInput = elementInputCache.get(copiedElement);
+          if (cachedInput) {
+            setInputText(cachedInput);
+          }
+
+          setIsToggleMode(true);
+          setIsToggleFrozen(true);
+          setIsInputExpanded(true);
+          activateRenderer();
+          setIsInputMode(true);
+          return;
         }
 
         if (isEnterCode(event.code) && isHoldingKeys() && !isInputMode()) {
