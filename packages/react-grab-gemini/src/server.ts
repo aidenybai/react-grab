@@ -20,9 +20,11 @@ type GeminiAgentContext = AgentContext<GeminiAgentOptions>;
 
 interface GeminiStreamEvent {
   type: string;
+  role?: string;
   content?: string;
   message?: string;
   text?: string;
+  delta?: boolean;
 }
 
 const executeGeminiPrompt = async (
@@ -69,16 +71,21 @@ const executeGeminiPrompt = async (
           const event = JSON.parse(line) as GeminiStreamEvent;
 
           // Handle different event types from Gemini CLI
-          if (event.type === "text" && event.content) {
+          // Format: {"type":"message","role":"assistant","content":"...","delta":true}
+          if (event.type === "message" && event.role === "assistant" && event.content) {
             onStatus(event.content);
-          } else if (event.type === "message" && event.text) {
-            onStatus(event.text);
+          } else if (event.type === "text" && event.content) {
+            onStatus(event.content);
           } else if (event.type === "thinking") {
             onStatus("Thinking...");
           } else if (event.type === "tool_use") {
             onStatus("Using tool...");
           } else if (event.type === "tool_result") {
             onStatus("Tool completed");
+          } else if (event.type === "init") {
+            // Session initialized, ignore
+          } else if (event.type === "message" && event.role === "user") {
+            // User message echo, ignore
           }
         } catch {
           // If not JSON, treat as plain text status
