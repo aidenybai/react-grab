@@ -36,15 +36,15 @@
 .react-grab-shimmer {
   background: linear-gradient(
     90deg,
-    #000000 0%,
-    #000000 35%,
-    #888888 50%,
-    #000000 65%,
-    #000000 100%
+    #818181 0%,
+    #818181 35%,
+    #ffffff 50%,
+    #818181 65%,
+    #818181 100%
   );
-  background-size: 200% 100%;
+  background-size: 150% 100%;
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: shimmer 1.5s ease-in-out infinite;
+  animation: shimmer 1s ease-in-out infinite;
 }
