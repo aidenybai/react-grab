@@ -24,7 +24,7 @@
   }
 }
 
-@keyframes shimmer {
+@keyframes react-grab-shimmer-anim {
   0% {
     background-position: 200% 0;
   }
@@ -34,17 +34,20 @@
 }
 
 .react-grab-shimmer {
-  background: linear-gradient(
+  color: transparent !important;
+  background-image: linear-gradient(
     90deg,
     #818181 0%,
     #818181 35%,
     #ffffff 50%,
     #818181 65%,
     #818181 100%
-  );
-  background-size: 150% 100%;
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: shimmer 1s ease-in-out infinite;
+  ) !important;
+  background-size: 150% 100% !important;
+  background-position: 200% 0 !important;
+  background-clip: text !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  animation: react-grab-shimmer-anim 1s ease-in-out infinite !important;
+  animation-play-state: running !important;
 }
