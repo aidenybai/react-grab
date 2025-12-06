@@ -1363,6 +1363,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             setIsToggleMode(true);
             setIsToggleFrozen(true);
             setIsInputExpanded(true);
+            if (!isActivated()) {
+              activateRenderer();
+            }
             setIsInputMode(true);
           } else {
             void getNearestComponentName(firstElement).then((componentName) => {
@@ -1474,16 +1477,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const isEnterToActivateInput =
           isEnterCode(event.code) && isHoldingKeys() && !isInputMode();
 
-        if (isEnterCode(event.code)) {
-          console.log('[react-grab] Enter pressed:', {
-            isHoldingKeys: isHoldingKeys(),
-            isInputMode: isInputMode(),
-            isToggleMode: isToggleMode(),
-            isActivated: isActivated(),
-          });
-        }
-
-        if (isInputMode() && isTargetKeyCombination(event, options)) {
+        if (isInputMode() && isTargetKeyCombination(event, options) && !event.repeat) {
           event.preventDefault();
           event.stopPropagation();
           setIsInputMode(false);
@@ -1557,7 +1551,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
 
         if (isEnterCode(event.code) && isHoldingKeys() && !isInputMode()) {
-          console.log('[react-grab] Enter while holding - opening input mode');
           event.preventDefault();
           event.stopPropagation();
           event.stopImmediatePropagation();
@@ -1864,7 +1857,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             setDidJustDrag(false);
           }
 
-          if (isToggleMode() && !isCopying()) {
+          if (isToggleMode() && !isCopying() && !isInputMode()) {
             if (!isHoldingKeys()) {
               deactivateRenderer();
             } else {

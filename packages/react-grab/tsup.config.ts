@@ -18,6 +18,14 @@ const getPackageVersion = (): string =>
 
 const isVercel = Boolean(process.env.VERCEL);
 
+const version =
+  process.env.VERSION ??
+  (isVercel
+    ? getCommitHash()
+    : process.env.NODE_ENV === "production"
+      ? getPackageVersion()
+      : "[DEV]");
+
 const banner = `/**
  * @license MIT
  *
@@ -36,7 +44,7 @@ const DEFAULT_OPTIONS: Options = {
   entry: [],
   env: {
     NODE_ENV: process.env.NODE_ENV ?? "development",
-    VERSION: process.env.VERSION ?? getPackageVersion(),
+    VERSION: version,
   },
   external: [],
   format: [],
@@ -59,8 +67,7 @@ export default defineConfig([
     entry: ["./src/index.ts"],
     env: {
       ...DEFAULT_OPTIONS.env,
-      VERSION:
-        process.env.VERSION ?? (isVercel ? getCommitHash() : getPackageVersion()),
+      VERSION: version,
     },
     format: ["iife"],
     globalName: "ReactGrab",
