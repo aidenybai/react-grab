@@ -13,6 +13,7 @@ import { cn } from "../utils/cn.js";
 import { useSpeechRecognition } from "../utils/speech-recognition.js";
 import { IconOpen } from "./icon-open.js";
 import { IconMic } from "./icon-mic.js";
+import { IconReturn } from "./icon-return.js";
 
 interface SelectionLabelProps {
   tagName?: string;
@@ -188,9 +189,6 @@ const ClickToCopyPill: Component<ClickToCopyPillProps> = (props) => {
   );
 };
 
-const RETURN_KEY_ICON_URL =
-  "https://workers.paper.design/file-assets/01K8D51Q7E2ESJTN18XN2MT96X/01KBEJ7N5GQ0ZZ7K456R42AP4V.svg";
-
 const BOTTOM_SECTION_GRADIENT =
   "linear-gradient(in oklab 180deg, oklab(100% 0 0) 0%, oklab(96.1% 0 0) 5.92%)";
 
@@ -242,23 +240,18 @@ const DismissConfirmation: Component<DismissConfirmationProps> = (props) => {
             class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
             onClick={props.onCancel}
           >
-            <span class="text-black text-[11px] leading-3.5 tracking-[-0.04em] font-sans font-medium opacity-50">
+            <span class="text-black text-[11px] leading-3.5 tracking-[-0.04em] font-sans font-medium">
               No
             </span>
           </button>
           <button
-            class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#FEF2F2] h-[17px]"
+            class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#7e0002] cursor-pointer transition-all hover:bg-[#FEF2F2] h-[17px]"
             onClick={props.onConfirm}
           >
             <span class="text-[#B91C1C] text-[11px] leading-3.5 tracking-[-0.04em] font-sans font-medium">
               Yes
             </span>
-            <div
-              class="w-[10px] h-[9px] shrink-0 bg-cover bg-center opacity-50"
-              style={{
-                "background-image": `url(${RETURN_KEY_ICON_URL})`,
-              }}
-            />
+            <IconReturn size={10} class="text-[#c00002]" />
           </button>
         </div>
       </BottomSection>
@@ -615,12 +608,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                         Press
                       </span>
                       <div class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit">
-                        <div
-                          class="w-2.5 h-[9px] shrink-0 opacity-[0.99] bg-cover bg-center"
-                          style={{
-                            "background-image": `url(${RETURN_KEY_ICON_URL})`,
-                          }}
-                        />
+                        <IconReturn size={10} class="opacity-[0.99] text-black" />
                       </div>
                       <span class="text-label-muted text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
                         to edit
@@ -632,7 +620,13 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             </div>
           </Show>
 
-          <Show when={isNotProcessing() && props.isInputExpanded && !props.isPendingDismiss}>
+          <Show
+            when={
+              isNotProcessing() &&
+              props.isInputExpanded &&
+              !props.isPendingDismiss
+            }
+          >
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit max-w-[280px]">
               <div
                 class={cn(
@@ -735,12 +729,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                         class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit cursor-pointer transition-all hover:scale-105"
                         onClick={handleSubmit}
                       >
-                        <div
-                          class="w-2.5 h-[9px] shrink-0 bg-cover bg-center opacity-[0.99]"
-                          style={{
-                            "background-image": `url(${RETURN_KEY_ICON_URL})`,
-                          }}
-                        />
+                        <IconReturn size={10} class="opacity-[0.99] text-black" />
                       </button>
                     </Show>
                   </div>
