@@ -94,7 +94,8 @@ export const createAgentManager = (
           storage,
         );
         setSessions((prev) => new Map(prev).set(session.id, completedSession));
-        agentOptions?.onComplete?.(completedSession);
+        const element = sessionElements.get(session.id);
+        agentOptions?.onComplete?.(completedSession, element);
       }
     } catch (error) {
       const currentSessions = sessions();
@@ -280,7 +281,7 @@ export const createAgentManager = (
     sessionElements.set(session.id, element);
     setSessions((prev) => new Map(prev).set(session.id, session));
     saveSessionById(session, storage);
-    agentOptions.onStart?.(session);
+    agentOptions.onStart?.(session, element);
 
     const abortController = new AbortController();
     abortControllers.set(session.id, abortController);

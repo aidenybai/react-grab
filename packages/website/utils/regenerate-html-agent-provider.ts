@@ -10,37 +10,6 @@ interface RequestContext {
 
 const DEFAULT_API_ENDPOINT = "/api/regenerate-html";
 
-const findElementByBounds = (session: AgentSession): Element | null => {
-  const { selectionBounds, tagName } = session;
-  if (!selectionBounds || !tagName) return null;
-
-  const candidates = Array.from(document.querySelectorAll(tagName));
-  let bestMatch: Element | null = null;
-  let bestDistance = Infinity;
-
-  const targetCenterX = selectionBounds.x + selectionBounds.width / 2;
-  const targetCenterY = selectionBounds.y + selectionBounds.height / 2;
-
-  for (const candidate of candidates) {
-    const rect = candidate.getBoundingClientRect();
-
-    const widthDiff = Math.abs(rect.width - selectionBounds.width);
-    const heightDiff = Math.abs(rect.height - selectionBounds.height);
-    if (widthDiff > 5 || heightDiff > 5) continue;
-
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const distance = Math.hypot(centerX - targetCenterX, centerY - targetCenterY);
-
-    if (distance < bestDistance) {
-      bestDistance = distance;
-      bestMatch = candidate;
-    }
-  }
-
-  return bestDistance < 50 ? bestMatch : null;
-};
-
 export const createRegenerateHtmlAgentProvider = (
   options: RegenerateHtmlAgentProviderOptions = {},
 ) => {
@@ -53,15 +22,12 @@ export const createRegenerateHtmlAgentProvider = (
     return { requestId };
   };
 
-  const onStart = (session: AgentSession) => {
+  const onStart = (session: AgentSession, element: Element | undefined) => {
     const requestId = (session.context.options as RequestContext | undefined)
       ?.requestId;
-    if (!requestId) return;
+    if (!requestId || !element) return;
 
-    const element = findElementByBounds(session);
-    if (element) {
-      elementHtmlMap.set(requestId, element.outerHTML);
-    }
+    elementHtmlMap.set(requestId, element.outerHTML);
   };
 
   const provider: AgentProvider<RequestContext> = {
@@ -100,7 +66,7 @@ export const createRegenerateHtmlAgentProvider = (
     },
   };
 
-  const onComplete = (session: AgentSession) => {
+  const onComplete = (session: AgentSession, element: Element | undefined) => {
     const requestId = (session.context.options as RequestContext | undefined)
       ?.requestId;
     if (!requestId) return;
@@ -108,7 +74,6 @@ export const createRegenerateHtmlAgentProvider = (
     const html = resultHtmlMap.get(requestId);
     if (!html) return;
 
-    const element = findElementByBounds(session);
     if (!element) {
       console.warn("[react-grab] Could not find element to apply HTML changes");
       elementHtmlMap.delete(requestId);

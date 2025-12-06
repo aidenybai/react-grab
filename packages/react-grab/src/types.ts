@@ -145,9 +145,9 @@ export interface AgentOptions<T = any> {
   provider?: AgentProvider<T>;
   storage?: AgentSessionStorage | null;
   getOptions?: () => T;
-  onStart?: (session: AgentSession) => void;
+  onStart?: (session: AgentSession, element: Element | undefined) => void;
   onStatus?: (status: string, session: AgentSession) => void;
-  onComplete?: (session: AgentSession) => void;
+  onComplete?: (session: AgentSession, element: Element | undefined) => void;
   onError?: (error: Error, session: AgentSession) => void;
   onResume?: (session: AgentSession) => void;
   onAbort?: (session: AgentSession, element: Element | undefined) => void;
