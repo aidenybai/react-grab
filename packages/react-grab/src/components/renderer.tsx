@@ -1,4 +1,4 @@
-import { Show, For, createMemo } from "solid-js";
+import { Show, For, Index, createMemo } from "solid-js";
 import type { Component } from "solid-js";
 import type { ReactGrabRendererProps } from "../types.js";
 import { buildOpenFileUrl } from "../utils/build-open-file-url.js";
@@ -55,33 +55,33 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         )}
       </For>
 
-      <For each={agentSessionsList()}>
+      <Index each={agentSessionsList()}>
         {(session) => (
           <>
-            <Show when={session.selectionBounds}>
+            <Show when={session().selectionBounds}>
               <SelectionBox
                 variant="processing"
-                bounds={session.selectionBounds!}
+                bounds={session().selectionBounds!}
                 visible={true}
-                isCompleted={!session.isStreaming}
+                isCompleted={!session().isStreaming}
               />
             </Show>
             <SelectionLabel
-              tagName={session.tagName}
-              componentName={session.componentName}
-              selectionBounds={session.selectionBounds}
-              mouseX={session.position.x}
+              tagName={session().tagName}
+              componentName={session().componentName}
+              selectionBounds={session().selectionBounds}
+              mouseX={session().position.x}
               visible={true}
               hasAgent={true}
               isAgentConnected={true}
-              status={session.isStreaming ? "copying" : "copied"}
-              statusText={session.lastStatus || "Thinking…"}
-              inputValue={session.context.prompt}
-              onAbort={() => props.onAbortSession?.(session.id)}
+              status={session().isStreaming ? "copying" : "copied"}
+              statusText={session().lastStatus || "Thinking…"}
+              inputValue={session().context.prompt}
+              onAbort={() => props.onAbortSession?.(session().id)}
             />
           </>
         )}
-      </For>
+      </Index>
 
       <Show when={props.selectionLabelVisible && props.selectionBounds}>
         <SelectionLabel
