@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.72
+
+### Patch Changes
+
+- fix: shimmer effect
+
 ## 0.0.71
 
 ### Patch Changes

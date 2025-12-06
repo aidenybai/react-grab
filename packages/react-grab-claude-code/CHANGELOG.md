@@ -1,5 +1,13 @@
 # @react-grab/claude-code
 
+## 0.0.72
+
+### Patch Changes
+
+- fix: shimmer effect
+- Updated dependencies
+  - react-grab@0.0.72
+
 ## 0.0.71
 
 ### Patch Changes
