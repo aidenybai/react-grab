@@ -196,12 +196,75 @@ const BOTTOM_SECTION_GRADIENT =
 
 const BottomSection: Component<BottomSectionProps> = (props) => (
   <div
-    class="[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start px-2 py-[5px] w-auto h-fit self-stretch [border-top-width:0.5px] border-t-solid border-t-[#D9D9D9] antialiased rounded-t-none rounded-b-xs"
+    class="[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start px-2 py-[5px] w-auto h-fit self-stretch [border-top-width:0.5px] border-t-solid border-t-[#D9D9D9] antialiased rounded-t-none rounded-b-xs -mt-px"
     style={{ "background-image": BOTTOM_SECTION_GRADIENT }}
   >
     {props.children}
   </div>
 );
+
+interface DismissConfirmationProps {
+  onConfirm?: () => void;
+  onCancel?: () => void;
+}
+
+const DismissConfirmation: Component<DismissConfirmationProps> = (props) => {
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.code === "Enter") {
+      event.preventDefault();
+      event.stopPropagation();
+      props.onConfirm?.();
+    } else if (event.code === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      props.onCancel?.();
+    }
+  };
+
+  onMount(() => {
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+  });
+
+  onCleanup(() => {
+    window.removeEventListener("keydown", handleKeyDown, { capture: true });
+  });
+
+  return (
+    <div class="contain-layout shrink-0 flex flex-col justify-center items-end gap-1 w-fit h-fit">
+      <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-full h-fit">
+        <span class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
+          Discard prompt?
+        </span>
+      </div>
+      <BottomSection>
+        <div class="contain-layout shrink-0 flex items-center justify-end gap-[5px] w-full h-fit">
+          <button
+            class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
+            onClick={props.onCancel}
+          >
+            <span class="text-black text-[11px] leading-3.5 tracking-[-0.04em] font-sans font-medium opacity-50">
+              No
+            </span>
+          </button>
+          <button
+            class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#FEF2F2] h-[17px]"
+            onClick={props.onConfirm}
+          >
+            <span class="text-[#B91C1C] text-[11px] leading-3.5 tracking-[-0.04em] font-sans font-medium">
+              Yes
+            </span>
+            <div
+              class="w-[10px] h-[9px] shrink-0 bg-cover bg-center opacity-50"
+              style={{
+                "background-image": `url(${RETURN_KEY_ICON_URL})`,
+              }}
+            />
+          </button>
+        </div>
+      </BottomSection>
+    </div>
+  );
+};
 
 export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
@@ -687,33 +750,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           </Show>
 
           <Show when={props.isPendingDismiss}>
-            <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
-              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-fit h-fit">
-                <span class="text-label-muted text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
-                  Discard prompt?
-                </span>
-              </div>
-              <BottomSection>
-                <div class="contain-layout shrink-0 flex items-center justify-end gap-1 w-full h-fit">
-                  <button
-                    class="contain-layout shrink-0 flex items-center justify-center px-1 py-px rounded-xs bg-[#E8E8E8] [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#DCDCDC] h-[15px]"
-                    onClick={props.onConfirmDismiss}
-                  >
-                    <span class="text-black text-[10px] leading-3 tracking-[-0.04em] font-sans font-medium">
-                      Yes
-                    </span>
-                  </button>
-                  <button
-                    class="contain-layout shrink-0 flex items-center justify-center px-1 py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[15px]"
-                    onClick={props.onCancelDismiss}
-                  >
-                    <span class="text-black text-[10px] leading-3 tracking-[-0.04em] font-sans font-medium">
-                      No
-                    </span>
-                  </button>
-                </div>
-              </BottomSection>
-            </div>
+            <DismissConfirmation
+              onConfirm={props.onConfirmDismiss}
+              onCancel={props.onCancelDismiss}
+            />
           </Show>
         </div>
       </div>
