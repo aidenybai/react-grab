@@ -260,7 +260,7 @@ export const createAgentManager = (
     }
 
     const elements = [element];
-    const content = await generateSnippet(elements);
+    const content = await generateSnippet(elements, { maxLines: Infinity });
     const context: AgentContext = {
       content,
       prompt,
