@@ -1,4 +1,4 @@
-import { Show, For } from "solid-js";
+import { Show, For, createMemo } from "solid-js";
 import type { Component } from "solid-js";
 import type { ReactGrabRendererProps } from "../types.js";
 import { buildOpenFileUrl } from "../utils/build-open-file-url.js";
@@ -8,6 +8,10 @@ import { SelectionCursor } from "./selection-cursor.js";
 import { SelectionLabel } from "./selection-label.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
+  const agentSessionsList = createMemo(() =>
+    props.agentSessions ? Array.from(props.agentSessions.values()) : []
+  );
+
   return (
     <>
       <Show when={props.selectionVisible && props.selectionBounds}>
@@ -51,11 +55,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         )}
       </For>
 
-      <For
-        each={
-          props.agentSessions ? Array.from(props.agentSessions.values()) : []
-        }
-      >
+      <For each={agentSessionsList()}>
         {(session) => (
           <>
             <Show when={session.selectionBounds}>
