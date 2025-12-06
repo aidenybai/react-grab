@@ -43,7 +43,7 @@ const getCorsHeaders = (origin: string | null) => {
   };
 };
 
-interface RegenerateRequest {
+interface InstantApplyRequest {
   prompt: string;
   html: string;
 }
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     );
   }
 
-  let body: RegenerateRequest;
+  let body: InstantApplyRequest;
   try {
     body = await request.json();
   } catch {
@@ -93,7 +93,7 @@ ${html}
 
 Modification request: ${prompt}
 
-Remember: Output ONLY the complete rewritten HTML, nothing else.`;
+Remember: Output ONLY the JavaScript code, nothing else.`;
 
   try {
     const response = await fetch(OPENCODE_ZEN_ENDPOINT, {
@@ -121,9 +121,9 @@ Remember: Output ONLY the complete rewritten HTML, nothing else.`;
     }
 
     const data = await response.json();
-    const generatedHtml = data.choices?.[0]?.message?.content || "";
+    const generatedCode = data.choices?.[0]?.message?.content || "";
 
-    return new Response(generatedHtml, {
+    return new Response(generatedCode, {
       headers: {
         ...corsHeaders,
         "Content-Type": "text/javascript",

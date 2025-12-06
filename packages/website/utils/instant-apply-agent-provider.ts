@@ -1,6 +1,6 @@
 import type { AgentProvider, AgentContext, AgentSession } from "react-grab";
 
-interface RegenerateHtmlAgentProviderOptions {
+interface InstantApplyAgentProviderOptions {
   apiEndpoint?: string;
 }
 
@@ -8,10 +8,10 @@ interface RequestContext {
   requestId: string;
 }
 
-const DEFAULT_API_ENDPOINT = "/api/regenerate-html";
+const DEFAULT_API_ENDPOINT = "/api/instant-apply";
 
-export const createRegenerateHtmlAgentProvider = (
-  options: RegenerateHtmlAgentProviderOptions = {},
+export const createInstantApplyAgentProvider = (
+  options: InstantApplyAgentProviderOptions = {},
 ) => {
   const apiEndpoint = options.apiEndpoint ?? DEFAULT_API_ENDPOINT;
   const elementHtmlMap = new Map<string, string>();

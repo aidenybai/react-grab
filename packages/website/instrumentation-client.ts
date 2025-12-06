@@ -1,5 +1,5 @@
 import { init } from "react-grab/core";
-import { createRegenerateHtmlAgentProvider } from "./utils/regenerate-html-agent-provider";
+import { createInstantApplyAgentProvider } from "./utils/instant-apply-agent-provider";
 
 declare global {
   interface Window {
@@ -18,7 +18,7 @@ if (typeof window !== "undefined" && !window.__REACT_GRAB__) {
   });
 
   const { provider, getOptions, onStart, onComplete } =
-    createRegenerateHtmlAgentProvider();
+    createInstantApplyAgentProvider();
 
   api.setAgent({
     provider,
