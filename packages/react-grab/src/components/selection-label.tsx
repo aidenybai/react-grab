@@ -379,34 +379,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     const bounds = props.selectionBounds;
     const labelWidth = measuredWidth();
     const labelHeight = measuredHeight();
+    const hasMeasurements = labelWidth > 0 && labelHeight > 0;
+    const hasValidBounds = bounds && bounds.width > 0 && bounds.height > 0;
 
-    if (labelWidth === 0 || labelHeight === 0) {
-      if (lastValidPosition) {
-        return lastValidPosition;
-      }
-      return { left: -9999, top: -9999, arrowLeft: 0 };
-    }
-
-    if (!bounds) {
-      if (lastValidPosition) {
-        return lastValidPosition;
-      }
-      if (props.mouseX !== undefined) {
-        const fallbackLeft = Math.max(
-          VIEWPORT_MARGIN_PX,
-          Math.min(
-            props.mouseX - labelWidth / 2,
-            window.innerWidth - labelWidth - VIEWPORT_MARGIN_PX,
-          ),
-        );
-        const fallbackTop = window.innerHeight / 2;
-        const arrowLeft = Math.max(
-          12,
-          Math.min(props.mouseX - fallbackLeft, labelWidth - 12),
-        );
-        return { left: fallbackLeft, top: fallbackTop, arrowLeft };
-      }
-      return { left: -9999, top: -9999, arrowLeft: 0 };
+    if (!hasMeasurements || !hasValidBounds) {
+      return lastValidPosition ?? { left: -9999, top: -9999, arrowLeft: 0 };
     }
 
     const viewportWidth = window.innerWidth;
@@ -508,8 +485,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   };
 
   const shouldShowWithoutBounds = () =>
-    (hadValidBounds() || props.mouseX !== undefined) &&
-    (props.status === "copied" || props.status === "fading");
+    hadValidBounds() && (props.status === "copied" || props.status === "fading");
 
   return (
     <Show when={props.visible !== false && (props.selectionBounds || shouldShowWithoutBounds())}>
