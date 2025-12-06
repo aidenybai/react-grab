@@ -8,11 +8,17 @@ import { cn } from "@/utils/classnames";
 import { useHotkey } from "./hotkey-context";
 import type { RecordedHotkey } from "./grab-element-button";
 
-const InlineCode = ({ children }: { children: React.ReactNode }) => (
+interface InlineCodeProps {
+  children: React.ReactNode;
+}
+
+const InlineCode = ({ children }: InlineCodeProps) => (
   <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-xs text-white/70">
     {children}
   </code>
 );
+
+InlineCode.displayName = "InlineCode";
 
 interface InstallTab {
   id: string;
@@ -397,3 +403,5 @@ export const InstallTabs = ({
     </div>
   );
 };
+
+InstallTabs.displayName = "InstallTabs";

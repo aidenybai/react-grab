@@ -76,6 +76,8 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   return null;
 };
 
+CustomTooltip.displayName = "CustomTooltip";
+
 interface AnimatedBarProps {
   targetSeconds: number;
   maxSeconds: number;
@@ -118,6 +120,8 @@ const AnimatedBar = ({
     </div>
   );
 };
+
+AnimatedBar.displayName = "AnimatedBar";
 
 export const BenchmarkChartsTweet = ({ results }: BenchmarkChartsProps) => {
   const controlResults = results.filter((r) => r.type === "control");
@@ -253,6 +257,8 @@ export const BenchmarkChartsTweet = ({ results }: BenchmarkChartsProps) => {
   );
 };
 
+BenchmarkChartsTweet.displayName = "BenchmarkChartsTweet";
+
 interface AnimatedBarTreatmentProps {
   targetSeconds: number;
   maxSeconds: number;
@@ -307,6 +313,8 @@ const AnimatedBarTreatment = ({
   );
 };
 
+AnimatedBarTreatment.displayName = "AnimatedBarTreatment";
+
 interface LiveCounterProps {
   targetSeconds: number;
   maxSeconds: number;
@@ -342,6 +350,8 @@ const LiveCounter = ({ targetSeconds, maxSeconds }: LiveCounterProps) => {
     </div>
   );
 };
+
+LiveCounter.displayName = "LiveCounter";
 
 export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
   const controlResults = results.filter((r) => r.type === "control");
@@ -593,3 +603,5 @@ export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
     </div>
   );
 };
+
+BenchmarkCharts.displayName = "BenchmarkCharts";

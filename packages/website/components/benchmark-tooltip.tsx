@@ -16,19 +16,21 @@ const MAX_SECONDS = 20;
 const DURATION_CHANGE = "66";
 const COST_CHANGE = "60";
 
+interface MiniBarProps {
+  targetSeconds: number;
+  maxSeconds: number;
+  color: string;
+  label: string;
+  isAnimating: boolean;
+}
+
 const MiniBar = ({
   targetSeconds,
   maxSeconds,
   color,
   label,
   isAnimating,
-}: {
-  targetSeconds: number;
-  maxSeconds: number;
-  color: string;
-  label: string;
-  isAnimating: boolean;
-}) => {
+}: MiniBarProps) => {
   const targetWidth = (targetSeconds / maxSeconds) * 100;
 
   return (
@@ -57,7 +59,13 @@ const MiniBar = ({
   );
 };
 
-const MiniChart = ({ isVisible }: { isVisible: boolean }) => {
+MiniBar.displayName = "MiniBar";
+
+interface MiniChartProps {
+  isVisible: boolean;
+}
+
+const MiniChart = ({ isVisible }: MiniChartProps) => {
   const gridLines = [0, 5, 10, 15, 20];
 
   return (
@@ -143,6 +151,8 @@ const MiniChart = ({ isVisible }: { isVisible: boolean }) => {
   );
 };
 
+MiniChart.displayName = "MiniChart";
+
 export const BenchmarkTooltip = ({
   href,
   children,
@@ -203,3 +213,5 @@ export const BenchmarkTooltip = ({
     </span>
   );
 };
+
+BenchmarkTooltip.displayName = "BenchmarkTooltip";
