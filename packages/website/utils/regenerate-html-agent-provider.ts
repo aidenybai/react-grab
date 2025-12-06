@@ -42,7 +42,7 @@ export const createRegenerateHtmlAgentProvider = (
         throw new Error("Could not capture element HTML");
       }
 
-      yield "Regenerating HTML...";
+      yield "Generating…";
 
       const response = await fetch(apiEndpoint, {
         method: "POST",

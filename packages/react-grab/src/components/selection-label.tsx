@@ -263,6 +263,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
   let inputRef: HTMLTextAreaElement | undefined;
   let isTagCurrentlyHovered = false;
+  let lastValidPosition: { left: number; top: number; arrowLeft: number } | null = null;
 
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
@@ -270,6 +271,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     createSignal<ArrowPosition>("bottom");
   const [viewportVersion, setViewportVersion] = createSignal(0);
   const [isIdle, setIsIdle] = createSignal(false);
+  const [hadValidBounds, setHadValidBounds] = createSignal(false);
 
   const speechRecognition = useSpeechRecognition({
     onTranscript: (transcript) => props.onInputChange?.(transcript),
@@ -375,6 +377,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     const labelHeight = measuredHeight();
 
     if (!bounds || labelWidth === 0 || labelHeight === 0) {
+      if (lastValidPosition) {
+        return lastValidPosition;
+      }
       return { left: -9999, top: -9999, arrowLeft: 0 };
     }
 
@@ -416,7 +421,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       Math.min(cursorX - positionLeft, labelWidth - 12),
     );
 
-    return { left: positionLeft, top: positionTop, arrowLeft };
+    const position = { left: positionLeft, top: positionTop, arrowLeft };
+    lastValidPosition = position;
+    setHadValidBounds(true);
+
+    return position;
   };
 
   const handleKeyDown = (event: KeyboardEvent) => {
@@ -472,8 +481,12 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     props.onSubmit?.();
   };
 
+  const shouldShowWithoutBounds = () =>
+    hadValidBounds() &&
+    (props.status === "copied" || props.status === "fading");
+
   return (
-    <Show when={props.visible !== false && props.selectionBounds}>
+    <Show when={props.visible !== false && (props.selectionBounds || shouldShowWithoutBounds())}>
         <div
           ref={containerRef}
           data-react-grab-ignore-events
