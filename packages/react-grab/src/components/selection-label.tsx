@@ -34,6 +34,9 @@ interface SelectionLabelProps {
   onToggleExpand?: () => void;
   onAbort?: () => void;
   onOpen?: () => void;
+  isPendingDismiss?: boolean;
+  onConfirmDismiss?: () => void;
+  onCancelDismiss?: () => void;
 }
 
 interface TagBadgeProps {
@@ -566,7 +569,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             </div>
           </Show>
 
-          <Show when={isNotProcessing() && props.isInputExpanded}>
+          <Show when={isNotProcessing() && props.isInputExpanded && !props.isPendingDismiss}>
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit max-w-[280px]">
               <div
                 class={cn(
@@ -678,6 +681,36 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                       </button>
                     </Show>
                   </div>
+                </div>
+              </BottomSection>
+            </div>
+          </Show>
+
+          <Show when={props.isPendingDismiss}>
+            <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
+              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-fit h-fit">
+                <span class="text-label-muted text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
+                  Discard prompt?
+                </span>
+              </div>
+              <BottomSection>
+                <div class="contain-layout shrink-0 flex items-center justify-end gap-1 w-full h-fit">
+                  <button
+                    class="contain-layout shrink-0 flex items-center justify-center px-1 py-px rounded-xs bg-[#E8E8E8] [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#DCDCDC] h-[15px]"
+                    onClick={props.onConfirmDismiss}
+                  >
+                    <span class="text-black text-[10px] leading-3 tracking-[-0.04em] font-sans font-medium">
+                      Yes
+                    </span>
+                  </button>
+                  <button
+                    class="contain-layout shrink-0 flex items-center justify-center px-1 py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[15px]"
+                    onClick={props.onCancelDismiss}
+                  >
+                    <span class="text-black text-[10px] leading-3 tracking-[-0.04em] font-sans font-medium">
+                      No
+                    </span>
+                  </button>
                 </div>
               </BottomSection>
             </div>

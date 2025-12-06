@@ -256,6 +256,9 @@ export interface ReactGrabRendererProps {
   onInputSubmit?: () => void;
   onInputCancel?: () => void;
   onToggleExpand?: () => void;
+  isPendingDismiss?: boolean;
+  onConfirmDismiss?: () => void;
+  onCancelDismiss?: () => void;
   nativeSelectionCursorVisible?: boolean;
   nativeSelectionCursorX?: number;
   nativeSelectionCursorY?: number;

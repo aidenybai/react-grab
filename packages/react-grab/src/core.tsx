@@ -236,6 +236,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       Boolean(options.agent?.provider),
     );
     const [isAgentConnected, setIsAgentConnected] = createSignal(false);
+    const [isPendingDismiss, setIsPendingDismiss] = createSignal(false);
 
     const elementInputCache = new WeakMap<Element, string>();
 
@@ -1035,6 +1036,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setInputText("");
       setIsToggleFrozen(false);
       setIsInputExpanded(false);
+      setIsPendingDismiss(false);
       setFrozenElement(null);
       setSelectionLabelStatus("idle");
       setDidJustCopy(false);
@@ -1144,13 +1146,28 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handleInputCancel = () => {
       if (!isInputMode()) return;
 
-      const element = frozenElement() || targetElement();
       const currentInput = inputText().trim();
+      if (currentInput && !isPendingDismiss()) {
+        setIsPendingDismiss(true);
+        return;
+      }
+
+      const element = frozenElement() || targetElement();
       if (element && currentInput) {
         elementInputCache.set(element, currentInput);
       }
 
+      setIsPendingDismiss(false);
       deactivateRenderer();
+    };
+
+    const handleConfirmDismiss = () => {
+      setIsPendingDismiss(false);
+      deactivateRenderer();
+    };
+
+    const handleCancelDismiss = () => {
+      setIsPendingDismiss(false);
     };
 
     const handleToggleExpand = () => {
@@ -2060,6 +2077,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onInputSubmit={() => void handleInputSubmit()}
             onInputCancel={handleInputCancel}
             onToggleExpand={handleToggleExpand}
+            isPendingDismiss={isPendingDismiss()}
+            onConfirmDismiss={handleConfirmDismiss}
+            onCancelDismiss={handleCancelDismiss}
             nativeSelectionCursorVisible={hasNativeSelection()}
             nativeSelectionCursorX={nativeSelectionCursorX()}
             nativeSelectionCursorY={nativeSelectionCursorY()}
