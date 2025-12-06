@@ -264,6 +264,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   let inputRef: HTMLTextAreaElement | undefined;
   let isTagCurrentlyHovered = false;
   let lastValidPosition: { left: number; top: number; arrowLeft: number } | null = null;
+  let lastElementIdentity: string | null = null;
 
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
@@ -345,8 +346,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   });
 
   createEffect(() => {
-    void props.selectionBounds;
-    resetIdleTimer();
+    const elementIdentity = `${props.tagName ?? ""}:${props.componentName ?? ""}`;
+    if (elementIdentity !== lastElementIdentity) {
+      lastElementIdentity = elementIdentity;
+      resetIdleTimer();
+    }
   });
 
   createEffect(() => {
