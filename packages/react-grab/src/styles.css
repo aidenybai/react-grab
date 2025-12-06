@@ -24,22 +24,15 @@
   }
 }
 
-@keyframes react-grab-shimmer-anim {
+@keyframes text-shimmer {
   from {
-    background-position-x: 200%;
+    background-position: 100% center;
   }
   to {
-    background-position-x: -200%;
+    background-position: -100% center;
   }
 }
 
-.react-grab-shimmer {
-  color: transparent !important;
-  background-image: linear-gradient(90deg, #818181 0%, #818181 35%, #fff 50%, #818181 65%, #818181 100%) !important;
-  background-size: 150% 100% !important;
-  background-repeat: no-repeat !important;
-  -webkit-background-clip: text !important;
-  background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  animation: react-grab-shimmer-anim 1.5s ease-in-out infinite !important;
+.animate-text-shimmer {
+  animation: text-shimmer 2s linear infinite;
 }
