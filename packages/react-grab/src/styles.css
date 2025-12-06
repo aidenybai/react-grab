@@ -24,15 +24,18 @@
   }
 }
 
-@keyframes text-shimmer {
-  from {
-    background-position: 100% center, 0 0;
+@keyframes shiny-text {
+  0%,
+  90%,
+  100% {
+    background-position: calc(-100% - var(--shiny-width)) 0;
   }
-  to {
-    background-position: -100% center, 0 0;
+  30%,
+  60% {
+    background-position: calc(100% + var(--shiny-width)) 0;
   }
 }
 
-.animate-text-shimmer {
-  animation: text-shimmer 2s linear infinite;
+.animate-shiny-text {
+  animation: shiny-text 8s infinite;
 }
