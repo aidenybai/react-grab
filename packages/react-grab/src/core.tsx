@@ -616,6 +616,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return element;
     });
 
+    const effectiveElement = createMemo(() => {
+      if (isToggleFrozen()) {
+        return frozenElement();
+      }
+      return targetElement();
+    });
+
     createEffect(() => {
       const element = detectedElement();
       if (!element) return;
@@ -638,7 +645,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const selectionBounds = createMemo((): OverlayBounds | undefined => {
       viewportVersion();
-      const element = targetElement();
+      const element = effectiveElement();
       if (!element) return undefined;
       return createElementBounds(element);
     });
@@ -1346,9 +1353,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           };
           const tagName = extractElementTagName(firstElement);
 
+          const centerX = bounds.x + bounds.width / 2;
+          const centerY = bounds.y + bounds.height / 2;
+
           if (hasAgentProvider()) {
-            const centerX = bounds.x + bounds.width / 2;
-            const centerY = bounds.y + bounds.height / 2;
             setMouseX(centerX);
             setMouseY(centerY);
             setFrozenElement(firstElement);
@@ -1359,8 +1367,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           } else {
             void getNearestComponentName(firstElement).then((componentName) => {
               void executeCopyOperation(
-                clientX,
-                clientY,
+                centerX,
+                centerY,
                 () => copyMultipleElementsToClipboard(selectedElements),
                 bounds,
                 tagName,
@@ -1472,6 +1480,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           setInputText("");
           setIsToggleFrozen(false);
           setIsInputExpanded(false);
+          setIsPendingDismiss(false);
           return;
         }
 
@@ -1950,6 +1959,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             return;
           }
 
+          const selectedText = currentSelection.toString().trim();
+          if (!selectedText) {
+            clearNativeSelectionState();
+            return;
+          }
+
           const isBackward = (() => {
             if (!currentSelection.anchorNode || !currentSelection.focusNode)
               return false;
@@ -2020,17 +2035,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const selectionVisible = createMemo(() => {
       if (!theme().selectionBox.enabled) return false;
       if (didJustCopy()) return false;
-      return isRendererActive() && !isDragging() && Boolean(targetElement());
+      return isRendererActive() && !isDragging() && Boolean(effectiveElement());
     });
 
     const selectionTagName = createMemo(() => {
-      const element = targetElement();
+      const element = effectiveElement();
       if (!element) return undefined;
       return extractElementTagName(element) || undefined;
     });
 
     const [selectionComponentName] = createResource(
-      () => targetElement(),
+      () => effectiveElement(),
       async (element) => {
         if (!element) return undefined;
         const name = await getNearestComponentName(element);
@@ -2041,7 +2056,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const selectionLabelVisible = createMemo(() => {
       if (!theme().elementLabel.enabled) return false;
       if (didJustCopy()) return false;
-      return isRendererActive() && !isDragging() && Boolean(targetElement());
+      return isRendererActive() && !isDragging() && Boolean(effectiveElement());
     });
 
     const computedLabelInstances = createMemo(() => {
@@ -2072,7 +2087,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!theme().elementLabel.enabled) return false;
       if (isInputMode()) return false;
       if (isCopying()) return true;
-      return isRendererActive() && !isDragging() && Boolean(targetElement());
+      return isRendererActive() && !isDragging() && Boolean(effectiveElement());
     });
 
     const crosshairVisible = createMemo(
