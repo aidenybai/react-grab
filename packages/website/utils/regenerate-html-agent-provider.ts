@@ -15,7 +15,7 @@ export const createRegenerateHtmlAgentProvider = (
 ) => {
   const apiEndpoint = options.apiEndpoint ?? DEFAULT_API_ENDPOINT;
   const elementHtmlMap = new Map<string, string>();
-  const resultHtmlMap = new Map<string, string>();
+  const resultCodeMap = new Map<string, string>();
 
   const getOptions = (): RequestContext => {
     const requestId = `req-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -59,8 +59,8 @@ export const createRegenerateHtmlAgentProvider = (
         throw new Error(`API error: ${response.status} - ${errorText}`);
       }
 
-      const newHtml = await response.text();
-      resultHtmlMap.set(requestId, newHtml);
+      const code = await response.text();
+      resultCodeMap.set(requestId, code);
 
       yield "Applying changes...";
     },
@@ -71,20 +71,20 @@ export const createRegenerateHtmlAgentProvider = (
       ?.requestId;
     if (!requestId) return;
 
-    const html = resultHtmlMap.get(requestId);
-    if (!html) return;
+    const code = resultCodeMap.get(requestId);
+    if (!code) return;
 
     if (!element) {
-      console.warn("[react-grab] Could not find element to apply HTML changes");
+      console.warn("[react-grab] Could not find element to apply changes");
       elementHtmlMap.delete(requestId);
-      resultHtmlMap.delete(requestId);
+      resultCodeMap.delete(requestId);
       return;
     }
 
-    element.outerHTML = html;
+    new Function('$el', code).bind(null)(element);
 
     elementHtmlMap.delete(requestId);
-    resultHtmlMap.delete(requestId);
+    resultCodeMap.delete(requestId);
   };
 
   return { provider, getOptions, onStart, onComplete };

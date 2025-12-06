@@ -1,18 +1,21 @@
 const OPENCODE_ZEN_ENDPOINT = "https://opencode.ai/zen/v1/chat/completions";
 const MODEL = "grok-code";
 
-const SYSTEM_PROMPT = `You are an HTML rewriting assistant. You will receive HTML and a modification request.
+const SYSTEM_PROMPT = `You are a DOM manipulation assistant. You will receive HTML and a modification request.
 
 CRITICAL RULES:
-1. Output ONLY the complete rewritten HTML - nothing else
+1. Output ONLY JavaScript code - nothing else
 2. Do NOT wrap output in markdown code fences
 3. Do NOT include any explanations, comments, or preamble
-4. Do NOT include any text before or after the HTML
-5. The output must start with < and be valid HTML
-6. Rewrite the ENTIRE HTML document, not just the changed parts
-7. Apply the requested modifications while preserving the overall structure
+4. Use $el to reference the target element
+5. Modify the element using standard DOM APIs
+6. Do NOT reassign $el itself
 
-Your response must be raw HTML that can be directly used.`;
+Example: To change text, use $el.textContent = "new text"
+Example: To add a class, use $el.classList.add("new-class")
+Example: To change inner HTML, use $el.innerHTML = "<span>new</span>"
+
+Your response must be raw JavaScript that can be directly eval'd.`;
 
 const ALLOWED_ORIGINS_PROD = [
   "https://react-grab.com",
@@ -123,7 +126,7 @@ Remember: Output ONLY the complete rewritten HTML, nothing else.`;
     return new Response(generatedHtml, {
       headers: {
         ...corsHeaders,
-        "Content-Type": "text/html",
+        "Content-Type": "text/javascript",
       },
     });
   } catch (error) {
