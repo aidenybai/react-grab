@@ -1718,7 +1718,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         if (isActivated()) {
           if (isReleasingModifier) {
-            if (isToggleMode()) return;
+            if (isToggleMode() || isDragging()) return;
             deactivateRenderer();
           } else if (
             !hasCustomShortcut &&
