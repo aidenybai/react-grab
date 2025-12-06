@@ -273,6 +273,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const clearNativeSelectionState = () => {
+      setHasNativeSelection(false);
       setNativeSelectionCursorX(OFFSCREEN_POSITION);
       setNativeSelectionCursorY(OFFSCREEN_POSITION);
       setNativeSelectionElements([]);
@@ -1952,6 +1953,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             currentSelection.isCollapsed ||
             currentSelection.rangeCount === 0
           ) {
+            clearNativeSelectionState();
             return;
           }
 
