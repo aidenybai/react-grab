@@ -1,19 +1,22 @@
 const OPENCODE_ZEN_ENDPOINT = "https://opencode.ai/zen/v1/chat/completions";
 const MODEL = "grok-code";
 
-const SYSTEM_PROMPT = `You are a DOM manipulation assistant. You will receive HTML and a modification request.
+const SYSTEM_PROMPT = `You are a DOM manipulation assistant. You will receive HTML with ancestor context and a modification request.
+
+The HTML shows the target element nested within its ancestor elements (up to 5 levels). The target element is marked with <!-- START $el --> and <!-- END $el --> comments. The ancestor tags are shown for structural context only - you should only modify the target element between these markers.
 
 CRITICAL RULES:
 1. Output ONLY JavaScript code - nothing else
 2. Do NOT wrap output in markdown code fences
 3. Do NOT include any explanations, comments, or preamble
-4. Use $el to reference the target element
+4. Use $el to reference the target element (marked between <!-- START $el --> and <!-- END $el -->)
 5. Modify the element using standard DOM APIs
 6. Do NOT reassign $el itself
 
 Example: To change text, use $el.textContent = "new text"
 Example: To add a class, use $el.classList.add("new-class")
 Example: To change inner HTML, use $el.innerHTML = "<span>new</span>"
+Example: To modify an ancestor, use $el.parentElement.classList.add("highlighted")
 
 Your response must be raw JavaScript that can be directly eval'd.`;
 

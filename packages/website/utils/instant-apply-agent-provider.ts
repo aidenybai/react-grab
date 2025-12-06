@@ -9,6 +9,64 @@ interface RequestContext {
 }
 
 const DEFAULT_API_ENDPOINT = "/api/instant-apply";
+const ANCESTOR_LEVELS = 5;
+
+const getOpeningTag = (element: Element): string => {
+  const clone = element.cloneNode(false) as Element;
+  const wrapper = document.createElement("div");
+  wrapper.appendChild(clone);
+  const html = wrapper.innerHTML;
+  const closingTagMatch = html.match(/<\/[^>]+>$/);
+  if (closingTagMatch) {
+    return html.slice(0, -closingTagMatch[0].length);
+  }
+  return html;
+};
+
+const getClosingTag = (element: Element): string => {
+  return `</${element.tagName.toLowerCase()}>`;
+};
+
+const buildAncestorContext = (element: Element): string => {
+  const ancestors: Element[] = [];
+  let current = element.parentElement;
+
+  for (let level = 0; level < ANCESTOR_LEVELS && current; level++) {
+    if (current === document.body || current === document.documentElement) {
+      break;
+    }
+    ancestors.push(current);
+    current = current.parentElement;
+  }
+
+  if (ancestors.length === 0) {
+    return element.outerHTML;
+  }
+
+  ancestors.reverse();
+
+  let result = "";
+  let indent = "";
+
+  for (const ancestor of ancestors) {
+    result += `${indent}${getOpeningTag(ancestor)}\n`;
+    indent += "  ";
+  }
+
+  result += `${indent}<!-- START $el -->\n`;
+  const targetLines = element.outerHTML.split("\n");
+  for (const line of targetLines) {
+    result += `${indent}${line}\n`;
+  }
+  result += `${indent}<!-- END $el -->\n`;
+
+  for (let ancestorIndex = ancestors.length - 1; ancestorIndex >= 0; ancestorIndex--) {
+    indent = "  ".repeat(ancestorIndex);
+    result += `${indent}${getClosingTag(ancestors[ancestorIndex])}\n`;
+  }
+
+  return result.trim();
+};
 
 export const createInstantApplyAgentProvider = (
   options: InstantApplyAgentProviderOptions = {},
@@ -27,7 +85,7 @@ export const createInstantApplyAgentProvider = (
       ?.requestId;
     if (!requestId || !element) return;
 
-    elementHtmlMap.set(requestId, element.outerHTML);
+    elementHtmlMap.set(requestId, buildAncestorContext(element));
   };
 
   const provider: AgentProvider<RequestContext> = {
