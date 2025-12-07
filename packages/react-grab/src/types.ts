@@ -133,6 +133,7 @@ export interface AgentProvider<T = any> {
   supportsResume?: boolean;
   checkConnection?: () => Promise<boolean>;
   getCompletionMessage?: () => string | undefined;
+  undo?: () => Promise<void>;
 }
 
 export interface AgentSessionStorage {
@@ -152,6 +153,7 @@ export interface AgentOptions<T = any> {
   onError?: (error: Error, session: AgentSession) => void;
   onResume?: (session: AgentSession) => void;
   onAbort?: (session: AgentSession, element: Element | undefined) => void;
+  onUndo?: (session: AgentSession, element: Element | undefined) => void;
 }
 
 export interface Options {
@@ -254,6 +256,7 @@ export interface ReactGrabRendererProps {
   agentSessions?: Map<string, AgentSession>;
   onAbortSession?: (sessionId: string) => void;
   onDismissSession?: (sessionId: string) => void;
+  onUndoSession?: (sessionId: string) => void;
   onInputChange?: (value: string) => void;
   onInputSubmit?: () => void;
   onInputCancel?: () => void;

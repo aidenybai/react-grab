@@ -27,6 +27,3 @@ export const IconMic: Component<IconMicProps> = (props) => {
     </svg>
   );
 };
-
-
-

@@ -34,6 +34,7 @@ export interface AgentManager {
   abortSession: (sessionId: string) => void;
   abortAllSessions: () => void;
   dismissSession: (sessionId: string) => void;
+  undoSession: (sessionId: string) => void;
   updateSessionBoundsOnViewportChange: () => void;
   getSessionElement: (sessionId: string) => Element | undefined;
   setOptions: (options: AgentOptions) => void;
@@ -313,6 +314,17 @@ export const createAgentManager = (
     });
   };
 
+  const undoSession = (sessionId: string) => {
+    const currentSessions = sessions();
+    const session = currentSessions.get(sessionId);
+    if (session) {
+      const element = sessionElements.get(sessionId);
+      agentOptions?.onUndo?.(session, element);
+      void agentOptions?.provider?.undo?.();
+    }
+    dismissSession(sessionId);
+  };
+
   const updateSessionBoundsOnViewportChange = () => {
     const currentSessions = sessions();
     if (currentSessions.size === 0) return;
@@ -321,15 +333,7 @@ export const createAgentManager = (
     let didUpdate = false;
 
     for (const [sessionId, session] of currentSessions) {
-      let element = sessionElements.get(sessionId);
-
-      if (!element || !document.contains(element)) {
-        const reacquiredElement = tryReacquireElement(session);
-        if (reacquiredElement) {
-          sessionElements.set(sessionId, reacquiredElement);
-          element = reacquiredElement;
-        }
-      }
+      const element = sessionElements.get(sessionId);
 
       if (element && document.contains(element)) {
         const newBounds = createElementBounds(element);
@@ -371,6 +375,7 @@ export const createAgentManager = (
     abortSession,
     abortAllSessions,
     dismissSession,
+    undoSession,
     updateSessionBoundsOnViewportChange,
     getSessionElement,
     setOptions,

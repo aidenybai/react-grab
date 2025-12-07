@@ -128,7 +128,7 @@ async function* streamFromServer(
 
 export const createClaudeAgentProvider = (
   providerOptions: ClaudeAgentProviderOptions = {},
-): AgentProvider<ClaudeOptions> => {
+) => {
   const { serverUrl = DEFAULT_SERVER_URL, getOptions } = providerOptions;
 
   let connectionCache: { result: boolean; timestamp: number } | null = null;
@@ -181,7 +181,10 @@ export const createClaudeAgentProvider = (
 
     checkConnection: async () => {
       const now = Date.now();
-      if (connectionCache && now - connectionCache.timestamp < CONNECTION_CHECK_TTL_MS) {
+      if (
+        connectionCache &&
+        now - connectionCache.timestamp < CONNECTION_CHECK_TTL_MS
+      ) {
         return connectionCache.result;
       }
 
@@ -194,6 +197,12 @@ export const createClaudeAgentProvider = (
         connectionCache = { result: false, timestamp: now };
         return false;
       }
+    },
+
+    undo: async () => {
+      try {
+        await fetch(`${serverUrl}/undo`, { method: "POST" });
+      } catch {}
     },
   };
 };
