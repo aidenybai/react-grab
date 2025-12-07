@@ -8,16 +8,16 @@ import {
   type Framework,
   type PackageManager,
   type UnsupportedFramework,
-} from "./detect.js";
-import { printDiff } from "./diff.js";
-import { getPackagesToInstall, installPackages } from "./install.js";
-import type { AgentIntegration } from "./templates.js";
+} from "./utils/detect.js";
+import { printDiff } from "./utils/diff.js";
+import { getPackagesToInstall, installPackages } from "./utils/install.js";
+import type { AgentIntegration } from "./utils/templates.js";
 import {
   applyPackageJsonTransform,
   applyTransform,
   previewPackageJsonTransform,
   previewTransform,
-} from "./transform.js";
+} from "./utils/transform.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
 const REPORT_URL = "https://reactgrab.com/api/report-cli";
