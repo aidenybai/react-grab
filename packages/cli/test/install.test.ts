@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getPackagesToInstall } from "../src/install.js";
+import { getPackagesToInstall } from "../src/utils/install.js";
 
 describe("getPackagesToInstall", () => {
   it("should return only react-grab when no agent and includeReactGrab is true", () => {

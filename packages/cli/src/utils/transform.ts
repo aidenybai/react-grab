@@ -216,12 +216,14 @@ const addAgentToExistingVite = (
   }
 
   const agentImport = `import("${agentPackage}/client");`;
-  const reactGrabImportMatch = originalContent.match(/import\s*\(\s*["']react-grab["']\s*\)/);
+  const reactGrabImportMatch = originalContent.match(/import\s*\(\s*["']react-grab["']\s*\);?/);
 
   if (reactGrabImportMatch) {
+    const matchedText = reactGrabImportMatch[0];
+    const hasSemicolon = matchedText.endsWith(";");
     const newContent = originalContent.replace(
-      reactGrabImportMatch[0],
-      `${reactGrabImportMatch[0]};\n        ${agentImport}`
+      matchedText,
+      `${hasSemicolon ? matchedText.slice(0, -1) : matchedText};\n        ${agentImport}`
     );
     return {
       success: true,
@@ -264,12 +266,14 @@ const addAgentToExistingWebpack = (
   }
 
   const agentImport = `import("${agentPackage}/client");`;
-  const reactGrabImportMatch = originalContent.match(/import\s*\(\s*["']react-grab["']\s*\)/);
+  const reactGrabImportMatch = originalContent.match(/import\s*\(\s*["']react-grab["']\s*\);?/);
 
   if (reactGrabImportMatch) {
+    const matchedText = reactGrabImportMatch[0];
+    const hasSemicolon = matchedText.endsWith(";");
     const newContent = originalContent.replace(
-      reactGrabImportMatch[0],
-      `${reactGrabImportMatch[0]};\n  ${agentImport}`
+      matchedText,
+      `${hasSemicolon ? matchedText.slice(0, -1) : matchedText};\n  ${agentImport}`
     );
     return {
       success: true,

@@ -1,5 +1,5 @@
 import { vi, describe, expect, it, beforeEach } from "vitest";
-import { previewTransform, applyTransform, previewPackageJsonTransform, applyPackageJsonTransform } from "../src/transform.js";
+import { previewTransform, applyTransform, previewPackageJsonTransform, applyPackageJsonTransform } from "../src/utils/transform.js";
 
 vi.mock("node:fs", () => ({
   existsSync: vi.fn(),

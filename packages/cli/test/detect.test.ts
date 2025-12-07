@@ -6,7 +6,7 @@ import {
   detectReactGrab,
   detectInstalledAgents,
   detectUnsupportedFramework,
-} from "../src/detect.js";
+} from "../src/utils/detect.js";
 
 vi.mock("node:fs", () => ({
   existsSync: vi.fn(),

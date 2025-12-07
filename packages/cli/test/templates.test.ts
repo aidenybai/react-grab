@@ -6,7 +6,7 @@ import {
   VITE_SCRIPT_WITH_AGENT,
   WEBPACK_IMPORT,
   WEBPACK_IMPORT_WITH_AGENT,
-} from "../src/templates.js";
+} from "../src/utils/templates.js";
 
 describe("Next.js App Router templates", () => {
   it("should generate basic script without agent", () => {
