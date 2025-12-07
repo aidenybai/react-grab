@@ -42,6 +42,7 @@ import {
   MODIFIER_KEYS,
   BLUR_DEACTIVATION_THRESHOLD_MS,
   BOUNDS_RECALC_INTERVAL_MS,
+  INPUT_FOCUS_ACTIVATION_DELAY_MS,
 } from "./constants.js";
 import { isCLikeKey } from "./utils/is-c-like-key.js";
 import { keyMatchesCode, isTargetKeyCombination } from "./utils/hotkey.js";
@@ -1519,7 +1520,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           !isInputMode() &&
           !isActivated() &&
           copiedElement &&
-          document.contains(copiedElement)
+          document.contains(copiedElement) &&
+          !labelInstances().some(
+            (instance) =>
+              instance.status === "copied" || instance.status === "fading",
+          )
         ) {
           event.preventDefault();
           event.stopPropagation();
@@ -1663,9 +1668,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           setIsHoldingKeys(true);
         }
 
+        const activationDuration = isKeyboardEventTriggeredByInput(event)
+          ? options.keyHoldDuration + INPUT_FOCUS_ACTIVATION_DELAY_MS
+          : options.keyHoldDuration;
+
         holdTimerId = window.setTimeout(() => {
           activateRenderer();
-        }, options.keyHoldDuration);
+        }, activationDuration);
       },
       { signal: eventListenerSignal, capture: true },
     );
