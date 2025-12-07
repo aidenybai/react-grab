@@ -322,6 +322,10 @@ export const createServer = () => {
     });
   });
 
+  app.post("/undo", async (context) => {
+    return context.json({ status: "not-supported", provider: "codex" });
+  });
+
   app.get("/health", (context) => {
     return context.json({ status: "ok", provider: "codex" });
   });

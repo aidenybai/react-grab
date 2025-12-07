@@ -639,6 +639,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     createEffect(() => {
+      if (isToggleFrozen()) return;
       const element = targetElement();
       if (element) {
         setFrozenElement(element);
@@ -1073,29 +1074,39 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       options.onDeactivate?.();
     };
 
+    const restoreInputFromSession = (
+      session: AgentSession,
+      element: Element | undefined,
+    ) => {
+      if (element && document.contains(element)) {
+        const rect = element.getBoundingClientRect();
+        const centerY = rect.top + rect.height / 2;
+
+        setMouseX(session.position.x);
+        setMouseY(centerY);
+        setFrozenElement(element);
+        setInputText(session.context.prompt);
+        setIsInputExpanded(true);
+        setIsInputMode(true);
+        setIsToggleMode(true);
+        setIsToggleFrozen(true);
+
+        if (!isActivated()) {
+          activateRenderer();
+        }
+      }
+    };
+
     const agentOptions = options.agent
       ? {
           ...options.agent,
           onAbort: (session: AgentSession, element: Element | undefined) => {
             options.agent?.onAbort?.(session, element);
-
-            if (element && document.contains(element)) {
-              const rect = element.getBoundingClientRect();
-              const centerY = rect.top + rect.height / 2;
-
-              setMouseX(session.position.x);
-              setMouseY(centerY);
-              setFrozenElement(element);
-              setInputText(session.context.prompt);
-              setIsInputExpanded(true);
-              setIsInputMode(true);
-              setIsToggleMode(true);
-              setIsToggleFrozen(true);
-
-              if (!isActivated()) {
-                activateRenderer();
-              }
-            }
+            restoreInputFromSession(session, element);
+          },
+          onUndo: (session: AgentSession, element: Element | undefined) => {
+            options.agent?.onUndo?.(session, element);
+            restoreInputFromSession(session, element);
           },
         }
       : undefined;
@@ -1479,7 +1490,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const isEnterToActivateInput =
           isEnterCode(event.code) && isHoldingKeys() && !isInputMode();
 
-        if (isInputMode() && isTargetKeyCombination(event, options) && !event.repeat) {
+        if (
+          isInputMode() &&
+          isTargetKeyCombination(event, options) &&
+          !event.repeat
+        ) {
           event.preventDefault();
           event.stopPropagation();
           setIsInputMode(false);
@@ -2155,7 +2170,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             labelInstances={computedLabelInstances()}
             dragVisible={dragVisible()}
             dragBounds={dragBounds()}
-            grabbedBoxes={shouldShowGrabbedBoxes() ? computedGrabbedBoxes() : []}
+            grabbedBoxes={
+              shouldShowGrabbedBoxes() ? computedGrabbedBoxes() : []
+            }
             labelZIndex={Z_INDEX_LABEL}
             mouseX={cursorPosition().x}
             mouseY={cursorPosition().y}
@@ -2166,7 +2183,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             isAgentConnected={isAgentConnected()}
             agentSessions={agentManager.sessions()}
             onAbortSession={(sessionId) => agentManager.abortSession(sessionId)}
-            onDismissSession={(sessionId) => agentManager.dismissSession(sessionId)}
+            onDismissSession={(sessionId) =>
+              agentManager.dismissSession(sessionId)
+            }
+            onUndoSession={(sessionId) => agentManager.undoSession(sessionId)}
             onInputChange={handleInputChange}
             onInputSubmit={() => void handleInputSubmit()}
             onInputCancel={handleInputCancel}
@@ -2265,24 +2285,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           provider: newAgentOptions.provider ?? existingOptions?.provider,
           onAbort: (session: AgentSession, element: Element | undefined) => {
             newAgentOptions?.onAbort?.(session, element);
-
-            if (element && document.contains(element)) {
-              const rect = element.getBoundingClientRect();
-              const centerY = rect.top + rect.height / 2;
-
-              setMouseX(session.position.x);
-              setMouseY(centerY);
-              setFrozenElement(element);
-              setInputText(session.context.prompt);
-              setIsInputExpanded(true);
-              setIsInputMode(true);
-              setIsToggleMode(true);
-              setIsToggleFrozen(true);
-
-              if (!isActivated()) {
-                activateRenderer();
-              }
-            }
+            restoreInputFromSession(session, element);
+          },
+          onUndo: (session: AgentSession, element: Element | undefined) => {
+            newAgentOptions?.onUndo?.(session, element);
+            restoreInputFromSession(session, element);
           },
         };
         agentManager.setOptions(mergedOptions);

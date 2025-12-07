@@ -119,7 +119,7 @@ async function* streamFromServer(
 
 export const createCursorAgentProvider = (
   providerOptions: CursorAgentProviderOptions = {},
-): AgentProvider<CursorAgentOptions> => {
+) => {
   const { serverUrl = DEFAULT_SERVER_URL, getOptions } = providerOptions;
 
   let connectionCache: { result: boolean; timestamp: number } | null = null;
@@ -173,7 +173,10 @@ export const createCursorAgentProvider = (
 
     checkConnection: async () => {
       const now = Date.now();
-      if (connectionCache && now - connectionCache.timestamp < CONNECTION_CHECK_TTL_MS) {
+      if (
+        connectionCache &&
+        now - connectionCache.timestamp < CONNECTION_CHECK_TTL_MS
+      ) {
         return connectionCache.result;
       }
 
@@ -186,6 +189,12 @@ export const createCursorAgentProvider = (
         connectionCache = { result: false, timestamp: now };
         return false;
       }
+    },
+
+    undo: async () => {
+      try {
+        await fetch(`${serverUrl}/undo`, { method: "POST" });
+      } catch {}
     },
   };
 };

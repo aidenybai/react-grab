@@ -36,6 +36,7 @@ interface SelectionLabelProps {
   onAbort?: () => void;
   onOpen?: () => void;
   onDismiss?: () => void;
+  onUndo?: () => void;
   isPendingDismiss?: boolean;
   onConfirmDismiss?: () => void;
   onCancelDismiss?: () => void;
@@ -264,7 +265,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
   let inputRef: HTMLTextAreaElement | undefined;
   let isTagCurrentlyHovered = false;
-  let lastValidPosition: { left: number; top: number; arrowLeft: number } | null = null;
+  let lastValidPosition: {
+    left: number;
+    top: number;
+    arrowLeft: number;
+  } | null = null;
   let lastElementIdentity: string | null = null;
 
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
@@ -486,46 +491,73 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   };
 
   const shouldShowWithoutBounds = () =>
-    hadValidBounds() && (props.status === "copied" || props.status === "fading");
+    hadValidBounds() &&
+    (props.status === "copied" || props.status === "fading");
 
   return (
-    <Show when={props.visible !== false && (props.selectionBounds || shouldShowWithoutBounds())}>
-        <div
-          ref={containerRef}
-          data-react-grab-ignore-events
-          class="fixed font-sans antialiased transition-opacity duration-300 ease-out filter-[drop-shadow(0px_0px_4px_#51515180)] select-none"
-          style={{
-            top: `${computedPosition().top}px`,
-            left: `${computedPosition().left}px`,
-            "z-index": "2147483647",
-            "pointer-events": props.isInputExpanded || (props.status === "copied" && props.onDismiss) || (props.status === "copying" && props.onAbort) ? "auto" : "none",
-            opacity: props.status === "fading" ? 0 : 1,
-          }}
-          onPointerDown={handleContainerPointerDown}
-          onMouseDown={stopPropagation}
-          onClick={stopPropagation}
-        >
+    <Show
+      when={
+        props.visible !== false &&
+        (props.selectionBounds || shouldShowWithoutBounds())
+      }
+    >
+      <div
+        ref={containerRef}
+        data-react-grab-ignore-events
+        class="fixed font-sans antialiased transition-opacity duration-300 ease-out filter-[drop-shadow(0px_0px_4px_#51515180)] select-none"
+        style={{
+          top: `${computedPosition().top}px`,
+          left: `${computedPosition().left}px`,
+          "z-index": "2147483647",
+          "pointer-events":
+            props.isInputExpanded ||
+            (props.status === "copied" && props.onDismiss) ||
+            (props.status === "copying" && props.onAbort)
+              ? "auto"
+              : "none",
+          opacity: props.status === "fading" ? 0 : 1,
+        }}
+        onPointerDown={handleContainerPointerDown}
+        onMouseDown={stopPropagation}
+        onClick={stopPropagation}
+      >
         <Arrow
           position={arrowPosition()}
           leftPx={computedPosition().arrowLeft}
         />
 
         <Show when={props.status === "copied" || props.status === "fading"}>
-          <div class="[font-synthesis:none] contain-layout shrink-0 flex items-center gap-1 rounded-xs bg-white antialiased w-fit h-fit py-1 px-1.5">
-            <div class="contain-layout shrink-0 flex items-center px-0 py-px w-fit h-[18px] rounded-[1.5px] gap-[3px]">
-              <div class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
+          <div class="[font-synthesis:none] contain-layout shrink-0 flex flex-col justify-center items-end rounded-xs bg-white antialiased w-fit h-fit">
+            <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 px-1.5 w-full h-fit">
+              <span class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit tabular-nums">
                 {props.hasAgent ? (props.statusText ?? "Completed") : "Copied"}
-              </div>
+              </span>
             </div>
-            <Show when={props.onDismiss}>
-              <button
-                class="contain-layout shrink-0 flex items-center justify-center px-[5px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
-                onClick={() => props.onDismiss?.()}
-              >
-                <span class="text-black text-[11px] leading-3.5 tracking-[-0.04em] font-sans font-medium">
-                  Ok
-                </span>
-              </button>
+            <Show when={props.onDismiss || props.onUndo}>
+              <BottomSection>
+                <div class="contain-layout shrink-0 flex items-center justify-end gap-[5px] w-full h-fit">
+                  <Show when={props.onUndo}>
+                    <button
+                      class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
+                      onClick={() => props.onUndo?.()}
+                    >
+                      <span class="text-black text-[11px] leading-3.5 tracking-[-0.04em] font-sans font-medium">
+                        Undo
+                      </span>
+                    </button>
+                  </Show>
+                  <Show when={props.onDismiss}>
+                    <button
+                      class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
+                      onClick={() => props.onDismiss?.()}
+                    >
+                      <span class="text-black text-[11px] leading-3.5 tracking-[-0.04em] font-sans font-medium">
+                        Ok
+                      </span>
+                    </button>
+                  </Show>
+                </div>
+              </BottomSection>
             </Show>
           </div>
         </Show>
@@ -543,7 +575,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit max-w-[280px]">
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-auto h-fit">
                 <div class="contain-layout flex items-center px-0 py-px w-auto h-fit rounded-[1.5px] gap-[3px]">
-                  <span class="text-[12px] leading-4 tracking-[-0.04em] font-sans font-medium w-auto h-fit whitespace-normal text-[#71717a] animate-pulse">
+                  <span class="text-[12px] leading-4 tracking-[-0.04em] font-sans font-medium w-auto h-fit whitespace-normal text-[#71717a] animate-pulse tabular-nums">
                     {props.statusText ?? "Grabbing…"}
                   </span>
                 </div>
@@ -555,7 +587,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     data-react-grab-ignore-events
                     class="text-black text-[12px] leading-4 tracking-[-0.04em] font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 opacity-50 wrap-break-word overflow-y-auto"
                     style={{
-                      // @ts-expect-error - field-sizing is not in the jsx spec
                       "field-sizing": "content",
                       "min-height": "16px",
                       "max-height": "95px",
@@ -644,7 +675,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                         Press
                       </span>
                       <div class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit">
-                        <IconReturn size={10} class="opacity-[0.99] text-black" />
+                        <IconReturn
+                          size={10}
+                          class="opacity-[0.99] text-black"
+                        />
                       </div>
                       <span class="text-label-muted text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
                         to edit
@@ -711,7 +745,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     data-react-grab-ignore-events
                     class="text-black text-[12px] leading-4 tracking-[-0.04em] font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 wrap-break-word overflow-y-auto"
                     style={{
-                      // @ts-expect-error - field-sizing is not in the jsx spec
                       "field-sizing": "content",
                       "min-height": "16px",
                       "max-height": "95px",
@@ -766,7 +799,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                         class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit cursor-pointer transition-all hover:scale-105"
                         onClick={handleSubmit}
                       >
-                        <IconReturn size={10} class="opacity-[0.99] text-black" />
+                        <IconReturn
+                          size={10}
+                          class="opacity-[0.99] text-black"
+                        />
                       </button>
                     </Show>
                   </div>

@@ -119,7 +119,7 @@ const streamFromServer = async function* (
 
 export const createOpencodeAgentProvider = (
   options: OpencodeAgentProviderOptions = {},
-): AgentProvider<OpencodeAgentOptions> => {
+) => {
   const { serverUrl = DEFAULT_SERVER_URL, getOptions } = options;
 
   let connectionCache: { result: boolean; timestamp: number } | null = null;
@@ -171,7 +171,10 @@ export const createOpencodeAgentProvider = (
 
     checkConnection: async () => {
       const now = Date.now();
-      if (connectionCache && now - connectionCache.timestamp < CONNECTION_CHECK_TTL_MS) {
+      if (
+        connectionCache &&
+        now - connectionCache.timestamp < CONNECTION_CHECK_TTL_MS
+      ) {
         return connectionCache.result;
       }
 
@@ -184,6 +187,12 @@ export const createOpencodeAgentProvider = (
         connectionCache = { result: false, timestamp: now };
         return false;
       }
+    },
+
+    undo: async () => {
+      try {
+        await fetch(`${serverUrl}/undo`, { method: "POST" });
+      } catch {}
     },
   };
 };

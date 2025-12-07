@@ -9,7 +9,7 @@ import { SelectionLabel } from "./selection-label.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
   const agentSessionsList = createMemo(() =>
-    props.agentSessions ? Array.from(props.agentSessions.values()) : []
+    props.agentSessions ? Array.from(props.agentSessions.values()) : [],
   );
 
   return (
@@ -78,7 +78,16 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
               statusText={session().lastStatus || "Thinking…"}
               inputValue={session().context.prompt}
               onAbort={() => props.onAbortSession?.(session().id)}
-              onDismiss={session().isStreaming ? undefined : () => props.onDismissSession?.(session().id)}
+              onDismiss={
+                session().isStreaming
+                  ? undefined
+                  : () => props.onDismissSession?.(session().id)
+              }
+              onUndo={
+                session().isStreaming
+                  ? undefined
+                  : () => props.onUndoSession?.(session().id)
+              }
             />
           </>
         )}

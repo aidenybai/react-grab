@@ -1,5 +1,13 @@
 # @react-grab/ami
 
+## 0.0.73
+
+### Patch Changes
+
+- fix: improve cli
+- Updated dependencies
+  - react-grab@0.0.73
+
 ## 0.0.72
 
 ### Patch Changes

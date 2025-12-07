@@ -1,5 +1,11 @@
 # @react-grab/cli
 
+## 0.0.73
+
+### Patch Changes
+
+- fix: improve cli
+
 ## 0.0.72
 
 ### Patch Changes
