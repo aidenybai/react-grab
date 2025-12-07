@@ -123,6 +123,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
               window.open(openFileUrl, "_blank");
             }
           }}
+          voiceMode={props.voiceMode}
         />
       </Show>
 
