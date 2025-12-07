@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { detect } from "@antfu/ni";
@@ -349,6 +350,23 @@ export const detectInstalledAgents = (projectRoot: string): string[] => {
   } catch {
     return [];
   }
+};
+
+export type AgentCLI = "claude" | "cursor-agent" | "opencode";
+
+const AGENT_CLI_COMMANDS: AgentCLI[] = ["claude", "cursor-agent", "opencode"];
+
+const isCommandAvailable = (command: string): boolean => {
+  try {
+    execSync(`which ${command}`, { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+export const detectAvailableAgentCLIs = (): AgentCLI[] => {
+  return AGENT_CLI_COMMANDS.filter(isCommandAvailable);
 };
 
 export const detectProject = async (projectRoot: string = process.cwd()): Promise<ProjectInfo> => {

@@ -91,9 +91,9 @@ export const add = new Command()
           type: "select",
           name: "agent",
           message: `Which ${highlighter.info("agent integration")} would you like to add?`,
-          choices: availableAgents.map((agent) => ({
-            title: AGENT_NAMES[agent],
-            value: agent,
+          choices: availableAgents.map((innerAgent) => ({
+            title: AGENT_NAMES[innerAgent],
+            value: innerAgent,
           })),
         });
 

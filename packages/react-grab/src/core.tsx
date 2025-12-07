@@ -2166,6 +2166,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             isAgentConnected={isAgentConnected()}
             agentSessions={agentManager.sessions()}
             onAbortSession={(sessionId) => agentManager.abortSession(sessionId)}
+            onDismissSession={(sessionId) => agentManager.dismissSession(sessionId)}
             onInputChange={handleInputChange}
             onInputSubmit={() => void handleInputSubmit()}
             onInputCancel={handleInputCancel}

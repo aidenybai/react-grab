@@ -78,6 +78,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
               statusText={session().lastStatus || "Thinking…"}
               inputValue={session().context.prompt}
               onAbort={() => props.onAbortSession?.(session().id)}
+              onDismiss={session().isStreaming ? undefined : () => props.onDismissSession?.(session().id)}
             />
           </>
         )}

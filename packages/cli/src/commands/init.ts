@@ -149,14 +149,24 @@ export const init = new Command()
 
           if (reactProjects.length > 0) {
             logger.break();
+            const sortedProjects = [...reactProjects].sort((projectA, projectB) => {
+              if (projectA.framework === "unknown" && projectB.framework !== "unknown") return 1;
+              if (projectA.framework !== "unknown" && projectB.framework === "unknown") return -1;
+              return 0;
+            });
             const { selectedProject } = await prompts({
               type: "select",
               name: "selectedProject",
               message: "Select a project to install React Grab:",
-              choices: reactProjects.map((project) => ({
-                title: `${project.name} (${FRAMEWORK_NAMES[project.framework] || "React"})`,
-                value: project.path,
-              })),
+              choices: sortedProjects.map((project) => {
+                const frameworkLabel = project.framework !== "unknown"
+                  ? ` ${highlighter.dim(`(${FRAMEWORK_NAMES[project.framework]})`)}`
+                  : "";
+                return {
+                  title: `${project.name}${frameworkLabel}`,
+                  value: project.path,
+                };
+              }),
             });
 
             if (!selectedProject) {

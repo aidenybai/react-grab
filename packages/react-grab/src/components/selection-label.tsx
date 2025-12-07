@@ -35,6 +35,7 @@ interface SelectionLabelProps {
   onToggleExpand?: () => void;
   onAbort?: () => void;
   onOpen?: () => void;
+  onDismiss?: () => void;
   isPendingDismiss?: boolean;
   onConfirmDismiss?: () => void;
   onCancelDismiss?: () => void;
@@ -497,7 +498,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             top: `${computedPosition().top}px`,
             left: `${computedPosition().left}px`,
             "z-index": "2147483647",
-            "pointer-events": props.isInputExpanded ? "auto" : "none",
+            "pointer-events": props.isInputExpanded || (props.status === "copied" && props.onDismiss) ? "auto" : "none",
             opacity: props.status === "fading" ? 0 : 1,
           }}
           onPointerDown={handleContainerPointerDown}
@@ -516,6 +517,16 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 {props.hasAgent ? (props.statusText ?? "Completed") : "Copied"}
               </div>
             </div>
+            <Show when={props.onDismiss}>
+              <button
+                class="contain-layout shrink-0 flex items-center justify-center px-[5px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
+                onClick={() => props.onDismiss?.()}
+              >
+                <span class="text-black text-[11px] leading-3.5 tracking-[-0.04em] font-sans font-medium">
+                  OK
+                </span>
+              </button>
+            </Show>
           </div>
         </Show>
 

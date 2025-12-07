@@ -253,6 +253,7 @@ export interface ReactGrabRendererProps {
   isAgentConnected?: boolean;
   agentSessions?: Map<string, AgentSession>;
   onAbortSession?: (sessionId: string) => void;
+  onDismissSession?: (sessionId: string) => void;
   onInputChange?: (value: string) => void;
   onInputSubmit?: () => void;
   onInputCancel?: () => void;
