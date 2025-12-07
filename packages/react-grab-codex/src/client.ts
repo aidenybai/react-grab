@@ -6,7 +6,7 @@ import type {
   init,
   ReactGrabAPI,
 } from "react-grab/core";
-import { DEFAULT_PORT } from "./constants.js";
+import { CONNECTION_CHECK_TTL_MS, DEFAULT_PORT } from "./constants.js";
 
 const DEFAULT_SERVER_URL = `http://localhost:${DEFAULT_PORT}`;
 const STORAGE_KEY = "react-grab:agent-sessions";
@@ -52,15 +52,36 @@ const parseSSEEvent = (eventBlock: string): SSEEvent => {
   return { eventType, data };
 };
 
-const createSSEStream = (stream: ReadableStream<Uint8Array>) => {
+const createSSEStream = (
+  stream: ReadableStream<Uint8Array>,
+  signal: AbortSignal,
+) => {
   const iterate = async function* (): AsyncGenerator<string> {
     const reader = stream.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
+    let aborted = false;
+
+    const onAbort = () => {
+      aborted = true;
+      reader.cancel().catch(() => {});
+    };
+
+    signal.addEventListener("abort", onAbort);
 
     try {
+      if (signal.aborted) {
+        throw new DOMException("Aborted", "AbortError");
+      }
+
       while (true) {
-        const { done, value } = await reader.read();
+        const result = await reader.read();
+
+        if (aborted || signal.aborted) {
+          throw new DOMException("Aborted", "AbortError");
+        }
+
+        const { done, value } = result;
         if (value) {
           buffer += decoder.decode(value, { stream: true });
         }
@@ -88,7 +109,11 @@ const createSSEStream = (stream: ReadableStream<Uint8Array>) => {
         }
       }
     } finally {
-      reader.releaseLock();
+      signal.removeEventListener("abort", onAbort);
+      try {
+        reader.releaseLock();
+      } catch {
+      }
     }
   };
 
@@ -116,7 +141,7 @@ const streamFromServer = (
       throw new Error("No response body");
     }
 
-    const stream = createSSEStream(response.body);
+    const stream = createSSEStream(response.body, signal);
     for await (const chunk of stream) {
       yield chunk;
     }
@@ -130,19 +155,19 @@ export const createCodexAgentProvider = (
 ): AgentProvider<CodexAgentOptions> => {
   const { serverUrl = DEFAULT_SERVER_URL, getOptions } = providerOptions;
 
-  const mergeOptions = (contextOptions: unknown): CodexAgentOptions => {
-    const merged: CodexAgentOptions = { fullAuto: true };
+  let connectionCache: { result: boolean; timestamp: number } | null = null;
 
-    const providerOptionValues = getOptions ? getOptions() : undefined;
-    if (providerOptionValues && typeof providerOptionValues === "object") {
-      Object.assign(merged, providerOptionValues);
-    }
+  const mergeOptions = (contextOptions: unknown): CodexAgentOptions => {
+    const mergedOptions: CodexAgentOptions = {
+      fullAuto: true,
+      ...(getOptions?.() ?? {}),
+    };
 
     if (contextOptions && typeof contextOptions === "object") {
-      Object.assign(merged, contextOptions);
+      Object.assign(mergedOptions, contextOptions);
     }
 
-    return merged;
+    return mergedOptions;
   };
 
   const send = (
@@ -194,6 +219,22 @@ export const createCodexAgentProvider = (
     send,
     resume,
     supportsResume: true,
+    checkConnection: async () => {
+      const now = Date.now();
+      if (connectionCache && now - connectionCache.timestamp < CONNECTION_CHECK_TTL_MS) {
+        return connectionCache.result;
+      }
+
+      try {
+        const response = await fetch(`${serverUrl}/health`, { method: "GET" });
+        const result = response.ok;
+        connectionCache = { result, timestamp: now };
+        return result;
+      } catch {
+        connectionCache = { result: false, timestamp: now };
+        return false;
+      }
+    },
   };
 };
 
