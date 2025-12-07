@@ -523,7 +523,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 onClick={() => props.onDismiss?.()}
               >
                 <span class="text-black text-[11px] leading-3.5 tracking-[-0.04em] font-sans font-medium">
-                  OK
+                  Ok
                 </span>
               </button>
             </Show>
