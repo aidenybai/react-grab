@@ -74,6 +74,7 @@ export const createInstantApplyAgentProvider = (
   const apiEndpoint = options.apiEndpoint ?? DEFAULT_API_ENDPOINT;
   const elementHtmlMap = new Map<string, string>();
   const resultCodeMap = new Map<string, string>();
+  let lastRequestStartTime: number | null = null;
 
   const getOptions = (): RequestContext => {
     const requestId = `req-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -100,9 +101,11 @@ export const createInstantApplyAgentProvider = (
         throw new Error("Could not capture element HTML");
       }
 
-      yield "Generating…";
+      lastRequestStartTime = Date.now();
+      let response: Response | null = null;
+      let fetchError: Error | null = null;
 
-      const response = await fetch(apiEndpoint, {
+      const fetchPromise = fetch(apiEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -110,17 +113,42 @@ export const createInstantApplyAgentProvider = (
           html,
         }),
         signal,
-      });
+      })
+        .then((fetchResponse) => {
+          response = fetchResponse;
+        })
+        .catch((caughtError) => {
+          fetchError = caughtError as Error;
+        });
 
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => "Unknown error");
-        throw new Error(`API error: ${response.status} - ${errorText}`);
+      while (!response && !fetchError) {
+        const elapsedSeconds = (Date.now() - lastRequestStartTime) / 1000;
+        yield elapsedSeconds >= 0.1 ? `Generating… ${elapsedSeconds.toFixed(1)}s` : "Generating…";
+
+        await Promise.race([
+          fetchPromise,
+          new Promise((resolve) => setTimeout(resolve, 100)),
+        ]);
       }
 
-      const code = await response.text();
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      if (!response!.ok) {
+        const errorText = await response!.text().catch(() => "Unknown error");
+        throw new Error(`API error: ${response!.status} - ${errorText}`);
+      }
+
+      const code = await response!.text();
       resultCodeMap.set(requestId, code);
 
       yield "Applying changes...";
+    },
+    getCompletionMessage: () => {
+      if (lastRequestStartTime === null) return undefined;
+      const totalSeconds = ((Date.now() - lastRequestStartTime) / 1000).toFixed(1);
+      return `Completed in ${totalSeconds}s`;
     },
   };
 

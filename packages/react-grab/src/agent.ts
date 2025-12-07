@@ -88,9 +88,14 @@ export const createAgentManager = (
       const finalSessions = sessions();
       const finalSession = finalSessions.get(session.id);
       if (finalSession) {
+        const completionMessage =
+          agentOptions?.provider?.getCompletionMessage?.();
         const completedSession = updateSession(
           finalSession,
-          { isStreaming: false },
+          {
+            isStreaming: false,
+            ...(completionMessage ? { lastStatus: completionMessage } : {}),
+          },
           storage,
         );
         setSessions((prev) => new Map(prev).set(session.id, completedSession));

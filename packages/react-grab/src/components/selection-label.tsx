@@ -513,7 +513,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           <div class="[font-synthesis:none] contain-layout shrink-0 flex items-center gap-1 rounded-xs bg-white antialiased w-fit h-fit py-1 px-1.5">
             <div class="contain-layout shrink-0 flex items-center px-0 py-px w-fit h-[18px] rounded-[1.5px] gap-[3px]">
               <div class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
-                {props.hasAgent ? "Completed" : "Copied"}
+                {props.hasAgent ? (props.statusText ?? "Completed") : "Copied"}
               </div>
             </div>
           </div>

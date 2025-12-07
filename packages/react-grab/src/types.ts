@@ -132,6 +132,7 @@ export interface AgentProvider<T = any> {
   ) => AsyncIterable<string>;
   supportsResume?: boolean;
   checkConnection?: () => Promise<boolean>;
+  getCompletionMessage?: () => string | undefined;
 }
 
 export interface AgentSessionStorage {
