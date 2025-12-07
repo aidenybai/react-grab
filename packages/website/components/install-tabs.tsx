@@ -1,17 +1,29 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { Copy, Check } from "lucide-react";
 import { highlightCode } from "../lib/shiki";
 import { detectMobile } from "@/utils/detect-mobile";
 import { cn } from "@/utils/classnames";
 import { useHotkey } from "./hotkey-context";
 import type { RecordedHotkey } from "./grab-element-button";
 
+interface InlineCodeProps {
+  children: React.ReactNode;
+}
+
+const InlineCode = ({ children }: InlineCodeProps) => (
+  <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-xs text-white/70">
+    {children}
+  </code>
+);
+
+InlineCode.displayName = "InlineCode";
+
 interface InstallTab {
   id: string;
   label: string;
-  fileName: string;
-  description: string;
+  description: React.ReactNode;
   lang?: "tsx" | "bash";
   getCode: (hotkey: RecordedHotkey | null) => string;
   getChangedLines: (hotkey: RecordedHotkey | null) => number[];
@@ -42,17 +54,15 @@ const installTabsData: InstallTab[] = [
   {
     id: "cli",
     label: "CLI (Recommended)",
-    fileName: "terminal",
-    description: "Run this command at your project root:",
+    description: "Run this command at your project root",
     lang: "bash",
-    getCode: () => `npx @react-grab/cli@latest`,
+    getCode: () => `npx @react-grab/cli@latest init`,
     getChangedLines: () => [],
   },
   {
     id: "next-app",
     label: "Next.js (App)",
-    fileName: "app/layout.tsx",
-    description: "Add this inside of your app/layout.tsx:",
+    description: <>Add this inside of your <InlineCode>app/layout.tsx</InlineCode></>,
     getCode: (hotkey) => {
       const dataOptionsAttr = hotkey
         ? `\n            data-options={JSON.stringify(\n              ${formatDataOptionsForNextjs(hotkey)}\n            )}`
@@ -82,8 +92,7 @@ export default function RootLayout({ children }) {
   {
     id: "next-pages",
     label: "Next.js (Pages)",
-    fileName: "pages/_document.tsx",
-    description: "Add this into your pages/_document.tsx:",
+    description: <>Add this into your <InlineCode>pages/_document.tsx</InlineCode></>,
     getCode: (hotkey) => {
       const dataOptionsAttr = hotkey
         ? `\n            data-options={JSON.stringify(\n              ${formatDataOptionsForNextjs(hotkey)}\n            )}`
@@ -119,8 +128,7 @@ export default function Document() {
   {
     id: "vite",
     label: "Vite",
-    fileName: "index.html",
-    description: "Example index.html with React Grab enabled in development:",
+    description: <>Example <InlineCode>index.html</InlineCode> with React Grab enabled in development</>,
     getCode: (hotkey) => {
       if (hotkey) {
         const optionsArg = formatDataOptions(hotkey);
@@ -165,9 +173,7 @@ export default function Document() {
   {
     id: "webpack",
     label: "Webpack",
-    fileName: "src/index.tsx",
-    description:
-      "First npm install react-grab, then add this at the top of your main entry file:",
+    description: <>First <InlineCode>npm install react-grab</InlineCode>, then add this at the top of your main entry file</>,
     getCode: (hotkey) => {
       if (hotkey) {
         const optionsArg = formatDataOptions(hotkey);
@@ -300,7 +306,18 @@ export const InstallTabs = ({
   return (
     <div>
       {showHeading && (
-        <span className="hidden sm:inline text-white">{headingText}</span>
+        <span className="hidden sm:inline text-white">
+          {headingText}
+          {activeTabId === "cli" && (
+            <button
+              type="button"
+              onClick={() => setActiveTabId("next-app")}
+              className="ml-3 text-sm italic text-white/40 hover:text-white/60 hover:underline transition-colors"
+            >
+              Prefer manual install?
+            </button>
+          )}
+        </span>
       )}
       <div className="mt-4 overflow-hidden rounded-lg border border-white/10 bg-white/5 text-sm text-white shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
       <div className="flex items-center gap-4 border-b border-white/10 px-4 pt-2">
@@ -325,45 +342,58 @@ export const InstallTabs = ({
         })}
       </div>
       <div className="bg-black/60 relative">
-        <div className="flex items-center justify-between gap-2 flex-wrap border-b border-white/10 px-4 py-2 text-[11px] text-white/60">
-          <span>{activeTab.description}</span>
-          <span className="font-mono text-[11px] text-white/40">
-            {activeTab.fileName}
-          </span>
-        </div>
         <div className="relative">
-          <div className="group relative">
+          {activeTabId === "cli" ? (
             <button
               type="button"
               onClick={handleCopyClick}
-              className="absolute right-4 top-3 text-[11px] text-white/50 opacity-0 transition-opacity hover:text-white group-hover:opacity-100 z-10"
+              className="group flex w-full items-center justify-between gap-4 px-4 py-6 transition-colors hover:bg-white/5"
             >
-              {didCopy ? "Copied" : "Copy"}
+              {highlightedCode ? (
+                <div
+                  className="overflow-x-auto font-mono text-base leading-relaxed highlighted-code"
+                  dangerouslySetInnerHTML={{ __html: highlightedCode }}
+                />
+              ) : (
+                <pre className="overflow-x-auto font-mono text-base leading-relaxed text-white/80">
+                  <code>{activeCode}</code>
+                </pre>
+              )}
+              <span className="shrink-0 text-white/50 transition-colors group-hover:text-white">
+                {didCopy ? <Check size={16} /> : <Copy size={16} />}
+              </span>
             </button>
-            {highlightedCode ? (
-              <div
-                className={cn(
-                  "overflow-x-auto px-4 py-3 font-mono leading-relaxed highlighted-code",
-                  activeTabId === "cli" ? "text-base" : "text-[13px]",
-                )}
-                dangerouslySetInnerHTML={{ __html: highlightedCode }}
-              />
-            ) : (
-              <pre
-                className={cn(
-                  "overflow-x-auto px-4 py-3 font-mono leading-relaxed text-white/80",
-                  activeTabId === "cli" ? "text-base" : "text-[13px]",
-                )}
+          ) : (
+            <div className="group relative">
+              <button
+                type="button"
+                onClick={handleCopyClick}
+                className="absolute right-4 top-3 text-white/50 opacity-0 transition-opacity hover:text-white group-hover:opacity-100 z-10"
               >
-                <code>{activeCode}</code>
-              </pre>
-            )}
-          </div>
+                {didCopy ? <Check size={16} /> : <Copy size={16} />}
+              </button>
+              {highlightedCode ? (
+                <div
+                  className="overflow-x-auto px-4 py-3 font-mono text-[13px] leading-relaxed highlighted-code"
+                  dangerouslySetInnerHTML={{ __html: highlightedCode }}
+                />
+              ) : (
+                <pre className="overflow-x-auto px-4 py-3 font-mono text-[13px] leading-relaxed text-white/80">
+                  <code>{activeCode}</code>
+                </pre>
+              )}
+            </div>
+          )}
         </div>
       </div>
       </div>
-      {showAgentNote && activeTabId !== "cli" && (
+      {activeTabId !== "cli" && (
         <span className="mt-4 block text-sm text-white/50">
+          {activeTab.description}
+        </span>
+      )}
+      {showAgentNote && activeTabId !== "cli" && (
+        <span className="mt-2 block text-sm text-white/50">
           Want to integrate directly with your coding agent?{" "}
           <a href="/blog/agent" className="underline hover:text-white/70">
             See our agent integration guide
@@ -373,3 +403,5 @@ export const InstallTabs = ({
     </div>
   );
 };
+
+InstallTabs.displayName = "InstallTabs";

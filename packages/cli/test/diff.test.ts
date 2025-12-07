@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateDiff, formatDiff } from "../src/diff.js";
+import { generateDiff, formatDiff } from "../src/utils/diff.js";
 
 describe("generateDiff", () => {
   it("should detect added lines", () => {

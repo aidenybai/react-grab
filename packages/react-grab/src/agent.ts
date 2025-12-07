@@ -33,6 +33,7 @@ export interface AgentManager {
   startSession: (params: StartSessionParams) => Promise<void>;
   abortSession: (sessionId: string) => void;
   abortAllSessions: () => void;
+  dismissSession: (sessionId: string) => void;
   updateSessionBoundsOnViewportChange: () => void;
   getSessionElement: (sessionId: string) => Element | undefined;
   setOptions: (options: AgentOptions) => void;
@@ -65,9 +66,7 @@ export const createAgentManager = (
     streamIterator: AsyncIterable<string>,
   ) => {
     const storage = agentOptions?.storage;
-    let didComplete = false;
     let wasAborted = false;
-    let hadError = false;
 
     try {
       for await (const status of streamIterator) {
@@ -84,17 +83,22 @@ export const createAgentManager = (
         agentOptions?.onStatus?.(status, updatedSession);
       }
 
-      didComplete = true;
       const finalSessions = sessions();
       const finalSession = finalSessions.get(session.id);
       if (finalSession) {
+        const completionMessage =
+          agentOptions?.provider?.getCompletionMessage?.();
         const completedSession = updateSession(
           finalSession,
-          { isStreaming: false },
+          {
+            isStreaming: false,
+            ...(completionMessage ? { lastStatus: completionMessage } : {}),
+          },
           storage,
         );
         setSessions((prev) => new Map(prev).set(session.id, completedSession));
-        agentOptions?.onComplete?.(completedSession);
+        const element = sessionElements.get(session.id);
+        agentOptions?.onComplete?.(completedSession, element);
       }
     } catch (error) {
       const currentSessions = sessions();
@@ -131,7 +135,6 @@ export const createAgentManager = (
             setSessions((prev) => new Map(prev).set(session.id, errorSession));
           }
         } else {
-          hadError = true;
           if (currentSession) {
             const errorSession = updateSession(
               currentSession,
@@ -151,7 +154,7 @@ export const createAgentManager = (
     } finally {
       abortControllers.delete(session.id);
 
-      const removeSession = () => {
+      if (wasAborted) {
         sessionElements.delete(session.id);
         clearSessionById(session.id, storage);
         setSessions((prev) => {
@@ -159,13 +162,6 @@ export const createAgentManager = (
           next.delete(session.id);
           return next;
         });
-      };
-
-      if (wasAborted) {
-        removeSession();
-      } else if (didComplete || hadError) {
-        // HACK: Delay removal to show status message for 1.5 seconds
-        setTimeout(removeSession, 1500);
       }
     }
   };
@@ -260,7 +256,7 @@ export const createAgentManager = (
     }
 
     const elements = [element];
-    const content = await generateSnippet(elements);
+    const content = await generateSnippet(elements, { maxLines: Infinity });
     const context: AgentContext = {
       content,
       prompt,
@@ -280,7 +276,7 @@ export const createAgentManager = (
     sessionElements.set(session.id, element);
     setSessions((prev) => new Map(prev).set(session.id, session));
     saveSessionById(session, storage);
-    agentOptions.onStart?.(session);
+    agentOptions.onStart?.(session, element);
 
     const abortController = new AbortController();
     abortControllers.set(session.id, abortController);
@@ -304,6 +300,17 @@ export const createAgentManager = (
     abortControllers.clear();
     setSessions(new Map());
     clearSessions(agentOptions?.storage);
+  };
+
+  const dismissSession = (sessionId: string) => {
+    const storage = agentOptions?.storage;
+    sessionElements.delete(sessionId);
+    clearSessionById(sessionId, storage);
+    setSessions((prev) => {
+      const next = new Map(prev);
+      next.delete(sessionId);
+      return next;
+    });
   };
 
   const updateSessionBoundsOnViewportChange = () => {
@@ -363,6 +370,7 @@ export const createAgentManager = (
     startSession,
     abortSession,
     abortAllSessions,
+    dismissSession,
     updateSessionBoundsOnViewportChange,
     getSessionElement,
     setOptions,

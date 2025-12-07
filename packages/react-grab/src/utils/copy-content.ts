@@ -2,14 +2,20 @@ import { VERSION } from "../constants.js";
 
 const REACT_GRAB_MIME_TYPE = "application/x-react-grab";
 
+interface CopyContentOptions {
+  onSuccess?: () => void;
+  prompt?: string;
+}
+
 export const copyContent = (
   content: string,
-  onSuccess?: () => void,
+  options?: CopyContentOptions,
 ): boolean => {
   const metadata = JSON.stringify({
     version: VERSION,
     content,
     timestamp: Date.now(),
+    ...(options?.prompt && { prompt: options.prompt }),
   });
 
   const copyHandler = (event: ClipboardEvent) => {
@@ -31,7 +37,7 @@ export const copyContent = (
   try {
     const didCopySucceed = document.execCommand("copy");
     if (didCopySucceed) {
-      onSuccess?.();
+      options?.onSuccess?.();
     }
     return didCopySucceed;
   } finally {

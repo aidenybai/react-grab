@@ -36,6 +36,8 @@ const SortIcon = ({ field, sortField, sortDirection }: SortIconProps) => {
   );
 };
 
+SortIcon.displayName = "SortIcon";
+
 export const BenchmarkDetailedTable = ({
   results,
   testCaseMap,
@@ -485,3 +487,5 @@ export const BenchmarkDetailedTable = ({
     </div>
   );
 };
+
+BenchmarkDetailedTable.displayName = "BenchmarkDetailedTable";

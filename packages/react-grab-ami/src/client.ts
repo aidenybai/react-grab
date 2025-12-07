@@ -160,7 +160,7 @@ export const createAmiAgentProvider = (
     send: async function* (context: AgentContext, signal: AbortSignal) {
       const token = await getOrCreateToken();
 
-      yield "Please wait...";
+      yield "Thinking...";
 
       const statusQueue: string[] = [];
       let resolveWait: (() => void) | null = null;

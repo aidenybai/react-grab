@@ -132,6 +132,7 @@ export interface AgentProvider<T = any> {
   ) => AsyncIterable<string>;
   supportsResume?: boolean;
   checkConnection?: () => Promise<boolean>;
+  getCompletionMessage?: () => string | undefined;
 }
 
 export interface AgentSessionStorage {
@@ -145,9 +146,9 @@ export interface AgentOptions<T = any> {
   provider?: AgentProvider<T>;
   storage?: AgentSessionStorage | null;
   getOptions?: () => T;
-  onStart?: (session: AgentSession) => void;
+  onStart?: (session: AgentSession, element: Element | undefined) => void;
   onStatus?: (status: string, session: AgentSession) => void;
-  onComplete?: (session: AgentSession) => void;
+  onComplete?: (session: AgentSession, element: Element | undefined) => void;
   onError?: (error: Error, session: AgentSession) => void;
   onResume?: (session: AgentSession) => void;
   onAbort?: (session: AgentSession, element: Element | undefined) => void;
@@ -252,10 +253,14 @@ export interface ReactGrabRendererProps {
   isAgentConnected?: boolean;
   agentSessions?: Map<string, AgentSession>;
   onAbortSession?: (sessionId: string) => void;
+  onDismissSession?: (sessionId: string) => void;
   onInputChange?: (value: string) => void;
   onInputSubmit?: () => void;
   onInputCancel?: () => void;
   onToggleExpand?: () => void;
+  isPendingDismiss?: boolean;
+  onConfirmDismiss?: () => void;
+  onCancelDismiss?: () => void;
   nativeSelectionCursorVisible?: boolean;
   nativeSelectionCursorX?: number;
   nativeSelectionCursorY?: number;

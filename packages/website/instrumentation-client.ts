@@ -1,4 +1,5 @@
 import { init } from "react-grab/core";
+import { createInstantApplyAgentProvider } from "./utils/instant-apply-agent-provider";
 
 declare global {
   interface Window {
@@ -15,5 +16,17 @@ if (typeof window !== "undefined" && !window.__REACT_GRAB__) {
       window.dispatchEvent(new CustomEvent("react-grab:deactivated"));
     },
   });
+
+  const { provider, getOptions, onStart, onComplete } =
+    createInstantApplyAgentProvider();
+
+  api.setAgent({
+    provider,
+    getOptions,
+    storage: sessionStorage,
+    onStart,
+    onComplete,
+  });
+
   window.__REACT_GRAB__ = api;
 }

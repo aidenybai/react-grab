@@ -13,6 +13,7 @@ import { cn } from "../utils/cn.js";
 import { useSpeechRecognition } from "../utils/speech-recognition.js";
 import { IconOpen } from "./icon-open.js";
 import { IconMic } from "./icon-mic.js";
+import { IconReturn } from "./icon-return.js";
 
 interface SelectionLabelProps {
   tagName?: string;
@@ -34,6 +35,10 @@ interface SelectionLabelProps {
   onToggleExpand?: () => void;
   onAbort?: () => void;
   onOpen?: () => void;
+  onDismiss?: () => void;
+  isPendingDismiss?: boolean;
+  onConfirmDismiss?: () => void;
+  onCancelDismiss?: () => void;
 }
 
 interface TagBadgeProps {
@@ -185,25 +190,82 @@ const ClickToCopyPill: Component<ClickToCopyPillProps> = (props) => {
   );
 };
 
-const RETURN_KEY_ICON_URL =
-  "https://workers.paper.design/file-assets/01K8D51Q7E2ESJTN18XN2MT96X/01KBEJ7N5GQ0ZZ7K456R42AP4V.svg";
-
 const BOTTOM_SECTION_GRADIENT =
   "linear-gradient(in oklab 180deg, oklab(100% 0 0) 0%, oklab(96.1% 0 0) 5.92%)";
 
 const BottomSection: Component<BottomSectionProps> = (props) => (
   <div
-    class="[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start px-2 py-[5px] w-auto h-fit self-stretch [border-top-width:0.5px] border-t-solid border-t-[#D9D9D9] antialiased rounded-t-none rounded-b-xs"
+    class="[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start px-2 py-[5px] w-auto h-fit self-stretch [border-top-width:0.5px] border-t-solid border-t-[#D9D9D9] antialiased rounded-t-none rounded-b-xs -mt-px"
     style={{ "background-image": BOTTOM_SECTION_GRADIENT }}
   >
     {props.children}
   </div>
 );
 
+interface DismissConfirmationProps {
+  onConfirm?: () => void;
+  onCancel?: () => void;
+}
+
+const DismissConfirmation: Component<DismissConfirmationProps> = (props) => {
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.code === "Enter") {
+      event.preventDefault();
+      event.stopPropagation();
+      props.onConfirm?.();
+    } else if (event.code === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      props.onCancel?.();
+    }
+  };
+
+  onMount(() => {
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+  });
+
+  onCleanup(() => {
+    window.removeEventListener("keydown", handleKeyDown, { capture: true });
+  });
+
+  return (
+    <div class="contain-layout shrink-0 flex flex-col justify-center items-end gap-1 w-fit h-fit">
+      <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-full h-fit">
+        <span class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
+          Discard prompt?
+        </span>
+      </div>
+      <BottomSection>
+        <div class="contain-layout shrink-0 flex items-center justify-end gap-[5px] w-full h-fit">
+          <button
+            class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
+            onClick={props.onCancel}
+          >
+            <span class="text-black text-[11px] leading-3.5 tracking-[-0.04em] font-sans font-medium">
+              No
+            </span>
+          </button>
+          <button
+            class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#7e0002] cursor-pointer transition-all hover:bg-[#FEF2F2] h-[17px]"
+            onClick={props.onConfirm}
+          >
+            <span class="text-[#B91C1C] text-[11px] leading-3.5 tracking-[-0.04em] font-sans font-medium">
+              Yes
+            </span>
+            <IconReturn size={10} class="text-[#c00002]" />
+          </button>
+        </div>
+      </BottomSection>
+    </div>
+  );
+};
+
 export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
   let inputRef: HTMLTextAreaElement | undefined;
   let isTagCurrentlyHovered = false;
+  let lastValidPosition: { left: number; top: number; arrowLeft: number } | null = null;
+  let lastElementIdentity: string | null = null;
 
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
@@ -211,6 +273,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     createSignal<ArrowPosition>("bottom");
   const [viewportVersion, setViewportVersion] = createSignal(0);
   const [isIdle, setIsIdle] = createSignal(false);
+  const [hadValidBounds, setHadValidBounds] = createSignal(false);
 
   const speechRecognition = useSpeechRecognition({
     onTranscript: (transcript) => props.onInputChange?.(transcript),
@@ -284,8 +347,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   });
 
   createEffect(() => {
-    void props.selectionBounds;
-    resetIdleTimer();
+    const elementIdentity = `${props.tagName ?? ""}:${props.componentName ?? ""}`;
+    if (elementIdentity !== lastElementIdentity) {
+      lastElementIdentity = elementIdentity;
+      resetIdleTimer();
+    }
   });
 
   createEffect(() => {
@@ -314,9 +380,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     const bounds = props.selectionBounds;
     const labelWidth = measuredWidth();
     const labelHeight = measuredHeight();
+    const hasMeasurements = labelWidth > 0 && labelHeight > 0;
+    const hasValidBounds = bounds && bounds.width > 0 && bounds.height > 0;
 
-    if (!bounds || labelWidth === 0 || labelHeight === 0) {
-      return { left: -9999, top: -9999, arrowLeft: 0 };
+    if (!hasMeasurements || !hasValidBounds) {
+      return lastValidPosition ?? { left: -9999, top: -9999, arrowLeft: 0 };
     }
 
     const viewportWidth = window.innerWidth;
@@ -357,7 +425,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       Math.min(cursorX - positionLeft, labelWidth - 12),
     );
 
-    return { left: positionLeft, top: positionTop, arrowLeft };
+    const position = { left: positionLeft, top: positionTop, arrowLeft };
+    lastValidPosition = position;
+    setHadValidBounds(true);
+
+    return position;
   };
 
   const handleKeyDown = (event: KeyboardEvent) => {
@@ -398,29 +470,41 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     event.stopImmediatePropagation();
   };
 
+  const handleContainerPointerDown = (event: PointerEvent) => {
+    stopPropagation(event);
+    const isEditableInputVisible =
+      isNotProcessing() && props.isInputExpanded && !props.isPendingDismiss;
+    if (isEditableInputVisible && inputRef) {
+      inputRef.focus();
+    }
+  };
+
   const handleSubmit = () => {
     if (props.isInputExpanded && !props.inputValue?.trim()) return;
     speechRecognition.stop();
     props.onSubmit?.();
   };
 
+  const shouldShowWithoutBounds = () =>
+    hadValidBounds() && (props.status === "copied" || props.status === "fading");
+
   return (
-    <Show when={props.visible !== false && props.selectionBounds}>
-      <div
-        ref={containerRef}
-        data-react-grab-ignore-events
-        class="fixed font-sans antialiased transition-opacity duration-300 ease-out filter-[drop-shadow(0px_0px_4px_#51515180)] select-none"
-        style={{
-          top: `${computedPosition().top}px`,
-          left: `${computedPosition().left}px`,
-          "z-index": "2147483647",
-          "pointer-events": props.isInputExpanded ? "auto" : "none",
-          opacity: props.status === "fading" ? 0 : 1,
-        }}
-        onPointerDown={stopPropagation}
-        onMouseDown={stopPropagation}
-        onClick={stopPropagation}
-      >
+    <Show when={props.visible !== false && (props.selectionBounds || shouldShowWithoutBounds())}>
+        <div
+          ref={containerRef}
+          data-react-grab-ignore-events
+          class="fixed font-sans antialiased transition-opacity duration-300 ease-out filter-[drop-shadow(0px_0px_4px_#51515180)] select-none"
+          style={{
+            top: `${computedPosition().top}px`,
+            left: `${computedPosition().left}px`,
+            "z-index": "2147483647",
+            "pointer-events": props.isInputExpanded || (props.status === "copied" && props.onDismiss) || (props.status === "copying" && props.onAbort) ? "auto" : "none",
+            opacity: props.status === "fading" ? 0 : 1,
+          }}
+          onPointerDown={handleContainerPointerDown}
+          onMouseDown={stopPropagation}
+          onClick={stopPropagation}
+        >
         <Arrow
           position={arrowPosition()}
           leftPx={computedPosition().arrowLeft}
@@ -430,9 +514,19 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           <div class="[font-synthesis:none] contain-layout shrink-0 flex items-center gap-1 rounded-xs bg-white antialiased w-fit h-fit py-1 px-1.5">
             <div class="contain-layout shrink-0 flex items-center px-0 py-px w-fit h-[18px] rounded-[1.5px] gap-[3px]">
               <div class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
-                {props.hasAgent ? "Completed" : "Copied"}
+                {props.hasAgent ? (props.statusText ?? "Completed") : "Copied"}
               </div>
             </div>
+            <Show when={props.onDismiss}>
+              <button
+                class="contain-layout shrink-0 flex items-center justify-center px-[5px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
+                onClick={() => props.onDismiss?.()}
+              >
+                <span class="text-black text-[11px] leading-3.5 tracking-[-0.04em] font-sans font-medium">
+                  Ok
+                </span>
+              </button>
+            </Show>
           </div>
         </Show>
 
@@ -449,15 +543,16 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit max-w-[280px]">
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-auto h-fit">
                 <div class="contain-layout flex items-center px-0 py-px w-auto h-fit rounded-[1.5px] gap-[3px]">
-                  <div class="text-black text-[12px] leading-4 tracking-[-0.04em] font-sans font-medium w-auto h-fit whitespace-normal react-grab-shimmer">
+                  <span class="text-[12px] leading-4 tracking-[-0.04em] font-sans font-medium w-auto h-fit whitespace-normal text-[#71717a] animate-pulse">
                     {props.statusText ?? "Grabbing…"}
-                  </div>
+                  </span>
                 </div>
               </div>
               <BottomSection>
                 <div class="shrink-0 flex justify-between items-end w-full min-h-4">
                   <textarea
                     ref={inputRef}
+                    data-react-grab-ignore-events
                     class="text-black text-[12px] leading-4 tracking-[-0.04em] font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 opacity-50 wrap-break-word overflow-y-auto"
                     style={{
                       // @ts-expect-error - field-sizing is not in the jsx spec
@@ -537,7 +632,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 </Show>
               </div>
               <div
-                class="grid transition-[grid-template-rows] duration-30 ease-out"
+                class="grid transition-[grid-template-rows] duration-30 ease-out self-stretch"
                 style={{
                   "grid-template-rows": isIdle() ? "1fr" : "0fr",
                 }}
@@ -549,12 +644,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                         Press
                       </span>
                       <div class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit">
-                        <div
-                          class="w-2.5 h-[9px] shrink-0 opacity-[0.99] bg-cover bg-center"
-                          style={{
-                            "background-image": `url(${RETURN_KEY_ICON_URL})`,
-                          }}
-                        />
+                        <IconReturn size={10} class="opacity-[0.99] text-black" />
                       </div>
                       <span class="text-label-muted text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
                         to edit
@@ -566,7 +656,13 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             </div>
           </Show>
 
-          <Show when={isNotProcessing() && props.isInputExpanded}>
+          <Show
+            when={
+              isNotProcessing() &&
+              props.isInputExpanded &&
+              !props.isPendingDismiss
+            }
+          >
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit max-w-[280px]">
               <div
                 class={cn(
@@ -612,6 +708,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 <div class="shrink-0 flex justify-between items-end w-full min-h-4">
                   <textarea
                     ref={inputRef}
+                    data-react-grab-ignore-events
                     class="text-black text-[12px] leading-4 tracking-[-0.04em] font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 wrap-break-word overflow-y-auto"
                     style={{
                       // @ts-expect-error - field-sizing is not in the jsx spec
@@ -669,18 +766,20 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                         class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit cursor-pointer transition-all hover:scale-105"
                         onClick={handleSubmit}
                       >
-                        <div
-                          class="w-2.5 h-[9px] shrink-0 bg-cover bg-center opacity-[0.99]"
-                          style={{
-                            "background-image": `url(${RETURN_KEY_ICON_URL})`,
-                          }}
-                        />
+                        <IconReturn size={10} class="opacity-[0.99] text-black" />
                       </button>
                     </Show>
                   </div>
                 </div>
               </BottomSection>
             </div>
+          </Show>
+
+          <Show when={props.isPendingDismiss}>
+            <DismissConfirmation
+              onConfirm={props.onConfirmDismiss}
+              onCancel={props.onCancelDismiss}
+            />
           </Show>
         </div>
       </div>

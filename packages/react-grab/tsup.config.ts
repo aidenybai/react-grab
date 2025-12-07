@@ -1,7 +1,30 @@
+import { execSync } from "node:child_process";
 import fs from "node:fs";
 import { defineConfig, type Options } from "tsup";
 // @ts-expect-error -- esbuild-plugin-babel is not typed
 import babel from "esbuild-plugin-babel";
+
+const getCommitHash = (): string => {
+  try {
+    return execSync("git rev-parse --short HEAD").toString().trim();
+  } catch {
+    return "unknown";
+  }
+};
+
+const getPackageVersion = (): string =>
+  (JSON.parse(fs.readFileSync("package.json", "utf8")) as { version: string })
+    .version;
+
+const isVercel = Boolean(process.env.VERCEL);
+
+const version =
+  process.env.VERSION ??
+  (isVercel
+    ? getCommitHash()
+    : process.env.NODE_ENV === "production"
+      ? getPackageVersion()
+      : "[DEV]");
 
 const banner = `/**
  * @license MIT
@@ -21,13 +44,7 @@ const DEFAULT_OPTIONS: Options = {
   entry: [],
   env: {
     NODE_ENV: process.env.NODE_ENV ?? "development",
-    VERSION:
-      process.env.VERSION ??
-      (
-        JSON.parse(fs.readFileSync("package.json", "utf8")) as {
-          version: string;
-        }
-      ).version,
+    VERSION: version,
   },
   external: [],
   format: [],
@@ -48,6 +65,10 @@ export default defineConfig([
   {
     ...DEFAULT_OPTIONS,
     entry: ["./src/index.ts"],
+    env: {
+      ...DEFAULT_OPTIONS.env,
+      VERSION: version,
+    },
     format: ["iife"],
     globalName: "ReactGrab",
     loader: {

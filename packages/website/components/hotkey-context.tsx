@@ -16,7 +16,11 @@ interface HotkeyContextValue {
 
 const HotkeyContext = createContext<HotkeyContextValue | null>(null);
 
-export const HotkeyProvider = ({ children }: { children: ReactNode }) => {
+interface HotkeyProviderProps {
+  children: ReactNode;
+}
+
+export const HotkeyProvider = ({ children }: HotkeyProviderProps) => {
   const [customHotkey, setCustomHotkeyState] = useState<RecordedHotkey | null>(
     null,
   );
@@ -31,6 +35,8 @@ export const HotkeyProvider = ({ children }: { children: ReactNode }) => {
     </HotkeyContext.Provider>
   );
 };
+
+HotkeyProvider.displayName = "HotkeyProvider";
 
 export const useHotkey = (): HotkeyContextValue => {
   const context = useContext(HotkeyContext);

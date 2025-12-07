@@ -18,3 +18,5 @@ export const IconOpencode = (props: SVGProps<SVGSVGElement>) => (
     </defs>
   </svg>
 );
+
+IconOpencode.displayName = "IconOpencode";

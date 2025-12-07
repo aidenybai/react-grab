@@ -1,4 +1,4 @@
-import { Show, For } from "solid-js";
+import { Show, For, Index, createMemo } from "solid-js";
 import type { Component } from "solid-js";
 import type { ReactGrabRendererProps } from "../types.js";
 import { buildOpenFileUrl } from "../utils/build-open-file-url.js";
@@ -8,6 +8,10 @@ import { SelectionCursor } from "./selection-cursor.js";
 import { SelectionLabel } from "./selection-label.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
+  const agentSessionsList = createMemo(() =>
+    props.agentSessions ? Array.from(props.agentSessions.values()) : []
+  );
+
   return (
     <>
       <Show when={props.selectionVisible && props.selectionBounds}>
@@ -51,37 +55,34 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         )}
       </For>
 
-      <For
-        each={
-          props.agentSessions ? Array.from(props.agentSessions.values()) : []
-        }
-      >
+      <Index each={agentSessionsList()}>
         {(session) => (
           <>
-            <Show when={session.selectionBounds}>
+            <Show when={session().selectionBounds}>
               <SelectionBox
                 variant="processing"
-                bounds={session.selectionBounds!}
+                bounds={session().selectionBounds!}
                 visible={true}
-                isCompleted={!session.isStreaming}
+                isCompleted={!session().isStreaming}
               />
             </Show>
             <SelectionLabel
-              tagName={session.tagName}
-              componentName={session.componentName}
-              selectionBounds={session.selectionBounds}
-              mouseX={session.position.x}
+              tagName={session().tagName}
+              componentName={session().componentName}
+              selectionBounds={session().selectionBounds}
+              mouseX={session().position.x}
               visible={true}
               hasAgent={true}
               isAgentConnected={true}
-              status={session.isStreaming ? "copying" : "copied"}
-              statusText={session.lastStatus || "Thinking…"}
-              inputValue={session.context.prompt}
-              onAbort={() => props.onAbortSession?.(session.id)}
+              status={session().isStreaming ? "copying" : "copied"}
+              statusText={session().lastStatus || "Thinking…"}
+              inputValue={session().context.prompt}
+              onAbort={() => props.onAbortSession?.(session().id)}
+              onDismiss={session().isStreaming ? undefined : () => props.onDismissSession?.(session().id)}
             />
           </>
         )}
-      </For>
+      </Index>
 
       <Show when={props.selectionLabelVisible && props.selectionBounds}>
         <SelectionLabel
@@ -101,6 +102,9 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           onSubmit={props.onInputSubmit}
           onCancel={props.onInputCancel}
           onToggleExpand={props.onToggleExpand}
+          isPendingDismiss={props.isPendingDismiss}
+          onConfirmDismiss={props.onConfirmDismiss}
+          onCancelDismiss={props.onCancelDismiss}
           onOpen={() => {
             if (props.selectionFilePath) {
               const openFileUrl = buildOpenFileUrl(
