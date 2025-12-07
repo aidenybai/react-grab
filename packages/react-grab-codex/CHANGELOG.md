@@ -1,4 +1,4 @@
 # Changelog
 
-## 0.0.67
+## 0.0.73
 - Initial Codex bridge package.
