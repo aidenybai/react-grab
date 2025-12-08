@@ -548,10 +548,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             didCopy = copyContent(contentWithPrompt, { prompt: extraPrompt });
           }
         }
-
-        if (didCopy) {
-          options.onCopySuccess?.(elements, copiedContent);
-        }
       } catch (error) {
         options.onCopyError?.(error as Error);
 
@@ -566,6 +562,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
       }
 
+      if (didCopy) {
+        options.onCopySuccess?.(elements, copiedContent);
+      }
       options.onAfterCopy?.(elements, didCopy);
 
       return didCopy;
@@ -1711,10 +1710,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             const { metaKey, ctrlKey, shiftKey, altKey } =
               options.activationKey;
             return {
-              metaKey: !!metaKey,
-              ctrlKey: !!ctrlKey,
-              shiftKey: !!shiftKey,
-              altKey: !!altKey,
+              metaKey: Boolean(metaKey),
+              ctrlKey: Boolean(ctrlKey),
+              shiftKey: Boolean(shiftKey),
+              altKey: Boolean(altKey),
             };
           }
           return {

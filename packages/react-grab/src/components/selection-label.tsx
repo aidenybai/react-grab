@@ -651,7 +651,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 <ClickToCopyPill
                   onClick={handleSubmit}
                   shrink
-                  hasParent={!!props.componentName}
+                  hasParent={Boolean(props.componentName)}
                   hasAgent={props.hasAgent}
                 />
                 <Show when={props.componentName}>
@@ -725,7 +725,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   onClick={handleSubmit}
                   dimmed
                   shrink
-                  hasParent={!!props.componentName}
+                  hasParent={Boolean(props.componentName)}
                   hasAgent={props.hasAgent}
                 />
                 <Show when={props.componentName}>
