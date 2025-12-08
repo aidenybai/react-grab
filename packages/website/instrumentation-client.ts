@@ -17,7 +17,7 @@ if (typeof window !== "undefined" && !window.__REACT_GRAB__) {
     },
   });
 
-  const { provider, getOptions, onStart, onComplete } =
+  const { provider, getOptions, onStart, onComplete, onUndo } =
     createInstantApplyAgentProvider();
 
   api.setAgent({
@@ -26,6 +26,7 @@ if (typeof window !== "undefined" && !window.__REACT_GRAB__) {
     storage: sessionStorage,
     onStart,
     onComplete,
+    onUndo,
   });
 
   window.__REACT_GRAB__ = api;
