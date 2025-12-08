@@ -19,7 +19,7 @@ const AGENT_NAMES: Record<string, string> = {
   "claude-code": "Claude Code",
   cursor: "Cursor",
   opencode: "Opencode",
-  ami: "AMI",
+  ami: "Ami",
 };
 
 export const add = new Command()
