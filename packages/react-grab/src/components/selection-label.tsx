@@ -360,6 +360,23 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   });
 
   createEffect(() => {
+    // HACK: trigger measurement when content that affects size changes
+    // this is necessary because Solid's fine-grained reactivity means we don't re-render
+    // the entire component when props change. Since the label position depends on its
+    // width/height (to center it), and width/height depends on content, we must force
+    // a re-measure whenever ANY prop that could change the rendered size updates.
+    // Without this, switching from a short tag to a long component name would use the
+    // old cached width, causing the label to be offset incorrectly.
+    void props.tagName;
+    void props.componentName;
+    void props.statusText;
+    void props.inputValue;
+    void props.hasAgent;
+    void props.isInputExpanded;
+    requestAnimationFrame(measureContainer);
+  });
+
+  createEffect(() => {
     if (props.visible) {
       requestAnimationFrame(measureContainer);
     }
