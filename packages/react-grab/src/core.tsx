@@ -43,6 +43,7 @@ import {
   BLUR_DEACTIVATION_THRESHOLD_MS,
   BOUNDS_RECALC_INTERVAL_MS,
   INPUT_FOCUS_ACTIVATION_DELAY_MS,
+  DEFAULT_KEY_HOLD_DURATION_MS,
 } from "./constants.js";
 import { isCLikeKey } from "./utils/is-c-like-key.js";
 import { keyMatchesCode, isTargetKeyCombination } from "./utils/hotkey.js";
@@ -60,6 +61,7 @@ import type {
   SelectionLabelInstance,
   AgentSession,
   AgentOptions,
+  UpdatableOptions,
 } from "./types.js";
 import { mergeTheme, deepMergeTheme } from "./theme.js";
 import { createAgentManager } from "./agent.js";
@@ -117,14 +119,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       updateTheme: () => {},
       getTheme: () => initialTheme,
       setAgent: () => {},
+      updateOptions: () => {},
     };
   }
 
   const scriptOptions = getScriptOptions();
 
-  const options = {
+  let options: Options = {
     enabled: true,
-    keyHoldDuration: 200,
+    keyHoldDuration: DEFAULT_KEY_HOLD_DURATION_MS,
     allowActivationInsideInput: true,
     maxContextLines: 3,
     ...scriptOptions,
@@ -152,6 +155,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       updateTheme: () => {},
       getTheme: () => mergedTheme,
       setAgent: () => {},
+      updateOptions: () => {},
     };
   }
   hasInited = true;
@@ -966,7 +970,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const startProgressAnimation = (duration?: number) => {
       const startTime = Date.now();
-      const animationDuration = duration ?? options.keyHoldDuration;
+      const animationDuration = duration ?? options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS;
       setProgressStartTime(startTime);
 
       const animateProgress = () => {
@@ -1682,9 +1686,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           setIsHoldingKeys(true);
         }
 
+        const keyHoldDuration = options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS;
         const activationDuration = isKeyboardEventTriggeredByInput(event)
-          ? options.keyHoldDuration + INPUT_FOCUS_ACTIVATION_DELAY_MS
-          : options.keyHoldDuration;
+          ? keyHoldDuration + INPUT_FOCUS_ACTIVATION_DELAY_MS
+          : keyHoldDuration;
 
         holdTimerId = window.setTimeout(() => {
           activateRenderer();
@@ -2302,6 +2307,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         agentManager.tryResumeSessions();
       },
+      updateOptions: (newOptions: UpdatableOptions) => {
+        options = { ...options, ...newOptions };
+      },
     };
   });
 };
@@ -2319,6 +2327,7 @@ export type {
   AgentSession,
   AgentSessionStorage,
   AgentProvider,
+  UpdatableOptions,
 } from "./types.js";
 
 export { generateSnippet } from "./utils/generate-snippet.js";

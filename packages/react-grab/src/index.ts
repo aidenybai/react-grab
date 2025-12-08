@@ -25,6 +25,7 @@ export type {
   AgentProvider,
   AgentSessionStorage,
   AgentOptions,
+  UpdatableOptions,
 } from "./types.js";
 
 import { init } from "./core.js";
