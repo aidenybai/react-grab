@@ -69,13 +69,6 @@ const PACKAGE_MANAGER_NAMES: Record<PackageManager, string> = {
   bun: "Bun",
 };
 
-const AGENT_NAMES: Record<string, string> = {
-  ami: "Ami",
-  "claude-code": "Claude Code",
-  cursor: "Cursor",
-  opencode: "Opencode",
-};
-
 const UNSUPPORTED_FRAMEWORK_NAMES: Record<
   NonNullable<UnsupportedFramework>,
   string
@@ -250,7 +243,7 @@ export const init = new Command()
             { title: "Claude Code", value: "claude-code" },
             { title: "Cursor", value: "cursor" },
             { title: "Opencode", value: "opencode" },
-            { title: "AMI", value: "ami" },
+            { title: "Ami", value: "ami" },
           ],
         });
 
