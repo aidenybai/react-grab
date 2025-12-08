@@ -769,7 +769,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     placeholder={
                       speechRecognition.isListening()
                         ? "listening..."
-                        : props.hasAgent && props.isAgentConnected
+                        : props.hasAgent
                           ? "type to edit"
                           : "type prompt"
                     }
