@@ -1,5 +1,13 @@
 # @react-grab/ami
 
+## 0.0.75
+
+### Patch Changes
+
+- fix: issue with Illegal Invocation on next.js pages
+- Updated dependencies
+  - react-grab@0.0.75
+
 ## 0.0.74
 
 ### Patch Changes
