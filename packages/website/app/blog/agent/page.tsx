@@ -368,7 +368,7 @@ const AgentPage = () => {
                 <div className="px-3 py-2">
                   <HighlightedCodeBlock
                     lang="bash"
-                    code={`npx @react-grab/cli@latest init`}
+                    code={`npx react-grab@latest init`}
                   />
                 </div>
               </div>

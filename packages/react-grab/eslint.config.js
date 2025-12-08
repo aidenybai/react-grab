@@ -12,6 +12,7 @@ export default tseslint.config(
       "*.js",
       "*.json",
       "*.md",
+      "bin/cli.js",
     ],
   },
   ...tseslint.configs.recommended,

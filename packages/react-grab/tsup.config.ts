@@ -114,4 +114,25 @@ export default defineConfig([
       }),
     ],
   },
+  {
+    ...DEFAULT_OPTIONS,
+    banner: undefined,
+    clean: false,
+    dts: false,
+    entry: { cli: "./src/cli.ts" },
+    format: ["cjs"],
+    minify: process.env.NODE_ENV === "production",
+    noExternal: [/@react-grab\/cli/, "commander", "kleur", "ora", "prompts", "@antfu/ni"],
+    outDir: "./dist",
+    platform: "node",
+    splitting: false,
+    esbuildOptions(options) {
+      options.banner = {
+        js: "#!/usr/bin/env node",
+      };
+      options.alias = {
+        "@react-grab/cli": "../cli/src/cli.ts",
+      };
+    },
+  },
 ]);

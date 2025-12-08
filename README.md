@@ -19,7 +19,7 @@ https://github.com/user-attachments/assets/fdb34329-b471-4b39-b433-0b1a27a94bd8
 Run this command to install React Grab into your project. Ensure you are running at project root (e.g. where the `next.config.ts` or `vite.config.ts` file is located).
 
 ```html
-npx @react-grab/cli@latest init
+npx react-grab@latest init
 ```
 
 ## Manual Installation
