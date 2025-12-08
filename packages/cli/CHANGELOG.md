@@ -1,5 +1,11 @@
 # @react-grab/cli
 
+## 0.0.74
+
+### Patch Changes
+
+- fix: updateOptions
+
 ## 0.0.73
 
 ### Patch Changes

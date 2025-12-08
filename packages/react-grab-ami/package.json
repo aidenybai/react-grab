@@ -1,6 +1,6 @@
 {
   "name": "@react-grab/ami",
-  "version": "0.0.73",
+  "version": "0.0.74",
   "type": "module",
   "exports": {
     "./client": {
