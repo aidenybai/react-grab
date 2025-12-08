@@ -1454,9 +1454,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     }
 
     const blockEnterIfNeeded = (event: KeyboardEvent) => {
-      const originalKey = originalKeyDescriptor?.get
-        ? originalKeyDescriptor.get.call(event)
-        : event.key;
+      let originalKey: string;
+      try {
+        originalKey = originalKeyDescriptor?.get
+          ? originalKeyDescriptor.get.call(event)
+          : event.key;
+      } catch {
+        return false;
+      }
       const isEnterKey = originalKey === "Enter" || isEnterCode(event.code);
       const isOverlayActive = isActivated() || isHoldingKeys();
       const shouldBlockEnter =
