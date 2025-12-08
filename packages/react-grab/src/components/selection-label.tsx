@@ -319,16 +319,22 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   };
 
   const handleGlobalKeyDown = (event: KeyboardEvent) => {
-    if (
-      event.code === "Enter" &&
-      isIdle() &&
-      !props.isInputExpanded &&
-      isNotProcessing()
-    ) {
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation();
-      props.onToggleExpand?.();
+    if (event.code === "Enter" && isNotProcessing()) {
+      if (!props.isInputExpanded && isIdle()) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        props.onToggleExpand?.();
+      } else if (
+        props.isInputExpanded &&
+        inputRef &&
+        document.activeElement !== inputRef
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        inputRef.focus();
+      }
     }
   };
 
@@ -357,6 +363,23 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       lastElementIdentity = elementIdentity;
       resetIdleTimer();
     }
+  });
+
+  createEffect(() => {
+    // HACK: trigger measurement when content that affects size changes
+    // this is necessary because Solid's fine-grained reactivity means we don't re-render
+    // the entire component when props change. Since the label position depends on its
+    // width/height (to center it), and width/height depends on content, we must force
+    // a re-measure whenever ANY prop that could change the rendered size updates.
+    // Without this, switching from a short tag to a long component name would use the
+    // old cached width, causing the label to be offset incorrectly.
+    void props.tagName;
+    void props.componentName;
+    void props.statusText;
+    void props.inputValue;
+    void props.hasAgent;
+    void props.isInputExpanded;
+    requestAnimationFrame(measureContainer);
   });
 
   createEffect(() => {
@@ -396,7 +419,20 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     const viewportHeight = window.innerHeight;
 
     const selectionCenterX = bounds.x + bounds.width / 2;
-    const cursorX = props.mouseX ?? selectionCenterX;
+    const clampInset = Math.min(12, bounds.width / 2);
+
+    const isMouseWithinBounds =
+      props.mouseX !== undefined &&
+      props.mouseX >= bounds.x - 24 &&
+      props.mouseX <= bounds.x + bounds.width + 24;
+
+    const cursorX =
+      isMouseWithinBounds && props.mouseX !== undefined
+        ? Math.max(
+            bounds.x + clampInset,
+            Math.min(props.mouseX, bounds.x + bounds.width - clampInset),
+          )
+        : selectionCenterX;
     const selectionBottom = bounds.y + bounds.height;
     const selectionTop = bounds.y;
 
@@ -753,6 +789,15 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     value={props.inputValue ?? ""}
                     onInput={handleInput}
                     onKeyDown={handleKeyDown}
+                    onPointerDown={(event) => {
+                      event.stopPropagation();
+                      event.stopImmediatePropagation();
+                      inputRef?.focus();
+                    }}
+                    onMouseDown={(event) => {
+                      event.stopPropagation();
+                      event.stopImmediatePropagation();
+                    }}
                     placeholder={
                       speechRecognition.isListening()
                         ? "listening..."
