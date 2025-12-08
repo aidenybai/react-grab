@@ -1,5 +1,13 @@
 # @react-grab/claude-code
 
+## 0.0.76
+
+### Patch Changes
+
+- feat: allow CLI under react-grab namespace
+- Updated dependencies
+  - react-grab@0.0.76
+
 ## 0.0.75
 
 ### Patch Changes
