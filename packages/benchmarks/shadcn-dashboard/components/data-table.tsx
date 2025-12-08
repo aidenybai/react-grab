@@ -151,7 +151,7 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
             table.getIsAllPageRowsSelected() ||
             (table.getIsSomePageRowsSelected() && "indeterminate")
           }
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(Boolean(value))}
           aria-label="Select all"
         />
       </div>
@@ -160,7 +160,7 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
       <div className="flex items-center justify-center">
         <Checkbox
           checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          onCheckedChange={(value) => row.toggleSelected(Boolean(value))}
           aria-label="Select row"
         />
       </div>
@@ -460,7 +460,7 @@ export function DataTable({
                       className="capitalize"
                       checked={column.getIsVisible()}
                       onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
+                        column.toggleVisibility(Boolean(value))
                       }
                     >
                       {column.id}

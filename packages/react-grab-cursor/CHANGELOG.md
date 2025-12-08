@@ -1,5 +1,13 @@
 # @react-grab/cursor
 
+## 0.0.74
+
+### Patch Changes
+
+- fix: updateOptions
+- Updated dependencies
+  - react-grab@0.0.74
+
 ## 0.0.73
 
 ### Patch Changes

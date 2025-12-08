@@ -210,14 +210,10 @@ interface DismissConfirmationProps {
 
 const DismissConfirmation: Component<DismissConfirmationProps> = (props) => {
   const handleKeyDown = (event: KeyboardEvent) => {
-    if (event.code === "Enter") {
+    if (event.code === "Enter" || event.code === "Escape") {
       event.preventDefault();
       event.stopPropagation();
       props.onConfirm?.();
-    } else if (event.code === "Escape") {
-      event.preventDefault();
-      event.stopPropagation();
-      props.onCancel?.();
     }
   };
 
@@ -651,7 +647,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 <ClickToCopyPill
                   onClick={handleSubmit}
                   shrink
-                  hasParent={!!props.componentName}
+                  hasParent={Boolean(props.componentName)}
                   hasAgent={props.hasAgent}
                 />
                 <Show when={props.componentName}>
@@ -725,7 +721,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   onClick={handleSubmit}
                   dimmed
                   shrink
-                  hasParent={!!props.componentName}
+                  hasParent={Boolean(props.componentName)}
                   hasAgent={props.hasAgent}
                 />
                 <Show when={props.componentName}>
