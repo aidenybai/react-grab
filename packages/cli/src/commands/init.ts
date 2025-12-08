@@ -70,6 +70,7 @@ const PACKAGE_MANAGER_NAMES: Record<PackageManager, string> = {
 };
 
 const AGENT_NAMES: Record<string, string> = {
+  ami: "Ami",
   "claude-code": "Claude Code",
   cursor: "Cursor",
   opencode: "Opencode",
@@ -92,7 +93,7 @@ export const init = new Command()
   .option("-f, --force", "force overwrite existing config", false)
   .option(
     "-a, --agent <agent>",
-    "agent integration (claude-code, cursor, opencode)",
+    "agent integration (claude-code, cursor, opencode, ami)",
   )
   .option("--skip-install", "skip package installation", false)
   .option(
@@ -142,26 +143,39 @@ export const init = new Command()
         if (projectInfo.isMonorepo && !isNonInteractive) {
           frameworkSpinner.info("Verifying framework. Found monorepo.");
 
-          const workspaceProjects = findWorkspaceProjects(projectInfo.projectRoot);
+          const workspaceProjects = findWorkspaceProjects(
+            projectInfo.projectRoot,
+          );
           const reactProjects = workspaceProjects.filter(
             (project) => project.hasReact || project.framework !== "unknown",
           );
 
           if (reactProjects.length > 0) {
             logger.break();
-            const sortedProjects = [...reactProjects].sort((projectA, projectB) => {
-              if (projectA.framework === "unknown" && projectB.framework !== "unknown") return 1;
-              if (projectA.framework !== "unknown" && projectB.framework === "unknown") return -1;
-              return 0;
-            });
+            const sortedProjects = [...reactProjects].sort(
+              (projectA, projectB) => {
+                if (
+                  projectA.framework === "unknown" &&
+                  projectB.framework !== "unknown"
+                )
+                  return 1;
+                if (
+                  projectA.framework !== "unknown" &&
+                  projectB.framework === "unknown"
+                )
+                  return -1;
+                return 0;
+              },
+            );
             const { selectedProject } = await prompts({
               type: "select",
               name: "selectedProject",
               message: "Select a project to install React Grab:",
               choices: sortedProjects.map((project) => {
-                const frameworkLabel = project.framework !== "unknown"
-                  ? ` ${highlighter.dim(`(${FRAMEWORK_NAMES[project.framework]})`)}`
-                  : "";
+                const frameworkLabel =
+                  project.framework !== "unknown"
+                    ? ` ${highlighter.dim(`(${FRAMEWORK_NAMES[project.framework]})`)}`
+                    : "";
                 return {
                   title: `${project.name}${frameworkLabel}`,
                   value: project.path,
@@ -192,7 +206,9 @@ export const init = new Command()
         } else {
           frameworkSpinner.fail("Could not detect a supported framework.");
           logger.break();
-          logger.log("React Grab supports Next.js, Vite, and Webpack projects.");
+          logger.log(
+            "React Grab supports Next.js, Vite, and Webpack projects.",
+          );
           logger.log(`Visit ${highlighter.info(DOCS_URL)} for manual setup.`);
           logger.break();
           process.exit(1);
@@ -210,7 +226,9 @@ export const init = new Command()
         );
       }
 
-      const packageManagerSpinner = spinner("Detecting package manager.").start();
+      const packageManagerSpinner = spinner(
+        "Detecting package manager.",
+      ).start();
       packageManagerSpinner.succeed(
         `Detecting package manager. Found ${highlighter.info(PACKAGE_MANAGER_NAMES[projectInfo.packageManager])}.`,
       );
@@ -218,7 +236,8 @@ export const init = new Command()
       let finalFramework = projectInfo.framework;
       let finalPackageManager = projectInfo.packageManager;
       let finalNextRouterType = projectInfo.nextRouterType;
-      let agentIntegration: AgentIntegration = (opts.agent as AgentIntegration) || "none";
+      let agentIntegration: AgentIntegration =
+        (opts.agent as AgentIntegration) || "none";
 
       if (!isNonInteractive && !opts.agent) {
         logger.break();
@@ -231,6 +250,7 @@ export const init = new Command()
             { title: "Claude Code", value: "claude-code" },
             { title: "Cursor", value: "cursor" },
             { title: "Opencode", value: "opencode" },
+            { title: "AMI", value: "ami" },
           ],
         });
 
@@ -276,7 +296,11 @@ export const init = new Command()
         logger.break();
 
         if (hasLayoutChanges) {
-          printDiff(result.filePath, result.originalContent!, result.newContent!);
+          printDiff(
+            result.filePath,
+            result.originalContent!,
+            result.newContent!,
+          );
         }
 
         if (hasPackageJsonChanges) {
@@ -318,7 +342,10 @@ export const init = new Command()
         !projectInfo.installedAgents.includes(agentIntegration);
 
       if (!opts.skipInstall && (shouldInstallReactGrab || shouldInstallAgent)) {
-        const packages = getPackagesToInstall(agentIntegration, shouldInstallReactGrab);
+        const packages = getPackagesToInstall(
+          agentIntegration,
+          shouldInstallReactGrab,
+        );
 
         if (packages.length > 0) {
           const installSpinner = spinner(
@@ -326,7 +353,11 @@ export const init = new Command()
           ).start();
 
           try {
-            installPackages(packages, finalPackageManager, projectInfo.projectRoot);
+            installPackages(
+              packages,
+              finalPackageManager,
+              projectInfo.projectRoot,
+            );
             installSpinner.succeed();
           } catch (error) {
             installSpinner.fail();
@@ -336,7 +367,9 @@ export const init = new Command()
       }
 
       if (hasLayoutChanges) {
-        const writeSpinner = spinner(`Applying changes to ${result.filePath}.`).start();
+        const writeSpinner = spinner(
+          `Applying changes to ${result.filePath}.`,
+        ).start();
         const writeResult = applyTransform(result);
         if (!writeResult.success) {
           writeSpinner.fail();
@@ -352,7 +385,8 @@ export const init = new Command()
         const packageJsonSpinner = spinner(
           `Applying changes to ${packageJsonResult.filePath}.`,
         ).start();
-        const packageJsonWriteResult = applyPackageJsonTransform(packageJsonResult);
+        const packageJsonWriteResult =
+          applyPackageJsonTransform(packageJsonResult);
         if (!packageJsonWriteResult.success) {
           packageJsonSpinner.fail();
           logger.break();
