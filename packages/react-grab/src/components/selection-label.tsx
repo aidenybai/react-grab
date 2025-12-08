@@ -769,7 +769,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     placeholder={
                       speechRecognition.isListening()
                         ? "listening..."
-                        : 'type prompt'
+                        : "type prompt"
                     }
                     rows={1}
                   />
