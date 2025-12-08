@@ -210,14 +210,10 @@ interface DismissConfirmationProps {
 
 const DismissConfirmation: Component<DismissConfirmationProps> = (props) => {
   const handleKeyDown = (event: KeyboardEvent) => {
-    if (event.code === "Enter") {
+    if (event.code === "Enter" || event.code === "Escape") {
       event.preventDefault();
       event.stopPropagation();
       props.onConfirm?.();
-    } else if (event.code === "Escape") {
-      event.preventDefault();
-      event.stopPropagation();
-      props.onCancel?.();
     }
   };
 
