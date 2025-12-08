@@ -75,6 +75,7 @@ const AGENT_NAMES: Record<string, string> = {
   cursor: "Cursor",
   codex: "Codex",
   opencode: "Opencode",
+  ami: "Ami",
 };
 
 const UNSUPPORTED_FRAMEWORK_NAMES: Record<
@@ -259,7 +260,7 @@ const parseArgs = async (): Promise<CliArgs> => {
     .option("agent", {
       alias: "a",
       type: "string",
-      choices: ["claude-code", "cursor", "opencode", "codex", "none"] as const,
+      choices: ["claude-code", "cursor", "opencode", "codex", "ami", "none"] as const,
       description:
         "Agent integration to automatically forward selected elements to agent instead of copying to clipboard",
     })
@@ -299,7 +300,8 @@ const parseArgs = async (): Promise<CliArgs> => {
         `  ${pc.cyan("claude-code")}  Connect React Grab to Claude Code\n` +
         `  ${pc.cyan("cursor")}       Connect React Grab to Cursor IDE\n` +
         `  ${pc.cyan("codex")}        Connect React Grab to Codex CLI\n` +
-        `  ${pc.cyan("opencode")}     Connect React Grab to Opencode\n\n` +
+        `  ${pc.cyan("opencode")}     Connect React Grab to Opencode\n` +
+        `  ${pc.cyan("ami")}          Connect React Grab to Ami.dev\n\n` +
         `${pc.bold("Supported Frameworks:")}\n` +
         `  ${pc.cyan("next")}     Next.js (App Router & Pages Router)\n` +
         `  ${pc.cyan("vite")}     Vite-based React projects\n` +
@@ -504,6 +506,7 @@ const main = async () => {
       { name: "Cursor", value: "cursor" as const },
       { name: "Codex", value: "codex" as const },
       { name: "Opencode", value: "opencode" as const },
+      { name: "Ami", value: "ami" as const },
     ].filter((agent) => !projectInfo.installedAgents.includes(agent.value));
 
     if (availableAgents.length === 0) {
@@ -518,7 +521,7 @@ const main = async () => {
     } else {
       const wantAgentIntegration = await confirm({
         message:
-          "Do you want to add an agent integration (Claude Code, Cursor, Codex, or Opencode)?",
+          "Do you want to add an agent integration (Claude Code, Cursor, Codex, Opencode, or Ami)?",
         default: false,
       });
 

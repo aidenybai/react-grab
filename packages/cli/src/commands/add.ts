@@ -20,12 +20,13 @@ const AGENT_NAMES: Record<string, string> = {
   cursor: "Cursor",
   opencode: "Opencode",
   ami: "Ami",
+  codex: "Codex",
 };
 
 export const add = new Command()
   .name("add")
   .description("add an agent integration")
-  .argument("[agent]", "agent to add (claude-code, cursor, opencode, ami)")
+  .argument("[agent]", "agent to add (claude-code, cursor, opencode, codex, ami)")
   .option("-y, --yes", "skip confirmation prompts", false)
   .option(
     "-c, --cwd <cwd>",
@@ -57,7 +58,7 @@ export const add = new Command()
       preflightSpinner.succeed();
 
       const availableAgents = (
-        ["claude-code", "cursor", "opencode", "ami"] as const
+        ["claude-code", "cursor", "opencode", "codex", "ami"] as const
       ).filter((agent) => !projectInfo.installedAgents.includes(agent));
 
       if (availableAgents.length === 0) {
@@ -70,10 +71,10 @@ export const add = new Command()
       let agentIntegration: AgentIntegration;
 
       if (agentArg) {
-        if (!["claude-code", "cursor", "opencode", "ami"].includes(agentArg)) {
+        if (!["claude-code", "cursor", "opencode", "codex", "ami"].includes(agentArg)) {
           logger.break();
           logger.error(`Invalid agent: ${agentArg}`);
-          logger.error("Available agents: claude-code, cursor, opencode, ami");
+          logger.error("Available agents: claude-code, cursor, opencode, codex, ami");
           logger.break();
           process.exit(1);
         }

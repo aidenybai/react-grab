@@ -86,7 +86,7 @@ export const init = new Command()
   .option("-f, --force", "force overwrite existing config", false)
   .option(
     "-a, --agent <agent>",
-    "agent integration (claude-code, cursor, opencode, ami)",
+    "agent integration (claude-code, cursor, opencode, codex, ami)",
   )
   .option("--skip-install", "skip package installation", false)
   .option(
@@ -243,6 +243,7 @@ export const init = new Command()
             { title: "Claude Code", value: "claude-code" },
             { title: "Cursor", value: "cursor" },
             { title: "Opencode", value: "opencode" },
+            { title: "Codex", value: "codex" },
             { title: "Ami", value: "ami" },
           ],
         });
