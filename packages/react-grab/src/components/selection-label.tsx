@@ -428,6 +428,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     void props.inputValue;
     void props.hasAgent;
     void props.isInputExpanded;
+    void props.isPendingDismiss;
+    void props.error;
     requestAnimationFrame(measureContainer);
   });
 

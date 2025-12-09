@@ -44,6 +44,7 @@ import {
   BOUNDS_RECALC_INTERVAL_MS,
   INPUT_FOCUS_ACTIVATION_DELAY_MS,
   DEFAULT_KEY_HOLD_DURATION_MS,
+  DOUBLE_CLICK_THRESHOLD_MS,
 } from "./constants.js";
 import { isCLikeKey } from "./utils/is-c-like-key.js";
 import { keyMatchesCode, isTargetKeyCombination } from "./utils/hotkey.js";
@@ -343,6 +344,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let keydownSpamTimerId: number | null = null;
     let autoScrollAnimationId: number | null = null;
     let previouslyFocusedElement: Element | null = null;
+    let pendingClickTimeoutId: number | null = null;
+    let pendingClickData: {
+      clientX: number;
+      clientY: number;
+      element: Element;
+    } | null = null;
 
     const isRendererActive = createMemo(() => isActivated() && !isCopying());
 
@@ -1065,6 +1072,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       if (holdTimerId) window.clearTimeout(holdTimerId);
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
+      if (pendingClickTimeoutId) {
+        window.clearTimeout(pendingClickTimeoutId);
+        pendingClickTimeoutId = null;
+        pendingClickData = null;
+      }
       stopAutoScroll();
       stopProgressAnimation();
       activationTimestamp = null;
@@ -1403,20 +1415,76 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const element = getElementAtPosition(clientX, clientY);
         if (!element) return;
 
-        setLastGrabbedElement(element);
-        const bounds = createElementBounds(element);
-        const tagName = extractElementTagName(element);
-        void getNearestComponentName(element).then((componentName) => {
-          void executeCopyOperation(
-            clientX,
-            clientY,
-            () => copySingleElementToClipboard(element),
-            bounds,
-            tagName,
-            componentName ?? undefined,
-            element,
-          );
-        });
+        if (hasAgentProvider()) {
+          if (pendingClickTimeoutId !== null) {
+            window.clearTimeout(pendingClickTimeoutId);
+            pendingClickTimeoutId = null;
+
+            const clickElement = pendingClickData?.element ?? element;
+            pendingClickData = null;
+
+            const bounds = createElementBounds(clickElement);
+            const selectionCenterX = bounds.x + bounds.width / 2;
+            setCopyStartX(clientX);
+            setCopyStartY(clientY);
+            setCopyOffsetFromCenterX(clientX - selectionCenterX);
+
+            const cachedInput = elementInputCache.get(clickElement);
+            if (cachedInput) {
+              setInputText(cachedInput);
+            }
+
+            setMouseX(clientX);
+            setMouseY(clientY);
+            setFrozenElement(clickElement);
+            setIsToggleMode(true);
+            setIsToggleFrozen(true);
+            setIsInputExpanded(true);
+            setIsInputMode(true);
+            return;
+          }
+
+          pendingClickData = { clientX, clientY, element };
+          pendingClickTimeoutId = window.setTimeout(() => {
+            pendingClickTimeoutId = null;
+            const clickData = pendingClickData;
+            pendingClickData = null;
+
+            if (!clickData) return;
+
+            setLastGrabbedElement(clickData.element);
+            const bounds = createElementBounds(clickData.element);
+            const tagName = extractElementTagName(clickData.element);
+            void getNearestComponentName(clickData.element).then(
+              (componentName) => {
+                void executeCopyOperation(
+                  clickData.clientX,
+                  clickData.clientY,
+                  () => copySingleElementToClipboard(clickData.element),
+                  bounds,
+                  tagName,
+                  componentName ?? undefined,
+                  clickData.element,
+                );
+              },
+            );
+          }, DOUBLE_CLICK_THRESHOLD_MS);
+        } else {
+          setLastGrabbedElement(element);
+          const bounds = createElementBounds(element);
+          const tagName = extractElementTagName(element);
+          void getNearestComponentName(element).then((componentName) => {
+            void executeCopyOperation(
+              clientX,
+              clientY,
+              () => copySingleElementToClipboard(element),
+              bounds,
+              tagName,
+              componentName ?? undefined,
+              element,
+            );
+          });
+        }
       }
     };
 
@@ -2058,6 +2126,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       abortController.abort();
       if (holdTimerId) window.clearTimeout(holdTimerId);
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
+      if (pendingClickTimeoutId) window.clearTimeout(pendingClickTimeoutId);
       stopAutoScroll();
       stopProgressAnimation();
       document.body.style.userSelect = "";
