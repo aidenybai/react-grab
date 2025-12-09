@@ -970,7 +970,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const startProgressAnimation = (duration?: number) => {
       const startTime = Date.now();
-      const animationDuration = duration ?? options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS;
+      const animationDuration =
+        duration ?? options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS;
       setProgressStartTime(startTime);
 
       const animateProgress = () => {
@@ -1616,7 +1617,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        if (event.key.toLowerCase() === "o" && !isInputMode()) {
+        if (event.key?.toLowerCase() === "o" && !isInputMode()) {
           if (isActivated() && (event.metaKey || event.ctrlKey)) {
             const filePath = selectionFilePath();
             const lineNumber = selectionLineNumber();
@@ -1691,7 +1692,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           setIsHoldingKeys(true);
         }
 
-        const keyHoldDuration = options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS;
+        const keyHoldDuration =
+          options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS;
         const activationDuration = isKeyboardEventTriggeredByInput(event)
           ? keyHoldDuration + INPUT_FOCUS_ACTIVATION_DELAY_MS
           : keyHoldDuration;
@@ -1745,7 +1747,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           ? !options.activationShortcut(event)
           : options.activationKey
             ? options.activationKey.key
-              ? event.key.toLowerCase() ===
+              ? event.key?.toLowerCase() ===
                   options.activationKey.key.toLowerCase() ||
                 keyMatchesCode(options.activationKey.key, event.code)
               : false
