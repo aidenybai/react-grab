@@ -40,6 +40,8 @@ interface SelectionLabelProps {
   isPendingDismiss?: boolean;
   onConfirmDismiss?: () => void;
   onCancelDismiss?: () => void;
+  error?: string;
+  onAcknowledgeError?: () => void;
 }
 
 interface TagBadgeProps {
@@ -250,6 +252,63 @@ const DismissConfirmation: Component<DismissConfirmationProps> = (props) => {
               Yes
             </span>
             <IconReturn size={10} class="text-[#c00002]" />
+          </button>
+        </div>
+      </BottomSection>
+    </div>
+  );
+};
+
+interface ErrorConfirmationProps {
+  error: string;
+  onAcknowledge?: () => void;
+}
+
+const MAX_ERROR_LENGTH = 50;
+
+const ErrorConfirmation: Component<ErrorConfirmationProps> = (props) => {
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.code === "Enter" || event.code === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      props.onAcknowledge?.();
+    }
+  };
+
+  const truncatedError = () => {
+    const error = props.error;
+    if (error.length <= MAX_ERROR_LENGTH) return error;
+    return `${error.slice(0, MAX_ERROR_LENGTH)}…`;
+  };
+
+  onMount(() => {
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+  });
+
+  onCleanup(() => {
+    window.removeEventListener("keydown", handleKeyDown, { capture: true });
+  });
+
+  return (
+    <div class="contain-layout shrink-0 flex flex-col justify-center items-end gap-1 w-fit h-fit max-w-[280px]">
+      <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-full h-fit">
+        <span
+          class="text-[#B91C1C] text-[12px] leading-4 tracking-[-0.04em] font-sans font-medium"
+          title={props.error}
+        >
+          {truncatedError()}
+        </span>
+      </div>
+      <BottomSection>
+        <div class="contain-layout shrink-0 flex items-center justify-end gap-[5px] w-full h-fit">
+          <button
+            class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
+            onClick={props.onAcknowledge}
+          >
+            <span class="text-black text-[11px] leading-3.5 tracking-[-0.04em] font-sans font-medium">
+              Ok
+            </span>
+            <IconReturn size={10} class="text-black/50" />
           </button>
         </div>
       </BottomSection>
@@ -539,7 +598,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           leftPx={computedPosition().arrowLeft}
         />
 
-        <Show when={props.status === "copied" || props.status === "fading"}>
+        <Show when={(props.status === "copied" || props.status === "fading") && !props.error}>
           <div class="[font-synthesis:none] contain-layout shrink-0 flex flex-col justify-center items-end rounded-xs bg-white antialiased w-fit h-fit">
             <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 px-1.5 w-full h-fit">
               <span class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit tabular-nums">
@@ -579,7 +638,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           class="[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-xs bg-white antialiased w-fit h-fit p-0"
           style={{
             display:
-              props.status === "copied" || props.status === "fading"
+              (props.status === "copied" || props.status === "fading") && !props.error
                 ? "none"
                 : undefined,
           }}
@@ -826,6 +885,13 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             <DismissConfirmation
               onConfirm={props.onConfirmDismiss}
               onCancel={props.onCancelDismiss}
+            />
+          </Show>
+
+          <Show when={props.error}>
+            <ErrorConfirmation
+              error={props.error!}
+              onAcknowledge={props.onAcknowledgeError}
             />
           </Show>
         </div>

@@ -35,6 +35,7 @@ export interface AgentManager {
   abortAllSessions: () => void;
   dismissSession: (sessionId: string) => void;
   undoSession: (sessionId: string) => void;
+  acknowledgeSessionError: (sessionId: string) => string | undefined;
   updateSessionBoundsOnViewportChange: () => void;
   getSessionElement: (sessionId: string) => Element | undefined;
   setOptions: (options: AgentOptions) => void;
@@ -99,7 +100,15 @@ export const createAgentManager = (
         );
         setSessions((prev) => new Map(prev).set(session.id, completedSession));
         const element = sessionElements.get(session.id);
-        agentOptions?.onComplete?.(completedSession, element);
+        const result = agentOptions?.onComplete?.(completedSession, element);
+        if (result?.error) {
+          const errorSession = updateSession(
+            completedSession,
+            { error: result.error },
+            storage,
+          );
+          setSessions((prev) => new Map(prev).set(session.id, errorSession));
+        }
       }
     } catch (error) {
       const currentSessions = sessions();
@@ -113,42 +122,19 @@ export const createAgentManager = (
       } else {
         const errorMessage =
           error instanceof Error ? error.message : "Unknown error";
-        const lowerMessage = errorMessage.toLowerCase();
-        const isNetworkError =
-          lowerMessage.includes("network") ||
-          lowerMessage.includes("fetch") ||
-          lowerMessage.includes("load failed") ||
-          lowerMessage.includes("cancelled") ||
-          lowerMessage.includes("canceled") ||
-          lowerMessage.includes("aborted");
 
-        if (isNetworkError) {
-          // Don't mark as non-streaming on network errors (e.g., page reload)
-          // This allows the session to be resumed
-          if (currentSession) {
-            const errorSession = updateSession(
-              currentSession,
-              {
-                lastStatus: `Error: ${errorMessage}`,
-              },
-              storage,
-            );
-            setSessions((prev) => new Map(prev).set(session.id, errorSession));
-          }
-        } else {
-          if (currentSession) {
-            const errorSession = updateSession(
-              currentSession,
-              {
-                lastStatus: `Error: ${errorMessage}`,
-                isStreaming: false,
-              },
-              storage,
-            );
-            setSessions((prev) => new Map(prev).set(session.id, errorSession));
-            if (error instanceof Error) {
-              agentOptions?.onError?.(error, errorSession);
-            }
+        if (currentSession) {
+          const errorSession = updateSession(
+            currentSession,
+            {
+              error: errorMessage,
+              isStreaming: false,
+            },
+            storage,
+          );
+          setSessions((prev) => new Map(prev).set(session.id, errorSession));
+          if (error instanceof Error) {
+            agentOptions?.onError?.(error, errorSession);
           }
         }
       }
@@ -325,6 +311,14 @@ export const createAgentManager = (
     dismissSession(sessionId);
   };
 
+  const acknowledgeSessionError = (sessionId: string): string | undefined => {
+    const currentSessions = sessions();
+    const session = currentSessions.get(sessionId);
+    const prompt = session?.context.prompt;
+    dismissSession(sessionId);
+    return prompt;
+  };
+
   const updateSessionBoundsOnViewportChange = () => {
     const currentSessions = sessions();
     if (currentSessions.size === 0) return;
@@ -376,6 +370,7 @@ export const createAgentManager = (
     abortAllSessions,
     dismissSession,
     undoSession,
+    acknowledgeSessionError,
     updateSessionBoundsOnViewportChange,
     getSessionElement,
     setOptions,

@@ -3,9 +3,12 @@ import type {
   AgentProvider,
   AgentSession,
   AgentSessionStorage,
+  AgentCompleteResult,
   init,
   ReactGrabAPI,
 } from "react-grab/core";
+
+export type { AgentCompleteResult };
 import { CONNECTION_CHECK_TTL_MS, DEFAULT_PORT } from "./constants.js";
 
 const DEFAULT_SERVER_URL = `http://localhost:${DEFAULT_PORT}`;
@@ -75,10 +78,7 @@ async function* streamSSE(
         buffer = buffer.slice(boundary + 2);
 
         if (eventType === "done") return;
-        if (eventType === "error") {
-          console.error("[react-grab]", data || "Agent error");
-          return;
-        }
+        if (eventType === "error") throw new Error(data || "Agent error");
         if (data) yield data;
       }
 

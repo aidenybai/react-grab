@@ -2198,6 +2198,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               agentManager.dismissSession(sessionId)
             }
             onUndoSession={(sessionId) => agentManager.undoSession(sessionId)}
+            onAcknowledgeSessionError={(sessionId: string) => {
+              const prompt = agentManager.acknowledgeSessionError(sessionId);
+              if (prompt) {
+                setInputText(prompt);
+              }
+            }}
             onInputChange={handleInputChange}
             onInputSubmit={() => void handleInputSubmit()}
             onInputCancel={handleInputCancel}
@@ -2334,6 +2340,7 @@ export type {
   AgentSession,
   AgentSessionStorage,
   AgentProvider,
+  AgentCompleteResult,
   UpdatableOptions,
 } from "./types.js";
 

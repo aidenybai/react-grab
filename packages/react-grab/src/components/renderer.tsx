@@ -88,6 +88,10 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
                   ? undefined
                   : () => props.onUndoSession?.(session().id)
               }
+              error={session().error}
+              onAcknowledgeError={() =>
+                props.onAcknowledgeSessionError?.(session().id)
+              }
             />
           </>
         )}

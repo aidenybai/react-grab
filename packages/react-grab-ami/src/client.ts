@@ -14,9 +14,12 @@ import type {
   AgentProvider,
   AgentSession,
   AgentSessionStorage,
+  AgentCompleteResult,
   init,
   ReactGrabAPI,
 } from "react-grab/core";
+
+export type { AgentCompleteResult };
 
 const STORAGE_KEY = "react-grab:agent-sessions";
 const TOKEN_STORAGE_KEY = "react-grab:ami-token";
@@ -188,6 +191,7 @@ export const createAmiAgentProvider = (
       const agentPromise = runAgent(context, token, projectId, onStatus);
 
       let done = false;
+      let caughtError: Error | null = null;
       agentPromise
         .then((finalStatus) => {
           if (aborted) return;
@@ -200,9 +204,7 @@ export const createAmiAgentProvider = (
         })
         .catch((error) => {
           if (aborted) return;
-          const errorMessage =
-            error instanceof Error ? error.message : "Unknown error";
-          statusQueue.push(`Error: ${errorMessage}`);
+          caughtError = error instanceof Error ? error : new Error("Unknown error");
           done = true;
           if (resolveWait) {
             resolveWait();
@@ -228,6 +230,9 @@ export const createAmiAgentProvider = (
         }
         if (aborted) {
           throw new DOMException("Aborted", "AbortError");
+        }
+        if (caughtError) {
+          throw caughtError;
         }
       } finally {
         signal.removeEventListener("abort", handleAbort);
@@ -284,6 +289,7 @@ export const createAmiAgentProvider = (
       const agentPromise = runAgent(context, token, DEFAULT_PROJECT_ID, onStatus);
 
       let done = false;
+      let caughtError: Error | null = null;
       agentPromise
         .then((finalStatus) => {
           if (aborted) return;
@@ -296,9 +302,7 @@ export const createAmiAgentProvider = (
         })
         .catch((error) => {
           if (aborted) return;
-          const errorMessage =
-            error instanceof Error ? error.message : "Unknown error";
-          statusQueue.push(`Error: ${errorMessage}`);
+          caughtError = error instanceof Error ? error : new Error("Unknown error");
           done = true;
           if (resolveWait) {
             resolveWait();
@@ -324,6 +328,9 @@ export const createAmiAgentProvider = (
         }
         if (aborted) {
           throw new DOMException("Aborted", "AbortError");
+        }
+        if (caughtError) {
+          throw caughtError;
         }
       } finally {
         signal.removeEventListener("abort", handleAbort);

@@ -3,9 +3,12 @@ import type {
   AgentProvider,
   AgentSession,
   AgentSessionStorage,
+  AgentCompleteResult,
   init,
   ReactGrabAPI,
 } from "react-grab/core";
+
+export type { AgentCompleteResult };
 import { CONNECTION_CHECK_TTL_MS, DEFAULT_PORT } from "./constants.js";
 
 const DEFAULT_SERVER_URL = `http://localhost:${DEFAULT_PORT}`;

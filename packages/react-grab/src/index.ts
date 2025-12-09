@@ -25,6 +25,7 @@ export type {
   AgentProvider,
   AgentSessionStorage,
   AgentOptions,
+  AgentCompleteResult,
   UpdatableOptions,
 } from "./types.js";
 

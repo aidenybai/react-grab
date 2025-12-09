@@ -117,6 +117,7 @@ export interface AgentSession {
   selectionBounds?: OverlayBounds;
   tagName?: string;
   componentName?: string;
+  error?: string;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -142,6 +143,10 @@ export interface AgentSessionStorage {
   removeItem(key: string): void;
 }
 
+export interface AgentCompleteResult {
+  error?: string;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface AgentOptions<T = any> {
   provider?: AgentProvider<T>;
@@ -149,7 +154,10 @@ export interface AgentOptions<T = any> {
   getOptions?: () => T;
   onStart?: (session: AgentSession, element: Element | undefined) => void;
   onStatus?: (status: string, session: AgentSession) => void;
-  onComplete?: (session: AgentSession, element: Element | undefined) => void;
+  onComplete?: (
+    session: AgentSession,
+    element: Element | undefined,
+  ) => AgentCompleteResult | void;
   onError?: (error: Error, session: AgentSession) => void;
   onResume?: (session: AgentSession) => void;
   onAbort?: (session: AgentSession, element: Element | undefined) => void;
@@ -287,6 +295,7 @@ export interface ReactGrabRendererProps {
   onAbortSession?: (sessionId: string) => void;
   onDismissSession?: (sessionId: string) => void;
   onUndoSession?: (sessionId: string) => void;
+  onAcknowledgeSessionError?: (sessionId: string) => void;
   onInputChange?: (value: string) => void;
   onInputSubmit?: () => void;
   onInputCancel?: () => void;

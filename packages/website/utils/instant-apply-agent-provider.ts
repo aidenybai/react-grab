@@ -1,5 +1,9 @@
 import type { AgentProvider, AgentContext, AgentSession } from "react-grab";
 
+interface AgentCompleteResult {
+  error?: string;
+}
+
 interface InstantApplyAgentProviderOptions {
   apiEndpoint?: string;
 }
@@ -263,6 +267,42 @@ const createUndoableProxy = (element: HTMLElement) => {
 const DEFAULT_API_ENDPOINT = "/api/instant-apply";
 const ANCESTOR_LEVELS = 5;
 
+const FORBIDDEN_PATTERNS = [
+  /\beval\s*\(/,
+  /\bFunction\s*\(/,
+  /\bdocument\.cookie\b/,
+  /\blocalStorage\b/,
+  /\bsessionStorage\b/,
+  /\bfetch\s*\(/,
+  /\bXMLHttpRequest\b/,
+  /\bimport\s*\(/,
+  /\brequire\s*\(/,
+  /\bwindow\.open\s*\(/,
+  /\blocation\s*[.=]/,
+  /\bnavigator\b/,
+  /\b__proto__\b/,
+  /\bconstructor\s*\[/,
+];
+
+const validateCode = (code: string): { isValid: boolean; error?: string } => {
+  try {
+    new Function("$el", code);
+  } catch {
+    return { isValid: false, error: "Invalid JavaScript syntax" };
+  }
+
+  for (const pattern of FORBIDDEN_PATTERNS) {
+    if (pattern.test(code)) {
+      return {
+        isValid: false,
+        error: `Potentially unsafe code detected: ${pattern.source}`,
+      };
+    }
+  }
+
+  return { isValid: true };
+};
+
 const getOpeningTag = (element: Element): string => {
   const clone = element.cloneNode(false) as Element;
   const wrapper = document.createElement("div");
@@ -414,33 +454,51 @@ export const createInstantApplyAgentProvider = (
     },
   };
 
-  const onComplete = (session: AgentSession, element: Element | undefined) => {
+  const onComplete = (
+    session: AgentSession,
+    element: Element | undefined,
+  ): AgentCompleteResult | void => {
     const requestId = (session.context.options as RequestContext | undefined)
       ?.requestId;
     if (!requestId) return;
 
-    const code = resultCodeMap.get(requestId);
-    if (!code) return;
+    const rawCode = resultCodeMap.get(requestId);
+    if (!rawCode) return;
+    const code = rawCode.trim();
 
     if (!element) {
-      console.warn("[react-grab] Could not find element to apply changes");
       elementHtmlMap.delete(requestId);
       resultCodeMap.delete(requestId);
-      return;
+      return { error: "Could not find element to apply changes" };
     }
 
-    const isEmptyResponse = code.trim() === "{}" || code.trim() === "";
-    if (isEmptyResponse) {
+    const isEmptyResponse = code === "{}" || code === "";
+
+    const validation = validateCode(code);
+    if (!validation.isValid || isEmptyResponse) {
       elementHtmlMap.delete(requestId);
       resultCodeMap.delete(requestId);
-      return;
+      return { error: validation.error ?? "No changes generated" };
     }
 
     const { proxy, undo } = createUndoableProxy(element as HTMLElement);
     undoFnMap.set(requestId, undo);
     lastRequestId = requestId;
 
-    new Function("$el", code).bind(null)(proxy);
+    try {
+      new Function("$el", code).bind(null)(proxy);
+    } catch (executionError) {
+      undo();
+      undoFnMap.delete(requestId);
+      lastRequestId = null;
+      elementHtmlMap.delete(requestId);
+      resultCodeMap.delete(requestId);
+      const message =
+        executionError instanceof Error
+          ? executionError.message
+          : "Code execution failed";
+      return { error: message };
+    }
 
     elementHtmlMap.delete(requestId);
     resultCodeMap.delete(requestId);
