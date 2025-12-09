@@ -730,7 +730,7 @@ export default function RootLayout({ children }) {
                 The providers are open source. You can read through the
                 implementation or use them as a starting point for your own:{" "}
                 <a
-                  href="https://github.com/aidenybai/react-grab/tree/main/packages/react-grab-claude-code"
+                  href="https://github.com/aidenybai/react-grab/tree/main/packages/provider-claude-code"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-neutral-300 hover:text-white underline underline-offset-4"
@@ -739,7 +739,7 @@ export default function RootLayout({ children }) {
                 </a>
                 ,{" "}
                 <a
-                  href="https://github.com/aidenybai/react-grab/tree/main/packages/react-grab-cursor"
+                  href="https://github.com/aidenybai/react-grab/tree/main/packages/provider-cursor"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-neutral-300 hover:text-white underline underline-offset-4"
@@ -748,7 +748,7 @@ export default function RootLayout({ children }) {
                 </a>
                 ,{" "}
                 <a
-                  href="https://github.com/aidenybai/react-grab/tree/main/packages/react-grab-opencode"
+                  href="https://github.com/aidenybai/react-grab/tree/main/packages/provider-opencode"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-neutral-300 hover:text-white underline underline-offset-4"

@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:claude": "node ../react-grab-claude-code/dist/cli.js && VITE_PROVIDER=claude vite",
-    "dev:cursor": "node ../react-grab-cursor/dist/cli.js && VITE_PROVIDER=cursor vite",
-    "dev:opencode": "node ../react-grab-opencode/dist/cli.js && VITE_PROVIDER=opencode vite",
+    "dev:claude": "node ../provider-claude-code/dist/cli.js && VITE_PROVIDER=claude vite",
+    "dev:cursor": "node ../provider-cursor/dist/cli.js && VITE_PROVIDER=cursor vite",
+    "dev:opencode": "node ../provider-opencode/dist/cli.js && VITE_PROVIDER=opencode vite",
     "dev:ami": "VITE_PROVIDER=ami vite"
   },
   "dependencies": {

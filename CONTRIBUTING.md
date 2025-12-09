@@ -42,10 +42,10 @@ nr dev
 packages/
 ├── react-grab/          # Core library
 ├── cli/                 # CLI installer (@react-grab/cli)
-├── react-grab-cursor/   # Cursor agent integration
-├── react-grab-claude-code/  # Claude Code integration
-├── react-grab-opencode/ # Opencode integration
-├── react-grab-ami/      # AMI client
+├── provider-cursor/     # Cursor agent integration
+├── provider-claude-code/  # Claude Code integration
+├── provider-opencode/   # Opencode integration
+├── provider-ami/        # AMI client
 ├── website/             # Documentation site (react-grab.com)
 ├── vite-playground/     # Vite development playground
 ├── next-playground/     # Next.js development playground

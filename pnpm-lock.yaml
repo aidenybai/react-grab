@@ -148,6 +148,82 @@ importers:
         specifier: ^5
         version: 5.9.3
 
+  packages/provider-ami:
+    dependencies:
+      ami-sdk:
+        specifier: ^0.0.1
+        version: 0.0.1
+      react-grab:
+        specifier: workspace:*
+        version: link:../react-grab
+    devDependencies:
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
+
+  packages/provider-claude-code:
+    dependencies:
+      '@anthropic-ai/claude-agent-sdk':
+        specifier: ^0.1.0
+        version: 0.1.46(zod@4.1.13)
+      '@hono/node-server':
+        specifier: ^1.19.6
+        version: 1.19.6(hono@4.10.7)
+      hono:
+        specifier: ^4.0.0
+        version: 4.10.7
+      picocolors:
+        specifier: ^1.1.1
+        version: 1.1.1
+      react-grab:
+        specifier: workspace:*
+        version: link:../react-grab
+    devDependencies:
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
+
+  packages/provider-cursor:
+    dependencies:
+      '@hono/node-server':
+        specifier: ^1.19.6
+        version: 1.19.6(hono@4.10.7)
+      hono:
+        specifier: ^4.0.0
+        version: 4.10.7
+      picocolors:
+        specifier: ^1.1.1
+        version: 1.1.1
+      react-grab:
+        specifier: workspace:*
+        version: link:../react-grab
+    devDependencies:
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
+
+  packages/provider-opencode:
+    dependencies:
+      '@hono/node-server':
+        specifier: ^1.19.6
+        version: 1.19.6(hono@4.10.7)
+      '@opencode-ai/sdk':
+        specifier: ^1.0.0
+        version: 1.0.132
+      hono:
+        specifier: ^4.0.0
+        version: 4.10.7
+      picocolors:
+        specifier: ^1.1.1
+        version: 1.1.1
+      react-grab:
+        specifier: workspace:*
+        version: link:../react-grab
+    devDependencies:
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
+
   packages/react-grab:
     dependencies:
       bippy:
@@ -206,82 +282,6 @@ importers:
         specifier: ^8.46.1
         version: 8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3)
 
-  packages/react-grab-ami:
-    dependencies:
-      ami-sdk:
-        specifier: ^0.0.1
-        version: 0.0.1
-      react-grab:
-        specifier: workspace:*
-        version: link:../react-grab
-    devDependencies:
-      tsup:
-        specifier: ^8.4.0
-        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
-
-  packages/react-grab-claude-code:
-    dependencies:
-      '@anthropic-ai/claude-agent-sdk':
-        specifier: ^0.1.0
-        version: 0.1.46(zod@4.1.13)
-      '@hono/node-server':
-        specifier: ^1.19.6
-        version: 1.19.6(hono@4.10.7)
-      hono:
-        specifier: ^4.0.0
-        version: 4.10.7
-      picocolors:
-        specifier: ^1.1.1
-        version: 1.1.1
-      react-grab:
-        specifier: workspace:*
-        version: link:../react-grab
-    devDependencies:
-      tsup:
-        specifier: ^8.4.0
-        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
-
-  packages/react-grab-cursor:
-    dependencies:
-      '@hono/node-server':
-        specifier: ^1.19.6
-        version: 1.19.6(hono@4.10.7)
-      hono:
-        specifier: ^4.0.0
-        version: 4.10.7
-      picocolors:
-        specifier: ^1.1.1
-        version: 1.1.1
-      react-grab:
-        specifier: workspace:*
-        version: link:../react-grab
-    devDependencies:
-      tsup:
-        specifier: ^8.4.0
-        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
-
-  packages/react-grab-opencode:
-    dependencies:
-      '@hono/node-server':
-        specifier: ^1.19.6
-        version: 1.19.6(hono@4.10.7)
-      '@opencode-ai/sdk':
-        specifier: ^1.0.0
-        version: 1.0.132
-      hono:
-        specifier: ^4.0.0
-        version: 4.10.7
-      picocolors:
-        specifier: ^1.1.1
-        version: 1.1.1
-      react-grab:
-        specifier: workspace:*
-        version: link:../react-grab
-    devDependencies:
-      tsup:
-        specifier: ^8.4.0
-        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
-
   packages/vite-playground:
     dependencies:
       '@react-grab/next-playground':
@@ -289,7 +289,7 @@ importers:
         version: link:../next-playground
       '@react-grab/opencode':
         specifier: workspace:*
-        version: link:../react-grab-opencode
+        version: link:../provider-opencode
       clsx:
         specifier: ^2.1.1
         version: 2.1.1

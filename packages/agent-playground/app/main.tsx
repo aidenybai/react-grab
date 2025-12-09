@@ -2,10 +2,10 @@ import { createRoot } from "react-dom/client";
 import { App } from "./App";
 
 const PROVIDER_SCRIPTS: Record<string, string> = {
-  claude: "/@react-grab-claude-code/client.global.js",
-  cursor: "/@react-grab-cursor/client.global.js",
-  opencode: "/@react-grab-opencode/client.global.js",
-  ami: "/@react-grab-ami/client.global.js",
+  claude: "/@provider-claude-code/client.global.js",
+  cursor: "/@provider-cursor/client.global.js",
+  opencode: "/@provider-opencode/client.global.js",
+  ami: "/@provider-ami/client.global.js",
 };
 
 const loadProviderScript = (): Promise<void> => {

@@ -8,10 +8,10 @@ const PACKAGES_DIR = join(import.meta.dir, "../packages");
 
 const DIST_MAPPINGS: Record<string, string> = {
   "react-grab": join(PACKAGES_DIR, "react-grab/dist"),
-  "react-grab-ami": join(PACKAGES_DIR, "react-grab-ami/dist"),
-  "react-grab-cursor": join(PACKAGES_DIR, "react-grab-cursor/dist"),
-  "react-grab-claude-code": join(PACKAGES_DIR, "react-grab-claude-code/dist"),
-  "react-grab-opencode": join(PACKAGES_DIR, "react-grab-opencode/dist"),
+  "provider-ami": join(PACKAGES_DIR, "provider-ami/dist"),
+  "provider-cursor": join(PACKAGES_DIR, "provider-cursor/dist"),
+  "provider-claude-code": join(PACKAGES_DIR, "provider-claude-code/dist"),
+  "provider-opencode": join(PACKAGES_DIR, "provider-opencode/dist"),
 };
 
 const NO_CACHE_HEADERS = {

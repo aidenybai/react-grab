@@ -22,11 +22,11 @@ export default defineConfig({
               return;
             }
           }
-          if (req.url?.startsWith("/@react-grab-claude-code/")) {
+          if (req.url?.startsWith("/@provider-claude-code/")) {
             const filePath = path.join(
               __dirname,
-              "../react-grab-claude-code/dist",
-              req.url.replace("/@react-grab-claude-code/", ""),
+              "../provider-claude-code/dist",
+              req.url.replace("/@provider-claude-code/", ""),
             );
             if (fs.existsSync(filePath)) {
               res.setHeader("Content-Type", "application/javascript");
@@ -34,11 +34,11 @@ export default defineConfig({
               return;
             }
           }
-          if (req.url?.startsWith("/@react-grab-cursor/")) {
+          if (req.url?.startsWith("/@provider-cursor/")) {
             const filePath = path.join(
               __dirname,
-              "../react-grab-cursor/dist",
-              req.url.replace("/@react-grab-cursor/", ""),
+              "../provider-cursor/dist",
+              req.url.replace("/@provider-cursor/", ""),
             );
             if (fs.existsSync(filePath)) {
               res.setHeader("Content-Type", "application/javascript");
@@ -46,11 +46,11 @@ export default defineConfig({
               return;
             }
           }
-          if (req.url?.startsWith("/@react-grab-opencode/")) {
+          if (req.url?.startsWith("/@provider-opencode/")) {
             const filePath = path.join(
               __dirname,
-              "../react-grab-opencode/dist",
-              req.url.replace("/@react-grab-opencode/", ""),
+              "../provider-opencode/dist",
+              req.url.replace("/@provider-opencode/", ""),
             );
             if (fs.existsSync(filePath)) {
               res.setHeader("Content-Type", "application/javascript");
@@ -58,11 +58,11 @@ export default defineConfig({
               return;
             }
           }
-          if (req.url?.startsWith("/@react-grab-ami/")) {
+          if (req.url?.startsWith("/@provider-ami/")) {
             const filePath = path.join(
               __dirname,
-              "../react-grab-ami/dist",
-              req.url.replace("/@react-grab-ami/", ""),
+              "../provider-ami/dist",
+              req.url.replace("/@provider-ami/", ""),
             );
             if (fs.existsSync(filePath)) {
               res.setHeader("Content-Type", "application/javascript");
