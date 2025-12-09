@@ -320,7 +320,7 @@ export const InstallTabs = ({
         </span>
       )}
       <div className="mt-4 overflow-hidden rounded-lg border border-white/10 bg-white/5 text-sm text-white shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
-      <div className="flex items-center gap-4 border-b border-white/10 px-4 pt-2">
+      <div className="flex items-center gap-4 overflow-x-auto border-b border-white/10 px-4 pt-2">
         {installTabsData.map((tab) => {
           const isActive = tab.id === activeTab.id;
 
@@ -329,7 +329,7 @@ export const InstallTabs = ({
               key={tab.id}
               type="button"
               className={cn(
-                "border-b pb-2 font-sans text-[13px] transition-colors",
+                "shrink-0 whitespace-nowrap border-b pb-2 font-sans text-[13px] transition-colors",
                 isActive
                   ? "border-white text-white"
                   : "border-transparent text-white/60 hover:text-white",
