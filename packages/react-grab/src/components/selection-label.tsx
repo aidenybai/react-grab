@@ -435,16 +435,31 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   };
 
   const handleGlobalKeyDown = (event: KeyboardEvent) => {
-    if (
-      event.code === "Enter" &&
-      isIdle() &&
-      !props.isInputExpanded &&
-      isNotProcessing()
-    ) {
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation();
-      props.onToggleExpand?.();
+    if (event.code === "Enter" && isNotProcessing()) {
+      if (props.isInputExpanded) {
+        const isInputFocused = document.activeElement === inputRef;
+        if (!isInputFocused) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          speechRecognition.stop();
+          props.onCancel?.();
+        }
+      } else if (isIdle()) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        props.onToggleExpand?.();
+      }
+    } else if (event.code === "Escape" && isNotProcessing() && props.isInputExpanded) {
+      const isInputFocused = document.activeElement === inputRef;
+      if (!isInputFocused) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        speechRecognition.stop();
+        props.onCancel?.();
+      }
     }
   };
 
