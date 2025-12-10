@@ -37,12 +37,18 @@ export const createServer = () => {
       try {
         await stream.writeSSE({ data: "Thinking...", event: "status" });
 
+        // https://github.com/anthropics/claude-code/issues/4619#issuecomment-3217014571
+        const env = { ...process.env };
+        delete env.NODE_OPTIONS;
+        delete env.VSCODE_INSPECTOR_OPTIONS;
+
         const queryResult = query({
           prompt: fullPrompt,
           options: {
             pathToClaudeCodeExecutable: "claude",
             cwd: process.cwd(),
             includePartialMessages: true,
+            env,
             ...options,
           },
         });
@@ -107,7 +113,9 @@ export const startServer = async (port: number = DEFAULT_PORT) => {
 
   const app = createServer();
   serve({ fetch: app.fetch, port });
-  console.log(`${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim("(Claude Code)")}`);
+  console.log(
+    `${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim("(Claude Code)")}`,
+  );
   console.log(`- Local:    ${pc.cyan(`http://localhost:${port}`)}`);
 };
 

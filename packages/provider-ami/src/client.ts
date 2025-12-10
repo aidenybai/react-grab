@@ -6,6 +6,7 @@ import {
   generateId,
   getExchangeTokenAuthUrl,
   getToken,
+  listProjects,
   runAgentLoop,
 } from "ami-sdk";
 import type { AmiUIMessage, AmiUIMessagePart, ToolUIPart } from "ami-sdk";
@@ -23,11 +24,10 @@ export type { AgentCompleteResult };
 
 const STORAGE_KEY = "react-grab:agent-sessions";
 const TOKEN_STORAGE_KEY = "react-grab:ami-token";
-const DEFAULT_PROJECT_ID = "react-grab-agent";
 
 const loadCachedToken = (): string | null => {
   try {
-    return localStorage.getItem(TOKEN_STORAGE_KEY);
+    return sessionStorage.getItem(TOKEN_STORAGE_KEY);
   } catch {
     return null;
   }
@@ -35,7 +35,7 @@ const loadCachedToken = (): string | null => {
 
 const saveCachedToken = (token: string) => {
   try {
-    localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
   } catch {
     // ignore
   }
@@ -158,14 +158,23 @@ const runAgent = async (
 
 const CONNECTION_CHECK_TTL_MS = 5000;
 
-export const createAmiAgentProvider = (
-  projectId: string = DEFAULT_PROJECT_ID,
-): AgentProvider => {
+export const createAmiAgentProvider = (projectId?: string): AgentProvider => {
   let connectionCache: { result: boolean; timestamp: number } | null = null;
+
+  const getLatestProjectId = async (token: string): Promise<string> => {
+    const projects = await listProjects({ token, limit: 1 });
+    const latestProject = projects.projects[0];
+    return latestProject?.id;
+  };
 
   return {
     send: async function* (context: AgentContext, signal: AbortSignal) {
       const token = await getOrCreateToken();
+
+      projectId = await getLatestProjectId(token);
+      if (!projectId) {
+        throw new Error("No project found");
+      }
 
       yield "Thinking...";
 
@@ -191,6 +200,8 @@ export const createAmiAgentProvider = (
           resolveWait = null;
         }
       };
+
+      console.log("TOKEN", token, projectId);
 
       const agentPromise = runAgent(context, token, projectId, onStatus);
 
@@ -291,12 +302,12 @@ export const createAmiAgentProvider = (
         }
       };
 
-      const agentPromise = runAgent(
-        context,
-        token,
-        DEFAULT_PROJECT_ID,
-        onStatus,
-      );
+      projectId = await getLatestProjectId(token);
+      if (!projectId) {
+        throw new Error("No project found");
+      }
+
+      const agentPromise = runAgent(context, token, projectId, onStatus);
 
       let done = false;
       let caughtError: Error | null = null;
