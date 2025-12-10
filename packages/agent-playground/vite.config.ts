@@ -70,6 +70,42 @@ export default defineConfig({
               return;
             }
           }
+          if (req.url?.startsWith("/@provider-codex/")) {
+            const filePath = path.join(
+              __dirname,
+              "../provider-codex/dist",
+              req.url.replace("/@provider-codex/", ""),
+            );
+            if (fs.existsSync(filePath)) {
+              res.setHeader("Content-Type", "application/javascript");
+              fs.createReadStream(filePath).pipe(res);
+              return;
+            }
+          }
+          if (req.url?.startsWith("/@provider-gemini/")) {
+            const filePath = path.join(
+              __dirname,
+              "../provider-gemini/dist",
+              req.url.replace("/@provider-gemini/", ""),
+            );
+            if (fs.existsSync(filePath)) {
+              res.setHeader("Content-Type", "application/javascript");
+              fs.createReadStream(filePath).pipe(res);
+              return;
+            }
+          }
+          if (req.url?.startsWith("/@provider-amp/")) {
+            const filePath = path.join(
+              __dirname,
+              "../provider-amp/dist",
+              req.url.replace("/@provider-amp/", ""),
+            );
+            if (fs.existsSync(filePath)) {
+              res.setHeader("Content-Type", "application/javascript");
+              fs.createReadStream(filePath).pipe(res);
+              return;
+            }
+          }
           next();
         });
       },

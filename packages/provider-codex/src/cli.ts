@@ -1,14 +1,12 @@
 #!/usr/bin/env node
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
-import { spawn } from "node:child_process";
+import { join } from "node:path";
+import spawn from "cross-spawn";
 import pc from "picocolors";
 import { DEFAULT_PORT } from "./constants.js";
 
-const VERSION = process.env.VERSION ?? "0.0.0";
+declare const __dirname: string;
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const VERSION = process.env.VERSION ?? "0.0.0";
 
 const serverPath = join(__dirname, "server.js");
 spawn(process.execPath, [serverPath], {

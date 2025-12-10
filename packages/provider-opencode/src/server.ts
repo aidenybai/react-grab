@@ -23,6 +23,8 @@ interface OpencodeInstance {
   server: Awaited<ReturnType<typeof createOpencode>>["server"];
 }
 
+const OPENCODE_SDK_PORT = 4096;
+
 let opencodeInstance: OpencodeInstance | null = null;
 const sessionMap = new Map<string, string>();
 const abortedSessions = new Set<string>();
@@ -30,9 +32,10 @@ let lastOpencodeSessionId: string | undefined;
 
 const getOpencodeClient = async () => {
   if (!opencodeInstance) {
+    await fkill(`:${OPENCODE_SDK_PORT}`, { force: true, silent: true }).catch(() => {});
     const instance = await createOpencode({
       hostname: "127.0.0.1",
-      port: 4096,
+      port: OPENCODE_SDK_PORT,
     });
     opencodeInstance = instance;
   }

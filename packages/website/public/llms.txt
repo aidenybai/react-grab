@@ -18,7 +18,7 @@ Options:
   -f, --framework        Override detected framework [choices: "next", "vite", "webpack"]
   -p, --package-manager  Override detected package manager [choices: "npm", "yarn", "pnpm", "bun"]
   -r, --router           Next.js router type [choices: "app", "pages"]
-  -a, --agent            Agent integration [choices: "claude-code", "cursor", "opencode", "codex", "gemini", "none"]
+  -a, --agent            Agent integration [choices: "claude-code", "cursor", "opencode", "codex", "gemini", "amp", "none"]
   -y, --yes              Skip all prompts and use auto-detected/default values
       --skip-install     Only modify config files, skip package install
 

@@ -1,6 +1,7 @@
 import { Command } from "commander";
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
+import pc from "picocolors";
 import {
   createProxyMiddleware,
   responseInterceptor,
@@ -10,6 +11,7 @@ import { highlighter } from "../utils/highlighter.js";
 import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
 
+const VERSION = process.env.VERSION ?? "0.0.1";
 const DEFAULT_PROXY_PORT = 2000;
 const REACT_GRAB_SCRIPT =
   '<script src="//unpkg.com/react-grab/dist/index.global.js"></script>';
@@ -71,6 +73,9 @@ export const start = new Command()
     "provider package to run via npx (e.g., @react-grab/cursor)",
   )
   .action(async (urlArg, opts) => {
+    console.log(`${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`);
+    console.log();
+
     let url = urlArg;
     let provider = opts.provider;
 
@@ -101,6 +106,7 @@ export const start = new Command()
             { title: "Opencode", value: "@react-grab/opencode" },
             { title: "Codex", value: "@react-grab/codex" },
             { title: "Gemini", value: "@react-grab/gemini" },
+            { title: "Amp", value: "@react-grab/amp" },
             { title: "Ami", value: "@react-grab/ami" },
           ],
         });

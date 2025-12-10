@@ -55,7 +55,7 @@ export default defineConfig([
   {
     entry: ["./src/client.ts"],
     format: ["iife"],
-    globalName: "ReactGrabCodex",
+    globalName: "ReactGrabAmp",
     outExtension: () => ({ js: ".global.js" }),
     dts: false,
     clean: false,

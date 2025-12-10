@@ -6,6 +6,9 @@ const PROVIDER_SCRIPTS: Record<string, string> = {
   cursor: "/@provider-cursor/client.global.js",
   opencode: "/@provider-opencode/client.global.js",
   ami: "/@provider-ami/client.global.js",
+  amp: "/@provider-amp/client.global.js",
+  codex: "/@provider-codex/client.global.js",
+  gemini: "/@provider-gemini/client.global.js",
 };
 
 const loadProviderScript = (): Promise<void> => {

@@ -3,7 +3,7 @@
   "version": "0.0.81",
   "type": "module",
   "bin": {
-    "react-grab-opencode": "./dist/cli.js"
+    "react-grab-opencode": "./dist/cli.cjs"
   },
   "exports": {
     "./client": {

@@ -8,30 +8,20 @@ import type {
 } from "react-grab/core";
 
 export type { AgentCompleteResult };
-import type { Options as ClaudeOptions } from "@anthropic-ai/claude-agent-sdk";
 import { CONNECTION_CHECK_TTL_MS, DEFAULT_PORT } from "./constants.js";
 
 const DEFAULT_SERVER_URL = `http://localhost:${DEFAULT_PORT}`;
 const STORAGE_KEY = "react-grab:agent-sessions";
 
-const DEFAULT_OPTIONS: ClaudeOptions = {
-  systemPrompt: {
-    type: "preset",
-    preset: "claude_code",
-    append: `You are helping a user make changes to a React component based on a selected element.
-The user has selected an element from their UI and wants you to help modify it.
-Provide clear, concise status updates as you work.`,
-  },
-  model: "haiku",
-  permissionMode: "bypassPermissions",
-  maxTurns: 10,
-};
+export interface AmpAgentOptions {
+  cwd?: string;
+}
 
-type ClaudeAgentContext = AgentContext<ClaudeOptions>;
+type AmpAgentContext = AgentContext<AmpAgentOptions>;
 
-interface ClaudeAgentProviderOptions {
+interface AmpAgentProviderOptions {
   serverUrl?: string;
-  getOptions?: () => Partial<ClaudeOptions>;
+  getOptions?: () => Partial<AmpAgentOptions>;
 }
 
 interface SSEEvent {
@@ -102,7 +92,7 @@ async function* streamSSE(
 
 async function* streamFromServer(
   serverUrl: string,
-  context: ClaudeAgentContext,
+  context: AmpAgentContext,
   signal: AbortSignal,
 ) {
   const sessionId = context.sessionId;
@@ -139,21 +129,22 @@ async function* streamFromServer(
   }
 }
 
-export const createClaudeAgentProvider = (
-  providerOptions: ClaudeAgentProviderOptions = {},
+export const createAmpAgentProvider = (
+  providerOptions: AmpAgentProviderOptions = {},
 ) => {
   const { serverUrl = DEFAULT_SERVER_URL, getOptions } = providerOptions;
 
   let connectionCache: { result: boolean; timestamp: number } | null = null;
 
-  const mergeOptions = (contextOptions?: ClaudeOptions): ClaudeOptions => ({
-    ...DEFAULT_OPTIONS,
+  const mergeOptions = (
+    contextOptions?: AmpAgentOptions,
+  ): AmpAgentOptions => ({
     ...(getOptions?.() ?? {}),
     ...(contextOptions ?? {}),
   });
 
   return {
-    send: async function* (context: ClaudeAgentContext, signal: AbortSignal) {
+    send: async function* (context: AmpAgentContext, signal: AbortSignal) {
       const mergedContext = {
         ...context,
         options: mergeOptions(context.options),
@@ -180,7 +171,7 @@ export const createClaudeAgentProvider = (
         throw new Error(`Session ${sessionId} not found`);
       }
 
-      const context = session.context as ClaudeAgentContext;
+      const context = session.context as AmpAgentContext;
       const mergedContext = {
         ...context,
         options: mergeOptions(context.options),
@@ -212,6 +203,12 @@ export const createClaudeAgentProvider = (
         return false;
       }
     },
+
+    abort: async (sessionId: string) => {
+      try {
+        await fetch(`${serverUrl}/abort/${sessionId}`, { method: "POST" });
+      } catch {}
+    },
   };
 };
 
@@ -224,7 +221,7 @@ declare global {
 export const attachAgent = async () => {
   if (typeof window === "undefined") return;
 
-  const provider = createClaudeAgentProvider();
+  const provider = createAmpAgentProvider();
 
   const attach = (api: ReactGrabAPI) => {
     api.setAgent({ provider, storage: sessionStorage });
@@ -245,7 +242,7 @@ export const attachAgent = async () => {
     { once: true },
   );
 
-  // HACK: check again after adding listener in case of race condition
+  // HACK: Check again after adding listener in case of race condition
   const apiAfterListener = window.__REACT_GRAB__;
   if (apiAfterListener) {
     attach(apiAfterListener);

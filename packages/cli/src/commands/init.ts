@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import pc from "picocolors";
 import prompts from "prompts";
 import {
   detectProject,
@@ -86,7 +87,7 @@ export const init = new Command()
   .option("-f, --force", "force overwrite existing config", false)
   .option(
     "-a, --agent <agent>",
-    "agent integration (claude-code, cursor, opencode, codex, gemini, ami)",
+    "agent integration (claude-code, cursor, opencode, codex, gemini, amp, ami)",
   )
   .option("--skip-install", "skip package installation", false)
   .option(
@@ -95,6 +96,9 @@ export const init = new Command()
     process.cwd(),
   )
   .action(async (opts) => {
+    console.log(`${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`);
+    console.log();
+
     try {
       const cwd = opts.cwd;
       const isNonInteractive = opts.yes;
@@ -242,6 +246,7 @@ export const init = new Command()
             { title: "Opencode", value: "opencode" },
             { title: "Codex", value: "codex" },
             { title: "Gemini", value: "gemini" },
+            { title: "Amp", value: "amp" },
             { title: "Ami", value: "ami" },
           ],
         });

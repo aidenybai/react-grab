@@ -1,9 +1,9 @@
-import { cyan, dim, green, red, yellow } from "kleur/colors";
+import pc from "picocolors";
 
 export const highlighter = {
-  error: red,
-  warn: yellow,
-  info: cyan,
-  success: green,
-  dim,
+  error: pc.red,
+  warn: pc.yellow,
+  info: pc.cyan,
+  success: pc.green,
+  dim: pc.dim,
 };

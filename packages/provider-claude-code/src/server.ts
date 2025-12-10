@@ -32,7 +32,6 @@ type ClaudeAgentContext = AgentContext<Options>;
 
 const claudeSessionMap = new Map<string, string>();
 const abortedSessions = new Set<string>();
-let lastClaudeSessionId: string | undefined;
 
 const isTextBlock = (block: ContentBlock): block is TextContentBlock =>
   block.type === "text";
@@ -110,7 +109,6 @@ export const createServer = () => {
         }
 
         if (!isAborted() && capturedClaudeSessionId) {
-          lastClaudeSessionId = capturedClaudeSessionId;
           if (sessionId) {
             claudeSessionMap.set(sessionId, capturedClaudeSessionId);
           }
@@ -148,38 +146,6 @@ export const createServer = () => {
     const { sessionId } = context.req.param();
     abortedSessions.add(sessionId);
     return context.json({ status: "ok" });
-  });
-
-  app.post("/undo", async (context) => {
-    if (!lastClaudeSessionId) {
-      return context.json({ status: "error", message: "No session to undo" });
-    }
-
-    try {
-      const env = { ...process.env };
-      delete env.NODE_OPTIONS;
-      delete env.VSCODE_INSPECTOR_OPTIONS;
-
-      const queryResult = query({
-        prompt: "/rewind",
-        options: {
-          pathToClaudeCodeExecutable: resolveClaudePath(),
-          cwd: process.cwd(),
-          env,
-          resume: lastClaudeSessionId,
-        },
-      });
-
-      for await (const message of queryResult) {
-        if (message.type === "result") break;
-      }
-
-      return context.json({ status: "ok" });
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      return context.json({ status: "error", message: errorMessage });
-    }
   });
 
   app.get("/health", (context) => {

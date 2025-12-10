@@ -38,7 +38,7 @@ npx @react-grab/cli -p pnpm -a claude-code -y
 | `--framework` | `-f` | Framework to configure | `next`, `vite`, `webpack` |
 | `--package-manager` | `-p` | Package manager to use | `npm`, `yarn`, `pnpm`, `bun` |
 | `--router` | `-r` | Next.js router type | `app`, `pages` |
-| `--agent` | `-a` | Agent integration to add | `claude-code`, `cursor`, `opencode`, `codex`, `gemini`, `none` |
+| `--agent` | `-a` | Agent integration to add | `claude-code`, `cursor`, `opencode`, `codex`, `gemini`, `amp`, `none` |
 | `--yes` | `-y` | Skip all confirmation prompts | - |
 | `--skip-install` | - | Skip package installation (only modify files) | - |
 | `--help` | `-h` | Show help | - |
@@ -84,6 +84,7 @@ The CLI can optionally set up agent integrations for:
 - **Opencode** (`-a opencode`) - Send selected elements to Opencode
 - **Codex** (`-a codex`) - Send selected elements to OpenAI Codex
 - **Gemini** (`-a gemini`) - Send selected elements to Google Gemini CLI
+- **Amp** (`-a amp`) - Send selected elements to Amp
 
 ## Manual Installation
 

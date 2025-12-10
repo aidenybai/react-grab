@@ -1,16 +1,14 @@
 #!/usr/bin/env node
+import { join } from "node:path";
 import spawn from "cross-spawn";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
 import pc from "picocolors";
 import { DEFAULT_PORT } from "./constants.js";
 
+declare const __dirname: string;
+
 const VERSION = process.env.VERSION ?? "0.0.0";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const serverPath = join(__dirname, "server.js");
+const serverPath = join(__dirname, "server.cjs");
 spawn(process.execPath, [serverPath], {
   detached: true,
   stdio: "ignore",

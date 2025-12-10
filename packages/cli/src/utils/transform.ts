@@ -604,6 +604,7 @@ const AGENT_PREFIXES: Record<string, string> = {
   opencode: "npx @react-grab/opencode@latest &&",
   codex: "npx @react-grab/codex@latest &&",
   gemini: "npx @react-grab/gemini@latest &&",
+  amp: "npx @react-grab/amp@latest &&",
 };
 
 export const previewPackageJsonTransform = (

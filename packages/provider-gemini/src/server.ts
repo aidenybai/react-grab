@@ -64,13 +64,7 @@ export const createServer = () => {
     const userPrompt = isFollowUp ? prompt : `${prompt}\n\n${content}`;
 
     return streamSSE(context, async (stream) => {
-      const geminiArgs = [
-        "--prompt",
-        userPrompt,
-        "--output-format",
-        "stream-json",
-        "--yolo",
-      ];
+      const geminiArgs = ["--output-format", "stream-json", "--yolo"];
 
       if (options?.model) {
         geminiArgs.push("--model", options.model);
@@ -79,6 +73,8 @@ export const createServer = () => {
       if (options?.includeDirectories) {
         geminiArgs.push("--include-directories", options.includeDirectories);
       }
+
+      geminiArgs.push(userPrompt);
 
       let geminiProcess: ReturnType<typeof spawn> | undefined;
       let stderrBuffer = "";

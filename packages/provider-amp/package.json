@@ -1,9 +1,9 @@
 {
-  "name": "@react-grab/gemini",
+  "name": "@react-grab/amp",
   "version": "0.0.81",
   "type": "module",
   "bin": {
-    "react-grab-gemini": "./dist/cli.cjs"
+    "react-grab-amp": "./dist/cli.cjs"
   },
   "exports": {
     "./client": {
@@ -34,6 +34,7 @@
   "dependencies": {
     "@hono/node-server": "^1.19.6",
     "cross-spawn": "^7.0.6",
+    "@sourcegraph/amp-sdk": "0.1.0-20251210081226-g90e3892",
     "fkill": "^9.0.0",
     "hono": "^4.0.0",
     "picocolors": "^1.1.1",

@@ -5,9 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:claude": "node ../provider-claude-code/dist/cli.js && VITE_PROVIDER=claude vite",
-    "dev:cursor": "node ../provider-cursor/dist/cli.js && VITE_PROVIDER=cursor vite",
-    "dev:opencode": "node ../provider-opencode/dist/cli.js && VITE_PROVIDER=opencode vite",
+    "dev:claude": "node ../provider-claude-code/dist/cli.cjs && VITE_PROVIDER=claude vite",
+    "dev:cursor": "node ../provider-cursor/dist/cli.cjs && VITE_PROVIDER=cursor vite",
+    "dev:opencode": "node ../provider-opencode/dist/cli.cjs && VITE_PROVIDER=opencode vite",
+    "dev:codex": "node ../provider-codex/dist/cli.cjs && VITE_PROVIDER=codex vite",
+    "dev:gemini": "node ../provider-gemini/dist/cli.cjs && VITE_PROVIDER=gemini vite",
+    "dev:amp": "node ../provider-amp/dist/cli.cjs && VITE_PROVIDER=amp vite",
     "dev:ami": "VITE_PROVIDER=ami vite"
   },
   "dependencies": {
