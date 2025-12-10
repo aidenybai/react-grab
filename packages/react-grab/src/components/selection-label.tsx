@@ -788,6 +788,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                         />
                       </div>
                       <span class="text-label-muted text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
+                        or
+                      </span>
+                      <div class="contain-layout shrink-0 flex items-center px-[3px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit">
+                        <span class="text-black text-[10px] leading-[14px] tracking-[-0.04em] font-sans font-medium">
+                          double-click
+                        </span>
+                      </div>
+                      <span class="text-label-muted text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit">
                         to edit
                       </span>
                     </div>

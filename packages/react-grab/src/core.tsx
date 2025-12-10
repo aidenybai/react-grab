@@ -1075,7 +1075,28 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (pendingClickTimeoutId) {
         window.clearTimeout(pendingClickTimeoutId);
         pendingClickTimeoutId = null;
+
+        const clickData = pendingClickData;
         pendingClickData = null;
+
+        if (clickData) {
+          setLastGrabbedElement(clickData.element);
+          const bounds = createElementBounds(clickData.element);
+          const tagName = extractElementTagName(clickData.element);
+          void getNearestComponentName(clickData.element).then(
+            (componentName) => {
+              void executeCopyOperation(
+                clickData.clientX,
+                clickData.clientY,
+                () => copySingleElementToClipboard(clickData.element),
+                bounds,
+                tagName,
+                componentName ?? undefined,
+                clickData.element,
+              );
+            },
+          );
+        }
       }
       stopAutoScroll();
       stopProgressAnimation();
