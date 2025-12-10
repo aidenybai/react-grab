@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { join } from "node:path";
-import spawn from "cross-spawn";
+import { spawn } from "node:child_process";
 import pc from "picocolors";
 import { DEFAULT_PORT } from "./constants.js";
 
