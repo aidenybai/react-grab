@@ -1,5 +1,13 @@
 # @react-grab/codex
 
+## 0.0.82
+
+### Patch Changes
+
+- fix: agent support
+- Updated dependencies
+  - react-grab@0.0.82
+
 ## 0.0.81
 
 ### Patch Changes

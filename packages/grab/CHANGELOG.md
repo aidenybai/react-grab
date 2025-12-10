@@ -1,5 +1,11 @@
 # grab
 
+## 0.0.82
+
+### Patch Changes
+
+- fix: agent support
+
 ## 0.0.81
 
 ### Patch Changes

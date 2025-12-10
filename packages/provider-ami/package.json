@@ -1,6 +1,6 @@
 {
   "name": "@react-grab/ami",
-  "version": "0.0.81",
+  "version": "0.0.82",
   "type": "module",
   "bin": {
     "react-grab-ami": "./dist/cli.cjs"
