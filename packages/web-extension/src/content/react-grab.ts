@@ -18,19 +18,14 @@ const turndownService = new TurndownService();
 let extensionApi: ReactGrabAPI | null = null;
 let isExtensionEnabled = true;
 
-const initializeReactGrab = () => {
-  if (window.__REACT_GRAB__) {
-    extensionApi = window.__REACT_GRAB__;
-    return;
-  }
+const LOCALHOST_INIT_DELAY_MS = 500;
 
+const createExtensionApi = () => {
   const options: Options = { enabled: isExtensionEnabled };
 
   if (!isLocalhost) {
     options.onCopySuccess = (elements) => {
-      const combinedHtml = elements
-        .map((element) => element.outerHTML)
-        .join("\n\n");
+      const combinedHtml = elements.map((element) => element.outerHTML).join("\n\n");
       const markdown = turndownService.turndown(combinedHtml);
       navigator.clipboard.writeText(markdown);
     };
@@ -38,6 +33,26 @@ const initializeReactGrab = () => {
 
   extensionApi = init(options);
   window.__REACT_GRAB__ = extensionApi;
+};
+
+const initializeReactGrab = () => {
+  if (window.__REACT_GRAB__) {
+    extensionApi = window.__REACT_GRAB__;
+    return;
+  }
+
+  if (isLocalhost) {
+    // HACK: Wait for page's react-grab to initialize first on localhost
+    setTimeout(() => {
+      if (window.__REACT_GRAB__) {
+        extensionApi = window.__REACT_GRAB__;
+        return;
+      }
+      createExtensionApi();
+    }, LOCALHOST_INIT_DELAY_MS);
+  } else {
+    createExtensionApi();
+  }
 };
 
 window.addEventListener("react-grab:init", (event) => {
