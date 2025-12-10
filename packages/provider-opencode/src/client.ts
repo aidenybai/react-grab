@@ -18,22 +18,22 @@ import { DEFAULT_PORT } from "./constants.js";
 
 const DEFAULT_SERVER_URL = `http://localhost:${DEFAULT_PORT}`;
 
-export interface OpencodeAgentOptions {
+export interface OpenCodeAgentOptions {
   model?: string;
   agent?: string;
   directory?: string;
 }
 
-type OpencodeAgentContext = AgentContext<OpencodeAgentOptions>;
+type OpenCodeAgentContext = AgentContext<OpenCodeAgentOptions>;
 
-interface OpencodeAgentProviderOptions {
+interface OpenCodeAgentProviderOptions {
   serverUrl?: string;
-  getOptions?: () => Partial<OpencodeAgentOptions>;
+  getOptions?: () => Partial<OpenCodeAgentOptions>;
 }
 
 const streamFromServer = async function* (
   serverUrl: string,
-  context: OpencodeAgentContext,
+  context: OpenCodeAgentContext,
   signal: AbortSignal,
 ): AsyncGenerator<string, void, unknown> {
   const startTime = Date.now();
@@ -103,22 +103,22 @@ const streamFromServer = async function* (
   }
 };
 
-export const createOpencodeAgentProvider = (
-  options: OpencodeAgentProviderOptions = {},
+export const createOpenCodeAgentProvider = (
+  options: OpenCodeAgentProviderOptions = {},
 ) => {
   const { serverUrl = DEFAULT_SERVER_URL, getOptions } = options;
 
   let connectionCache: { result: boolean; timestamp: number } | null = null;
 
   const mergeOptions = (
-    contextOptions?: OpencodeAgentOptions,
-  ): OpencodeAgentOptions => ({
+    contextOptions?: OpenCodeAgentOptions,
+  ): OpenCodeAgentOptions => ({
     ...(getOptions?.() ?? {}),
     ...(contextOptions ?? {}),
   });
 
   return {
-    send: async function* (context: OpencodeAgentContext, signal: AbortSignal) {
+    send: async function* (context: OpenCodeAgentContext, signal: AbortSignal) {
       const combinedContext = {
         ...context,
         options: mergeOptions(context.options),
@@ -143,7 +143,7 @@ export const createOpencodeAgentProvider = (
         throw new Error(`Session ${sessionId} not found`);
       }
 
-      const context = session.context as OpencodeAgentContext;
+      const context = session.context as OpenCodeAgentContext;
       const combinedContext = {
         ...context,
         options: mergeOptions(context.options),
@@ -193,7 +193,7 @@ declare global {
 export const attachAgent = async () => {
   if (typeof window === "undefined") return;
 
-  const provider = createOpencodeAgentProvider();
+  const provider = createOpenCodeAgentProvider();
 
   const attach = (api: ReactGrabAPI) => {
     api.setAgent({ provider, storage: sessionStorage });

@@ -1,4 +1,4 @@
-import spawn from "cross-spawn";
+import { execa, type ResultPromise } from "execa";
 import { pathToFileURL } from "node:url";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -33,7 +33,7 @@ interface CursorStreamEvent {
 }
 
 const cursorSessionMap = new Map<string, string>();
-const activeProcesses = new Map<string, ReturnType<typeof spawn>>();
+const activeProcesses = new Map<string, ResultPromise>();
 
 const parseStreamLine = (line: string): CursorStreamEvent | null => {
   const trimmed = line.trim();
@@ -96,14 +96,16 @@ export const createServer = () => {
         cursorAgentArgs.push("--resume", cursorChatId);
       }
 
-      let cursorProcess: ReturnType<typeof spawn> | undefined;
+      let cursorProcess: ResultPromise | undefined;
       let stderrBuffer = "";
 
       try {
         await stream.writeSSE({ data: "Thinking...", event: "status" });
 
-        cursorProcess = spawn("cursor-agent", cursorAgentArgs, {
-          stdio: ["pipe", "pipe", "pipe"],
+        cursorProcess = execa("cursor-agent", cursorAgentArgs, {
+          stdin: "pipe",
+          stdout: "pipe",
+          stderr: "pipe",
           env: { ...process.env },
         });
 

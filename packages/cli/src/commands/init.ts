@@ -245,7 +245,7 @@ export const init = new Command()
             { title: "None", value: "none" },
             { title: "Claude Code", value: "claude-code" },
             { title: "Cursor", value: "cursor" },
-            { title: "Opencode", value: "opencode" },
+            { title: "OpenCode", value: "opencode" },
             { title: "Codex", value: "codex" },
             { title: "Gemini", value: "gemini" },
             { title: "Amp", value: "amp" },

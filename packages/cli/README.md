@@ -81,7 +81,7 @@ The CLI can optionally set up agent integrations for:
 
 - **Claude Code** (`-a claude-code`) - Send selected elements to Claude Code
 - **Cursor** (`-a cursor`) - Send selected elements to Cursor
-- **Opencode** (`-a opencode`) - Send selected elements to Opencode
+- **OpenCode** (`-a opencode`) - Send selected elements to OpenCode
 - **Codex** (`-a codex`) - Send selected elements to OpenAI Codex
 - **Gemini** (`-a gemini`) - Send selected elements to Google Gemini CLI
 - **Amp** (`-a amp`) - Send selected elements to Amp

@@ -51,12 +51,6 @@ interface ConversationMessage {
   content: string;
 }
 
-interface InstantRequest {
-  prompt: string;
-  html: string;
-  messages?: ConversationMessage[];
-}
-
 export async function POST(request: Request) {
   const origin = request.headers.get("origin");
   const corsHeaders = getCorsHeaders(origin);
@@ -80,7 +74,7 @@ export async function POST(request: Request) {
     );
   }
 
-  let body: InstantRequest;
+  let body: { messages: ConversationMessage[] };
   try {
     body = await request.json();
   } catch {
@@ -90,11 +84,11 @@ export async function POST(request: Request) {
     });
   }
 
-  const { prompt, html, messages: previousMessages = [] } = body;
+  const { messages } = body;
 
-  if (!prompt || !html) {
+  if (!messages || messages.length === 0) {
     return new Response(
-      JSON.stringify({ error: "Both prompt and html are required" }),
+      JSON.stringify({ error: "messages array is required" }),
       {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -102,50 +96,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const isFollowUp = previousMessages.length > 0;
-
-  const buildUserMessage = (messagePrompt: string, includeHtml: boolean) => {
-    if (includeHtml) {
-      return `Here is the HTML to modify:
-
-${html}
-
-Modification request: ${messagePrompt}
-
-Remember: Output ONLY the JavaScript code, nothing else.`;
-    }
-    return `Follow-up modification request: ${messagePrompt}
-
-Remember: Output ONLY the JavaScript code for this modification. The $el variable still references the same element.`;
-  };
-
   const conversationMessages: Array<{ role: string; content: string }> = [
     { role: "system", content: SYSTEM_PROMPT },
+    ...messages,
   ];
-
-  if (isFollowUp) {
-    let isFirstUserMessage = true;
-    for (const message of previousMessages) {
-      const includeHtml = message.role === "user" && isFirstUserMessage;
-      if (message.role === "user") {
-        conversationMessages.push({
-          role: "user",
-          content: buildUserMessage(message.content, includeHtml),
-        });
-        isFirstUserMessage = false;
-      } else {
-        conversationMessages.push({
-          role: "assistant",
-          content: message.content,
-        });
-      }
-    }
-  }
-
-  conversationMessages.push({
-    role: "user",
-    content: buildUserMessage(prompt, !isFollowUp),
-  });
 
   try {
     const response = await fetch(OPENCODE_ZEN_ENDPOINT, {

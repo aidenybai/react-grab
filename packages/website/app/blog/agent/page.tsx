@@ -9,7 +9,7 @@ import { highlightCode } from "@/lib/shiki";
 import { IconClaude } from "@/components/icon-claude";
 import { IconCursor } from "@/components/icon-cursor";
 import { IconCopilot } from "@/components/icon-copilot";
-import { IconOpencode } from "@/components/icon-opencode";
+import { IconOpenCode } from "@/components/icon-opencode";
 import { GithubButton } from "@/components/github-button";
 import { CursorInstallButton } from "@/components/cursor-install-button";
 import demoGif from "@/public/demo.gif";
@@ -165,12 +165,12 @@ const AgentPage = () => {
                     className="inline -translate-y-px mx-0.5 text-white"
                   />
                   Cursor,{" "}
-                  <IconOpencode
+                  <IconOpenCode
                     width={12}
                     height={12}
                     className="inline -translate-y-px mx-0.5"
                   />
-                  Opencode, Codex, Gemini, Amp,{" "}
+                  OpenCode, Codex, Gemini, Amp,{" "}
                   <IconCopilot
                     width={12}
                     height={12}
@@ -588,8 +588,8 @@ export default function RootLayout({ children }) {
               </p>
 
               <h4 className="text-base font-medium text-neutral-300 mt-8 flex items-center gap-1.5">
-                <IconOpencode width={14} height={14} />
-                Opencode
+                <IconOpenCode width={14} height={14} />
+                OpenCode
               </h4>
 
               <p className="text-sm font-medium text-neutral-400">
@@ -627,7 +627,7 @@ export default function RootLayout({ children }) {
                 Client Setup
               </p>
               <p>
-                Add the Opencode client script in your{" "}
+                Add the OpenCode client script in your{" "}
                 <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
                   &lt;head&gt;
                 </code>

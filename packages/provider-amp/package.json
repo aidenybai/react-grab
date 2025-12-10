@@ -29,12 +29,11 @@
   },
   "devDependencies": {
     "@react-grab/utils": "workspace:*",
-    "@types/cross-spawn": "^6.0.6",
     "tsup": "^8.4.0"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.6",
-    "cross-spawn": "^7.0.6",
+    "execa": "^9.6.0",
     "@sourcegraph/amp-sdk": "0.1.0-20251210081226-g90e3892",
     "fkill": "^9.0.0",
     "hono": "^4.0.0",

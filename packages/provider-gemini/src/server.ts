@@ -1,4 +1,4 @@
-import spawn from "cross-spawn";
+import { execa, type ResultPromise } from "execa";
 import { pathToFileURL } from "node:url";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -36,7 +36,7 @@ interface GeminiStreamEvent {
 }
 
 const geminiSessionMap = new Map<string, string>();
-const activeProcesses = new Map<string, ReturnType<typeof spawn>>();
+const activeProcesses = new Map<string, ResultPromise>();
 
 const parseStreamLine = (line: string): GeminiStreamEvent | null => {
   const trimmed = line.trim();
@@ -78,14 +78,16 @@ export const createServer = () => {
 
       geminiArgs.push(userPrompt);
 
-      let geminiProcess: ReturnType<typeof spawn> | undefined;
+      let geminiProcess: ResultPromise | undefined;
       let stderrBuffer = "";
 
       try {
         await stream.writeSSE({ data: "Thinking...", event: "status" });
 
-        geminiProcess = spawn("gemini", geminiArgs, {
-          stdio: ["pipe", "pipe", "pipe"],
+        geminiProcess = execa("gemini", geminiArgs, {
+          stdin: "pipe",
+          stdout: "pipe",
+          stderr: "pipe",
           env: { ...process.env },
           cwd: process.cwd(),
         });

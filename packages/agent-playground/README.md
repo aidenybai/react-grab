@@ -15,7 +15,7 @@ ni
 ```bash
 nr dev:claude    # Claude Code (default)
 nr dev:cursor    # Cursor
-nr dev:opencode  # Opencode
+nr dev:opencode  # OpenCode
 ```
 
 The demo app runs at `http://localhost:5174`.
@@ -27,7 +27,7 @@ The demo app runs at `http://localhost:5174`.
 | `nr dev`          | Run with Claude Code (default) |
 | `nr dev:claude`   | Run with Claude Code           |
 | `nr dev:cursor`   | Run with Cursor                |
-| `nr dev:opencode` | Run with Opencode              |
+| `nr dev:opencode` | Run with OpenCode              |
 
 ## Demo App
 
@@ -47,5 +47,5 @@ The demo app includes:
 
 - **Claude Code** - Uses the Claude Agent SDK (port 4567)
 - **Cursor** - Uses the Cursor Agent CLI (port 5567)
-- **Opencode** - Uses the Opencode CLI (port 6567)
+- **OpenCode** - Uses the OpenCode CLI (port 6567)
 - **Ami** - Client-only, connects to ami.dev (no local server)

@@ -1,4 +1,4 @@
-import { createOpencode } from "@opencode-ai/sdk";
+import { createOpenCode } from "@opencode-ai/sdk";
 import fkill from "fkill";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -10,35 +10,35 @@ import { DEFAULT_PORT } from "./constants.js";
 
 const VERSION = process.env.VERSION ?? "0.0.0";
 
-export interface OpencodeAgentOptions {
+export interface OpenCodeAgentOptions {
   model?: string;
   agent?: string;
   directory?: string;
 }
 
-type OpencodeAgentContext = AgentContext<OpencodeAgentOptions>;
+type OpenCodeAgentContext = AgentContext<OpenCodeAgentOptions>;
 
-interface OpencodeInstance {
-  client: Awaited<ReturnType<typeof createOpencode>>["client"];
-  server: Awaited<ReturnType<typeof createOpencode>>["server"];
+interface OpenCodeInstance {
+  client: Awaited<ReturnType<typeof createOpenCode>>["client"];
+  server: Awaited<ReturnType<typeof createOpenCode>>["server"];
 }
 
 const OPENCODE_SDK_PORT = 4096;
 
 import { sleep } from "@react-grab/utils/server";
 
-let opencodeInstance: OpencodeInstance | null = null;
+let opencodeInstance: OpenCodeInstance | null = null;
 const sessionMap = new Map<string, string>();
 const abortedSessions = new Set<string>();
-let lastOpencodeSessionId: string | undefined;
+let lastOpenCodeSessionId: string | undefined;
 
-const getOpencodeClient = async () => {
+const getOpenCodeClient = async () => {
   if (!opencodeInstance) {
     await fkill(`:${OPENCODE_SDK_PORT}`, { force: true, silent: true }).catch(
       () => {},
     );
     await sleep(100);
-    const instance = await createOpencode({
+    const instance = await createOpenCode({
       hostname: "127.0.0.1",
       port: OPENCODE_SDK_PORT,
     });
@@ -47,13 +47,13 @@ const getOpencodeClient = async () => {
   return opencodeInstance.client;
 };
 
-const executeOpencodePrompt = async (
+const executeOpenCodePrompt = async (
   prompt: string,
-  options?: OpencodeAgentOptions,
+  options?: OpenCodeAgentOptions,
   onStatus?: (text: string) => void,
   reactGrabSessionId?: string,
 ): Promise<string> => {
-  const client = await getOpencodeClient();
+  const client = await getOpenCodeClient();
 
   onStatus?.("Thinking...");
 
@@ -77,7 +77,7 @@ const executeOpencodePrompt = async (
     }
   }
 
-  lastOpencodeSessionId = opencodeSessionId;
+  lastOpenCodeSessionId = opencodeSessionId;
 
   const modelConfig = options?.model
     ? {
@@ -111,7 +111,7 @@ export const createServer = () => {
   honoApplication.use("*", cors());
 
   honoApplication.post("/agent", async (context) => {
-    const requestBody = await context.req.json<OpencodeAgentContext>();
+    const requestBody = await context.req.json<OpenCodeAgentContext>();
     const { content, prompt, options, sessionId } = requestBody;
 
     const isFollowUp = Boolean(sessionId && sessionMap.has(sessionId));
@@ -128,7 +128,7 @@ ${content}
       const isAborted = () => sessionId && abortedSessions.has(sessionId);
 
       try {
-        await executeOpencodePrompt(
+        await executeOpenCodePrompt(
           formattedPrompt,
           options,
           (text) => {
@@ -183,15 +183,15 @@ ${content}
   });
 
   honoApplication.post("/undo", async (context) => {
-    if (!lastOpencodeSessionId) {
+    if (!lastOpenCodeSessionId) {
       return context.json({ status: "error", message: "No session to undo" });
     }
 
     try {
-      const client = await getOpencodeClient();
+      const client = await getOpenCodeClient();
 
       await client.session.prompt({
-        path: { id: lastOpencodeSessionId },
+        path: { id: lastOpenCodeSessionId },
         body: {
           parts: [{ type: "text", text: "/undo" }],
         },
@@ -219,7 +219,7 @@ export const startServer = async (port: number = DEFAULT_PORT) => {
   const honoApplication = createServer();
   serve({ fetch: honoApplication.fetch, port });
   console.log(
-    `${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim("(Opencode)")}`,
+    `${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim("(OpenCode)")}`,
   );
   console.log(`- Local:    ${pc.cyan(`http://localhost:${port}`)}`);
 };

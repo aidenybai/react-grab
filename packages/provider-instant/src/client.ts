@@ -22,11 +22,26 @@ interface ConversationMessage {
   content: string;
 }
 
-interface ConversationHistory {
-  html: string;
-  messages: ConversationMessage[];
-  lastCode: string;
-}
+
+const buildUserMessage = (
+  prompt: string,
+  html: string,
+  isFirstMessage: boolean,
+): string => {
+  if (isFirstMessage) {
+    return `Here is the HTML to modify:
+
+${html}
+
+Modification request: ${prompt}
+
+Remember: Output ONLY the JavaScript code, nothing else.`;
+  }
+
+  return `Follow-up modification request: ${prompt}
+
+Remember: Output ONLY the JavaScript code for this modification. The $el variable still references the same element.`;
+};
 
 type UndoAction = () => void;
 
@@ -387,7 +402,7 @@ export const createInstantAgentProvider = (
   const elementHtmlMap = new Map<string, string>();
   const resultCodeMap = new Map<string, string>();
   const undoFnMap = new Map<string, () => void>();
-  const conversationHistoryMap = new Map<string, ConversationHistory>();
+  const conversationHistoryMap = new Map<string, ConversationMessage[]>();
   let lastRequestId: string | null = null;
   let lastRequestStartTime: number | null = null;
 
@@ -403,14 +418,6 @@ export const createInstantAgentProvider = (
 
     const html = buildAncestorContext(element);
     elementHtmlMap.set(requestId, html);
-
-    const sessionId = session.context.sessionId;
-    if (sessionId) {
-      const existingHistory = conversationHistoryMap.get(sessionId);
-      if (existingHistory) {
-        existingHistory.html = html;
-      }
-    }
   };
 
   const provider: AgentProvider<RequestContext> = {
@@ -426,13 +433,21 @@ export const createInstantAgentProvider = (
         throw new Error("Could not capture element HTML");
       }
 
-      const existingHistory = sessionId
-        ? conversationHistoryMap.get(sessionId)
-        : undefined;
-
-      const messages: ConversationMessage[] = existingHistory
-        ? [...existingHistory.messages]
+      const existingMessages = sessionId
+        ? conversationHistoryMap.get(sessionId) ?? []
         : [];
+
+      const isFirstMessage = existingMessages.length === 0;
+      const formattedUserMessage = buildUserMessage(
+        context.prompt,
+        html,
+        isFirstMessage,
+      );
+
+      const messages: ConversationMessage[] = [
+        ...existingMessages,
+        { role: "user", content: formattedUserMessage },
+      ];
 
       lastRequestStartTime = Date.now();
       let response: Response | null = null;
@@ -441,11 +456,7 @@ export const createInstantAgentProvider = (
       const fetchPromise = fetch(apiEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: context.prompt,
-          html,
-          messages,
-        }),
+        body: JSON.stringify({ messages }),
         signal,
       })
         .then((fetchResponse) => {
@@ -479,17 +490,10 @@ export const createInstantAgentProvider = (
       const code = await response!.text();
       resultCodeMap.set(requestId, code);
 
-      const conversationSessionId = sessionId ?? requestId;
-      const updatedMessages: ConversationMessage[] = [
+      conversationHistoryMap.set(sessionId ?? requestId, [
         ...messages,
-        { role: "user", content: context.prompt },
         { role: "assistant", content: code },
-      ];
-      conversationHistoryMap.set(conversationSessionId, {
-        html,
-        messages: updatedMessages,
-        lastCode: code,
-      });
+      ]);
 
       yield "Applying changes...";
     },

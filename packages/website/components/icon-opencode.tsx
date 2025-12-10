@@ -1,6 +1,6 @@
 import { SVGProps } from "react";
 
-export const IconOpencode = (props: SVGProps<SVGSVGElement>) => (
+export const IconOpenCode = (props: SVGProps<SVGSVGElement>) => (
   <svg
     viewBox="0 0 32 40"
     fill="none"
@@ -19,4 +19,4 @@ export const IconOpencode = (props: SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
-IconOpencode.displayName = "IconOpencode";
+IconOpenCode.displayName = "IconOpenCode";

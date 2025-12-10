@@ -44,7 +44,7 @@ packages/
 ├── cli/                 # CLI installer (@react-grab/cli)
 ├── provider-cursor/     # Cursor agent integration
 ├── provider-claude-code/  # Claude Code integration
-├── provider-opencode/   # Opencode integration
+├── provider-opencode/   # OpenCode integration
 ├── provider-codex/      # OpenAI Codex integration
 ├── provider-gemini/     # Google Gemini CLI integration
 ├── provider-amp/        # Amp SDK integration

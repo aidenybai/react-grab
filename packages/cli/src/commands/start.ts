@@ -105,7 +105,7 @@ export const start = new Command()
             { title: "None", value: "" },
             { title: "Claude Code", value: "@react-grab/claude-code" },
             { title: "Cursor", value: "@react-grab/cursor" },
-            { title: "Opencode", value: "@react-grab/opencode" },
+            { title: "OpenCode", value: "@react-grab/opencode" },
             { title: "Codex", value: "@react-grab/codex" },
             { title: "Gemini", value: "@react-grab/gemini" },
             { title: "Amp", value: "@react-grab/amp" },

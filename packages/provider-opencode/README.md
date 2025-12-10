@@ -1,6 +1,6 @@
 # @react-grab/opencode
 
-Opencode agent provider for React Grab. Requires running a local server that interfaces with the Opencode CLI.
+OpenCode agent provider for React Grab. Requires running a local server that interfaces with the OpenCode CLI.
 
 ## Installation
 
@@ -58,7 +58,7 @@ if (process.env.NODE_ENV === "development") {
 }
 ```
 
-> **Note:** You must have [Opencode](https://opencode.ai) installed (`npm i -g opencode-ai@latest`).
+> **Note:** You must have [OpenCode](https://opencode.ai) installed (`npm i -g opencode-ai@latest`).
 
 ## Client Usage
 
@@ -109,12 +109,12 @@ attachAgent();
 
 ## Options
 
-You can configure the Opencode agent provider:
+You can configure the OpenCode agent provider:
 
 ```typescript
-import { createOpencodeAgentProvider } from "@react-grab/opencode/client";
+import { createOpenCodeAgentProvider } from "@react-grab/opencode/client";
 
-const provider = createOpencodeAgentProvider({
+const provider = createOpenCodeAgentProvider({
   serverUrl: "http://localhost:6567", // Custom server URL
   getOptions: () => ({
     model: "claude-sonnet-4-20250514", // AI model to use
@@ -138,5 +138,5 @@ const provider = createOpencodeAgentProvider({
 
 1. **React Grab** sends the selected element context to the server via HTTP POST
 2. **Server** receives the request and spawns the `opencode` CLI process
-3. **Opencode** processes the request and streams JSON responses to stdout
+3. **OpenCode** processes the request and streams JSON responses to stdout
 4. **Server** relays status updates to the client via Server-Sent Events (SSE)

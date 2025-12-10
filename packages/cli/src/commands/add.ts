@@ -21,7 +21,7 @@ const VERSION = process.env.VERSION ?? "0.0.1";
 const AGENT_NAMES: Record<string, string> = {
   "claude-code": "Claude Code",
   cursor: "Cursor",
-  opencode: "Opencode",
+  opencode: "OpenCode",
   codex: "Codex",
   gemini: "Gemini",
   amp: "Amp",

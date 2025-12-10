@@ -228,11 +228,11 @@ export default function RootLayout({ children }) {
 }
 ```
 
-### Opencode
+### OpenCode
 
 #### Server Setup
 
-The server runs on port `6567` and interfaces with the Opencode CLI. Add to your `package.json`:
+The server runs on port `6567` and interfaces with the OpenCode CLI. Add to your `package.json`:
 
 ```json
 {
@@ -242,7 +242,7 @@ The server runs on port `6567` and interfaces with the Opencode CLI. Add to your
 }
 ```
 
-> **Note:** You must have [Opencode](https://opencode.ai) installed (`npm i -g opencode-ai@latest`).
+> **Note:** You must have [OpenCode](https://opencode.ai) installed (`npm i -g opencode-ai@latest`).
 
 #### Client Setup
 

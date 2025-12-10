@@ -883,7 +883,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 <Show when={props.replyToPrompt}>
                   <div class="shrink-0 flex items-center gap-0.5 w-full mb-0.5 overflow-hidden">
                     <span class="text-[#a1a1aa] text-[9px] leading-3 shrink-0">
-                      ↳
+                      {">previously:"}
                     </span>
                     <span class="text-[#a1a1aa] text-[9px] leading-3 italic truncate whitespace-nowrap">
                       {props.replyToPrompt}
