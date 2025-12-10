@@ -100,6 +100,7 @@ export const createServer = () => {
         requestSignal.addEventListener("abort", killProcess);
 
         let buffer = "";
+        let stderrBuffer = "";
 
         const processLine = async (line: string) => {
           const event = parseStreamLine(line);
@@ -165,7 +166,9 @@ export const createServer = () => {
         });
 
         cursorProcess.stderr.on("data", (chunk: Buffer) => {
-          console.error("[cursor-agent stderr]:", chunk.toString());
+          const text = chunk.toString();
+          stderrBuffer += text;
+          console.error("[cursor-agent stderr]:", text);
         });
 
         cursorProcess.stdin.write(fullPrompt);
@@ -177,7 +180,11 @@ export const createServer = () => {
             if (code === 0 || cursorProcess.killed) {
               resolve();
             } else {
-              reject(new Error(`cursor-agent exited with code ${code}`));
+              const stderrOutput = stderrBuffer.trim();
+              const errorMsg = stderrOutput
+                ? `cursor-agent exited with code ${code}\n${stderrOutput}`
+                : `cursor-agent exited with code ${code}`;
+              reject(new Error(errorMsg));
             }
           });
 
