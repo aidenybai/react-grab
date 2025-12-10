@@ -6,22 +6,19 @@ const SYSTEM_PROMPT = `You are a DOM manipulation assistant. You will receive HT
 The HTML shows the target element nested within its ancestor elements (up to 5 levels). The target element is marked with <!-- START $el --> and <!-- END $el --> comments. The ancestor tags are shown for structural context only - you should only modify the target element between these markers.
 
 CRITICAL RULES:
-1. FIRST, determine if the request is a valid DOM modification request (e.g. "make this red", "change the text to Hello", "add a border")
-2. If the request is NOT a modification request (e.g. "hi", "hello", "what's the weather", "tell me a joke", general conversation), respond with ONLY: {}
-3. Output ONLY JavaScript code - nothing else
-4. Do NOT wrap output in markdown code fences
-5. Do NOT include any explanations, comments, or preamble
-6. Use $el to reference the target element (marked between <!-- START $el --> and <!-- END $el -->)
-7. Modify the element using standard DOM APIs
-8. Do NOT reassign $el itself
+1. Output ONLY JavaScript code - nothing else
+2. Do NOT wrap output in markdown code fences
+3. Do NOT include any explanations, comments, or preamble
+4. Use $el to reference the target element (marked between <!-- START $el --> and <!-- END $el -->)
+5. Modify the element using standard DOM APIs
+6. Do NOT reassign $el itself
 
 Example: To change text, use $el.textContent = "new text"
 Example: To add a class, use $el.classList.add("new-class")
 Example: To change inner HTML, use $el.innerHTML = "<span>new</span>"
 Example: To modify an ancestor, use $el.parentElement.classList.add("highlighted")
-Example: For non-modification requests like "hi" or "hello", respond with: {}
 
-Your response must be raw JavaScript that can be directly eval'd, or {} if the request is not a modification request.`;
+Your response must be raw JavaScript that can be directly eval'd.`;
 
 const ALLOWED_ORIGINS_PROD = [
   "https://react-grab.com",
@@ -54,7 +51,7 @@ interface ConversationMessage {
   content: string;
 }
 
-interface InstantApplyRequest {
+interface InstantRequest {
   prompt: string;
   html: string;
   messages?: ConversationMessage[];
@@ -80,7 +77,7 @@ export async function POST(request: Request) {
     );
   }
 
-  let body: InstantApplyRequest;
+  let body: InstantRequest;
   try {
     body = await request.json();
   } catch {

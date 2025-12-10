@@ -7,12 +7,16 @@ import type {
   init,
   ReactGrabAPI,
 } from "react-grab/core";
+import {
+  streamSSE,
+  CONNECTION_CHECK_TTL_MS,
+  STORAGE_KEY,
+} from "@react-grab/utils/client";
 
 export type { AgentCompleteResult };
-import { CONNECTION_CHECK_TTL_MS, DEFAULT_PORT } from "./constants.js";
+import { DEFAULT_PORT } from "./constants.js";
 
 const DEFAULT_SERVER_URL = `http://localhost:${DEFAULT_PORT}`;
-const STORAGE_KEY = "react-grab:agent-sessions";
 
 export interface OpencodeAgentOptions {
   model?: string;
@@ -27,79 +31,12 @@ interface OpencodeAgentProviderOptions {
   getOptions?: () => Partial<OpencodeAgentOptions>;
 }
 
-interface SSEEvent {
-  eventType: string;
-  data: string;
-}
-
-const parseServerSentEvent = (eventStringBlock: string): SSEEvent => {
-  let eventType = "";
-  let data = "";
-  for (const line of eventStringBlock.split("\n")) {
-    if (line.startsWith("event:")) eventType = line.slice(6).trim();
-    else if (line.startsWith("data:")) data = line.slice(5).trim();
-  }
-  return { eventType, data };
-};
-
-const streamSSE = async function* (
-  stream: ReadableStream<Uint8Array>,
-  signal: AbortSignal,
-) {
-  const streamReader = stream.getReader();
-  const textDecoder = new TextDecoder();
-  let textBuffer = "";
-  let aborted = false;
-
-  const onAbort = () => {
-    aborted = true;
-    streamReader.cancel().catch(() => {});
-  };
-
-  signal.addEventListener("abort", onAbort);
-
-  try {
-    if (signal.aborted) {
-      throw new DOMException("Aborted", "AbortError");
-    }
-
-    while (true) {
-      const result = await streamReader.read();
-
-      if (aborted || signal.aborted) {
-        throw new DOMException("Aborted", "AbortError");
-      }
-
-      const { done, value } = result;
-      if (value) textBuffer += textDecoder.decode(value, { stream: true });
-
-      let boundaryIndex;
-      while ((boundaryIndex = textBuffer.indexOf("\n\n")) !== -1) {
-        const { eventType, data } = parseServerSentEvent(
-          textBuffer.slice(0, boundaryIndex),
-        );
-        textBuffer = textBuffer.slice(boundaryIndex + 2);
-
-        if (eventType === "done") return;
-        if (eventType === "error") throw new Error(data || "Agent error");
-        if (data) yield data;
-      }
-
-      if (done) break;
-    }
-  } finally {
-    signal.removeEventListener("abort", onAbort);
-    try {
-      streamReader.releaseLock();
-    } catch {}
-  }
-};
-
 const streamFromServer = async function* (
   serverUrl: string,
   context: OpencodeAgentContext,
   signal: AbortSignal,
-) {
+): AsyncGenerator<string, void, unknown> {
+  const startTime = Date.now();
   const sessionId = context.sessionId;
 
   const handleAbort = () => {
@@ -128,7 +65,39 @@ const streamFromServer = async function* (
       throw new Error("No response body");
     }
 
-    yield* streamSSE(response.body, signal);
+    const iterator = streamSSE(response.body, signal)[Symbol.asyncIterator]();
+    let done = false;
+    let pendingNext = iterator.next();
+
+    while (!done) {
+      const result = await Promise.race([
+        pendingNext.then((iteratorResult: IteratorResult<string, void>) => ({
+          type: "status" as const,
+          iteratorResult,
+        })),
+        new Promise<{ type: "timeout" }>((resolve) =>
+          setTimeout(() => resolve({ type: "timeout" }), 100),
+        ),
+      ]);
+
+      if (result.type === "timeout") {
+        const elapsedSeconds = (Date.now() - startTime) / 1000;
+        yield `Working… ${elapsedSeconds.toFixed(1)}s`;
+      } else {
+        const iteratorResult = result.iteratorResult;
+        done = iteratorResult.done ?? false;
+        if (!done && iteratorResult.value) {
+          const status = iteratorResult.value;
+          if (status === "Completed successfully") {
+            const totalSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
+            yield `Completed in ${totalSeconds}s`;
+          } else {
+            yield status;
+          }
+          pendingNext = iterator.next();
+        }
+      }
+    }
   } finally {
     signal.removeEventListener("abort", handleAbort);
   }

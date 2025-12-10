@@ -10,6 +10,10 @@
       "@react-grab/ami",
       "@react-grab/cursor",
       "@react-grab/opencode",
+      "@react-grab/instant",
+      "@react-grab/codex",
+      "@react-grab/gemini",
+      "@react-grab/amp",
       "@react-grab/cli"
     ]
   ],
@@ -22,6 +26,7 @@
     "@react-grab/website",
     "@react-grab/web-extension",
     "@react-grab/benchmarks",
-    "@react-grab/agent-playground"
+    "@react-grab/agent-playground",
+    "@react-grab/utils"
   ]
 }

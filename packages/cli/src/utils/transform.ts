@@ -612,12 +612,12 @@ export const previewPackageJsonTransform = (
   agent: AgentIntegration,
   installedAgents: string[]
 ): PackageJsonTransformResult => {
-  if (agent === "none" || agent === "ami") {
+  if (agent === "none" || agent === "ami" || agent === "instant") {
     return {
       success: true,
       filePath: "",
-      message: agent === "ami"
-        ? "Ami does not require package.json modification"
+      message: agent === "ami" || agent === "instant"
+        ? `${agent === "ami" ? "Ami" : "Instant"} does not require package.json modification`
         : "No agent selected, skipping package.json modification",
       noChanges: true,
     };

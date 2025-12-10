@@ -25,7 +25,7 @@ interface OpencodeInstance {
 
 const OPENCODE_SDK_PORT = 4096;
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+import { sleep } from "@react-grab/utils/server";
 
 let opencodeInstance: OpencodeInstance | null = null;
 const sessionMap = new Map<string, string>();

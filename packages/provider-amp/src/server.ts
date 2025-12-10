@@ -10,7 +10,7 @@ import { DEFAULT_PORT } from "./constants.js";
 
 const VERSION = process.env.VERSION ?? "0.0.0";
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+import { sleep } from "@react-grab/utils/server";
 
 export interface AmpAgentOptions {
   cwd?: string;

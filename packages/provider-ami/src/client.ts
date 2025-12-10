@@ -215,6 +215,7 @@ export const createAmiAgentProvider = (projectId?: string): AgentProvider => {
 
   return {
     send: async function* (context: AgentContext, signal: AbortSignal) {
+      const startTime = Date.now();
       const auth = await getOrCreateAuth();
 
       projectId = await getLatestProjectId(auth.token);
@@ -290,21 +291,38 @@ export const createAmiAgentProvider = (projectId?: string): AgentProvider => {
           }
         });
 
+      const yieldStatus = (status: string) => {
+        if (status === "Completed successfully") {
+          const totalSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
+          return `Completed in ${totalSeconds}s`;
+        }
+        return status;
+      };
+
       try {
         while (!done && !aborted) {
           if (signal.aborted) {
             throw new DOMException("Aborted", "AbortError");
           }
           if (statusQueue.length > 0) {
-            yield statusQueue.shift()!;
+            yield yieldStatus(statusQueue.shift()!);
           } else {
-            await new Promise<void>((resolve) => {
-              resolveWait = resolve;
-            });
+            const waitResult = await Promise.race([
+              new Promise<"status">((resolve) => {
+                resolveWait = () => resolve("status");
+              }),
+              new Promise<"timeout">((resolve) =>
+                setTimeout(() => resolve("timeout"), 100),
+              ),
+            ]);
+            if (waitResult === "timeout" && !done && !aborted) {
+              const elapsedSeconds = (Date.now() - startTime) / 1000;
+              yield `Working… ${elapsedSeconds.toFixed(1)}s`;
+            }
           }
         }
         while (statusQueue.length > 0 && !aborted) {
-          yield statusQueue.shift()!;
+          yield yieldStatus(statusQueue.shift()!);
         }
         if (aborted) {
           throw new DOMException("Aborted", "AbortError");
@@ -322,6 +340,7 @@ export const createAmiAgentProvider = (projectId?: string): AgentProvider => {
       signal: AbortSignal,
       storage: AgentSessionStorage,
     ) {
+      const startTime = Date.now();
       const savedSessions = storage.getItem(STORAGE_KEY);
       if (!savedSessions) {
         throw new Error("No sessions to resume");
@@ -395,21 +414,38 @@ export const createAmiAgentProvider = (projectId?: string): AgentProvider => {
           }
         });
 
+      const yieldStatus = (status: string) => {
+        if (status === "Completed successfully") {
+          const totalSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
+          return `Completed in ${totalSeconds}s`;
+        }
+        return status;
+      };
+
       try {
         while (!done && !aborted) {
           if (signal.aborted) {
             throw new DOMException("Aborted", "AbortError");
           }
           if (statusQueue.length > 0) {
-            yield statusQueue.shift()!;
+            yield yieldStatus(statusQueue.shift()!);
           } else {
-            await new Promise<void>((resolve) => {
-              resolveWait = resolve;
-            });
+            const waitResult = await Promise.race([
+              new Promise<"status">((resolve) => {
+                resolveWait = () => resolve("status");
+              }),
+              new Promise<"timeout">((resolve) =>
+                setTimeout(() => resolve("timeout"), 100),
+              ),
+            ]);
+            if (waitResult === "timeout" && !done && !aborted) {
+              const elapsedSeconds = (Date.now() - startTime) / 1000;
+              yield `Working… ${elapsedSeconds.toFixed(1)}s`;
+            }
           }
         }
         while (statusQueue.length > 0 && !aborted) {
-          yield statusQueue.shift()!;
+          yield yieldStatus(statusQueue.shift()!);
         }
         if (aborted) {
           throw new DOMException("Aborted", "AbortError");

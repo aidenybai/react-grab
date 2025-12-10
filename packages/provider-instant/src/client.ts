@@ -1,10 +1,15 @@
-import type { AgentProvider, AgentContext, AgentSession } from "react-grab";
+import type {
+  AgentProvider,
+  AgentContext,
+  AgentSession,
+  AgentCompleteResult,
+  init,
+  ReactGrabAPI,
+} from "react-grab/core";
 
-interface AgentCompleteResult {
-  error?: string;
-}
+export type { AgentCompleteResult };
 
-interface InstantApplyAgentProviderOptions {
+interface InstantAgentProviderOptions {
   apiEndpoint?: string;
 }
 
@@ -275,7 +280,7 @@ const createUndoableProxy = (element: HTMLElement) => {
   return { proxy, undo };
 };
 
-const DEFAULT_API_ENDPOINT = "/api/instant-apply";
+const DEFAULT_API_ENDPOINT = "https://react-grab.com/api/instant";
 const ANCESTOR_LEVELS = 5;
 
 const FORBIDDEN_PATTERNS = [
@@ -375,8 +380,8 @@ const buildAncestorContext = (element: Element): string => {
   return result.trim();
 };
 
-export const createInstantApplyAgentProvider = (
-  options: InstantApplyAgentProviderOptions = {},
+export const createInstantAgentProvider = (
+  options: InstantAgentProviderOptions = {},
 ) => {
   const apiEndpoint = options.apiEndpoint ?? DEFAULT_API_ENDPOINT;
   const elementHtmlMap = new Map<string, string>();
@@ -516,10 +521,14 @@ export const createInstantApplyAgentProvider = (
       return { error: "Could not find element to apply changes" };
     }
 
-    const isEmptyResponse = code === "{}" || code === "";
+    if (code === "") {
+      elementHtmlMap.delete(requestId);
+      resultCodeMap.delete(requestId);
+      return { error: "No changes generated" };
+    }
 
     const validation = validateCode(code);
-    if (!validation.isValid || isEmptyResponse) {
+    if (!validation.isValid) {
       elementHtmlMap.delete(requestId);
       resultCodeMap.delete(requestId);
       return { error: validation.error ?? "No changes generated" };
@@ -560,3 +569,49 @@ export const createInstantApplyAgentProvider = (
 
   return { provider, getOptions, onStart, onComplete, onUndo };
 };
+
+declare global {
+  interface Window {
+    __REACT_GRAB__?: ReturnType<typeof init>;
+  }
+}
+
+export const attachAgent = async () => {
+  if (typeof window === "undefined") return;
+
+  const { provider, getOptions, onStart, onComplete, onUndo } =
+    createInstantAgentProvider();
+
+  const attach = (api: ReactGrabAPI) => {
+    api.setAgent({
+      provider,
+      getOptions,
+      onStart,
+      onComplete,
+      onUndo,
+    });
+  };
+
+  const api = window.__REACT_GRAB__;
+  if (api) {
+    attach(api);
+    return;
+  }
+
+  window.addEventListener(
+    "react-grab:init",
+    (event: Event) => {
+      const customEvent = event as CustomEvent<ReactGrabAPI>;
+      attach(customEvent.detail);
+    },
+    { once: true },
+  );
+
+  // HACK: Check again after adding listener in case of race condition
+  const apiAfterListener = window.__REACT_GRAB__;
+  if (apiAfterListener) {
+    attach(apiAfterListener);
+  }
+};
+
+attachAgent();

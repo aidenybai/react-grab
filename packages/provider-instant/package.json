@@ -1,9 +1,9 @@
 {
-  "name": "@react-grab/gemini",
+  "name": "@react-grab/instant",
   "version": "0.0.82",
   "type": "module",
   "bin": {
-    "react-grab-gemini": "./dist/cli.cjs"
+    "react-grab-instant": "./dist/cli.cjs"
   },
   "exports": {
     "./client": {
@@ -15,11 +15,8 @@
       "types": "./dist/server.d.ts",
       "import": "./dist/server.js",
       "require": "./dist/server.cjs"
-    },
-    "./dist/*": "./dist/*.js",
-    "./dist/*.js": "./dist/*.js"
+    }
   },
-  "browser": "dist/client.global.js",
   "files": [
     "dist"
   ],
@@ -28,15 +25,9 @@
     "build": "rm -rf dist && NODE_ENV=production tsup"
   },
   "devDependencies": {
-    "@react-grab/utils": "workspace:*",
-    "@types/cross-spawn": "^6.0.6",
     "tsup": "^8.4.0"
   },
   "dependencies": {
-    "@hono/node-server": "^1.19.6",
-    "cross-spawn": "^7.0.6",
-    "fkill": "^9.0.0",
-    "hono": "^4.0.0",
     "picocolors": "^1.1.1",
     "react-grab": "workspace:*"
   }

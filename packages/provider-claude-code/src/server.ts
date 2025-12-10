@@ -155,7 +155,7 @@ export const createServer = () => {
   return app;
 };
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+import { sleep } from "@react-grab/utils/server";
 
 export const startServer = async (port: number = DEFAULT_PORT) => {
   await fkill(`:${port}`, { force: true, silent: true }).catch(() => {});

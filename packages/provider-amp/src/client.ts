@@ -6,12 +6,16 @@ import type {
   init,
   ReactGrabAPI,
 } from "react-grab/core";
+import {
+  streamSSE,
+  CONNECTION_CHECK_TTL_MS,
+  STORAGE_KEY,
+} from "@react-grab/utils/client";
 
 export type { AgentCompleteResult };
-import { CONNECTION_CHECK_TTL_MS, DEFAULT_PORT } from "./constants.js";
+import { DEFAULT_PORT } from "./constants.js";
 
 const DEFAULT_SERVER_URL = `http://localhost:${DEFAULT_PORT}`;
-const STORAGE_KEY = "react-grab:agent-sessions";
 
 export interface AmpAgentOptions {
   cwd?: string;
@@ -24,77 +28,12 @@ interface AmpAgentProviderOptions {
   getOptions?: () => Partial<AmpAgentOptions>;
 }
 
-interface SSEEvent {
-  eventType: string;
-  data: string;
-}
-
-const parseSSEEvent = (eventBlock: string): SSEEvent => {
-  let eventType = "";
-  let data = "";
-  for (const line of eventBlock.split("\n")) {
-    if (line.startsWith("event:")) eventType = line.slice(6).trim();
-    else if (line.startsWith("data:")) data = line.slice(5).trim();
-  }
-  return { eventType, data };
-};
-
-async function* streamSSE(
-  stream: ReadableStream<Uint8Array>,
-  signal: AbortSignal,
-) {
-  const reader = stream.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let aborted = false;
-
-  const onAbort = () => {
-    aborted = true;
-    reader.cancel().catch(() => {});
-  };
-
-  signal.addEventListener("abort", onAbort);
-
-  try {
-    if (signal.aborted) {
-      throw new DOMException("Aborted", "AbortError");
-    }
-
-    while (true) {
-      const result = await reader.read();
-
-      if (aborted || signal.aborted) {
-        throw new DOMException("Aborted", "AbortError");
-      }
-
-      const { done, value } = result;
-      if (value) buffer += decoder.decode(value, { stream: true });
-
-      let boundary;
-      while ((boundary = buffer.indexOf("\n\n")) !== -1) {
-        const { eventType, data } = parseSSEEvent(buffer.slice(0, boundary));
-        buffer = buffer.slice(boundary + 2);
-
-        if (eventType === "done") return;
-        if (eventType === "error") throw new Error(data || "Agent error");
-        if (data) yield data;
-      }
-
-      if (done) break;
-    }
-  } finally {
-    signal.removeEventListener("abort", onAbort);
-    try {
-      reader.releaseLock();
-    } catch {}
-  }
-}
-
 async function* streamFromServer(
   serverUrl: string,
   context: AmpAgentContext,
   signal: AbortSignal,
-) {
+): AsyncGenerator<string, void, unknown> {
+  const startTime = Date.now();
   const sessionId = context.sessionId;
 
   const handleAbort = () => {
@@ -123,7 +62,39 @@ async function* streamFromServer(
       throw new Error("No response body");
     }
 
-    yield* streamSSE(response.body, signal);
+    const iterator = streamSSE(response.body, signal)[Symbol.asyncIterator]();
+    let done = false;
+    let pendingNext = iterator.next();
+
+    while (!done) {
+      const result = await Promise.race([
+        pendingNext.then((iteratorResult: IteratorResult<string, void>) => ({
+          type: "status" as const,
+          iteratorResult,
+        })),
+        new Promise<{ type: "timeout" }>((resolve) =>
+          setTimeout(() => resolve({ type: "timeout" }), 100),
+        ),
+      ]);
+
+      if (result.type === "timeout") {
+        const elapsedSeconds = (Date.now() - startTime) / 1000;
+        yield `Working… ${elapsedSeconds.toFixed(1)}s`;
+      } else {
+        const iteratorResult = result.iteratorResult;
+        done = iteratorResult.done ?? false;
+        if (!done && iteratorResult.value) {
+          const status = iteratorResult.value;
+          if (status === "Completed successfully") {
+            const totalSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
+            yield `Completed in ${totalSeconds}s`;
+          } else {
+            yield status;
+          }
+          pendingNext = iterator.next();
+        }
+      }
+    }
   } finally {
     signal.removeEventListener("abort", handleAbort);
   }

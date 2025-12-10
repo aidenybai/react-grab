@@ -1,5 +1,5 @@
+import { createInstantAgentProvider } from "@react-grab/instant/client";
 import { init } from "react-grab/core";
-import { createInstantApplyAgentProvider } from "./utils/instant-apply-agent-provider";
 
 declare global {
   interface Window {
@@ -18,7 +18,7 @@ if (typeof window !== "undefined" && !window.__REACT_GRAB__) {
   });
 
   const { provider, getOptions, onStart, onComplete, onUndo } =
-    createInstantApplyAgentProvider();
+    createInstantAgentProvider({ apiEndpoint: "/api/instant" });
 
   api.setAgent({
     provider,

@@ -2,12 +2,29 @@ import fs from "node:fs";
 import module from "node:module";
 import { defineConfig } from "tsup";
 
-const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8")) as { version: string };
+const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8")) as {
+  version: string;
+};
 
 export default defineConfig([
   {
     entry: {
       server: "./src/server.ts",
+    },
+    format: ["cjs", "esm"],
+    dts: true,
+    clean: true,
+    splitting: false,
+    sourcemap: false,
+    target: "node18",
+    platform: "node",
+    treeshake: true,
+    env: {
+      VERSION: process.env.VERSION ?? packageJson.version,
+    },
+  },
+  {
+    entry: {
       cli: "./src/cli.ts",
     },
     format: ["cjs", "esm"],
@@ -35,13 +52,13 @@ export default defineConfig([
     sourcemap: false,
     target: "esnext",
     platform: "browser",
+    noExternal: [/.*/],
     treeshake: true,
-    noExternal: ["@react-grab/utils"],
   },
   {
     entry: ["./src/client.ts"],
     format: ["iife"],
-    globalName: "ReactGrabCursor",
+    globalName: "ReactGrabInstant",
     outExtension: () => ({ js: ".global.js" }),
     dts: false,
     clean: false,
