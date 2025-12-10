@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import spawn from "cross-spawn";
 import net from "node:net";
 import { pathToFileURL } from "node:url";
 import { Hono } from "hono";
