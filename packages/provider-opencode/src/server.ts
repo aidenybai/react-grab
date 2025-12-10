@@ -1,5 +1,5 @@
-import net from "node:net";
 import { createOpencode } from "@opencode-ai/sdk";
+import killPort from "kill-port";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { streamSSE } from "hono/streaming";
@@ -25,6 +25,8 @@ interface OpencodeInstance {
 
 let opencodeInstance: OpencodeInstance | null = null;
 const sessionMap = new Map<string, string>();
+const abortedSessions = new Set<string>();
+let lastOpencodeSessionId: string | undefined;
 
 const getOpencodeClient = async () => {
   if (!opencodeInstance) {
@@ -67,6 +69,8 @@ const executeOpencodePrompt = async (
     }
   }
 
+  lastOpencodeSessionId = opencodeSessionId;
+
   const modelConfig = options?.model
     ? {
         providerID: options.model.split("/")[0],
@@ -96,7 +100,7 @@ const executeOpencodePrompt = async (
 export const createServer = () => {
   const honoApplication = new Hono();
 
-  honoApplication.use("/*", cors());
+  honoApplication.use("*", cors());
 
   honoApplication.post("/agent", async (context) => {
     const requestBody = await context.req.json<OpencodeAgentContext>();
@@ -113,11 +117,14 @@ ${content}
 `;
 
     return streamSSE(context, async (stream) => {
+      const isAborted = () => sessionId && abortedSessions.has(sessionId);
+
       try {
         await executeOpencodePrompt(
           formattedPrompt,
           options,
           (text) => {
+            if (isAborted()) return;
             stream
               .writeSSE({
                 data: text,
@@ -128,21 +135,66 @@ ${content}
           sessionId,
         );
 
-        await stream.writeSSE({
-          data: "Completed successfully",
-          event: "status",
-        });
-        await stream.writeSSE({ data: "", event: "done" });
+        if (!isAborted()) {
+          await stream.writeSSE({
+            data: "Completed successfully",
+            event: "status",
+          });
+          await stream.writeSSE({ data: "", event: "done" });
+        }
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : "Unknown error";
-        await stream.writeSSE({
-          data: `Error: ${errorMessage}`,
-          event: "error",
-        });
-        await stream.writeSSE({ data: "", event: "done" });
+        if (!isAborted()) {
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
+          const stderr =
+            error instanceof Error && "stderr" in error
+              ? String(error.stderr)
+              : undefined;
+          const fullError =
+            stderr && stderr.trim()
+              ? `${errorMessage}\n\nstderr:\n${stderr.trim()}`
+              : errorMessage;
+          await stream.writeSSE({
+            data: `Error: ${fullError}`,
+            event: "error",
+          });
+          await stream.writeSSE({ data: "", event: "done" });
+        }
+      } finally {
+        if (sessionId) {
+          abortedSessions.delete(sessionId);
+        }
       }
     });
+  });
+
+  honoApplication.post("/abort/:sessionId", (context) => {
+    const { sessionId } = context.req.param();
+    abortedSessions.add(sessionId);
+    return context.json({ status: "ok" });
+  });
+
+  honoApplication.post("/undo", async (context) => {
+    if (!lastOpencodeSessionId) {
+      return context.json({ status: "error", message: "No session to undo" });
+    }
+
+    try {
+      const client = await getOpencodeClient();
+
+      await client.session.prompt({
+        path: { id: lastOpencodeSessionId },
+        body: {
+          parts: [{ type: "text", text: "/undo" }],
+        },
+      });
+
+      return context.json({ status: "ok" });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      return context.json({ status: "error", message: errorMessage });
+    }
   });
 
   honoApplication.get("/health", (context) => {
@@ -152,21 +204,8 @@ ${content}
   return honoApplication;
 };
 
-const isPortInUse = (port: number): Promise<boolean> =>
-  new Promise((resolve) => {
-    const netServer = net.createServer();
-    netServer.once("error", () => resolve(true));
-    netServer.once("listening", () => {
-      netServer.close();
-      resolve(false);
-    });
-    netServer.listen(port);
-  });
-
 export const startServer = async (port: number = DEFAULT_PORT) => {
-  if (await isPortInUse(port)) {
-    return;
-  }
+  await killPort(port).catch(() => {});
 
   const honoApplication = createServer();
   serve({ fetch: honoApplication.fetch, port });

@@ -16,17 +16,21 @@ export const createSession = (
   selectionBounds?: OverlayBounds,
   tagName?: string,
   componentName?: string,
-): AgentSession => ({
-  id: generateSessionId(),
-  context,
-  lastStatus: "",
-  isStreaming: true,
-  createdAt: Date.now(),
-  position,
-  selectionBounds,
-  tagName,
-  componentName,
-});
+): AgentSession => {
+  const now = Date.now();
+  return {
+    id: generateSessionId(),
+    context,
+    lastStatus: "",
+    isStreaming: true,
+    createdAt: now,
+    lastUpdatedAt: now,
+    position,
+    selectionBounds,
+    tagName,
+    componentName,
+  };
+};
 
 const getStorage = (
   storage?: AgentSessionStorage | null,
@@ -117,10 +121,10 @@ export const clearSessionById = (
 
 export const updateSession = (
   session: AgentSession,
-  updates: Partial<Pick<AgentSession, "lastStatus" | "isStreaming" | "error">>,
+  updates: Partial<Pick<AgentSession, "lastStatus" | "isStreaming" | "error" | "context">>,
   storage?: AgentSessionStorage | null,
 ): AgentSession => {
-  const updatedSession = { ...session, ...updates };
+  const updatedSession = { ...session, ...updates, lastUpdatedAt: Date.now() };
   saveSessionById(updatedSession, storage);
   return updatedSession;
 };

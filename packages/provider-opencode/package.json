@@ -28,12 +28,16 @@
     "build": "rm -rf dist && NODE_ENV=production tsup"
   },
   "devDependencies": {
+    "@types/cross-spawn": "^6.0.6",
+    "@types/kill-port": "^2.0.3",
     "tsup": "^8.4.0"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.6",
     "@opencode-ai/sdk": "^1.0.0",
+    "cross-spawn": "^7.0.6",
     "hono": "^4.0.0",
+    "kill-port": "^2.0.1",
     "picocolors": "^1.1.1",
     "react-grab": "workspace:*"
   }

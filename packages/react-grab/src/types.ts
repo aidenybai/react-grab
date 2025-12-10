@@ -114,6 +114,7 @@ export interface AgentSession {
   lastStatus: string;
   isStreaming: boolean;
   createdAt: number;
+  lastUpdatedAt: number;
   position: { x: number; y: number };
   selectionBounds?: OverlayBounds;
   tagName?: string;
@@ -132,6 +133,7 @@ export interface AgentProvider<T = any> {
     signal: AbortSignal,
     storage: AgentSessionStorage,
   ) => AsyncIterable<string>;
+  abort?: (sessionId: string) => Promise<void>;
   supportsResume?: boolean;
   supportsFollowUp?: boolean;
   checkConnection?: () => Promise<boolean>;

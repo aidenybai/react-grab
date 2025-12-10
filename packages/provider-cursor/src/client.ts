@@ -99,22 +99,38 @@ async function* streamFromServer(
   context: CursorAgentContext,
   signal: AbortSignal,
 ) {
-  const response = await fetch(`${serverUrl}/agent`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(context),
-    signal,
-  });
+  const sessionId = context.sessionId;
 
-  if (!response.ok) {
-    throw new Error(`Server error: ${response.status}`);
+  const handleAbort = () => {
+    if (sessionId) {
+      fetch(`${serverUrl}/abort/${sessionId}`, { method: "POST" }).catch(
+        () => {},
+      );
+    }
+  };
+
+  signal.addEventListener("abort", handleAbort);
+
+  try {
+    const response = await fetch(`${serverUrl}/agent`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(context),
+      signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Server error: ${response.status}`);
+    }
+
+    if (!response.body) {
+      throw new Error("No response body");
+    }
+
+    yield* streamSSE(response.body, signal);
+  } finally {
+    signal.removeEventListener("abort", handleAbort);
   }
-
-  if (!response.body) {
-    throw new Error("No response body");
-  }
-
-  yield* streamSSE(response.body, signal);
 }
 
 export const createCursorAgentProvider = (
@@ -192,9 +208,9 @@ export const createCursorAgentProvider = (
       }
     },
 
-    undo: async () => {
+    abort: async (sessionId: string) => {
       try {
-        await fetch(`${serverUrl}/undo`, { method: "POST" });
+        await fetch(`${serverUrl}/abort/${sessionId}`, { method: "POST" });
       } catch {}
     },
   };
@@ -211,9 +227,13 @@ export const attachAgent = async () => {
 
   const provider = createCursorAgentProvider();
 
+  const attach = (api: ReactGrabAPI) => {
+    api.setAgent({ provider, storage: sessionStorage });
+  };
+
   const api = window.__REACT_GRAB__;
   if (api) {
-    api.setAgent({ provider, storage: sessionStorage });
+    attach(api);
     return;
   }
 
@@ -221,10 +241,16 @@ export const attachAgent = async () => {
     "react-grab:init",
     (event: Event) => {
       const customEvent = event as CustomEvent<ReactGrabAPI>;
-      customEvent.detail.setAgent({ provider, storage: sessionStorage });
+      attach(customEvent.detail);
     },
     { once: true },
   );
+
+  // HACK: Check again after adding listener in case of race condition
+  const apiAfterListener = window.__REACT_GRAB__;
+  if (apiAfterListener) {
+    attach(apiAfterListener);
+  }
 };
 
 attachAgent();

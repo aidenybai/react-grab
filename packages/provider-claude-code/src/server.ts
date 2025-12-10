@@ -1,10 +1,10 @@
 import { execSync } from "node:child_process";
-import net from "node:net";
 import { pathToFileURL } from "node:url";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { streamSSE } from "hono/streaming";
 import { serve } from "@hono/node-server";
+import killPort from "kill-port";
 import pc from "picocolors";
 import {
   query,
@@ -31,6 +31,8 @@ type TextContentBlock = Extract<ContentBlock, { type: "text" }>;
 type ClaudeAgentContext = AgentContext<Options>;
 
 const claudeSessionMap = new Map<string, string>();
+const abortedSessions = new Set<string>();
+let lastClaudeSessionId: string | undefined;
 
 const isTextBlock = (block: ContentBlock): block is TextContentBlock =>
   block.type === "text";
@@ -38,7 +40,7 @@ const isTextBlock = (block: ContentBlock): block is TextContentBlock =>
 export const createServer = () => {
   const app = new Hono();
 
-  app.use("/*", cors());
+  app.use("*", cors());
 
   app.post("/agent", async (context) => {
     const body = await context.req.json<ClaudeAgentContext>();
@@ -52,6 +54,8 @@ export const createServer = () => {
     const userPrompt = isFollowUp ? prompt : `${prompt}\n\n${content}`;
 
     return streamSSE(context, async (stream) => {
+      const isAborted = () => sessionId && abortedSessions.has(sessionId);
+
       try {
         await stream.writeSSE({ data: "Thinking...", event: "status" });
 
@@ -69,7 +73,7 @@ export const createServer = () => {
             env,
             ...options,
             ...(isFollowUp && claudeSessionId
-              ? { resume: claudeSessionId, continue: true }
+              ? { resume: claudeSessionId }
               : {}),
           },
         });
@@ -77,6 +81,8 @@ export const createServer = () => {
         let capturedClaudeSessionId: string | undefined;
 
         for await (const message of queryResult) {
+          if (isAborted()) break;
+
           if (!capturedClaudeSessionId && message.session_id) {
             capturedClaudeSessionId = message.session_id;
           }
@@ -103,20 +109,77 @@ export const createServer = () => {
           }
         }
 
-        if (sessionId && capturedClaudeSessionId) {
-          claudeSessionMap.set(sessionId, capturedClaudeSessionId);
+        if (!isAborted() && capturedClaudeSessionId) {
+          lastClaudeSessionId = capturedClaudeSessionId;
+          if (sessionId) {
+            claudeSessionMap.set(sessionId, capturedClaudeSessionId);
+          }
         }
 
-        await stream.writeSSE({ data: "", event: "done" });
+        if (!isAborted()) {
+          await stream.writeSSE({ data: "", event: "done" });
+        }
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : "Unknown error";
-        await stream.writeSSE({
-          data: `Error: ${errorMessage}`,
-          event: "error",
-        });
+        if (!isAborted()) {
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
+          const stderr =
+            error instanceof Error && "stderr" in error
+              ? String(error.stderr)
+              : undefined;
+          const fullError =
+            stderr && stderr.trim()
+              ? `${errorMessage}\n\nstderr:\n${stderr.trim()}`
+              : errorMessage;
+          await stream.writeSSE({
+            data: `Error: ${fullError}`,
+            event: "error",
+          });
+        }
+      } finally {
+        if (sessionId) {
+          abortedSessions.delete(sessionId);
+        }
       }
     });
+  });
+
+  app.post("/abort/:sessionId", (context) => {
+    const { sessionId } = context.req.param();
+    abortedSessions.add(sessionId);
+    return context.json({ status: "ok" });
+  });
+
+  app.post("/undo", async (context) => {
+    if (!lastClaudeSessionId) {
+      return context.json({ status: "error", message: "No session to undo" });
+    }
+
+    try {
+      const env = { ...process.env };
+      delete env.NODE_OPTIONS;
+      delete env.VSCODE_INSPECTOR_OPTIONS;
+
+      const queryResult = query({
+        prompt: "/rewind",
+        options: {
+          pathToClaudeCodeExecutable: resolveClaudePath(),
+          cwd: process.cwd(),
+          env,
+          resume: lastClaudeSessionId,
+        },
+      });
+
+      for await (const message of queryResult) {
+        if (message.type === "result") break;
+      }
+
+      return context.json({ status: "ok" });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      return context.json({ status: "error", message: errorMessage });
+    }
   });
 
   app.get("/health", (context) => {
@@ -126,21 +189,8 @@ export const createServer = () => {
   return app;
 };
 
-const isPortInUse = (port: number): Promise<boolean> =>
-  new Promise((resolve) => {
-    const server = net.createServer();
-    server.once("error", () => resolve(true));
-    server.once("listening", () => {
-      server.close();
-      resolve(false);
-    });
-    server.listen(port);
-  });
-
 export const startServer = async (port: number = DEFAULT_PORT) => {
-  if (await isPortInUse(port)) {
-    return;
-  }
+  // await killPort(port).catch(() => {});
 
   const app = createServer();
   serve({ fetch: app.fetch, port });

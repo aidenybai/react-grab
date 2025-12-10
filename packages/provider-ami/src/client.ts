@@ -2,9 +2,7 @@ import {
   AMI_BRIDGE_URL,
   authenticate,
   convertToAmiMessage,
-  createMinimalEnvironment,
   generateId,
-  getEnvironmentFromGitRepo,
   getEnvironmentFromProjectId,
   getUserIdFromBridgeToken,
   initCliRpc,
@@ -472,9 +470,13 @@ export const attachAgent = async () => {
 
   const provider = createAmiAgentProvider();
 
+  const attach = (api: ReactGrabAPI) => {
+    api.setAgent({ provider, storage: sessionStorage });
+  };
+
   const api = window.__REACT_GRAB__;
   if (api) {
-    api.setAgent({ provider });
+    attach(api);
     return;
   }
 
@@ -482,10 +484,16 @@ export const attachAgent = async () => {
     "react-grab:init",
     (event: Event) => {
       const customEvent = event as CustomEvent<ReactGrabAPI>;
-      customEvent.detail.setAgent({ provider });
+      attach(customEvent.detail);
     },
     { once: true },
   );
+
+  // HACK: Check again after adding listener in case of race condition
+  const apiAfterListener = window.__REACT_GRAB__;
+  if (apiAfterListener) {
+    attach(apiAfterListener);
+  }
 };
 
 attachAgent();

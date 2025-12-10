@@ -1,10 +1,10 @@
 import spawn from "cross-spawn";
-import net from "node:net";
 import { pathToFileURL } from "node:url";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { streamSSE } from "hono/streaming";
 import { serve } from "@hono/node-server";
+import killPort from "kill-port";
 import pc from "picocolors";
 import type { AgentContext } from "react-grab/core";
 import { DEFAULT_PORT } from "./constants.js";
@@ -31,6 +31,7 @@ interface CursorStreamEvent {
 }
 
 const cursorSessionMap = new Map<string, string>();
+const activeProcesses = new Map<string, ReturnType<typeof spawn>>();
 
 const parseStreamLine = (line: string): CursorStreamEvent | null => {
   const trimmed = line.trim();
@@ -58,7 +59,7 @@ const extractTextFromMessage = (
 export const createServer = () => {
   const app = new Hono();
 
-  app.use("/*", cors());
+  app.use("*", cors());
 
   app.post("/agent", async (context) => {
     const body = await context.req.json<CursorAgentContext>();
@@ -70,8 +71,6 @@ export const createServer = () => {
     const isFollowUp = Boolean(cursorChatId);
 
     const userPrompt = isFollowUp ? prompt : `${prompt}\n\n${content}`;
-
-    const requestSignal = context.req.raw.signal;
 
     return streamSSE(context, async (stream) => {
       const cursorAgentArgs = [
@@ -95,21 +94,26 @@ export const createServer = () => {
         cursorAgentArgs.push("--resume", cursorChatId);
       }
 
+      let cursorProcess: ReturnType<typeof spawn> | undefined;
+      let stderrBuffer = "";
+
       try {
         await stream.writeSSE({ data: "Thinking...", event: "status" });
 
-        const cursorProcess = spawn("cursor-agent", cursorAgentArgs, {
+        cursorProcess = spawn("cursor-agent", cursorAgentArgs, {
           stdio: ["pipe", "pipe", "pipe"],
           env: { ...process.env },
         });
 
-        const killProcess = () => {
-          if (!cursorProcess.killed) {
-            cursorProcess.kill("SIGTERM");
-          }
-        };
+        if (sessionId) {
+          activeProcesses.set(sessionId, cursorProcess);
+        }
 
-        requestSignal.addEventListener("abort", killProcess);
+        if (cursorProcess.stderr) {
+          cursorProcess.stderr.on("data", (chunk: Buffer) => {
+            stderrBuffer += chunk.toString();
+          });
+        }
 
         let buffer = "";
         let capturedCursorChatId: string | undefined;
@@ -123,24 +127,6 @@ export const createServer = () => {
           }
 
           switch (event.type) {
-            case "system":
-              if (event.subtype === "init") {
-                await stream.writeSSE({
-                  data: "Thinking...",
-                  event: "status",
-                });
-              }
-              break;
-
-            case "thinking":
-              if (event.subtype === "completed") {
-                await stream.writeSSE({
-                  data: "Thinking…",
-                  event: "status",
-                });
-              }
-              break;
-
             case "assistant": {
               const textContent = extractTextFromMessage(event.message);
               if (textContent) {
@@ -170,39 +156,46 @@ export const createServer = () => {
           }
         };
 
-        cursorProcess.stdout.on("data", async (chunk: Buffer) => {
-          buffer += chunk.toString();
+        if (cursorProcess.stdout) {
+          cursorProcess.stdout.on("data", async (chunk: Buffer) => {
+            buffer += chunk.toString();
 
-          let newlineIndex;
-          while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
-            const line = buffer.slice(0, newlineIndex);
-            buffer = buffer.slice(newlineIndex + 1);
-            await processLine(line);
-          }
-        });
-
-        cursorProcess.stderr.on("data", (chunk: Buffer) => {
-          console.error("[cursor-agent stderr]:", chunk.toString());
-        });
-
-        cursorProcess.stdin.write(userPrompt);
-        cursorProcess.stdin.end();
-
-        await new Promise<void>((resolve, reject) => {
-          cursorProcess.on("close", (code) => {
-            requestSignal.removeEventListener("abort", killProcess);
-            if (code === 0 || cursorProcess.killed) {
-              resolve();
-            } else {
-              reject(new Error(`cursor-agent exited with code ${code}`));
+            let newlineIndex;
+            while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
+              const line = buffer.slice(0, newlineIndex);
+              buffer = buffer.slice(newlineIndex + 1);
+              await processLine(line);
             }
           });
+        }
 
-          cursorProcess.on("error", (error) => {
-            requestSignal.removeEventListener("abort", killProcess);
-            reject(error);
+        if (cursorProcess.stdin) {
+          cursorProcess.stdin.write(userPrompt);
+          cursorProcess.stdin.end();
+        }
+
+        if (cursorProcess) {
+          const childProcess = cursorProcess;
+          await new Promise<void>((resolve, reject) => {
+            childProcess.on("close", (code) => {
+              if (sessionId) {
+                activeProcesses.delete(sessionId);
+              }
+              if (code === 0 || childProcess.killed) {
+                resolve();
+              } else {
+                reject(new Error(`cursor-agent exited with code ${code}`));
+              }
+            });
+
+            childProcess.on("error", (error) => {
+              if (sessionId) {
+                activeProcesses.delete(sessionId);
+              }
+              reject(error);
+            });
           });
-        });
+        }
 
         if (buffer.trim()) {
           await processLine(buffer);
@@ -216,12 +209,26 @@ export const createServer = () => {
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : "Unknown error";
+        const stderrContent = stderrBuffer.trim();
+        const fullError = stderrContent
+          ? `${errorMessage}\n\nstderr:\n${stderrContent}`
+          : errorMessage;
         await stream.writeSSE({
-          data: `Error: ${errorMessage}`,
+          data: `Error: ${fullError}`,
           event: "error",
         });
       }
     });
+  });
+
+  app.post("/abort/:sessionId", (context) => {
+    const { sessionId } = context.req.param();
+    const activeProcess = activeProcesses.get(sessionId);
+    if (activeProcess && !activeProcess.killed) {
+      activeProcess.kill("SIGTERM");
+      activeProcesses.delete(sessionId);
+    }
+    return context.json({ status: "ok" });
   });
 
   app.get("/health", (context) => {
@@ -231,21 +238,8 @@ export const createServer = () => {
   return app;
 };
 
-const isPortInUse = (port: number): Promise<boolean> =>
-  new Promise((resolve) => {
-    const server = net.createServer();
-    server.once("error", () => resolve(true));
-    server.once("listening", () => {
-      server.close();
-      resolve(false);
-    });
-    server.listen(port);
-  });
-
 export const startServer = async (port: number = DEFAULT_PORT) => {
-  if (await isPortInUse(port)) {
-    return;
-  }
+  await killPort(port).catch(() => {});
 
   const app = createServer();
   serve({ fetch: app.fetch, port });

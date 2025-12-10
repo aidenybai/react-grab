@@ -18,6 +18,7 @@ import {
 import { createElementBounds } from "./utils/create-element-bounds.js";
 import { generateSnippet } from "./utils/generate-snippet.js";
 import { getNearestComponentName } from "./context.js";
+import { RECENT_THRESHOLD_MS } from "./constants.js";
 
 interface StartSessionParams {
   element: Element;
@@ -184,10 +185,18 @@ export const createAgentManager = (
       return;
     }
 
-    const streamingSessions = Array.from(existingSessions.values()).filter(
-      (session) => session.isStreaming,
+    const now = Date.now();
+
+    const resumableSessions = Array.from(existingSessions.values()).filter(
+      (session) => {
+        if (session.isStreaming) return true;
+        const lastUpdatedAt = session.lastUpdatedAt ?? session.createdAt;
+        const age = now - lastUpdatedAt;
+        const isRecent = age < RECENT_THRESHOLD_MS;
+        return isRecent && Boolean(session.error);
+      },
     );
-    if (streamingSessions.length === 0) {
+    if (resumableSessions.length === 0) {
       clearSessions(storage);
       return;
     }
@@ -199,13 +208,13 @@ export const createAgentManager = (
       return;
     }
 
-    const streamingSessionsMap = new Map(
-      streamingSessions.map((session) => [session.id, session]),
+    const resumableSessionsMap = new Map(
+      resumableSessions.map((session) => [session.id, session]),
     );
-    setSessions(streamingSessionsMap);
-    saveSessions(streamingSessionsMap, storage);
+    setSessions(resumableSessionsMap);
+    saveSessions(resumableSessionsMap, storage);
 
-    for (const existingSession of streamingSessions) {
+    for (const existingSession of resumableSessions) {
       const reacquiredElement = tryReacquireElement(existingSession);
       if (reacquiredElement) {
         sessionElements.set(existingSession.id, reacquiredElement);
@@ -213,6 +222,8 @@ export const createAgentManager = (
 
       const sessionWithResumeStatus = {
         ...existingSession,
+        isStreaming: true,
+        error: undefined,
         lastStatus: existingSession.lastStatus || "Resuming...",
         position: existingSession.position ?? {
           x: window.innerWidth / 2,

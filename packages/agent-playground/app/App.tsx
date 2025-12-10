@@ -144,7 +144,7 @@ export const App = () => {
           </div>
           <div className="p-3 bg-white/5 rounded text-sm">
             <div className="font-medium">User Card</div>
-            <div className="text-white/50 text-xs mt-1 italic italic">
+            <div className="text-white/50 text-xs mt-1 italic">
               john@example.com
             </div>
           </div>

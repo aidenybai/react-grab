@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { spawn } from "node:child_process";
+import spawn from "cross-spawn";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import pc from "picocolors";
