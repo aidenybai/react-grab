@@ -1,4 +1,4 @@
-import { createOpenCode } from "@opencode-ai/sdk";
+import { createOpencode } from "@opencode-ai/sdk";
 import fkill from "fkill";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -19,8 +19,8 @@ export interface OpenCodeAgentOptions {
 type OpenCodeAgentContext = AgentContext<OpenCodeAgentOptions>;
 
 interface OpenCodeInstance {
-  client: Awaited<ReturnType<typeof createOpenCode>>["client"];
-  server: Awaited<ReturnType<typeof createOpenCode>>["server"];
+  client: Awaited<ReturnType<typeof createOpencode>>["client"];
+  server: Awaited<ReturnType<typeof createOpencode>>["server"];
 }
 
 const OPENCODE_SDK_PORT = 4096;
@@ -38,7 +38,7 @@ const getOpenCodeClient = async () => {
       () => {},
     );
     await sleep(100);
-    const instance = await createOpenCode({
+    const instance = await createOpencode({
       hostname: "127.0.0.1",
       port: OPENCODE_SDK_PORT,
     });
