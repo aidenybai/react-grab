@@ -1,4 +1,4 @@
-export type AgentIntegration = "claude-code" | "cursor" | "opencode" | "ami" | "none";
+export type AgentIntegration = "claude-code" | "cursor" | "opencode" | "codex" | "gemini" | "ami" | "none";
 
 export const NEXT_APP_ROUTER_SCRIPT = `{process.env.NODE_ENV === "development" && (
           <Script

@@ -602,6 +602,8 @@ const AGENT_PREFIXES: Record<string, string> = {
   "claude-code": "npx @react-grab/claude-code@latest &&",
   cursor: "npx @react-grab/cursor@latest &&",
   opencode: "npx @react-grab/opencode@latest &&",
+  codex: "npx @react-grab/codex@latest &&",
+  gemini: "npx @react-grab/gemini@latest &&",
 };
 
 export const previewPackageJsonTransform = (

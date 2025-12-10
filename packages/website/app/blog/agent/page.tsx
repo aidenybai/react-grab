@@ -170,7 +170,7 @@ const AgentPage = () => {
                     height={12}
                     className="inline -translate-y-px mx-0.5"
                   />
-                  Opencode,{" "}
+                  Opencode, Codex, Gemini,{" "}
                   <IconCopilot
                     width={12}
                     height={12}
@@ -684,6 +684,192 @@ export default function RootLayout({ children }) {
                   />
                 </div>
               </div>
+
+              <h4 className="text-base font-medium text-neutral-300 mt-8 flex items-center gap-1.5">
+                Codex
+              </h4>
+
+              <p className="text-sm font-medium text-neutral-400">
+                Server Setup
+              </p>
+              <p>
+                The server runs on port{" "}
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+                  7567
+                </code>{" "}
+                and interfaces with the OpenAI Codex SDK. Add to your{" "}
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+                  package.json
+                </code>
+                :
+              </p>
+              <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden">
+                <div className="px-3 py-2">
+                  <HighlightedCodeBlock
+                    lang="json"
+                    code={`{
+  "scripts": {
+    "dev": "npx @react-grab/codex@latest && next dev"
+  }
+}`}
+                  />
+                </div>
+              </div>
+
+              <p className="text-sm font-medium text-neutral-400 mt-4">
+                Client Setup
+              </p>
+              <p>
+                Add the Codex client script in your{" "}
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+                  &lt;head&gt;
+                </code>
+                :
+              </p>
+              <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden">
+                <div className="px-3 py-2">
+                  <HighlightedCodeBlock
+                    lang="html"
+                    code={`<script src="//unpkg.com/react-grab/dist/index.global.js"></script>
+<script src="//unpkg.com/@react-grab/codex/dist/client.global.js"></script>`}
+                  />
+                </div>
+              </div>
+
+              <p className="mt-4">
+                Or using Next.js{" "}
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+                  Script
+                </code>{" "}
+                component in your{" "}
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+                  app/layout.tsx
+                </code>
+                :
+              </p>
+              <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden">
+                <div className="px-3 py-2">
+                  <HighlightedCodeBlock
+                    lang="tsx"
+                    code={`import Script from "next/script";
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <head>
+        {process.env.NODE_ENV === "development" && (
+          <>
+            <Script
+              src="//unpkg.com/react-grab/dist/index.global.js"
+              strategy="beforeInteractive"
+            />
+            <Script
+              src="//unpkg.com/@react-grab/codex/dist/client.global.js"
+              strategy="lazyOnload"
+            />
+          </>
+        )}
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}`}
+                  />
+                </div>
+              </div>
+
+              <h4 className="text-base font-medium text-neutral-300 mt-8 flex items-center gap-1.5">
+                Gemini
+              </h4>
+
+              <p className="text-sm font-medium text-neutral-400">
+                Server Setup
+              </p>
+              <p>
+                The server runs on port{" "}
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+                  8567
+                </code>{" "}
+                and interfaces with the Gemini CLI. Add to your{" "}
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+                  package.json
+                </code>
+                :
+              </p>
+              <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden">
+                <div className="px-3 py-2">
+                  <HighlightedCodeBlock
+                    lang="json"
+                    code={`{
+  "scripts": {
+    "dev": "npx @react-grab/gemini@latest && next dev"
+  }
+}`}
+                  />
+                </div>
+              </div>
+
+              <p className="text-sm font-medium text-neutral-400 mt-4">
+                Client Setup
+              </p>
+              <p>
+                Add the Gemini client script in your{" "}
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+                  &lt;head&gt;
+                </code>
+                :
+              </p>
+              <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden">
+                <div className="px-3 py-2">
+                  <HighlightedCodeBlock
+                    lang="html"
+                    code={`<script src="//unpkg.com/react-grab/dist/index.global.js"></script>
+<script src="//unpkg.com/@react-grab/gemini/dist/client.global.js"></script>`}
+                  />
+                </div>
+              </div>
+
+              <p className="mt-4">
+                Or using Next.js{" "}
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+                  Script
+                </code>{" "}
+                component in your{" "}
+                <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+                  app/layout.tsx
+                </code>
+                :
+              </p>
+              <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden">
+                <div className="px-3 py-2">
+                  <HighlightedCodeBlock
+                    lang="tsx"
+                    code={`import Script from "next/script";
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <head>
+        {process.env.NODE_ENV === "development" && (
+          <>
+            <Script
+              src="//unpkg.com/react-grab/dist/index.global.js"
+              strategy="beforeInteractive"
+            />
+            <Script
+              src="//unpkg.com/@react-grab/gemini/dist/client.global.js"
+              strategy="lazyOnload"
+            />
+          </>
+        )}
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}`}
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="flex flex-col gap-3">
@@ -754,6 +940,24 @@ export default function RootLayout({ children }) {
                   className="text-neutral-300 hover:text-white underline underline-offset-4"
                 >
                   @react-grab/opencode
+                </a>
+                ,{" "}
+                <a
+                  href="https://github.com/aidenybai/react-grab/tree/main/packages/provider-codex"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-neutral-300 hover:text-white underline underline-offset-4"
+                >
+                  @react-grab/codex
+                </a>
+                ,{" "}
+                <a
+                  href="https://github.com/aidenybai/react-grab/tree/main/packages/provider-gemini"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-neutral-300 hover:text-white underline underline-offset-4"
+                >
+                  @react-grab/gemini
                 </a>
                 .
               </p>

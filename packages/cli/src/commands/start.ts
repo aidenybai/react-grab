@@ -99,6 +99,8 @@ export const start = new Command()
             { title: "Claude Code", value: "@react-grab/claude-code" },
             { title: "Cursor", value: "@react-grab/cursor" },
             { title: "Opencode", value: "@react-grab/opencode" },
+            { title: "Codex", value: "@react-grab/codex" },
+            { title: "Gemini", value: "@react-grab/gemini" },
             { title: "Ami", value: "@react-grab/ami" },
           ],
         });

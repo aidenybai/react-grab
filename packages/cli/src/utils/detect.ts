@@ -292,7 +292,7 @@ export const detectReactGrab = (projectRoot: string): boolean => {
   return filesToCheck.some(hasReactGrabInFile);
 };
 
-const AGENT_PACKAGES = ["@react-grab/claude-code", "@react-grab/cursor", "@react-grab/opencode"];
+const AGENT_PACKAGES = ["@react-grab/claude-code", "@react-grab/cursor", "@react-grab/opencode", "@react-grab/codex", "@react-grab/gemini"];
 
 export const detectUnsupportedFramework = (projectRoot: string): UnsupportedFramework => {
   const packageJsonPath = join(projectRoot, "package.json");
@@ -352,9 +352,9 @@ export const detectInstalledAgents = (projectRoot: string): string[] => {
   }
 };
 
-export type AgentCLI = "claude" | "cursor-agent" | "opencode";
+export type AgentCLI = "claude" | "cursor-agent" | "opencode" | "codex" | "gemini";
 
-const AGENT_CLI_COMMANDS: AgentCLI[] = ["claude", "cursor-agent", "opencode"];
+const AGENT_CLI_COMMANDS: AgentCLI[] = ["claude", "cursor-agent", "opencode", "codex", "gemini"];
 
 const isCommandAvailable = (command: string): boolean => {
   try {

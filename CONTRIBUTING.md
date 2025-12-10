@@ -45,6 +45,8 @@ packages/
 ├── provider-cursor/     # Cursor agent integration
 ├── provider-claude-code/  # Claude Code integration
 ├── provider-opencode/   # Opencode integration
+├── provider-codex/      # OpenAI Codex integration
+├── provider-gemini/     # Google Gemini CLI integration
 ├── provider-ami/        # AMI client
 ├── website/             # Documentation site (react-grab.com)
 ├── vite-playground/     # Vite development playground

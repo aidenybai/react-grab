@@ -197,7 +197,60 @@ importers:
         specifier: ^8.4.0
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
 
+  packages/provider-codex:
+    dependencies:
+      '@hono/node-server':
+        specifier: ^1.19.6
+        version: 1.19.6(hono@4.10.7)
+      '@openai/codex-sdk':
+        specifier: ^0.66.0
+        version: 0.66.0
+      fkill:
+        specifier: ^9.0.0
+        version: 9.0.0
+      hono:
+        specifier: ^4.0.0
+        version: 4.10.7
+      picocolors:
+        specifier: ^1.1.1
+        version: 1.1.1
+      react-grab:
+        specifier: workspace:*
+        version: link:../react-grab
+    devDependencies:
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
+
   packages/provider-cursor:
+    dependencies:
+      '@hono/node-server':
+        specifier: ^1.19.6
+        version: 1.19.6(hono@4.10.7)
+      cross-spawn:
+        specifier: ^7.0.6
+        version: 7.0.6
+      fkill:
+        specifier: ^9.0.0
+        version: 9.0.0
+      hono:
+        specifier: ^4.0.0
+        version: 4.10.7
+      picocolors:
+        specifier: ^1.1.1
+        version: 1.1.1
+      react-grab:
+        specifier: workspace:*
+        version: link:../react-grab
+    devDependencies:
+      '@types/cross-spawn':
+        specifier: ^6.0.6
+        version: 6.0.6
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
+
+  packages/provider-gemini:
     dependencies:
       '@hono/node-server':
         specifier: ^1.19.6
@@ -1660,6 +1713,10 @@ packages:
   '@nolyfill/is-core-module@1.0.39':
     resolution: {integrity: sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==}
     engines: {node: '>=12.4.0'}
+
+  '@openai/codex-sdk@0.66.0':
+    resolution: {integrity: sha512-mJSSMNsZ2YaxexnaETCO3gz3yvxUrSypv4gXMrWX639SGr5la5vz+hN9goXkDvHRwVPNlgxI+MOVoJpFjIjRLA==}
+    engines: {node: '>=18'}
 
   '@opencode-ai/sdk@1.0.132':
     resolution: {integrity: sha512-3A9XjPKnJmRnnu1E3QjI3p6cjtQhsCYdV/xuYOf6FrNSyMYMlGTVI5cXDB1e7flMJBiciBXt1ba9QFukG4+Lpg==}
@@ -6821,6 +6878,8 @@ snapshots:
       fastq: 1.19.1
 
   '@nolyfill/is-core-module@1.0.39': {}
+
+  '@openai/codex-sdk@0.66.0': {}
 
   '@opencode-ai/sdk@1.0.132': {}
 

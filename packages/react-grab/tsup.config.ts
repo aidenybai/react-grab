@@ -51,7 +51,7 @@ const DEFAULT_OPTIONS: Options = {
   loader: {
     ".css": "text",
   },
-  minify: false,
+  minify: process.env.NODE_ENV === "production",
   noExternal: ["clsx", "tailwind-merge", "solid-js", "bippy"],
   onSuccess: process.env.COPY ? "pbcopy < ./dist/index.global.js" : undefined,
   outDir: "./dist",
@@ -74,7 +74,6 @@ export default defineConfig([
     loader: {
       ".css": "text",
     },
-    minify: process.env.NODE_ENV === "production",
     outDir: "./dist",
     platform: "browser",
     esbuildPlugins: [
@@ -121,8 +120,14 @@ export default defineConfig([
     dts: false,
     entry: { cli: "./src/cli.ts" },
     format: ["cjs"],
-    minify: process.env.NODE_ENV === "production",
-    noExternal: [/@react-grab\/cli/, "commander", "kleur", "ora", "prompts", "@antfu/ni"],
+    noExternal: [
+      /@react-grab\/cli/,
+      "commander",
+      "kleur",
+      "ora",
+      "prompts",
+      "@antfu/ni",
+    ],
     outDir: "./dist",
     platform: "node",
     splitting: false,
