@@ -132,7 +132,7 @@ const runAgent = async (
     }
   };
 
-  const status = await runAgentLoop({
+  const { status } = await runAgentLoop({
     messages: sanitizeMessages(messages),
     context: {
       environment,
@@ -147,9 +147,14 @@ const runAgent = async (
     getMessages: () => sanitizeMessages(messages),
   });
 
-  return status === "completed"
-    ? "Completed successfully"
-    : `Task finished (${status})`;
+  switch (status) {
+    case "error":
+      throw new Error("Failed to complete task");
+    case "aborted":
+      throw new Error("User aborted task");
+    default:
+      return "Completed successfully";
+  }
 };
 
 const CONNECTION_CHECK_TTL_MS = 5000;
@@ -204,7 +209,8 @@ export const createAmiAgentProvider = (
         })
         .catch((error) => {
           if (aborted) return;
-          caughtError = error instanceof Error ? error : new Error("Unknown error");
+          caughtError =
+            error instanceof Error ? error : new Error("Unknown error");
           done = true;
           if (resolveWait) {
             resolveWait();
@@ -286,7 +292,12 @@ export const createAmiAgentProvider = (
         }
       };
 
-      const agentPromise = runAgent(context, token, DEFAULT_PROJECT_ID, onStatus);
+      const agentPromise = runAgent(
+        context,
+        token,
+        DEFAULT_PROJECT_ID,
+        onStatus,
+      );
 
       let done = false;
       let caughtError: Error | null = null;
@@ -302,7 +313,8 @@ export const createAmiAgentProvider = (
         })
         .catch((error) => {
           if (aborted) return;
-          caughtError = error instanceof Error ? error : new Error("Unknown error");
+          caughtError =
+            error instanceof Error ? error : new Error("Unknown error");
           done = true;
           if (resolveWait) {
             resolveWait();
@@ -341,7 +353,10 @@ export const createAmiAgentProvider = (
 
     checkConnection: async () => {
       const now = Date.now();
-      if (connectionCache && now - connectionCache.timestamp < CONNECTION_CHECK_TTL_MS) {
+      if (
+        connectionCache &&
+        now - connectionCache.timestamp < CONNECTION_CHECK_TTL_MS
+      ) {
         return connectionCache.result;
       }
 
