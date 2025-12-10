@@ -340,7 +340,9 @@ interface CompletedConfirmationProps {
   onReply?: () => void;
 }
 
-const CompletedConfirmation: Component<CompletedConfirmationProps> = (props) => {
+const CompletedConfirmation: Component<CompletedConfirmationProps> = (
+  props,
+) => {
   const handleKeyDown = (event: KeyboardEvent) => {
     if (event.code === "Enter" || event.code === "Escape") {
       event.preventDefault();
@@ -689,9 +691,16 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           leftPx={computedPosition().arrowLeft}
         />
 
-        <Show when={(props.status === "copied" || props.status === "fading") && !props.error}>
+        <Show
+          when={
+            (props.status === "copied" || props.status === "fading") &&
+            !props.error
+          }
+        >
           <CompletedConfirmation
-            statusText={props.hasAgent ? (props.statusText ?? "Completed") : "Copied"}
+            statusText={
+              props.hasAgent ? (props.statusText ?? "Completed") : "Copied"
+            }
             supportsUndo={props.supportsUndo}
             supportsFollowUp={props.supportsFollowUp}
             onDismiss={props.onDismiss}
@@ -704,7 +713,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           class="[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-xs bg-white antialiased w-fit h-fit p-0"
           style={{
             display:
-              (props.status === "copied" || props.status === "fading") && !props.error
+              (props.status === "copied" || props.status === "fading") &&
+              !props.error
                 ? "none"
                 : undefined,
           }}
@@ -808,7 +818,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   <BottomSection>
                     <div class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit">
                       <span class="text-label-muted text-[12px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
-                        Press
+                        Double click to edit
                       </span>
                       <div class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit">
                         <IconReturn
@@ -816,17 +826,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                           class="opacity-[0.99] text-black"
                         />
                       </div>
-                      <span class="text-label-muted text-[12px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
-                        or
-                      </span>
-                      <div class="contain-layout shrink-0 flex items-center px-[3px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit">
-                        <span class="text-black text-[10px] leading-[14px] font-sans font-medium">
-                          double-click
-                        </span>
-                      </div>
-                      <span class="text-label-muted text-[12px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
-                        to edit
-                      </span>
                     </div>
                   </BottomSection>
                 </div>
@@ -883,7 +882,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               <BottomSection>
                 <Show when={props.replyToPrompt}>
                   <div class="shrink-0 flex items-center gap-0.5 w-full mb-0.5 overflow-hidden">
-                    <span class="text-[#a1a1aa] text-[9px] leading-3 shrink-0">↳</span>
+                    <span class="text-[#a1a1aa] text-[9px] leading-3 shrink-0">
+                      ↳
+                    </span>
                     <span class="text-[#a1a1aa] text-[9px] leading-3 italic truncate whitespace-nowrap">
                       {props.replyToPrompt}
                     </span>
