@@ -178,6 +178,8 @@ export default function RootLayout({ children }) {
 
 ### Cursor CLI
 
+You must have the [`cursor-agent` CLI](https://cursor.com/docs/cli/overview) installed.
+
 #### Server Setup
 
 The server runs on port `5567` and interfaces with the `cursor-agent` CLI. Add to your `package.json`:
