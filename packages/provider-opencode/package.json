@@ -1,6 +1,6 @@
 {
   "name": "@react-grab/opencode",
-  "version": "0.0.79",
+  "version": "0.0.80",
   "type": "module",
   "bin": {
     "react-grab-opencode": "./dist/cli.js"
