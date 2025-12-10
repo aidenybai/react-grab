@@ -14,7 +14,8 @@
       "@react-grab/codex",
       "@react-grab/gemini",
       "@react-grab/amp",
-      "@react-grab/cli"
+      "@react-grab/cli",
+      "@react-grab/utils"
     ]
   ],
   "access": "public",
@@ -26,7 +27,6 @@
     "@react-grab/website",
     "@react-grab/web-extension",
     "@react-grab/benchmarks",
-    "@react-grab/agent-playground",
-    "@react-grab/utils"
+    "@react-grab/agent-playground"
   ]
 }
