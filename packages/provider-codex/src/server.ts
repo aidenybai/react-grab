@@ -10,6 +10,8 @@ import { DEFAULT_PORT } from "./constants.js";
 
 const VERSION = process.env.VERSION ?? "0.0.0";
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export interface CodexAgentOptions {
   model?: string;
   workingDirectory?: string;
@@ -190,6 +192,7 @@ export const createServer = () => {
 
 export const startServer = async (port: number = DEFAULT_PORT) => {
   await fkill(`:${port}`, { force: true, silent: true }).catch(() => {});
+  await sleep(100);
 
   const honoApplication = createServer();
   serve({ fetch: honoApplication.fetch, port });

@@ -2,11 +2,19 @@
   "name": "@react-grab/ami",
   "version": "0.0.81",
   "type": "module",
+  "bin": {
+    "react-grab-ami": "./dist/cli.cjs"
+  },
   "exports": {
     "./client": {
       "types": "./dist/client.d.ts",
       "import": "./dist/client.js",
       "require": "./dist/client.cjs"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js",
+      "require": "./dist/server.cjs"
     }
   },
   "files": [
@@ -14,13 +22,14 @@
   ],
   "scripts": {
     "dev": "tsup --watch",
-    "build": "NODE_ENV=production tsup"
+    "build": "rm -rf dist && NODE_ENV=production tsup"
   },
   "devDependencies": {
     "tsup": "^8.4.0"
   },
   "dependencies": {
     "ami-sdk": "^0.0.6",
+    "picocolors": "^1.1.1",
     "react-grab": "workspace:*"
   }
 }

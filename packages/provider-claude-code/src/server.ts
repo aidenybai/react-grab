@@ -155,8 +155,11 @@ export const createServer = () => {
   return app;
 };
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export const startServer = async (port: number = DEFAULT_PORT) => {
   await fkill(`:${port}`, { force: true, silent: true }).catch(() => {});
+  await sleep(100);
 
   const app = createServer();
   serve({ fetch: app.fetch, port });
