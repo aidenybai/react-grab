@@ -112,7 +112,6 @@ const runAgent = async (
     }),
   ];
 
-  const chatId = generateId();
   const environment = createMinimalEnvironment(window.location.href);
 
   const upsertMessage = async (message: AmiUIMessage) => {
@@ -140,7 +139,7 @@ const runAgent = async (
       attachments: [],
     },
     url: `${AMI_BRIDGE_URL}/api/v1/agent-proxy`,
-    chatId,
+    chatId: undefined,
     projectId,
     token,
     upsertMessage,
