@@ -99,9 +99,6 @@ export const init = new Command()
       const cwd = opts.cwd;
       const isNonInteractive = opts.yes;
 
-      logger.log(`⚛ ${highlighter.info("React Grab")}`);
-      logger.break();
-
       const preflightSpinner = spinner("Preflight checks.").start();
 
       const projectInfo = await detectProject(cwd);

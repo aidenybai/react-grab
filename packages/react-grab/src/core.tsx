@@ -171,7 +171,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         "",
       );
       if (navigator.onLine && version) {
-        fetch(`https://www.react-grab.com/api/version?t=${Date.now()}`, {
+        fetch(`https://www.react-grab.com/api/version?source=browser&t=${Date.now()}`, {
           referrerPolicy: "origin",
           keepalive: true,
           priority: "low",

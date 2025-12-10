@@ -37,9 +37,6 @@ export const add = new Command()
       const cwd = opts.cwd;
       const isNonInteractive = opts.yes;
 
-      logger.log(`⚛ ${highlighter.info("React Grab")}`);
-      logger.break();
-
       const preflightSpinner = spinner("Preflight checks.").start();
 
       const projectInfo = await detectProject(cwd);
@@ -150,7 +147,11 @@ export const add = new Command()
         logger.break();
 
         if (hasLayoutChanges) {
-          printDiff(result.filePath, result.originalContent!, result.newContent!);
+          printDiff(
+            result.filePath,
+            result.originalContent!,
+            result.newContent!,
+          );
         }
 
         if (hasPackageJsonChanges) {
@@ -190,7 +191,11 @@ export const add = new Command()
         ).start();
 
         try {
-          installPackages(packages, projectInfo.packageManager, projectInfo.projectRoot);
+          installPackages(
+            packages,
+            projectInfo.packageManager,
+            projectInfo.projectRoot,
+          );
           installSpinner.succeed();
         } catch (error) {
           installSpinner.fail();
@@ -199,7 +204,9 @@ export const add = new Command()
       }
 
       if (hasLayoutChanges) {
-        const writeSpinner = spinner(`Applying changes to ${result.filePath}.`).start();
+        const writeSpinner = spinner(
+          `Applying changes to ${result.filePath}.`,
+        ).start();
         const writeResult = applyTransform(result);
         if (!writeResult.success) {
           writeSpinner.fail();
@@ -215,7 +222,8 @@ export const add = new Command()
         const packageJsonSpinner = spinner(
           `Applying changes to ${packageJsonResult.filePath}.`,
         ).start();
-        const packageJsonWriteResult = applyPackageJsonTransform(packageJsonResult);
+        const packageJsonWriteResult =
+          applyPackageJsonTransform(packageJsonResult);
         if (!packageJsonWriteResult.success) {
           packageJsonSpinner.fail();
           logger.break();
