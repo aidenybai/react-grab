@@ -1,4 +1,4 @@
-import { init } from "react-grab";
+import { init } from "react-grab/core";
 import type { ReactGrabAPI, Options } from "react-grab";
 import TurndownService from "turndown";
 
