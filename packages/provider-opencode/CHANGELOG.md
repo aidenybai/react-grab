@@ -1,5 +1,13 @@
 # @react-grab/opencode
 
+## 0.0.77
+
+### Patch Changes
+
+- fix: new cli proxying
+- Updated dependencies
+  - react-grab@0.0.77
+
 ## 0.0.76
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.77
+
+### Patch Changes
+
+- fix: new cli proxying
+
 ## 0.0.76
 
 ### Patch Changes
