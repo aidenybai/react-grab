@@ -50,7 +50,8 @@ export const useSpeechRecognition = (
 
   const isSupported = () =>
     typeof window !== "undefined" &&
-    (Boolean(window.SpeechRecognition) || Boolean(window.webkitSpeechRecognition));
+    (Boolean(window.SpeechRecognition) ||
+      Boolean(window.webkitSpeechRecognition));
 
   const start = () => {
     if (!isSupported()) return;

@@ -8,4 +8,3 @@ export const startServer = async (_port?: number) => {
   );
   console.log(`${pc.yellow("⚠")} Ami provider server is not yet implemented`);
 };
-

@@ -127,7 +127,8 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
             "border border-solid border-grab-purple/40 bg-grab-purple/5 will-change-[transform,width,height] cursor-crosshair",
           props.variant === "selection" &&
             "border border-solid border-grab-purple/50 bg-grab-purple/8 transition-opacity duration-100 ease-out",
-          props.variant === "grabbed" && "border border-solid border-grab-purple/50 bg-grab-purple/8",
+          props.variant === "grabbed" &&
+            "border border-solid border-grab-purple/50 bg-grab-purple/8",
           props.variant === "processing" &&
             !props.isCompleted &&
             "border border-solid border-grab-purple/50 bg-grab-purple/8",

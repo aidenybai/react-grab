@@ -33,16 +33,16 @@ npx @react-grab/cli -p pnpm -a claude-code -y
 
 ## Options
 
-| Option | Alias | Description | Choices |
-|--------|-------|-------------|---------|
-| `--framework` | `-f` | Framework to configure | `next`, `vite`, `webpack` |
-| `--package-manager` | `-p` | Package manager to use | `npm`, `yarn`, `pnpm`, `bun` |
-| `--router` | `-r` | Next.js router type | `app`, `pages` |
-| `--agent` | `-a` | Agent integration to add | `claude-code`, `cursor`, `opencode`, `codex`, `gemini`, `amp`, `none` |
-| `--yes` | `-y` | Skip all confirmation prompts | - |
-| `--skip-install` | - | Skip package installation (only modify files) | - |
-| `--help` | `-h` | Show help | - |
-| `--version` | `-v` | Show version | - |
+| Option              | Alias | Description                                   | Choices                                                               |
+| ------------------- | ----- | --------------------------------------------- | --------------------------------------------------------------------- |
+| `--framework`       | `-f`  | Framework to configure                        | `next`, `vite`, `webpack`                                             |
+| `--package-manager` | `-p`  | Package manager to use                        | `npm`, `yarn`, `pnpm`, `bun`                                          |
+| `--router`          | `-r`  | Next.js router type                           | `app`, `pages`                                                        |
+| `--agent`           | `-a`  | Agent integration to add                      | `claude-code`, `cursor`, `opencode`, `codex`, `gemini`, `amp`, `none` |
+| `--yes`             | `-y`  | Skip all confirmation prompts                 | -                                                                     |
+| `--skip-install`    | -     | Skip package installation (only modify files) | -                                                                     |
+| `--help`            | `-h`  | Show help                                     | -                                                                     |
+| `--version`         | `-v`  | Show version                                  | -                                                                     |
 
 ## Examples
 
@@ -68,12 +68,12 @@ npx @react-grab/cli -a cursor --skip-install -y
 
 ## Supported Frameworks
 
-| Framework | File Modified |
-|-----------|---------------|
-| Next.js (App Router) | `app/layout.tsx` |
-| Next.js (Pages Router) | `pages/_document.tsx` |
-| Vite | `index.html` |
-| Webpack | `src/index.tsx` or `src/main.tsx` |
+| Framework              | File Modified                     |
+| ---------------------- | --------------------------------- |
+| Next.js (App Router)   | `app/layout.tsx`                  |
+| Next.js (Pages Router) | `pages/_document.tsx`             |
+| Vite                   | `index.html`                      |
+| Webpack                | `src/index.tsx` or `src/main.tsx` |
 
 ## Agent Integrations
 

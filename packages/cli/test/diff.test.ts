@@ -8,9 +8,21 @@ describe("generateDiff", () => {
 
     const diff = generateDiff(original, updated);
 
-    expect(diff).toContainEqual({ type: "unchanged", content: "line1", lineNumber: 1 });
-    expect(diff).toContainEqual({ type: "unchanged", content: "line2", lineNumber: 2 });
-    expect(diff).toContainEqual({ type: "added", content: "line3", lineNumber: 3 });
+    expect(diff).toContainEqual({
+      type: "unchanged",
+      content: "line1",
+      lineNumber: 1,
+    });
+    expect(diff).toContainEqual({
+      type: "unchanged",
+      content: "line2",
+      lineNumber: 2,
+    });
+    expect(diff).toContainEqual({
+      type: "added",
+      content: "line3",
+      lineNumber: 3,
+    });
   });
 
   it("should detect removed lines", () => {
@@ -19,7 +31,9 @@ describe("generateDiff", () => {
 
     const diff = generateDiff(original, updated);
 
-    expect(diff.some((line) => line.type === "removed" && line.content === "line2")).toBe(true);
+    expect(
+      diff.some((line) => line.type === "removed" && line.content === "line2"),
+    ).toBe(true);
   });
 
   it("should handle identical content", () => {
@@ -33,7 +47,11 @@ describe("generateDiff", () => {
   it("should handle empty strings", () => {
     const diff = generateDiff("", "line1");
 
-    expect(diff).toContainEqual({ type: "added", content: "line1", lineNumber: 1 });
+    expect(diff).toContainEqual({
+      type: "added",
+      content: "line1",
+      lineNumber: 1,
+    });
   });
 
   it("should handle complex changes", () => {
@@ -52,9 +70,22 @@ function App() {
 
     const diff = generateDiff(original, updated);
 
-    expect(diff.some((line) => line.type === "added" && line.content.includes("next/script"))).toBe(true);
-    expect(diff.some((line) => line.type === "removed" && line.content.includes("Hello</div>"))).toBe(true);
-    expect(diff.some((line) => line.type === "added" && line.content.includes("Hello World"))).toBe(true);
+    expect(
+      diff.some(
+        (line) => line.type === "added" && line.content.includes("next/script"),
+      ),
+    ).toBe(true);
+    expect(
+      diff.some(
+        (line) =>
+          line.type === "removed" && line.content.includes("Hello</div>"),
+      ),
+    ).toBe(true);
+    expect(
+      diff.some(
+        (line) => line.type === "added" && line.content.includes("Hello World"),
+      ),
+    ).toBe(true);
   });
 });
 

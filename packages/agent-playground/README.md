@@ -22,12 +22,12 @@ The demo app runs at `http://localhost:5174`.
 
 ## Scripts
 
-| Command          | Description                      |
-| ---------------- | -------------------------------- |
-| `nr dev`         | Run with Claude Code (default)   |
-| `nr dev:claude`  | Run with Claude Code             |
-| `nr dev:cursor`  | Run with Cursor                  |
-| `nr dev:opencode`| Run with Opencode                |
+| Command           | Description                    |
+| ----------------- | ------------------------------ |
+| `nr dev`          | Run with Claude Code (default) |
+| `nr dev:claude`   | Run with Claude Code           |
+| `nr dev:cursor`   | Run with Cursor                |
+| `nr dev:opencode` | Run with Opencode              |
 
 ## Demo App
 

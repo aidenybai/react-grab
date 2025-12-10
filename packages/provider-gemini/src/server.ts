@@ -113,7 +113,10 @@ export const createServer = () => {
 
           switch (event.type) {
             case "init":
-              await stream.writeSSE({ data: "Session started...", event: "status" });
+              await stream.writeSSE({
+                data: "Session started...",
+                event: "status",
+              });
               break;
 
             case "message":
@@ -249,7 +252,9 @@ export const startServer = async (port: number = DEFAULT_PORT) => {
 
   const app = createServer();
   serve({ fetch: app.fetch, port });
-  console.log(`${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim("(Gemini)")}`);
+  console.log(
+    `${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim("(Gemini)")}`,
+  );
   console.log(`- Local:    ${pc.cyan(`http://localhost:${port}`)}`);
 };
 

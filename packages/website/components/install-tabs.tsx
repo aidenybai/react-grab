@@ -62,7 +62,11 @@ const installTabsData: InstallTab[] = [
   {
     id: "next-app",
     label: "Next.js (App)",
-    description: <>Add this inside of your <InlineCode>app/layout.tsx</InlineCode></>,
+    description: (
+      <>
+        Add this inside of your <InlineCode>app/layout.tsx</InlineCode>
+      </>
+    ),
     getCode: (hotkey) => {
       const dataOptionsAttr = hotkey
         ? `\n            data-options={JSON.stringify(\n              ${formatDataOptionsForNextjs(hotkey)}\n            )}`
@@ -87,12 +91,18 @@ export default function RootLayout({ children }) {
 }`;
     },
     getChangedLines: (hotkey) =>
-      hotkey ? [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17] : [7, 8, 9, 10, 11, 12, 13],
+      hotkey
+        ? [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+        : [7, 8, 9, 10, 11, 12, 13],
   },
   {
     id: "next-pages",
     label: "Next.js (Pages)",
-    description: <>Add this into your <InlineCode>pages/_document.tsx</InlineCode></>,
+    description: (
+      <>
+        Add this into your <InlineCode>pages/_document.tsx</InlineCode>
+      </>
+    ),
     getCode: (hotkey) => {
       const dataOptionsAttr = hotkey
         ? `\n            data-options={JSON.stringify(\n              ${formatDataOptionsForNextjs(hotkey)}\n            )}`
@@ -128,7 +138,12 @@ export default function Document() {
   {
     id: "vite",
     label: "Vite",
-    description: <>Example <InlineCode>index.html</InlineCode> with React Grab enabled in development</>,
+    description: (
+      <>
+        Example <InlineCode>index.html</InlineCode> with React Grab enabled in
+        development
+      </>
+    ),
     getCode: (hotkey) => {
       if (hotkey) {
         const optionsArg = formatDataOptions(hotkey);
@@ -173,7 +188,12 @@ export default function Document() {
   {
     id: "webpack",
     label: "Webpack",
-    description: <>First <InlineCode>npm install react-grab</InlineCode>, then add this at the top of your main entry file</>,
+    description: (
+      <>
+        First <InlineCode>npm install react-grab</InlineCode>, then add this at
+        the top of your main entry file
+      </>
+    ),
     getCode: (hotkey) => {
       if (hotkey) {
         const optionsArg = formatDataOptions(hotkey);
@@ -320,72 +340,72 @@ export const InstallTabs = ({
         </span>
       )}
       <div className="mt-4 overflow-hidden rounded-lg border border-white/10 bg-white/5 text-sm text-white shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
-      <div className="flex items-center gap-4 overflow-x-auto border-b border-white/10 px-4 pt-2">
-        {installTabsData.map((tab) => {
-          const isActive = tab.id === activeTab.id;
+        <div className="flex items-center gap-4 overflow-x-auto border-b border-white/10 px-4 pt-2">
+          {installTabsData.map((tab) => {
+            const isActive = tab.id === activeTab.id;
 
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              className={cn(
-                "shrink-0 whitespace-nowrap border-b pb-2 font-sans text-[13px] transition-colors",
-                isActive
-                  ? "border-white text-white"
-                  : "border-transparent text-white/60 hover:text-white",
-              )}
-              onClick={() => setActiveTabId(tab.id)}
-            >
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
-      <div className="bg-black/60 relative">
-        <div className="relative">
-          {activeTabId === "cli" ? (
-            <button
-              type="button"
-              onClick={handleCopyClick}
-              className="group flex w-full items-center justify-between gap-4 px-4 py-6 transition-colors hover:bg-white/5"
-            >
-              {highlightedCode ? (
-                <div
-                  className="overflow-x-auto font-mono text-base leading-relaxed highlighted-code"
-                  dangerouslySetInnerHTML={{ __html: highlightedCode }}
-                />
-              ) : (
-                <pre className="overflow-x-auto font-mono text-base leading-relaxed text-white/80">
-                  <code>{activeCode}</code>
-                </pre>
-              )}
-              <span className="shrink-0 text-white/50 transition-colors group-hover:text-white">
-                {didCopy ? <Check size={16} /> : <Copy size={16} />}
-              </span>
-            </button>
-          ) : (
-            <div className="group relative">
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                className={cn(
+                  "shrink-0 whitespace-nowrap border-b pb-2 font-sans text-[13px] transition-colors",
+                  isActive
+                    ? "border-white text-white"
+                    : "border-transparent text-white/60 hover:text-white",
+                )}
+                onClick={() => setActiveTabId(tab.id)}
+              >
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="bg-black/60 relative">
+          <div className="relative">
+            {activeTabId === "cli" ? (
               <button
                 type="button"
                 onClick={handleCopyClick}
-                className="absolute right-4 top-3 text-white/50 opacity-0 transition-opacity hover:text-white group-hover:opacity-100 z-10"
+                className="group flex w-full items-center justify-between gap-4 px-4 py-6 transition-colors hover:bg-white/5"
               >
-                {didCopy ? <Check size={16} /> : <Copy size={16} />}
+                {highlightedCode ? (
+                  <div
+                    className="overflow-x-auto font-mono text-base leading-relaxed highlighted-code"
+                    dangerouslySetInnerHTML={{ __html: highlightedCode }}
+                  />
+                ) : (
+                  <pre className="overflow-x-auto font-mono text-base leading-relaxed text-white/80">
+                    <code>{activeCode}</code>
+                  </pre>
+                )}
+                <span className="shrink-0 text-white/50 transition-colors group-hover:text-white">
+                  {didCopy ? <Check size={16} /> : <Copy size={16} />}
+                </span>
               </button>
-              {highlightedCode ? (
-                <div
-                  className="overflow-x-auto px-4 py-3 font-mono text-[13px] leading-relaxed highlighted-code"
-                  dangerouslySetInnerHTML={{ __html: highlightedCode }}
-                />
-              ) : (
-                <pre className="overflow-x-auto px-4 py-3 font-mono text-[13px] leading-relaxed text-white/80">
-                  <code>{activeCode}</code>
-                </pre>
-              )}
-            </div>
-          )}
+            ) : (
+              <div className="group relative">
+                <button
+                  type="button"
+                  onClick={handleCopyClick}
+                  className="absolute right-4 top-3 text-white/50 opacity-0 transition-opacity hover:text-white group-hover:opacity-100 z-10"
+                >
+                  {didCopy ? <Check size={16} /> : <Copy size={16} />}
+                </button>
+                {highlightedCode ? (
+                  <div
+                    className="overflow-x-auto px-4 py-3 font-mono text-[13px] leading-relaxed highlighted-code"
+                    dangerouslySetInnerHTML={{ __html: highlightedCode }}
+                  />
+                ) : (
+                  <pre className="overflow-x-auto px-4 py-3 font-mono text-[13px] leading-relaxed text-white/80">
+                    <code>{activeCode}</code>
+                  </pre>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
       </div>
       {activeTabId !== "cli" && (
         <span className="mt-4 block text-sm text-white/50">

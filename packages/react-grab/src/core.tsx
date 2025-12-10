@@ -171,12 +171,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         "",
       );
       if (navigator.onLine && version) {
-        fetch(`https://www.react-grab.com/api/version?source=browser&t=${Date.now()}`, {
-          referrerPolicy: "origin",
-          keepalive: true,
-          priority: "low",
-          cache: "no-store",
-        })
+        fetch(
+          `https://www.react-grab.com/api/version?source=browser&t=${Date.now()}`,
+          {
+            referrerPolicy: "origin",
+            keepalive: true,
+            priority: "low",
+            cache: "no-store",
+          },
+        )
           .then((res) => res.text())
           .then((latestVersion) => {
             if (latestVersion && latestVersion !== version) {

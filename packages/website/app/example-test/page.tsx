@@ -32,15 +32,24 @@ const TrafficLights = ({ onClose }: { onClose?: () => void }) => (
     <button
       onClick={onClose}
       className="w-3 h-3 rounded-full bg-[#ff5f57] hover:bg-[#ff3b30] transition-colors"
-      style={{ boxShadow: "inset 0 -1px 2px rgba(0,0,0,0.2), 0 0 2px rgba(255,95,87,0.5)" }}
+      style={{
+        boxShadow:
+          "inset 0 -1px 2px rgba(0,0,0,0.2), 0 0 2px rgba(255,95,87,0.5)",
+      }}
     />
     <div
       className="w-3 h-3 rounded-full bg-[#febc2e]"
-      style={{ boxShadow: "inset 0 -1px 2px rgba(0,0,0,0.2), 0 0 2px rgba(254,188,46,0.5)" }}
+      style={{
+        boxShadow:
+          "inset 0 -1px 2px rgba(0,0,0,0.2), 0 0 2px rgba(254,188,46,0.5)",
+      }}
     />
     <div
       className="w-3 h-3 rounded-full bg-[#28c840]"
-      style={{ boxShadow: "inset 0 -1px 2px rgba(0,0,0,0.2), 0 0 2px rgba(40,200,64,0.5)" }}
+      style={{
+        boxShadow:
+          "inset 0 -1px 2px rgba(0,0,0,0.2), 0 0 2px rgba(40,200,64,0.5)",
+      }}
     />
   </div>
 );
@@ -69,7 +78,7 @@ const LiquidGlassWindow = ({
         y: event.clientY - position.y,
       });
     },
-    [position, onFocus]
+    [position, onFocus],
   );
 
   useEffect(() => {
@@ -125,7 +134,8 @@ const LiquidGlassWindow = ({
           className="h-12 flex items-center px-4 gap-4 cursor-grab active:cursor-grabbing"
           onMouseDown={handleMouseDown}
           style={{
-            background: "linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 100%)",
+            background:
+              "linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 100%)",
             borderBottom: "1px solid rgba(255,255,255,0.1)",
           }}
         >
@@ -168,7 +178,10 @@ const DockItem = ({ icon, label, isActive }: DockItemProps) => {
       {isActive && (
         <div
           className="w-1 h-1 rounded-full mt-1"
-          style={{ background: "rgba(255,255,255,0.8)", boxShadow: "0 0 6px rgba(255,255,255,0.5)" }}
+          style={{
+            background: "rgba(255,255,255,0.8)",
+            boxShadow: "0 0 6px rgba(255,255,255,0.5)",
+          }}
         />
       )}
     </div>
@@ -195,7 +208,8 @@ const Dock = () => {
         backdropFilter: "blur(50px) saturate(180%)",
         WebkitBackdropFilter: "blur(50px) saturate(180%)",
         border: "1px solid rgba(255,255,255,0.2)",
-        boxShadow: "0 20px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15)",
+        boxShadow:
+          "0 20px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15)",
       }}
     >
       {dockItems.map((item) => (
@@ -217,7 +231,7 @@ const MenuBar = () => {
           weekday: "short",
           month: "short",
           day: "numeric",
-        })
+        }),
       );
     };
     updateTime();
@@ -289,7 +303,9 @@ const FinderContent = () => {
             key={item.name}
             className="flex items-center gap-2.5 px-3 py-1 rounded-md hover:bg-white/10 cursor-pointer transition-colors"
           >
-            <div className="w-5 h-5 flex items-center justify-center">{item.icon}</div>
+            <div className="w-5 h-5 flex items-center justify-center">
+              {item.icon}
+            </div>
             <span className="text-white/80 text-[13px]">{item.name}</span>
           </div>
         ))}
@@ -300,8 +316,12 @@ const FinderContent = () => {
             key={file.name}
             className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-white/10 cursor-pointer transition-colors"
           >
-            <div className="w-14 h-14 flex items-center justify-center">{file.icon}</div>
-            <span className="text-white/85 text-[11px] text-center leading-tight w-full">{file.name}</span>
+            <div className="w-14 h-14 flex items-center justify-center">
+              {file.icon}
+            </div>
+            <span className="text-white/85 text-[11px] text-center leading-tight w-full">
+              {file.name}
+            </span>
           </div>
         ))}
       </div>
@@ -353,7 +373,10 @@ Features:
         value={noteText}
         onChange={(event) => setNoteText(event.target.value)}
         className="flex-1 w-full bg-transparent text-white/85 text-[13px] leading-relaxed resize-none outline-none placeholder:text-white/30"
-        style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}
+        style={{
+          fontFamily:
+            "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
+        }}
       />
     </div>
   );
@@ -368,27 +391,37 @@ const MusicContent = () => {
       <div
         className="w-32 h-32 rounded-xl flex items-center justify-center relative overflow-hidden"
         style={{
-          background: "linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)",
+          background:
+            "linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)",
           boxShadow: "0 16px 40px rgba(102, 126, 234, 0.5)",
         }}
       >
         <div
           className="absolute inset-0"
-          style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.3) 0%, transparent 60%)" }}
+          style={{
+            background:
+              "linear-gradient(135deg, rgba(255,255,255,0.3) 0%, transparent 60%)",
+          }}
         />
         <MusicNoteIcon />
       </div>
       <div className="text-center">
-        <h3 className="text-white/95 font-semibold text-[15px]">Liquid Dreams</h3>
+        <h3 className="text-white/95 font-semibold text-[15px]">
+          Liquid Dreams
+        </h3>
         <p className="text-white/50 text-[13px]">Glass Symphony</p>
-        </div>
+      </div>
       <div className="w-full max-w-[200px]">
-        <div className="h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.15)" }}>
+        <div
+          className="h-1 rounded-full overflow-hidden"
+          style={{ background: "rgba(255,255,255,0.15)" }}
+        >
           <div
             className="h-full rounded-full transition-all"
             style={{
               width: `${progress}%`,
-              background: "linear-gradient(90deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.9) 100%)",
+              background:
+                "linear-gradient(90deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.9) 100%)",
             }}
           />
         </div>
@@ -407,7 +440,8 @@ const MusicContent = () => {
           style={{
             background: "rgba(255,255,255,0.15)",
             border: "1px solid rgba(255,255,255,0.2)",
-            boxShadow: "0 4px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2)",
+            boxShadow:
+              "0 4px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2)",
           }}
         >
           {isPlaying ? <PauseIcon /> : <PlayIcon />}
@@ -422,9 +456,27 @@ const MusicContent = () => {
 
 const ExampleTestPage = () => {
   const [windows, setWindows] = useState<WindowState[]>([
-    { id: "finder", title: "Finder", position: { x: 80, y: 80 }, size: { width: 580, height: 380 }, zIndex: 1 },
-    { id: "notes", title: "Notes", position: { x: 280, y: 240 }, size: { width: 380, height: 340 }, zIndex: 2 },
-    { id: "music", title: "Music", position: { x: 720, y: 120 }, size: { width: 300, height: 400 }, zIndex: 3 },
+    {
+      id: "finder",
+      title: "Finder",
+      position: { x: 80, y: 80 },
+      size: { width: 580, height: 380 },
+      zIndex: 1,
+    },
+    {
+      id: "notes",
+      title: "Notes",
+      position: { x: 280, y: 240 },
+      size: { width: 380, height: 340 },
+      zIndex: 2,
+    },
+    {
+      id: "music",
+      title: "Music",
+      position: { x: 720, y: 120 },
+      size: { width: 300, height: 400 },
+      zIndex: 3,
+    },
   ]);
   const [topZIndex, setTopZIndex] = useState(3);
 
@@ -432,19 +484,28 @@ const ExampleTestPage = () => {
     (windowId: string) => {
       setWindows((prevWindows) =>
         prevWindows.map((window) =>
-          window.id === windowId ? { ...window, zIndex: topZIndex + 1 } : window
-        )
+          window.id === windowId
+            ? { ...window, zIndex: topZIndex + 1 }
+            : window,
+        ),
       );
       setTopZIndex((prevZIndex) => prevZIndex + 1);
     },
-    [topZIndex]
+    [topZIndex],
   );
 
-  const handleDrag = useCallback((windowId: string, newPosition: { x: number; y: number }) => {
-    setWindows((prevWindows) =>
-      prevWindows.map((window) => (window.id === windowId ? { ...window, position: newPosition } : window))
-    );
-  }, []);
+  const handleDrag = useCallback(
+    (windowId: string, newPosition: { x: number; y: number }) => {
+      setWindows((prevWindows) =>
+        prevWindows.map((window) =>
+          window.id === windowId
+            ? { ...window, position: newPosition }
+            : window,
+        ),
+      );
+    },
+    [],
+  );
 
   const getWindowContent = (windowId: string) => {
     switch (windowId) {
@@ -515,16 +576,45 @@ ExampleTestPage.displayName = "ExampleTestPage";
 export default ExampleTestPage;
 
 const AppleIcon = () => (
-  <svg className="w-4 h-4 text-white/90" viewBox="0 0 24 24" fill="currentColor">
+  <svg
+    className="w-4 h-4 text-white/90"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+  >
     <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
   </svg>
 );
 
 const BatteryIcon = () => (
   <svg className="w-6 h-4" viewBox="0 0 28 14" fill="none">
-    <rect x="1" y="1" width="23" height="12" rx="3" stroke="currentColor" strokeWidth="1.5" fill="none" />
-    <rect x="25" y="4" width="2" height="6" rx="1" fill="currentColor" opacity="0.5" />
-    <rect x="3" y="3" width="19" height="8" rx="1.5" fill="currentColor" opacity="0.9" />
+    <rect
+      x="1"
+      y="1"
+      width="23"
+      height="12"
+      rx="3"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      fill="none"
+    />
+    <rect
+      x="25"
+      y="4"
+      width="2"
+      height="6"
+      rx="1"
+      fill="currentColor"
+      opacity="0.5"
+    />
+    <rect
+      x="3"
+      y="3"
+      width="19"
+      height="8"
+      rx="1.5"
+      fill="currentColor"
+      opacity="0.9"
+    />
   </svg>
 );
 
@@ -631,7 +721,13 @@ const MailIcon = () => (
     </defs>
     <rect x="4" y="4" width="112" height="112" rx="26" fill="url(#mailBlue)" />
     <rect x="16" y="32" width="88" height="56" rx="6" fill="#fff" />
-    <path d="M16 38l44 28 44-28" fill="none" stroke="#007aff" strokeWidth="4" strokeLinejoin="round" />
+    <path
+      d="M16 38l44 28 44-28"
+      fill="none"
+      stroke="#007aff"
+      strokeWidth="4"
+      strokeLinejoin="round"
+    />
   </svg>
 );
 
@@ -660,9 +756,33 @@ const NotesIcon = () => (
     {[...Array(15)].map((_, i) => (
       <circle key={i} cx={16 + i * 6.5} cy="46" r="2.5" fill="#8e8e93" />
     ))}
-    <line x1="24" y1="64" x2="96" y2="64" stroke="#c7c7cc" strokeWidth="2" strokeLinecap="round" />
-    <line x1="24" y1="82" x2="96" y2="82" stroke="#c7c7cc" strokeWidth="2" strokeLinecap="round" />
-    <line x1="24" y1="100" x2="70" y2="100" stroke="#c7c7cc" strokeWidth="2" strokeLinecap="round" />
+    <line
+      x1="24"
+      y1="64"
+      x2="96"
+      y2="64"
+      stroke="#c7c7cc"
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+    <line
+      x1="24"
+      y1="82"
+      x2="96"
+      y2="82"
+      stroke="#c7c7cc"
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+    <line
+      x1="24"
+      y1="100"
+      x2="70"
+      y2="100"
+      stroke="#c7c7cc"
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
   </svg>
 );
 
@@ -678,7 +798,14 @@ const SettingsIcon = () => (
         <stop offset="100%" stopColor="#48484a" />
       </linearGradient>
     </defs>
-    <rect x="4" y="4" width="112" height="112" rx="26" fill="url(#settingsGray)" />
+    <rect
+      x="4"
+      y="4"
+      width="112"
+      height="112"
+      rx="26"
+      fill="url(#settingsGray)"
+    />
     <g fill="url(#gearGrad)">
       <circle cx="60" cy="60" r="38" />
       {[...Array(12)].map((_, i) => (
@@ -707,7 +834,13 @@ const SettingsIcon = () => (
       />
     ))}
     <circle cx="60" cy="60" r="18" fill="url(#gearGrad)" />
-    <path d="M50 54 L60 60 L50 66 M60 60 L75 50 M60 60 L75 70" stroke="url(#settingsGray)" strokeWidth="4" strokeLinecap="round" fill="none" />
+    <path
+      d="M50 54 L60 60 L50 66 M60 60 L75 50 M60 60 L75 70"
+      stroke="url(#settingsGray)"
+      strokeWidth="4"
+      strokeLinecap="round"
+      fill="none"
+    />
     <circle cx="60" cy="60" r="4" fill="#3a3a3c" />
   </svg>
 );
@@ -731,7 +864,15 @@ const TrashIcon = () => (
       stroke="rgba(255,255,255,0.5)"
       strokeWidth="1"
     />
-    <ellipse cx="60" cy="25" rx="32" ry="10" fill="url(#trashBody)" stroke="rgba(255,255,255,0.5)" strokeWidth="1" />
+    <ellipse
+      cx="60"
+      cy="25"
+      rx="32"
+      ry="10"
+      fill="url(#trashBody)"
+      stroke="rgba(255,255,255,0.5)"
+      strokeWidth="1"
+    />
     <ellipse cx="60" cy="25" rx="24" ry="7" fill="url(#trashInner)" />
     <path d="M34 40 L38 100" stroke="rgba(150,150,160,0.4)" strokeWidth="2" />
     <path d="M50 40 L51 100" stroke="rgba(150,150,160,0.4)" strokeWidth="2" />
@@ -743,10 +884,34 @@ const TrashIcon = () => (
 const AirDropIcon = () => (
   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
     <circle cx="12" cy="16" r="4" fill="#007aff" />
-    <path d="M12 4c-5 0-9 4-9 9" stroke="#007aff" strokeWidth="2" strokeLinecap="round" fill="none" />
-    <path d="M21 13c0-5-4-9-9-9" stroke="#007aff" strokeWidth="2" strokeLinecap="round" fill="none" />
-    <path d="M12 8c-3 0-5 2-5 5" stroke="#007aff" strokeWidth="2" strokeLinecap="round" fill="none" />
-    <path d="M17 13c0-3-2-5-5-5" stroke="#007aff" strokeWidth="2" strokeLinecap="round" fill="none" />
+    <path
+      d="M12 4c-5 0-9 4-9 9"
+      stroke="#007aff"
+      strokeWidth="2"
+      strokeLinecap="round"
+      fill="none"
+    />
+    <path
+      d="M21 13c0-5-4-9-9-9"
+      stroke="#007aff"
+      strokeWidth="2"
+      strokeLinecap="round"
+      fill="none"
+    />
+    <path
+      d="M12 8c-3 0-5 2-5 5"
+      stroke="#007aff"
+      strokeWidth="2"
+      strokeLinecap="round"
+      fill="none"
+    />
+    <path
+      d="M17 13c0-3-2-5-5-5"
+      stroke="#007aff"
+      strokeWidth="2"
+      strokeLinecap="round"
+      fill="none"
+    />
   </svg>
 );
 
@@ -767,8 +932,15 @@ const FolderIcon = ({ color = "#3b9dff" }: { color?: string }) => (
         <stop offset="100%" stopColor={color} stopOpacity="0.75" />
       </linearGradient>
     </defs>
-    <path d="M4 12a4 4 0 014-4h14l6 6h28a4 4 0 014 4v26a4 4 0 01-4 4H8a4 4 0 01-4-4V12z" fill={`url(#folder-${color})`} />
-    <path d="M4 18h56v24a4 4 0 01-4 4H8a4 4 0 01-4-4V18z" fill={color} fillOpacity="0.9" />
+    <path
+      d="M4 12a4 4 0 014-4h14l6 6h28a4 4 0 014 4v26a4 4 0 01-4 4H8a4 4 0 01-4-4V12z"
+      fill={`url(#folder-${color})`}
+    />
+    <path
+      d="M4 18h56v24a4 4 0 01-4 4H8a4 4 0 01-4-4V18z"
+      fill={color}
+      fillOpacity="0.9"
+    />
     <path d="M4 18h56v2H4z" fill="#fff" fillOpacity="0.3" />
   </svg>
 );
@@ -784,18 +956,50 @@ const DesktopIcon = () => (
 
 const DocumentIcon = () => (
   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
-    <path d="M6 2h8l6 6v14a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z" fill="#ff9500" />
+    <path
+      d="M6 2h8l6 6v14a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z"
+      fill="#ff9500"
+    />
     <path d="M14 2v6h6" fill="#cc7700" />
-    <rect x="6" y="12" width="10" height="1" rx="0.5" fill="#fff" fillOpacity="0.7" />
-    <rect x="6" y="15" width="8" height="1" rx="0.5" fill="#fff" fillOpacity="0.7" />
-    <rect x="6" y="18" width="6" height="1" rx="0.5" fill="#fff" fillOpacity="0.7" />
+    <rect
+      x="6"
+      y="12"
+      width="10"
+      height="1"
+      rx="0.5"
+      fill="#fff"
+      fillOpacity="0.7"
+    />
+    <rect
+      x="6"
+      y="15"
+      width="8"
+      height="1"
+      rx="0.5"
+      fill="#fff"
+      fillOpacity="0.7"
+    />
+    <rect
+      x="6"
+      y="18"
+      width="6"
+      height="1"
+      rx="0.5"
+      fill="#fff"
+      fillOpacity="0.7"
+    />
   </svg>
 );
 
 const DownloadIcon = () => (
   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
     <circle cx="12" cy="12" r="10" fill="#34c759" />
-    <path d="M12 6v8m0 0l-3-3m3 3l3-3" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
+    <path
+      d="M12 6v8m0 0l-3-3m3 3l3-3"
+      stroke="#fff"
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
     <path d="M7 16h10" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
   </svg>
 );
@@ -815,7 +1019,10 @@ const MovieIcon = () => (
 const MusicFolderIcon = () => (
   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
     <circle cx="12" cy="12" r="10" fill="#ff2d55" />
-    <path d="M15 6v9a3 3 0 11-2-2.83V8l-4 1v7a3 3 0 11-2-2.83V6l8-2z" fill="#fff" />
+    <path
+      d="M15 6v9a3 3 0 11-2-2.83V8l-4 1v7a3 3 0 11-2-2.83V6l8-2z"
+      fill="#fff"
+    />
   </svg>
 );
 
@@ -823,13 +1030,20 @@ const PicturesIcon = () => (
   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
     <rect x="2" y="4" width="20" height="16" rx="3" fill="#30b0c7" />
     <circle cx="8" cy="9" r="2" fill="#ffcc00" />
-    <path d="M2 16l5-4 4 3 5-5 6 6v4a3 3 0 01-3 3H5a3 3 0 01-3-3v-4z" fill="#007aff" fillOpacity="0.6" />
+    <path
+      d="M2 16l5-4 4 3 5-5 6 6v4a3 3 0 01-3 3H5a3 3 0 01-3-3v-4z"
+      fill="#007aff"
+      fillOpacity="0.6"
+    />
   </svg>
 );
 
 const ExcelIcon = () => (
   <svg className="w-14 h-16" viewBox="0 0 56 64">
-    <path d="M8 4h28l12 12v44a4 4 0 01-4 4H8a4 4 0 01-4-4V8a4 4 0 014-4z" fill="#21a366" />
+    <path
+      d="M8 4h28l12 12v44a4 4 0 01-4 4H8a4 4 0 01-4-4V8a4 4 0 014-4z"
+      fill="#21a366"
+    />
     <path d="M36 4v12h12" fill="#107c41" />
     <rect x="12" y="26" width="32" height="24" rx="2" fill="#fff" />
     <line x1="12" y1="34" x2="44" y2="34" stroke="#21a366" strokeWidth="1" />
@@ -841,7 +1055,10 @@ const ExcelIcon = () => (
 
 const KeynoteIcon = () => (
   <svg className="w-14 h-16" viewBox="0 0 56 64">
-    <path d="M8 4h28l12 12v44a4 4 0 01-4 4H8a4 4 0 01-4-4V8a4 4 0 014-4z" fill="#007aff" />
+    <path
+      d="M8 4h28l12 12v44a4 4 0 01-4 4H8a4 4 0 01-4-4V8a4 4 0 014-4z"
+      fill="#007aff"
+    />
     <path d="M36 4v12h12" fill="#0051a8" />
     <rect x="14" y="24" width="28" height="20" rx="2" fill="#fff" />
     <polygon points="28,28 38,36 28,44 18,36" fill="#007aff" />
@@ -852,19 +1069,34 @@ const KeynoteIcon = () => (
 
 const ImageIcon = () => (
   <svg className="w-14 h-16" viewBox="0 0 56 64">
-    <path d="M8 4h28l12 12v44a4 4 0 01-4 4H8a4 4 0 01-4-4V8a4 4 0 014-4z" fill="#5856d6" />
+    <path
+      d="M8 4h28l12 12v44a4 4 0 01-4 4H8a4 4 0 01-4-4V8a4 4 0 014-4z"
+      fill="#5856d6"
+    />
     <path d="M36 4v12h12" fill="#3634a3" />
     <rect x="12" y="24" width="32" height="24" rx="3" fill="#fff" />
     <circle cx="20" cy="32" r="4" fill="#ffcc00" />
-    <path d="M12 42l8-6 6 5 8-8 10 10v5a3 3 0 01-3 3H15a3 3 0 01-3-3v-6z" fill="#34c759" fillOpacity="0.7" />
+    <path
+      d="M12 42l8-6 6 5 8-8 10 10v5a3 3 0 01-3 3H15a3 3 0 01-3-3v-6z"
+      fill="#34c759"
+      fillOpacity="0.7"
+    />
   </svg>
 );
 
 const TextIcon = () => (
   <svg className="w-14 h-16" viewBox="0 0 56 64">
-    <path d="M8 4h28l12 12v44a4 4 0 01-4 4H8a4 4 0 01-4-4V8a4 4 0 014-4z" fill="#f5f5f7" />
+    <path
+      d="M8 4h28l12 12v44a4 4 0 01-4 4H8a4 4 0 01-4-4V8a4 4 0 014-4z"
+      fill="#f5f5f7"
+    />
     <path d="M36 4v12h12" fill="#d1d1d6" />
-    <path d="M8 4h28l12 12v44a4 4 0 01-4 4H8a4 4 0 01-4-4V8a4 4 0 014-4z" fill="none" stroke="#c7c7cc" strokeWidth="1" />
+    <path
+      d="M8 4h28l12 12v44a4 4 0 01-4 4H8a4 4 0 01-4-4V8a4 4 0 014-4z"
+      fill="none"
+      stroke="#c7c7cc"
+      strokeWidth="1"
+    />
     <rect x="14" y="24" width="28" height="2" rx="1" fill="#8e8e93" />
     <rect x="14" y="30" width="24" height="2" rx="1" fill="#8e8e93" />
     <rect x="14" y="36" width="26" height="2" rx="1" fill="#8e8e93" />
@@ -874,7 +1106,10 @@ const TextIcon = () => (
 
 const ZipIcon = () => (
   <svg className="w-14 h-16" viewBox="0 0 56 64">
-    <path d="M8 4h28l12 12v44a4 4 0 01-4 4H8a4 4 0 01-4-4V8a4 4 0 014-4z" fill="#8e8e93" />
+    <path
+      d="M8 4h28l12 12v44a4 4 0 01-4 4H8a4 4 0 01-4-4V8a4 4 0 014-4z"
+      fill="#8e8e93"
+    />
     <path d="M36 4v12h12" fill="#636366" />
     <g fill="#fff">
       <rect x="24" y="8" width="8" height="5" />
@@ -888,7 +1123,11 @@ const ZipIcon = () => (
 );
 
 const MusicNoteIcon = () => (
-  <svg className="w-14 h-14 text-white relative" viewBox="0 0 48 48" fill="currentColor">
+  <svg
+    className="w-14 h-14 text-white relative"
+    viewBox="0 0 48 48"
+    fill="currentColor"
+  >
     <path d="M36 6v24a6 6 0 11-4-5.66V12l-16 4v18a6 6 0 11-4-5.66V10l24-6z" />
   </svg>
 );
@@ -900,13 +1139,21 @@ const SkipBackIcon = () => (
 );
 
 const PlayIcon = () => (
-  <svg className="w-5 h-5 ml-0.5 text-white/90" viewBox="0 0 24 24" fill="currentColor">
+  <svg
+    className="w-5 h-5 ml-0.5 text-white/90"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+  >
     <path d="M8 5v14l11-7L8 5z" />
   </svg>
 );
 
 const PauseIcon = () => (
-  <svg className="w-5 h-5 text-white/90" viewBox="0 0 24 24" fill="currentColor">
+  <svg
+    className="w-5 h-5 text-white/90"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+  >
     <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
   </svg>
 );

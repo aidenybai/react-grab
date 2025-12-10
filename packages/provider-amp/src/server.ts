@@ -25,7 +25,9 @@ interface ThreadState {
 const threadMap = new Map<string, ThreadState>();
 const abortControllers = new Map<string, AbortController>();
 
-const extractTextFromContent = (content: Array<{ type: string; text?: string; name?: string }>): string => {
+const extractTextFromContent = (
+  content: Array<{ type: string; text?: string; name?: string }>,
+): string => {
   return content
     .filter((item) => item.type === "text" && item.text)
     .map((item) => item.text)
@@ -92,14 +94,19 @@ export const createServer = () => {
                 if (systemMessage.thread_id) {
                   capturedThreadId = systemMessage.thread_id;
                 }
-                await stream.writeSSE({ data: "Session started...", event: "status" });
+                await stream.writeSSE({
+                  data: "Session started...",
+                  event: "status",
+                });
               }
               break;
 
             case "assistant": {
               const messageContent = message.message?.content;
               if (messageContent && Array.isArray(messageContent)) {
-                const toolUse = messageContent.find((item: { type: string }) => item.type === "tool_use");
+                const toolUse = messageContent.find(
+                  (item: { type: string }) => item.type === "tool_use",
+                );
                 if (toolUse && "name" in toolUse) {
                   await stream.writeSSE({
                     data: `Using ${toolUse.name}...`,
@@ -108,7 +115,10 @@ export const createServer = () => {
                 } else {
                   const textContent = extractTextFromContent(messageContent);
                   if (textContent && !isAborted()) {
-                    await stream.writeSSE({ data: textContent, event: "status" });
+                    await stream.writeSSE({
+                      data: textContent,
+                      event: "status",
+                    });
                   }
                 }
               }
@@ -179,7 +189,9 @@ export const startServer = async (port: number = DEFAULT_PORT) => {
 
   const honoApplication = createServer();
   serve({ fetch: honoApplication.fetch, port });
-  console.log(`${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim("(Amp)")}`);
+  console.log(
+    `${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim("(Amp)")}`,
+  );
   console.log(`- Local:    ${pc.cyan(`http://localhost:${port}`)}`);
 };
 

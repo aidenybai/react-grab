@@ -13,7 +13,7 @@ export const installPackages = (
   packages: string[],
   packageManager: PackageManager,
   projectRoot: string,
-  isDev: boolean = true
+  isDev: boolean = true,
 ): void => {
   if (packages.length === 0) {
     return;
@@ -33,7 +33,7 @@ export const installPackages = (
 
 export const getPackagesToInstall = (
   agent: AgentIntegration,
-  includeReactGrab: boolean = true
+  includeReactGrab: boolean = true,
 ): string[] => {
   const packages: string[] = [];
 

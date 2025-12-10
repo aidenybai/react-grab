@@ -62,10 +62,10 @@ export async function POST(request: Request) {
   const corsHeaders = getCorsHeaders(origin);
 
   if (!isAllowedOrigin(origin)) {
-    return new Response(
-      JSON.stringify({ error: "Origin not allowed" }),
-      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Origin not allowed" }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   const apiKey = process.env.OPENCODE_ZEN_API_KEY;
@@ -73,7 +73,10 @@ export async function POST(request: Request) {
   if (!apiKey) {
     return new Response(
       JSON.stringify({ error: "OPENCODE_ZEN_API_KEY not configured" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 
@@ -81,10 +84,10 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return new Response(
-      JSON.stringify({ error: "Invalid JSON" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Invalid JSON" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   const { prompt, html, messages: previousMessages = [] } = body;
@@ -92,7 +95,10 @@ export async function POST(request: Request) {
   if (!prompt || !html) {
     return new Response(
       JSON.stringify({ error: "Both prompt and html are required" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 
@@ -146,7 +152,7 @@ Remember: Output ONLY the JavaScript code for this modification. The $el variabl
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model: MODEL,
@@ -158,8 +164,13 @@ Remember: Output ONLY the JavaScript code for this modification. The $el variabl
     if (!response.ok) {
       const errorText = await response.text();
       return new Response(
-        JSON.stringify({ error: `API error: ${response.status} - ${errorText}` }),
-        { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error: `API error: ${response.status} - ${errorText}`,
+        }),
+        {
+          status: response.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -173,11 +184,12 @@ Remember: Output ONLY the JavaScript code for this modification. The $el variabl
       },
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 }
 

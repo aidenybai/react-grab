@@ -33,7 +33,7 @@ describe("detectFramework", () => {
   it("should detect Next.js", () => {
     mockExistsSync.mockReturnValue(true);
     mockReadFileSync.mockReturnValue(
-      JSON.stringify({ dependencies: { next: "14.0.0", react: "18.0.0" } })
+      JSON.stringify({ dependencies: { next: "14.0.0", react: "18.0.0" } }),
     );
 
     expect(detectFramework("/test")).toBe("next");
@@ -42,7 +42,7 @@ describe("detectFramework", () => {
   it("should detect Vite", () => {
     mockExistsSync.mockReturnValue(true);
     mockReadFileSync.mockReturnValue(
-      JSON.stringify({ devDependencies: { vite: "5.0.0" } })
+      JSON.stringify({ devDependencies: { vite: "5.0.0" } }),
     );
 
     expect(detectFramework("/test")).toBe("vite");
@@ -51,7 +51,7 @@ describe("detectFramework", () => {
   it("should detect Webpack", () => {
     mockExistsSync.mockReturnValue(true);
     mockReadFileSync.mockReturnValue(
-      JSON.stringify({ devDependencies: { webpack: "5.0.0" } })
+      JSON.stringify({ devDependencies: { webpack: "5.0.0" } }),
     );
 
     expect(detectFramework("/test")).toBe("webpack");
@@ -60,7 +60,7 @@ describe("detectFramework", () => {
   it("should return unknown when no framework detected", () => {
     mockExistsSync.mockReturnValue(true);
     mockReadFileSync.mockReturnValue(
-      JSON.stringify({ dependencies: { react: "18.0.0" } })
+      JSON.stringify({ dependencies: { react: "18.0.0" } }),
     );
 
     expect(detectFramework("/test")).toBe("unknown");
@@ -85,7 +85,7 @@ describe("detectFramework", () => {
       JSON.stringify({
         dependencies: { next: "14.0.0" },
         devDependencies: { vite: "5.0.0" },
-      })
+      }),
     );
 
     expect(detectFramework("/test")).toBe("next");
@@ -163,7 +163,7 @@ describe("detectMonorepo", () => {
       return String(path).endsWith("package.json");
     });
     mockReadFileSync.mockReturnValue(
-      JSON.stringify({ workspaces: ["packages/*"] })
+      JSON.stringify({ workspaces: ["packages/*"] }),
     );
 
     expect(detectMonorepo("/test")).toBe(true);
@@ -174,7 +174,7 @@ describe("detectMonorepo", () => {
       return String(path).endsWith("package.json");
     });
     mockReadFileSync.mockReturnValue(
-      JSON.stringify({ dependencies: { react: "18.0.0" } })
+      JSON.stringify({ dependencies: { react: "18.0.0" } }),
     );
 
     expect(detectMonorepo("/test")).toBe(false);
@@ -185,7 +185,7 @@ describe("detectReactGrab", () => {
   it("should detect react-grab in dependencies", () => {
     mockExistsSync.mockReturnValue(true);
     mockReadFileSync.mockReturnValue(
-      JSON.stringify({ dependencies: { "react-grab": "1.0.0" } })
+      JSON.stringify({ dependencies: { "react-grab": "1.0.0" } }),
     );
 
     expect(detectReactGrab("/test")).toBe(true);
@@ -194,7 +194,7 @@ describe("detectReactGrab", () => {
   it("should detect react-grab in devDependencies", () => {
     mockExistsSync.mockReturnValue(true);
     mockReadFileSync.mockReturnValue(
-      JSON.stringify({ devDependencies: { "react-grab": "1.0.0" } })
+      JSON.stringify({ devDependencies: { "react-grab": "1.0.0" } }),
     );
 
     expect(detectReactGrab("/test")).toBe(true);
@@ -203,7 +203,7 @@ describe("detectReactGrab", () => {
   it("should return false when react-grab is not installed", () => {
     mockExistsSync.mockReturnValue(true);
     mockReadFileSync.mockReturnValue(
-      JSON.stringify({ dependencies: { react: "18.0.0" } })
+      JSON.stringify({ dependencies: { react: "18.0.0" } }),
     );
 
     expect(detectReactGrab("/test")).toBe(false);
@@ -232,7 +232,7 @@ describe("detectInstalledAgents", () => {
           "@react-grab/cursor": "1.0.0",
           "@react-grab/claude-code": "1.0.0",
         },
-      })
+      }),
     );
 
     const agents = detectInstalledAgents("/test");
@@ -244,7 +244,7 @@ describe("detectInstalledAgents", () => {
   it("should return empty array when no agents installed", () => {
     mockExistsSync.mockReturnValue(true);
     mockReadFileSync.mockReturnValue(
-      JSON.stringify({ dependencies: { "react-grab": "1.0.0" } })
+      JSON.stringify({ dependencies: { "react-grab": "1.0.0" } }),
     );
 
     expect(detectInstalledAgents("/test")).toEqual([]);
@@ -279,7 +279,7 @@ describe("detectUnsupportedFramework", () => {
   it("should detect Remix", () => {
     mockExistsSync.mockReturnValue(true);
     mockReadFileSync.mockReturnValue(
-      JSON.stringify({ dependencies: { "@remix-run/react": "2.0.0" } })
+      JSON.stringify({ dependencies: { "@remix-run/react": "2.0.0" } }),
     );
 
     expect(detectUnsupportedFramework("/test")).toBe("remix");
@@ -288,7 +288,7 @@ describe("detectUnsupportedFramework", () => {
   it("should detect Astro", () => {
     mockExistsSync.mockReturnValue(true);
     mockReadFileSync.mockReturnValue(
-      JSON.stringify({ devDependencies: { astro: "4.0.0" } })
+      JSON.stringify({ devDependencies: { astro: "4.0.0" } }),
     );
 
     expect(detectUnsupportedFramework("/test")).toBe("astro");
@@ -297,7 +297,7 @@ describe("detectUnsupportedFramework", () => {
   it("should detect SvelteKit", () => {
     mockExistsSync.mockReturnValue(true);
     mockReadFileSync.mockReturnValue(
-      JSON.stringify({ devDependencies: { "@sveltejs/kit": "2.0.0" } })
+      JSON.stringify({ devDependencies: { "@sveltejs/kit": "2.0.0" } }),
     );
 
     expect(detectUnsupportedFramework("/test")).toBe("sveltekit");
@@ -306,7 +306,7 @@ describe("detectUnsupportedFramework", () => {
   it("should detect Gatsby", () => {
     mockExistsSync.mockReturnValue(true);
     mockReadFileSync.mockReturnValue(
-      JSON.stringify({ dependencies: { gatsby: "5.0.0" } })
+      JSON.stringify({ dependencies: { gatsby: "5.0.0" } }),
     );
 
     expect(detectUnsupportedFramework("/test")).toBe("gatsby");
@@ -315,7 +315,7 @@ describe("detectUnsupportedFramework", () => {
   it("should return null for supported frameworks", () => {
     mockExistsSync.mockReturnValue(true);
     mockReadFileSync.mockReturnValue(
-      JSON.stringify({ dependencies: { next: "14.0.0" } })
+      JSON.stringify({ dependencies: { next: "14.0.0" } }),
     );
 
     expect(detectUnsupportedFramework("/test")).toBe(null);

@@ -73,7 +73,9 @@ export const start = new Command()
     "provider package to run via npx (e.g., @react-grab/cursor)",
   )
   .action(async (urlArg, opts) => {
-    console.log(`${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`);
+    console.log(
+      `${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`,
+    );
     console.log();
 
     let url = urlArg;
@@ -213,7 +215,9 @@ export const start = new Command()
     const startSpinner = spinner("Starting.").start();
 
     const showSuccess = () => {
-      startSpinner.succeed(`Open in your browser: http://${hostname}:${proxyPort}`);
+      startSpinner.succeed(
+        `Open in your browser: http://${hostname}:${proxyPort}`,
+      );
 
       const commandParts = ["npx react-grab@latest start", url];
       if (opts.port !== String(DEFAULT_PROXY_PORT)) {

@@ -121,7 +121,9 @@ export const clearSessionById = (
 
 export const updateSession = (
   session: AgentSession,
-  updates: Partial<Pick<AgentSession, "lastStatus" | "isStreaming" | "error" | "context">>,
+  updates: Partial<
+    Pick<AgentSession, "lastStatus" | "isStreaming" | "error" | "context">
+  >,
   storage?: AgentSessionStorage | null,
 ): AgentSession => {
   const updatedSession = { ...session, ...updates, lastUpdatedAt: Date.now() };

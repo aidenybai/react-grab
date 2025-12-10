@@ -17,7 +17,8 @@ import { DEFAULT_PORT } from "./constants";
 const VERSION = process.env.VERSION ?? "0.0.0";
 
 const resolveClaudePath = (): string => {
-  const command = process.platform === "win32" ? "where claude" : "which claude";
+  const command =
+    process.platform === "win32" ? "where claude" : "which claude";
   try {
     const result = execSync(command, { encoding: "utf8" }).trim();
     return result.split("\n")[0];

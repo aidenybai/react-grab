@@ -16,5 +16,13 @@ export default defineConfig({
       "@": "/src",
     },
   },
+  optimizeDeps: {
+    include: ["turndown"],
+  },
+  build: {
+    commonjsOptions: {
+      include: [/turndown/, /node_modules/],
+    },
+  },
   publicDir: "public",
 });

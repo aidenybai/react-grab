@@ -30,7 +30,10 @@ export async function POST(request: Request) {
     return new Response("Invalid JSON", { status: 400, headers });
   }
 
-  console.log(`[CLI Report] ${payload.type}:`, JSON.stringify(payload, null, 2));
+  console.log(
+    `[CLI Report] ${payload.type}:`,
+    JSON.stringify(payload, null, 2),
+  );
 
   return new Response("OK", { headers });
 }

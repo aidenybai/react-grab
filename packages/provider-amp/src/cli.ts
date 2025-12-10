@@ -14,5 +14,7 @@ spawn(process.execPath, [serverPath], {
   stdio: "ignore",
 }).unref();
 
-console.log(`${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim("(Amp)")}`);
+console.log(
+  `${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim("(Amp)")}`,
+);
 console.log(`- Local:    ${pc.cyan(`http://localhost:${DEFAULT_PORT}`)}`);

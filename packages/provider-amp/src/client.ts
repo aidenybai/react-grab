@@ -107,9 +107,7 @@ export const createAmpAgentProvider = (
 
   let connectionCache: { result: boolean; timestamp: number } | null = null;
 
-  const mergeOptions = (
-    contextOptions?: AmpAgentOptions,
-  ): AmpAgentOptions => ({
+  const mergeOptions = (contextOptions?: AmpAgentOptions): AmpAgentOptions => ({
     ...(getOptions?.() ?? {}),
     ...(contextOptions ?? {}),
   });

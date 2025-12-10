@@ -39,7 +39,7 @@ const getContentType = (filePath: string): string => {
 
 const listDirectoryContents = async (
   packageName: string,
-  distPath: string
+  distPath: string,
 ): Promise<string[]> => {
   const files = await readdir(distPath);
   return files.map((file) => `/${packageName}/${file}`);
@@ -51,10 +51,7 @@ const generateIndexHtml = async (baseUrl: string): Promise<string> => {
   for (const [packageName, distPath] of Object.entries(DIST_MAPPINGS)) {
     const files = await listDirectoryContents(packageName, distPath);
     const fileLinks = files
-      .map(
-        (file) =>
-          `<li><a href="${file}"><code>${file}</code></a></li>`
-      )
+      .map((file) => `<li><a href="${file}"><code>${file}</code></a></li>`)
       .join("\n            ");
     sections.push(`
         <section>
@@ -212,21 +209,30 @@ const server = Bun.serve({
 
     const pathParts = pathname.split("/").filter(Boolean);
     if (pathParts.length < 2) {
-      return new Response("Not Found", { status: 404, headers: NO_CACHE_HEADERS });
+      return new Response("Not Found", {
+        status: 404,
+        headers: NO_CACHE_HEADERS,
+      });
     }
 
     const [packageName, ...rest] = pathParts;
     const distPath = DIST_MAPPINGS[packageName];
 
     if (!distPath) {
-      return new Response("Package not found", { status: 404, headers: NO_CACHE_HEADERS });
+      return new Response("Package not found", {
+        status: 404,
+        headers: NO_CACHE_HEADERS,
+      });
     }
 
     const filePath = join(distPath, ...rest);
     const file = Bun.file(filePath);
 
     if (!(await file.exists())) {
-      return new Response("File not found", { status: 404, headers: NO_CACHE_HEADERS });
+      return new Response("File not found", {
+        status: 404,
+        headers: NO_CACHE_HEADERS,
+      });
     }
 
     return new Response(file, {

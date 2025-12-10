@@ -34,7 +34,9 @@ let lastOpencodeSessionId: string | undefined;
 
 const getOpencodeClient = async () => {
   if (!opencodeInstance) {
-    await fkill(`:${OPENCODE_SDK_PORT}`, { force: true, silent: true }).catch(() => {});
+    await fkill(`:${OPENCODE_SDK_PORT}`, { force: true, silent: true }).catch(
+      () => {},
+    );
     await sleep(100);
     const instance = await createOpencode({
       hostname: "127.0.0.1",
@@ -216,7 +218,9 @@ export const startServer = async (port: number = DEFAULT_PORT) => {
 
   const honoApplication = createServer();
   serve({ fetch: honoApplication.fetch, port });
-  console.log(`${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim("(Opencode)")}`);
+  console.log(
+    `${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim("(Opencode)")}`,
+  );
   console.log(`- Local:    ${pc.cyan(`http://localhost:${port}`)}`);
 };
 

@@ -1,7 +1,9 @@
 import fs from "node:fs";
 import { defineConfig } from "tsup";
 
-const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8")) as { version: string };
+const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8")) as {
+  version: string;
+};
 
 export default defineConfig([
   {

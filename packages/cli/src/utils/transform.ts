@@ -1,4 +1,10 @@
-import { accessSync, constants, existsSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  accessSync,
+  constants,
+  existsSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import type { Framework, NextRouterType } from "./detect.js";
 import {
@@ -140,7 +146,7 @@ const findEntryFile = (projectRoot: string): string | null => {
 const addAgentToExistingNextApp = (
   originalContent: string,
   agent: AgentIntegration,
-  filePath: string
+  filePath: string,
 ): TransformResult => {
   if (agent === "none") {
     return {
@@ -167,13 +173,13 @@ const addAgentToExistingNextApp = (
             />`;
 
   const reactGrabScriptMatch = originalContent.match(
-    /<(?:Script|script|NextScript)[^>]*react-grab[^>]*\/?>/is
+    /<(?:Script|script|NextScript)[^>]*react-grab[^>]*\/?>/is,
   );
 
   if (reactGrabScriptMatch) {
     const newContent = originalContent.replace(
       reactGrabScriptMatch[0],
-      `${reactGrabScriptMatch[0]}\n            ${agentScript}`
+      `${reactGrabScriptMatch[0]}\n            ${agentScript}`,
     );
     return {
       success: true,
@@ -194,7 +200,7 @@ const addAgentToExistingNextApp = (
 const addAgentToExistingVite = (
   originalContent: string,
   agent: AgentIntegration,
-  filePath: string
+  filePath: string,
 ): TransformResult => {
   if (agent === "none") {
     return {
@@ -216,14 +222,16 @@ const addAgentToExistingVite = (
   }
 
   const agentImport = `import("${agentPackage}/client");`;
-  const reactGrabImportMatch = originalContent.match(/import\s*\(\s*["']react-grab["']\s*\);?/);
+  const reactGrabImportMatch = originalContent.match(
+    /import\s*\(\s*["']react-grab["']\s*\);?/,
+  );
 
   if (reactGrabImportMatch) {
     const matchedText = reactGrabImportMatch[0];
     const hasSemicolon = matchedText.endsWith(";");
     const newContent = originalContent.replace(
       matchedText,
-      `${hasSemicolon ? matchedText.slice(0, -1) : matchedText};\n        ${agentImport}`
+      `${hasSemicolon ? matchedText.slice(0, -1) : matchedText};\n        ${agentImport}`,
     );
     return {
       success: true,
@@ -244,7 +252,7 @@ const addAgentToExistingVite = (
 const addAgentToExistingWebpack = (
   originalContent: string,
   agent: AgentIntegration,
-  filePath: string
+  filePath: string,
 ): TransformResult => {
   if (agent === "none") {
     return {
@@ -266,14 +274,16 @@ const addAgentToExistingWebpack = (
   }
 
   const agentImport = `import("${agentPackage}/client");`;
-  const reactGrabImportMatch = originalContent.match(/import\s*\(\s*["']react-grab["']\s*\);?/);
+  const reactGrabImportMatch = originalContent.match(
+    /import\s*\(\s*["']react-grab["']\s*\);?/,
+  );
 
   if (reactGrabImportMatch) {
     const matchedText = reactGrabImportMatch[0];
     const hasSemicolon = matchedText.endsWith(";");
     const newContent = originalContent.replace(
       matchedText,
-      `${hasSemicolon ? matchedText.slice(0, -1) : matchedText};\n  ${agentImport}`
+      `${hasSemicolon ? matchedText.slice(0, -1) : matchedText};\n  ${agentImport}`,
     );
     return {
       success: true,
@@ -294,7 +304,7 @@ const addAgentToExistingWebpack = (
 const transformNextAppRouter = (
   projectRoot: string,
   agent: AgentIntegration,
-  reactGrabAlreadyConfigured: boolean
+  reactGrabAlreadyConfigured: boolean,
 ): TransformResult => {
   const layoutPath = findLayoutFile(projectRoot);
 
@@ -309,7 +319,8 @@ const transformNextAppRouter = (
   const originalContent = readFileSync(layoutPath, "utf-8");
   let newContent = originalContent;
   const hasReactGrabInFile = hasReactGrabCode(originalContent);
-  const hasReactGrabInInstrumentationFile = hasReactGrabInInstrumentation(projectRoot);
+  const hasReactGrabInInstrumentationFile =
+    hasReactGrabInInstrumentation(projectRoot);
 
   if (hasReactGrabInFile && reactGrabAlreadyConfigured) {
     return addAgentToExistingNextApp(originalContent, agent, layoutPath);
@@ -319,7 +330,11 @@ const transformNextAppRouter = (
     return {
       success: true,
       filePath: layoutPath,
-      message: "React Grab is already installed" + (hasReactGrabInInstrumentationFile ? " in instrumentation-client" : " in this file"),
+      message:
+        "React Grab is already installed" +
+        (hasReactGrabInInstrumentationFile
+          ? " in instrumentation-client"
+          : " in this file"),
       noChanges: true,
     };
   }
@@ -327,7 +342,10 @@ const transformNextAppRouter = (
   if (!newContent.includes('import Script from "next/script"')) {
     const importMatch = newContent.match(/^import .+ from ['"].+['"];?\s*$/m);
     if (importMatch) {
-      newContent = newContent.replace(importMatch[0], `${importMatch[0]}\n${SCRIPT_IMPORT}`);
+      newContent = newContent.replace(
+        importMatch[0],
+        `${importMatch[0]}\n${SCRIPT_IMPORT}`,
+      );
     } else {
       newContent = `${SCRIPT_IMPORT}\n\n${newContent}`;
     }
@@ -337,13 +355,16 @@ const transformNextAppRouter = (
 
   const headMatch = newContent.match(/<head[^>]*>/);
   if (headMatch) {
-    newContent = newContent.replace(headMatch[0], `${headMatch[0]}\n        ${scriptBlock}`);
+    newContent = newContent.replace(
+      headMatch[0],
+      `${headMatch[0]}\n        ${scriptBlock}`,
+    );
   } else {
     const htmlMatch = newContent.match(/<html[^>]*>/);
     if (htmlMatch) {
       newContent = newContent.replace(
         htmlMatch[0],
-        `${htmlMatch[0]}\n      <head>\n        ${scriptBlock}\n      </head>`
+        `${htmlMatch[0]}\n      <head>\n        ${scriptBlock}\n      </head>`,
       );
     }
   }
@@ -351,7 +372,8 @@ const transformNextAppRouter = (
   return {
     success: true,
     filePath: layoutPath,
-    message: "Add React Grab" + (agent !== "none" ? ` with ${agent} agent` : ""),
+    message:
+      "Add React Grab" + (agent !== "none" ? ` with ${agent} agent` : ""),
     originalContent,
     newContent,
   };
@@ -360,7 +382,7 @@ const transformNextAppRouter = (
 const transformNextPagesRouter = (
   projectRoot: string,
   agent: AgentIntegration,
-  reactGrabAlreadyConfigured: boolean
+  reactGrabAlreadyConfigured: boolean,
 ): TransformResult => {
   const documentPath = findDocumentFile(projectRoot);
 
@@ -394,7 +416,8 @@ const transformNextPagesRouter = (
   const originalContent = readFileSync(documentPath, "utf-8");
   let newContent = originalContent;
   const hasReactGrabInFile = hasReactGrabCode(originalContent);
-  const hasReactGrabInInstrumentationFile = hasReactGrabInInstrumentation(projectRoot);
+  const hasReactGrabInInstrumentationFile =
+    hasReactGrabInInstrumentation(projectRoot);
 
   if (hasReactGrabInFile && reactGrabAlreadyConfigured) {
     return addAgentToExistingNextApp(originalContent, agent, documentPath);
@@ -404,7 +427,11 @@ const transformNextPagesRouter = (
     return {
       success: true,
       filePath: documentPath,
-      message: "React Grab is already installed" + (hasReactGrabInInstrumentationFile ? " in instrumentation-client" : " in this file"),
+      message:
+        "React Grab is already installed" +
+        (hasReactGrabInInstrumentationFile
+          ? " in instrumentation-client"
+          : " in this file"),
       noChanges: true,
     };
   }
@@ -412,7 +439,10 @@ const transformNextPagesRouter = (
   if (!newContent.includes('import Script from "next/script"')) {
     const importMatch = newContent.match(/^import .+ from ['"].+['"];?\s*$/m);
     if (importMatch) {
-      newContent = newContent.replace(importMatch[0], `${importMatch[0]}\n${SCRIPT_IMPORT}`);
+      newContent = newContent.replace(
+        importMatch[0],
+        `${importMatch[0]}\n${SCRIPT_IMPORT}`,
+      );
     }
   }
 
@@ -420,13 +450,17 @@ const transformNextPagesRouter = (
 
   const headMatch = newContent.match(/<Head[^>]*>/);
   if (headMatch) {
-    newContent = newContent.replace(headMatch[0], `${headMatch[0]}\n        ${scriptBlock}`);
+    newContent = newContent.replace(
+      headMatch[0],
+      `${headMatch[0]}\n        ${scriptBlock}`,
+    );
   }
 
   return {
     success: true,
     filePath: documentPath,
-    message: "Add React Grab" + (agent !== "none" ? ` with ${agent} agent` : ""),
+    message:
+      "Add React Grab" + (agent !== "none" ? ` with ${agent} agent` : ""),
     originalContent,
     newContent,
   };
@@ -435,7 +469,7 @@ const transformNextPagesRouter = (
 const transformVite = (
   projectRoot: string,
   agent: AgentIntegration,
-  reactGrabAlreadyConfigured: boolean
+  reactGrabAlreadyConfigured: boolean,
 ): TransformResult => {
   const indexPath = findIndexHtml(projectRoot);
 
@@ -468,13 +502,17 @@ const transformVite = (
 
   const headMatch = newContent.match(/<head[^>]*>/i);
   if (headMatch) {
-    newContent = newContent.replace(headMatch[0], `${headMatch[0]}\n    ${scriptBlock}`);
+    newContent = newContent.replace(
+      headMatch[0],
+      `${headMatch[0]}\n    ${scriptBlock}`,
+    );
   }
 
   return {
     success: true,
     filePath: indexPath,
-    message: "Add React Grab" + (agent !== "none" ? ` with ${agent} agent` : ""),
+    message:
+      "Add React Grab" + (agent !== "none" ? ` with ${agent} agent` : ""),
     originalContent,
     newContent,
   };
@@ -483,7 +521,7 @@ const transformVite = (
 const transformWebpack = (
   projectRoot: string,
   agent: AgentIntegration,
-  reactGrabAlreadyConfigured: boolean
+  reactGrabAlreadyConfigured: boolean,
 ): TransformResult => {
   const entryPath = findEntryFile(projectRoot);
 
@@ -517,7 +555,8 @@ const transformWebpack = (
   return {
     success: true,
     filePath: entryPath,
-    message: "Add React Grab" + (agent !== "none" ? ` with ${agent} agent` : ""),
+    message:
+      "Add React Grab" + (agent !== "none" ? ` with ${agent} agent` : ""),
     originalContent,
     newContent,
   };
@@ -528,14 +567,22 @@ export const previewTransform = (
   framework: Framework,
   nextRouterType: NextRouterType,
   agent: AgentIntegration,
-  reactGrabAlreadyConfigured: boolean = false
+  reactGrabAlreadyConfigured: boolean = false,
 ): TransformResult => {
   switch (framework) {
     case "next":
       if (nextRouterType === "app") {
-        return transformNextAppRouter(projectRoot, agent, reactGrabAlreadyConfigured);
+        return transformNextAppRouter(
+          projectRoot,
+          agent,
+          reactGrabAlreadyConfigured,
+        );
       }
-      return transformNextPagesRouter(projectRoot, agent, reactGrabAlreadyConfigured);
+      return transformNextPagesRouter(
+        projectRoot,
+        agent,
+        reactGrabAlreadyConfigured,
+      );
 
     case "vite":
       return transformVite(projectRoot, agent, reactGrabAlreadyConfigured);
@@ -561,7 +608,9 @@ const canWriteToFile = (filePath: string): boolean => {
   }
 };
 
-export const applyTransform = (result: TransformResult): { success: boolean; error?: string } => {
+export const applyTransform = (
+  result: TransformResult,
+): { success: boolean; error?: string } => {
   if (result.success && result.newContent && result.filePath) {
     if (!canWriteToFile(result.filePath)) {
       return {
@@ -588,9 +637,15 @@ export const transformProject = (
   framework: Framework,
   nextRouterType: NextRouterType,
   agent: AgentIntegration,
-  reactGrabAlreadyConfigured: boolean = false
+  reactGrabAlreadyConfigured: boolean = false,
 ): TransformResult & { writeError?: string } => {
-  const result = previewTransform(projectRoot, framework, nextRouterType, agent, reactGrabAlreadyConfigured);
+  const result = previewTransform(
+    projectRoot,
+    framework,
+    nextRouterType,
+    agent,
+    reactGrabAlreadyConfigured,
+  );
   const writeResult = applyTransform(result);
   if (!writeResult.success) {
     return { ...result, success: false, writeError: writeResult.error };
@@ -610,15 +665,16 @@ const AGENT_PREFIXES: Record<string, string> = {
 export const previewPackageJsonTransform = (
   projectRoot: string,
   agent: AgentIntegration,
-  installedAgents: string[]
+  installedAgents: string[],
 ): PackageJsonTransformResult => {
   if (agent === "none" || agent === "ami" || agent === "instant") {
     return {
       success: true,
       filePath: "",
-      message: agent === "ami" || agent === "instant"
-        ? `${agent === "ami" ? "Ami" : "Instant"} does not require package.json modification`
-        : "No agent selected, skipping package.json modification",
+      message:
+        agent === "ami" || agent === "instant"
+          ? `${agent === "ami" ? "Ami" : "Instant"} does not require package.json modification`
+          : "No agent selected, skipping package.json modification",
       noChanges: true,
     };
   }
@@ -699,7 +755,7 @@ export const previewPackageJsonTransform = (
 };
 
 export const applyPackageJsonTransform = (
-  result: PackageJsonTransformResult
+  result: PackageJsonTransformResult,
 ): { success: boolean; error?: string } => {
   if (result.success && result.newContent && result.filePath) {
     if (!canWriteToFile(result.filePath)) {

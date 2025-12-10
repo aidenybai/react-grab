@@ -96,7 +96,9 @@ export const init = new Command()
     process.cwd(),
   )
   .action(async (opts) => {
-    console.log(`${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`);
+    console.log(
+      `${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`,
+    );
     console.log();
 
     try {

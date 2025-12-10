@@ -1,4 +1,13 @@
-export type AgentIntegration = "claude-code" | "cursor" | "opencode" | "codex" | "gemini" | "amp" | "ami" | "instant" | "none";
+export type AgentIntegration =
+  | "claude-code"
+  | "cursor"
+  | "opencode"
+  | "codex"
+  | "gemini"
+  | "amp"
+  | "ami"
+  | "instant"
+  | "none";
 
 export const NEXT_APP_ROUTER_SCRIPT = `{process.env.NODE_ENV === "development" && (
           <Script
@@ -8,7 +17,9 @@ export const NEXT_APP_ROUTER_SCRIPT = `{process.env.NODE_ENV === "development" &
           />
         )}`;
 
-export const NEXT_APP_ROUTER_SCRIPT_WITH_AGENT = (agent: AgentIntegration): string => {
+export const NEXT_APP_ROUTER_SCRIPT_WITH_AGENT = (
+  agent: AgentIntegration,
+): string => {
   if (agent === "none") return NEXT_APP_ROUTER_SCRIPT;
 
   const agentScript = `<Script
@@ -35,7 +46,9 @@ export const NEXT_PAGES_ROUTER_SCRIPT = `{process.env.NODE_ENV === "development"
           />
         )}`;
 
-export const NEXT_PAGES_ROUTER_SCRIPT_WITH_AGENT = (agent: AgentIntegration): string => {
+export const NEXT_PAGES_ROUTER_SCRIPT_WITH_AGENT = (
+  agent: AgentIntegration,
+): string => {
   if (agent === "none") return NEXT_PAGES_ROUTER_SCRIPT;
 
   const agentScript = `<Script

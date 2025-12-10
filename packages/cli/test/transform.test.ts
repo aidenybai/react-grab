@@ -1,5 +1,10 @@
 import { vi, describe, expect, it, beforeEach } from "vitest";
-import { previewTransform, applyTransform, previewPackageJsonTransform, applyPackageJsonTransform } from "../src/utils/transform.js";
+import {
+  previewTransform,
+  applyTransform,
+  previewPackageJsonTransform,
+  applyPackageJsonTransform,
+} from "../src/utils/transform.js";
 
 vi.mock("node:fs", () => ({
   existsSync: vi.fn(),
@@ -40,7 +45,9 @@ export default function RootLayout({
 }`;
 
   it("should add React Grab to layout.tsx", () => {
-    mockExistsSync.mockImplementation((path) => String(path).endsWith("layout.tsx"));
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("layout.tsx"),
+    );
     mockReadFileSync.mockReturnValue(layoutContent);
 
     const result = previewTransform("/test", "next", "app", "none", false);
@@ -61,7 +68,9 @@ export default function RootLayout({
   );
 }`;
 
-    mockExistsSync.mockImplementation((path) => String(path).endsWith("layout.tsx"));
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("layout.tsx"),
+    );
     mockReadFileSync.mockReturnValue(layoutWithHead);
 
     const result = previewTransform("/test", "next", "app", "cursor", false);
@@ -85,7 +94,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   );
 }`;
 
-    mockExistsSync.mockImplementation((path) => String(path).endsWith("layout.tsx"));
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("layout.tsx"),
+    );
     mockReadFileSync.mockReturnValue(layoutWithReactGrab);
 
     const result = previewTransform("/test", "next", "app", "none", false);
@@ -108,7 +119,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   );
 }`;
 
-    mockExistsSync.mockImplementation((path) => String(path).endsWith("layout.tsx"));
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("layout.tsx"),
+    );
     mockReadFileSync.mockReturnValue(layoutWithReactGrab);
 
     const result = previewTransform("/test", "next", "app", "cursor", true);
@@ -141,7 +154,9 @@ describe("previewTransform - Vite", () => {
 </html>`;
 
   it("should add React Grab to index.html", () => {
-    mockExistsSync.mockImplementation((path) => String(path).endsWith("index.html"));
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("index.html"),
+    );
     mockReadFileSync.mockReturnValue(indexContent);
 
     const result = previewTransform("/test", "vite", "unknown", "none", false);
@@ -152,10 +167,18 @@ describe("previewTransform - Vite", () => {
   });
 
   it("should add React Grab with agent to index.html", () => {
-    mockExistsSync.mockImplementation((path) => String(path).endsWith("index.html"));
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("index.html"),
+    );
     mockReadFileSync.mockReturnValue(indexContent);
 
-    const result = previewTransform("/test", "vite", "unknown", "opencode", false);
+    const result = previewTransform(
+      "/test",
+      "vite",
+      "unknown",
+      "opencode",
+      false,
+    );
 
     expect(result.success).toBe(true);
     expect(result.newContent).toContain("react-grab");
@@ -177,10 +200,18 @@ describe("previewTransform - Vite", () => {
   </body>
 </html>`;
 
-    mockExistsSync.mockImplementation((path) => String(path).endsWith("index.html"));
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("index.html"),
+    );
     mockReadFileSync.mockReturnValue(indexWithReactGrab);
 
-    const result = previewTransform("/test", "vite", "unknown", "claude-code", true);
+    const result = previewTransform(
+      "/test",
+      "vite",
+      "unknown",
+      "claude-code",
+      true,
+    );
 
     expect(result.success).toBe(true);
     expect(result.newContent).toContain("@react-grab/claude-code");
@@ -199,10 +230,18 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 );`;
 
   it("should add React Grab to entry file", () => {
-    mockExistsSync.mockImplementation((path) => String(path).endsWith("index.tsx"));
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("index.tsx"),
+    );
     mockReadFileSync.mockReturnValue(entryContent);
 
-    const result = previewTransform("/test", "webpack", "unknown", "none", false);
+    const result = previewTransform(
+      "/test",
+      "webpack",
+      "unknown",
+      "none",
+      false,
+    );
 
     expect(result.success).toBe(true);
     expect(result.newContent).toContain('import("react-grab")');
@@ -210,10 +249,18 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   });
 
   it("should add React Grab with agent to entry file", () => {
-    mockExistsSync.mockImplementation((path) => String(path).endsWith("main.tsx"));
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("main.tsx"),
+    );
     mockReadFileSync.mockReturnValue(entryContent);
 
-    const result = previewTransform("/test", "webpack", "unknown", "cursor", false);
+    const result = previewTransform(
+      "/test",
+      "webpack",
+      "unknown",
+      "cursor",
+      false,
+    );
 
     expect(result.success).toBe(true);
     expect(result.newContent).toContain("react-grab");
@@ -248,7 +295,9 @@ export default function Document() {
   );
 }`;
 
-    mockExistsSync.mockImplementation((path) => String(path).endsWith("_document.tsx"));
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("_document.tsx"),
+    );
     mockReadFileSync.mockReturnValue(documentContent);
 
     const result = previewTransform("/test", "next", "pages", "none", false);
@@ -276,7 +325,9 @@ export default function Document() {
   );
 }`;
 
-    mockExistsSync.mockImplementation((path) => String(path).endsWith("_document.tsx"));
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("_document.tsx"),
+    );
     mockReadFileSync.mockReturnValue(documentWithReactGrab);
 
     const result = previewTransform("/test", "next", "pages", "cursor", true);
@@ -298,7 +349,9 @@ describe("previewTransform - Vite edge cases", () => {
   </body>
 </html>`;
 
-    mockExistsSync.mockImplementation((path) => String(path).endsWith("index.html"));
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("index.html"),
+    );
     mockReadFileSync.mockReturnValue(indexContent);
 
     const result = previewTransform("/test", "vite", "unknown", "none", false);
@@ -321,7 +374,13 @@ describe("previewTransform - Webpack edge cases", () => {
   it("should fail when entry file not found", () => {
     mockExistsSync.mockReturnValue(false);
 
-    const result = previewTransform("/test", "webpack", "unknown", "none", false);
+    const result = previewTransform(
+      "/test",
+      "webpack",
+      "unknown",
+      "none",
+      false,
+    );
 
     expect(result.success).toBe(false);
     expect(result.message).toContain("Could not find entry file");
@@ -335,10 +394,18 @@ describe("previewTransform - Webpack edge cases", () => {
 import React from "react";
 import ReactDOM from "react-dom/client";`;
 
-    mockExistsSync.mockImplementation((path) => String(path).endsWith("index.tsx"));
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("index.tsx"),
+    );
     mockReadFileSync.mockReturnValue(entryWithReactGrab);
 
-    const result = previewTransform("/test", "webpack", "unknown", "opencode", true);
+    const result = previewTransform(
+      "/test",
+      "webpack",
+      "unknown",
+      "opencode",
+      true,
+    );
 
     expect(result.success).toBe(true);
     expect(result.newContent).toContain("@react-grab/opencode");
@@ -347,7 +414,13 @@ import ReactDOM from "react-dom/client";`;
 
 describe("previewTransform - Unknown framework", () => {
   it("should fail for unknown framework", () => {
-    const result = previewTransform("/test", "unknown", "unknown", "none", false);
+    const result = previewTransform(
+      "/test",
+      "unknown",
+      "unknown",
+      "none",
+      false,
+    );
 
     expect(result.success).toBe(false);
     expect(result.message).toContain("Unknown framework");
@@ -466,7 +539,7 @@ describe("previewPackageJsonTransform", () => {
       },
     },
     null,
-    2
+    2,
   );
 
   it("should add agent prefix to dev script", () => {
@@ -487,7 +560,9 @@ describe("previewPackageJsonTransform", () => {
     const result = previewPackageJsonTransform("/test", "claude-code", []);
 
     expect(result.success).toBe(true);
-    expect(result.newContent).toContain("npx @react-grab/claude-code@latest &&");
+    expect(result.newContent).toContain(
+      "npx @react-grab/claude-code@latest &&",
+    );
   });
 
   it("should add opencode prefix to dev script", () => {
@@ -516,7 +591,7 @@ describe("previewPackageJsonTransform", () => {
         },
       },
       null,
-      2
+      2,
     );
 
     mockExistsSync.mockReturnValue(true);
@@ -537,13 +612,15 @@ describe("previewPackageJsonTransform", () => {
         },
       },
       null,
-      2
+      2,
     );
 
     mockExistsSync.mockReturnValue(true);
     mockReadFileSync.mockReturnValue(packageJsonWithAgent);
 
-    const result = previewPackageJsonTransform("/test", "cursor", ["claude-code"]);
+    const result = previewPackageJsonTransform("/test", "cursor", [
+      "claude-code",
+    ]);
 
     expect(result.success).toBe(true);
     expect(result.noChanges).toBe(true);
@@ -567,7 +644,7 @@ describe("previewPackageJsonTransform", () => {
         },
       },
       null,
-      2
+      2,
     );
 
     mockExistsSync.mockReturnValue(true);

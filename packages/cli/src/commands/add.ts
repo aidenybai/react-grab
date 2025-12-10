@@ -32,7 +32,10 @@ const AGENT_NAMES: Record<string, string> = {
 export const add = new Command()
   .name("add")
   .description("add an agent integration")
-  .argument("[agent]", "agent to add (claude-code, cursor, opencode, codex, gemini, amp, ami, instant)")
+  .argument(
+    "[agent]",
+    "agent to add (claude-code, cursor, opencode, codex, gemini, amp, ami, instant)",
+  )
   .option("-y, --yes", "skip confirmation prompts", false)
   .option(
     "-c, --cwd <cwd>",
@@ -40,7 +43,9 @@ export const add = new Command()
     process.cwd(),
   )
   .action(async (agentArg, opts) => {
-    console.log(`${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`);
+    console.log(
+      `${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`,
+    );
     console.log();
 
     try {
@@ -64,7 +69,16 @@ export const add = new Command()
       preflightSpinner.succeed();
 
       const availableAgents = (
-        ["claude-code", "cursor", "opencode", "codex", "gemini", "amp", "ami", "instant"] as const
+        [
+          "claude-code",
+          "cursor",
+          "opencode",
+          "codex",
+          "gemini",
+          "amp",
+          "ami",
+          "instant",
+        ] as const
       ).filter((agent) => !projectInfo.installedAgents.includes(agent));
 
       if (availableAgents.length === 0) {
@@ -77,10 +91,23 @@ export const add = new Command()
       let agentIntegration: AgentIntegration;
 
       if (agentArg) {
-        if (!["claude-code", "cursor", "opencode", "codex", "gemini", "amp", "ami", "instant"].includes(agentArg)) {
+        if (
+          ![
+            "claude-code",
+            "cursor",
+            "opencode",
+            "codex",
+            "gemini",
+            "amp",
+            "ami",
+            "instant",
+          ].includes(agentArg)
+        ) {
           logger.break();
           logger.error(`Invalid agent: ${agentArg}`);
-          logger.error("Available agents: claude-code, cursor, opencode, codex, gemini, amp, ami, instant");
+          logger.error(
+            "Available agents: claude-code, cursor, opencode, codex, gemini, amp, ami, instant",
+          );
           logger.break();
           process.exit(1);
         }

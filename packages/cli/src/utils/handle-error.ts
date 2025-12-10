@@ -13,4 +13,3 @@ export const handleError = (error: unknown) => {
   logger.break();
   process.exit(1);
 };
-
