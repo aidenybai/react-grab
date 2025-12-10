@@ -24,6 +24,7 @@ interface OpencodeInstance {
 }
 
 let opencodeInstance: OpencodeInstance | null = null;
+const sessionMap = new Map<string, string>();
 
 const getOpencodeClient = async () => {
   if (!opencodeInstance) {
@@ -40,20 +41,31 @@ const executeOpencodePrompt = async (
   prompt: string,
   options?: OpencodeAgentOptions,
   onStatus?: (text: string) => void,
-): Promise<void> => {
+  reactGrabSessionId?: string,
+): Promise<string> => {
   const client = await getOpencodeClient();
 
   onStatus?.("Thinking...");
 
-  const sessionResponse = await client.session.create({
-    body: { title: "React Grab Session" },
-  });
+  let opencodeSessionId: string;
 
-  if (sessionResponse.error || !sessionResponse.data) {
-    throw new Error("Failed to create session");
+  if (reactGrabSessionId && sessionMap.has(reactGrabSessionId)) {
+    opencodeSessionId = sessionMap.get(reactGrabSessionId)!;
+  } else {
+    const sessionResponse = await client.session.create({
+      body: { title: "React Grab Session" },
+    });
+
+    if (sessionResponse.error || !sessionResponse.data) {
+      throw new Error("Failed to create session");
+    }
+
+    opencodeSessionId = sessionResponse.data.id;
+
+    if (reactGrabSessionId) {
+      sessionMap.set(reactGrabSessionId, opencodeSessionId);
+    }
   }
-
-  const sessionId = sessionResponse.data.id;
 
   const modelConfig = options?.model
     ? {
@@ -63,7 +75,7 @@ const executeOpencodePrompt = async (
     : undefined;
 
   const promptResponse = await client.session.prompt({
-    path: { id: sessionId },
+    path: { id: opencodeSessionId },
     body: {
       ...(modelConfig && { model: modelConfig }),
       parts: [{ type: "text", text: prompt }],
@@ -77,6 +89,8 @@ const executeOpencodePrompt = async (
       }
     }
   }
+
+  return opencodeSessionId;
 };
 
 export const createServer = () => {
@@ -86,9 +100,12 @@ export const createServer = () => {
 
   honoApplication.post("/agent", async (context) => {
     const requestBody = await context.req.json<OpencodeAgentContext>();
-    const { content, prompt, options } = requestBody;
+    const { content, prompt, options, sessionId } = requestBody;
 
-    const formattedPrompt = `
+    const isFollowUp = Boolean(sessionId && sessionMap.has(sessionId));
+    const formattedPrompt = isFollowUp
+      ? prompt
+      : `
 User Request: ${prompt}
 
 Context:
@@ -108,6 +125,7 @@ ${content}
               })
               .catch(() => {});
           },
+          sessionId,
         );
 
         await stream.writeSSE({

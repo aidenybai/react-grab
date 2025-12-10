@@ -24,6 +24,7 @@ interface StartSessionParams {
   prompt: string;
   position: { x: number; y: number };
   selectionBounds?: OverlayBounds;
+  sessionId?: string;
 }
 
 export interface AgentManager {
@@ -36,6 +37,7 @@ export interface AgentManager {
   dismissSession: (sessionId: string) => void;
   undoSession: (sessionId: string) => void;
   acknowledgeSessionError: (sessionId: string) => string | undefined;
+  retrySession: (sessionId: string) => void;
   updateSessionBoundsOnViewportChange: () => void;
   getSessionElement: (sessionId: string) => Element | undefined;
   setOptions: (options: AgentOptions) => void;
@@ -235,32 +237,54 @@ export const createAgentManager = (
   };
 
   const startSession = async (params: StartSessionParams) => {
-    const { element, prompt, position, selectionBounds } = params;
+    const { element, prompt, position, selectionBounds, sessionId } = params;
     const storage = agentOptions?.storage;
 
     if (!agentOptions?.provider) {
       return;
     }
 
-    const elements = [element];
-    const content = await generateSnippet(elements, { maxLines: Infinity });
+    const existingSession = sessionId ? sessions().get(sessionId) : undefined;
+    const isFollowUp = Boolean(sessionId);
+
+    const content = existingSession
+      ? existingSession.context.content
+      : await generateSnippet([element], { maxLines: Infinity });
+
     const context: AgentContext = {
       content,
       prompt,
       options: agentOptions?.getOptions?.() as unknown,
+      sessionId: isFollowUp ? sessionId : undefined,
     };
-    const tagName = (element.tagName || "").toLowerCase() || undefined;
-    const componentName = (await getNearestComponentName(element)) || undefined;
 
-    const session = createSession(
-      context,
-      position,
-      selectionBounds,
-      tagName,
-      componentName,
-    );
-    session.lastStatus = "Thinking…";
-    sessionElements.set(session.id, element);
+    let session: AgentSession;
+    if (existingSession) {
+      session = updateSession(
+        existingSession,
+        {
+          context,
+          isStreaming: true,
+          lastStatus: "Thinking…",
+        },
+        storage,
+      );
+    } else {
+      const tagName = (element.tagName || "").toLowerCase() || undefined;
+      const componentName =
+        (await getNearestComponentName(element)) || undefined;
+
+      session = createSession(
+        context,
+        position,
+        selectionBounds,
+        tagName,
+        componentName,
+      );
+      session.lastStatus = "Thinking…";
+      sessionElements.set(session.id, element);
+    }
+
     setSessions((prev) => new Map(prev).set(session.id, session));
     saveSessionById(session, storage);
     agentOptions.onStart?.(session, element);
@@ -268,8 +292,13 @@ export const createAgentManager = (
     const abortController = new AbortController();
     abortControllers.set(session.id, abortController);
 
+    const contextWithSessionId: AgentContext = {
+      ...context,
+      sessionId: sessionId ?? session.id,
+    };
+
     const streamIterator = agentOptions.provider.send(
-      context,
+      contextWithSessionId,
       abortController.signal,
     );
     void executeSessionStream(session, streamIterator);
@@ -317,6 +346,46 @@ export const createAgentManager = (
     const prompt = session?.context.prompt;
     dismissSession(sessionId);
     return prompt;
+  };
+
+  const retrySession = (sessionId: string) => {
+    const currentSessions = sessions();
+    const session = currentSessions.get(sessionId);
+    if (!session || !agentOptions?.provider) return;
+
+    const storage = agentOptions.storage;
+    const element = sessionElements.get(sessionId);
+
+    const retriedSession = updateSession(
+      session,
+      {
+        error: undefined,
+        isStreaming: true,
+        lastStatus: "Retrying…",
+      },
+      storage,
+    );
+
+    setSessions((prev) => new Map(prev).set(sessionId, retriedSession));
+    saveSessionById(retriedSession, storage);
+
+    if (element) {
+      agentOptions.onStart?.(retriedSession, element);
+    }
+
+    const abortController = new AbortController();
+    abortControllers.set(sessionId, abortController);
+
+    const contextWithSessionId: AgentContext = {
+      ...retriedSession.context,
+      sessionId,
+    };
+
+    const streamIterator = agentOptions.provider.send(
+      contextWithSessionId,
+      abortController.signal,
+    );
+    void executeSessionStream(retriedSession, streamIterator);
   };
 
   const updateSessionBoundsOnViewportChange = () => {
@@ -371,6 +440,7 @@ export const createAgentManager = (
     dismissSession,
     undoSession,
     acknowledgeSessionError,
+    retrySession,
     updateSessionBoundsOnViewportChange,
     getSessionElement,
     setOptions,

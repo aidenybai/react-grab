@@ -1,5 +1,11 @@
 # grab
 
+## 0.0.79
+
+### Patch Changes
+
+- fix: claude code exit issue
+
 ## 0.0.78
 
 ### Patch Changes

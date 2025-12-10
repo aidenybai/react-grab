@@ -171,6 +171,7 @@ export const createOpencodeAgentProvider = (
     },
 
     supportsResume: true,
+    supportsFollowUp: true,
 
     checkConnection: async () => {
       const now = Date.now();

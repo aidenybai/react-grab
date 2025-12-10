@@ -14,6 +14,7 @@ import { useSpeechRecognition } from "../utils/speech-recognition.js";
 import { IconOpen } from "./icon-open.js";
 import { IconMic } from "./icon-mic.js";
 import { IconReturn } from "./icon-return.js";
+import { IconRetry } from "./icon-retry.js";
 
 interface SelectionLabelProps {
   tagName?: string;
@@ -23,12 +24,15 @@ interface SelectionLabelProps {
   visible?: boolean;
   isInputExpanded?: boolean;
   inputValue?: string;
+  replyToPrompt?: string;
   hasAgent?: boolean;
   isAgentConnected?: boolean;
   status?: SelectionLabelStatus;
   statusText?: string;
   filePath?: string;
   lineNumber?: number;
+  supportsUndo?: boolean;
+  supportsFollowUp?: boolean;
   onInputChange?: (value: string) => void;
   onSubmit?: () => void;
   onCancel?: () => void;
@@ -37,11 +41,13 @@ interface SelectionLabelProps {
   onOpen?: () => void;
   onDismiss?: () => void;
   onUndo?: () => void;
+  onReply?: () => void;
   isPendingDismiss?: boolean;
   onConfirmDismiss?: () => void;
   onCancelDismiss?: () => void;
   error?: string;
   onAcknowledgeError?: () => void;
+  onRetry?: () => void;
 }
 
 interface TagBadgeProps {
@@ -262,13 +268,18 @@ const DismissConfirmation: Component<DismissConfirmationProps> = (props) => {
 interface ErrorConfirmationProps {
   error: string;
   onAcknowledge?: () => void;
+  onRetry?: () => void;
 }
 
 const MAX_ERROR_LENGTH = 50;
 
 const ErrorConfirmation: Component<ErrorConfirmationProps> = (props) => {
   const handleKeyDown = (event: KeyboardEvent) => {
-    if (event.code === "Enter" || event.code === "Escape") {
+    if (event.code === "Enter") {
+      event.preventDefault();
+      event.stopPropagation();
+      props.onRetry?.();
+    } else if (event.code === "Escape") {
       event.preventDefault();
       event.stopPropagation();
       props.onAcknowledge?.();
@@ -303,12 +314,20 @@ const ErrorConfirmation: Component<ErrorConfirmationProps> = (props) => {
         <div class="contain-layout shrink-0 flex items-center justify-end gap-[5px] w-full h-fit">
           <button
             class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
+            onClick={props.onRetry}
+          >
+            <span class="text-black text-[11px] leading-3.5 tracking-[-0.04em] font-sans font-medium">
+              Retry
+            </span>
+            <IconRetry size={10} class="text-black/50" />
+          </button>
+          <button
+            class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
             onClick={props.onAcknowledge}
           >
             <span class="text-black text-[11px] leading-3.5 tracking-[-0.04em] font-sans font-medium">
               Ok
             </span>
-            <IconReturn size={10} class="text-black/50" />
           </button>
         </div>
       </BottomSection>
@@ -318,8 +337,11 @@ const ErrorConfirmation: Component<ErrorConfirmationProps> = (props) => {
 
 interface CompletedConfirmationProps {
   statusText: string;
+  supportsUndo?: boolean;
+  supportsFollowUp?: boolean;
   onDismiss?: () => void;
   onUndo?: () => void;
+  onReply?: () => void;
 }
 
 const CompletedConfirmation: Component<CompletedConfirmationProps> = (props) => {
@@ -346,16 +368,26 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (props) => 
           {props.statusText}
         </span>
       </div>
-      <Show when={props.onDismiss || props.onUndo}>
+      <Show when={props.onDismiss || props.onUndo || props.onReply}>
         <BottomSection>
           <div class="contain-layout shrink-0 flex items-center justify-end gap-[5px] w-full h-fit">
-            <Show when={props.onUndo}>
+            <Show when={props.supportsUndo && props.onUndo}>
               <button
-                class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
+                class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#7e0002] cursor-pointer transition-all hover:bg-[#FEF2F2] h-[17px]"
                 onClick={() => props.onUndo?.()}
               >
-                <span class="text-black text-[11px] leading-3.5 tracking-[-0.04em] font-sans font-medium">
+                <span class="text-[#B91C1C] text-[11px] leading-3.5 tracking-[-0.04em] font-sans font-medium">
                   Undo
+                </span>
+              </button>
+            </Show>
+            <Show when={props.supportsFollowUp && props.onReply}>
+              <button
+                class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
+                onClick={() => props.onReply?.()}
+              >
+                <span class="text-black text-[11px] leading-3.5 tracking-[-0.04em] font-sans font-medium">
+                  Reply
                 </span>
               </button>
             </Show>
@@ -664,8 +696,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         <Show when={(props.status === "copied" || props.status === "fading") && !props.error}>
           <CompletedConfirmation
             statusText={props.hasAgent ? (props.statusText ?? "Completed") : "Copied"}
+            supportsUndo={props.supportsUndo}
+            supportsFollowUp={props.supportsFollowUp}
             onDismiss={props.onDismiss}
             onUndo={props.onUndo}
+            onReply={props.onReply}
           />
         </Show>
 
@@ -854,6 +889,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 </Show>
               </div>
               <BottomSection>
+                <Show when={props.replyToPrompt}>
+                  <div class="shrink-0 flex items-center gap-0.5 w-full mb-0.5 overflow-hidden">
+                    <span class="text-[#a1a1aa] text-[9px] leading-3 shrink-0">↳</span>
+                    <span class="text-[#a1a1aa] text-[9px] leading-3 italic truncate whitespace-nowrap">
+                      {props.replyToPrompt}
+                    </span>
+                  </div>
+                </Show>
                 <div class="shrink-0 flex justify-between items-end w-full min-h-4">
                   <textarea
                     ref={inputRef}
@@ -935,6 +978,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             <ErrorConfirmation
               error={props.error!}
               onAcknowledge={props.onAcknowledgeError}
+              onRetry={props.onRetry}
             />
           </Show>
         </div>

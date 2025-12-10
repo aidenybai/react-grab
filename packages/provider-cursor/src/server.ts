@@ -30,6 +30,8 @@ interface CursorStreamEvent {
   session_id?: string;
 }
 
+const cursorSessionMap = new Map<string, string>();
+
 const parseStreamLine = (line: string): CursorStreamEvent | null => {
   const trimmed = line.trim();
   if (!trimmed) return null;
@@ -60,9 +62,15 @@ export const createServer = () => {
 
   app.post("/agent", async (context) => {
     const body = await context.req.json<CursorAgentContext>();
-    const { content, prompt, options } = body;
+    const { content, prompt, options, sessionId } = body;
 
-    const fullPrompt = `${prompt}\n\n${content}`;
+    const cursorChatId = sessionId
+      ? cursorSessionMap.get(sessionId)
+      : undefined;
+    const isFollowUp = Boolean(cursorChatId);
+
+    const userPrompt = isFollowUp ? prompt : `${prompt}\n\n${content}`;
+
     const requestSignal = context.req.raw.signal;
 
     return streamSSE(context, async (stream) => {
@@ -83,6 +91,10 @@ export const createServer = () => {
         cursorAgentArgs.push("--workspace", process.cwd());
       }
 
+      if (isFollowUp && cursorChatId) {
+        cursorAgentArgs.push("--resume", cursorChatId);
+      }
+
       try {
         await stream.writeSSE({ data: "Thinking...", event: "status" });
 
@@ -100,10 +112,15 @@ export const createServer = () => {
         requestSignal.addEventListener("abort", killProcess);
 
         let buffer = "";
+        let capturedCursorChatId: string | undefined;
 
         const processLine = async (line: string) => {
           const event = parseStreamLine(line);
           if (!event) return;
+
+          if (!capturedCursorChatId && event.session_id) {
+            capturedCursorChatId = event.session_id;
+          }
 
           switch (event.type) {
             case "system":
@@ -168,7 +185,7 @@ export const createServer = () => {
           console.error("[cursor-agent stderr]:", chunk.toString());
         });
 
-        cursorProcess.stdin.write(fullPrompt);
+        cursorProcess.stdin.write(userPrompt);
         cursorProcess.stdin.end();
 
         await new Promise<void>((resolve, reject) => {
@@ -189,6 +206,10 @@ export const createServer = () => {
 
         if (buffer.trim()) {
           await processLine(buffer);
+        }
+
+        if (sessionId && capturedCursorChatId) {
+          cursorSessionMap.set(sessionId, capturedCursorChatId);
         }
 
         await stream.writeSSE({ data: "", event: "done" });

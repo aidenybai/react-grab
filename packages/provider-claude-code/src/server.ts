@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import net from "node:net";
 import { pathToFileURL } from "node:url";
 import { Hono } from "hono";
@@ -15,9 +16,21 @@ import { DEFAULT_PORT } from "./constants";
 
 const VERSION = process.env.VERSION ?? "0.0.0";
 
+const resolveClaudePath = (): string => {
+  const command = process.platform === "win32" ? "where claude" : "which claude";
+  try {
+    const result = execSync(command, { encoding: "utf8" }).trim();
+    return result.split("\n")[0];
+  } catch {
+    return "claude";
+  }
+};
+
 type ContentBlock = SDKAssistantMessage["message"]["content"][number];
 type TextContentBlock = Extract<ContentBlock, { type: "text" }>;
 type ClaudeAgentContext = AgentContext<Options>;
+
+const claudeSessionMap = new Map<string, string>();
 
 const isTextBlock = (block: ContentBlock): block is TextContentBlock =>
   block.type === "text";
@@ -29,9 +42,14 @@ export const createServer = () => {
 
   app.post("/agent", async (context) => {
     const body = await context.req.json<ClaudeAgentContext>();
-    const { content, prompt, options } = body;
+    const { content, prompt, options, sessionId } = body;
 
-    const fullPrompt = `${prompt}\n\n${content}`;
+    const claudeSessionId = sessionId
+      ? claudeSessionMap.get(sessionId)
+      : undefined;
+    const isFollowUp = Boolean(claudeSessionId);
+
+    const userPrompt = isFollowUp ? prompt : `${prompt}\n\n${content}`;
 
     return streamSSE(context, async (stream) => {
       try {
@@ -43,17 +61,26 @@ export const createServer = () => {
         delete env.VSCODE_INSPECTOR_OPTIONS;
 
         const queryResult = query({
-          prompt: fullPrompt,
+          prompt: userPrompt,
           options: {
-            pathToClaudeCodeExecutable: "claude",
+            pathToClaudeCodeExecutable: resolveClaudePath(),
             cwd: process.cwd(),
             includePartialMessages: true,
             env,
             ...options,
+            ...(isFollowUp && claudeSessionId
+              ? { resume: claudeSessionId, continue: true }
+              : {}),
           },
         });
 
+        let capturedClaudeSessionId: string | undefined;
+
         for await (const message of queryResult) {
+          if (!capturedClaudeSessionId && message.session_id) {
+            capturedClaudeSessionId = message.session_id;
+          }
+
           if (message.type === "assistant") {
             const textContent = message.message.content
               .filter(isTextBlock)
@@ -74,6 +101,10 @@ export const createServer = () => {
               event: "status",
             });
           }
+        }
+
+        if (sessionId && capturedClaudeSessionId) {
+          claudeSessionMap.set(sessionId, capturedClaudeSessionId);
         }
 
         await stream.writeSSE({ data: "", event: "done" });

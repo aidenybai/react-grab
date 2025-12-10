@@ -105,6 +105,7 @@ export interface AgentContext<T = unknown> {
   content: string;
   prompt: string;
   options?: T;
+  sessionId?: string;
 }
 
 export interface AgentSession {
@@ -132,6 +133,7 @@ export interface AgentProvider<T = any> {
     storage: AgentSessionStorage,
   ) => AsyncIterable<string>;
   supportsResume?: boolean;
+  supportsFollowUp?: boolean;
   checkConnection?: () => Promise<boolean>;
   getCompletionMessage?: () => string | undefined;
   undo?: () => Promise<void>;
@@ -289,13 +291,18 @@ export interface ReactGrabRendererProps {
   crosshairVisible?: boolean;
   inputValue?: string;
   isInputExpanded?: boolean;
+  replyToPrompt?: string;
   hasAgent?: boolean;
   isAgentConnected?: boolean;
   agentSessions?: Map<string, AgentSession>;
+  supportsUndo?: boolean;
+  supportsFollowUp?: boolean;
   onAbortSession?: (sessionId: string) => void;
   onDismissSession?: (sessionId: string) => void;
   onUndoSession?: (sessionId: string) => void;
+  onReplySession?: (sessionId: string) => void;
   onAcknowledgeSessionError?: (sessionId: string) => void;
+  onRetrySession?: (sessionId: string) => void;
   onInputChange?: (value: string) => void;
   onInputSubmit?: () => void;
   onInputCancel?: () => void;

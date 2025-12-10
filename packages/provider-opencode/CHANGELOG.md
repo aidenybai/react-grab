@@ -1,5 +1,13 @@
 # @react-grab/opencode
 
+## 0.0.79
+
+### Patch Changes
+
+- fix: claude code exit issue
+- Updated dependencies
+  - react-grab@0.0.79
+
 ## 0.0.78
 
 ### Patch Changes

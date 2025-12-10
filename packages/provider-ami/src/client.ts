@@ -1,12 +1,15 @@
 import {
   AMI_BRIDGE_URL,
+  authenticate,
   convertToAmiMessage,
-  createExchangeToken,
   createMinimalEnvironment,
   generateId,
-  getExchangeTokenAuthUrl,
-  getToken,
+  getEnvironmentFromGitRepo,
+  getEnvironmentFromProjectId,
+  getUserIdFromBridgeToken,
+  initCliRpc,
   listProjects,
+  revertFileEdits,
   runAgentLoop,
 } from "ami-sdk";
 import type { AmiUIMessage, AmiUIMessagePart, ToolUIPart } from "ami-sdk";
@@ -24,46 +27,67 @@ export type { AgentCompleteResult };
 
 const STORAGE_KEY = "react-grab:agent-sessions";
 const TOKEN_STORAGE_KEY = "react-grab:ami-token";
+const BRIDGE_TOKEN_STORAGE_KEY = "react-grab:ami-bridge-token";
 
-const loadCachedToken = (): string | null => {
+interface CachedAuth {
+  token: string;
+  bridgeToken: string;
+  userId: string;
+}
+
+const loadCachedAuth = (): CachedAuth | null => {
   try {
-    return sessionStorage.getItem(TOKEN_STORAGE_KEY);
+    const token = sessionStorage.getItem(TOKEN_STORAGE_KEY);
+    const bridgeToken = sessionStorage.getItem(BRIDGE_TOKEN_STORAGE_KEY);
+    if (!token || !bridgeToken) return null;
+    const userId = getUserIdFromBridgeToken(bridgeToken);
+    return { token, bridgeToken, userId };
   } catch {
     return null;
   }
 };
 
-const saveCachedToken = (token: string) => {
+const saveCachedAuth = (auth: CachedAuth) => {
   try {
-    sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
-  } catch {
-    // ignore
-  }
+    sessionStorage.setItem(TOKEN_STORAGE_KEY, auth.token);
+    sessionStorage.setItem(BRIDGE_TOKEN_STORAGE_KEY, auth.bridgeToken);
+  } catch {}
 };
 
-const authenticate = async (): Promise<string> => {
-  const exchangeToken = await createExchangeToken();
-  const authUrl = getExchangeTokenAuthUrl(exchangeToken);
+const performAuthentication = async (): Promise<CachedAuth> => {
+  const result = await authenticate();
 
-  window.open(authUrl, "_blank");
-
-  const result = await getToken(exchangeToken, () => {});
-
-  if (!result.success || !result.token) {
+  if (!result.success || !result.token || !result.bridgeToken) {
     throw new Error("Authentication failed");
   }
 
-  saveCachedToken(result.token);
-  return result.token;
+  const auth: CachedAuth = {
+    token: result.token,
+    bridgeToken: result.bridgeToken,
+    userId: result.userId,
+  };
+
+  saveCachedAuth(auth);
+
+  initCliRpc({
+    bridgeToken: auth.bridgeToken,
+    userId: auth.userId,
+  });
+
+  return auth;
 };
 
-const getOrCreateToken = async (): Promise<string> => {
-  const cachedToken = loadCachedToken();
-  if (cachedToken) {
-    return cachedToken;
+const getOrCreateAuth = async (): Promise<CachedAuth> => {
+  const cachedAuth = loadCachedAuth();
+  if (cachedAuth) {
+    initCliRpc({
+      bridgeToken: cachedAuth.bridgeToken,
+      userId: cachedAuth.userId,
+    });
+    return cachedAuth;
   }
 
-  return authenticate();
+  return performAuthentication();
 };
 
 const isToolPart = (part: AmiUIMessagePart): part is ToolUIPart => {
@@ -96,23 +120,36 @@ interface StatusCallback {
   (status: string): void;
 }
 
+interface RunAgentResult {
+  status: string;
+  messages: AmiUIMessage[];
+  chatId: string;
+}
+
 const runAgent = async (
   context: AgentContext,
   token: string,
   projectId: string,
   onStatus: StatusCallback,
-): Promise<string> => {
-  const fullPrompt = `${context.prompt}\n\n${context.content}`;
+  existingMessages?: AmiUIMessage[],
+  existingChatId?: string,
+): Promise<RunAgentResult> => {
+  const isFollowUp = Boolean(existingMessages && existingMessages.length > 0);
+  const userMessageContent = isFollowUp
+    ? context.prompt
+    : `${context.prompt}\n\n${context.content}`;
 
-  const messages: AmiUIMessage[] = [
+  const messages: AmiUIMessage[] = existingMessages
+    ? [...existingMessages]
+    : [];
+
+  messages.push(
     convertToAmiMessage({
       id: generateId(),
       role: "user",
-      content: fullPrompt,
+      content: userMessageContent,
     }),
-  ];
-
-  const environment = createMinimalEnvironment(window.location.href);
+  );
 
   const upsertMessage = async (message: AmiUIMessage) => {
     const existingIndex = messages.findIndex((m) => m.id === message.id);
@@ -131,15 +168,19 @@ const runAgent = async (
     }
   };
 
-  const { status } = await runAgentLoop({
+  const environmentResult = await getEnvironmentFromProjectId(projectId);
+  if (environmentResult._tag !== "Success") {
+    throw new Error("Failed to get environment");
+  }
+  const { status, chatId } = await runAgentLoop({
     messages: sanitizeMessages(messages),
     context: {
-      environment,
+      environment: environmentResult.environment,
       systemContext: [],
       attachments: [],
     },
     url: `${AMI_BRIDGE_URL}/api/v1/agent-proxy`,
-    chatId: undefined,
+    chatId: existingChatId,
     projectId,
     token,
     upsertMessage,
@@ -152,14 +193,21 @@ const runAgent = async (
     case "aborted":
       throw new Error("User aborted task");
     default:
-      return "Completed successfully";
+      return { status: "Completed successfully", messages, chatId };
   }
 };
 
 const CONNECTION_CHECK_TTL_MS = 5000;
 
+interface SessionData {
+  messages: AmiUIMessage[];
+  chatId: string;
+}
+
 export const createAmiAgentProvider = (projectId?: string): AgentProvider => {
   let connectionCache: { result: boolean; timestamp: number } | null = null;
+  let lastAgentMessages: AmiUIMessage[] | null = null;
+  const sessionData = new Map<string, SessionData>();
 
   const getLatestProjectId = async (token: string): Promise<string> => {
     const projects = await listProjects({ token, limit: 1 });
@@ -169,9 +217,9 @@ export const createAmiAgentProvider = (projectId?: string): AgentProvider => {
 
   return {
     send: async function* (context: AgentContext, signal: AbortSignal) {
-      const token = await getOrCreateToken();
+      const auth = await getOrCreateAuth();
 
-      projectId = await getLatestProjectId(token);
+      projectId = await getLatestProjectId(auth.token);
       if (!projectId) {
         throw new Error("No project found");
       }
@@ -201,16 +249,32 @@ export const createAmiAgentProvider = (projectId?: string): AgentProvider => {
         }
       };
 
-      console.log("TOKEN", token, projectId);
+      const existingData = context.sessionId
+        ? sessionData.get(context.sessionId)
+        : undefined;
 
-      const agentPromise = runAgent(context, token, projectId, onStatus);
+      const agentPromise = runAgent(
+        context,
+        auth.token,
+        projectId,
+        onStatus,
+        existingData?.messages,
+        existingData?.chatId,
+      );
 
       let done = false;
       let caughtError: Error | null = null;
       agentPromise
-        .then((finalStatus) => {
+        .then((result) => {
           if (aborted) return;
-          statusQueue.push(finalStatus);
+          lastAgentMessages = result.messages;
+          if (context.sessionId) {
+            sessionData.set(context.sessionId, {
+              messages: result.messages,
+              chatId: result.chatId,
+            });
+          }
+          statusQueue.push(result.status);
           done = true;
           if (resolveWait) {
             resolveWait();
@@ -275,7 +339,7 @@ export const createAmiAgentProvider = (projectId?: string): AgentProvider => {
       }
 
       const context = session.context;
-      const token = await getOrCreateToken();
+      const auth = await getOrCreateAuth();
 
       yield "Resuming...";
 
@@ -302,19 +366,20 @@ export const createAmiAgentProvider = (projectId?: string): AgentProvider => {
         }
       };
 
-      projectId = await getLatestProjectId(token);
+      projectId = await getLatestProjectId(auth.token);
       if (!projectId) {
         throw new Error("No project found");
       }
 
-      const agentPromise = runAgent(context, token, projectId, onStatus);
+      const agentPromise = runAgent(context, auth.token, projectId, onStatus);
 
       let done = false;
       let caughtError: Error | null = null;
       agentPromise
-        .then((finalStatus) => {
+        .then((result) => {
           if (aborted) return;
-          statusQueue.push(finalStatus);
+          lastAgentMessages = result.messages;
+          statusQueue.push(result.status);
           done = true;
           if (resolveWait) {
             resolveWait();
@@ -360,6 +425,7 @@ export const createAmiAgentProvider = (projectId?: string): AgentProvider => {
     },
 
     supportsResume: true,
+    supportsFollowUp: true,
 
     checkConnection: async () => {
       const now = Date.now();
@@ -379,6 +445,18 @@ export const createAmiAgentProvider = (projectId?: string): AgentProvider => {
         connectionCache = { result: false, timestamp: now };
         return false;
       }
+    },
+
+    undo: async () => {
+      if (!lastAgentMessages) return;
+
+      try {
+        await revertFileEdits({
+          messages: lastAgentMessages,
+          cwd: window.location.href,
+        });
+        lastAgentMessages = null;
+      } catch {}
     },
   };
 };

@@ -244,6 +244,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       Boolean(options.agent?.provider),
     );
     const [isAgentConnected, setIsAgentConnected] = createSignal(false);
+    const [supportsUndo, setSupportsUndo] = createSignal(
+      Boolean(options.agent?.provider?.undo),
+    );
+    const [supportsFollowUp, setSupportsFollowUp] = createSignal(
+      Boolean(options.agent?.provider?.supportsFollowUp),
+    );
+    const [replySessionId, setReplySessionId] = createSignal<string | null>(
+      null,
+    );
+    const [replyToPrompt, setReplyToPrompt] = createSignal<string | null>(null);
     const [isPendingDismiss, setIsPendingDismiss] = createSignal(false);
 
     const elementInputCache = new WeakMap<Element, string>();
@@ -1169,23 +1179,27 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const currentX = bounds.x + bounds.width / 2;
       const currentY = bounds.y + bounds.height / 2;
 
-      setMouseX(currentX);
-      setMouseY(currentY);
-
       if (hasAgentProvider() && prompt) {
         elementInputCache.delete(element);
         deactivateRenderer();
+
+        const currentReplySessionId = replySessionId();
+        setReplySessionId(null);
+        setReplyToPrompt(null);
 
         void agentManager.startSession({
           element,
           prompt,
           position: { x: labelPositionX, y: currentY },
           selectionBounds: bounds,
+          sessionId: currentReplySessionId ?? undefined,
         });
 
         return;
       }
 
+      setMouseX(currentX);
+      setMouseY(currentY);
       setIsInputMode(false);
       setInputText("");
       if (prompt) {
@@ -1226,11 +1240,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       setIsPendingDismiss(false);
+      setReplySessionId(null);
       deactivateRenderer();
     };
 
     const handleConfirmDismiss = () => {
       setIsPendingDismiss(false);
+      setReplySessionId(null);
       deactivateRenderer();
     };
 
@@ -2280,19 +2296,51 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             crosshairVisible={crosshairVisible()}
             inputValue={inputText()}
             isInputExpanded={isInputExpanded()}
+            replyToPrompt={replyToPrompt() ?? undefined}
             hasAgent={hasAgentProvider()}
             isAgentConnected={isAgentConnected()}
             agentSessions={agentManager.sessions()}
+            supportsUndo={supportsUndo()}
+            supportsFollowUp={supportsFollowUp()}
             onAbortSession={(sessionId) => agentManager.abortSession(sessionId)}
             onDismissSession={(sessionId) =>
               agentManager.dismissSession(sessionId)
             }
             onUndoSession={(sessionId) => agentManager.undoSession(sessionId)}
+            onReplySession={(sessionId) => {
+              const session = agentManager.sessions().get(sessionId);
+              const element = agentManager.getSessionElement(sessionId);
+              if (session && element) {
+                const positionX = session.position.x;
+                const rect = element.getBoundingClientRect();
+                const centerY = rect.top + rect.height / 2;
+                const previousPrompt = session.context.prompt;
+
+                agentManager.dismissSession(sessionId);
+
+                setMouseX(positionX);
+                setMouseY(centerY);
+                setFrozenElement(element);
+                setInputText("");
+                setIsInputExpanded(true);
+                setIsInputMode(true);
+                setIsToggleMode(true);
+                setIsToggleFrozen(true);
+                setReplySessionId(session.context.sessionId ?? sessionId);
+                setReplyToPrompt(previousPrompt);
+                if (!isActivated()) {
+                  activateRenderer();
+                }
+              }
+            }}
             onAcknowledgeSessionError={(sessionId: string) => {
               const prompt = agentManager.acknowledgeSessionError(sessionId);
               if (prompt) {
                 setInputText(prompt);
               }
+            }}
+            onRetrySession={(sessionId: string) => {
+              agentManager.retrySession(sessionId);
             }}
             onInputChange={handleInputChange}
             onInputSubmit={() => void handleInputSubmit()}
@@ -2401,6 +2449,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         };
         agentManager.setOptions(mergedOptions);
         setHasAgentProvider(Boolean(mergedOptions.provider));
+        setSupportsUndo(Boolean(mergedOptions.provider?.undo));
+        setSupportsFollowUp(Boolean(mergedOptions.provider?.supportsFollowUp));
 
         if (mergedOptions.provider?.checkConnection) {
           void mergedOptions.provider.checkConnection().then((connected) => {

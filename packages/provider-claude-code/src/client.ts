@@ -178,6 +178,7 @@ export const createClaudeAgentProvider = (
     },
 
     supportsResume: true,
+    supportsFollowUp: true,
 
     checkConnection: async () => {
       const now = Date.now();

@@ -170,6 +170,7 @@ export const createCursorAgentProvider = (
     },
 
     supportsResume: true,
+    supportsFollowUp: true,
 
     checkConnection: async () => {
       const now = Date.now();
