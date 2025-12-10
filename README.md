@@ -6,7 +6,7 @@
 
 React Grab allows you to select an element and copy its context (like HTML, React component, and file source)
 
-It makes tools like Cursor, Claude Code, Copilot run up to [**66% faster**](https://react-grab.com/blog/intro)
+It makes tools like Cursor, Claude Code, and Copilot run up to [**66% faster**](https://react-grab.com/blog/intro)
 
 ### [Try out a demo! →](https://react-grab.com)
 
@@ -16,7 +16,7 @@ https://github.com/user-attachments/assets/fdb34329-b471-4b39-b433-0b1a27a94bd8
 
 > [**Install using Cursor**](https://cursor.com/link/prompt?text=1.+Run+curl+-s+https%3A%2F%2Freact-grab.com%2Fllms.txt+%0A2.+Understand+the+content+and+follow+the+instructions+to+install+React+Grab.%0A3.+Tell+the+user+to+refresh+their+local+app+and+explain+how+to+use+React+Grab)
 
-Run this command to install React Grab into your project. Ensure you are running at project root (e.g. where the `next.config.ts` or `vite.config.ts` file is located).
+Run this command to install React Grab into your project. Ensure you are running at the project root (e.g. where the `next.config.ts` or `vite.config.ts` file is located).
 
 ```html
 npx react-grab@latest init
@@ -86,14 +86,14 @@ export default function Document() {
 Your `index.html` could look like this:
 
 ```html
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <script type="module">
       // first npm i react-grab
       // then in head:
       if (import.meta.env.DEV) {
-        import("react-grab");
+        import("react-grab");s
       }
     </script>
   </head>
@@ -122,7 +122,7 @@ if (process.env.NODE_ENV === "development") {
 
 ## Coding agent integration (beta)
 
-React Grab can send selected element context directly to your coding agent. This enables a workflow where you select a UI element and an agent automatically makes changes to your codebase.
+React Grab can send the selected element context directly to your coding agent. This enables a workflow where you select a UI element and an agent automatically makes changes to your codebase.
 
 This means **no copying and pasting** - just select the element and let the agent do the rest. [Learn more →](https://react-grab.com/blog/agent)
 
@@ -280,7 +280,7 @@ export default function RootLayout({ children }) {
 
 ## Extending React Grab
 
-React Grab provides an public customization API. Check out the [type definitions](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) to see all available options for extending React Grab.
+React Grab provides a public customization API. Check out the [type definitions](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) to see all available options for extending React Grab.
 
 ```typescript
 import { init } from "react-grab/core";
