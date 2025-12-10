@@ -28,10 +28,12 @@
     "build": "rm -rf dist && NODE_ENV=production tsup"
   },
   "devDependencies": {
+    "@types/cross-spawn": "^6.0.6",
     "tsup": "^8.4.0"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.6",
+    "cross-spawn": "^7.0.6",
     "hono": "^4.0.0",
     "picocolors": "^1.1.1",
     "react-grab": "workspace:*"
