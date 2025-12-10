@@ -49,9 +49,15 @@ const getCorsHeaders = (origin: string | null) => {
   };
 };
 
+interface ConversationMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
 interface InstantApplyRequest {
   prompt: string;
   html: string;
+  messages?: ConversationMessage[];
 }
 
 export async function POST(request: Request) {
@@ -84,7 +90,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { prompt, html } = body;
+  const { prompt, html, messages: previousMessages = [] } = body;
 
   if (!prompt || !html) {
     return new Response(
@@ -93,13 +99,50 @@ export async function POST(request: Request) {
     );
   }
 
-  const userMessage = `Here is the HTML to modify:
+  const isFollowUp = previousMessages.length > 0;
+
+  const buildUserMessage = (messagePrompt: string, includeHtml: boolean) => {
+    if (includeHtml) {
+      return `Here is the HTML to modify:
 
 ${html}
 
-Modification request: ${prompt}
+Modification request: ${messagePrompt}
 
 Remember: Output ONLY the JavaScript code, nothing else.`;
+    }
+    return `Follow-up modification request: ${messagePrompt}
+
+Remember: Output ONLY the JavaScript code for this modification. The $el variable still references the same element.`;
+  };
+
+  const conversationMessages: Array<{ role: string; content: string }> = [
+    { role: "system", content: SYSTEM_PROMPT },
+  ];
+
+  if (isFollowUp) {
+    let isFirstUserMessage = true;
+    for (const message of previousMessages) {
+      const includeHtml = message.role === "user" && isFirstUserMessage;
+      if (message.role === "user") {
+        conversationMessages.push({
+          role: "user",
+          content: buildUserMessage(message.content, includeHtml),
+        });
+        isFirstUserMessage = false;
+      } else {
+        conversationMessages.push({
+          role: "assistant",
+          content: message.content,
+        });
+      }
+    }
+  }
+
+  conversationMessages.push({
+    role: "user",
+    content: buildUserMessage(prompt, !isFollowUp),
+  });
 
   try {
     const response = await fetch(OPENCODE_ZEN_ENDPOINT, {
@@ -111,10 +154,7 @@ Remember: Output ONLY the JavaScript code, nothing else.`;
       body: JSON.stringify({
         model: MODEL,
         stream: false,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userMessage },
-        ],
+        messages: conversationMessages,
       }),
     });
 

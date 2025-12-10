@@ -1,5 +1,5 @@
 import { createOpencode } from "@opencode-ai/sdk";
-import killPort from "kill-port";
+import fkill from "fkill";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { streamSSE } from "hono/streaming";
@@ -205,7 +205,7 @@ ${content}
 };
 
 export const startServer = async (port: number = DEFAULT_PORT) => {
-  await killPort(port).catch(() => {});
+  await fkill(`:${port}`, { force: true, silent: true }).catch(() => {});
 
   const honoApplication = createServer();
   serve({ fetch: honoApplication.fetch, port });

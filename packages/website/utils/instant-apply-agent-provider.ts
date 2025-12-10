@@ -12,6 +12,17 @@ interface RequestContext {
   requestId: string;
 }
 
+interface ConversationMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+interface ConversationHistory {
+  html: string;
+  messages: ConversationMessage[];
+  lastCode: string;
+}
+
 type UndoAction = () => void;
 
 const createUndoableProxy = (element: HTMLElement) => {
@@ -371,6 +382,7 @@ export const createInstantApplyAgentProvider = (
   const elementHtmlMap = new Map<string, string>();
   const resultCodeMap = new Map<string, string>();
   const undoFnMap = new Map<string, () => void>();
+  const conversationHistoryMap = new Map<string, ConversationHistory>();
   let lastRequestId: string | null = null;
   let lastRequestStartTime: number | null = null;
 
@@ -384,7 +396,16 @@ export const createInstantApplyAgentProvider = (
       ?.requestId;
     if (!requestId || !element) return;
 
-    elementHtmlMap.set(requestId, buildAncestorContext(element));
+    const html = buildAncestorContext(element);
+    elementHtmlMap.set(requestId, html);
+
+    const sessionId = session.context.sessionId;
+    if (sessionId) {
+      const existingHistory = conversationHistoryMap.get(sessionId);
+      if (existingHistory) {
+        existingHistory.html = html;
+      }
+    }
   };
 
   const provider: AgentProvider<RequestContext> = {
@@ -393,11 +414,20 @@ export const createInstantApplyAgentProvider = (
       signal: AbortSignal,
     ) {
       const requestId = context.options?.requestId ?? "";
+      const sessionId = context.sessionId;
       const html = elementHtmlMap.get(requestId);
 
       if (!html) {
         throw new Error("Could not capture element HTML");
       }
+
+      const existingHistory = sessionId
+        ? conversationHistoryMap.get(sessionId)
+        : undefined;
+
+      const messages: ConversationMessage[] = existingHistory
+        ? [...existingHistory.messages]
+        : [];
 
       lastRequestStartTime = Date.now();
       let response: Response | null = null;
@@ -409,6 +439,7 @@ export const createInstantApplyAgentProvider = (
         body: JSON.stringify({
           prompt: context.prompt,
           html,
+          messages,
         }),
         signal,
       })
@@ -443,8 +474,21 @@ export const createInstantApplyAgentProvider = (
       const code = await response!.text();
       resultCodeMap.set(requestId, code);
 
+      const conversationSessionId = sessionId ?? requestId;
+      const updatedMessages: ConversationMessage[] = [
+        ...messages,
+        { role: "user", content: context.prompt },
+        { role: "assistant", content: code },
+      ];
+      conversationHistoryMap.set(conversationSessionId, {
+        html,
+        messages: updatedMessages,
+        lastCode: code,
+      });
+
       yield "Applying changes...";
     },
+    supportsFollowUp: true,
     getCompletionMessage: () => {
       if (lastRequestStartTime === null) return undefined;
       const totalSeconds = ((Date.now() - lastRequestStartTime) / 1000).toFixed(

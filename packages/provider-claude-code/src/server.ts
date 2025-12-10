@@ -4,7 +4,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { streamSSE } from "hono/streaming";
 import { serve } from "@hono/node-server";
-import killPort from "kill-port";
+import fkill from "fkill";
 import pc from "picocolors";
 import {
   query,
@@ -190,7 +190,7 @@ export const createServer = () => {
 };
 
 export const startServer = async (port: number = DEFAULT_PORT) => {
-  // await killPort(port).catch(() => {});
+  await fkill(`:${port}`, { force: true, silent: true }).catch(() => {});
 
   const app = createServer();
   serve({ fetch: app.fetch, port });
