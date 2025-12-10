@@ -167,10 +167,7 @@ export const start = new Command()
       preserveHeaderKeyCase: true,
       xfwd: true,
       on: {
-        error: (error, _request, response) => {
-          logger.error(
-            `Proxy error${error?.message ? `: ${error.message}` : ""}`,
-          );
+        error: (_error, _request, response) => {
           if ("writeHead" in response && !response.headersSent) {
             response.writeHead(503, { "Content-Type": "text/plain" });
             response.end(`Proxy error: Unable to connect to ${targetUrl}`);
