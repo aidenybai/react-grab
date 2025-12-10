@@ -1,0 +1,72 @@
+{
+  "name": "grab",
+  "version": "0.0.76",
+  "description": "Grab any element in your app and give it to Cursor, Claude Code, or other AI coding agents.",
+  "keywords": [
+    "react",
+    "grab",
+    "react",
+    "agent",
+    "context"
+  ],
+  "homepage": "https://react-grab.com",
+  "bugs": {
+    "url": "https://github.com/aidenybai/react-grab/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aidenybai/react-grab.git"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Aiden Bai",
+    "email": "aiden@million.dev"
+  },
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./core": {
+      "import": {
+        "types": "./dist/core.d.ts",
+        "default": "./dist/core.js"
+      },
+      "require": {
+        "types": "./dist/core.d.cts",
+        "default": "./dist/core.cjs"
+      }
+    },
+    "./dist/*": "./dist/*.js",
+    "./dist/*.js": "./dist/*.js",
+    "./dist/*.cjs": "./dist/*.cjs",
+    "./dist/*.mjs": "./dist/*.mjs"
+  },
+  "bin": {
+    "grab": "./dist/cli.cjs"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "browser": "dist/index.global.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "package.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node scripts/build.js"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

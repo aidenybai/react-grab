@@ -2,7 +2,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "turbo run build --filter=react-grab --filter=@react-grab/cursor --filter=@react-grab/claude-code --filter=@react-grab/ami --filter=@react-grab/opencode --filter=@react-grab/cli",
+    "build": "turbo run build --filter=react-grab --filter=@react-grab/cursor --filter=@react-grab/claude-code --filter=@react-grab/ami --filter=@react-grab/opencode --filter=@react-grab/cli && pnpm --filter grab build",
     "dev": "turbo dev --filter=react-grab --filter=@react-grab/cursor --filter=@react-grab/claude-code --filter=@react-grab/ami --filter=@react-grab/opencode --filter=@react-grab/cli",
     "lint": "pnpm --filter react-grab lint",
     "lint:fix": "pnpm --filter react-grab lint:fix",
@@ -10,7 +10,7 @@
     "check": "pnpm --filter react-grab check",
     "changeset": "changeset",
     "version": "changeset version",
-    "prebump": "cp README.md packages/react-grab/README.md",
+    "prebump": "cp README.md packages/react-grab/README.md && pnpm --filter grab build",
     "bump": "changeset && changeset version",
     "release": "pnpm build && changeset publish",
     "release:beta": "pnpm build && changeset publish --tag beta",
