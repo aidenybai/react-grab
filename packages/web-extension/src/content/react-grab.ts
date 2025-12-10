@@ -24,10 +24,9 @@ const createExtensionApi = () => {
   const options: Options = { enabled: isExtensionEnabled };
 
   if (!isLocalhost) {
-    options.onCopySuccess = (elements) => {
+    options.getContent = (elements) => {
       const combinedHtml = elements.map((element) => element.outerHTML).join("\n\n");
-      const markdown = turndownService.turndown(combinedHtml);
-      navigator.clipboard.writeText(markdown);
+      return turndownService.turndown(combinedHtml);
     };
   }
 

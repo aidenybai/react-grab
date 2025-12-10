@@ -176,6 +176,7 @@ export interface Options {
   theme?: Theme;
   activationShortcut?: (event: KeyboardEvent) => boolean;
   activationKey?: ActivationKey;
+  getContent?: (elements: Element[]) => Promise<string> | string;
   onActivate?: () => void;
   onDeactivate?: () => void;
   onElementHover?: (element: Element) => void;

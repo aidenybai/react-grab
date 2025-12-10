@@ -537,39 +537,50 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       await options.onBeforeCopy?.(elements);
 
       try {
-        const elementSnippetResults = await Promise.allSettled(
-          elements.map((element) =>
-            getElementContext(element, { maxLines: options.maxContextLines }),
-          ),
-        );
-
-        const elementSnippets: string[] = [];
-        for (const result of elementSnippetResults) {
-          if (result.status === "fulfilled" && result.value.trim()) {
-            elementSnippets.push(result.value);
-          }
-        }
-
-        if (elementSnippets.length > 0) {
-          const combinedSnippets = elementSnippets.join("\n\n");
-
-          const plainTextContent = extraPrompt
-            ? `${extraPrompt}\n\n${combinedSnippets}`
-            : combinedSnippets;
-
-          copiedContent = plainTextContent;
-          didCopy = copyContent(plainTextContent, { prompt: extraPrompt });
-        }
-
-        if (!didCopy) {
-          const plainTextContentOnly = createCombinedTextContent(elements);
-          if (plainTextContentOnly.length > 0) {
+        if (options.getContent) {
+          const customContent = await options.getContent(elements);
+          if (customContent.trim()) {
             const contentWithPrompt = extraPrompt
-              ? `${extraPrompt}\n\n${plainTextContentOnly}`
-              : plainTextContentOnly;
-
+              ? `${extraPrompt}\n\n${customContent}`
+              : customContent;
             copiedContent = contentWithPrompt;
             didCopy = copyContent(contentWithPrompt, { prompt: extraPrompt });
+          }
+        } else {
+          const elementSnippetResults = await Promise.allSettled(
+            elements.map((element) =>
+              getElementContext(element, { maxLines: options.maxContextLines }),
+            ),
+          );
+
+          const elementSnippets: string[] = [];
+          for (const result of elementSnippetResults) {
+            if (result.status === "fulfilled" && result.value.trim()) {
+              elementSnippets.push(result.value);
+            }
+          }
+
+          if (elementSnippets.length > 0) {
+            const combinedSnippets = elementSnippets.join("\n\n");
+
+            const plainTextContent = extraPrompt
+              ? `${extraPrompt}\n\n${combinedSnippets}`
+              : combinedSnippets;
+
+            copiedContent = plainTextContent;
+            didCopy = copyContent(plainTextContent, { prompt: extraPrompt });
+          }
+
+          if (!didCopy) {
+            const plainTextContentOnly = createCombinedTextContent(elements);
+            if (plainTextContentOnly.length > 0) {
+              const contentWithPrompt = extraPrompt
+                ? `${extraPrompt}\n\n${plainTextContentOnly}`
+                : plainTextContentOnly;
+
+              copiedContent = contentWithPrompt;
+              didCopy = copyContent(contentWithPrompt, { prompt: extraPrompt });
+            }
           }
         }
       } catch (error) {
