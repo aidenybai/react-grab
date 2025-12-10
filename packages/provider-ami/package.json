@@ -20,7 +20,7 @@
     "tsup": "^8.4.0"
   },
   "dependencies": {
-    "ami-sdk": "^0.0.1",
+    "ami-sdk": "^0.0.2",
     "react-grab": "workspace:*"
   }
 }
