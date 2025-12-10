@@ -127,7 +127,7 @@ React Grab can send selected element context directly to your coding agent. This
 This means **no copying and pasting** - just select the element and let the agent do the rest. [Learn more →](https://react-grab.com/blog/agent)
 
 <details>
-<summary><h3>Claude Code</h3></summary>
+<summary><strong>Claude Code</strong></summary>
 
 #### Server Setup
 
@@ -180,7 +180,7 @@ export default function RootLayout({ children }) {
 </details>
 
 <details>
-<summary><h3>Cursor CLI</h3></summary>
+<summary><strong>Cursor CLI</strong></summary>
 
 You must have the [`cursor-agent` CLI](https://cursor.com/docs/cli/overview) installed.
 
@@ -235,7 +235,7 @@ export default function RootLayout({ children }) {
 </details>
 
 <details>
-<summary><h3>OpenCode</h3></summary>
+<summary><strong>OpenCode</strong></summary>
 
 #### Server Setup
 
@@ -290,7 +290,7 @@ export default function RootLayout({ children }) {
 </details>
 
 <details>
-<summary><h3>Codex</h3></summary>
+<summary><strong>Codex</strong></summary>
 
 #### Server Setup
 
@@ -345,7 +345,7 @@ export default function RootLayout({ children }) {
 </details>
 
 <details>
-<summary><h3>Gemini</h3></summary>
+<summary><strong>Gemini</strong></summary>
 
 #### Server Setup
 
@@ -400,7 +400,7 @@ export default function RootLayout({ children }) {
 </details>
 
 <details>
-<summary><h3>Amp</h3></summary>
+<summary><strong>Amp</strong></summary>
 
 #### Server Setup
 
