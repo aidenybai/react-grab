@@ -316,6 +316,67 @@ const ErrorConfirmation: Component<ErrorConfirmationProps> = (props) => {
   );
 };
 
+interface CompletedConfirmationProps {
+  statusText: string;
+  onDismiss?: () => void;
+  onUndo?: () => void;
+}
+
+const CompletedConfirmation: Component<CompletedConfirmationProps> = (props) => {
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.code === "Enter" || event.code === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      props.onDismiss?.();
+    }
+  };
+
+  onMount(() => {
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+  });
+
+  onCleanup(() => {
+    window.removeEventListener("keydown", handleKeyDown, { capture: true });
+  });
+
+  return (
+    <div class="[font-synthesis:none] contain-layout shrink-0 flex flex-col justify-center items-end rounded-xs bg-white antialiased w-fit h-fit">
+      <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 px-1.5 w-full h-fit">
+        <span class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit tabular-nums">
+          {props.statusText}
+        </span>
+      </div>
+      <Show when={props.onDismiss || props.onUndo}>
+        <BottomSection>
+          <div class="contain-layout shrink-0 flex items-center justify-end gap-[5px] w-full h-fit">
+            <Show when={props.onUndo}>
+              <button
+                class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
+                onClick={() => props.onUndo?.()}
+              >
+                <span class="text-black text-[11px] leading-3.5 tracking-[-0.04em] font-sans font-medium">
+                  Undo
+                </span>
+              </button>
+            </Show>
+            <Show when={props.onDismiss}>
+              <button
+                class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
+                onClick={() => props.onDismiss?.()}
+              >
+                <span class="text-black text-[11px] leading-3.5 tracking-[-0.04em] font-sans font-medium">
+                  Ok
+                </span>
+                <IconReturn size={10} class="text-black/50" />
+              </button>
+            </Show>
+          </div>
+        </BottomSection>
+      </Show>
+    </div>
+  );
+};
+
 export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
   let inputRef: HTMLTextAreaElement | undefined;
@@ -601,39 +662,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         />
 
         <Show when={(props.status === "copied" || props.status === "fading") && !props.error}>
-          <div class="[font-synthesis:none] contain-layout shrink-0 flex flex-col justify-center items-end rounded-xs bg-white antialiased w-fit h-fit">
-            <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 px-1.5 w-full h-fit">
-              <span class="text-black text-[12px] leading-4 shrink-0 tracking-[-0.04em] font-sans font-medium w-fit h-fit tabular-nums">
-                {props.hasAgent ? (props.statusText ?? "Completed") : "Copied"}
-              </span>
-            </div>
-            <Show when={props.onDismiss || props.onUndo}>
-              <BottomSection>
-                <div class="contain-layout shrink-0 flex items-center justify-end gap-[5px] w-full h-fit">
-                  <Show when={props.onUndo}>
-                    <button
-                      class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
-                      onClick={() => props.onUndo?.()}
-                    >
-                      <span class="text-black text-[11px] leading-3.5 tracking-[-0.04em] font-sans font-medium">
-                        Undo
-                      </span>
-                    </button>
-                  </Show>
-                  <Show when={props.onDismiss}>
-                    <button
-                      class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
-                      onClick={() => props.onDismiss?.()}
-                    >
-                      <span class="text-black text-[11px] leading-3.5 tracking-[-0.04em] font-sans font-medium">
-                        Ok
-                      </span>
-                    </button>
-                  </Show>
-                </div>
-              </BottomSection>
-            </Show>
-          </div>
+          <CompletedConfirmation
+            statusText={props.hasAgent ? (props.statusText ?? "Completed") : "Copied"}
+            onDismiss={props.onDismiss}
+            onUndo={props.onUndo}
+          />
         </Show>
 
         <div
