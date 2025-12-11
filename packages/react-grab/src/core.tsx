@@ -1660,17 +1660,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           const currentElement = frozenElement() || targetElement();
           if (!currentElement) return;
 
-          const arrowKeyHandlers: Record<string, (element: Element) => Element | null> = {
-            ArrowUp: (element) => {
-              const bounds = createElementBounds(element);
+          let nextElement: Element | null = null;
+
+          switch (event.key) {
+            case "ArrowUp": {
+              const bounds = createElementBounds(currentElement);
               const elementsAtPoint = document.elementsFromPoint(
                 bounds.x + bounds.width / 2,
                 bounds.y + bounds.height / 2,
               ).filter(isValidGrabbableElement);
-              const currentIndex = elementsAtPoint.indexOf(element);
-              return currentIndex !== -1 ? elementsAtPoint[currentIndex + 1] ?? null : null;
-            },
-            ArrowRight: (element) => {
+              const currentIndex = elementsAtPoint.indexOf(currentElement);
+              if (currentIndex !== -1) {
+                nextElement = elementsAtPoint[currentIndex + 1] ?? null;
+              }
+              break;
+            }
+            case "ArrowRight": {
               const findFirstValidDescendant = (el: Element): Element | null => {
                 const children = Array.from(el.children);
                 for (const child of children) {
@@ -1680,22 +1685,30 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 }
                 return null;
               };
-              const descendant = findFirstValidDescendant(element);
-              if (descendant) return descendant;
-              let searchElement: Element | null = element;
-              while (searchElement) {
-                let sibling = searchElement.nextElementSibling;
-                while (sibling) {
-                  if (isValidGrabbableElement(sibling)) return sibling;
-                  const siblingDescendant = findFirstValidDescendant(sibling);
-                  if (siblingDescendant) return siblingDescendant;
-                  sibling = sibling.nextElementSibling;
+              nextElement = findFirstValidDescendant(currentElement);
+              if (!nextElement) {
+                let searchElement: Element | null = currentElement;
+                while (searchElement) {
+                  let sibling = searchElement.nextElementSibling;
+                  while (sibling) {
+                    if (isValidGrabbableElement(sibling)) {
+                      nextElement = sibling;
+                      break;
+                    }
+                    const siblingDescendant = findFirstValidDescendant(sibling);
+                    if (siblingDescendant) {
+                      nextElement = siblingDescendant;
+                      break;
+                    }
+                    sibling = sibling.nextElementSibling;
+                  }
+                  if (nextElement) break;
+                  searchElement = searchElement.parentElement;
                 }
-                searchElement = searchElement.parentElement;
               }
-              return null;
-            },
-            ArrowLeft: (element) => {
+              break;
+            }
+            case "ArrowLeft": {
               const findLastValidDescendant = (el: Element): Element | null => {
                 const children = Array.from(el.children);
                 for (let i = children.length - 1; i >= 0; i--) {
@@ -1706,30 +1719,39 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 }
                 return null;
               };
-              let sibling = element.previousElementSibling;
+              let sibling = currentElement.previousElementSibling;
               while (sibling) {
                 const descendant = findLastValidDescendant(sibling);
-                if (descendant) return descendant;
-                if (isValidGrabbableElement(sibling)) return sibling;
+                if (descendant) {
+                  nextElement = descendant;
+                  break;
+                }
+                if (isValidGrabbableElement(sibling)) {
+                  nextElement = sibling;
+                  break;
+                }
                 sibling = sibling.previousElementSibling;
               }
-              const parentElement = element.parentElement;
-              return parentElement && isValidGrabbableElement(parentElement) ? parentElement : null;
-            },
-          };
+              if (!nextElement) {
+                const parentElement = currentElement.parentElement;
+                if (parentElement && isValidGrabbableElement(parentElement)) {
+                  nextElement = parentElement;
+                }
+              }
+              break;
+            }
+            default:
+              break;
+          }
 
-          const handler = arrowKeyHandlers[event.key];
-          if (handler) {
+          if (nextElement) {
             event.preventDefault();
             event.stopPropagation();
-            const nextElement = handler(currentElement);
-            if (nextElement) {
-              setFrozenElement(nextElement);
-              setIsToggleFrozen(true);
-              const bounds = createElementBounds(nextElement);
-              setMouseX(bounds.x + bounds.width / 2);
-              setMouseY(bounds.y + bounds.height / 2);
-            }
+            setFrozenElement(nextElement);
+            setIsToggleFrozen(true);
+            const bounds = createElementBounds(nextElement);
+            setMouseX(bounds.x + bounds.width / 2);
+            setMouseY(bounds.y + bounds.height / 2);
             return;
           }
         }
