@@ -1,5 +1,11 @@
 # @react-grab/utils
 
+## 0.0.85
+
+### Patch Changes
+
+- fix: check versions on each provider
+
 ## 0.0.84
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@react-grab/utils",
-  "version": "0.0.84",
+  "version": "0.0.85",
   "type": "module",
   "private": true,
   "exports": {
