@@ -295,7 +295,7 @@ const createUndoableProxy = (element: HTMLElement) => {
   return { proxy, undo };
 };
 
-const DEFAULT_API_ENDPOINT = "https://react-grab.com/api/instant";
+const DEFAULT_API_ENDPOINT = "https://www.react-grab.com/api/instant";
 const ANCESTOR_LEVELS = 5;
 
 const FORBIDDEN_PATTERNS = [
