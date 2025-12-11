@@ -75,6 +75,7 @@ async function* streamFromServer(
     const iterator = streamSSE(response.body, signal)[Symbol.asyncIterator]();
     let done = false;
     let pendingNext = iterator.next();
+    let lastStatus: string | null = null;
 
     while (!done) {
       const result = await Promise.race([
@@ -88,13 +89,16 @@ async function* streamFromServer(
       ]);
 
       if (result.type === "timeout") {
-        const elapsedSeconds = (Date.now() - startTime) / 1000;
-        yield `Working… ${elapsedSeconds.toFixed(1)}s`;
+        if (!lastStatus) {
+          const elapsedSeconds = (Date.now() - startTime) / 1000;
+          yield `Working… ${elapsedSeconds.toFixed(1)}s`;
+        }
       } else {
         const iteratorResult = result.iteratorResult;
         done = iteratorResult.done ?? false;
         if (!done && iteratorResult.value) {
           const status = iteratorResult.value;
+          lastStatus = status;
           if (status === "Completed successfully") {
             const totalSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
             yield `Completed in ${totalSeconds}s`;

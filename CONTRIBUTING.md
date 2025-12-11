@@ -69,7 +69,18 @@ pnpm --filter vite-playground dev
 
 # Next.js playground
 pnpm --filter next-playground dev
+
+# Agent playground (for testing agent provider integrations)
+pnpm --filter @react-grab/agent-playground dev:claude   # Claude Code
+pnpm --filter @react-grab/agent-playground dev:cursor   # Cursor
+pnpm --filter @react-grab/agent-playground dev:opencode # OpenCode
+pnpm --filter @react-grab/agent-playground dev:codex    # Codex
+pnpm --filter @react-grab/agent-playground dev:gemini   # Gemini
+pnpm --filter @react-grab/agent-playground dev:amp      # Amp
+pnpm --filter @react-grab/agent-playground dev:ami      # Ami
 ```
+
+The agent playground runs at `http://localhost:5174` and lets you test react-grab's agent provider API with multiple backends.
 
 ### Running Tests
 

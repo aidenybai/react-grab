@@ -15,7 +15,7 @@ try {
   fetch(`https://www.react-grab.com/api/version?source=cursor&t=${Date.now()}`).catch(() => {});
 } catch {}
 
-import { sleep } from "@react-grab/utils/server";
+import { sleep, formatSpawnError } from "@react-grab/utils/server";
 
 interface CursorAgentOptions {
   model?: string;
@@ -216,7 +216,9 @@ export const createServer = () => {
         await stream.writeSSE({ data: "", event: "done" });
       } catch (error) {
         const errorMessage =
-          error instanceof Error ? error.message : "Unknown error";
+          error instanceof Error
+            ? formatSpawnError(error, "cursor-agent")
+            : "Unknown error";
         const stderrContent = stderrBuffer.trim();
         const fullError = stderrContent
           ? `${errorMessage}\n\nstderr:\n${stderrContent}`

@@ -125,7 +125,9 @@ export const createServer = () => {
       } catch (error) {
         if (!isAborted()) {
           const errorMessage =
-            error instanceof Error ? error.message : "Unknown error";
+            error instanceof Error
+              ? formatSpawnError(error, "claude")
+              : "Unknown error";
           const stderr =
             error instanceof Error && "stderr" in error
               ? String(error.stderr)
@@ -160,7 +162,7 @@ export const createServer = () => {
   return app;
 };
 
-import { sleep } from "@react-grab/utils/server";
+import { sleep, formatSpawnError } from "@react-grab/utils/server";
 
 export const startServer = async (port: number = DEFAULT_PORT) => {
   await fkill(`:${port}`, { force: true, silent: true }).catch(() => {});

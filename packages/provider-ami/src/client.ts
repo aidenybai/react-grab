@@ -299,13 +299,16 @@ export const createAmiAgentProvider = (projectId?: string): AgentProvider => {
         return status;
       };
 
+      let lastStatus: string | null = null;
       try {
         while (!done && !aborted) {
           if (signal.aborted) {
             throw new DOMException("Aborted", "AbortError");
           }
           if (statusQueue.length > 0) {
-            yield yieldStatus(statusQueue.shift()!);
+            const status = statusQueue.shift()!;
+            lastStatus = status;
+            yield yieldStatus(status);
           } else {
             const waitResult = await Promise.race([
               new Promise<"status">((resolve) => {
@@ -315,14 +318,16 @@ export const createAmiAgentProvider = (projectId?: string): AgentProvider => {
                 setTimeout(() => resolve("timeout"), 100),
               ),
             ]);
-            if (waitResult === "timeout" && !done && !aborted) {
+            if (waitResult === "timeout" && !done && !aborted && !lastStatus) {
               const elapsedSeconds = (Date.now() - startTime) / 1000;
               yield `Working… ${elapsedSeconds.toFixed(1)}s`;
             }
           }
         }
         while (statusQueue.length > 0 && !aborted) {
-          yield yieldStatus(statusQueue.shift()!);
+          const status = statusQueue.shift()!;
+          lastStatus = status;
+          yield yieldStatus(status);
         }
         if (aborted) {
           throw new DOMException("Aborted", "AbortError");
@@ -422,13 +427,16 @@ export const createAmiAgentProvider = (projectId?: string): AgentProvider => {
         return status;
       };
 
+      let lastStatus: string | null = null;
       try {
         while (!done && !aborted) {
           if (signal.aborted) {
             throw new DOMException("Aborted", "AbortError");
           }
           if (statusQueue.length > 0) {
-            yield yieldStatus(statusQueue.shift()!);
+            const status = statusQueue.shift()!;
+            lastStatus = status;
+            yield yieldStatus(status);
           } else {
             const waitResult = await Promise.race([
               new Promise<"status">((resolve) => {
@@ -438,14 +446,16 @@ export const createAmiAgentProvider = (projectId?: string): AgentProvider => {
                 setTimeout(() => resolve("timeout"), 100),
               ),
             ]);
-            if (waitResult === "timeout" && !done && !aborted) {
+            if (waitResult === "timeout" && !done && !aborted && !lastStatus) {
               const elapsedSeconds = (Date.now() - startTime) / 1000;
               yield `Working… ${elapsedSeconds.toFixed(1)}s`;
             }
           }
         }
         while (statusQueue.length > 0 && !aborted) {
-          yield yieldStatus(statusQueue.shift()!);
+          const status = statusQueue.shift()!;
+          lastStatus = status;
+          yield yieldStatus(status);
         }
         if (aborted) {
           throw new DOMException("Aborted", "AbortError");
