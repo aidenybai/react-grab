@@ -120,13 +120,14 @@ if (process.env.NODE_ENV === "development") {
 }
 ```
 
-## Coding agent integration (beta)
+## Coding agent integration
 
 React Grab can send selected element context directly to your coding agent. This enables a workflow where you select a UI element and an agent automatically makes changes to your codebase.
 
 This means **no copying and pasting** - just select the element and let the agent do the rest. [Learn more →](https://react-grab.com/blog/agent)
 
-### Claude Code
+<details>
+<summary><strong>Claude Code</strong></summary>
 
 #### Server Setup
 
@@ -176,7 +177,10 @@ export default function RootLayout({ children }) {
 }
 ```
 
-### Cursor CLI
+</details>
+
+<details>
+<summary><strong>Cursor CLI</strong></summary>
 
 You must have the [`cursor-agent` CLI](https://cursor.com/docs/cli/overview) installed.
 
@@ -228,7 +232,10 @@ export default function RootLayout({ children }) {
 }
 ```
 
-### OpenCode
+</details>
+
+<details>
+<summary><strong>OpenCode</strong></summary>
 
 #### Server Setup
 
@@ -280,7 +287,10 @@ export default function RootLayout({ children }) {
 }
 ```
 
-### Codex
+</details>
+
+<details>
+<summary><strong>Codex</strong></summary>
 
 #### Server Setup
 
@@ -332,7 +342,10 @@ export default function RootLayout({ children }) {
 }
 ```
 
-### Gemini
+</details>
+
+<details>
+<summary><strong>Gemini</strong></summary>
 
 #### Server Setup
 
@@ -384,7 +397,10 @@ export default function RootLayout({ children }) {
 }
 ```
 
-### Amp
+</details>
+
+<details>
+<summary><strong>Amp</strong></summary>
 
 #### Server Setup
 
@@ -435,6 +451,8 @@ export default function RootLayout({ children }) {
   );
 }
 ```
+
+</details>
 
 ## Extending React Grab
 
