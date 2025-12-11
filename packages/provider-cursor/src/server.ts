@@ -93,7 +93,6 @@ export const createServer = () => {
 
       const workspacePath =
         options?.workspace ?? process.env.REACT_GRAB_CWD ?? process.cwd();
-      cursorAgentArgs.push("--workspace", workspacePath);
 
       if (isFollowUp && cursorChatId) {
         cursorAgentArgs.push("--resume", cursorChatId);
@@ -110,6 +109,7 @@ export const createServer = () => {
           stdout: "pipe",
           stderr: "pipe",
           env: { ...process.env },
+          cwd: workspacePath,
         });
 
         if (sessionId) {
@@ -260,13 +260,13 @@ export const createServer = () => {
       ];
 
       const workspacePath = process.env.REACT_GRAB_CWD ?? process.cwd();
-      cursorAgentArgs.push("--workspace", workspacePath);
 
       const cursorProcess = execa("cursor-agent", cursorAgentArgs, {
         stdin: "pipe",
         stdout: "pipe",
         stderr: "pipe",
         env: { ...process.env },
+        cwd: workspacePath,
       });
 
       if (cursorProcess.stdin) {
