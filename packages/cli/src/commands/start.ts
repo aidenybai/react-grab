@@ -74,7 +74,7 @@ export const start = new Command()
   )
   .action(async (urlArg, opts) => {
     console.log(
-      `${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`,
+      `${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`,
     );
     console.log();
 

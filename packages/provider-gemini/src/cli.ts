@@ -16,6 +16,6 @@ execa(process.execPath, [serverPath], {
 }).unref();
 
 console.log(
-  `${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim("(Gemini)")}`,
+  `${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim("(Gemini)")}`,
 );
 console.log(`- Local:    ${pc.cyan(`http://localhost:${DEFAULT_PORT}`)}`);

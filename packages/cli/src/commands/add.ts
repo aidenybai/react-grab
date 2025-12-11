@@ -44,7 +44,7 @@ export const add = new Command()
   )
   .action(async (agentArg, opts) => {
     console.log(
-      `${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`,
+      `${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`,
     );
     console.log();
 

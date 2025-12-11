@@ -97,7 +97,7 @@ export const init = new Command()
   )
   .action(async (opts) => {
     console.log(
-      `${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`,
+      `${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`,
     );
     console.log();
 

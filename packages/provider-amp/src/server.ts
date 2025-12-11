@@ -221,7 +221,7 @@ export const startServer = async (port: number = DEFAULT_PORT) => {
   const honoApplication = createServer();
   serve({ fetch: honoApplication.fetch, port });
   console.log(
-    `${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim("(Amp)")}`,
+    `${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim("(Amp)")}`,
   );
   console.log(`- Local:    ${pc.cyan(`http://localhost:${port}`)}`);
 };

@@ -8,7 +8,7 @@ try {
 
 export const startServer = async (_port?: number) => {
   console.log(
-    `${pc.magenta("⚛")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim("(Instant)")}`,
+    `${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim("(Instant)")}`,
   );
   console.log(`${pc.yellow("⚠")} Instant provider does not require a server`);
 };
