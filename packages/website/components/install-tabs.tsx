@@ -56,7 +56,7 @@ const installTabsData: InstallTab[] = [
     label: "CLI (Recommended)",
     description: "Run this command at your project root",
     lang: "bash",
-    getCode: () => `npx react-grab@latest init`,
+    getCode: () => `npx grab@latest init`,
     getChangedLines: () => [],
   },
   {
