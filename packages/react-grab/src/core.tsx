@@ -2163,8 +2163,27 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       { signal: eventListenerSignal },
     );
 
+    window.addEventListener(
+      "popstate",
+      () => {
+        clearNativeSelectionState();
+      },
+      { signal: eventListenerSignal },
+    );
+
     const boundsRecalcIntervalId = setInterval(() => {
       setViewportVersion((version) => version + 1);
+
+      if (hasNativeSelection()) {
+        const elements = nativeSelectionElements();
+        const isElementInDOM =
+          elements.length > 0 &&
+          elements[0] &&
+          document.body.contains(elements[0]);
+        if (!isElementInDOM) {
+          clearNativeSelectionState();
+        }
+      }
     }, BOUNDS_RECALC_INTERVAL_MS);
 
     onCleanup(() => clearInterval(boundsRecalcIntervalId));
