@@ -14,7 +14,7 @@ import {
 } from "@react-grab/utils/client";
 
 export type { AgentCompleteResult };
-import { DEFAULT_PORT } from "./constants.js";
+import { DEFAULT_PORT, COMPLETED_STATUS } from "./constants.js";
 
 const DEFAULT_SERVER_URL = `http://localhost:${DEFAULT_PORT}`;
 
@@ -80,31 +80,23 @@ async function* streamFromServer(
         ),
       ]);
 
-      if (result.type === "timeout") {
-        const elapsedSeconds = (Date.now() - startTime) / 1000;
-        if (lastStatus) {
-          if (lastStatus === "Completed successfully") {
-            yield `Completed in ${elapsedSeconds.toFixed(1)}s`;
-          } else {
-            yield `${lastStatus} ${elapsedSeconds.toFixed(1)}s`;
-          }
-        } else {
-          yield `Working… ${elapsedSeconds.toFixed(1)}s`;
-        }
-      } else {
+      const elapsedSeconds = (Date.now() - startTime) / 1000;
+
+      if (result.type === "status") {
         const iteratorResult = result.iteratorResult;
         done = iteratorResult.done ?? false;
         if (!done && iteratorResult.value) {
-          const status = iteratorResult.value;
-          lastStatus = status;
-          if (status === "Completed successfully") {
-            const totalSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
-            yield `Completed in ${totalSeconds}s`;
-          } else {
-            yield status;
-          }
+          lastStatus = iteratorResult.value;
           pendingNext = iterator.next();
         }
+      }
+
+      if (lastStatus === COMPLETED_STATUS) {
+        yield `Completed in ${elapsedSeconds.toFixed(1)}s`;
+      } else if (lastStatus) {
+        yield `${lastStatus} ${elapsedSeconds.toFixed(1)}s`;
+      } else {
+        yield `Working… ${elapsedSeconds.toFixed(1)}s`;
       }
     }
   } finally {

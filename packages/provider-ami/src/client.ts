@@ -22,6 +22,7 @@ import type {
 } from "react-grab/core";
 
 export type { AgentCompleteResult };
+import { COMPLETED_STATUS } from "./constants.js";
 
 const STORAGE_KEY = "react-grab:agent-sessions";
 const TOKEN_STORAGE_KEY = "react-grab:ami-token";
@@ -191,7 +192,7 @@ const runAgent = async (
     case "aborted":
       throw new Error("User aborted task");
     default:
-      return { status: "Completed successfully", messages, chatId };
+      return { status: COMPLETED_STATUS, messages, chatId };
   }
 };
 
@@ -291,14 +292,6 @@ export const createAmiAgentProvider = (projectId?: string): AgentProvider => {
           }
         });
 
-      const yieldStatus = (status: string) => {
-        if (status === "Completed successfully") {
-          const totalSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
-          return `Completed in ${totalSeconds}s`;
-        }
-        return status;
-      };
-
       let lastStatus: string | null = null;
       try {
         while (!done && !aborted) {
@@ -308,34 +301,35 @@ export const createAmiAgentProvider = (projectId?: string): AgentProvider => {
           if (statusQueue.length > 0) {
             const status = statusQueue.shift()!;
             lastStatus = status;
-            yield yieldStatus(status);
-          } else {
-            const waitResult = await Promise.race([
-              new Promise<"status">((resolve) => {
-                resolveWait = () => resolve("status");
-              }),
-              new Promise<"timeout">((resolve) =>
-                setTimeout(() => resolve("timeout"), 100),
-              ),
-            ]);
-            if (waitResult === "timeout" && !done && !aborted) {
-              const elapsedSeconds = (Date.now() - startTime) / 1000;
-              if (lastStatus) {
-                if (lastStatus === "Completed successfully") {
-                  yield `Completed in ${elapsedSeconds.toFixed(1)}s`;
-                } else {
-                  yield `${lastStatus} ${elapsedSeconds.toFixed(1)}s`;
-                }
-              } else {
-                yield `Working… ${elapsedSeconds.toFixed(1)}s`;
-              }
-            }
           }
+          const elapsedSeconds = (Date.now() - startTime) / 1000;
+          if (lastStatus) {
+            if (lastStatus === COMPLETED_STATUS) {
+              yield `Completed in ${elapsedSeconds.toFixed(1)}s`;
+            } else {
+              yield `${lastStatus} ${elapsedSeconds.toFixed(1)}s`;
+            }
+          } else {
+            yield `Working… ${elapsedSeconds.toFixed(1)}s`;
+          }
+          await Promise.race([
+            new Promise<"status">((resolve) => {
+              resolveWait = () => resolve("status");
+            }),
+            new Promise<"timeout">((resolve) =>
+              setTimeout(() => resolve("timeout"), 100),
+            ),
+          ]);
         }
         while (statusQueue.length > 0 && !aborted) {
           const status = statusQueue.shift()!;
           lastStatus = status;
-          yield yieldStatus(status);
+          const elapsedSeconds = (Date.now() - startTime) / 1000;
+          if (status === COMPLETED_STATUS) {
+            yield `Completed in ${elapsedSeconds.toFixed(1)}s`;
+          } else {
+            yield `${status} ${elapsedSeconds.toFixed(1)}s`;
+          }
         }
         if (aborted) {
           throw new DOMException("Aborted", "AbortError");
@@ -427,14 +421,6 @@ export const createAmiAgentProvider = (projectId?: string): AgentProvider => {
           }
         });
 
-      const yieldStatus = (status: string) => {
-        if (status === "Completed successfully") {
-          const totalSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
-          return `Completed in ${totalSeconds}s`;
-        }
-        return status;
-      };
-
       let lastStatus: string | null = null;
       try {
         while (!done && !aborted) {
@@ -444,34 +430,35 @@ export const createAmiAgentProvider = (projectId?: string): AgentProvider => {
           if (statusQueue.length > 0) {
             const status = statusQueue.shift()!;
             lastStatus = status;
-            yield yieldStatus(status);
-          } else {
-            const waitResult = await Promise.race([
-              new Promise<"status">((resolve) => {
-                resolveWait = () => resolve("status");
-              }),
-              new Promise<"timeout">((resolve) =>
-                setTimeout(() => resolve("timeout"), 100),
-              ),
-            ]);
-            if (waitResult === "timeout" && !done && !aborted) {
-              const elapsedSeconds = (Date.now() - startTime) / 1000;
-              if (lastStatus) {
-                if (lastStatus === "Completed successfully") {
-                  yield `Completed in ${elapsedSeconds.toFixed(1)}s`;
-                } else {
-                  yield `${lastStatus} ${elapsedSeconds.toFixed(1)}s`;
-                }
-              } else {
-                yield `Working… ${elapsedSeconds.toFixed(1)}s`;
-              }
-            }
           }
+          const elapsedSeconds = (Date.now() - startTime) / 1000;
+          if (lastStatus) {
+            if (lastStatus === COMPLETED_STATUS) {
+              yield `Completed in ${elapsedSeconds.toFixed(1)}s`;
+            } else {
+              yield `${lastStatus} ${elapsedSeconds.toFixed(1)}s`;
+            }
+          } else {
+            yield `Working… ${elapsedSeconds.toFixed(1)}s`;
+          }
+          await Promise.race([
+            new Promise<"status">((resolve) => {
+              resolveWait = () => resolve("status");
+            }),
+            new Promise<"timeout">((resolve) =>
+              setTimeout(() => resolve("timeout"), 100),
+            ),
+          ]);
         }
         while (statusQueue.length > 0 && !aborted) {
           const status = statusQueue.shift()!;
           lastStatus = status;
-          yield yieldStatus(status);
+          const elapsedSeconds = (Date.now() - startTime) / 1000;
+          if (status === COMPLETED_STATUS) {
+            yield `Completed in ${elapsedSeconds.toFixed(1)}s`;
+          } else {
+            yield `${status} ${elapsedSeconds.toFixed(1)}s`;
+          }
         }
         if (aborted) {
           throw new DOMException("Aborted", "AbortError");

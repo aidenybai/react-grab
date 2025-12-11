@@ -6,7 +6,7 @@ import { streamSSE } from "hono/streaming";
 import { serve } from "@hono/node-server";
 import pc from "picocolors";
 import type { AgentContext } from "react-grab/core";
-import { DEFAULT_PORT } from "./constants.js";
+import { DEFAULT_PORT, COMPLETED_STATUS } from "./constants.js";
 
 const VERSION = process.env.VERSION ?? "0.0.0";
 
@@ -135,7 +135,7 @@ export const createServer = () => {
                 });
               } else {
                 await stream.writeSSE({
-                  data: "Completed successfully",
+                  data: COMPLETED_STATUS,
                   event: "status",
                 });
               }

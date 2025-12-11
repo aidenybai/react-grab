@@ -12,7 +12,7 @@ import {
   type SDKAssistantMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import type { AgentContext } from "react-grab/core";
-import { DEFAULT_PORT } from "./constants";
+import { DEFAULT_PORT, COMPLETED_STATUS } from "./constants";
 
 const VERSION = process.env.VERSION ?? "0.0.0";
 
@@ -107,7 +107,7 @@ export const createServer = () => {
             await stream.writeSSE({
               data:
                 message.subtype === "success"
-                  ? "Completed successfully"
+                  ? COMPLETED_STATUS
                   : "Task finished",
               event: "status",
             });
