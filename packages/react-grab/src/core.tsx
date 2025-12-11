@@ -1656,6 +1656,93 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           }
         }
 
+        if (isHoldingKeys() && !isInputMode()) {
+          const currentElement = frozenElement() || targetElement();
+          if (!currentElement) return;
+
+          const arrowKeyHandlers: Record<string, (element: Element) => Element | null> = {
+            ArrowUp: (element) => {
+              const bounds = createElementBounds(element);
+              const elementsAtPoint = document.elementsFromPoint(
+                bounds.x + bounds.width / 2,
+                bounds.y + bounds.height / 2,
+              ).filter(isValidGrabbableElement);
+              const currentIndex = elementsAtPoint.indexOf(element);
+              return currentIndex !== -1 ? elementsAtPoint[currentIndex + 1] ?? null : null;
+            },
+            ArrowDown: (element) => {
+              const bounds = createElementBounds(element);
+              const elementsAtPoint = document.elementsFromPoint(
+                bounds.x + bounds.width / 2,
+                bounds.y + bounds.height / 2,
+              ).filter(isValidGrabbableElement);
+              const currentIndex = elementsAtPoint.indexOf(element);
+              return currentIndex > 0 ? elementsAtPoint[currentIndex - 1] ?? null : null;
+            },
+            ArrowRight: (element) => {
+              const findFirstValidDescendant = (el: Element): Element | null => {
+                const children = Array.from(el.children);
+                for (const child of children) {
+                  if (isValidGrabbableElement(child)) return child;
+                  const descendant = findFirstValidDescendant(child);
+                  if (descendant) return descendant;
+                }
+                return null;
+              };
+              const descendant = findFirstValidDescendant(element);
+              if (descendant) return descendant;
+              let searchElement: Element | null = element;
+              while (searchElement) {
+                let sibling = searchElement.nextElementSibling;
+                while (sibling) {
+                  if (isValidGrabbableElement(sibling)) return sibling;
+                  const siblingDescendant = findFirstValidDescendant(sibling);
+                  if (siblingDescendant) return siblingDescendant;
+                  sibling = sibling.nextElementSibling;
+                }
+                searchElement = searchElement.parentElement;
+              }
+              return null;
+            },
+            ArrowLeft: (element) => {
+              const findLastValidDescendant = (el: Element): Element | null => {
+                const children = Array.from(el.children);
+                for (let i = children.length - 1; i >= 0; i--) {
+                  const child = children[i];
+                  const descendant = findLastValidDescendant(child);
+                  if (descendant) return descendant;
+                  if (isValidGrabbableElement(child)) return child;
+                }
+                return null;
+              };
+              let sibling = element.previousElementSibling;
+              while (sibling) {
+                const descendant = findLastValidDescendant(sibling);
+                if (descendant) return descendant;
+                if (isValidGrabbableElement(sibling)) return sibling;
+                sibling = sibling.previousElementSibling;
+              }
+              const parentElement = element.parentElement;
+              return parentElement && isValidGrabbableElement(parentElement) ? parentElement : null;
+            },
+          };
+
+          const handler = arrowKeyHandlers[event.key];
+          if (handler) {
+            event.preventDefault();
+            event.stopPropagation();
+            const nextElement = handler(currentElement);
+            if (nextElement) {
+              setFrozenElement(nextElement);
+              setIsToggleFrozen(true);
+              const bounds = createElementBounds(nextElement);
+              setMouseX(bounds.x + bounds.width / 2);
+              setMouseY(bounds.y + bounds.height / 2);
+            }
+            return;
+          }
+        }
+
         const copiedElement = lastCopiedElement();
         if (
           isEnterCode(event.code) &&
@@ -1905,6 +1992,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: MouseEvent) => {
         setIsTouchMode(false);
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
+        if (isHoldingKeys() && !isInputMode() && isToggleFrozen()) {
+          setIsToggleFrozen(false);
+        }
         handlePointerMove(event.clientX, event.clientY);
       },
       { signal: eventListenerSignal },
@@ -1956,6 +2046,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (event.touches.length === 0) return;
         setIsTouchMode(true);
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
+        if (isHoldingKeys() && !isInputMode() && isToggleFrozen()) {
+          setIsToggleFrozen(false);
+        }
         handlePointerMove(event.touches[0].clientX, event.touches[0].clientY);
       },
       { signal: eventListenerSignal, passive: true },
