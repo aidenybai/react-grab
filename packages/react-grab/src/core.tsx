@@ -1682,7 +1682,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           let nextElement: Element | null = null;
 
           switch (event.key) {
-            case "ArrowUp": {
+            case "ArrowUp":
+            case "ArrowDown": {
               const bounds = createElementBounds(currentElement);
               const elementsAtPoint = document.elementsFromPoint(
                 bounds.x + bounds.width / 2,
@@ -1690,71 +1691,62 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               ).filter(isValidGrabbableElement);
               const currentIndex = elementsAtPoint.indexOf(currentElement);
               if (currentIndex !== -1) {
-                nextElement = elementsAtPoint[currentIndex + 1] ?? null;
+                const direction = event.key === "ArrowUp" ? 1 : -1;
+                nextElement = elementsAtPoint[currentIndex + direction] ?? null;
               }
               break;
             }
-            case "ArrowRight": {
-              const findFirstValidDescendant = (el: Element): Element | null => {
+            case "ArrowRight":
+            case "ArrowLeft": {
+              const isForward = event.key === "ArrowRight";
+
+              const findEdgeDescendant = (el: Element): Element | null => {
                 const children = Array.from(el.children);
-                for (const child of children) {
-                  if (isValidGrabbableElement(child)) return child;
-                  const descendant = findFirstValidDescendant(child);
-                  if (descendant) return descendant;
+                const ordered = isForward ? children : children.reverse();
+                for (const child of ordered) {
+                  if (isForward) {
+                    if (isValidGrabbableElement(child)) return child;
+                    const descendant = findEdgeDescendant(child);
+                    if (descendant) return descendant;
+                  } else {
+                    const descendant = findEdgeDescendant(child);
+                    if (descendant) return descendant;
+                    if (isValidGrabbableElement(child)) return child;
+                  }
                 }
                 return null;
               };
-              nextElement = findFirstValidDescendant(currentElement);
+
+              const getSibling = (el: Element) =>
+                isForward ? el.nextElementSibling : el.previousElementSibling;
+
+              if (isForward) {
+                nextElement = findEdgeDescendant(currentElement);
+              }
+
               if (!nextElement) {
                 let searchElement: Element | null = currentElement;
                 while (searchElement) {
-                  let sibling = searchElement.nextElementSibling;
+                  let sibling = getSibling(searchElement);
                   while (sibling) {
+                    const descendant = findEdgeDescendant(sibling);
+                    if (descendant) {
+                      nextElement = descendant;
+                      break;
+                    }
                     if (isValidGrabbableElement(sibling)) {
                       nextElement = sibling;
                       break;
                     }
-                    const siblingDescendant = findFirstValidDescendant(sibling);
-                    if (siblingDescendant) {
-                      nextElement = siblingDescendant;
-                      break;
-                    }
-                    sibling = sibling.nextElementSibling;
+                    sibling = getSibling(sibling);
                   }
                   if (nextElement) break;
-                  searchElement = searchElement.parentElement;
-                }
-              }
-              break;
-            }
-            case "ArrowLeft": {
-              const findLastValidDescendant = (el: Element): Element | null => {
-                const children = Array.from(el.children);
-                for (let i = children.length - 1; i >= 0; i--) {
-                  const child = children[i];
-                  const descendant = findLastValidDescendant(child);
-                  if (descendant) return descendant;
-                  if (isValidGrabbableElement(child)) return child;
-                }
-                return null;
-              };
-              let sibling = currentElement.previousElementSibling;
-              while (sibling) {
-                const descendant = findLastValidDescendant(sibling);
-                if (descendant) {
-                  nextElement = descendant;
-                  break;
-                }
-                if (isValidGrabbableElement(sibling)) {
-                  nextElement = sibling;
-                  break;
-                }
-                sibling = sibling.previousElementSibling;
-              }
-              if (!nextElement) {
-                const parentElement = currentElement.parentElement;
-                if (parentElement && isValidGrabbableElement(parentElement)) {
-                  nextElement = parentElement;
+                  const parentElement = searchElement.parentElement;
+                  if (!isForward && parentElement && isValidGrabbableElement(parentElement)) {
+                    nextElement = parentElement;
+                    break;
+                  }
+                  searchElement = parentElement;
                 }
               }
               break;
