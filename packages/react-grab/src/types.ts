@@ -313,6 +313,9 @@ export interface ReactGrabRendererProps {
   isPendingDismiss?: boolean;
   onConfirmDismiss?: () => void;
   onCancelDismiss?: () => void;
+  isPendingAgentAbort?: boolean;
+  onConfirmAgentAbort?: () => void;
+  onCancelAgentAbort?: () => void;
   nativeSelectionCursorVisible?: boolean;
   nativeSelectionCursorX?: number;
   nativeSelectionCursorY?: number;

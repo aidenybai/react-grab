@@ -100,6 +100,9 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
                 props.onAcknowledgeSessionError?.(session().id)
               }
               onRetry={() => props.onRetrySession?.(session().id)}
+              isPendingAbort={session().isStreaming ? props.isPendingAgentAbort : false}
+              onConfirmAbort={props.onConfirmAgentAbort}
+              onCancelAbort={props.onCancelAgentAbort}
             />
           </>
         )}

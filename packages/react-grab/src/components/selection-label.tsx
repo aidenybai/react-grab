@@ -45,6 +45,9 @@ interface SelectionLabelProps {
   isPendingDismiss?: boolean;
   onConfirmDismiss?: () => void;
   onCancelDismiss?: () => void;
+  isPendingAbort?: boolean;
+  onConfirmAbort?: () => void;
+  onCancelAbort?: () => void;
   error?: string;
   onAcknowledgeError?: () => void;
   onRetry?: () => void;
@@ -233,7 +236,7 @@ const DismissConfirmation: Component<DismissConfirmationProps> = (props) => {
     <div class="contain-layout shrink-0 flex flex-col justify-center items-end gap-1 w-fit h-fit">
       <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-full h-fit">
         <span class="text-black text-[12px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
-          Discard prompt?
+          Discard?
         </span>
       </div>
       <BottomSection>
@@ -521,6 +524,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     void props.isInputExpanded;
     void props.isPendingDismiss;
     void props.error;
+    void props.isPendingAbort;
     requestAnimationFrame(measureContainer);
   });
 
@@ -614,7 +618,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     } else if (event.code === "Escape") {
       event.preventDefault();
       speechRecognition.stop();
-      props.onCancel?.();
+      props.onConfirmDismiss?.();
     }
   };
 
@@ -719,7 +723,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 : undefined,
           }}
         >
-          <Show when={props.status === "copying"}>
+          <Show when={props.status === "copying" && !props.isPendingAbort}>
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit max-w-[280px]">
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-auto h-fit">
                 <div class="contain-layout flex items-center px-0 py-px w-auto h-fit rounded-[1.5px] gap-[3px]">
@@ -769,6 +773,13 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 </div>
               </BottomSection>
             </div>
+          </Show>
+
+          <Show when={props.status === "copying" && props.isPendingAbort}>
+            <DismissConfirmation
+              onConfirm={props.onConfirmAbort}
+              onCancel={props.onCancelAbort}
+            />
           </Show>
 
           <Show when={isNotProcessing() && !props.isInputExpanded}>

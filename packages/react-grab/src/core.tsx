@@ -258,6 +258,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
     const [replyToPrompt, setReplyToPrompt] = createSignal<string | null>(null);
     const [isPendingDismiss, setIsPendingDismiss] = createSignal(false);
+    const [isPendingAgentAbort, setIsPendingAgentAbort] = createSignal(false);
 
     const elementInputCache = new WeakMap<Element, string>();
 
@@ -1268,6 +1269,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setIsPendingDismiss(false);
     };
 
+    const handleConfirmAgentAbort = () => {
+      setIsPendingAgentAbort(false);
+      agentManager.abortAllSessions();
+    };
+
+    const handleCancelAgentAbort = () => {
+      setIsPendingAgentAbort(false);
+    };
+
     const handleToggleExpand = () => {
       const element = frozenElement() || targetElement();
       if (element) {
@@ -1638,15 +1648,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           (isEventFromOverlay(event, "data-react-grab-ignore-events") &&
             !isEnterToActivateInput)
         ) {
-          if (event.key === "Escape" && agentManager.isProcessing()) {
-            agentManager.abortAllSessions();
+          if (event.key === "Escape" && agentManager.isProcessing() && !isPendingAgentAbort()) {
+            event.preventDefault();
+            event.stopPropagation();
+            setIsPendingAgentAbort(true);
           }
           return;
         }
 
         if (event.key === "Escape") {
           if (agentManager.isProcessing()) {
-            agentManager.abortAllSessions();
+            if (!isPendingAgentAbort()) {
+              event.preventDefault();
+              event.stopPropagation();
+              setIsPendingAgentAbort(true);
+            }
             return;
           }
 
@@ -2488,6 +2504,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             isPendingDismiss={isPendingDismiss()}
             onConfirmDismiss={handleConfirmDismiss}
             onCancelDismiss={handleCancelDismiss}
+            isPendingAgentAbort={isPendingAgentAbort()}
+            onConfirmAgentAbort={handleConfirmAgentAbort}
+            onCancelAgentAbort={handleCancelAgentAbort}
             nativeSelectionCursorVisible={hasNativeSelection()}
             nativeSelectionCursorX={nativeSelectionCursorX()}
             nativeSelectionCursorY={nativeSelectionCursorY()}
