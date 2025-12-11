@@ -41,6 +41,7 @@ interface GeminiStreamEvent {
 
 const geminiSessionMap = new Map<string, string>();
 const activeProcesses = new Map<string, ResultPromise>();
+let lastGeminiSessionId: string | undefined;
 
 const parseStreamLine = (line: string): GeminiStreamEvent | null => {
   const trimmed = line.trim();
@@ -218,6 +219,10 @@ export const createServer = () => {
           geminiSessionMap.set(sessionId, capturedSessionId);
         }
 
+        if (capturedSessionId) {
+          lastGeminiSessionId = capturedSessionId;
+        }
+
         await stream.writeSSE({ data: "", event: "done" });
       } catch (error) {
         const errorMessage =
@@ -245,6 +250,36 @@ export const createServer = () => {
       activeProcesses.delete(sessionId);
     }
     return context.json({ status: "ok" });
+  });
+
+  app.post("/undo", async (context) => {
+    if (!lastGeminiSessionId) {
+      return context.json({ status: "error", message: "No session to undo" });
+    }
+
+    try {
+      const geminiArgs = [
+        "--output-format",
+        "stream-json",
+        "--yolo",
+        "--session",
+        lastGeminiSessionId,
+        "undo",
+      ];
+
+      await execa("gemini", geminiArgs, {
+        stdout: "pipe",
+        stderr: "pipe",
+        env: { ...process.env },
+        cwd: process.env.REACT_GRAB_CWD ?? process.cwd(),
+      });
+
+      return context.json({ status: "ok" });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      return context.json({ status: "error", message: errorMessage });
+    }
   });
 
   app.get("/health", (context) => {

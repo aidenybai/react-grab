@@ -28,6 +28,7 @@ interface ThreadState {
 
 const threadMap = new Map<string, ThreadState>();
 const abortControllers = new Map<string, AbortController>();
+let lastThreadId: string | undefined;
 
 const extractTextFromContent = (
   content: Array<{ type: string; text?: string; name?: string }>,
@@ -146,6 +147,10 @@ export const createServer = () => {
           threadMap.set(sessionId, { threadId: capturedThreadId });
         }
 
+        if (capturedThreadId) {
+          lastThreadId = capturedThreadId;
+        }
+
         if (!isAborted()) {
           await stream.writeSSE({ data: "", event: "done" });
         }
@@ -175,6 +180,31 @@ export const createServer = () => {
       abortControllers.delete(sessionId);
     }
     return context.json({ status: "ok" });
+  });
+
+  honoApplication.post("/undo", async (context) => {
+    if (!lastThreadId) {
+      return context.json({ status: "error", message: "No session to undo" });
+    }
+
+    try {
+      for await (const _message of execute({
+        prompt: "undo",
+        options: {
+          dangerouslyAllowAll: true,
+          cwd: process.env.REACT_GRAB_CWD ?? process.cwd(),
+          continue: lastThreadId,
+        },
+      })) {
+        // HACK: consume all messages to complete the undo
+      }
+
+      return context.json({ status: "ok" });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      return context.json({ status: "error", message: errorMessage });
+    }
   });
 
   honoApplication.get("/health", (context) => {

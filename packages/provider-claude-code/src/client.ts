@@ -193,6 +193,12 @@ export const createClaudeAgentProvider = (
         return false;
       }
     },
+
+    undo: async () => {
+      try {
+        await fetch(`${serverUrl}/undo`, { method: "POST" });
+      } catch {}
+    },
   };
 };
 

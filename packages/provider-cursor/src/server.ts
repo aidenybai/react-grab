@@ -38,6 +38,7 @@ interface CursorStreamEvent {
 
 const cursorSessionMap = new Map<string, string>();
 const activeProcesses = new Map<string, ResultPromise>();
+let lastCursorChatId: string | undefined;
 
 const parseStreamLine = (line: string): CursorStreamEvent | null => {
   const trimmed = line.trim();
@@ -211,6 +212,10 @@ export const createServer = () => {
           cursorSessionMap.set(sessionId, capturedCursorChatId);
         }
 
+        if (capturedCursorChatId) {
+          lastCursorChatId = capturedCursorChatId;
+        }
+
         await stream.writeSSE({ data: "", event: "done" });
       } catch (error) {
         const errorMessage =
@@ -237,6 +242,45 @@ export const createServer = () => {
       activeProcesses.delete(sessionId);
     }
     return context.json({ status: "ok" });
+  });
+
+  app.post("/undo", async (context) => {
+    if (!lastCursorChatId) {
+      return context.json({ status: "error", message: "No session to undo" });
+    }
+
+    try {
+      const cursorAgentArgs = [
+        "--print",
+        "--output-format",
+        "stream-json",
+        "--force",
+        "--resume",
+        lastCursorChatId,
+      ];
+
+      const workspacePath = process.env.REACT_GRAB_CWD ?? process.cwd();
+      cursorAgentArgs.push("--workspace", workspacePath);
+
+      const cursorProcess = execa("cursor-agent", cursorAgentArgs, {
+        stdin: "pipe",
+        stdout: "pipe",
+        stderr: "pipe",
+        env: { ...process.env },
+      });
+
+      if (cursorProcess.stdin) {
+        cursorProcess.stdin.write("undo");
+        cursorProcess.stdin.end();
+      }
+
+      await cursorProcess;
+      return context.json({ status: "ok" });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      return context.json({ status: "error", message: errorMessage });
+    }
   });
 
   app.get("/health", (context) => {

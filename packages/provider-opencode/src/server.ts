@@ -31,10 +31,15 @@ const OPENCODE_SDK_PORT = 4096;
 
 import { sleep } from "@react-grab/utils/server";
 
+interface LastMessageInfo {
+  sessionId: string;
+  messageId: string;
+}
+
 let opencodeInstance: OpenCodeInstance | null = null;
 const sessionMap = new Map<string, string>();
 const abortedSessions = new Set<string>();
-let lastOpenCodeSessionId: string | undefined;
+let lastMessageInfo: LastMessageInfo | undefined;
 
 const getOpenCodeClient = async () => {
   if (!opencodeInstance) {
@@ -51,11 +56,28 @@ const getOpenCodeClient = async () => {
   return opencodeInstance.client;
 };
 
+interface OpenCodeEvent {
+  type: string;
+  properties?: {
+    sessionID?: string;
+    messageID?: string;
+    part?: {
+      type: string;
+      text?: string;
+      state?: string;
+      toolName?: string;
+      sessionID?: string;
+      messageID?: string;
+    };
+  };
+}
+
 const executeOpenCodePrompt = async (
   prompt: string,
   options?: OpenCodeAgentOptions,
   onStatus?: (text: string) => void,
   reactGrabSessionId?: string,
+  signal?: { aborted: boolean },
 ): Promise<string> => {
   const client = await getOpenCodeClient();
 
@@ -81,8 +103,6 @@ const executeOpenCodePrompt = async (
     }
   }
 
-  lastOpenCodeSessionId = opencodeSessionId;
-
   const modelConfig = options?.model
     ? {
         providerID: options.model.split("/")[0],
@@ -90,7 +110,9 @@ const executeOpenCodePrompt = async (
       }
     : undefined;
 
-  const promptResponse = await client.session.prompt({
+  const eventStreamResult = await client.event.subscribe();
+
+  await client.session.promptAsync({
     path: { id: opencodeSessionId },
     body: {
       ...(modelConfig && { model: modelConfig }),
@@ -98,10 +120,35 @@ const executeOpenCodePrompt = async (
     },
   });
 
-  if (promptResponse.data?.parts) {
-    for (const part of promptResponse.data.parts) {
+  for await (const event of eventStreamResult.stream) {
+    if (signal?.aborted) break;
+
+    const eventData = event as OpenCodeEvent;
+
+    if (eventData.type === "session.idle") {
+      const idleSessionId = eventData.properties?.sessionID;
+      if (idleSessionId === opencodeSessionId) {
+        break;
+      }
+    }
+
+    if (eventData.type === "message.part.updated" && eventData.properties?.part) {
+      const part = eventData.properties.part;
+
+      if (part.sessionID !== opencodeSessionId) continue;
+
+      if (part.messageID) {
+        lastMessageInfo = { sessionId: opencodeSessionId, messageId: part.messageID };
+      }
+
       if (part.type === "text" && part.text) {
-        onStatus?.(part.text);
+        const truncatedText = part.text.length > 100
+          ? `${part.text.slice(0, 100)}...`
+          : part.text;
+        onStatus?.(truncatedText);
+      } else if (part.type === "tool-invocation" && part.toolName) {
+        const stateLabel = part.state === "running" ? "Running" : "Using";
+        onStatus?.(`${stateLabel} ${part.toolName}`);
       }
     }
   }
@@ -129,7 +176,14 @@ ${content}
 `;
 
     return streamSSE(context, async (stream) => {
-      const isAborted = () => sessionId && abortedSessions.has(sessionId);
+      const signal = { aborted: false };
+      const isAborted = () => {
+        if (sessionId && abortedSessions.has(sessionId)) {
+          signal.aborted = true;
+          return true;
+        }
+        return false;
+      };
 
       try {
         await executeOpenCodePrompt(
@@ -145,6 +199,7 @@ ${content}
               .catch(() => {});
           },
           sessionId,
+          signal,
         );
 
         if (!isAborted()) {
@@ -187,18 +242,16 @@ ${content}
   });
 
   honoApplication.post("/undo", async (context) => {
-    if (!lastOpenCodeSessionId) {
-      return context.json({ status: "error", message: "No session to undo" });
+    if (!lastMessageInfo) {
+      return context.json({ status: "error", message: "No message to undo" });
     }
 
     try {
       const client = await getOpenCodeClient();
 
-      await client.session.prompt({
-        path: { id: lastOpenCodeSessionId },
-        body: {
-          parts: [{ type: "text", text: "/undo" }],
-        },
+      await client.session.revert({
+        path: { id: lastMessageInfo.sessionId },
+        body: { messageID: lastMessageInfo.messageId },
       });
 
       return context.json({ status: "ok" });

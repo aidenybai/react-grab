@@ -191,6 +191,12 @@ export const createGeminiAgentProvider = (
         await fetch(`${serverUrl}/abort/${sessionId}`, { method: "POST" });
       } catch {}
     },
+
+    undo: async () => {
+      try {
+        await fetch(`${serverUrl}/undo`, { method: "POST" });
+      } catch {}
+    },
   };
 };
 
