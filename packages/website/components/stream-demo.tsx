@@ -159,9 +159,9 @@ const getConversationBlocks = (): StreamBlock[] => [
           />
         </div>
         <div>
-          <span className="font-bold">React Grab</span> allows you to select an
-          element and copy its context (like HTML, React component, and file
-          source)
+          <span className="font-bold">React Grab</span> allows you to simply
+          point an element in your website to give your coding agent all the
+          context about it.
         </div>
       </div>
     ),
