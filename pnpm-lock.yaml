@@ -165,6 +165,9 @@ importers:
         specifier: workspace:*
         version: link:../react-grab
     devDependencies:
+      '@types/node':
+        specifier: ^22.10.7
+        version: 22.19.2
       tsup:
         specifier: ^8.4.0
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
@@ -196,6 +199,9 @@ importers:
       '@react-grab/utils':
         specifier: workspace:*
         version: link:../utils
+      '@types/node':
+        specifier: ^22.10.7
+        version: 22.19.2
       tsup:
         specifier: ^8.4.0
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
@@ -227,6 +233,9 @@ importers:
       '@react-grab/utils':
         specifier: workspace:*
         version: link:../utils
+      '@types/node':
+        specifier: ^22.10.7
+        version: 22.19.2
       tsup:
         specifier: ^8.4.0
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
@@ -258,6 +267,9 @@ importers:
       '@react-grab/utils':
         specifier: workspace:*
         version: link:../utils
+      '@types/node':
+        specifier: ^22.10.7
+        version: 22.19.2
       tsup:
         specifier: ^8.4.0
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
@@ -286,6 +298,9 @@ importers:
       '@react-grab/utils':
         specifier: workspace:*
         version: link:../utils
+      '@types/node':
+        specifier: ^22.10.7
+        version: 22.19.2
       tsup:
         specifier: ^8.4.0
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
@@ -314,6 +329,9 @@ importers:
       '@react-grab/utils':
         specifier: workspace:*
         version: link:../utils
+      '@types/node':
+        specifier: ^22.10.7
+        version: 22.19.2
       tsup:
         specifier: ^8.4.0
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
@@ -361,6 +379,9 @@ importers:
       '@react-grab/utils':
         specifier: workspace:*
         version: link:../utils
+      '@types/node':
+        specifier: ^22.10.7
+        version: 22.19.2
       tsup:
         specifier: ^8.4.0
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
@@ -2135,8 +2156,8 @@ packages:
     resolution: {integrity: sha512-y9/ltK2TY+0HD1H2Sz7MvU3zFh4SjER6eQVNQfBx/0gK9N7S0QwHW6cmhHLx3CP25zN190LKHXPieMGqsVvrOQ==}
     engines: {node: '>=18'}
 
-  '@sourcegraph/amp@0.0.1765404020-g2e5656':
-    resolution: {integrity: sha512-q9AU5U+5BQoGVX/9QyRbD9xoaARatyvsenHdOn+LTf5DcWQIU70SI3o0lhL6/7Xu2lgVwrgS/Mpd27YgnVsNIQ==}
+  '@sourcegraph/amp@0.0.1765411294-g5611a8':
+    resolution: {integrity: sha512-Hlvm4fxEfKlgcXewtfsr63uRNtEmjEGegqEYjV0EYQ8BUvL60OKdTRR8G2McVdcNkUYPbQkdLMOby/2APHQ6Vw==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -2493,6 +2514,9 @@ packages:
 
   '@types/node@20.19.23':
     resolution: {integrity: sha512-yIdlVVVHXpmqRhtyovZAcSy0MiPcYWGkoO4CGe/+jpP0hmNuihm4XhHbADpK++MsiLHP5MVlv+bcgdF99kSiFQ==}
+
+  '@types/node@22.19.2':
+    resolution: {integrity: sha512-LPM2G3Syo1GLzXLGJAKdqoU35XvrWzGJ21/7sgZTUpbkBaOasTj8tjwn6w+hCkqaa1TfJ/w67rJSwYItlJ2mYw==}
 
   '@types/node@24.10.2':
     resolution: {integrity: sha512-WOhQTZ4G8xZ1tjJTvKOpyEVSGgOTvJAfDK3FNFgELyaTpzhdgHVHeqW8V+UJvzF5BT+/B54T/1S2K6gd9c7bbA==}
@@ -7342,10 +7366,10 @@ snapshots:
 
   '@sourcegraph/amp-sdk@0.1.0-20251210081226-g90e3892':
     dependencies:
-      '@sourcegraph/amp': 0.0.1765404020-g2e5656
+      '@sourcegraph/amp': 0.0.1765411294-g5611a8
       zod: 3.25.76
 
-  '@sourcegraph/amp@0.0.1765404020-g2e5656':
+  '@sourcegraph/amp@0.0.1765411294-g5611a8':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
@@ -7653,6 +7677,10 @@ snapshots:
   '@types/node@12.20.55': {}
 
   '@types/node@20.19.23':
+    dependencies:
+      undici-types: 6.21.0
+
+  '@types/node@22.19.2':
     dependencies:
       undici-types: 6.21.0
 

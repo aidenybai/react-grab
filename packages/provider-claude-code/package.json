@@ -29,6 +29,7 @@
   },
   "devDependencies": {
     "@react-grab/utils": "workspace:*",
+    "@types/node": "^22.10.7",
     "tsup": "^8.4.0"
   },
   "dependencies": {
