@@ -1670,15 +1670,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               const currentIndex = elementsAtPoint.indexOf(element);
               return currentIndex !== -1 ? elementsAtPoint[currentIndex + 1] ?? null : null;
             },
-            ArrowDown: (element) => {
-              const bounds = createElementBounds(element);
-              const elementsAtPoint = document.elementsFromPoint(
-                bounds.x + bounds.width / 2,
-                bounds.y + bounds.height / 2,
-              ).filter(isValidGrabbableElement);
-              const currentIndex = elementsAtPoint.indexOf(element);
-              return currentIndex > 0 ? elementsAtPoint[currentIndex - 1] ?? null : null;
-            },
             ArrowRight: (element) => {
               const findFirstValidDescendant = (el: Element): Element | null => {
                 const children = Array.from(el.children);
