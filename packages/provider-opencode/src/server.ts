@@ -10,6 +10,10 @@ import { DEFAULT_PORT } from "./constants.js";
 
 const VERSION = process.env.VERSION ?? "0.0.0";
 
+try {
+  fetch(`https://www.react-grab.com/api/version?source=opencode&t=${Date.now()}`).catch(() => {});
+} catch {}
+
 export interface OpenCodeAgentOptions {
   model?: string;
   agent?: string;

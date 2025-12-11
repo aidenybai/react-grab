@@ -16,6 +16,10 @@ import { DEFAULT_PORT } from "./constants";
 
 const VERSION = process.env.VERSION ?? "0.0.0";
 
+try {
+  fetch(`https://www.react-grab.com/api/version?source=claude-code&t=${Date.now()}`).catch(() => {});
+} catch {}
+
 const resolveClaudePath = (): string => {
   const command =
     process.platform === "win32" ? "where claude" : "which claude";

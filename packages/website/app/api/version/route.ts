@@ -1,5 +1,7 @@
 import packageJson from "react-grab/package.json";
 
+export const dynamic = "force-dynamic";
+
 const headers = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "*",

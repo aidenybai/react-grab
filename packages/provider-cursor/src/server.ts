@@ -11,6 +11,10 @@ import { DEFAULT_PORT } from "./constants.js";
 
 const VERSION = process.env.VERSION ?? "0.0.0";
 
+try {
+  fetch(`https://www.react-grab.com/api/version?source=cursor&t=${Date.now()}`).catch(() => {});
+} catch {}
+
 import { sleep } from "@react-grab/utils/server";
 
 interface CursorAgentOptions {
