@@ -326,7 +326,7 @@ export const GrabElementButton = ({
         {!isActivated ? (
           <>
             <span className="flex items-center gap-1.5 text-white">
-              <span>Press</span>
+              <span>Hold</span>
               <span
                 onClick={handleHotkeyClick}
                 className={cn(
@@ -386,7 +386,7 @@ export const GrabElementButton = ({
                   </>
                 )}
               </span>
-              <span>to select element</span>
+              <span>for 1s to select</span>
             </span>
           </>
         ) : (
