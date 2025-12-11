@@ -72,10 +72,10 @@ export const createServer = () => {
           prompt: userPrompt,
           options: {
             pathToClaudeCodeExecutable: resolveClaudePath(),
-            cwd: process.cwd(),
             includePartialMessages: true,
             env,
             ...options,
+            cwd: options?.cwd ?? process.env.REACT_GRAB_CWD ?? process.cwd(),
             ...(isFollowUp && claudeSessionId
               ? { resume: claudeSessionId }
               : {}),

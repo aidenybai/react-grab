@@ -5,12 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:claude": "node ../provider-claude-code/dist/cli.cjs && VITE_PROVIDER=claude vite",
-    "dev:cursor": "node ../provider-cursor/dist/cli.cjs && VITE_PROVIDER=cursor vite",
-    "dev:opencode": "node ../provider-opencode/dist/cli.cjs && VITE_PROVIDER=opencode vite",
-    "dev:codex": "node ../provider-codex/dist/cli.cjs && VITE_PROVIDER=codex vite",
-    "dev:gemini": "node ../provider-gemini/dist/cli.cjs && VITE_PROVIDER=gemini vite",
-    "dev:amp": "node ../provider-amp/dist/cli.cjs && VITE_PROVIDER=amp vite",
+    "dev:claude": "REACT_GRAB_CWD=$(cd ../.. && pwd) node ../provider-claude-code/dist/cli.cjs && VITE_PROVIDER=claude vite",
+    "dev:cursor": "REACT_GRAB_CWD=$(cd ../.. && pwd) node ../provider-cursor/dist/cli.cjs && VITE_PROVIDER=cursor vite",
+    "dev:opencode": "REACT_GRAB_CWD=$(cd ../.. && pwd) node ../provider-opencode/dist/cli.cjs && VITE_PROVIDER=opencode vite",
+    "dev:codex": "REACT_GRAB_CWD=$(cd ../.. && pwd) node ../provider-codex/dist/cli.cjs && VITE_PROVIDER=codex vite",
+    "dev:gemini": "REACT_GRAB_CWD=$(cd ../.. && pwd) node ../provider-gemini/dist/cli.cjs && VITE_PROVIDER=gemini vite",
+    "dev:amp": "REACT_GRAB_CWD=$(cd ../.. && pwd) node ../provider-amp/dist/cli.cjs && VITE_PROVIDER=amp vite",
     "dev:ami": "VITE_PROVIDER=ami vite"
   },
   "dependencies": {

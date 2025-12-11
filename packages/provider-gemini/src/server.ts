@@ -93,7 +93,7 @@ export const createServer = () => {
           stdout: "pipe",
           stderr: "pipe",
           env: { ...process.env },
-          cwd: process.cwd(),
+          cwd: process.env.REACT_GRAB_CWD ?? process.cwd(),
         });
 
         if (sessionId) {

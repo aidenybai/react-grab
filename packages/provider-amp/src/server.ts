@@ -72,11 +72,8 @@ export const createServer = () => {
           dangerouslyAllowAll: true,
         };
 
-        if (options?.cwd) {
-          executeOptions.cwd = options.cwd;
-        } else {
-          executeOptions.cwd = process.cwd();
-        }
+        executeOptions.cwd =
+          options?.cwd ?? process.env.REACT_GRAB_CWD ?? process.cwd();
 
         if (isFollowUp && existingThread) {
           executeOptions.continue = existingThread.threadId;

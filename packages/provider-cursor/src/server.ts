@@ -90,11 +90,9 @@ export const createServer = () => {
         cursorAgentArgs.push("--model", options.model);
       }
 
-      if (options?.workspace) {
-        cursorAgentArgs.push("--workspace", options.workspace);
-      } else {
-        cursorAgentArgs.push("--workspace", process.cwd());
-      }
+      const workspacePath =
+        options?.workspace ?? process.env.REACT_GRAB_CWD ?? process.cwd();
+      cursorAgentArgs.push("--workspace", workspacePath);
 
       if (isFollowUp && cursorChatId) {
         cursorAgentArgs.push("--resume", cursorChatId);

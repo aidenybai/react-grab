@@ -53,7 +53,8 @@ const getOrCreateThread = (
   }
 
   const thread = codex.startThread({
-    workingDirectory: options?.workingDirectory ?? process.cwd(),
+    workingDirectory:
+      options?.workingDirectory ?? process.env.REACT_GRAB_CWD ?? process.cwd(),
   });
 
   return { thread, isExisting: false };
