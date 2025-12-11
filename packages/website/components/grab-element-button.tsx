@@ -391,7 +391,7 @@ export const GrabElementButton = ({
           </>
         ) : (
           <span className="animate-pulse">
-            Click an element to select, or press again to cancel
+            Click an element to select, or Esc to cancel
           </span>
         )}
       </button>
