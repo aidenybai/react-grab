@@ -119,7 +119,7 @@ export const App = () => {
             <ReactGrabLogo size={28} />
             <h1 className="text-lg font-bold">Agent Playground</h1>
           </div>
-          <p className="text-sm text-white/50 mb-4 italic">
+          <p className="text-sm text-white/80 mb-4 italic">
             Select any element and send it to the agent
           </p>
           <button

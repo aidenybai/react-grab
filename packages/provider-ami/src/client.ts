@@ -318,9 +318,17 @@ export const createAmiAgentProvider = (projectId?: string): AgentProvider => {
                 setTimeout(() => resolve("timeout"), 100),
               ),
             ]);
-            if (waitResult === "timeout" && !done && !aborted && !lastStatus) {
+            if (waitResult === "timeout" && !done && !aborted) {
               const elapsedSeconds = (Date.now() - startTime) / 1000;
-              yield `Working… ${elapsedSeconds.toFixed(1)}s`;
+              if (lastStatus) {
+                if (lastStatus === "Completed successfully") {
+                  yield `Completed in ${elapsedSeconds.toFixed(1)}s`;
+                } else {
+                  yield `${lastStatus} ${elapsedSeconds.toFixed(1)}s`;
+                }
+              } else {
+                yield `Working… ${elapsedSeconds.toFixed(1)}s`;
+              }
             }
           }
         }
@@ -446,9 +454,17 @@ export const createAmiAgentProvider = (projectId?: string): AgentProvider => {
                 setTimeout(() => resolve("timeout"), 100),
               ),
             ]);
-            if (waitResult === "timeout" && !done && !aborted && !lastStatus) {
+            if (waitResult === "timeout" && !done && !aborted) {
               const elapsedSeconds = (Date.now() - startTime) / 1000;
-              yield `Working… ${elapsedSeconds.toFixed(1)}s`;
+              if (lastStatus) {
+                if (lastStatus === "Completed successfully") {
+                  yield `Completed in ${elapsedSeconds.toFixed(1)}s`;
+                } else {
+                  yield `${lastStatus} ${elapsedSeconds.toFixed(1)}s`;
+                }
+              } else {
+                yield `Working… ${elapsedSeconds.toFixed(1)}s`;
+              }
             }
           }
         }

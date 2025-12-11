@@ -89,8 +89,14 @@ async function* streamFromServer(
       ]);
 
       if (result.type === "timeout") {
-        if (!lastStatus) {
-          const elapsedSeconds = (Date.now() - startTime) / 1000;
+        const elapsedSeconds = (Date.now() - startTime) / 1000;
+        if (lastStatus) {
+          if (lastStatus === "Completed successfully") {
+            yield `Completed in ${elapsedSeconds.toFixed(1)}s`;
+          } else {
+            yield `${lastStatus} ${elapsedSeconds.toFixed(1)}s`;
+          }
+        } else {
           yield `Working… ${elapsedSeconds.toFixed(1)}s`;
         }
       } else {
