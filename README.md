@@ -6,7 +6,9 @@
 
 Select context for coding agents directly from your website
 
-It makes tools like Cursor, Claude Code, Copilot run up to [**66% faster**](https://react-grab.com/blog/intro)
+How? Point at any element and it'll send the file name, React component, and HTML source code.
+
+It makes tools like Cursor, Claude Code, Copilot run up to [**66% faster**](https://react-grab.com/blog/intro) and more accurate.
 
 ### [Try out a demo! →](https://react-grab.com)
 

@@ -4,7 +4,7 @@
 [![version](https://img.shields.io/npm/v/grab?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/grab)
 [![downloads](https://img.shields.io/npm/dt/grab.svg?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/grab)
 
-React Grab allows you to select an element and copy its context (like HTML, React component, and file source)
+Select context for coding agents directly from your website
 
 It makes tools like Cursor, Claude Code, Copilot run up to [**66% faster**](https://react-grab.com/blog/intro)
 
