@@ -159,7 +159,8 @@ const getConversationBlocks = (): StreamBlock[] => [
           />
         </div>
         <div>
-          <span className="font-bold">React Grab</span> lets you point to any element on your site and instantly give your coding agent full context.
+          <span className="font-bold">React Grab</span> lets you select context
+          for coding agents directly from your website.
         </div>
       </div>
     ),
