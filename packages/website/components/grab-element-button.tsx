@@ -386,7 +386,7 @@ export const GrabElementButton = ({
                   </>
                 )}
               </span>
-              <span>for 1s to select</span>
+              <span>for 1 second to select</span>
             </span>
           </>
         ) : (
