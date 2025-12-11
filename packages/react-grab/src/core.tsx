@@ -1741,7 +1741,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                     sibling = getSibling(sibling);
                   }
                   if (nextElement) break;
-                  const parentElement = searchElement.parentElement;
+                  const parentElement: HTMLElement | null = searchElement.parentElement;
                   if (!isForward && parentElement && isValidGrabbableElement(parentElement)) {
                     nextElement = parentElement;
                     break;
