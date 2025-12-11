@@ -25,6 +25,20 @@ export interface TransformResult {
   noChanges?: boolean;
 }
 
+export interface ReactGrabOptions {
+  activationKey?: {
+    key?: string;
+    metaKey?: boolean;
+    ctrlKey?: boolean;
+    shiftKey?: boolean;
+    altKey?: boolean;
+  };
+  activationMode?: "toggle" | "hold";
+  keyHoldDuration?: number;
+  allowActivationInsideInput?: boolean;
+  maxContextLines?: number;
+}
+
 export interface PackageJsonTransformResult {
   success: boolean;
   filePath: string;
@@ -776,4 +790,250 @@ export const applyPackageJsonTransform = (
     }
   }
   return { success: true };
+};
+
+const formatOptionsForNextjs = (options: ReactGrabOptions): string => {
+  const parts: string[] = [];
+
+  if (options.activationKey) {
+    const keyParts: string[] = [];
+    if (options.activationKey.key)
+      keyParts.push(`key: "${options.activationKey.key}"`);
+    if (options.activationKey.metaKey) keyParts.push("metaKey: true");
+    if (options.activationKey.ctrlKey) keyParts.push("ctrlKey: true");
+    if (options.activationKey.shiftKey) keyParts.push("shiftKey: true");
+    if (options.activationKey.altKey) keyParts.push("altKey: true");
+    if (keyParts.length > 0) {
+      parts.push(`activationKey: { ${keyParts.join(", ")} }`);
+    }
+  }
+
+  if (options.activationMode) {
+    parts.push(`activationMode: "${options.activationMode}"`);
+  }
+
+  if (options.keyHoldDuration !== undefined) {
+    parts.push(`keyHoldDuration: ${options.keyHoldDuration}`);
+  }
+
+  if (options.allowActivationInsideInput !== undefined) {
+    parts.push(
+      `allowActivationInsideInput: ${options.allowActivationInsideInput}`,
+    );
+  }
+
+  if (options.maxContextLines !== undefined) {
+    parts.push(`maxContextLines: ${options.maxContextLines}`);
+  }
+
+  return `{ ${parts.join(", ")} }`;
+};
+
+const formatOptionsAsJson = (options: ReactGrabOptions): string => {
+  const cleanOptions: Record<string, unknown> = {};
+
+  if (options.activationKey) {
+    const activationKey: Record<string, unknown> = {};
+    if (options.activationKey.key) activationKey.key = options.activationKey.key;
+    if (options.activationKey.metaKey) activationKey.metaKey = true;
+    if (options.activationKey.ctrlKey) activationKey.ctrlKey = true;
+    if (options.activationKey.shiftKey) activationKey.shiftKey = true;
+    if (options.activationKey.altKey) activationKey.altKey = true;
+    if (Object.keys(activationKey).length > 0) {
+      cleanOptions.activationKey = activationKey;
+    }
+  }
+
+  if (options.activationMode) {
+    cleanOptions.activationMode = options.activationMode;
+  }
+
+  if (options.keyHoldDuration !== undefined) {
+    cleanOptions.keyHoldDuration = options.keyHoldDuration;
+  }
+
+  if (options.allowActivationInsideInput !== undefined) {
+    cleanOptions.allowActivationInsideInput = options.allowActivationInsideInput;
+  }
+
+  if (options.maxContextLines !== undefined) {
+    cleanOptions.maxContextLines = options.maxContextLines;
+  }
+
+  return JSON.stringify(cleanOptions);
+};
+
+const findReactGrabFile = (
+  projectRoot: string,
+  framework: Framework,
+  nextRouterType: NextRouterType,
+): string | null => {
+  switch (framework) {
+    case "next":
+      if (nextRouterType === "app") {
+        return findLayoutFile(projectRoot);
+      }
+      return findDocumentFile(projectRoot);
+    case "vite":
+      return findIndexHtml(projectRoot);
+    case "webpack":
+      return findEntryFile(projectRoot);
+    default:
+      return null;
+  }
+};
+
+const addOptionsToNextScript = (
+  originalContent: string,
+  options: ReactGrabOptions,
+  filePath: string,
+): TransformResult => {
+  const reactGrabScriptMatch = originalContent.match(
+    /(<Script[^>]*react-grab[^>]*)(\/?>)/is,
+  );
+
+  if (!reactGrabScriptMatch) {
+    return {
+      success: false,
+      filePath,
+      message: "Could not find React Grab Script tag",
+    };
+  }
+
+  const scriptTag = reactGrabScriptMatch[0];
+  const scriptOpening = reactGrabScriptMatch[1];
+  const scriptClosing = reactGrabScriptMatch[2];
+
+  const existingDataOptionsMatch = scriptTag.match(
+    /data-options=\{JSON\.stringify\([^)]+\)\}/,
+  );
+
+  const dataOptionsAttr = `data-options={JSON.stringify(\n              ${formatOptionsForNextjs(options)}\n            )}`;
+
+  let newScriptTag: string;
+  if (existingDataOptionsMatch) {
+    newScriptTag = scriptTag.replace(existingDataOptionsMatch[0], dataOptionsAttr);
+  } else {
+    newScriptTag = `${scriptOpening}\n            ${dataOptionsAttr}\n          ${scriptClosing}`;
+  }
+
+  const newContent = originalContent.replace(scriptTag, newScriptTag);
+
+  return {
+    success: true,
+    filePath,
+    message: "Update React Grab options",
+    originalContent,
+    newContent,
+  };
+};
+
+const addOptionsToViteScript = (
+  originalContent: string,
+  options: ReactGrabOptions,
+  filePath: string,
+): TransformResult => {
+  const reactGrabImportMatch = originalContent.match(
+    /import\s*\(\s*["']react-grab["']\s*\)/,
+  );
+
+  if (!reactGrabImportMatch) {
+    return {
+      success: false,
+      filePath,
+      message: "Could not find React Grab import",
+    };
+  }
+
+  const optionsJson = formatOptionsAsJson(options);
+  const newImport = `import("react-grab").then((m) => m.init(${optionsJson}))`;
+
+  const newContent = originalContent.replace(reactGrabImportMatch[0], newImport);
+
+  return {
+    success: true,
+    filePath,
+    message: "Update React Grab options",
+    originalContent,
+    newContent,
+  };
+};
+
+const addOptionsToWebpackImport = (
+  originalContent: string,
+  options: ReactGrabOptions,
+  filePath: string,
+): TransformResult => {
+  const reactGrabImportMatch = originalContent.match(
+    /import\s*\(\s*["']react-grab["']\s*\)/,
+  );
+
+  if (!reactGrabImportMatch) {
+    return {
+      success: false,
+      filePath,
+      message: "Could not find React Grab import",
+    };
+  }
+
+  const optionsJson = formatOptionsAsJson(options);
+  const newImport = `import("react-grab").then((m) => m.init(${optionsJson}))`;
+
+  const newContent = originalContent.replace(reactGrabImportMatch[0], newImport);
+
+  return {
+    success: true,
+    filePath,
+    message: "Update React Grab options",
+    originalContent,
+    newContent,
+  };
+};
+
+export const previewOptionsTransform = (
+  projectRoot: string,
+  framework: Framework,
+  nextRouterType: NextRouterType,
+  options: ReactGrabOptions,
+): TransformResult => {
+  const filePath = findReactGrabFile(projectRoot, framework, nextRouterType);
+
+  if (!filePath) {
+    return {
+      success: false,
+      filePath: "",
+      message: "Could not find file containing React Grab configuration",
+    };
+  }
+
+  const originalContent = readFileSync(filePath, "utf-8");
+
+  if (!hasReactGrabCode(originalContent)) {
+    return {
+      success: false,
+      filePath,
+      message: "Could not find React Grab code in the file",
+    };
+  }
+
+  switch (framework) {
+    case "next":
+      return addOptionsToNextScript(originalContent, options, filePath);
+    case "vite":
+      return addOptionsToViteScript(originalContent, options, filePath);
+    case "webpack":
+      return addOptionsToWebpackImport(originalContent, options, filePath);
+    default:
+      return {
+        success: false,
+        filePath,
+        message: `Unknown framework: ${framework}`,
+      };
+  }
+};
+
+export const applyOptionsTransform = (
+  result: TransformResult,
+): { success: boolean; error?: string } => {
+  return applyTransform(result);
 };
