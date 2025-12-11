@@ -168,8 +168,11 @@ export interface AgentOptions<T = any> {
   onUndo?: (session: AgentSession, element: Element | undefined) => void;
 }
 
+export type ActivationMode = "toggle" | "hold";
+
 export interface Options {
   enabled?: boolean;
+  activationMode?: ActivationMode;
   keyHoldDuration?: number;
   allowActivationInsideInput?: boolean;
   maxContextLines?: number;

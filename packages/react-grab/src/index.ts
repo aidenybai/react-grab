@@ -27,6 +27,7 @@ export type {
   AgentOptions,
   AgentCompleteResult,
   UpdatableOptions,
+  ActivationMode,
 } from "./types.js";
 
 import { init } from "./core.js";

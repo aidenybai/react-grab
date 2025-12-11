@@ -128,6 +128,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
   let options: Options = {
     enabled: true,
+    activationMode: "toggle",
     keyHoldDuration: DEFAULT_KEY_HOLD_DURATION_MS,
     allowActivationInsideInput: true,
     maxContextLines: 3,
@@ -1279,6 +1280,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleToggleExpand = () => {
+      if (!hasAgentProvider()) return;
       const element = frozenElement() || targetElement();
       if (element) {
         const bounds = createElementBounds(element);
@@ -1335,6 +1337,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleNativeSelectionEnter = () => {
+      if (!hasAgentProvider()) return;
       const elements = nativeSelectionElements();
       if (elements.length === 0) return;
 
@@ -1780,6 +1783,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           !isActivated() &&
           copiedElement &&
           document.contains(copiedElement) &&
+          hasAgentProvider() &&
           !labelInstances().some(
             (instance) =>
               instance.status === "copied" || instance.status === "fading",
@@ -1815,7 +1819,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        if (isEnterCode(event.code) && isHoldingKeys() && !isInputMode()) {
+        if (
+          isEnterCode(event.code) &&
+          isHoldingKeys() &&
+          !isInputMode() &&
+          hasAgentProvider()
+        ) {
           event.preventDefault();
           event.stopPropagation();
           event.stopImmediatePropagation();
@@ -1905,7 +1914,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
 
         if (isActivated()) {
-          if (isToggleMode()) return;
+          if (isToggleMode() && options.activationMode !== "hold") return;
           if (event.repeat) return;
 
           if (keydownSpamTimerId !== null) {
@@ -1934,6 +1943,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           : keyHoldDuration;
 
         holdTimerId = window.setTimeout(() => {
+          if (options.activationMode !== "hold") {
+            setIsToggleMode(true);
+          }
           activateRenderer();
         }, activationDuration);
       },
@@ -1990,7 +2002,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         if (isActivated()) {
           if (isReleasingModifier) {
-            if (isToggleMode()) return;
+            if (isToggleMode() && options.activationMode !== "hold") return;
             deactivateRenderer();
           } else if (
             !hasCustomShortcut &&
@@ -2004,7 +2016,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
 
         if (isReleasingActivationKey || isReleasingModifier) {
-          if (isToggleMode()) return;
+          if (isToggleMode() && options.activationMode !== "hold") return;
           deactivateRenderer();
         }
       },

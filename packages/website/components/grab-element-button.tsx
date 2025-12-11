@@ -326,7 +326,7 @@ export const GrabElementButton = ({
         {!isActivated ? (
           <>
             <span className="flex items-center gap-1.5 text-white">
-              <span>Hold</span>
+              <span>Press</span>
               <span
                 onClick={handleHotkeyClick}
                 className={cn(
@@ -391,7 +391,7 @@ export const GrabElementButton = ({
           </>
         ) : (
           <span className="animate-pulse">
-            Move your mouse and click/drag to select an element
+            Click an element to select, or press again to cancel
           </span>
         )}
       </button>
