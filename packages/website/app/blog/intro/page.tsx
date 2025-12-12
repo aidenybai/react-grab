@@ -84,7 +84,7 @@ const BlogPostPage = () => {
                 />
               </Link>
               <h1 className="text-xl font-medium text-white">
-                I made your coding agent 66% faster at frontend
+                I made your coding agent 3× faster at frontend
               </h1>
             </div>
 
@@ -425,7 +425,7 @@ const BlogPostPage = () => {
           <p>
             …and turns out, Claude Code becomes ~
             <span className="font-medium text-neutral-300">
-              66% faster with React Grab
+              3× faster with React Grab
             </span>
             !<sup className="text-neutral-500 text-[10px] ml-0.5">3</sup>
           </p>
@@ -593,7 +593,7 @@ const BlogPostPage = () => {
                 Single trial per test case is a limitation. Agents are
                 non-deterministic, so results can vary significantly between
                 runs. Ideally we&apos;d run each test 5-10 times and report
-                confidence intervals. The 66% speedup is directionally correct
+                confidence intervals. The 3× speedup is directionally correct
                 but treat the exact number with appropriate skepticism. Future
                 benchmarks will include multiple trials. I&apos;m very open to
                 fixing issues with the benchmarks. If you spot anything off,

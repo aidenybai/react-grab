@@ -224,7 +224,7 @@ export const createAmiAgentProvider = (projectId?: string): AgentProvider => {
         throw new Error("No project found");
       }
 
-      yield "Thinking...";
+      yield "Thinking…";
 
       const statusQueue: string[] = [];
       let resolveWait: (() => void) | null = null;

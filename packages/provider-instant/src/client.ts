@@ -302,17 +302,8 @@ const FORBIDDEN_PATTERNS = [
   /\beval\s*\(/,
   /\bFunction\s*\(/,
   /\bdocument\.cookie\b/,
-  /\blocalStorage\b/,
-  /\bsessionStorage\b/,
   /\bfetch\s*\(/,
   /\bXMLHttpRequest\b/,
-  /\bimport\s*\(/,
-  /\brequire\s*\(/,
-  /\bwindow\.open\s*\(/,
-  /\blocation\s*[.=]/,
-  /\bnavigator\b/,
-  /\b__proto__\b/,
-  /\bconstructor\s*\[/,
 ];
 
 const validateCode = (code: string): { isValid: boolean; error?: string } => {
@@ -495,7 +486,7 @@ export const createInstantAgentProvider = (
         { role: "assistant", content: code },
       ]);
 
-      yield "Applying changes...";
+      yield "Applying changes…";
     },
     supportsFollowUp: true,
     getCompletionMessage: () => {

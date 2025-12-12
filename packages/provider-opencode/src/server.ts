@@ -81,7 +81,7 @@ const executeOpenCodePrompt = async (
 ): Promise<string> => {
   const client = await getOpenCodeClient();
 
-  onStatus?.("Thinking...");
+  onStatus?.("Thinking…");
 
   let opencodeSessionId: string;
 

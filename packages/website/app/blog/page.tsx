@@ -13,6 +13,11 @@ interface BlogPost {
 
 const blogPosts: BlogPost[] = [
   {
+    slug: "visual-edit",
+    title: "Visual Edit",
+    year: "2025",
+  },
+  {
     slug: "agent",
     title: "React Grab for Agents",
     year: "2025",
@@ -24,7 +29,7 @@ const blogPosts: BlogPost[] = [
   },
   {
     slug: "intro",
-    title: "I made your coding agent 66% faster at frontend",
+    title: "I made your coding agent 3× faster at frontend",
     year: "2025",
   },
 ];

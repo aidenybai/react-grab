@@ -149,4 +149,4 @@ Pull requests are welcome! If you'd like to contribute improvements to the bench
 
 ## Results
 
-The latest benchmark results are published on the [React Grab website](https://react-grab.com/blog/intro). The benchmark shows that React Grab makes coding agents approximately **66% faster** on average.
+The latest benchmark results are published on the [React Grab website](https://react-grab.com/blog/intro). The benchmark shows that React Grab makes coding agents approximately **3× faster** on average.

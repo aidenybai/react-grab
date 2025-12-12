@@ -111,7 +111,7 @@ export const createServer = () => {
       const isAborted = () => abortController.signal.aborted;
 
       try {
-        await stream.writeSSE({ data: "Thinking...", event: "status" });
+        await stream.writeSSE({ data: "Thinking…", event: "status" });
 
         const { thread } = getOrCreateThread(sessionId, options);
 

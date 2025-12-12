@@ -258,7 +258,7 @@ const AgentPage = () => {
                 In the benchmarks I ran on a shadcn dashboard, that alone made
                 Claude Code roughly{" "}
                 <Link href="/blog/intro" className="shimmer-text-pink">
-                  66% faster
+                  3× faster
                 </Link>{" "}
                 on average for a set of UI tasks.
                 <sup className="text-neutral-500 text-[10px] ml-0.5">1</sup> The

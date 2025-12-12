@@ -13,8 +13,7 @@ interface BenchmarkTooltipProps {
 const CONTROL_SECONDS = 16.8;
 const TREATMENT_SECONDS = 5.8;
 const MAX_SECONDS = 20;
-const DURATION_CHANGE = "66";
-const COST_CHANGE = "60";
+const DURATION_CHANGE = "3";
 
 interface MiniBarProps {
   targetSeconds: number;
@@ -125,7 +124,7 @@ const MiniChart = ({ isVisible }: MiniChartProps) => {
                   {TREATMENT_SECONDS}s
                 </span>
                 <span className="text-[10px] font-bold text-emerald-400">
-                  ↓{DURATION_CHANGE}%
+                  {DURATION_CHANGE}× faster
                 </span>
               </motion.span>
             </div>

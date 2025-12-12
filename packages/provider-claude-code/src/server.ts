@@ -62,7 +62,7 @@ export const createServer = () => {
       const isAborted = () => sessionId && abortedSessions.has(sessionId);
 
       try {
-        await stream.writeSSE({ data: "Thinking...", event: "status" });
+        await stream.writeSSE({ data: "Thinking…", event: "status" });
 
         // https://github.com/anthropics/claude-code/issues/4619#issuecomment-3217014571
         const env = { ...process.env };

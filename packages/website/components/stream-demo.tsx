@@ -189,7 +189,7 @@ const getConversationBlocks = (): StreamBlock[] => [
           href="/blog/intro"
           className="shimmer-text-pink inline-block touch-manipulation py-1"
         >
-          <span className="font-bold">66%</span> faster
+          <span className="font-bold">3×</span> faster
         </BenchmarkTooltip>
       </span>
     ),

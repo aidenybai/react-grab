@@ -148,10 +148,8 @@ export const BenchmarkChartsTweet = ({ results }: BenchmarkChartsProps) => {
   const maxSeconds = Math.ceil(controlDurationSec / 5) * 5;
   const gridLines = Array.from({ length: maxSeconds / 5 + 1 }, (_, i) => i * 5);
 
-  const durationChange = Math.abs(
-    ((treatmentStats.avgDuration - controlStats.avgDuration) /
-      controlStats.avgDuration) *
-      100,
+  const durationSpeedup = (
+    controlStats.avgDuration / treatmentStats.avgDuration
   ).toFixed(0);
   const costChange = Math.abs(
     ((treatmentTotalCost - controlTotalCost) / controlTotalCost) * 100,
@@ -188,7 +186,7 @@ export const BenchmarkChartsTweet = ({ results }: BenchmarkChartsProps) => {
                 maxSeconds={maxSeconds}
                 color="#ff4fff"
                 durationLabel={`${treatmentDurationSec.toFixed(1)}s`}
-                durationChange={durationChange}
+                durationSpeedup={durationSpeedup}
                 costLabel={`$${treatmentTotalCost.toFixed(2)}`}
                 costChange={costChange}
               />
@@ -264,7 +262,7 @@ interface AnimatedBarTreatmentProps {
   maxSeconds: number;
   color: string;
   durationLabel: string;
-  durationChange: string;
+  durationSpeedup: string;
   costLabel: string;
   costChange: string;
 }
@@ -274,7 +272,7 @@ const AnimatedBarTreatment = ({
   maxSeconds,
   color,
   durationLabel,
-  durationChange,
+  durationSpeedup,
   costLabel,
   costChange,
 }: AnimatedBarTreatmentProps) => {
@@ -303,7 +301,7 @@ const AnimatedBarTreatment = ({
           {durationLabel}
         </span>
         <span className="text-sm font-bold text-emerald-400">
-          ↓{durationChange}%
+          {durationSpeedup}× faster
         </span>
         <span className="text-[10px] text-neutral-500">
           ({costLabel} ↓{costChange}%)

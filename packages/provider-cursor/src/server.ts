@@ -102,7 +102,7 @@ export const createServer = () => {
       let stderrBuffer = "";
 
       try {
-        await stream.writeSSE({ data: "Thinking...", event: "status" });
+        await stream.writeSSE({ data: "Thinking…", event: "status" });
 
         cursorProcess = execa("cursor-agent", cursorAgentArgs, {
           stdin: "pipe",

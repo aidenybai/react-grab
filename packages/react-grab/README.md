@@ -6,7 +6,7 @@
 
 React Grab allows you to select an element and copy its context (like HTML, React component, and file source)
 
-It makes tools like Cursor, Claude Code, Copilot run up to [**66% faster**](https://react-grab.com/blog/intro)
+It makes tools like Cursor, Claude Code, Copilot run up to [**3× faster**](https://react-grab.com/blog/intro)
 
 ### [Try out a demo! →](https://react-grab.com)
 

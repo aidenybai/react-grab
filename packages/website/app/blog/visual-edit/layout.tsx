@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
-const title = "I made your coding agent 3× faster at frontend";
+const title = "Visual Edit";
 const description =
-  "I got tired of watching Claude grep around my codebase every time I wanted to edit a button. So I built a tool that lets me click any element and copy its exact source location. Turns out it makes coding agents 3× faster.";
+  "Click any part of your app, ask for a change, and see it happen in sub 20 seconds. Free through OpenCode Zen.";
 const ogImageUrl = `https://react-grab.com/api/og?title=${encodeURIComponent(title)}&subtitle=${encodeURIComponent(description)}`;
 
 export const metadata: Metadata = {
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   openGraph: {
     title,
     description,
-    url: "https://react-grab.com/blog/intro",
+    url: "https://react-grab.com/blog/visual-edit",
     siteName: "React Grab",
     images: [
       {
@@ -23,8 +23,8 @@ export const metadata: Metadata = {
     ],
     locale: "en_US",
     type: "article",
-    authors: ["Aiden Bai"],
-    publishedTime: "2025-11-24T00:00:00Z",
+    authors: ["Aiden Bai", "Ben Maclaurin"],
+    publishedTime: "2025-12-11T00:00:00Z",
   },
   twitter: {
     card: "summary_large_image",
@@ -34,16 +34,18 @@ export const metadata: Metadata = {
     creator: "@aidenybai",
   },
   alternates: {
-    canonical: "https://react-grab.com/blog/intro",
+    canonical: "https://react-grab.com/blog/visual-edit",
   },
 };
 
-interface BlogPostLayoutProps {
+interface VisualEditLayoutProps {
   children: React.ReactNode;
 }
 
-const BlogPostLayout = ({ children }: BlogPostLayoutProps) => {
+const VisualEditLayout = ({ children }: VisualEditLayoutProps) => {
   return children;
 };
 
-export default BlogPostLayout;
+VisualEditLayout.displayName = "VisualEditLayout";
+
+export default VisualEditLayout;

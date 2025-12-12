@@ -87,7 +87,7 @@ export const createServer = () => {
       let stderrBuffer = "";
 
       try {
-        await stream.writeSSE({ data: "Thinking...", event: "status" });
+        await stream.writeSSE({ data: "Thinking…", event: "status" });
 
         geminiProcess = execa("gemini", geminiArgs, {
           stdin: "pipe",
