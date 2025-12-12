@@ -1,5 +1,13 @@
 # @react-grab/codex
 
+## 0.0.87
+
+### Patch Changes
+
+- feat: visual edits
+- Updated dependencies
+  - react-grab@0.0.87
+
 ## 0.0.86
 
 ### Patch Changes

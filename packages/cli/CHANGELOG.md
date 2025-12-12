@@ -1,5 +1,11 @@
 # @react-grab/cli
 
+## 0.0.87
+
+### Patch Changes
+
+- feat: visual edits
+
 ## 0.0.86
 
 ### Patch Changes
