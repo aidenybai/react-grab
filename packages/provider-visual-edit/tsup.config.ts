@@ -58,7 +58,7 @@ export default defineConfig([
   {
     entry: ["./src/client.ts"],
     format: ["iife"],
-    globalName: "ReactGrabInstant",
+    globalName: "ReactGrabVisualEdit",
     outExtension: () => ({ js: ".global.js" }),
     dts: false,
     clean: false,

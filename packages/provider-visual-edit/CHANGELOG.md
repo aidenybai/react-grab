@@ -1,4 +1,4 @@
-# @react-grab/instant
+# @react-grab/visual-edit
 
 ## 0.0.85
 

@@ -6,7 +6,7 @@ export type AgentIntegration =
   | "gemini"
   | "amp"
   | "ami"
-  | "instant"
+  | "visual-edit"
   | "none";
 
 export const NEXT_APP_ROUTER_SCRIPT = `{process.env.NODE_ENV === "development" && (

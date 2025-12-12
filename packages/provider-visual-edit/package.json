@@ -1,9 +1,9 @@
 {
-  "name": "@react-grab/instant",
+  "name": "@react-grab/visual-edit",
   "version": "0.0.85",
   "type": "module",
   "bin": {
-    "react-grab-instant": "./dist/cli.cjs"
+    "react-grab-visual-edit": "./dist/cli.cjs"
   },
   "exports": {
     "./client": {

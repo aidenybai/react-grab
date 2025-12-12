@@ -1,4 +1,4 @@
-import { createInstantAgentProvider } from "@react-grab/instant/client";
+import { createVisualEditAgentProvider } from "@react-grab/visual-edit/client";
 import { init } from "react-grab/core";
 
 declare global {
@@ -18,7 +18,7 @@ if (typeof window !== "undefined" && !window.__REACT_GRAB__) {
   });
 
   const { provider, getOptions, onStart, onComplete, onUndo } =
-    createInstantAgentProvider({ apiEndpoint: "/api/instant" });
+    createVisualEditAgentProvider({ apiEndpoint: "/api/visual-edit" });
 
   api.setAgent({
     provider,
