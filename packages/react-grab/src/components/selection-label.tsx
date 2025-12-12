@@ -15,6 +15,7 @@ import { IconOpen } from "./icon-open.js";
 import { IconMic } from "./icon-mic.js";
 import { IconReturn } from "./icon-return.js";
 import { IconRetry } from "./icon-retry.js";
+import { isKeyboardEventTriggeredByInput } from "../utils/is-keyboard-event-triggered-by-input.js";
 
 interface SelectionLabelProps {
   tagName?: string;
@@ -223,6 +224,7 @@ const DismissConfirmation: Component<DismissConfirmationProps> = (props) => {
 
   const handleKeyDown = (event: KeyboardEvent) => {
     if (activeConfirmationId !== instanceId) return;
+    if (isKeyboardEventTriggeredByInput(event)) return;
     if (event.code === "Enter" || event.code === "Escape") {
       event.preventDefault();
       event.stopPropagation();
@@ -295,6 +297,7 @@ const ErrorConfirmation: Component<ErrorConfirmationProps> = (props) => {
 
   const handleKeyDown = (event: KeyboardEvent) => {
     if (activeConfirmationId !== instanceId) return;
+    if (isKeyboardEventTriggeredByInput(event)) return;
     if (event.code === "Enter") {
       event.preventDefault();
       event.stopPropagation();
@@ -384,6 +387,7 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
 
   const handleKeyDown = (event: KeyboardEvent) => {
     if (activeConfirmationId !== instanceId) return;
+    if (isKeyboardEventTriggeredByInput(event)) return;
     if (event.code === "Enter" || event.code === "Escape") {
       event.preventDefault();
       event.stopPropagation();
