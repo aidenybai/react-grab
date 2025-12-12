@@ -13,6 +13,14 @@ import { Collapsible } from "@/components/collapsible";
 import resultsData from "@/public/results.json";
 import testCasesData from "@/public/test-cases.json";
 import demoGif from "@/public/demo.gif";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+  ReferenceLine,
+} from "recharts";
 
 const BenchmarkCharts = dynamic(
   () =>
@@ -43,6 +51,170 @@ const StaticCodeBlock = ({ children }: { children: React.ReactNode }) => (
     {children}
   </pre>
 );
+
+const treatmentDurations = [
+  4.755, 9.423, 4.082, 4.445, 7.015, 4.085, 12.276, 5.65, 7.932, 9.202, 3.54,
+  8.796, 3.826, 3.61, 4.398, 3.825, 5.5, 4.092, 4.816, 4.091,
+];
+
+const controlDurations = [
+  10.164, 13.411, 19.256, 10.539, 13.507, 12.787, 13.729, 22.528, 9.125, 77.383,
+  11.419, 11.111, 15.488, 7.59, 13.575, 12.215, 12.325, 14.847, 15.216, 20.178,
+];
+
+const generateKernelDensity = (
+  values: number[],
+  bandwidth: number,
+  min: number,
+  max: number,
+  steps: number,
+) => {
+  const result = [];
+  const stepSize = (max - min) / steps;
+
+  for (let i = 0; i <= steps; i++) {
+    const currentX = min + i * stepSize;
+    let density = 0;
+
+    for (const value of values) {
+      const normalizedDistance = (currentX - value) / bandwidth;
+      density += Math.exp(-0.5 * normalizedDistance * normalizedDistance);
+    }
+
+    density = density / (values.length * bandwidth * Math.sqrt(2 * Math.PI));
+    result.push({ x: currentX, density });
+  }
+
+  return result;
+};
+
+const generateDistributionData = () => {
+  const minTime = 0;
+  const maxTime = 30;
+  const steps = 60;
+
+  const treatmentDensity = generateKernelDensity(
+    treatmentDurations,
+    1.5,
+    minTime,
+    maxTime,
+    steps,
+  );
+  const controlDensity = generateKernelDensity(
+    controlDurations,
+    3,
+    minTime,
+    maxTime,
+    steps,
+  );
+
+  return treatmentDensity.map((point, index) => ({
+    time: point.x.toFixed(1),
+    visualEdit: point.density,
+    traditional: controlDensity[index].density,
+  }));
+};
+
+const treatmentAverage =
+  treatmentDurations.reduce((sum, duration) => sum + duration, 0) /
+  treatmentDurations.length;
+const controlAverage =
+  controlDurations.reduce((sum, duration) => sum + duration, 0) /
+  controlDurations.length;
+const speedupMultiplier = (controlAverage / treatmentAverage).toFixed(0);
+
+const TimeComparisonChart = () => {
+  const data = generateDistributionData();
+
+  return (
+    <div className="rounded-lg">
+      <div className="flex flex-wrap items-center justify-end gap-4 mb-4 text-xs">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-0.5 bg-[#525252]" />
+          <span className="text-neutral-400">
+            Without React Grab ~ {controlAverage.toFixed(1)}s
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-0.5 bg-[#ff4fff]" />
+          <span className="text-[#ff4fff]">
+            With React Grab ~ {treatmentAverage.toFixed(1)}s
+          </span>
+        </div>
+      </div>
+      <div className="h-[280px] sm:h-[320px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart
+            data={data}
+            margin={{ top: 20, right: 20, bottom: 30, left: 40 }}
+          >
+            <XAxis
+              dataKey="time"
+              axisLine={{ stroke: "#333" }}
+              tickLine={{ stroke: "#333" }}
+              tick={{ fill: "#666", fontSize: 10 }}
+              label={{
+                value: "Time per Edit (seconds)",
+                position: "bottom",
+                offset: 10,
+                fill: "#666",
+                fontSize: 11,
+              }}
+              ticks={["0.0", "5.0", "10.0", "15.0", "20.0", "25.0", "30.0"]}
+            />
+            <YAxis
+              axisLine={{ stroke: "#333" }}
+              tickLine={{ stroke: "#333" }}
+              tick={{ fill: "#666", fontSize: 10 }}
+              label={{
+                value: "Density",
+                angle: -90,
+                position: "insideLeft",
+                fill: "#666",
+                fontSize: 11,
+              }}
+            />
+            <ReferenceLine
+              x={treatmentAverage.toFixed(1)}
+              stroke="#ff4fff"
+              strokeDasharray="5 5"
+              strokeWidth={1.5}
+            />
+            <ReferenceLine
+              x={controlAverage.toFixed(1)}
+              stroke="#525252"
+              strokeDasharray="5 5"
+              strokeWidth={1.5}
+            />
+            <Area
+              type="monotone"
+              dataKey="traditional"
+              stroke="#525252"
+              fill="#525252"
+              fillOpacity={0.4}
+              strokeWidth={2}
+            />
+            <Area
+              type="monotone"
+              dataKey="visualEdit"
+              stroke="#ff4fff"
+              fill="#ff4fff"
+              fillOpacity={0.4}
+              strokeWidth={2}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="mt-4 text-center">
+        <span className="text-[#ff4fff] font-medium text-sm sm:text-base">
+          {speedupMultiplier}× faster on average
+        </span>
+      </div>
+    </div>
+  );
+};
+
+TimeComparisonChart.displayName = "TimeComparisonChart";
 
 const BlogPostPage = () => {
   const testCaseMapping = useMemo(() => {
@@ -428,6 +600,14 @@ const BlogPostPage = () => {
               3× faster with React Grab
             </span>
             !<sup className="text-neutral-500 text-[10px] ml-0.5">3</sup>
+          </p>
+          <div className="py-4">
+            <TimeComparisonChart />
+          </div>
+          <p className="text-sm text-neutral-500">
+            Distribution of edit times across 20 UI tasks. React Grab eliminates
+            the search phase by providing exact file paths and line numbers,
+            letting the agent jump straight to the code.
           </p>
         </div>
       </div>
