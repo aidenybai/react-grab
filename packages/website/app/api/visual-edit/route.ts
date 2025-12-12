@@ -45,15 +45,13 @@ const isAllowedOrigin = (origin: string | null): boolean => {
   return ALLOWED_ORIGINS_PROD.includes(origin);
 };
 
-const getCorsHeaders = (origin: string | null) => {
-  const allowedOrigin = isAllowedOrigin(origin) ? origin : null;
-
-  console.log("allowedOrigin", allowedOrigin);
+const getCorsHeaders = (_origin: string | null) => {
+  // const allowedOrigin = isAllowedOrigin(origin) ? origin : null;
 
   return {
     // "Access-Control-Allow-Origin": allowedOrigin ?? "",
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Methods": "*",
     "Access-Control-Allow-Headers": "Content-Type",
   };
 };
