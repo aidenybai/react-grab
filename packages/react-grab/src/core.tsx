@@ -254,6 +254,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [supportsFollowUp, setSupportsFollowUp] = createSignal(
       Boolean(options.agent?.provider?.supportsFollowUp),
     );
+    const [dismissButtonText, setDismissButtonText] = createSignal(
+      options.agent?.provider?.dismissButtonText,
+    );
     const [replySessionId, setReplySessionId] = createSignal<string | null>(
       null,
     );
@@ -2461,6 +2464,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             agentSessions={agentManager.sessions()}
             supportsUndo={supportsUndo()}
             supportsFollowUp={supportsFollowUp()}
+            dismissButtonText={dismissButtonText()}
             onAbortSession={(sessionId) => agentManager.abortSession(sessionId)}
             onDismissSession={(sessionId) =>
               agentManager.dismissSession(sessionId)
@@ -2613,6 +2617,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         setHasAgentProvider(Boolean(mergedOptions.provider));
         setSupportsUndo(Boolean(mergedOptions.provider?.undo));
         setSupportsFollowUp(Boolean(mergedOptions.provider?.supportsFollowUp));
+        setDismissButtonText(mergedOptions.provider?.dismissButtonText);
 
         if (mergedOptions.provider?.checkConnection) {
           void mergedOptions.provider.checkConnection().then((connected) => {
@@ -2643,7 +2648,9 @@ export type {
   AgentSessionStorage,
   AgentProvider,
   AgentCompleteResult,
+  AgentOptions,
   UpdatableOptions,
 } from "./types.js";
 
 export { generateSnippet } from "./utils/generate-snippet.js";
+export { copyContent } from "./utils/copy-content.js";

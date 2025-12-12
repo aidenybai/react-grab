@@ -136,6 +136,7 @@ export interface AgentProvider<T = any> {
   abort?: (sessionId: string) => Promise<void>;
   supportsResume?: boolean;
   supportsFollowUp?: boolean;
+  dismissButtonText?: string;
   checkConnection?: () => Promise<boolean>;
   getCompletionMessage?: () => string | undefined;
   undo?: () => Promise<void>;
@@ -303,6 +304,7 @@ export interface ReactGrabRendererProps {
   agentSessions?: Map<string, AgentSession>;
   supportsUndo?: boolean;
   supportsFollowUp?: boolean;
+  dismissButtonText?: string;
   onAbortSession?: (sessionId: string) => void;
   onDismissSession?: (sessionId: string) => void;
   onUndoSession?: (sessionId: string) => void;

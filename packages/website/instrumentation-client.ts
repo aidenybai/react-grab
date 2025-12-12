@@ -30,13 +30,4 @@ if (typeof window !== "undefined" && !window.__REACT_GRAB__) {
   });
 
   window.__REACT_GRAB__ = api;
-
-  initBotId({
-    protect: [
-      {
-        path: "/api/visual-edit",
-        method: "POST",
-      },
-    ],
-  });
 }

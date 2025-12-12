@@ -33,6 +33,7 @@ interface SelectionLabelProps {
   lineNumber?: number;
   supportsUndo?: boolean;
   supportsFollowUp?: boolean;
+  dismissButtonText?: string;
   onInputChange?: (value: string) => void;
   onSubmit?: () => void;
   onCancel?: () => void;
@@ -210,13 +211,18 @@ const BottomSection: Component<BottomSectionProps> = (props) => (
   </div>
 );
 
+let activeConfirmationId: symbol | null = null;
+
 interface DismissConfirmationProps {
   onConfirm?: () => void;
   onCancel?: () => void;
 }
 
 const DismissConfirmation: Component<DismissConfirmationProps> = (props) => {
+  const instanceId = Symbol();
+
   const handleKeyDown = (event: KeyboardEvent) => {
+    if (activeConfirmationId !== instanceId) return;
     if (event.code === "Enter" || event.code === "Escape") {
       event.preventDefault();
       event.stopPropagation();
@@ -224,16 +230,28 @@ const DismissConfirmation: Component<DismissConfirmationProps> = (props) => {
     }
   };
 
+  const handleFocus = () => {
+    activeConfirmationId = instanceId;
+  };
+
   onMount(() => {
+    activeConfirmationId = instanceId;
     window.addEventListener("keydown", handleKeyDown, { capture: true });
   });
 
   onCleanup(() => {
+    if (activeConfirmationId === instanceId) {
+      activeConfirmationId = null;
+    }
     window.removeEventListener("keydown", handleKeyDown, { capture: true });
   });
 
   return (
-    <div class="contain-layout shrink-0 flex flex-col justify-center items-end gap-1 w-fit h-fit">
+    <div
+      class="contain-layout shrink-0 flex flex-col justify-center items-end gap-1 w-fit h-fit"
+      onPointerDown={handleFocus}
+      onClick={handleFocus}
+    >
       <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-full h-fit">
         <span class="text-black text-[12px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
           Discard?
@@ -273,7 +291,10 @@ interface ErrorConfirmationProps {
 const MAX_ERROR_LENGTH = 50;
 
 const ErrorConfirmation: Component<ErrorConfirmationProps> = (props) => {
+  const instanceId = Symbol();
+
   const handleKeyDown = (event: KeyboardEvent) => {
+    if (activeConfirmationId !== instanceId) return;
     if (event.code === "Enter") {
       event.preventDefault();
       event.stopPropagation();
@@ -285,6 +306,10 @@ const ErrorConfirmation: Component<ErrorConfirmationProps> = (props) => {
     }
   };
 
+  const handleFocus = () => {
+    activeConfirmationId = instanceId;
+  };
+
   const truncatedError = () => {
     const error = props.error;
     if (error.length <= MAX_ERROR_LENGTH) return error;
@@ -292,15 +317,23 @@ const ErrorConfirmation: Component<ErrorConfirmationProps> = (props) => {
   };
 
   onMount(() => {
+    activeConfirmationId = instanceId;
     window.addEventListener("keydown", handleKeyDown, { capture: true });
   });
 
   onCleanup(() => {
+    if (activeConfirmationId === instanceId) {
+      activeConfirmationId = null;
+    }
     window.removeEventListener("keydown", handleKeyDown, { capture: true });
   });
 
   return (
-    <div class="contain-layout shrink-0 flex flex-col justify-center items-end gap-1 w-fit h-fit max-w-[280px]">
+    <div
+      class="contain-layout shrink-0 flex flex-col justify-center items-end gap-1 w-fit h-fit max-w-[280px]"
+      onPointerDown={handleFocus}
+      onClick={handleFocus}
+    >
       <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-full h-fit">
         <span
           class="text-[#B91C1C] text-[12px] leading-4 font-sans font-medium"
@@ -338,6 +371,7 @@ interface CompletedConfirmationProps {
   statusText: string;
   supportsUndo?: boolean;
   supportsFollowUp?: boolean;
+  dismissButtonText?: string;
   onDismiss?: () => void;
   onUndo?: () => void;
   onReply?: () => void;
@@ -346,7 +380,10 @@ interface CompletedConfirmationProps {
 const CompletedConfirmation: Component<CompletedConfirmationProps> = (
   props,
 ) => {
+  const instanceId = Symbol();
+
   const handleKeyDown = (event: KeyboardEvent) => {
+    if (activeConfirmationId !== instanceId) return;
     if (event.code === "Enter" || event.code === "Escape") {
       event.preventDefault();
       event.stopPropagation();
@@ -354,16 +391,28 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
     }
   };
 
+  const handleFocus = () => {
+    activeConfirmationId = instanceId;
+  };
+
   onMount(() => {
+    activeConfirmationId = instanceId;
     window.addEventListener("keydown", handleKeyDown, { capture: true });
   });
 
   onCleanup(() => {
+    if (activeConfirmationId === instanceId) {
+      activeConfirmationId = null;
+    }
     window.removeEventListener("keydown", handleKeyDown, { capture: true });
   });
 
   return (
-    <div class="[font-synthesis:none] contain-layout shrink-0 flex flex-col justify-center items-end rounded-xs bg-white antialiased w-fit h-fit">
+    <div
+      class="[font-synthesis:none] contain-layout shrink-0 flex flex-col justify-center items-end rounded-xs bg-white antialiased w-fit h-fit"
+      onPointerDown={handleFocus}
+      onClick={handleFocus}
+    >
       <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 px-1.5 w-full h-fit">
         <span class="text-black text-[12px] leading-4 shrink-0 font-sans font-medium w-fit h-fit tabular-nums">
           {props.statusText}
@@ -398,7 +447,7 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
                 onClick={() => props.onDismiss?.()}
               >
                 <span class="text-black text-[11px] leading-3.5 font-sans font-medium">
-                  Ok
+                  {props.dismissButtonText ?? "Ok"}
                 </span>
                 <IconReturn size={10} class="text-black/50" />
               </button>
@@ -707,6 +756,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             }
             supportsUndo={props.supportsUndo}
             supportsFollowUp={props.supportsFollowUp}
+            dismissButtonText={props.dismissButtonText}
             onDismiss={props.onDismiss}
             onUndo={props.onUndo}
             onReply={props.onReply}
