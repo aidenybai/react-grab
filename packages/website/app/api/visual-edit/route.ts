@@ -1,5 +1,26 @@
+import { kv } from "@vercel/kv";
+import { checkBotId } from "botid/server";
+
 const OPENCODE_ZEN_ENDPOINT = "https://opencode.ai/zen/v1/chat/completions";
 const MODEL = "grok-code";
+
+interface ConversationMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+const CACHE_TTL_SECONDS = 60 * 60;
+const CACHE_PREFIX = "visual-edit:";
+
+const generateCacheKey = async (messages: ConversationMessage[]): Promise<string> => {
+  const content = JSON.stringify(messages);
+  const encoder = new TextEncoder();
+  const data = encoder.encode(content);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hash = hashArray.map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `${CACHE_PREFIX}${hash}`;
+};
 
 const SYSTEM_PROMPT = `You are a DOM manipulation assistant. You will receive HTML with ancestor context and a modification request.
 
@@ -12,6 +33,7 @@ CRITICAL RULES:
 4. Use $el to reference the target element (marked between <!-- START $el --> and <!-- END $el -->)
 5. Modify the element using standard DOM APIs
 6. Do NOT reassign $el itself
+7. ITERATION IS RARE - try hard to solve the request completely in one response.
 
 Example: To change text, use $el.textContent = "new text"
 Example: To add a class, use $el.classList.add("new-class")
@@ -46,12 +68,13 @@ const getCorsHeaders = (origin: string | null) => {
   };
 };
 
-interface ConversationMessage {
-  role: "user" | "assistant";
-  content: string;
-}
-
 export async function POST(request: Request) {
+  const verification = await checkBotId();
+
+  if (verification.isBot) {
+    return Response.json({ error: "Access denied" }, { status: 403 });
+  }
+
   const origin = request.headers.get("origin");
   const corsHeaders = getCorsHeaders(origin);
 
@@ -102,6 +125,19 @@ export async function POST(request: Request) {
   ];
 
   try {
+    const cacheKey = await generateCacheKey(messages);
+    const cachedResponse = await kv.get<string>(cacheKey);
+
+    if (cachedResponse) {
+      return new Response(cachedResponse, {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "text/javascript",
+          "X-Cache": "HIT",
+        },
+      });
+    }
+
     const response = await fetch(OPENCODE_ZEN_ENDPOINT, {
       method: "POST",
       headers: {
@@ -131,10 +167,13 @@ export async function POST(request: Request) {
     const data = await response.json();
     const generatedCode = data.choices?.[0]?.message?.content || "";
 
+    await kv.set(cacheKey, generatedCode, { ex: CACHE_TTL_SECONDS });
+
     return new Response(generatedCode, {
       headers: {
         ...corsHeaders,
         "Content-Type": "text/javascript",
+        "X-Cache": "MISS",
       },
     });
   } catch (error) {

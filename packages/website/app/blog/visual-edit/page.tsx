@@ -276,15 +276,6 @@ const VisualEditPage = () => {
               >
                 Aiden Bai
               </a>
-              {", "}
-              <a
-                href="https://x.com/ben__maclaurin"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-neutral-300 hover:text-white underline underline-offset-4"
-              >
-                Ben Maclaurin
-              </a>
               {" · "}
               <span>December 12, 2025</span>
             </div>
@@ -511,3 +502,4 @@ const VisualEditPage = () => {
 VisualEditPage.displayName = "VisualEditPage";
 
 export default VisualEditPage;
+

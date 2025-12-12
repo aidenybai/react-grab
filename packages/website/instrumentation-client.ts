@@ -1,3 +1,5 @@
+import { initBotId } from "botid/client/core";
+
 import { createVisualEditAgentProvider } from "@react-grab/visual-edit/client";
 import { init } from "react-grab/core";
 
@@ -30,4 +32,13 @@ if (typeof window !== "undefined" && !window.__REACT_GRAB__) {
   });
 
   window.__REACT_GRAB__ = api;
+
+  initBotId({
+    protect: [
+      {
+        path: "/api/visual-edit",
+        method: "POST",
+      },
+    ],
+  });
 }
