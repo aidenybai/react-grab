@@ -48,8 +48,11 @@ const isAllowedOrigin = (origin: string | null): boolean => {
 const getCorsHeaders = (origin: string | null) => {
   const allowedOrigin = isAllowedOrigin(origin) ? origin : null;
 
+  console.log("allowedOrigin", allowedOrigin);
+
   return {
-    "Access-Control-Allow-Origin": allowedOrigin ?? "",
+    // "Access-Control-Allow-Origin": allowedOrigin ?? "",
+    "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
   };
