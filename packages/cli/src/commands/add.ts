@@ -25,7 +25,6 @@ const AGENT_NAMES: Record<string, string> = {
   codex: "Codex",
   gemini: "Gemini",
   amp: "Amp",
-  ami: "Ami",
   "visual-edit": "Visual Edit",
 };
 
@@ -34,7 +33,7 @@ export const add = new Command()
   .description("add an agent integration")
   .argument(
     "[agent]",
-    "agent to add (claude-code, cursor, opencode, codex, gemini, amp, ami, visual-edit)",
+    "agent to add (claude-code, cursor, opencode, codex, gemini, amp, visual-edit)",
   )
   .option("-y, --yes", "skip confirmation prompts", false)
   .option(
@@ -76,7 +75,6 @@ export const add = new Command()
           "codex",
           "gemini",
           "amp",
-          "ami",
           "visual-edit",
         ] as const
       ).filter((agent) => !projectInfo.installedAgents.includes(agent));
@@ -99,14 +97,13 @@ export const add = new Command()
             "codex",
             "gemini",
             "amp",
-            "ami",
-            "instant",
+            "visual-edit",
           ].includes(agentArg)
         ) {
           logger.break();
           logger.error(`Invalid agent: ${agentArg}`);
           logger.error(
-            "Available agents: claude-code, cursor, opencode, codex, gemini, amp, ami, visual-edit",
+            "Available agents: claude-code, cursor, opencode, codex, gemini, amp, visual-edit",
           );
           logger.break();
           process.exit(1);

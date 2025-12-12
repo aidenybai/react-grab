@@ -5,7 +5,6 @@ export type AgentIntegration =
   | "codex"
   | "gemini"
   | "amp"
-  | "ami"
   | "visual-edit"
   | "none";
 

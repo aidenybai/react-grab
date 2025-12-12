@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     ],
     locale: "en_US",
     type: "article",
-    authors: ["Aiden Bai", "Ben Maclaurin"],
+    authors: ["Aiden Bai"],
     publishedTime: "2025-12-11T00:00:00Z",
   },
   twitter: {
@@ -49,4 +49,3 @@ const VisualEditLayout = ({ children }: VisualEditLayoutProps) => {
 VisualEditLayout.displayName = "VisualEditLayout";
 
 export default VisualEditLayout;
-

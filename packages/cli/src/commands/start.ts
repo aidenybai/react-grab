@@ -109,7 +109,7 @@ export const start = new Command()
             { title: "Codex", value: "@react-grab/codex" },
             { title: "Gemini", value: "@react-grab/gemini" },
             { title: "Amp", value: "@react-grab/amp" },
-            { title: "Ami", value: "@react-grab/ami" },
+            { title: "Visual Edit", value: "@react-grab/visual-edit" },
           ],
         });
 

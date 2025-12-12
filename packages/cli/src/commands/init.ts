@@ -87,7 +87,7 @@ export const init = new Command()
   .option("-f, --force", "force overwrite existing config", false)
   .option(
     "-a, --agent <agent>",
-    "agent integration (claude-code, cursor, opencode, codex, gemini, amp, ami, visual-edit)",
+    "agent integration (claude-code, cursor, opencode, codex, gemini, amp, visual-edit)",
   )
   .option("--skip-install", "skip package installation", false)
   .option(
@@ -249,7 +249,6 @@ export const init = new Command()
             { title: "Codex", value: "codex" },
             { title: "Gemini", value: "gemini" },
             { title: "Amp", value: "amp" },
-            { title: "Ami", value: "ami" },
             { title: "Visual Edit", value: "visual-edit" },
           ],
         });
