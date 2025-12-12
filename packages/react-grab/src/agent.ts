@@ -21,7 +21,7 @@ import { getNearestComponentName } from "./context.js";
 import { RECENT_THRESHOLD_MS } from "./constants.js";
 
 interface StartSessionParams {
-  element: Element;
+  elements: Element[];
   prompt: string;
   position: { x: number; y: number };
   selectionBounds?: OverlayBounds;
@@ -248,19 +248,20 @@ export const createAgentManager = (
   };
 
   const startSession = async (params: StartSessionParams) => {
-    const { element, prompt, position, selectionBounds, sessionId } = params;
+    const { elements, prompt, position, selectionBounds, sessionId } = params;
     const storage = agentOptions?.storage;
 
-    if (!agentOptions?.provider) {
+    if (!agentOptions?.provider || elements.length === 0) {
       return;
     }
 
+    const firstElement = elements[0];
     const existingSession = sessionId ? sessions().get(sessionId) : undefined;
     const isFollowUp = Boolean(sessionId);
 
     const content = existingSession
       ? existingSession.context.content
-      : await generateSnippet([element], { maxLines: Infinity });
+      : await generateSnippet(elements, { maxLines: Infinity });
 
     const context: AgentContext = {
       content,
@@ -281,9 +282,9 @@ export const createAgentManager = (
         storage,
       );
     } else {
-      const tagName = (element.tagName || "").toLowerCase() || undefined;
+      const tagName = (firstElement.tagName || "").toLowerCase() || undefined;
       const componentName =
-        (await getNearestComponentName(element)) || undefined;
+        (await getNearestComponentName(firstElement)) || undefined;
 
       session = createSession(
         context,
@@ -293,12 +294,12 @@ export const createAgentManager = (
         componentName,
       );
       session.lastStatus = "Thinking…";
-      sessionElements.set(session.id, element);
+      sessionElements.set(session.id, firstElement);
     }
 
     setSessions((prev) => new Map(prev).set(session.id, session));
     saveSessionById(session, storage);
-    agentOptions.onStart?.(session, element);
+    agentOptions.onStart?.(session, firstElement);
 
     const abortController = new AbortController();
     abortControllers.set(session.id, abortController);

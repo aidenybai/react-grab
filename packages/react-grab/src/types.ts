@@ -291,6 +291,7 @@ export interface ReactGrabRendererProps {
     bounds: OverlayBounds;
     createdAt: number;
   }>;
+  multiSelectBounds?: OverlayBounds[];
   labelZIndex?: number;
   mouseX?: number;
   mouseY?: number;

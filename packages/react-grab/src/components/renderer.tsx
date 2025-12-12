@@ -55,6 +55,12 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         )}
       </For>
 
+      <For each={props.multiSelectBounds ?? []}>
+        {(bounds) => (
+          <SelectionBox variant="selection" bounds={bounds} visible={true} />
+        )}
+      </For>
+
       <Index each={agentSessionsList()}>
         {(session) => (
           <>
@@ -100,7 +106,9 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
                 props.onAcknowledgeSessionError?.(session().id)
               }
               onRetry={() => props.onRetrySession?.(session().id)}
-              isPendingAbort={session().isStreaming ? props.isPendingAgentAbort : false}
+              isPendingAbort={
+                session().isStreaming ? props.isPendingAgentAbort : false
+              }
               onConfirmAbort={props.onConfirmAgentAbort}
               onCancelAbort={props.onCancelAgentAbort}
             />

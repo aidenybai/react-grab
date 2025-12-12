@@ -244,6 +244,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [frozenElement, setFrozenElement] = createSignal<Element | null>(
       null,
     );
+    const [frozenElements, setFrozenElements] = createSignal<Element[]>([]);
+    const [multiSelectedElements, setMultiSelectedElements] = createSignal<
+      Element[]
+    >([]);
     const [hasAgentProvider, setHasAgentProvider] = createSignal(
       Boolean(options.agent?.provider),
     );
@@ -1090,6 +1094,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setIsInputExpanded(false);
       setIsPendingDismiss(false);
       setFrozenElement(null);
+      setFrozenElements([]);
+      setMultiSelectedElements([]);
       setSelectionLabelStatus("idle");
       setDidJustCopy(false);
       if (isDragging()) {
@@ -1182,21 +1188,29 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleInputSubmit = () => {
       setLastCopiedElement(null);
-      const element = frozenElement() || targetElement();
+      const multiElements = frozenElements();
+      const singleElement = frozenElement() || targetElement();
+      const elements =
+        multiElements.length > 0
+          ? multiElements
+          : singleElement
+            ? [singleElement]
+            : [];
       const prompt = isInputMode() ? inputText().trim() : "";
 
-      if (!element) {
+      if (elements.length === 0) {
         deactivateRenderer();
         return;
       }
 
-      const bounds = createElementBounds(element);
+      const firstElement = elements[0];
+      const bounds = createElementBounds(firstElement);
       const labelPositionX = mouseX();
       const currentX = bounds.x + bounds.width / 2;
       const currentY = bounds.y + bounds.height / 2;
 
       if (hasAgentProvider() && prompt) {
-        elementInputCache.delete(element);
+        elementInputCache.delete(firstElement);
         deactivateRenderer();
 
         const currentReplySessionId = replySessionId();
@@ -1204,7 +1218,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         setReplyToPrompt(null);
 
         void agentManager.startSession({
-          element,
+          elements,
           prompt,
           position: { x: labelPositionX, y: currentY },
           selectionBounds: bounds,
@@ -1219,21 +1233,28 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setIsInputMode(false);
       setInputText("");
       if (prompt) {
-        elementInputCache.set(element, prompt);
+        elementInputCache.set(firstElement, prompt);
       } else {
-        elementInputCache.delete(element);
+        elementInputCache.delete(firstElement);
       }
 
-      const tagName = extractElementTagName(element);
-      void getNearestComponentName(element).then((componentName) => {
+      const tagName = extractElementTagName(firstElement);
+      void getNearestComponentName(firstElement).then((componentName) => {
+        const copyOperation =
+          elements.length === 1
+            ? () =>
+                copySingleElementToClipboard(firstElement, prompt || undefined)
+            : () => copyMultipleElementsToClipboard(elements);
+
         void executeCopyOperation(
           currentX,
           currentY,
-          () => copySingleElementToClipboard(element, prompt || undefined),
+          copyOperation,
           bounds,
           tagName,
           componentName ?? undefined,
-          element,
+          firstElement,
+          elements.length > 1,
         ).then(() => {
           deactivateRenderer();
         });
@@ -1298,6 +1319,42 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setIsToggleFrozen(true);
       setIsInputExpanded(true);
       setIsInputMode(true);
+    };
+
+    const triggerMultiSelectAction = (elements: Element[]) => {
+      if (elements.length === 0) return;
+
+      const firstElement = elements[0];
+      const bounds = createElementBounds(firstElement);
+      const centerX = bounds.x + bounds.width / 2;
+      const centerY = bounds.y + bounds.height / 2;
+
+      if (hasAgentProvider()) {
+        setFrozenElement(firstElement);
+        setFrozenElements(elements);
+        setMouseX(centerX);
+        setMouseY(centerY);
+        setIsToggleMode(true);
+        setIsToggleFrozen(true);
+        setIsInputExpanded(true);
+        setIsInputMode(true);
+      } else {
+        const tagName = extractElementTagName(firstElement);
+        void getNearestComponentName(firstElement).then((componentName) => {
+          void executeCopyOperation(
+            centerX,
+            centerY,
+            () => copyMultipleElementsToClipboard(elements),
+            bounds,
+            tagName,
+            componentName ?? undefined,
+            firstElement,
+            true,
+          );
+        });
+      }
+
+      setMultiSelectedElements([]);
     };
 
     const handleNativeSelectionCopy = async () => {
@@ -1479,6 +1536,23 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const element = getElementAtPosition(clientX, clientY);
         if (!element) return;
 
+        const isMultiSelectActive =
+          isToggleMode() &&
+          (isHoldingKeys() || multiSelectedElements().length > 0);
+
+        if (isMultiSelectActive) {
+          setMultiSelectedElements((previousElements) => {
+            const isAlreadySelected = previousElements.includes(element);
+            if (isAlreadySelected) {
+              return previousElements.filter(
+                (existingElement) => existingElement !== element,
+              );
+            }
+            return [...previousElements, element];
+          });
+          return;
+        }
+
         if (hasAgentProvider()) {
           if (pendingClickTimeoutId !== null) {
             window.clearTimeout(pendingClickTimeoutId);
@@ -1651,7 +1725,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           (isEventFromOverlay(event, "data-react-grab-ignore-events") &&
             !isEnterToActivateInput)
         ) {
-          if (event.key === "Escape" && agentManager.isProcessing() && !isPendingAgentAbort()) {
+          if (
+            event.key === "Escape" &&
+            agentManager.isProcessing() &&
+            !isPendingAgentAbort()
+          ) {
             event.preventDefault();
             event.stopPropagation();
             setIsPendingAgentAbort(true);
@@ -1685,10 +1763,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             case "ArrowUp":
             case "ArrowDown": {
               const bounds = createElementBounds(currentElement);
-              const elementsAtPoint = document.elementsFromPoint(
-                bounds.x + bounds.width / 2,
-                bounds.y + bounds.height / 2,
-              ).filter(isValidGrabbableElement);
+              const elementsAtPoint = document
+                .elementsFromPoint(
+                  bounds.x + bounds.width / 2,
+                  bounds.y + bounds.height / 2,
+                )
+                .filter(isValidGrabbableElement);
               const currentIndex = elementsAtPoint.indexOf(currentElement);
               if (currentIndex !== -1) {
                 const direction = event.key === "ArrowUp" ? 1 : -1;
@@ -1741,8 +1821,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                     sibling = getSibling(sibling);
                   }
                   if (nextElement) break;
-                  const parentElement: HTMLElement | null = searchElement.parentElement;
-                  if (!isForward && parentElement && isValidGrabbableElement(parentElement)) {
+                  const parentElement: HTMLElement | null =
+                    searchElement.parentElement;
+                  if (
+                    !isForward &&
+                    parentElement &&
+                    isValidGrabbableElement(parentElement)
+                  ) {
                     nextElement = parentElement;
                     break;
                   }
@@ -1994,7 +2079,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         if (isActivated()) {
           if (isReleasingModifier) {
-            if (isToggleMode() && options.activationMode !== "hold") return;
+            if (isToggleMode() && options.activationMode !== "hold") {
+              const selectedElements = multiSelectedElements();
+              if (selectedElements.length > 0) {
+                triggerMultiSelectAction(selectedElements);
+              }
+              return;
+            }
             deactivateRenderer();
           } else if (
             !hasCustomShortcut &&
@@ -2008,7 +2099,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
 
         if (isReleasingActivationKey || isReleasingModifier) {
-          if (isToggleMode() && options.activationMode !== "hold") return;
+          if (isToggleMode() && options.activationMode !== "hold") {
+            const selectedElements = multiSelectedElements();
+            if (selectedElements.length > 0) {
+              triggerMultiSelectAction(selectedElements);
+            }
+            return;
+          }
           deactivateRenderer();
         }
       },
@@ -2138,9 +2235,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           }
 
           if (isToggleMode() && !isCopying() && !isInputMode()) {
-            if (!isHoldingKeys()) {
+            const hasMultiSelect = multiSelectedElements().length > 0;
+            if (!isHoldingKeys() && !hasMultiSelect) {
               deactivateRenderer();
-            } else {
+            } else if (!hasMultiSelect) {
               setIsToggleMode(false);
             }
           }
@@ -2391,6 +2489,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
     });
 
+    const computedMultiSelectBounds = createMemo(() => {
+      viewportVersion();
+      return multiSelectedElements()
+        .filter((element) => document.body.contains(element))
+        .map((element) => createElementBounds(element));
+    });
+
     const dragVisible = createMemo(
       () =>
         theme().dragBox.enabled &&
@@ -2449,6 +2554,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             grabbedBoxes={
               shouldShowGrabbedBoxes() ? computedGrabbedBoxes() : []
             }
+            multiSelectBounds={computedMultiSelectBounds()}
             labelZIndex={Z_INDEX_LABEL}
             mouseX={cursorPosition().x}
             mouseY={cursorPosition().y}
