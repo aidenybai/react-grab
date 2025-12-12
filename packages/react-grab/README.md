@@ -4,9 +4,11 @@
 [![version](https://img.shields.io/npm/v/react-grab?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/react-grab)
 [![downloads](https://img.shields.io/npm/dt/react-grab.svg?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/react-grab)
 
-React Grab allows you to select an element and copy its context (like HTML, React component, and file source)
+Select context for coding agents directly from your website
 
-It makes tools like Cursor, Claude Code, Copilot run up to [**3× faster**](https://react-grab.com/blog/intro)
+How? Point at any element and it'll send the file name, React component, and HTML source code.
+
+It makes tools like Cursor, Claude Code, Copilot run up to [**3× faster**](https://react-grab.com/blog/intro) and more accurate.
 
 ### [Try out a demo! →](https://react-grab.com)
 
@@ -19,7 +21,7 @@ https://github.com/user-attachments/assets/fdb34329-b471-4b39-b433-0b1a27a94bd8
 Run this command to install React Grab into your project. Ensure you are running at project root (e.g. where the `next.config.ts` or `vite.config.ts` file is located).
 
 ```html
-npx react-grab@latest init
+npx grab@latest init
 ```
 
 ## Manual Installation

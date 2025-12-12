@@ -1,5 +1,11 @@
 # @react-grab/utils
 
+## 0.0.86
+
+### Patch Changes
+
+- fix: editing
+
 ## 0.0.85
 
 ### Patch Changes
