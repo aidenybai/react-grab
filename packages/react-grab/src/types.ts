@@ -162,7 +162,7 @@ export interface AgentOptions<T = any> {
   onComplete?: (
     session: AgentSession,
     element: Element | undefined,
-  ) => AgentCompleteResult | void;
+  ) => AgentCompleteResult | void | Promise<AgentCompleteResult | void>;
   onError?: (error: Error, session: AgentSession) => void;
   onResume?: (session: AgentSession) => void;
   onAbort?: (session: AgentSession, element: Element | undefined) => void;

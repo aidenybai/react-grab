@@ -103,7 +103,7 @@ export const createAgentManager = (
         );
         setSessions((prev) => new Map(prev).set(session.id, completedSession));
         const element = sessionElements.get(session.id);
-        const result = agentOptions?.onComplete?.(completedSession, element);
+        const result = await agentOptions?.onComplete?.(completedSession, element);
         if (result?.error) {
           const errorSession = updateSession(
             completedSession,

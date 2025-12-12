@@ -6,7 +6,7 @@ import type {
   init,
   ReactGrabAPI,
 } from "react-grab/core";
-import { copyContent } from "react-grab/core";
+import { copyContent, formatElementInfo } from "react-grab/core";
 
 export type { AgentCompleteResult };
 
@@ -693,10 +693,10 @@ export const createVisualEditAgentProvider = (
     resultCodeMap.delete(requestId);
   };
 
-  const onComplete = (
+  const onComplete = async (
     session: AgentSession,
     element: Element | undefined,
-  ): AgentCompleteResult | void => {
+  ): Promise<AgentCompleteResult | void> => {
     const requestId = (session.context.options as RequestContext | undefined)
       ?.requestId;
     if (!requestId) return;
@@ -739,7 +739,8 @@ export const createVisualEditAgentProvider = (
       return { error: message };
     }
 
-    const reference = `${REFERENCE_PREFIX}${code}`;
+    const elementContext = await formatElementInfo(element);
+    const reference = `${REFERENCE_PREFIX}${code}\n\n---\n\n${elementContext}`;
     copyContent(reference);
 
     cleanup(requestId);
