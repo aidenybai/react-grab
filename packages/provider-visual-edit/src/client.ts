@@ -6,8 +6,12 @@ import type {
   init,
   ReactGrabAPI,
 } from "react-grab/core";
+import { copyContent } from "react-grab/core";
 
 export type { AgentCompleteResult };
+
+const REFERENCE_PREFIX =
+  "Use this as reference to make the change, do not actually write this code:\n\n";
 
 interface VisualEditAgentProviderOptions {
   apiEndpoint?: string;
@@ -673,6 +677,7 @@ export const createVisualEditAgentProvider = (
       yield "Applying changes…";
     },
     supportsFollowUp: true,
+    dismissButtonText: "Copy",
     getCompletionMessage: () => {
       if (lastRequestStartTime === null) return undefined;
       const totalSeconds = ((Date.now() - lastRequestStartTime) / 1000).toFixed(
@@ -734,6 +739,9 @@ export const createVisualEditAgentProvider = (
       return { error: message };
     }
 
+    const reference = `${REFERENCE_PREFIX}${code}`;
+    copyContent(reference);
+
     cleanup(requestId);
   };
 
@@ -756,8 +764,32 @@ declare global {
   }
 }
 
+const checkHealth = async (): Promise<boolean> => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 1000);
+
+  try {
+    const response = await fetch(DEFAULT_API_ENDPOINT, {
+      method: "GET",
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) return false;
+
+    const data = await response.json().catch(() => null);
+    return data?.healthy === true;
+  } catch {
+    clearTimeout(timeoutId);
+    return false;
+  }
+};
+
 export const attachAgent = async () => {
   if (typeof window === "undefined") return;
+
+  const isHealthy = await checkHealth();
+  if (!isHealthy) return;
 
   const { provider, getOptions, onStart, onComplete, onUndo } =
     createVisualEditAgentProvider();

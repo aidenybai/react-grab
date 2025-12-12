@@ -1,5 +1,3 @@
-import { initBotId } from "botid/client/core";
-
 import { createVisualEditAgentProvider } from "@react-grab/visual-edit/client";
 import { init } from "react-grab/core";
 

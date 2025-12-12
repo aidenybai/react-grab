@@ -1,6 +1,3 @@
-import { kv } from "@vercel/kv";
-import { checkBotId } from "botid/server";
-
 const OPENCODE_ZEN_ENDPOINT = "https://opencode.ai/zen/v1/chat/completions";
 const MODEL = "grok-code";
 
@@ -9,19 +6,6 @@ interface ConversationMessage {
   content: string;
 }
 
-const CACHE_TTL_SECONDS = 60 * 60;
-const CACHE_PREFIX = "visual-edit:";
-
-const generateCacheKey = async (messages: ConversationMessage[]): Promise<string> => {
-  const content = JSON.stringify(messages);
-  const encoder = new TextEncoder();
-  const data = encoder.encode(content);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hash = hashArray.map((byte) => byte.toString(16).padStart(2, "0")).join("");
-  return `${CACHE_PREFIX}${hash}`;
-};
-
 const SYSTEM_PROMPT = `You are a DOM manipulation assistant. You will receive HTML with ancestor context and a modification request.
 
 The HTML shows the target element nested within its ancestor elements (up to 5 levels). The target element is marked with <!-- START $el --> and <!-- END $el --> comments. The ancestor tags are shown for structural context only - you should only modify the target element between these markers.
@@ -29,16 +13,19 @@ The HTML shows the target element nested within its ancestor elements (up to 5 l
 CRITICAL RULES:
 1. Output ONLY JavaScript code - nothing else
 2. Do NOT wrap output in markdown code fences
-3. Do NOT include any explanations, comments, or preamble
+3. Start with a single-line comment explaining what the code does (e.g. "// Changes button text to show loading state")
 4. Use $el to reference the target element (marked between <!-- START $el --> and <!-- END $el -->)
 5. Modify the element using standard DOM APIs
 6. Do NOT reassign $el itself
 7. ITERATION IS RARE - try hard to solve the request completely in one response.
 
-Example: To change text, use $el.textContent = "new text"
-Example: To add a class, use $el.classList.add("new-class")
-Example: To change inner HTML, use $el.innerHTML = "<span>new</span>"
-Example: To modify an ancestor, use $el.parentElement.classList.add("highlighted")
+Example output:
+// Changes button text to loading state
+$el.textContent = "Loading..."
+
+Example output:
+// Adds highlight class to element
+$el.classList.add("highlighted")
 
 Your response must be raw JavaScript that can be directly eval'd.`;
 
@@ -69,12 +56,6 @@ const getCorsHeaders = (origin: string | null) => {
 };
 
 export async function POST(request: Request) {
-  const verification = await checkBotId();
-
-  if (verification.isBot) {
-    return Response.json({ error: "Access denied" }, { status: 403 });
-  }
-
   const origin = request.headers.get("origin");
   const corsHeaders = getCorsHeaders(origin);
 
@@ -125,19 +106,6 @@ export async function POST(request: Request) {
   ];
 
   try {
-    const cacheKey = await generateCacheKey(messages);
-    const cachedResponse = await kv.get<string>(cacheKey);
-
-    if (cachedResponse) {
-      return new Response(cachedResponse, {
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "text/javascript",
-          "X-Cache": "HIT",
-        },
-      });
-    }
-
     const response = await fetch(OPENCODE_ZEN_ENDPOINT, {
       method: "POST",
       headers: {
@@ -167,13 +135,11 @@ export async function POST(request: Request) {
     const data = await response.json();
     const generatedCode = data.choices?.[0]?.message?.content || "";
 
-    await kv.set(cacheKey, generatedCode, { ex: CACHE_TTL_SECONDS });
-
     return new Response(generatedCode, {
       headers: {
         ...corsHeaders,
         "Content-Type": "text/javascript",
-        "X-Cache": "MISS",
+        "Cache-Control": "public, max-age=3600, s-maxage=3600",
       },
     });
   } catch (error) {
@@ -195,4 +161,16 @@ export function OPTIONS(request: Request) {
   }
 
   return new Response(null, { headers: corsHeaders });
+}
+
+const IS_HEALTHY = true;
+
+export function GET(request: Request) {
+  const origin = request.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
+  return Response.json(
+    { healthy: IS_HEALTHY },
+    { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+  );
 }
