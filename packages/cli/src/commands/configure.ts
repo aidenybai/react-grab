@@ -33,9 +33,10 @@ const formatActivationKey = (activationKey: ReactGrabOptions["activationKey"]): 
   return parts.length > 0 ? parts.join(" + ") : "Default (Option/Alt)";
 };
 
-export const customize = new Command()
-  .name("customize")
-  .description("customize React Grab options")
+export const configure = new Command()
+  .name("configure")
+  .alias("config")
+  .description("configure React Grab options")
   .option("-y, --yes", "skip confirmation prompts", false)
   .option(
     "-c, --cwd <cwd>",
@@ -70,7 +71,7 @@ export const customize = new Command()
 
       if (isNonInteractive) {
         logger.break();
-        logger.error("Customize command requires interactive mode.");
+        logger.error("Configure command requires interactive mode.");
         logger.error("Remove the --yes flag to use interactive prompts.");
         logger.break();
         process.exit(1);
@@ -85,7 +86,7 @@ export const customize = new Command()
       const { wantActivationKey } = await prompts({
         type: "confirm",
         name: "wantActivationKey",
-        message: `Customize ${highlighter.info("activation key")}?`,
+        message: `Configure ${highlighter.info("activation key")}?`,
         initial: false,
       });
 
@@ -259,7 +260,7 @@ export const customize = new Command()
 
       logger.break();
       logger.log(
-        `${highlighter.success("Success!")} React Grab options have been customized.`,
+        `${highlighter.success("Success!")} React Grab options have been configured.`,
       );
       logger.break();
     } catch (error) {
