@@ -9,9 +9,8 @@ import type {
 
 export type { AgentCompleteResult };
 
-interface VisualEditAgentProviderOptions {
+interface InstantAgentProviderOptions {
   apiEndpoint?: string;
-  maxIterations?: number;
 }
 
 interface RequestContext {
@@ -22,34 +21,6 @@ interface ConversationMessage {
   role: "user" | "assistant";
   content: string;
 }
-
-interface IterationResponse {
-  iterate: true;
-  code: string;
-  reason: string;
-}
-
-interface FinalResponse {
-  iterate?: false;
-  code: string;
-}
-
-type AgentResponse = IterationResponse | FinalResponse | string;
-
-const parseAgentResponse = (response: string): AgentResponse => {
-  const trimmed = response.trim();
-  if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
-    try {
-      const parsed = JSON.parse(trimmed) as AgentResponse;
-      if (typeof parsed === "object" && "code" in parsed) {
-        return parsed;
-      }
-    } catch {
-      // Not valid JSON, treat as raw code
-    }
-  }
-  return trimmed;
-};
 
 const buildUserMessage = (
   prompt: string,
@@ -63,37 +34,12 @@ ${html}
 
 Modification request: ${prompt}
 
-You can either:
-1. Output ONLY the JavaScript code if you're confident in the change
-2. Output JSON to iterate: { "iterate": true, "code": "...", "reason": "why you need to see the result" }
-
-When iterating, the code will be executed and you'll see the updated HTML to refine further.`;
+Remember: Output ONLY the JavaScript code, nothing else.`;
   }
 
   return `Follow-up modification request: ${prompt}
 
 Remember: Output ONLY the JavaScript code for this modification. The $el variable still references the same element.`;
-};
-
-const buildIterationMessage = (
-  updatedHtml: string,
-  executionResult: string | null,
-): string => {
-  let message = `Here is the updated HTML after executing your code:
-
-${updatedHtml}`;
-
-  if (executionResult) {
-    message += `
-
-Execution result: ${executionResult}`;
-  }
-
-  message += `
-
-Continue modifying or output final JavaScript code (without JSON wrapper) when done.`;
-
-  return message;
 };
 
 type UndoAction = () => void;
@@ -348,7 +294,7 @@ const createUndoableProxy = (element: HTMLElement) => {
   return { proxy, undo };
 };
 
-const DEFAULT_API_ENDPOINT = "https://www.react-grab.com/api/visual-edit";
+const DEFAULT_API_ENDPOINT = "https://www.react-grab.com/api/instant";
 const ANCESTOR_LEVELS = 5;
 
 const FORBIDDEN_PATTERNS = [
@@ -359,40 +305,23 @@ const FORBIDDEN_PATTERNS = [
   /\bXMLHttpRequest\b/,
 ];
 
-const sanitizeCode = (code: string): string =>
-  code
-    .replace(/[\u2018\u2019\u2032\u2035]/g, "'")
-    .replace(/[\u201C\u201D\u2033\u2036]/g, '"')
-    .replace(/[\u2014\u2013\u2212]/g, "-")
-    .replace(/\u2026/g, "...")
-    .replace(/[\u00A0\u2000-\u200A\u202F\u205F]/g, " ")
-    .replace(/[\u200B-\u200D\uFEFF]/g, "");
-
-const validateCode = (
-  code: string,
-): { isValid: boolean; error?: string; sanitizedCode: string } => {
-  const sanitizedCode = sanitizeCode(code);
+const validateCode = (code: string): { isValid: boolean; error?: string } => {
   try {
-    new Function("$el", sanitizedCode);
+    new Function("$el", code);
   } catch (err) {
-    return {
-      isValid: false,
-      error: `Invalid JavaScript syntax${err instanceof Error ? `: ${err.message}` : ""}`,
-      sanitizedCode,
-    };
+    return { isValid: false, error: `Invalid JavaScript syntax${err instanceof Error ? `: ${err.message}` : ""}` };
   }
 
   for (const pattern of FORBIDDEN_PATTERNS) {
-    if (pattern.test(sanitizedCode)) {
+    if (pattern.test(code)) {
       return {
         isValid: false,
         error: `Potentially unsafe code detected: ${pattern.source}`,
-        sanitizedCode,
       };
     }
   }
 
-  return { isValid: true, sanitizedCode };
+  return { isValid: true };
 };
 
 const getOpeningTag = (element: Element): string => {
@@ -456,13 +385,11 @@ const buildAncestorContext = (element: Element): string => {
   return result.trim();
 };
 
-export const createVisualEditAgentProvider = (
-  options: VisualEditAgentProviderOptions = {},
+export const createInstantAgentProvider = (
+  options: InstantAgentProviderOptions = {},
 ) => {
   const apiEndpoint = options.apiEndpoint ?? DEFAULT_API_ENDPOINT;
-  const maxIterations = options.maxIterations ?? 3;
   const elementHtmlMap = new Map<string, string>();
-  const elementRefMap = new Map<string, Element>();
   const resultCodeMap = new Map<string, string>();
   const undoFnMap = new Map<string, () => void>();
   const conversationHistoryMap = new Map<string, ConversationMessage[]>();
@@ -481,98 +408,6 @@ export const createVisualEditAgentProvider = (
 
     const html = buildAncestorContext(element);
     elementHtmlMap.set(requestId, html);
-    elementRefMap.set(requestId, element);
-  };
-
-  const fetchWithProgress = async function* (
-    messages: ConversationMessage[],
-    signal: AbortSignal,
-  ): AsyncGenerator<string, string, unknown> {
-    let response: Response | null = null;
-    let fetchError: Error | null = null;
-    const fetchStartTime = Date.now();
-
-    const fetchPromise = fetch(apiEndpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages }),
-      signal,
-    })
-      .then((fetchResponse) => {
-        response = fetchResponse;
-      })
-      .catch((caughtError) => {
-        fetchError = caughtError as Error;
-      });
-
-    while (!response && !fetchError) {
-      const elapsedSeconds = (Date.now() - fetchStartTime) / 1000;
-      yield elapsedSeconds >= 0.1
-        ? `Generating… ${elapsedSeconds.toFixed(1)}s`
-        : `Generating…`;
-
-      await Promise.race([
-        fetchPromise,
-        new Promise((resolve) => setTimeout(resolve, 100)),
-      ]);
-    }
-
-    if (fetchError) {
-      throw fetchError;
-    }
-
-    if (!response!.ok) {
-      const errorText = await response!.text().catch(() => "Unknown error");
-      throw new Error(`API error: ${response!.status} - ${errorText}`);
-    }
-
-    yield await response!.text();
-    return "";
-  };
-
-  const executeIterationCode = (
-    element: Element,
-    code: string,
-  ): {
-    success: boolean;
-    result: string | null;
-    updatedHtml: string;
-    undo: () => void;
-  } => {
-    const { isValid, error, sanitizedCode } = validateCode(code);
-    if (!isValid) {
-      return {
-        success: false,
-        result: error ?? "Invalid code",
-        updatedHtml: buildAncestorContext(element),
-        undo: () => {},
-      };
-    }
-
-    const { proxy, undo } = createUndoableProxy(element as HTMLElement);
-
-    try {
-      const returnValue = new Function("$el", sanitizedCode).bind(null)(proxy);
-      const result = returnValue !== undefined ? String(returnValue) : null;
-      return {
-        success: true,
-        result,
-        updatedHtml: buildAncestorContext(element),
-        undo,
-      };
-    } catch (executionError) {
-      undo();
-      const errorMessage =
-        executionError instanceof Error
-          ? executionError.message
-          : "Execution failed";
-      return {
-        success: false,
-        result: errorMessage,
-        updatedHtml: buildAncestorContext(element),
-        undo: () => {},
-      };
-    }
   };
 
   const provider: AgentProvider<RequestContext> = {
@@ -583,9 +418,8 @@ export const createVisualEditAgentProvider = (
       const requestId = context.options?.requestId ?? "";
       const sessionId = context.sessionId;
       const html = elementHtmlMap.get(requestId);
-      const element = elementRefMap.get(requestId);
 
-      if (!html || !element) {
+      if (!html) {
         throw new Error("Could not capture element HTML");
       }
 
@@ -606,69 +440,50 @@ export const createVisualEditAgentProvider = (
       ];
 
       lastRequestStartTime = Date.now();
-      let iterationCount = 0;
-      let finalCode: string | null = null;
-      const iterationUndos: (() => void)[] = [];
+      let response: Response | null = null;
+      let fetchError: Error | null = null;
 
-      while (iterationCount <= maxIterations) {
-        let responseText = "";
-        for await (const progress of fetchWithProgress(messages, signal)) {
-          if (typeof progress === "string" && !progress.startsWith("{")) {
-            yield progress;
-          }
-          responseText = progress;
-        }
+      const fetchPromise = fetch(apiEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages }),
+        signal,
+      })
+        .then((fetchResponse) => {
+          response = fetchResponse;
+        })
+        .catch((caughtError) => {
+          fetchError = caughtError as Error;
+        });
 
-        const parsedResponse = parseAgentResponse(responseText);
+      while (!response && !fetchError) {
+        const elapsedSeconds = (Date.now() - lastRequestStartTime) / 1000;
+        yield elapsedSeconds >= 0.1
+          ? `Generating… ${elapsedSeconds.toFixed(1)}s`
+          : "Generating…";
 
-        if (typeof parsedResponse === "string") {
-          finalCode = parsedResponse;
-          messages.push({ role: "assistant", content: responseText });
-          break;
-        }
-
-        if (!parsedResponse.iterate) {
-          finalCode = parsedResponse.code;
-          messages.push({ role: "assistant", content: responseText });
-          break;
-        }
-
-        messages.push({ role: "assistant", content: responseText });
-
-        yield `Applying…`;
-
-        const { success, result, updatedHtml, undo } = executeIterationCode(
-          element,
-          parsedResponse.code,
-        );
-
-        iterationUndos.push(undo);
-
-        const iterationFeedback = buildIterationMessage(
-          updatedHtml,
-          success ? result : `Error: ${result}`,
-        );
-
-        messages.push({ role: "user", content: iterationFeedback });
-        iterationCount++;
+        await Promise.race([
+          fetchPromise,
+          new Promise((resolve) => setTimeout(resolve, 100)),
+        ]);
       }
 
-      // HACK: Undo all iteration changes before applying final code with proper undo tracking
-      for (
-        let undoIndex = iterationUndos.length - 1;
-        undoIndex >= 0;
-        undoIndex--
-      ) {
-        iterationUndos[undoIndex]();
+      if (fetchError) {
+        throw fetchError;
       }
 
-      if (finalCode === null) {
-        throw new Error("Max iterations reached without final code");
+      if (!response!.ok) {
+        const errorText = await response!.text().catch(() => "Unknown error");
+        throw new Error(`API error: ${response!.status} - ${errorText}`);
       }
 
-      resultCodeMap.set(requestId, finalCode);
+      const code = await response!.text();
+      resultCodeMap.set(requestId, code);
 
-      conversationHistoryMap.set(sessionId ?? requestId, messages);
+      conversationHistoryMap.set(sessionId ?? requestId, [
+        ...messages,
+        { role: "assistant", content: code },
+      ]);
 
       yield "Applying changes…";
     },
@@ -680,12 +495,6 @@ export const createVisualEditAgentProvider = (
       );
       return `Completed in ${totalSeconds}s`;
     },
-  };
-
-  const cleanup = (requestId: string) => {
-    elementHtmlMap.delete(requestId);
-    elementRefMap.delete(requestId);
-    resultCodeMap.delete(requestId);
   };
 
   const onComplete = (
@@ -701,19 +510,22 @@ export const createVisualEditAgentProvider = (
     const code = rawCode.trim();
 
     if (!element) {
-      cleanup(requestId);
+      elementHtmlMap.delete(requestId);
+      resultCodeMap.delete(requestId);
       return { error: "Could not find element to apply changes" };
     }
 
     if (code === "") {
-      cleanup(requestId);
+      elementHtmlMap.delete(requestId);
+      resultCodeMap.delete(requestId);
       return { error: "No changes generated" };
     }
 
-    const { isValid, error, sanitizedCode } = validateCode(code);
-    if (!isValid) {
-      cleanup(requestId);
-      return { error: error ?? "No changes generated" };
+    const validation = validateCode(code);
+    if (!validation.isValid) {
+      elementHtmlMap.delete(requestId);
+      resultCodeMap.delete(requestId);
+      return { error: validation.error ?? "No changes generated" };
     }
 
     const { proxy, undo } = createUndoableProxy(element as HTMLElement);
@@ -721,12 +533,13 @@ export const createVisualEditAgentProvider = (
     lastRequestId = requestId;
 
     try {
-      new Function("$el", sanitizedCode).bind(null)(proxy);
+      new Function("$el", code).bind(null)(proxy);
     } catch (executionError) {
       undo();
       undoFnMap.delete(requestId);
       lastRequestId = null;
-      cleanup(requestId);
+      elementHtmlMap.delete(requestId);
+      resultCodeMap.delete(requestId);
       const message =
         executionError instanceof Error
           ? executionError.message
@@ -734,7 +547,8 @@ export const createVisualEditAgentProvider = (
       return { error: message };
     }
 
-    cleanup(requestId);
+    elementHtmlMap.delete(requestId);
+    resultCodeMap.delete(requestId);
   };
 
   const onUndo = () => {
@@ -760,7 +574,7 @@ export const attachAgent = async () => {
   if (typeof window === "undefined") return;
 
   const { provider, getOptions, onStart, onComplete, onUndo } =
-    createVisualEditAgentProvider();
+    createInstantAgentProvider();
 
   const attach = (api: ReactGrabAPI) => {
     api.setAgent({
