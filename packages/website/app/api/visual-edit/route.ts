@@ -157,11 +157,7 @@ export function OPTIONS(request: Request) {
   const origin = request.headers.get("origin");
   const corsHeaders = getCorsHeaders(origin);
 
-  if (!isAllowedOrigin(origin)) {
-    return new Response(null, { status: 403, headers: corsHeaders });
-  }
-
-  return new Response(null, { headers: corsHeaders });
+  return new Response(null, { status: 204, headers: corsHeaders });
 }
 
 const IS_HEALTHY = true;
