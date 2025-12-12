@@ -218,6 +218,19 @@ export const createServer = () => {
 
         await stream.writeSSE({ data: "", event: "done" });
       } catch (error) {
+        const isNotInstalled =
+          error instanceof Error &&
+          "code" in error &&
+          error.code === "ENOENT";
+
+        if (isNotInstalled) {
+          await stream.writeSSE({
+            data: `Error: cursor-agent is not installed. Please install the Cursor Agent CLI to use this provider.\n\nInstallation: https://cursor.com/docs/cli/overview`,
+            event: "error",
+          });
+          return;
+        }
+
         const errorMessage =
           error instanceof Error
             ? formatSpawnError(error, "cursor-agent")

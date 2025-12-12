@@ -22,14 +22,11 @@ const copyDistFiles = () => {
   if (fs.existsSync(destDir)) {
     fs.rmSync(destDir, { recursive: true });
   }
-  fs.mkdirSync(destDir, { recursive: true });
+
+  fs.cpSync(sourceDir, destDir, { recursive: true });
 
   const files = fs.readdirSync(sourceDir);
-  for (const file of files) {
-    fs.copyFileSync(path.join(sourceDir, file), path.join(destDir, file));
-  }
-
-  console.log(`Copied ${files.length} files from react-grab/dist to grab/dist`);
+  console.log(`Copied ${files.length} items from react-grab/dist to grab/dist`);
 };
 
 const transformReadme = () => {
