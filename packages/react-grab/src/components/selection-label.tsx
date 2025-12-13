@@ -467,6 +467,7 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
 export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
   let inputRef: HTMLTextAreaElement | undefined;
+  let elementBadgeRef: HTMLDivElement | undefined;
   let isTagCurrentlyHovered = false;
   let lastValidPosition: {
     left: number;
@@ -478,6 +479,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
   const [minInputWidthPx, setMinInputWidthPx] = createSignal<number>();
+  const [elementBadgeWidthPx, setElementBadgeWidthPx] = createSignal(0);
   const [arrowPosition, setArrowPosition] =
     createSignal<ArrowPosition>("bottom");
   const [viewportVersion, setViewportVersion] = createSignal(0);
@@ -499,6 +501,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       const rect = containerRef.getBoundingClientRect();
       setMeasuredWidth(rect.width);
       setMeasuredHeight(rect.height);
+    }
+
+    if (elementBadgeRef) {
+      const rect = elementBadgeRef.getBoundingClientRect();
+      setElementBadgeWidthPx(rect.width);
     }
   };
 
@@ -880,13 +887,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             <div
               class="[font-synthesis:none] contain-layout flex justify-between items-center gap-[13px] rounded-sm pl-[3px] pr-1 bg-white bg-no-repeat antialiased size-fit py-[3px]"
               style={{
-                "min-width": minInputWidthPx()
-                  ? `${minInputWidthPx()}px`
-                  : undefined,
+                width: minInputWidthPx() ? `${minInputWidthPx()}px` : undefined,
               }}
             >
-              <div class="contain-layout shrink-0 flex items-center gap-1.5 size-fit">
-                <div class="contain-layout shrink-0 flex items-center px-1 py-px rounded-[3px] gap-0.5 bg-black bg-no-repeat size-fit">
+              <div class="contain-layout relative flex-1 min-w-0">
+                <div
+                  ref={elementBadgeRef}
+                  class="contain-layout absolute left-0 top-0 flex items-center px-1 py-px rounded-[3px] gap-0.5 bg-black bg-no-repeat size-fit"
+                >
                   <div class="text-[14px] leading-[18px] shrink-0 text-[#F0F0F0] bg-no-repeat font-sans font-medium size-fit">
                     {tagDisplay()}
                   </div>
@@ -894,10 +902,15 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 <textarea
                   ref={inputRef}
                   data-react-grab-ignore-events
-                  class="text-[14px] leading-[18px] w-fit h-[18px] shrink-0 text-[#1F1F1F] placeholder:text-[#7E7E7E] bg-no-repeat font-sans font-medium bg-transparent border-none outline-none resize-none p-0 m-0 overflow-hidden whitespace-nowrap"
+                  class="text-[14px] leading-[18px] w-full min-w-0 text-[#1F1F1F] placeholder:text-[#7E7E7E] bg-no-repeat font-sans font-medium bg-transparent border-none outline-none resize-none p-0 m-0 whitespace-pre-wrap break-words overflow-y-auto"
                   style={{
                     "field-sizing": "content",
+                    "min-height": "18px",
+                    "max-height": "95px",
                     "scrollbar-width": "none",
+                    "text-indent": elementBadgeWidthPx()
+                      ? `${elementBadgeWidthPx() + 6}px`
+                      : undefined,
                   }}
                   value={props.inputValue ?? ""}
                   onInput={handleInput}
