@@ -765,6 +765,9 @@ declare global {
   }
 }
 
+const isReactGrabApi = (value: unknown): value is ReactGrabAPI =>
+  typeof value === "object" && value !== null && "setAgent" in value;
+
 const checkHealth = async (): Promise<boolean> => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 1000);
@@ -805,24 +808,25 @@ export const attachAgent = async () => {
     });
   };
 
-  const api = window.__REACT_GRAB__;
-  if (api) {
-    attach(api);
+  const existingApi = window.__REACT_GRAB__;
+  if (isReactGrabApi(existingApi)) {
+    attach(existingApi);
     return;
   }
 
   window.addEventListener(
     "react-grab:init",
     (event: Event) => {
-      const customEvent = event as CustomEvent<ReactGrabAPI>;
-      attach(customEvent.detail);
+      if (!(event instanceof CustomEvent)) return;
+      if (!isReactGrabApi(event.detail)) return;
+      attach(event.detail);
     },
     { once: true },
   );
 
   // HACK: Check again after adding listener in case of race condition
   const apiAfterListener = window.__REACT_GRAB__;
-  if (apiAfterListener) {
+  if (isReactGrabApi(apiAfterListener)) {
     attach(apiAfterListener);
   }
 };

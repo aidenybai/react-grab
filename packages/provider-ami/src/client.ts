@@ -14,17 +14,20 @@ import type { AmiUIMessage, AmiUIMessagePart, ToolUIPart } from "ami-sdk";
 import type {
   AgentContext,
   AgentProvider,
-  AgentSession,
   AgentSessionStorage,
   AgentCompleteResult,
   init,
   ReactGrabAPI,
 } from "react-grab/core";
+import {
+  CONNECTION_CHECK_TTL_MS,
+  createCachedConnectionChecker,
+  getStoredAgentContext,
+} from "@react-grab/utils/client";
 
 export type { AgentCompleteResult };
 import { COMPLETED_STATUS } from "./constants.js";
 
-const STORAGE_KEY = "react-grab:agent-sessions";
 const TOKEN_STORAGE_KEY = "react-grab:ami-token";
 const BRIDGE_TOKEN_STORAGE_KEY = "react-grab:ami-bridge-token";
 
@@ -196,7 +199,8 @@ const runAgent = async (
   }
 };
 
-const CONNECTION_CHECK_TTL_MS = 5000;
+const isReactGrabApi = (value: unknown): value is ReactGrabAPI =>
+  typeof value === "object" && value !== null && "setAgent" in value;
 
 interface SessionData {
   messages: AmiUIMessage[];
@@ -204,7 +208,6 @@ interface SessionData {
 }
 
 export const createAmiAgentProvider = (projectId?: string): AgentProvider => {
-  let connectionCache: { result: boolean; timestamp: number } | null = null;
   let lastAgentMessages: AmiUIMessage[] | null = null;
   const sessionData = new Map<string, SessionData>();
 
@@ -348,21 +351,13 @@ export const createAmiAgentProvider = (projectId?: string): AgentProvider => {
       storage: AgentSessionStorage,
     ) {
       const startTime = Date.now();
-      const savedSessions = storage.getItem(STORAGE_KEY);
-      if (!savedSessions) {
-        throw new Error("No sessions to resume");
-      }
-
-      const sessionsObject = JSON.parse(savedSessions) as Record<
-        string,
-        AgentSession
-      >;
-      const session = sessionsObject[sessionId];
-      if (!session) {
-        throw new Error(`Session ${sessionId} not found`);
-      }
-
-      const context = session.context;
+      const storedContext = getStoredAgentContext(storage, sessionId);
+      const context: AgentContext = {
+        content: storedContext.content,
+        prompt: storedContext.prompt,
+        options: storedContext.options,
+        sessionId: storedContext.sessionId ?? sessionId,
+      };
       const auth = await getOrCreateAuth();
 
       yield "Resuming...";
@@ -474,25 +469,13 @@ export const createAmiAgentProvider = (projectId?: string): AgentProvider => {
     supportsResume: true,
     supportsFollowUp: true,
 
-    checkConnection: async () => {
-      const now = Date.now();
-      if (
-        connectionCache &&
-        now - connectionCache.timestamp < CONNECTION_CHECK_TTL_MS
-      ) {
-        return connectionCache.result;
-      }
-
-      try {
+    checkConnection: createCachedConnectionChecker(
+      async () => {
         const response = await fetch(AMI_BRIDGE_URL, { method: "HEAD" });
-        const result = response.ok;
-        connectionCache = { result, timestamp: now };
-        return result;
-      } catch {
-        connectionCache = { result: false, timestamp: now };
-        return false;
-      }
-    },
+        return response.ok;
+      },
+      CONNECTION_CHECK_TTL_MS,
+    ),
 
     undo: async () => {
       if (!lastAgentMessages) return;
@@ -523,24 +506,25 @@ export const attachAgent = async () => {
     api.setAgent({ provider, storage: sessionStorage });
   };
 
-  const api = window.__REACT_GRAB__;
-  if (api) {
-    attach(api);
+  const existingApi = window.__REACT_GRAB__;
+  if (isReactGrabApi(existingApi)) {
+    attach(existingApi);
     return;
   }
 
   window.addEventListener(
     "react-grab:init",
     (event: Event) => {
-      const customEvent = event as CustomEvent<ReactGrabAPI>;
-      attach(customEvent.detail);
+      if (!(event instanceof CustomEvent)) return;
+      if (!isReactGrabApi(event.detail)) return;
+      attach(event.detail);
     },
     { once: true },
   );
 
   // HACK: Check again after adding listener in case of race condition
   const apiAfterListener = window.__REACT_GRAB__;
-  if (apiAfterListener) {
+  if (isReactGrabApi(apiAfterListener)) {
     attach(apiAfterListener);
   }
 };

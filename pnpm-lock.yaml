@@ -118,9 +118,6 @@ importers:
       react-dom:
         specifier: 19.0.1
         version: 19.0.1(react@19.0.1)
-      react-grab:
-        specifier: workspace:*
-        version: link:../react-grab
       tailwind-merge:
         specifier: ^2.6.0
         version: 2.6.0
@@ -165,6 +162,9 @@ importers:
         specifier: workspace:*
         version: link:../react-grab
     devDependencies:
+      '@react-grab/utils':
+        specifier: workspace:*
+        version: link:../utils
       '@types/node':
         specifier: ^22.10.7
         version: 22.19.2
@@ -2190,8 +2190,8 @@ packages:
     resolution: {integrity: sha512-y9/ltK2TY+0HD1H2Sz7MvU3zFh4SjER6eQVNQfBx/0gK9N7S0QwHW6cmhHLx3CP25zN190LKHXPieMGqsVvrOQ==}
     engines: {node: '>=18'}
 
-  '@sourcegraph/amp@0.0.1765526485-g99562d':
-    resolution: {integrity: sha512-IrHdFPhLZAE8gX1L2foMgUW1qdfK/OpcBaRvCQrsc3AcsGQjqJW3UncvHdvXTUzYYV/EmEU2akTIcM2t7kg4Yg==}
+  '@sourcegraph/amp@0.0.1765612883-g944e54':
+    resolution: {integrity: sha512-sUb6UBPffCwmu6c4R9XU4jgowMZ+/SSoFiVBmA5AqTpFj3o+pXwomtK0AObooFDCS/pWzU2Kk3NSjj6V4Ox+ZA==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -7411,10 +7411,10 @@ snapshots:
 
   '@sourcegraph/amp-sdk@0.1.0-20251210081226-g90e3892':
     dependencies:
-      '@sourcegraph/amp': 0.0.1765526485-g99562d
+      '@sourcegraph/amp': 0.0.1765612883-g944e54
       zod: 3.25.76
 
-  '@sourcegraph/amp@0.0.1765526485-g99562d':
+  '@sourcegraph/amp@0.0.1765612883-g944e54':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
