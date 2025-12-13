@@ -477,6 +477,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
+  const [minInputWidthPx, setMinInputWidthPx] = createSignal<number>();
   const [arrowPosition, setArrowPosition] =
     createSignal<ArrowPosition>("bottom");
   const [viewportVersion, setViewportVersion] = createSignal(0);
@@ -601,6 +602,20 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     } else {
       speechRecognition.stop();
     }
+  });
+
+  createEffect(() => {
+    void props.isInputExpanded;
+
+    if (props.isInputExpanded) {
+      const previousMeasuredWidth = measuredWidth();
+      if (previousMeasuredWidth > 0) {
+        setMinInputWidthPx(previousMeasuredWidth);
+      }
+      return;
+    }
+
+    setMinInputWidthPx(undefined);
   });
 
   const computedPosition = () => {
@@ -862,7 +877,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               !props.isPendingDismiss
             }
           >
-            <div class="[font-synthesis:none] contain-layout flex justify-between items-center gap-[13px] rounded-sm pl-[3px] pr-1 bg-white bg-no-repeat antialiased size-fit py-[3px]">
+            <div
+              class="[font-synthesis:none] contain-layout flex justify-between items-center gap-[13px] rounded-sm pl-[3px] pr-1 bg-white bg-no-repeat antialiased size-fit py-[3px]"
+              style={{
+                "min-width": minInputWidthPx()
+                  ? `${minInputWidthPx()}px`
+                  : undefined,
+              }}
+            >
               <div class="contain-layout shrink-0 flex items-center gap-1.5 size-fit">
                 <div class="contain-layout shrink-0 flex items-center px-1 py-px rounded-[3px] gap-0.5 bg-black bg-no-repeat size-fit">
                   <div class="text-[14px] leading-[18px] shrink-0 text-[#F0F0F0] bg-no-repeat font-sans font-medium size-fit">
