@@ -867,14 +867,13 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 <textarea
                   ref={inputRef}
                   data-react-grab-ignore-events
-                  class="text-[14px] leading-[18px] w-full min-w-0 text-[#1F1F1F] bg-no-repeat font-sans font-medium bg-transparent border-none outline-none resize-none p-0 m-0 whitespace-pre-wrap wrap-break-word overflow-y-auto"
+                  class="text-[14px] leading-[18px] w-full min-w-0 text-[#1F1F1F] bg-no-repeat font-sans font-medium bg-transparent border-none outline-none resize-none p-0 m-0 whitespace-pre-wrap wrap-break-word"
                   style={{
                     "field-sizing": "content",
                     "min-height": "18px",
-                    "max-height": "95px",
                     "scrollbar-width": "none",
                     height: isPromptMultiline() ? undefined : "18px",
-                    "overflow-y": isPromptMultiline() ? "auto" : "hidden",
+                    "overflow-y": "hidden",
                     "text-indent": elementBadgeWidthPx()
                       ? `${elementBadgeWidthPx() + 6}px`
                       : undefined,
