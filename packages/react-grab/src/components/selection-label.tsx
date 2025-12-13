@@ -11,8 +11,6 @@ import type { OverlayBounds, SelectionLabelStatus } from "../types.js";
 import { VIEWPORT_MARGIN_PX } from "../constants.js";
 import { cn } from "../utils/cn.js";
 import { useSpeechRecognition } from "../utils/speech-recognition.js";
-import { IconOpen } from "./icon-open.js";
-import { IconMic } from "./icon-mic.js";
 import { IconReturn } from "./icon-return.js";
 import { IconRetry } from "./icon-retry.js";
 import { IconCaretUp } from "./icon-caret-up.js";
@@ -56,24 +54,6 @@ interface SelectionLabelProps {
   onRetry?: () => void;
 }
 
-interface TagBadgeProps {
-  tagName: string;
-  isClickable: boolean;
-  onClick: (event: MouseEvent) => void;
-  onHoverChange?: (hovered: boolean) => void;
-  shrink?: boolean;
-  forceShowIcon?: boolean;
-}
-
-interface ClickToCopyPillProps {
-  onClick: () => void;
-  asButton?: boolean;
-  dimmed?: boolean;
-  shrink?: boolean;
-  hasParent?: boolean;
-  hasAgent?: boolean;
-}
-
 interface BottomSectionProps {
   children: JSX.Element;
 }
@@ -89,72 +69,6 @@ type ArrowPosition = "bottom" | "top";
 const ARROW_HEIGHT = 8;
 const LABEL_GAP = 4;
 const IDLE_TIMEOUT_MS = 400;
-
-const TAG_GRADIENT =
-  "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)";
-
-const TagBadge: Component<TagBadgeProps> = (props) => {
-  const [isHovered, setIsHovered] = createSignal(false);
-
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-    props.onHoverChange?.(true);
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-    props.onHoverChange?.(false);
-  };
-
-  return (
-    <div
-      class={cn(
-        "contain-layout flex items-center px-[3px] py-0 h-4 rounded-[1px] gap-0.5 [border-width:0.5px] border-solid border-label-tag-border",
-        props.shrink && "shrink-0 w-fit",
-        props.isClickable && "cursor-pointer",
-      )}
-      style={{ "background-image": TAG_GRADIENT }}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      onClick={props.onClick}
-    >
-      <span
-        class={cn(
-          "text-[#47004A] text-[11.5px] leading-3.5 shrink-0 w-fit h-fit font-medium",
-        )}
-      >
-        {props.tagName}
-      </span>
-      <Show when={props.isClickable || props.forceShowIcon}>
-        <IconOpen
-          size={10}
-          class={cn(
-            "text-label-tag-border transition-all duration-100",
-            isHovered() || props.forceShowIcon
-              ? "opacity-100 scale-100"
-              : "opacity-0 scale-75 -ml-[2px] w-0",
-          )}
-        />
-      </Show>
-    </div>
-  );
-};
-
-const ParentBadge: Component<{ name: string }> = (props) => (
-  <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-1 px-[3px] [border-width:0.5px] border-solid border-[#B3B3B3] py-0 bg-[#F7F7F7]">
-    <span class="text-[#0C0C0C] text-[11.5px] leading-3.5 shrink-0 font-medium w-fit h-fit">
-      {props.name}
-    </span>
-  </div>
-);
-
-const ChevronSeparator: Component = () => (
-  <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-1 px-[3px] [border-width:0.5px] border-solid border-white py-0">
-    <span class="text-[#0C0C0C] text-[11.5px] leading-3.5 shrink-0 font-medium w-fit h-fit">
-      &gt;
-    </span>
-  </div>
-);
 
 interface ArrowProps {
   position: ArrowPosition;
@@ -186,30 +100,6 @@ const Arrow: Component<ArrowProps> = (props) => {
           : { "border-top": `8px solid ${arrowColor()}` }),
       }}
     />
-  );
-};
-
-const ClickToCopyPill: Component<ClickToCopyPillProps> = (props) => {
-  const labelText = () => {
-    if (props.hasAgent) return "Selecting";
-    if (props.hasParent) return "Copy";
-    return "Click to copy";
-  };
-
-  return (
-    <div
-      class={cn(
-        "contain-layout shrink-0 flex items-center px-0 py-px w-fit h-[18px] rounded-[1.5px] gap-[3px]",
-        props.asButton && "cursor-pointer",
-        props.dimmed && "opacity-50 hover:opacity-100 transition-opacity",
-      )}
-      role="button"
-      onClick={props.onClick}
-    >
-      <div class="text-black text-[12px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
-        {labelText()}
-      </div>
-    </div>
   );
 };
 
@@ -481,7 +371,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   let inputRef: HTMLTextAreaElement | undefined;
   let elementBadgeRef: HTMLDivElement | undefined;
   let placeholderMeasureRef: HTMLDivElement | undefined;
-  let isTagCurrentlyHovered = false;
   let lastValidPosition: {
     left: number;
     top: number;
@@ -514,7 +403,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     props.status !== "fading";
 
   const measureContainer = () => {
-    if (containerRef && !isTagCurrentlyHovered) {
+    if (containerRef) {
       const rect = containerRef.getBoundingClientRect();
       setMeasuredWidth(rect.width);
       setMeasuredHeight(rect.height);
@@ -535,10 +424,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       const hasMultipleLines = inputRef.scrollHeight > lineHeightPx + 1;
       setIsPromptMultiline(hasMultipleLines);
     }
-  };
-
-  const handleTagHoverChange = (hovered: boolean) => {
-    isTagCurrentlyHovered = hovered;
   };
 
   const handleViewportChange = () => {
@@ -788,16 +673,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   const tagDisplay = () => props.tagName || "element";
 
-  const handleTagClick = (event: MouseEvent) => {
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-    if (props.filePath && props.onOpen) {
-      props.onOpen();
-    }
-  };
-
-  const isTagClickable = () => Boolean(props.filePath && props.onOpen);
-
   const stopPropagation = (event: Event) => {
     event.stopPropagation();
     event.stopImmediatePropagation();
@@ -968,7 +843,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             }
           >
             <div
-              class="[font-synthesis:none] contain-layout flex justify-between items-start gap-[13px] rounded-sm pl-[3px] pr-1 bg-white bg-no-repeat antialiased size-fit py-[3px]"
+              class={cn(
+                "[font-synthesis:none] contain-layout flex justify-between gap-[13px] rounded-sm pl-[3px] pr-1 bg-white bg-no-repeat antialiased size-fit py-[3px]",
+                isPromptMultiline() ? "items-start" : "items-center",
+              )}
               style={{
                 width: minInputWidthPx() ? `${minInputWidthPx()}px` : undefined,
               }}
@@ -977,6 +855,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 <div
                   ref={elementBadgeRef}
                   class="contain-layout absolute left-0 top-0 flex items-center px-1 py-px rounded-[3px] gap-0.5 bg-black bg-no-repeat size-fit"
+                  style={{
+                    top: isPromptMultiline() ? "0" : "50%",
+                    transform: isPromptMultiline() ? undefined : "translateY(-50%)",
+                  }}
                 >
                   <div class="text-[14px] leading-[18px] shrink-0 text-[#F0F0F0] bg-no-repeat font-sans font-medium size-fit">
                     {tagDisplay()}
@@ -985,12 +867,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 <textarea
                   ref={inputRef}
                   data-react-grab-ignore-events
-                  class="text-[14px] leading-[18px] w-full min-w-0 text-[#1F1F1F] placeholder:text-[#7E7E7E] bg-no-repeat font-sans font-medium bg-transparent border-none outline-none resize-none p-0 m-0 whitespace-pre-wrap break-words overflow-y-auto"
+                  class="text-[14px] leading-[18px] w-full min-w-0 text-[#1F1F1F] bg-no-repeat font-sans font-medium bg-transparent border-none outline-none resize-none p-0 m-0 whitespace-pre-wrap wrap-break-word overflow-y-auto"
                   style={{
                     "field-sizing": "content",
                     "min-height": "18px",
                     "max-height": "95px",
                     "scrollbar-width": "none",
+                    height: isPromptMultiline() ? undefined : "18px",
+                    "overflow-y": isPromptMultiline() ? "auto" : "hidden",
                     "text-indent": elementBadgeWidthPx()
                       ? `${elementBadgeWidthPx() + 6}px`
                       : undefined,
@@ -1022,14 +906,17 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   make a change
                 </div>
               </div>
-              <Show when={Boolean(props.inputValue?.length)} fallback={
-                <IconCaretUp
-                  class={cn(
-                    "w-[18.3398px] h-[17.9785px] shrink-0 opacity-26 text-black",
-                    isPromptMultiline() ? "self-end" : "self-center",
-                  )}
-                />
-              }>
+              <Show
+                when={Boolean(props.inputValue?.length)}
+                fallback={
+                  <IconCaretUp
+                    class={cn(
+                      "w-[18.3398px] h-[17.9785px] shrink-0 opacity-26 text-black",
+                      isPromptMultiline() ? "self-end" : "self-center",
+                    )}
+                  />
+                }
+              >
                 <button
                   data-react-grab-ignore-events
                   class={cn(
