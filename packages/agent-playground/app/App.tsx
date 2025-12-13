@@ -138,7 +138,7 @@ export const App = () => {
             <button className="text-sm px-3 py-1.5 bg-white/10 rounded border border-white/30 italic">
               Submit
             </button>
-            <button className="text-sm px-3 py-1.5 bg-white/10 rounded border border-0.5 border-white/20">
+            <button className="text-xs px-2 py-1 bg-white/10 rounded border border-0.5 border-white/20">
               Cancel
             </button>
           </div>

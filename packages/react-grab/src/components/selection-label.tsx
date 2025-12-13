@@ -76,10 +76,8 @@ interface ArrowProps {
   color?: string;
 }
 
-const INPUT_EXPANDED_GAP_PX = 13;
 const INPUT_EXPANDED_PADDING_LEFT_PX = 3;
 const INPUT_EXPANDED_PADDING_RIGHT_PX = 4;
-const INPUT_EXPANDED_ICON_WIDTH_PX = 18.3398;
 const INPUT_EXPANDED_BADGE_GAP_PX = 6;
 const INPUT_EXPANDED_MULTILINE_LEFT_PADDING_PX = 4;
 const INPUT_EXPANDED_MULTILINE_LINE_HEIGHT_PX = 20;
@@ -554,8 +552,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         const requiredWidth =
           INPUT_EXPANDED_PADDING_LEFT_PX +
           INPUT_EXPANDED_PADDING_RIGHT_PX +
-          INPUT_EXPANDED_GAP_PX +
-          INPUT_EXPANDED_ICON_WIDTH_PX +
           elementBadgeWidthPx() +
           INPUT_EXPANDED_BADGE_GAP_PX +
           placeholderTextWidthPx();
@@ -848,8 +844,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           >
             <div
               class={cn(
-                "[font-synthesis:none] contain-layout flex justify-between gap-[13px] rounded-sm pl-[3px] pr-1 bg-white bg-no-repeat antialiased size-fit py-[3px]",
-                isPromptMultiline() ? "items-start" : "items-center",
+                "[font-synthesis:none] contain-layout flex flex-col gap-1 rounded-sm pl-[3px] pr-1 bg-white bg-no-repeat antialiased size-fit py-[3px]",
               )}
               style={{
                 width: minInputWidthPx() ? `${minInputWidthPx()}px` : undefined,
@@ -878,11 +873,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     "scrollbar-width": "none",
                     height: isPromptMultiline() ? undefined : "18px",
                     "overflow-y": "hidden",
-                    "padding-right": hasInputValue()
-                      ? isPromptMultiline()
-                        ? "6px"
-                        : "22px"
-                      : undefined,
                     "padding-left": isPromptMultiline()
                       ? `${INPUT_EXPANDED_MULTILINE_LEFT_PADDING_PX}px`
                       : undefined,
@@ -926,34 +916,17 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 >
                   make a change
                 </div>
-
+              </div>
+              <div class="contain-layout flex justify-end">
                 <Show
                   when={hasInputValue()}
                   fallback={
-                    <div
-                      class="absolute right-0"
-                      style={{
-                        top: isPromptMultiline() ? undefined : "50%",
-                        bottom: isPromptMultiline() ? "0" : undefined,
-                        transform: isPromptMultiline()
-                          ? undefined
-                          : "translateY(-50%)",
-                      }}
-                    >
-                      <IconCaretUp class="w-[18.3398px] h-[17.9785px] opacity-26 text-black pointer-events-none" />
-                    </div>
+                    <IconCaretUp class="w-[18.3398px] h-[17.9785px] opacity-26 text-black pointer-events-none" />
                   }
                 >
                   <button
                     data-react-grab-ignore-events
-                    class="contain-layout absolute right-0 cursor-pointer"
-                    style={{
-                      top: isPromptMultiline() ? undefined : "50%",
-                      bottom: isPromptMultiline() ? "0" : undefined,
-                      transform: isPromptMultiline()
-                        ? undefined
-                        : "translateY(-50%)",
-                    }}
+                    class="contain-layout cursor-pointer"
                     onClick={handleSubmit}
                   >
                     <IconCaretUp class="w-[18.3398px] h-[17.9785px] text-black" />
