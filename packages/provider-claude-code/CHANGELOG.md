@@ -1,5 +1,13 @@
 # @react-grab/claude-code
 
+## 0.0.88
+
+### Patch Changes
+
+- fix: deprecation errors
+- Updated dependencies
+  - react-grab@0.0.88
+
 ## 0.0.87
 
 ### Patch Changes

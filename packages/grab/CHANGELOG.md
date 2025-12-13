@@ -1,5 +1,11 @@
 # grab
 
+## 0.0.88
+
+### Patch Changes
+
+- fix: deprecation errors
+
 ## 0.0.87
 
 ### Patch Changes

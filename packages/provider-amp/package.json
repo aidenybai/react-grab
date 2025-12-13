@@ -1,6 +1,6 @@
 {
   "name": "@react-grab/amp",
-  "version": "0.0.87",
+  "version": "0.0.88",
   "type": "module",
   "bin": {
     "react-grab-amp": "./dist/cli.cjs"
