@@ -78,6 +78,12 @@ interface BottomSectionProps {
   children: JSX.Element;
 }
 
+interface FrozenInputPosition {
+  left: number;
+  top: number;
+  arrowPosition: ArrowPosition;
+}
+
 type ArrowPosition = "bottom" | "top";
 
 const ARROW_HEIGHT = 8;
@@ -155,6 +161,12 @@ interface ArrowProps {
   leftPx: number;
   color?: string;
 }
+
+const INPUT_EXPANDED_GAP_PX = 13;
+const INPUT_EXPANDED_PADDING_LEFT_PX = 3;
+const INPUT_EXPANDED_PADDING_RIGHT_PX = 4;
+const INPUT_EXPANDED_ICON_WIDTH_PX = 18.3398;
+const INPUT_EXPANDED_BADGE_GAP_PX = 6;
 
 const Arrow: Component<ArrowProps> = (props) => {
   const arrowColor = () => props.color ?? "white";
@@ -468,6 +480,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
   let inputRef: HTMLTextAreaElement | undefined;
   let elementBadgeRef: HTMLDivElement | undefined;
+  let placeholderMeasureRef: HTMLDivElement | undefined;
   let isTagCurrentlyHovered = false;
   let lastValidPosition: {
     left: number;
@@ -480,6 +493,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
   const [minInputWidthPx, setMinInputWidthPx] = createSignal<number>();
   const [elementBadgeWidthPx, setElementBadgeWidthPx] = createSignal(0);
+  const [placeholderTextWidthPx, setPlaceholderTextWidthPx] = createSignal(0);
+  const [isPromptMultiline, setIsPromptMultiline] = createSignal(false);
+  const [frozenInputPosition, setFrozenInputPosition] =
+    createSignal<FrozenInputPosition>();
   const [arrowPosition, setArrowPosition] =
     createSignal<ArrowPosition>("bottom");
   const [viewportVersion, setViewportVersion] = createSignal(0);
@@ -506,6 +523,17 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     if (elementBadgeRef) {
       const rect = elementBadgeRef.getBoundingClientRect();
       setElementBadgeWidthPx(rect.width);
+    }
+
+    if (placeholderMeasureRef) {
+      const rect = placeholderMeasureRef.getBoundingClientRect();
+      setPlaceholderTextWidthPx(rect.width);
+    }
+
+    if (props.isInputExpanded && inputRef) {
+      const lineHeightPx = 18;
+      const hasMultipleLines = inputRef.scrollHeight > lineHeightPx + 1;
+      setIsPromptMultiline(hasMultipleLines);
     }
   };
 
@@ -615,14 +643,53 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     void props.isInputExpanded;
 
     if (props.isInputExpanded) {
-      const previousMeasuredWidth = measuredWidth();
-      if (previousMeasuredWidth > 0) {
-        setMinInputWidthPx(previousMeasuredWidth);
+      if (lastValidPosition) {
+        setFrozenInputPosition({
+          left: lastValidPosition.left,
+          top: lastValidPosition.top,
+          arrowPosition: arrowPosition(),
+        });
       }
       return;
     }
 
+    setFrozenInputPosition(undefined);
+  });
+
+  createEffect(() => {
+    void props.isInputExpanded;
+
+    if (props.isInputExpanded) {
+      requestAnimationFrame(() => {
+        measureContainer();
+
+        const previousMeasuredWidth = measuredWidth();
+        const requiredWidth =
+          INPUT_EXPANDED_PADDING_LEFT_PX +
+          INPUT_EXPANDED_PADDING_RIGHT_PX +
+          INPUT_EXPANDED_GAP_PX +
+          INPUT_EXPANDED_ICON_WIDTH_PX +
+          elementBadgeWidthPx() +
+          INPUT_EXPANDED_BADGE_GAP_PX +
+          placeholderTextWidthPx();
+
+        if (previousMeasuredWidth > 0) {
+          setMinInputWidthPx(Math.max(previousMeasuredWidth, requiredWidth));
+          return;
+        }
+
+        setMinInputWidthPx(requiredWidth);
+      });
+      return;
+    }
+
     setMinInputWidthPx(undefined);
+  });
+
+  createEffect(() => {
+    void props.inputValue;
+    if (!props.isInputExpanded) return;
+    requestAnimationFrame(measureContainer);
   });
 
   const computedPosition = () => {
@@ -644,6 +711,22 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     const cursorX = props.mouseX ?? selectionCenterX;
     const selectionBottom = bounds.y + bounds.height;
     const selectionTop = bounds.y;
+
+    const frozenPosition = frozenInputPosition();
+    if (props.isInputExpanded && frozenPosition) {
+      setArrowPosition(frozenPosition.arrowPosition);
+      const arrowLeft = Math.max(
+        12,
+        Math.min(cursorX - frozenPosition.left, labelWidth - 12),
+      );
+      const position = {
+        left: frozenPosition.left,
+        top: frozenPosition.top,
+        arrowLeft,
+      };
+      lastValidPosition = position;
+      return position;
+    }
 
     let positionLeft = cursorX - labelWidth / 2;
     let positionTop = selectionBottom + ARROW_HEIGHT + LABEL_GAP;
@@ -885,7 +968,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             }
           >
             <div
-              class="[font-synthesis:none] contain-layout flex justify-between items-center gap-[13px] rounded-sm pl-[3px] pr-1 bg-white bg-no-repeat antialiased size-fit py-[3px]"
+              class="[font-synthesis:none] contain-layout flex justify-between items-start gap-[13px] rounded-sm pl-[3px] pr-1 bg-white bg-no-repeat antialiased size-fit py-[3px]"
               style={{
                 width: minInputWidthPx() ? `${minInputWidthPx()}px` : undefined,
               }}
@@ -915,18 +998,44 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   value={props.inputValue ?? ""}
                   onInput={handleInput}
                   onKeyDown={handleKeyDown}
-                  placeholder={
-                    speechRecognition.isListening() ? "listening..." : "make a change"
-                  }
                   rows={1}
                 />
+                <Show when={!props.inputValue}>
+                  <div
+                    class="pointer-events-none absolute left-0 top-0 text-[14px] leading-[18px] text-[#7E7E7E] font-sans font-medium whitespace-nowrap"
+                    style={{
+                      "padding-left": elementBadgeWidthPx()
+                        ? `${elementBadgeWidthPx() + 6}px`
+                        : undefined,
+                    }}
+                  >
+                    {speechRecognition.isListening()
+                      ? "listening..."
+                      : "make a change"}
+                  </div>
+                </Show>
+
+                <div
+                  ref={placeholderMeasureRef}
+                  class="absolute -left-[9999px] top-0 text-[14px] leading-[18px] font-sans font-medium whitespace-nowrap"
+                >
+                  make a change
+                </div>
               </div>
               <Show when={Boolean(props.inputValue?.length)} fallback={
-                <IconCaretUp class="w-[18.3398px] h-[17.9785px] shrink-0 opacity-26 text-black" />
+                <IconCaretUp
+                  class={cn(
+                    "w-[18.3398px] h-[17.9785px] shrink-0 opacity-26 text-black",
+                    isPromptMultiline() ? "self-end" : "self-center",
+                  )}
+                />
               }>
                 <button
                   data-react-grab-ignore-events
-                  class="contain-layout shrink-0 cursor-pointer"
+                  class={cn(
+                    "contain-layout shrink-0 cursor-pointer",
+                    isPromptMultiline() ? "self-end" : "self-center",
+                  )}
                   onClick={handleSubmit}
                 >
                   <IconCaretUp class="w-[18.3398px] h-[17.9785px] text-black" />
