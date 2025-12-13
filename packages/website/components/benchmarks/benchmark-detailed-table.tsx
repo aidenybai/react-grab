@@ -137,17 +137,16 @@ export const BenchmarkDetailedTable = ({
             )}
           </p>
         </div>
-        <div className="relative">
-          <Search
-            size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500"
-          />
+        <div className="flex items-center bg-[#1a1a1a] border border-[#2a2a2a] rounded-md w-full sm:w-[200px] focus-within:border-[#404040]">
+          <div className="pl-3 pr-2 text-neutral-500">
+            <Search size={14} />
+          </div>
           <input
             type="text"
             placeholder="Filter tests..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-md py-1.5 pl-9 pr-3 text-xs text-neutral-200 placeholder:text-neutral-600 focus:outline-none focus:border-[#404040] w-full sm:w-[200px]"
+            className="bg-transparent py-1.5 pr-3 pl-0 text-xs text-neutral-200 placeholder:text-neutral-600 focus:outline-none w-full"
           />
         </div>
       </div>
