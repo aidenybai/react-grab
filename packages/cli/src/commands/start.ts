@@ -14,10 +14,10 @@ import { spinner } from "../utils/spinner.js";
 const VERSION = process.env.VERSION ?? "0.0.1";
 const DEFAULT_PROXY_PORT = 2000;
 const REACT_GRAB_SCRIPT =
-  '<script src="//unpkg.com/react-grab/dist/index.global.js"></script>';
+  '<script src="https://unpkg.com/react-grab/dist/index.global.js"></script>';
 
 const buildProviderScript = (provider: string): string =>
-  `<script src="//unpkg.com/${provider}/dist/client.global.js"></script>`;
+  `<script src="https://unpkg.com/${provider}/dist/client.global.js"></script>`;
 
 const findAvailablePort = async (
   startingPort: number,
