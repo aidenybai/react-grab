@@ -15,6 +15,7 @@ import { IconOpen } from "./icon-open.js";
 import { IconMic } from "./icon-mic.js";
 import { IconReturn } from "./icon-return.js";
 import { IconRetry } from "./icon-retry.js";
+import { IconCaretUp } from "./icon-caret-up.js";
 import { isKeyboardEventTriggeredByInput } from "../utils/is-keyboard-event-triggered-by-input.js";
 
 interface SelectionLabelProps {
@@ -768,7 +769,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         </Show>
 
         <div
-          class="[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-xs bg-white antialiased w-fit h-fit p-0"
+          class={cn(
+            "[font-synthesis:none] contain-layout flex items-center gap-[5px] antialiased w-fit h-fit p-0",
+            isNotProcessing() ? "bg-transparent rounded-none" : "bg-white rounded-xs",
+          )}
           style={{
             display:
               (props.status === "copied" || props.status === "fading") &&
@@ -837,77 +841,15 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           </Show>
 
           <Show when={isNotProcessing() && !props.isInputExpanded}>
-            <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
-              <div
-                class={cn(
-                  "contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5",
-                  props.componentName ? "pr-1.5" : "pr-1",
-                )}
-              >
-                <ClickToCopyPill
-                  onClick={handleSubmit}
-                  shrink
-                  hasParent={Boolean(props.componentName)}
-                  hasAgent={props.hasAgent}
-                />
-                <Show when={props.componentName}>
-                  <div class="contain-layout shrink-0 flex items-center gap-px w-fit h-fit">
-                    <ParentBadge name={props.componentName!} />
-                    <ChevronSeparator />
-                    <TagBadge
-                      tagName={tagDisplay()}
-                      isClickable={isTagClickable()}
-                      onClick={handleTagClick}
-                      onHoverChange={handleTagHoverChange}
-                      shrink
-                    />
+            <div class="[font-synthesis:none] contain-layout flex justify-between items-center gap-1.5 rounded-sm pl-[3px] pr-1.5 bg-white bg-no-repeat antialiased size-fit py-[3px]">
+              <div class="contain-layout shrink-0 flex items-center gap-1.5 size-fit">
+                <div class="contain-layout shrink-0 flex items-center px-1 py-px rounded-[3px] gap-0.5 bg-black bg-no-repeat size-fit">
+                  <div class="text-[14px] leading-[18px] shrink-0 text-[#F0F0F0] bg-no-repeat font-sans font-medium size-fit">
+                    {tagDisplay()}
                   </div>
-                </Show>
-                <Show when={!props.componentName}>
-                  <TagBadge
-                    tagName={tagDisplay()}
-                    isClickable={isTagClickable()}
-                    onClick={handleTagClick}
-                    onHoverChange={handleTagHoverChange}
-                    shrink
-                  />
-                </Show>
-              </div>
-              <div
-                class="grid transition-[grid-template-rows] duration-30 ease-out self-stretch"
-                style={{
-                  "grid-template-rows": isIdle() ? "1fr" : "0fr",
-                }}
-              >
-                <div class={cn("overflow-hidden min-h-0", !isIdle() && "w-0")}>
-                  <BottomSection>
-                    <div class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit">
-                      <Show when={props.hasAgent}>
-                        <span class="text-label-muted text-[12px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
-                          Double click to edit
-                        </span>
-                        <div class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit">
-                          <IconReturn
-                            size={10}
-                            class="opacity-[0.99] text-black"
-                          />
-                        </div>
-                      </Show>
-                      <Show when={!props.hasAgent}>
-                        <span class="text-label-muted text-[12px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
-                          Press
-                        </span>
-                        <div class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-[2px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit">
-                          <span class="text-[9px] leading-none font-medium text-black">
-                            Esc
-                          </span>
-                        </div>
-                        <span class="text-label-muted text-[12px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
-                          to dismiss
-                        </span>
-                      </Show>
-                    </div>
-                  </BottomSection>
+                </div>
+                <div class="text-[14px] leading-[18px] w-fit h-[18px] shrink-0 text-[#1F1F1F] bg-no-repeat font-sans font-medium">
+                  double-click to edit
                 </div>
               </div>
             </div>
@@ -920,123 +862,41 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               !props.isPendingDismiss
             }
           >
-            <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit max-w-[280px]">
-              <div
-                class={cn(
-                  "contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5",
-                  props.componentName ? "pr-1.5" : "pr-1",
-                )}
-              >
-                <ClickToCopyPill
-                  onClick={handleSubmit}
-                  dimmed
-                  shrink
-                  hasParent={Boolean(props.componentName)}
-                  hasAgent={props.hasAgent}
-                />
-                <Show when={props.componentName}>
-                  <div class="contain-layout shrink-0 flex items-center gap-px w-fit h-fit">
-                    <ParentBadge name={props.componentName!} />
-                    <ChevronSeparator />
-                    <TagBadge
-                      tagName={tagDisplay()}
-                      isClickable={isTagClickable()}
-                      onClick={handleTagClick}
-                      onHoverChange={handleTagHoverChange}
-                      shrink
-                      forceShowIcon
-                    />
-                  </div>
-                </Show>
-                <Show when={!props.componentName}>
-                  <TagBadge
-                    tagName={tagDisplay()}
-                    isClickable={isTagClickable()}
-                    onClick={handleTagClick}
-                    onHoverChange={handleTagHoverChange}
-                    shrink
-                    forceShowIcon
-                  />
-                </Show>
-              </div>
-              <BottomSection>
-                <Show when={props.replyToPrompt}>
-                  <div class="shrink-0 flex items-center gap-0.5 w-full mb-0.5 overflow-hidden">
-                    <span class="text-[#a1a1aa] text-[9px] leading-3 shrink-0">
-                      {">previously:"}
-                    </span>
-                    <span class="text-[#a1a1aa] text-[9px] leading-3 italic truncate whitespace-nowrap">
-                      {props.replyToPrompt}
-                    </span>
-                  </div>
-                </Show>
-                <div class="shrink-0 flex justify-between items-end w-full min-h-4">
-                  <textarea
-                    ref={inputRef}
-                    data-react-grab-ignore-events
-                    class="text-black text-[12px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 wrap-break-word overflow-y-auto"
-                    style={{
-                      "field-sizing": "content",
-                      "min-height": "16px",
-                      "max-height": "95px",
-                      "scrollbar-width": "none",
-                    }}
-                    value={props.inputValue ?? ""}
-                    onInput={handleInput}
-                    onKeyDown={handleKeyDown}
-                    placeholder={
-                      speechRecognition.isListening()
-                        ? "listening..."
-                        : "type prompt"
-                    }
-                    rows={1}
-                  />
-                  <div class="flex items-center gap-0.5 ml-1 w-[17px] h-[17px] justify-end">
-                    <Show
-                      when={
-                        props.hasAgent &&
-                        speechRecognition.isSupported() &&
-                        !props.inputValue
-                      }
-                    >
-                      <button
-                        class={cn(
-                          "contain-layout shrink-0 flex items-center justify-center px-[2px] py-[2px] rounded-xs [border-width:0.5px] border-solid size-fit cursor-pointer transition-all hover:scale-105",
-                          speechRecognition.isListening()
-                            ? "bg-grab-purple border-grab-purple text-white"
-                            : "bg-white border-[#B3B3B3] text-black",
-                        )}
-                        onClick={speechRecognition.toggle}
-                        title={
-                          speechRecognition.isListening()
-                            ? "Stop listening"
-                            : "Start voice input"
-                        }
-                      >
-                        <IconMic
-                          size={11}
-                          class={
-                            speechRecognition.isListening()
-                              ? "animate-pulse"
-                              : ""
-                          }
-                        />
-                      </button>
-                    </Show>
-                    <Show when={props.inputValue}>
-                      <button
-                        class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit cursor-pointer transition-all hover:scale-105"
-                        onClick={handleSubmit}
-                      >
-                        <IconReturn
-                          size={10}
-                          class="opacity-[0.99] text-black"
-                        />
-                      </button>
-                    </Show>
+            <div class="[font-synthesis:none] contain-layout flex justify-between items-center gap-[13px] rounded-sm pl-[3px] pr-1 bg-white bg-no-repeat antialiased size-fit py-[3px]">
+              <div class="contain-layout shrink-0 flex items-center gap-1.5 size-fit">
+                <div class="contain-layout shrink-0 flex items-center px-1 py-px rounded-[3px] gap-0.5 bg-black bg-no-repeat size-fit">
+                  <div class="text-[14px] leading-[18px] shrink-0 text-[#F0F0F0] bg-no-repeat font-sans font-medium size-fit">
+                    {tagDisplay()}
                   </div>
                 </div>
-              </BottomSection>
+                <textarea
+                  ref={inputRef}
+                  data-react-grab-ignore-events
+                  class="text-[14px] leading-[18px] w-fit h-[18px] shrink-0 text-[#1F1F1F] placeholder:text-[#7E7E7E] bg-no-repeat font-sans font-medium bg-transparent border-none outline-none resize-none p-0 m-0 overflow-hidden whitespace-nowrap"
+                  style={{
+                    "field-sizing": "content",
+                    "scrollbar-width": "none",
+                  }}
+                  value={props.inputValue ?? ""}
+                  onInput={handleInput}
+                  onKeyDown={handleKeyDown}
+                  placeholder={
+                    speechRecognition.isListening() ? "listening..." : "make a change"
+                  }
+                  rows={1}
+                />
+              </div>
+              <Show when={Boolean(props.inputValue?.length)} fallback={
+                <IconCaretUp class="w-[18.3398px] h-[17.9785px] shrink-0 opacity-26 text-black" />
+              }>
+                <button
+                  data-react-grab-ignore-events
+                  class="contain-layout shrink-0 cursor-pointer"
+                  onClick={handleSubmit}
+                >
+                  <IconCaretUp class="w-[18.3398px] h-[17.9785px] text-black" />
+                </button>
+              </Show>
             </div>
           </Show>
 
