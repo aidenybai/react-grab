@@ -28,6 +28,7 @@ The demo app runs at `http://localhost:5174`.
 | `nr dev:claude`   | Run with Claude Code           |
 | `nr dev:cursor`   | Run with Cursor                |
 | `nr dev:opencode` | Run with OpenCode              |
+| `nr dev:droid`    | Run with Factory Droid         |
 
 ## Demo App
 
@@ -48,4 +49,5 @@ The demo app includes:
 - **Claude Code** - Uses the Claude Agent SDK (port 4567)
 - **Cursor** - Uses the Cursor Agent CLI (port 5567)
 - **OpenCode** - Uses the OpenCode CLI (port 6567)
+- **Factory Droid** - Uses Factory CLI droid exec (port 10567)
 - **Ami** - Client-only, connects to ami.dev (no local server)

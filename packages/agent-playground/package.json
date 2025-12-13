@@ -11,7 +11,8 @@
     "dev:codex": "REACT_GRAB_CWD=$(cd ../.. && pwd) node ../provider-codex/dist/cli.cjs && VITE_PROVIDER=codex vite",
     "dev:gemini": "REACT_GRAB_CWD=$(cd ../.. && pwd) node ../provider-gemini/dist/cli.cjs && VITE_PROVIDER=gemini vite",
     "dev:amp": "REACT_GRAB_CWD=$(cd ../.. && pwd) node ../provider-amp/dist/cli.cjs && VITE_PROVIDER=amp vite",
-    "dev:ami": "VITE_PROVIDER=ami vite"
+    "dev:ami": "VITE_PROVIDER=ami vite",
+    "dev:droid": "REACT_GRAB_CWD=$(cd ../.. && pwd) node ../provider-droid/dist/cli.cjs && VITE_PROVIDER=droid vite"
   },
   "dependencies": {
     "react": "19.0.1",

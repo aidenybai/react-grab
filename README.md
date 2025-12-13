@@ -456,6 +456,61 @@ export default function RootLayout({ children }) {
 
 </details>
 
+<details>
+<summary><strong>Factory Droid</strong></summary>
+
+#### Server Setup
+
+The server runs on port `10567` and interfaces with the [Factory CLI](https://docs.factory.ai/cli/droid-exec/overview). Add to your `package.json`:
+
+```json
+{
+  "scripts": {
+    "dev": "npx @react-grab/droid@latest && next dev"
+  }
+}
+```
+
+> **Note:** You must have [Factory CLI](https://app.factory.ai) installed (`curl -fsSL https://app.factory.ai/cli | sh`) and `FACTORY_API_KEY` environment variable set.
+
+#### Client Setup
+
+```html
+<script src="//unpkg.com/react-grab/dist/index.global.js"></script>
+<!-- add this in the <head> -->
+<script src="//unpkg.com/@react-grab/droid/dist/client.global.js"></script>
+```
+
+Or using Next.js `Script` component in your `app/layout.tsx`:
+
+```jsx
+import Script from "next/script";
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <head>
+        {process.env.NODE_ENV === "development" && (
+          <>
+            <Script
+              src="//unpkg.com/react-grab/dist/index.global.js"
+              strategy="beforeInteractive"
+            />
+            <Script
+              src="//unpkg.com/@react-grab/droid/dist/client.global.js"
+              strategy="lazyOnload"
+            />
+          </>
+        )}
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}
+```
+
+</details>
+
 ## Extending React Grab
 
 React Grab provides an public customization API. Check out the [type definitions](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) to see all available options for extending React Grab.

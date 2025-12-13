@@ -1,0 +1,43 @@
+{
+  "name": "@react-grab/droid",
+  "version": "0.0.88",
+  "type": "module",
+  "bin": {
+    "react-grab-droid": "./dist/cli.cjs"
+  },
+  "exports": {
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js",
+      "require": "./dist/client.cjs"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js",
+      "require": "./dist/server.cjs"
+    },
+    "./dist/*": "./dist/*.js",
+    "./dist/*.js": "./dist/*.js"
+  },
+  "browser": "dist/client.global.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsup --watch",
+    "build": "rm -rf dist && NODE_ENV=production tsup"
+  },
+  "devDependencies": {
+    "@react-grab/utils": "workspace:*",
+    "@types/node": "^22.10.7",
+    "tsup": "^8.4.0"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.6",
+    "execa": "^9.6.0",
+    "fkill": "^9.0.0",
+    "hono": "^4.0.0",
+    "picocolors": "^1.1.1",
+    "react-grab": "workspace:*"
+  }
+}
