@@ -699,6 +699,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     hadValidBounds() &&
     (props.status === "copied" || props.status === "fading");
 
+  const hasInputValue = () => Boolean(props.inputValue?.length);
+
   return (
     <Show
       when={
@@ -876,6 +878,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     "scrollbar-width": "none",
                     height: isPromptMultiline() ? undefined : "18px",
                     "overflow-y": "hidden",
+                    "padding-right": hasInputValue()
+                      ? isPromptMultiline()
+                        ? "6px"
+                        : "22px"
+                      : undefined,
                     "padding-left": isPromptMultiline()
                       ? `${INPUT_EXPANDED_MULTILINE_LEFT_PADDING_PX}px`
                       : undefined,
@@ -919,29 +926,40 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 >
                   make a change
                 </div>
-              </div>
-              <Show
-                when={Boolean(props.inputValue?.length)}
-                fallback={
-                  <IconCaretUp
-                    class={cn(
-                      "w-[18.3398px] h-[17.9785px] shrink-0 opacity-26 text-black",
-                      isPromptMultiline() ? "self-end" : "self-center",
-                    )}
-                  />
-                }
-              >
-                <button
-                  data-react-grab-ignore-events
-                  class={cn(
-                    "contain-layout shrink-0 cursor-pointer",
-                    isPromptMultiline() ? "self-end" : "self-center",
-                  )}
-                  onClick={handleSubmit}
+
+                <Show
+                  when={hasInputValue()}
+                  fallback={
+                    <div
+                      class="absolute right-0"
+                      style={{
+                        top: isPromptMultiline() ? undefined : "50%",
+                        bottom: isPromptMultiline() ? "0" : undefined,
+                        transform: isPromptMultiline()
+                          ? undefined
+                          : "translateY(-50%)",
+                      }}
+                    >
+                      <IconCaretUp class="w-[18.3398px] h-[17.9785px] opacity-26 text-black pointer-events-none" />
+                    </div>
+                  }
                 >
-                  <IconCaretUp class="w-[18.3398px] h-[17.9785px] text-black" />
-                </button>
-              </Show>
+                  <button
+                    data-react-grab-ignore-events
+                    class="contain-layout absolute right-0 cursor-pointer"
+                    style={{
+                      top: isPromptMultiline() ? undefined : "50%",
+                      bottom: isPromptMultiline() ? "0" : undefined,
+                      transform: isPromptMultiline()
+                        ? undefined
+                        : "translateY(-50%)",
+                    }}
+                    onClick={handleSubmit}
+                  >
+                    <IconCaretUp class="w-[18.3398px] h-[17.9785px] text-black" />
+                  </button>
+                </Show>
+              </div>
             </div>
           </Show>
 

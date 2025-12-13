@@ -143,8 +143,8 @@ export const App = () => {
             </button>
           </div>
           <div className="p-3 bg-white/5 rounded text-sm">
-            <div className="font-medium">User Card</div>
-            <div className="text-white/50 text-xs mt-1 italic">
+            <div className="font-medium italic">User Card</div>
+            <div className="text-white/50 text-xs mt-1">
               john@example.com
             </div>
           </div>
