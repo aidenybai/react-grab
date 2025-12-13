@@ -81,6 +81,8 @@ const INPUT_EXPANDED_PADDING_LEFT_PX = 3;
 const INPUT_EXPANDED_PADDING_RIGHT_PX = 4;
 const INPUT_EXPANDED_ICON_WIDTH_PX = 18.3398;
 const INPUT_EXPANDED_BADGE_GAP_PX = 6;
+const INPUT_EXPANDED_MULTILINE_LEFT_PADDING_PX = 4;
+const INPUT_EXPANDED_MULTILINE_LINE_HEIGHT_PX = 20;
 
 const Arrow: Component<ArrowProps> = (props) => {
   const arrowColor = () => props.color ?? "white";
@@ -874,8 +876,21 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     "scrollbar-width": "none",
                     height: isPromptMultiline() ? undefined : "18px",
                     "overflow-y": "hidden",
+                    "padding-left": isPromptMultiline()
+                      ? `${INPUT_EXPANDED_MULTILINE_LEFT_PADDING_PX}px`
+                      : undefined,
+                    "line-height": isPromptMultiline()
+                      ? `${INPUT_EXPANDED_MULTILINE_LINE_HEIGHT_PX}px`
+                      : undefined,
                     "text-indent": elementBadgeWidthPx()
-                      ? `${elementBadgeWidthPx() + 6}px`
+                      ? `${Math.max(
+                          elementBadgeWidthPx() +
+                            INPUT_EXPANDED_BADGE_GAP_PX -
+                            (isPromptMultiline()
+                              ? INPUT_EXPANDED_MULTILINE_LEFT_PADDING_PX
+                              : 0),
+                          0,
+                        )}px`
                       : undefined,
                   }}
                   value={props.inputValue ?? ""}
