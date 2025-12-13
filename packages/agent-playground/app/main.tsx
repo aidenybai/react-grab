@@ -9,6 +9,7 @@ const PROVIDER_SCRIPTS: Record<string, string> = {
   amp: "/@provider-amp/client.global.js",
   codex: "/@provider-codex/client.global.js",
   gemini: "/@provider-gemini/client.global.js",
+  droid: "/@provider-droid/client.global.js",
 };
 
 const loadProviderScript = (): Promise<void> => {

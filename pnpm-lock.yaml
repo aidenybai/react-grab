@@ -305,6 +305,37 @@ importers:
         specifier: ^8.4.0
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
 
+  packages/provider-droid:
+    dependencies:
+      '@hono/node-server':
+        specifier: ^1.19.6
+        version: 1.19.6(hono@4.10.7)
+      execa:
+        specifier: ^9.6.0
+        version: 9.6.1
+      fkill:
+        specifier: ^9.0.0
+        version: 9.0.0
+      hono:
+        specifier: ^4.0.0
+        version: 4.10.7
+      picocolors:
+        specifier: ^1.1.1
+        version: 1.1.1
+      react-grab:
+        specifier: workspace:*
+        version: link:../react-grab
+    devDependencies:
+      '@react-grab/utils':
+        specifier: workspace:*
+        version: link:../utils
+      '@types/node':
+        specifier: ^22.10.7
+        version: 22.19.2
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
+
   packages/provider-gemini:
     dependencies:
       '@hono/node-server':

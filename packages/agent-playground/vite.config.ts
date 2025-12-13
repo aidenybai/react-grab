@@ -106,6 +106,18 @@ export default defineConfig({
               return;
             }
           }
+          if (req.url?.startsWith("/@provider-droid/")) {
+            const filePath = path.join(
+              __dirname,
+              "../provider-droid/dist",
+              req.url.replace("/@provider-droid/", ""),
+            );
+            if (fs.existsSync(filePath)) {
+              res.setHeader("Content-Type", "application/javascript");
+              fs.createReadStream(filePath).pipe(res);
+              return;
+            }
+          }
           next();
         });
       },

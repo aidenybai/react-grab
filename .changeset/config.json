@@ -14,6 +14,7 @@
       "@react-grab/codex",
       "@react-grab/gemini",
       "@react-grab/amp",
+      "@react-grab/droid",
       "@react-grab/cli",
       "@react-grab/utils"
     ]
