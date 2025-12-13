@@ -5,6 +5,7 @@ import type { OverlayBounds } from "../types.js";
 import { SelectionBox } from "./selection-box.js";
 import { SelectionLabel } from "./selection-label.js";
 import { cn } from "../utils/cn.js";
+import { isKeyboardEventTriggeredByInput } from "../utils/is-keyboard-event-triggered-by-input.js";
 
 interface SelectionCursorProps {
   x: number;
@@ -34,6 +35,28 @@ export const SelectionCursor: Component<SelectionCursorProps> = (props) => {
       );
       onCleanup(() => clearTimeout(timeout));
     }
+  });
+
+  createEffect(() => {
+    if (!debouncedVisible()) return;
+    if (!props.onEnter) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (isKeyboardEventTriggeredByInput(event)) return;
+
+      const isEnter = event.code === "Enter" || event.code === "NumpadEnter";
+      if (!isEnter) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      props.onEnter?.();
+    };
+
+    window.addEventListener("keydown", handleKeyDown, true);
+    onCleanup(() => {
+      window.removeEventListener("keydown", handleKeyDown, true);
+    });
   });
 
   const handleClick = (event: MouseEvent) => {
@@ -76,6 +99,7 @@ export const SelectionCursor: Component<SelectionCursorProps> = (props) => {
       <Show when={isHovered() && props.elementBounds}>
         <SelectionLabel
           tagName={props.tagName}
+          componentName={props.componentName}
           selectionBounds={props.elementBounds}
           mouseX={props.x}
           visible={true}

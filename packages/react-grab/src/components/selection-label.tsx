@@ -880,35 +880,35 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 }}
               >
                 <div class={cn("overflow-hidden min-h-0", !isIdle() && "w-0")}>
-                <BottomSection>
-                  <div class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit">
-                    <Show when={props.hasAgent}>
-                      <span class="text-label-muted text-[12px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
-                        Double click to edit
-                      </span>
-                      <div class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit">
-                        <IconReturn
-                          size={10}
-                          class="opacity-[0.99] text-black"
-                        />
-                      </div>
-                    </Show>
-                    <Show when={!props.hasAgent}>
-                      <span class="text-label-muted text-[12px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
-                        Press
-                      </span>
-                      <div class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-[2px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit">
-                        <span class="text-[9px] leading-none font-medium text-black">
-                          Esc
+                  <BottomSection>
+                    <div class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit">
+                      <Show when={props.hasAgent}>
+                        <span class="text-label-muted text-[12px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
+                          Double click to edit
                         </span>
-                      </div>
-                      <span class="text-label-muted text-[12px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
-                        to dismiss
-                      </span>
-                    </Show>
-                  </div>
-                </BottomSection>
-              </div>
+                        <div class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit">
+                          <IconReturn
+                            size={10}
+                            class="opacity-[0.99] text-black"
+                          />
+                        </div>
+                      </Show>
+                      <Show when={!props.hasAgent}>
+                        <span class="text-label-muted text-[12px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
+                          Press
+                        </span>
+                        <div class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-[2px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit">
+                          <span class="text-[9px] leading-none font-medium text-black">
+                            Esc
+                          </span>
+                        </div>
+                        <span class="text-label-muted text-[12px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
+                          to dismiss
+                        </span>
+                      </Show>
+                    </div>
+                  </BottomSection>
+                </div>
               </div>
             </div>
           </Show>

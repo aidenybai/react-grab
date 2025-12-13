@@ -14,13 +14,12 @@ import { isKeyboardEventTriggeredByInput } from "./utils/is-keyboard-event-trigg
 import { isSelectionInsideEditableElement } from "./utils/is-selection-inside-editable-element.js";
 import { mountRoot } from "./utils/mount-root.js";
 import { ReactGrabRenderer } from "./components/renderer.js";
-import {
-  getStack,
-  getElementContext,
-  getNearestComponentName,
-} from "./context.js";
+import { getStack, getNearestComponentName } from "./context.js";
 import { isSourceFile, normalizeFileName } from "bippy/source";
-import { copyContent } from "./utils/copy-content.js";
+import { createNoopApi } from "./core/noop-api.js";
+import { createEventListenerManager } from "./core/events.js";
+import { createLabelInstancesManager } from "./core/label-instances.js";
+import { tryCopyWithFallback } from "./core/copy.js";
 import { getElementAtPosition } from "./utils/get-element-at-position.js";
 import { isValidGrabbableElement } from "./utils/is-valid-grabbable-element.js";
 import {
@@ -102,26 +101,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   const initialTheme = mergeTheme(rawOptions?.theme);
 
   if (typeof window === "undefined") {
-    return {
-      activate: () => {},
-      deactivate: () => {},
-      toggle: () => {},
-      isActive: () => false,
-      dispose: () => {},
-      copyElement: () => Promise.resolve(false),
-      getState: () => ({
-        isActive: false,
-        isDragging: false,
-        isCopying: false,
-        isInputMode: false,
-        targetElement: null,
-        dragBounds: null,
-      }),
-      updateTheme: () => {},
-      getTheme: () => initialTheme,
-      setAgent: () => {},
-      updateOptions: () => {},
-    };
+    return createNoopApi(initialTheme);
   }
 
   const scriptOptions = getScriptOptions();
@@ -139,26 +119,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   const mergedTheme = mergeTheme(options.theme);
 
   if (options.enabled === false || hasInited) {
-    return {
-      activate: () => {},
-      deactivate: () => {},
-      toggle: () => {},
-      isActive: () => false,
-      dispose: () => {},
-      copyElement: () => Promise.resolve(false),
-      getState: () => ({
-        isActive: false,
-        isDragging: false,
-        isCopying: false,
-        isInputMode: false,
-        targetElement: null,
-        dragBounds: null,
-      }),
-      updateTheme: () => {},
-      getTheme: () => mergedTheme,
-      setAgent: () => {},
-      updateOptions: () => {},
-    };
+    return createNoopApi(mergedTheme);
   }
   hasInited = true;
 
@@ -413,47 +374,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       );
     };
 
-    const createLabelInstance = (
-      bounds: OverlayBounds,
-      tagName: string,
-      componentName: string | undefined,
-      status: SelectionLabelStatus,
-      element?: Element,
-      mouseX?: number,
-    ): string => {
-      const instanceId = `label-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      setLabelInstances((prev) => [
-        ...prev,
-        {
-          id: instanceId,
-          bounds,
-          tagName,
-          componentName,
-          status,
-          createdAt: Date.now(),
-          element,
-          mouseX,
-        },
-      ]);
-      return instanceId;
-    };
-
-    const updateLabelInstance = (
-      instanceId: string,
-      status: SelectionLabelStatus,
-    ) => {
-      setLabelInstances((prev) =>
-        prev.map((instance) =>
-          instance.id === instanceId ? { ...instance, status } : instance,
-        ),
-      );
-    };
-
-    const removeLabelInstance = (instanceId: string) => {
-      setLabelInstances((prev) =>
-        prev.filter((instance) => instance.id !== instanceId),
-      );
-    };
+    const { createLabelInstance, updateLabelInstance, removeLabelInstance } =
+      createLabelInstancesManager(setLabelInstances);
 
     const executeCopyOperation = async (
       positionX: number,
@@ -514,101 +436,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
     };
 
-    const hasInnerText = (
-      element: Element,
-    ): element is Element & { innerText: string } => "innerText" in element;
-
-    const extractElementTextContent = (element: Element): string => {
-      if (hasInnerText(element)) {
-        return element.innerText;
-      }
-
-      return element.textContent ?? "";
-    };
-
-    const createCombinedTextContent = (elements: Element[]): string =>
-      elements
-        .map((element) => extractElementTextContent(element).trim())
-        .filter((textContent) => textContent.length > 0)
-        .join("\n\n");
-
-    const tryCopyWithFallback = async (
-      elements: Element[],
-      extraPrompt?: string,
-    ): Promise<boolean> => {
-      let didCopy = false;
-      let copiedContent = "";
-
-      await options.onBeforeCopy?.(elements);
-
-      try {
-        if (options.getContent) {
-          const customContent = await options.getContent(elements);
-          if (customContent.trim()) {
-            const contentWithPrompt = extraPrompt
-              ? `${extraPrompt}\n\n${customContent}`
-              : customContent;
-            copiedContent = contentWithPrompt;
-            didCopy = copyContent(contentWithPrompt, { prompt: extraPrompt });
-          }
-        } else {
-          const elementSnippetResults = await Promise.allSettled(
-            elements.map((element) =>
-              getElementContext(element, { maxLines: options.maxContextLines }),
-            ),
-          );
-
-          const elementSnippets: string[] = [];
-          for (const result of elementSnippetResults) {
-            if (result.status === "fulfilled" && result.value.trim()) {
-              elementSnippets.push(result.value);
-            }
-          }
-
-          if (elementSnippets.length > 0) {
-            const combinedSnippets = elementSnippets.join("\n\n");
-
-            const plainTextContent = extraPrompt
-              ? `${extraPrompt}\n\n${combinedSnippets}`
-              : combinedSnippets;
-
-            copiedContent = plainTextContent;
-            didCopy = copyContent(plainTextContent, { prompt: extraPrompt });
-          }
-
-          if (!didCopy) {
-            const plainTextContentOnly = createCombinedTextContent(elements);
-            if (plainTextContentOnly.length > 0) {
-              const contentWithPrompt = extraPrompt
-                ? `${extraPrompt}\n\n${plainTextContentOnly}`
-                : plainTextContentOnly;
-
-              copiedContent = contentWithPrompt;
-              didCopy = copyContent(contentWithPrompt, { prompt: extraPrompt });
-            }
-          }
-        }
-      } catch (error) {
-        options.onCopyError?.(error as Error);
-
-        const plainTextContentOnly = createCombinedTextContent(elements);
-        if (plainTextContentOnly.length > 0) {
-          const contentWithPrompt = extraPrompt
-            ? `${extraPrompt}\n\n${plainTextContentOnly}`
-            : plainTextContentOnly;
-
-          copiedContent = contentWithPrompt;
-          didCopy = copyContent(contentWithPrompt, { prompt: extraPrompt });
-        }
-      }
-
-      if (didCopy) {
-        options.onCopySuccess?.(elements, copiedContent);
-      }
-      options.onAfterCopy?.(elements, didCopy);
-
-      return didCopy;
-    };
+    const copyWithFallback = (elements: Element[], extraPrompt?: string) =>
+      tryCopyWithFallback(options, elements, extraPrompt);
 
     const copySingleElementToClipboard = async (
       targetElement: Element,
@@ -624,7 +453,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       await new Promise((resolve) => requestAnimationFrame(resolve));
 
-      await tryCopyWithFallback([targetElement], extraPrompt);
+      await copyWithFallback([targetElement], extraPrompt);
 
       notifyElementsSelected([targetElement]);
     };
@@ -645,7 +474,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       await new Promise((resolve) => requestAnimationFrame(resolve));
 
-      await tryCopyWithFallback(targetElements);
+      await copyWithFallback(targetElements);
 
       notifyElementsSelected(targetElements);
     };
@@ -1555,8 +1384,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    const abortController = new AbortController();
-    const eventListenerSignal = abortController.signal;
+    const eventListenerManager = createEventListenerManager();
 
     const claimedEvents = new WeakSet<KeyboardEvent>();
     const isEnterCode = (code: string) =>
@@ -1613,20 +1441,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return false;
     };
 
-    document.addEventListener("keydown", blockEnterIfNeeded, {
-      signal: eventListenerSignal,
+    eventListenerManager.addDocumentListener("keydown", blockEnterIfNeeded, {
       capture: true,
     });
-    document.addEventListener("keyup", blockEnterIfNeeded, {
-      signal: eventListenerSignal,
+    eventListenerManager.addDocumentListener("keyup", blockEnterIfNeeded, {
       capture: true,
     });
-    document.addEventListener("keypress", blockEnterIfNeeded, {
-      signal: eventListenerSignal,
+    eventListenerManager.addDocumentListener("keypress", blockEnterIfNeeded, {
       capture: true,
     });
 
-    window.addEventListener(
+    eventListenerManager.addWindowListener(
       "keydown",
       (event: KeyboardEvent) => {
         blockEnterIfNeeded(event);
@@ -1654,7 +1479,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           (isEventFromOverlay(event, "data-react-grab-ignore-events") &&
             !isEnterToActivateInput)
         ) {
-          if (event.key === "Escape" && agentManager.isProcessing() && !isPendingAgentAbort()) {
+          if (
+            event.key === "Escape" &&
+            agentManager.isProcessing() &&
+            !isPendingAgentAbort()
+          ) {
             event.preventDefault();
             event.stopPropagation();
             setIsPendingAgentAbort(true);
@@ -1688,10 +1517,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             case "ArrowUp":
             case "ArrowDown": {
               const bounds = createElementBounds(currentElement);
-              const elementsAtPoint = document.elementsFromPoint(
-                bounds.x + bounds.width / 2,
-                bounds.y + bounds.height / 2,
-              ).filter(isValidGrabbableElement);
+              const elementsAtPoint = document
+                .elementsFromPoint(
+                  bounds.x + bounds.width / 2,
+                  bounds.y + bounds.height / 2,
+                )
+                .filter(isValidGrabbableElement);
               const currentIndex = elementsAtPoint.indexOf(currentElement);
               if (currentIndex !== -1) {
                 const direction = event.key === "ArrowUp" ? 1 : -1;
@@ -1744,8 +1575,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                     sibling = getSibling(sibling);
                   }
                   if (nextElement) break;
-                  const parentElement: HTMLElement | null = searchElement.parentElement;
-                  if (!isForward && parentElement && isValidGrabbableElement(parentElement)) {
+                  const parentElement: HTMLElement | null =
+                    searchElement.parentElement;
+                  if (
+                    !isForward &&
+                    parentElement &&
+                    isValidGrabbableElement(parentElement)
+                  ) {
                     nextElement = parentElement;
                     break;
                   }
@@ -1944,10 +1780,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           activateRenderer();
         }, activationDuration);
       },
-      { signal: eventListenerSignal, capture: true },
+      { capture: true },
     );
 
-    window.addEventListener(
+    eventListenerManager.addWindowListener(
       "keyup",
       (event: KeyboardEvent) => {
         if (blockEnterIfNeeded(event)) return;
@@ -2015,28 +1851,23 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           deactivateRenderer();
         }
       },
-      { signal: eventListenerSignal, capture: true },
+      { capture: true },
     );
 
-    window.addEventListener("keypress", blockEnterIfNeeded, {
-      signal: eventListenerSignal,
+    eventListenerManager.addWindowListener("keypress", blockEnterIfNeeded, {
       capture: true,
     });
 
-    window.addEventListener(
-      "mousemove",
-      (event: MouseEvent) => {
-        setIsTouchMode(false);
-        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        if (isHoldingKeys() && !isInputMode() && isToggleFrozen()) {
-          setIsToggleFrozen(false);
-        }
-        handlePointerMove(event.clientX, event.clientY);
-      },
-      { signal: eventListenerSignal },
-    );
+    eventListenerManager.addWindowListener("mousemove", (event: MouseEvent) => {
+      setIsTouchMode(false);
+      if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
+      if (isHoldingKeys() && !isInputMode() && isToggleFrozen()) {
+        setIsToggleFrozen(false);
+      }
+      handlePointerMove(event.clientX, event.clientY);
+    });
 
-    window.addEventListener(
+    eventListenerManager.addWindowListener(
       "mousedown",
       (event: MouseEvent) => {
         if (event.button !== 0) return;
@@ -2053,10 +1884,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           event.stopPropagation();
         }
       },
-      { signal: eventListenerSignal, capture: true },
+      { capture: true },
     );
 
-    window.addEventListener(
+    eventListenerManager.addWindowListener(
       "pointerdown",
       (event: PointerEvent) => {
         if (event.button !== 0) return;
@@ -2064,19 +1895,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!isRendererActive() || isCopying() || isInputMode()) return;
         event.stopPropagation();
       },
-      { signal: eventListenerSignal, capture: true },
+      { capture: true },
     );
 
-    window.addEventListener(
-      "mouseup",
-      (event: MouseEvent) => {
-        if (event.button !== 0) return;
-        handlePointerUp(event.clientX, event.clientY);
-      },
-      { signal: eventListenerSignal },
-    );
+    eventListenerManager.addWindowListener("mouseup", (event: MouseEvent) => {
+      if (event.button !== 0) return;
+      handlePointerUp(event.clientX, event.clientY);
+    });
 
-    window.addEventListener(
+    eventListenerManager.addWindowListener(
       "touchmove",
       (event: TouchEvent) => {
         if (event.touches.length === 0) return;
@@ -2087,10 +1914,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
         handlePointerMove(event.touches[0].clientX, event.touches[0].clientY);
       },
-      { signal: eventListenerSignal, passive: true },
+      { passive: true },
     );
 
-    window.addEventListener(
+    eventListenerManager.addWindowListener(
       "touchstart",
       (event: TouchEvent) => {
         if (event.touches.length === 0) return;
@@ -2111,22 +1938,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           event.preventDefault();
         }
       },
-      { signal: eventListenerSignal, passive: false },
+      { passive: false },
     );
 
-    window.addEventListener(
-      "touchend",
-      (event: TouchEvent) => {
-        if (event.changedTouches.length === 0) return;
-        handlePointerUp(
-          event.changedTouches[0].clientX,
-          event.changedTouches[0].clientY,
-        );
-      },
-      { signal: eventListenerSignal },
-    );
+    eventListenerManager.addWindowListener("touchend", (event: TouchEvent) => {
+      if (event.changedTouches.length === 0) return;
+      handlePointerUp(
+        event.changedTouches[0].clientX,
+        event.changedTouches[0].clientY,
+      );
+    });
 
-    window.addEventListener(
+    eventListenerManager.addWindowListener(
       "click",
       (event: MouseEvent) => {
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
@@ -2149,69 +1972,90 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           }
         }
       },
-      { signal: eventListenerSignal, capture: true },
+      { capture: true },
     );
 
-    document.addEventListener(
-      "visibilitychange",
-      () => {
-        if (document.hidden) {
-          setGrabbedBoxes([]);
-          if (
-            isActivated() &&
-            !isInputMode() &&
-            activationTimestamp !== null &&
-            Date.now() - activationTimestamp > BLUR_DEACTIVATION_THRESHOLD_MS
-          ) {
-            deactivateRenderer();
-          }
+    eventListenerManager.addDocumentListener("visibilitychange", () => {
+      if (document.hidden) {
+        setGrabbedBoxes([]);
+        if (
+          isActivated() &&
+          !isInputMode() &&
+          activationTimestamp !== null &&
+          Date.now() - activationTimestamp > BLUR_DEACTIVATION_THRESHOLD_MS
+        ) {
+          deactivateRenderer();
         }
-      },
-      { signal: eventListenerSignal },
-    );
+      }
+    });
 
-    window.addEventListener(
+    eventListenerManager.addWindowListener(
       "scroll",
       () => {
         setViewportVersion((version) => version + 1);
       },
-      { signal: eventListenerSignal, capture: true },
+      { capture: true },
     );
 
-    window.addEventListener(
-      "resize",
-      () => {
-        setViewportVersion((version) => version + 1);
-      },
-      { signal: eventListenerSignal },
-    );
-
-    window.addEventListener(
-      "popstate",
-      () => {
-        clearNativeSelectionState();
-      },
-      { signal: eventListenerSignal },
-    );
-
-    const boundsRecalcIntervalId = setInterval(() => {
+    eventListenerManager.addWindowListener("resize", () => {
       setViewportVersion((version) => version + 1);
+    });
 
-      if (hasNativeSelection()) {
-        const elements = nativeSelectionElements();
-        const isElementInDOM =
-          elements.length > 0 &&
-          elements[0] &&
-          document.body.contains(elements[0]);
-        if (!isElementInDOM) {
-          clearNativeSelectionState();
-        }
+    eventListenerManager.addWindowListener("popstate", () => {
+      clearNativeSelectionState();
+    });
+
+    let boundsRecalcIntervalId: number | null = null;
+
+    const startBoundsRecalcIntervalIfNeeded = () => {
+      const shouldRunInterval =
+        theme().enabled &&
+        (hasNativeSelection() ||
+          isActivated() ||
+          isCopying() ||
+          labelInstances().length > 0 ||
+          grabbedBoxes().length > 0 ||
+          agentManager.sessions().size > 0);
+
+      if (shouldRunInterval && boundsRecalcIntervalId === null) {
+        boundsRecalcIntervalId = window.setInterval(() => {
+          setViewportVersion((version) => version + 1);
+
+          if (hasNativeSelection()) {
+            const elements = nativeSelectionElements();
+            const isElementInDOM =
+              elements.length > 0 &&
+              elements[0] &&
+              document.body.contains(elements[0]);
+            if (!isElementInDOM) {
+              clearNativeSelectionState();
+            }
+          }
+        }, BOUNDS_RECALC_INTERVAL_MS);
+      } else if (!shouldRunInterval && boundsRecalcIntervalId !== null) {
+        window.clearInterval(boundsRecalcIntervalId);
+        boundsRecalcIntervalId = null;
       }
-    }, BOUNDS_RECALC_INTERVAL_MS);
+    };
 
-    onCleanup(() => clearInterval(boundsRecalcIntervalId));
+    createEffect(() => {
+      void theme().enabled;
+      void hasNativeSelection();
+      void isActivated();
+      void isCopying();
+      void labelInstances().length;
+      void grabbedBoxes().length;
+      void agentManager.sessions().size;
+      startBoundsRecalcIntervalIfNeeded();
+    });
 
-    document.addEventListener(
+    onCleanup(() => {
+      if (boundsRecalcIntervalId !== null) {
+        window.clearInterval(boundsRecalcIntervalId);
+      }
+    });
+
+    eventListenerManager.addDocumentListener(
       "copy",
       (event: ClipboardEvent) => {
         if (
@@ -2224,105 +2068,100 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           event.preventDefault();
         }
       },
-      { signal: eventListenerSignal, capture: true },
+      { capture: true },
     );
 
     let selectionDebounceTimerId: number | null = null;
 
-    document.addEventListener(
-      "selectionchange",
-      () => {
-        if (isRendererActive()) return;
+    eventListenerManager.addDocumentListener("selectionchange", () => {
+      if (isRendererActive()) return;
 
-        if (selectionDebounceTimerId !== null) {
-          window.clearTimeout(selectionDebounceTimerId);
-        }
+      if (selectionDebounceTimerId !== null) {
+        window.clearTimeout(selectionDebounceTimerId);
+      }
 
-        setHasNativeSelection(false);
+      setHasNativeSelection(false);
 
-        const selection = window.getSelection();
-        if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
+      const selection = window.getSelection();
+      if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
+        clearNativeSelectionState();
+        return;
+      }
+
+      selectionDebounceTimerId = window.setTimeout(() => {
+        selectionDebounceTimerId = null;
+
+        const currentSelection = window.getSelection();
+        if (
+          !currentSelection ||
+          currentSelection.isCollapsed ||
+          currentSelection.rangeCount === 0
+        ) {
           clearNativeSelectionState();
           return;
         }
 
-        selectionDebounceTimerId = window.setTimeout(() => {
-          selectionDebounceTimerId = null;
+        const range = currentSelection.getRangeAt(0);
+        const rangeRect = range.getBoundingClientRect();
 
-          const currentSelection = window.getSelection();
-          if (
-            !currentSelection ||
-            currentSelection.isCollapsed ||
-            currentSelection.rangeCount === 0
-          ) {
-            clearNativeSelectionState();
-            return;
-          }
+        if (rangeRect.width === 0 && rangeRect.height === 0) {
+          clearNativeSelectionState();
+          return;
+        }
 
-          const range = currentSelection.getRangeAt(0);
-          const rangeRect = range.getBoundingClientRect();
+        const selectedText = currentSelection.toString().trim();
+        if (!selectedText) {
+          clearNativeSelectionState();
+          return;
+        }
 
-          if (rangeRect.width === 0 && rangeRect.height === 0) {
-            clearNativeSelectionState();
-            return;
-          }
+        const isBackward = (() => {
+          if (!currentSelection.anchorNode || !currentSelection.focusNode)
+            return false;
+          const position = currentSelection.anchorNode.compareDocumentPosition(
+            currentSelection.focusNode,
+          );
+          if (position & Node.DOCUMENT_POSITION_FOLLOWING) return false;
+          if (position & Node.DOCUMENT_POSITION_PRECEDING) return true;
+          return currentSelection.anchorOffset > currentSelection.focusOffset;
+        })();
 
-          const selectedText = currentSelection.toString().trim();
-          if (!selectedText) {
-            clearNativeSelectionState();
-            return;
-          }
+        const clientRects = range.getClientRects();
+        if (clientRects.length === 0) {
+          clearNativeSelectionState();
+          return;
+        }
 
-          const isBackward = (() => {
-            if (!currentSelection.anchorNode || !currentSelection.focusNode)
-              return false;
-            const position =
-              currentSelection.anchorNode.compareDocumentPosition(
-                currentSelection.focusNode,
-              );
-            if (position & Node.DOCUMENT_POSITION_FOLLOWING) return false;
-            if (position & Node.DOCUMENT_POSITION_PRECEDING) return true;
-            return currentSelection.anchorOffset > currentSelection.focusOffset;
-          })();
+        const cursorRect = isBackward
+          ? clientRects[0]
+          : clientRects[clientRects.length - 1];
+        const cursorX = isBackward ? cursorRect.left : cursorRect.right;
+        const cursorY = cursorRect.top + cursorRect.height / 2;
 
-          const clientRects = range.getClientRects();
-          if (clientRects.length === 0) {
-            clearNativeSelectionState();
-            return;
-          }
+        if (isSelectionInsideEditableElement(cursorX, cursorY)) {
+          clearNativeSelectionState();
+          return;
+        }
 
-          const cursorRect = isBackward
-            ? clientRects[0]
-            : clientRects[clientRects.length - 1];
-          const cursorX = isBackward ? cursorRect.left : cursorRect.right;
-          const cursorY = cursorRect.top + cursorRect.height / 2;
+        const container = range.commonAncestorContainer;
+        const element =
+          container.nodeType === Node.ELEMENT_NODE
+            ? (container as Element)
+            : container.parentElement;
 
-          if (isSelectionInsideEditableElement(cursorX, cursorY)) {
-            clearNativeSelectionState();
-            return;
-          }
-
-          const container = range.commonAncestorContainer;
-          const element =
-            container.nodeType === Node.ELEMENT_NODE
-              ? (container as Element)
-              : container.parentElement;
-
-          if (element && isValidGrabbableElement(element)) {
-            setNativeSelectionCursorX(cursorX);
-            setNativeSelectionCursorY(cursorY);
-            setNativeSelectionElements([element]);
-            setHasNativeSelection(true);
-          } else {
-            clearNativeSelectionState();
-          }
-        }, 150);
-      },
-      { signal: eventListenerSignal },
-    );
+        if (element && isValidGrabbableElement(element)) {
+          setNativeSelectionCursorX(cursorX);
+          setNativeSelectionCursorY(cursorY);
+          setNativeSelectionElements([element]);
+          setHasNativeSelection(true);
+        } else {
+          clearNativeSelectionState();
+        }
+      }, 150);
+    });
 
     onCleanup(() => {
-      abortController.abort();
+      eventListenerManager.abort();
       if (holdTimerId) window.clearTimeout(holdTimerId);
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
       if (pendingClickTimeoutId) window.clearTimeout(pendingClickTimeoutId);
@@ -2539,14 +2378,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     ): Promise<boolean> => {
       const elementsArray = Array.isArray(elements) ? elements : [elements];
       if (elementsArray.length === 0) return false;
-
-      await options.onBeforeCopy?.(elementsArray);
-
-      const didCopy = await tryCopyWithFallback(elementsArray);
-
-      options.onAfterCopy?.(elementsArray, didCopy);
-
-      return didCopy;
+      return await copyWithFallback(elementsArray);
     };
 
     const getStateAPI = (): ReactGrabState => ({

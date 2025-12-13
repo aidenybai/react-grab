@@ -64,7 +64,8 @@ export const createAgentManager = (
     return agentOptions;
   };
 
-  const isProcessing = (): boolean => sessions().size > 0;
+  const isProcessing = (): boolean =>
+    Array.from(sessions().values()).some((session) => session.isStreaming);
 
   const executeSessionStream = async (
     session: AgentSession,
@@ -103,7 +104,10 @@ export const createAgentManager = (
         );
         setSessions((prev) => new Map(prev).set(session.id, completedSession));
         const element = sessionElements.get(session.id);
-        const result = await agentOptions?.onComplete?.(completedSession, element);
+        const result = await agentOptions?.onComplete?.(
+          completedSession,
+          element,
+        );
         if (result?.error) {
           const errorSession = updateSession(
             completedSession,
