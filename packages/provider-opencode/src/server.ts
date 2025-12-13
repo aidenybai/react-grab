@@ -14,7 +14,13 @@ try {
   fetch(`https://www.react-grab.com/api/version?source=opencode&t=${Date.now()}`).catch(() => {});
 } catch {}
 
-export interface OpenCodeAgentOptions {
+import {
+  sleep,
+  type AgentMessage,
+  type AgentCoreOptions,
+} from "@react-grab/utils/server";
+
+export interface OpenCodeAgentOptions extends AgentCoreOptions {
   model?: string;
   agent?: string;
   directory?: string;
@@ -28,8 +34,6 @@ interface OpenCodeInstance {
 }
 
 const OPENCODE_SDK_PORT = 4096;
-
-import { sleep } from "@react-grab/utils/server";
 
 interface LastMessageInfo {
   sessionId: string;
@@ -156,6 +160,112 @@ const executeOpenCodePrompt = async (
   return opencodeSessionId;
 };
 
+export const runAgent = async function* (
+  prompt: string,
+  options?: OpenCodeAgentOptions,
+): AsyncGenerator<AgentMessage> {
+  const sessionId = options?.sessionId;
+  const signal = { aborted: false };
+
+  const isAborted = () => {
+    if (options?.signal?.aborted) {
+      signal.aborted = true;
+      return true;
+    }
+    if (sessionId && abortedSessions.has(sessionId)) {
+      signal.aborted = true;
+      return true;
+    }
+    return false;
+  };
+
+  const messageQueue: AgentMessage[] = [];
+  let resolveWait: (() => void) | null = null;
+
+  const enqueueMessage = (message: AgentMessage) => {
+    messageQueue.push(message);
+    if (resolveWait) {
+      resolveWait();
+      resolveWait = null;
+    }
+  };
+
+  try {
+    const executePromise = executeOpenCodePrompt(
+      prompt,
+      options,
+      (text) => {
+        if (!isAborted()) {
+          enqueueMessage({ type: "status", content: text });
+        }
+      },
+      sessionId,
+      signal,
+    );
+
+    let isDone = false;
+
+    executePromise
+      .then(() => {
+        if (!isAborted()) {
+          enqueueMessage({ type: "status", content: COMPLETED_STATUS });
+          enqueueMessage({ type: "done", content: "" });
+        }
+        isDone = true;
+        if (resolveWait) {
+          resolveWait();
+          resolveWait = null;
+        }
+      })
+      .catch((error) => {
+        if (!isAborted()) {
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
+          const stderr =
+            error instanceof Error && "stderr" in error
+              ? String(error.stderr)
+              : undefined;
+          const fullError =
+            stderr && stderr.trim()
+              ? `${errorMessage}\n\nstderr:\n${stderr.trim()}`
+              : errorMessage;
+          enqueueMessage({ type: "error", content: fullError });
+          enqueueMessage({ type: "done", content: "" });
+        }
+        isDone = true;
+        if (resolveWait) {
+          resolveWait();
+          resolveWait = null;
+        }
+      });
+
+    while (true) {
+      if (isAborted()) {
+        return;
+      }
+
+      if (messageQueue.length > 0) {
+        const message = messageQueue.shift()!;
+        if (message.type === "done") {
+          yield message;
+          return;
+        }
+        yield message;
+      } else if (isDone) {
+        return;
+      } else {
+        await new Promise<void>((resolve) => {
+          resolveWait = resolve;
+        });
+      }
+    }
+  } finally {
+    if (sessionId) {
+      abortedSessions.delete(sessionId);
+    }
+  }
+};
+
 export const createServer = () => {
   const honoApplication = new Hono();
 
@@ -176,60 +286,11 @@ ${content}
 `;
 
     return streamSSE(context, async (stream) => {
-      const signal = { aborted: false };
-      const isAborted = () => {
-        if (sessionId && abortedSessions.has(sessionId)) {
-          signal.aborted = true;
-          return true;
-        }
-        return false;
-      };
-
-      try {
-        await executeOpenCodePrompt(
-          formattedPrompt,
-          options,
-          (text) => {
-            if (isAborted()) return;
-            stream
-              .writeSSE({
-                data: text,
-                event: "status",
-              })
-              .catch(() => {});
-          },
-          sessionId,
-          signal,
-        );
-
-        if (!isAborted()) {
-          await stream.writeSSE({
-            data: COMPLETED_STATUS,
-            event: "status",
-          });
-          await stream.writeSSE({ data: "", event: "done" });
-        }
-      } catch (error) {
-        if (!isAborted()) {
-          const errorMessage =
-            error instanceof Error ? error.message : "Unknown error";
-          const stderr =
-            error instanceof Error && "stderr" in error
-              ? String(error.stderr)
-              : undefined;
-          const fullError =
-            stderr && stderr.trim()
-              ? `${errorMessage}\n\nstderr:\n${stderr.trim()}`
-              : errorMessage;
-          await stream.writeSSE({
-            data: `Error: ${fullError}`,
-            event: "error",
-          });
-          await stream.writeSSE({ data: "", event: "done" });
-        }
-      } finally {
-        if (sessionId) {
-          abortedSessions.delete(sessionId);
+      for await (const message of runAgent(formattedPrompt, { ...options, sessionId })) {
+        if (message.type === "error") {
+          await stream.writeSSE({ data: `Error: ${message.content}`, event: "error" });
+        } else {
+          await stream.writeSSE({ data: message.content, event: message.type });
         }
       }
     });

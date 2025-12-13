@@ -13,6 +13,12 @@ import {
 } from "@anthropic-ai/claude-agent-sdk";
 import type { AgentContext } from "react-grab/core";
 import { DEFAULT_PORT, COMPLETED_STATUS } from "./constants";
+import {
+  sleep,
+  formatSpawnError,
+  type AgentMessage,
+  type AgentCoreOptions,
+} from "@react-grab/utils/server";
 
 const VERSION = process.env.VERSION ?? "0.0.0";
 
@@ -33,7 +39,10 @@ const resolveClaudePath = (): string => {
 
 type ContentBlock = SDKAssistantMessage["message"]["content"][number];
 type TextContentBlock = Extract<ContentBlock, { type: "text" }>;
-type ClaudeAgentContext = AgentContext<Options>;
+
+export interface ClaudeAgentOptions extends AgentCoreOptions, Omit<Options, "cwd"> {}
+
+type ClaudeAgentContext = AgentContext<ClaudeAgentOptions>;
 
 const claudeSessionMap = new Map<string, string>();
 const abortedSessions = new Set<string>();
@@ -41,6 +50,103 @@ let lastClaudeSessionId: string | undefined;
 
 const isTextBlock = (block: ContentBlock): block is TextContentBlock =>
   block.type === "text";
+
+export const runAgent = async function* (
+  prompt: string,
+  options?: ClaudeAgentOptions,
+): AsyncGenerator<AgentMessage> {
+  const sessionId = options?.sessionId;
+  const isAborted = () => {
+    if (options?.signal?.aborted) return true;
+    if (sessionId && abortedSessions.has(sessionId)) return true;
+    return false;
+  };
+
+  try {
+    yield { type: "status", content: "Thinking…" };
+
+    // HACK: https://github.com/anthropics/claude-code/issues/4619#issuecomment-3217014571
+    const env = { ...process.env };
+    delete env.NODE_OPTIONS;
+    delete env.VSCODE_INSPECTOR_OPTIONS;
+
+    const claudeSessionId = sessionId
+      ? claudeSessionMap.get(sessionId)
+      : undefined;
+
+    const queryResult = query({
+      prompt,
+      options: {
+        pathToClaudeCodeExecutable: resolveClaudePath(),
+        includePartialMessages: true,
+        env,
+        ...options,
+        cwd: options?.cwd ?? process.env.REACT_GRAB_CWD ?? process.cwd(),
+        ...(claudeSessionId ? { resume: claudeSessionId } : {}),
+      },
+    });
+
+    let capturedClaudeSessionId: string | undefined;
+
+    for await (const message of queryResult) {
+      if (isAborted()) break;
+
+      if (!capturedClaudeSessionId && message.session_id) {
+        capturedClaudeSessionId = message.session_id;
+      }
+
+      if (message.type === "assistant") {
+        const textContent = message.message.content
+          .filter(isTextBlock)
+          .map((block: TextContentBlock) => block.text)
+          .join(" ");
+
+        if (textContent) {
+          yield { type: "status", content: textContent };
+        }
+      }
+
+      if (message.type === "result") {
+        yield {
+          type: "status",
+          content: message.subtype === "success" ? COMPLETED_STATUS : "Task finished",
+        };
+      }
+    }
+
+    if (!isAborted() && capturedClaudeSessionId) {
+      if (sessionId) {
+        claudeSessionMap.set(sessionId, capturedClaudeSessionId);
+      }
+      lastClaudeSessionId = capturedClaudeSessionId;
+    }
+
+    if (!isAborted()) {
+      yield { type: "done", content: "" };
+    }
+  } catch (error) {
+    if (!isAborted()) {
+      const errorMessage =
+        error instanceof Error
+          ? formatSpawnError(error, "claude")
+          : "Unknown error";
+      const stderr =
+        error instanceof Error && "stderr" in error
+          ? String(error.stderr)
+          : undefined;
+      const fullError =
+        stderr && stderr.trim()
+          ? `${errorMessage}\n\nstderr:\n${stderr.trim()}`
+          : errorMessage;
+      yield { type: "error", content: fullError };
+      yield { type: "done", content: "" };
+    }
+  } finally {
+    if (sessionId) {
+      abortedSessions.delete(sessionId);
+    }
+  }
+};
 
 export const createServer = () => {
   const app = new Hono();
@@ -59,93 +165,11 @@ export const createServer = () => {
     const userPrompt = isFollowUp ? prompt : `${prompt}\n\n${content}`;
 
     return streamSSE(context, async (stream) => {
-      const isAborted = () => sessionId && abortedSessions.has(sessionId);
-
-      try {
-        await stream.writeSSE({ data: "Thinking…", event: "status" });
-
-        // https://github.com/anthropics/claude-code/issues/4619#issuecomment-3217014571
-        const env = { ...process.env };
-        delete env.NODE_OPTIONS;
-        delete env.VSCODE_INSPECTOR_OPTIONS;
-
-        const queryResult = query({
-          prompt: userPrompt,
-          options: {
-            pathToClaudeCodeExecutable: resolveClaudePath(),
-            includePartialMessages: true,
-            env,
-            ...options,
-            cwd: options?.cwd ?? process.env.REACT_GRAB_CWD ?? process.cwd(),
-            ...(isFollowUp && claudeSessionId
-              ? { resume: claudeSessionId }
-              : {}),
-          },
-        });
-
-        let capturedClaudeSessionId: string | undefined;
-
-        for await (const message of queryResult) {
-          if (isAborted()) break;
-
-          if (!capturedClaudeSessionId && message.session_id) {
-            capturedClaudeSessionId = message.session_id;
-          }
-
-          if (message.type === "assistant") {
-            const textContent = message.message.content
-              .filter(isTextBlock)
-              .map((block: TextContentBlock) => block.text)
-              .join(" ");
-
-            if (textContent) {
-              await stream.writeSSE({ data: textContent, event: "status" });
-            }
-          }
-
-          if (message.type === "result") {
-            await stream.writeSSE({
-              data:
-                message.subtype === "success"
-                  ? COMPLETED_STATUS
-                  : "Task finished",
-              event: "status",
-            });
-          }
-        }
-
-        if (!isAborted() && capturedClaudeSessionId) {
-          if (sessionId) {
-            claudeSessionMap.set(sessionId, capturedClaudeSessionId);
-          }
-          lastClaudeSessionId = capturedClaudeSessionId;
-        }
-
-        if (!isAborted()) {
-          await stream.writeSSE({ data: "", event: "done" });
-        }
-      } catch (error) {
-        if (!isAborted()) {
-          const errorMessage =
-            error instanceof Error
-              ? formatSpawnError(error, "claude")
-              : "Unknown error";
-          const stderr =
-            error instanceof Error && "stderr" in error
-              ? String(error.stderr)
-              : undefined;
-          const fullError =
-            stderr && stderr.trim()
-              ? `${errorMessage}\n\nstderr:\n${stderr.trim()}`
-              : errorMessage;
-          await stream.writeSSE({
-            data: `Error: ${fullError}`,
-            event: "error",
-          });
-        }
-      } finally {
-        if (sessionId) {
-          abortedSessions.delete(sessionId);
+      for await (const message of runAgent(userPrompt, { ...options, sessionId })) {
+        if (message.type === "error") {
+          await stream.writeSSE({ data: `Error: ${message.content}`, event: "error" });
+        } else {
+          await stream.writeSSE({ data: message.content, event: message.type });
         }
       }
     });
@@ -195,8 +219,6 @@ export const createServer = () => {
 
   return app;
 };
-
-import { sleep, formatSpawnError } from "@react-grab/utils/server";
 
 export const startServer = async (port: number = DEFAULT_PORT) => {
   await fkill(`:${port}`, { force: true, silent: true }).catch(() => {});

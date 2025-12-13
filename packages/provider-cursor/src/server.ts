@@ -15,9 +15,14 @@ try {
   fetch(`https://www.react-grab.com/api/version?source=cursor&t=${Date.now()}`).catch(() => {});
 } catch {}
 
-import { sleep, formatSpawnError } from "@react-grab/utils/server";
+import {
+  sleep,
+  formatSpawnError,
+  type AgentMessage,
+  type AgentCoreOptions,
+} from "@react-grab/utils/server";
 
-interface CursorAgentOptions {
+export interface CursorAgentOptions extends AgentCoreOptions {
   model?: string;
   workspace?: string;
 }
@@ -63,6 +68,206 @@ const extractTextFromMessage = (
     .trim();
 };
 
+export const runAgent = async function* (
+  prompt: string,
+  options?: CursorAgentOptions,
+): AsyncGenerator<AgentMessage> {
+  const cursorAgentArgs = [
+    "--print",
+    "--output-format",
+    "stream-json",
+    "--force",
+  ];
+
+  if (options?.model) {
+    cursorAgentArgs.push("--model", options.model);
+  }
+
+  const workspacePath =
+    options?.workspace ?? options?.cwd ?? process.env.REACT_GRAB_CWD ?? process.cwd();
+
+  const cursorChatId = options?.sessionId
+    ? cursorSessionMap.get(options.sessionId)
+    : undefined;
+
+  if (cursorChatId) {
+    cursorAgentArgs.push("--resume", cursorChatId);
+  }
+
+  let cursorProcess: ResultPromise | undefined;
+  let stderrBuffer = "";
+
+  try {
+    yield { type: "status", content: "Thinking…" };
+
+    cursorProcess = execa("cursor-agent", cursorAgentArgs, {
+      stdin: "pipe",
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { ...process.env },
+      cwd: workspacePath,
+    });
+
+    if (options?.sessionId) {
+      activeProcesses.set(options.sessionId, cursorProcess);
+    }
+
+    if (cursorProcess.stderr) {
+      cursorProcess.stderr.on("data", (chunk: Buffer) => {
+        stderrBuffer += chunk.toString();
+      });
+    }
+
+    const messageQueue: AgentMessage[] = [];
+    let resolveWait: (() => void) | null = null;
+    let processEnded = false;
+    let capturedCursorChatId: string | undefined;
+
+    const enqueueMessage = (message: AgentMessage) => {
+      messageQueue.push(message);
+      if (resolveWait) {
+        resolveWait();
+        resolveWait = null;
+      }
+    };
+
+    const processLine = (line: string) => {
+      const event = parseStreamLine(line);
+      if (!event) return;
+
+      if (!capturedCursorChatId && event.session_id) {
+        capturedCursorChatId = event.session_id;
+      }
+
+      switch (event.type) {
+        case "assistant": {
+          const textContent = extractTextFromMessage(event.message);
+          if (textContent) {
+            enqueueMessage({ type: "status", content: textContent });
+          }
+          break;
+        }
+
+        case "result":
+          if (event.subtype === "success") {
+            enqueueMessage({ type: "status", content: COMPLETED_STATUS });
+          } else if (event.subtype === "error" || event.is_error) {
+            enqueueMessage({ type: "error", content: event.result || "Unknown error" });
+          } else {
+            enqueueMessage({ type: "status", content: "Task finished" });
+          }
+          break;
+      }
+    };
+
+    let buffer = "";
+
+    if (cursorProcess.stdout) {
+      cursorProcess.stdout.on("data", (chunk: Buffer) => {
+        buffer += chunk.toString();
+
+        let newlineIndex;
+        while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
+          const line = buffer.slice(0, newlineIndex);
+          buffer = buffer.slice(newlineIndex + 1);
+          processLine(line);
+        }
+      });
+    }
+
+    if (cursorProcess.stdin) {
+      cursorProcess.stdin.write(prompt);
+      cursorProcess.stdin.end();
+    }
+
+    const childProcess = cursorProcess;
+    childProcess.on("close", (code) => {
+      if (options?.sessionId) {
+        activeProcesses.delete(options.sessionId);
+      }
+      if (buffer.trim()) {
+        processLine(buffer);
+      }
+      if (options?.sessionId && capturedCursorChatId) {
+        cursorSessionMap.set(options.sessionId, capturedCursorChatId);
+      }
+      if (capturedCursorChatId) {
+        lastCursorChatId = capturedCursorChatId;
+      }
+      processEnded = true;
+      if (code !== 0 && !childProcess.killed) {
+        enqueueMessage({ type: "error", content: `cursor-agent exited with code ${code}` });
+      }
+      enqueueMessage({ type: "done", content: "" });
+      if (resolveWait) {
+        resolveWait();
+        resolveWait = null;
+      }
+    });
+
+    childProcess.on("error", (error) => {
+      if (options?.sessionId) {
+        activeProcesses.delete(options.sessionId);
+      }
+      processEnded = true;
+      const isNotInstalled = "code" in error && error.code === "ENOENT";
+      if (isNotInstalled) {
+        enqueueMessage({
+          type: "error",
+          content: "cursor-agent is not installed. Please install the Cursor Agent CLI to use this provider.\n\nInstallation: https://cursor.com/docs/cli/overview",
+        });
+      } else {
+        const errorMessage = formatSpawnError(error, "cursor-agent");
+        const stderrContent = stderrBuffer.trim();
+        const fullError = stderrContent
+          ? `${errorMessage}\n\nstderr:\n${stderrContent}`
+          : errorMessage;
+        enqueueMessage({ type: "error", content: fullError });
+      }
+      enqueueMessage({ type: "done", content: "" });
+      if (resolveWait) {
+        resolveWait();
+        resolveWait = null;
+      }
+    });
+
+    while (true) {
+      if (options?.signal?.aborted) {
+        if (cursorProcess && !cursorProcess.killed) {
+          cursorProcess.kill("SIGTERM");
+        }
+        return;
+      }
+
+      if (messageQueue.length > 0) {
+        const message = messageQueue.shift()!;
+        if (message.type === "done") {
+          yield message;
+          return;
+        }
+        yield message;
+      } else if (processEnded) {
+        return;
+      } else {
+        await new Promise<void>((resolve) => {
+          resolveWait = resolve;
+        });
+      }
+    }
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? formatSpawnError(error, "cursor-agent")
+        : "Unknown error";
+    const stderrContent = stderrBuffer.trim();
+    const fullError = stderrContent
+      ? `${errorMessage}\n\nstderr:\n${stderrContent}`
+      : errorMessage;
+    yield { type: "error", content: fullError };
+    yield { type: "done", content: "" };
+  }
+};
+
 export const createServer = () => {
   const app = new Hono();
 
@@ -80,169 +285,12 @@ export const createServer = () => {
     const userPrompt = isFollowUp ? prompt : `${prompt}\n\n${content}`;
 
     return streamSSE(context, async (stream) => {
-      const cursorAgentArgs = [
-        "--print",
-        "--output-format",
-        "stream-json",
-        "--force",
-      ];
-
-      if (options?.model) {
-        cursorAgentArgs.push("--model", options.model);
-      }
-
-      const workspacePath =
-        options?.workspace ?? process.env.REACT_GRAB_CWD ?? process.cwd();
-
-      if (isFollowUp && cursorChatId) {
-        cursorAgentArgs.push("--resume", cursorChatId);
-      }
-
-      let cursorProcess: ResultPromise | undefined;
-      let stderrBuffer = "";
-
-      try {
-        await stream.writeSSE({ data: "Thinking…", event: "status" });
-
-        cursorProcess = execa("cursor-agent", cursorAgentArgs, {
-          stdin: "pipe",
-          stdout: "pipe",
-          stderr: "pipe",
-          env: { ...process.env },
-          cwd: workspacePath,
-        });
-
-        if (sessionId) {
-          activeProcesses.set(sessionId, cursorProcess);
+      for await (const message of runAgent(userPrompt, { ...options, sessionId })) {
+        if (message.type === "error") {
+          await stream.writeSSE({ data: `Error: ${message.content}`, event: "error" });
+        } else {
+          await stream.writeSSE({ data: message.content, event: message.type });
         }
-
-        if (cursorProcess.stderr) {
-          cursorProcess.stderr.on("data", (chunk: Buffer) => {
-            stderrBuffer += chunk.toString();
-          });
-        }
-
-        let buffer = "";
-        let capturedCursorChatId: string | undefined;
-
-        const processLine = async (line: string) => {
-          const event = parseStreamLine(line);
-          if (!event) return;
-
-          if (!capturedCursorChatId && event.session_id) {
-            capturedCursorChatId = event.session_id;
-          }
-
-          switch (event.type) {
-            case "assistant": {
-              const textContent = extractTextFromMessage(event.message);
-              if (textContent) {
-                await stream.writeSSE({ data: textContent, event: "status" });
-              }
-              break;
-            }
-
-            case "result":
-              if (event.subtype === "success") {
-                await stream.writeSSE({
-                  data: COMPLETED_STATUS,
-                  event: "status",
-                });
-              } else if (event.subtype === "error" || event.is_error) {
-                await stream.writeSSE({
-                  data: `Error: ${event.result || "Unknown error"}`,
-                  event: "error",
-                });
-              } else {
-                await stream.writeSSE({
-                  data: "Task finished",
-                  event: "status",
-                });
-              }
-              break;
-          }
-        };
-
-        if (cursorProcess.stdout) {
-          cursorProcess.stdout.on("data", async (chunk: Buffer) => {
-            buffer += chunk.toString();
-
-            let newlineIndex;
-            while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
-              const line = buffer.slice(0, newlineIndex);
-              buffer = buffer.slice(newlineIndex + 1);
-              await processLine(line);
-            }
-          });
-        }
-
-        if (cursorProcess.stdin) {
-          cursorProcess.stdin.write(userPrompt);
-          cursorProcess.stdin.end();
-        }
-
-        if (cursorProcess) {
-          const childProcess = cursorProcess;
-          await new Promise<void>((resolve, reject) => {
-            childProcess.on("close", (code) => {
-              if (sessionId) {
-                activeProcesses.delete(sessionId);
-              }
-              if (code === 0 || childProcess.killed) {
-                resolve();
-              } else {
-                reject(new Error(`cursor-agent exited with code ${code}`));
-              }
-            });
-
-            childProcess.on("error", (error) => {
-              if (sessionId) {
-                activeProcesses.delete(sessionId);
-              }
-              reject(error);
-            });
-          });
-        }
-
-        if (buffer.trim()) {
-          await processLine(buffer);
-        }
-
-        if (sessionId && capturedCursorChatId) {
-          cursorSessionMap.set(sessionId, capturedCursorChatId);
-        }
-
-        if (capturedCursorChatId) {
-          lastCursorChatId = capturedCursorChatId;
-        }
-
-        await stream.writeSSE({ data: "", event: "done" });
-      } catch (error) {
-        const isNotInstalled =
-          error instanceof Error &&
-          "code" in error &&
-          error.code === "ENOENT";
-
-        if (isNotInstalled) {
-          await stream.writeSSE({
-            data: `Error: cursor-agent is not installed. Please install the Cursor Agent CLI to use this provider.\n\nInstallation: https://cursor.com/docs/cli/overview`,
-            event: "error",
-          });
-          return;
-        }
-
-        const errorMessage =
-          error instanceof Error
-            ? formatSpawnError(error, "cursor-agent")
-            : "Unknown error";
-        const stderrContent = stderrBuffer.trim();
-        const fullError = stderrContent
-          ? `${errorMessage}\n\nstderr:\n${stderrContent}`
-          : errorMessage;
-        await stream.writeSSE({
-          data: `Error: ${fullError}`,
-          event: "error",
-        });
       }
     });
   });

@@ -365,7 +365,7 @@ const AgentPage = () => {
               </p>
 
               <h4 className="text-base font-medium text-neutral-300 mt-4">
-                CLI (Recommended)
+                CLI
               </h4>
               <p>
                 Run this command at your project root to automatically install

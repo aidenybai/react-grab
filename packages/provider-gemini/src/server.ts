@@ -15,9 +15,14 @@ try {
   fetch(`https://www.react-grab.com/api/version?source=gemini&t=${Date.now()}`).catch(() => {});
 } catch {}
 
-import { sleep, formatSpawnError } from "@react-grab/utils/server";
+import {
+  sleep,
+  formatSpawnError,
+  type AgentMessage,
+  type AgentCoreOptions,
+} from "@react-grab/utils/server";
 
-interface GeminiAgentOptions {
+export interface GeminiAgentOptions extends AgentCoreOptions {
   model?: string;
   includeDirectories?: string;
 }
@@ -54,6 +59,201 @@ const parseStreamLine = (line: string): GeminiStreamEvent | null => {
   }
 };
 
+export const runAgent = async function* (
+  prompt: string,
+  options?: GeminiAgentOptions,
+): AsyncGenerator<AgentMessage> {
+  const geminiArgs = ["--output-format", "stream-json", "--yolo"];
+
+  if (options?.model) {
+    geminiArgs.push("--model", options.model);
+  }
+
+  if (options?.includeDirectories) {
+    geminiArgs.push("--include-directories", options.includeDirectories);
+  }
+
+  geminiArgs.push(prompt);
+
+  let geminiProcess: ResultPromise | undefined;
+  let stderrBuffer = "";
+
+  try {
+    yield { type: "status", content: "Thinking…" };
+
+    geminiProcess = execa("gemini", geminiArgs, {
+      stdin: "pipe",
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { ...process.env },
+      cwd: options?.cwd ?? process.env.REACT_GRAB_CWD ?? process.cwd(),
+    });
+
+    if (options?.sessionId) {
+      activeProcesses.set(options.sessionId, geminiProcess);
+    }
+
+    if (geminiProcess.stderr) {
+      geminiProcess.stderr.on("data", (chunk: Buffer) => {
+        stderrBuffer += chunk.toString();
+      });
+    }
+
+    const messageQueue: AgentMessage[] = [];
+    let resolveWait: (() => void) | null = null;
+    let processEnded = false;
+    let capturedSessionId: string | undefined;
+
+    const enqueueMessage = (message: AgentMessage) => {
+      messageQueue.push(message);
+      if (resolveWait) {
+        resolveWait();
+        resolveWait = null;
+      }
+    };
+
+    const processLine = (line: string) => {
+      const event = parseStreamLine(line);
+      if (!event) return;
+
+      if (!capturedSessionId && event.session_id) {
+        capturedSessionId = event.session_id;
+      }
+
+      switch (event.type) {
+        case "init":
+          enqueueMessage({ type: "status", content: "Session started..." });
+          break;
+
+        case "message":
+          if (event.role === "assistant" && event.content) {
+            enqueueMessage({ type: "status", content: event.content });
+          }
+          break;
+
+        case "tool_use":
+          if (event.tool_name) {
+            enqueueMessage({ type: "status", content: `Using ${event.tool_name}...` });
+          }
+          break;
+
+        case "tool_result":
+          if (event.status === "error" && event.output) {
+            enqueueMessage({ type: "status", content: `Tool error: ${event.output}` });
+          }
+          break;
+
+        case "error":
+          if (event.content) {
+            enqueueMessage({ type: "error", content: event.content });
+          }
+          break;
+
+        case "result":
+          if (event.status === "success") {
+            enqueueMessage({ type: "status", content: COMPLETED_STATUS });
+          } else if (event.status === "error") {
+            enqueueMessage({ type: "error", content: "Task failed" });
+          }
+          break;
+      }
+    };
+
+    let buffer = "";
+
+    if (geminiProcess.stdout) {
+      geminiProcess.stdout.on("data", (chunk: Buffer) => {
+        buffer += chunk.toString();
+
+        let newlineIndex;
+        while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
+          const line = buffer.slice(0, newlineIndex);
+          buffer = buffer.slice(newlineIndex + 1);
+          processLine(line);
+        }
+      });
+    }
+
+    const childProcess = geminiProcess;
+    childProcess.on("close", (code) => {
+      if (options?.sessionId) {
+        activeProcesses.delete(options.sessionId);
+      }
+      if (buffer.trim()) {
+        processLine(buffer);
+      }
+      if (options?.sessionId && capturedSessionId) {
+        geminiSessionMap.set(options.sessionId, capturedSessionId);
+      }
+      if (capturedSessionId) {
+        lastGeminiSessionId = capturedSessionId;
+      }
+      processEnded = true;
+      if (code !== 0 && !childProcess.killed) {
+        enqueueMessage({ type: "error", content: `gemini exited with code ${code}` });
+      }
+      enqueueMessage({ type: "done", content: "" });
+      if (resolveWait) {
+        resolveWait();
+        resolveWait = null;
+      }
+    });
+
+    childProcess.on("error", (error) => {
+      if (options?.sessionId) {
+        activeProcesses.delete(options.sessionId);
+      }
+      processEnded = true;
+      const errorMessage = formatSpawnError(error, "gemini");
+      const stderrContent = stderrBuffer.trim();
+      const fullError = stderrContent
+        ? `${errorMessage}\n\nstderr:\n${stderrContent}`
+        : errorMessage;
+      enqueueMessage({ type: "error", content: fullError });
+      enqueueMessage({ type: "done", content: "" });
+      if (resolveWait) {
+        resolveWait();
+        resolveWait = null;
+      }
+    });
+
+    while (true) {
+      if (options?.signal?.aborted) {
+        if (geminiProcess && !geminiProcess.killed) {
+          geminiProcess.kill("SIGTERM");
+        }
+        return;
+      }
+
+      if (messageQueue.length > 0) {
+        const message = messageQueue.shift()!;
+        if (message.type === "done") {
+          yield message;
+          return;
+        }
+        yield message;
+      } else if (processEnded) {
+        return;
+      } else {
+        await new Promise<void>((resolve) => {
+          resolveWait = resolve;
+        });
+      }
+    }
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? formatSpawnError(error, "gemini")
+        : "Unknown error";
+    const stderrContent = stderrBuffer.trim();
+    const fullError = stderrContent
+      ? `${errorMessage}\n\nstderr:\n${stderrContent}`
+      : errorMessage;
+    yield { type: "error", content: fullError };
+    yield { type: "done", content: "" };
+  }
+};
+
 export const createServer = () => {
   const app = new Hono();
 
@@ -71,173 +271,12 @@ export const createServer = () => {
     const userPrompt = isFollowUp ? prompt : `${prompt}\n\n${content}`;
 
     return streamSSE(context, async (stream) => {
-      const geminiArgs = ["--output-format", "stream-json", "--yolo"];
-
-      if (options?.model) {
-        geminiArgs.push("--model", options.model);
-      }
-
-      if (options?.includeDirectories) {
-        geminiArgs.push("--include-directories", options.includeDirectories);
-      }
-
-      geminiArgs.push(userPrompt);
-
-      let geminiProcess: ResultPromise | undefined;
-      let stderrBuffer = "";
-
-      try {
-        await stream.writeSSE({ data: "Thinking…", event: "status" });
-
-        geminiProcess = execa("gemini", geminiArgs, {
-          stdin: "pipe",
-          stdout: "pipe",
-          stderr: "pipe",
-          env: { ...process.env },
-          cwd: process.env.REACT_GRAB_CWD ?? process.cwd(),
-        });
-
-        if (sessionId) {
-          activeProcesses.set(sessionId, geminiProcess);
+      for await (const message of runAgent(userPrompt, { ...options, sessionId })) {
+        if (message.type === "error") {
+          await stream.writeSSE({ data: `Error: ${message.content}`, event: "error" });
+        } else {
+          await stream.writeSSE({ data: message.content, event: message.type });
         }
-
-        if (geminiProcess.stderr) {
-          geminiProcess.stderr.on("data", (chunk: Buffer) => {
-            stderrBuffer += chunk.toString();
-          });
-        }
-
-        let buffer = "";
-        let capturedSessionId: string | undefined;
-
-        const processLine = async (line: string) => {
-          const event = parseStreamLine(line);
-          if (!event) return;
-
-          if (!capturedSessionId && event.session_id) {
-            capturedSessionId = event.session_id;
-          }
-
-          switch (event.type) {
-            case "init":
-              await stream.writeSSE({
-                data: "Session started...",
-                event: "status",
-              });
-              break;
-
-            case "message":
-              if (event.role === "assistant" && event.content) {
-                await stream.writeSSE({ data: event.content, event: "status" });
-              }
-              break;
-
-            case "tool_use":
-              if (event.tool_name) {
-                await stream.writeSSE({
-                  data: `Using ${event.tool_name}...`,
-                  event: "status",
-                });
-              }
-              break;
-
-            case "tool_result":
-              if (event.status === "error" && event.output) {
-                await stream.writeSSE({
-                  data: `Tool error: ${event.output}`,
-                  event: "status",
-                });
-              }
-              break;
-
-            case "error":
-              if (event.content) {
-                await stream.writeSSE({
-                  data: `Error: ${event.content}`,
-                  event: "error",
-                });
-              }
-              break;
-
-            case "result":
-              if (event.status === "success") {
-                await stream.writeSSE({
-                  data: COMPLETED_STATUS,
-                  event: "status",
-                });
-              } else if (event.status === "error") {
-                await stream.writeSSE({
-                  data: "Task failed",
-                  event: "error",
-                });
-              }
-              break;
-          }
-        };
-
-        if (geminiProcess.stdout) {
-          geminiProcess.stdout.on("data", async (chunk: Buffer) => {
-            buffer += chunk.toString();
-
-            let newlineIndex;
-            while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
-              const line = buffer.slice(0, newlineIndex);
-              buffer = buffer.slice(newlineIndex + 1);
-              await processLine(line);
-            }
-          });
-        }
-
-        if (geminiProcess) {
-          const childProcess = geminiProcess;
-          await new Promise<void>((resolve, reject) => {
-            childProcess.on("close", (code) => {
-              if (sessionId) {
-                activeProcesses.delete(sessionId);
-              }
-              if (code === 0 || childProcess.killed) {
-                resolve();
-              } else {
-                reject(new Error(`gemini exited with code ${code}`));
-              }
-            });
-
-            childProcess.on("error", (error) => {
-              if (sessionId) {
-                activeProcesses.delete(sessionId);
-              }
-              reject(error);
-            });
-          });
-        }
-
-        if (buffer.trim()) {
-          await processLine(buffer);
-        }
-
-        if (sessionId && capturedSessionId) {
-          geminiSessionMap.set(sessionId, capturedSessionId);
-        }
-
-        if (capturedSessionId) {
-          lastGeminiSessionId = capturedSessionId;
-        }
-
-        await stream.writeSSE({ data: "", event: "done" });
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error
-            ? formatSpawnError(error, "gemini")
-            : "Unknown error";
-        const stderrContent = stderrBuffer.trim();
-        const fullError = stderrContent
-          ? `${errorMessage}\n\nstderr:\n${stderrContent}`
-          : errorMessage;
-        await stream.writeSSE({
-          data: `Error: ${fullError}`,
-          event: "error",
-        });
-        await stream.writeSSE({ data: "", event: "done" });
       }
     });
   });

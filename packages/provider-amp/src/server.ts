@@ -14,11 +14,13 @@ try {
   fetch(`https://www.react-grab.com/api/version?source=amp&t=${Date.now()}`).catch(() => {});
 } catch {}
 
-import { sleep } from "@react-grab/utils/server";
+import {
+  sleep,
+  type AgentMessage,
+  type AgentCoreOptions,
+} from "@react-grab/utils/server";
 
-export interface AmpAgentOptions {
-  cwd?: string;
-}
+export interface AmpAgentOptions extends AgentCoreOptions {}
 
 type AmpAgentContext = AgentContext<AmpAgentOptions>;
 
@@ -40,6 +42,115 @@ const extractTextFromContent = (
     .trim();
 };
 
+export const runAgent = async function* (
+  prompt: string,
+  options?: AmpAgentOptions,
+): AsyncGenerator<AgentMessage> {
+  const sessionId = options?.sessionId;
+  const abortController = new AbortController();
+
+  if (sessionId) {
+    abortControllers.set(sessionId, abortController);
+  }
+
+  const isAborted = () => {
+    if (options?.signal?.aborted) return true;
+    if (abortController.signal.aborted) return true;
+    return false;
+  };
+
+  try {
+    yield { type: "status", content: "Thinking…" };
+
+    const executeOptions: {
+      dangerouslyAllowAll: boolean;
+      cwd?: string;
+      continue?: boolean | string;
+    } = {
+      dangerouslyAllowAll: true,
+    };
+
+    executeOptions.cwd =
+      options?.cwd ?? process.env.REACT_GRAB_CWD ?? process.cwd();
+
+    const existingThread = sessionId ? threadMap.get(sessionId) : undefined;
+    if (existingThread) {
+      executeOptions.continue = existingThread.threadId;
+    }
+
+    let capturedThreadId: string | undefined;
+
+    for await (const message of execute({
+      prompt,
+      options: executeOptions,
+      signal: abortController.signal,
+    })) {
+      if (isAborted()) break;
+
+      switch (message.type) {
+        case "system":
+          if (message.subtype === "init") {
+            const systemMessage = message as { thread_id?: string };
+            if (systemMessage.thread_id) {
+              capturedThreadId = systemMessage.thread_id;
+            }
+            yield { type: "status", content: "Session started..." };
+          }
+          break;
+
+        case "assistant": {
+          const messageContent = message.message?.content;
+          if (messageContent && Array.isArray(messageContent)) {
+            const toolUse = messageContent.find(
+              (item: { type: string }) => item.type === "tool_use",
+            );
+            if (toolUse && "name" in toolUse) {
+              yield { type: "status", content: `Using ${toolUse.name}...` };
+            } else {
+              const textContent = extractTextFromContent(messageContent);
+              if (textContent && !isAborted()) {
+                yield { type: "status", content: textContent };
+              }
+            }
+          }
+          break;
+        }
+
+        case "result":
+          if (message.is_error) {
+            yield { type: "error", content: message.error || "Unknown error" };
+          } else {
+            yield { type: "status", content: COMPLETED_STATUS };
+          }
+          break;
+      }
+    }
+
+    if (sessionId && capturedThreadId && !isAborted()) {
+      threadMap.set(sessionId, { threadId: capturedThreadId });
+    }
+
+    if (capturedThreadId) {
+      lastThreadId = capturedThreadId;
+    }
+
+    if (!isAborted()) {
+      yield { type: "done", content: "" };
+    }
+  } catch (error) {
+    if (!isAborted()) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      yield { type: "error", content: errorMessage };
+      yield { type: "done", content: "" };
+    }
+  } finally {
+    if (sessionId) {
+      abortControllers.delete(sessionId);
+    }
+  }
+};
+
 export const createServer = () => {
   const honoApplication = new Hono();
 
@@ -55,118 +166,11 @@ export const createServer = () => {
     const userPrompt = isFollowUp ? prompt : `${prompt}\n\n${content}`;
 
     return streamSSE(context, async (stream) => {
-      const abortController = new AbortController();
-      if (sessionId) {
-        abortControllers.set(sessionId, abortController);
-      }
-
-      const isAborted = () => abortController.signal.aborted;
-
-      try {
-        await stream.writeSSE({ data: "Thinking…", event: "status" });
-
-        const executeOptions: {
-          dangerouslyAllowAll: boolean;
-          cwd?: string;
-          continue?: boolean | string;
-        } = {
-          dangerouslyAllowAll: true,
-        };
-
-        executeOptions.cwd =
-          options?.cwd ?? process.env.REACT_GRAB_CWD ?? process.cwd();
-
-        if (isFollowUp && existingThread) {
-          executeOptions.continue = existingThread.threadId;
-        }
-
-        let capturedThreadId: string | undefined;
-
-        for await (const message of execute({
-          prompt: userPrompt,
-          options: executeOptions,
-          signal: abortController.signal,
-        })) {
-          if (isAborted()) break;
-
-          switch (message.type) {
-            case "system":
-              if (message.subtype === "init") {
-                const systemMessage = message as { thread_id?: string };
-                if (systemMessage.thread_id) {
-                  capturedThreadId = systemMessage.thread_id;
-                }
-                await stream.writeSSE({
-                  data: "Session started...",
-                  event: "status",
-                });
-              }
-              break;
-
-            case "assistant": {
-              const messageContent = message.message?.content;
-              if (messageContent && Array.isArray(messageContent)) {
-                const toolUse = messageContent.find(
-                  (item: { type: string }) => item.type === "tool_use",
-                );
-                if (toolUse && "name" in toolUse) {
-                  await stream.writeSSE({
-                    data: `Using ${toolUse.name}...`,
-                    event: "status",
-                  });
-                } else {
-                  const textContent = extractTextFromContent(messageContent);
-                  if (textContent && !isAborted()) {
-                    await stream.writeSSE({
-                      data: textContent,
-                      event: "status",
-                    });
-                  }
-                }
-              }
-              break;
-            }
-
-            case "result":
-              if (message.is_error) {
-                await stream.writeSSE({
-                  data: `Error: ${message.error || "Unknown error"}`,
-                  event: "error",
-                });
-              } else {
-                await stream.writeSSE({
-                  data: COMPLETED_STATUS,
-                  event: "status",
-                });
-              }
-              break;
-          }
-        }
-
-        if (sessionId && capturedThreadId && !isAborted()) {
-          threadMap.set(sessionId, { threadId: capturedThreadId });
-        }
-
-        if (capturedThreadId) {
-          lastThreadId = capturedThreadId;
-        }
-
-        if (!isAborted()) {
-          await stream.writeSSE({ data: "", event: "done" });
-        }
-      } catch (error) {
-        if (!isAborted()) {
-          const errorMessage =
-            error instanceof Error ? error.message : "Unknown error";
-          await stream.writeSSE({
-            data: `Error: ${errorMessage}`,
-            event: "error",
-          });
-          await stream.writeSSE({ data: "", event: "done" });
-        }
-      } finally {
-        if (sessionId) {
-          abortControllers.delete(sessionId);
+      for await (const message of runAgent(userPrompt, { ...options, sessionId })) {
+        if (message.type === "error") {
+          await stream.writeSSE({ data: `Error: ${message.content}`, event: "error" });
+        } else {
+          await stream.writeSSE({ data: message.content, event: message.type });
         }
       }
     });

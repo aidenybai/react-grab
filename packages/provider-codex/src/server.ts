@@ -14,9 +14,13 @@ try {
   fetch(`https://www.react-grab.com/api/version?source=codex&t=${Date.now()}`).catch(() => {});
 } catch {}
 
-import { sleep } from "@react-grab/utils/server";
+import {
+  sleep,
+  type AgentMessage,
+  type AgentCoreOptions,
+} from "@react-grab/utils/server";
 
-export interface CodexAgentOptions {
+export interface CodexAgentOptions extends AgentCoreOptions {
   model?: string;
   workingDirectory?: string;
 }
@@ -88,6 +92,68 @@ const formatStreamEvent = (event: CodexEvent): string | undefined => {
   }
 };
 
+export const runAgent = async function* (
+  prompt: string,
+  options?: CodexAgentOptions,
+): AsyncGenerator<AgentMessage> {
+  const sessionId = options?.sessionId;
+  const abortController = new AbortController();
+
+  if (sessionId) {
+    abortControllers.set(sessionId, abortController);
+  }
+
+  const isAborted = () => {
+    if (options?.signal?.aborted) return true;
+    if (abortController.signal.aborted) return true;
+    return false;
+  };
+
+  try {
+    yield { type: "status", content: "Thinking…" };
+
+    const { thread } = getOrCreateThread(sessionId, {
+      ...options,
+      workingDirectory: options?.workingDirectory ?? options?.cwd,
+    });
+
+    if (sessionId && thread.id) {
+      lastThreadId = thread.id;
+    }
+
+    const { events } = await thread.runStreamed(prompt);
+
+    for await (const event of events) {
+      if (isAborted()) break;
+
+      const statusText = formatStreamEvent(event as CodexEvent);
+      if (statusText && !isAborted()) {
+        yield { type: "status", content: statusText };
+      }
+    }
+
+    if (sessionId && !isAborted() && thread.id) {
+      threadMap.set(sessionId, { thread, threadId: thread.id });
+    }
+
+    if (!isAborted()) {
+      yield { type: "status", content: COMPLETED_STATUS };
+      yield { type: "done", content: "" };
+    }
+  } catch (error) {
+    if (!isAborted()) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      yield { type: "error", content: errorMessage };
+      yield { type: "done", content: "" };
+    }
+  } finally {
+    if (sessionId) {
+      abortControllers.delete(sessionId);
+    }
+  }
+};
+
 export const createServer = () => {
   const honoApplication = new Hono();
 
@@ -103,57 +169,11 @@ export const createServer = () => {
       : `User Request: ${prompt}\n\nContext:\n${content}`;
 
     return streamSSE(context, async (stream) => {
-      const abortController = new AbortController();
-      if (sessionId) {
-        abortControllers.set(sessionId, abortController);
-      }
-
-      const isAborted = () => abortController.signal.aborted;
-
-      try {
-        await stream.writeSSE({ data: "Thinking…", event: "status" });
-
-        const { thread } = getOrCreateThread(sessionId, options);
-
-        if (sessionId && thread.id) {
-          lastThreadId = thread.id;
-        }
-
-        const { events } = await thread.runStreamed(formattedPrompt);
-
-        for await (const event of events) {
-          if (isAborted()) break;
-
-          const statusText = formatStreamEvent(event as CodexEvent);
-          if (statusText && !isAborted()) {
-            await stream.writeSSE({ data: statusText, event: "status" });
-          }
-        }
-
-        if (sessionId && !isAborted() && thread.id) {
-          threadMap.set(sessionId, { thread, threadId: thread.id });
-        }
-
-        if (!isAborted()) {
-          await stream.writeSSE({
-            data: COMPLETED_STATUS,
-            event: "status",
-          });
-          await stream.writeSSE({ data: "", event: "done" });
-        }
-      } catch (error) {
-        if (!isAborted()) {
-          const errorMessage =
-            error instanceof Error ? error.message : "Unknown error";
-          await stream.writeSSE({
-            data: `Error: ${errorMessage}`,
-            event: "error",
-          });
-          await stream.writeSSE({ data: "", event: "done" });
-        }
-      } finally {
-        if (sessionId) {
-          abortControllers.delete(sessionId);
+      for await (const message of runAgent(formattedPrompt, { ...options, sessionId })) {
+        if (message.type === "error") {
+          await stream.writeSSE({ data: `Error: ${message.content}`, event: "error" });
+        } else {
+          await stream.writeSSE({ data: message.content, event: message.type });
         }
       }
     });

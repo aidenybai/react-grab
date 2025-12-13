@@ -53,7 +53,7 @@ const formatDataOptionsForNextjs = (hotkey: RecordedHotkey): string => {
 const installTabsData: InstallTab[] = [
   {
     id: "cli",
-    label: "CLI (Recommended)",
+    label: "CLI",
     description: "Run this command at your project root",
     lang: "bash",
     getCode: () => `npx grab@latest init`,
