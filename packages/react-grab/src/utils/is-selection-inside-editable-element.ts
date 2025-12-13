@@ -1,5 +1,5 @@
 const isEditableElement = (element: Element): boolean => {
-  const tagName = element.tagName.toLowerCase();
+  const tagName = (element.tagName || "").toLowerCase();
   if (tagName === "input" || tagName === "textarea") {
     return true;
   }
