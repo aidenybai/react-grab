@@ -392,6 +392,24 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const [isIdle, setIsIdle] = createSignal(false);
   const [hadValidBounds, setHadValidBounds] = createSignal(false);
 
+  const getPromptTextIndentPx = () => {
+    const badgeWidthPx = elementBadgeWidthPx();
+    if (badgeWidthPx <= 0) return 0;
+    const multilineLeftPaddingPx = isPromptMultiline()
+      ? INPUT_EXPANDED_MULTILINE_LEFT_PADDING_PX
+      : 0;
+    return Math.max(
+      badgeWidthPx + INPUT_EXPANDED_BADGE_GAP_PX - multilineLeftPaddingPx,
+      0,
+    );
+  };
+
+  const getPlaceholderPaddingLeftPx = () => {
+    const badgeWidthPx = elementBadgeWidthPx();
+    if (badgeWidthPx <= 0) return 0;
+    return badgeWidthPx + 6;
+  };
+
   const speechRecognition = useSpeechRecognition({
     onTranscript: (transcript) => props.onInputChange?.(transcript),
     getCurrentValue: () => props.inputValue ?? "",
@@ -567,6 +585,56 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     }
 
     setMinInputWidthPx(undefined);
+  });
+
+  createEffect(() => {
+    if (!props.isInputExpanded) return;
+    if (typeof window === "undefined") return;
+
+    const ResizeObserverConstructor = window.ResizeObserver;
+    if (!ResizeObserverConstructor) return;
+
+    const resizeObserverCallback = () => {
+      requestAnimationFrame(measureContainer);
+    };
+
+    const elementBadgeResizeObserver = new ResizeObserverConstructor(
+      resizeObserverCallback,
+    );
+    const placeholderMeasureResizeObserver = new ResizeObserverConstructor(
+      resizeObserverCallback,
+    );
+
+    const animationFrameId = requestAnimationFrame(() => {
+      if (elementBadgeRef) {
+        elementBadgeResizeObserver.observe(elementBadgeRef);
+      }
+      if (placeholderMeasureRef) {
+        placeholderMeasureResizeObserver.observe(placeholderMeasureRef);
+      }
+      measureContainer();
+    });
+
+    onCleanup(() => {
+      cancelAnimationFrame(animationFrameId);
+      elementBadgeResizeObserver.disconnect();
+      placeholderMeasureResizeObserver.disconnect();
+    });
+  });
+
+  createEffect(() => {
+    if (!props.isInputExpanded) return;
+
+    const requiredWidth =
+      INPUT_EXPANDED_PADDING_LEFT_PX +
+      INPUT_EXPANDED_PADDING_RIGHT_PX +
+      elementBadgeWidthPx() +
+      INPUT_EXPANDED_BADGE_GAP_PX +
+      placeholderTextWidthPx();
+
+    setMinInputWidthPx((previousWidthPx) =>
+      Math.max(previousWidthPx ?? 0, requiredWidth),
+    );
   });
 
   createEffect(() => {
@@ -879,16 +947,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     "line-height": isPromptMultiline()
                       ? `${INPUT_EXPANDED_MULTILINE_LINE_HEIGHT_PX}px`
                       : undefined,
-                    "text-indent": elementBadgeWidthPx()
-                      ? `${Math.max(
-                          elementBadgeWidthPx() +
-                            INPUT_EXPANDED_BADGE_GAP_PX -
-                            (isPromptMultiline()
-                              ? INPUT_EXPANDED_MULTILINE_LEFT_PADDING_PX
-                              : 0),
-                          0,
-                        )}px`
-                      : undefined,
+                    "text-indent": `${getPromptTextIndentPx()}px`,
                   }}
                   value={props.inputValue ?? ""}
                   onInput={handleInput}
@@ -899,9 +958,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   <div
                     class="pointer-events-none absolute left-0 top-0 text-[14px] leading-[18px] text-[#7E7E7E] font-sans font-medium whitespace-nowrap"
                     style={{
-                      "padding-left": elementBadgeWidthPx()
-                        ? `${elementBadgeWidthPx() + 6}px`
-                        : undefined,
+                      "padding-left": `${getPlaceholderPaddingLeftPx()}px`,
                     }}
                   >
                     {speechRecognition.isListening()
