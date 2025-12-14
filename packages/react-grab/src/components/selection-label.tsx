@@ -11,10 +11,9 @@ import type { OverlayBounds, SelectionLabelStatus } from "../types.js";
 import { VIEWPORT_MARGIN_PX } from "../constants.js";
 import { cn } from "../utils/cn.js";
 import { useSpeechRecognition } from "../utils/speech-recognition.js";
-import { IconOpen } from "./icon-open.js";
-import { IconMic } from "./icon-mic.js";
 import { IconReturn } from "./icon-return.js";
 import { IconRetry } from "./icon-retry.js";
+import { IconCaretUp } from "./icon-caret-up.js";
 import { isKeyboardEventTriggeredByInput } from "../utils/is-keyboard-event-triggered-by-input.js";
 
 interface SelectionLabelProps {
@@ -55,26 +54,14 @@ interface SelectionLabelProps {
   onRetry?: () => void;
 }
 
-interface TagBadgeProps {
-  tagName: string;
-  isClickable: boolean;
-  onClick: (event: MouseEvent) => void;
-  onHoverChange?: (hovered: boolean) => void;
-  shrink?: boolean;
-  forceShowIcon?: boolean;
-}
-
-interface ClickToCopyPillProps {
-  onClick: () => void;
-  asButton?: boolean;
-  dimmed?: boolean;
-  shrink?: boolean;
-  hasParent?: boolean;
-  hasAgent?: boolean;
-}
-
 interface BottomSectionProps {
   children: JSX.Element;
+}
+
+interface FrozenInputPosition {
+  left: number;
+  top: number;
+  arrowPosition: ArrowPosition;
 }
 
 type ArrowPosition = "bottom" | "top";
@@ -83,77 +70,17 @@ const ARROW_HEIGHT = 8;
 const LABEL_GAP = 4;
 const IDLE_TIMEOUT_MS = 400;
 
-const TAG_GRADIENT =
-  "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)";
-
-const TagBadge: Component<TagBadgeProps> = (props) => {
-  const [isHovered, setIsHovered] = createSignal(false);
-
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-    props.onHoverChange?.(true);
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-    props.onHoverChange?.(false);
-  };
-
-  return (
-    <div
-      class={cn(
-        "contain-layout flex items-center px-[3px] py-0 h-4 rounded-[1px] gap-0.5 [border-width:0.5px] border-solid border-label-tag-border",
-        props.shrink && "shrink-0 w-fit",
-        props.isClickable && "cursor-pointer",
-      )}
-      style={{ "background-image": TAG_GRADIENT }}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      onClick={props.onClick}
-    >
-      <span
-        class={cn(
-          "text-[#47004A] text-[11.5px] leading-3.5 shrink-0 w-fit h-fit font-medium",
-        )}
-      >
-        {props.tagName}
-      </span>
-      <Show when={props.isClickable || props.forceShowIcon}>
-        <IconOpen
-          size={10}
-          class={cn(
-            "text-label-tag-border transition-all duration-100",
-            isHovered() || props.forceShowIcon
-              ? "opacity-100 scale-100"
-              : "opacity-0 scale-75 -ml-[2px] w-0",
-          )}
-        />
-      </Show>
-    </div>
-  );
-};
-
-const ParentBadge: Component<{ name: string }> = (props) => (
-  <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-1 px-[3px] [border-width:0.5px] border-solid border-[#B3B3B3] py-0 bg-[#F7F7F7]">
-    <span class="text-[#0C0C0C] text-[11.5px] leading-3.5 shrink-0 font-medium w-fit h-fit">
-      {props.name}
-    </span>
-  </div>
-);
-
-const ChevronSeparator: Component = () => (
-  <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-1 px-[3px] [border-width:0.5px] border-solid border-white py-0">
-    <span class="text-[#0C0C0C] text-[11.5px] leading-3.5 shrink-0 font-medium w-fit h-fit">
-      &gt;
-    </span>
-  </div>
-);
-
 interface ArrowProps {
   position: ArrowPosition;
   leftPx: number;
   color?: string;
 }
+
+const INPUT_EXPANDED_PADDING_LEFT_PX = 3;
+const INPUT_EXPANDED_PADDING_RIGHT_PX = 4;
+const INPUT_EXPANDED_BADGE_GAP_PX = 6;
+const INPUT_EXPANDED_MULTILINE_LEFT_PADDING_PX = 4;
+const INPUT_EXPANDED_MULTILINE_LINE_HEIGHT_PX = 20;
 
 const Arrow: Component<ArrowProps> = (props) => {
   const arrowColor = () => props.color ?? "white";
@@ -173,30 +100,6 @@ const Arrow: Component<ArrowProps> = (props) => {
           : { "border-top": `8px solid ${arrowColor()}` }),
       }}
     />
-  );
-};
-
-const ClickToCopyPill: Component<ClickToCopyPillProps> = (props) => {
-  const labelText = () => {
-    if (props.hasAgent) return "Selecting";
-    if (props.hasParent) return "Copy";
-    return "Click to copy";
-  };
-
-  return (
-    <div
-      class={cn(
-        "contain-layout shrink-0 flex items-center px-0 py-px w-fit h-[18px] rounded-[1.5px] gap-[3px]",
-        props.asButton && "cursor-pointer",
-        props.dimmed && "opacity-50 hover:opacity-100 transition-opacity",
-      )}
-      role="button"
-      onClick={props.onClick}
-    >
-      <div class="text-black text-[12px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
-        {labelText()}
-      </div>
-    </div>
   );
 };
 
@@ -466,7 +369,8 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
 export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
   let inputRef: HTMLTextAreaElement | undefined;
-  let isTagCurrentlyHovered = false;
+  let elementBadgeRef: HTMLDivElement | undefined;
+  let placeholderMeasureRef: HTMLDivElement | undefined;
   let lastValidPosition: {
     left: number;
     top: number;
@@ -476,11 +380,35 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
+  const [minInputWidthPx, setMinInputWidthPx] = createSignal<number>();
+  const [elementBadgeWidthPx, setElementBadgeWidthPx] = createSignal(0);
+  const [placeholderTextWidthPx, setPlaceholderTextWidthPx] = createSignal(0);
+  const [isPromptMultiline, setIsPromptMultiline] = createSignal(false);
+  const [frozenInputPosition, setFrozenInputPosition] =
+    createSignal<FrozenInputPosition>();
   const [arrowPosition, setArrowPosition] =
     createSignal<ArrowPosition>("bottom");
   const [viewportVersion, setViewportVersion] = createSignal(0);
   const [isIdle, setIsIdle] = createSignal(false);
   const [hadValidBounds, setHadValidBounds] = createSignal(false);
+
+  const getPromptTextIndentPx = () => {
+    const badgeWidthPx = elementBadgeWidthPx();
+    if (badgeWidthPx <= 0) return 0;
+    const multilineLeftPaddingPx = isPromptMultiline()
+      ? INPUT_EXPANDED_MULTILINE_LEFT_PADDING_PX
+      : 0;
+    return Math.max(
+      badgeWidthPx + INPUT_EXPANDED_BADGE_GAP_PX - multilineLeftPaddingPx,
+      0,
+    );
+  };
+
+  const getPlaceholderPaddingLeftPx = () => {
+    const badgeWidthPx = elementBadgeWidthPx();
+    if (badgeWidthPx <= 0) return 0;
+    return badgeWidthPx + 6;
+  };
 
   const speechRecognition = useSpeechRecognition({
     onTranscript: (transcript) => props.onInputChange?.(transcript),
@@ -493,15 +421,27 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     props.status !== "fading";
 
   const measureContainer = () => {
-    if (containerRef && !isTagCurrentlyHovered) {
+    if (containerRef) {
       const rect = containerRef.getBoundingClientRect();
       setMeasuredWidth(rect.width);
       setMeasuredHeight(rect.height);
     }
-  };
 
-  const handleTagHoverChange = (hovered: boolean) => {
-    isTagCurrentlyHovered = hovered;
+    if (elementBadgeRef) {
+      const rect = elementBadgeRef.getBoundingClientRect();
+      setElementBadgeWidthPx(rect.width);
+    }
+
+    if (placeholderMeasureRef) {
+      const rect = placeholderMeasureRef.getBoundingClientRect();
+      setPlaceholderTextWidthPx(rect.width);
+    }
+
+    if (props.isInputExpanded && inputRef) {
+      const lineHeightPx = 18;
+      const hasMultipleLines = inputRef.scrollHeight > lineHeightPx + 1;
+      setIsPromptMultiline(hasMultipleLines);
+    }
   };
 
   const handleViewportChange = () => {
@@ -602,6 +542,107 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     }
   });
 
+  createEffect(() => {
+    void props.isInputExpanded;
+
+    if (props.isInputExpanded) {
+      if (lastValidPosition) {
+        setFrozenInputPosition({
+          left: lastValidPosition.left,
+          top: lastValidPosition.top,
+          arrowPosition: arrowPosition(),
+        });
+      }
+      return;
+    }
+
+    setFrozenInputPosition(undefined);
+  });
+
+  createEffect(() => {
+    void props.isInputExpanded;
+
+    if (props.isInputExpanded) {
+      requestAnimationFrame(() => {
+        measureContainer();
+
+        const previousMeasuredWidth = measuredWidth();
+        const requiredWidth =
+          INPUT_EXPANDED_PADDING_LEFT_PX +
+          INPUT_EXPANDED_PADDING_RIGHT_PX +
+          elementBadgeWidthPx() +
+          INPUT_EXPANDED_BADGE_GAP_PX +
+          placeholderTextWidthPx();
+
+        if (previousMeasuredWidth > 0) {
+          setMinInputWidthPx(Math.max(previousMeasuredWidth, requiredWidth));
+          return;
+        }
+
+        setMinInputWidthPx(requiredWidth);
+      });
+      return;
+    }
+
+    setMinInputWidthPx(undefined);
+  });
+
+  createEffect(() => {
+    if (!props.isInputExpanded) return;
+    if (typeof window === "undefined") return;
+
+    const ResizeObserverConstructor = window.ResizeObserver;
+    if (!ResizeObserverConstructor) return;
+
+    const resizeObserverCallback = () => {
+      requestAnimationFrame(measureContainer);
+    };
+
+    const elementBadgeResizeObserver = new ResizeObserverConstructor(
+      resizeObserverCallback,
+    );
+    const placeholderMeasureResizeObserver = new ResizeObserverConstructor(
+      resizeObserverCallback,
+    );
+
+    const animationFrameId = requestAnimationFrame(() => {
+      if (elementBadgeRef) {
+        elementBadgeResizeObserver.observe(elementBadgeRef);
+      }
+      if (placeholderMeasureRef) {
+        placeholderMeasureResizeObserver.observe(placeholderMeasureRef);
+      }
+      measureContainer();
+    });
+
+    onCleanup(() => {
+      cancelAnimationFrame(animationFrameId);
+      elementBadgeResizeObserver.disconnect();
+      placeholderMeasureResizeObserver.disconnect();
+    });
+  });
+
+  createEffect(() => {
+    if (!props.isInputExpanded) return;
+
+    const requiredWidth =
+      INPUT_EXPANDED_PADDING_LEFT_PX +
+      INPUT_EXPANDED_PADDING_RIGHT_PX +
+      elementBadgeWidthPx() +
+      INPUT_EXPANDED_BADGE_GAP_PX +
+      placeholderTextWidthPx();
+
+    setMinInputWidthPx((previousWidthPx) =>
+      Math.max(previousWidthPx ?? 0, requiredWidth),
+    );
+  });
+
+  createEffect(() => {
+    void props.inputValue;
+    if (!props.isInputExpanded) return;
+    requestAnimationFrame(measureContainer);
+  });
+
   const computedPosition = () => {
     viewportVersion();
     const bounds = props.selectionBounds;
@@ -621,6 +662,22 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     const cursorX = props.mouseX ?? selectionCenterX;
     const selectionBottom = bounds.y + bounds.height;
     const selectionTop = bounds.y;
+
+    const frozenPosition = frozenInputPosition();
+    if (props.isInputExpanded && frozenPosition) {
+      setArrowPosition(frozenPosition.arrowPosition);
+      const arrowLeft = Math.max(
+        12,
+        Math.min(cursorX - frozenPosition.left, labelWidth - 12),
+      );
+      const position = {
+        left: frozenPosition.left,
+        top: frozenPosition.top,
+        arrowLeft,
+      };
+      lastValidPosition = position;
+      return position;
+    }
 
     let positionLeft = cursorX - labelWidth / 2;
     let positionTop = selectionBottom + ARROW_HEIGHT + LABEL_GAP;
@@ -682,16 +739,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   const tagDisplay = () => props.tagName || "element";
 
-  const handleTagClick = (event: MouseEvent) => {
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-    if (props.filePath && props.onOpen) {
-      props.onOpen();
-    }
-  };
-
-  const isTagClickable = () => Boolean(props.filePath && props.onOpen);
-
   const stopPropagation = (event: Event) => {
     event.stopPropagation();
     event.stopImmediatePropagation();
@@ -715,6 +762,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const shouldShowWithoutBounds = () =>
     hadValidBounds() &&
     (props.status === "copied" || props.status === "fading");
+
+  const hasInputValue = () => Boolean(props.inputValue?.length);
 
   return (
     <Show
@@ -768,7 +817,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         </Show>
 
         <div
-          class="[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-xs bg-white antialiased w-fit h-fit p-0"
+          class={cn(
+            "[font-synthesis:none] contain-layout flex items-center gap-[5px] antialiased w-fit h-fit p-0",
+            isNotProcessing() ? "bg-transparent rounded-none" : "bg-white rounded-xs",
+          )}
           style={{
             display:
               (props.status === "copied" || props.status === "fading") &&
@@ -837,77 +889,15 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           </Show>
 
           <Show when={isNotProcessing() && !props.isInputExpanded}>
-            <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
-              <div
-                class={cn(
-                  "contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5",
-                  props.componentName ? "pr-1.5" : "pr-1",
-                )}
-              >
-                <ClickToCopyPill
-                  onClick={handleSubmit}
-                  shrink
-                  hasParent={Boolean(props.componentName)}
-                  hasAgent={props.hasAgent}
-                />
-                <Show when={props.componentName}>
-                  <div class="contain-layout shrink-0 flex items-center gap-px w-fit h-fit">
-                    <ParentBadge name={props.componentName!} />
-                    <ChevronSeparator />
-                    <TagBadge
-                      tagName={tagDisplay()}
-                      isClickable={isTagClickable()}
-                      onClick={handleTagClick}
-                      onHoverChange={handleTagHoverChange}
-                      shrink
-                    />
+            <div class="[font-synthesis:none] contain-layout flex justify-between items-center gap-1.5 rounded-sm pl-[3px] pr-1.5 bg-white bg-no-repeat antialiased size-fit py-[3px]">
+              <div class="contain-layout shrink-0 flex items-center gap-1.5 size-fit">
+                <div class="contain-layout shrink-0 flex items-center px-1 py-px rounded-[3px] gap-0.5 bg-black bg-no-repeat size-fit">
+                  <div class="text-[14px] leading-[18px] shrink-0 text-[#F0F0F0] bg-no-repeat font-sans font-medium size-fit">
+                    {tagDisplay()}
                   </div>
-                </Show>
-                <Show when={!props.componentName}>
-                  <TagBadge
-                    tagName={tagDisplay()}
-                    isClickable={isTagClickable()}
-                    onClick={handleTagClick}
-                    onHoverChange={handleTagHoverChange}
-                    shrink
-                  />
-                </Show>
-              </div>
-              <div
-                class="grid transition-[grid-template-rows] duration-30 ease-out self-stretch"
-                style={{
-                  "grid-template-rows": isIdle() ? "1fr" : "0fr",
-                }}
-              >
-                <div class={cn("overflow-hidden min-h-0", !isIdle() && "w-0")}>
-                  <BottomSection>
-                    <div class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit">
-                      <Show when={props.hasAgent}>
-                        <span class="text-label-muted text-[12px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
-                          Double click to edit
-                        </span>
-                        <div class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit">
-                          <IconReturn
-                            size={10}
-                            class="opacity-[0.99] text-black"
-                          />
-                        </div>
-                      </Show>
-                      <Show when={!props.hasAgent}>
-                        <span class="text-label-muted text-[12px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
-                          Press
-                        </span>
-                        <div class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-[2px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit">
-                          <span class="text-[9px] leading-none font-medium text-black">
-                            Esc
-                          </span>
-                        </div>
-                        <span class="text-label-muted text-[12px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
-                          to dismiss
-                        </span>
-                      </Show>
-                    </div>
-                  </BottomSection>
+                </div>
+                <div class="text-[14px] leading-[18px] w-fit h-[18px] shrink-0 text-[#1F1F1F] bg-no-repeat font-sans font-medium">
+                  double-click to edit
                 </div>
               </div>
             </div>
@@ -920,123 +910,86 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               !props.isPendingDismiss
             }
           >
-            <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit max-w-[280px]">
-              <div
-                class={cn(
-                  "contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5",
-                  props.componentName ? "pr-1.5" : "pr-1",
-                )}
-              >
-                <ClickToCopyPill
-                  onClick={handleSubmit}
-                  dimmed
-                  shrink
-                  hasParent={Boolean(props.componentName)}
-                  hasAgent={props.hasAgent}
-                />
-                <Show when={props.componentName}>
-                  <div class="contain-layout shrink-0 flex items-center gap-px w-fit h-fit">
-                    <ParentBadge name={props.componentName!} />
-                    <ChevronSeparator />
-                    <TagBadge
-                      tagName={tagDisplay()}
-                      isClickable={isTagClickable()}
-                      onClick={handleTagClick}
-                      onHoverChange={handleTagHoverChange}
-                      shrink
-                      forceShowIcon
-                    />
-                  </div>
-                </Show>
-                <Show when={!props.componentName}>
-                  <TagBadge
-                    tagName={tagDisplay()}
-                    isClickable={isTagClickable()}
-                    onClick={handleTagClick}
-                    onHoverChange={handleTagHoverChange}
-                    shrink
-                    forceShowIcon
-                  />
-                </Show>
-              </div>
-              <BottomSection>
-                <Show when={props.replyToPrompt}>
-                  <div class="shrink-0 flex items-center gap-0.5 w-full mb-0.5 overflow-hidden">
-                    <span class="text-[#a1a1aa] text-[9px] leading-3 shrink-0">
-                      {">previously:"}
-                    </span>
-                    <span class="text-[#a1a1aa] text-[9px] leading-3 italic truncate whitespace-nowrap">
-                      {props.replyToPrompt}
-                    </span>
-                  </div>
-                </Show>
-                <div class="shrink-0 flex justify-between items-end w-full min-h-4">
-                  <textarea
-                    ref={inputRef}
-                    data-react-grab-ignore-events
-                    class="text-black text-[12px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 wrap-break-word overflow-y-auto"
-                    style={{
-                      "field-sizing": "content",
-                      "min-height": "16px",
-                      "max-height": "95px",
-                      "scrollbar-width": "none",
-                    }}
-                    value={props.inputValue ?? ""}
-                    onInput={handleInput}
-                    onKeyDown={handleKeyDown}
-                    placeholder={
-                      speechRecognition.isListening()
-                        ? "listening..."
-                        : "type prompt"
-                    }
-                    rows={1}
-                  />
-                  <div class="flex items-center gap-0.5 ml-1 w-[17px] h-[17px] justify-end">
-                    <Show
-                      when={
-                        props.hasAgent &&
-                        speechRecognition.isSupported() &&
-                        !props.inputValue
-                      }
-                    >
-                      <button
-                        class={cn(
-                          "contain-layout shrink-0 flex items-center justify-center px-[2px] py-[2px] rounded-xs [border-width:0.5px] border-solid size-fit cursor-pointer transition-all hover:scale-105",
-                          speechRecognition.isListening()
-                            ? "bg-grab-purple border-grab-purple text-white"
-                            : "bg-white border-[#B3B3B3] text-black",
-                        )}
-                        onClick={speechRecognition.toggle}
-                        title={
-                          speechRecognition.isListening()
-                            ? "Stop listening"
-                            : "Start voice input"
-                        }
-                      >
-                        <IconMic
-                          size={11}
-                          class={
-                            speechRecognition.isListening()
-                              ? "animate-pulse"
-                              : ""
-                          }
-                        />
-                      </button>
-                    </Show>
-                    <Show when={props.inputValue}>
-                      <button
-                        class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit cursor-pointer transition-all hover:scale-105"
-                        onClick={handleSubmit}
-                      >
-                        <IconReturn
-                          size={10}
-                          class="opacity-[0.99] text-black"
-                        />
-                      </button>
-                    </Show>
+            <div
+              class={cn(
+                "[font-synthesis:none] contain-layout flex flex-col gap-1 rounded-sm pl-[3px] pr-1 bg-white bg-no-repeat antialiased size-fit py-[3px]",
+              )}
+              style={{
+                width: minInputWidthPx() ? `${minInputWidthPx()}px` : undefined,
+              }}
+            >
+              <div class="contain-layout relative flex-1 min-w-0">
+                <div
+                  ref={elementBadgeRef}
+                  class="contain-layout absolute left-0 top-0 flex items-center px-1 py-px rounded-[3px] gap-0.5 bg-black bg-no-repeat size-fit"
+                  style={{
+                    top: isPromptMultiline() ? "0" : "50%",
+                    transform: isPromptMultiline() ? undefined : "translateY(-50%)",
+                  }}
+                >
+                  <div class="text-[14px] leading-[18px] shrink-0 text-[#F0F0F0] bg-no-repeat font-sans font-medium size-fit">
+                    {tagDisplay()}
                   </div>
                 </div>
-              </BottomSection>
+                <textarea
+                  ref={inputRef}
+                  data-react-grab-ignore-events
+                  class="text-[14px] leading-[18px] w-full min-w-0 text-[#1F1F1F] bg-no-repeat font-sans font-medium bg-transparent border-none outline-none resize-none p-0 m-0 whitespace-pre-wrap wrap-break-word"
+                  style={{
+                    "field-sizing": "content",
+                    "min-height": "18px",
+                    "scrollbar-width": "none",
+                    height: isPromptMultiline() ? undefined : "18px",
+                    "overflow-y": "hidden",
+                    "padding-left": isPromptMultiline()
+                      ? `${INPUT_EXPANDED_MULTILINE_LEFT_PADDING_PX}px`
+                      : undefined,
+                    "line-height": isPromptMultiline()
+                      ? `${INPUT_EXPANDED_MULTILINE_LINE_HEIGHT_PX}px`
+                      : undefined,
+                    "text-indent": `${getPromptTextIndentPx()}px`,
+                  }}
+                  value={props.inputValue ?? ""}
+                  onInput={handleInput}
+                  onKeyDown={handleKeyDown}
+                  rows={1}
+                />
+                <Show when={!props.inputValue}>
+                  <div
+                    class="pointer-events-none absolute left-0 top-0 text-[14px] leading-[18px] text-[#7E7E7E] font-sans font-medium whitespace-nowrap"
+                    style={{
+                      "padding-left": `${getPlaceholderPaddingLeftPx()}px`,
+                    }}
+                  >
+                    {speechRecognition.isListening()
+                      ? "listening..."
+                      : "make a change"}
+                  </div>
+                </Show>
+
+                <div
+                  ref={placeholderMeasureRef}
+                  class="absolute -left-[9999px] top-0 text-[14px] leading-[18px] font-sans font-medium whitespace-nowrap"
+                >
+                  make a change
+                </div>
+              </div>
+              <div class="contain-layout flex justify-end">
+                <Show
+                  when={hasInputValue()}
+                  fallback={
+                    <IconCaretUp class="w-[18.3398px] h-[17.9785px] opacity-26 text-black pointer-events-none" />
+                  }
+                >
+                  <button
+                    data-react-grab-ignore-events
+                    class="contain-layout cursor-pointer"
+                    onClick={handleSubmit}
+                  >
+                    <IconCaretUp class="w-[18.3398px] h-[17.9785px] text-black" />
+                  </button>
+                </Show>
+              </div>
             </div>
           </Show>
 

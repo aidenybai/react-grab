@@ -138,12 +138,12 @@ export const App = () => {
             <button className="text-sm px-3 py-1.5 bg-white/10 rounded border border-white/30 italic">
               Submit
             </button>
-            <button className="text-sm px-3 py-1.5 bg-white/10 rounded border border-white/20">
+            <button className="text-[10px] px-1 py-0.5 bg-white/10 rounded border border-0.5 border-white/20">
               Cancel
             </button>
           </div>
           <div className="p-3 bg-white/5 rounded text-sm">
-            <div className="font-medium">User Card</div>
+            <div className="font-medium italic">User Card</div>
             <div className="text-white/50 text-xs mt-1 italic">
               john@example.com
             </div>
