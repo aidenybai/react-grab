@@ -272,7 +272,11 @@ export const add = new Command()
       logger.log(
         `${highlighter.success("Success!")} ${AGENT_NAMES[agentIntegration]} has been added.`,
       );
-      logger.log("Make sure to start the agent server before using it.");
+      if (packageJsonResult.warning) {
+        logger.warn(packageJsonResult.warning);
+      } else {
+        logger.log("Make sure to start the agent server before using it.");
+      }
       logger.break();
     } catch (error) {
       handleError(error);

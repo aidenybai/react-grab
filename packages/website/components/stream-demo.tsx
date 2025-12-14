@@ -276,6 +276,7 @@ export const StreamDemo = () => {
     chunkDelayMs: 20,
     blockDelayMs: 400,
     pauseAtBlockId: "message-2",
+    skipAnimation: isMobile,
   });
 
   useEffect(() => {

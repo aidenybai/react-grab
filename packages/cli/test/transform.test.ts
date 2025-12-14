@@ -635,7 +635,7 @@ describe("previewPackageJsonTransform", () => {
     expect(result.message).toContain("Could not find package.json");
   });
 
-  it("should fail when no dev script exists", () => {
+  it("should return warning when no dev script exists", () => {
     const packageJsonNoDev = JSON.stringify(
       {
         name: "my-app",
@@ -652,8 +652,34 @@ describe("previewPackageJsonTransform", () => {
 
     const result = previewPackageJsonTransform("/test", "cursor", []);
 
-    expect(result.success).toBe(false);
-    expect(result.message).toContain('No "dev" script found');
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBe(true);
+    expect(result.warning).toContain("No dev script found");
+    expect(result.warning).toContain("npx @react-grab/cursor@latest");
+  });
+
+  it("should use dev* script when no exact dev script exists", () => {
+    const packageJsonDevVariant = JSON.stringify(
+      {
+        name: "my-app",
+        scripts: {
+          "dev:server": "next dev",
+          build: "next build",
+        },
+      },
+      null,
+      2,
+    );
+
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(packageJsonDevVariant);
+
+    const result = previewPackageJsonTransform("/test", "cursor", []);
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain("npx @react-grab/cursor@latest &&");
+    expect(result.newContent).toContain('"dev:server"');
+    expect(result.message).toContain("dev:server");
   });
 
   it("should fail when package.json is invalid JSON", () => {

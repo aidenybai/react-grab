@@ -46,6 +46,7 @@ export interface PackageJsonTransformResult {
   originalContent?: string;
   newContent?: string;
   noChanges?: boolean;
+  warning?: string;
 }
 
 const hasReactGrabCode = (content: string): boolean => {
@@ -726,15 +727,25 @@ export const previewPackageJsonTransform = (
   try {
     const packageJson = JSON.parse(originalContent);
 
+    let targetScriptKey = "dev";
     if (!packageJson.scripts?.dev) {
-      return {
-        success: false,
-        filePath: packageJsonPath,
-        message: 'No "dev" script found in package.json',
-      };
+      const devScriptKeys = Object.keys(packageJson.scripts || {}).filter(
+        (key) => key.startsWith("dev"),
+      );
+      if (devScriptKeys.length > 0) {
+        targetScriptKey = devScriptKeys[0];
+      } else {
+        return {
+          success: true,
+          filePath: packageJsonPath,
+          message: "No dev script found in package.json",
+          noChanges: true,
+          warning: `No dev script found. Run: ${agentPrefix} <your dev command>`,
+        };
+      }
     }
 
-    const currentDevScript = packageJson.scripts.dev;
+    const currentDevScript = packageJson.scripts[targetScriptKey];
 
     for (const installedAgent of installedAgents) {
       const existingPrefix = AGENT_PREFIXES[installedAgent];
@@ -742,20 +753,20 @@ export const previewPackageJsonTransform = (
         return {
           success: true,
           filePath: packageJsonPath,
-          message: `Agent ${installedAgent} is already in dev script`,
+          message: `Agent ${installedAgent} is already in ${targetScriptKey} script`,
           noChanges: true,
         };
       }
     }
 
-    packageJson.scripts.dev = `${agentPrefix} ${currentDevScript}`;
+    packageJson.scripts[targetScriptKey] = `${agentPrefix} ${currentDevScript}`;
 
     const newContent = JSON.stringify(packageJson, null, 2) + "\n";
 
     return {
       success: true,
       filePath: packageJsonPath,
-      message: `Add ${agent} server to dev script`,
+      message: `Add ${agent} server to ${targetScriptKey} script`,
       originalContent,
       newContent,
     };

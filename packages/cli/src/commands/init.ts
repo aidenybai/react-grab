@@ -400,7 +400,11 @@ export const init = new Command()
       logger.log(
         `${highlighter.success("Success!")} React Grab has been installed.`,
       );
-      logger.log("You may now start your development server.");
+      if (packageJsonResult.warning) {
+        logger.warn(packageJsonResult.warning);
+      } else {
+        logger.log("You may now start your development server.");
+      }
       logger.break();
 
       await reportToCli("completed", {

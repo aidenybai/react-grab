@@ -48,6 +48,7 @@ interface UseStreamOptions {
   blockDelayMs?: number;
   storageKey?: string;
   pauseAtBlockId?: string;
+  skipAnimation?: boolean;
 }
 
 interface StreamState {
@@ -66,6 +67,7 @@ export const useStream = ({
   blockDelayMs,
   storageKey = "stream-completed",
   pauseAtBlockId,
+  skipAnimation = false,
 }: UseStreamOptions) => {
   const [state, setState] = useState<StreamState>(() => ({
     currentBlockIndex: 0,
@@ -90,9 +92,14 @@ export const useStream = ({
     if (hasCheckedStorage) return;
 
     if (typeof window !== "undefined") {
-      const hasCompleted = localStorage.getItem(storageKey) === "true";
+      const hasCompleted =
+        skipAnimation || localStorage.getItem(storageKey) === "true";
 
       if (hasCompleted) {
+        if (skipAnimation) {
+          localStorage.setItem(storageKey, "true");
+        }
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setState({
           currentBlockIndex: blocks.length,
           currentContent: "",
@@ -113,7 +120,7 @@ export const useStream = ({
 
       setHasCheckedStorage(true);
     }
-  }, [blocks, storageKey, hasCheckedStorage]);
+  }, [blocks, storageKey, hasCheckedStorage, skipAnimation]);
 
   const streamingRef = useRef(false);
   const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
