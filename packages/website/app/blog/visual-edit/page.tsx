@@ -315,7 +315,7 @@ const VisualEditPage = () => {
               </h3>
               <div className="py-4">
                 <video
-                  src="/visual-edit.mp4"
+                  src="/visual-edit.webm"
                   autoPlay
                   loop
                   muted
@@ -502,5 +502,3 @@ const VisualEditPage = () => {
 VisualEditPage.displayName = "VisualEditPage";
 
 export default VisualEditPage;
-
-

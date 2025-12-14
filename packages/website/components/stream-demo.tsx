@@ -1,7 +1,6 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Image from "next/image";
 import {
   useStream,
   type StreamRenderedBlock,
@@ -30,7 +29,6 @@ import { CursorInstallButton } from "./cursor-install-button";
 import { TriangleAlert } from "lucide-react";
 import { useState, useEffect, useRef, Fragment, useCallback } from "react";
 import { detectMobile } from "@/utils/detect-mobile";
-import demoGif from "@/public/demo.gif";
 import { BenchmarkTooltip } from "./benchmark-tooltip";
 import { HotkeyProvider } from "./hotkey-context";
 
@@ -355,13 +353,13 @@ export const StreamDemo = () => {
                 {block.id === "message-5" && (
                   <>
                     {isMobile && (
-                      <Image
-                        src={demoGif}
-                        alt="React Grab demo"
+                      <video
+                        src="/demo.webm"
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
                         className="mt-3 w-full rounded-lg border border-white/10"
-                        width={800}
-                        height={450}
-                        priority
                       />
                     )}
                     {stream.wasPreloaded && (

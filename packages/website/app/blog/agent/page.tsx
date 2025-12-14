@@ -13,7 +13,6 @@ import { IconOpenCode } from "@/components/icon-opencode";
 import { IconDroid } from "@/components/icon-droid";
 import { GithubButton } from "@/components/github-button";
 import { CursorInstallButton } from "@/components/cursor-install-button";
-import demoGif from "@/public/demo.gif";
 
 interface HighlightedCodeBlockProps {
   code: string;
@@ -211,7 +210,7 @@ const AgentPage = () => {
               </ul>
               <div className="py-4">
                 <video
-                  src="/agent.mp4"
+                  src="/demo.webm"
                   autoPlay
                   loop
                   muted
@@ -255,7 +254,14 @@ const AgentPage = () => {
                 with exact file paths and line numbers.
               </p>
               <div className="py-4">
-                <Image src={demoGif} alt="React Grab demo" />
+                <video
+                  src="/demo.webm"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="w-full rounded-lg"
+                />
               </div>
               <p>
                 Now, instead of guessing where an element might live, the agent

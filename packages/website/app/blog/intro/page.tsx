@@ -12,7 +12,6 @@ import { CursorInstallButton } from "@/components/cursor-install-button";
 import { Collapsible } from "@/components/collapsible";
 import resultsData from "@/public/results.json";
 import testCasesData from "@/public/test-cases.json";
-import demoGif from "@/public/demo.gif";
 import {
   AreaChart,
   Area,
@@ -432,7 +431,14 @@ const BlogPostPage = () => {
                 other cases got the same result.
               </p>
               <div className="py-12">
-                <Image src={demoGif} alt="demo gif" />
+                <video
+                  src="/demo.webm"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="w-full rounded-lg"
+                />
               </div>
             </div>
 
