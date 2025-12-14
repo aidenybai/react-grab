@@ -47,9 +47,6 @@ export const DemoFooter = () => {
           changelog
         </a>
       </p>
-      <p className="mt-3 text-xs text-white/40 sm:hidden">
-        (website best viewed on desktop)
-      </p>
     </div>
   );
 };

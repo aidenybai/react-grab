@@ -353,14 +353,19 @@ export const StreamDemo = () => {
                 {block.id === "message-5" && (
                   <>
                     {isMobile && (
-                      <video
-                        src="/demo.webm"
-                        autoPlay
-                        loop
-                        muted
-                        playsInline
-                        className="mt-3 w-full rounded-lg border border-white/10"
-                      />
+                      <>
+                        <video
+                          src="/demo.webm"
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                          className="mt-3 w-full rounded-lg border border-white/10"
+                        />
+                        <p className="mt-2 text-center text-sm text-white/50">
+                          (Best viewed on desktop)
+                        </p>
+                      </>
                     )}
                     {stream.wasPreloaded && (
                       <GrabElementButton

@@ -1,5 +1,5 @@
-const OPENCODE_ZEN_ENDPOINT = "https://opencode.ai/zen/v1/chat/completions";
-const MODEL = "grok-code";
+import { generateText } from "ai";
+import type { ModelMessage } from "ai";
 
 interface ConversationMessage {
   role: "user" | "assistant";
@@ -45,11 +45,8 @@ const isAllowedOrigin = (origin: string | null): boolean => {
   return ALLOWED_ORIGINS_PROD.includes(origin);
 };
 
-const getCorsHeaders = (_origin: string | null) => {
-  // const allowedOrigin = isAllowedOrigin(origin) ? origin : null;
-
+const getCorsHeaders = () => {
   return {
-    // "Access-Control-Allow-Origin": allowedOrigin ?? "",
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "*",
     "Access-Control-Allow-Headers": "Content-Type",
@@ -58,7 +55,7 @@ const getCorsHeaders = (_origin: string | null) => {
 
 export async function POST(request: Request) {
   const origin = request.headers.get("origin");
-  const corsHeaders = getCorsHeaders(origin);
+  const corsHeaders = getCorsHeaders();
 
   if (!isAllowedOrigin(origin)) {
     return new Response(JSON.stringify({ error: "Origin not allowed" }), {
@@ -67,11 +64,11 @@ export async function POST(request: Request) {
     });
   }
 
-  const apiKey = process.env.OPENCODE_ZEN_API_KEY;
+  const apiKey = process.env.AI_GATEWAY_API_KEY;
 
   if (!apiKey) {
     return new Response(
-      JSON.stringify({ error: "OPENCODE_ZEN_API_KEY not configured" }),
+      JSON.stringify({ error: "AI_GATEWAY_API_KEY not configured" }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -101,40 +98,19 @@ export async function POST(request: Request) {
     );
   }
 
-  const conversationMessages: Array<{ role: string; content: string }> = [
-    { role: "system", content: SYSTEM_PROMPT },
-    ...messages,
-  ];
+  const conversationMessages: ModelMessage[] = messages.map((message) => ({
+    role: message.role,
+    content: message.content,
+  }));
 
   try {
-    const response = await fetch(OPENCODE_ZEN_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        stream: false,
-        messages: conversationMessages,
-      }),
+    const result = await generateText({
+      model: "cerebras/glm-4.6",
+      system: SYSTEM_PROMPT,
+      messages: conversationMessages,
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      return new Response(
-        JSON.stringify({
-          error: `API error: ${response.status} - ${errorText}`,
-        }),
-        {
-          status: response.status,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
-    }
-
-    const data = await response.json();
-    const generatedCode = data.choices?.[0]?.message?.content || "";
+    const generatedCode = result.text;
 
     return new Response(generatedCode, {
       headers: {
@@ -153,19 +129,15 @@ export async function POST(request: Request) {
   }
 }
 
-export function OPTIONS(request: Request) {
-  const origin = request.headers.get("origin");
-  const corsHeaders = getCorsHeaders(origin);
-
+export function OPTIONS() {
+  const corsHeaders = getCorsHeaders();
   return new Response(null, { status: 204, headers: corsHeaders });
 }
 
 const IS_HEALTHY = true;
 
-export function GET(request: Request) {
-  const origin = request.headers.get("origin");
-  const corsHeaders = getCorsHeaders(origin);
-
+export function GET() {
+  const corsHeaders = getCorsHeaders();
   return Response.json(
     { healthy: IS_HEALTHY },
     { headers: { ...corsHeaders, "Content-Type": "application/json" } },

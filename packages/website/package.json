@@ -16,6 +16,7 @@
   ],
   "dependencies": {
     "@react-grab/visual-edit": "workspace:*",
+    "ai": "^5.0.36",
     "@vercel/analytics": "^1.5.0",
     "botid": "^1.5.10",
     "class-variance-authority": "^0.7.1",
