@@ -676,6 +676,18 @@ export const createVisualEditAgentProvider = (
 
       yield "Applying changes…";
     },
+    undo: async () => {
+      if (!lastRequestId) return;
+      const undoFn = undoFnMap.get(lastRequestId);
+      if (!undoFn) return;
+
+      try {
+        undoFn();
+      } finally {
+        undoFnMap.delete(lastRequestId);
+        lastRequestId = null;
+      }
+    },
     supportsFollowUp: true,
     dismissButtonText: "Copy",
     getCompletionMessage: () => {
@@ -707,18 +719,18 @@ export const createVisualEditAgentProvider = (
 
     if (!element) {
       cleanup(requestId);
-      return { error: "Could not find element to apply changes" };
+      return { error: "Failed to edit: element not found" };
     }
 
     if (code === "") {
       cleanup(requestId);
-      return { error: "No changes generated" };
+      return { error: "Failed to edit: no changes generated" };
     }
 
     const { isValid, error, sanitizedCode } = validateCode(code);
     if (!isValid) {
       cleanup(requestId);
-      return { error: error ?? "No changes generated" };
+      return { error: `Failed to edit: ${error ?? "invalid code"}` };
     }
 
     const { proxy, undo } = createUndoableProxy(element as HTMLElement);
@@ -735,25 +747,23 @@ export const createVisualEditAgentProvider = (
       const message =
         executionError instanceof Error
           ? executionError.message
-          : "Code execution failed";
-      return { error: message };
+          : "unknown error";
+      return { error: `Failed to edit: ${message}` };
     }
 
-    const elementContext = await formatElementInfo(element);
-    const reference = `${REFERENCE_PREFIX}${code}\n\n---\n\n${elementContext}`;
-    copyContent(reference);
+    try {
+      const elementContext = await formatElementInfo(element);
+      const reference = `${REFERENCE_PREFIX}${code}\n\n---\n\n${elementContext}`;
+      copyContent(reference);
+    } catch {
+      // HACK: Non-critical error - edit succeeded but copy failed
+    }
 
     cleanup(requestId);
   };
 
   const onUndo = () => {
-    if (!lastRequestId) return;
-    const undoFn = undoFnMap.get(lastRequestId);
-    if (!undoFn) return;
-
-    undoFn();
-    undoFnMap.delete(lastRequestId);
-    lastRequestId = null;
+    // HACK: Undo logic is handled by provider.undo, this callback is for session restoration in core.tsx
   };
 
   return { provider, getOptions, onStart, onComplete, onUndo };
