@@ -70,12 +70,11 @@ const isReactGrabOrigin = (origin: string | null): boolean => {
   return false;
 };
 
-const getCorsHeaders = (origin: string | null) => {
+const getCorsHeaders = () => {
   return {
-    "Access-Control-Allow-Origin": origin ?? "*",
+    "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "POST, OPTIONS, GET",
     "Access-Control-Allow-Headers": "Content-Type",
-    Vary: "Origin",
   };
 };
 
@@ -119,7 +118,7 @@ const generateTextWithOpenCodeZen = async (
 
 export const POST = async (request: Request) => {
   const origin = request.headers.get("origin");
-  const corsHeaders = getCorsHeaders(origin);
+  const corsHeaders = getCorsHeaders();
   const shouldUsePrimaryModel = isReactGrabOrigin(origin);
 
   let body: { messages: ConversationMessage[] };
@@ -202,17 +201,13 @@ export const POST = async (request: Request) => {
 
 const IS_HEALTHY = true;
 
-export const OPTIONS = (request: Request) => {
-  const origin = request.headers.get("origin");
-  const corsHeaders = getCorsHeaders(origin);
-
+export const OPTIONS = () => {
+  const corsHeaders = getCorsHeaders();
   return new Response(null, { status: 204, headers: corsHeaders });
 };
 
-export const GET = (request: Request) => {
-  const origin = request.headers.get("origin");
-  const corsHeaders = getCorsHeaders(origin);
-
+export const GET = () => {
+  const corsHeaders = getCorsHeaders();
   return Response.json(
     { healthy: IS_HEALTHY },
     { headers: { ...corsHeaders, "Content-Type": "application/json" } },
