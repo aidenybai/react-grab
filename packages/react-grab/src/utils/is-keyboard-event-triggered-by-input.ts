@@ -30,17 +30,6 @@ const FORM_TAGS_AND_ROLES: readonly FormTags[] = [
   "textbox",
 ];
 
-const isCustomElement = (element: HTMLElement): boolean => {
-  // we just do a basic check w/o any complex RegExp or validation against the list of legacy names containing a hyphen,
-  // as none of them is likely to be an event target, and it won't hurt anyway if we miss.
-  // see: https://html.spec.whatwg.org/multipage/custom-elements.html#prod-potentialcustomelementname
-  return (
-    Boolean(element.tagName) &&
-    !element.tagName.startsWith("-") &&
-    element.tagName.includes("-")
-  );
-};
-
 const isReadonlyArray = (value: unknown): value is readonly unknown[] => {
   return Array.isArray(value);
 };
@@ -54,7 +43,7 @@ const isHotkeyEnabledOnTagName = (
   let targetTagName: EventTarget | null | string | undefined;
   let targetRole: null | string | undefined;
 
-  if (target instanceof HTMLElement && isCustomElement(target) && composed) {
+  if (composed) {
     const composedPath = event.composedPath();
     const targetElement = composedPath[0];
 
