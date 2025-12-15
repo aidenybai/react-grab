@@ -11,7 +11,9 @@ import { DEFAULT_PORT, COMPLETED_STATUS } from "./constants.js";
 const VERSION = process.env.VERSION ?? "0.0.0";
 
 try {
-  fetch(`https://www.react-grab.com/api/version?source=opencode&t=${Date.now()}`).catch(() => {});
+  fetch(
+    `https://www.react-grab.com/api/version?source=opencode&t=${Date.now()}`,
+  ).catch(() => {});
 } catch {}
 
 import {
@@ -136,19 +138,24 @@ const executeOpenCodePrompt = async (
       }
     }
 
-    if (eventData.type === "message.part.updated" && eventData.properties?.part) {
+    if (
+      eventData.type === "message.part.updated" &&
+      eventData.properties?.part
+    ) {
       const part = eventData.properties.part;
 
       if (part.sessionID !== opencodeSessionId) continue;
 
       if (part.messageID) {
-        lastMessageInfo = { sessionId: opencodeSessionId, messageId: part.messageID };
+        lastMessageInfo = {
+          sessionId: opencodeSessionId,
+          messageId: part.messageID,
+        };
       }
 
       if (part.type === "text" && part.text) {
-        const truncatedText = part.text.length > 100
-          ? `${part.text.slice(0, 100)}...`
-          : part.text;
+        const truncatedText =
+          part.text.length > 100 ? `${part.text.slice(0, 100)}...` : part.text;
         onStatus?.(truncatedText);
       } else if (part.type === "tool-invocation" && part.toolName) {
         const stateLabel = part.state === "running" ? "Running" : "Using";
@@ -286,9 +293,15 @@ ${content}
 `;
 
     return streamSSE(context, async (stream) => {
-      for await (const message of runAgent(formattedPrompt, { ...options, sessionId })) {
+      for await (const message of runAgent(formattedPrompt, {
+        ...options,
+        sessionId,
+      })) {
         if (message.type === "error") {
-          await stream.writeSSE({ data: `Error: ${message.content}`, event: "error" });
+          await stream.writeSSE({
+            data: `Error: ${message.content}`,
+            event: "error",
+          });
         } else {
           await stream.writeSSE({ data: message.content, event: message.type });
         }

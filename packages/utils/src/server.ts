@@ -28,10 +28,7 @@ interface SpawnError extends Error {
   path?: string;
 }
 
-export const formatSpawnError = (
-  error: Error,
-  commandName: string,
-): string => {
+export const formatSpawnError = (error: Error, commandName: string): string => {
   const spawnError = error as SpawnError;
   const isNotFound =
     spawnError.code === "ENOENT" ||

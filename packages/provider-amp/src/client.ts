@@ -41,13 +41,10 @@ export const createAmpAgentProvider = (
     ...(contextOptions ?? {}),
   });
 
-  const checkConnection = createCachedConnectionChecker(
-    async () => {
-      const response = await fetch(`${serverUrl}/health`, { method: "GET" });
-      return response.ok;
-    },
-    CONNECTION_CHECK_TTL_MS,
-  );
+  const checkConnection = createCachedConnectionChecker(async () => {
+    const response = await fetch(`${serverUrl}/health`, { method: "GET" });
+    return response.ok;
+  }, CONNECTION_CHECK_TTL_MS);
 
   return {
     send: async function* (context: AmpAgentContext, signal: AbortSignal) {

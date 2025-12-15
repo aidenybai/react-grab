@@ -25,16 +25,29 @@ const injectLineNumbers = (html: string): string => {
   });
 };
 
-let highlighterInstance: Highlighter | null = null;
+const globalForShiki = globalThis as unknown as {
+  shikiHighlighter: Highlighter | undefined;
+  shikiHighlighterPromise: Promise<Highlighter> | undefined;
+};
 
-const getHighlighter = async () => {
-  if (!highlighterInstance) {
-    highlighterInstance = await createHighlighter({
-      themes: ["vesper"],
-      langs: ["typescript", "javascript", "tsx", "jsx", "html", "json", "bash"],
-    });
+const getHighlighter = async (): Promise<Highlighter> => {
+  if (globalForShiki.shikiHighlighter) {
+    return globalForShiki.shikiHighlighter;
   }
-  return highlighterInstance;
+
+  if (globalForShiki.shikiHighlighterPromise) {
+    return globalForShiki.shikiHighlighterPromise;
+  }
+
+  globalForShiki.shikiHighlighterPromise = createHighlighter({
+    themes: ["vesper"],
+    langs: ["typescript", "javascript", "tsx", "jsx", "html", "json", "bash"],
+  }).then((highlighter) => {
+    globalForShiki.shikiHighlighter = highlighter;
+    return highlighter;
+  });
+
+  return globalForShiki.shikiHighlighterPromise;
 };
 
 const highlightChangedLines = (

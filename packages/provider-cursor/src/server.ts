@@ -12,7 +12,9 @@ import { DEFAULT_PORT, COMPLETED_STATUS } from "./constants.js";
 const VERSION = process.env.VERSION ?? "0.0.0";
 
 try {
-  fetch(`https://www.react-grab.com/api/version?source=cursor&t=${Date.now()}`).catch(() => {});
+  fetch(
+    `https://www.react-grab.com/api/version?source=cursor&t=${Date.now()}`,
+  ).catch(() => {});
 } catch {}
 
 import {
@@ -84,7 +86,10 @@ export const runAgent = async function* (
   }
 
   const workspacePath =
-    options?.workspace ?? options?.cwd ?? process.env.REACT_GRAB_CWD ?? process.cwd();
+    options?.workspace ??
+    options?.cwd ??
+    process.env.REACT_GRAB_CWD ??
+    process.cwd();
 
   const cursorChatId = options?.sessionId
     ? cursorSessionMap.get(options.sessionId)
@@ -152,7 +157,10 @@ export const runAgent = async function* (
           if (event.subtype === "success") {
             enqueueMessage({ type: "status", content: COMPLETED_STATUS });
           } else if (event.subtype === "error" || event.is_error) {
-            enqueueMessage({ type: "error", content: event.result || "Unknown error" });
+            enqueueMessage({
+              type: "error",
+              content: event.result || "Unknown error",
+            });
           } else {
             enqueueMessage({ type: "status", content: "Task finished" });
           }
@@ -196,7 +204,10 @@ export const runAgent = async function* (
       }
       processEnded = true;
       if (code !== 0 && !childProcess.killed) {
-        enqueueMessage({ type: "error", content: `cursor-agent exited with code ${code}` });
+        enqueueMessage({
+          type: "error",
+          content: `cursor-agent exited with code ${code}`,
+        });
       }
       enqueueMessage({ type: "done", content: "" });
       if (resolveWait) {
@@ -214,7 +225,8 @@ export const runAgent = async function* (
       if (isNotInstalled) {
         enqueueMessage({
           type: "error",
-          content: "cursor-agent is not installed. Please install the Cursor Agent CLI to use this provider.\n\nInstallation: https://cursor.com/docs/cli/overview",
+          content:
+            "cursor-agent is not installed. Please install the Cursor Agent CLI to use this provider.\n\nInstallation: https://cursor.com/docs/cli/overview",
         });
       } else {
         const errorMessage = formatSpawnError(error, "cursor-agent");
@@ -285,9 +297,15 @@ export const createServer = () => {
     const userPrompt = isFollowUp ? prompt : `${prompt}\n\n${content}`;
 
     return streamSSE(context, async (stream) => {
-      for await (const message of runAgent(userPrompt, { ...options, sessionId })) {
+      for await (const message of runAgent(userPrompt, {
+        ...options,
+        sessionId,
+      })) {
         if (message.type === "error") {
-          await stream.writeSSE({ data: `Error: ${message.content}`, event: "error" });
+          await stream.writeSSE({
+            data: `Error: ${message.content}`,
+            event: "error",
+          });
         } else {
           await stream.writeSSE({ data: message.content, event: message.type });
         }

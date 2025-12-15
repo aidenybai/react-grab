@@ -11,7 +11,9 @@ import { DEFAULT_PORT, COMPLETED_STATUS } from "./constants.js";
 const VERSION = process.env.VERSION ?? "0.0.0";
 
 try {
-  fetch(`https://www.react-grab.com/api/version?source=amp&t=${Date.now()}`).catch(() => {});
+  fetch(
+    `https://www.react-grab.com/api/version?source=amp&t=${Date.now()}`,
+  ).catch(() => {});
 } catch {}
 
 import {
@@ -166,9 +168,15 @@ export const createServer = () => {
     const userPrompt = isFollowUp ? prompt : `${prompt}\n\n${content}`;
 
     return streamSSE(context, async (stream) => {
-      for await (const message of runAgent(userPrompt, { ...options, sessionId })) {
+      for await (const message of runAgent(userPrompt, {
+        ...options,
+        sessionId,
+      })) {
         if (message.type === "error") {
-          await stream.writeSSE({ data: `Error: ${message.content}`, event: "error" });
+          await stream.writeSSE({
+            data: `Error: ${message.content}`,
+            event: "error",
+          });
         } else {
           await stream.writeSSE({ data: message.content, event: message.type });
         }

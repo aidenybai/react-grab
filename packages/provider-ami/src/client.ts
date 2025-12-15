@@ -469,13 +469,10 @@ export const createAmiAgentProvider = (projectId?: string): AgentProvider => {
     supportsResume: true,
     supportsFollowUp: true,
 
-    checkConnection: createCachedConnectionChecker(
-      async () => {
-        const response = await fetch(AMI_BRIDGE_URL, { method: "HEAD" });
-        return response.ok;
-      },
-      CONNECTION_CHECK_TTL_MS,
-    ),
+    checkConnection: createCachedConnectionChecker(async () => {
+      const response = await fetch(AMI_BRIDGE_URL, { method: "HEAD" });
+      return response.ok;
+    }, CONNECTION_CHECK_TTL_MS),
 
     undo: async () => {
       if (!lastAgentMessages) return;

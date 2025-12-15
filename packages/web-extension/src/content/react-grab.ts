@@ -25,7 +25,9 @@ const createExtensionApi = () => {
 
   if (!isLocalhost) {
     options.getContent = (elements) => {
-      const combinedHtml = elements.map((element) => element.outerHTML).join("\n\n");
+      const combinedHtml = elements
+        .map((element) => element.outerHTML)
+        .join("\n\n");
       return turndownService.turndown(combinedHtml);
     };
   }

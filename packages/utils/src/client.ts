@@ -115,7 +115,8 @@ export const getStoredAgentContext = (
     content,
     prompt,
     options,
-    sessionId: typeof storedSessionId === "string" ? storedSessionId : undefined,
+    sessionId:
+      typeof storedSessionId === "string" ? storedSessionId : undefined,
   };
 };
 
@@ -127,9 +128,11 @@ export interface StreamAgentStatusFromServerOptions {
   pollIntervalMs?: number;
 }
 
-export const streamAgentStatusFromServer = async function* <TContext extends {
-  sessionId?: string;
-}>(
+export const streamAgentStatusFromServer = async function* <
+  TContext extends {
+    sessionId?: string;
+  },
+>(
   options: StreamAgentStatusFromServerOptions,
   context: TContext,
   signal: AbortSignal,
@@ -142,7 +145,9 @@ export const streamAgentStatusFromServer = async function* <TContext extends {
   const handleAbort = () => {
     if (!sessionId) return;
     const abortPath = options.abortPath?.(sessionId) ?? `/abort/${sessionId}`;
-    fetch(`${options.serverUrl}${abortPath}`, { method: "POST" }).catch(() => {});
+    fetch(`${options.serverUrl}${abortPath}`, { method: "POST" }).catch(
+      () => {},
+    );
   };
 
   signal.addEventListener("abort", handleAbort);

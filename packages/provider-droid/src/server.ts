@@ -77,7 +77,10 @@ export const runAgent = async function* (
   }
 
   const workspacePath =
-    options?.workspace ?? options?.cwd ?? process.env.REACT_GRAB_CWD ?? process.cwd();
+    options?.workspace ??
+    options?.cwd ??
+    process.env.REACT_GRAB_CWD ??
+    process.cwd();
   droidArgs.push("--cwd", workspacePath);
 
   const droidSessionId = options?.sessionId
@@ -142,14 +145,20 @@ export const runAgent = async function* (
 
         case "tool_call": {
           if (event.toolName) {
-            enqueueMessage({ type: "status", content: `Running ${event.toolName}…` });
+            enqueueMessage({
+              type: "status",
+              content: `Running ${event.toolName}…`,
+            });
           }
           break;
         }
 
         case "completion": {
           if (event.is_error) {
-            enqueueMessage({ type: "error", content: event.finalText || "Unknown error" });
+            enqueueMessage({
+              type: "error",
+              content: event.finalText || "Unknown error",
+            });
           } else {
             enqueueMessage({ type: "status", content: COMPLETED_STATUS });
           }
@@ -194,7 +203,10 @@ export const runAgent = async function* (
       }
       processEnded = true;
       if (code !== 0 && !childProcess.killed) {
-        enqueueMessage({ type: "error", content: `droid exec exited with code ${code}` });
+        enqueueMessage({
+          type: "error",
+          content: `droid exec exited with code ${code}`,
+        });
       }
       enqueueMessage({ type: "done", content: "" });
       if (resolveWait) {
@@ -212,7 +224,8 @@ export const runAgent = async function* (
       if (isNotInstalled) {
         enqueueMessage({
           type: "error",
-          content: "droid CLI is not installed. Please install Factory CLI to use this provider.\n\nInstallation: curl -fsSL https://app.factory.ai/cli | sh",
+          content:
+            "droid CLI is not installed. Please install Factory CLI to use this provider.\n\nInstallation: curl -fsSL https://app.factory.ai/cli | sh",
         });
       } else {
         const errorMessage = formatSpawnError(error, "droid");
@@ -289,9 +302,15 @@ Here is the selected React element context (file path, component name, and sourc
 ${content}`;
 
     return streamSSE(context, async (stream) => {
-      for await (const message of runAgent(userPrompt, { ...options, sessionId })) {
+      for await (const message of runAgent(userPrompt, {
+        ...options,
+        sessionId,
+      })) {
         if (message.type === "error") {
-          await stream.writeSSE({ data: `Error: ${message.content}`, event: "error" });
+          await stream.writeSSE({
+            data: `Error: ${message.content}`,
+            event: "error",
+          });
         } else {
           await stream.writeSSE({ data: message.content, event: message.type });
         }

@@ -3,7 +3,9 @@ import pc from "picocolors";
 const VERSION = process.env.VERSION ?? "0.0.0";
 
 try {
-  fetch(`https://www.react-grab.com/api/version?source=ami&t=${Date.now()}`).catch(() => {});
+  fetch(
+    `https://www.react-grab.com/api/version?source=ami&t=${Date.now()}`,
+  ).catch(() => {});
 } catch {}
 
 export const startServer = async (_port?: number) => {

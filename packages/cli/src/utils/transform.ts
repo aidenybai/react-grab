@@ -845,7 +845,8 @@ const formatOptionsAsJson = (options: ReactGrabOptions): string => {
 
   if (options.activationKey) {
     const activationKey: Record<string, unknown> = {};
-    if (options.activationKey.key) activationKey.key = options.activationKey.key;
+    if (options.activationKey.key)
+      activationKey.key = options.activationKey.key;
     if (options.activationKey.metaKey) activationKey.metaKey = true;
     if (options.activationKey.ctrlKey) activationKey.ctrlKey = true;
     if (options.activationKey.shiftKey) activationKey.shiftKey = true;
@@ -864,7 +865,8 @@ const formatOptionsAsJson = (options: ReactGrabOptions): string => {
   }
 
   if (options.allowActivationInsideInput !== undefined) {
-    cleanOptions.allowActivationInsideInput = options.allowActivationInsideInput;
+    cleanOptions.allowActivationInsideInput =
+      options.allowActivationInsideInput;
   }
 
   if (options.maxContextLines !== undefined) {
@@ -923,7 +925,10 @@ const addOptionsToNextScript = (
 
   let newScriptTag: string;
   if (existingDataOptionsMatch) {
-    newScriptTag = scriptTag.replace(existingDataOptionsMatch[0], dataOptionsAttr);
+    newScriptTag = scriptTag.replace(
+      existingDataOptionsMatch[0],
+      dataOptionsAttr,
+    );
   } else {
     newScriptTag = `${scriptOpening}\n            ${dataOptionsAttr}\n          ${scriptClosing}`;
   }
@@ -959,7 +964,10 @@ const addOptionsToViteScript = (
   const optionsJson = formatOptionsAsJson(options);
   const newImport = `import("react-grab").then((m) => m.init(${optionsJson}))`;
 
-  const newContent = originalContent.replace(reactGrabImportMatch[0], newImport);
+  const newContent = originalContent.replace(
+    reactGrabImportMatch[0],
+    newImport,
+  );
 
   return {
     success: true,
@@ -990,7 +998,10 @@ const addOptionsToWebpackImport = (
   const optionsJson = formatOptionsAsJson(options);
   const newImport = `import("react-grab").then((m) => m.init(${optionsJson}))`;
 
-  const newContent = originalContent.replace(reactGrabImportMatch[0], newImport);
+  const newContent = originalContent.replace(
+    reactGrabImportMatch[0],
+    newImport,
+  );
 
   return {
     success: true,

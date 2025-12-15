@@ -23,7 +23,9 @@ import {
 const VERSION = process.env.VERSION ?? "0.0.0";
 
 try {
-  fetch(`https://www.react-grab.com/api/version?source=claude-code&t=${Date.now()}`).catch(() => {});
+  fetch(
+    `https://www.react-grab.com/api/version?source=claude-code&t=${Date.now()}`,
+  ).catch(() => {});
 } catch {}
 
 const resolveClaudePath = (): string => {
@@ -40,7 +42,9 @@ const resolveClaudePath = (): string => {
 type ContentBlock = SDKAssistantMessage["message"]["content"][number];
 type TextContentBlock = Extract<ContentBlock, { type: "text" }>;
 
-export interface ClaudeAgentOptions extends AgentCoreOptions, Omit<Options, "cwd"> {}
+export interface ClaudeAgentOptions
+  extends AgentCoreOptions,
+    Omit<Options, "cwd"> {}
 
 type ClaudeAgentContext = AgentContext<ClaudeAgentOptions>;
 
@@ -109,7 +113,8 @@ export const runAgent = async function* (
       if (message.type === "result") {
         yield {
           type: "status",
-          content: message.subtype === "success" ? COMPLETED_STATUS : "Task finished",
+          content:
+            message.subtype === "success" ? COMPLETED_STATUS : "Task finished",
         };
       }
     }
@@ -165,9 +170,15 @@ export const createServer = () => {
     const userPrompt = isFollowUp ? prompt : `${prompt}\n\n${content}`;
 
     return streamSSE(context, async (stream) => {
-      for await (const message of runAgent(userPrompt, { ...options, sessionId })) {
+      for await (const message of runAgent(userPrompt, {
+        ...options,
+        sessionId,
+      })) {
         if (message.type === "error") {
-          await stream.writeSSE({ data: `Error: ${message.content}`, event: "error" });
+          await stream.writeSSE({
+            data: `Error: ${message.content}`,
+            event: "error",
+          });
         } else {
           await stream.writeSSE({ data: message.content, event: message.type });
         }

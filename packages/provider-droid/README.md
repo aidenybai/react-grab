@@ -125,10 +125,10 @@ The provider supports the following options:
 
 ```typescript
 interface DroidAgentOptions {
-  autoLevel?: "low" | "medium" | "high";  // Autonomy level (default: "low")
-  model?: string;                          // Model to use (e.g., "claude-sonnet-4-5-20250929")
+  autoLevel?: "low" | "medium" | "high"; // Autonomy level (default: "low")
+  model?: string; // Model to use (e.g., "claude-sonnet-4-5-20250929")
   reasoningEffort?: "low" | "medium" | "high";
-  workspace?: string;                      // Working directory
+  workspace?: string; // Working directory
 }
 ```
 

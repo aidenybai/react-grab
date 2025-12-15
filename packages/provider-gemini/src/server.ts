@@ -12,7 +12,9 @@ import { DEFAULT_PORT, COMPLETED_STATUS } from "./constants.js";
 const VERSION = process.env.VERSION ?? "0.0.0";
 
 try {
-  fetch(`https://www.react-grab.com/api/version?source=gemini&t=${Date.now()}`).catch(() => {});
+  fetch(
+    `https://www.react-grab.com/api/version?source=gemini&t=${Date.now()}`,
+  ).catch(() => {});
 } catch {}
 
 import {
@@ -133,13 +135,19 @@ export const runAgent = async function* (
 
         case "tool_use":
           if (event.tool_name) {
-            enqueueMessage({ type: "status", content: `Using ${event.tool_name}...` });
+            enqueueMessage({
+              type: "status",
+              content: `Using ${event.tool_name}...`,
+            });
           }
           break;
 
         case "tool_result":
           if (event.status === "error" && event.output) {
-            enqueueMessage({ type: "status", content: `Tool error: ${event.output}` });
+            enqueueMessage({
+              type: "status",
+              content: `Tool error: ${event.output}`,
+            });
           }
           break;
 
@@ -190,7 +198,10 @@ export const runAgent = async function* (
       }
       processEnded = true;
       if (code !== 0 && !childProcess.killed) {
-        enqueueMessage({ type: "error", content: `gemini exited with code ${code}` });
+        enqueueMessage({
+          type: "error",
+          content: `gemini exited with code ${code}`,
+        });
       }
       enqueueMessage({ type: "done", content: "" });
       if (resolveWait) {
@@ -271,9 +282,15 @@ export const createServer = () => {
     const userPrompt = isFollowUp ? prompt : `${prompt}\n\n${content}`;
 
     return streamSSE(context, async (stream) => {
-      for await (const message of runAgent(userPrompt, { ...options, sessionId })) {
+      for await (const message of runAgent(userPrompt, {
+        ...options,
+        sessionId,
+      })) {
         if (message.type === "error") {
-          await stream.writeSSE({ data: `Error: ${message.content}`, event: "error" });
+          await stream.writeSSE({
+            data: `Error: ${message.content}`,
+            event: "error",
+          });
         } else {
           await stream.writeSSE({ data: message.content, event: message.type });
         }

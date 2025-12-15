@@ -22,13 +22,17 @@ const MODIFIER_KEY_NAMES: Record<string, string> = {
   altKey: process.platform === "darwin" ? "⌥ Option" : "Alt",
 };
 
-const formatActivationKey = (activationKey: ReactGrabOptions["activationKey"]): string => {
+const formatActivationKey = (
+  activationKey: ReactGrabOptions["activationKey"],
+): string => {
   if (!activationKey) return "Default (Option/Alt)";
   const parts: string[] = [];
-  if (activationKey.metaKey) parts.push(process.platform === "darwin" ? "⌘" : "Win");
+  if (activationKey.metaKey)
+    parts.push(process.platform === "darwin" ? "⌘" : "Win");
   if (activationKey.ctrlKey) parts.push("Ctrl");
   if (activationKey.shiftKey) parts.push("Shift");
-  if (activationKey.altKey) parts.push(process.platform === "darwin" ? "⌥" : "Alt");
+  if (activationKey.altKey)
+    parts.push(process.platform === "darwin" ? "⌥" : "Alt");
   if (activationKey.key) parts.push(activationKey.key.toUpperCase());
   return parts.length > 0 ? parts.join(" + ") : "Default (Option/Alt)";
 };
@@ -116,7 +120,11 @@ export const configure = new Command()
             { title: MODIFIER_KEY_NAMES.metaKey, value: "metaKey" },
             { title: MODIFIER_KEY_NAMES.ctrlKey, value: "ctrlKey" },
             { title: MODIFIER_KEY_NAMES.shiftKey, value: "shiftKey" },
-            { title: MODIFIER_KEY_NAMES.altKey, value: "altKey", selected: true },
+            {
+              title: MODIFIER_KEY_NAMES.altKey,
+              value: "altKey",
+              selected: true,
+            },
           ],
           hint: "- Space to select, Enter to confirm",
         });
