@@ -16,8 +16,6 @@ https://github.com/user-attachments/assets/fdb34329-b471-4b39-b433-0b1a27a94bd8
 
 ## Install
 
-> [**Install using Cursor**](https://cursor.com/link/prompt?text=1.+Run+curl+-s+https%3A%2F%2Freact-grab.com%2Fllms.txt+%0A2.+Understand+the+content+and+follow+the+instructions+to+install+React+Grab.%0A3.+Tell+the+user+to+refresh+their+local+app+and+explain+how+to+use+React+Grab)
-
 Run this command to install React Grab into your project. Ensure you are running at project root (e.g. where the `next.config.ts` or `vite.config.ts` file is located).
 
 ```html
@@ -443,6 +441,61 @@ export default function RootLayout({ children }) {
             />
             <Script
               src="//unpkg.com/@react-grab/amp/dist/client.global.js"
+              strategy="lazyOnload"
+            />
+          </>
+        )}
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}
+```
+
+</details>
+
+<details>
+<summary><strong>Factory Droid</strong></summary>
+
+#### Server Setup
+
+The server runs on port `10567` and interfaces with the [Factory CLI](https://docs.factory.ai/cli/droid-exec/overview). Add to your `package.json`:
+
+```json
+{
+  "scripts": {
+    "dev": "npx @react-grab/droid@latest && next dev"
+  }
+}
+```
+
+> **Note:** You must have [Factory CLI](https://app.factory.ai) installed (`curl -fsSL https://app.factory.ai/cli | sh`) and `FACTORY_API_KEY` environment variable set.
+
+#### Client Setup
+
+```html
+<script src="//unpkg.com/react-grab/dist/index.global.js"></script>
+<!-- add this in the <head> -->
+<script src="//unpkg.com/@react-grab/droid/dist/client.global.js"></script>
+```
+
+Or using Next.js `Script` component in your `app/layout.tsx`:
+
+```jsx
+import Script from "next/script";
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <head>
+        {process.env.NODE_ENV === "development" && (
+          <>
+            <Script
+              src="//unpkg.com/react-grab/dist/index.global.js"
+              strategy="beforeInteractive"
+            />
+            <Script
+              src="//unpkg.com/@react-grab/droid/dist/client.global.js"
               strategy="lazyOnload"
             />
           </>
