@@ -114,7 +114,7 @@ export const init = new Command()
         logger.break();
         logger.warn("React Grab is already installed.");
         logger.log(
-          `Use ${highlighter.info("--force")} to reconfigure, or ${highlighter.info("react-grab add")} to add an agent.`,
+          `Use ${highlighter.info("--force")} to reconfigure, or ${highlighter.info("npx grab@latest add")} to add an agent.`,
         );
         logger.break();
         process.exit(0);

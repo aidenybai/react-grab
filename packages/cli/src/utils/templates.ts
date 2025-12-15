@@ -21,19 +21,18 @@ export const NEXT_APP_ROUTER_SCRIPT_WITH_AGENT = (
 ): string => {
   if (agent === "none") return NEXT_APP_ROUTER_SCRIPT;
 
-  const agentScript = `<Script
-              src="//unpkg.com/@react-grab/${agent}/dist/client.global.js"
-              strategy="lazyOnload"
-            />`;
-
   return `{process.env.NODE_ENV === "development" && (
-          <>
-            <Script
-              src="//unpkg.com/react-grab/dist/index.global.js"
-              strategy="beforeInteractive"
-            />
-            ${agentScript}
-          </>
+          <Script
+            src="//unpkg.com/react-grab/dist/index.global.js"
+            crossOrigin="anonymous"
+            strategy="beforeInteractive"
+          />
+        )}
+        {process.env.NODE_ENV === "development" && (
+          <Script
+            src="//unpkg.com/@react-grab/${agent}/dist/client.global.js"
+            strategy="lazyOnload"
+          />
         )}`;
 };
 
@@ -50,19 +49,18 @@ export const NEXT_PAGES_ROUTER_SCRIPT_WITH_AGENT = (
 ): string => {
   if (agent === "none") return NEXT_PAGES_ROUTER_SCRIPT;
 
-  const agentScript = `<Script
-              src="//unpkg.com/@react-grab/${agent}/dist/client.global.js"
-              strategy="lazyOnload"
-            />`;
-
   return `{process.env.NODE_ENV === "development" && (
-          <>
-            <Script
-              src="//unpkg.com/react-grab/dist/index.global.js"
-              strategy="beforeInteractive"
-            />
-            ${agentScript}
-          </>
+          <Script
+            src="//unpkg.com/react-grab/dist/index.global.js"
+            crossOrigin="anonymous"
+            strategy="beforeInteractive"
+          />
+        )}
+        {process.env.NODE_ENV === "development" && (
+          <Script
+            src="//unpkg.com/@react-grab/${agent}/dist/client.global.js"
+            strategy="lazyOnload"
+          />
         )}`;
 };
 

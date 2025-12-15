@@ -37,9 +37,17 @@ const ALLOWED_ORIGINS_PROD = [
 const isAllowedOrigin = (origin: string | null): boolean => {
   if (!origin) return false;
 
+  const additionalOrigins = process.env.VISUAL_EDIT_ALLOWED_ORIGINS;
+  if (additionalOrigins) {
+    const origins = additionalOrigins.split(",").map((o) => o.trim());
+    if (origins.includes(origin)) return true;
+  }
+
   if (process.env.NODE_ENV === "development") {
     if (origin.startsWith("http://localhost:")) return true;
+    if (origin.startsWith("https://localhost:")) return true;
     if (origin.startsWith("http://127.0.0.1:")) return true;
+    if (origin.startsWith("https://127.0.0.1:")) return true;
   }
 
   return ALLOWED_ORIGINS_PROD.includes(origin);
