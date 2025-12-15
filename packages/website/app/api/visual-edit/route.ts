@@ -6,11 +6,6 @@ interface ConversationMessage {
   content: string;
 }
 
-interface RateLimitDecision {
-  isAllowed: boolean;
-  retryAfterSeconds: number;
-}
-
 const SYSTEM_PROMPT = `You are a DOM manipulation assistant. You will receive HTML with ancestor context and a modification request.
 
 The HTML shows the target element nested within its ancestor elements (up to 5 levels). The target element is marked with <!-- START $el --> and <!-- END $el --> comments. The ancestor tags are shown for structural context only - you should only modify the target element between these markers.
@@ -47,9 +42,6 @@ $el.classList.add("highlighted")
 
 Your response must be raw JavaScript that can be directly eval'd.`;
 
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const lastRequestTimestampByClientKey = new Map<string, number>();
-
 const parseHostnameFromOrigin = (origin: string): string | null => {
   try {
     return new URL(origin).hostname;
@@ -76,52 +68,6 @@ const isReactGrabOrigin = (origin: string | null): boolean => {
   if (isReactGrabVercelHostname(hostname)) return true;
 
   return false;
-};
-
-const getClientIpAddress = (headers: Headers): string | null => {
-  const forwardedFor = headers.get("x-forwarded-for");
-  if (forwardedFor) {
-    const firstForwardedFor = forwardedFor.split(",")[0]?.trim();
-    if (firstForwardedFor) return firstForwardedFor;
-  }
-
-  const realIp = headers.get("x-real-ip");
-  if (realIp) return realIp.trim();
-
-  const connectingIp = headers.get("cf-connecting-ip");
-  if (connectingIp) return connectingIp.trim();
-
-  return null;
-};
-
-const getClientRateLimitKey = (request: Request): string => {
-  const origin = request.headers.get("origin") ?? "unknown-origin";
-  const clientIpAddress = getClientIpAddress(request.headers) ?? "unknown-ip";
-  return `${clientIpAddress}::${origin}`;
-};
-
-const decideRateLimit = (request: Request): RateLimitDecision => {
-  const now = Date.now();
-  const clientKey = getClientRateLimitKey(request);
-  const lastRequestTimestamp = lastRequestTimestampByClientKey.get(clientKey);
-
-  if (!lastRequestTimestamp) {
-    lastRequestTimestampByClientKey.set(clientKey, now);
-    return { isAllowed: true, retryAfterSeconds: 0 };
-  }
-
-  const elapsedMs = now - lastRequestTimestamp;
-  if (elapsedMs >= RATE_LIMIT_WINDOW_MS) {
-    lastRequestTimestampByClientKey.set(clientKey, now);
-    return { isAllowed: true, retryAfterSeconds: 0 };
-  }
-
-  const retryAfterSeconds = Math.max(
-    1,
-    Math.ceil((RATE_LIMIT_WINDOW_MS - elapsedMs) / 1000),
-  );
-
-  return { isAllowed: false, retryAfterSeconds };
 };
 
 const getCorsHeaders = (origin: string | null) => {
@@ -175,21 +121,6 @@ export const POST = async (request: Request) => {
   const origin = request.headers.get("origin");
   const corsHeaders = getCorsHeaders(origin);
   const shouldUsePrimaryModel = isReactGrabOrigin(origin);
-
-  const rateLimitDecision = decideRateLimit(request);
-  if (!rateLimitDecision.isAllowed) {
-    return new Response(
-      JSON.stringify({ error: "Please retry in a bit" }),
-      {
-        status: 429,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-          "Retry-After": String(rateLimitDecision.retryAfterSeconds),
-        },
-      },
-    );
-  }
 
   let body: { messages: ConversationMessage[] };
   try {
