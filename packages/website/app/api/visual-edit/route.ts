@@ -66,17 +66,12 @@ const isReactGrabVercelHostname = (hostname: string): boolean => {
   return hostname.endsWith(".vercel.app") && hostname.startsWith("react-grab");
 };
 
-// const isLocalHostname = (hostname: string): boolean => {
-//   return hostname === "localhost" || hostname === "127.0.0.1";
-// };
-
-const isAllowedOrigin = (origin: string | null): boolean => {
+const isReactGrabOrigin = (origin: string | null): boolean => {
   if (!origin) return false;
 
   const hostname = parseHostnameFromOrigin(origin);
   if (!hostname) return false;
 
-  // HACK: Temporarily only allow react-grab origins
   if (isReactGrabHostname(hostname)) return true;
   if (isReactGrabVercelHostname(hostname)) return true;
 
@@ -130,47 +125,68 @@ const decideRateLimit = (request: Request): RateLimitDecision => {
 };
 
 const getCorsHeaders = (origin: string | null) => {
-  const allowedOrigin = origin && isAllowedOrigin(origin) ? origin : "null";
-
   return {
-    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Origin": origin ?? "*",
     "Access-Control-Allow-Methods": "POST, OPTIONS, GET",
     "Access-Control-Allow-Headers": "Content-Type",
     Vary: "Origin",
   };
 };
 
+interface OpenCodeZenResponse {
+  choices: Array<{
+    message: {
+      content: string;
+    };
+  }>;
+}
+
+const generateTextWithOpenCodeZen = async (
+  systemPrompt: string,
+  messages: ModelMessage[],
+): Promise<string> => {
+  const apiKey = process.env.OPENCODE_ZEN_API_KEY;
+  if (!apiKey) {
+    throw new Error("OPENCODE_ZEN_API_KEY not configured");
+  }
+
+  const response = await fetch("https://api.opencode.ai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "grok-3-fast",
+      messages: [{ role: "system", content: systemPrompt }, ...messages],
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`OpenCode Zen API error: ${response.status} ${errorText}`);
+  }
+
+  const data: OpenCodeZenResponse = await response.json();
+  return data.choices[0]?.message?.content ?? "";
+};
+
 export const POST = async (request: Request) => {
   const origin = request.headers.get("origin");
   const corsHeaders = getCorsHeaders(origin);
-
-  if (!isAllowedOrigin(origin)) {
-    return new Response(JSON.stringify({ error: "Origin not allowed" }), {
-      status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+  const shouldUsePrimaryModel = isReactGrabOrigin(origin);
 
   const rateLimitDecision = decideRateLimit(request);
   if (!rateLimitDecision.isAllowed) {
-    return new Response(JSON.stringify({ error: "Too many requests" }), {
-      status: 429,
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/json",
-        "Retry-After": String(rateLimitDecision.retryAfterSeconds),
-      },
-    });
-  }
-
-  const apiKey = process.env.AI_GATEWAY_API_KEY;
-
-  if (!apiKey) {
     return new Response(
-      JSON.stringify({ error: "AI_GATEWAY_API_KEY not configured" }),
+      JSON.stringify({ error: "Please retry in a bit" }),
       {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 429,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "Retry-After": String(rateLimitDecision.retryAfterSeconds),
+        },
       },
     );
   }
@@ -203,13 +219,32 @@ export const POST = async (request: Request) => {
   }));
 
   try {
-    const result = await generateText({
-      model: "cerebras/glm-4.6",
-      system: SYSTEM_PROMPT,
-      messages: conversationMessages,
-    });
+    let generatedCode: string;
 
-    const generatedCode = result.text;
+    if (shouldUsePrimaryModel) {
+      const apiKey = process.env.AI_GATEWAY_API_KEY;
+      if (!apiKey) {
+        return new Response(
+          JSON.stringify({ error: "AI_GATEWAY_API_KEY not configured" }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      const result = await generateText({
+        model: "cerebras/glm-4.6",
+        system: SYSTEM_PROMPT,
+        messages: conversationMessages,
+      });
+      generatedCode = result.text;
+    } else {
+      generatedCode = await generateTextWithOpenCodeZen(
+        SYSTEM_PROMPT,
+        conversationMessages,
+      );
+    }
 
     return new Response(generatedCode, {
       headers: {
@@ -233,10 +268,6 @@ const IS_HEALTHY = true;
 export const OPTIONS = (request: Request) => {
   const origin = request.headers.get("origin");
   const corsHeaders = getCorsHeaders(origin);
-
-  if (!isAllowedOrigin(origin)) {
-    return new Response(null, { status: 403, headers: corsHeaders });
-  }
 
   return new Response(null, { status: 204, headers: corsHeaders });
 };

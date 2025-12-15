@@ -529,14 +529,17 @@ export const createVisualEditAgentProvider = (
       const errorText = await response!.text().catch(() => "Unknown error");
       let errorMessage = errorText;
       try {
-        const parsed = JSON.parse(errorText) as { error?: string };
+        const parsed = JSON.parse(errorText) as { error?: unknown };
         if (parsed.error) {
-          errorMessage = parsed.error;
+          errorMessage =
+            typeof parsed.error === "string"
+              ? parsed.error
+              : JSON.stringify(parsed.error);
         }
       } catch {
         // HACK: Not JSON, use raw text
       }
-      throw new Error(`API error: ${response!.status} - ${errorMessage}`);
+      throw new Error(errorMessage);
     }
 
     yield await response!.text();
