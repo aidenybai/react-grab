@@ -186,17 +186,22 @@ export const start = new Command()
         proxyReq: (proxyRequest) => {
           proxyRequest.removeHeader("accept-encoding");
         },
-        proxyRes: responseInterceptor(async (responseBuffer, proxyResponse) => {
-          const contentType = proxyResponse.headers["content-type"] || "";
-          const isHtml = contentType.includes("text/html");
+        proxyRes: responseInterceptor(
+          async (responseBuffer, proxyResponse, request, response) => {
+            response.removeHeader("content-security-policy");
+            response.removeHeader("content-security-policy-report-only");
 
-          if (!isHtml) {
-            return responseBuffer;
-          }
+            const contentType = proxyResponse.headers["content-type"] || "";
+            const isHtml = contentType.includes("text/html");
 
-          const html = responseBuffer.toString("utf-8");
-          return injectScript(html);
-        }),
+            if (!isHtml) {
+              return responseBuffer;
+            }
+
+            const html = responseBuffer.toString("utf-8");
+            return injectScript(html);
+          },
+        ),
       },
     });
 
