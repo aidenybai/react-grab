@@ -70,16 +70,8 @@ const isReactGrabVercelHostname = (hostname: string): boolean => {
 //   return hostname === "localhost" || hostname === "127.0.0.1";
 // };
 
-const isAllowedOrigin = (origin: string | null): boolean => {
-  if (!origin) return false;
-
-  const hostname = parseHostnameFromOrigin(origin);
-  if (!hostname) return false;
-
-  // HACK: Temporarily only allow react-grab origins
-  if (isReactGrabHostname(hostname)) return true;
-  if (isReactGrabVercelHostname(hostname)) return true;
-
+// HACK: Temporarily disabled - always returns false
+const isAllowedOrigin = (_origin: string | null): boolean => {
   return false;
 };
 
