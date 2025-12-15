@@ -6,6 +6,11 @@ interface ConversationMessage {
   content: string;
 }
 
+interface RateLimitDecision {
+  isAllowed: boolean;
+  retryAfterSeconds: number;
+}
+
 const SYSTEM_PROMPT = `You are a DOM manipulation assistant. You will receive HTML with ancestor context and a modification request.
 
 The HTML shows the target element nested within its ancestor elements (up to 5 levels). The target element is marked with <!-- START $el --> and <!-- END $el --> comments. The ancestor tags are shown for structural context only - you should only modify the target element between these markers.
@@ -42,44 +47,119 @@ $el.classList.add("highlighted")
 
 Your response must be raw JavaScript that can be directly eval'd.`;
 
-const ALLOWED_ORIGINS_PROD = [
-  "https://react-grab.com",
-  "https://www.react-grab.com",
-];
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const lastRequestTimestampByClientKey = new Map<string, number>();
+
+const parseHostnameFromOrigin = (origin: string): string | null => {
+  try {
+    return new URL(origin).hostname;
+  } catch {
+    return null;
+  }
+};
+
+const isReactGrabHostname = (hostname: string): boolean => {
+  return hostname === "react-grab.com" || hostname === "www.react-grab.com";
+};
+
+const isReactGrabVercelHostname = (hostname: string): boolean => {
+  return hostname.endsWith(".vercel.app") && hostname.startsWith("react-grab");
+};
+
+// const isLocalHostname = (hostname: string): boolean => {
+//   return hostname === "localhost" || hostname === "127.0.0.1";
+// };
 
 const isAllowedOrigin = (origin: string | null): boolean => {
   if (!origin) return false;
 
-  if (origin.startsWith("http://localhost:")) return true;
-  if (origin.startsWith("https://localhost:")) return true;
-  if (origin.startsWith("http://127.0.0.1:")) return true;
-  if (origin.startsWith("https://127.0.0.1:")) return true;
+  const hostname = parseHostnameFromOrigin(origin);
+  if (!hostname) return false;
 
-  const additionalOrigins = process.env.VISUAL_EDIT_ALLOWED_ORIGINS;
-  if (additionalOrigins) {
-    const origins = additionalOrigins.split(",").map((o) => o.trim());
-    if (origins.includes(origin)) return true;
-  }
+  // HACK: Temporarily only allow react-grab origins
+  if (isReactGrabHostname(hostname)) return true;
+  if (isReactGrabVercelHostname(hostname)) return true;
 
-  return ALLOWED_ORIGINS_PROD.includes(origin);
+  return false;
 };
 
-const getCorsHeaders = () => {
+const getClientIpAddress = (headers: Headers): string | null => {
+  const forwardedFor = headers.get("x-forwarded-for");
+  if (forwardedFor) {
+    const firstForwardedFor = forwardedFor.split(",")[0]?.trim();
+    if (firstForwardedFor) return firstForwardedFor;
+  }
+
+  const realIp = headers.get("x-real-ip");
+  if (realIp) return realIp.trim();
+
+  const connectingIp = headers.get("cf-connecting-ip");
+  if (connectingIp) return connectingIp.trim();
+
+  return null;
+};
+
+const getClientRateLimitKey = (request: Request): string => {
+  const origin = request.headers.get("origin") ?? "unknown-origin";
+  const clientIpAddress = getClientIpAddress(request.headers) ?? "unknown-ip";
+  return `${clientIpAddress}::${origin}`;
+};
+
+const decideRateLimit = (request: Request): RateLimitDecision => {
+  const now = Date.now();
+  const clientKey = getClientRateLimitKey(request);
+  const lastRequestTimestamp = lastRequestTimestampByClientKey.get(clientKey);
+
+  if (!lastRequestTimestamp) {
+    lastRequestTimestampByClientKey.set(clientKey, now);
+    return { isAllowed: true, retryAfterSeconds: 0 };
+  }
+
+  const elapsedMs = now - lastRequestTimestamp;
+  if (elapsedMs >= RATE_LIMIT_WINDOW_MS) {
+    lastRequestTimestampByClientKey.set(clientKey, now);
+    return { isAllowed: true, retryAfterSeconds: 0 };
+  }
+
+  const retryAfterSeconds = Math.max(
+    1,
+    Math.ceil((RATE_LIMIT_WINDOW_MS - elapsedMs) / 1000),
+  );
+
+  return { isAllowed: false, retryAfterSeconds };
+};
+
+const getCorsHeaders = (origin: string | null) => {
+  const allowedOrigin = origin && isAllowedOrigin(origin) ? origin : "null";
+
   return {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "*",
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS, GET",
     "Access-Control-Allow-Headers": "Content-Type",
+    Vary: "Origin",
   };
 };
 
-export async function POST(request: Request) {
+export const POST = async (request: Request) => {
   const origin = request.headers.get("origin");
-  const corsHeaders = getCorsHeaders();
+  const corsHeaders = getCorsHeaders(origin);
 
   if (!isAllowedOrigin(origin)) {
     return new Response(JSON.stringify({ error: "Origin not allowed" }), {
       status: 403,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const rateLimitDecision = decideRateLimit(request);
+  if (!rateLimitDecision.isAllowed) {
+    return new Response(JSON.stringify({ error: "Too many requests" }), {
+      status: 429,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+        "Retry-After": String(rateLimitDecision.retryAfterSeconds),
+      },
     });
   }
 
@@ -146,19 +226,27 @@ export async function POST(request: Request) {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-}
-
-export function OPTIONS() {
-  const corsHeaders = getCorsHeaders();
-  return new Response(null, { status: 204, headers: corsHeaders });
-}
+};
 
 const IS_HEALTHY = true;
 
-export function GET() {
-  const corsHeaders = getCorsHeaders();
+export const OPTIONS = (request: Request) => {
+  const origin = request.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
+  if (!isAllowedOrigin(origin)) {
+    return new Response(null, { status: 403, headers: corsHeaders });
+  }
+
+  return new Response(null, { status: 204, headers: corsHeaders });
+};
+
+export const GET = (request: Request) => {
+  const origin = request.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   return Response.json(
     { healthy: IS_HEALTHY },
     { headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
-}
+};
