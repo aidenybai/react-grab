@@ -521,6 +521,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   };
 
   const handleGlobalKeyDown = (event: KeyboardEvent) => {
+    if (isKeyboardEventTriggeredByInput(event)) return;
     if (
       event.code === "Enter" &&
       isIdle() &&
