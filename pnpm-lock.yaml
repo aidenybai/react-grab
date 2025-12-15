@@ -575,9 +575,6 @@ importers:
 
   packages/website:
     dependencies:
-      '@medv/finder':
-        specifier: ^3.2.0
-        version: 3.2.0
       '@react-grab/visual-edit':
         specifier: workspace:*
         version: link:../provider-visual-edit
@@ -1719,9 +1716,6 @@ packages:
   '@manypkg/get-packages@1.1.3':
     resolution: {integrity: sha512-fo+QhuU3qE/2TQMQmbVMqaQ6EWbMhi4ABWP+O4AM1NqPBuy0OrApV5LO6BrrgnhtAHS2NH6RrVk9OL181tTi8A==}
 
-  '@medv/finder@3.2.0':
-    resolution: {integrity: sha512-JmU7JIBwyL8RAzefvzALT4sP2M0biGk8i2invAgpQmma/QgfsaqoHIvJ7S0YC8n9hUVG8X3Leul2nGa06PvhbQ==}
-
   '@mixmark-io/domino@2.2.0':
     resolution: {integrity: sha512-Y28PR25bHXUg88kCV7nivXrP2Nj2RueZ3/l/jdx6J9f8J4nsEGcgX0Qe6lt7Pa+J79+kPiJU3LguR6O/6zrLOw==}
 
@@ -2199,8 +2193,8 @@ packages:
     resolution: {integrity: sha512-y9/ltK2TY+0HD1H2Sz7MvU3zFh4SjER6eQVNQfBx/0gK9N7S0QwHW6cmhHLx3CP25zN190LKHXPieMGqsVvrOQ==}
     engines: {node: '>=18'}
 
-  '@sourcegraph/amp@0.0.1765772120-gb71b6b':
-    resolution: {integrity: sha512-VOD+mzEgyjRByidSg4SECQC5RDVg71S8qlPly9xO6Tl5G46wO3GCCXEEPw23hwly1KvVPh5mfT5Epa7mFf0ATQ==}
+  '@sourcegraph/amp@0.0.1765797153-g028cd2':
+    resolution: {integrity: sha512-bGSPCXBCmp7/6BSG1BqnTgifkGJWfCxapsonl9o8X58xq7C9t0co8cqrzI9SCsNdIi/g2/6DF8AvH9DDeAOikw==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -7080,8 +7074,6 @@ snapshots:
       globby: 11.1.0
       read-yaml-file: 1.1.0
 
-  '@medv/finder@3.2.0': {}
-
   '@mixmark-io/domino@2.2.0': {}
 
   '@napi-rs/keyring-darwin-arm64@1.1.9':
@@ -7422,10 +7414,10 @@ snapshots:
 
   '@sourcegraph/amp-sdk@0.1.0-20251210081226-g90e3892':
     dependencies:
-      '@sourcegraph/amp': 0.0.1765772120-gb71b6b
+      '@sourcegraph/amp': 0.0.1765797153-g028cd2
       zod: 3.25.76
 
-  '@sourcegraph/amp@0.0.1765772120-gb71b6b':
+  '@sourcegraph/amp@0.0.1765797153-g028cd2':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
