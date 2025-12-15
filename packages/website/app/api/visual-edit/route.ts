@@ -103,7 +103,7 @@ const generateTextWithOpenCodeZen = async (
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "grok-3-fast",
+      model: "grok-code",
       messages: [{ role: "system", content: systemPrompt }, ...messages],
     }),
   });
