@@ -144,21 +144,16 @@ export const POST = async (request: Request) => {
     );
   }
 
-  const MAX_HTML_CHARACTERS = 15_000;
-  const MAX_PROMPT_CHARACTERS = 500;
+  const MAX_INPUT_CHARACTERS = 15_000;
 
-  const conversationMessages: ModelMessage[] = messages.map(
-    (message, index) => {
-      const isFirstMessage = index === 0;
-      const maxLength = isFirstMessage
-        ? MAX_HTML_CHARACTERS
-        : MAX_PROMPT_CHARACTERS;
-      return {
-        role: message.role,
-        content: message.content.slice(0, maxLength),
-      };
+  const conversationMessages: ModelMessage[] = messages.map((message) => ({
+    role: message.role,
+    content: message.content.slice(0, MAX_INPUT_CHARACTERS),
+    providerOptions: {
+      cerebras: { cacheControl: { type: "ephemeral" } },
+      zai: { cacheControl: { type: "ephemeral" } },
     },
-  );
+  }));
 
   try {
     let generatedCode: string;
@@ -179,14 +174,6 @@ export const POST = async (request: Request) => {
         model: "cerebras/glm-4.6",
         system: SYSTEM_PROMPT,
         messages: conversationMessages,
-        providerOptions: {
-          cerebras: {
-            cacheControl: { type: "ephemeral" },
-          },
-          zai: {
-            cacheControl: { type: "ephemeral" },
-          },
-        },
       });
       generatedCode = result.text;
     } else {
