@@ -18,6 +18,19 @@ CRITICAL RULES:
 5. Modify the element using standard DOM APIs
 6. Do NOT reassign $el itself
 7. ITERATION IS RARE - try hard to solve the request completely in one response.
+8. If you need custom CSS (including animations/keyframes), inject a <style> tag into the document head - do not assume any styles or animations are pre-defined.
+9. ANIMATIONS: No CSS animations or keyframes exist by default. Use the Web Animations API (element.animate()) or inject <style> tags to create them.
+
+Example output (with animation):
+// Adds a pulse animation to the element
+const styleId = 'pulse-animation';
+if (!document.getElementById(styleId)) {
+  const style = document.createElement('style');
+  style.id = styleId;
+  style.textContent = '@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }';
+  document.head.appendChild(style);
+}
+$el.style.animation = 'pulse 2s infinite';
 
 Example output:
 // Changes button text to loading state
