@@ -96,7 +96,7 @@ const generateTextWithOpenCodeZen = async (
     throw new Error("OPENCODE_ZEN_API_KEY not configured");
   }
 
-  const response = await fetch("https://api.opencode.ai/v1/chat/completions", {
+  const response = await fetch("https://opencode.ai/zen/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
