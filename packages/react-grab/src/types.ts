@@ -319,7 +319,7 @@ export interface ReactGrabRendererProps {
   onAbortSession?: (sessionId: string) => void;
   onDismissSession?: (sessionId: string) => void;
   onUndoSession?: (sessionId: string) => void;
-  onReplySession?: (sessionId: string) => void;
+  onFollowUpSubmitSession?: (sessionId: string, prompt: string) => void;
   onAcknowledgeSessionError?: (sessionId: string) => void;
   onRetrySession?: (sessionId: string) => void;
   onInputChange?: (value: string) => void;

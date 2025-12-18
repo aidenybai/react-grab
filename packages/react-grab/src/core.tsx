@@ -2350,30 +2350,27 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               agentManager.dismissSession(sessionId)
             }
             onUndoSession={(sessionId) => agentManager.undoSession(sessionId)}
-            onReplySession={(sessionId) => {
+            onFollowUpSubmitSession={(sessionId, prompt) => {
               const session = agentManager.sessions().get(sessionId);
               const element = agentManager.getSessionElement(sessionId);
-              if (session && element) {
+              const selectionBounds = session?.selectionBounds;
+              if (session && element && selectionBounds) {
                 const positionX = session.position.x;
-                const rect = element.getBoundingClientRect();
-                const centerY = rect.top + rect.height / 2;
-                const previousPrompt = session.context.prompt;
+                const followUpSessionId =
+                  session.context.sessionId ?? sessionId;
 
                 agentManager.dismissSession(sessionId);
 
-                setMouseX(positionX);
-                setMouseY(centerY);
-                setFrozenElement(element);
-                setInputText("");
-                setIsInputExpanded(true);
-                setIsInputMode(true);
-                setIsToggleMode(true);
-                setIsToggleFrozen(true);
-                setReplySessionId(session.context.sessionId ?? sessionId);
-                setReplyToPrompt(previousPrompt);
-                if (!isActivated()) {
-                  activateRenderer();
-                }
+                void agentManager.startSession({
+                  element,
+                  prompt,
+                  position: {
+                    x: positionX,
+                    y: selectionBounds.y + selectionBounds.height / 2,
+                  },
+                  selectionBounds,
+                  sessionId: followUpSessionId,
+                });
               }
             }}
             onAcknowledgeSessionError={(sessionId: string) => {

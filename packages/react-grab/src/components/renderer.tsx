@@ -78,6 +78,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
               status={session().isStreaming ? "copying" : "copied"}
               statusText={session().lastStatus || "Thinking…"}
               inputValue={session().context.prompt}
+              previousPrompt={session().context.prompt}
               supportsUndo={props.supportsUndo}
               supportsFollowUp={props.supportsFollowUp}
               dismissButtonText={props.dismissButtonText}
@@ -92,10 +93,11 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
                   ? undefined
                   : () => props.onUndoSession?.(session().id)
               }
-              onReply={
+              onFollowUpSubmit={
                 session().isStreaming
                   ? undefined
-                  : () => props.onReplySession?.(session().id)
+                  : (prompt) =>
+                      props.onFollowUpSubmitSession?.(session().id, prompt)
               }
               error={session().error}
               onAcknowledgeError={() =>

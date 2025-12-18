@@ -24,6 +24,7 @@ interface SelectionLabelProps {
   isInputExpanded?: boolean;
   inputValue?: string;
   replyToPrompt?: string;
+  previousPrompt?: string;
   hasAgent?: boolean;
   isAgentConnected?: boolean;
   status?: SelectionLabelStatus;
@@ -41,7 +42,7 @@ interface SelectionLabelProps {
   onOpen?: () => void;
   onDismiss?: () => void;
   onUndo?: () => void;
-  onReply?: () => void;
+  onFollowUpSubmit?: (prompt: string) => void;
   isPendingDismiss?: boolean;
   onConfirmDismiss?: () => void;
   onCancelDismiss?: () => void;
@@ -366,9 +367,10 @@ interface CompletedConfirmationProps {
   supportsUndo?: boolean;
   supportsFollowUp?: boolean;
   dismissButtonText?: string;
+  previousPrompt?: string;
   onDismiss?: () => void;
   onUndo?: () => void;
-  onReply?: () => void;
+  onFollowUpSubmit?: (prompt: string) => void;
   onCopyStateChange?: () => void;
 }
 
@@ -376,10 +378,12 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
   props,
 ) => {
   const instanceId = Symbol();
+  let inputRef: HTMLTextAreaElement | undefined;
   const [didCopy, setDidCopy] = createSignal(false);
   const [displayStatusText, setDisplayStatusText] = createSignal(
     props.statusText,
   );
+  const [followUpInput, setFollowUpInput] = createSignal("");
 
   const handleDismiss = () => {
     setDidCopy(true);
@@ -388,6 +392,26 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
     setTimeout(() => {
       props.onDismiss?.();
     }, COPIED_LABEL_DURATION_MS);
+  };
+
+  const handleFollowUpSubmit = () => {
+    const prompt = followUpInput().trim();
+    if (prompt && props.onFollowUpSubmit) {
+      props.onFollowUpSubmit(prompt);
+    }
+  };
+
+  const handleInputKeyDown = (event: KeyboardEvent) => {
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    if (event.code === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      handleFollowUpSubmit();
+    } else if (event.code === "Escape") {
+      event.preventDefault();
+      handleDismiss();
+    }
   };
 
   const handleKeyDown = (event: KeyboardEvent) => {
@@ -406,16 +430,6 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
       event.preventDefault();
       event.stopPropagation();
       props.onUndo();
-    } else if (
-      event.code === "KeyR" &&
-      !event.metaKey &&
-      !event.ctrlKey &&
-      props.supportsFollowUp &&
-      props.onReply
-    ) {
-      event.preventDefault();
-      event.stopPropagation();
-      props.onReply();
     }
   };
 
@@ -443,35 +457,23 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
 
   return (
     <div
-      class="[font-synthesis:none] contain-layout shrink-0 flex flex-col justify-center items-end rounded-sm bg-white antialiased w-fit h-fit"
+      class="[font-synthesis:none] contain-layout shrink-0 flex flex-col justify-center items-end rounded-sm bg-white antialiased w-fit h-fit max-w-[280px]"
       onPointerDown={handleFocus}
       onClick={handleFocus}
     >
-      <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 px-1.5 w-full h-fit">
-        <span class="text-black text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit tabular-nums">
-          {displayStatusText()}
-        </span>
-      </div>
-      <Show when={!didCopy() && (props.onDismiss || props.onUndo || props.onReply)}>
-        <BottomSection>
-          <div class="contain-layout shrink-0 flex items-center justify-end gap-[5px] w-full h-fit">
+      <Show when={!didCopy() && (props.onDismiss || props.onUndo)}>
+        <div class="contain-layout shrink-0 flex items-center justify-between gap-2 pt-1.5 pb-1 px-1.5 w-full h-fit">
+          <span class="text-black text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit tabular-nums">
+            {displayStatusText()}
+          </span>
+          <div class="contain-layout shrink-0 flex items-center gap-[5px] h-fit">
             <Show when={props.supportsUndo && props.onUndo}>
               <button
                 class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#7e0002] cursor-pointer transition-all hover:bg-[#FEF2F2] h-[17px]"
                 onClick={() => props.onUndo?.()}
               >
                 <span class="text-[#B91C1C] text-[13px] leading-3.5 font-sans font-medium">
-                  Undo
-                </span>
-              </button>
-            </Show>
-            <Show when={props.supportsFollowUp && props.onReply}>
-              <button
-                class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
-                onClick={() => props.onReply?.()}
-              >
-                <span class="text-black text-[13px] leading-3.5 font-sans font-medium">
-                  Reply
+                  Reject
                 </span>
               </button>
             </Show>
@@ -489,6 +491,43 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
                 </Show>
               </button>
             </Show>
+          </div>
+        </div>
+      </Show>
+      <Show when={didCopy()}>
+        <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 px-1.5 w-full h-fit">
+          <span class="text-black text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit tabular-nums">
+            {displayStatusText()}
+          </span>
+        </div>
+      </Show>
+      <Show
+        when={!didCopy() && props.supportsFollowUp && props.onFollowUpSubmit}
+      >
+        <BottomSection>
+          <div class="shrink-0 flex justify-between items-end w-full min-h-4">
+            <textarea
+              ref={inputRef}
+              data-react-grab-ignore-events
+              class="text-black text-[13px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 wrap-break-word overflow-y-auto"
+              style={{
+                "field-sizing": "content",
+                "min-height": "16px",
+                "max-height": "95px",
+                "scrollbar-width": "none",
+              }}
+              value={followUpInput()}
+              onInput={(event) => setFollowUpInput(event.target.value)}
+              onKeyDown={handleInputKeyDown}
+              placeholder={props.previousPrompt ?? "type follow-up"}
+              rows={1}
+            />
+            <button
+              class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit cursor-pointer transition-all hover:scale-105 ml-1"
+              onClick={handleFollowUpSubmit}
+            >
+              <IconReturn size={10} class="opacity-[0.99] text-black" />
+            </button>
           </div>
         </BottomSection>
       </Show>
@@ -798,9 +837,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             supportsUndo={props.supportsUndo}
             supportsFollowUp={props.supportsFollowUp}
             dismissButtonText={props.dismissButtonText}
+            previousPrompt={props.previousPrompt}
             onDismiss={props.onDismiss}
             onUndo={props.onUndo}
-            onReply={props.onReply}
+            onFollowUpSubmit={props.onFollowUpSubmit}
             onCopyStateChange={() => requestAnimationFrame(measureContainer)}
           />
         </Show>

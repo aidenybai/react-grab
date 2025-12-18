@@ -358,7 +358,7 @@ export const createVisualEditAgentProvider = (
       }
     },
     supportsFollowUp: true,
-    dismissButtonText: "Apply",
+    dismissButtonText: "Accept",
     getCompletionMessage: () => {
       if (lastRequestStartTime === null) return undefined;
       const totalSeconds = ((Date.now() - lastRequestStartTime) / 1000).toFixed(
