@@ -71,18 +71,24 @@ const BlogPage = () => {
               index === 0 || blogPosts[index - 1].year !== post.year;
 
             return (
-              <Link
-                key={post.slug}
-                href={`/blog/${post.slug}`}
-                className="group grid grid-cols-[auto_1fr] sm:grid-cols-[80px_1fr] gap-4 sm:gap-8 py-3 -mx-3 px-3 rounded-lg transition-colors hover:bg-[#1a1a1a]"
-              >
-                <span className="text-neutral-500 text-sm sm:text-base tabular-nums">
-                  {showYear ? post.year : ""}
-                </span>
-                <span className="text-white group-hover:text-neutral-200 transition-colors text-sm sm:text-base">
-                  {post.title}
-                </span>
-              </Link>
+              <div key={post.slug}>
+                {showYear && (
+                  <div className="text-neutral-500 text-sm tabular-nums pt-2 pb-1 sm:hidden">
+                    {post.year}
+                  </div>
+                )}
+                <Link
+                  href={`/blog/${post.slug}`}
+                  className="group grid grid-cols-[1fr] sm:grid-cols-[80px_1fr] sm:gap-8 py-2 sm:py-3 sm:-mx-3 sm:px-3 rounded-lg transition-colors hover:bg-[#1a1a1a]"
+                >
+                  <span className="hidden sm:block text-neutral-500 text-base tabular-nums">
+                    {showYear ? post.year : ""}
+                  </span>
+                  <span className="text-white group-hover:text-neutral-200 transition-colors text-sm sm:text-base">
+                    {post.title}
+                  </span>
+                </Link>
+              </div>
             );
           })}
         </div>

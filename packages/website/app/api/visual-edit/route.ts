@@ -1,6 +1,5 @@
 import { generateText } from "ai";
 import type { ModelMessage } from "ai";
-import { checkRateLimit } from "@vercel/firewall";
 
 interface ConversationMessage {
   role: "user" | "assistant";
@@ -158,34 +157,12 @@ export const POST = async (request: Request) => {
     let generatedCode: string;
 
     if (shouldUsePrimaryModel) {
-      const { rateLimited } = await checkRateLimit("update-object", {
-        request,
+      const result = await generateText({
+        model: "cerebras/glm-4.6",
+        system: SYSTEM_PROMPT,
+        messages: messages,
       });
-
-      if (rateLimited) {
-        generatedCode = await generateTextWithOpenCodeZen(
-          SYSTEM_PROMPT,
-          messages,
-        );
-      } else {
-        const apiKey = process.env.AI_GATEWAY_API_KEY;
-        if (!apiKey) {
-          return new Response(
-            JSON.stringify({ error: "AI_GATEWAY_API_KEY not configured" }),
-            {
-              status: 500,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            },
-          );
-        }
-
-        const result = await generateText({
-          model: "cerebras/glm-4.6",
-          system: SYSTEM_PROMPT,
-          messages: messages,
-        });
-        generatedCode = result.text;
-      }
+      generatedCode = result.text;
     } else {
       generatedCode = await generateTextWithOpenCodeZen(
         SYSTEM_PROMPT,
