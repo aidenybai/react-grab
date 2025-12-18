@@ -353,6 +353,8 @@ const createUndoableProxy = (element: HTMLElement) => {
 };
 
 const DEFAULT_API_ENDPOINT = "https://www.react-grab.com/api/visual-edit";
+const DEFAULT_HEALTHCHECK_ENDPOINT =
+  "https://www.react-grab.com/api/check-visual-edit";
 const ANCESTOR_LEVELS = 5;
 
 const FORBIDDEN_PATTERNS = [
@@ -795,7 +797,7 @@ const checkHealth = async (): Promise<boolean> => {
   const timeoutId = setTimeout(() => controller.abort(), 1000);
 
   try {
-    const response = await fetch(DEFAULT_API_ENDPOINT, {
+    const response = await fetch(DEFAULT_HEALTHCHECK_ENDPOINT, {
       method: "GET",
       signal: controller.signal,
     });

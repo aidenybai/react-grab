@@ -211,17 +211,7 @@ export const POST = async (request: Request) => {
   }
 };
 
-const IS_HEALTHY = true;
-
 export const OPTIONS = () => {
   const corsHeaders = getCorsHeaders();
   return new Response(null, { status: 204, headers: corsHeaders });
-};
-
-export const GET = () => {
-  const corsHeaders = getCorsHeaders();
-  return Response.json(
-    { healthy: IS_HEALTHY },
-    { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-  );
 };
