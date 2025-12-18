@@ -895,34 +895,32 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         </Show>
 
         <Show when={shouldShowCollapsedSelectionUi()}>
-          <div class="[font-synthesis:none] contain-layout flex flex-col justify-center items-start pt-0.5 pb-[5px] pl-0.5 pr-[11px] gap-2 rounded-tl-none rounded-bl-md bg-[color(display-p3_1_1_1)] [border-width:0.75px] border-solid border-[color(display-p3_1_1_1)] antialiased size-fit rounded-r-md">
+          <div class="[font-synthesis:none] contain-layout flex flex-col justify-center items-start pt-[5px] pb-[5px] pl-1.5 pr-[9px] rounded-tl-none rounded-bl-md gap-1.5 bg-[color(display-p3_0_0_0)] [border-width:0.75px] border-solid border-[color(display-p3_0.229_0.229_0.229)] antialiased size-fit rounded-r-md">
             <div class="contain-layout flex items-center gap-1 shrink-0 size-fit">
-              <div
-                class="contain-layout flex flex-col justify-center items-center px-1.5 py-px w-fit h-[21px] shrink-0 rounded-tl-none rounded-tr-[3px] rounded-bl-[3px] rounded-br-[3px] bg-[color(display-p3_0.108_0.094_0.109)]"
-              >
+              <div class="contain-layout flex flex-col justify-center items-center px-1.5 py-px w-fit h-[21px] rounded-[3px] shrink-0 bg-[color(display-p3_0.122_0.122_0.122)]">
                 <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_1_1_1)] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] size-fit">
                   {tagDisplay()}
                 </div>
               </div>
             </div>
             <div class="contain-layout shrink-0 flex items-center pl-2 gap-[7px] size-fit">
-              <div class="text-[15px] leading-[18px] shrink-0 text-[color(display-p3_0.331_0.290_0.334)] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] size-fit">
+              <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_0.440_0.440_0.440)] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] size-fit">
                 └
               </div>
-              <div class="[font-synthesis:none] contain-layout shrink-0 flex items-center gap-[7px] pl-0 antialiased size-fit">
-                <div class="text-[15px] leading-[18px] shrink-0 text-[color(display-p3_0.129_0_0.124)] font-sans font-medium size-fit">
+              <div class="contain-layout shrink-0 flex items-center gap-1 pl-0 size-fit">
+                <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_1_1_1)] font-sans size-fit">
                   Edit
                 </div>
                 <div class="contain-layout shrink-0 flex items-center size-fit">
                   <div class="contain-layout shrink-0 flex items-center size-fit">
-                    <div class="text-[15px] leading-[18px] shrink-0 text-[color(display-p3_0.270_0.245_0.267)] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] size-fit">
+                    <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_0.307_0.307_0.307)] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] size-fit">
                       ▸
                     </div>
                   </div>
                 </div>
                 <div class="contain-layout shrink-0 flex items-center gap-0.5 size-fit">
                   <div class="contain-layout shrink-0 flex items-center gap-0.5 pl-0 size-fit">
-                    <div class="text-[15px] leading-[18px] shrink-0 text-[color(display-p3_0.270_0.245_0.267)] font-sans font-medium size-fit">
+                    <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_1_1_1)] font-sans size-fit">
                       Right-click
                     </div>
                   </div>
@@ -933,19 +931,17 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         </Show>
 
         <Show when={shouldShowExpandedSelectionUi()}>
-          <div class="[font-synthesis:none] contain-layout flex flex-col justify-center items-start pt-0.5 pb-[5px] pl-0.5 pr-[11px] gap-2 rounded-tl-none rounded-bl-md rounded-r-md bg-[color(display-p3_1_1_1)] [border-width:0.75px] border-solid border-[color(display-p3_1_1_1)] antialiased size-fit">
+          <div class="[font-synthesis:none] contain-layout flex flex-col justify-center items-start pt-[5px] pb-[5px] pl-1.5 pr-[9px] rounded-tl-none rounded-bl-md gap-1.5 bg-[color(display-p3_0_0_0)] [border-width:0.75px] border-solid border-[color(display-p3_0.229_0.229_0.229)] antialiased size-fit rounded-r-md">
             <div class="contain-layout flex items-center gap-1 shrink-0 size-fit">
-              <div
-                class="[font-synthesis:none] contain-layout flex flex-col justify-center items-center px-1.5 py-px w-fit h-[21px] rounded-[3px] shrink-0 bg-[color(display-p3_0.992_0.850_1)] antialiased"
-              >
-                <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_0.359_0_0.387)] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] size-fit">
+              <div class="contain-layout flex flex-col justify-center items-center px-1.5 py-px w-fit h-[21px] rounded-[3px] shrink-0 bg-[color(display-p3_0.122_0.122_0.122)]">
+                <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_1_1_1)] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] size-fit">
                   {tagDisplay()}
                 </div>
               </div>
             </div>
 
             <div class="contain-layout shrink-0 flex items-center pl-2 gap-[7px] size-fit">
-              <div class="text-[15px] leading-[18px] shrink-0 text-[color(display-p3_0.317_0.317_0.317)] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] size-fit">
+              <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_0.440_0.440_0.440)] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] size-fit">
                 └
               </div>
               <div class="contain-layout shrink-0 flex items-center gap-1 pl-0 size-fit">
@@ -957,7 +953,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     }
                   }}
                   data-react-grab-ignore-events
-                  class="text-[15px] leading-[18px] shrink-0 text-[color(display-p3_0.129_0_0.124)] placeholder:text-[color(display-p3_0.465_0.424_0.460)] placeholder:opacity-100 caret-[color(display-p3_0.129_0_0.124)] font-sans font-medium bg-transparent border-none outline-none resize-none p-0 m-0 w-auto"
+                  class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_1_1_1)] placeholder:text-[color(display-p3_1_1_1)] placeholder:opacity-100 caret-[color(display-p3_1_1_1)] font-sans font-medium bg-transparent border-none outline-none resize-none p-0 m-0 w-auto"
                   value={props.inputValue ?? ""}
                   onInput={handleInput}
                   onKeyDown={handleKeyDown}
@@ -974,7 +970,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     handleSubmit();
                   }}
                 >
-                  <IconReturn size={11} class="text-[color(display-p3_0.129_0_0.124)]" />
+                  <IconReturn size={11} class="text-[color(display-p3_0.307_0.307_0.307)]" />
                 </button>
               </div>
             </div>
