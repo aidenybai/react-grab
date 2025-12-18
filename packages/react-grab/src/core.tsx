@@ -2495,6 +2495,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             newAgentOptions?.onUndo?.(session, element);
             restoreInputFromSession(session, element);
           },
+          onDismiss: newAgentOptions?.onDismiss,
         };
         agentManager.setOptions(mergedOptions);
         setHasAgentProvider(Boolean(mergedOptions.provider));

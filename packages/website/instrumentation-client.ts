@@ -30,7 +30,7 @@ if (typeof window !== "undefined" && !window.__REACT_GRAB__) {
 
   // HACK: Temporarily disable visual edit for abusive regions
   if (!isUserInAbusiveRegion()) {
-    const { provider, getOptions, onStart, onComplete, onUndo } =
+    const { provider, getOptions, onStart, onComplete, onDismiss, onUndo } =
       createVisualEditAgentProvider({ apiEndpoint: "/api/visual-edit" });
 
     api.setAgent({
@@ -39,6 +39,7 @@ if (typeof window !== "undefined" && !window.__REACT_GRAB__) {
       storage: sessionStorage,
       onStart,
       onComplete,
+      onDismiss,
       onUndo,
     });
   }

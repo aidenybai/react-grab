@@ -72,3 +72,4 @@ export const createLabelInstancesManager = (
 
   return { createLabelInstance, updateLabelInstance, removeLabelInstance };
 };
+

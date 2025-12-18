@@ -116,6 +116,7 @@ export const createVisualEditAgentProvider = (
   const undoFnMap = new Map<string, () => void>();
   const conversationHistoryMap = new Map<string, ConversationMessage[]>();
   const userPromptsMap = new Map<string, string[]>();
+  const diffContextMap = new Map<string, string>();
   const undoHistory: string[] = [];
   let lastRequestStartTime: number | null = null;
 
@@ -375,6 +376,18 @@ export const createVisualEditAgentProvider = (
     resultCodeMap.delete(requestId);
   };
 
+  const onDismiss = async (
+    session: AgentSession,
+    element: Element | undefined,
+  ) => {
+    const sessionId = session.id;
+    const diffContext = diffContextMap.get(sessionId);
+    if (diffContext) {
+      copyContent(diffContext);
+      diffContextMap.delete(sessionId);
+    }
+  };
+
   const onComplete = async (
     session: AgentSession,
     element: Element | undefined,
@@ -429,7 +442,7 @@ export const createVisualEditAgentProvider = (
       originalOuterHtml,
       userPrompts,
     );
-    copyContent(diffContext);
+    diffContextMap.set(sessionId, diffContext);
 
     cleanup(requestId);
   };
@@ -438,7 +451,7 @@ export const createVisualEditAgentProvider = (
     // HACK: Undo logic is handled by provider.undo, this callback is for session restoration in core.tsx
   };
 
-  return { provider, getOptions, onStart, onComplete, onUndo };
+  return { provider, getOptions, onStart, onComplete, onDismiss, onUndo };
 };
 
 declare global {

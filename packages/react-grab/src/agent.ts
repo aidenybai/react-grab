@@ -334,6 +334,12 @@ export const createAgentManager = (
   };
 
   const dismissSession = (sessionId: string) => {
+    const currentSessions = sessions();
+    const session = currentSessions.get(sessionId);
+    const element = sessionElements.get(sessionId);
+    if (session && element) {
+      agentOptions?.onDismiss?.(session, element);
+    }
     const storage = agentOptions?.storage;
     sessionElements.delete(sessionId);
     clearSessionById(sessionId, storage);
