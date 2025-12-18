@@ -113,7 +113,7 @@ export const createVisualEditAgentProvider = (
   const resultCodeMap = new Map<string, string>();
   const undoFnMap = new Map<string, () => void>();
   const conversationHistoryMap = new Map<string, ConversationMessage[]>();
-  let lastRequestId: string | null = null;
+  const undoHistory: string[] = [];
   let lastRequestStartTime: number | null = null;
 
   const getOptions = (): RequestContext => {
@@ -335,15 +335,16 @@ export const createVisualEditAgentProvider = (
       yield "Applying changes…";
     },
     undo: async () => {
-      if (!lastRequestId) return;
-      const undoFn = undoFnMap.get(lastRequestId);
+      const requestIdToUndo = undoHistory.pop();
+      if (!requestIdToUndo) return;
+
+      const undoFn = undoFnMap.get(requestIdToUndo);
       if (!undoFn) return;
 
       try {
         undoFn();
       } finally {
-        undoFnMap.delete(lastRequestId);
-        lastRequestId = null;
+        undoFnMap.delete(requestIdToUndo);
       }
     },
     supportsFollowUp: true,
@@ -406,7 +407,7 @@ export const createVisualEditAgentProvider = (
     }
 
     undoFnMap.set(requestId, undo);
-    lastRequestId = requestId;
+    undoHistory.push(requestId);
 
     const sessionId = session.id;
     const conversationHistory = conversationHistoryMap.get(sessionId);
