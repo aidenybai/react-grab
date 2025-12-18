@@ -18,6 +18,7 @@ interface DockState {
 
 const SNAP_MARGIN = 16;
 const STORAGE_KEY = "react-grab-dock-state";
+const MOBILE_BREAKPOINT = 768;
 
 const Chevron: Component<{ class?: string }> = (props) => (
   <svg
@@ -55,6 +56,9 @@ const FADE_IN_DELAY_MS = 500;
 export const Dock: Component<DockProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
 
+  const [isMobile, setIsMobile] = createSignal(
+    window.innerWidth < MOBILE_BREAKPOINT,
+  );
   const [isVisible, setIsVisible] = createSignal(false);
   const [isCollapsed, setIsCollapsed] = createSignal(false);
   const [isDragging, setIsDragging] = createSignal(false);
@@ -373,6 +377,8 @@ export const Dock: Component<DockProps> = (props) => {
   let resizeTimeout: ReturnType<typeof setTimeout> | undefined;
 
   const handleResize = () => {
+    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+
     if (isDragging()) return;
 
     setIsResizing(true);
@@ -432,6 +438,10 @@ export const Dock: Component<DockProps> = (props) => {
 
   const currentPosition = () =>
     isCollapsed() ? getCollapsedPosition() : position();
+
+  if (isMobile()) {
+    return null;
+  }
 
   return (
     <div
