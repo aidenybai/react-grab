@@ -376,9 +376,13 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
 ) => {
   const instanceId = Symbol();
   const [didCopy, setDidCopy] = createSignal(false);
+  const [displayStatusText, setDisplayStatusText] = createSignal(
+    props.statusText,
+  );
 
   const handleDismiss = () => {
     setDidCopy(true);
+    setDisplayStatusText("Copied");
     setTimeout(() => {
       props.onDismiss?.();
     }, 500);
@@ -417,6 +421,12 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
     activeConfirmationId = instanceId;
   };
 
+  createEffect(() => {
+    if (!didCopy()) {
+      setDisplayStatusText(props.statusText);
+    }
+  });
+
   onMount(() => {
     activeConfirmationId = instanceId;
     window.addEventListener("keydown", handleKeyDown, { capture: true });
@@ -437,7 +447,7 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
     >
       <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 px-1.5 w-full h-fit">
         <span class="text-black text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit tabular-nums">
-          {props.statusText}
+          {displayStatusText()}
         </span>
       </div>
       <Show when={props.onDismiss || props.onUndo || props.onReply}>
@@ -470,7 +480,7 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
                 disabled={didCopy()}
               >
                 <span class="text-black text-[13px] leading-3.5 font-sans font-medium">
-                  {didCopy() ? "Copied!" : (props.dismissButtonText ?? "Ok")}
+                  {props.dismissButtonText ?? "Ok"}
                 </span>
                 <Show when={!didCopy()}>
                   <IconReturn size={10} class="text-black/50" />
