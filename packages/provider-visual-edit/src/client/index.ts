@@ -7,12 +7,7 @@ import type {
   ReactGrabAPI,
 } from "react-grab/core";
 import { copyContent, formatElementInfo } from "react-grab/core";
-import {
-  executeCodeOnClone,
-  applyCloneToElement,
-  createUndoFunction,
-  buildAncestorContext,
-} from "./dom";
+import { createUndoableProxy, buildAncestorContext } from "./dom";
 import { validateCode } from "./code-validation";
 
 export type { AgentCompleteResult };
@@ -216,33 +211,33 @@ export const createVisualEditAgentProvider = (
       };
     }
 
-    const originalOuterHtml = element.outerHTML;
-    const applyResult = executeCodeOnClone(
-      element as HTMLElement,
-      sanitizedCode,
-    );
+    const { proxy, undo } = createUndoableProxy(element as HTMLElement);
 
-    if (!applyResult.success) {
+    try {
+      const returnValue = new Function("$el", sanitizedCode).bind(null)(proxy);
+      const executionResult =
+        returnValue !== undefined ? String(returnValue) : null;
+      const isStillInDom = document.contains(element);
+
+      return {
+        success: true,
+        result: executionResult,
+        updatedHtml: isStillInDom ? buildAncestorContext(element) : "",
+        undo,
+      };
+    } catch (executionError) {
+      undo();
+      const errorMessage =
+        executionError instanceof Error
+          ? executionError.message
+          : "Execution failed";
       return {
         success: false,
-        result: applyResult.error ?? "Execution failed",
+        result: errorMessage,
         updatedHtml: buildAncestorContext(element),
         undo: () => {},
       };
     }
-
-    applyCloneToElement(element as HTMLElement, applyResult.modifiedClone);
-    const undoFunction = createUndoFunction(
-      element as HTMLElement,
-      originalOuterHtml,
-    );
-
-    return {
-      success: true,
-      result: applyResult.executionResult,
-      updatedHtml: buildAncestorContext(element),
-      undo: undoFunction,
-    };
   };
 
   const provider: AgentProvider<RequestContext> = {
@@ -399,25 +394,21 @@ export const createVisualEditAgentProvider = (
       return { error: `Failed to edit: ${error ?? "invalid code"}` };
     }
 
-    const originalOuterHtml = element.outerHTML;
-    const applyResult = executeCodeOnClone(
-      element as HTMLElement,
-      sanitizedCode,
-    );
+    const { proxy, undo } = createUndoableProxy(element as HTMLElement);
 
-    if (!applyResult.success) {
+    try {
+      new Function("$el", sanitizedCode).bind(null)(proxy);
+    } catch (executionError) {
+      undo();
       cleanup(requestId);
-      return {
-        error: `Failed to edit: ${applyResult.error ?? "unknown error"}`,
-      };
+      const errorMessage =
+        executionError instanceof Error
+          ? executionError.message
+          : "unknown error";
+      return { error: `Failed to edit: ${errorMessage}` };
     }
 
-    applyCloneToElement(element as HTMLElement, applyResult.modifiedClone);
-    const undoFunction = createUndoFunction(
-      element as HTMLElement,
-      originalOuterHtml,
-    );
-    undoFnMap.set(requestId, undoFunction);
+    undoFnMap.set(requestId, undo);
     lastRequestId = requestId;
 
     try {

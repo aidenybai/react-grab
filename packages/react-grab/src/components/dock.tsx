@@ -59,6 +59,7 @@ export const Dock: Component<DockProps> = (props) => {
   const [isCollapsed, setIsCollapsed] = createSignal(false);
   const [isDragging, setIsDragging] = createSignal(false);
   const [isSnapping, setIsSnapping] = createSignal(false);
+  const [isResizing, setIsResizing] = createSignal(false);
   const [snapEdge, setSnapEdge] = createSignal<SnapEdge>("bottom");
   const [positionRatio, setPositionRatio] = createSignal(0.5);
   const [position, setPosition] = createSignal({ x: 0, y: 0 });
@@ -374,6 +375,7 @@ export const Dock: Component<DockProps> = (props) => {
   const handleResize = () => {
     if (isDragging()) return;
 
+    setIsResizing(true);
     setIsVisible(false);
     recalculatePosition();
 
@@ -383,6 +385,7 @@ export const Dock: Component<DockProps> = (props) => {
 
     resizeTimeout = setTimeout(() => {
       setIsVisible(true);
+      setIsResizing(false);
     }, FADE_IN_DELAY_MS);
   };
 
@@ -441,9 +444,11 @@ export const Dock: Component<DockProps> = (props) => {
           : isDragging()
             ? "cursor-grabbing"
             : "cursor-grab",
-        isSnapping()
-          ? "transition-[transform,opacity] duration-300 ease-out"
-          : "transition-opacity duration-300 ease-out",
+        isResizing()
+          ? ""
+          : isSnapping()
+            ? "transition-[transform,opacity] duration-300 ease-out"
+            : "transition-opacity duration-300 ease-out",
         isVisible() ? "opacity-100" : "opacity-0 pointer-events-none",
       )}
       style={{
