@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.91
+
+### Patch Changes
+
+- feat: dock
+
 ## 0.0.90
 
 ### Patch Changes

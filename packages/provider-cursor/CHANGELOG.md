@@ -1,5 +1,13 @@
 # @react-grab/cursor
 
+## 0.0.91
+
+### Patch Changes
+
+- feat: dock
+- Updated dependencies
+  - react-grab@0.0.91
+
 ## 0.0.90
 
 ### Patch Changes
