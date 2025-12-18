@@ -35,7 +35,7 @@ export interface AgentManager {
   startSession: (params: StartSessionParams) => Promise<void>;
   abortSession: (sessionId: string) => void;
   abortAllSessions: () => void;
-  dismissSession: (sessionId: string) => void;
+  dismissSession: (sessionId: string) => Promise<void>;
   undoSession: (sessionId: string) => void;
   acknowledgeSessionError: (sessionId: string) => string | undefined;
   retrySession: (sessionId: string) => void;
@@ -340,8 +340,25 @@ export const createAgentManager = (
     clearSessions(agentOptions?.storage);
   };
 
-  const dismissSession = (sessionId: string) => {
+  const dismissSession = async (sessionId: string) => {
     const storage = agentOptions?.storage;
+    const currentSessions = sessions();
+    const session = currentSessions.get(sessionId);
+    const element = sessionElements.get(sessionId);
+
+    if (session) {
+      const message = await agentOptions?.onDismiss?.(session, element);
+      if (message) {
+        const messageSession = updateSession(
+          session,
+          { lastStatus: message },
+          storage,
+        );
+        setSessions((prev) => new Map(prev).set(sessionId, messageSession));
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    }
+
     sessionElements.delete(sessionId);
     clearSessionById(sessionId, storage);
     setSessions((prev) => {
@@ -359,14 +376,14 @@ export const createAgentManager = (
       agentOptions?.onUndo?.(session, element);
       void agentOptions?.provider?.undo?.();
     }
-    dismissSession(sessionId);
+    void dismissSession(sessionId);
   };
 
   const acknowledgeSessionError = (sessionId: string): string | undefined => {
     const currentSessions = sessions();
     const session = currentSessions.get(sessionId);
     const prompt = session?.context.prompt;
-    dismissSession(sessionId);
+    void dismissSession(sessionId);
     return prompt;
   };
 
