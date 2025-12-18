@@ -907,21 +907,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_0.440_0.440_0.440)] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] size-fit">
                 └
               </div>
-              <div class="contain-layout shrink-0 flex items-center gap-1 pl-0 size-fit">
+              <div class="contain-layout shrink-0 flex items-center gap-[5px] pl-0 size-fit">
                 <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_1_1_1)] font-sans size-fit">
                   Edit
                 </div>
-                <div class="contain-layout shrink-0 flex items-center size-fit">
-                  <div class="contain-layout shrink-0 flex items-center size-fit">
-                    <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_0.307_0.307_0.307)] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] size-fit">
-                      ▸
-                    </div>
-                  </div>
-                </div>
                 <div class="contain-layout shrink-0 flex items-center gap-0.5 size-fit">
                   <div class="contain-layout shrink-0 flex items-center gap-0.5 pl-0 size-fit">
-                    <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_1_1_1)] font-sans size-fit">
-                      Right-click
+                    <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_0.466_0.466_0.466)] font-sans size-fit">
+                      [Right-click]
                     </div>
                   </div>
                 </div>
@@ -953,7 +946,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     }
                   }}
                   data-react-grab-ignore-events
-                  class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_1_1_1)] placeholder:text-[color(display-p3_1_1_1)] placeholder:opacity-100 caret-[color(display-p3_1_1_1)] font-sans font-medium bg-transparent border-none outline-none resize-none p-0 m-0 w-auto"
+                  class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_1_1_1)] placeholder:text-[color(display-p3_1_1_1)] placeholder:opacity-100 caret-[color(display-p3_1_1_1)] font-sans bg-transparent border-none outline-none resize-none p-0 m-0 w-auto"
                   value={props.inputValue ?? ""}
                   onInput={handleInput}
                   onKeyDown={handleKeyDown}
