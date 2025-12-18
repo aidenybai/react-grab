@@ -11,13 +11,20 @@ import {
 import { printDiff } from "../utils/diff.js";
 import { handleError } from "../utils/handle-error.js";
 import { highlighter } from "../utils/highlighter.js";
-import { getPackagesToInstall, installPackages } from "../utils/install.js";
+import {
+  getPackagesToInstall,
+  getPackagesToUninstall,
+  installPackages,
+  uninstallPackages,
+} from "../utils/install.js";
 import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
 import type { AgentIntegration } from "../utils/templates.js";
 import {
   applyPackageJsonTransform,
   applyTransform,
+  previewAgentRemoval,
+  previewPackageJsonAgentRemoval,
   previewPackageJsonTransform,
   previewTransform,
 } from "../utils/transform.js";
@@ -78,6 +85,17 @@ const UNSUPPORTED_FRAMEWORK_NAMES: Record<
   astro: "Astro",
   sveltekit: "SvelteKit",
   gatsby: "Gatsby",
+};
+
+const AGENT_NAMES: Record<string, string> = {
+  "claude-code": "Claude Code",
+  cursor: "Cursor",
+  opencode: "OpenCode",
+  codex: "Codex",
+  gemini: "Gemini",
+  amp: "Amp",
+  ami: "Ami",
+  "visual-edit": "Visual Edit",
 };
 
 export const init = new Command()
@@ -234,9 +252,19 @@ export const init = new Command()
       let finalNextRouterType = projectInfo.nextRouterType;
       let agentIntegration: AgentIntegration =
         (opts.agent as AgentIntegration) || "none";
+      let agentsToRemove: string[] = [];
 
       if (!isNonInteractive && !opts.agent) {
         logger.break();
+
+        if (opts.force && projectInfo.installedAgents.length > 0) {
+          const installedNames = projectInfo.installedAgents
+            .map((innerAgent) => AGENT_NAMES[innerAgent] || innerAgent)
+            .join(", ");
+          logger.warn(`Currently installed: ${installedNames}`);
+          logger.break();
+        }
+
         const { agent } = await prompts({
           type: "select",
           name: "agent",
@@ -259,6 +287,86 @@ export const init = new Command()
         }
 
         agentIntegration = agent;
+
+        if (
+          opts.force &&
+          projectInfo.installedAgents.length > 0 &&
+          agentIntegration !== "none" &&
+          !projectInfo.installedAgents.includes(agentIntegration)
+        ) {
+          const installedNames = projectInfo.installedAgents
+            .map((innerAgent) => AGENT_NAMES[innerAgent] || innerAgent)
+            .join(", ");
+
+          const { action } = await prompts({
+            type: "select",
+            name: "action",
+            message: "How would you like to proceed?",
+            choices: [
+              {
+                title: `Replace ${installedNames} with ${AGENT_NAMES[agentIntegration]}`,
+                value: "replace",
+              },
+              {
+                title: `Add ${AGENT_NAMES[agentIntegration]} alongside existing`,
+                value: "add",
+              },
+              { title: "Cancel", value: "cancel" },
+            ],
+          });
+
+          if (!action || action === "cancel") {
+            logger.break();
+            logger.log("Changes cancelled.");
+            logger.break();
+            process.exit(0);
+          }
+
+          if (action === "replace") {
+            agentsToRemove = [...projectInfo.installedAgents];
+          }
+        }
+      } else if (
+        opts.agent &&
+        opts.force &&
+        projectInfo.installedAgents.length > 0 &&
+        !projectInfo.installedAgents.includes(opts.agent) &&
+        !isNonInteractive
+      ) {
+        const installedNames = projectInfo.installedAgents
+          .map((innerAgent) => AGENT_NAMES[innerAgent] || innerAgent)
+          .join(", ");
+
+        logger.break();
+        logger.warn(`Currently installed: ${installedNames}`);
+
+        const { action } = await prompts({
+          type: "select",
+          name: "action",
+          message: "How would you like to proceed?",
+          choices: [
+            {
+              title: `Replace ${installedNames} with ${AGENT_NAMES[agentIntegration]}`,
+              value: "replace",
+            },
+            {
+              title: `Add ${AGENT_NAMES[agentIntegration]} alongside existing`,
+              value: "add",
+            },
+            { title: "Cancel", value: "cancel" },
+          ],
+        });
+
+        if (!action || action === "cancel") {
+          logger.break();
+          logger.log("Changes cancelled.");
+          logger.break();
+          process.exit(0);
+        }
+
+        if (action === "replace") {
+          agentsToRemove = [...projectInfo.installedAgents];
+        }
       }
 
       const result = previewTransform(
@@ -333,6 +441,88 @@ export const init = new Command()
             process.exit(0);
           }
         }
+      }
+
+      if (agentsToRemove.length > 0) {
+        for (const agentToRemove of agentsToRemove) {
+          const removalResult = previewAgentRemoval(
+            projectInfo.projectRoot,
+            projectInfo.framework,
+            projectInfo.nextRouterType,
+            agentToRemove,
+          );
+
+          const removalPackageJsonResult = previewPackageJsonAgentRemoval(
+            projectInfo.projectRoot,
+            agentToRemove,
+          );
+
+          const packagesToRemove = getPackagesToUninstall(agentToRemove);
+
+          if (packagesToRemove.length > 0 && !opts.skipInstall) {
+            const uninstallSpinner = spinner(
+              `Removing ${packagesToRemove.join(", ")}.`,
+            ).start();
+
+            try {
+              uninstallPackages(
+                packagesToRemove,
+                finalPackageManager,
+                projectInfo.projectRoot,
+              );
+              uninstallSpinner.succeed();
+            } catch (error) {
+              uninstallSpinner.fail();
+              handleError(error);
+            }
+          }
+
+          if (
+            removalResult.success &&
+            !removalResult.noChanges &&
+            removalResult.newContent
+          ) {
+            const removeWriteSpinner = spinner(
+              `Removing ${AGENT_NAMES[agentToRemove] || agentToRemove} from ${removalResult.filePath}.`,
+            ).start();
+            const writeResult = applyTransform(removalResult);
+            if (!writeResult.success) {
+              removeWriteSpinner.fail();
+              logger.break();
+              logger.error(writeResult.error || "Failed to write file.");
+              logger.break();
+              process.exit(1);
+            }
+            removeWriteSpinner.succeed();
+          }
+
+          if (
+            removalPackageJsonResult.success &&
+            !removalPackageJsonResult.noChanges &&
+            removalPackageJsonResult.newContent
+          ) {
+            const removePackageJsonSpinner = spinner(
+              `Removing ${AGENT_NAMES[agentToRemove] || agentToRemove} from ${removalPackageJsonResult.filePath}.`,
+            ).start();
+            const packageJsonWriteResult = applyPackageJsonTransform(
+              removalPackageJsonResult,
+            );
+            if (!packageJsonWriteResult.success) {
+              removePackageJsonSpinner.fail();
+              logger.break();
+              logger.error(
+                packageJsonWriteResult.error || "Failed to write file.",
+              );
+              logger.break();
+              process.exit(1);
+            }
+            removePackageJsonSpinner.succeed();
+          }
+        }
+
+        projectInfo.installedAgents = projectInfo.installedAgents.filter(
+          (innerAgent) => !agentsToRemove.includes(innerAgent),
+        );
       }
 
       const shouldInstallReactGrab = !projectInfo.hasReactGrab;

@@ -5,6 +5,7 @@ import { Command } from "commander";
 import { add } from "./commands/add.js";
 import { configure } from "./commands/configure.js";
 import { init } from "./commands/init.js";
+import { remove } from "./commands/remove.js";
 import { start } from "./commands/start.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
@@ -24,6 +25,7 @@ const program = new Command()
 
 program.addCommand(init);
 program.addCommand(add);
+program.addCommand(remove);
 program.addCommand(configure);
 program.addCommand(start);
 

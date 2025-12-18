@@ -182,19 +182,21 @@ const addAgentToExistingNextApp = (
     };
   }
 
-  const agentScript = `<Script
-              src="//unpkg.com/${agentPackage}/dist/client.global.js"
-              strategy="lazyOnload"
-            />`;
+  const agentScript = `{process.env.NODE_ENV === "development" && (
+          <Script
+            src="//unpkg.com/${agentPackage}/dist/client.global.js"
+            strategy="lazyOnload"
+          />
+        )}`;
 
-  const reactGrabScriptMatch = originalContent.match(
-    /<(?:Script|script|NextScript)[^>]*react-grab[^>]*\/?>/is,
+  const reactGrabBlockMatch = originalContent.match(
+    /\{process\.env\.NODE_ENV\s*===\s*["']development["']\s*&&\s*\(\s*<Script[^>]*react-grab[^>]*\/>\s*\)\}/is,
   );
 
-  if (reactGrabScriptMatch) {
+  if (reactGrabBlockMatch) {
     const newContent = originalContent.replace(
-      reactGrabScriptMatch[0],
-      `${reactGrabScriptMatch[0]}\n            ${agentScript}`,
+      reactGrabBlockMatch[0],
+      `${reactGrabBlockMatch[0]}\n        ${agentScript}`,
     );
     return {
       success: true,
@@ -682,13 +684,13 @@ export const previewPackageJsonTransform = (
   agent: AgentIntegration,
   installedAgents: string[],
 ): PackageJsonTransformResult => {
-  if (agent === "none" || agent === "ami" || agent === "visual-edit") {
+  if (agent === "none" || agent === "visual-edit") {
     return {
       success: true,
       filePath: "",
       message:
-        agent === "ami" || agent === "visual-edit"
-          ? `${agent === "ami" ? "Ami" : "Visual Edit"} does not require package.json modification`
+        agent === "visual-edit"
+          ? "Visual Edit does not require package.json modification"
           : "No agent selected, skipping package.json modification",
       noChanges: true,
     };
@@ -1058,4 +1060,237 @@ export const applyOptionsTransform = (
   result: TransformResult,
 ): { success: boolean; error?: string } => {
   return applyTransform(result);
+};
+
+const removeAgentFromNextApp = (
+  originalContent: string,
+  agent: string,
+  filePath: string,
+): TransformResult => {
+  const agentPackage = `@react-grab/${agent}`;
+
+  if (!originalContent.includes(agentPackage)) {
+    return {
+      success: true,
+      filePath,
+      message: `Agent ${agent} is not configured in this file`,
+      noChanges: true,
+    };
+  }
+
+  const agentScriptPattern = new RegExp(
+    `\\s*\\{process\\.env\\.NODE_ENV === "development" && \\(\\s*<Script[^>]*${agentPackage.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^>]*\\/>\\s*\\)\\}`,
+    "gs",
+  );
+
+  const simpleScriptPattern = new RegExp(
+    `\\s*<Script[^>]*${agentPackage.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^>]*\\/>`,
+    "gi",
+  );
+
+  let newContent = originalContent.replace(agentScriptPattern, "");
+
+  if (newContent === originalContent) {
+    newContent = originalContent.replace(simpleScriptPattern, "");
+  }
+
+  if (newContent === originalContent) {
+    return {
+      success: false,
+      filePath,
+      message: `Could not find agent ${agent} script to remove`,
+    };
+  }
+
+  return {
+    success: true,
+    filePath,
+    message: `Remove ${agent} agent`,
+    originalContent,
+    newContent,
+  };
+};
+
+const removeAgentFromVite = (
+  originalContent: string,
+  agent: string,
+  filePath: string,
+): TransformResult => {
+  const agentPackage = `@react-grab/${agent}`;
+
+  if (!originalContent.includes(agentPackage)) {
+    return {
+      success: true,
+      filePath,
+      message: `Agent ${agent} is not configured in this file`,
+      noChanges: true,
+    };
+  }
+
+  const agentImportPattern = new RegExp(
+    `\\s*import\\s*\\(\\s*["']${agentPackage.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/client["']\\s*\\);?`,
+    "g",
+  );
+
+  const newContent = originalContent.replace(agentImportPattern, "");
+
+  if (newContent === originalContent) {
+    return {
+      success: false,
+      filePath,
+      message: `Could not find agent ${agent} import to remove`,
+    };
+  }
+
+  return {
+    success: true,
+    filePath,
+    message: `Remove ${agent} agent`,
+    originalContent,
+    newContent,
+  };
+};
+
+const removeAgentFromWebpack = (
+  originalContent: string,
+  agent: string,
+  filePath: string,
+): TransformResult => {
+  const agentPackage = `@react-grab/${agent}`;
+
+  if (!originalContent.includes(agentPackage)) {
+    return {
+      success: true,
+      filePath,
+      message: `Agent ${agent} is not configured in this file`,
+      noChanges: true,
+    };
+  }
+
+  const agentImportPattern = new RegExp(
+    `\\s*import\\s*\\(\\s*["']${agentPackage.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/client["']\\s*\\);?`,
+    "g",
+  );
+
+  const newContent = originalContent.replace(agentImportPattern, "");
+
+  if (newContent === originalContent) {
+    return {
+      success: false,
+      filePath,
+      message: `Could not find agent ${agent} import to remove`,
+    };
+  }
+
+  return {
+    success: true,
+    filePath,
+    message: `Remove ${agent} agent`,
+    originalContent,
+    newContent,
+  };
+};
+
+export const previewAgentRemoval = (
+  projectRoot: string,
+  framework: Framework,
+  nextRouterType: NextRouterType,
+  agent: string,
+): TransformResult => {
+  const filePath = findReactGrabFile(projectRoot, framework, nextRouterType);
+
+  if (!filePath) {
+    return {
+      success: true,
+      filePath: "",
+      message: "Could not find file containing React Grab configuration",
+      noChanges: true,
+    };
+  }
+
+  const originalContent = readFileSync(filePath, "utf-8");
+
+  switch (framework) {
+    case "next":
+      return removeAgentFromNextApp(originalContent, agent, filePath);
+    case "vite":
+      return removeAgentFromVite(originalContent, agent, filePath);
+    case "webpack":
+      return removeAgentFromWebpack(originalContent, agent, filePath);
+    default:
+      return {
+        success: false,
+        filePath,
+        message: `Unknown framework: ${framework}`,
+      };
+  }
+};
+
+export const previewPackageJsonAgentRemoval = (
+  projectRoot: string,
+  agent: string,
+): PackageJsonTransformResult => {
+  const packageJsonPath = join(projectRoot, "package.json");
+
+  if (!existsSync(packageJsonPath)) {
+    return {
+      success: true,
+      filePath: "",
+      message: "Could not find package.json",
+      noChanges: true,
+    };
+  }
+
+  const originalContent = readFileSync(packageJsonPath, "utf-8");
+  const agentPrefix = AGENT_PREFIXES[agent];
+
+  if (!agentPrefix) {
+    return {
+      success: true,
+      filePath: packageJsonPath,
+      message: `Unknown agent: ${agent}`,
+      noChanges: true,
+    };
+  }
+
+  if (!originalContent.includes(agentPrefix)) {
+    return {
+      success: true,
+      filePath: packageJsonPath,
+      message: `Agent ${agent} dev script is not configured`,
+      noChanges: true,
+    };
+  }
+
+  try {
+    const packageJson = JSON.parse(originalContent);
+
+    for (const scriptKey of Object.keys(packageJson.scripts || {})) {
+      const scriptValue = packageJson.scripts[scriptKey];
+      if (
+        typeof scriptValue === "string" &&
+        scriptValue.includes(agentPrefix)
+      ) {
+        packageJson.scripts[scriptKey] = scriptValue
+          .replace(agentPrefix + " ", "")
+          .replace(agentPrefix, "");
+      }
+    }
+
+    const newContent = JSON.stringify(packageJson, null, 2) + "\n";
+
+    return {
+      success: true,
+      filePath: packageJsonPath,
+      message: `Remove ${agent} server from dev script`,
+      originalContent,
+      newContent,
+    };
+  } catch {
+    return {
+      success: false,
+      filePath: packageJsonPath,
+      message: "Failed to parse package.json",
+    };
+  }
 };

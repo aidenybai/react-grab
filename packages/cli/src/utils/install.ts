@@ -9,6 +9,13 @@ const INSTALL_COMMANDS: Record<PackageManager, string> = {
   bun: "bun add",
 };
 
+const UNINSTALL_COMMANDS: Record<PackageManager, string> = {
+  npm: "npm uninstall",
+  yarn: "yarn remove",
+  pnpm: "pnpm remove",
+  bun: "bun remove",
+};
+
 export const installPackages = (
   packages: string[],
   packageManager: PackageManager,
@@ -46,4 +53,28 @@ export const getPackagesToInstall = (
   }
 
   return packages;
+};
+
+export const uninstallPackages = (
+  packages: string[],
+  packageManager: PackageManager,
+  projectRoot: string,
+): void => {
+  if (packages.length === 0) {
+    return;
+  }
+
+  const command = UNINSTALL_COMMANDS[packageManager];
+  const fullCommand = `${command} ${packages.join(" ")}`;
+
+  console.log(`Running: ${fullCommand}\n`);
+
+  execSync(fullCommand, {
+    cwd: projectRoot,
+    stdio: "inherit",
+  });
+};
+
+export const getPackagesToUninstall = (agent: string): string[] => {
+  return [`@react-grab/${agent}`];
 };
