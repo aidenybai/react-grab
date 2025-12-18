@@ -450,7 +450,7 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
           {displayStatusText()}
         </span>
       </div>
-      <Show when={props.onDismiss || props.onUndo || props.onReply}>
+      <Show when={!didCopy() && (props.onDismiss || props.onUndo || props.onReply)}>
         <BottomSection>
           <div class="contain-layout shrink-0 flex items-center justify-end gap-[5px] w-full h-fit">
             <Show when={props.supportsUndo && props.onUndo}>
