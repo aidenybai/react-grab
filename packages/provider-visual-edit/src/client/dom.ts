@@ -75,6 +75,31 @@ const getClosingTag = (element: Element): string => {
   return `</${element.tagName.toLowerCase()}>`;
 };
 
+const stripSvgContent = (html: string): string => {
+  const container = document.createElement("div");
+  container.innerHTML = html;
+
+  const svgElements = container.querySelectorAll("svg");
+  for (const svg of svgElements) {
+    const strippedSvg = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "svg",
+    );
+
+    if (svg.hasAttribute("class")) {
+      strippedSvg.setAttribute("class", svg.getAttribute("class")!);
+    }
+    if (svg.hasAttribute("id")) {
+      strippedSvg.setAttribute("id", svg.getAttribute("id")!);
+    }
+
+    strippedSvg.textContent = "...";
+    svg.replaceWith(strippedSvg);
+  }
+
+  return container.innerHTML;
+};
+
 export const buildAncestorContext = (element: Element): string => {
   const ancestors: Element[] = [];
   let currentAncestor = element.parentElement;
@@ -95,7 +120,7 @@ export const buildAncestorContext = (element: Element): string => {
   }
 
   if (ancestors.length === 0) {
-    return element.outerHTML;
+    return stripSvgContent(element.outerHTML);
   }
 
   ancestors.reverse();
@@ -109,7 +134,8 @@ export const buildAncestorContext = (element: Element): string => {
   }
 
   result += `${indentation}<!-- START $el -->\n`;
-  const targetElementLines = element.outerHTML.split("\n");
+  const strippedOuterHtml = stripSvgContent(element.outerHTML);
+  const targetElementLines = strippedOuterHtml.split("\n");
   for (const line of targetElementLines) {
     result += `${indentation}${line}\n`;
   }
