@@ -6,9 +6,10 @@ import type {
   init,
   ReactGrabAPI,
 } from "react-grab/core";
-import { copyContent, formatElementInfo } from "react-grab/core";
+import { copyContent } from "react-grab/core";
 import { createUndoableProxy, buildAncestorContext } from "./dom";
 import { validateCode } from "./code-validation";
+import { buildDiffContext } from "./context";
 
 export type { AgentCompleteResult };
 
@@ -38,30 +39,6 @@ interface FinalResponse {
 }
 
 type AgentResponse = IterationResponse | FinalResponse | string;
-
-const generateHtmlDiff = (originalHtml: string, newHtml: string): string => {
-  const originalLines = originalHtml.split("\n");
-  const newLines = newHtml.split("\n");
-
-  const diffLines: string[] = [];
-  const maxLength = Math.max(originalLines.length, newLines.length);
-
-  for (let lineIndex = 0; lineIndex < maxLength; lineIndex++) {
-    const originalLine = originalLines[lineIndex];
-    const newLine = newLines[lineIndex];
-
-    if (originalLine !== newLine) {
-      if (originalLine !== undefined) {
-        diffLines.push(`- ${originalLine}`);
-      }
-      if (newLine !== undefined) {
-        diffLines.push(`+ ${newLine}`);
-      }
-    }
-  }
-
-  return diffLines.join("\n");
-};
 
 const parseAgentResponse = (response: string): AgentResponse => {
   const trimmed = response.trim();
@@ -138,6 +115,7 @@ export const createVisualEditAgentProvider = (
   const resultCodeMap = new Map<string, string>();
   const undoFnMap = new Map<string, () => void>();
   const conversationHistoryMap = new Map<string, ConversationMessage[]>();
+  const userPromptsMap = new Map<string, string[]>();
   const undoHistory: string[] = [];
   let lastRequestStartTime: number | null = null;
 
@@ -288,6 +266,11 @@ export const createVisualEditAgentProvider = (
         isFirstMessage,
       );
 
+      const existingPrompts = sessionId
+        ? (userPromptsMap.get(sessionId) ?? [])
+        : [];
+      const updatedPrompts = [...existingPrompts, context.prompt];
+
       const messages: ConversationMessage[] = [
         ...existingMessages,
         { role: "user", content: formattedUserMessage },
@@ -357,6 +340,7 @@ export const createVisualEditAgentProvider = (
       resultCodeMap.set(requestId, finalCode);
 
       conversationHistoryMap.set(sessionId ?? requestId, messages);
+      userPromptsMap.set(sessionId ?? requestId, updatedPrompts);
 
       yield "Applying changes…";
     },
@@ -438,10 +422,14 @@ export const createVisualEditAgentProvider = (
     undoFnMap.set(requestId, undo);
     undoHistory.push(requestId);
 
-    const elementInfo = await formatElementInfo(element);
-    const newOuterHtml = element.outerHTML;
-    const htmlDiff = generateHtmlDiff(originalOuterHtml, newOuterHtml);
-    copyContent(`${elementInfo}\n\n${htmlDiff}`);
+    const sessionId = session.id;
+    const userPrompts = userPromptsMap.get(sessionId) ?? [];
+    const diffContext = await buildDiffContext(
+      element,
+      originalOuterHtml,
+      userPrompts,
+    );
+    copyContent(diffContext);
 
     cleanup(requestId);
   };
