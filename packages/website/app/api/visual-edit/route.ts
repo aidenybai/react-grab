@@ -181,7 +181,7 @@ export const POST = async (request: Request) => {
         }
 
         const result = await generateText({
-          model: "cerebras/glm-4.6",
+          model: "cerebras/gpt-oss-120b",
           system: SYSTEM_PROMPT,
           messages: conversationMessages,
         });
