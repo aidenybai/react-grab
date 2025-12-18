@@ -2404,6 +2404,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onNativeSelectionCopy={() => void handleNativeSelectionCopy()}
             onNativeSelectionEnter={handleNativeSelectionEnter}
             theme={theme()}
+            dockVisible={theme().dock.enabled}
+            isActive={isActivated()}
+            onToggleActive={() => {
+              if (isActivated()) {
+                deactivateRenderer();
+              } else {
+                setIsToggleMode(true);
+                activateRenderer();
+              }
+            }}
           />
         ),
         rendererRoot,

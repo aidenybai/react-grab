@@ -63,6 +63,16 @@ export interface Theme {
      */
     enabled?: boolean;
   };
+  /**
+   * The floating dock that allows toggling React Grab activation
+   */
+  dock?: {
+    /**
+     * Whether to show the dock
+     * @default true
+     */
+    enabled?: boolean;
+  };
 }
 
 export interface ReactGrabState {
@@ -330,6 +340,9 @@ export interface ReactGrabRendererProps {
   onNativeSelectionCopy?: () => void;
   onNativeSelectionEnter?: () => void;
   theme?: Required<Theme>;
+  dockVisible?: boolean;
+  isActive?: boolean;
+  onToggleActive?: () => void;
 }
 
 export interface GrabbedBox {

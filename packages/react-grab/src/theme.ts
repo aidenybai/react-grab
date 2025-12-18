@@ -18,6 +18,9 @@ export const DEFAULT_THEME: Required<Theme> = {
   crosshair: {
     enabled: true,
   },
+  dock: {
+    enabled: true,
+  },
 };
 
 const mergeThemeWithBase = (
@@ -43,6 +46,9 @@ const mergeThemeWithBase = (
   },
   crosshair: {
     enabled: partialTheme.crosshair?.enabled ?? baseTheme.crosshair.enabled,
+  },
+  dock: {
+    enabled: partialTheme.dock?.enabled ?? baseTheme.dock.enabled,
   },
 });
 
