@@ -116,7 +116,6 @@ export const createVisualEditAgentProvider = (
   const undoFnMap = new Map<string, () => void>();
   const conversationHistoryMap = new Map<string, ConversationMessage[]>();
   const userPromptsMap = new Map<string, string[]>();
-  const diffContextMap = new Map<string, string>();
   const undoHistory: string[] = [];
   let lastRequestStartTime: number | null = null;
 
@@ -430,26 +429,18 @@ export const createVisualEditAgentProvider = (
       originalOuterHtml,
       userPrompts,
     );
-    diffContextMap.set(sessionId, diffContext);
+    copyContent(diffContext);
 
     cleanup(requestId);
-  };
 
-  const onDismiss = (session: AgentSession): string | void => {
-    const sessionId = session.id;
-    const diffContext = diffContextMap.get(sessionId);
-    if (diffContext) {
-      copyContent(diffContext);
-      diffContextMap.delete(sessionId);
-      return "Copied!";
-    }
+    return { message: "Copied!" };
   };
 
   const onUndo = () => {
     // HACK: Undo logic is handled by provider.undo, this callback is for session restoration in core.tsx
   };
 
-  return { provider, getOptions, onStart, onComplete, onDismiss, onUndo };
+  return { provider, getOptions, onStart, onComplete, onUndo };
 };
 
 declare global {
@@ -488,7 +479,7 @@ export const attachAgent = async () => {
   const isHealthy = await checkHealth();
   if (!isHealthy) return;
 
-  const { provider, getOptions, onStart, onComplete, onDismiss, onUndo } =
+  const { provider, getOptions, onStart, onComplete, onUndo } =
     createVisualEditAgentProvider();
 
   const attach = (api: ReactGrabAPI) => {
@@ -497,7 +488,6 @@ export const attachAgent = async () => {
       getOptions,
       onStart,
       onComplete,
-      onDismiss,
       onUndo,
     });
   };

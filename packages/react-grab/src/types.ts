@@ -178,10 +178,6 @@ export interface AgentOptions<T = any> {
   onResume?: (session: AgentSession) => void;
   onAbort?: (session: AgentSession, element: Element | undefined) => void;
   onUndo?: (session: AgentSession, element: Element | undefined) => void;
-  onDismiss?: (
-    session: AgentSession,
-    element: Element | undefined,
-  ) => string | void | Promise<string | void>;
 }
 
 export type ActivationMode = "toggle" | "hold";
