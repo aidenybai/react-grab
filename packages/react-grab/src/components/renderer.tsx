@@ -157,6 +157,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
             componentName={instance.componentName}
             selectionBounds={instance.bounds}
             mouseX={instance.mouseX}
+            mouseY={instance.mouseY}
             visible={true}
             status={instance.status}
           />

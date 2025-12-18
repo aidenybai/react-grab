@@ -407,6 +407,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               "copying",
               element,
               positionX,
+              positionY,
             )
           : null;
 
@@ -1024,6 +1025,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const bounds = createElementBounds(element);
       const labelPositionX = mouseX();
+      const labelPositionY = mouseY();
       const currentX = bounds.x + bounds.width / 2;
       const currentY = bounds.y + bounds.height / 2;
 
@@ -1038,7 +1040,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         void agentManager.startSession({
           element,
           prompt,
-          position: { x: labelPositionX, y: currentY },
+          position: { x: labelPositionX, y: labelPositionY },
           selectionBounds: bounds,
           sessionId: currentReplySessionId ?? undefined,
         });
@@ -1046,8 +1048,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return;
       }
 
-      setMouseX(currentX);
-      setMouseY(currentY);
+      setMouseX(labelPositionX);
+      setMouseY(labelPositionY);
       setIsInputMode(false);
       setInputText("");
       if (prompt) {
@@ -1059,8 +1061,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const tagName = extractElementTagName(element);
       void getNearestComponentName(element).then((componentName) => {
         void executeCopyOperation(
-          currentX,
-          currentY,
+          labelPositionX,
+          labelPositionY,
           () => copySingleElementToClipboard(element, prompt || undefined),
           bounds,
           tagName,

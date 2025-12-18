@@ -13,6 +13,7 @@ export interface LabelInstancesManager {
     status: SelectionLabelStatus,
     element?: Element,
     mouseX?: number,
+    mouseY?: number,
   ) => string;
   updateLabelInstance: (
     instanceId: string,
@@ -31,6 +32,7 @@ export const createLabelInstancesManager = (
     status,
     element,
     mouseX,
+    mouseY,
   ) => {
     const instanceId = `label-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
@@ -45,6 +47,7 @@ export const createLabelInstancesManager = (
         createdAt: Date.now(),
         element,
         mouseX,
+        mouseY,
       },
     ]);
 

@@ -55,6 +55,36 @@ interface SelectionLabelProps {
   onRetry?: () => void;
 }
 
+interface GeneratingIndicatorProps {
+  isActive: boolean;
+}
+
+const GeneratingIndicator: Component<GeneratingIndicatorProps> = (props) => {
+  const [ellipsisIndex, setEllipsisIndex] = createSignal(0);
+
+  createEffect(() => {
+    if (!props.isActive) {
+      setEllipsisIndex(0);
+      return;
+    }
+
+    const ellipsisInterval = setInterval(() => {
+      setEllipsisIndex((value) => (value + 1) % 4);
+    }, 180);
+
+    onCleanup(() => clearInterval(ellipsisInterval));
+  });
+
+  return (
+    <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_0.466_0.466_0.466)] font-sans size-fit">
+      Generating
+      <span class="inline-block w-[3ch] tabular-nums text-left">
+        {[".", "..", "...", ""][ellipsisIndex()]}
+      </span>
+    </div>
+  );
+};
+
 interface TagBadgeProps {
   tagName: string;
   isClickable: boolean;
@@ -75,6 +105,12 @@ interface ClickToCopyPillProps {
 
 interface BottomSectionProps {
   children: JSX.Element;
+}
+
+interface LabelPosition {
+  left: number;
+  top: number;
+  arrowLeft: number;
 }
 
 type ArrowPosition = "bottom" | "top";
@@ -542,11 +578,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
   let inputRef: HTMLTextAreaElement | undefined;
   let isTagCurrentlyHovered = false;
-  let lastValidPosition: {
-    left: number;
-    top: number;
-    arrowLeft: number;
-  } | null = null;
+  let lastValidPosition: LabelPosition | null = null;
   let lastElementIdentity: string | null = null;
 
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
@@ -556,6 +588,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const [viewportVersion, setViewportVersion] = createSignal(0);
   const [isIdle, setIsIdle] = createSignal(false);
   const [hadValidBounds, setHadValidBounds] = createSignal(false);
+  const [lockedCopyingPosition, setLockedCopyingPosition] =
+    createSignal<LabelPosition | null>(null);
 
   const isNotProcessing = () =>
     props.status !== "copying" &&
@@ -684,12 +718,31 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   });
 
   createEffect(() => {
+    if (props.status === "copying") {
+      if (!lockedCopyingPosition() && lastValidPosition) {
+        setLockedCopyingPosition(lastValidPosition);
+      }
+      return;
+    }
+
+    if (lockedCopyingPosition()) {
+      setLockedCopyingPosition(null);
+    }
+  });
+
+  createEffect(() => {
     if (props.isInputExpanded && inputRef) {
       requestAnimationFrame(() => inputRef?.focus());
     }
   });
 
   const computedPosition = () => {
+    if (props.status === "copying") {
+      const lockedPosition = lockedCopyingPosition();
+      if (lockedPosition) return lockedPosition;
+      if (lastValidPosition) return lastValidPosition;
+    }
+
     viewportVersion();
     const bounds = props.selectionBounds;
     const labelWidth = measuredWidth();
@@ -857,7 +910,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           "pointer-events":
             props.isInputExpanded ||
             (props.status === "copied" && props.onDismiss) ||
-            (props.status === "copying" && props.onAbort)
+            (props.status === "copying" && (props.onAbort || props.onCancel))
               ? "auto"
               : "none",
           opacity: props.status === "fading" ? 0 : 1,
@@ -903,18 +956,15 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 </div>
               </div>
             </div>
-            <div class="contain-layout shrink-0 flex items-center pl-2 gap-[7px] size-fit">
-              <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_0.440_0.440_0.440)] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] size-fit">
-                └
-              </div>
-              <div class="contain-layout shrink-0 flex items-center gap-[5px] pl-0 size-fit">
+            <div class="contain-layout shrink-0 flex items-center pl-0 gap-[7px] size-fit">
+              <div class="contain-layout shrink-0 flex items-center gap-2 pl-1 size-fit">
                 <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_1_1_1)] font-sans size-fit">
                   Edit
                 </div>
                 <div class="contain-layout shrink-0 flex items-center gap-0.5 size-fit">
                   <div class="contain-layout shrink-0 flex items-center gap-0.5 pl-0 size-fit">
                     <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_0.466_0.466_0.466)] font-sans size-fit">
-                      [Right-click]
+                      [Right click]
                     </div>
                   </div>
                 </div>
@@ -946,7 +996,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     }
                   }}
                   data-react-grab-ignore-events
-                  class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_1_1_1)] placeholder:text-[color(display-p3_1_1_1)] placeholder:opacity-100 caret-[color(display-p3_1_1_1)] font-sans bg-transparent border-none outline-none resize-none p-0 m-0 w-auto"
+                  class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_1_1_1)] placeholder:text-[color(display-p3_0.466_0.466_0.466)] placeholder:opacity-100 caret-[color(display-p3_1_1_1)] font-sans bg-transparent border-none outline-none resize-none p-0 m-0 w-auto"
                   value={props.inputValue ?? ""}
                   onInput={handleInput}
                   onKeyDown={handleKeyDown}
@@ -970,6 +1020,64 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           </div>
         </Show>
 
+        <Show when={props.status === "copying" && !props.isPendingAbort && !props.error}>
+          <div class="[font-synthesis:none] contain-layout flex flex-col justify-center items-start pt-[5px] pb-[5px] pl-1.5 pr-[9px] rounded-tl-none rounded-bl-md gap-1.5 bg-[color(display-p3_0_0_0)] [border-width:0.75px] border-solid border-[color(display-p3_0.229_0.229_0.229)] antialiased size-fit rounded-r-md">
+            <div class="contain-layout flex items-center gap-1 shrink-0 size-fit">
+              <div class="contain-layout flex flex-col justify-center items-center px-1.5 py-px w-fit h-[21px] rounded-[3px] shrink-0 bg-[color(display-p3_0.122_0.122_0.122)]">
+                <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_1_1_1)] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] size-fit">
+                  {tagDisplay()}
+                </div>
+              </div>
+            </div>
+
+            <div class="contain-layout shrink-0 flex items-center pl-2 gap-[28px] size-fit">
+              <div class="contain-layout shrink-0 flex items-center gap-[7px] size-fit">
+                <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_0.440_0.440_0.440)] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] size-fit">
+                  └
+                </div>
+                <div class="contain-layout shrink-0 flex items-center gap-2 pl-0 size-fit">
+                  <GeneratingIndicator isActive={true} />
+                </div>
+              </div>
+
+              <div class="contain-layout shrink-0 flex items-center gap-2 pl-0 size-fit">
+                <div class="contain-layout shrink-0 flex items-center gap-2 pl-0 size-fit">
+                  <button
+                    data-react-grab-ignore-events
+                    class="contain-layout shrink-0 flex flex-col items-start size-fit"
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onMouseDown={(event) => event.stopPropagation()}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      props.onCancel?.();
+                    }}
+                  >
+                    <div class="contain-layout shrink-0 flex flex-col items-start size-fit">
+                      <div class="contain-layout shrink-0 flex flex-col items-start size-fit">
+                        <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_1_1_1)] font-sans size-fit">
+                          Cancel
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+
+                  <div class="contain-layout shrink-0 flex items-center gap-0.5 size-fit">
+                    <div class="contain-layout shrink-0 flex flex-col items-start size-fit">
+                      <div class="contain-layout shrink-0 flex flex-col items-start size-fit">
+                        <div class="contain-layout shrink-0 flex items-center gap-0.5 pl-0 size-fit">
+                          <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_0.466_0.466_0.466)] font-sans size-fit">
+                            [Esc]
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Show>
+
         <div
           class="[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-sm bg-white antialiased w-fit h-fit p-0"
           style={{
@@ -981,6 +1089,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   ? "none"
                   : shouldShowExpandedSelectionUi()
                     ? "none"
+                    : props.status === "copying"
+                      ? "none"
                 : undefined,
           }}
         >

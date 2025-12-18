@@ -117,14 +117,14 @@ export const App = () => {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <ReactGrabLogo size={28} />
-            <h1 className="text-lg font-bold">Agent Playground</h1>
+            <h1 className="text-lg font-bold italic">Agent Playground</h1>
           </div>
-          <p className="text-sm mb-4 italic text-white/60">
+          <p className="text-sm mb-4 text-white/60 italic">
             Select any element and send it to the agent
           </p>
           <button
             onClick={() => window.__REACT_GRAB__?.activate()}
-            className="text-sm px-3 py-1.5 bg-white text-black hover:bg-white/90 rounded transition-colors italic"
+            className="text-xs px-2 py-1 bg-white text-black hover:bg-white/90 rounded transition-colors italic"
           >
             Grab Element
           </button>
@@ -138,12 +138,12 @@ export const App = () => {
             <button className="text-sm px-3 py-1.5 bg-white/10 rounded border border-white/30 italic">
               Submit
             </button>
-            <button className="text-sm px-3 py-1.5 bg-white/10 rounded border border-white/20">
+            <button className="text-xs px-1 py-0.5 bg-white/10 rounded border border-white/20">
               Cancel
             </button>
           </div>
           <div className="p-3 bg-white/5 rounded text-sm">
-            <div className="font-medium">User Card</div>
+            <div className="font-medium italic">User Card</div>
             <div className="text-white/50 text-xs mt-1 italic">
               john@example.com
             </div>
@@ -151,7 +151,7 @@ export const App = () => {
           <input
             type="text"
             placeholder="Search..."
-            className="text-sm px-3 py-1.5 bg-white/5 border border-white/10 rounded placeholder:text-white/30 placeholder:italic focus:outline-none focus:border-white/20"
+            className="text-sm px-3 py-1.5 bg-white/5 border border-white/10 rounded placeholder:text-white/30 focus:outline-none focus:border-white/20"
           />
         </div>
 
@@ -217,7 +217,7 @@ export const App = () => {
                     className="flex gap-3 py-1.5 items-center hover:bg-white/5 px-2 rounded transition-colors"
                   >
                     {getStatusBadge()}
-                    <span className="text-white/70 flex-1 italic">
+                    <span className="text-white/70 flex-1">
                       {log.message}
                     </span>
                     <span className="text-white/20 text-xs">

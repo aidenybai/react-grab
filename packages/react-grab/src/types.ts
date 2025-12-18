@@ -284,6 +284,7 @@ export interface SelectionLabelInstance {
   createdAt: number;
   element?: Element;
   mouseX?: number;
+  mouseY?: number;
 }
 
 export interface ReactGrabRendererProps {
