@@ -428,7 +428,7 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
       onClick={handleFocus}
     >
       <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 px-1.5 w-full h-fit">
-        <span class="text-black text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit tabular-nums">
+        <span class="text-black text-[12px] leading-4 shrink-0 font-sans font-medium w-fit h-fit tabular-nums">
           {props.statusText}
         </span>
       </div>
