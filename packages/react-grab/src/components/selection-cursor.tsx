@@ -102,6 +102,7 @@ export const SelectionCursor: Component<SelectionCursorProps> = (props) => {
           componentName={props.componentName}
           selectionBounds={props.elementBounds}
           mouseX={props.x}
+          mouseY={props.y}
           visible={true}
           onSubmit={props.onClick}
         />

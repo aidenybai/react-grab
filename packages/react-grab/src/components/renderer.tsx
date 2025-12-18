@@ -72,6 +72,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
               componentName={session().componentName}
               selectionBounds={session().selectionBounds}
               mouseX={session().position.x}
+              mouseY={session().position.y}
               visible={true}
               hasAgent={true}
               isAgentConnected={true}
@@ -120,6 +121,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           componentName={props.selectionComponentName}
           selectionBounds={props.selectionBounds}
           mouseX={props.mouseX}
+          mouseY={props.mouseY}
           visible={props.selectionLabelVisible}
           isInputExpanded={props.isInputExpanded}
           inputValue={props.inputValue}

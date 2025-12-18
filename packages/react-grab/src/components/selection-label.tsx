@@ -20,6 +20,7 @@ interface SelectionLabelProps {
   componentName?: string;
   selectionBounds?: OverlayBounds;
   mouseX?: number;
+  mouseY?: number;
   visible?: boolean;
   isInputExpanded?: boolean;
   inputValue?: string;
@@ -81,6 +82,8 @@ type ArrowPosition = "bottom" | "top";
 const ARROW_HEIGHT = 8;
 const LABEL_GAP = 4;
 const IDLE_TIMEOUT_MS = 400;
+const CURSOR_POSITION_GAP_X_PX = 10;
+const CURSOR_POSITION_GAP_Y_PX = 10;
 
 const TagBadge: Component<TagBadgeProps> = (props) => {
   const [isHovered, setIsHovered] = createSignal(false);
@@ -559,6 +562,16 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     props.status !== "copied" &&
     props.status !== "fading";
 
+  const isCollapsedBaseLabel = () =>
+    isNotProcessing() && !props.isInputExpanded && !props.isPendingDismiss;
+
+  const shouldShowCollapsedSelectionUi = () => isCollapsedBaseLabel() && !props.error;
+  const shouldShowExpandedSelectionUi = () =>
+    isNotProcessing() && Boolean(props.isInputExpanded) && !props.isPendingDismiss && !props.error;
+
+  const isPositionedNearCursor = () =>
+    props.mouseX !== undefined && props.mouseY !== undefined;
+
   const measureContainer = () => {
     if (containerRef && !isTagCurrentlyHovered) {
       const rect = containerRef.getBoundingClientRect();
@@ -672,9 +685,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   createEffect(() => {
     if (props.isInputExpanded && inputRef) {
-      setTimeout(() => {
-        inputRef?.focus();
-      }, 0);
+      requestAnimationFrame(() => inputRef?.focus());
     }
   });
 
@@ -694,12 +705,48 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     const viewportHeight = window.innerHeight;
 
     const selectionCenterX = bounds.x + bounds.width / 2;
+    const selectionCenterY = bounds.y + bounds.height / 2;
     const cursorX = props.mouseX ?? selectionCenterX;
+    const cursorY = props.mouseY ?? selectionCenterY;
     const selectionBottom = bounds.y + bounds.height;
     const selectionTop = bounds.y;
 
+    if (isPositionedNearCursor()) {
+      const desiredLeftRight = cursorX + CURSOR_POSITION_GAP_X_PX;
+      const desiredLeftLeft = cursorX - labelWidth - CURSOR_POSITION_GAP_X_PX;
+
+      let positionLeft = desiredLeftRight;
+      if (positionLeft + labelWidth > viewportWidth - VIEWPORT_MARGIN_PX) {
+        positionLeft = desiredLeftLeft;
+      }
+
+      positionLeft = Math.min(
+        viewportWidth - labelWidth - VIEWPORT_MARGIN_PX,
+        Math.max(VIEWPORT_MARGIN_PX, positionLeft),
+      );
+
+      const desiredTopBottom = cursorY + CURSOR_POSITION_GAP_Y_PX;
+      const desiredTopTop = cursorY - labelHeight - CURSOR_POSITION_GAP_Y_PX;
+
+      let positionTop = desiredTopBottom;
+      if (positionTop + labelHeight > viewportHeight - VIEWPORT_MARGIN_PX) {
+        positionTop = desiredTopTop;
+      }
+
+      positionTop = Math.min(
+        viewportHeight - labelHeight - VIEWPORT_MARGIN_PX,
+        Math.max(VIEWPORT_MARGIN_PX, positionTop),
+      );
+
+      const position = { left: positionLeft, top: positionTop, arrowLeft: 0 };
+      lastValidPosition = position;
+      setHadValidBounds(true);
+      return position;
+    }
+
     let positionLeft = cursorX - labelWidth / 2;
-    let positionTop = selectionBottom + ARROW_HEIGHT + LABEL_GAP;
+    const verticalOffset = ARROW_HEIGHT + LABEL_GAP;
+    let positionTop = selectionBottom + verticalOffset;
 
     if (positionLeft + labelWidth > viewportWidth - VIEWPORT_MARGIN_PX) {
       positionLeft = viewportWidth - labelWidth - VIEWPORT_MARGIN_PX;
@@ -708,7 +755,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       positionLeft = VIEWPORT_MARGIN_PX;
     }
 
-    const totalHeightNeeded = labelHeight + ARROW_HEIGHT + LABEL_GAP;
+    const totalHeightNeeded = labelHeight + verticalOffset;
     const fitsBelow =
       positionTop + labelHeight <= viewportHeight - VIEWPORT_MARGIN_PX;
 
@@ -802,7 +849,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       <div
         ref={containerRef}
         data-react-grab-ignore-events
-        class="fixed font-sans text-[13px] antialiased transition-opacity duration-300 ease-out filter-[drop-shadow(0px_0px_4px_#51515180)] select-none"
+        class="fixed font-sans text-[13px] antialiased transition-opacity duration-300 ease-out select-none"
         style={{
           top: `${computedPosition().top}px`,
           left: `${computedPosition().left}px`,
@@ -819,10 +866,12 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         onMouseDown={stopPropagation}
         onClick={stopPropagation}
       >
-        <Arrow
-          position={arrowPosition()}
-          leftPx={computedPosition().arrowLeft}
-        />
+        <Show when={!shouldShowCollapsedSelectionUi() && !isPositionedNearCursor()}>
+          <Arrow
+            position={arrowPosition()}
+            leftPx={computedPosition().arrowLeft}
+          />
+        </Show>
 
         <Show
           when={
@@ -845,6 +894,93 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           />
         </Show>
 
+        <Show when={shouldShowCollapsedSelectionUi()}>
+          <div class="[font-synthesis:none] contain-layout flex flex-col justify-center items-start pt-0.5 pb-[5px] pl-0.5 pr-[11px] gap-2 rounded-tl-none rounded-bl-md bg-[color(display-p3_1_1_1)] [border-width:0.75px] border-solid border-[color(display-p3_1_1_1)] antialiased size-fit rounded-r-md">
+            <div class="contain-layout flex items-center gap-1 shrink-0 size-fit">
+              <div
+                class="contain-layout flex flex-col justify-center items-center px-1.5 py-px w-fit h-[21px] shrink-0 rounded-tl-none rounded-tr-[3px] rounded-bl-[3px] rounded-br-[3px] bg-[color(display-p3_0.108_0.094_0.109)]"
+              >
+                <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_1_1_1)] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] size-fit">
+                  {tagDisplay()}
+                </div>
+              </div>
+            </div>
+            <div class="contain-layout shrink-0 flex items-center pl-2 gap-[7px] size-fit">
+              <div class="text-[15px] leading-[18px] shrink-0 text-[color(display-p3_0.331_0.290_0.334)] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] size-fit">
+                └
+              </div>
+              <div class="[font-synthesis:none] contain-layout shrink-0 flex items-center gap-[7px] pl-0 antialiased size-fit">
+                <div class="text-[15px] leading-[18px] shrink-0 text-[color(display-p3_0.129_0_0.124)] font-sans font-medium size-fit">
+                  Edit
+                </div>
+                <div class="contain-layout shrink-0 flex items-center size-fit">
+                  <div class="contain-layout shrink-0 flex items-center size-fit">
+                    <div class="text-[15px] leading-[18px] shrink-0 text-[color(display-p3_0.270_0.245_0.267)] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] size-fit">
+                      ▸
+                    </div>
+                  </div>
+                </div>
+                <div class="contain-layout shrink-0 flex items-center gap-0.5 size-fit">
+                  <div class="contain-layout shrink-0 flex items-center gap-0.5 pl-0 size-fit">
+                    <div class="text-[15px] leading-[18px] shrink-0 text-[color(display-p3_0.270_0.245_0.267)] font-sans font-medium size-fit">
+                      Right-click
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Show>
+
+        <Show when={shouldShowExpandedSelectionUi()}>
+          <div class="[font-synthesis:none] contain-layout flex flex-col justify-center items-start pt-0.5 pb-[5px] pl-0.5 pr-[11px] gap-2 rounded-tl-none rounded-bl-md rounded-r-md bg-[color(display-p3_1_1_1)] [border-width:0.75px] border-solid border-[color(display-p3_1_1_1)] antialiased size-fit">
+            <div class="contain-layout flex items-center gap-1 shrink-0 size-fit">
+              <div
+                class="[font-synthesis:none] contain-layout flex flex-col justify-center items-center px-1.5 py-px w-fit h-[21px] rounded-[3px] shrink-0 bg-[color(display-p3_0.992_0.850_1)] antialiased"
+              >
+                <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_0.359_0_0.387)] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] size-fit">
+                  {tagDisplay()}
+                </div>
+              </div>
+            </div>
+
+            <div class="contain-layout shrink-0 flex items-center pl-2 gap-[7px] size-fit">
+              <div class="text-[15px] leading-[18px] shrink-0 text-[color(display-p3_0.317_0.317_0.317)] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] size-fit">
+                └
+              </div>
+              <div class="contain-layout shrink-0 flex items-center gap-1 pl-0 size-fit">
+                <textarea
+                  ref={(element) => {
+                    inputRef = element;
+                    if (props.isInputExpanded) {
+                      requestAnimationFrame(() => element.focus());
+                    }
+                  }}
+                  data-react-grab-ignore-events
+                  class="text-[15px] leading-[18px] shrink-0 text-[color(display-p3_0.129_0_0.124)] placeholder:text-[color(display-p3_0.465_0.424_0.460)] placeholder:opacity-100 caret-[color(display-p3_0.129_0_0.124)] font-sans font-medium bg-transparent border-none outline-none resize-none p-0 m-0 w-auto"
+                  value={props.inputValue ?? ""}
+                  onInput={handleInput}
+                  onKeyDown={handleKeyDown}
+                  placeholder="type prompt"
+                  rows={1}
+                />
+                <button
+                  data-react-grab-ignore-events
+                  class="shrink-0 opacity-47 cursor-pointer"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onMouseDown={(event) => event.stopPropagation()}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleSubmit();
+                  }}
+                >
+                  <IconReturn size={11} class="text-[color(display-p3_0.129_0_0.124)]" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </Show>
+
         <div
           class="[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-sm bg-white antialiased w-fit h-fit p-0"
           style={{
@@ -852,6 +988,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               (props.status === "copied" || props.status === "fading") &&
               !props.error
                 ? "none"
+                : shouldShowCollapsedSelectionUi()
+                  ? "none"
+                  : shouldShowExpandedSelectionUi()
+                    ? "none"
                 : undefined,
           }}
         >
@@ -912,49 +1052,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               onConfirm={props.onConfirmAbort}
               onCancel={props.onCancelAbort}
             />
-          </Show>
-
-          <Show when={isNotProcessing() && !props.isInputExpanded}>
-            <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
-              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5 pr-1">
-                <ClickToCopyPill
-                  onClick={handleSubmit}
-                  shrink
-                  hasAgent={props.hasAgent}
-                />
-                <TagBadge
-                  tagName={tagDisplay()}
-                  isClickable={isTagClickable()}
-                  onClick={handleTagClick}
-                  onHoverChange={handleTagHoverChange}
-                  shrink
-                />
-              </div>
-              <div
-                class="grid transition-[grid-template-rows] duration-30 ease-out self-stretch"
-                style={{
-                  "grid-template-rows": isIdle() ? "1fr" : "0fr",
-                }}
-              >
-                <div class={cn("overflow-hidden min-h-0", !isIdle() && "w-0")}>
-                  <BottomSection>
-                    <div class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit">
-                      <span class="text-label-muted text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
-                        Press
-                      </span>
-                      <div class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-[2px] rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit">
-                        <span class="text-[10px] leading-none font-medium text-black">
-                          Esc
-                        </span>
-                      </div>
-                      <span class="text-label-muted text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
-                        to dismiss
-                      </span>
-                    </div>
-                  </BottomSection>
-                </div>
-              </div>
-            </div>
           </Show>
 
           <Show
