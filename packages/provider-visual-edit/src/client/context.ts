@@ -6,7 +6,8 @@ export const buildDiffContext = async (
   userPrompts: string[],
 ): Promise<string> => {
   const elementInfo = await formatElementInfo(element);
-  const newOuterHtml = element.outerHTML;
+  const isStillInDom = document.contains(element);
+  const newOuterHtml = isStillInDom ? element.outerHTML : "(removed)";
 
   const promptsSection =
     userPrompts.length > 0 ? `Prompts:\n${userPrompts.join("\n")}\n\n` : "";
