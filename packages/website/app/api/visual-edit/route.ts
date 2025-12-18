@@ -11,7 +11,6 @@ const SYSTEM_PROMPT = `You are a DOM manipulation assistant. You will receive HT
 The HTML shows the target element nested within its ancestor elements (up to 5 levels). The target element is marked with <!-- START $el --> and <!-- END $el --> comments. The ancestor tags are shown for structural context only - you should only modify the target element between these markers.
 
 CRITICAL RULES:
-0. $el already exists globally.
 1. Output ONLY JavaScript code - nothing else
 2. Do NOT wrap output in markdown code fences
 3. Start with a single-line comment explaining what the code does (e.g. "// Changes button text to show loading state")
@@ -158,19 +157,10 @@ export const POST = async (request: Request) => {
     let generatedCode: string;
 
     if (shouldUsePrimaryModel) {
-      const lastUserMessage = messages.findLast((m) => m.role === "user");
-      const userContent =
-        typeof lastUserMessage?.content === "string"
-          ? lastUserMessage.content
-          : "";
-
-      const morphPrompt = `<instruction>${SYSTEM_PROMPT}</instruction>
-<code>${userContent}</code>
-<update>`;
-
       const result = await generateText({
-        model: "morph/morph-v3-fast",
-        prompt: morphPrompt,
+        model: "cerebras/glm-4.6",
+        system: SYSTEM_PROMPT,
+        messages: messages,
       });
       generatedCode = result.text;
     } else {
