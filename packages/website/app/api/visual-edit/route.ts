@@ -14,7 +14,7 @@ CRITICAL RULES:
 1. Output ONLY JavaScript code - nothing else
 2. Do NOT wrap output in markdown code fences
 3. Start with a single-line comment explaining what the code does (e.g. "// Changes button text to show loading state")
-4. Use $el to reference the target element (marked between <!-- START $el --> and <!-- END $el -->)
+4. $el is a global variable that references the target element (marked between <!-- START $el --> and <!-- END $el -->)
 5. Modify the element using standard DOM APIs
 6. Do NOT reassign $el itself
 7. ITERATION IS RARE - try hard to solve the request completely in one response.
