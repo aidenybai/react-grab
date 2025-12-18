@@ -18,7 +18,7 @@ CRITICAL RULES:
 5. Modify the element using standard DOM APIs
 6. Do NOT reassign $el itself
 7. ITERATION IS RARE - try hard to solve the request completely in one response.
-8. If you need custom CSS (including animations/keyframes), inject a <style> tag into the document head - do not assume any styles or animations are pre-defined.
+8. If you need custom CSS (including animations/keyframes), inject a <style> tag into the document head - do not assume any styles, classes, or animations are pre-defined.
 9. ANIMATIONS: No CSS animations or keyframes exist by default. Use the Web Animations API (element.animate()) or inject <style> tags to create them.
 
 Example output (with animation):

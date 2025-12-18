@@ -116,6 +116,7 @@ export const createVisualEditAgentProvider = (
   const undoFnMap = new Map<string, () => void>();
   const conversationHistoryMap = new Map<string, ConversationMessage[]>();
   const userPromptsMap = new Map<string, string[]>();
+  const sessionOriginalHtmlMap = new Map<string, string>();
   const undoHistory: string[] = [];
   let lastRequestStartTime: number | null = null;
 
@@ -133,6 +134,11 @@ export const createVisualEditAgentProvider = (
     elementHtmlMap.set(requestId, html);
     elementOuterHtmlMap.set(requestId, element.outerHTML);
     elementRefMap.set(requestId, element);
+
+    const sessionId = session.id;
+    if (sessionId && !sessionOriginalHtmlMap.has(sessionId)) {
+      sessionOriginalHtmlMap.set(sessionId, element.outerHTML);
+    }
   };
 
   const fetchWithProgress = async function* (
@@ -403,7 +409,11 @@ export const createVisualEditAgentProvider = (
       return { error: `Failed to edit: ${error ?? "invalid code"}` };
     }
 
-    const originalOuterHtml = elementOuterHtmlMap.get(requestId) ?? "";
+    const sessionId = session.id;
+    const originalOuterHtml =
+      (sessionId ? sessionOriginalHtmlMap.get(sessionId) : null) ??
+      elementOuterHtmlMap.get(requestId) ??
+      "";
 
     const { proxy, undo } = createUndoableProxy(element as HTMLElement);
 
@@ -422,8 +432,7 @@ export const createVisualEditAgentProvider = (
     undoFnMap.set(requestId, undo);
     undoHistory.push(requestId);
 
-    const sessionId = session.id;
-    const userPrompts = userPromptsMap.get(sessionId) ?? [];
+    const userPrompts = userPromptsMap.get(sessionId ?? requestId) ?? [];
     const diffContext = await buildDiffContext(
       element,
       originalOuterHtml,
