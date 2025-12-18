@@ -156,19 +156,21 @@ export const POST = async (request: Request) => {
   try {
     let generatedCode: string;
 
-    if (shouldUsePrimaryModel) {
-      const result = await generateText({
-        model: "cerebras/glm-4.6",
-        system: SYSTEM_PROMPT,
-        messages: messages,
-      });
-      generatedCode = result.text;
-    } else {
-      generatedCode = await generateTextWithOpenCodeZen(
-        SYSTEM_PROMPT,
-        messages,
-      );
-    }
+    console.log("shouldUsePrimaryModel", shouldUsePrimaryModel);
+    // if (shouldUsePrimaryModel) {
+    const result = await generateText({
+      model: "cerebras/glm-4.6",
+      system: SYSTEM_PROMPT,
+      messages: messages,
+    });
+    // eslint-disable-next-line prefer-const
+    generatedCode = result.text;
+    // } else {
+    //   generatedCode = await generateTextWithOpenCodeZen(
+    //     SYSTEM_PROMPT,
+    //     messages,
+    //   );
+    // }
 
     return new Response(generatedCode, {
       headers: {
