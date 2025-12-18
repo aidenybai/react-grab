@@ -77,43 +77,43 @@ const getCorsHeaders = () => {
   };
 };
 
-interface OpenCodeZenResponse {
-  choices: Array<{
-    message: {
-      content: string;
-    };
-  }>;
-}
+// interface OpenCodeZenResponse {
+//   choices: Array<{
+//     message: {
+//       content: string;
+//     };
+//   }>;
+// }
 
-const generateTextWithOpenCodeZen = async (
-  systemPrompt: string,
-  messages: ModelMessage[],
-): Promise<string> => {
-  const apiKey = process.env.OPENCODE_ZEN_API_KEY;
-  if (!apiKey) {
-    throw new Error("OPENCODE_ZEN_API_KEY not configured");
-  }
+// const generateTextWithOpenCodeZen = async (
+//   systemPrompt: string,
+//   messages: ModelMessage[],
+// ): Promise<string> => {
+//   const apiKey = process.env.OPENCODE_ZEN_API_KEY;
+//   if (!apiKey) {
+//     throw new Error("OPENCODE_ZEN_API_KEY not configured");
+//   }
 
-  const response = await fetch("https://opencode.ai/zen/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "grok-code",
-      messages: [{ role: "system", content: systemPrompt }, ...messages],
-    }),
-  });
+//   const response = await fetch("https://opencode.ai/zen/v1/chat/completions", {
+//     method: "POST",
+//     headers: {
+//       Authorization: `Bearer ${apiKey}`,
+//       "Content-Type": "application/json",
+//     },
+//     body: JSON.stringify({
+//       model: "grok-code",
+//       messages: [{ role: "system", content: systemPrompt }, ...messages],
+//     }),
+//   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`OpenCode Zen API error: ${response.status} ${errorText}`);
-  }
+//   if (!response.ok) {
+//     const errorText = await response.text();
+//     throw new Error(`OpenCode Zen API error: ${response.status} ${errorText}`);
+//   }
 
-  const data: OpenCodeZenResponse = await response.json();
-  return data.choices[0]?.message?.content ?? "";
-};
+//   const data: OpenCodeZenResponse = await response.json();
+//   return data.choices[0]?.message?.content ?? "";
+// };
 
 export const POST = async (request: Request) => {
   const origin = request.headers.get("origin");
@@ -161,7 +161,7 @@ export const POST = async (request: Request) => {
     const result = await generateText({
       model: "cerebras/glm-4.6",
       system: SYSTEM_PROMPT,
-      messages: messages,
+      messages,
     });
     // eslint-disable-next-line prefer-const
     generatedCode = result.text;
