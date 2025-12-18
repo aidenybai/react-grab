@@ -1,6 +1,6 @@
 {
   "name": "@react-grab/visual-edit",
-  "version": "0.0.89",
+  "version": "0.0.90",
   "type": "module",
   "bin": {
     "react-grab-visual-edit": "./dist/cli.cjs"

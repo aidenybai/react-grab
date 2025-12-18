@@ -1,5 +1,11 @@
 # @react-grab/cli
 
+## 0.0.90
+
+### Patch Changes
+
+- fix: check visual edit endpoint
+
 ## 0.0.89
 
 ### Patch Changes
