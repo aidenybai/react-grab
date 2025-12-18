@@ -369,6 +369,7 @@ interface CompletedConfirmationProps {
   onDismiss?: () => void;
   onUndo?: () => void;
   onReply?: () => void;
+  onCopyStateChange?: () => void;
 }
 
 const CompletedConfirmation: Component<CompletedConfirmationProps> = (
@@ -383,6 +384,7 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
   const handleDismiss = () => {
     setDidCopy(true);
     setDisplayStatusText("Copied");
+    props.onCopyStateChange?.();
     setTimeout(() => {
       props.onDismiss?.();
     }, 500);
@@ -799,6 +801,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             onDismiss={props.onDismiss}
             onUndo={props.onUndo}
             onReply={props.onReply}
+            onCopyStateChange={() => requestAnimationFrame(measureContainer)}
           />
         </Show>
 
