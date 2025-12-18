@@ -50,9 +50,7 @@ const generateHtmlDiff = (originalHtml: string, newHtml: string): string => {
     const originalLine = originalLines[lineIndex];
     const newLine = newLines[lineIndex];
 
-    if (originalLine === newLine) {
-      diffLines.push(`  ${originalLine ?? ""}`);
-    } else {
+    if (originalLine !== newLine) {
       if (originalLine !== undefined) {
         diffLines.push(`- ${originalLine}`);
       }
@@ -135,6 +133,7 @@ export const createVisualEditAgentProvider = (
   const apiEndpoint = options.apiEndpoint ?? DEFAULT_API_ENDPOINT;
   const maxIterations = options.maxIterations ?? 3;
   const elementHtmlMap = new Map<string, string>();
+  const elementOuterHtmlMap = new Map<string, string>();
   const elementRefMap = new Map<string, Element>();
   const resultCodeMap = new Map<string, string>();
   const undoFnMap = new Map<string, () => void>();
@@ -154,6 +153,7 @@ export const createVisualEditAgentProvider = (
 
     const html = buildAncestorContext(element);
     elementHtmlMap.set(requestId, html);
+    elementOuterHtmlMap.set(requestId, element.outerHTML);
     elementRefMap.set(requestId, element);
   };
 
@@ -386,6 +386,7 @@ export const createVisualEditAgentProvider = (
 
   const cleanup = (requestId: string) => {
     elementHtmlMap.delete(requestId);
+    elementOuterHtmlMap.delete(requestId);
     elementRefMap.delete(requestId);
     resultCodeMap.delete(requestId);
   };
@@ -418,7 +419,7 @@ export const createVisualEditAgentProvider = (
       return { error: `Failed to edit: ${error ?? "invalid code"}` };
     }
 
-    const originalHtml = elementHtmlMap.get(requestId) ?? "";
+    const originalOuterHtml = elementOuterHtmlMap.get(requestId) ?? "";
 
     const { proxy, undo } = createUndoableProxy(element as HTMLElement);
 
@@ -437,9 +438,10 @@ export const createVisualEditAgentProvider = (
     undoFnMap.set(requestId, undo);
     undoHistory.push(requestId);
 
-    const newHtml = buildAncestorContext(element);
-    const htmlDiff = generateHtmlDiff(originalHtml, newHtml);
-    copyContent(htmlDiff);
+    const elementInfo = await formatElementInfo(element);
+    const newOuterHtml = element.outerHTML;
+    const htmlDiff = generateHtmlDiff(originalOuterHtml, newOuterHtml);
+    copyContent(`${elementInfo}\n\n${htmlDiff}`);
 
     cleanup(requestId);
   };
