@@ -1479,14 +1479,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           (isEventFromOverlay(event, "data-react-grab-ignore-events") &&
             !isEnterToActivateInput)
         ) {
-          if (
-            event.key === "Escape" &&
-            agentManager.isProcessing() &&
-            !isPendingAgentAbort()
-          ) {
-            event.preventDefault();
-            event.stopPropagation();
-            setIsPendingAgentAbort(true);
+          if (event.key === "Escape") {
+            if (agentManager.isProcessing() && !isPendingAgentAbort()) {
+              event.preventDefault();
+              event.stopPropagation();
+              setIsPendingAgentAbort(true);
+            } else if (isToggleMode() && !isInputMode()) {
+              deactivateRenderer();
+            }
           }
           return;
         }
