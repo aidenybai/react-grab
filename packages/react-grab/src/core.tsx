@@ -1904,6 +1904,47 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     eventListenerManager.addWindowListener(
+      "contextmenu",
+      (event: MouseEvent) => {
+        if (!isRendererActive() || isCopying() || isInputMode()) return;
+        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
+        if (!hasAgentProvider()) return;
+
+        const element = getElementAtPosition(event.clientX, event.clientY);
+        if (!element) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (pendingClickTimeoutId !== null) {
+          window.clearTimeout(pendingClickTimeoutId);
+          pendingClickTimeoutId = null;
+          pendingClickData = null;
+        }
+
+        const bounds = createElementBounds(element);
+        const selectionCenterX = bounds.x + bounds.width / 2;
+        setCopyStartX(event.clientX);
+        setCopyStartY(event.clientY);
+        setCopyOffsetFromCenterX(event.clientX - selectionCenterX);
+
+        const cachedInput = elementInputCache.get(element);
+        if (cachedInput) {
+          setInputText(cachedInput);
+        }
+
+        setMouseX(event.clientX);
+        setMouseY(event.clientY);
+        setFrozenElement(element);
+        setIsToggleMode(true);
+        setIsToggleFrozen(true);
+        setIsInputExpanded(true);
+        setIsInputMode(true);
+      },
+      { capture: true },
+    );
+
+    eventListenerManager.addWindowListener(
       "touchmove",
       (event: TouchEvent) => {
         if (event.touches.length === 0) return;

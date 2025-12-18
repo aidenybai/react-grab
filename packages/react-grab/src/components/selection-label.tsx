@@ -873,7 +873,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     <div class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit">
                       <Show when={props.hasAgent}>
                         <span class="text-label-muted text-[12px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
-                          Double click to edit
+                          Right click to edit
                         </span>
                         <div class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit">
                           <IconReturn

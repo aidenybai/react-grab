@@ -43,7 +43,7 @@ export default defineConfig([
   },
   {
     entry: {
-      client: "./src/client.ts",
+      client: "./src/client/index.ts",
     },
     format: ["cjs", "esm"],
     dts: true,
@@ -56,7 +56,7 @@ export default defineConfig([
     treeshake: true,
   },
   {
-    entry: ["./src/client.ts"],
+    entry: ["./src/client/index.ts"],
     format: ["iife"],
     globalName: "ReactGrabVisualEdit",
     outExtension: () => ({ js: ".global.js" }),
