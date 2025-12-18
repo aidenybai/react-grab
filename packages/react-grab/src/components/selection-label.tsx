@@ -10,9 +10,7 @@ import type { Component } from "solid-js";
 import type { OverlayBounds, SelectionLabelStatus } from "../types.js";
 import { VIEWPORT_MARGIN_PX } from "../constants.js";
 import { cn } from "../utils/cn.js";
-import { useSpeechRecognition } from "../utils/speech-recognition.js";
 import { IconOpen } from "./icon-open.js";
-import { IconMic } from "./icon-mic.js";
 import { IconReturn } from "./icon-return.js";
 import { IconRetry } from "./icon-retry.js";
 import { isKeyboardEventTriggeredByInput } from "../utils/is-keyboard-event-triggered-by-input.js";
@@ -482,11 +480,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const [isIdle, setIsIdle] = createSignal(false);
   const [hadValidBounds, setHadValidBounds] = createSignal(false);
 
-  const speechRecognition = useSpeechRecognition({
-    onTranscript: (transcript) => props.onInputChange?.(transcript),
-    getCurrentValue: () => props.inputValue ?? "",
-  });
-
   const isNotProcessing = () =>
     props.status !== "copying" &&
     props.status !== "copied" &&
@@ -598,8 +591,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       setTimeout(() => {
         inputRef?.focus();
       }, 0);
-    } else {
-      speechRecognition.stop();
     }
   });
 
@@ -667,11 +658,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     if (event.code === "Enter" && !event.shiftKey) {
       event.preventDefault();
       if (!props.inputValue?.trim()) return;
-      speechRecognition.stop();
       props.onSubmit?.();
     } else if (event.code === "Escape") {
       event.preventDefault();
-      speechRecognition.stop();
       props.onConfirmDismiss?.();
     }
   };
@@ -709,7 +698,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   const handleSubmit = () => {
     if (props.isInputExpanded && !props.inputValue?.trim()) return;
-    speechRecognition.stop();
     props.onSubmit?.();
   };
 
@@ -985,57 +973,15 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     value={props.inputValue ?? ""}
                     onInput={handleInput}
                     onKeyDown={handleKeyDown}
-                    placeholder={
-                      speechRecognition.isListening()
-                        ? "listening..."
-                        : "type prompt"
-                    }
+                    placeholder="type prompt"
                     rows={1}
                   />
-                  <div class="flex items-center gap-0.5 ml-1 w-[17px] h-[17px] justify-end">
-                    <Show
-                      when={
-                        props.hasAgent &&
-                        speechRecognition.isSupported() &&
-                        !props.inputValue
-                      }
-                    >
-                      <button
-                        class={cn(
-                          "contain-layout shrink-0 flex items-center justify-center px-[2px] py-[2px] rounded-xs [border-width:0.5px] border-solid size-fit cursor-pointer transition-all hover:scale-105",
-                          speechRecognition.isListening()
-                            ? "bg-grab-purple border-grab-purple text-white"
-                            : "bg-white border-[#B3B3B3] text-black",
-                        )}
-                        onClick={speechRecognition.toggle}
-                        title={
-                          speechRecognition.isListening()
-                            ? "Stop listening"
-                            : "Start voice input"
-                        }
-                      >
-                        <IconMic
-                          size={11}
-                          class={
-                            speechRecognition.isListening()
-                              ? "animate-pulse"
-                              : ""
-                          }
-                        />
-                      </button>
-                    </Show>
-                    <Show when={props.inputValue}>
-                      <button
-                        class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit cursor-pointer transition-all hover:scale-105"
-                        onClick={handleSubmit}
-                      >
-                        <IconReturn
-                          size={10}
-                          class="opacity-[0.99] text-black"
-                        />
-                      </button>
-                    </Show>
-                  </div>
+                  <button
+                    class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit cursor-pointer transition-all hover:scale-105 ml-1"
+                    onClick={handleSubmit}
+                  >
+                    <IconReturn size={10} class="opacity-[0.99] text-black" />
+                  </button>
                 </div>
               </BottomSection>
             </div>
