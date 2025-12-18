@@ -39,6 +39,32 @@ interface FinalResponse {
 
 type AgentResponse = IterationResponse | FinalResponse | string;
 
+const generateHtmlDiff = (originalHtml: string, newHtml: string): string => {
+  const originalLines = originalHtml.split("\n");
+  const newLines = newHtml.split("\n");
+
+  const diffLines: string[] = [];
+  const maxLength = Math.max(originalLines.length, newLines.length);
+
+  for (let lineIndex = 0; lineIndex < maxLength; lineIndex++) {
+    const originalLine = originalLines[lineIndex];
+    const newLine = newLines[lineIndex];
+
+    if (originalLine === newLine) {
+      diffLines.push(`  ${originalLine ?? ""}`);
+    } else {
+      if (originalLine !== undefined) {
+        diffLines.push(`- ${originalLine}`);
+      }
+      if (newLine !== undefined) {
+        diffLines.push(`+ ${newLine}`);
+      }
+    }
+  }
+
+  return diffLines.join("\n");
+};
+
 const parseAgentResponse = (response: string): AgentResponse => {
   const trimmed = response.trim();
   if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
@@ -348,7 +374,7 @@ export const createVisualEditAgentProvider = (
       }
     },
     supportsFollowUp: true,
-    dismissButtonText: "Copy",
+    dismissButtonText: "Apply",
     getCompletionMessage: () => {
       if (lastRequestStartTime === null) return undefined;
       const totalSeconds = ((Date.now() - lastRequestStartTime) / 1000).toFixed(
@@ -392,6 +418,8 @@ export const createVisualEditAgentProvider = (
       return { error: `Failed to edit: ${error ?? "invalid code"}` };
     }
 
+    const originalHtml = elementHtmlMap.get(requestId) ?? "";
+
     const { proxy, undo } = createUndoableProxy(element as HTMLElement);
 
     try {
@@ -409,17 +437,9 @@ export const createVisualEditAgentProvider = (
     undoFnMap.set(requestId, undo);
     undoHistory.push(requestId);
 
-    const sessionId = session.id;
-    const conversationHistory = conversationHistoryMap.get(sessionId);
-    if (conversationHistory && conversationHistory.length > 0) {
-      const formattedHistory = conversationHistory
-        .map((message) => {
-          const roleLabel = message.role === "user" ? "User" : "Assistant";
-          return `## ${roleLabel}\n\n${message.content}`;
-        })
-        .join("\n\n---\n\n");
-      copyContent(`Apply changes based on the following conversation history:\n${formattedHistory}`);
-    }
+    const newHtml = buildAncestorContext(element);
+    const htmlDiff = generateHtmlDiff(originalHtml, newHtml);
+    copyContent(htmlDiff);
 
     cleanup(requestId);
   };
