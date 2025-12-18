@@ -8,7 +8,7 @@ import {
 } from "solid-js";
 import type { Component } from "solid-js";
 import type { OverlayBounds, SelectionLabelStatus } from "../types.js";
-import { VIEWPORT_MARGIN_PX } from "../constants.js";
+import { VIEWPORT_MARGIN_PX, COPIED_LABEL_DURATION_MS } from "../constants.js";
 import { cn } from "../utils/cn.js";
 import { IconOpen } from "./icon-open.js";
 import { IconReturn } from "./icon-return.js";
@@ -387,7 +387,7 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
     props.onCopyStateChange?.();
     setTimeout(() => {
       props.onDismiss?.();
-    }, 500);
+    }, COPIED_LABEL_DURATION_MS);
   };
 
   const handleKeyDown = (event: KeyboardEvent) => {
