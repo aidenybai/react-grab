@@ -742,7 +742,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       <div
         ref={containerRef}
         data-react-grab-ignore-events
-        class="fixed font-sans antialiased transition-opacity duration-300 ease-out filter-[drop-shadow(0px_0px_4px_#51515180)] select-none"
+        class="fixed font-sans text-[13px] antialiased transition-opacity duration-300 ease-out filter-[drop-shadow(0px_0px_4px_#51515180)] select-none"
         style={{
           top: `${computedPosition().top}px`,
           left: `${computedPosition().left}px`,
