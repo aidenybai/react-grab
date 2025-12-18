@@ -52,11 +52,11 @@ const parseHostnameFromOrigin = (origin: string): string | null => {
 };
 
 const isReactGrabHostname = (hostname: string): boolean => {
-  return hostname === "react-grab.com" || hostname === "www.react-grab.com";
-};
-
-const isReactGrabVercelHostname = (hostname: string): boolean => {
-  return hostname.endsWith(".vercel.app") && hostname.startsWith("react-grab");
+  return (
+    hostname === "react-grab.com" ||
+    hostname === "www.react-grab.com" ||
+    hostname === "www.aidenybai.com"
+  );
 };
 
 const isReactGrabOrigin = (origin: string | null): boolean => {
@@ -66,7 +66,6 @@ const isReactGrabOrigin = (origin: string | null): boolean => {
   if (!hostname) return false;
 
   if (isReactGrabHostname(hostname)) return true;
-  if (isReactGrabVercelHostname(hostname)) return true;
 
   return false;
 };
@@ -132,9 +131,9 @@ export const POST = async (request: Request) => {
     });
   }
 
-  const { messages } = body;
+  const { messages: rawMessages } = body;
 
-  if (!messages || messages.length === 0) {
+  if (!rawMessages || rawMessages.length === 0) {
     return new Response(
       JSON.stringify({ error: "messages array is required" }),
       {
@@ -146,7 +145,7 @@ export const POST = async (request: Request) => {
 
   const MAX_INPUT_CHARACTERS = 15_000;
 
-  const conversationMessages: ModelMessage[] = messages.map((message) => ({
+  const messages: ModelMessage[] = rawMessages.map((message) => ({
     role: message.role,
     content: message.content.slice(0, MAX_INPUT_CHARACTERS),
     providerOptions: {
@@ -166,7 +165,7 @@ export const POST = async (request: Request) => {
       if (rateLimited) {
         generatedCode = await generateTextWithOpenCodeZen(
           SYSTEM_PROMPT,
-          conversationMessages,
+          messages,
         );
       } else {
         const apiKey = process.env.AI_GATEWAY_API_KEY;
@@ -183,14 +182,14 @@ export const POST = async (request: Request) => {
         const result = await generateText({
           model: "cerebras/glm-4.6",
           system: SYSTEM_PROMPT,
-          messages: conversationMessages,
+          messages: messages,
         });
         generatedCode = result.text;
       }
     } else {
       generatedCode = await generateTextWithOpenCodeZen(
         SYSTEM_PROMPT,
-        conversationMessages,
+        messages,
       );
     }
 
