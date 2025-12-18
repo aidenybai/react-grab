@@ -432,8 +432,6 @@ export const createVisualEditAgentProvider = (
     copyContent(diffContext);
 
     cleanup(requestId);
-
-    return { message: "Copied!" };
   };
 
   const onUndo = () => {

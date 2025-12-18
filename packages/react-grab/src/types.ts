@@ -160,7 +160,6 @@ export interface AgentSessionStorage {
 
 export interface AgentCompleteResult {
   error?: string;
-  message?: string;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
