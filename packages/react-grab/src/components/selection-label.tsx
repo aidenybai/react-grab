@@ -375,6 +375,14 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
   props,
 ) => {
   const instanceId = Symbol();
+  const [didCopy, setDidCopy] = createSignal(false);
+
+  const handleDismiss = () => {
+    setDidCopy(true);
+    setTimeout(() => {
+      props.onDismiss?.();
+    }, 500);
+  };
 
   const handleKeyDown = (event: KeyboardEvent) => {
     if (activeConfirmationId !== instanceId) return;
@@ -382,7 +390,7 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
     if (event.code === "Enter" || event.code === "Escape") {
       event.preventDefault();
       event.stopPropagation();
-      props.onDismiss?.();
+      handleDismiss();
     } else if (
       event.code === "KeyZ" &&
       (event.metaKey || event.ctrlKey) &&
@@ -458,12 +466,15 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
             <Show when={props.onDismiss}>
               <button
                 class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
-                onClick={() => props.onDismiss?.()}
+                onClick={handleDismiss}
+                disabled={didCopy()}
               >
                 <span class="text-black text-[13px] leading-3.5 font-sans font-medium">
-                  {props.dismissButtonText ?? "Ok"}
+                  {didCopy() ? "Copied!" : (props.dismissButtonText ?? "Ok")}
                 </span>
-                <IconReturn size={10} class="text-black/50" />
+                <Show when={!didCopy()}>
+                  <IconReturn size={10} class="text-black/50" />
+                </Show>
               </button>
             </Show>
           </div>
