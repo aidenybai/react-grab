@@ -6,7 +6,7 @@ interface ConversationMessage {
   content: string;
 }
 
-const SYSTEM_PROMPT = `You are a DOM manipulation assistant. You will receive HTML with ancestor context and a modification request.
+const INSTRUCTION = `You are a DOM manipulation assistant. You will receive HTML with ancestor context and a modification request.
 
 The HTML shows the target element nested within its ancestor elements (up to 5 levels). The target element is marked with <!-- START $el --> and <!-- END $el --> comments. The ancestor tags are shown for structural context only - you should only modify the target element between these markers.
 
@@ -77,7 +77,7 @@ const getCorsHeaders = () => {
   };
 };
 
-interface OpenCodeZenResponse {
+interface MorphResponse {
   choices: Array<{
     message: {
       content: string;
@@ -85,14 +85,19 @@ interface OpenCodeZenResponse {
   }>;
 }
 
-const generateTextWithOpenCodeZen = async (
-  systemPrompt: string,
-  messages: ModelMessage[],
+const generateTextWithMorph = async (
+  instruction: string,
+  code: string,
+  update: string,
 ): Promise<string> => {
   const apiKey = process.env.OPENCODE_ZEN_API_KEY;
   if (!apiKey) {
     throw new Error("OPENCODE_ZEN_API_KEY not configured");
   }
+
+  const userMessage = `<instruction>${instruction}</instruction>
+<code>${code}</code>
+<update>${update}</update>`;
 
   const response = await fetch("https://opencode.ai/zen/v1/chat/completions", {
     method: "POST",
@@ -101,17 +106,17 @@ const generateTextWithOpenCodeZen = async (
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "grok-code",
-      messages: [{ role: "system", content: systemPrompt }, ...messages],
+      model: "morph/morph-v3-fast",
+      messages: [{ role: "user", content: userMessage }],
     }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`OpenCode Zen API error: ${response.status} ${errorText}`);
+    throw new Error(`Morph API error: ${response.status} ${errorText}`);
   }
 
-  const data: OpenCodeZenResponse = await response.json();
+  const data: MorphResponse = await response.json();
   return data.choices[0]?.message?.content ?? "";
 };
 
@@ -153,20 +158,29 @@ export const POST = async (request: Request) => {
     },
   }));
 
+  const firstUserMessage = rawMessages.find((m) => m.role === "user");
+  const htmlContext = firstUserMessage?.content ?? "";
+  const lastUserMessage = rawMessages[rawMessages.length - 1];
+  const editRequest =
+    rawMessages.length > 1 && lastUserMessage?.role === "user"
+      ? lastUserMessage.content
+      : htmlContext;
+
   try {
     let generatedCode: string;
 
     if (shouldUsePrimaryModel) {
       const result = await generateText({
         model: "cerebras/glm-4.6",
-        system: SYSTEM_PROMPT,
+        system: INSTRUCTION,
         messages: messages,
       });
       generatedCode = result.text;
     } else {
-      generatedCode = await generateTextWithOpenCodeZen(
-        SYSTEM_PROMPT,
-        messages,
+      generatedCode = await generateTextWithMorph(
+        INSTRUCTION,
+        htmlContext.slice(0, MAX_INPUT_CHARACTERS),
+        editRequest.slice(0, MAX_INPUT_CHARACTERS),
       );
     }
 
