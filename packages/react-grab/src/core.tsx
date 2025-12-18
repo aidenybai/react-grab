@@ -1501,7 +1501,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             return;
           }
 
-          if (isHoldingKeys()) {
+          if (isHoldingKeys() || isToggleMode()) {
             deactivateRenderer();
             return;
           }

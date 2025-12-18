@@ -115,6 +115,13 @@ export const createAgentManager = (
             storage,
           );
           setSessions((prev) => new Map(prev).set(session.id, errorSession));
+        } else if (result?.message) {
+          const messageSession = updateSession(
+            completedSession,
+            { lastStatus: result.message },
+            storage,
+          );
+          setSessions((prev) => new Map(prev).set(session.id, messageSession));
         }
       }
     } catch (error) {
