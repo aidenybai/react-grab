@@ -12,9 +12,6 @@ import { validateCode } from "./code-validation";
 
 export type { AgentCompleteResult };
 
-const REFERENCE_PREFIX =
-  "Use this as reference to make the change, do not actually write this code:\n\n";
-
 interface VisualEditAgentProviderOptions {
   apiEndpoint?: string;
   maxIterations?: number;
@@ -411,12 +408,16 @@ export const createVisualEditAgentProvider = (
     undoFnMap.set(requestId, undo);
     lastRequestId = requestId;
 
-    try {
-      const elementContext = await formatElementInfo(element);
-      const reference = `${REFERENCE_PREFIX}${code}\n\n---\n\n${elementContext}`;
-      copyContent(reference);
-    } catch {
-      // HACK: Non-critical error - edit succeeded but copy failed
+    const sessionId = session.id;
+    const conversationHistory = conversationHistoryMap.get(sessionId);
+    if (conversationHistory && conversationHistory.length > 0) {
+      const formattedHistory = conversationHistory
+        .map((message) => {
+          const roleLabel = message.role === "user" ? "User" : "Assistant";
+          return `## ${roleLabel}\n\n${message.content}`;
+        })
+        .join("\n\n---\n\n");
+      copyContent(`Apply changes based on the following conversation history:\n${formattedHistory}`);
     }
 
     cleanup(requestId);
