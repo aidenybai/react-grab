@@ -50,6 +50,7 @@ export const checkIsInternalComponentName = (name: string): boolean => {
 };
 
 export const checkIsSourceComponentName = (name: string): boolean => {
+  if (name.length <= 1) return false;
   if (checkIsInternalComponentName(name)) return false;
   if (!isCapitalized(name)) return false;
   if (name.startsWith("Primitive.")) return false;

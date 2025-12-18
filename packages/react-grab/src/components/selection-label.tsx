@@ -67,8 +67,8 @@ interface ClickToCopyPillProps {
   asButton?: boolean;
   dimmed?: boolean;
   shrink?: boolean;
-  hasParent?: boolean;
   hasAgent?: boolean;
+  isEditing?: boolean;
 }
 
 interface BottomSectionProps {
@@ -80,9 +80,6 @@ type ArrowPosition = "bottom" | "top";
 const ARROW_HEIGHT = 8;
 const LABEL_GAP = 4;
 const IDLE_TIMEOUT_MS = 400;
-
-const TAG_GRADIENT =
-  "linear-gradient(in oklab 180deg, oklab(88.7% 0.086 -0.058) 0%, oklab(83.2% 0.132 -0.089) 100%)";
 
 const TagBadge: Component<TagBadgeProps> = (props) => {
   const [isHovered, setIsHovered] = createSignal(false);
@@ -100,18 +97,17 @@ const TagBadge: Component<TagBadgeProps> = (props) => {
   return (
     <div
       class={cn(
-        "contain-layout flex items-center px-[3px] py-0 h-4 rounded-[1px] gap-0.5 [border-width:0.5px] border-solid border-label-tag-border",
+        "contain-layout flex items-center px-[3px] py-0 h-4 rounded-sm gap-0.5 [border-width:0.5px] border-solid border-black bg-black",
         props.shrink && "shrink-0 w-fit",
         props.isClickable && "cursor-pointer",
       )}
-      style={{ "background-image": TAG_GRADIENT }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={props.onClick}
     >
       <span
         class={cn(
-          "text-[#47004A] text-[11.5px] leading-3.5 shrink-0 w-fit h-fit font-medium",
+          "text-white text-[12.5px] leading-3.5 shrink-0 w-fit h-fit font-medium",
         )}
       >
         {props.tagName}
@@ -120,7 +116,7 @@ const TagBadge: Component<TagBadgeProps> = (props) => {
         <IconOpen
           size={10}
           class={cn(
-            "text-label-tag-border transition-all duration-100",
+            "text-white transition-all duration-100",
             isHovered() || props.forceShowIcon
               ? "opacity-100 scale-100"
               : "opacity-0 scale-75 -ml-[2px] w-0",
@@ -130,22 +126,6 @@ const TagBadge: Component<TagBadgeProps> = (props) => {
     </div>
   );
 };
-
-const ParentBadge: Component<{ name: string }> = (props) => (
-  <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-1 px-[3px] [border-width:0.5px] border-solid border-[#B3B3B3] py-0 bg-[#F7F7F7]">
-    <span class="text-[#0C0C0C] text-[11.5px] leading-3.5 shrink-0 font-medium w-fit h-fit">
-      {props.name}
-    </span>
-  </div>
-);
-
-const ChevronSeparator: Component = () => (
-  <div class="contain-layout shrink-0 flex items-center w-fit h-4 rounded-[1px] gap-1 px-[3px] [border-width:0.5px] border-solid border-white py-0">
-    <span class="text-[#0C0C0C] text-[11.5px] leading-3.5 shrink-0 font-medium w-fit h-fit">
-      &gt;
-    </span>
-  </div>
-);
 
 interface ArrowProps {
   position: ArrowPosition;
@@ -175,24 +155,37 @@ const Arrow: Component<ArrowProps> = (props) => {
 };
 
 const ClickToCopyPill: Component<ClickToCopyPillProps> = (props) => {
-  const labelText = () => {
-    if (props.hasAgent) return "Selecting";
-    if (props.hasParent) return "Copy";
-    return "Click to copy";
+  const labelPrefix = () => {
+    if (props.hasAgent) {
+      if (props.isEditing) return null;
+      return "Right click to ";
+    }
+    return "Click to ";
+  };
+
+  const labelAction = () => {
+    if (props.hasAgent) {
+      if (props.isEditing) return "Editing";
+      return "Edit";
+    }
+    return "Copy";
   };
 
   return (
     <div
       class={cn(
-        "contain-layout shrink-0 flex items-center px-0 py-px w-fit h-[18px] rounded-[1.5px] gap-[3px]",
+        "contain-layout shrink-0 flex items-center px-0 py-px w-fit h-[18px] rounded-sm gap-[3px]",
         props.asButton && "cursor-pointer",
         props.dimmed && "opacity-50 hover:opacity-100 transition-opacity",
       )}
       role="button"
       onClick={props.onClick}
     >
-      <div class="text-black text-[12px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
-        {labelText()}
+      <div class="text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
+        <Show when={labelPrefix()}>
+          <span class="text-black/50">{labelPrefix()}</span>
+        </Show>
+        <span class="text-black">{labelAction()}</span>
       </div>
     </div>
   );
@@ -203,7 +196,7 @@ const BOTTOM_SECTION_GRADIENT =
 
 const BottomSection: Component<BottomSectionProps> = (props) => (
   <div
-    class="[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start px-2 py-[5px] w-auto h-fit self-stretch [border-top-width:0.5px] border-t-solid border-t-[#D9D9D9] antialiased rounded-t-none rounded-b-xs -mt-px"
+    class="[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start px-2 py-[5px] w-auto h-fit self-stretch [border-top-width:0.5px] border-t-solid border-t-[#D9D9D9] antialiased rounded-t-none rounded-b-sm -mt-px"
     style={{ "background-image": BOTTOM_SECTION_GRADIENT }}
   >
     {props.children}
@@ -253,25 +246,25 @@ const DismissConfirmation: Component<DismissConfirmationProps> = (props) => {
       onClick={handleFocus}
     >
       <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-full h-fit">
-        <span class="text-black text-[12px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
+        <span class="text-black text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
           Discard?
         </span>
       </div>
       <BottomSection>
         <div class="contain-layout shrink-0 flex items-center justify-end gap-[5px] w-full h-fit">
           <button
-            class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
+            class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
             onClick={props.onCancel}
           >
-            <span class="text-black text-[11px] leading-3.5 font-sans font-medium">
+            <span class="text-black text-[13px] leading-3.5 font-sans font-medium">
               No
             </span>
           </button>
           <button
-            class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#7e0002] cursor-pointer transition-all hover:bg-[#FEF2F2] h-[17px]"
+            class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#7e0002] cursor-pointer transition-all hover:bg-[#FEF2F2] h-[17px]"
             onClick={props.onConfirm}
           >
-            <span class="text-[#B91C1C] text-[11px] leading-3.5 font-sans font-medium">
+            <span class="text-[#B91C1C] text-[13px] leading-3.5 font-sans font-medium">
               Yes
             </span>
             <IconReturn size={10} class="text-[#c00002]" />
@@ -337,7 +330,7 @@ const ErrorConfirmation: Component<ErrorConfirmationProps> = (props) => {
     >
       <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-full h-fit">
         <span
-          class="text-[#B91C1C] text-[12px] leading-4 font-sans font-medium"
+          class="text-[#B91C1C] text-[13px] leading-4 font-sans font-medium"
           title={props.error}
         >
           {truncatedError()}
@@ -346,19 +339,19 @@ const ErrorConfirmation: Component<ErrorConfirmationProps> = (props) => {
       <BottomSection>
         <div class="contain-layout shrink-0 flex items-center justify-end gap-[5px] w-full h-fit">
           <button
-            class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
+            class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
             onClick={props.onRetry}
           >
-            <span class="text-black text-[11px] leading-3.5 font-sans font-medium">
+            <span class="text-black text-[13px] leading-3.5 font-sans font-medium">
               Retry
             </span>
             <IconRetry size={10} class="text-black/50" />
           </button>
           <button
-            class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
+            class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
             onClick={props.onAcknowledge}
           >
-            <span class="text-black text-[11px] leading-3.5 font-sans font-medium">
+            <span class="text-black text-[13px] leading-3.5 font-sans font-medium">
               Ok
             </span>
           </button>
@@ -390,6 +383,25 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
       event.preventDefault();
       event.stopPropagation();
       props.onDismiss?.();
+    } else if (
+      event.code === "KeyZ" &&
+      (event.metaKey || event.ctrlKey) &&
+      props.supportsUndo &&
+      props.onUndo
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      props.onUndo();
+    } else if (
+      event.code === "KeyR" &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      props.supportsFollowUp &&
+      props.onReply
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      props.onReply();
     }
   };
 
@@ -411,12 +423,12 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
 
   return (
     <div
-      class="[font-synthesis:none] contain-layout shrink-0 flex flex-col justify-center items-end rounded-xs bg-white antialiased w-fit h-fit"
+      class="[font-synthesis:none] contain-layout shrink-0 flex flex-col justify-center items-end rounded-sm bg-white antialiased w-fit h-fit"
       onPointerDown={handleFocus}
       onClick={handleFocus}
     >
       <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 px-1.5 w-full h-fit">
-        <span class="text-black text-[12px] leading-4 shrink-0 font-sans font-medium w-fit h-fit tabular-nums">
+        <span class="text-black text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit tabular-nums">
           {props.statusText}
         </span>
       </div>
@@ -425,30 +437,30 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
           <div class="contain-layout shrink-0 flex items-center justify-end gap-[5px] w-full h-fit">
             <Show when={props.supportsUndo && props.onUndo}>
               <button
-                class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#7e0002] cursor-pointer transition-all hover:bg-[#FEF2F2] h-[17px]"
+                class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#7e0002] cursor-pointer transition-all hover:bg-[#FEF2F2] h-[17px]"
                 onClick={() => props.onUndo?.()}
               >
-                <span class="text-[#B91C1C] text-[11px] leading-3.5 font-sans font-medium">
+                <span class="text-[#B91C1C] text-[13px] leading-3.5 font-sans font-medium">
                   Undo
                 </span>
               </button>
             </Show>
             <Show when={props.supportsFollowUp && props.onReply}>
               <button
-                class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
+                class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
                 onClick={() => props.onReply?.()}
               >
-                <span class="text-black text-[11px] leading-3.5 font-sans font-medium">
+                <span class="text-black text-[13px] leading-3.5 font-sans font-medium">
                   Reply
                 </span>
               </button>
             </Show>
             <Show when={props.onDismiss}>
               <button
-                class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
+                class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
                 onClick={() => props.onDismiss?.()}
               >
-                <span class="text-black text-[11px] leading-3.5 font-sans font-medium">
+                <span class="text-black text-[13px] leading-3.5 font-sans font-medium">
                   {props.dismissButtonText ?? "Ok"}
                 </span>
                 <IconReturn size={10} class="text-black/50" />
@@ -525,6 +537,16 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       event.stopPropagation();
       event.stopImmediatePropagation();
       props.onToggleExpand?.();
+    } else if (
+      event.code === "KeyC" &&
+      event.ctrlKey &&
+      props.status === "copying" &&
+      props.onAbort
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      props.onAbort();
     }
   };
 
@@ -670,7 +692,12 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     props.onInputChange?.(target.value);
   };
 
-  const tagDisplay = () => props.tagName || "element";
+  const tagDisplay = () => {
+    if (props.componentName && props.tagName) {
+      return `${props.componentName}.${props.tagName}`;
+    }
+    return props.componentName || props.tagName || "element";
+  };
 
   const handleTagClick = (event: MouseEvent) => {
     event.stopPropagation();
@@ -757,7 +784,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         </Show>
 
         <div
-          class="[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-xs bg-white antialiased w-fit h-fit p-0"
+          class="[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-sm bg-white antialiased w-fit h-fit p-0"
           style={{
             display:
               (props.status === "copied" || props.status === "fading") &&
@@ -769,8 +796,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           <Show when={props.status === "copying" && !props.isPendingAbort}>
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit max-w-[280px]">
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-auto h-fit">
-                <div class="contain-layout flex items-center px-0 py-px w-auto h-fit rounded-[1.5px] gap-[3px]">
-                  <span class="text-[12px] leading-4 font-sans font-medium w-auto h-fit whitespace-normal text-[#71717a] animate-pulse tabular-nums">
+                <div class="contain-layout flex items-center px-0 py-px w-auto h-fit rounded-sm gap-[3px]">
+                  <span class="text-[13px] leading-4 font-sans font-medium w-auto h-fit whitespace-normal text-[#71717a] animate-pulse tabular-nums">
                     {props.statusText ?? "Grabbing…"}
                   </span>
                 </div>
@@ -780,7 +807,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   <textarea
                     ref={inputRef}
                     data-react-grab-ignore-events
-                    class="text-black text-[12px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 opacity-50 wrap-break-word overflow-y-auto"
+                    class="text-black text-[13px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 opacity-50 wrap-break-word overflow-y-auto"
                     style={{
                       "field-sizing": "content",
                       "min-height": "16px",
@@ -795,7 +822,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   <Show when={props.onAbort}>
                     <button
                       data-react-grab-ignore-events
-                      class="contain-layout shrink-0 flex flex-col items-start rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] p-1 size-fit cursor-pointer ml-1 transition-none hover:scale-105"
+                      class="contain-layout shrink-0 flex flex-col items-start rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] p-1 size-fit cursor-pointer ml-1 transition-none hover:scale-105"
                       onPointerDown={(event) => event.stopPropagation()}
                       onMouseDown={(event) => event.stopPropagation()}
                       onPointerUp={(event) => {
@@ -827,40 +854,19 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
           <Show when={isNotProcessing() && !props.isInputExpanded}>
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
-              <div
-                class={cn(
-                  "contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5",
-                  props.componentName ? "pr-1.5" : "pr-1",
-                )}
-              >
+              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5 pr-1">
                 <ClickToCopyPill
                   onClick={handleSubmit}
                   shrink
-                  hasParent={Boolean(props.componentName)}
                   hasAgent={props.hasAgent}
                 />
-                <Show when={props.componentName}>
-                  <div class="contain-layout shrink-0 flex items-center gap-px w-fit h-fit">
-                    <ParentBadge name={props.componentName!} />
-                    <ChevronSeparator />
-                    <TagBadge
-                      tagName={tagDisplay()}
-                      isClickable={isTagClickable()}
-                      onClick={handleTagClick}
-                      onHoverChange={handleTagHoverChange}
-                      shrink
-                    />
-                  </div>
-                </Show>
-                <Show when={!props.componentName}>
-                  <TagBadge
-                    tagName={tagDisplay()}
-                    isClickable={isTagClickable()}
-                    onClick={handleTagClick}
-                    onHoverChange={handleTagHoverChange}
-                    shrink
-                  />
-                </Show>
+                <TagBadge
+                  tagName={tagDisplay()}
+                  isClickable={isTagClickable()}
+                  onClick={handleTagClick}
+                  onHoverChange={handleTagHoverChange}
+                  shrink
+                />
               </div>
               <div
                 class="grid transition-[grid-template-rows] duration-30 ease-out self-stretch"
@@ -871,30 +877,17 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 <div class={cn("overflow-hidden min-h-0", !isIdle() && "w-0")}>
                   <BottomSection>
                     <div class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit">
-                      <Show when={props.hasAgent}>
-                        <span class="text-label-muted text-[12px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
-                          Right click to edit
+                      <span class="text-label-muted text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
+                        Press
+                      </span>
+                      <div class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-[2px] rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit">
+                        <span class="text-[10px] leading-none font-medium text-black">
+                          Esc
                         </span>
-                        <div class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit">
-                          <IconReturn
-                            size={10}
-                            class="opacity-[0.99] text-black"
-                          />
-                        </div>
-                      </Show>
-                      <Show when={!props.hasAgent}>
-                        <span class="text-label-muted text-[12px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
-                          Press
-                        </span>
-                        <div class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-[2px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit">
-                          <span class="text-[9px] leading-none font-medium text-black">
-                            Esc
-                          </span>
-                        </div>
-                        <span class="text-label-muted text-[12px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
-                          to dismiss
-                        </span>
-                      </Show>
+                      </div>
+                      <span class="text-label-muted text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
+                        to dismiss
+                      </span>
                     </div>
                   </BottomSection>
                 </div>
@@ -910,51 +903,30 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             }
           >
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit max-w-[280px]">
-              <div
-                class={cn(
-                  "contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5",
-                  props.componentName ? "pr-1.5" : "pr-1",
-                )}
-              >
+              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5 pr-1">
                 <ClickToCopyPill
                   onClick={handleSubmit}
                   dimmed
                   shrink
-                  hasParent={Boolean(props.componentName)}
                   hasAgent={props.hasAgent}
+                  isEditing
                 />
-                <Show when={props.componentName}>
-                  <div class="contain-layout shrink-0 flex items-center gap-px w-fit h-fit">
-                    <ParentBadge name={props.componentName!} />
-                    <ChevronSeparator />
-                    <TagBadge
-                      tagName={tagDisplay()}
-                      isClickable={isTagClickable()}
-                      onClick={handleTagClick}
-                      onHoverChange={handleTagHoverChange}
-                      shrink
-                      forceShowIcon
-                    />
-                  </div>
-                </Show>
-                <Show when={!props.componentName}>
-                  <TagBadge
-                    tagName={tagDisplay()}
-                    isClickable={isTagClickable()}
-                    onClick={handleTagClick}
-                    onHoverChange={handleTagHoverChange}
-                    shrink
-                    forceShowIcon
-                  />
-                </Show>
+                <TagBadge
+                  tagName={tagDisplay()}
+                  isClickable={isTagClickable()}
+                  onClick={handleTagClick}
+                  onHoverChange={handleTagHoverChange}
+                  shrink
+                  forceShowIcon
+                />
               </div>
               <BottomSection>
                 <Show when={props.replyToPrompt}>
                   <div class="shrink-0 flex items-center gap-0.5 w-full mb-0.5 overflow-hidden">
-                    <span class="text-[#a1a1aa] text-[9px] leading-3 shrink-0">
+                    <span class="text-[#a1a1aa] text-[10px] leading-3 shrink-0">
                       {">previously:"}
                     </span>
-                    <span class="text-[#a1a1aa] text-[9px] leading-3 italic truncate whitespace-nowrap">
+                    <span class="text-[#a1a1aa] text-[10px] leading-3 italic truncate whitespace-nowrap">
                       {props.replyToPrompt}
                     </span>
                   </div>
@@ -963,7 +935,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   <textarea
                     ref={inputRef}
                     data-react-grab-ignore-events
-                    class="text-black text-[12px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 wrap-break-word overflow-y-auto"
+                    class="text-black text-[13px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 wrap-break-word overflow-y-auto"
                     style={{
                       "field-sizing": "content",
                       "min-height": "16px",
@@ -977,7 +949,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     rows={1}
                   />
                   <button
-                    class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-xs bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit cursor-pointer transition-all hover:scale-105 ml-1"
+                    class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit cursor-pointer transition-all hover:scale-105 ml-1"
                     onClick={handleSubmit}
                   >
                     <IconReturn size={10} class="opacity-[0.99] text-black" />
