@@ -1006,7 +1006,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 </div>
                 <div class="contain-layout shrink-0 flex items-center gap-0.5 size-fit">
                   <div class="contain-layout shrink-0 flex items-center gap-0.5 pl-0 size-fit">
-                    <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_0.466_0.466_0.466)] font-sans size-fit">
+                    <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_0.687_0.687_0.687)] font-sans size-fit">
                       [Right click]
                     </div>
                   </div>
