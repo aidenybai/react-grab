@@ -116,7 +116,7 @@ export const App = () => {
       <div className="max-w-xl mx-auto flex flex-col gap-8">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <ReactGrabLogo size={28} />
+            <ReactGrabLogo size={48} />
             <h1 className="text-lg font-bold italic">Agent Playground</h1>
           </div>
           <p className="text-sm mb-4 text-white/60 italic">
@@ -138,13 +138,13 @@ export const App = () => {
             <button className="text-sm px-3 py-1.5 bg-white/10 rounded border border-white/30 italic">
               Submit
             </button>
-            <button className="text-xs px-1 py-0.5 bg-white/10 rounded border border-white/20">
+            <button className="text-xxxs px-0.25 py-0.125 bg-white/10 rounded border border-white/20">
               Cancel
             </button>
           </div>
-          <div className="p-3 bg-white/5 rounded text-sm">
-            <div className="font-medium italic">User Card</div>
-            <div className="text-white/50 text-xxs mt-1 italic">
+          <div className="p-2 bg-white/5 rounded text-xs">
+            <div className="text-xs">User Card</div>
+            <div className="text-white/50 text-xxs mt-0.5 italic">
               john@example.com
             </div>
           </div>

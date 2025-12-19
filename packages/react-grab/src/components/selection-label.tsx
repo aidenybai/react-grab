@@ -587,6 +587,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     createSignal<ArrowPosition>("bottom");
   const [viewportVersion, setViewportVersion] = createSignal(0);
   const [isIdle, setIsIdle] = createSignal(false);
+  const [isPromptMultiline, setIsPromptMultiline] = createSignal(false);
   const [hadValidBounds, setHadValidBounds] = createSignal(false);
   const [lockedCopyingPosition, setLockedCopyingPosition] =
     createSignal<LabelPosition | null>(null);
@@ -848,9 +849,29 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     }
   };
 
+  const resizePromptInputToContent = (element?: HTMLTextAreaElement) => {
+    if (!element) return;
+    // Auto-grow textarea to fit wrapped content without scrollbars.
+    element.style.height = "auto";
+    const scrollHeight = element.scrollHeight;
+    element.style.height = `${scrollHeight}px`;
+
+    const computedLineHeight = Number.parseFloat(
+      window.getComputedStyle(element).lineHeight || "0",
+    );
+    if (!Number.isFinite(computedLineHeight) || computedLineHeight <= 0) {
+      setIsPromptMultiline(false);
+      return;
+    }
+
+    const estimatedLineCount = Math.ceil((scrollHeight - 0.5) / computedLineHeight);
+    setIsPromptMultiline(estimatedLineCount > 1);
+  };
+
   const handleInput = (event: InputEvent) => {
     const target = event.target as HTMLTextAreaElement;
     props.onInputChange?.(target.value);
+    requestAnimationFrame(() => resizePromptInputToContent(target));
   };
 
   const tagDisplay = () => {
@@ -887,6 +908,13 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const handleSubmit = () => {
     props.onSubmit?.();
   };
+
+  const hasInputValue = () => (props.inputValue?.length ?? 0) > 0;
+
+  createEffect(() => {
+    void props.inputValue;
+    requestAnimationFrame(() => resizePromptInputToContent(inputRef));
+  });
 
   const shouldShowWithoutBounds = () =>
     hadValidBounds() &&
@@ -948,7 +976,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         </Show>
 
         <Show when={shouldShowCollapsedSelectionUi()}>
-          <div class="[font-synthesis:none] contain-layout flex flex-col justify-center items-start pt-[5px] pb-[5px] pl-1.5 pr-[9px] rounded-tl-none rounded-bl-md gap-1.5 bg-[color(display-p3_0_0_0)] [border-width:0.75px] border-solid border-[color(display-p3_0.229_0.229_0.229)] antialiased size-fit rounded-r-md">
+          <div class="[font-synthesis:none] contain-layout flex flex-col justify-center items-start pt-[5px] pb-[5px] pl-1.5 pr-[9px] rounded-tl-none rounded-bl-md gap-1.5 bg-[color(display-p3_0_0_0)] [border-width:0.75px] border-solid border-[color(display-p3_0.307_0.307_0.307)] antialiased size-fit rounded-r-md">
             <div class="contain-layout flex items-center gap-1 shrink-0 size-fit">
               <div class="contain-layout flex flex-col justify-center items-center px-1.5 py-px w-fit h-[21px] rounded-[3px] shrink-0 bg-[color(display-p3_0.122_0.122_0.122)]">
                 <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_1_1_1)] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] size-fit">
@@ -974,7 +1002,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         </Show>
 
         <Show when={shouldShowExpandedSelectionUi()}>
-          <div class="[font-synthesis:none] contain-layout flex flex-col justify-center items-start pt-[5px] pb-[5px] pl-1.5 pr-[9px] rounded-tl-none rounded-bl-md gap-1.5 bg-[color(display-p3_0_0_0)] [border-width:0.75px] border-solid border-[color(display-p3_0.229_0.229_0.229)] antialiased size-fit rounded-r-md">
+          <div class="[font-synthesis:none] contain-layout flex flex-col justify-center items-start pt-[5px] pb-[5px] pl-1.5 pr-[9px] rounded-tl-none rounded-bl-md gap-1.5 bg-[color(display-p3_0_0_0)] [border-width:0.75px] border-solid border-[color(display-p3_0.307_0.307_0.307)] antialiased size-fit rounded-r-md">
             <div class="contain-layout flex items-center gap-1 shrink-0 size-fit">
               <div class="contain-layout flex flex-col justify-center items-center px-1.5 py-px w-fit h-[21px] rounded-[3px] shrink-0 bg-[color(display-p3_0.122_0.122_0.122)]">
                 <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_1_1_1)] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] size-fit">
@@ -983,20 +1011,24 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               </div>
             </div>
 
-            <div class="contain-layout shrink-0 flex items-center pl-2 gap-[7px] size-fit">
+            <div class="contain-layout shrink-0 flex items-start pl-2 gap-[7px] size-fit">
               <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_0.440_0.440_0.440)] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] size-fit">
                 └
               </div>
-              <div class="contain-layout shrink-0 flex items-center gap-1 pl-0 size-fit">
+              <div class="contain-layout shrink-0 flex items-start gap-1 pl-0 size-fit">
                 <textarea
                   ref={(element) => {
                     inputRef = element;
                     if (props.isInputExpanded) {
-                      requestAnimationFrame(() => element.focus());
+                      requestAnimationFrame(() => {
+                        resizePromptInputToContent(element);
+                        element.focus();
+                      });
                     }
                   }}
                   data-react-grab-ignore-events
-                  class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_1_1_1)] placeholder:text-[color(display-p3_0.466_0.466_0.466)] placeholder:opacity-100 caret-[color(display-p3_1_1_1)] font-sans bg-transparent border-none outline-none resize-none p-0 m-0 w-auto"
+                  class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_1_1_1)] placeholder:text-[color(display-p3_0.466_0.466_0.466)] placeholder:opacity-100 caret-[color(display-p3_1_1_1)] font-sans bg-transparent border-none outline-none resize-none p-0 m-0 overflow-hidden whitespace-pre-wrap break-words w-fit max-w-[280px]"
+                  style={{ "field-sizing": "content" }}
                   value={props.inputValue ?? ""}
                   onInput={handleInput}
                   onKeyDown={handleKeyDown}
@@ -1005,7 +1037,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 />
                 <button
                   data-react-grab-ignore-events
-                  class="shrink-0 opacity-47 cursor-pointer"
+                  class={cn(
+                    "shrink-0 cursor-pointer transition-opacity",
+                    isPromptMultiline() ? "self-end" : "self-center",
+                    hasInputValue() ? "opacity-100" : "opacity-47",
+                  )}
                   onPointerDown={(event) => event.stopPropagation()}
                   onMouseDown={(event) => event.stopPropagation()}
                   onClick={(event) => {
@@ -1013,7 +1049,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     handleSubmit();
                   }}
                 >
-                  <IconReturn size={11} class="text-[color(display-p3_0.307_0.307_0.307)]" />
+                  <IconReturn
+                    size={11}
+                    class={cn(
+                      hasInputValue()
+                        ? "text-[color(display-p3_0.466_0.466_0.466)]"
+                        : "text-[color(display-p3_0.307_0.307_0.307)]",
+                    )}
+                  />
                 </button>
               </div>
             </div>
@@ -1021,7 +1064,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         </Show>
 
         <Show when={props.status === "copying" && !props.isPendingAbort && !props.error}>
-          <div class="[font-synthesis:none] contain-layout flex flex-col justify-center items-start pt-[5px] pb-[5px] pl-1.5 pr-[9px] rounded-tl-none rounded-bl-md gap-1.5 bg-[color(display-p3_0_0_0)] [border-width:0.75px] border-solid border-[color(display-p3_0.229_0.229_0.229)] antialiased size-fit rounded-r-md">
+          <div class="[font-synthesis:none] contain-layout flex flex-col justify-center items-start pt-[5px] pb-[5px] pl-1.5 pr-[9px] rounded-tl-none rounded-bl-md gap-1.5 bg-[color(display-p3_0_0_0)] [border-width:0.75px] border-solid border-[color(display-p3_0.307_0.307_0.307)] antialiased size-fit rounded-r-md">
             <div class="contain-layout flex items-center gap-1 shrink-0 size-fit">
               <div class="contain-layout flex flex-col justify-center items-center px-1.5 py-px w-fit h-[21px] rounded-[3px] shrink-0 bg-[color(display-p3_0.122_0.122_0.122)]">
                 <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_1_1_1)] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] size-fit">
@@ -1030,7 +1073,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               </div>
             </div>
 
-            <div class="contain-layout shrink-0 flex items-center pl-2 gap-[18px] size-fit">
+            <div class="contain-layout shrink-0 flex items-center pl-2 gap-[16px] size-fit">
               <div class="contain-layout shrink-0 flex items-center gap-[7px] size-fit">
                 <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_0.440_0.440_0.440)] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] size-fit">
                   └
