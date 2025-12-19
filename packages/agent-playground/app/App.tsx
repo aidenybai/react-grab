@@ -131,7 +131,7 @@ export const App = () => {
         </div>
 
         <div className="flex flex-col gap-3">
-          <div className="text-xs text-white/30 uppercase tracking-wide">
+          <div className="text-sm text-white/30 uppercase tracking-wide">
             Test Elements
           </div>
           <div className="flex gap-2">

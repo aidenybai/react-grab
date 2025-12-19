@@ -577,6 +577,7 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
 export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
   let inputRef: HTMLTextAreaElement | undefined;
+  let promptPlaceholderMeasureRef: HTMLSpanElement | undefined;
   let isTagCurrentlyHovered = false;
   let lastValidPosition: LabelPosition | null = null;
   let lastElementIdentity: string | null = null;
@@ -588,6 +589,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const [viewportVersion, setViewportVersion] = createSignal(0);
   const [isIdle, setIsIdle] = createSignal(false);
   const [isPromptMultiline, setIsPromptMultiline] = createSignal(false);
+  const [promptMinWidthPx, setPromptMinWidthPx] = createSignal<number | null>(
+    null,
+  );
   const [hadValidBounds, setHadValidBounds] = createSignal(false);
   const [lockedCopyingPosition, setLockedCopyingPosition] =
     createSignal<LabelPosition | null>(null);
@@ -868,6 +872,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     setIsPromptMultiline(estimatedLineCount > 1);
   };
 
+  const measurePromptPlaceholderWidth = () => {
+    if (!promptPlaceholderMeasureRef) return;
+    const measured = promptPlaceholderMeasureRef.getBoundingClientRect().width;
+    if (!Number.isFinite(measured) || measured <= 0) return;
+    // A tiny buffer helps avoid subpixel rounding causing a 1px "snap".
+    setPromptMinWidthPx(Math.ceil(measured) + 1);
+  };
+
   const handleInput = (event: InputEvent) => {
     const target = event.target as HTMLTextAreaElement;
     props.onInputChange?.(target.value);
@@ -913,7 +925,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   createEffect(() => {
     void props.inputValue;
-    requestAnimationFrame(() => resizePromptInputToContent(inputRef));
+    requestAnimationFrame(() => {
+      measurePromptPlaceholderWidth();
+      resizePromptInputToContent(inputRef);
+    });
   });
 
   const shouldShowWithoutBounds = () =>
@@ -1015,20 +1030,32 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_0.440_0.440_0.440)] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] size-fit">
                 └
               </div>
-              <div class="contain-layout shrink-0 flex items-start gap-1 pl-0 size-fit">
+              <div class="contain-layout shrink-0 relative flex items-start gap-1 pl-0 size-fit">
+                <span
+                  ref={promptPlaceholderMeasureRef}
+                  class="absolute left-0 top-0 -z-10 opacity-0 pointer-events-none text-[14px] leading-[18px] font-sans whitespace-pre"
+                >
+                  type prompt
+                </span>
                 <textarea
                   ref={(element) => {
                     inputRef = element;
                     if (props.isInputExpanded) {
                       requestAnimationFrame(() => {
+                        measurePromptPlaceholderWidth();
                         resizePromptInputToContent(element);
                         element.focus();
                       });
                     }
                   }}
                   data-react-grab-ignore-events
-                  class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_1_1_1)] placeholder:text-[color(display-p3_0.466_0.466_0.466)] placeholder:opacity-100 caret-[color(display-p3_1_1_1)] font-sans bg-transparent border-none outline-none resize-none p-0 m-0 overflow-hidden whitespace-pre-wrap break-words w-fit max-w-[280px]"
-                  style={{ "field-sizing": "content" }}
+                  class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_1_1_1)] placeholder:text-[color(display-p3_0.466_0.466_0.466)] placeholder:opacity-100 caret-[color(display-p3_1_1_1)] font-sans bg-transparent border-none outline-none resize-none p-0 m-0 overflow-hidden whitespace-pre-wrap break-words w-fit max-w-[170px]"
+                  style={{
+                    "field-sizing": "content",
+                    ...(promptMinWidthPx()
+                      ? { "min-width": `${promptMinWidthPx()}px` }
+                      : {}),
+                  }}
                   value={props.inputValue ?? ""}
                   onInput={handleInput}
                   onKeyDown={handleKeyDown}
