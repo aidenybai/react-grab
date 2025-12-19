@@ -893,6 +893,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     return props.componentName || props.tagName || "element";
   };
 
+  const promptPlaceholder = () => `edit ${tagDisplay()}`;
+
   const handleTagClick = (event: MouseEvent) => {
     event.stopPropagation();
     event.stopImmediatePropagation();
@@ -929,6 +931,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   createEffect(() => {
     void props.inputValue;
+    void props.componentName;
+    void props.tagName;
     requestAnimationFrame(() => {
       measurePromptPlaceholderWidth();
       resizePromptInputToContent(inputRef);
@@ -1058,7 +1062,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   ref={promptPlaceholderMeasureRef}
                   class="absolute left-0 top-0 -z-10 opacity-0 pointer-events-none text-[14px] leading-[18px] font-sans whitespace-pre"
                 >
-                  type prompt
+                  {promptPlaceholder()}
                 </span>
                 <textarea
                   ref={(element) => {
@@ -1082,7 +1086,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   value={props.inputValue ?? ""}
                   onInput={handleInput}
                   onKeyDown={handleKeyDown}
-                  placeholder="type prompt"
+                  placeholder={promptPlaceholder()}
                   rows={1}
                 />
                 <button

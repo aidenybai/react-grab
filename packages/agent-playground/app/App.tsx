@@ -124,7 +124,7 @@ export const App = () => {
           </p>
           <button
             onClick={() => window.__REACT_GRAB__?.activate()}
-            className="text-xxs px-1 py-0.5 bg-white text-black hover:bg-white/90 rounded transition-colors italic"
+            className="text-xxxs px-0.5 py-0.25 bg-white text-black hover:bg-white/90 rounded transition-colors"
           >
             Grab Element
           </button>
