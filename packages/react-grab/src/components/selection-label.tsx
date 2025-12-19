@@ -922,6 +922,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   };
 
   const hasInputValue = () => (props.inputValue?.length ?? 0) > 0;
+  const triggerCancelOrAbort = () => {
+    if (props.onCancel) return props.onCancel();
+    if (props.onAbort) return props.onAbort();
+  };
 
   createEffect(() => {
     void props.inputValue;
@@ -929,6 +933,25 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       measurePromptPlaceholderWidth();
       resizePromptInputToContent(inputRef);
     });
+  });
+
+  createEffect(() => {
+    if (props.status !== "copying") return;
+    if (props.isPendingAbort) return;
+    if (props.error) return;
+    if (!props.onCancel && !props.onAbort) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (isKeyboardEventTriggeredByInput(event)) return;
+      if (event.code !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      triggerCancelOrAbort();
+    };
+
+    window.addEventListener("keydown", handleKeyDown, true);
+    onCleanup(() => window.removeEventListener("keydown", handleKeyDown, true));
   });
 
   const shouldShowWithoutBounds = () =>
@@ -1114,34 +1137,21 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 <div class="contain-layout shrink-0 flex items-center gap-2 pl-0 size-fit">
                   <button
                     data-react-grab-ignore-events
-                    class="contain-layout shrink-0 flex flex-col items-start size-fit"
+                    class="contain-layout shrink-0 flex items-center gap-0.5 size-fit cursor-pointer"
                     onPointerDown={(event) => event.stopPropagation()}
                     onMouseDown={(event) => event.stopPropagation()}
                     onClick={(event) => {
                       event.stopPropagation();
-                      props.onCancel?.();
+                      triggerCancelOrAbort();
                     }}
                   >
-                    <div class="contain-layout shrink-0 flex flex-col items-start size-fit">
-                      <div class="contain-layout shrink-0 flex flex-col items-start size-fit">
-                        <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_1_1_1)] font-sans size-fit">
-                          Cancel
-                        </div>
-                      </div>
+                    <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_1_1_1)] font-sans size-fit">
+                      Cancel
+                    </div>
+                    <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_0.466_0.466_0.466)] font-sans size-fit">
+                      [Esc]
                     </div>
                   </button>
-
-                  <div class="contain-layout shrink-0 flex items-center gap-0.5 size-fit">
-                    <div class="contain-layout shrink-0 flex flex-col items-start size-fit">
-                      <div class="contain-layout shrink-0 flex flex-col items-start size-fit">
-                        <div class="contain-layout shrink-0 flex items-center gap-0.5 pl-0 size-fit">
-                          <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_0.466_0.466_0.466)] font-sans size-fit">
-                            [Esc]
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
