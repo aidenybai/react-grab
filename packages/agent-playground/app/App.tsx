@@ -124,7 +124,7 @@ export const App = () => {
           </p>
           <button
             onClick={() => window.__REACT_GRAB__?.activate()}
-            className="text-xs px-2 py-1 bg-white text-black hover:bg-white/90 rounded transition-colors italic"
+            className="text-xxs px-1 py-0.5 bg-white text-black hover:bg-white/90 rounded transition-colors italic"
           >
             Grab Element
           </button>
@@ -144,14 +144,14 @@ export const App = () => {
           </div>
           <div className="p-3 bg-white/5 rounded text-sm">
             <div className="font-medium italic">User Card</div>
-            <div className="text-white/50 text-xs mt-1 italic">
+            <div className="text-white/50 text-xxs mt-1 italic">
               john@example.com
             </div>
           </div>
           <input
             type="text"
             placeholder="Search..."
-            className="text-sm px-3 py-1.5 bg-white/5 border border-white/10 rounded placeholder:text-white/30 focus:outline-none focus:border-white/20"
+            className="text-xs px-2 py-1 bg-white/5 border border-white/10 rounded placeholder:text-white/30 focus:outline-none focus:border-white/20"
           />
         </div>
 

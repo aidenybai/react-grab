@@ -1030,7 +1030,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               </div>
             </div>
 
-            <div class="contain-layout shrink-0 flex items-center pl-2 gap-[28px] size-fit">
+            <div class="contain-layout shrink-0 flex items-center pl-2 gap-[18px] size-fit">
               <div class="contain-layout shrink-0 flex items-center gap-[7px] size-fit">
                 <div class="text-[14px] leading-[18px] shrink-0 text-[color(display-p3_0.440_0.440_0.440)] font-[ui-monospace,'SFMono-Regular','SF_Mono','Menlo','Consolas','Liberation_Mono',monospace] size-fit">
                   └
