@@ -456,6 +456,10 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
   onMount(() => {
     activeConfirmationId = instanceId;
     window.addEventListener("keydown", handleKeyDown, { capture: true });
+
+    if (props.supportsFollowUp && props.onFollowUpSubmit && inputRef) {
+      inputRef.focus();
+    }
   });
 
   onCleanup(() => {
