@@ -108,7 +108,7 @@ const TagBadge: Component<TagBadgeProps> = (props) => {
     >
       <span
         class={cn(
-          "text-white text-[12.5px] leading-3.5 shrink-0 w-fit h-fit font-medium",
+          "text-white text-[13px] leading-3.5 shrink-0 w-fit h-fit font-medium",
         )}
       >
         {props.tagName}
@@ -494,7 +494,7 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
           </div>
         </div>
       </Show>
-      <Show when={didCopy()}>
+      <Show when={didCopy() || (!props.onDismiss && !props.onUndo)}>
         <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 px-1.5 w-full h-fit">
           <span class="text-black text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit tabular-nums">
             {displayStatusText()}
@@ -917,11 +917,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           <Show when={isNotProcessing() && !props.isInputExpanded}>
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5 pr-1">
-                <ClickToCopyPill
-                  onClick={handleSubmit}
-                  shrink
-                  hasAgent={props.hasAgent}
-                />
                 <TagBadge
                   tagName={tagDisplay()}
                   isClickable={isTagClickable()}
@@ -930,30 +925,13 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   shrink
                 />
               </div>
-              <div
-                class="grid transition-[grid-template-rows] duration-30 ease-out self-stretch"
-                style={{
-                  "grid-template-rows": isIdle() ? "1fr" : "0fr",
-                }}
-              >
-                <div class={cn("overflow-hidden min-h-0", !isIdle() && "w-0")}>
-                  <BottomSection>
-                    <div class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit">
-                      <span class="text-label-muted text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
-                        Press
-                      </span>
-                      <div class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-[2px] rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit">
-                        <span class="text-[10px] leading-none font-medium text-black">
-                          Esc
-                        </span>
-                      </div>
-                      <span class="text-label-muted text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
-                        to dismiss
-                      </span>
-                    </div>
-                  </BottomSection>
-                </div>
-              </div>
+              <BottomSection>
+                <ClickToCopyPill
+                  onClick={handleSubmit}
+                  shrink
+                  hasAgent={props.hasAgent}
+                />
+              </BottomSection>
             </div>
           </Show>
 
