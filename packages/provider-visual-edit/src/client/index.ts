@@ -426,7 +426,7 @@ export const createVisualEditAgentProvider = (
     },
     canRedo: () => redoHistory.length > 0,
     supportsFollowUp: true,
-    dismissButtonText: "Accept",
+    dismissButtonText: "Keep",
     getCompletionMessage: () => {
       if (lastRequestStartTime === null) return undefined;
       const totalSeconds = ((Date.now() - lastRequestStartTime) / 1000).toFixed(
