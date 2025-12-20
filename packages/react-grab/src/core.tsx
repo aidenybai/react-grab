@@ -620,7 +620,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     createEffect(
       on(
         () => viewportVersion(),
-        () => agentManager.updateSessionBoundsOnViewportChange(),
+        () => agentManager._internal.updateBoundsOnViewportChange(),
       ),
     );
 
@@ -937,7 +937,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const currentReplySessionId = replySessionId();
         setReplySessionId(null);
 
-        void agentManager.startSession({
+        void agentManager.session.start({
           element,
           prompt,
           position: { x: labelPositionX, y: currentY },
@@ -1005,7 +1005,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleConfirmAgentAbort = () => {
       setIsPendingAgentAbort(false);
-      agentManager.abortAllSessions();
+      agentManager.session.abort();
     };
 
     const handleCancelAgentAbort = () => {
@@ -1333,12 +1333,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             if (isRedo && agentManager.canRedo()) {
               event.preventDefault();
               event.stopPropagation();
-              agentManager.globalRedo();
+              agentManager.history.redo();
               return;
             } else if (!isRedo && agentManager.canUndo()) {
               event.preventDefault();
               event.stopPropagation();
-              agentManager.globalUndo();
+              agentManager.history.undo();
               return;
             }
           }
@@ -2205,23 +2205,23 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             supportsUndo={supportsUndo()}
             supportsFollowUp={supportsFollowUp()}
             dismissButtonText={dismissButtonText()}
-            onAbortSession={(sessionId) => agentManager.abortSession(sessionId)}
+            onAbortSession={(sessionId) => agentManager.session.abort(sessionId)}
             onDismissSession={(sessionId) =>
-              agentManager.dismissSession(sessionId)
+              agentManager.session.dismiss(sessionId)
             }
-            onUndoSession={(sessionId) => agentManager.undoSession(sessionId)}
+            onUndoSession={(sessionId) => agentManager.session.undo(sessionId)}
             onFollowUpSubmitSession={(sessionId, prompt) => {
               const session = agentManager.sessions().get(sessionId);
-              const element = agentManager.getSessionElement(sessionId);
+              const element = agentManager.session.getElement(sessionId);
               const selectionBounds = session?.selectionBounds;
               if (session && element && selectionBounds) {
                 const positionX = session.position.x;
                 const followUpSessionId =
                   session.context.sessionId ?? sessionId;
 
-                agentManager.dismissSession(sessionId);
+                agentManager.session.dismiss(sessionId);
 
-                void agentManager.startSession({
+                void agentManager.session.start({
                   element,
                   prompt,
                   position: {
@@ -2234,13 +2234,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               }
             }}
             onAcknowledgeSessionError={(sessionId: string) => {
-              const prompt = agentManager.acknowledgeSessionError(sessionId);
+              const prompt = agentManager.session.acknowledgeError(sessionId);
               if (prompt) {
                 setInputText(prompt);
               }
             }}
             onRetrySession={(sessionId: string) => {
-              agentManager.retrySession(sessionId);
+              agentManager.session.retry(sessionId);
             }}
             onInputChange={handleInputChange}
             onInputSubmit={() => void handleInputSubmit()}
@@ -2278,7 +2278,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     }
 
     if (hasAgentProvider()) {
-      agentManager.tryResumeSessions();
+      agentManager.session.tryResume();
     }
 
     const copyElementAPI = async (
@@ -2339,7 +2339,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
       getTheme: () => theme(),
       setAgent: (newAgentOptions: AgentOptions) => {
-        const existingOptions = agentManager.getOptions();
+        const existingOptions = agentManager._internal.getOptions();
         const mergedOptions: AgentOptions = {
           ...existingOptions,
           ...newAgentOptions,
@@ -2354,7 +2354,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           },
           onDismiss: newAgentOptions?.onDismiss,
         };
-        agentManager.setOptions(mergedOptions);
+        agentManager._internal.setOptions(mergedOptions);
         setHasAgentProvider(Boolean(mergedOptions.provider));
         setSupportsUndo(Boolean(mergedOptions.provider?.undo));
         setSupportsFollowUp(Boolean(mergedOptions.provider?.supportsFollowUp));
@@ -2366,7 +2366,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           });
         }
 
-        agentManager.tryResumeSessions();
+        agentManager.session.tryResume();
       },
       updateOptions: (newOptions: UpdatableOptions) => {
         options = { ...options, ...newOptions };

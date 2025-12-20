@@ -28,25 +28,36 @@ interface StartSessionParams {
   sessionId?: string;
 }
 
+interface SessionOperations {
+  start: (params: StartSessionParams) => Promise<void>;
+  abort: (sessionId?: string) => void;
+  dismiss: (sessionId: string) => void;
+  retry: (sessionId: string) => void;
+  undo: (sessionId: string) => void;
+  getElement: (sessionId: string) => Element | undefined;
+  tryResume: () => void;
+  acknowledgeError: (sessionId: string) => string | undefined;
+}
+
+interface HistoryOperations {
+  undo: () => void;
+  redo: () => void;
+}
+
+interface InternalOperations {
+  updateBoundsOnViewportChange: () => void;
+  setOptions: (options: AgentOptions) => void;
+  getOptions: () => AgentOptions | undefined;
+}
+
 export interface AgentManager {
   sessions: Accessor<Map<string, AgentSession>>;
   isProcessing: Accessor<boolean>;
   canUndo: Accessor<boolean>;
   canRedo: Accessor<boolean>;
-  tryResumeSessions: () => void;
-  startSession: (params: StartSessionParams) => Promise<void>;
-  abortSession: (sessionId: string) => void;
-  abortAllSessions: () => void;
-  dismissSession: (sessionId: string) => void;
-  undoSession: (sessionId: string) => void;
-  globalUndo: () => void;
-  globalRedo: () => void;
-  acknowledgeSessionError: (sessionId: string) => string | undefined;
-  retrySession: (sessionId: string) => void;
-  updateSessionBoundsOnViewportChange: () => void;
-  getSessionElement: (sessionId: string) => Element | undefined;
-  setOptions: (options: AgentOptions) => void;
-  getOptions: () => AgentOptions | undefined;
+  session: SessionOperations;
+  history: HistoryOperations;
+  _internal: InternalOperations;
 }
 
 export const createAgentManager = (
@@ -334,18 +345,18 @@ export const createAgentManager = (
     void executeSessionStream(session, streamIterator);
   };
 
-  const abortSession = (sessionId: string) => {
-    const controller = abortControllers.get(sessionId);
-    if (controller) {
-      controller.abort();
+  const abort = (sessionId?: string) => {
+    if (sessionId) {
+      const controller = abortControllers.get(sessionId);
+      if (controller) {
+        controller.abort();
+      }
+    } else {
+      abortControllers.forEach((controller) => controller.abort());
+      abortControllers.clear();
+      setSessions(new Map());
+      clearSessions(agentOptions?.storage);
     }
-  };
-
-  const abortAllSessions = () => {
-    abortControllers.forEach((controller) => controller.abort());
-    abortControllers.clear();
-    setSessions(new Map());
-    clearSessions(agentOptions?.storage);
   };
 
   const dismissSession = (sessionId: string) => {
@@ -482,19 +493,24 @@ export const createAgentManager = (
     isProcessing,
     canUndo,
     canRedo,
-    tryResumeSessions,
-    startSession,
-    abortSession,
-    abortAllSessions,
-    dismissSession,
-    undoSession,
-    globalUndo,
-    globalRedo,
-    acknowledgeSessionError,
-    retrySession,
-    updateSessionBoundsOnViewportChange,
-    getSessionElement,
-    setOptions,
-    getOptions,
+    session: {
+      start: startSession,
+      abort,
+      dismiss: dismissSession,
+      retry: retrySession,
+      undo: undoSession,
+      getElement: getSessionElement,
+      tryResume: tryResumeSessions,
+      acknowledgeError: acknowledgeSessionError,
+    },
+    history: {
+      undo: globalUndo,
+      redo: globalRedo,
+    },
+    _internal: {
+      updateBoundsOnViewportChange: updateSessionBoundsOnViewportChange,
+      setOptions,
+      getOptions,
+    },
   };
 };
