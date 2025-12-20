@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   turbopack: {},
   experimental: {
     optimizeCss: true,
+    inlineCss: true,
   },
   devIndicators: false,
   webpack: (config, { dev, isServer }) => {
