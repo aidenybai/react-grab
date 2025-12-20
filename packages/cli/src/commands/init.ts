@@ -21,12 +21,15 @@ import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
 import type { AgentIntegration } from "../utils/templates.js";
 import {
+  applyOptionsTransform,
   applyPackageJsonTransform,
   applyTransform,
   previewAgentRemoval,
+  previewOptionsTransform,
   previewPackageJsonAgentRemoval,
   previewPackageJsonTransform,
   previewTransform,
+  type ReactGrabOptions,
 } from "../utils/transform.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
@@ -98,6 +101,28 @@ const AGENT_NAMES: Record<string, string> = {
   "visual-edit": "Visual Edit",
 };
 
+const MODIFIER_KEY_NAMES: Record<string, string> = {
+  metaKey: process.platform === "darwin" ? "⌘ Command" : "⊞ Windows",
+  ctrlKey: "Ctrl",
+  shiftKey: "Shift",
+  altKey: process.platform === "darwin" ? "⌥ Option" : "Alt",
+};
+
+const formatActivationKey = (
+  activationKey: ReactGrabOptions["activationKey"],
+): string => {
+  if (!activationKey) return "Default (Option/Alt)";
+  const parts: string[] = [];
+  if (activationKey.metaKey)
+    parts.push(process.platform === "darwin" ? "⌘" : "Win");
+  if (activationKey.ctrlKey) parts.push("Ctrl");
+  if (activationKey.shiftKey) parts.push("Shift");
+  if (activationKey.altKey)
+    parts.push(process.platform === "darwin" ? "⌥" : "Alt");
+  if (activationKey.key) parts.push(activationKey.key.toUpperCase());
+  return parts.length > 0 ? parts.join(" + ") : "Default (Option/Alt)";
+};
+
 export const init = new Command()
   .name("init")
   .description("initialize React Grab in your project")
@@ -129,11 +154,589 @@ export const init = new Command()
 
       if (projectInfo.hasReactGrab && !opts.force) {
         preflightSpinner.succeed();
+
+        if (isNonInteractive) {
+          logger.break();
+          logger.warn("React Grab is already installed.");
+          logger.log(
+            `Use ${highlighter.info("--force")} to reconfigure, or remove ${highlighter.info("--yes")} for interactive mode.`,
+          );
+          logger.break();
+          process.exit(0);
+        }
+
         logger.break();
-        logger.warn("React Grab is already installed.");
-        logger.log(
-          `Use ${highlighter.info("--force")} to reconfigure, or ${highlighter.info("npx grab@latest add")} to add an agent.`,
+        logger.success("React Grab is already installed.");
+        logger.break();
+
+        const allAgents = [
+          "claude-code",
+          "cursor",
+          "opencode",
+          "codex",
+          "gemini",
+          "amp",
+          "visual-edit",
+        ] as const;
+
+        const availableAgents = allAgents.filter(
+          (agent) => !projectInfo.installedAgents.includes(agent),
         );
+
+        if (projectInfo.installedAgents.length > 0) {
+          const installedNames = projectInfo.installedAgents
+            .map((innerAgent) => AGENT_NAMES[innerAgent] || innerAgent)
+            .join(", ");
+          logger.log(`Currently installed agents: ${highlighter.info(installedNames)}`);
+          logger.break();
+        }
+
+        let didAddAgent = false;
+
+        if (availableAgents.length > 0) {
+          const { wantAddAgent } = await prompts({
+            type: "confirm",
+            name: "wantAddAgent",
+            message: `Would you like to add an ${highlighter.info("agent integration")}?`,
+            initial: true,
+          });
+
+          if (wantAddAgent === undefined) {
+            logger.break();
+            process.exit(1);
+          }
+
+          if (wantAddAgent) {
+            const { agent } = await prompts({
+              type: "select",
+              name: "agent",
+              message: `Which ${highlighter.info("agent integration")} would you like to add?`,
+              choices: availableAgents.map((innerAgent) => ({
+                title: AGENT_NAMES[innerAgent],
+                value: innerAgent,
+              })),
+            });
+
+            if (agent === undefined) {
+              logger.break();
+              process.exit(1);
+            }
+
+            const agentIntegration = agent as AgentIntegration;
+            let agentsToRemove: string[] = [];
+
+            if (projectInfo.installedAgents.length > 0) {
+              const installedNames = projectInfo.installedAgents
+                .map((innerAgent) => AGENT_NAMES[innerAgent] || innerAgent)
+                .join(", ");
+
+              const { action } = await prompts({
+                type: "select",
+                name: "action",
+                message: "How would you like to proceed?",
+                choices: [
+                  {
+                    title: `Replace ${installedNames} with ${AGENT_NAMES[agentIntegration]}`,
+                    value: "replace",
+                  },
+                  {
+                    title: `Add ${AGENT_NAMES[agentIntegration]} alongside existing`,
+                    value: "add",
+                  },
+                  { title: "Cancel", value: "cancel" },
+                ],
+              });
+
+              if (!action || action === "cancel") {
+                logger.break();
+                logger.log("Agent addition cancelled.");
+              } else {
+                if (action === "replace") {
+                  agentsToRemove = [...projectInfo.installedAgents];
+                }
+
+                if (agentsToRemove.length > 0) {
+                  for (const agentToRemove of agentsToRemove) {
+                    const removalResult = previewAgentRemoval(
+                      projectInfo.projectRoot,
+                      projectInfo.framework,
+                      projectInfo.nextRouterType,
+                      agentToRemove,
+                    );
+
+                    const removalPackageJsonResult = previewPackageJsonAgentRemoval(
+                      projectInfo.projectRoot,
+                      agentToRemove,
+                    );
+
+                    const packagesToRemove = getPackagesToUninstall(agentToRemove);
+
+                    if (packagesToRemove.length > 0) {
+                      const uninstallSpinner = spinner(
+                        `Removing ${packagesToRemove.join(", ")}.`,
+                      ).start();
+
+                      try {
+                        uninstallPackages(
+                          packagesToRemove,
+                          projectInfo.packageManager,
+                          projectInfo.projectRoot,
+                        );
+                        uninstallSpinner.succeed();
+                      } catch (error) {
+                        uninstallSpinner.fail();
+                        handleError(error);
+                      }
+                    }
+
+                    if (
+                      removalResult.success &&
+                      !removalResult.noChanges &&
+                      removalResult.newContent
+                    ) {
+                      const removeWriteSpinner = spinner(
+                        `Removing ${AGENT_NAMES[agentToRemove] || agentToRemove} from ${removalResult.filePath}.`,
+                      ).start();
+                      const writeResult = applyTransform(removalResult);
+                      if (!writeResult.success) {
+                        removeWriteSpinner.fail();
+                        logger.break();
+                        logger.error(writeResult.error || "Failed to write file.");
+                        logger.break();
+                        process.exit(1);
+                      }
+                      removeWriteSpinner.succeed();
+                    }
+
+                    if (
+                      removalPackageJsonResult.success &&
+                      !removalPackageJsonResult.noChanges &&
+                      removalPackageJsonResult.newContent
+                    ) {
+                      const removePackageJsonSpinner = spinner(
+                        `Removing ${AGENT_NAMES[agentToRemove] || agentToRemove} from ${removalPackageJsonResult.filePath}.`,
+                      ).start();
+                      const packageJsonWriteResult = applyPackageJsonTransform(
+                        removalPackageJsonResult,
+                      );
+                      if (!packageJsonWriteResult.success) {
+                        removePackageJsonSpinner.fail();
+                        logger.break();
+                        logger.error(
+                          packageJsonWriteResult.error || "Failed to write file.",
+                        );
+                        logger.break();
+                        process.exit(1);
+                      }
+                      removePackageJsonSpinner.succeed();
+                    }
+                  }
+
+                  projectInfo.installedAgents = projectInfo.installedAgents.filter(
+                    (innerAgent) => !agentsToRemove.includes(innerAgent),
+                  );
+                }
+
+                const result = previewTransform(
+                  projectInfo.projectRoot,
+                  projectInfo.framework,
+                  projectInfo.nextRouterType,
+                  agentIntegration,
+                  true,
+                );
+
+                const packageJsonResult = previewPackageJsonTransform(
+                  projectInfo.projectRoot,
+                  agentIntegration,
+                  projectInfo.installedAgents,
+                );
+
+                if (!result.success) {
+                  logger.break();
+                  logger.error(result.message);
+                  logger.break();
+                  process.exit(1);
+                }
+
+                const hasLayoutChanges =
+                  !result.noChanges && result.originalContent && result.newContent;
+                const hasPackageJsonChanges =
+                  packageJsonResult.success &&
+                  !packageJsonResult.noChanges &&
+                  packageJsonResult.originalContent &&
+                  packageJsonResult.newContent;
+
+                if (hasLayoutChanges || hasPackageJsonChanges) {
+                  logger.break();
+
+                  if (hasLayoutChanges) {
+                    printDiff(
+                      result.filePath,
+                      result.originalContent!,
+                      result.newContent!,
+                    );
+                  }
+
+                  if (hasPackageJsonChanges) {
+                    if (hasLayoutChanges) {
+                      logger.break();
+                    }
+                    printDiff(
+                      packageJsonResult.filePath,
+                      packageJsonResult.originalContent!,
+                      packageJsonResult.newContent!,
+                    );
+                  }
+
+                  if (agentsToRemove.length === 0) {
+                    logger.break();
+                    const { proceed } = await prompts({
+                      type: "confirm",
+                      name: "proceed",
+                      message: "Apply these changes?",
+                      initial: true,
+                    });
+
+                    if (!proceed) {
+                      logger.break();
+                      logger.log("Agent addition cancelled.");
+                    } else {
+                      const packages = getPackagesToInstall(agentIntegration, false);
+
+                      if (packages.length > 0) {
+                        const installSpinner = spinner(
+                          `Installing ${packages.join(", ")}.`,
+                        ).start();
+
+                        try {
+                          installPackages(
+                            packages,
+                            projectInfo.packageManager,
+                            projectInfo.projectRoot,
+                          );
+                          installSpinner.succeed();
+                        } catch (error) {
+                          installSpinner.fail();
+                          handleError(error);
+                        }
+                      }
+
+                      if (hasLayoutChanges) {
+                        const writeSpinner = spinner(
+                          `Applying changes to ${result.filePath}.`,
+                        ).start();
+                        const writeResult = applyTransform(result);
+                        if (!writeResult.success) {
+                          writeSpinner.fail();
+                          logger.break();
+                          logger.error(writeResult.error || "Failed to write file.");
+                          logger.break();
+                          process.exit(1);
+                        }
+                        writeSpinner.succeed();
+                      }
+
+                      if (hasPackageJsonChanges) {
+                        const packageJsonSpinner = spinner(
+                          `Applying changes to ${packageJsonResult.filePath}.`,
+                        ).start();
+                        const packageJsonWriteResult =
+                          applyPackageJsonTransform(packageJsonResult);
+                        if (!packageJsonWriteResult.success) {
+                          packageJsonSpinner.fail();
+                          logger.break();
+                          logger.error(
+                            packageJsonWriteResult.error || "Failed to write file.",
+                          );
+                          logger.break();
+                          process.exit(1);
+                        }
+                        packageJsonSpinner.succeed();
+                      }
+
+                      didAddAgent = true;
+                      logger.break();
+                      logger.success(`${AGENT_NAMES[agentIntegration]} has been added.`);
+                    }
+                  } else {
+                    const packages = getPackagesToInstall(agentIntegration, false);
+
+                    if (packages.length > 0) {
+                      const installSpinner = spinner(
+                        `Installing ${packages.join(", ")}.`,
+                      ).start();
+
+                      try {
+                        installPackages(
+                          packages,
+                          projectInfo.packageManager,
+                          projectInfo.projectRoot,
+                        );
+                        installSpinner.succeed();
+                      } catch (error) {
+                        installSpinner.fail();
+                        handleError(error);
+                      }
+                    }
+
+                    if (hasLayoutChanges) {
+                      const writeSpinner = spinner(
+                        `Applying changes to ${result.filePath}.`,
+                      ).start();
+                      const writeResult = applyTransform(result);
+                      if (!writeResult.success) {
+                        writeSpinner.fail();
+                        logger.break();
+                        logger.error(writeResult.error || "Failed to write file.");
+                        logger.break();
+                        process.exit(1);
+                      }
+                      writeSpinner.succeed();
+                    }
+
+                    if (hasPackageJsonChanges) {
+                      const packageJsonSpinner = spinner(
+                        `Applying changes to ${packageJsonResult.filePath}.`,
+                      ).start();
+                      const packageJsonWriteResult =
+                        applyPackageJsonTransform(packageJsonResult);
+                      if (!packageJsonWriteResult.success) {
+                        packageJsonSpinner.fail();
+                        logger.break();
+                        logger.error(
+                          packageJsonWriteResult.error || "Failed to write file.",
+                        );
+                        logger.break();
+                        process.exit(1);
+                      }
+                      packageJsonSpinner.succeed();
+                    }
+
+                    didAddAgent = true;
+                    logger.break();
+                    logger.success(`${AGENT_NAMES[agentIntegration]} has been added.`);
+                  }
+                }
+              }
+            }
+          }
+        } else {
+          logger.log("All agent integrations are already installed.");
+        }
+
+        logger.break();
+
+        const { wantCustomizeOptions } = await prompts({
+          type: "confirm",
+          name: "wantCustomizeOptions",
+          message: `Would you like to customize ${highlighter.info("options")}?`,
+          initial: false,
+        });
+
+        if (wantCustomizeOptions === undefined) {
+          logger.break();
+          process.exit(1);
+        }
+
+        if (wantCustomizeOptions) {
+          logger.break();
+          logger.log(`Configure ${highlighter.info("React Grab")} options:`);
+          logger.break();
+
+          const collectedOptions: ReactGrabOptions = {};
+
+          const { wantActivationKey } = await prompts({
+            type: "confirm",
+            name: "wantActivationKey",
+            message: `Configure ${highlighter.info("activation key")}?`,
+            initial: false,
+          });
+
+          if (wantActivationKey === undefined) {
+            logger.break();
+            process.exit(1);
+          }
+
+          if (wantActivationKey) {
+            const { key } = await prompts({
+              type: "text",
+              name: "key",
+              message: "Enter the activation key (e.g., g, k, space):",
+              initial: "",
+            });
+
+            if (key === undefined) {
+              logger.break();
+              process.exit(1);
+            }
+
+            const { modifiers } = await prompts({
+              type: "multiselect",
+              name: "modifiers",
+              message: "Select modifier keys (space to select, enter to confirm):",
+              choices: [
+                { title: MODIFIER_KEY_NAMES.metaKey, value: "metaKey" },
+                { title: MODIFIER_KEY_NAMES.ctrlKey, value: "ctrlKey" },
+                { title: MODIFIER_KEY_NAMES.shiftKey, value: "shiftKey" },
+                {
+                  title: MODIFIER_KEY_NAMES.altKey,
+                  value: "altKey",
+                  selected: true,
+                },
+              ],
+              hint: "- Space to select, Enter to confirm",
+            });
+
+            if (modifiers === undefined) {
+              logger.break();
+              process.exit(1);
+            }
+
+            collectedOptions.activationKey = {
+              ...(key && { key: key.toLowerCase() }),
+              ...(modifiers.includes("metaKey") && { metaKey: true }),
+              ...(modifiers.includes("ctrlKey") && { ctrlKey: true }),
+              ...(modifiers.includes("shiftKey") && { shiftKey: true }),
+              ...(modifiers.includes("altKey") && { altKey: true }),
+            };
+
+            logger.log(
+              `  Activation key: ${highlighter.info(formatActivationKey(collectedOptions.activationKey))}`,
+            );
+          }
+
+          const { activationMode } = await prompts({
+            type: "select",
+            name: "activationMode",
+            message: `Select ${highlighter.info("activation mode")}:`,
+            choices: [
+              { title: "Toggle (press to activate/deactivate)", value: "toggle" },
+              { title: "Hold (hold key to keep active)", value: "hold" },
+            ],
+            initial: 0,
+          });
+
+          if (activationMode === undefined) {
+            logger.break();
+            process.exit(1);
+          }
+
+          collectedOptions.activationMode = activationMode;
+
+          if (activationMode === "hold") {
+            const { keyHoldDuration } = await prompts({
+              type: "number",
+              name: "keyHoldDuration",
+              message: `Enter ${highlighter.info("key hold duration")} in milliseconds:`,
+              initial: 150,
+              min: 0,
+              max: 2000,
+            });
+
+            if (keyHoldDuration === undefined) {
+              logger.break();
+              process.exit(1);
+            }
+
+            collectedOptions.keyHoldDuration = keyHoldDuration;
+          }
+
+          const { allowActivationInsideInput } = await prompts({
+            type: "confirm",
+            name: "allowActivationInsideInput",
+            message: `Allow activation ${highlighter.info("inside input fields")}?`,
+            initial: true,
+          });
+
+          if (allowActivationInsideInput === undefined) {
+            logger.break();
+            process.exit(1);
+          }
+
+          collectedOptions.allowActivationInsideInput = allowActivationInsideInput;
+
+          const { maxContextLines } = await prompts({
+            type: "number",
+            name: "maxContextLines",
+            message: `Enter ${highlighter.info("max context lines")} to include:`,
+            initial: 3,
+            min: 0,
+            max: 50,
+          });
+
+          if (maxContextLines === undefined) {
+            logger.break();
+            process.exit(1);
+          }
+
+          collectedOptions.maxContextLines = maxContextLines;
+
+          const optionsResult = previewOptionsTransform(
+            projectInfo.projectRoot,
+            projectInfo.framework,
+            projectInfo.nextRouterType,
+            collectedOptions,
+          );
+
+          if (!optionsResult.success) {
+            logger.break();
+            logger.error(optionsResult.message);
+            logger.break();
+            process.exit(1);
+          }
+
+          const hasOptionsChanges =
+            !optionsResult.noChanges &&
+            optionsResult.originalContent &&
+            optionsResult.newContent;
+
+          if (hasOptionsChanges) {
+            logger.break();
+            printDiff(
+              optionsResult.filePath,
+              optionsResult.originalContent!,
+              optionsResult.newContent!,
+            );
+
+            logger.break();
+            const { proceed } = await prompts({
+              type: "confirm",
+              name: "proceed",
+              message: "Apply these changes?",
+              initial: true,
+            });
+
+            if (!proceed) {
+              logger.break();
+              logger.log("Options configuration cancelled.");
+            } else {
+              const writeSpinner = spinner(
+                `Applying changes to ${optionsResult.filePath}.`,
+              ).start();
+              const writeResult = applyOptionsTransform(optionsResult);
+              if (!writeResult.success) {
+                writeSpinner.fail();
+                logger.break();
+                logger.error(writeResult.error || "Failed to write file.");
+                logger.break();
+                process.exit(1);
+              }
+              writeSpinner.succeed();
+
+              logger.break();
+              logger.success("React Grab options have been configured.");
+            }
+          } else {
+            logger.break();
+            logger.log("No option changes needed.");
+          }
+        }
+
+        if (!didAddAgent && !wantCustomizeOptions) {
+          logger.break();
+          logger.log("No changes made.");
+        }
+
         logger.break();
         process.exit(0);
       }
