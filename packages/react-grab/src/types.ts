@@ -150,6 +150,9 @@ export interface AgentProvider<T = any> {
   checkConnection?: () => Promise<boolean>;
   getCompletionMessage?: () => string | undefined;
   undo?: () => Promise<void>;
+  canUndo?: () => boolean;
+  redo?: () => Promise<void>;
+  canRedo?: () => boolean;
 }
 
 export interface AgentSessionStorage {

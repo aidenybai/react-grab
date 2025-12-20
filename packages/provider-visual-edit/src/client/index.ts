@@ -118,6 +118,14 @@ export const createVisualEditAgentProvider = (
   const userPromptsMap = new Map<string, string[]>();
   const sessionOriginalHtmlMap = new Map<string, string>();
   const undoHistory: string[] = [];
+  const redoHistory: string[] = [];
+
+  interface UndoableEntry {
+    code: string;
+    element: Element;
+  }
+  const undoableCodeMap = new Map<string, UndoableEntry>();
+
   let lastRequestStartTime: number | null = null;
 
   const getOptions = (): RequestContext => {
@@ -207,7 +215,18 @@ export const createVisualEditAgentProvider = (
     result: string | null;
     updatedHtml: string;
     undo: () => void;
+    elementRemoved: boolean;
   } => {
+    if (!document.contains(element)) {
+      return {
+        success: false,
+        result: "Element was removed from DOM",
+        updatedHtml: "",
+        undo: () => {},
+        elementRemoved: true,
+      };
+    }
+
     const { isValid, error, sanitizedCode } = validateCode(code);
     if (!isValid) {
       return {
@@ -215,6 +234,7 @@ export const createVisualEditAgentProvider = (
         result: error ?? "Invalid code",
         updatedHtml: buildAncestorContext(element),
         undo: () => {},
+        elementRemoved: false,
       };
     }
 
@@ -231,6 +251,7 @@ export const createVisualEditAgentProvider = (
         result: executionResult,
         updatedHtml: isStillInDom ? buildAncestorContext(element) : "",
         undo,
+        elementRemoved: !isStillInDom,
       };
     } catch (executionError) {
       undo();
@@ -243,6 +264,7 @@ export const createVisualEditAgentProvider = (
         result: errorMessage,
         updatedHtml: buildAncestorContext(element),
         undo: () => {},
+        elementRemoved: false,
       };
     }
   };
@@ -259,6 +281,12 @@ export const createVisualEditAgentProvider = (
 
       if (!html || !element) {
         throw new Error("Could not capture element HTML");
+      }
+
+      if (!document.contains(element)) {
+        throw new Error(
+          "Element was removed from the page. This can happen if the page re-rendered.",
+        );
       }
 
       const existingMessages = sessionId
@@ -314,12 +342,23 @@ export const createVisualEditAgentProvider = (
 
         yield `Applying…`;
 
-        const { success, result, updatedHtml, undo } = executeIterationCode(
-          element,
-          parsedResponse.code,
-        );
+        const { success, result, updatedHtml, undo, elementRemoved } =
+          executeIterationCode(element, parsedResponse.code);
 
         iterationUndos.push(undo);
+
+        if (elementRemoved) {
+          for (
+            let undoIndex = iterationUndos.length - 1;
+            undoIndex >= 0;
+            undoIndex--
+          ) {
+            iterationUndos[undoIndex]();
+          }
+          throw new Error(
+            "Element was removed from the page during editing. This can happen if the page re-rendered.",
+          );
+        }
 
         const iterationFeedback = buildIterationMessage(
           updatedHtml,
@@ -359,10 +398,33 @@ export const createVisualEditAgentProvider = (
 
       try {
         undoFn();
+        redoHistory.push(requestIdToUndo);
       } finally {
         undoFnMap.delete(requestIdToUndo);
       }
     },
+    canUndo: () => undoHistory.length > 0,
+    redo: async () => {
+      const requestIdToRedo = redoHistory.pop();
+      if (!requestIdToRedo) return;
+
+      const entry = undoableCodeMap.get(requestIdToRedo);
+      if (!entry) return;
+
+      const { code, element } = entry;
+      if (!document.contains(element)) return;
+
+      const { proxy, undo } = createUndoableProxy(element as HTMLElement);
+
+      try {
+        new Function("$el", code).bind(null)(proxy);
+        undoFnMap.set(requestIdToRedo, undo);
+        undoHistory.push(requestIdToRedo);
+      } catch {
+        undo();
+      }
+    },
+    canRedo: () => redoHistory.length > 0,
     supportsFollowUp: true,
     dismissButtonText: "Accept",
     getCompletionMessage: () => {
@@ -398,6 +460,14 @@ export const createVisualEditAgentProvider = (
       return { error: "Failed to edit: element not found" };
     }
 
+    if (!document.contains(element)) {
+      cleanup(requestId);
+      return {
+        error:
+          "Failed to edit: element was removed from the page. This can happen if the page re-rendered.",
+      };
+    }
+
     if (code === "") {
       cleanup(requestId);
       return { error: "Failed to edit: no changes generated" };
@@ -431,6 +501,8 @@ export const createVisualEditAgentProvider = (
 
     undoFnMap.set(requestId, undo);
     undoHistory.push(requestId);
+    undoableCodeMap.set(requestId, { code: sanitizedCode, element });
+    redoHistory.length = 0;
 
     const userPrompts = userPromptsMap.get(sessionId ?? requestId) ?? [];
     const diffContext = await buildDiffContext(

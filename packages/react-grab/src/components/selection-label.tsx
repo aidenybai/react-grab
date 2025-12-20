@@ -402,8 +402,13 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
   };
 
   const handleInputKeyDown = (event: KeyboardEvent) => {
-    event.stopPropagation();
-    event.stopImmediatePropagation();
+    const isUndoRedo =
+      event.code === "KeyZ" && (event.metaKey || event.ctrlKey);
+
+    if (!isUndoRedo) {
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+    }
 
     if (event.code === "Enter" && !event.shiftKey) {
       event.preventDefault();
@@ -416,20 +421,25 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
 
   const handleKeyDown = (event: KeyboardEvent) => {
     if (activeConfirmationId !== instanceId) return;
+
+    const isUndo =
+      event.code === "KeyZ" &&
+      (event.metaKey || event.ctrlKey) &&
+      !event.shiftKey;
+
+    if (isUndo && props.supportsUndo && props.onUndo) {
+      event.preventDefault();
+      event.stopPropagation();
+      props.onUndo();
+      return;
+    }
+
     if (isKeyboardEventTriggeredByInput(event)) return;
+
     if (event.code === "Enter" || event.code === "Escape") {
       event.preventDefault();
       event.stopPropagation();
       handleDismiss();
-    } else if (
-      event.code === "KeyZ" &&
-      (event.metaKey || event.ctrlKey) &&
-      props.supportsUndo &&
-      props.onUndo
-    ) {
-      event.preventDefault();
-      event.stopPropagation();
-      props.onUndo();
     }
   };
 
@@ -462,11 +472,11 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
       onClick={handleFocus}
     >
       <Show when={!didCopy() && (props.onDismiss || props.onUndo)}>
-        <div class="contain-layout shrink-0 flex items-center justify-between gap-2 pt-1.5 pb-1 px-1.5 w-full h-fit">
+        <div class="contain-layout shrink-0 flex flex-col gap-1 pt-1.5 pb-1 px-1.5 w-full h-fit">
           <span class="text-black text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit tabular-nums">
             {displayStatusText()}
           </span>
-          <div class="contain-layout shrink-0 flex items-center gap-[5px] h-fit">
+          <div class="contain-layout shrink-0 flex items-center justify-end gap-[5px] h-fit">
             <Show when={props.supportsUndo && props.onUndo}>
               <button
                 class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#7e0002] cursor-pointer transition-all hover:bg-[#FEF2F2] h-[17px]"

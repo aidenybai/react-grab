@@ -31,12 +31,16 @@ interface StartSessionParams {
 export interface AgentManager {
   sessions: Accessor<Map<string, AgentSession>>;
   isProcessing: Accessor<boolean>;
+  canUndo: Accessor<boolean>;
+  canRedo: Accessor<boolean>;
   tryResumeSessions: () => void;
   startSession: (params: StartSessionParams) => Promise<void>;
   abortSession: (sessionId: string) => void;
   abortAllSessions: () => void;
   dismissSession: (sessionId: string) => void;
   undoSession: (sessionId: string) => void;
+  globalUndo: () => void;
+  globalRedo: () => void;
   acknowledgeSessionError: (sessionId: string) => string | undefined;
   retrySession: (sessionId: string) => void;
   updateSessionBoundsOnViewportChange: () => void;
@@ -51,13 +55,23 @@ export const createAgentManager = (
   const [sessions, setSessions] = createSignal<Map<string, AgentSession>>(
     new Map(),
   );
+  const [canUndo, setCanUndo] = createSignal(false);
+  const [canRedo, setCanRedo] = createSignal(false);
   const abortControllers = new Map<string, AbortController>();
   const sessionElements = new Map<string, Element>();
 
   let agentOptions = initialAgentOptions;
 
+  const updateUndoRedoState = () => {
+    const providerCanUndo = agentOptions?.provider?.canUndo?.() ?? false;
+    const providerCanRedo = agentOptions?.provider?.canRedo?.() ?? false;
+    setCanUndo(providerCanUndo);
+    setCanRedo(providerCanRedo);
+  };
+
   const setOptions = (options: AgentOptions) => {
     agentOptions = options;
+    updateUndoRedoState();
   };
 
   const getOptions = (): AgentOptions | undefined => {
@@ -108,6 +122,7 @@ export const createAgentManager = (
           completedSession,
           element,
         );
+        updateUndoRedoState();
         if (result?.error) {
           const errorSession = updateSession(
             completedSession,
@@ -359,6 +374,17 @@ export const createAgentManager = (
       void agentOptions?.provider?.undo?.();
     }
     dismissSession(sessionId);
+    updateUndoRedoState();
+  };
+
+  const globalUndo = () => {
+    void agentOptions?.provider?.undo?.();
+    updateUndoRedoState();
+  };
+
+  const globalRedo = () => {
+    void agentOptions?.provider?.redo?.();
+    updateUndoRedoState();
   };
 
   const acknowledgeSessionError = (sessionId: string): string | undefined => {
@@ -454,12 +480,16 @@ export const createAgentManager = (
   return {
     sessions,
     isProcessing,
+    canUndo,
+    canRedo,
     tryResumeSessions,
     startSession,
     abortSession,
     abortAllSessions,
     dismissSession,
     undoSession,
+    globalUndo,
+    globalRedo,
     acknowledgeSessionError,
     retrySession,
     updateSessionBoundsOnViewportChange,

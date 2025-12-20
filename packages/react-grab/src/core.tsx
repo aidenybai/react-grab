@@ -1456,6 +1456,31 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: KeyboardEvent) => {
         blockEnterIfNeeded(event);
 
+        const isUndoOrRedo =
+          event.code === "KeyZ" && (event.metaKey || event.ctrlKey);
+
+        if (isUndoOrRedo) {
+          const hasActiveConfirmation = Array.from(
+            agentManager.sessions().values(),
+          ).some((session) => !session.isStreaming && !session.error);
+
+          if (!hasActiveConfirmation) {
+            const isRedo = event.shiftKey;
+
+            if (isRedo && agentManager.canRedo()) {
+              event.preventDefault();
+              event.stopPropagation();
+              agentManager.globalRedo();
+              return;
+            } else if (!isRedo && agentManager.canUndo()) {
+              event.preventDefault();
+              event.stopPropagation();
+              agentManager.globalUndo();
+              return;
+            }
+          }
+        }
+
         const isEnterToActivateInput =
           isEnterCode(event.code) && isHoldingKeys() && !isInputMode();
 
