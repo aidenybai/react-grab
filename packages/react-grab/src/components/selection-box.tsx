@@ -1,7 +1,10 @@
 import { createSignal, createEffect, onCleanup, Show, on } from "solid-js";
 import type { Component } from "solid-js";
 import type { OverlayBounds } from "../types.js";
-import { SELECTION_LERP_FACTOR } from "../constants.js";
+import {
+  SELECTION_LERP_FACTOR,
+  SUCCESS_LABEL_DURATION_MS,
+} from "../constants.js";
 import { lerp } from "../utils/lerp.js";
 import { cn } from "../utils/cn.js";
 
@@ -98,7 +101,7 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
     if (props.variant === "grabbed" && props.createdAt) {
       fadeTimerId = window.setTimeout(() => {
         setOpacity(0);
-      }, 1500);
+      }, SUCCESS_LABEL_DURATION_MS);
     }
   });
 

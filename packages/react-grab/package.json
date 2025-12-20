@@ -90,7 +90,6 @@
     "publint": "^0.2.12",
     "tailwind-merge": "^2.5.5",
     "tailwindcss": "^4.1.0",
-    "terser": "^5.36.0",
     "tsup": "^8.2.4",
     "typescript-eslint": "^8.46.1"
   },

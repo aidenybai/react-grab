@@ -63,7 +63,7 @@ interface TagBadgeProps {
   forceShowIcon?: boolean;
 }
 
-interface ClickToCopyPillProps {
+interface ActionPillProps {
   onClick: () => void;
   asButton?: boolean;
   dimmed?: boolean;
@@ -81,6 +81,11 @@ type ArrowPosition = "bottom" | "top";
 const ARROW_HEIGHT = 8;
 const LABEL_GAP = 4;
 const IDLE_TIMEOUT_MS = 400;
+const MAX_ERROR_LENGTH = 50;
+const BOTTOM_SECTION_GRADIENT =
+  "linear-gradient(in oklab 180deg, oklab(100% 0 0) 0%, oklab(96.1% 0 0) 5.92%)";
+
+let activeConfirmationId: symbol | null = null;
 
 const TagBadge: Component<TagBadgeProps> = (props) => {
   const [isHovered, setIsHovered] = createSignal(false);
@@ -155,7 +160,7 @@ const Arrow: Component<ArrowProps> = (props) => {
   );
 };
 
-const ClickToCopyPill: Component<ClickToCopyPillProps> = (props) => {
+const ActionPill: Component<ActionPillProps> = (props) => {
   const labelPrefix = () => {
     if (props.hasAgent) {
       if (props.isEditing) return null;
@@ -192,9 +197,6 @@ const ClickToCopyPill: Component<ClickToCopyPillProps> = (props) => {
   );
 };
 
-const BOTTOM_SECTION_GRADIENT =
-  "linear-gradient(in oklab 180deg, oklab(100% 0 0) 0%, oklab(96.1% 0 0) 5.92%)";
-
 const BottomSection: Component<BottomSectionProps> = (props) => (
   <div
     class="[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start px-2 py-[5px] w-auto h-fit self-stretch [border-top-width:0.5px] border-t-solid border-t-[#D9D9D9] antialiased rounded-t-none rounded-b-sm -mt-px"
@@ -204,14 +206,12 @@ const BottomSection: Component<BottomSectionProps> = (props) => (
   </div>
 );
 
-let activeConfirmationId: symbol | null = null;
-
-interface DismissConfirmationProps {
+interface DiscardPromptProps {
   onConfirm?: () => void;
   onCancel?: () => void;
 }
 
-const DismissConfirmation: Component<DismissConfirmationProps> = (props) => {
+const DiscardPrompt: Component<DiscardPromptProps> = (props) => {
   const instanceId = Symbol();
 
   const handleKeyDown = (event: KeyboardEvent) => {
@@ -276,15 +276,13 @@ const DismissConfirmation: Component<DismissConfirmationProps> = (props) => {
   );
 };
 
-interface ErrorConfirmationProps {
+interface ErrorViewProps {
   error: string;
   onAcknowledge?: () => void;
   onRetry?: () => void;
 }
 
-const MAX_ERROR_LENGTH = 50;
-
-const ErrorConfirmation: Component<ErrorConfirmationProps> = (props) => {
+const ErrorView: Component<ErrorViewProps> = (props) => {
   const instanceId = Symbol();
 
   const handleKeyDown = (event: KeyboardEvent) => {
@@ -362,7 +360,7 @@ const ErrorConfirmation: Component<ErrorConfirmationProps> = (props) => {
   );
 };
 
-interface CompletedConfirmationProps {
+interface CompletionViewProps {
   statusText: string;
   supportsUndo?: boolean;
   supportsFollowUp?: boolean;
@@ -374,7 +372,7 @@ interface CompletedConfirmationProps {
   onCopyStateChange?: () => void;
 }
 
-const CompletedConfirmation: Component<CompletedConfirmationProps> = (
+const CompletionView: Component<CompletionViewProps> = (
   props,
 ) => {
   const instanceId = Symbol();
@@ -385,7 +383,7 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
   );
   const [followUpInput, setFollowUpInput] = createSignal("");
 
-  const handleDismiss = () => {
+  const handleAccept = () => {
     setDidCopy(true);
     setDisplayStatusText("Copied");
     props.onCopyStateChange?.();
@@ -415,7 +413,7 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
       handleFollowUpSubmit();
     } else if (event.code === "Escape") {
       event.preventDefault();
-      handleDismiss();
+      handleAccept();
     }
   };
 
@@ -439,7 +437,7 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
     if (event.code === "Enter" || event.code === "Escape") {
       event.preventDefault();
       event.stopPropagation();
-      handleDismiss();
+      handleAccept();
     }
   };
 
@@ -494,7 +492,7 @@ const CompletedConfirmation: Component<CompletedConfirmationProps> = (
             <Show when={props.onDismiss}>
               <button
                 class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
-                onClick={handleDismiss}
+                onClick={handleAccept}
                 disabled={didCopy()}
               >
                 <span class="text-black text-[13px] leading-3.5 font-sans font-medium">
@@ -568,7 +566,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const [isIdle, setIsIdle] = createSignal(false);
   const [hadValidBounds, setHadValidBounds] = createSignal(false);
 
-  const isNotProcessing = () =>
+  const canInteract = () =>
     props.status !== "copying" &&
     props.status !== "copied" &&
     props.status !== "fading";
@@ -607,7 +605,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       event.code === "Enter" &&
       isIdle() &&
       !props.isInputExpanded &&
-      isNotProcessing()
+      canInteract()
     ) {
       event.preventDefault();
       event.stopPropagation();
@@ -792,7 +790,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const handleContainerPointerDown = (event: PointerEvent) => {
     stopPropagation(event);
     const isEditableInputVisible =
-      isNotProcessing() && props.isInputExpanded && !props.isPendingDismiss;
+      canInteract() && props.isInputExpanded && !props.isPendingDismiss;
     if (isEditableInputVisible && inputRef) {
       inputRef.focus();
     }
@@ -802,7 +800,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     props.onSubmit?.();
   };
 
-  const shouldShowWithoutBounds = () =>
+  const shouldPersistDuringFade = () =>
     hadValidBounds() &&
     (props.status === "copied" || props.status === "fading");
 
@@ -810,7 +808,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     <Show
       when={
         props.visible !== false &&
-        (props.selectionBounds || shouldShowWithoutBounds())
+        (props.selectionBounds || shouldPersistDuringFade())
       }
     >
       <div
@@ -844,7 +842,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             !props.error
           }
         >
-          <CompletedConfirmation
+          <CompletionView
             statusText={
               props.hasAgent ? (props.statusText ?? "Completed") : "Copied"
             }
@@ -922,13 +920,13 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           </Show>
 
           <Show when={props.status === "copying" && props.isPendingAbort}>
-            <DismissConfirmation
+            <DiscardPrompt
               onConfirm={props.onConfirmAbort}
               onCancel={props.onCancelAbort}
             />
           </Show>
 
-          <Show when={isNotProcessing() && !props.isInputExpanded}>
+          <Show when={canInteract() && !props.isInputExpanded}>
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5 pr-1">
                 <TagBadge
@@ -940,7 +938,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 />
               </div>
               <BottomSection>
-                <ClickToCopyPill
+                <ActionPill
                   onClick={handleSubmit}
                   shrink
                   hasAgent={props.hasAgent}
@@ -951,14 +949,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
           <Show
             when={
-              isNotProcessing() &&
+              canInteract() &&
               props.isInputExpanded &&
               !props.isPendingDismiss
             }
           >
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit max-w-[280px]">
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5 pr-1">
-                <ClickToCopyPill
+                <ActionPill
                   onClick={handleSubmit}
                   dimmed
                   shrink
@@ -1014,14 +1012,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           </Show>
 
           <Show when={props.isPendingDismiss}>
-            <DismissConfirmation
+            <DiscardPrompt
               onConfirm={props.onConfirmDismiss}
               onCancel={props.onCancelDismiss}
             />
           </Show>
 
           <Show when={props.error}>
-            <ErrorConfirmation
+            <ErrorView
               error={props.error!}
               onAcknowledge={props.onAcknowledgeError}
               onRetry={props.onRetry}

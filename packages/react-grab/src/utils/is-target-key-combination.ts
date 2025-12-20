@@ -1,17 +1,7 @@
 import { isCLikeKey } from "./is-c-like-key.js";
+import { keyMatchesCode } from "./key-matches-code.js";
 import { MODIFIER_KEYS } from "../constants.js";
 import type { ActivationKey } from "../types.js";
-
-export const keyMatchesCode = (targetKey: string, code: string): boolean => {
-  const normalizedTarget = targetKey.toLowerCase();
-  if (code.startsWith("Key")) {
-    return code.slice(3).toLowerCase() === normalizedTarget;
-  }
-  if (code.startsWith("Digit")) {
-    return code.slice(5) === normalizedTarget;
-  }
-  return false;
-};
 
 interface HotkeyOptions {
   activationShortcut?: (event: KeyboardEvent) => boolean;
@@ -75,7 +65,6 @@ export const isTargetKeyCombination = (
     return keyMatches && modifiersMatch;
   }
 
-  // cmd + shift + c is reserved for Chrome Devtools inspect element
   const hasOnlyMetaOrCtrl =
     (event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey;
   return Boolean(

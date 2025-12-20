@@ -1,6 +1,9 @@
 import { Show, createEffect, onCleanup } from "solid-js";
 import type { Component } from "solid-js";
-import { useAnimatedPosition } from "../hooks/use-animated-lerp.js";
+import { useAnimatedPosition } from "../hooks/use-animated-position.js";
+
+const CROSSHAIR_COLOR = "rgba(210, 57, 192)";
+const CROSSHAIR_LERP_FACTOR = 0.3;
 
 interface CrosshairProps {
   mouseX: number;
@@ -18,7 +21,7 @@ export const Crosshair: Component<CrosshairProps> = (props) => {
   const position = useAnimatedPosition({
     x: () => props.mouseX,
     y: () => props.mouseY,
-    lerpFactor: 0.3,
+    lerpFactor: CROSSHAIR_LERP_FACTOR,
   });
 
   const setupCanvas = () => {
@@ -44,7 +47,7 @@ export const Crosshair: Component<CrosshairProps> = (props) => {
 
     context.clearRect(0, 0, width, height);
 
-    context.strokeStyle = "rgba(210, 57, 192)";
+    context.strokeStyle = CROSSHAIR_COLOR;
     context.lineWidth = 1;
 
     context.beginPath();

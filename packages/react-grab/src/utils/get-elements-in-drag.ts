@@ -195,27 +195,12 @@ const removeNestedElements = (elements: Element[]): Element[] => {
 export const getElementsInDrag = (
   dragRect: DragRect,
   isValidGrabbableElement: (element: Element) => boolean,
+  strict = true,
 ): Element[] => {
   const elements = filterElementsInDrag(
     dragRect,
     isValidGrabbableElement,
-    true,
+    strict,
   );
-  const uniqueElements = removeNestedElements(elements);
-
-  return uniqueElements;
-};
-
-export const getElementsInDragLoose = (
-  dragRect: DragRect,
-  isValidGrabbableElement: (element: Element) => boolean,
-): Element[] => {
-  const elements = filterElementsInDrag(
-    dragRect,
-    isValidGrabbableElement,
-    false,
-  );
-  const uniqueElements = removeNestedElements(elements);
-
-  return uniqueElements;
+  return removeNestedElements(elements);
 };

@@ -32,21 +32,13 @@ export const createSession = (
   };
 };
 
-const getStorage = (
-  storage?: AgentSessionStorage | null,
-): AgentSessionStorage | null => {
-  if (!storage) return null;
-  return storage;
-};
-
 const memorySessions = new Map<string, AgentSession>();
 
 export const saveSessions = (
   sessions: Map<string, AgentSession>,
   storage?: AgentSessionStorage | null,
 ): void => {
-  const resolvedStorage = getStorage(storage);
-  if (!resolvedStorage) {
+  if (!storage) {
     memorySessions.clear();
     sessions.forEach((session, id) => memorySessions.set(id, session));
     return;
@@ -54,7 +46,7 @@ export const saveSessions = (
 
   try {
     const sessionsObject = Object.fromEntries(sessions);
-    resolvedStorage.setItem(STORAGE_KEY, JSON.stringify(sessionsObject));
+    storage.setItem(STORAGE_KEY, JSON.stringify(sessionsObject));
   } catch {
     memorySessions.clear();
     sessions.forEach((session, id) => memorySessions.set(id, session));
@@ -73,13 +65,12 @@ export const saveSessionById = (
 export const loadSessions = (
   storage?: AgentSessionStorage | null,
 ): Map<string, AgentSession> => {
-  const resolvedStorage = getStorage(storage);
-  if (!resolvedStorage) {
+  if (!storage) {
     return new Map(memorySessions);
   }
 
   try {
-    const data = resolvedStorage.getItem(STORAGE_KEY);
+    const data = storage.getItem(STORAGE_KEY);
     if (!data) return new Map();
     const sessionsObject = JSON.parse(data) as Record<string, AgentSession>;
     return new Map(Object.entries(sessionsObject));
@@ -88,23 +79,14 @@ export const loadSessions = (
   }
 };
 
-export const loadSessionById = (
-  sessionId: string,
-  storage?: AgentSessionStorage | null,
-): AgentSession | null => {
-  const sessions = loadSessions(storage);
-  return sessions.get(sessionId) ?? null;
-};
-
 export const clearSessions = (storage?: AgentSessionStorage | null): void => {
-  const resolvedStorage = getStorage(storage);
-  if (!resolvedStorage) {
+  if (!storage) {
     memorySessions.clear();
     return;
   }
 
   try {
-    resolvedStorage.removeItem(STORAGE_KEY);
+    storage.removeItem(STORAGE_KEY);
   } catch {
     memorySessions.clear();
   }

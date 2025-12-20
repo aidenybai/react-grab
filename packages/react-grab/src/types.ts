@@ -224,34 +224,27 @@ export interface Options {
   agent?: AgentOptions;
 }
 
-export interface UpdatableOptions {
-  onActivate?: () => void;
-  onDeactivate?: () => void;
-  onElementHover?: (element: Element) => void;
-  onElementSelect?: (element: Element) => void;
-  onDragStart?: (startX: number, startY: number) => void;
-  onDragEnd?: (elements: Element[], bounds: DragRect) => void;
-  onBeforeCopy?: (elements: Element[]) => void | Promise<void>;
-  onAfterCopy?: (elements: Element[], success: boolean) => void;
-  onCopySuccess?: (elements: Element[], content: string) => void;
-  onCopyError?: (error: Error) => void;
-  onStateChange?: (state: ReactGrabState) => void;
-  onInputModeChange?: (isInputMode: boolean, context: InputModeContext) => void;
-  onSelectionBox?: (
-    visible: boolean,
-    bounds: OverlayBounds | null,
-    element: Element | null,
-  ) => void;
-  onDragBox?: (visible: boolean, bounds: OverlayBounds | null) => void;
-  onGrabbedBox?: (bounds: OverlayBounds, element: Element) => void;
-  onElementLabel?: (
-    visible: boolean,
-    variant: ElementLabelVariant,
-    context: ElementLabelContext,
-  ) => void;
-  onCrosshair?: (visible: boolean, context: CrosshairContext) => void;
-  onOpenFile?: (filePath: string, lineNumber?: number) => void;
-}
+export type UpdatableOptions = Pick<
+  Options,
+  | "onActivate"
+  | "onDeactivate"
+  | "onElementHover"
+  | "onElementSelect"
+  | "onDragStart"
+  | "onDragEnd"
+  | "onBeforeCopy"
+  | "onAfterCopy"
+  | "onCopySuccess"
+  | "onCopyError"
+  | "onStateChange"
+  | "onInputModeChange"
+  | "onSelectionBox"
+  | "onDragBox"
+  | "onGrabbedBox"
+  | "onElementLabel"
+  | "onCrosshair"
+  | "onOpenFile"
+>;
 
 export interface ReactGrabAPI {
   activate: () => void;

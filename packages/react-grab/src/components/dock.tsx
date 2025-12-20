@@ -19,6 +19,10 @@ interface DockState {
 const SNAP_MARGIN = 16;
 const STORAGE_KEY = "react-grab-dock-state";
 const MOBILE_BREAKPOINT = 768;
+const FADE_IN_DELAY_MS = 500;
+const DRAG_THRESHOLD = 5;
+const VELOCITY_MULTIPLIER = 150;
+const COLLAPSED_SIZE = 14;
 
 const Chevron: Component<{ class?: string }> = (props) => (
   <svg
@@ -51,8 +55,6 @@ const saveDockState = (state: DockState) => {
   } catch {}
 };
 
-const FADE_IN_DELAY_MS = 500;
-
 export const Dock: Component<DockProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
 
@@ -73,8 +75,6 @@ export const Dock: Component<DockProps> = (props) => {
 
   let lastPointerPosition = { x: 0, y: 0, time: 0 };
   let pointerStartPosition = { x: 0, y: 0 };
-
-  const DRAG_THRESHOLD = 5;
 
   const getPositionFromEdgeAndRatio = (
     edge: SnapEdge,
@@ -183,7 +183,6 @@ export const Dock: Component<DockProps> = (props) => {
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
-    const VELOCITY_MULTIPLIER = 150;
     const projectedX = currentX + velocityX * VELOCITY_MULTIPLIER;
     const projectedY = currentY + velocityY * VELOCITY_MULTIPLIER;
 
@@ -341,8 +340,6 @@ export const Dock: Component<DockProps> = (props) => {
       });
     });
   };
-
-  const COLLAPSED_SIZE = 14;
 
   const getCollapsedPosition = () => {
     const edge = snapEdge();

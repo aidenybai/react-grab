@@ -22,12 +22,11 @@ import { createLabelInstancesManager } from "./core/label-instances.js";
 import { tryCopyWithFallback } from "./core/copy.js";
 import { getElementAtPosition } from "./utils/get-element-at-position.js";
 import { isValidGrabbableElement } from "./utils/is-valid-grabbable-element.js";
-import {
-  getElementsInDrag,
-  getElementsInDragLoose,
-} from "./utils/get-elements-in-drag.js";
+import { getElementsInDrag } from "./utils/get-elements-in-drag.js";
 import { createElementBounds } from "./utils/create-element-bounds.js";
 import { stripTranslateFromTransform } from "./utils/strip-translate-from-transform.js";
+import { getTagName } from "./utils/get-tag-name.js";
+import { isSelectionBackward } from "./utils/is-selection-backward.js";
 import {
   SUCCESS_LABEL_DURATION_MS,
   COPIED_LABEL_DURATION_MS,
@@ -46,7 +45,8 @@ import {
   DOUBLE_CLICK_THRESHOLD_MS,
 } from "./constants.js";
 import { isCLikeKey } from "./utils/is-c-like-key.js";
-import { keyMatchesCode, isTargetKeyCombination } from "./utils/hotkey.js";
+import { keyMatchesCode } from "./utils/key-matches-code.js";
+import { isTargetKeyCombination } from "./utils/is-target-key-combination.js";
 import { isEventFromOverlay } from "./utils/is-event-from-overlay.js";
 import { buildOpenFileUrl } from "./utils/build-open-file-url.js";
 import type {
@@ -57,7 +57,6 @@ import type {
   ReactGrabState,
   DeepPartial,
   Theme,
-  SelectionLabelStatus,
   SelectionLabelInstance,
   AgentSession,
   AgentOptions,
@@ -98,10 +97,8 @@ const getScriptOptions = (): Partial<Options> | null => {
 };
 
 export const init = (rawOptions?: Options): ReactGrabAPI => {
-  const initialTheme = mergeTheme(rawOptions?.theme);
-
   if (typeof window === "undefined") {
-    return createNoopApi(initialTheme);
+    return createNoopApi(mergeTheme(rawOptions?.theme));
   }
 
   const scriptOptions = getScriptOptions();
@@ -160,18 +157,20 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   return createRoot((dispose) => {
     const [theme, setTheme] = createSignal(mergedTheme);
     const [isHoldingKeys, setIsHoldingKeys] = createSignal(false);
-    const [mouseX, setMouseX] = createSignal(OFFSCREEN_POSITION);
-    const [mouseY, setMouseY] = createSignal(OFFSCREEN_POSITION);
+    const [mousePosition, setMousePosition] = createSignal({
+      x: OFFSCREEN_POSITION,
+      y: OFFSCREEN_POSITION,
+    });
     const [detectedElement, setDetectedElement] = createSignal<Element | null>(
       null,
     );
     let lastElementDetectionTime = 0;
     const [isDragging, setIsDragging] = createSignal(false);
-    const [dragStartX, setDragStartX] = createSignal(OFFSCREEN_POSITION);
-    const [dragStartY, setDragStartY] = createSignal(OFFSCREEN_POSITION);
+    const [dragStart, setDragStart] = createSignal({
+      x: OFFSCREEN_POSITION,
+      y: OFFSCREEN_POSITION,
+    });
     const [isCopying, setIsCopying] = createSignal(false);
-    const [selectionLabelStatus, setSelectionLabelStatus] =
-      createSignal<SelectionLabelStatus>("idle");
     const [labelInstances, setLabelInstances] = createSignal<
       SelectionLabelInstance[]
     >([]);
@@ -187,8 +186,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [isToggleMode, setIsToggleMode] = createSignal(false);
     const [didJustDrag, setDidJustDrag] = createSignal(false);
     const [didJustCopy, setDidJustCopy] = createSignal(false);
-    const [copyStartX, setCopyStartX] = createSignal(OFFSCREEN_POSITION);
-    const [copyStartY, setCopyStartY] = createSignal(OFFSCREEN_POSITION);
+    const [copyStart, setCopyStart] = createSignal({
+      x: OFFSCREEN_POSITION,
+      y: OFFSCREEN_POSITION,
+    });
     const [copyOffsetFromCenterX, setCopyOffsetFromCenterX] = createSignal(0);
     const [viewportVersion, setViewportVersion] = createSignal(0);
     const [isInputMode, setIsInputMode] = createSignal(false);
@@ -221,28 +222,26 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [replySessionId, setReplySessionId] = createSignal<string | null>(
       null,
     );
-    const [replyToPrompt, setReplyToPrompt] = createSignal<string | null>(null);
     const [isPendingDismiss, setIsPendingDismiss] = createSignal(false);
     const [isPendingAgentAbort, setIsPendingAgentAbort] = createSignal(false);
 
     const elementInputCache = new WeakMap<Element, string>();
 
-    const [nativeSelectionCursorX, setNativeSelectionCursorX] =
-      createSignal(OFFSCREEN_POSITION);
-    const [nativeSelectionCursorY, setNativeSelectionCursorY] =
-      createSignal(OFFSCREEN_POSITION);
-    const [hasNativeSelection, setHasNativeSelection] = createSignal(false);
+    const [nativeSelectionCursor, setNativeSelectionCursor] = createSignal({
+      x: OFFSCREEN_POSITION,
+      y: OFFSCREEN_POSITION,
+    });
     const [nativeSelectionElements, setNativeSelectionElements] = createSignal<
       Element[]
     >([]);
-
-    const extractElementTagName = (element: Element) =>
-      (element.tagName || "").toLowerCase();
+    const hasNativeSelection = createMemo(
+      () => nativeSelectionElements().length > 0,
+    );
 
     const nativeSelectionTagName = createMemo(() => {
       const elements = nativeSelectionElements();
       if (elements.length === 0 || !elements[0]) return undefined;
-      return extractElementTagName(elements[0]) || undefined;
+      return getTagName(elements[0]) || undefined;
     });
 
     const [nativeSelectionComponentName] = createResource(
@@ -258,10 +257,27 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const clearNativeSelectionState = () => {
-      setHasNativeSelection(false);
-      setNativeSelectionCursorX(OFFSCREEN_POSITION);
-      setNativeSelectionCursorY(OFFSCREEN_POSITION);
+      setNativeSelectionCursor({ x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION });
       setNativeSelectionElements([]);
+    };
+
+    const activateInputMode = () => {
+      setIsToggleMode(true);
+      setIsToggleFrozen(true);
+      setIsInputExpanded(true);
+      setIsInputMode(true);
+    };
+
+    const setCopyStartPosition = (
+      element: Element,
+      positionX: number,
+      positionY: number,
+    ) => {
+      const bounds = createElementBounds(element);
+      const selectionCenterX = bounds.x + bounds.width / 2;
+      setCopyStart({ x: positionX, y: positionY });
+      setCopyOffsetFromCenterX(positionX - selectionCenterX);
+      return bounds;
     };
 
     const recalculateNativeSelectionCursor = () => {
@@ -278,16 +294,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const clientRects = range.getClientRects();
       if (clientRects.length === 0) return;
 
-      const isBackward = (() => {
-        if (!currentSelection.anchorNode || !currentSelection.focusNode)
-          return false;
-        const position = currentSelection.anchorNode.compareDocumentPosition(
-          currentSelection.focusNode,
-        );
-        if (position & Node.DOCUMENT_POSITION_FOLLOWING) return false;
-        if (position & Node.DOCUMENT_POSITION_PRECEDING) return true;
-        return currentSelection.anchorOffset > currentSelection.focusOffset;
-      })();
+      const isBackward = isSelectionBackward(currentSelection);
 
       const cursorRect = isBackward
         ? clientRects[0]
@@ -295,8 +302,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const cursorX = isBackward ? cursorRect.left : cursorRect.right;
       const cursorY = cursorRect.top + cursorRect.height / 2;
 
-      setNativeSelectionCursorX(cursorX);
-      setNativeSelectionCursorY(cursorY);
+      setNativeSelectionCursor({ x: cursorX, y: cursorY });
     };
 
     createEffect(
@@ -362,7 +368,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const notifyElementsSelected = (elements: Element[]) => {
       const elementsPayload = elements.map((element) => ({
-        tagName: extractElementTagName(element),
+        tagName: getTagName(element),
       }));
 
       window.dispatchEvent(
@@ -387,8 +393,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       element?: Element,
       shouldDeactivateAfter?: boolean,
     ) => {
-      setCopyStartX(positionX);
-      setCopyStartY(positionY);
+      setCopyStart({ x: positionX, y: positionY });
       if (bounds) {
         const selectionCenterX = bounds.x + bounds.width / 2;
         setCopyOffsetFromCenterX(positionX - selectionCenterX);
@@ -439,43 +444,20 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const copyWithFallback = (elements: Element[], extraPrompt?: string) =>
       tryCopyWithFallback(options, elements, extraPrompt);
 
-    const copySingleElementToClipboard = async (
-      targetElement: Element,
-      extraPrompt?: string,
-    ) => {
-      options.onElementSelect?.(targetElement);
-
-      if (theme().grabbedBoxes.enabled) {
-        showTemporaryGrabbedBox(
-          createElementBounds(targetElement),
-          targetElement,
-        );
-      }
-      await new Promise((resolve) => requestAnimationFrame(resolve));
-
-      await copyWithFallback([targetElement], extraPrompt);
-
-      notifyElementsSelected([targetElement]);
-    };
-
-    const copyMultipleElementsToClipboard = async (
+    const copyElementsToClipboard = async (
       targetElements: Element[],
-    ) => {
+      extraPrompt?: string,
+    ): Promise<void> => {
       if (targetElements.length === 0) return;
 
       for (const element of targetElements) {
         options.onElementSelect?.(element);
-      }
-
-      if (theme().grabbedBoxes.enabled) {
-        for (const element of targetElements) {
+        if (theme().grabbedBoxes.enabled) {
           showTemporaryGrabbedBox(createElementBounds(element), element);
         }
       }
       await new Promise((resolve) => requestAnimationFrame(resolve));
-
-      await copyWithFallback(targetElements);
-
+      await copyWithFallback(targetElements, extraPrompt);
       notifyElementsSelected(targetElements);
     };
 
@@ -526,15 +508,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const endPageY = endY + window.scrollY;
 
       return {
-        x: Math.abs(endPageX - dragStartX()),
-        y: Math.abs(endPageY - dragStartY()),
+        x: Math.abs(endPageX - dragStart().x),
+        y: Math.abs(endPageY - dragStart().y),
       };
     };
 
     const isDraggingBeyondThreshold = createMemo(() => {
       if (!isDragging()) return false;
 
-      const dragDistance = calculateDragDistance(mouseX(), mouseY());
+      const dragDistance = calculateDragDistance(mousePosition().x, mousePosition().y);
 
       return (
         dragDistance.x > DRAG_THRESHOLD_PX || dragDistance.y > DRAG_THRESHOLD_PX
@@ -545,10 +527,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const endPageX = endX + window.scrollX;
       const endPageY = endY + window.scrollY;
 
-      const dragPageX = Math.min(dragStartX(), endPageX);
-      const dragPageY = Math.min(dragStartY(), endPageY);
-      const dragWidth = Math.abs(endPageX - dragStartX());
-      const dragHeight = Math.abs(endPageY - dragStartY());
+      const dragPageX = Math.min(dragStart().x, endPageX);
+      const dragPageY = Math.min(dragStart().y, endPageY);
+      const dragWidth = Math.abs(endPageX - dragStart().x);
+      const dragHeight = Math.abs(endPageY - dragStart().y);
 
       return {
         x: dragPageX - window.scrollX,
@@ -561,7 +543,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const dragBounds = createMemo((): OverlayBounds | undefined => {
       if (!isDraggingBeyondThreshold()) return undefined;
 
-      const drag = calculateDragRectangle(mouseX(), mouseY());
+      const drag = calculateDragRectangle(mousePosition().x, mousePosition().y);
 
       return {
         borderRadius: "0px",
@@ -573,62 +555,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
     });
 
-    const [labelComponentName] = createResource(
-      () => targetElement(),
-      async (element) => {
-        if (!element) return null;
-        return getNearestComponentName(element);
-      },
-    );
-
-    const labelContent = createMemo(() => {
-      const element = targetElement();
-      const copying = isCopying();
-
-      if (!element) {
-        return (
-          <span class="tabular-nums align-middle">
-            {copying ? "Processing…" : "1 element"}
-          </span>
-        );
-      }
-
-      const tagName = extractElementTagName(element);
-      const componentName = labelComponentName();
-
-      if (tagName && componentName) {
-        return (
-          <>
-            <span class="font-mono tabular-nums align-middle">
-              {"<"}
-              {tagName}
-              {">"}
-            </span>
-            <span class="tabular-nums ml-1 align-middle">
-              {" in "}
-              {componentName}
-            </span>
-          </>
-        );
-      }
-
-      if (tagName) {
-        return (
-          <span class="font-mono tabular-nums align-middle">
-            {"<"}
-            {tagName}
-            {">"}
-          </span>
-        );
-      }
-
-      return (
-        <span class="tabular-nums align-middle">
-          {copying ? "Processing…" : "1 element"}
-        </span>
-      );
-    });
-
     const cursorPosition = createMemo(() => {
       if (isCopying() || isInputExpanded()) {
         viewportVersion();
@@ -638,12 +564,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           const selectionCenterX = bounds.x + bounds.width / 2;
           return {
             x: selectionCenterX + copyOffsetFromCenterX(),
-            y: copyStartY(),
+            y: copyStart().y,
           };
         }
-        return { x: copyStartX(), y: copyStartY() };
+        return { x: copyStart().x, y: copyStart().y };
       }
-      return { x: mouseX(), y: mouseY() };
+      return { x: mousePosition().x, y: mousePosition().y };
     });
 
     createEffect(
@@ -731,7 +657,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     createEffect(
       on(
-        () => [isInputMode(), mouseX(), mouseY(), targetElement()] as const,
+        () => [isInputMode(), mousePosition().x, mousePosition().y, targetElement()] as const,
         ([inputMode, x, y, target]) => {
           options.onInputModeChange?.(inputMode, {
             x,
@@ -762,7 +688,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     createEffect(
       on(
-        () => [crosshairVisible(), mouseX(), mouseY()] as const,
+        () => [crosshairVisible(), mousePosition().x, mousePosition().y] as const,
         ([visible, x, y]) => {
           options.onCrosshair?.(Boolean(visible), { x, y });
         },
@@ -771,19 +697,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     createEffect(
       on(
-        () =>
-          [
-            labelVisible(),
-            labelVariant(),
-            labelContent(),
-            cursorPosition(),
-          ] as const,
-        ([visible, variant, content, position]) => {
-          const contentString = typeof content === "string" ? content : "";
+        () => [labelVisible(), labelVariant(), cursorPosition()] as const,
+        ([visible, variant, position]) => {
           options.onElementLabel?.(Boolean(visible), variant, {
             x: position.x,
             y: position.y,
-            content: contentString,
+            content: "",
           });
         },
       ),
@@ -833,26 +752,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       ),
     );
 
-    const startProgressAnimation = (duration?: number) => {
-      const startTime = Date.now();
-      const animationDuration =
-        duration ?? options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS;
-      setProgressStartTime(startTime);
+    const startProgressAnimation = () => {
+      setProgressStartTime(Date.now());
 
       const animateProgress = () => {
-        const currentStartTime = progressStartTime();
-        if (currentStartTime === null) return;
-
-        const elapsedTime = Date.now() - currentStartTime;
-        const normalizedTime = elapsedTime / animationDuration;
-        const easedProgress = 1 - Math.exp(-normalizedTime);
-        const maxProgressBeforeCompletion = 0.95;
-
-        const currentProgress = isCopying()
-          ? Math.min(easedProgress, maxProgressBeforeCompletion)
-          : 1;
-
-        if (currentProgress < 1) {
+        if (progressStartTime() === null) return;
+        if (isCopying()) {
           progressAnimationId = requestAnimationFrame(animateProgress);
         }
       };
@@ -875,7 +780,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        const direction = getAutoScrollDirection(mouseX(), mouseY());
+        const direction = getAutoScrollDirection(mousePosition().x, mousePosition().y);
 
         if (direction.top) window.scrollBy(0, -AUTO_SCROLL_SPEED_PX);
         if (direction.bottom) window.scrollBy(0, AUTO_SCROLL_SPEED_PX);
@@ -922,7 +827,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setIsInputExpanded(false);
       setIsPendingDismiss(false);
       setFrozenElement(null);
-      setSelectionLabelStatus("idle");
       setDidJustCopy(false);
       if (isDragging()) {
         setIsDragging(false);
@@ -940,13 +844,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (clickData) {
           setLastGrabbedElement(clickData.element);
           const bounds = createElementBounds(clickData.element);
-          const tagName = extractElementTagName(clickData.element);
+          const tagName = getTagName(clickData.element);
           void getNearestComponentName(clickData.element).then(
             (componentName) => {
               void executeCopyOperation(
                 clickData.clientX,
                 clickData.clientY,
-                () => copySingleElementToClipboard(clickData.element),
+                () => copyElementsToClipboard([clickData.element]),
                 bounds,
                 tagName,
                 componentName ?? undefined,
@@ -977,8 +881,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const rect = element.getBoundingClientRect();
         const centerY = rect.top + rect.height / 2;
 
-        setMouseX(session.position.x);
-        setMouseY(centerY);
+        setMousePosition({ x: session.position.x, y: centerY });
         setFrozenElement(element);
         setInputText(session.context.prompt);
         setIsInputExpanded(true);
@@ -1023,7 +926,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       const bounds = createElementBounds(element);
-      const labelPositionX = mouseX();
+      const labelPositionX = mousePosition().x;
       const currentX = bounds.x + bounds.width / 2;
       const currentY = bounds.y + bounds.height / 2;
 
@@ -1033,7 +936,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         const currentReplySessionId = replySessionId();
         setReplySessionId(null);
-        setReplyToPrompt(null);
 
         void agentManager.startSession({
           element,
@@ -1046,8 +948,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return;
       }
 
-      setMouseX(currentX);
-      setMouseY(currentY);
+      setMousePosition({ x: currentX, y: currentY });
       setIsInputMode(false);
       setInputText("");
       if (prompt) {
@@ -1056,12 +957,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         elementInputCache.delete(element);
       }
 
-      const tagName = extractElementTagName(element);
+      const tagName = getTagName(element);
       void getNearestComponentName(element).then((componentName) => {
         void executeCopyOperation(
           currentX,
           currentY,
-          () => copySingleElementToClipboard(element, prompt || undefined),
+          () => copyElementsToClipboard([element], prompt || undefined),
           bounds,
           tagName,
           componentName ?? undefined,
@@ -1115,57 +1016,38 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!hasAgentProvider()) return;
       const element = frozenElement() || targetElement();
       if (element) {
-        const bounds = createElementBounds(element);
-        const selectionCenterX = bounds.x + bounds.width / 2;
-        setCopyStartX(mouseX());
-        setCopyStartY(mouseY());
-        setCopyOffsetFromCenterX(mouseX() - selectionCenterX);
+        setCopyStartPosition(element, mousePosition().x, mousePosition().y);
 
         const cachedInput = elementInputCache.get(element);
         if (cachedInput) {
           setInputText(cachedInput);
         }
       }
-      setIsToggleMode(true);
-      setIsToggleFrozen(true);
-      setIsInputExpanded(true);
-      setIsInputMode(true);
+      activateInputMode();
     };
 
     const handleNativeSelectionCopy = async () => {
       const elements = nativeSelectionElements();
       if (elements.length === 0) return;
 
-      const currentX = nativeSelectionCursorX();
-      const currentY = nativeSelectionCursorY();
+      const currentX = nativeSelectionCursor().x;
+      const currentY = nativeSelectionCursor().y;
       const bounds = nativeSelectionBounds();
       const tagName = nativeSelectionTagName();
 
-      setHasNativeSelection(false);
       clearNativeSelectionState();
       window.getSelection()?.removeAllRanges();
 
       const componentName = nativeSelectionComponentName();
 
-      if (elements.length === 1) {
-        await executeCopyOperation(
-          currentX,
-          currentY,
-          () => copySingleElementToClipboard(elements[0]),
-          bounds,
-          tagName,
-          componentName,
-        );
-      } else {
-        await executeCopyOperation(
-          currentX,
-          currentY,
-          () => copyMultipleElementsToClipboard(elements),
-          bounds,
-          tagName,
-          componentName,
-        );
-      }
+      await executeCopyOperation(
+        currentX,
+        currentY,
+        () => copyElementsToClipboard(elements),
+        bounds,
+        tagName,
+        componentName,
+      );
     };
 
     const handleNativeSelectionEnter = () => {
@@ -1176,30 +1058,24 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const bounds = nativeSelectionBounds();
       const currentX = bounds
         ? bounds.x + bounds.width / 2
-        : nativeSelectionCursorX();
+        : nativeSelectionCursor().x;
       const currentY = bounds
         ? bounds.y + bounds.height / 2
-        : nativeSelectionCursorY();
+        : nativeSelectionCursor().y;
 
-      setHasNativeSelection(false);
       clearNativeSelectionState();
       window.getSelection()?.removeAllRanges();
 
-      setMouseX(currentX);
-      setMouseY(currentY);
-      setIsToggleMode(true);
-      setIsToggleFrozen(true);
-      setIsInputExpanded(true);
+      setMousePosition({ x: currentX, y: currentY });
+      activateInputMode();
       activateRenderer();
-      setIsInputMode(true);
     };
 
     const handlePointerMove = (clientX: number, clientY: number) => {
       if (isInputMode() || isToggleFrozen()) return;
 
       setDidJustCopy(false);
-      setMouseX(clientX);
-      setMouseY(clientY);
+      setMousePosition({ x: clientX, y: clientY });
 
       const now = performance.now();
       if (now - lastElementDetectionTime >= ELEMENT_DETECTION_THROTTLE_MS) {
@@ -1232,8 +1108,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setIsDragging(true);
       const startX = clientX + window.scrollX;
       const startY = clientY + window.scrollY;
-      setDragStartX(startX);
-      setDragStartY(startY);
+      setDragStart({ x: startX, y: startY });
       document.body.style.userSelect = "none";
 
       options.onDragStart?.(startX, startY);
@@ -1262,7 +1137,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const selectedElements =
           elements.length > 0
             ? elements
-            : getElementsInDragLoose(dragRect, isValidGrabbableElement);
+            : getElementsInDrag(dragRect, isValidGrabbableElement, false);
 
         if (selectedElements.length > 0) {
           options.onDragEnd?.(selectedElements, dragRect);
@@ -1276,28 +1151,24 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             borderRadius: "0px",
             transform: stripTranslateFromTransform(firstElement),
           };
-          const tagName = extractElementTagName(firstElement);
+          const tagName = getTagName(firstElement);
 
           const centerX = bounds.x + bounds.width / 2;
           const centerY = bounds.y + bounds.height / 2;
 
           if (hasAgentProvider()) {
-            setMouseX(centerX);
-            setMouseY(centerY);
+            setMousePosition({ x: centerX, y: centerY });
             setFrozenElement(firstElement);
-            setIsToggleMode(true);
-            setIsToggleFrozen(true);
-            setIsInputExpanded(true);
+            activateInputMode();
             if (!isActivated()) {
               activateRenderer();
             }
-            setIsInputMode(true);
           } else {
             void getNearestComponentName(firstElement).then((componentName) => {
               void executeCopyOperation(
                 centerX,
                 centerY,
-                () => copyMultipleElementsToClipboard(selectedElements),
+                () => copyElementsToClipboard(selectedElements),
                 bounds,
                 tagName,
                 componentName ?? undefined,
@@ -1319,24 +1190,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             const clickElement = pendingClickData?.element ?? element;
             pendingClickData = null;
 
-            const bounds = createElementBounds(clickElement);
-            const selectionCenterX = bounds.x + bounds.width / 2;
-            setCopyStartX(clientX);
-            setCopyStartY(clientY);
-            setCopyOffsetFromCenterX(clientX - selectionCenterX);
+            setCopyStartPosition(clickElement, clientX, clientY);
 
             const cachedInput = elementInputCache.get(clickElement);
             if (cachedInput) {
               setInputText(cachedInput);
             }
 
-            setMouseX(clientX);
-            setMouseY(clientY);
+            setMousePosition({ x: clientX, y: clientY });
             setFrozenElement(clickElement);
-            setIsToggleMode(true);
-            setIsToggleFrozen(true);
-            setIsInputExpanded(true);
-            setIsInputMode(true);
+            activateInputMode();
             return;
           }
 
@@ -1350,13 +1213,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
             setLastGrabbedElement(clickData.element);
             const bounds = createElementBounds(clickData.element);
-            const tagName = extractElementTagName(clickData.element);
+            const tagName = getTagName(clickData.element);
             void getNearestComponentName(clickData.element).then(
               (componentName) => {
                 void executeCopyOperation(
                   clickData.clientX,
                   clickData.clientY,
-                  () => copySingleElementToClipboard(clickData.element),
+                  () => copyElementsToClipboard([clickData.element]),
                   bounds,
                   tagName,
                   componentName ?? undefined,
@@ -1368,12 +1231,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         } else {
           setLastGrabbedElement(element);
           const bounds = createElementBounds(element);
-          const tagName = extractElementTagName(element);
+          const tagName = getTagName(element);
           void getNearestComponentName(element).then((componentName) => {
             void executeCopyOperation(
               clientX,
               clientY,
-              () => copySingleElementToClipboard(element),
+              () => copyElementsToClipboard([element]),
               bounds,
               tagName,
               componentName ?? undefined,
@@ -1625,8 +1488,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             setFrozenElement(nextElement);
             setIsToggleFrozen(true);
             const bounds = createElementBounds(nextElement);
-            setMouseX(bounds.x + bounds.width / 2);
-            setMouseY(bounds.y + bounds.height / 2);
+            setMousePosition({
+              x: bounds.x + bounds.width / 2,
+              y: bounds.y + bounds.height / 2,
+            });
             return;
           }
         }
@@ -1653,10 +1518,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           const selectionCenterX = bounds.x + bounds.width / 2;
           const centerY = bounds.y + bounds.height / 2;
 
-          setMouseX(selectionCenterX);
-          setMouseY(centerY);
-          setCopyStartX(selectionCenterX);
-          setCopyStartY(centerY);
+          setMousePosition({ x: selectionCenterX, y: centerY });
+          setCopyStart({ x: selectionCenterX, y: centerY });
           setCopyOffsetFromCenterX(0);
           setFrozenElement(copiedElement);
           setLastCopiedElement(null);
@@ -1667,11 +1530,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             setInputText(cachedInput);
           }
 
-          setIsToggleMode(true);
-          setIsToggleFrozen(true);
-          setIsInputExpanded(true);
+          activateInputMode();
           activateRenderer();
-          setIsInputMode(true);
           return;
         }
 
@@ -1687,11 +1547,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
           const element = frozenElement() || targetElement();
           if (element) {
-            const bounds = createElementBounds(element);
-            const selectionCenterX = bounds.x + bounds.width / 2;
-            setCopyStartX(mouseX());
-            setCopyStartY(mouseY());
-            setCopyOffsetFromCenterX(mouseX() - selectionCenterX);
+            setCopyStartPosition(element, mousePosition().x, mousePosition().y);
 
             const cachedInput = elementInputCache.get(element);
             if (cachedInput) {
@@ -1699,9 +1555,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             }
           }
 
-          setIsToggleMode(true);
-          setIsToggleFrozen(true);
-          setIsInputExpanded(true);
+          activateInputMode();
 
           if (keydownSpamTimerId !== null) {
             window.clearTimeout(keydownSpamTimerId);
@@ -1947,24 +1801,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           pendingClickData = null;
         }
 
-        const bounds = createElementBounds(element);
-        const selectionCenterX = bounds.x + bounds.width / 2;
-        setCopyStartX(event.clientX);
-        setCopyStartY(event.clientY);
-        setCopyOffsetFromCenterX(event.clientX - selectionCenterX);
+        setCopyStartPosition(element, event.clientX, event.clientY);
 
         const cachedInput = elementInputCache.get(element);
         if (cachedInput) {
           setInputText(cachedInput);
         }
 
-        setMouseX(event.clientX);
-        setMouseY(event.clientY);
+        setMousePosition({ x: event.clientX, y: event.clientY });
         setFrozenElement(element);
-        setIsToggleMode(true);
-        setIsToggleFrozen(true);
-        setIsInputExpanded(true);
-        setIsInputMode(true);
+        activateInputMode();
       },
       { capture: true },
     );
@@ -2146,7 +1992,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         window.clearTimeout(selectionDebounceTimerId);
       }
 
-      setHasNativeSelection(false);
+      setNativeSelectionElements([]);
 
       const selection = window.getSelection();
       if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
@@ -2181,16 +2027,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        const isBackward = (() => {
-          if (!currentSelection.anchorNode || !currentSelection.focusNode)
-            return false;
-          const position = currentSelection.anchorNode.compareDocumentPosition(
-            currentSelection.focusNode,
-          );
-          if (position & Node.DOCUMENT_POSITION_FOLLOWING) return false;
-          if (position & Node.DOCUMENT_POSITION_PRECEDING) return true;
-          return currentSelection.anchorOffset > currentSelection.focusOffset;
-        })();
+        const isBackward = isSelectionBackward(currentSelection);
 
         const clientRects = range.getClientRects();
         if (clientRects.length === 0) {
@@ -2216,10 +2053,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             : container.parentElement;
 
         if (element && isValidGrabbableElement(element)) {
-          setNativeSelectionCursorX(cursorX);
-          setNativeSelectionCursorY(cursorY);
+          setNativeSelectionCursor({ x: cursorX, y: cursorY });
           setNativeSelectionElements([element]);
-          setHasNativeSelection(true);
         } else {
           clearNativeSelectionState();
         }
@@ -2246,16 +2081,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const rendererRoot = mountRoot(cssText as string);
 
-    const selectionVisible = createMemo(() => {
-      if (!theme().selectionBox.enabled) return false;
-      if (didJustCopy()) return false;
-      return isRendererActive() && !isDragging() && Boolean(effectiveElement());
-    });
+    const createElementVisibilityMemo = (
+      themeKey: "selectionBox" | "elementLabel",
+    ) =>
+      createMemo(() => {
+        if (!theme()[themeKey].enabled) return false;
+        if (didJustCopy()) return false;
+        return isRendererActive() && !isDragging() && Boolean(effectiveElement());
+      });
+
+    const selectionVisible = createElementVisibilityMemo("selectionBox");
 
     const selectionTagName = createMemo(() => {
       const element = effectiveElement();
       if (!element) return undefined;
-      return extractElementTagName(element) || undefined;
+      return getTagName(element) || undefined;
     });
 
     const [selectionComponentName] = createResource(
@@ -2267,11 +2107,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
     );
 
-    const selectionLabelVisible = createMemo(() => {
-      if (!theme().elementLabel.enabled) return false;
-      if (didJustCopy()) return false;
-      return isRendererActive() && !isDragging() && Boolean(effectiveElement());
-    });
+    const selectionLabelVisible = createElementVisibilityMemo("elementLabel");
 
     const computedLabelInstances = createMemo(() => {
       viewportVersion();
@@ -2350,7 +2186,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             selectionTagName={selectionTagName()}
             selectionComponentName={selectionComponentName()}
             selectionLabelVisible={selectionLabelVisible()}
-            selectionLabelStatus={selectionLabelStatus()}
+            selectionLabelStatus="idle"
             labelInstances={computedLabelInstances()}
             dragVisible={dragVisible()}
             dragBounds={dragBounds()}
@@ -2363,7 +2199,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             crosshairVisible={crosshairVisible()}
             inputValue={inputText()}
             isInputExpanded={isInputExpanded()}
-            replyToPrompt={replyToPrompt() ?? undefined}
             hasAgent={hasAgentProvider()}
             isAgentConnected={isAgentConnected()}
             agentSessions={agentManager.sessions()}
@@ -2418,8 +2253,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onConfirmAgentAbort={handleConfirmAgentAbort}
             onCancelAgentAbort={handleCancelAgentAbort}
             nativeSelectionCursorVisible={hasNativeSelection()}
-            nativeSelectionCursorX={nativeSelectionCursorX()}
-            nativeSelectionCursorY={nativeSelectionCursorY()}
+            nativeSelectionCursorX={nativeSelectionCursor().x}
+            nativeSelectionCursorY={nativeSelectionCursor().y}
             nativeSelectionTagName={nativeSelectionTagName()}
             nativeSelectionComponentName={nativeSelectionComponentName()}
             nativeSelectionBounds={nativeSelectionBounds()}
