@@ -1741,6 +1741,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           if (isEnterCode(event.code)) {
             event.stopPropagation();
             event.stopImmediatePropagation();
+            
+            const element = frozenElement() || targetElement();
+            if (element) {
+              handleToggleExpand();
+              return;
+            }
           }
         }
 
