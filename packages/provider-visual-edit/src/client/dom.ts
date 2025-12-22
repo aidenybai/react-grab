@@ -1392,12 +1392,17 @@ export const createUndoableProxy = (element: HTMLElement) => {
           const dialogTarget = target as HTMLDialogElement;
           if ("close" in dialogTarget) {
             const wasOpen = dialogTarget.open;
+            const wasModal = dialogTarget.matches(":modal");
             const originalReturnValue = dialogTarget.returnValue;
             dialogTarget.close(returnValue);
             if (wasOpen) {
               record(() => {
                 dialogTarget.returnValue = originalReturnValue;
-                dialogTarget.show();
+                if (wasModal) {
+                  dialogTarget.showModal();
+                } else {
+                  dialogTarget.show();
+                }
               });
             }
           }
