@@ -879,8 +879,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const activateRenderer = () => {
       stopProgressAnimation();
+      const wasInHoldingState = isHoldingKeys();
       send({ type: "ACTIVATE" });
-      options.onActivate?.();
+      // HACK: Only call onActivate if we weren't in holding state.
+      // When coming from holding state, the reactive effect (wasHolding transition)
+      // will handle calling onActivate to avoid duplicate invocations.
+      if (!wasInHoldingState) {
+        options.onActivate?.();
+      }
     };
 
     const deactivateRenderer = () => {
