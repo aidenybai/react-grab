@@ -330,7 +330,10 @@ export const createUndoableProxy = (element: HTMLElement) => {
   const datasetToProxy = new WeakMap<DOMStringMap, DOMStringMap>();
   const namedNodeMapToProxy = new WeakMap<NamedNodeMap, NamedNodeMap>();
   const styleMapToProxy = new WeakMap<StylePropertyMap, StylePropertyMap>();
-  const optionsCollectionToProxy = new WeakMap<HTMLOptionsCollection, HTMLOptionsCollection>();
+  const optionsCollectionToProxy = new WeakMap<
+    HTMLOptionsCollection,
+    HTMLOptionsCollection
+  >();
   const addedEventListeners: {
     target: EventTarget;
     type: string;
@@ -350,12 +353,17 @@ export const createUndoableProxy = (element: HTMLElement) => {
   const unwrapNodes = (nodes: (Node | string)[]): (Node | string)[] =>
     nodes.map((node) => (typeof node === "string" ? node : unwrapProxy(node)));
 
-  const captureNodePosition = (node: Node): { parent: Node | null; nextSibling: Node | null } => ({
+  const captureNodePosition = (
+    node: Node,
+  ): { parent: Node | null; nextSibling: Node | null } => ({
     parent: node.parentNode,
     nextSibling: node.nextSibling,
   });
 
-  const restoreNodePosition = (node: Node, position: { parent: Node | null; nextSibling: Node | null }) => {
+  const restoreNodePosition = (
+    node: Node,
+    position: { parent: Node | null; nextSibling: Node | null },
+  ) => {
     if (position.parent) {
       position.parent.insertBefore(node, position.nextSibling);
     }
@@ -374,7 +382,10 @@ export const createUndoableProxy = (element: HTMLElement) => {
   ): T =>
     ((...nodes: (Node | string)[]) => {
       const unwrappedNodes = unwrapNodes(nodes);
-      const originalPositions = new Map<Node, { parent: Node | null; nextSibling: Node | null }>();
+      const originalPositions = new Map<
+        Node,
+        { parent: Node | null; nextSibling: Node | null }
+      >();
 
       for (const node of unwrappedNodes) {
         if (typeof node !== "string") {
@@ -388,7 +399,9 @@ export const createUndoableProxy = (element: HTMLElement) => {
       method(...unwrappedNodes);
       const nodesAfter = getRelevantNodes();
 
-      const insertedNodes = nodesAfter.filter((node) => !nodesBefore.includes(node));
+      const insertedNodes = nodesAfter.filter(
+        (node) => !nodesBefore.includes(node),
+      );
 
       record(() => {
         for (const node of insertedNodes) {
@@ -400,18 +413,16 @@ export const createUndoableProxy = (element: HTMLElement) => {
       });
     }) as T;
 
-  const createStyleProxy = (styleTarget: CSSStyleDeclaration): CSSStyleDeclaration => {
+  const createStyleProxy = (
+    styleTarget: CSSStyleDeclaration,
+  ): CSSStyleDeclaration => {
     const existingProxy = styleToProxy.get(styleTarget);
     if (existingProxy) return existingProxy;
 
     const proxy = new Proxy(styleTarget, {
       get(target, prop) {
         if (prop === "setProperty") {
-          return (
-            propertyName: string,
-            value: string,
-            priority?: string,
-          ) => {
+          return (propertyName: string, value: string, priority?: string) => {
             const originalValue = target.getPropertyValue(propertyName);
             const originalPriority = target.getPropertyPriority(propertyName);
             target.setProperty(propertyName, value, priority);
@@ -458,7 +469,9 @@ export const createUndoableProxy = (element: HTMLElement) => {
     return proxy;
   };
 
-  const createDOMTokenListProxy = (tokenListTarget: DOMTokenList): DOMTokenList => {
+  const createDOMTokenListProxy = (
+    tokenListTarget: DOMTokenList,
+  ): DOMTokenList => {
     const existingProxy = tokenListToProxy.get(tokenListTarget);
     if (existingProxy) return existingProxy;
 
@@ -484,9 +497,7 @@ export const createUndoableProxy = (element: HTMLElement) => {
           return (token: string, force?: boolean) => {
             const hadToken = target.contains(token);
             const result = target.toggle(token, force);
-            record(() =>
-              hadToken ? target.add(token) : target.remove(token),
-            );
+            record(() => (hadToken ? target.add(token) : target.remove(token)));
             return result;
           };
         if (prop === "replace")
@@ -697,7 +708,9 @@ export const createUndoableProxy = (element: HTMLElement) => {
     return proxy;
   };
 
-  const createStyleMapProxy = (styleMap: StylePropertyMap): StylePropertyMap => {
+  const createStyleMapProxy = (
+    styleMap: StylePropertyMap,
+  ): StylePropertyMap => {
     const existingProxy = styleMapToProxy.get(styleMap);
     if (existingProxy) return existingProxy;
 
@@ -787,7 +800,12 @@ export const createUndoableProxy = (element: HTMLElement) => {
             thisArg?: unknown,
           ) => {
             target.forEach((currentNode, index, list) => {
-              callback.call(thisArg, createElementProxy(currentNode) as Node, index, list);
+              callback.call(
+                thisArg,
+                createElementProxy(currentNode) as Node,
+                index,
+                list,
+              );
             });
           };
         }
@@ -809,7 +827,9 @@ export const createUndoableProxy = (element: HTMLElement) => {
           };
         }
         const propertyValue = Reflect.get(target, property);
-        return typeof propertyValue === "function" ? propertyValue.bind(target) : propertyValue;
+        return typeof propertyValue === "function"
+          ? propertyValue.bind(target)
+          : propertyValue;
       },
     });
 
@@ -827,7 +847,8 @@ export const createUndoableProxy = (element: HTMLElement) => {
           return (index: number) => createElementProxy(target.item(index));
         }
         if (property === "namedItem" && "namedItem" in target) {
-          return (name: string) => createElementProxy((target as HTMLCollection).namedItem(name));
+          return (name: string) =>
+            createElementProxy((target as HTMLCollection).namedItem(name));
         }
         if (property === Symbol.iterator) {
           return function* () {
@@ -837,7 +858,9 @@ export const createUndoableProxy = (element: HTMLElement) => {
           };
         }
         const propertyValue = Reflect.get(target, property);
-        return typeof propertyValue === "function" ? propertyValue.bind(target) : propertyValue;
+        return typeof propertyValue === "function"
+          ? propertyValue.bind(target)
+          : propertyValue;
       },
     });
   };
@@ -865,10 +888,17 @@ export const createUndoableProxy = (element: HTMLElement) => {
             optionElement: HTMLOptionElement | HTMLOptGroupElement,
             before?: HTMLElement | number | null,
           ) => {
-            const unwrappedOption = unwrapProxy(optionElement) as HTMLOptionElement | HTMLOptGroupElement;
-            const unwrappedBefore = typeof before === "number" || before == null ? before : (unwrapProxy(before) as HTMLElement);
+            const unwrappedOption = unwrapProxy(optionElement) as
+              | HTMLOptionElement
+              | HTMLOptGroupElement;
+            const unwrappedBefore =
+              typeof before === "number" || before == null
+                ? before
+                : (unwrapProxy(before) as HTMLElement);
             target.add(unwrappedOption, unwrappedBefore);
-            record(() => unwrappedOption.parentNode?.removeChild(unwrappedOption));
+            record(() =>
+              unwrappedOption.parentNode?.removeChild(unwrappedOption),
+            );
           };
         }
         if (property === "remove") {
@@ -881,12 +911,16 @@ export const createUndoableProxy = (element: HTMLElement) => {
               record(() => {
                 const tempContainer = document.createElement("div");
                 tempContainer.innerHTML = originalHTML;
-                const restoredOption = tempContainer.firstChild as HTMLOptionElement;
+                const restoredOption =
+                  tempContainer.firstChild as HTMLOptionElement;
                 if (restoredOption) {
                   if (removalIndex >= target.length) {
                     selectElement.appendChild(restoredOption);
                   } else {
-                    selectElement.insertBefore(restoredOption, target[removalIndex]);
+                    selectElement.insertBefore(
+                      restoredOption,
+                      target[removalIndex],
+                    );
                   }
                 }
               });
@@ -907,7 +941,9 @@ export const createUndoableProxy = (element: HTMLElement) => {
           };
         }
         const propertyValue = Reflect.get(target, property);
-        return typeof propertyValue === "function" ? propertyValue.bind(target) : propertyValue;
+        return typeof propertyValue === "function"
+          ? propertyValue.bind(target)
+          : propertyValue;
       },
       set(target, property, value) {
         if (property === "selectedIndex") {
@@ -928,7 +964,8 @@ export const createUndoableProxy = (element: HTMLElement) => {
             for (const optionHTML of originalOptionsHTML) {
               const tempContainer = document.createElement("div");
               tempContainer.innerHTML = optionHTML;
-              const restoredOption = tempContainer.firstChild as HTMLOptionElement;
+              const restoredOption =
+                tempContainer.firstChild as HTMLOptionElement;
               if (restoredOption) {
                 selectElement.appendChild(restoredOption);
               }
@@ -972,7 +1009,9 @@ export const createUndoableProxy = (element: HTMLElement) => {
       case "toggleAttribute":
         return (name: string, force?: boolean) => {
           const hadAttribute = element.hasAttribute(name);
-          const originalValue = hadAttribute ? element.getAttribute(name)! : null;
+          const originalValue = hadAttribute
+            ? element.getAttribute(name)!
+            : null;
           const result = element.toggleAttribute(name, force);
           record(() => {
             if (hadAttribute) {
@@ -988,10 +1027,15 @@ export const createUndoableProxy = (element: HTMLElement) => {
           const localName = name.includes(":") ? name.split(":")[1] : name;
           const hadAttribute = element.hasAttributeNS(namespace, localName);
           const originalValue = element.getAttributeNS(namespace, localName);
-          const originalQualifiedName = element.getAttributeNodeNS(namespace, localName)?.name ?? localName;
+          const originalQualifiedName =
+            element.getAttributeNodeNS(namespace, localName)?.name ?? localName;
           record(() =>
             hadAttribute
-              ? element.setAttributeNS(namespace, originalQualifiedName, originalValue!)
+              ? element.setAttributeNS(
+                  namespace,
+                  originalQualifiedName,
+                  originalValue!,
+                )
               : element.removeAttributeNS(namespace, localName),
           );
           return element.setAttributeNS(namespace, name, value);
@@ -1000,8 +1044,12 @@ export const createUndoableProxy = (element: HTMLElement) => {
         return (namespace: string | null, localName: string) => {
           if (element.hasAttributeNS(namespace, localName)) {
             const originalValue = element.getAttributeNS(namespace, localName)!;
-            const qualifiedName = element.getAttributeNodeNS(namespace, localName)?.name ?? localName;
-            record(() => element.setAttributeNS(namespace, qualifiedName, originalValue));
+            const qualifiedName =
+              element.getAttributeNodeNS(namespace, localName)?.name ??
+              localName;
+            record(() =>
+              element.setAttributeNS(namespace, qualifiedName, originalValue),
+            );
           }
           return element.removeAttributeNS(namespace, localName);
         };
@@ -1035,7 +1083,9 @@ export const createUndoableProxy = (element: HTMLElement) => {
       case "appendChild":
         return (child: Node) => {
           const unwrappedChild = unwrapProxy(child);
-          const originalPosition = unwrappedChild.parentNode ? captureNodePosition(unwrappedChild) : null;
+          const originalPosition = unwrappedChild.parentNode
+            ? captureNodePosition(unwrappedChild)
+            : null;
           const fragmentChildren = getFragmentChildren(unwrappedChild);
           const result = element.appendChild(unwrappedChild);
           record(() => {
@@ -1063,8 +1113,12 @@ export const createUndoableProxy = (element: HTMLElement) => {
       case "insertBefore":
         return (nodeToInsert: Node, referenceNode: Node | null) => {
           const unwrappedNode = unwrapProxy(nodeToInsert);
-          const unwrappedRef = referenceNode ? unwrapProxy(referenceNode) : null;
-          const originalPosition = unwrappedNode.parentNode ? captureNodePosition(unwrappedNode) : null;
+          const unwrappedRef = referenceNode
+            ? unwrapProxy(referenceNode)
+            : null;
+          const originalPosition = unwrappedNode.parentNode
+            ? captureNodePosition(unwrappedNode)
+            : null;
           const fragmentChildren = getFragmentChildren(unwrappedNode);
           const result = element.insertBefore(unwrappedNode, unwrappedRef);
           record(() => {
@@ -1086,22 +1140,36 @@ export const createUndoableProxy = (element: HTMLElement) => {
           const unwrappedNewChild = unwrapProxy(newChild);
           const unwrappedOldChild = unwrapProxy(oldChild);
           const nextSibling = unwrappedOldChild.nextSibling;
-          const newChildOriginalPosition = unwrappedNewChild.parentNode ? captureNodePosition(unwrappedNewChild) : null;
+          const newChildOriginalPosition = unwrappedNewChild.parentNode
+            ? captureNodePosition(unwrappedNewChild)
+            : null;
           const fragmentChildren = getFragmentChildren(unwrappedNewChild);
-          const result = element.replaceChild(unwrappedNewChild, unwrappedOldChild);
+          const result = element.replaceChild(
+            unwrappedNewChild,
+            unwrappedOldChild,
+          );
           record(() => {
             if (fragmentChildren.length > 0) {
               const firstFragmentChild = fragmentChildren[0];
               if (firstFragmentChild?.parentNode) {
-                firstFragmentChild.parentNode.replaceChild(unwrappedOldChild, firstFragmentChild);
+                firstFragmentChild.parentNode.replaceChild(
+                  unwrappedOldChild,
+                  firstFragmentChild,
+                );
               }
               for (let index = 1; index < fragmentChildren.length; index++) {
-                fragmentChildren[index].parentNode?.removeChild(fragmentChildren[index]);
+                fragmentChildren[index].parentNode?.removeChild(
+                  fragmentChildren[index],
+                );
               }
             } else {
               element.replaceChild(unwrappedOldChild, unwrappedNewChild);
             }
-            if (nextSibling && nextSibling.parentNode === element && unwrappedOldChild.nextSibling !== nextSibling) {
+            if (
+              nextSibling &&
+              nextSibling.parentNode === element &&
+              unwrappedOldChild.nextSibling !== nextSibling
+            ) {
               element.insertBefore(unwrappedOldChild, nextSibling);
             }
             if (newChildOriginalPosition) {
@@ -1118,36 +1186,41 @@ export const createUndoableProxy = (element: HTMLElement) => {
           record(() => parent?.insertBefore(target, nextSibling));
         };
       case "append":
-        return wrapNodeInsertion(
-          element.append.bind(element),
-          () => Array.from(element.childNodes),
+        return wrapNodeInsertion(element.append.bind(element), () =>
+          Array.from(element.childNodes),
         );
       case "prepend":
-        return wrapNodeInsertion(
-          element.prepend.bind(element),
-          () => Array.from(element.childNodes),
+        return wrapNodeInsertion(element.prepend.bind(element), () =>
+          Array.from(element.childNodes),
         );
       case "after":
-        return wrapNodeInsertion(
-          element.after.bind(element),
-          () => (element.parentNode ? Array.from(element.parentNode.childNodes) : []),
+        return wrapNodeInsertion(element.after.bind(element), () =>
+          element.parentNode ? Array.from(element.parentNode.childNodes) : [],
         );
       case "before":
-        return wrapNodeInsertion(
-          element.before.bind(element),
-          () => (element.parentNode ? Array.from(element.parentNode.childNodes) : []),
+        return wrapNodeInsertion(element.before.bind(element), () =>
+          element.parentNode ? Array.from(element.parentNode.childNodes) : [],
         );
       case "replaceWith":
         return (...nodes: (Node | string)[]) => {
           const unwrappedNodes = unwrapNodes(nodes);
           const parent = target.parentNode;
           const nextSibling = target.nextSibling;
-          const originalPositions = new Map<Node, { parent: Node | null; nextSibling: Node | null }>();
+          const originalPositions = new Map<
+            Node,
+            { parent: Node | null; nextSibling: Node | null }
+          >();
 
           for (const currentNode of unwrappedNodes) {
             if (typeof currentNode !== "string") {
-              if (!(currentNode instanceof DocumentFragment) && currentNode.parentNode) {
-                originalPositions.set(currentNode, captureNodePosition(currentNode));
+              if (
+                !(currentNode instanceof DocumentFragment) &&
+                currentNode.parentNode
+              ) {
+                originalPositions.set(
+                  currentNode,
+                  captureNodePosition(currentNode),
+                );
               }
             }
           }
@@ -1156,7 +1229,9 @@ export const createUndoableProxy = (element: HTMLElement) => {
           element.replaceWith(...unwrappedNodes);
           const siblingsAfter = parent ? Array.from(parent.childNodes) : [];
 
-          const insertedNodes = siblingsAfter.filter((node) => !siblingsBefore.includes(node));
+          const insertedNodes = siblingsAfter.filter(
+            (node) => !siblingsBefore.includes(node),
+          );
 
           record(() => {
             const firstNode = insertedNodes[0];
@@ -1177,11 +1252,21 @@ export const createUndoableProxy = (element: HTMLElement) => {
         return (...nodes: (Node | string)[]) => {
           const unwrappedNodes = unwrapNodes(nodes);
           const originalChildren = Array.from(element.childNodes);
-          const originalPositions = new Map<Node, { parent: Node | null; nextSibling: Node | null }>();
+          const originalPositions = new Map<
+            Node,
+            { parent: Node | null; nextSibling: Node | null }
+          >();
 
           for (const currentNode of unwrappedNodes) {
-            if (typeof currentNode !== "string" && currentNode.parentNode && currentNode.parentNode !== element) {
-              originalPositions.set(currentNode, captureNodePosition(currentNode));
+            if (
+              typeof currentNode !== "string" &&
+              currentNode.parentNode &&
+              currentNode.parentNode !== element
+            ) {
+              originalPositions.set(
+                currentNode,
+                captureNodePosition(currentNode),
+              );
             }
           }
 
@@ -1197,13 +1282,17 @@ export const createUndoableProxy = (element: HTMLElement) => {
       case "insertAdjacentHTML":
         return (position: InsertPosition, html: string) => {
           const childrenBefore = Array.from(element.childNodes);
-          const siblingsBefore = element.parentNode ? Array.from(element.parentNode.childNodes) : [];
+          const siblingsBefore = element.parentNode
+            ? Array.from(element.parentNode.childNodes)
+            : [];
           element.insertAdjacentHTML(position, html);
           const insertedChildren = Array.from(element.childNodes).filter(
             (child) => !childrenBefore.includes(child),
           );
           const insertedSiblings = element.parentNode
-            ? Array.from(element.parentNode.childNodes).filter((sibling) => !siblingsBefore.includes(sibling))
+            ? Array.from(element.parentNode.childNodes).filter(
+                (sibling) => !siblingsBefore.includes(sibling),
+              )
             : [];
           record(() =>
             [...insertedChildren, ...insertedSiblings].forEach((insertedNode) =>
@@ -1214,8 +1303,13 @@ export const createUndoableProxy = (element: HTMLElement) => {
       case "insertAdjacentElement":
         return (position: InsertPosition, elementToInsert: Element) => {
           const unwrappedElement = unwrapProxy(elementToInsert) as Element;
-          const originalPosition = unwrappedElement.parentNode ? captureNodePosition(unwrappedElement) : null;
-          const result = element.insertAdjacentElement(position, unwrappedElement);
+          const originalPosition = unwrappedElement.parentNode
+            ? captureNodePosition(unwrappedElement)
+            : null;
+          const result = element.insertAdjacentElement(
+            position,
+            unwrappedElement,
+          );
           if (result) {
             record(() => {
               result.parentNode?.removeChild(result);
@@ -1229,13 +1323,17 @@ export const createUndoableProxy = (element: HTMLElement) => {
       case "insertAdjacentText":
         return (position: InsertPosition, text: string) => {
           const childrenBefore = Array.from(element.childNodes);
-          const siblingsBefore = element.parentNode ? Array.from(element.parentNode.childNodes) : [];
+          const siblingsBefore = element.parentNode
+            ? Array.from(element.parentNode.childNodes)
+            : [];
           element.insertAdjacentText(position, text);
           const insertedChildren = Array.from(element.childNodes).filter(
             (child) => !childrenBefore.includes(child),
           );
           const insertedSiblings = element.parentNode
-            ? Array.from(element.parentNode.childNodes).filter((sibling) => !siblingsBefore.includes(sibling))
+            ? Array.from(element.parentNode.childNodes).filter(
+                (sibling) => !siblingsBefore.includes(sibling),
+              )
             : [];
           record(() =>
             [...insertedChildren, ...insertedSiblings].forEach((insertedNode) =>
@@ -1247,7 +1345,11 @@ export const createUndoableProxy = (element: HTMLElement) => {
         return (html: string, options?: unknown) => {
           if ("setHTML" in element) {
             const originalInnerHTML = element.innerHTML;
-            (element as HTMLElement & { setHTML: (html: string, options?: unknown) => void }).setHTML(html, options);
+            (
+              element as HTMLElement & {
+                setHTML: (html: string, options?: unknown) => void;
+              }
+            ).setHTML(html, options);
             record(() => {
               element.innerHTML = originalInnerHTML;
             });
@@ -1255,12 +1357,22 @@ export const createUndoableProxy = (element: HTMLElement) => {
         };
       case "normalize":
         return () => {
-          const textNodeData: { parent: Node; data: string; nextNonTextSibling: Node | null }[] = [];
-          const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+          const textNodeData: {
+            parent: Node;
+            data: string;
+            nextNonTextSibling: Node | null;
+          }[] = [];
+          const walker = document.createTreeWalker(
+            element,
+            NodeFilter.SHOW_TEXT,
+          );
           let currentTextNode = walker.nextNode();
           while (currentTextNode) {
             let nextNonTextSibling = currentTextNode.nextSibling;
-            while (nextNonTextSibling && nextNonTextSibling.nodeType === Node.TEXT_NODE) {
+            while (
+              nextNonTextSibling &&
+              nextNonTextSibling.nodeType === Node.TEXT_NODE
+            ) {
               nextNonTextSibling = nextNonTextSibling.nextSibling;
             }
             textNodeData.push({
@@ -1272,7 +1384,10 @@ export const createUndoableProxy = (element: HTMLElement) => {
           }
           element.normalize();
           const mergedTextNodes: Text[] = [];
-          const mergedWalker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+          const mergedWalker = document.createTreeWalker(
+            element,
+            NodeFilter.SHOW_TEXT,
+          );
           let mergedNode = mergedWalker.nextNode();
           while (mergedNode) {
             mergedTextNodes.push(mergedNode as Text);
@@ -1287,7 +1402,11 @@ export const createUndoableProxy = (element: HTMLElement) => {
             let lastNextNonTextSibling: Node | null | undefined = undefined;
             for (const { parent, data, nextNonTextSibling } of textNodeData) {
               const restoredTextNode = document.createTextNode(data);
-              if (parent === lastParent && nextNonTextSibling === lastNextNonTextSibling && lastInserted) {
+              if (
+                parent === lastParent &&
+                nextNonTextSibling === lastNextNonTextSibling &&
+                lastInserted
+              ) {
                 parent.insertBefore(restoredTextNode, lastInserted.nextSibling);
               } else {
                 parent.insertBefore(restoredTextNode, nextNonTextSibling);
@@ -1310,8 +1429,15 @@ export const createUndoableProxy = (element: HTMLElement) => {
           options?: boolean | AddEventListenerOptions,
         ) => {
           element.addEventListener(eventType, listener, options);
-          addedEventListeners.push({ target, type: eventType, listener, options });
-          record(() => element.removeEventListener(eventType, listener, options));
+          addedEventListeners.push({
+            target,
+            type: eventType,
+            listener,
+            options,
+          });
+          record(() =>
+            element.removeEventListener(eventType, listener, options),
+          );
         };
       case "removeEventListener":
         return (
@@ -1384,7 +1510,10 @@ export const createUndoableProxy = (element: HTMLElement) => {
       case "showPopover":
         return () => {
           if ("showPopover" in element && "hidePopover" in element) {
-            const popoverElement = element as HTMLElement & { showPopover: () => void; hidePopover: () => void };
+            const popoverElement = element as HTMLElement & {
+              showPopover: () => void;
+              hidePopover: () => void;
+            };
             const wasShowing = element.matches(":popover-open");
             popoverElement.showPopover();
             if (!wasShowing) {
@@ -1395,7 +1524,10 @@ export const createUndoableProxy = (element: HTMLElement) => {
       case "hidePopover":
         return () => {
           if ("hidePopover" in element && "showPopover" in element) {
-            const popoverElement = element as HTMLElement & { showPopover: () => void; hidePopover: () => void };
+            const popoverElement = element as HTMLElement & {
+              showPopover: () => void;
+              hidePopover: () => void;
+            };
             const wasShowing = element.matches(":popover-open");
             popoverElement.hidePopover();
             if (wasShowing) {
@@ -1406,7 +1538,9 @@ export const createUndoableProxy = (element: HTMLElement) => {
       case "togglePopover":
         return (force?: boolean) => {
           if ("togglePopover" in element) {
-            const popoverElement = element as HTMLElement & { togglePopover: (force?: boolean) => boolean };
+            const popoverElement = element as HTMLElement & {
+              togglePopover: (force?: boolean) => boolean;
+            };
             const wasShowing = element.matches(":popover-open");
             const result = popoverElement.togglePopover(force);
             record(() => popoverElement.togglePopover(wasShowing));
@@ -1415,7 +1549,10 @@ export const createUndoableProxy = (element: HTMLElement) => {
           return false;
         };
       case "scrollTo":
-        return (xOrOptions?: number | ScrollToOptions, yCoordinate?: number) => {
+        return (
+          xOrOptions?: number | ScrollToOptions,
+          yCoordinate?: number,
+        ) => {
           const originalScrollLeft = element.scrollLeft;
           const originalScrollTop = element.scrollTop;
           if (typeof xOrOptions === "number") {
@@ -1426,7 +1563,10 @@ export const createUndoableProxy = (element: HTMLElement) => {
           record(() => element.scrollTo(originalScrollLeft, originalScrollTop));
         };
       case "scrollBy":
-        return (xOrOptions?: number | ScrollToOptions, yCoordinate?: number) => {
+        return (
+          xOrOptions?: number | ScrollToOptions,
+          yCoordinate?: number,
+        ) => {
           const originalScrollLeft = element.scrollLeft;
           const originalScrollTop = element.scrollTop;
           if (typeof xOrOptions === "number") {
@@ -1443,7 +1583,9 @@ export const createUndoableProxy = (element: HTMLElement) => {
           const originalScrollTop = scrollableParent?.scrollTop ?? 0;
           element.scrollIntoView(scrollOptions);
           if (scrollableParent) {
-            record(() => scrollableParent.scrollTo(originalScrollLeft, originalScrollTop));
+            record(() =>
+              scrollableParent.scrollTo(originalScrollLeft, originalScrollTop),
+            );
           }
         };
       case "setSelectionRange":
@@ -1457,9 +1599,17 @@ export const createUndoableProxy = (element: HTMLElement) => {
             const originalStart = inputElement.selectionStart;
             const originalEnd = inputElement.selectionEnd;
             const originalDirection = inputElement.selectionDirection;
-            inputElement.setSelectionRange(selectionStart, selectionEnd, selectionDirection);
+            inputElement.setSelectionRange(
+              selectionStart,
+              selectionEnd,
+              selectionDirection,
+            );
             record(() =>
-              inputElement.setSelectionRange(originalStart, originalEnd, originalDirection ?? undefined),
+              inputElement.setSelectionRange(
+                originalStart,
+                originalEnd,
+                originalDirection ?? undefined,
+              ),
             );
           }
         };
@@ -1476,7 +1626,12 @@ export const createUndoableProxy = (element: HTMLElement) => {
             const originalStart = inputElement.selectionStart;
             const originalEnd = inputElement.selectionEnd;
             if (rangeStart !== undefined && rangeEnd !== undefined) {
-              inputElement.setRangeText(replacementText, rangeStart, rangeEnd, selectMode);
+              inputElement.setRangeText(
+                replacementText,
+                rangeStart,
+                rangeEnd,
+                selectMode,
+              );
             } else {
               inputElement.setRangeText(replacementText);
             }
@@ -1506,7 +1661,9 @@ export const createUndoableProxy = (element: HTMLElement) => {
           if ("appendData" in characterData) {
             const originalLength = characterData.length;
             characterData.appendData(dataToAppend);
-            record(() => characterData.deleteData(originalLength, dataToAppend.length));
+            record(() =>
+              characterData.deleteData(originalLength, dataToAppend.length),
+            );
           }
         };
       case "deleteData":
@@ -1532,7 +1689,13 @@ export const createUndoableProxy = (element: HTMLElement) => {
           if ("replaceData" in characterData) {
             const originalData = characterData.substringData(offset, count);
             characterData.replaceData(offset, count, replacementData);
-            record(() => characterData.replaceData(offset, replacementData.length, originalData));
+            record(() =>
+              characterData.replaceData(
+                offset,
+                replacementData.length,
+                originalData,
+              ),
+            );
           }
         };
       case "focus":
@@ -1540,7 +1703,11 @@ export const createUndoableProxy = (element: HTMLElement) => {
           const previouslyFocusedElement = document.activeElement;
           element.focus(focusOptions);
           record(() => {
-            if (previouslyFocusedElement && previouslyFocusedElement !== document.body && "focus" in previouslyFocusedElement) {
+            if (
+              previouslyFocusedElement &&
+              previouslyFocusedElement !== document.body &&
+              "focus" in previouslyFocusedElement
+            ) {
               (previouslyFocusedElement as HTMLElement).focus();
             } else {
               element.blur();
@@ -1560,16 +1727,33 @@ export const createUndoableProxy = (element: HTMLElement) => {
           const formTarget = target as HTMLFormElement;
           if ("reset" in formTarget && "elements" in formTarget) {
             const formValues: Map<HTMLElement, unknown> = new Map();
-            for (let elementIndex = 0; elementIndex < formTarget.elements.length; elementIndex++) {
-              const formElement = formTarget.elements[elementIndex] as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+            for (
+              let elementIndex = 0;
+              elementIndex < formTarget.elements.length;
+              elementIndex++
+            ) {
+              const formElement = formTarget.elements[elementIndex] as
+                | HTMLInputElement
+                | HTMLTextAreaElement
+                | HTMLSelectElement;
               if ("value" in formElement) {
-                if (formElement instanceof HTMLInputElement && (formElement.type === "checkbox" || formElement.type === "radio")) {
+                if (
+                  formElement instanceof HTMLInputElement &&
+                  (formElement.type === "checkbox" ||
+                    formElement.type === "radio")
+                ) {
                   formValues.set(formElement, formElement.checked);
                 } else if (formElement instanceof HTMLSelectElement) {
                   if (formElement.multiple) {
                     const optionSelectedStates: boolean[] = [];
-                    for (let optionIndex = 0; optionIndex < formElement.options.length; optionIndex++) {
-                      optionSelectedStates.push(formElement.options[optionIndex].selected);
+                    for (
+                      let optionIndex = 0;
+                      optionIndex < formElement.options.length;
+                      optionIndex++
+                    ) {
+                      optionSelectedStates.push(
+                        formElement.options[optionIndex].selected,
+                      );
                     }
                     formValues.set(formElement, optionSelectedStates);
                   } else {
@@ -1583,19 +1767,30 @@ export const createUndoableProxy = (element: HTMLElement) => {
             formTarget.reset();
             record(() => {
               for (const [formElement, savedValue] of formValues) {
-                if (formElement instanceof HTMLInputElement && (formElement.type === "checkbox" || formElement.type === "radio")) {
+                if (
+                  formElement instanceof HTMLInputElement &&
+                  (formElement.type === "checkbox" ||
+                    formElement.type === "radio")
+                ) {
                   formElement.checked = savedValue as boolean;
                 } else if (formElement instanceof HTMLSelectElement) {
                   if (formElement.multiple) {
                     const optionSelectedStates = savedValue as boolean[];
-                    for (let optionIndex = 0; optionIndex < formElement.options.length; optionIndex++) {
-                      formElement.options[optionIndex].selected = optionSelectedStates[optionIndex] ?? false;
+                    for (
+                      let optionIndex = 0;
+                      optionIndex < formElement.options.length;
+                      optionIndex++
+                    ) {
+                      formElement.options[optionIndex].selected =
+                        optionSelectedStates[optionIndex] ?? false;
                     }
                   } else {
                     formElement.selectedIndex = savedValue as number;
                   }
                 } else if ("value" in formElement) {
-                  (formElement as HTMLInputElement | HTMLTextAreaElement).value = savedValue as string;
+                  (
+                    formElement as HTMLInputElement | HTMLTextAreaElement
+                  ).value = savedValue as string;
                 }
               }
             });
@@ -1612,23 +1807,32 @@ export const createUndoableProxy = (element: HTMLElement) => {
         return (submitter?: HTMLElement | null) => {
           const formTarget = target as HTMLFormElement;
           if ("requestSubmit" in formTarget) {
-            const unwrappedSubmitter = submitter ? (unwrapProxy(submitter) as HTMLElement) : submitter;
+            const unwrappedSubmitter = submitter
+              ? (unwrapProxy(submitter) as HTMLElement)
+              : submitter;
             formTarget.requestSubmit(unwrappedSubmitter);
           }
         };
       case "setCustomValidity":
         return (message: string) => {
-          const inputTarget = target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+          const inputTarget = target as
+            | HTMLInputElement
+            | HTMLSelectElement
+            | HTMLTextAreaElement;
           if ("setCustomValidity" in inputTarget) {
             const hadCustomError = inputTarget.validity.customError;
-            const originalMessage = hadCustomError ? inputTarget.validationMessage : "";
+            const originalMessage = hadCustomError
+              ? inputTarget.validationMessage
+              : "";
             inputTarget.setCustomValidity(message);
             record(() => inputTarget.setCustomValidity(originalMessage));
           }
         };
       case "insertRow":
         return (index?: number) => {
-          const tableTarget = target as HTMLTableElement | HTMLTableSectionElement;
+          const tableTarget = target as
+            | HTMLTableElement
+            | HTMLTableSectionElement;
           if ("insertRow" in tableTarget) {
             const newRow = tableTarget.insertRow(index);
             record(() => newRow.parentNode?.removeChild(newRow));
@@ -1638,9 +1842,12 @@ export const createUndoableProxy = (element: HTMLElement) => {
         };
       case "deleteRow":
         return (index: number) => {
-          const tableTarget = target as HTMLTableElement | HTMLTableSectionElement;
+          const tableTarget = target as
+            | HTMLTableElement
+            | HTMLTableSectionElement;
           if ("deleteRow" in tableTarget && "rows" in tableTarget) {
-            const actualIndex = index < 0 ? tableTarget.rows.length + index : index;
+            const actualIndex =
+              index < 0 ? tableTarget.rows.length + index : index;
             const rowToDelete = tableTarget.rows[actualIndex];
             if (rowToDelete) {
               const rowHtml = rowToDelete.outerHTML;
@@ -1651,9 +1858,14 @@ export const createUndoableProxy = (element: HTMLElement) => {
                 const restoredRow = tempTable.rows[0];
                 if (restoredRow) {
                   if (actualIndex >= tableTarget.rows.length) {
-                    (tableTarget as HTMLTableSectionElement).appendChild(restoredRow);
+                    (tableTarget as HTMLTableSectionElement).appendChild(
+                      restoredRow,
+                    );
                   } else {
-                    (tableTarget as HTMLTableSectionElement).insertBefore(restoredRow, tableTarget.rows[actualIndex]);
+                    (tableTarget as HTMLTableSectionElement).insertBefore(
+                      restoredRow,
+                      tableTarget.rows[actualIndex],
+                    );
                   }
                 }
               });
@@ -1674,7 +1886,8 @@ export const createUndoableProxy = (element: HTMLElement) => {
         return (index: number) => {
           const rowTarget = target as HTMLTableRowElement;
           if ("deleteCell" in rowTarget && "cells" in rowTarget) {
-            const actualIndex = index < 0 ? rowTarget.cells.length + index : index;
+            const actualIndex =
+              index < 0 ? rowTarget.cells.length + index : index;
             const cellToDelete = rowTarget.cells[actualIndex];
             if (cellToDelete) {
               const cellHtml = cellToDelete.outerHTML;
@@ -1687,7 +1900,10 @@ export const createUndoableProxy = (element: HTMLElement) => {
                   if (actualIndex >= rowTarget.cells.length) {
                     rowTarget.appendChild(restoredCell);
                   } else {
-                    rowTarget.insertBefore(restoredCell, rowTarget.cells[actualIndex]);
+                    rowTarget.insertBefore(
+                      restoredCell,
+                      rowTarget.cells[actualIndex],
+                    );
                   }
                 }
               });
@@ -1719,7 +1935,10 @@ export const createUndoableProxy = (element: HTMLElement) => {
               const restoredTHead = tempTable.tHead;
               if (restoredTHead) {
                 if (tableTarget.firstChild) {
-                  tableTarget.insertBefore(restoredTHead, tableTarget.firstChild);
+                  tableTarget.insertBefore(
+                    restoredTHead,
+                    tableTarget.firstChild,
+                  );
                 } else {
                   tableTarget.appendChild(restoredTHead);
                 }
@@ -1791,7 +2010,10 @@ export const createUndoableProxy = (element: HTMLElement) => {
               const restoredCaption = tempTable.caption;
               if (restoredCaption) {
                 if (tableTarget.firstChild) {
-                  tableTarget.insertBefore(restoredCaption, tableTarget.firstChild);
+                  tableTarget.insertBefore(
+                    restoredCaption,
+                    tableTarget.firstChild,
+                  );
                 } else {
                   tableTarget.appendChild(restoredCaption);
                 }
@@ -1806,8 +2028,13 @@ export const createUndoableProxy = (element: HTMLElement) => {
         ) => {
           const selectTarget = target as HTMLSelectElement;
           if ("add" in selectTarget && "options" in selectTarget) {
-            const actualElement = unwrapProxy(element) as HTMLOptionElement | HTMLOptGroupElement;
-            const unwrappedBefore = typeof before === "number" || before == null ? before : (unwrapProxy(before) as HTMLElement);
+            const actualElement = unwrapProxy(element) as
+              | HTMLOptionElement
+              | HTMLOptGroupElement;
+            const unwrappedBefore =
+              typeof before === "number" || before == null
+                ? before
+                : (unwrapProxy(before) as HTMLElement);
             selectTarget.add(actualElement, unwrappedBefore);
             record(() => actualElement.parentNode?.removeChild(actualElement));
           }
@@ -1908,7 +2135,9 @@ export const createUndoableProxy = (element: HTMLElement) => {
       case "webkitMatchesSelector":
         return (selectors: string) => {
           const htmlTarget = target as HTMLElement;
-          const webkitTarget = htmlTarget as HTMLElement & { webkitMatchesSelector?: (selectors: string) => boolean };
+          const webkitTarget = htmlTarget as HTMLElement & {
+            webkitMatchesSelector?: (selectors: string) => boolean;
+          };
           if (webkitTarget.webkitMatchesSelector) {
             return webkitTarget.webkitMatchesSelector(selectors);
           }
@@ -1942,7 +2171,8 @@ export const createUndoableProxy = (element: HTMLElement) => {
   const findScrollableParent = (el: HTMLElement): HTMLElement | null => {
     let currentElement: HTMLElement | null = el.parentElement;
     while (currentElement) {
-      const { overflow, overflowY, overflowX } = getComputedStyle(currentElement);
+      const { overflow, overflowY, overflowX } =
+        getComputedStyle(currentElement);
       if (
         overflow === "auto" ||
         overflow === "scroll" ||
@@ -1961,7 +2191,10 @@ export const createUndoableProxy = (element: HTMLElement) => {
   const isReadOnlyProperty = (node: Node, prop: string | symbol): boolean => {
     if (typeof prop === "symbol") return false;
     if (READONLY_PROPS.has(prop)) return true;
-    const descriptor = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(node), prop);
+    const descriptor = Object.getOwnPropertyDescriptor(
+      Object.getPrototypeOf(node),
+      prop,
+    );
     if (descriptor && descriptor.get && !descriptor.set) {
       return true;
     }
@@ -1980,7 +2213,9 @@ export const createUndoableProxy = (element: HTMLElement) => {
           return (target as object)[Symbol.toStringTag as keyof object];
         }
         if (property === Symbol.toPrimitive) {
-          const toPrimitive = (target as { [Symbol.toPrimitive]?: (hint: string) => unknown })[Symbol.toPrimitive];
+          const toPrimitive = (
+            target as { [Symbol.toPrimitive]?: (hint: string) => unknown }
+          )[Symbol.toPrimitive];
           return toPrimitive?.bind(target);
         }
         if (property === Symbol.iterator && Symbol.iterator in target) {
@@ -2006,7 +2241,8 @@ export const createUndoableProxy = (element: HTMLElement) => {
         }
         if (property === "attributeStyleMap" && "attributeStyleMap" in target) {
           return createStyleMapProxy(
-            (element as HTMLElement & { attributeStyleMap: StylePropertyMap }).attributeStyleMap,
+            (element as HTMLElement & { attributeStyleMap: StylePropertyMap })
+              .attributeStyleMap,
           );
         }
         if (property === "shadowRoot" && "shadowRoot" in target) {
@@ -2017,8 +2253,14 @@ export const createUndoableProxy = (element: HTMLElement) => {
         if (property === "content" && target instanceof HTMLTemplateElement) {
           return createElementProxy(target.content);
         }
-        if (typeof property === "string" && DOMTOKENLIST_PROPS.has(property) && property in target) {
-          const tokenList = (target as unknown as Record<string, DOMTokenList>)[property];
+        if (
+          typeof property === "string" &&
+          DOMTOKENLIST_PROPS.has(property) &&
+          property in target
+        ) {
+          const tokenList = (target as unknown as Record<string, DOMTokenList>)[
+            property
+          ];
           if (tokenList instanceof DOMTokenList) {
             return createDOMTokenListProxy(tokenList);
           }
@@ -2032,35 +2274,54 @@ export const createUndoableProxy = (element: HTMLElement) => {
           );
         }
         if (property === "children" || property === "childNodes") {
-          return createCollectionProxy(
-            (target as Element)[property],
-          );
+          return createCollectionProxy((target as Element)[property]);
         }
-        if (typeof property === "string" && QUERY_METHODS_SINGLE.has(property)) {
+        if (
+          typeof property === "string" &&
+          QUERY_METHODS_SINGLE.has(property)
+        ) {
           const elementTarget = target as Element;
           return (selector: string) => {
-            const matchedElement = elementTarget[property as "querySelector" | "closest"]?.(selector);
+            const matchedElement =
+              elementTarget[property as "querySelector" | "closest"]?.(
+                selector,
+              );
             return matchedElement ? createElementProxy(matchedElement) : null;
           };
         }
-        if (typeof property === "string" && QUERY_METHODS_COLLECTION.has(property)) {
+        if (
+          typeof property === "string" &&
+          QUERY_METHODS_COLLECTION.has(property)
+        ) {
           const elementTarget = target as Element;
           if (property === "querySelectorAll") {
-            return (selector: string) => createNodeListProxy(elementTarget.querySelectorAll(selector));
+            return (selector: string) =>
+              createNodeListProxy(elementTarget.querySelectorAll(selector));
           }
           if (property === "getElementsByClassName") {
-            return (classNames: string) => createCollectionProxy(elementTarget.getElementsByClassName(classNames));
+            return (classNames: string) =>
+              createCollectionProxy(
+                elementTarget.getElementsByClassName(classNames),
+              );
           }
           if (property === "getElementsByTagName") {
-            return (tagName: string) => createCollectionProxy(elementTarget.getElementsByTagName(tagName));
+            return (tagName: string) =>
+              createCollectionProxy(
+                elementTarget.getElementsByTagName(tagName),
+              );
           }
           if (property === "getElementsByTagNameNS") {
             return (namespace: string | null, localName: string) =>
-              createCollectionProxy(elementTarget.getElementsByTagNameNS(namespace, localName));
+              createCollectionProxy(
+                elementTarget.getElementsByTagNameNS(namespace, localName),
+              );
           }
         }
         if (typeof property === "string" && HANDLED_METHODS.has(property)) {
-          const methodHandler = getMethodHandler(target as HTMLElement | CharacterData, property);
+          const methodHandler = getMethodHandler(
+            target as HTMLElement | CharacterData,
+            property,
+          );
           if (methodHandler) return methodHandler;
         }
         const propertyValue = Reflect.get(target, property);
@@ -2073,7 +2334,8 @@ export const createUndoableProxy = (element: HTMLElement) => {
           return Reflect.set(target, property, value);
         }
 
-        const propertyName = typeof property === "string" ? property : String(property);
+        const propertyName =
+          typeof property === "string" ? property : String(property);
         const targetRecord = target as unknown as Record<string, unknown>;
 
         const recordPropertyUndo = () => {
@@ -2087,13 +2349,20 @@ export const createUndoableProxy = (element: HTMLElement) => {
           recordPropertyUndo();
         } else if (FORM_PROPS.has(propertyName) && isFormElement(target)) {
           recordPropertyUndo();
-        } else if (propertyName === "innerText" || propertyName === "textContent" || propertyName === "innerHTML") {
+        } else if (
+          propertyName === "innerText" ||
+          propertyName === "textContent" ||
+          propertyName === "innerHTML"
+        ) {
           const element = target as HTMLElement;
           const originalInnerHTML = element.innerHTML;
           record(() => {
             element.innerHTML = originalInnerHTML;
           });
-        } else if (DOMTOKENLIST_PROPS.has(propertyName) && propertyName in target) {
+        } else if (
+          DOMTOKENLIST_PROPS.has(propertyName) &&
+          propertyName in target
+        ) {
           const tokenList = targetRecord[propertyName];
           if (tokenList instanceof DOMTokenList) {
             const originalValue = tokenList.value;
@@ -2117,7 +2386,9 @@ export const createUndoableProxy = (element: HTMLElement) => {
           const result = Reflect.set(target, property, value);
 
           const childrenAfterSet = parent ? Array.from(parent.childNodes) : [];
-          const insertedNodes = childrenAfterSet.filter((child) => !childrenBeforeSet.includes(child));
+          const insertedNodes = childrenAfterSet.filter(
+            (child) => !childrenBeforeSet.includes(child),
+          );
 
           record(() => {
             for (const insertedNode of insertedNodes) {

@@ -65,4 +65,3 @@ export const useAnimatedPosition = (options: UseAnimatedPositionOptions) => {
 
   return { x, y };
 };
-

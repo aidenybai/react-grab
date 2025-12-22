@@ -331,7 +331,7 @@ const stateMachine = setup({
     setLastCopiedElement: assign({
       lastCopiedElement: ({ event }) =>
         event.type === "SET_LAST_COPIED" || event.type === "COPY_DONE"
-          ? event.element ?? null
+          ? (event.element ?? null)
           : null,
     }),
     clearLastCopiedElement: assign({ lastCopiedElement: () => null }),
@@ -825,7 +825,11 @@ const stateMachine = setup({
         SET_REPLY_SESSION: { actions: ["setReplySessionId"] },
         DEACTIVATE: {
           target: ".idle",
-          actions: ["clearInputText", "clearReplySessionId", "clearPendingClickData"],
+          actions: [
+            "clearInputText",
+            "clearReplySessionId",
+            "clearPendingClickData",
+          ],
         },
       },
     },

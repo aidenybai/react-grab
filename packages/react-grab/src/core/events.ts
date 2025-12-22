@@ -45,4 +45,3 @@ export const createEventListenerManager = (): EventListenerManager => {
     addDocumentListener,
   };
 };
-

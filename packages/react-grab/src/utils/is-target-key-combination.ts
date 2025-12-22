@@ -71,4 +71,3 @@ export const isTargetKeyCombination = (
     event.key && hasOnlyMetaOrCtrl && isCLikeKey(event.key, event.code),
   );
 };
-

@@ -654,7 +654,9 @@ describe("previewPackageJsonTransform", () => {
 
     expect(result.success).toBe(true);
     expect(result.noChanges).toBe(true);
-    expect(result.warning).toContain("Could not inject agent into package.json");
+    expect(result.warning).toContain(
+      "Could not inject agent into package.json",
+    );
     expect(result.warning).toContain("npx @react-grab/cursor@latest");
   });
 
@@ -710,7 +712,9 @@ describe("previewPackageJsonTransform", () => {
     const result = previewPackageJsonTransform("/test", "cursor", [], "pnpm");
 
     expect(result.success).toBe(true);
-    expect(result.newContent).toContain("pnpm dlx @react-grab/cursor@latest &&");
+    expect(result.newContent).toContain(
+      "pnpm dlx @react-grab/cursor@latest &&",
+    );
     expect(result.newContent).toContain("next dev --turbopack");
   });
 
@@ -817,7 +821,12 @@ describe("previewPackageJsonTransform", () => {
     const bunResult = previewPackageJsonTransform("/test", "cursor", [], "bun");
     expect(bunResult.warning).toContain("bunx @react-grab/cursor@latest");
 
-    const pnpmResult = previewPackageJsonTransform("/test", "cursor", [], "pnpm");
+    const pnpmResult = previewPackageJsonTransform(
+      "/test",
+      "cursor",
+      [],
+      "pnpm",
+    );
     expect(pnpmResult.warning).toContain("pnpm dlx @react-grab/cursor@latest");
   });
 });
