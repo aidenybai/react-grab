@@ -104,26 +104,12 @@ const HANDLED_METHODS = new Set([
   "releasePointerCapture",
   "hasPointerCapture",
   "attachInternals",
-  "getClientRects",
-  "getBoundingClientRect",
-  "hasAttribute",
-  "hasAttributes",
-  "hasAttributeNS",
-  "getAttribute",
-  "getAttributeNS",
-  "getAttributeNode",
-  "getAttributeNodeNS",
-  "getAttributeNames",
-  "matches",
   "webkitMatchesSelector",
   "contains",
   "compareDocumentPosition",
   "getRootNode",
   "isEqualNode",
   "isSameNode",
-  "lookupPrefix",
-  "lookupNamespaceURI",
-  "isDefaultNamespace",
 ]);
 
 const SCROLL_PROPS = new Set(["scrollTop", "scrollLeft"]);
@@ -2097,61 +2083,6 @@ export const createUndoableProxy = (element: HTMLElement) => {
           }
           return null;
         };
-      case "getClientRects":
-        return () => {
-          const htmlTarget = target as HTMLElement;
-          return htmlTarget.getClientRects();
-        };
-      case "getBoundingClientRect":
-        return () => {
-          const htmlTarget = target as HTMLElement;
-          return htmlTarget.getBoundingClientRect();
-        };
-      case "hasAttribute":
-        return (name: string) => {
-          const htmlTarget = target as HTMLElement;
-          return htmlTarget.hasAttribute(name);
-        };
-      case "hasAttributes":
-        return () => {
-          const htmlTarget = target as HTMLElement;
-          return htmlTarget.hasAttributes();
-        };
-      case "hasAttributeNS":
-        return (namespace: string | null, localName: string) => {
-          const htmlTarget = target as HTMLElement;
-          return htmlTarget.hasAttributeNS(namespace, localName);
-        };
-      case "getAttribute":
-        return (name: string) => {
-          const htmlTarget = target as HTMLElement;
-          return htmlTarget.getAttribute(name);
-        };
-      case "getAttributeNS":
-        return (namespace: string | null, localName: string) => {
-          const htmlTarget = target as HTMLElement;
-          return htmlTarget.getAttributeNS(namespace, localName);
-        };
-      case "getAttributeNode":
-        return (name: string) => {
-          const htmlTarget = target as HTMLElement;
-          return htmlTarget.getAttributeNode(name);
-        };
-      case "getAttributeNodeNS":
-        return (namespace: string | null, localName: string) => {
-          const htmlTarget = target as HTMLElement;
-          return htmlTarget.getAttributeNodeNS(namespace, localName);
-        };
-      case "getAttributeNames":
-        return () => {
-          const htmlTarget = target as HTMLElement;
-          return htmlTarget.getAttributeNames();
-        };
-      case "matches":
-        return (selectors: string) => {
-          const htmlTarget = target as HTMLElement;
-          return htmlTarget.matches(selectors);
-        };
       case "webkitMatchesSelector":
         return (selectors: string) => {
           const htmlTarget = target as HTMLElement;
@@ -2180,18 +2111,6 @@ export const createUndoableProxy = (element: HTMLElement) => {
       case "isSameNode":
         return (otherNode: Node | null) => {
           return target.isSameNode(otherNode ? unwrapProxy(otherNode) : null);
-        };
-      case "lookupPrefix":
-        return (namespace: string | null) => {
-          return target.lookupPrefix(namespace);
-        };
-      case "lookupNamespaceURI":
-        return (prefix: string | null) => {
-          return target.lookupNamespaceURI(prefix);
-        };
-      case "isDefaultNamespace":
-        return (namespace: string | null) => {
-          return target.isDefaultNamespace(namespace);
         };
       default:
         return null;
