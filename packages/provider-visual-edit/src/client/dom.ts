@@ -2327,6 +2327,12 @@ export const createUndoableProxy = (element: HTMLElement) => {
             (nodeTarget as unknown as Record<string, unknown>)[propString] =
               original;
           });
+        } else if (propString === "innerText") {
+          const htmlTarget = nodeTarget as HTMLElement;
+          const originalHTML = htmlTarget.innerHTML;
+          record(() => {
+            htmlTarget.innerHTML = originalHTML;
+          });
         } else if (
           COMMON_PROPS.has(propString)
         ) {
@@ -2360,7 +2366,6 @@ export const createUndoableProxy = (element: HTMLElement) => {
           });
         } else if (
           propString === "nodeValue" ||
-          propString === "textContent" ||
           propString === "data"
         ) {
           const original = (
@@ -2369,6 +2374,12 @@ export const createUndoableProxy = (element: HTMLElement) => {
           record(() => {
             (nodeTarget as unknown as Record<string, unknown>)[propString] =
               original;
+          });
+        } else if (propString === "textContent") {
+          const htmlTarget = nodeTarget as HTMLElement;
+          const originalHTML = htmlTarget.innerHTML;
+          record(() => {
+            htmlTarget.innerHTML = originalHTML;
           });
         } else if (propString === "innerHTML") {
           const htmlTarget = nodeTarget as HTMLElement;
