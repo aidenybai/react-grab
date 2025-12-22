@@ -1658,7 +1658,15 @@ export const createUndoableProxy = (element: HTMLElement) => {
                 if (formElement instanceof HTMLInputElement && (formElement.type === "checkbox" || formElement.type === "radio")) {
                   formValues.set(formElement, formElement.checked);
                 } else if (formElement instanceof HTMLSelectElement) {
-                  formValues.set(formElement, formElement.selectedIndex);
+                  if (formElement.multiple) {
+                    const optionSelectedStates: boolean[] = [];
+                    for (let optionIndex = 0; optionIndex < formElement.options.length; optionIndex++) {
+                      optionSelectedStates.push(formElement.options[optionIndex].selected);
+                    }
+                    formValues.set(formElement, optionSelectedStates);
+                  } else {
+                    formValues.set(formElement, formElement.selectedIndex);
+                  }
                 } else {
                   formValues.set(formElement, formElement.value);
                 }
@@ -1670,7 +1678,14 @@ export const createUndoableProxy = (element: HTMLElement) => {
                 if (formElement instanceof HTMLInputElement && (formElement.type === "checkbox" || formElement.type === "radio")) {
                   formElement.checked = savedValue as boolean;
                 } else if (formElement instanceof HTMLSelectElement) {
-                  formElement.selectedIndex = savedValue as number;
+                  if (formElement.multiple) {
+                    const optionSelectedStates = savedValue as boolean[];
+                    for (let optionIndex = 0; optionIndex < formElement.options.length; optionIndex++) {
+                      formElement.options[optionIndex].selected = optionSelectedStates[optionIndex] ?? false;
+                    }
+                  } else {
+                    formElement.selectedIndex = savedValue as number;
+                  }
                 } else if ("value" in formElement) {
                   (formElement as HTMLInputElement | HTMLTextAreaElement).value = savedValue as string;
                 }
