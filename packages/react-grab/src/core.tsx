@@ -2244,7 +2244,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         isRendererActive() &&
         !isDragging() &&
         !snapshot().context.isTouchMode &&
-        !isToggleFrozen(),
+        !isToggleFrozen() &&
+        !isInputMode(),
     );
 
     createEffect(
