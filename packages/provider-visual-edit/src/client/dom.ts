@@ -1418,7 +1418,7 @@ export const createUndoableProxy = (element: HTMLElement) => {
           const originalScrollLeft = element.scrollLeft;
           const originalScrollTop = element.scrollTop;
           if (typeof xOrOptions === "number") {
-            element.scrollTo(xOrOptions, yCoordinate!);
+            element.scrollTo(xOrOptions, yCoordinate ?? element.scrollTop);
           } else {
             element.scrollTo(xOrOptions);
           }
@@ -1429,7 +1429,7 @@ export const createUndoableProxy = (element: HTMLElement) => {
           const originalScrollLeft = element.scrollLeft;
           const originalScrollTop = element.scrollTop;
           if (typeof xOrOptions === "number") {
-            element.scrollBy(xOrOptions, yCoordinate!);
+            element.scrollBy(xOrOptions, yCoordinate ?? 0);
           } else {
             element.scrollBy(xOrOptions);
           }
