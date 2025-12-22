@@ -495,7 +495,7 @@ export const createVisualEditAgentProvider = (
       const errorMessage =
         executionError instanceof Error
           ? executionError.message
-          : "unknown error";
+          : "Execution failed";
       return { error: `Failed to edit: ${errorMessage}` };
     }
 
