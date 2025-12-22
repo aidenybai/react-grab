@@ -1,4 +1,10 @@
-import { Show, createSignal, createEffect, onMount, onCleanup } from "solid-js";
+import {
+  Show,
+  createSignal,
+  createEffect,
+  onMount,
+  onCleanup,
+} from "solid-js";
 import type { Component } from "solid-js";
 import type { ArrowPosition, SelectionLabelProps } from "../../types.js";
 import {
@@ -338,7 +344,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           }}
         >
           <Show when={props.status === "copying" && !props.isPendingAbort}>
-            <div class="contain-layout shrink-0 flex flex-col justify-center items-start w-fit h-fit max-w-[280px]">
+            <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit max-w-[280px]">
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-auto h-fit">
                 <div class="contain-layout flex items-center px-0 py-px w-auto h-fit rounded-sm gap-[3px]">
                   <span class="text-[13px] leading-4 font-sans font-medium w-auto h-fit whitespace-normal text-[#71717a] animate-pulse tabular-nums">
@@ -397,7 +403,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           </Show>
 
           <Show when={canInteract() && !props.isInputMode}>
-            <div class="contain-layout shrink-0 flex flex-col justify-center items-start w-fit h-fit">
+            <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5 pr-1">
                 <TagBadge
                   tagName={tagDisplay()}
@@ -420,7 +426,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           <Show
             when={canInteract() && props.isInputMode && !props.isPendingDismiss}
           >
-            <div class="contain-layout shrink-0 flex flex-col justify-center items-start w-fit h-fit max-w-[280px]">
+            <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit max-w-[280px]">
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5 pr-1">
                 <ActionPill
                   onClick={handleSubmit}
