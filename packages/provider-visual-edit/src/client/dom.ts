@@ -2163,11 +2163,11 @@ export const createUndoableProxy = (element: HTMLElement) => {
         };
       case "contains":
         return (other: Node | null) => {
-          return target.contains(other);
+          return target.contains(other ? unwrapProxy(other) : null);
         };
       case "compareDocumentPosition":
         return (other: Node) => {
-          return target.compareDocumentPosition(other);
+          return target.compareDocumentPosition(unwrapProxy(other));
         };
       case "getRootNode":
         return (options?: GetRootNodeOptions) => {
@@ -2175,11 +2175,11 @@ export const createUndoableProxy = (element: HTMLElement) => {
         };
       case "isEqualNode":
         return (otherNode: Node | null) => {
-          return target.isEqualNode(otherNode);
+          return target.isEqualNode(otherNode ? unwrapProxy(otherNode) : null);
         };
       case "isSameNode":
         return (otherNode: Node | null) => {
-          return target.isSameNode(otherNode);
+          return target.isSameNode(otherNode ? unwrapProxy(otherNode) : null);
         };
       case "lookupPrefix":
         return (namespace: string | null) => {
