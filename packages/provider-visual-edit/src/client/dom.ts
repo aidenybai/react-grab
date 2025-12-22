@@ -46,12 +46,16 @@ export const createUndoableProxy = (element: HTMLElement) => {
     }
   };
 
+  const unwrapNodes = (nodes: (Node | string)[]): (Node | string)[] =>
+    nodes.map((node) => (typeof node === "string" ? node : unwrapProxy(node)));
+
   const wrapNodeInsertion = <T extends (...args: (Node | string)[]) => void>(
     method: T,
   ): T =>
     ((...nodes: (Node | string)[]) => {
-      method(...nodes);
-      record(() => removeNodes(nodes));
+      const unwrappedNodes = unwrapNodes(nodes);
+      method(...unwrappedNodes);
+      record(() => removeNodes(unwrappedNodes));
     }) as T;
 
   const createStyleProxy = (styleTarget: CSSStyleDeclaration) =>
@@ -212,16 +216,17 @@ export const createUndoableProxy = (element: HTMLElement) => {
         return wrapNodeInsertion(target.before.bind(target));
       case "replaceWith":
         return (...nodes: (Node | string)[]) => {
+          const unwrappedNodes = unwrapNodes(nodes);
           const parentNode = target.parentNode;
           const nextSibling = target.nextSibling;
-          target.replaceWith(...nodes);
+          target.replaceWith(...unwrappedNodes);
           record(() => {
-            const firstNode = nodes.find((node) => typeof node !== "string") as
-              | Node
-              | undefined;
+            const firstNode = unwrappedNodes.find(
+              (node) => typeof node !== "string",
+            ) as Node | undefined;
             if (parentNode) {
               parentNode.insertBefore(target, firstNode ?? nextSibling);
-              removeNodes(nodes);
+              removeNodes(unwrappedNodes);
             }
           });
         };
@@ -248,10 +253,8 @@ export const createUndoableProxy = (element: HTMLElement) => {
         };
       case "insertAdjacentElement":
         return (position: InsertPosition, insertedElement: Element) => {
-          const result = target.insertAdjacentElement(
-            position,
-            insertedElement,
-          );
+          const actualElement = unwrapProxy(insertedElement) as Element;
+          const result = target.insertAdjacentElement(position, actualElement);
           if (result) record(() => result.parentNode?.removeChild(result));
           return result;
         };
