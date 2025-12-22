@@ -322,6 +322,7 @@ export const add = new Command()
         projectInfo.projectRoot,
         agentIntegration,
         projectInfo.installedAgents,
+        projectInfo.packageManager,
       );
 
       if (!result.success) {
