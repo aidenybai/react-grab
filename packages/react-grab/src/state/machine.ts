@@ -573,7 +573,7 @@ const stateMachine = setup({
     }),
     freezeCurrentElement: assign({
       frozenElement: ({ context }) =>
-        context.detectedElement ?? context.frozenElement,
+        context.frozenElement ?? context.detectedElement,
     }),
     saveInputModePosition: assign({
       copyStart: ({ event, context }) => {
@@ -688,6 +688,7 @@ const stateMachine = setup({
             },
             MOUSE_MOVE: { actions: ["setMousePosition"] },
             ELEMENT_DETECTED: { actions: ["setDetectedElement"] },
+            FREEZE_ELEMENT: { actions: ["setFrozenElement"] },
             SET_TOUCH_MODE: { actions: ["setTouchMode"] },
             SET_SELECTION_SOURCE: { actions: ["setSelectionSource"] },
           },
