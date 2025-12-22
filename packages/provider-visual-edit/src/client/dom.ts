@@ -872,7 +872,8 @@ export const createUndoableProxy = (element: HTMLElement) => {
             before?: HTMLElement | number | null,
           ) => {
             const unwrappedOption = unwrapProxy(optionElement) as HTMLOptionElement | HTMLOptGroupElement;
-            target.add(unwrappedOption, before as HTMLElement | number);
+            const unwrappedBefore = typeof before === "number" || before == null ? before : (unwrapProxy(before) as HTMLElement);
+            target.add(unwrappedOption, unwrappedBefore);
             record(() => unwrappedOption.parentNode?.removeChild(unwrappedOption));
           };
         }
@@ -1604,7 +1605,8 @@ export const createUndoableProxy = (element: HTMLElement) => {
         return (submitter?: HTMLElement | null) => {
           const formTarget = target as HTMLFormElement;
           if ("requestSubmit" in formTarget) {
-            formTarget.requestSubmit(submitter);
+            const unwrappedSubmitter = submitter ? (unwrapProxy(submitter) as HTMLElement) : submitter;
+            formTarget.requestSubmit(unwrappedSubmitter);
           }
         };
       case "setCustomValidity":
@@ -1798,7 +1800,8 @@ export const createUndoableProxy = (element: HTMLElement) => {
           const selectTarget = target as HTMLSelectElement;
           if ("add" in selectTarget && "options" in selectTarget) {
             const actualElement = unwrapProxy(element) as HTMLOptionElement | HTMLOptGroupElement;
-            selectTarget.add(actualElement, before as HTMLElement | number);
+            const unwrappedBefore = typeof before === "number" || before == null ? before : (unwrapProxy(before) as HTMLElement);
+            selectTarget.add(actualElement, unwrappedBefore);
             record(() => actualElement.parentNode?.removeChild(actualElement));
           }
         };
