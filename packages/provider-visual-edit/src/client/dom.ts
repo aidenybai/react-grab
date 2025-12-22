@@ -53,7 +53,6 @@ const HANDLED_METHODS = new Set([
   "removeEventListener",
   "attachShadow",
   "animate",
-  "getAnimations",
   "showModal",
   "show",
   "close",
@@ -65,21 +64,16 @@ const HANDLED_METHODS = new Set([
   "scrollIntoView",
   "setSelectionRange",
   "setRangeText",
-  "select",
   "splitText",
   "appendData",
   "deleteData",
   "insertData",
   "replaceData",
-  "substringData",
   "focus",
   "blur",
-  "click",
   "reset",
   "submit",
   "requestSubmit",
-  "checkValidity",
-  "reportValidity",
   "setCustomValidity",
   "insertRow",
   "deleteRow",
@@ -95,15 +89,11 @@ const HANDLED_METHODS = new Set([
   "add",
   "stepUp",
   "stepDown",
-  "showPicker",
   "play",
   "pause",
   "load",
   "fastSeek",
   "setPointerCapture",
-  "releasePointerCapture",
-  "hasPointerCapture",
-  "attachInternals",
   "webkitMatchesSelector",
   "contains",
   "compareDocumentPosition",
@@ -126,8 +116,7 @@ const FORM_PROPS = new Set([
   "defaultChecked",
 ]);
 
-const COMMON_PROPS = new Set([
-  "innerText",
+const ELEMENT_PROPS = new Set([
   "hidden",
   "tabIndex",
   "title",
@@ -146,9 +135,6 @@ const COMMON_PROPS = new Set([
   "inputMode",
   "nonce",
   "popover",
-]);
-
-const ELEMENT_SPECIFIC_PROPS = new Set([
   "open",
   "returnValue",
   "indeterminate",
@@ -221,7 +207,6 @@ const ELEMENT_SPECIFIC_PROPS = new Set([
   "integrity",
   "as",
   "blocking",
-  "disabled",
   "async",
   "defer",
   "noModule",
@@ -239,6 +224,7 @@ const ELEMENT_SPECIFIC_PROPS = new Set([
   "data",
   "form",
   "summary",
+  "nodeValue",
 ]);
 
 const MEDIA_PROPS = new Set([
@@ -542,8 +528,6 @@ export const createUndoableProxy = (element: HTMLElement) => {
     return proxy;
   };
 
-  const createClassListProxy = createDOMTokenListProxy;
-
   const createDatasetProxy = (datasetTarget: DOMStringMap): DOMStringMap => {
     const existingProxy = datasetToProxy.get(datasetTarget);
     if (existingProxy) return existingProxy;
@@ -789,54 +773,49 @@ export const createUndoableProxy = (element: HTMLElement) => {
 
   const createNodeListProxy = (nodeList: NodeList) =>
     new Proxy(nodeList, {
-      get(target, prop) {
-        if (typeof prop === "string" && !isNaN(Number(prop))) {
-          return createElementProxy(target[Number(prop)] ?? null);
+      get(target, property) {
+        if (typeof property === "string" && !isNaN(Number(property))) {
+          return createElementProxy(target[Number(property)] ?? null);
         }
-        if (prop === "item") {
+        if (property === "item") {
           return (index: number) => createElementProxy(target.item(index));
         }
-        if (prop === Symbol.iterator) {
+        if (property === Symbol.iterator) {
           return function* () {
-            for (let nodeIndex = 0; nodeIndex < target.length; nodeIndex++) {
-              yield createElementProxy(target[nodeIndex]);
+            for (let index = 0; index < target.length; index++) {
+              yield createElementProxy(target[index]);
             }
           };
         }
-        if (prop === "forEach") {
+        if (property === "forEach") {
           return (
             callback: (node: Node, index: number, list: NodeList) => void,
             thisArg?: unknown,
           ) => {
-            target.forEach((node, index, list) => {
-              callback.call(
-                thisArg,
-                createElementProxy(node) as Node,
-                index,
-                list,
-              );
+            target.forEach((currentNode, index, list) => {
+              callback.call(thisArg, createElementProxy(currentNode) as Node, index, list);
             });
           };
         }
-        if (prop === "entries") {
+        if (property === "entries") {
           return function* () {
-            for (let nodeIndex = 0; nodeIndex < target.length; nodeIndex++) {
-              yield [nodeIndex, createElementProxy(target[nodeIndex])];
+            for (let index = 0; index < target.length; index++) {
+              yield [index, createElementProxy(target[index])];
             }
           };
         }
-        if (prop === "keys") {
+        if (property === "keys") {
           return target.keys.bind(target);
         }
-        if (prop === "values") {
+        if (property === "values") {
           return function* () {
-            for (let nodeIndex = 0; nodeIndex < target.length; nodeIndex++) {
-              yield createElementProxy(target[nodeIndex]);
+            for (let index = 0; index < target.length; index++) {
+              yield createElementProxy(target[index]);
             }
           };
         }
-        const value = Reflect.get(target, prop);
-        return typeof value === "function" ? value.bind(target) : value;
+        const propertyValue = Reflect.get(target, property);
+        return typeof propertyValue === "function" ? propertyValue.bind(target) : propertyValue;
       },
     });
 
@@ -846,43 +825,25 @@ export const createUndoableProxy = (element: HTMLElement) => {
     if (!collection) return null;
 
     return new Proxy(collection, {
-      get(collectionTarget, collectionProp) {
-        if (
-          typeof collectionProp === "string" &&
-          !isNaN(Number(collectionProp))
-        ) {
-          return createElementProxy(
-            collectionTarget[Number(collectionProp)] ?? null,
-          );
+      get(target, property) {
+        if (typeof property === "string" && !isNaN(Number(property))) {
+          return createElementProxy(target[Number(property)] ?? null);
         }
-        if (collectionProp === "item") {
-          return (index: number) =>
-            createElementProxy(collectionTarget.item(index));
+        if (property === "item") {
+          return (index: number) => createElementProxy(target.item(index));
         }
-        if (
-          collectionProp === "namedItem" &&
-          "namedItem" in collectionTarget
-        ) {
-          return (name: string) =>
-            createElementProxy(
-              (collectionTarget as HTMLCollection).namedItem(name),
-            );
+        if (property === "namedItem" && "namedItem" in target) {
+          return (name: string) => createElementProxy((target as HTMLCollection).namedItem(name));
         }
-        if (collectionProp === Symbol.iterator) {
+        if (property === Symbol.iterator) {
           return function* () {
-            for (
-              let itemIndex = 0;
-              itemIndex < collectionTarget.length;
-              itemIndex++
-            ) {
-              yield createElementProxy(collectionTarget[itemIndex]);
+            for (let index = 0; index < target.length; index++) {
+              yield createElementProxy(target[index]);
             }
           };
         }
-        const collectionValue = Reflect.get(collectionTarget, collectionProp);
-        return typeof collectionValue === "function"
-          ? collectionValue.bind(collectionTarget)
-          : collectionValue;
+        const propertyValue = Reflect.get(target, property);
+        return typeof propertyValue === "function" ? propertyValue.bind(target) : propertyValue;
       },
     });
   };
@@ -895,92 +856,91 @@ export const createUndoableProxy = (element: HTMLElement) => {
     if (existingProxy) return existingProxy;
 
     const proxy = new Proxy(options, {
-      get(target, prop) {
-        if (typeof prop === "string" && !isNaN(Number(prop))) {
-          return createElementProxy(target[Number(prop)] ?? null);
+      get(target, property) {
+        if (typeof property === "string" && !isNaN(Number(property))) {
+          return createElementProxy(target[Number(property)] ?? null);
         }
-        if (prop === "item") {
+        if (property === "item") {
           return (index: number) => createElementProxy(target.item(index));
         }
-        if (prop === "namedItem") {
+        if (property === "namedItem") {
           return (name: string) => createElementProxy(target.namedItem(name));
         }
-        if (prop === "add") {
+        if (property === "add") {
           return (
-            option: HTMLOptionElement | HTMLOptGroupElement,
+            optionElement: HTMLOptionElement | HTMLOptGroupElement,
             before?: HTMLElement | number | null,
           ) => {
-            const actualOption = unwrapProxy(option) as HTMLOptionElement | HTMLOptGroupElement;
-            target.add(actualOption, before as HTMLElement | number);
-            record(() => actualOption.parentNode?.removeChild(actualOption));
+            const unwrappedOption = unwrapProxy(optionElement) as HTMLOptionElement | HTMLOptGroupElement;
+            target.add(unwrappedOption, before as HTMLElement | number);
+            record(() => unwrappedOption.parentNode?.removeChild(unwrappedOption));
           };
         }
-        if (prop === "remove") {
+        if (property === "remove") {
           return (index: number) => {
-            const option = target[index];
-            if (option) {
-              const optionHtml = option.outerHTML;
-              const optionIndex = index;
+            const optionToRemove = target[index];
+            if (optionToRemove) {
+              const originalHTML = optionToRemove.outerHTML;
+              const removalIndex = index;
               target.remove(index);
               record(() => {
-                const tempDiv = document.createElement("div");
-                tempDiv.innerHTML = optionHtml;
-                const restoredOption = tempDiv.firstChild as HTMLOptionElement;
+                const tempContainer = document.createElement("div");
+                tempContainer.innerHTML = originalHTML;
+                const restoredOption = tempContainer.firstChild as HTMLOptionElement;
                 if (restoredOption) {
-                  if (optionIndex >= target.length) {
+                  if (removalIndex >= target.length) {
                     selectElement.appendChild(restoredOption);
                   } else {
-                    selectElement.insertBefore(restoredOption, target[optionIndex]);
+                    selectElement.insertBefore(restoredOption, target[removalIndex]);
                   }
                 }
               });
             }
           };
         }
-        if (prop === "selectedIndex") {
+        if (property === "selectedIndex") {
           return target.selectedIndex;
         }
-        if (prop === "length") {
+        if (property === "length") {
           return target.length;
         }
-        if (prop === Symbol.iterator) {
+        if (property === Symbol.iterator) {
           return function* () {
-            for (let optionIndex = 0; optionIndex < target.length; optionIndex++) {
-              yield createElementProxy(target[optionIndex]);
+            for (let index = 0; index < target.length; index++) {
+              yield createElementProxy(target[index]);
             }
           };
         }
-        const value = Reflect.get(target, prop);
-        return typeof value === "function" ? value.bind(target) : value;
+        const propertyValue = Reflect.get(target, property);
+        return typeof propertyValue === "function" ? propertyValue.bind(target) : propertyValue;
       },
-      set(target, prop, value) {
-        if (prop === "selectedIndex") {
-          const original = target.selectedIndex;
+      set(target, property, value) {
+        if (property === "selectedIndex") {
+          const originalSelectedIndex = target.selectedIndex;
           record(() => {
-            target.selectedIndex = original;
+            target.selectedIndex = originalSelectedIndex;
           });
         }
-        if (prop === "length") {
-          const originalLength = target.length;
-          const originalOptions: string[] = [];
-          for (let optionIndex = 0; optionIndex < target.length; optionIndex++) {
-            originalOptions.push(target[optionIndex].outerHTML);
+        if (property === "length") {
+          const originalOptionsHTML: string[] = [];
+          for (let index = 0; index < target.length; index++) {
+            originalOptionsHTML.push(target[index].outerHTML);
           }
           record(() => {
             while (target.length > 0) {
               target.remove(0);
             }
-            for (const optionHtml of originalOptions) {
-              const tempDiv = document.createElement("div");
-              tempDiv.innerHTML = optionHtml;
-              const option = tempDiv.firstChild as HTMLOptionElement;
-              if (option) {
-                selectElement.appendChild(option);
+            for (const optionHTML of originalOptionsHTML) {
+              const tempContainer = document.createElement("div");
+              tempContainer.innerHTML = optionHTML;
+              const restoredOption = tempContainer.firstChild as HTMLOptionElement;
+              if (restoredOption) {
+                selectElement.appendChild(restoredOption);
               }
             }
           });
         }
-        return Reflect.set(target, prop, value);
+        return Reflect.set(target, property, value);
       },
     });
 
@@ -990,305 +950,268 @@ export const createUndoableProxy = (element: HTMLElement) => {
 
   const getMethodHandler = (
     target: HTMLElement | CharacterData | ShadowRoot,
-    prop: string,
+    methodName: string,
   ) => {
-    switch (prop) {
+    const element = target as HTMLElement;
+
+    switch (methodName) {
       case "setAttribute":
         return (name: string, value: string) => {
-          const htmlTarget = target as HTMLElement;
-          const hadAttribute = htmlTarget.hasAttribute(name);
-          const original = htmlTarget.getAttribute(name);
+          const hadAttribute = element.hasAttribute(name);
+          const originalValue = element.getAttribute(name);
           record(() =>
             hadAttribute
-              ? htmlTarget.setAttribute(name, original!)
-              : htmlTarget.removeAttribute(name),
+              ? element.setAttribute(name, originalValue!)
+              : element.removeAttribute(name),
           );
-          return htmlTarget.setAttribute(name, value);
+          return element.setAttribute(name, value);
         };
       case "removeAttribute":
         return (name: string) => {
-          const htmlTarget = target as HTMLElement;
-          if (htmlTarget.hasAttribute(name)) {
-            const original = htmlTarget.getAttribute(name)!;
-            record(() => htmlTarget.setAttribute(name, original));
+          if (element.hasAttribute(name)) {
+            const originalValue = element.getAttribute(name)!;
+            record(() => element.setAttribute(name, originalValue));
           }
-          return htmlTarget.removeAttribute(name);
+          return element.removeAttribute(name);
         };
       case "toggleAttribute":
         return (name: string, force?: boolean) => {
-          const htmlTarget = target as HTMLElement;
-          const hadAttribute = htmlTarget.hasAttribute(name);
-          const originalValue = hadAttribute
-            ? htmlTarget.getAttribute(name)!
-            : null;
-          const result = htmlTarget.toggleAttribute(name, force);
+          const hadAttribute = element.hasAttribute(name);
+          const originalValue = hadAttribute ? element.getAttribute(name)! : null;
+          const result = element.toggleAttribute(name, force);
           record(() => {
             if (hadAttribute) {
-              htmlTarget.setAttribute(name, originalValue!);
+              element.setAttribute(name, originalValue!);
             } else {
-              htmlTarget.removeAttribute(name);
+              element.removeAttribute(name);
             }
           });
           return result;
         };
       case "setAttributeNS":
         return (namespace: string | null, name: string, value: string) => {
-          const htmlTarget = target as HTMLElement;
           const localName = name.includes(":") ? name.split(":")[1] : name;
-          const hadAttribute = htmlTarget.hasAttributeNS(namespace, localName);
-          const original = htmlTarget.getAttributeNS(namespace, localName);
+          const hadAttribute = element.hasAttributeNS(namespace, localName);
+          const originalValue = element.getAttributeNS(namespace, localName);
           record(() =>
             hadAttribute
-              ? htmlTarget.setAttributeNS(namespace, name, original!)
-              : htmlTarget.removeAttributeNS(namespace, localName),
+              ? element.setAttributeNS(namespace, name, originalValue!)
+              : element.removeAttributeNS(namespace, localName),
           );
-          return htmlTarget.setAttributeNS(namespace, name, value);
+          return element.setAttributeNS(namespace, name, value);
         };
       case "removeAttributeNS":
         return (namespace: string | null, localName: string) => {
-          const htmlTarget = target as HTMLElement;
-          if (htmlTarget.hasAttributeNS(namespace, localName)) {
-            const original = htmlTarget.getAttributeNS(namespace, localName)!;
-            const qualifiedName =
-              htmlTarget.getAttributeNodeNS(namespace, localName)?.name ??
-              localName;
-            record(() =>
-              htmlTarget.setAttributeNS(namespace, qualifiedName, original),
-            );
+          if (element.hasAttributeNS(namespace, localName)) {
+            const originalValue = element.getAttributeNS(namespace, localName)!;
+            const qualifiedName = element.getAttributeNodeNS(namespace, localName)?.name ?? localName;
+            record(() => element.setAttributeNS(namespace, qualifiedName, originalValue));
           }
-          return htmlTarget.removeAttributeNS(namespace, localName);
+          return element.removeAttributeNS(namespace, localName);
         };
       case "setAttributeNode":
         return (attr: Attr) => {
-          const htmlTarget = target as HTMLElement;
-          const existingAttr = htmlTarget.getAttributeNode(attr.name);
+          const existingAttr = element.getAttributeNode(attr.name);
           const originalValue = existingAttr?.value;
-          const result = htmlTarget.setAttributeNode(attr);
+          const result = element.setAttributeNode(attr);
           record(() => {
             if (existingAttr && originalValue !== undefined) {
-              htmlTarget.setAttributeNode(existingAttr);
+              element.setAttributeNode(existingAttr);
             } else {
-              htmlTarget.removeAttribute(attr.name);
+              element.removeAttribute(attr.name);
             }
           });
           return result;
         };
       case "removeAttributeNode":
         return (attr: Attr) => {
-          const htmlTarget = target as HTMLElement;
           const originalValue = attr.value;
           const originalName = attr.name;
-          const result = htmlTarget.removeAttributeNode(attr);
+          const result = element.removeAttributeNode(attr);
           record(() => {
-            const newAttr = document.createAttribute(originalName);
-            newAttr.value = originalValue;
-            htmlTarget.setAttributeNode(newAttr);
+            const restoredAttr = document.createAttribute(originalName);
+            restoredAttr.value = originalValue;
+            element.setAttributeNode(restoredAttr);
           });
           return result;
         };
       case "appendChild":
         return (child: Node) => {
-          const actualChild = unwrapProxy(child);
-          const originalPosition = actualChild.parentNode ? captureNodePosition(actualChild) : null;
-          const fragmentChildren = getFragmentChildren(actualChild);
-          const result = (target as HTMLElement).appendChild(actualChild);
+          const unwrappedChild = unwrapProxy(child);
+          const originalPosition = unwrappedChild.parentNode ? captureNodePosition(unwrappedChild) : null;
+          const fragmentChildren = getFragmentChildren(unwrappedChild);
+          const result = element.appendChild(unwrappedChild);
           record(() => {
             if (fragmentChildren.length > 0) {
               for (const fragmentChild of fragmentChildren) {
                 fragmentChild.parentNode?.removeChild(fragmentChild);
               }
             } else {
-              actualChild.parentNode?.removeChild(actualChild);
+              unwrappedChild.parentNode?.removeChild(unwrappedChild);
             }
             if (originalPosition) {
-              restoreNodePosition(actualChild, originalPosition);
+              restoreNodePosition(unwrappedChild, originalPosition);
             }
           });
           return createElementProxy(result);
         };
       case "removeChild":
         return (child: Node) => {
-          const actualChild = unwrapProxy(child);
-          const nextSibling = actualChild.nextSibling;
-          const result = (target as HTMLElement).removeChild(actualChild);
-          record(() =>
-            (target as HTMLElement).insertBefore(actualChild, nextSibling),
-          );
+          const unwrappedChild = unwrapProxy(child);
+          const nextSibling = unwrappedChild.nextSibling;
+          const result = element.removeChild(unwrappedChild);
+          record(() => element.insertBefore(unwrappedChild, nextSibling));
           return createElementProxy(result);
         };
       case "insertBefore":
-        return (node: Node, referenceNode: Node | null) => {
-          const actualNode = unwrapProxy(node);
-          const actualRef = referenceNode ? unwrapProxy(referenceNode) : null;
-          const originalPosition = actualNode.parentNode ? captureNodePosition(actualNode) : null;
-          const fragmentChildren = getFragmentChildren(actualNode);
-          const result = (target as HTMLElement).insertBefore(
-            actualNode,
-            actualRef,
-          );
+        return (nodeToInsert: Node, referenceNode: Node | null) => {
+          const unwrappedNode = unwrapProxy(nodeToInsert);
+          const unwrappedRef = referenceNode ? unwrapProxy(referenceNode) : null;
+          const originalPosition = unwrappedNode.parentNode ? captureNodePosition(unwrappedNode) : null;
+          const fragmentChildren = getFragmentChildren(unwrappedNode);
+          const result = element.insertBefore(unwrappedNode, unwrappedRef);
           record(() => {
             if (fragmentChildren.length > 0) {
               for (const fragmentChild of fragmentChildren) {
                 fragmentChild.parentNode?.removeChild(fragmentChild);
               }
             } else {
-              actualNode.parentNode?.removeChild(actualNode);
+              unwrappedNode.parentNode?.removeChild(unwrappedNode);
             }
             if (originalPosition) {
-              restoreNodePosition(actualNode, originalPosition);
+              restoreNodePosition(unwrappedNode, originalPosition);
             }
           });
           return createElementProxy(result);
         };
       case "replaceChild":
         return (newChild: Node, oldChild: Node) => {
-          const actualNewChild = unwrapProxy(newChild);
-          const actualOldChild = unwrapProxy(oldChild);
-          const nextSibling = actualOldChild.nextSibling;
-          const newChildOriginalPosition = actualNewChild.parentNode ? captureNodePosition(actualNewChild) : null;
-          const fragmentChildren = getFragmentChildren(actualNewChild);
-          const result = (target as HTMLElement).replaceChild(
-            actualNewChild,
-            actualOldChild,
-          );
+          const unwrappedNewChild = unwrapProxy(newChild);
+          const unwrappedOldChild = unwrapProxy(oldChild);
+          const nextSibling = unwrappedOldChild.nextSibling;
+          const newChildOriginalPosition = unwrappedNewChild.parentNode ? captureNodePosition(unwrappedNewChild) : null;
+          const fragmentChildren = getFragmentChildren(unwrappedNewChild);
+          const result = element.replaceChild(unwrappedNewChild, unwrappedOldChild);
           record(() => {
             if (fragmentChildren.length > 0) {
-              const firstFragChild = fragmentChildren[0];
-              if (firstFragChild?.parentNode) {
-                firstFragChild.parentNode.replaceChild(actualOldChild, firstFragChild);
+              const firstFragmentChild = fragmentChildren[0];
+              if (firstFragmentChild?.parentNode) {
+                firstFragmentChild.parentNode.replaceChild(unwrappedOldChild, firstFragmentChild);
               }
-              for (let childIndex = 1; childIndex < fragmentChildren.length; childIndex++) {
-                fragmentChildren[childIndex].parentNode?.removeChild(fragmentChildren[childIndex]);
+              for (let index = 1; index < fragmentChildren.length; index++) {
+                fragmentChildren[index].parentNode?.removeChild(fragmentChildren[index]);
               }
             } else {
-              (target as HTMLElement).replaceChild(actualOldChild, actualNewChild);
+              element.replaceChild(unwrappedOldChild, unwrappedNewChild);
             }
-            if (nextSibling && actualOldChild.nextSibling !== nextSibling) {
-              (target as HTMLElement).insertBefore(actualOldChild, nextSibling);
+            if (nextSibling && unwrappedOldChild.nextSibling !== nextSibling) {
+              element.insertBefore(unwrappedOldChild, nextSibling);
             }
             if (newChildOriginalPosition) {
-              restoreNodePosition(actualNewChild, newChildOriginalPosition);
+              restoreNodePosition(unwrappedNewChild, newChildOriginalPosition);
             }
           });
           return createElementProxy(result);
         };
       case "remove":
         return () => {
-          const parentNode = target.parentNode;
+          const parent = target.parentNode;
           const nextSibling = target.nextSibling;
-          (target as HTMLElement).remove();
-          record(() => parentNode?.insertBefore(target, nextSibling));
+          element.remove();
+          record(() => parent?.insertBefore(target, nextSibling));
         };
       case "append":
-        return wrapNodeInsertion(
-          (target as HTMLElement).append.bind(target as HTMLElement),
-        );
+        return wrapNodeInsertion(element.append.bind(element));
       case "prepend":
-        return wrapNodeInsertion(
-          (target as HTMLElement).prepend.bind(target as HTMLElement),
-        );
+        return wrapNodeInsertion(element.prepend.bind(element));
       case "after":
-        return wrapNodeInsertion(
-          (target as HTMLElement).after.bind(target as HTMLElement),
-        );
+        return wrapNodeInsertion(element.after.bind(element));
       case "before":
-        return wrapNodeInsertion(
-          (target as HTMLElement).before.bind(target as HTMLElement),
-        );
+        return wrapNodeInsertion(element.before.bind(element));
       case "replaceWith":
         return (...nodes: (Node | string)[]) => {
           const unwrappedNodes = unwrapNodes(nodes);
-          const parentNode = target.parentNode;
+          const parent = target.parentNode;
           const nextSibling = target.nextSibling;
           const originalPositions = new Map<Node, { parent: Node | null; nextSibling: Node | null }>();
           const allFragmentChildren: Node[] = [];
 
-          for (const node of unwrappedNodes) {
-            if (typeof node !== "string") {
-              if (node instanceof DocumentFragment) {
-                allFragmentChildren.push(...Array.from(node.childNodes));
-              } else if (node.parentNode) {
-                originalPositions.set(node, captureNodePosition(node));
+          for (const currentNode of unwrappedNodes) {
+            if (typeof currentNode !== "string") {
+              if (currentNode instanceof DocumentFragment) {
+                allFragmentChildren.push(...Array.from(currentNode.childNodes));
+              } else if (currentNode.parentNode) {
+                originalPositions.set(currentNode, captureNodePosition(currentNode));
               }
             }
           }
 
-          (target as HTMLElement).replaceWith(...unwrappedNodes);
+          element.replaceWith(...unwrappedNodes);
 
           record(() => {
             const nodesToRemove = [...unwrappedNodes.filter((n) => typeof n !== "string"), ...allFragmentChildren];
             const firstNode = nodesToRemove[0] as Node | undefined;
-            if (parentNode) {
-              parentNode.insertBefore(target, firstNode ?? nextSibling);
-              for (const node of nodesToRemove) {
-                if (node !== target) {
-                  (node as Node).parentNode?.removeChild(node as Node);
+            if (parent) {
+              parent.insertBefore(target, firstNode ?? nextSibling);
+              for (const nodeToRemove of nodesToRemove) {
+                if (nodeToRemove !== target) {
+                  (nodeToRemove as Node).parentNode?.removeChild(nodeToRemove as Node);
                 }
               }
             }
-            for (const [node, position] of originalPositions) {
-              restoreNodePosition(node, position);
+            for (const [originalNode, position] of originalPositions) {
+              restoreNodePosition(originalNode, position);
             }
           });
         };
       case "replaceChildren":
         return (...nodes: (Node | string)[]) => {
-          const htmlTarget = target as HTMLElement;
           const unwrappedNodes = unwrapNodes(nodes);
-          const originalChildren = Array.from(htmlTarget.childNodes);
+          const originalChildren = Array.from(element.childNodes);
           const originalPositions = new Map<Node, { parent: Node | null; nextSibling: Node | null }>();
 
-          for (const node of unwrappedNodes) {
-            if (typeof node !== "string" && node.parentNode && node.parentNode !== htmlTarget) {
-              originalPositions.set(node, captureNodePosition(node));
+          for (const currentNode of unwrappedNodes) {
+            if (typeof currentNode !== "string" && currentNode.parentNode && currentNode.parentNode !== element) {
+              originalPositions.set(currentNode, captureNodePosition(currentNode));
             }
           }
 
-          htmlTarget.replaceChildren(...unwrappedNodes);
+          element.replaceChildren(...unwrappedNodes);
 
           record(() => {
-            htmlTarget.replaceChildren(...originalChildren);
-            for (const [node, position] of originalPositions) {
-              restoreNodePosition(node, position);
+            element.replaceChildren(...originalChildren);
+            for (const [originalNode, position] of originalPositions) {
+              restoreNodePosition(originalNode, position);
             }
           });
         };
       case "insertAdjacentHTML":
         return (position: InsertPosition, html: string) => {
-          const htmlTarget = target as HTMLElement;
-          const childrenBefore = Array.from(htmlTarget.childNodes);
-          const siblingsBefore = htmlTarget.parentNode
-            ? Array.from(htmlTarget.parentNode.childNodes)
-            : [];
-          htmlTarget.insertAdjacentHTML(position, html);
-          const addedChildren = Array.from(htmlTarget.childNodes).filter(
-            (node) => !childrenBefore.includes(node),
+          const childrenBefore = Array.from(element.childNodes);
+          const siblingsBefore = element.parentNode ? Array.from(element.parentNode.childNodes) : [];
+          element.insertAdjacentHTML(position, html);
+          const insertedChildren = Array.from(element.childNodes).filter(
+            (child) => !childrenBefore.includes(child),
           );
-          const addedSiblings = htmlTarget.parentNode
-            ? Array.from(htmlTarget.parentNode.childNodes).filter(
-                (node) => !siblingsBefore.includes(node),
-              )
+          const insertedSiblings = element.parentNode
+            ? Array.from(element.parentNode.childNodes).filter((sibling) => !siblingsBefore.includes(sibling))
             : [];
           record(() =>
-            [...addedChildren, ...addedSiblings].forEach((node) =>
-              node.parentNode?.removeChild(node),
+            [...insertedChildren, ...insertedSiblings].forEach((insertedNode) =>
+              insertedNode.parentNode?.removeChild(insertedNode),
             ),
           );
         };
       case "insertAdjacentElement":
-        return (position: InsertPosition, insertedElement: Element) => {
-          const htmlTarget = target as HTMLElement;
-          const actualElement = unwrapProxy(insertedElement) as Element;
-          const originalPosition = actualElement.parentNode ? captureNodePosition(actualElement) : null;
-          const result = htmlTarget.insertAdjacentElement(
-            position,
-            actualElement,
-          );
+        return (position: InsertPosition, elementToInsert: Element) => {
+          const unwrappedElement = unwrapProxy(elementToInsert) as Element;
+          const originalPosition = unwrappedElement.parentNode ? captureNodePosition(unwrappedElement) : null;
+          const result = element.insertAdjacentElement(position, unwrappedElement);
           if (result) {
             record(() => {
               result.parentNode?.removeChild(result);
               if (originalPosition) {
-                restoreNodePosition(actualElement, originalPosition);
+                restoreNodePosition(unwrappedElement, originalPosition);
               }
             });
           }
@@ -1296,45 +1219,35 @@ export const createUndoableProxy = (element: HTMLElement) => {
         };
       case "insertAdjacentText":
         return (position: InsertPosition, text: string) => {
-          const htmlTarget = target as HTMLElement;
-          const childrenBefore = Array.from(htmlTarget.childNodes);
-          const siblingsBefore = htmlTarget.parentNode
-            ? Array.from(htmlTarget.parentNode.childNodes)
-            : [];
-          htmlTarget.insertAdjacentText(position, text);
-          const addedChildren = Array.from(htmlTarget.childNodes).filter(
-            (node) => !childrenBefore.includes(node),
+          const childrenBefore = Array.from(element.childNodes);
+          const siblingsBefore = element.parentNode ? Array.from(element.parentNode.childNodes) : [];
+          element.insertAdjacentText(position, text);
+          const insertedChildren = Array.from(element.childNodes).filter(
+            (child) => !childrenBefore.includes(child),
           );
-          const addedSiblings = htmlTarget.parentNode
-            ? Array.from(htmlTarget.parentNode.childNodes).filter(
-                (node) => !siblingsBefore.includes(node),
-              )
+          const insertedSiblings = element.parentNode
+            ? Array.from(element.parentNode.childNodes).filter((sibling) => !siblingsBefore.includes(sibling))
             : [];
           record(() =>
-            [...addedChildren, ...addedSiblings].forEach((node) =>
-              node.parentNode?.removeChild(node),
+            [...insertedChildren, ...insertedSiblings].forEach((insertedNode) =>
+              insertedNode.parentNode?.removeChild(insertedNode),
             ),
           );
         };
       case "setHTML":
         return (html: string, options?: unknown) => {
-          const htmlTarget = target as HTMLElement;
-          if ("setHTML" in htmlTarget) {
-            const originalInnerHTML = htmlTarget.innerHTML;
-            (htmlTarget as HTMLElement & { setHTML: (html: string, options?: unknown) => void }).setHTML(html, options);
+          if ("setHTML" in element) {
+            const originalInnerHTML = element.innerHTML;
+            (element as HTMLElement & { setHTML: (html: string, options?: unknown) => void }).setHTML(html, options);
             record(() => {
-              htmlTarget.innerHTML = originalInnerHTML;
+              element.innerHTML = originalInnerHTML;
             });
           }
         };
       case "normalize":
         return () => {
-          const htmlTarget = target as HTMLElement;
           const textNodeData: { parent: Node; data: string; nextNonTextSibling: Node | null }[] = [];
-          const walker = document.createTreeWalker(
-            htmlTarget,
-            NodeFilter.SHOW_TEXT,
-          );
+          const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
           let currentTextNode = walker.nextNode();
           while (currentTextNode) {
             let nextNonTextSibling = currentTextNode.nextSibling;
@@ -1348,12 +1261,9 @@ export const createUndoableProxy = (element: HTMLElement) => {
             });
             currentTextNode = walker.nextNode();
           }
-          htmlTarget.normalize();
+          element.normalize();
           const mergedTextNodes: Text[] = [];
-          const mergedWalker = document.createTreeWalker(
-            htmlTarget,
-            NodeFilter.SHOW_TEXT,
-          );
+          const mergedWalker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
           let mergedNode = mergedWalker.nextNode();
           while (mergedNode) {
             mergedTextNodes.push(mergedNode as Text);
@@ -1367,13 +1277,13 @@ export const createUndoableProxy = (element: HTMLElement) => {
             let lastParent: Node | null = null;
             let lastNextNonTextSibling: Node | null | undefined = undefined;
             for (const { parent, data, nextNonTextSibling } of textNodeData) {
-              const newTextNode = document.createTextNode(data);
+              const restoredTextNode = document.createTextNode(data);
               if (parent === lastParent && nextNonTextSibling === lastNextNonTextSibling && lastInserted) {
-                parent.insertBefore(newTextNode, lastInserted.nextSibling);
+                parent.insertBefore(restoredTextNode, lastInserted.nextSibling);
               } else {
-                parent.insertBefore(newTextNode, nextNonTextSibling);
+                parent.insertBefore(restoredTextNode, nextNonTextSibling);
               }
-              lastInserted = newTextNode;
+              lastInserted = restoredTextNode;
               lastParent = parent;
               lastNextNonTextSibling = nextNonTextSibling;
             }
@@ -1381,36 +1291,31 @@ export const createUndoableProxy = (element: HTMLElement) => {
         };
       case "cloneNode":
         return (deep?: boolean) => {
-          const clone = (target as HTMLElement).cloneNode(deep);
-          return createElementProxy(clone);
+          const clonedNode = element.cloneNode(deep);
+          return createElementProxy(clonedNode);
         };
       case "addEventListener":
         return (
-          type: string,
+          eventType: string,
           listener: EventListenerOrEventListenerObject,
           options?: boolean | AddEventListenerOptions,
         ) => {
-          (target as HTMLElement).addEventListener(type, listener, options);
-          addedEventListeners.push({ target, type, listener, options });
-          record(() =>
-            (target as HTMLElement).removeEventListener(type, listener, options),
-          );
+          element.addEventListener(eventType, listener, options);
+          addedEventListeners.push({ target, type: eventType, listener, options });
+          record(() => element.removeEventListener(eventType, listener, options));
         };
       case "removeEventListener":
         return (
-          type: string,
+          eventType: string,
           listener: EventListenerOrEventListenerObject,
           options?: boolean | EventListenerOptions,
         ) => {
-          (target as HTMLElement).removeEventListener(type, listener, options);
-          record(() =>
-            (target as HTMLElement).addEventListener(type, listener, options),
-          );
+          element.removeEventListener(eventType, listener, options);
+          record(() => element.addEventListener(eventType, listener, options));
         };
       case "attachShadow":
         return (init: ShadowRootInit) => {
-          const htmlTarget = target as HTMLElement;
-          const shadowRoot = htmlTarget.attachShadow(init);
+          const shadowRoot = element.attachShadow(init);
           record(() => {
             shadowRoot.innerHTML = "";
           });
@@ -1421,53 +1326,47 @@ export const createUndoableProxy = (element: HTMLElement) => {
           keyframes: Keyframe[] | PropertyIndexedKeyframes | null,
           options?: number | KeyframeAnimationOptions,
         ) => {
-          const htmlTarget = target as HTMLElement;
-          const animation = htmlTarget.animate(keyframes, options);
+          const animation = element.animate(keyframes, options);
           record(() => animation.cancel());
           return animation;
         };
-      case "getAnimations":
-        return (options?: GetAnimationsOptions) => {
-          const htmlTarget = target as HTMLElement;
-          return htmlTarget.getAnimations(options);
-        };
       case "showModal":
         return () => {
-          const dialogTarget = target as HTMLDialogElement;
-          if ("showModal" in dialogTarget) {
-            const wasOpen = dialogTarget.open;
-            dialogTarget.showModal();
+          const dialog = target as HTMLDialogElement;
+          if ("showModal" in dialog) {
+            const wasOpen = dialog.open;
+            dialog.showModal();
             if (!wasOpen) {
-              record(() => dialogTarget.close());
+              record(() => dialog.close());
             }
           }
         };
       case "show":
         return () => {
-          const dialogTarget = target as HTMLDialogElement;
-          if ("show" in dialogTarget) {
-            const wasOpen = dialogTarget.open;
-            dialogTarget.show();
+          const dialog = target as HTMLDialogElement;
+          if ("show" in dialog) {
+            const wasOpen = dialog.open;
+            dialog.show();
             if (!wasOpen) {
-              record(() => dialogTarget.close());
+              record(() => dialog.close());
             }
           }
         };
       case "close":
         return (returnValue?: string) => {
-          const dialogTarget = target as HTMLDialogElement;
-          if ("close" in dialogTarget) {
-            const wasOpen = dialogTarget.open;
-            const wasModal = dialogTarget.matches(":modal");
-            const originalReturnValue = dialogTarget.returnValue;
-            dialogTarget.close(returnValue);
+          const dialog = target as HTMLDialogElement;
+          if ("close" in dialog) {
+            const wasOpen = dialog.open;
+            const wasModal = dialog.matches(":modal");
+            const originalReturnValue = dialog.returnValue;
+            dialog.close(returnValue);
             if (wasOpen) {
               record(() => {
-                dialogTarget.returnValue = originalReturnValue;
+                dialog.returnValue = originalReturnValue;
                 if (wasModal) {
-                  dialogTarget.showModal();
+                  dialog.showModal();
                 } else {
-                  dialogTarget.show();
+                  dialog.show();
                 }
               });
             }
@@ -1475,144 +1374,117 @@ export const createUndoableProxy = (element: HTMLElement) => {
         };
       case "showPopover":
         return () => {
-          const htmlTarget = target as HTMLElement;
-          if ("showPopover" in htmlTarget && "hidePopover" in htmlTarget) {
-            const popoverTarget = htmlTarget as HTMLElement & { showPopover: () => void; hidePopover: () => void };
-            const wasShowing = htmlTarget.matches(":popover-open");
-            popoverTarget.showPopover();
+          if ("showPopover" in element && "hidePopover" in element) {
+            const popoverElement = element as HTMLElement & { showPopover: () => void; hidePopover: () => void };
+            const wasShowing = element.matches(":popover-open");
+            popoverElement.showPopover();
             if (!wasShowing) {
-              record(() => popoverTarget.hidePopover());
+              record(() => popoverElement.hidePopover());
             }
           }
         };
       case "hidePopover":
         return () => {
-          const htmlTarget = target as HTMLElement;
-          if ("hidePopover" in htmlTarget && "showPopover" in htmlTarget) {
-            const popoverTarget = htmlTarget as HTMLElement & { showPopover: () => void; hidePopover: () => void };
-            const wasShowing = htmlTarget.matches(":popover-open");
-            popoverTarget.hidePopover();
+          if ("hidePopover" in element && "showPopover" in element) {
+            const popoverElement = element as HTMLElement & { showPopover: () => void; hidePopover: () => void };
+            const wasShowing = element.matches(":popover-open");
+            popoverElement.hidePopover();
             if (wasShowing) {
-              record(() => popoverTarget.showPopover());
+              record(() => popoverElement.showPopover());
             }
           }
         };
       case "togglePopover":
         return (force?: boolean) => {
-          const htmlTarget = target as HTMLElement;
-          if ("togglePopover" in htmlTarget) {
-            const popoverTarget = htmlTarget as HTMLElement & { togglePopover: (force?: boolean) => boolean };
-            const wasShowing = htmlTarget.matches(":popover-open");
-            const result = popoverTarget.togglePopover(force);
-            record(() => {
-              popoverTarget.togglePopover(wasShowing);
-            });
+          if ("togglePopover" in element) {
+            const popoverElement = element as HTMLElement & { togglePopover: (force?: boolean) => boolean };
+            const wasShowing = element.matches(":popover-open");
+            const result = popoverElement.togglePopover(force);
+            record(() => popoverElement.togglePopover(wasShowing));
             return result;
           }
           return false;
         };
       case "scrollTo":
-        return (
-          xOrOptions?: number | ScrollToOptions,
-          maybeY?: number,
-        ) => {
-          const htmlTarget = target as HTMLElement;
-          const originalScrollLeft = htmlTarget.scrollLeft;
-          const originalScrollTop = htmlTarget.scrollTop;
+        return (xOrOptions?: number | ScrollToOptions, yCoordinate?: number) => {
+          const originalScrollLeft = element.scrollLeft;
+          const originalScrollTop = element.scrollTop;
           if (typeof xOrOptions === "number") {
-            htmlTarget.scrollTo(xOrOptions, maybeY!);
+            element.scrollTo(xOrOptions, yCoordinate!);
           } else {
-            htmlTarget.scrollTo(xOrOptions);
+            element.scrollTo(xOrOptions);
           }
-          record(() => htmlTarget.scrollTo(originalScrollLeft, originalScrollTop));
+          record(() => element.scrollTo(originalScrollLeft, originalScrollTop));
         };
       case "scrollBy":
-        return (
-          xOrOptions?: number | ScrollToOptions,
-          maybeY?: number,
-        ) => {
-          const htmlTarget = target as HTMLElement;
-          const originalScrollLeft = htmlTarget.scrollLeft;
-          const originalScrollTop = htmlTarget.scrollTop;
+        return (xOrOptions?: number | ScrollToOptions, yCoordinate?: number) => {
+          const originalScrollLeft = element.scrollLeft;
+          const originalScrollTop = element.scrollTop;
           if (typeof xOrOptions === "number") {
-            htmlTarget.scrollBy(xOrOptions, maybeY!);
+            element.scrollBy(xOrOptions, yCoordinate!);
           } else {
-            htmlTarget.scrollBy(xOrOptions);
+            element.scrollBy(xOrOptions);
           }
-          record(() => htmlTarget.scrollTo(originalScrollLeft, originalScrollTop));
+          record(() => element.scrollTo(originalScrollLeft, originalScrollTop));
         };
       case "scrollIntoView":
-        return (arg?: boolean | ScrollIntoViewOptions) => {
-          const htmlTarget = target as HTMLElement;
-          const scrollableParent = findScrollableParent(htmlTarget);
+        return (scrollOptions?: boolean | ScrollIntoViewOptions) => {
+          const scrollableParent = findScrollableParent(element);
           const originalScrollLeft = scrollableParent?.scrollLeft ?? 0;
           const originalScrollTop = scrollableParent?.scrollTop ?? 0;
-          htmlTarget.scrollIntoView(arg);
+          element.scrollIntoView(scrollOptions);
           if (scrollableParent) {
-            record(() =>
-              scrollableParent.scrollTo(originalScrollLeft, originalScrollTop),
-            );
+            record(() => scrollableParent.scrollTo(originalScrollLeft, originalScrollTop));
           }
         };
       case "setSelectionRange":
         return (
-          start: number | null,
-          end: number | null,
-          direction?: "forward" | "backward" | "none",
+          selectionStart: number | null,
+          selectionEnd: number | null,
+          selectionDirection?: "forward" | "backward" | "none",
         ) => {
-          const inputTarget = target as HTMLInputElement | HTMLTextAreaElement;
-          if ("setSelectionRange" in inputTarget) {
-            const originalStart = inputTarget.selectionStart;
-            const originalEnd = inputTarget.selectionEnd;
-            const originalDirection = inputTarget.selectionDirection;
-            inputTarget.setSelectionRange(start, end, direction);
+          const inputElement = target as HTMLInputElement | HTMLTextAreaElement;
+          if ("setSelectionRange" in inputElement) {
+            const originalStart = inputElement.selectionStart;
+            const originalEnd = inputElement.selectionEnd;
+            const originalDirection = inputElement.selectionDirection;
+            inputElement.setSelectionRange(selectionStart, selectionEnd, selectionDirection);
             record(() =>
-              inputTarget.setSelectionRange(
-                originalStart,
-                originalEnd,
-                originalDirection ?? undefined,
-              ),
+              inputElement.setSelectionRange(originalStart, originalEnd, originalDirection ?? undefined),
             );
           }
         };
       case "setRangeText":
         return (
-          replacement: string,
-          start?: number,
-          end?: number,
+          replacementText: string,
+          rangeStart?: number,
+          rangeEnd?: number,
           selectMode?: SelectionMode,
         ) => {
-          const inputTarget = target as HTMLInputElement | HTMLTextAreaElement;
-          if ("setRangeText" in inputTarget) {
-            const originalValue = inputTarget.value;
-            const originalStart = inputTarget.selectionStart;
-            const originalEnd = inputTarget.selectionEnd;
-            if (start !== undefined && end !== undefined) {
-              inputTarget.setRangeText(replacement, start, end, selectMode);
+          const inputElement = target as HTMLInputElement | HTMLTextAreaElement;
+          if ("setRangeText" in inputElement) {
+            const originalValue = inputElement.value;
+            const originalStart = inputElement.selectionStart;
+            const originalEnd = inputElement.selectionEnd;
+            if (rangeStart !== undefined && rangeEnd !== undefined) {
+              inputElement.setRangeText(replacementText, rangeStart, rangeEnd, selectMode);
             } else {
-              inputTarget.setRangeText(replacement);
+              inputElement.setRangeText(replacementText);
             }
             record(() => {
-              inputTarget.value = originalValue;
-              inputTarget.setSelectionRange(originalStart, originalEnd);
+              inputElement.value = originalValue;
+              inputElement.setSelectionRange(originalStart, originalEnd);
             });
-          }
-        };
-      case "select":
-        return () => {
-          const inputTarget = target as HTMLInputElement | HTMLTextAreaElement;
-          if ("select" in inputTarget) {
-            inputTarget.select();
           }
         };
       case "splitText":
         return (offset: number) => {
-          const textTarget = target as Text;
-          if ("splitText" in textTarget) {
-            const originalData = textTarget.data;
-            const newTextNode = textTarget.splitText(offset);
+          const textNode = target as Text;
+          if ("splitText" in textNode) {
+            const originalData = textNode.data;
+            const newTextNode = textNode.splitText(offset);
             record(() => {
-              textTarget.data = originalData;
+              textNode.data = originalData;
               newTextNode.parentNode?.removeChild(newTextNode);
             });
             return createElementProxy(newTextNode);
@@ -1620,74 +1492,59 @@ export const createUndoableProxy = (element: HTMLElement) => {
           return null;
         };
       case "appendData":
-        return (data: string) => {
-          const charTarget = target as CharacterData;
-          if ("appendData" in charTarget) {
-            const originalLength = charTarget.length;
-            charTarget.appendData(data);
-            record(() => charTarget.deleteData(originalLength, data.length));
+        return (dataToAppend: string) => {
+          const characterData = target as CharacterData;
+          if ("appendData" in characterData) {
+            const originalLength = characterData.length;
+            characterData.appendData(dataToAppend);
+            record(() => characterData.deleteData(originalLength, dataToAppend.length));
           }
         };
       case "deleteData":
         return (offset: number, count: number) => {
-          const charTarget = target as CharacterData;
-          if ("deleteData" in charTarget) {
-            const deletedData = charTarget.substringData(offset, count);
-            charTarget.deleteData(offset, count);
-            record(() => charTarget.insertData(offset, deletedData));
+          const characterData = target as CharacterData;
+          if ("deleteData" in characterData) {
+            const deletedData = characterData.substringData(offset, count);
+            characterData.deleteData(offset, count);
+            record(() => characterData.insertData(offset, deletedData));
           }
         };
       case "insertData":
-        return (offset: number, data: string) => {
-          const charTarget = target as CharacterData;
-          if ("insertData" in charTarget) {
-            charTarget.insertData(offset, data);
-            record(() => charTarget.deleteData(offset, data.length));
+        return (offset: number, dataToInsert: string) => {
+          const characterData = target as CharacterData;
+          if ("insertData" in characterData) {
+            characterData.insertData(offset, dataToInsert);
+            record(() => characterData.deleteData(offset, dataToInsert.length));
           }
         };
       case "replaceData":
-        return (offset: number, count: number, data: string) => {
-          const charTarget = target as CharacterData;
-          if ("replaceData" in charTarget) {
-            const originalData = charTarget.substringData(offset, count);
-            charTarget.replaceData(offset, count, data);
-            record(() => charTarget.replaceData(offset, data.length, originalData));
+        return (offset: number, count: number, replacementData: string) => {
+          const characterData = target as CharacterData;
+          if ("replaceData" in characterData) {
+            const originalData = characterData.substringData(offset, count);
+            characterData.replaceData(offset, count, replacementData);
+            record(() => characterData.replaceData(offset, replacementData.length, originalData));
           }
-        };
-      case "substringData":
-        return (offset: number, count: number) => {
-          const charTarget = target as CharacterData;
-          if ("substringData" in charTarget) {
-            return charTarget.substringData(offset, count);
-          }
-          return "";
         };
       case "focus":
-        return (options?: FocusOptions) => {
-          const htmlTarget = target as HTMLElement;
-          const previouslyFocused = document.activeElement;
-          htmlTarget.focus(options);
+        return (focusOptions?: FocusOptions) => {
+          const previouslyFocusedElement = document.activeElement;
+          element.focus(focusOptions);
           record(() => {
-            if (previouslyFocused && previouslyFocused !== document.body && "focus" in previouslyFocused) {
-              (previouslyFocused as HTMLElement).focus();
+            if (previouslyFocusedElement && previouslyFocusedElement !== document.body && "focus" in previouslyFocusedElement) {
+              (previouslyFocusedElement as HTMLElement).focus();
             } else {
-              htmlTarget.blur();
+              element.blur();
             }
           });
         };
       case "blur":
         return () => {
-          const htmlTarget = target as HTMLElement;
-          const wasFocused = document.activeElement === htmlTarget;
-          htmlTarget.blur();
+          const wasFocused = document.activeElement === element;
+          element.blur();
           if (wasFocused) {
-            record(() => htmlTarget.focus());
+            record(() => element.focus());
           }
-        };
-      case "click":
-        return () => {
-          const htmlTarget = target as HTMLElement;
-          htmlTarget.click();
         };
       case "reset":
         return () => {
@@ -1748,22 +1605,6 @@ export const createUndoableProxy = (element: HTMLElement) => {
           if ("requestSubmit" in formTarget) {
             formTarget.requestSubmit(submitter);
           }
-        };
-      case "checkValidity":
-        return () => {
-          const formTarget = target as HTMLFormElement | HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
-          if ("checkValidity" in formTarget) {
-            return formTarget.checkValidity();
-          }
-          return true;
-        };
-      case "reportValidity":
-        return () => {
-          const formTarget = target as HTMLFormElement | HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
-          if ("reportValidity" in formTarget) {
-            return formTarget.reportValidity();
-          }
-          return true;
         };
       case "setCustomValidity":
         return (message: string) => {
@@ -1982,13 +1823,6 @@ export const createUndoableProxy = (element: HTMLElement) => {
             });
           }
         };
-      case "showPicker":
-        return () => {
-          const inputTarget = target as HTMLInputElement;
-          if ("showPicker" in inputTarget) {
-            inputTarget.showPicker();
-          }
-        };
       case "play":
         return () => {
           const mediaTarget = target as HTMLMediaElement;
@@ -2060,29 +1894,6 @@ export const createUndoableProxy = (element: HTMLElement) => {
             });
           }
         };
-      case "releasePointerCapture":
-        return (pointerId: number) => {
-          const htmlTarget = target as HTMLElement;
-          if ("releasePointerCapture" in htmlTarget) {
-            htmlTarget.releasePointerCapture(pointerId);
-          }
-        };
-      case "hasPointerCapture":
-        return (pointerId: number) => {
-          const htmlTarget = target as HTMLElement;
-          if ("hasPointerCapture" in htmlTarget) {
-            return htmlTarget.hasPointerCapture(pointerId);
-          }
-          return false;
-        };
-      case "attachInternals":
-        return () => {
-          const htmlTarget = target as HTMLElement;
-          if ("attachInternals" in htmlTarget) {
-            return (htmlTarget as HTMLElement & { attachInternals: () => ElementInternals }).attachInternals();
-          }
-          return null;
-        };
       case "webkitMatchesSelector":
         return (selectors: string) => {
           const htmlTarget = target as HTMLElement;
@@ -2153,251 +1964,158 @@ export const createUndoableProxy = (element: HTMLElement) => {
     if (existingProxy) return existingProxy;
 
     const nodeProxy = new Proxy(node, {
-      get(nodeTarget, nodeProp) {
-        if (nodeProp === Symbol.toStringTag) {
-          return (nodeTarget as object)[Symbol.toStringTag as keyof object];
+      get(target, property) {
+        if (property === Symbol.toStringTag) {
+          return (target as object)[Symbol.toStringTag as keyof object];
         }
-        if (nodeProp === Symbol.toPrimitive) {
-          const toPrimitive = (nodeTarget as { [Symbol.toPrimitive]?: (hint: string) => unknown })[Symbol.toPrimitive];
-          return toPrimitive?.bind(nodeTarget);
+        if (property === Symbol.toPrimitive) {
+          const toPrimitive = (target as { [Symbol.toPrimitive]?: (hint: string) => unknown })[Symbol.toPrimitive];
+          return toPrimitive?.bind(target);
         }
-        if (nodeProp === Symbol.iterator && Symbol.iterator in nodeTarget) {
-          return (nodeTarget as Iterable<unknown>)[Symbol.iterator].bind(nodeTarget);
+        if (property === Symbol.iterator && Symbol.iterator in target) {
+          return (target as Iterable<unknown>)[Symbol.iterator].bind(target);
         }
-        if (nodeProp === "constructor") {
-          return nodeTarget.constructor;
+        if (property === "constructor") {
+          return target.constructor;
         }
 
-        if (nodeProp === "style" && "style" in nodeTarget) {
-          return createStyleProxy((nodeTarget as HTMLElement).style);
+        const element = target as HTMLElement;
+
+        if (property === "style" && "style" in target) {
+          return createStyleProxy(element.style);
         }
-        if (nodeProp === "classList" && "classList" in nodeTarget) {
-          return createClassListProxy((nodeTarget as HTMLElement).classList);
+        if (property === "classList" && "classList" in target) {
+          return createDOMTokenListProxy(element.classList);
         }
-        if (nodeProp === "dataset" && "dataset" in nodeTarget) {
-          return createDatasetProxy((nodeTarget as HTMLElement).dataset);
+        if (property === "dataset" && "dataset" in target) {
+          return createDatasetProxy(element.dataset);
         }
-        if (nodeProp === "attributes" && "attributes" in nodeTarget) {
-          return createNamedNodeMapProxy((nodeTarget as HTMLElement).attributes);
+        if (property === "attributes" && "attributes" in target) {
+          return createNamedNodeMapProxy(element.attributes);
         }
-        if (
-          nodeProp === "attributeStyleMap" &&
-          "attributeStyleMap" in nodeTarget
-        ) {
+        if (property === "attributeStyleMap" && "attributeStyleMap" in target) {
           return createStyleMapProxy(
-            (nodeTarget as HTMLElement & { attributeStyleMap: StylePropertyMap }).attributeStyleMap,
+            (element as HTMLElement & { attributeStyleMap: StylePropertyMap }).attributeStyleMap,
           );
         }
-        if (nodeProp === "shadowRoot" && "shadowRoot" in nodeTarget) {
-          const shadowRoot = (nodeTarget as HTMLElement).shadowRoot;
-          return shadowRoot
-            ? createElementProxy(shadowRoot as unknown as Node)
+        if (property === "shadowRoot" && "shadowRoot" in target) {
+          return element.shadowRoot
+            ? createElementProxy(element.shadowRoot as unknown as Node)
             : null;
         }
-        if (nodeProp === "content" && nodeTarget instanceof HTMLTemplateElement) {
-          return createElementProxy(nodeTarget.content);
+        if (property === "content" && target instanceof HTMLTemplateElement) {
+          return createElementProxy(target.content);
         }
-        if (typeof nodeProp === "string" && DOMTOKENLIST_PROPS.has(nodeProp) && nodeProp in nodeTarget) {
-          const tokenList = (nodeTarget as unknown as Record<string, DOMTokenList>)[nodeProp];
+        if (typeof property === "string" && DOMTOKENLIST_PROPS.has(property) && property in target) {
+          const tokenList = (target as unknown as Record<string, DOMTokenList>)[property];
           if (tokenList instanceof DOMTokenList) {
             return createDOMTokenListProxy(tokenList);
           }
         }
-        if (nodeProp === "options" && nodeTarget instanceof HTMLSelectElement) {
-          return createOptionsCollectionProxy(nodeTarget.options, nodeTarget);
+        if (property === "options" && target instanceof HTMLSelectElement) {
+          return createOptionsCollectionProxy(target.options, target);
         }
-        if (NAVIGATION_PROPS.has(nodeProp as string)) {
+        if (typeof property === "string" && NAVIGATION_PROPS.has(property)) {
           return createElementProxy(
-            (nodeTarget as Element)[nodeProp as keyof Element] as Node | null,
+            (target as Element)[property as keyof Element] as Node | null,
           );
         }
-        if (nodeProp === "children" || nodeProp === "childNodes") {
+        if (property === "children" || property === "childNodes") {
           return createCollectionProxy(
-            (nodeTarget as Element)[nodeProp as "children" | "childNodes"],
+            (target as Element)[property],
           );
         }
-        if (QUERY_METHODS_SINGLE.has(nodeProp as string)) {
+        if (typeof property === "string" && QUERY_METHODS_SINGLE.has(property)) {
+          const elementTarget = target as Element;
           return (selector: string) => {
-            const result = (
-              nodeTarget as Element
-            )[nodeProp as "querySelector" | "closest"]?.(selector);
-            return result ? createElementProxy(result) : null;
+            const matchedElement = elementTarget[property as "querySelector" | "closest"]?.(selector);
+            return matchedElement ? createElementProxy(matchedElement) : null;
           };
         }
-        if (QUERY_METHODS_COLLECTION.has(nodeProp as string)) {
-          if (nodeProp === "querySelectorAll") {
-            return (selector: string) => {
-              const result = (nodeTarget as Element).querySelectorAll(selector);
-              return createNodeListProxy(result);
-            };
+        if (typeof property === "string" && QUERY_METHODS_COLLECTION.has(property)) {
+          const elementTarget = target as Element;
+          if (property === "querySelectorAll") {
+            return (selector: string) => createNodeListProxy(elementTarget.querySelectorAll(selector));
           }
-          if (nodeProp === "getElementsByClassName") {
-            return (classNames: string) => {
-              const result = (nodeTarget as Element).getElementsByClassName(
-                classNames,
-              );
-              return createCollectionProxy(
-                result as unknown as HTMLCollection,
-              );
-            };
+          if (property === "getElementsByClassName") {
+            return (classNames: string) => createCollectionProxy(elementTarget.getElementsByClassName(classNames));
           }
-          if (nodeProp === "getElementsByTagName") {
-            return (tagName: string) => {
-              const result = (nodeTarget as Element).getElementsByTagName(tagName);
-              return createCollectionProxy(
-                result as unknown as HTMLCollection,
-              );
-            };
+          if (property === "getElementsByTagName") {
+            return (tagName: string) => createCollectionProxy(elementTarget.getElementsByTagName(tagName));
           }
-          if (nodeProp === "getElementsByTagNameNS") {
-            return (namespace: string | null, localName: string) => {
-              const result = (nodeTarget as Element).getElementsByTagNameNS(
-                namespace,
-                localName,
-              );
-              return createCollectionProxy(
-                result as unknown as HTMLCollection,
-              );
-            };
+          if (property === "getElementsByTagNameNS") {
+            return (namespace: string | null, localName: string) =>
+              createCollectionProxy(elementTarget.getElementsByTagNameNS(namespace, localName));
           }
         }
-        if (
-          typeof nodeProp === "string" &&
-          HANDLED_METHODS.has(nodeProp)
-        ) {
-          const handler = getMethodHandler(
-            nodeTarget as HTMLElement | CharacterData,
-            nodeProp,
-          );
-          if (handler) return handler;
+        if (typeof property === "string" && HANDLED_METHODS.has(property)) {
+          const methodHandler = getMethodHandler(target as HTMLElement | CharacterData, property);
+          if (methodHandler) return methodHandler;
         }
-        const nodeValue = Reflect.get(nodeTarget, nodeProp);
-        return typeof nodeValue === "function"
-          ? nodeValue.bind(nodeTarget)
-          : nodeValue;
+        const propertyValue = Reflect.get(target, property);
+        return typeof propertyValue === "function"
+          ? propertyValue.bind(target)
+          : propertyValue;
       },
-      set(nodeTarget, nodeProp, value) {
-        if (isReadOnlyProperty(nodeTarget, nodeProp)) {
-          return Reflect.set(nodeTarget, nodeProp, value);
+      set(target, property, value) {
+        if (isReadOnlyProperty(target, property)) {
+          return Reflect.set(target, property, value);
         }
 
-        const propString = typeof nodeProp === "string" ? nodeProp : String(nodeProp);
+        const propertyName = typeof property === "string" ? property : String(property);
+        const targetRecord = target as unknown as Record<string, unknown>;
 
-        if (SCROLL_PROPS.has(propString)) {
-          const original = (nodeTarget as HTMLElement)[
-            propString as "scrollTop" | "scrollLeft"
-          ];
+        const recordPropertyUndo = () => {
+          const originalValue = targetRecord[propertyName];
           record(() => {
-            (nodeTarget as HTMLElement)[propString as "scrollTop" | "scrollLeft"] =
-              original;
+            targetRecord[propertyName] = originalValue;
           });
-        } else if (
-          FORM_PROPS.has(propString) &&
-          isFormElement(nodeTarget as Node)
-        ) {
-          const original = (
-            nodeTarget as unknown as Record<string, unknown>
-          )[propString];
-          record(() => {
-            (nodeTarget as unknown as Record<string, unknown>)[propString] =
-              original;
-          });
-        } else if (propString === "innerText") {
-          const htmlTarget = nodeTarget as HTMLElement;
-          const originalHTML = htmlTarget.innerHTML;
-          record(() => {
-            htmlTarget.innerHTML = originalHTML;
-          });
-        } else if (
-          COMMON_PROPS.has(propString)
-        ) {
-          const original = (
-            nodeTarget as unknown as Record<string, unknown>
-          )[propString];
-          record(() => {
-            (nodeTarget as unknown as Record<string, unknown>)[propString] =
-              original;
-          });
-        } else if (
-          ELEMENT_SPECIFIC_PROPS.has(propString)
-        ) {
-          const original = (
-            nodeTarget as unknown as Record<string, unknown>
-          )[propString];
-          record(() => {
-            (nodeTarget as unknown as Record<string, unknown>)[propString] =
-              original;
-          });
-        } else if (
-          MEDIA_PROPS.has(propString) &&
-          isMediaElement(nodeTarget as Node)
-        ) {
-          const original = (
-            nodeTarget as unknown as Record<string, unknown>
-          )[propString];
-          record(() => {
-            (nodeTarget as unknown as Record<string, unknown>)[propString] =
-              original;
-          });
-        } else if (
-          propString === "nodeValue" ||
-          propString === "data"
-        ) {
-          const original = (
-            nodeTarget as unknown as Record<string, unknown>
-          )[propString];
-          record(() => {
-            (nodeTarget as unknown as Record<string, unknown>)[propString] =
-              original;
-          });
-        } else if (propString === "textContent") {
-          const htmlTarget = nodeTarget as HTMLElement;
-          const originalHTML = htmlTarget.innerHTML;
-          record(() => {
-            htmlTarget.innerHTML = originalHTML;
-          });
-        } else if (propString === "innerHTML") {
-          const htmlTarget = nodeTarget as HTMLElement;
-          const originalHTML = htmlTarget.innerHTML;
-          record(() => {
-            htmlTarget.innerHTML = originalHTML;
-          });
-        } else if (propString === "outerHTML") {
-          const htmlTarget = nodeTarget as HTMLElement;
-          const parentNode = htmlTarget.parentNode;
-          const nextSibling = htmlTarget.nextSibling;
-          const originalOuterHTML = htmlTarget.outerHTML;
-          const siblingsBefore = parentNode ? Array.from(parentNode.childNodes) : [];
+        };
 
-          const result = Reflect.set(nodeTarget, nodeProp, value);
+        if (SCROLL_PROPS.has(propertyName)) {
+          recordPropertyUndo();
+        } else if (FORM_PROPS.has(propertyName) && isFormElement(target)) {
+          recordPropertyUndo();
+        } else if (propertyName === "innerText" || propertyName === "textContent" || propertyName === "innerHTML") {
+          const element = target as HTMLElement;
+          const originalInnerHTML = element.innerHTML;
+          record(() => {
+            element.innerHTML = originalInnerHTML;
+          });
+        } else if (ELEMENT_PROPS.has(propertyName)) {
+          recordPropertyUndo();
+        } else if (MEDIA_PROPS.has(propertyName) && isMediaElement(target)) {
+          recordPropertyUndo();
+        } else if (propertyName === "outerHTML") {
+          const element = target as HTMLElement;
+          const parent = element.parentNode;
+          const nextSibling = element.nextSibling;
+          const originalOuterHTML = element.outerHTML;
+          const childrenBeforeSet = parent ? Array.from(parent.childNodes) : [];
 
-          const siblingsAfter = parentNode ? Array.from(parentNode.childNodes) : [];
-          const addedNodes = siblingsAfter.filter((n) => !siblingsBefore.includes(n));
+          const result = Reflect.set(target, property, value);
+
+          const childrenAfterSet = parent ? Array.from(parent.childNodes) : [];
+          const insertedNodes = childrenAfterSet.filter((child) => !childrenBeforeSet.includes(child));
 
           record(() => {
-            for (const addedNode of addedNodes) {
-              addedNode.parentNode?.removeChild(addedNode);
+            for (const insertedNode of insertedNodes) {
+              insertedNode.parentNode?.removeChild(insertedNode);
             }
             const tempContainer = document.createElement("div");
             tempContainer.innerHTML = originalOuterHTML;
             const restoredElement = tempContainer.firstChild;
-            if (restoredElement && parentNode) {
-              parentNode.insertBefore(restoredElement, nextSibling);
+            if (restoredElement && parent) {
+              parent.insertBefore(restoredElement, nextSibling);
             }
           });
 
           return result;
-        } else if (typeof nodeProp === "string" || typeof nodeProp === "symbol") {
-          const original = (
-            nodeTarget as unknown as Record<string | symbol, unknown>
-          )[nodeProp];
-          record(() => {
-            (nodeTarget as unknown as Record<string | symbol, unknown>)[nodeProp] =
-              original;
-          });
+        } else {
+          recordPropertyUndo();
         }
 
-        return Reflect.set(nodeTarget, nodeProp, value);
+        return Reflect.set(target, property, value);
       },
     });
 
@@ -2413,9 +2131,7 @@ export const createUndoableProxy = (element: HTMLElement) => {
     node instanceof HTMLOptionElement;
 
   const isMediaElement = (node: Node): boolean =>
-    node instanceof HTMLMediaElement ||
-    node instanceof HTMLVideoElement ||
-    node instanceof HTMLAudioElement;
+    node instanceof HTMLMediaElement;
 
   const proxy = createElementProxy(element) as HTMLElement;
 
