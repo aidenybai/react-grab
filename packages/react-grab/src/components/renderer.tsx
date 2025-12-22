@@ -13,15 +13,29 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
     props.agentSessions ? Array.from(props.agentSessions.values()) : [],
   );
 
+  const selectionBoundsList = createMemo(() => {
+    if (
+      props.selectionBoundsMultiple &&
+      props.selectionBoundsMultiple.length > 0
+    ) {
+      return props.selectionBoundsMultiple;
+    }
+    return props.selectionBounds ? [props.selectionBounds] : [];
+  });
+
   return (
     <>
-      <Show when={props.selectionVisible && props.selectionBounds}>
-        <SelectionBox
-          variant="selection"
-          bounds={props.selectionBounds!}
-          visible={props.selectionVisible}
-          isFading={props.selectionLabelStatus === "fading"}
-        />
+      <Show when={props.selectionVisible}>
+        <For each={selectionBoundsList()}>
+          {(bounds) => (
+            <SelectionBox
+              variant="selection"
+              bounds={bounds}
+              visible={props.selectionVisible}
+              isFading={props.selectionLabelStatus === "fading"}
+            />
+          )}
+        </For>
       </Show>
 
       <Show
@@ -118,6 +132,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         <SelectionLabel
           tagName={props.selectionTagName}
           componentName={props.selectionComponentName}
+          elementsCount={props.selectionElementsCount}
           selectionBounds={props.selectionBounds}
           mouseX={props.mouseX}
           visible={props.selectionLabelVisible}

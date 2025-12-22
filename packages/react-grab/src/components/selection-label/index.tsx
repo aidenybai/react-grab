@@ -137,6 +137,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     // old cached width, causing the label to be offset incorrectly.
     void props.tagName;
     void props.componentName;
+    void props.elementsCount;
     void props.statusText;
     void props.inputValue;
     void props.hasAgent;
@@ -242,6 +243,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   };
 
   const tagDisplay = () => {
+    if (props.elementsCount && props.elementsCount > 1) {
+      return `${props.elementsCount} elements`;
+    }
     if (props.componentName && props.tagName) {
       return `${props.componentName}.${props.tagName}`;
     }

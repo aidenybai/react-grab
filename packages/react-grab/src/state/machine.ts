@@ -36,6 +36,7 @@ interface GrabMachineContext {
 
   detectedElement: Element | null;
   frozenElement: Element | null;
+  frozenElements: Element[];
   lastGrabbedElement: Element | null;
   lastCopiedElement: Element | null;
 
@@ -84,6 +85,7 @@ const createInitialContext = (theme: Required<Theme>): GrabMachineContext => ({
 
   detectedElement: null,
   frozenElement: null,
+  frozenElements: [],
   lastGrabbedElement: null,
   lastCopiedElement: null,
 
@@ -152,6 +154,7 @@ type GrabMachineEvent =
   | { type: "MOUSE_MOVE"; position: Position }
   | { type: "ELEMENT_DETECTED"; element: Element | null }
   | { type: "FREEZE_ELEMENT"; element: Element }
+  | { type: "FREEZE_ELEMENTS"; elements: Element[] }
   | { type: "SET_TOGGLE_MODE"; value: boolean }
   | { type: "TEXT_SELECTED"; elements: Element[]; cursor: Position }
   | { type: "SELECTION_CLEARED" }
@@ -283,8 +286,21 @@ const stateMachine = setup({
     setFrozenElement: assign({
       frozenElement: ({ event }) =>
         event.type === "FREEZE_ELEMENT" ? event.element : null,
+      frozenElements: ({ event }) =>
+        event.type === "FREEZE_ELEMENT" ? [event.element] : [],
     }),
-    clearFrozenElement: assign({ frozenElement: () => null }),
+    setFrozenElements: assign({
+      frozenElements: ({ event }) =>
+        event.type === "FREEZE_ELEMENTS" ? event.elements : [],
+      frozenElement: ({ event }) =>
+        event.type === "FREEZE_ELEMENTS" && event.elements.length > 0
+          ? event.elements[0]
+          : null,
+    }),
+    clearFrozenElement: assign({
+      frozenElement: () => null,
+      frozenElements: () => [],
+    }),
     setDragStart: assign({
       dragStart: ({ event }) => {
         if (event.type === "DRAG_START") {
@@ -540,6 +556,7 @@ const stateMachine = setup({
       isToggleMode: () => false,
       inputText: () => "",
       frozenElement: () => null,
+      frozenElements: () => [],
       pendingClickData: () => null,
       activationTimestamp: () => null,
     }),
@@ -725,6 +742,7 @@ const stateMachine = setup({
         SET_AGENT_CAPABILITIES: { actions: ["setAgentCapabilities"] },
         SET_TOGGLE_MODE: { actions: ["setToggleMode"] },
         FREEZE_ELEMENT: { actions: ["setFrozenElement"] },
+        FREEZE_ELEMENTS: { actions: ["setFrozenElements"] },
       },
     },
 

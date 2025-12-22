@@ -21,7 +21,7 @@ import { getNearestComponentName } from "./context.js";
 import { RECENT_THRESHOLD_MS } from "./constants.js";
 
 interface StartSessionParams {
-  element: Element;
+  elements: Element[];
   prompt: string;
   position: { x: number; y: number };
   selectionBounds?: OverlayBounds;
@@ -35,6 +35,7 @@ interface SessionOperations {
   retry: (sessionId: string) => void;
   undo: (sessionId: string) => void;
   getElement: (sessionId: string) => Element | undefined;
+  getElements: (sessionId: string) => Element[];
   tryResume: () => void;
   acknowledgeError: (sessionId: string) => string | undefined;
 }
@@ -69,7 +70,7 @@ export const createAgentManager = (
   const [canUndo, setCanUndo] = createSignal(false);
   const [canRedo, setCanRedo] = createSignal(false);
   const abortControllers = new Map<string, AbortController>();
-  const sessionElements = new Map<string, Element>();
+  const sessionElements = new Map<string, Element[]>();
 
   let agentOptions = initialAgentOptions;
 
@@ -128,10 +129,10 @@ export const createAgentManager = (
           storage,
         );
         setSessions((prev) => new Map(prev).set(session.id, completedSession));
-        const element = sessionElements.get(session.id);
+        const elements = sessionElements.get(session.id) ?? [];
         const result = await agentOptions?.onComplete?.(
           completedSession,
-          element,
+          elements,
         );
         updateUndoRedoState();
         if (result?.error) {
@@ -149,8 +150,8 @@ export const createAgentManager = (
       if (error instanceof Error && error.name === "AbortError") {
         wasAborted = true;
         if (currentSession) {
-          const element = sessionElements.get(session.id);
-          agentOptions?.onAbort?.(currentSession, element);
+          const elements = sessionElements.get(session.id) ?? [];
+          agentOptions?.onAbort?.(currentSession, elements);
         }
       } else {
         const errorMessage =
@@ -247,7 +248,7 @@ export const createAgentManager = (
     for (const existingSession of resumableSessions) {
       const reacquiredElement = tryReacquireElement(existingSession);
       if (reacquiredElement) {
-        sessionElements.set(existingSession.id, reacquiredElement);
+        sessionElements.set(existingSession.id, [reacquiredElement]);
       }
 
       const sessionWithResumeStatus = {
@@ -278,19 +279,20 @@ export const createAgentManager = (
   };
 
   const startSession = async (params: StartSessionParams) => {
-    const { element, prompt, position, selectionBounds, sessionId } = params;
+    const { elements, prompt, position, selectionBounds, sessionId } = params;
     const storage = agentOptions?.storage;
 
-    if (!agentOptions?.provider) {
+    if (!agentOptions?.provider || elements.length === 0) {
       return;
     }
 
+    const firstElement = elements[0];
     const existingSession = sessionId ? sessions().get(sessionId) : undefined;
     const isFollowUp = Boolean(sessionId);
 
     const content = existingSession
       ? existingSession.context.content
-      : await generateSnippet([element], { maxLines: Infinity });
+      : await generateSnippet(elements, { maxLines: Infinity });
 
     const context: AgentContext = {
       content,
@@ -311,9 +313,14 @@ export const createAgentManager = (
         storage,
       );
     } else {
-      const tagName = (element.tagName || "").toLowerCase() || undefined;
+      const tagName =
+        elements.length > 1
+          ? `${elements.length} elements`
+          : (firstElement.tagName || "").toLowerCase() || undefined;
       const componentName =
-        (await getNearestComponentName(element)) || undefined;
+        elements.length > 1
+          ? undefined
+          : (await getNearestComponentName(firstElement)) || undefined;
 
       session = createSession(
         context,
@@ -323,12 +330,12 @@ export const createAgentManager = (
         componentName,
       );
       session.lastStatus = "Thinking…";
-      sessionElements.set(session.id, element);
+      sessionElements.set(session.id, elements);
     }
 
     setSessions((prev) => new Map(prev).set(session.id, session));
     saveSessionById(session, storage);
-    agentOptions.onStart?.(session, element);
+    agentOptions.onStart?.(session, elements);
 
     const abortController = new AbortController();
     abortControllers.set(session.id, abortController);
@@ -362,9 +369,9 @@ export const createAgentManager = (
   const dismissSession = (sessionId: string) => {
     const currentSessions = sessions();
     const session = currentSessions.get(sessionId);
-    const element = sessionElements.get(sessionId);
-    if (session && element) {
-      agentOptions?.onDismiss?.(session, element);
+    const elements = sessionElements.get(sessionId) ?? [];
+    if (session && elements.length > 0) {
+      agentOptions?.onDismiss?.(session, elements);
     }
     const storage = agentOptions?.storage;
     sessionElements.delete(sessionId);
@@ -380,8 +387,8 @@ export const createAgentManager = (
     const currentSessions = sessions();
     const session = currentSessions.get(sessionId);
     if (session) {
-      const element = sessionElements.get(sessionId);
-      agentOptions?.onUndo?.(session, element);
+      const elements = sessionElements.get(sessionId) ?? [];
+      agentOptions?.onUndo?.(session, elements);
       void agentOptions?.provider?.undo?.();
     }
     dismissSession(sessionId);
@@ -412,7 +419,7 @@ export const createAgentManager = (
     if (!session || !agentOptions?.provider) return;
 
     const storage = agentOptions.storage;
-    const element = sessionElements.get(sessionId);
+    const elements = sessionElements.get(sessionId) ?? [];
 
     const retriedSession = updateSession(
       session,
@@ -427,8 +434,8 @@ export const createAgentManager = (
     setSessions((prev) => new Map(prev).set(sessionId, retriedSession));
     saveSessionById(retriedSession, storage);
 
-    if (element) {
-      agentOptions.onStart?.(retriedSession, element);
+    if (elements.length > 0) {
+      agentOptions.onStart?.(retriedSession, elements);
     }
 
     const abortController = new AbortController();
@@ -454,7 +461,8 @@ export const createAgentManager = (
     let didUpdate = false;
 
     for (const [sessionId, session] of currentSessions) {
-      const element = sessionElements.get(sessionId);
+      const elements = sessionElements.get(sessionId) ?? [];
+      const element = elements[0];
 
       if (element && document.contains(element)) {
         const newBounds = createElementBounds(element);
@@ -485,7 +493,12 @@ export const createAgentManager = (
   };
 
   const getSessionElement = (sessionId: string): Element | undefined => {
-    return sessionElements.get(sessionId);
+    const elements = sessionElements.get(sessionId);
+    return elements?.[0];
+  };
+
+  const getSessionElements = (sessionId: string): Element[] => {
+    return sessionElements.get(sessionId) ?? [];
   };
 
   return {
@@ -500,6 +513,7 @@ export const createAgentManager = (
       retry: retrySession,
       undo: undoSession,
       getElement: getSessionElement,
+      getElements: getSessionElements,
       tryResume: tryResumeSessions,
       acknowledgeError: acknowledgeSessionError,
     },
