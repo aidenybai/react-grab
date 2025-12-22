@@ -818,6 +818,10 @@ const stateMachine = setup({
         SET_COPY_START: { actions: ["setCopyStart"] },
         SET_PENDING_CLICK: { actions: ["setPendingClickData"] },
         SET_REPLY_SESSION: { actions: ["setReplySessionId"] },
+        DEACTIVATE: {
+          target: ".idle",
+          actions: ["clearInputText", "clearReplySessionId", "clearPendingClickData"],
+        },
       },
     },
 
