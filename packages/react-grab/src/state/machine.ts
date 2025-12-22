@@ -136,6 +136,7 @@ type GrabMachineEvent =
   | { type: "UNFREEZE" }
   | { type: "DRAG_START"; position: Position }
   | { type: "DRAG_END"; position: Position }
+  | { type: "DRAG_CANCEL"; position: Position }
   | { type: "CLICK"; position: Position; element: Element }
   | { type: "DOUBLE_CLICK"; position: Position; element: Element }
   | { type: "COPY_START" }
@@ -670,6 +671,10 @@ const stateMachine = setup({
               on: {
                 DRAG_END: {
                   target: "justDragged",
+                  actions: ["resetDragStart"],
+                },
+                DRAG_CANCEL: {
+                  target: "hovering",
                   actions: ["resetDragStart"],
                 },
               },

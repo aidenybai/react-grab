@@ -1185,7 +1185,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         dragDistance.x > DRAG_THRESHOLD_PX ||
         dragDistance.y > DRAG_THRESHOLD_PX;
 
-      send({ type: "DRAG_END", position: { x: clientX, y: clientY } });
+      if (wasDragGesture) {
+        send({ type: "DRAG_END", position: { x: clientX, y: clientY } });
+      } else {
+        send({ type: "DRAG_CANCEL", position: { x: clientX, y: clientY } });
+      }
       stopAutoScroll();
       document.body.style.userSelect = "";
 
