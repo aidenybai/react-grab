@@ -55,6 +55,7 @@ const HANDLED_METHODS = new Set([
   "animate",
   "getAnimations",
   "showModal",
+  "show",
   "close",
   "showPopover",
   "hidePopover",
@@ -71,6 +72,58 @@ const HANDLED_METHODS = new Set([
   "insertData",
   "replaceData",
   "substringData",
+  "focus",
+  "blur",
+  "click",
+  "reset",
+  "submit",
+  "requestSubmit",
+  "checkValidity",
+  "reportValidity",
+  "setCustomValidity",
+  "insertRow",
+  "deleteRow",
+  "insertCell",
+  "deleteCell",
+  "createTHead",
+  "deleteTHead",
+  "createTFoot",
+  "deleteTFoot",
+  "createTBody",
+  "createCaption",
+  "deleteCaption",
+  "add",
+  "stepUp",
+  "stepDown",
+  "showPicker",
+  "play",
+  "pause",
+  "load",
+  "fastSeek",
+  "setPointerCapture",
+  "releasePointerCapture",
+  "hasPointerCapture",
+  "attachInternals",
+  "getClientRects",
+  "getBoundingClientRect",
+  "hasAttribute",
+  "hasAttributes",
+  "hasAttributeNS",
+  "getAttribute",
+  "getAttributeNS",
+  "getAttributeNode",
+  "getAttributeNodeNS",
+  "getAttributeNames",
+  "matches",
+  "webkitMatchesSelector",
+  "contains",
+  "compareDocumentPosition",
+  "getRootNode",
+  "isEqualNode",
+  "isSameNode",
+  "lookupPrefix",
+  "lookupNamespaceURI",
+  "isDefaultNamespace",
 ]);
 
 const SCROLL_PROPS = new Set(["scrollTop", "scrollLeft"]);
@@ -87,10 +140,220 @@ const FORM_PROPS = new Set([
   "defaultChecked",
 ]);
 
+const COMMON_PROPS = new Set([
+  "innerText",
+  "hidden",
+  "tabIndex",
+  "title",
+  "lang",
+  "dir",
+  "contentEditable",
+  "draggable",
+  "spellcheck",
+  "inert",
+  "slot",
+  "id",
+  "className",
+  "accessKey",
+  "autocapitalize",
+  "enterKeyHint",
+  "inputMode",
+  "nonce",
+  "popover",
+]);
+
+const ELEMENT_SPECIFIC_PROPS = new Set([
+  "open",
+  "returnValue",
+  "indeterminate",
+  "type",
+  "name",
+  "placeholder",
+  "pattern",
+  "min",
+  "max",
+  "step",
+  "multiple",
+  "accept",
+  "src",
+  "href",
+  "alt",
+  "loading",
+  "crossOrigin",
+  "referrerPolicy",
+  "download",
+  "cols",
+  "rows",
+  "wrap",
+  "srcdoc",
+  "allowFullscreen",
+  "allow",
+  "rel",
+  "target",
+  "hreflang",
+  "media",
+  "sizes",
+  "srcset",
+  "decoding",
+  "fetchPriority",
+  "isMap",
+  "useMap",
+  "formAction",
+  "formEnctype",
+  "formMethod",
+  "formNoValidate",
+  "formTarget",
+  "maxLength",
+  "minLength",
+  "size",
+  "autocomplete",
+  "autofocus",
+  "dirName",
+  "list",
+  "noValidate",
+  "action",
+  "enctype",
+  "method",
+  "acceptCharset",
+  "cite",
+  "dateTime",
+  "label",
+  "span",
+  "headers",
+  "scope",
+  "abbr",
+  "colSpan",
+  "rowSpan",
+  "start",
+  "reversed",
+  "high",
+  "low",
+  "optimum",
+  "default",
+  "kind",
+  "srclang",
+  "integrity",
+  "as",
+  "blocking",
+  "disabled",
+  "async",
+  "defer",
+  "noModule",
+  "htmlFor",
+  "httpEquiv",
+  "content",
+  "charset",
+  "coords",
+  "shape",
+  "ping",
+  "sandbox",
+  "seamless",
+  "width",
+  "height",
+  "data",
+  "form",
+  "summary",
+]);
+
+const MEDIA_PROPS = new Set([
+  "currentTime",
+  "volume",
+  "muted",
+  "playbackRate",
+  "defaultPlaybackRate",
+  "autoplay",
+  "loop",
+  "controls",
+  "preload",
+  "poster",
+  "playsInline",
+  "disableRemotePlayback",
+  "preservesPitch",
+  "defaultMuted",
+]);
+
+const READONLY_PROPS = new Set([
+  "nodeName",
+  "nodeType",
+  "tagName",
+  "localName",
+  "namespaceURI",
+  "prefix",
+  "baseURI",
+  "isConnected",
+  "ownerDocument",
+  "offsetWidth",
+  "offsetHeight",
+  "offsetTop",
+  "offsetLeft",
+  "offsetParent",
+  "clientWidth",
+  "clientHeight",
+  "clientTop",
+  "clientLeft",
+  "scrollWidth",
+  "scrollHeight",
+  "computedStyleMap",
+  "assignedSlot",
+  "sheet",
+  "naturalWidth",
+  "naturalHeight",
+  "complete",
+  "currentSrc",
+  "videoWidth",
+  "videoHeight",
+  "duration",
+  "paused",
+  "ended",
+  "seeking",
+  "readyState",
+  "networkState",
+  "buffered",
+  "played",
+  "seekable",
+  "error",
+  "textTracks",
+  "audioTracks",
+  "videoTracks",
+  "mediaKeys",
+  "validity",
+  "validationMessage",
+  "willValidate",
+  "files",
+  "labels",
+  "form",
+  "selectionStart",
+  "selectionEnd",
+  "selectionDirection",
+  "textLength",
+  "options",
+  "selectedOptions",
+  "length",
+  "tHead",
+  "tFoot",
+  "tBodies",
+  "caption",
+  "rowIndex",
+  "sectionRowIndex",
+  "cellIndex",
+  "cells",
+  "control",
+  "internals",
+  "part",
+]);
+
+const DOMTOKENLIST_PROPS = new Set([
+  "relList",
+  "sandbox",
+  "controlsList",
+  "part",
+]);
+
 export const createUndoableProxy = (element: HTMLElement) => {
   const undoActions: UndoAction[] = [];
   const record = (action: UndoAction) => undoActions.push(action);
   const proxyToElement = new WeakMap<object, Node>();
+  const elementToProxy = new WeakMap<Node, Node>();
   const addedEventListeners: {
     target: EventTarget;
     type: string;
@@ -110,13 +373,59 @@ export const createUndoableProxy = (element: HTMLElement) => {
   const unwrapNodes = (nodes: (Node | string)[]): (Node | string)[] =>
     nodes.map((node) => (typeof node === "string" ? node : unwrapProxy(node)));
 
+  const captureNodePosition = (node: Node): { parent: Node | null; nextSibling: Node | null } => ({
+    parent: node.parentNode,
+    nextSibling: node.nextSibling,
+  });
+
+  const restoreNodePosition = (node: Node, position: { parent: Node | null; nextSibling: Node | null }) => {
+    if (position.parent) {
+      position.parent.insertBefore(node, position.nextSibling);
+    }
+  };
+
+  const getFragmentChildren = (node: Node): Node[] => {
+    if (node instanceof DocumentFragment) {
+      return Array.from(node.childNodes);
+    }
+    return [];
+  };
+
   const wrapNodeInsertion = <T extends (...args: (Node | string)[]) => void>(
     method: T,
+    getInsertedNodes?: (args: (Node | string)[]) => (Node | string)[],
   ): T =>
     ((...nodes: (Node | string)[]) => {
       const unwrappedNodes = unwrapNodes(nodes);
+      const originalPositions = new Map<Node, { parent: Node | null; nextSibling: Node | null }>();
+      const fragmentChildren: Node[] = [];
+
+      for (const node of unwrappedNodes) {
+        if (typeof node !== "string") {
+          if (node instanceof DocumentFragment) {
+            fragmentChildren.push(...Array.from(node.childNodes));
+          } else if (node.parentNode) {
+            originalPositions.set(node, captureNodePosition(node));
+          }
+        }
+      }
+
       method(...unwrappedNodes);
-      record(() => removeNodes(unwrappedNodes));
+
+      const nodesToRemove = getInsertedNodes
+        ? getInsertedNodes(unwrappedNodes)
+        : [...unwrappedNodes, ...fragmentChildren];
+
+      record(() => {
+        for (const node of nodesToRemove) {
+          if (typeof node !== "string") {
+            node.parentNode?.removeChild(node);
+          }
+        }
+        for (const [node, position] of originalPositions) {
+          restoreNodePosition(node, position);
+        }
+      });
     }) as T;
 
   const createStyleProxy = (styleTarget: CSSStyleDeclaration) =>
@@ -170,49 +479,63 @@ export const createUndoableProxy = (element: HTMLElement) => {
       },
     });
 
-  const createClassListProxy = (classListTarget: DOMTokenList) =>
-    new Proxy(classListTarget, {
+  const createDOMTokenListProxy = (tokenListTarget: DOMTokenList) =>
+    new Proxy(tokenListTarget, {
       get(target, prop) {
         if (prop === "add")
-          return (...classes: string[]) => {
-            const toUndo = classes.filter(
-              (classToAdd) => !target.contains(classToAdd),
+          return (...tokens: string[]) => {
+            const toUndo = tokens.filter(
+              (tokenToAdd) => !target.contains(tokenToAdd),
             );
             record(() => target.remove(...toUndo));
-            return target.add(...classes);
+            return target.add(...tokens);
           };
         if (prop === "remove")
-          return (...classes: string[]) => {
-            const toRestore = classes.filter((classToRemove) =>
-              target.contains(classToRemove),
+          return (...tokens: string[]) => {
+            const toRestore = tokens.filter((tokenToRemove) =>
+              target.contains(tokenToRemove),
             );
             record(() => target.add(...toRestore));
-            return target.remove(...classes);
+            return target.remove(...tokens);
           };
         if (prop === "toggle")
-          return (className: string, force?: boolean) => {
-            const hadClass = target.contains(className);
-            const result = target.toggle(className, force);
+          return (token: string, force?: boolean) => {
+            const hadToken = target.contains(token);
+            const result = target.toggle(token, force);
             record(() =>
-              hadClass ? target.add(className) : target.remove(className),
+              hadToken ? target.add(token) : target.remove(token),
             );
             return result;
           };
         if (prop === "replace")
-          return (oldClassName: string, newClassName: string) => {
-            const hadOldClass = target.contains(oldClassName);
-            const result = target.replace(oldClassName, newClassName);
-            if (hadOldClass)
+          return (oldToken: string, newToken: string) => {
+            const hadOldToken = target.contains(oldToken);
+            const result = target.replace(oldToken, newToken);
+            if (hadOldToken)
               record(() => {
-                target.remove(newClassName);
-                target.add(oldClassName);
+                target.remove(newToken);
+                target.add(oldToken);
               });
             return result;
           };
+        if (prop === "value") {
+          return target.value;
+        }
         const value = Reflect.get(target, prop);
         return typeof value === "function" ? value.bind(target) : value;
       },
+      set(target, prop, value) {
+        if (prop === "value") {
+          const original = target.value;
+          record(() => {
+            (target as DOMTokenList & { value: string }).value = original;
+          });
+        }
+        return Reflect.set(target, prop, value);
+      },
     });
+
+  const createClassListProxy = createDOMTokenListProxy;
 
   const createDatasetProxy = (datasetTarget: DOMStringMap) =>
     new Proxy(datasetTarget, {
@@ -525,6 +848,100 @@ export const createUndoableProxy = (element: HTMLElement) => {
       },
     });
 
+  const createOptionsCollectionProxy = (
+    options: HTMLOptionsCollection,
+    selectElement: HTMLSelectElement,
+  ) =>
+    new Proxy(options, {
+      get(target, prop) {
+        if (typeof prop === "string" && !isNaN(Number(prop))) {
+          return createElementProxy(target[Number(prop)] ?? null);
+        }
+        if (prop === "item") {
+          return (index: number) => createElementProxy(target.item(index));
+        }
+        if (prop === "namedItem") {
+          return (name: string) => createElementProxy(target.namedItem(name));
+        }
+        if (prop === "add") {
+          return (
+            option: HTMLOptionElement | HTMLOptGroupElement,
+            before?: HTMLElement | number | null,
+          ) => {
+            const actualOption = unwrapProxy(option) as HTMLOptionElement | HTMLOptGroupElement;
+            target.add(actualOption, before as HTMLElement | number);
+            record(() => actualOption.parentNode?.removeChild(actualOption));
+          };
+        }
+        if (prop === "remove") {
+          return (index: number) => {
+            const option = target[index];
+            if (option) {
+              const optionHtml = option.outerHTML;
+              const optionIndex = index;
+              target.remove(index);
+              record(() => {
+                const tempDiv = document.createElement("div");
+                tempDiv.innerHTML = optionHtml;
+                const restoredOption = tempDiv.firstChild as HTMLOptionElement;
+                if (restoredOption) {
+                  if (optionIndex >= target.length) {
+                    selectElement.appendChild(restoredOption);
+                  } else {
+                    selectElement.insertBefore(restoredOption, target[optionIndex]);
+                  }
+                }
+              });
+            }
+          };
+        }
+        if (prop === "selectedIndex") {
+          return target.selectedIndex;
+        }
+        if (prop === "length") {
+          return target.length;
+        }
+        if (prop === Symbol.iterator) {
+          return function* () {
+            for (let optionIndex = 0; optionIndex < target.length; optionIndex++) {
+              yield createElementProxy(target[optionIndex]);
+            }
+          };
+        }
+        const value = Reflect.get(target, prop);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+      set(target, prop, value) {
+        if (prop === "selectedIndex") {
+          const original = target.selectedIndex;
+          record(() => {
+            target.selectedIndex = original;
+          });
+        }
+        if (prop === "length") {
+          const originalLength = target.length;
+          const originalOptions: string[] = [];
+          for (let optionIndex = 0; optionIndex < target.length; optionIndex++) {
+            originalOptions.push(target[optionIndex].outerHTML);
+          }
+          record(() => {
+            while (target.length > 0) {
+              target.remove(0);
+            }
+            for (const optionHtml of originalOptions) {
+              const tempDiv = document.createElement("div");
+              tempDiv.innerHTML = optionHtml;
+              const option = tempDiv.firstChild as HTMLOptionElement;
+              if (option) {
+                selectElement.appendChild(option);
+              }
+            }
+          });
+        }
+        return Reflect.set(target, prop, value);
+      },
+    });
+
   const getMethodHandler = (
     target: HTMLElement | CharacterData | ShadowRoot,
     prop: string,
@@ -568,12 +985,13 @@ export const createUndoableProxy = (element: HTMLElement) => {
       case "setAttributeNS":
         return (namespace: string | null, name: string, value: string) => {
           const htmlTarget = target as HTMLElement;
-          const hadAttribute = htmlTarget.hasAttributeNS(namespace, name);
-          const original = htmlTarget.getAttributeNS(namespace, name);
+          const localName = name.includes(":") ? name.split(":")[1] : name;
+          const hadAttribute = htmlTarget.hasAttributeNS(namespace, localName);
+          const original = htmlTarget.getAttributeNS(namespace, localName);
           record(() =>
             hadAttribute
               ? htmlTarget.setAttributeNS(namespace, name, original!)
-              : htmlTarget.removeAttributeNS(namespace, name),
+              : htmlTarget.removeAttributeNS(namespace, localName),
           );
           return htmlTarget.setAttributeNS(namespace, name, value);
         };
@@ -622,9 +1040,22 @@ export const createUndoableProxy = (element: HTMLElement) => {
       case "appendChild":
         return (child: Node) => {
           const actualChild = unwrapProxy(child);
+          const originalPosition = actualChild.parentNode ? captureNodePosition(actualChild) : null;
+          const fragmentChildren = getFragmentChildren(actualChild);
           const result = (target as HTMLElement).appendChild(actualChild);
-          record(() => actualChild.parentNode?.removeChild(actualChild));
-          return result;
+          record(() => {
+            if (fragmentChildren.length > 0) {
+              for (const fragmentChild of fragmentChildren) {
+                fragmentChild.parentNode?.removeChild(fragmentChild);
+              }
+            } else {
+              actualChild.parentNode?.removeChild(actualChild);
+            }
+            if (originalPosition) {
+              restoreNodePosition(actualChild, originalPosition);
+            }
+          });
+          return createElementProxy(result);
         };
       case "removeChild":
         return (child: Node) => {
@@ -634,35 +1065,63 @@ export const createUndoableProxy = (element: HTMLElement) => {
           record(() =>
             (target as HTMLElement).insertBefore(actualChild, nextSibling),
           );
-          return result;
+          return createElementProxy(result);
         };
       case "insertBefore":
         return (node: Node, referenceNode: Node | null) => {
           const actualNode = unwrapProxy(node);
           const actualRef = referenceNode ? unwrapProxy(referenceNode) : null;
+          const originalPosition = actualNode.parentNode ? captureNodePosition(actualNode) : null;
+          const fragmentChildren = getFragmentChildren(actualNode);
           const result = (target as HTMLElement).insertBefore(
             actualNode,
             actualRef,
           );
-          record(() => actualNode.parentNode?.removeChild(actualNode));
-          return result;
+          record(() => {
+            if (fragmentChildren.length > 0) {
+              for (const fragmentChild of fragmentChildren) {
+                fragmentChild.parentNode?.removeChild(fragmentChild);
+              }
+            } else {
+              actualNode.parentNode?.removeChild(actualNode);
+            }
+            if (originalPosition) {
+              restoreNodePosition(actualNode, originalPosition);
+            }
+          });
+          return createElementProxy(result);
         };
       case "replaceChild":
         return (newChild: Node, oldChild: Node) => {
           const actualNewChild = unwrapProxy(newChild);
           const actualOldChild = unwrapProxy(oldChild);
           const nextSibling = actualOldChild.nextSibling;
+          const newChildOriginalPosition = actualNewChild.parentNode ? captureNodePosition(actualNewChild) : null;
+          const fragmentChildren = getFragmentChildren(actualNewChild);
           const result = (target as HTMLElement).replaceChild(
             actualNewChild,
             actualOldChild,
           );
           record(() => {
-            (target as HTMLElement).replaceChild(actualOldChild, actualNewChild);
+            if (fragmentChildren.length > 0) {
+              const firstFragChild = fragmentChildren[0];
+              if (firstFragChild?.parentNode) {
+                firstFragChild.parentNode.replaceChild(actualOldChild, firstFragChild);
+              }
+              for (let childIndex = 1; childIndex < fragmentChildren.length; childIndex++) {
+                fragmentChildren[childIndex].parentNode?.removeChild(fragmentChildren[childIndex]);
+              }
+            } else {
+              (target as HTMLElement).replaceChild(actualOldChild, actualNewChild);
+            }
             if (nextSibling && actualOldChild.nextSibling !== nextSibling) {
               (target as HTMLElement).insertBefore(actualOldChild, nextSibling);
             }
+            if (newChildOriginalPosition) {
+              restoreNodePosition(actualNewChild, newChildOriginalPosition);
+            }
           });
-          return result;
+          return createElementProxy(result);
         };
       case "remove":
         return () => {
@@ -692,14 +1151,34 @@ export const createUndoableProxy = (element: HTMLElement) => {
           const unwrappedNodes = unwrapNodes(nodes);
           const parentNode = target.parentNode;
           const nextSibling = target.nextSibling;
+          const originalPositions = new Map<Node, { parent: Node | null; nextSibling: Node | null }>();
+          const allFragmentChildren: Node[] = [];
+
+          for (const node of unwrappedNodes) {
+            if (typeof node !== "string") {
+              if (node instanceof DocumentFragment) {
+                allFragmentChildren.push(...Array.from(node.childNodes));
+              } else if (node.parentNode) {
+                originalPositions.set(node, captureNodePosition(node));
+              }
+            }
+          }
+
           (target as HTMLElement).replaceWith(...unwrappedNodes);
+
           record(() => {
-            const firstNode = unwrappedNodes.find(
-              (node) => typeof node !== "string",
-            ) as Node | undefined;
+            const nodesToRemove = [...unwrappedNodes.filter((n) => typeof n !== "string"), ...allFragmentChildren];
+            const firstNode = nodesToRemove[0] as Node | undefined;
             if (parentNode) {
               parentNode.insertBefore(target, firstNode ?? nextSibling);
-              removeNodes(unwrappedNodes);
+              for (const node of nodesToRemove) {
+                if (node !== target) {
+                  (node as Node).parentNode?.removeChild(node as Node);
+                }
+              }
+            }
+            for (const [node, position] of originalPositions) {
+              restoreNodePosition(node, position);
             }
           });
         };
@@ -708,9 +1187,21 @@ export const createUndoableProxy = (element: HTMLElement) => {
           const htmlTarget = target as HTMLElement;
           const unwrappedNodes = unwrapNodes(nodes);
           const originalChildren = Array.from(htmlTarget.childNodes);
+          const originalPositions = new Map<Node, { parent: Node | null; nextSibling: Node | null }>();
+
+          for (const node of unwrappedNodes) {
+            if (typeof node !== "string" && node.parentNode && node.parentNode !== htmlTarget) {
+              originalPositions.set(node, captureNodePosition(node));
+            }
+          }
+
           htmlTarget.replaceChildren(...unwrappedNodes);
+
           record(() => {
             htmlTarget.replaceChildren(...originalChildren);
+            for (const [node, position] of originalPositions) {
+              restoreNodePosition(node, position);
+            }
           });
         };
       case "insertAdjacentHTML":
@@ -739,12 +1230,20 @@ export const createUndoableProxy = (element: HTMLElement) => {
         return (position: InsertPosition, insertedElement: Element) => {
           const htmlTarget = target as HTMLElement;
           const actualElement = unwrapProxy(insertedElement) as Element;
+          const originalPosition = actualElement.parentNode ? captureNodePosition(actualElement) : null;
           const result = htmlTarget.insertAdjacentElement(
             position,
             actualElement,
           );
-          if (result) record(() => result.parentNode?.removeChild(result));
-          return result;
+          if (result) {
+            record(() => {
+              result.parentNode?.removeChild(result);
+              if (originalPosition) {
+                restoreNodePosition(actualElement, originalPosition);
+              }
+            });
+          }
+          return result ? createElementProxy(result) : null;
         };
       case "insertAdjacentText":
         return (position: InsertPosition, text: string) => {
@@ -864,20 +1363,28 @@ export const createUndoableProxy = (element: HTMLElement) => {
             }
           }
         };
+      case "show":
+        return () => {
+          const dialogTarget = target as HTMLDialogElement;
+          if ("show" in dialogTarget) {
+            const wasOpen = dialogTarget.open;
+            dialogTarget.show();
+            if (!wasOpen) {
+              record(() => dialogTarget.close());
+            }
+          }
+        };
       case "close":
         return (returnValue?: string) => {
           const dialogTarget = target as HTMLDialogElement;
           if ("close" in dialogTarget) {
             const wasOpen = dialogTarget.open;
-            const wasModal = dialogTarget.hasAttribute("open");
+            const originalReturnValue = dialogTarget.returnValue;
             dialogTarget.close(returnValue);
             if (wasOpen) {
               record(() => {
-                if (wasModal) {
-                  dialogTarget.showModal();
-                } else {
-                  dialogTarget.show();
-                }
+                dialogTarget.returnValue = originalReturnValue;
+                dialogTarget.show();
               });
             }
           }
@@ -1071,6 +1578,507 @@ export const createUndoableProxy = (element: HTMLElement) => {
           }
           return "";
         };
+      case "focus":
+        return (options?: FocusOptions) => {
+          const htmlTarget = target as HTMLElement;
+          const previouslyFocused = document.activeElement;
+          htmlTarget.focus(options);
+          record(() => {
+            if (previouslyFocused && previouslyFocused !== document.body && "focus" in previouslyFocused) {
+              (previouslyFocused as HTMLElement).focus();
+            } else {
+              htmlTarget.blur();
+            }
+          });
+        };
+      case "blur":
+        return () => {
+          const htmlTarget = target as HTMLElement;
+          const wasFocused = document.activeElement === htmlTarget;
+          htmlTarget.blur();
+          if (wasFocused) {
+            record(() => htmlTarget.focus());
+          }
+        };
+      case "click":
+        return () => {
+          const htmlTarget = target as HTMLElement;
+          htmlTarget.click();
+        };
+      case "reset":
+        return () => {
+          const formTarget = target as HTMLFormElement;
+          if ("reset" in formTarget && "elements" in formTarget) {
+            const formValues: Map<HTMLElement, unknown> = new Map();
+            for (let elementIndex = 0; elementIndex < formTarget.elements.length; elementIndex++) {
+              const formElement = formTarget.elements[elementIndex] as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+              if ("value" in formElement) {
+                if (formElement instanceof HTMLInputElement && (formElement.type === "checkbox" || formElement.type === "radio")) {
+                  formValues.set(formElement, formElement.checked);
+                } else if (formElement instanceof HTMLSelectElement) {
+                  formValues.set(formElement, formElement.selectedIndex);
+                } else {
+                  formValues.set(formElement, formElement.value);
+                }
+              }
+            }
+            formTarget.reset();
+            record(() => {
+              for (const [formElement, savedValue] of formValues) {
+                if (formElement instanceof HTMLInputElement && (formElement.type === "checkbox" || formElement.type === "radio")) {
+                  formElement.checked = savedValue as boolean;
+                } else if (formElement instanceof HTMLSelectElement) {
+                  formElement.selectedIndex = savedValue as number;
+                } else if ("value" in formElement) {
+                  (formElement as HTMLInputElement | HTMLTextAreaElement).value = savedValue as string;
+                }
+              }
+            });
+          }
+        };
+      case "submit":
+        return () => {
+          const formTarget = target as HTMLFormElement;
+          if ("submit" in formTarget) {
+            formTarget.submit();
+          }
+        };
+      case "requestSubmit":
+        return (submitter?: HTMLElement | null) => {
+          const formTarget = target as HTMLFormElement;
+          if ("requestSubmit" in formTarget) {
+            formTarget.requestSubmit(submitter);
+          }
+        };
+      case "checkValidity":
+        return () => {
+          const formTarget = target as HTMLFormElement | HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+          if ("checkValidity" in formTarget) {
+            return formTarget.checkValidity();
+          }
+          return true;
+        };
+      case "reportValidity":
+        return () => {
+          const formTarget = target as HTMLFormElement | HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+          if ("reportValidity" in formTarget) {
+            return formTarget.reportValidity();
+          }
+          return true;
+        };
+      case "setCustomValidity":
+        return (message: string) => {
+          const inputTarget = target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+          if ("setCustomValidity" in inputTarget) {
+            const originalMessage = inputTarget.validationMessage;
+            inputTarget.setCustomValidity(message);
+            record(() => inputTarget.setCustomValidity(originalMessage));
+          }
+        };
+      case "insertRow":
+        return (index?: number) => {
+          const tableTarget = target as HTMLTableElement | HTMLTableSectionElement;
+          if ("insertRow" in tableTarget) {
+            const newRow = tableTarget.insertRow(index);
+            record(() => newRow.parentNode?.removeChild(newRow));
+            return createElementProxy(newRow);
+          }
+          return null;
+        };
+      case "deleteRow":
+        return (index: number) => {
+          const tableTarget = target as HTMLTableElement | HTMLTableSectionElement;
+          if ("deleteRow" in tableTarget && "rows" in tableTarget) {
+            const rowToDelete = tableTarget.rows[index];
+            if (rowToDelete) {
+              const rowHtml = rowToDelete.outerHTML;
+              const actualIndex = index < 0 ? tableTarget.rows.length + index : index;
+              tableTarget.deleteRow(index);
+              record(() => {
+                const tempTable = document.createElement("table");
+                tempTable.innerHTML = rowHtml;
+                const restoredRow = tempTable.rows[0];
+                if (restoredRow) {
+                  if (actualIndex >= tableTarget.rows.length) {
+                    (tableTarget as HTMLTableSectionElement).appendChild(restoredRow);
+                  } else {
+                    (tableTarget as HTMLTableSectionElement).insertBefore(restoredRow, tableTarget.rows[actualIndex]);
+                  }
+                }
+              });
+            }
+          }
+        };
+      case "insertCell":
+        return (index?: number) => {
+          const rowTarget = target as HTMLTableRowElement;
+          if ("insertCell" in rowTarget) {
+            const newCell = rowTarget.insertCell(index);
+            record(() => newCell.parentNode?.removeChild(newCell));
+            return createElementProxy(newCell);
+          }
+          return null;
+        };
+      case "deleteCell":
+        return (index: number) => {
+          const rowTarget = target as HTMLTableRowElement;
+          if ("deleteCell" in rowTarget && "cells" in rowTarget) {
+            const cellToDelete = rowTarget.cells[index];
+            if (cellToDelete) {
+              const cellHtml = cellToDelete.outerHTML;
+              const actualIndex = index < 0 ? rowTarget.cells.length + index : index;
+              rowTarget.deleteCell(index);
+              record(() => {
+                const tempRow = document.createElement("tr");
+                tempRow.innerHTML = cellHtml;
+                const restoredCell = tempRow.cells[0];
+                if (restoredCell) {
+                  if (actualIndex >= rowTarget.cells.length) {
+                    rowTarget.appendChild(restoredCell);
+                  } else {
+                    rowTarget.insertBefore(restoredCell, rowTarget.cells[actualIndex]);
+                  }
+                }
+              });
+            }
+          }
+        };
+      case "createTHead":
+        return () => {
+          const tableTarget = target as HTMLTableElement;
+          if ("createTHead" in tableTarget) {
+            const existingTHead = tableTarget.tHead;
+            const tHead = tableTarget.createTHead();
+            if (!existingTHead) {
+              record(() => tableTarget.deleteTHead());
+            }
+            return createElementProxy(tHead);
+          }
+          return null;
+        };
+      case "deleteTHead":
+        return () => {
+          const tableTarget = target as HTMLTableElement;
+          if ("deleteTHead" in tableTarget && tableTarget.tHead) {
+            const tHeadHtml = tableTarget.tHead.outerHTML;
+            tableTarget.deleteTHead();
+            record(() => {
+              const tempTable = document.createElement("table");
+              tempTable.innerHTML = tHeadHtml;
+              const restoredTHead = tempTable.tHead;
+              if (restoredTHead) {
+                if (tableTarget.firstChild) {
+                  tableTarget.insertBefore(restoredTHead, tableTarget.firstChild);
+                } else {
+                  tableTarget.appendChild(restoredTHead);
+                }
+              }
+            });
+          }
+        };
+      case "createTFoot":
+        return () => {
+          const tableTarget = target as HTMLTableElement;
+          if ("createTFoot" in tableTarget) {
+            const existingTFoot = tableTarget.tFoot;
+            const tFoot = tableTarget.createTFoot();
+            if (!existingTFoot) {
+              record(() => tableTarget.deleteTFoot());
+            }
+            return createElementProxy(tFoot);
+          }
+          return null;
+        };
+      case "deleteTFoot":
+        return () => {
+          const tableTarget = target as HTMLTableElement;
+          if ("deleteTFoot" in tableTarget && tableTarget.tFoot) {
+            const tFootHtml = tableTarget.tFoot.outerHTML;
+            tableTarget.deleteTFoot();
+            record(() => {
+              const tempTable = document.createElement("table");
+              tempTable.innerHTML = tFootHtml;
+              const restoredTFoot = tempTable.tFoot;
+              if (restoredTFoot) {
+                tableTarget.appendChild(restoredTFoot);
+              }
+            });
+          }
+        };
+      case "createTBody":
+        return () => {
+          const tableTarget = target as HTMLTableElement;
+          if ("createTBody" in tableTarget) {
+            const tBody = tableTarget.createTBody();
+            record(() => tBody.parentNode?.removeChild(tBody));
+            return createElementProxy(tBody);
+          }
+          return null;
+        };
+      case "createCaption":
+        return () => {
+          const tableTarget = target as HTMLTableElement;
+          if ("createCaption" in tableTarget) {
+            const existingCaption = tableTarget.caption;
+            const caption = tableTarget.createCaption();
+            if (!existingCaption) {
+              record(() => tableTarget.deleteCaption());
+            }
+            return createElementProxy(caption);
+          }
+          return null;
+        };
+      case "deleteCaption":
+        return () => {
+          const tableTarget = target as HTMLTableElement;
+          if ("deleteCaption" in tableTarget && tableTarget.caption) {
+            const captionHtml = tableTarget.caption.outerHTML;
+            tableTarget.deleteCaption();
+            record(() => {
+              const tempTable = document.createElement("table");
+              tempTable.innerHTML = captionHtml;
+              const restoredCaption = tempTable.caption;
+              if (restoredCaption) {
+                if (tableTarget.firstChild) {
+                  tableTarget.insertBefore(restoredCaption, tableTarget.firstChild);
+                } else {
+                  tableTarget.appendChild(restoredCaption);
+                }
+              }
+            });
+          }
+        };
+      case "add":
+        return (
+          element: HTMLOptionElement | HTMLOptGroupElement,
+          before?: HTMLElement | number | null,
+        ) => {
+          const selectTarget = target as HTMLSelectElement;
+          if ("add" in selectTarget && "options" in selectTarget) {
+            const actualElement = unwrapProxy(element) as HTMLOptionElement | HTMLOptGroupElement;
+            selectTarget.add(actualElement, before as HTMLElement | number);
+            record(() => actualElement.parentNode?.removeChild(actualElement));
+          }
+        };
+      case "stepUp":
+        return (stepIncrement?: number) => {
+          const inputTarget = target as HTMLInputElement;
+          if ("stepUp" in inputTarget) {
+            const originalValue = inputTarget.value;
+            inputTarget.stepUp(stepIncrement);
+            record(() => {
+              inputTarget.value = originalValue;
+            });
+          }
+        };
+      case "stepDown":
+        return (stepDecrement?: number) => {
+          const inputTarget = target as HTMLInputElement;
+          if ("stepDown" in inputTarget) {
+            const originalValue = inputTarget.value;
+            inputTarget.stepDown(stepDecrement);
+            record(() => {
+              inputTarget.value = originalValue;
+            });
+          }
+        };
+      case "showPicker":
+        return () => {
+          const inputTarget = target as HTMLInputElement;
+          if ("showPicker" in inputTarget) {
+            inputTarget.showPicker();
+          }
+        };
+      case "play":
+        return () => {
+          const mediaTarget = target as HTMLMediaElement;
+          if ("play" in mediaTarget) {
+            const wasPaused = mediaTarget.paused;
+            const originalTime = mediaTarget.currentTime;
+            const playPromise = mediaTarget.play();
+            if (wasPaused) {
+              record(() => {
+                mediaTarget.pause();
+                mediaTarget.currentTime = originalTime;
+              });
+            }
+            return playPromise;
+          }
+          return Promise.resolve();
+        };
+      case "pause":
+        return () => {
+          const mediaTarget = target as HTMLMediaElement;
+          if ("pause" in mediaTarget) {
+            const wasPaused = mediaTarget.paused;
+            const originalTime = mediaTarget.currentTime;
+            mediaTarget.pause();
+            if (!wasPaused) {
+              record(() => {
+                mediaTarget.currentTime = originalTime;
+                mediaTarget.play();
+              });
+            }
+          }
+        };
+      case "load":
+        return () => {
+          const mediaTarget = target as HTMLMediaElement;
+          if ("load" in mediaTarget) {
+            const originalTime = mediaTarget.currentTime;
+            const originalSrc = mediaTarget.src;
+            mediaTarget.load();
+            record(() => {
+              if (mediaTarget.src === originalSrc) {
+                mediaTarget.currentTime = originalTime;
+              }
+            });
+          }
+        };
+      case "fastSeek":
+        return (time: number) => {
+          const mediaTarget = target as HTMLMediaElement;
+          if ("fastSeek" in mediaTarget) {
+            const originalTime = mediaTarget.currentTime;
+            mediaTarget.fastSeek(time);
+            record(() => {
+              mediaTarget.currentTime = originalTime;
+            });
+          }
+        };
+      case "setPointerCapture":
+        return (pointerId: number) => {
+          const htmlTarget = target as HTMLElement;
+          if ("setPointerCapture" in htmlTarget) {
+            htmlTarget.setPointerCapture(pointerId);
+            record(() => {
+              try {
+                htmlTarget.releasePointerCapture(pointerId);
+              } catch {
+                // Pointer may have been released already
+              }
+            });
+          }
+        };
+      case "releasePointerCapture":
+        return (pointerId: number) => {
+          const htmlTarget = target as HTMLElement;
+          if ("releasePointerCapture" in htmlTarget) {
+            htmlTarget.releasePointerCapture(pointerId);
+          }
+        };
+      case "hasPointerCapture":
+        return (pointerId: number) => {
+          const htmlTarget = target as HTMLElement;
+          if ("hasPointerCapture" in htmlTarget) {
+            return htmlTarget.hasPointerCapture(pointerId);
+          }
+          return false;
+        };
+      case "attachInternals":
+        return () => {
+          const htmlTarget = target as HTMLElement;
+          if ("attachInternals" in htmlTarget) {
+            return (htmlTarget as HTMLElement & { attachInternals: () => ElementInternals }).attachInternals();
+          }
+          return null;
+        };
+      case "getClientRects":
+        return () => {
+          const htmlTarget = target as HTMLElement;
+          return htmlTarget.getClientRects();
+        };
+      case "getBoundingClientRect":
+        return () => {
+          const htmlTarget = target as HTMLElement;
+          return htmlTarget.getBoundingClientRect();
+        };
+      case "hasAttribute":
+        return (name: string) => {
+          const htmlTarget = target as HTMLElement;
+          return htmlTarget.hasAttribute(name);
+        };
+      case "hasAttributes":
+        return () => {
+          const htmlTarget = target as HTMLElement;
+          return htmlTarget.hasAttributes();
+        };
+      case "hasAttributeNS":
+        return (namespace: string | null, localName: string) => {
+          const htmlTarget = target as HTMLElement;
+          return htmlTarget.hasAttributeNS(namespace, localName);
+        };
+      case "getAttribute":
+        return (name: string) => {
+          const htmlTarget = target as HTMLElement;
+          return htmlTarget.getAttribute(name);
+        };
+      case "getAttributeNS":
+        return (namespace: string | null, localName: string) => {
+          const htmlTarget = target as HTMLElement;
+          return htmlTarget.getAttributeNS(namespace, localName);
+        };
+      case "getAttributeNode":
+        return (name: string) => {
+          const htmlTarget = target as HTMLElement;
+          return htmlTarget.getAttributeNode(name);
+        };
+      case "getAttributeNodeNS":
+        return (namespace: string | null, localName: string) => {
+          const htmlTarget = target as HTMLElement;
+          return htmlTarget.getAttributeNodeNS(namespace, localName);
+        };
+      case "getAttributeNames":
+        return () => {
+          const htmlTarget = target as HTMLElement;
+          return htmlTarget.getAttributeNames();
+        };
+      case "matches":
+        return (selectors: string) => {
+          const htmlTarget = target as HTMLElement;
+          return htmlTarget.matches(selectors);
+        };
+      case "webkitMatchesSelector":
+        return (selectors: string) => {
+          const htmlTarget = target as HTMLElement;
+          const webkitTarget = htmlTarget as HTMLElement & { webkitMatchesSelector?: (selectors: string) => boolean };
+          if (webkitTarget.webkitMatchesSelector) {
+            return webkitTarget.webkitMatchesSelector(selectors);
+          }
+          return htmlTarget.matches(selectors);
+        };
+      case "contains":
+        return (other: Node | null) => {
+          return target.contains(other);
+        };
+      case "compareDocumentPosition":
+        return (other: Node) => {
+          return target.compareDocumentPosition(other);
+        };
+      case "getRootNode":
+        return (options?: GetRootNodeOptions) => {
+          return createElementProxy(target.getRootNode(options));
+        };
+      case "isEqualNode":
+        return (otherNode: Node | null) => {
+          return target.isEqualNode(otherNode);
+        };
+      case "isSameNode":
+        return (otherNode: Node | null) => {
+          return target.isSameNode(otherNode);
+        };
+      case "lookupPrefix":
+        return (namespace: string | null) => {
+          return target.lookupPrefix(namespace);
+        };
+      case "lookupNamespaceURI":
+        return (prefix: string | null) => {
+          return target.lookupNamespaceURI(prefix);
+        };
+      case "isDefaultNamespace":
+        return (namespace: string | null) => {
+          return target.isDefaultNamespace(namespace);
+        };
       default:
         return null;
     }
@@ -1095,8 +2103,21 @@ export const createUndoableProxy = (element: HTMLElement) => {
     return document.documentElement;
   };
 
+  const isReadOnlyProperty = (node: Node, prop: string | symbol): boolean => {
+    if (typeof prop === "symbol") return false;
+    if (READONLY_PROPS.has(prop)) return true;
+    const descriptor = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(node), prop);
+    if (descriptor && descriptor.get && !descriptor.set) {
+      return true;
+    }
+    return false;
+  };
+
   const createElementProxy = (node: Node | null): Node | null => {
     if (!node) return null;
+
+    const existingProxy = elementToProxy.get(node);
+    if (existingProxy) return existingProxy;
 
     const nodeProxy = new Proxy(node, {
       get(nodeTarget, nodeProp) {
@@ -1139,6 +2160,18 @@ export const createUndoableProxy = (element: HTMLElement) => {
           return shadowRoot
             ? createElementProxy(shadowRoot as unknown as Node)
             : null;
+        }
+        if (nodeProp === "content" && nodeTarget instanceof HTMLTemplateElement) {
+          return createElementProxy(nodeTarget.content);
+        }
+        if (typeof nodeProp === "string" && DOMTOKENLIST_PROPS.has(nodeProp) && nodeProp in nodeTarget) {
+          const tokenList = (nodeTarget as unknown as Record<string, DOMTokenList>)[nodeProp];
+          if (tokenList instanceof DOMTokenList) {
+            return createDOMTokenListProxy(tokenList);
+          }
+        }
+        if (nodeProp === "options" && nodeTarget instanceof HTMLSelectElement) {
+          return createOptionsCollectionProxy(nodeTarget.options, nodeTarget);
         }
         if (NAVIGATION_PROPS.has(nodeProp as string)) {
           return createElementProxy(
@@ -1211,73 +2244,121 @@ export const createUndoableProxy = (element: HTMLElement) => {
           : nodeValue;
       },
       set(nodeTarget, nodeProp, value) {
-        if (typeof nodeProp === "string") {
-          if (SCROLL_PROPS.has(nodeProp)) {
-            const original = (nodeTarget as HTMLElement)[
-              nodeProp as "scrollTop" | "scrollLeft"
-            ];
-            record(() => {
-              (nodeTarget as HTMLElement)[nodeProp as "scrollTop" | "scrollLeft"] =
-                original;
-            });
-          } else if (
-            FORM_PROPS.has(nodeProp) &&
-            isFormElement(nodeTarget as Node)
-          ) {
-            const original = (
-              nodeTarget as unknown as Record<string, unknown>
-            )[nodeProp];
-            record(() => {
-              (nodeTarget as unknown as Record<string, unknown>)[nodeProp] =
-                original;
-            });
-          } else if (
-            nodeProp === "nodeValue" ||
-            nodeProp === "textContent" ||
-            nodeProp === "data"
-          ) {
-            const original = (
-              nodeTarget as unknown as Record<string, unknown>
-            )[nodeProp];
-            record(() => {
-              (nodeTarget as unknown as Record<string, unknown>)[nodeProp] =
-                original;
-            });
-          } else if (nodeProp === "innerHTML" || nodeProp === "outerHTML") {
-            const htmlTarget = nodeTarget as HTMLElement;
-            if (nodeProp === "innerHTML") {
-              const originalHTML = htmlTarget.innerHTML;
-              record(() => {
-                htmlTarget.innerHTML = originalHTML;
-              });
-            } else {
-              const parentNode = htmlTarget.parentNode;
-              const nextSibling = htmlTarget.nextSibling;
-              const originalOuterHTML = htmlTarget.outerHTML;
-              record(() => {
-                const tempContainer = document.createElement("div");
-                tempContainer.innerHTML = originalOuterHTML;
-                const restoredElement = tempContainer.firstChild;
-                if (restoredElement && parentNode) {
-                  parentNode.insertBefore(restoredElement, nextSibling);
-                }
-              });
-            }
-          } else {
-            const original = (
-              nodeTarget as unknown as Record<string, unknown>
-            )[nodeProp];
-            record(() => {
-              (nodeTarget as unknown as Record<string, unknown>)[nodeProp] =
-                original;
-            });
-          }
+        if (isReadOnlyProperty(nodeTarget, nodeProp)) {
+          return Reflect.set(nodeTarget, nodeProp, value);
         }
+
+        const propString = typeof nodeProp === "string" ? nodeProp : String(nodeProp);
+
+        if (SCROLL_PROPS.has(propString)) {
+          const original = (nodeTarget as HTMLElement)[
+            propString as "scrollTop" | "scrollLeft"
+          ];
+          record(() => {
+            (nodeTarget as HTMLElement)[propString as "scrollTop" | "scrollLeft"] =
+              original;
+          });
+        } else if (
+          FORM_PROPS.has(propString) &&
+          isFormElement(nodeTarget as Node)
+        ) {
+          const original = (
+            nodeTarget as unknown as Record<string, unknown>
+          )[propString];
+          record(() => {
+            (nodeTarget as unknown as Record<string, unknown>)[propString] =
+              original;
+          });
+        } else if (
+          COMMON_PROPS.has(propString)
+        ) {
+          const original = (
+            nodeTarget as unknown as Record<string, unknown>
+          )[propString];
+          record(() => {
+            (nodeTarget as unknown as Record<string, unknown>)[propString] =
+              original;
+          });
+        } else if (
+          ELEMENT_SPECIFIC_PROPS.has(propString)
+        ) {
+          const original = (
+            nodeTarget as unknown as Record<string, unknown>
+          )[propString];
+          record(() => {
+            (nodeTarget as unknown as Record<string, unknown>)[propString] =
+              original;
+          });
+        } else if (
+          MEDIA_PROPS.has(propString) &&
+          isMediaElement(nodeTarget as Node)
+        ) {
+          const original = (
+            nodeTarget as unknown as Record<string, unknown>
+          )[propString];
+          record(() => {
+            (nodeTarget as unknown as Record<string, unknown>)[propString] =
+              original;
+          });
+        } else if (
+          propString === "nodeValue" ||
+          propString === "textContent" ||
+          propString === "data"
+        ) {
+          const original = (
+            nodeTarget as unknown as Record<string, unknown>
+          )[propString];
+          record(() => {
+            (nodeTarget as unknown as Record<string, unknown>)[propString] =
+              original;
+          });
+        } else if (propString === "innerHTML") {
+          const htmlTarget = nodeTarget as HTMLElement;
+          const originalHTML = htmlTarget.innerHTML;
+          record(() => {
+            htmlTarget.innerHTML = originalHTML;
+          });
+        } else if (propString === "outerHTML") {
+          const htmlTarget = nodeTarget as HTMLElement;
+          const parentNode = htmlTarget.parentNode;
+          const nextSibling = htmlTarget.nextSibling;
+          const originalOuterHTML = htmlTarget.outerHTML;
+          const siblingsBefore = parentNode ? Array.from(parentNode.childNodes) : [];
+
+          const result = Reflect.set(nodeTarget, nodeProp, value);
+
+          const siblingsAfter = parentNode ? Array.from(parentNode.childNodes) : [];
+          const addedNodes = siblingsAfter.filter((n) => !siblingsBefore.includes(n));
+
+          record(() => {
+            for (const addedNode of addedNodes) {
+              addedNode.parentNode?.removeChild(addedNode);
+            }
+            const tempContainer = document.createElement("div");
+            tempContainer.innerHTML = originalOuterHTML;
+            const restoredElement = tempContainer.firstChild;
+            if (restoredElement && parentNode) {
+              parentNode.insertBefore(restoredElement, nextSibling);
+            }
+          });
+
+          return result;
+        } else if (typeof nodeProp === "string" || typeof nodeProp === "symbol") {
+          const original = (
+            nodeTarget as unknown as Record<string | symbol, unknown>
+          )[nodeProp];
+          record(() => {
+            (nodeTarget as unknown as Record<string | symbol, unknown>)[nodeProp] =
+              original;
+          });
+        }
+
         return Reflect.set(nodeTarget, nodeProp, value);
       },
     });
 
     proxyToElement.set(nodeProxy, node);
+    elementToProxy.set(node, nodeProxy);
     return nodeProxy;
   };
 
@@ -1286,6 +2367,11 @@ export const createUndoableProxy = (element: HTMLElement) => {
     node instanceof HTMLTextAreaElement ||
     node instanceof HTMLSelectElement ||
     node instanceof HTMLOptionElement;
+
+  const isMediaElement = (node: Node): boolean =>
+    node instanceof HTMLMediaElement ||
+    node instanceof HTMLVideoElement ||
+    node instanceof HTMLAudioElement;
 
   const proxy = createElementProxy(element) as HTMLElement;
 
