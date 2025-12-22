@@ -1287,17 +1287,21 @@ export const createUndoableProxy = (element: HTMLElement) => {
       case "normalize":
         return () => {
           const htmlTarget = target as HTMLElement;
-          const textNodeData: { parent: Node; data: string; nextSibling: Node | null }[] = [];
+          const textNodeData: { parent: Node; data: string; nextNonTextSibling: Node | null }[] = [];
           const walker = document.createTreeWalker(
             htmlTarget,
             NodeFilter.SHOW_TEXT,
           );
           let currentTextNode = walker.nextNode();
           while (currentTextNode) {
+            let nextNonTextSibling = currentTextNode.nextSibling;
+            while (nextNonTextSibling && nextNonTextSibling.nodeType === Node.TEXT_NODE) {
+              nextNonTextSibling = nextNonTextSibling.nextSibling;
+            }
             textNodeData.push({
               parent: currentTextNode.parentNode!,
               data: (currentTextNode as Text).data,
-              nextSibling: currentTextNode.nextSibling,
+              nextNonTextSibling,
             });
             currentTextNode = walker.nextNode();
           }
@@ -1316,9 +1320,19 @@ export const createUndoableProxy = (element: HTMLElement) => {
             for (const mergedTextNode of mergedTextNodes) {
               mergedTextNode.parentNode?.removeChild(mergedTextNode);
             }
-            for (const { parent, data, nextSibling } of textNodeData) {
+            let lastInserted: Node | null = null;
+            let lastParent: Node | null = null;
+            let lastNextNonTextSibling: Node | null | undefined = undefined;
+            for (const { parent, data, nextNonTextSibling } of textNodeData) {
               const newTextNode = document.createTextNode(data);
-              parent.insertBefore(newTextNode, nextSibling);
+              if (parent === lastParent && nextNonTextSibling === lastNextNonTextSibling && lastInserted) {
+                parent.insertBefore(newTextNode, lastInserted.nextSibling);
+              } else {
+                parent.insertBefore(newTextNode, nextNonTextSibling);
+              }
+              lastInserted = newTextNode;
+              lastParent = parent;
+              lastNextNonTextSibling = nextNonTextSibling;
             }
           });
         };
