@@ -184,7 +184,7 @@ type GrabMachineEvent =
       lineNumber: number | null;
     }
   | { type: "SET_COPY_START"; position: Position; element: Element }
-  | { type: "SET_LAST_GRABBED"; element: Element }
+  | { type: "SET_LAST_GRABBED"; element: Element | null }
   | { type: "SET_LAST_COPIED"; element: Element | null }
   | {
       type: "SET_PENDING_CLICK";

@@ -628,7 +628,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           if (lastElement && currentElement && lastElement !== currentElement) {
             send({
               type: "SET_LAST_GRABBED",
-              element: null as unknown as Element,
+              element: null,
             });
           }
           if (currentElement) {
