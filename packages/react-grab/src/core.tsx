@@ -1951,7 +1951,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     eventListenerManager.addDocumentListener("visibilitychange", () => {
       if (document.hidden) {
-        send({ type: "REMOVE_GRABBED_BOX", boxId: "" });
+        send({ type: "CLEAR_GRABBED_BOXES" });
         const contextActivationTimestamp =
           snapshot().context.activationTimestamp;
         if (

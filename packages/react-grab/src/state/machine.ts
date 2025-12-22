@@ -169,6 +169,7 @@ type GrabMachineEvent =
   | { type: "VIEWPORT_CHANGE" }
   | { type: "ADD_GRABBED_BOX"; box: GrabbedBox }
   | { type: "REMOVE_GRABBED_BOX"; boxId: string }
+  | { type: "CLEAR_GRABBED_BOXES" }
   | { type: "ADD_LABEL_INSTANCE"; instance: SelectionLabelInstance }
   | {
       type: "UPDATE_LABEL_INSTANCE";
@@ -345,6 +346,9 @@ const stateMachine = setup({
         event.type === "REMOVE_GRABBED_BOX"
           ? context.grabbedBoxes.filter((box) => box.id !== event.boxId)
           : context.grabbedBoxes,
+    }),
+    clearGrabbedBoxes: assign({
+      grabbedBoxes: () => [],
     }),
     addLabelInstance: assign({
       labelInstances: ({ context, event }) =>
@@ -706,6 +710,7 @@ const stateMachine = setup({
         },
         ADD_GRABBED_BOX: { actions: ["addGrabbedBox"] },
         REMOVE_GRABBED_BOX: { actions: ["removeGrabbedBox"] },
+        CLEAR_GRABBED_BOXES: { actions: ["clearGrabbedBoxes"] },
         SET_LAST_GRABBED: { actions: ["setLastGrabbedElement"] },
         SET_LAST_COPIED: { actions: ["setLastCopiedElement"] },
         SET_HAS_AGENT_PROVIDER: { actions: ["setHasAgentProvider"] },
