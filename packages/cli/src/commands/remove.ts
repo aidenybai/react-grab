@@ -31,7 +31,10 @@ const AGENT_NAMES: Record<string, string> = {
 export const remove = new Command()
   .name("remove")
   .description("remove an agent integration")
-  .argument("[agent]", "agent to remove (claude-code, cursor, opencode, codex, gemini, amp, ami, visual-edit)")
+  .argument(
+    "[agent]",
+    "agent to remove (claude-code, cursor, opencode, codex, gemini, amp, ami, visual-edit)",
+  )
   .option("-y, --yes", "skip confirmation prompts", false)
   .option(
     "-c, --cwd <cwd>",

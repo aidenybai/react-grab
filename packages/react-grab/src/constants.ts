@@ -24,6 +24,13 @@ export const AUTO_SCROLL_SPEED_PX = 10;
 
 export const Z_INDEX_LABEL = 2147483647;
 
+export const ARROW_HEIGHT_PX = 8;
+export const LABEL_GAP_PX = 4;
+export const IDLE_TIMEOUT_MS = 400;
+export const MAX_ERROR_LENGTH = 50;
+export const BOTTOM_SECTION_GRADIENT =
+  "linear-gradient(in oklab 180deg, oklab(100% 0 0) 0%, oklab(96.1% 0 0) 5.92%)";
+
 export const MODIFIER_KEYS: readonly string[] = [
   "Meta",
   "Control",
