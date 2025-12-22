@@ -1016,6 +1016,7 @@ export const createUndoableProxy = (element: HTMLElement) => {
           const result = element.setAttributeNode(attr);
           record(() => {
             if (existingAttr && originalValue !== undefined) {
+              existingAttr.value = originalValue;
               element.setAttributeNode(existingAttr);
             } else {
               element.removeAttribute(attr.name);
