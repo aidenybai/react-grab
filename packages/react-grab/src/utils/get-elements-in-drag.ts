@@ -183,11 +183,11 @@ const filterElementsInDrag = (
   return sortByDocumentOrder(matchingElements);
 };
 
-const removeNestedElements = (elements: Element[]): Element[] => {
+const removeContainingElements = (elements: Element[]): Element[] => {
   return elements.filter((element) => {
     return !elements.some(
       (otherElement) =>
-        otherElement !== element && otherElement.contains(element),
+        otherElement !== element && element.contains(otherElement),
     );
   });
 };
@@ -202,5 +202,5 @@ export const getElementsInDrag = (
     isValidGrabbableElement,
     strict,
   );
-  return removeNestedElements(elements);
+  return removeContainingElements(elements);
 };
