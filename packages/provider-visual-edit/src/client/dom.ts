@@ -988,9 +988,10 @@ export const createUndoableProxy = (element: HTMLElement) => {
           const localName = name.includes(":") ? name.split(":")[1] : name;
           const hadAttribute = element.hasAttributeNS(namespace, localName);
           const originalValue = element.getAttributeNS(namespace, localName);
+          const originalQualifiedName = element.getAttributeNodeNS(namespace, localName)?.name ?? localName;
           record(() =>
             hadAttribute
-              ? element.setAttributeNS(namespace, name, originalValue!)
+              ? element.setAttributeNS(namespace, originalQualifiedName, originalValue!)
               : element.removeAttributeNS(namespace, localName),
           );
           return element.setAttributeNS(namespace, name, value);
