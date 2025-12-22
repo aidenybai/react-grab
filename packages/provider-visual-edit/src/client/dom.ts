@@ -276,6 +276,30 @@ export const createUndoableProxy = (element: HTMLElement) => {
             collectionTarget[Number(collectionProp)] ?? null,
           );
         }
+        if (collectionProp === "item") {
+          return (index: number) =>
+            createElementProxy(collectionTarget.item(index));
+        }
+        if (
+          collectionProp === "namedItem" &&
+          "namedItem" in collectionTarget
+        ) {
+          return (name: string) =>
+            createElementProxy(
+              (collectionTarget as HTMLCollection).namedItem(name),
+            );
+        }
+        if (collectionProp === Symbol.iterator) {
+          return function* () {
+            for (
+              let itemIndex = 0;
+              itemIndex < collectionTarget.length;
+              itemIndex++
+            ) {
+              yield createElementProxy(collectionTarget[itemIndex]);
+            }
+          };
+        }
         const collectionValue = Reflect.get(collectionTarget, collectionProp);
         return typeof collectionValue === "function"
           ? collectionValue.bind(collectionTarget)
