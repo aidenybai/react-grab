@@ -805,9 +805,11 @@ export const createUndoableProxy = (element: HTMLElement) => {
     });
 
   const createCollectionProxy = (
-    collection: HTMLCollection | NodeListOf<ChildNode>,
-  ) =>
-    new Proxy(collection, {
+    collection: HTMLCollection | NodeListOf<ChildNode> | null | undefined,
+  ): (HTMLCollection | NodeListOf<ChildNode>) | null => {
+    if (!collection) return null;
+
+    return new Proxy(collection, {
       get(collectionTarget, collectionProp) {
         if (
           typeof collectionProp === "string" &&
@@ -847,6 +849,7 @@ export const createUndoableProxy = (element: HTMLElement) => {
           : collectionValue;
       },
     });
+  };
 
   const createOptionsCollectionProxy = (
     options: HTMLOptionsCollection,
@@ -972,10 +975,13 @@ export const createUndoableProxy = (element: HTMLElement) => {
         return (name: string, force?: boolean) => {
           const htmlTarget = target as HTMLElement;
           const hadAttribute = htmlTarget.hasAttribute(name);
+          const originalValue = hadAttribute
+            ? htmlTarget.getAttribute(name)!
+            : null;
           const result = htmlTarget.toggleAttribute(name, force);
           record(() => {
             if (hadAttribute) {
-              htmlTarget.setAttribute(name, "");
+              htmlTarget.setAttribute(name, originalValue!);
             } else {
               htmlTarget.removeAttribute(name);
             }
