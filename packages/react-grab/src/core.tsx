@@ -1796,7 +1796,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             options.activationMode !== "hold"
           )
             return;
-          deactivateRenderer();
+          if (isHoldingKeys()) {
+            send({ type: "RELEASE" });
+          } else {
+            deactivateRenderer();
+          }
         }
       },
       { capture: true },
