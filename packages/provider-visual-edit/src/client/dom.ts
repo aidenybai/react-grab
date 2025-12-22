@@ -2,9 +2,43 @@ const ANCESTOR_LEVELS = 5;
 
 type UndoAction = () => void;
 
+const NAVIGATION_PROPS = new Set([
+  "parentElement",
+  "parentNode",
+  "firstChild",
+  "lastChild",
+  "nextSibling",
+  "previousSibling",
+  "firstElementChild",
+  "lastElementChild",
+  "nextElementSibling",
+  "previousElementSibling",
+]);
+
+const HANDLED_METHODS = new Set([
+  "setAttribute",
+  "removeAttribute",
+  "appendChild",
+  "removeChild",
+  "insertBefore",
+  "replaceChild",
+  "remove",
+  "append",
+  "prepend",
+  "after",
+  "before",
+  "replaceWith",
+  "insertAdjacentHTML",
+  "insertAdjacentElement",
+]);
+
 export const createUndoableProxy = (element: HTMLElement) => {
   const undoActions: UndoAction[] = [];
   const record = (action: UndoAction) => undoActions.push(action);
+  const proxyToElement = new WeakMap<object, Node>();
+
+  const unwrapProxy = (maybeProxy: Node): Node =>
+    proxyToElement.get(maybeProxy) ?? maybeProxy;
 
   const removeNodes = (nodes: (Node | string)[]) => {
     for (const node of nodes) {
@@ -20,85 +54,88 @@ export const createUndoableProxy = (element: HTMLElement) => {
       record(() => removeNodes(nodes));
     }) as T;
 
-  const styleProxy = new Proxy(element.style, {
-    set(target, prop, value) {
-      if (typeof prop === "string") {
-        const original =
-          target.getPropertyValue(prop) ||
-          (target as unknown as Record<string, string>)[prop] ||
-          "";
-        record(() => {
-          (target as unknown as Record<string, string>)[prop] = original;
-        });
-      }
-      return Reflect.set(target, prop, value);
-    },
-  });
+  const createStyleProxy = (styleTarget: CSSStyleDeclaration) =>
+    new Proxy(styleTarget, {
+      set(target, prop, value) {
+        if (typeof prop === "string") {
+          const original =
+            target.getPropertyValue(prop) ||
+            (target as unknown as Record<string, string>)[prop] ||
+            "";
+          record(() => {
+            (target as unknown as Record<string, string>)[prop] = original;
+          });
+        }
+        return Reflect.set(target, prop, value);
+      },
+    });
 
-  const classListProxy = new Proxy(element.classList, {
-    get(target, prop) {
-      if (prop === "add")
-        return (...classes: string[]) => {
-          const toUndo = classes.filter(
-            (classToAdd) => !target.contains(classToAdd),
-          );
-          record(() => target.remove(...toUndo));
-          return target.add(...classes);
-        };
-      if (prop === "remove")
-        return (...classes: string[]) => {
-          const toRestore = classes.filter((classToRemove) =>
-            target.contains(classToRemove),
-          );
-          record(() => target.add(...toRestore));
-          return target.remove(...classes);
-        };
-      if (prop === "toggle")
-        return (className: string, force?: boolean) => {
-          const hadClass = target.contains(className);
-          const result = target.toggle(className, force);
+  const createClassListProxy = (classListTarget: DOMTokenList) =>
+    new Proxy(classListTarget, {
+      get(target, prop) {
+        if (prop === "add")
+          return (...classes: string[]) => {
+            const toUndo = classes.filter(
+              (classToAdd) => !target.contains(classToAdd),
+            );
+            record(() => target.remove(...toUndo));
+            return target.add(...classes);
+          };
+        if (prop === "remove")
+          return (...classes: string[]) => {
+            const toRestore = classes.filter((classToRemove) =>
+              target.contains(classToRemove),
+            );
+            record(() => target.add(...toRestore));
+            return target.remove(...classes);
+          };
+        if (prop === "toggle")
+          return (className: string, force?: boolean) => {
+            const hadClass = target.contains(className);
+            const result = target.toggle(className, force);
+            record(() =>
+              hadClass ? target.add(className) : target.remove(className),
+            );
+            return result;
+          };
+        if (prop === "replace")
+          return (oldClassName: string, newClassName: string) => {
+            const hadOldClass = target.contains(oldClassName);
+            const result = target.replace(oldClassName, newClassName);
+            if (hadOldClass)
+              record(() => {
+                target.remove(newClassName);
+                target.add(oldClassName);
+              });
+            return result;
+          };
+        const value = Reflect.get(target, prop);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+
+  const createDatasetProxy = (datasetTarget: DOMStringMap) =>
+    new Proxy(datasetTarget, {
+      set(target, prop, value) {
+        if (typeof prop === "string") {
+          const original = target[prop];
+          const hadProperty = prop in target;
           record(() =>
-            hadClass ? target.add(className) : target.remove(className),
+            hadProperty ? (target[prop] = original!) : delete target[prop],
           );
-          return result;
-        };
-      if (prop === "replace")
-        return (oldClassName: string, newClassName: string) => {
-          const hadOldClass = target.contains(oldClassName);
-          const result = target.replace(oldClassName, newClassName);
-          if (hadOldClass)
-            record(() => {
-              target.remove(newClassName);
-              target.add(oldClassName);
-            });
-          return result;
-        };
-      const value = Reflect.get(target, prop);
-      return typeof value === "function" ? value.bind(target) : value;
-    },
-  });
-
-  const datasetProxy = new Proxy(element.dataset, {
-    set(target, prop, value) {
-      if (typeof prop === "string") {
-        const original = target[prop];
-        const hadProperty = prop in target;
-        record(() =>
-          hadProperty ? (target[prop] = original!) : delete target[prop],
-        );
-      }
-      return Reflect.set(target, prop, value);
-    },
-    deleteProperty(target, prop) {
-      if (typeof prop === "string" && prop in target) {
-        const original = target[prop];
-        record(() => {
-          target[prop] = original!;
-        });
-      }
-      return Reflect.deleteProperty(target, prop);
-    },
-  });
+        }
+        return Reflect.set(target, prop, value);
+      },
+      deleteProperty(target, prop) {
+        if (typeof prop === "string" && prop in target) {
+          const original = target[prop];
+          record(() => {
+            target[prop] = original!;
+          });
+        }
+        return Reflect.deleteProperty(target, prop);
+      },
+    });
 
   const getMethodHandler = (target: HTMLElement, prop: string) => {
     switch (prop) {
@@ -123,31 +160,37 @@ export const createUndoableProxy = (element: HTMLElement) => {
         };
       case "appendChild":
         return (child: Node) => {
-          const result = target.appendChild(child);
-          record(() => child.parentNode?.removeChild(child));
+          const actualChild = unwrapProxy(child);
+          const result = target.appendChild(actualChild);
+          record(() => actualChild.parentNode?.removeChild(actualChild));
           return result;
         };
       case "removeChild":
         return (child: Node) => {
-          const nextSibling = child.nextSibling;
-          const result = target.removeChild(child);
-          record(() => target.insertBefore(child, nextSibling));
+          const actualChild = unwrapProxy(child);
+          const nextSibling = actualChild.nextSibling;
+          const result = target.removeChild(actualChild);
+          record(() => target.insertBefore(actualChild, nextSibling));
           return result;
         };
       case "insertBefore":
         return (node: Node, referenceNode: Node | null) => {
-          const result = target.insertBefore(node, referenceNode);
-          record(() => node.parentNode?.removeChild(node));
+          const actualNode = unwrapProxy(node);
+          const actualRef = referenceNode ? unwrapProxy(referenceNode) : null;
+          const result = target.insertBefore(actualNode, actualRef);
+          record(() => actualNode.parentNode?.removeChild(actualNode));
           return result;
         };
       case "replaceChild":
         return (newChild: Node, oldChild: Node) => {
-          const nextSibling = oldChild.nextSibling;
-          const result = target.replaceChild(newChild, oldChild);
+          const actualNewChild = unwrapProxy(newChild);
+          const actualOldChild = unwrapProxy(oldChild);
+          const nextSibling = actualOldChild.nextSibling;
+          const result = target.replaceChild(actualNewChild, actualOldChild);
           record(() => {
-            target.replaceChild(oldChild, newChild);
-            if (nextSibling && oldChild.nextSibling !== nextSibling) {
-              target.insertBefore(oldChild, nextSibling);
+            target.replaceChild(actualOldChild, actualNewChild);
+            if (nextSibling && actualOldChild.nextSibling !== nextSibling) {
+              target.insertBefore(actualOldChild, nextSibling);
             }
           });
           return result;
@@ -217,44 +260,81 @@ export const createUndoableProxy = (element: HTMLElement) => {
     }
   };
 
-  const handledMethods = new Set([
-    "setAttribute",
-    "removeAttribute",
-    "appendChild",
-    "removeChild",
-    "insertBefore",
-    "replaceChild",
-    "remove",
-    "append",
-    "prepend",
-    "after",
-    "before",
-    "replaceWith",
-    "insertAdjacentHTML",
-    "insertAdjacentElement",
-  ]);
+  const createCollectionProxy = (
+    collection: HTMLCollection | NodeListOf<ChildNode>,
+  ) =>
+    new Proxy(collection, {
+      get(collectionTarget, collectionProp) {
+        if (
+          typeof collectionProp === "string" &&
+          !isNaN(Number(collectionProp))
+        ) {
+          return createElementProxy(
+            collectionTarget[Number(collectionProp)] ?? null,
+          );
+        }
+        const collectionValue = Reflect.get(collectionTarget, collectionProp);
+        return typeof collectionValue === "function"
+          ? collectionValue.bind(collectionTarget)
+          : collectionValue;
+      },
+    });
 
-  const proxy = new Proxy(element, {
-    get(target, prop) {
-      if (prop === "style") return styleProxy;
-      if (prop === "classList") return classListProxy;
-      if (prop === "dataset") return datasetProxy;
-      if (typeof prop === "string" && handledMethods.has(prop)) {
-        return getMethodHandler(target, prop);
-      }
-      const value = Reflect.get(target, prop);
-      return typeof value === "function" ? value.bind(target) : value;
-    },
-    set(target, prop, value) {
-      if (typeof prop === "string") {
-        const original = (target as unknown as Record<string, unknown>)[prop];
-        record(() => {
-          (target as unknown as Record<string, unknown>)[prop] = original;
-        });
-      }
-      return Reflect.set(target, prop, value);
-    },
-  }) as HTMLElement;
+  const createElementProxy = (node: Node | null): Node | null => {
+    if (!node) return null;
+
+    const nodeProxy = new Proxy(node, {
+      get(nodeTarget, nodeProp) {
+        if (nodeProp === "style" && "style" in nodeTarget) {
+          return createStyleProxy((nodeTarget as HTMLElement).style);
+        }
+        if (nodeProp === "classList" && "classList" in nodeTarget) {
+          return createClassListProxy((nodeTarget as HTMLElement).classList);
+        }
+        if (nodeProp === "dataset" && "dataset" in nodeTarget) {
+          return createDatasetProxy((nodeTarget as HTMLElement).dataset);
+        }
+        if (NAVIGATION_PROPS.has(nodeProp as string)) {
+          return createElementProxy(
+            (nodeTarget as Element)[nodeProp as keyof Element] as Node | null,
+          );
+        }
+        if (nodeProp === "children" || nodeProp === "childNodes") {
+          return createCollectionProxy(
+            (nodeTarget as Element)[nodeProp as "children" | "childNodes"],
+          );
+        }
+        if (
+          typeof nodeProp === "string" &&
+          HANDLED_METHODS.has(nodeProp) &&
+          "style" in nodeTarget
+        ) {
+          return getMethodHandler(nodeTarget as HTMLElement, nodeProp);
+        }
+        const nodeValue = Reflect.get(nodeTarget, nodeProp);
+        return typeof nodeValue === "function"
+          ? nodeValue.bind(nodeTarget)
+          : nodeValue;
+      },
+      set(nodeTarget, nodeProp, value) {
+        if (typeof nodeProp === "string") {
+          const original = (nodeTarget as unknown as Record<string, unknown>)[
+            nodeProp
+          ];
+          record(() => {
+            (nodeTarget as unknown as Record<string, unknown>)[nodeProp] =
+              original;
+          });
+        }
+        return Reflect.set(nodeTarget, nodeProp, value);
+      },
+    });
+
+    proxyToElement.set(nodeProxy, node);
+    return nodeProxy;
+  };
+
+  const proxy = createElementProxy(element) as HTMLElement;
 
   const undo = () => {
     for (

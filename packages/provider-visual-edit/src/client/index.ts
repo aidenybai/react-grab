@@ -492,11 +492,7 @@ export const createVisualEditAgentProvider = (
     } catch (executionError) {
       undo();
       cleanup(requestId);
-      const errorMessage =
-        executionError instanceof Error
-          ? executionError.message
-          : "unknown error";
-      return { error: `Failed to edit: ${errorMessage}` };
+      throw executionError;
     }
 
     undoFnMap.set(requestId, undo);
