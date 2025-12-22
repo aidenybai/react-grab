@@ -1361,6 +1361,9 @@ export const createUndoableProxy = (element: HTMLElement) => {
           options?: boolean | EventListenerOptions,
         ) => {
           (target as HTMLElement).removeEventListener(type, listener, options);
+          record(() =>
+            (target as HTMLElement).addEventListener(type, listener, options),
+          );
         };
       case "attachShadow":
         return (init: ShadowRootInit) => {
