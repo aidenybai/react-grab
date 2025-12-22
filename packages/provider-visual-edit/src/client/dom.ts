@@ -510,10 +510,11 @@ export const createUndoableProxy = (element: HTMLElement) => {
         if (prop === "replace")
           return (oldToken: string, newToken: string) => {
             const hadOldToken = target.contains(oldToken);
+            const hadNewToken = target.contains(newToken);
             const result = target.replace(oldToken, newToken);
             if (hadOldToken)
               record(() => {
-                target.remove(newToken);
+                if (!hadNewToken) target.remove(newToken);
                 target.add(oldToken);
               });
             return result;
