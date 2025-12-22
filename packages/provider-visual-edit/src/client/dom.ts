@@ -1708,7 +1708,8 @@ export const createUndoableProxy = (element: HTMLElement) => {
         return (message: string) => {
           const inputTarget = target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
           if ("setCustomValidity" in inputTarget) {
-            const originalMessage = inputTarget.validationMessage;
+            const hadCustomError = inputTarget.validity.customError;
+            const originalMessage = hadCustomError ? inputTarget.validationMessage : "";
             inputTarget.setCustomValidity(message);
             record(() => inputTarget.setCustomValidity(originalMessage));
           }
