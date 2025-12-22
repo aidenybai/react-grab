@@ -890,8 +890,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const deactivateRenderer = () => {
+      const wasDragging = isDragging();
+      const previousFocused = snapshot().context.previouslyFocusedElement;
       send({ type: "DEACTIVATE" });
-      if (isDragging()) {
+      if (wasDragging) {
         document.body.style.userSelect = "";
       }
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
@@ -923,7 +925,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       stopAutoScroll();
       stopProgressAnimation();
-      const previousFocused = snapshot().context.previouslyFocusedElement;
       if (
         previousFocused instanceof HTMLElement &&
         document.contains(previousFocused)
