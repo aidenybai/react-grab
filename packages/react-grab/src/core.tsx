@@ -1859,14 +1859,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "contextmenu",
       (event: MouseEvent) => {
         if (!isRendererActive() || isCopying() || isInputMode()) return;
-        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (!snapshot().context.hasAgentProvider) return;
-
-        const element = getElementAtPosition(event.clientX, event.clientY);
-        if (!element) return;
 
         event.preventDefault();
         event.stopPropagation();
+
+        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
+
+        const element = getElementAtPosition(event.clientX, event.clientY);
+        if (!element) return;
 
         if (pendingClickTimeoutId !== null) {
           window.clearTimeout(pendingClickTimeoutId);
