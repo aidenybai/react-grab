@@ -2122,9 +2122,38 @@ export const createUndoableProxy = (element: HTMLElement) => {
             for (const insertedNode of insertedNodes) {
               insertedNode.parentNode?.removeChild(insertedNode);
             }
-            const tempContainer = document.createElement("div");
-            tempContainer.innerHTML = originalOuterHTML;
-            const restoredElement = tempContainer.firstChild;
+
+            const tagName = element.tagName.toLowerCase();
+            let restoredElement: Node | null = null;
+
+            if (tagName === "tr") {
+              const tempTable = document.createElement("table");
+              tempTable.innerHTML = originalOuterHTML;
+              restoredElement = tempTable.querySelector("tr");
+            } else if (tagName === "td" || tagName === "th") {
+              const tempTable = document.createElement("table");
+              tempTable.innerHTML = `<tbody><tr>${originalOuterHTML}</tr></tbody>`;
+              restoredElement = tempTable.querySelector(tagName);
+            } else if (
+              tagName === "thead" ||
+              tagName === "tbody" ||
+              tagName === "tfoot" ||
+              tagName === "caption" ||
+              tagName === "colgroup"
+            ) {
+              const tempTable = document.createElement("table");
+              tempTable.innerHTML = originalOuterHTML;
+              restoredElement = tempTable.querySelector(tagName);
+            } else if (tagName === "col") {
+              const tempTable = document.createElement("table");
+              tempTable.innerHTML = `<colgroup>${originalOuterHTML}</colgroup>`;
+              restoredElement = tempTable.querySelector("col");
+            } else {
+              const tempContainer = document.createElement("div");
+              tempContainer.innerHTML = originalOuterHTML;
+              restoredElement = tempContainer.firstChild;
+            }
+
             if (restoredElement && parent) {
               parent.insertBefore(restoredElement, nextSibling);
             }
