@@ -688,7 +688,6 @@ const stateMachine = setup({
             },
             MOUSE_MOVE: { actions: ["setMousePosition"] },
             ELEMENT_DETECTED: { actions: ["setDetectedElement"] },
-            FREEZE_ELEMENT: { actions: ["setFrozenElement"] },
             SET_TOUCH_MODE: { actions: ["setTouchMode"] },
             SET_SELECTION_SOURCE: { actions: ["setSelectionSource"] },
           },
@@ -718,6 +717,7 @@ const stateMachine = setup({
         SET_UNDO_REDO_STATE: { actions: ["setUndoRedoState"] },
         SET_AGENT_CAPABILITIES: { actions: ["setAgentCapabilities"] },
         SET_TOGGLE_MODE: { actions: ["setToggleMode"] },
+        FREEZE_ELEMENT: { actions: ["setFrozenElement"] },
       },
     },
 
