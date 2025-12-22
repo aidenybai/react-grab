@@ -329,7 +329,9 @@ const stateMachine = setup({
     }),
     setLastCopiedElement: assign({
       lastCopiedElement: ({ event }) =>
-        event.type === "SET_LAST_COPIED" ? event.element : null,
+        event.type === "SET_LAST_COPIED" || event.type === "COPY_DONE"
+          ? event.element ?? null
+          : null,
     }),
     clearLastCopiedElement: assign({ lastCopiedElement: () => null }),
     incrementViewportVersion: assign({
@@ -762,7 +764,7 @@ const stateMachine = setup({
           on: {
             COPY_DONE: {
               target: "justCopied",
-              actions: ["clearPendingClickData"],
+              actions: ["clearPendingClickData", "setLastCopiedElement"],
             },
           },
         },
