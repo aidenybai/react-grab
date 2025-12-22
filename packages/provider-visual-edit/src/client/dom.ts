@@ -1296,7 +1296,20 @@ export const createUndoableProxy = (element: HTMLElement) => {
             currentTextNode = walker.nextNode();
           }
           htmlTarget.normalize();
+          const mergedTextNodes: Text[] = [];
+          const mergedWalker = document.createTreeWalker(
+            htmlTarget,
+            NodeFilter.SHOW_TEXT,
+          );
+          let mergedNode = mergedWalker.nextNode();
+          while (mergedNode) {
+            mergedTextNodes.push(mergedNode as Text);
+            mergedNode = mergedWalker.nextNode();
+          }
           record(() => {
+            for (const mergedTextNode of mergedTextNodes) {
+              mergedTextNode.parentNode?.removeChild(mergedTextNode);
+            }
             for (const { parent, data, nextSibling } of textNodeData) {
               const newTextNode = document.createTextNode(data);
               parent.insertBefore(newTextNode, nextSibling);
