@@ -1123,6 +1123,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       window.getSelection()?.removeAllRanges();
 
       send({ type: "MOUSE_MOVE", position: { x: currentX, y: currentY } });
+      send({ type: "FREEZE_ELEMENT", element: elements[0] });
       activateInputMode();
       activateRenderer();
     };
