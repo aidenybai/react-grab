@@ -370,34 +370,29 @@ export const createUndoableProxy = (element: HTMLElement) => {
 
   const wrapNodeInsertion = <T extends (...args: (Node | string)[]) => void>(
     method: T,
-    getInsertedNodes?: (args: (Node | string)[]) => (Node | string)[],
+    getRelevantNodes: () => Node[],
   ): T =>
     ((...nodes: (Node | string)[]) => {
       const unwrappedNodes = unwrapNodes(nodes);
       const originalPositions = new Map<Node, { parent: Node | null; nextSibling: Node | null }>();
-      const fragmentChildren: Node[] = [];
 
       for (const node of unwrappedNodes) {
         if (typeof node !== "string") {
-          if (node instanceof DocumentFragment) {
-            fragmentChildren.push(...Array.from(node.childNodes));
-          } else if (node.parentNode) {
+          if (!(node instanceof DocumentFragment) && node.parentNode) {
             originalPositions.set(node, captureNodePosition(node));
           }
         }
       }
 
+      const nodesBefore = getRelevantNodes();
       method(...unwrappedNodes);
+      const nodesAfter = getRelevantNodes();
 
-      const nodesToRemove = getInsertedNodes
-        ? getInsertedNodes(unwrappedNodes)
-        : [...unwrappedNodes, ...fragmentChildren];
+      const insertedNodes = nodesAfter.filter((node) => !nodesBefore.includes(node));
 
       record(() => {
-        for (const node of nodesToRemove) {
-          if (typeof node !== "string") {
-            node.parentNode?.removeChild(node);
-          }
+        for (const node of insertedNodes) {
+          node.parentNode?.removeChild(node);
         }
         for (const [node, position] of originalPositions) {
           restoreNodePosition(node, position);
@@ -1122,41 +1117,53 @@ export const createUndoableProxy = (element: HTMLElement) => {
           record(() => parent?.insertBefore(target, nextSibling));
         };
       case "append":
-        return wrapNodeInsertion(element.append.bind(element));
+        return wrapNodeInsertion(
+          element.append.bind(element),
+          () => Array.from(element.childNodes),
+        );
       case "prepend":
-        return wrapNodeInsertion(element.prepend.bind(element));
+        return wrapNodeInsertion(
+          element.prepend.bind(element),
+          () => Array.from(element.childNodes),
+        );
       case "after":
-        return wrapNodeInsertion(element.after.bind(element));
+        return wrapNodeInsertion(
+          element.after.bind(element),
+          () => (element.parentNode ? Array.from(element.parentNode.childNodes) : []),
+        );
       case "before":
-        return wrapNodeInsertion(element.before.bind(element));
+        return wrapNodeInsertion(
+          element.before.bind(element),
+          () => (element.parentNode ? Array.from(element.parentNode.childNodes) : []),
+        );
       case "replaceWith":
         return (...nodes: (Node | string)[]) => {
           const unwrappedNodes = unwrapNodes(nodes);
           const parent = target.parentNode;
           const nextSibling = target.nextSibling;
           const originalPositions = new Map<Node, { parent: Node | null; nextSibling: Node | null }>();
-          const allFragmentChildren: Node[] = [];
 
           for (const currentNode of unwrappedNodes) {
             if (typeof currentNode !== "string") {
-              if (currentNode instanceof DocumentFragment) {
-                allFragmentChildren.push(...Array.from(currentNode.childNodes));
-              } else if (currentNode.parentNode) {
+              if (!(currentNode instanceof DocumentFragment) && currentNode.parentNode) {
                 originalPositions.set(currentNode, captureNodePosition(currentNode));
               }
             }
           }
 
+          const siblingsBefore = parent ? Array.from(parent.childNodes) : [];
           element.replaceWith(...unwrappedNodes);
+          const siblingsAfter = parent ? Array.from(parent.childNodes) : [];
+
+          const insertedNodes = siblingsAfter.filter((node) => !siblingsBefore.includes(node));
 
           record(() => {
-            const nodesToRemove = [...unwrappedNodes.filter((n) => typeof n !== "string"), ...allFragmentChildren];
-            const firstNode = nodesToRemove[0] as Node | undefined;
+            const firstNode = insertedNodes[0];
             if (parent) {
               parent.insertBefore(target, firstNode ?? nextSibling);
-              for (const nodeToRemove of nodesToRemove) {
+              for (const nodeToRemove of insertedNodes) {
                 if (nodeToRemove !== target) {
-                  (nodeToRemove as Node).parentNode?.removeChild(nodeToRemove as Node);
+                  nodeToRemove.parentNode?.removeChild(nodeToRemove);
                 }
               }
             }
