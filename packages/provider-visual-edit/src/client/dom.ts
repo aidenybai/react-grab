@@ -217,7 +217,6 @@ const ELEMENT_PROPS = new Set([
   "coords",
   "shape",
   "ping",
-  "sandbox",
   "seamless",
   "width",
   "height",
@@ -2086,6 +2085,16 @@ export const createUndoableProxy = (element: HTMLElement) => {
           record(() => {
             element.innerHTML = originalInnerHTML;
           });
+        } else if (DOMTOKENLIST_PROPS.has(propertyName) && propertyName in target) {
+          const tokenList = targetRecord[propertyName];
+          if (tokenList instanceof DOMTokenList) {
+            const originalValue = tokenList.value;
+            record(() => {
+              targetRecord[propertyName] = originalValue;
+            });
+          } else {
+            recordPropertyUndo();
+          }
         } else if (ELEMENT_PROPS.has(propertyName)) {
           recordPropertyUndo();
         } else if (MEDIA_PROPS.has(propertyName) && isMediaElement(target)) {
