@@ -354,6 +354,12 @@ export const createUndoableProxy = (element: HTMLElement) => {
   const record = (action: UndoAction) => undoActions.push(action);
   const proxyToElement = new WeakMap<object, Node>();
   const elementToProxy = new WeakMap<Node, Node>();
+  const styleToProxy = new WeakMap<CSSStyleDeclaration, CSSStyleDeclaration>();
+  const tokenListToProxy = new WeakMap<DOMTokenList, DOMTokenList>();
+  const datasetToProxy = new WeakMap<DOMStringMap, DOMStringMap>();
+  const namedNodeMapToProxy = new WeakMap<NamedNodeMap, NamedNodeMap>();
+  const styleMapToProxy = new WeakMap<StylePropertyMap, StylePropertyMap>();
+  const optionsCollectionToProxy = new WeakMap<HTMLOptionsCollection, HTMLOptionsCollection>();
   const addedEventListeners: {
     target: EventTarget;
     type: string;
@@ -428,8 +434,11 @@ export const createUndoableProxy = (element: HTMLElement) => {
       });
     }) as T;
 
-  const createStyleProxy = (styleTarget: CSSStyleDeclaration) =>
-    new Proxy(styleTarget, {
+  const createStyleProxy = (styleTarget: CSSStyleDeclaration): CSSStyleDeclaration => {
+    const existingProxy = styleToProxy.get(styleTarget);
+    if (existingProxy) return existingProxy;
+
+    const proxy = new Proxy(styleTarget, {
       get(target, prop) {
         if (prop === "setProperty") {
           return (
@@ -479,8 +488,15 @@ export const createUndoableProxy = (element: HTMLElement) => {
       },
     });
 
-  const createDOMTokenListProxy = (tokenListTarget: DOMTokenList) =>
-    new Proxy(tokenListTarget, {
+    styleToProxy.set(styleTarget, proxy);
+    return proxy;
+  };
+
+  const createDOMTokenListProxy = (tokenListTarget: DOMTokenList): DOMTokenList => {
+    const existingProxy = tokenListToProxy.get(tokenListTarget);
+    if (existingProxy) return existingProxy;
+
+    const proxy = new Proxy(tokenListTarget, {
       get(target, prop) {
         if (prop === "add")
           return (...tokens: string[]) => {
@@ -536,10 +552,17 @@ export const createUndoableProxy = (element: HTMLElement) => {
       },
     });
 
+    tokenListToProxy.set(tokenListTarget, proxy);
+    return proxy;
+  };
+
   const createClassListProxy = createDOMTokenListProxy;
 
-  const createDatasetProxy = (datasetTarget: DOMStringMap) =>
-    new Proxy(datasetTarget, {
+  const createDatasetProxy = (datasetTarget: DOMStringMap): DOMStringMap => {
+    const existingProxy = datasetToProxy.get(datasetTarget);
+    if (existingProxy) return existingProxy;
+
+    const proxy = new Proxy(datasetTarget, {
       set(target, prop, value) {
         if (typeof prop === "string") {
           const original = target[prop];
@@ -561,8 +584,15 @@ export const createUndoableProxy = (element: HTMLElement) => {
       },
     });
 
-  const createNamedNodeMapProxy = (attributes: NamedNodeMap) =>
-    new Proxy(attributes, {
+    datasetToProxy.set(datasetTarget, proxy);
+    return proxy;
+  };
+
+  const createNamedNodeMapProxy = (attributes: NamedNodeMap): NamedNodeMap => {
+    const existingProxy = namedNodeMapToProxy.get(attributes);
+    if (existingProxy) return existingProxy;
+
+    const proxy = new Proxy(attributes, {
       get(target, prop) {
         if (typeof prop === "string" && !isNaN(Number(prop))) {
           const attr = target[Number(prop)];
@@ -674,8 +704,16 @@ export const createUndoableProxy = (element: HTMLElement) => {
       },
     });
 
-  const createAttrProxy = (attr: Attr) =>
-    new Proxy(attr, {
+    namedNodeMapToProxy.set(attributes, proxy);
+    return proxy;
+  };
+
+  const attrToProxy = new WeakMap<Attr, Attr>();
+  const createAttrProxy = (attr: Attr): Attr => {
+    const existingProxy = attrToProxy.get(attr);
+    if (existingProxy) return existingProxy;
+
+    const proxy = new Proxy(attr, {
       get(target, prop) {
         const value = Reflect.get(target, prop);
         return typeof value === "function" ? value.bind(target) : value;
@@ -691,8 +729,15 @@ export const createUndoableProxy = (element: HTMLElement) => {
       },
     });
 
-  const createStyleMapProxy = (styleMap: StylePropertyMap) =>
-    new Proxy(styleMap, {
+    attrToProxy.set(attr, proxy);
+    return proxy;
+  };
+
+  const createStyleMapProxy = (styleMap: StylePropertyMap): StylePropertyMap => {
+    const existingProxy = styleMapToProxy.get(styleMap);
+    if (existingProxy) return existingProxy;
+
+    const proxy = new Proxy(styleMap, {
       get(target, prop) {
         if (prop === "set") {
           return (property: string, ...values: (CSSStyleValue | string)[]) => {
@@ -751,6 +796,10 @@ export const createUndoableProxy = (element: HTMLElement) => {
         return typeof value === "function" ? value.bind(target) : value;
       },
     });
+
+    styleMapToProxy.set(styleMap, proxy);
+    return proxy;
+  };
 
   const createNodeListProxy = (nodeList: NodeList) =>
     new Proxy(nodeList, {
@@ -855,8 +904,11 @@ export const createUndoableProxy = (element: HTMLElement) => {
   const createOptionsCollectionProxy = (
     options: HTMLOptionsCollection,
     selectElement: HTMLSelectElement,
-  ) =>
-    new Proxy(options, {
+  ): HTMLOptionsCollection => {
+    const existingProxy = optionsCollectionToProxy.get(options);
+    if (existingProxy) return existingProxy;
+
+    const proxy = new Proxy(options, {
       get(target, prop) {
         if (typeof prop === "string" && !isNaN(Number(prop))) {
           return createElementProxy(target[Number(prop)] ?? null);
@@ -945,6 +997,10 @@ export const createUndoableProxy = (element: HTMLElement) => {
         return Reflect.set(target, prop, value);
       },
     });
+
+    optionsCollectionToProxy.set(options, proxy);
+    return proxy;
+  };
 
   const getMethodHandler = (
     target: HTMLElement | CharacterData | ShadowRoot,
