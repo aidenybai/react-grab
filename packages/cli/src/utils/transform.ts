@@ -6,7 +6,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import type { Framework, NextRouterType } from "./detect.js";
+import type { Framework, NextRouterType, PackageManager } from "./detect.js";
 import {
   NEXT_APP_ROUTER_SCRIPT_WITH_AGENT,
   NEXT_PAGES_ROUTER_SCRIPT_WITH_AGENT,
@@ -670,19 +670,55 @@ export const transformProject = (
   return result;
 };
 
-const AGENT_PREFIXES: Record<string, string> = {
-  "claude-code": "npx @react-grab/claude-code@latest &&",
-  cursor: "npx @react-grab/cursor@latest &&",
-  opencode: "npx @react-grab/opencode@latest &&",
-  codex: "npx @react-grab/codex@latest &&",
-  gemini: "npx @react-grab/gemini@latest &&",
-  amp: "npx @react-grab/amp@latest &&",
+const getPackageExecutor = (packageManager: PackageManager): string => {
+  switch (packageManager) {
+    case "bun":
+      return "bunx";
+    case "pnpm":
+      return "pnpm dlx";
+    case "yarn":
+      return "npx";
+    case "npm":
+    default:
+      return "npx";
+  }
+};
+
+const AGENT_PACKAGES: Record<string, string> = {
+  "claude-code": "@react-grab/claude-code@latest",
+  cursor: "@react-grab/cursor@latest",
+  opencode: "@react-grab/opencode@latest",
+  codex: "@react-grab/codex@latest",
+  gemini: "@react-grab/gemini@latest",
+  amp: "@react-grab/amp@latest",
+};
+
+export const getAgentPrefix = (
+  agent: string,
+  packageManager: PackageManager,
+): string | null => {
+  const agentPackage = AGENT_PACKAGES[agent];
+  if (!agentPackage) return null;
+  const executor = getPackageExecutor(packageManager);
+  return `${executor} ${agentPackage} &&`;
+};
+
+const getAllAgentPrefixVariants = (agent: string): string[] => {
+  const agentPackage = AGENT_PACKAGES[agent];
+  if (!agentPackage) return [];
+  return [
+    `npx ${agentPackage} &&`,
+    `bunx ${agentPackage} &&`,
+    `pnpm dlx ${agentPackage} &&`,
+    `yarn dlx ${agentPackage} &&`,
+  ];
 };
 
 export const previewPackageJsonTransform = (
   projectRoot: string,
   agent: AgentIntegration,
   installedAgents: string[],
+  packageManager: PackageManager = "npm",
 ): PackageJsonTransformResult => {
   if (agent === "none" || agent === "visual-edit") {
     return {
@@ -707,7 +743,7 @@ export const previewPackageJsonTransform = (
   }
 
   const originalContent = readFileSync(packageJsonPath, "utf-8");
-  const agentPrefix = AGENT_PREFIXES[agent];
+  const agentPrefix = getAgentPrefix(agent, packageManager);
 
   if (!agentPrefix) {
     return {
@@ -717,7 +753,12 @@ export const previewPackageJsonTransform = (
     };
   }
 
-  if (originalContent.includes(agentPrefix)) {
+  const allPrefixVariants = getAllAgentPrefixVariants(agent);
+  const hasExistingPrefix = allPrefixVariants.some((prefix) =>
+    originalContent.includes(prefix),
+  );
+
+  if (hasExistingPrefix) {
     return {
       success: true,
       filePath: packageJsonPath,
@@ -742,7 +783,7 @@ export const previewPackageJsonTransform = (
           filePath: packageJsonPath,
           message: "No dev script found in package.json",
           noChanges: true,
-          warning: `No dev script found. Run: ${agentPrefix} <your dev command>`,
+          warning: `Could not inject agent into package.json (no dev script found).\nRun this command manually before starting your dev server:\n  ${agentPrefix} <your dev command>`,
         };
       }
     }
@@ -750,8 +791,11 @@ export const previewPackageJsonTransform = (
     const currentDevScript = packageJson.scripts[targetScriptKey];
 
     for (const installedAgent of installedAgents) {
-      const existingPrefix = AGENT_PREFIXES[installedAgent];
-      if (existingPrefix && currentDevScript.includes(existingPrefix)) {
+      const installedPrefixVariants = getAllAgentPrefixVariants(installedAgent);
+      const hasInstalledAgentPrefix = installedPrefixVariants.some((prefix) =>
+        currentDevScript.includes(prefix),
+      );
+      if (hasInstalledAgentPrefix) {
         return {
           success: true,
           filePath: packageJsonPath,
@@ -1242,9 +1286,9 @@ export const previewPackageJsonAgentRemoval = (
   }
 
   const originalContent = readFileSync(packageJsonPath, "utf-8");
-  const agentPrefix = AGENT_PREFIXES[agent];
+  const allPrefixVariants = getAllAgentPrefixVariants(agent);
 
-  if (!agentPrefix) {
+  if (allPrefixVariants.length === 0) {
     return {
       success: true,
       filePath: packageJsonPath,
@@ -1253,7 +1297,11 @@ export const previewPackageJsonAgentRemoval = (
     };
   }
 
-  if (!originalContent.includes(agentPrefix)) {
+  const hasAnyPrefix = allPrefixVariants.some((prefix) =>
+    originalContent.includes(prefix),
+  );
+
+  if (!hasAnyPrefix) {
     return {
       success: true,
       filePath: packageJsonPath,
@@ -1266,14 +1314,16 @@ export const previewPackageJsonAgentRemoval = (
     const packageJson = JSON.parse(originalContent);
 
     for (const scriptKey of Object.keys(packageJson.scripts || {})) {
-      const scriptValue = packageJson.scripts[scriptKey];
-      if (
-        typeof scriptValue === "string" &&
-        scriptValue.includes(agentPrefix)
-      ) {
-        packageJson.scripts[scriptKey] = scriptValue
-          .replace(agentPrefix + " ", "")
-          .replace(agentPrefix, "");
+      let scriptValue = packageJson.scripts[scriptKey];
+      if (typeof scriptValue === "string") {
+        for (const prefix of allPrefixVariants) {
+          if (scriptValue.includes(prefix)) {
+            scriptValue = scriptValue
+              .replace(prefix + " ", "")
+              .replace(prefix, "");
+          }
+        }
+        packageJson.scripts[scriptKey] = scriptValue;
       }
     }
 
