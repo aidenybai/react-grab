@@ -710,6 +710,7 @@ const getAllAgentPrefixVariants = (agent: string): string[] => {
     `npx ${agentPackage} &&`,
     `bunx ${agentPackage} &&`,
     `pnpm dlx ${agentPackage} &&`,
+    `yarn dlx ${agentPackage} &&`,
   ];
 };
 

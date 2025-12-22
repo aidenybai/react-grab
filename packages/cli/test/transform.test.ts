@@ -778,6 +778,27 @@ describe("previewPackageJsonTransform", () => {
     expect(result.noChanges).toBe(true);
   });
 
+  it("should detect existing yarn dlx prefix and not duplicate", () => {
+    const packageJsonWithYarnDlx = JSON.stringify(
+      {
+        name: "my-app",
+        scripts: {
+          dev: "yarn dlx @react-grab/cursor@latest && next dev",
+        },
+      },
+      null,
+      2,
+    );
+
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(packageJsonWithYarnDlx);
+
+    const result = previewPackageJsonTransform("/test", "cursor", [], "npm");
+
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBe(true);
+  });
+
   it("should show correct package manager command in warning when no dev script", () => {
     const packageJsonNoDev = JSON.stringify(
       {
