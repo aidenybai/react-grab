@@ -1101,7 +1101,7 @@ export const createUndoableProxy = (element: HTMLElement) => {
             } else {
               element.replaceChild(unwrappedOldChild, unwrappedNewChild);
             }
-            if (nextSibling && unwrappedOldChild.nextSibling !== nextSibling) {
+            if (nextSibling && nextSibling.parentNode === element && unwrappedOldChild.nextSibling !== nextSibling) {
               element.insertBefore(unwrappedOldChild, nextSibling);
             }
             if (newChildOriginalPosition) {
