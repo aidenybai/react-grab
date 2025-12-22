@@ -187,7 +187,9 @@ export const init = new Command()
           const installedNames = projectInfo.installedAgents
             .map((innerAgent) => AGENT_NAMES[innerAgent] || innerAgent)
             .join(", ");
-          logger.log(`Currently installed agents: ${highlighter.info(installedNames)}`);
+          logger.log(
+            `Currently installed agents: ${highlighter.info(installedNames)}`,
+          );
           logger.break();
         }
 
@@ -264,12 +266,14 @@ export const init = new Command()
                       agentToRemove,
                     );
 
-                    const removalPackageJsonResult = previewPackageJsonAgentRemoval(
-                      projectInfo.projectRoot,
-                      agentToRemove,
-                    );
+                    const removalPackageJsonResult =
+                      previewPackageJsonAgentRemoval(
+                        projectInfo.projectRoot,
+                        agentToRemove,
+                      );
 
-                    const packagesToRemove = getPackagesToUninstall(agentToRemove);
+                    const packagesToRemove =
+                      getPackagesToUninstall(agentToRemove);
 
                     if (packagesToRemove.length > 0) {
                       const uninstallSpinner = spinner(
@@ -301,7 +305,9 @@ export const init = new Command()
                       if (!writeResult.success) {
                         removeWriteSpinner.fail();
                         logger.break();
-                        logger.error(writeResult.error || "Failed to write file.");
+                        logger.error(
+                          writeResult.error || "Failed to write file.",
+                        );
                         logger.break();
                         process.exit(1);
                       }
@@ -323,7 +329,8 @@ export const init = new Command()
                         removePackageJsonSpinner.fail();
                         logger.break();
                         logger.error(
-                          packageJsonWriteResult.error || "Failed to write file.",
+                          packageJsonWriteResult.error ||
+                            "Failed to write file.",
                         );
                         logger.break();
                         process.exit(1);
@@ -332,9 +339,10 @@ export const init = new Command()
                     }
                   }
 
-                  projectInfo.installedAgents = projectInfo.installedAgents.filter(
-                    (innerAgent) => !agentsToRemove.includes(innerAgent),
-                  );
+                  projectInfo.installedAgents =
+                    projectInfo.installedAgents.filter(
+                      (innerAgent) => !agentsToRemove.includes(innerAgent),
+                    );
                 }
 
                 const result = previewTransform(
@@ -360,7 +368,9 @@ export const init = new Command()
                 }
 
                 const hasLayoutChanges =
-                  !result.noChanges && result.originalContent && result.newContent;
+                  !result.noChanges &&
+                  result.originalContent &&
+                  result.newContent;
                 const hasPackageJsonChanges =
                   packageJsonResult.success &&
                   !packageJsonResult.noChanges &&
@@ -402,7 +412,10 @@ export const init = new Command()
                       logger.break();
                       logger.log("Agent addition cancelled.");
                     } else {
-                      const packages = getPackagesToInstall(agentIntegration, false);
+                      const packages = getPackagesToInstall(
+                        agentIntegration,
+                        false,
+                      );
 
                       if (packages.length > 0) {
                         const installSpinner = spinner(
@@ -430,7 +443,9 @@ export const init = new Command()
                         if (!writeResult.success) {
                           writeSpinner.fail();
                           logger.break();
-                          logger.error(writeResult.error || "Failed to write file.");
+                          logger.error(
+                            writeResult.error || "Failed to write file.",
+                          );
                           logger.break();
                           process.exit(1);
                         }
@@ -447,7 +462,8 @@ export const init = new Command()
                           packageJsonSpinner.fail();
                           logger.break();
                           logger.error(
-                            packageJsonWriteResult.error || "Failed to write file.",
+                            packageJsonWriteResult.error ||
+                              "Failed to write file.",
                           );
                           logger.break();
                           process.exit(1);
@@ -457,10 +473,15 @@ export const init = new Command()
 
                       didAddAgent = true;
                       logger.break();
-                      logger.success(`${AGENT_NAMES[agentIntegration]} has been added.`);
+                      logger.success(
+                        `${AGENT_NAMES[agentIntegration]} has been added.`,
+                      );
                     }
                   } else {
-                    const packages = getPackagesToInstall(agentIntegration, false);
+                    const packages = getPackagesToInstall(
+                      agentIntegration,
+                      false,
+                    );
 
                     if (packages.length > 0) {
                       const installSpinner = spinner(
@@ -488,7 +509,9 @@ export const init = new Command()
                       if (!writeResult.success) {
                         writeSpinner.fail();
                         logger.break();
-                        logger.error(writeResult.error || "Failed to write file.");
+                        logger.error(
+                          writeResult.error || "Failed to write file.",
+                        );
                         logger.break();
                         process.exit(1);
                       }
@@ -505,7 +528,8 @@ export const init = new Command()
                         packageJsonSpinner.fail();
                         logger.break();
                         logger.error(
-                          packageJsonWriteResult.error || "Failed to write file.",
+                          packageJsonWriteResult.error ||
+                            "Failed to write file.",
                         );
                         logger.break();
                         process.exit(1);
@@ -515,7 +539,9 @@ export const init = new Command()
 
                     didAddAgent = true;
                     logger.break();
-                    logger.success(`${AGENT_NAMES[agentIntegration]} has been added.`);
+                    logger.success(
+                      `${AGENT_NAMES[agentIntegration]} has been added.`,
+                    );
                   }
                 }
               }
@@ -574,7 +600,8 @@ export const init = new Command()
             const { modifiers } = await prompts({
               type: "multiselect",
               name: "modifiers",
-              message: "Select modifier keys (space to select, enter to confirm):",
+              message:
+                "Select modifier keys (space to select, enter to confirm):",
               choices: [
                 { title: MODIFIER_KEY_NAMES.metaKey, value: "metaKey" },
                 { title: MODIFIER_KEY_NAMES.ctrlKey, value: "ctrlKey" },
@@ -611,7 +638,10 @@ export const init = new Command()
             name: "activationMode",
             message: `Select ${highlighter.info("activation mode")}:`,
             choices: [
-              { title: "Toggle (press to activate/deactivate)", value: "toggle" },
+              {
+                title: "Toggle (press to activate/deactivate)",
+                value: "toggle",
+              },
               { title: "Hold (hold key to keep active)", value: "hold" },
             ],
             initial: 0,
@@ -654,7 +684,8 @@ export const init = new Command()
             process.exit(1);
           }
 
-          collectedOptions.allowActivationInsideInput = allowActivationInsideInput;
+          collectedOptions.allowActivationInsideInput =
+            allowActivationInsideInput;
 
           const { maxContextLines } = await prompts({
             type: "number",

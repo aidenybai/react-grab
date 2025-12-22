@@ -419,12 +419,18 @@ importers:
 
   packages/react-grab:
     dependencies:
+      '@xstate/solid':
+        specifier: ^2.0.0
+        version: 2.0.0(solid-js@1.9.10)(xstate@5.25.0)
       bippy:
         specifier: ^0.5.26
         version: 0.5.26(@types/react@19.2.7)(react@19.2.1)
       solid-js:
         specifier: ^1.9.10
         version: 1.9.10
+      xstate:
+        specifier: ^5.25.0
+        version: 5.25.0
     devDependencies:
       '@babel/core':
         specifier: ^7.28.5
@@ -2193,8 +2199,8 @@ packages:
     resolution: {integrity: sha512-y9/ltK2TY+0HD1H2Sz7MvU3zFh4SjER6eQVNQfBx/0gK9N7S0QwHW6cmhHLx3CP25zN190LKHXPieMGqsVvrOQ==}
     engines: {node: '>=18'}
 
-  '@sourcegraph/amp@0.0.1766361707-g2a58c8':
-    resolution: {integrity: sha512-mlZtXaotoiXf2jFvGrRbI9VdyRnbQ2cEikiGPoBDtwpi16IORWYZFF7Z9PbhxBiTXQIpig1mUj4+M3x3wM3X5Q==}
+  '@sourcegraph/amp@0.0.1766203476-g15bfc0':
+    resolution: {integrity: sha512-DPyRWsSZgwLdfaAroDBoMWL5vPCvC2uwwLRhtcRsAuXgbAvSpglszgODHb2TQDGaNEnnqCYL865BIcHRSbLHrA==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -2818,6 +2824,15 @@ packages:
 
   '@vitest/utils@3.2.4':
     resolution: {integrity: sha512-fB2V0JFrQSMsCo9HiSq3Ezpdv4iYaXRG1Sx8edX3MwxfyNn83mKiGzOcH+Fkxt4MHxr3y42fQi1oeAInqgX2QA==}
+
+  '@xstate/solid@2.0.0':
+    resolution: {integrity: sha512-ycGMMJWPtfnc+CGhUxxe664wTVr4M2NXEJx4EsShbcT5G0d2bP378AtAsVvVhSjr6W5+7Br6htDivND1I6DOfQ==}
+    peerDependencies:
+      solid-js: ^1.6.0
+      xstate: ^5.20.0
+    peerDependenciesMeta:
+      xstate:
+        optional: true
 
   acorn-jsx@5.3.2:
     resolution: {integrity: sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==}
@@ -6046,6 +6061,9 @@ packages:
     resolution: {integrity: sha512-fDlsI/kFEx7gLvbecc0/ohLG50fugQp8ryHzMTuW9vSa1GJ0XYWKnhsUx7oie3G98+r56aTQIUB4kht42R3JvA==}
     engines: {node: '>=4.0'}
 
+  xstate@5.25.0:
+    resolution: {integrity: sha512-yyWzfhVRoTHNLjLoMmdwZGagAYfmnzpm9gPjlX2MhJZsDojXGqRxODDOi4BsgGRKD46NZRAdcLp6CKOyvQS0Bw==}
+
   y18n@5.0.8:
     resolution: {integrity: sha512-0pfFzegeDWJHJIAmTLRP2DwHjdF5s7jo9tuztdQxAhINCdvS+3nGINqPd00AphqJR/0LhANUS6/+7SCb98YOfA==}
     engines: {node: '>=10'}
@@ -7419,10 +7437,10 @@ snapshots:
 
   '@sourcegraph/amp-sdk@0.1.0-20251210081226-g90e3892':
     dependencies:
-      '@sourcegraph/amp': 0.0.1766361707-g2a58c8
+      '@sourcegraph/amp': 0.0.1766203476-g15bfc0
       zod: 3.25.76
 
-  '@sourcegraph/amp@0.0.1766361707-g2a58c8':
+  '@sourcegraph/amp@0.0.1766203476-g15bfc0':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
@@ -7992,6 +8010,12 @@ snapshots:
       '@vitest/pretty-format': 3.2.4
       loupe: 3.2.1
       tinyrainbow: 2.0.0
+
+  '@xstate/solid@2.0.0(solid-js@1.9.10)(xstate@5.25.0)':
+    dependencies:
+      solid-js: 1.9.10
+    optionalDependencies:
+      xstate: 5.25.0
 
   acorn-jsx@5.3.2(acorn@8.15.0):
     dependencies:
@@ -11672,6 +11696,8 @@ snapshots:
       xmlbuilder: 11.0.1
 
   xmlbuilder@11.0.1: {}
+
+  xstate@5.25.0: {}
 
   y18n@5.0.8: {}
 
