@@ -465,9 +465,6 @@ importers:
       tailwindcss:
         specifier: ^4.1.0
         version: 4.1.15
-      terser:
-        specifier: ^5.36.0
-        version: 5.37.0
       tsup:
         specifier: ^8.2.4
         version: 8.3.5(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
@@ -2196,8 +2193,8 @@ packages:
     resolution: {integrity: sha512-y9/ltK2TY+0HD1H2Sz7MvU3zFh4SjER6eQVNQfBx/0gK9N7S0QwHW6cmhHLx3CP25zN190LKHXPieMGqsVvrOQ==}
     engines: {node: '>=18'}
 
-  '@sourcegraph/amp@0.0.1766030962-g4f8aa0':
-    resolution: {integrity: sha512-wPG/khaiirfsNYdp29k3mrvGv5PEY9l1GUkH9b8Nqxw5xppuoIvBJqKFX78ksNrai7UawroMFEBPG8tslXXb8A==}
+  '@sourcegraph/amp@0.0.1766361707-g2a58c8':
+    resolution: {integrity: sha512-mlZtXaotoiXf2jFvGrRbI9VdyRnbQ2cEikiGPoBDtwpi16IORWYZFF7Z9PbhxBiTXQIpig1mUj4+M3x3wM3X5Q==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -7057,6 +7054,7 @@ snapshots:
     dependencies:
       '@jridgewell/gen-mapping': 0.3.13
       '@jridgewell/trace-mapping': 0.3.31
+    optional: true
 
   '@jridgewell/sourcemap-codec@1.5.5': {}
 
@@ -7421,10 +7419,10 @@ snapshots:
 
   '@sourcegraph/amp-sdk@0.1.0-20251210081226-g90e3892':
     dependencies:
-      '@sourcegraph/amp': 0.0.1766030962-g4f8aa0
+      '@sourcegraph/amp': 0.0.1766361707-g2a58c8
       zod: 3.25.76
 
-  '@sourcegraph/amp@0.0.1766030962-g4f8aa0':
+  '@sourcegraph/amp@0.0.1766361707-g2a58c8':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
@@ -8386,7 +8384,8 @@ snapshots:
 
   commander@14.0.2: {}
 
-  commander@2.20.3: {}
+  commander@2.20.3:
+    optional: true
 
   commander@2.9.0:
     dependencies:
@@ -11081,6 +11080,7 @@ snapshots:
       acorn: 8.15.0
       commander: 2.20.3
       source-map-support: 0.5.21
+    optional: true
 
   thenify-all@1.6.0:
     dependencies:

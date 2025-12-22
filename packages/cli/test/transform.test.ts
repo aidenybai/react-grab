@@ -654,7 +654,7 @@ describe("previewPackageJsonTransform", () => {
 
     expect(result.success).toBe(true);
     expect(result.noChanges).toBe(true);
-    expect(result.warning).toContain("No dev script found");
+    expect(result.warning).toContain("Could not inject agent into package.json");
     expect(result.warning).toContain("npx @react-grab/cursor@latest");
   });
 
@@ -690,6 +690,114 @@ describe("previewPackageJsonTransform", () => {
 
     expect(result.success).toBe(false);
     expect(result.message).toContain("Failed to parse package.json");
+  });
+
+  it("should use bunx for bun package manager", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(packageJsonContent);
+
+    const result = previewPackageJsonTransform("/test", "cursor", [], "bun");
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain("bunx @react-grab/cursor@latest &&");
+    expect(result.newContent).toContain("next dev --turbopack");
+  });
+
+  it("should use pnpm dlx for pnpm package manager", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(packageJsonContent);
+
+    const result = previewPackageJsonTransform("/test", "cursor", [], "pnpm");
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain("pnpm dlx @react-grab/cursor@latest &&");
+    expect(result.newContent).toContain("next dev --turbopack");
+  });
+
+  it("should use npx for npm package manager", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(packageJsonContent);
+
+    const result = previewPackageJsonTransform("/test", "cursor", [], "npm");
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain("npx @react-grab/cursor@latest &&");
+    expect(result.newContent).toContain("next dev --turbopack");
+  });
+
+  it("should use npx for yarn package manager", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(packageJsonContent);
+
+    const result = previewPackageJsonTransform("/test", "cursor", [], "yarn");
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain("npx @react-grab/cursor@latest &&");
+    expect(result.newContent).toContain("next dev --turbopack");
+  });
+
+  it("should detect existing bunx prefix and not duplicate", () => {
+    const packageJsonWithBunx = JSON.stringify(
+      {
+        name: "my-app",
+        scripts: {
+          dev: "bunx @react-grab/cursor@latest && next dev",
+        },
+      },
+      null,
+      2,
+    );
+
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(packageJsonWithBunx);
+
+    const result = previewPackageJsonTransform("/test", "cursor", [], "npm");
+
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBe(true);
+  });
+
+  it("should detect existing pnpm dlx prefix and not duplicate", () => {
+    const packageJsonWithPnpm = JSON.stringify(
+      {
+        name: "my-app",
+        scripts: {
+          dev: "pnpm dlx @react-grab/cursor@latest && next dev",
+        },
+      },
+      null,
+      2,
+    );
+
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(packageJsonWithPnpm);
+
+    const result = previewPackageJsonTransform("/test", "cursor", [], "bun");
+
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBe(true);
+  });
+
+  it("should show correct package manager command in warning when no dev script", () => {
+    const packageJsonNoDev = JSON.stringify(
+      {
+        name: "my-app",
+        scripts: {
+          build: "next build",
+        },
+      },
+      null,
+      2,
+    );
+
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(packageJsonNoDev);
+
+    const bunResult = previewPackageJsonTransform("/test", "cursor", [], "bun");
+    expect(bunResult.warning).toContain("bunx @react-grab/cursor@latest");
+
+    const pnpmResult = previewPackageJsonTransform("/test", "cursor", [], "pnpm");
+    expect(pnpmResult.warning).toContain("pnpm dlx @react-grab/cursor@latest");
   });
 });
 

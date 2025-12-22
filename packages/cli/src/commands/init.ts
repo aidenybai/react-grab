@@ -349,6 +349,7 @@ export const init = new Command()
                   projectInfo.projectRoot,
                   agentIntegration,
                   projectInfo.installedAgents,
+                  projectInfo.packageManager,
                 );
 
                 if (!result.success) {
@@ -984,6 +985,7 @@ export const init = new Command()
         projectInfo.projectRoot,
         agentIntegration,
         projectInfo.installedAgents,
+        finalPackageManager,
       );
 
       if (!result.success) {
@@ -1194,7 +1196,9 @@ export const init = new Command()
         `${highlighter.success("Success!")} React Grab has been installed.`,
       );
       if (packageJsonResult.warning) {
+        logger.break();
         logger.warn(packageJsonResult.warning);
+        logger.break();
       } else {
         logger.log("You may now start your development server.");
       }
