@@ -304,7 +304,7 @@ export interface ReactGrabRendererProps {
   mouseY?: number;
   crosshairVisible?: boolean;
   inputValue?: string;
-  isInputExpanded?: boolean;
+  isInputMode?: boolean;
   replyToPrompt?: string;
   hasAgent?: boolean;
   isAgentConnected?: boolean;
@@ -361,4 +361,96 @@ export interface DragRect {
   y: number;
   width: number;
   height: number;
+}
+
+export type ArrowPosition = "bottom" | "top";
+
+export interface ArrowProps {
+  position: ArrowPosition;
+  leftPx: number;
+  color?: string;
+}
+
+export interface TagBadgeProps {
+  tagName: string;
+  isClickable: boolean;
+  onClick: (event: MouseEvent) => void;
+  onHoverChange?: (hovered: boolean) => void;
+  shrink?: boolean;
+  forceShowIcon?: boolean;
+}
+
+export interface ActionPillProps {
+  onClick: () => void;
+  asButton?: boolean;
+  dimmed?: boolean;
+  shrink?: boolean;
+  hasAgent?: boolean;
+  isEditing?: boolean;
+}
+
+export interface BottomSectionProps {
+  children: import("solid-js").JSX.Element;
+}
+
+export interface DiscardPromptProps {
+  onConfirm?: () => void;
+  onCancel?: () => void;
+}
+
+export interface ErrorViewProps {
+  error: string;
+  onAcknowledge?: () => void;
+  onRetry?: () => void;
+}
+
+export interface CompletionViewProps {
+  statusText: string;
+  supportsUndo?: boolean;
+  supportsFollowUp?: boolean;
+  dismissButtonText?: string;
+  previousPrompt?: string;
+  onDismiss?: () => void;
+  onUndo?: () => void;
+  onFollowUpSubmit?: (prompt: string) => void;
+  onCopyStateChange?: () => void;
+}
+
+export interface SelectionLabelProps {
+  tagName?: string;
+  componentName?: string;
+  selectionBounds?: OverlayBounds;
+  mouseX?: number;
+  visible?: boolean;
+  isInputMode?: boolean;
+  inputValue?: string;
+  replyToPrompt?: string;
+  previousPrompt?: string;
+  hasAgent?: boolean;
+  isAgentConnected?: boolean;
+  status?: SelectionLabelStatus;
+  statusText?: string;
+  filePath?: string;
+  lineNumber?: number;
+  supportsUndo?: boolean;
+  supportsFollowUp?: boolean;
+  dismissButtonText?: string;
+  onInputChange?: (value: string) => void;
+  onSubmit?: () => void;
+  onCancel?: () => void;
+  onToggleExpand?: () => void;
+  onAbort?: () => void;
+  onOpen?: () => void;
+  onDismiss?: () => void;
+  onUndo?: () => void;
+  onFollowUpSubmit?: (prompt: string) => void;
+  isPendingDismiss?: boolean;
+  onConfirmDismiss?: () => void;
+  onCancelDismiss?: () => void;
+  isPendingAbort?: boolean;
+  onConfirmAbort?: () => void;
+  onCancelAbort?: () => void;
+  error?: string;
+  onAcknowledgeError?: () => void;
+  onRetry?: () => void;
 }

@@ -121,7 +121,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           selectionBounds={props.selectionBounds}
           mouseX={props.mouseX}
           visible={props.selectionLabelVisible}
-          isInputExpanded={props.isInputExpanded}
+          isInputMode={props.isInputMode}
           inputValue={props.inputValue}
           replyToPrompt={props.replyToPrompt}
           hasAgent={props.hasAgent}

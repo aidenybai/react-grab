@@ -1,59 +1,25 @@
 import { createSignal, onMount, onCleanup } from "solid-js";
 import type { Component } from "solid-js";
 import { cn } from "../utils/cn.js";
+import {
+  loadDockState,
+  saveDockState,
+  type SnapEdge,
+} from "../utils/dock-state.js";
 import { IconSelect } from "./icon-select.js";
+import { IconChevron } from "./icon-chevron.js";
 
 interface DockProps {
   isActive?: boolean;
   onToggle?: () => void;
 }
 
-type SnapEdge = "top" | "bottom" | "left" | "right";
-
-interface DockState {
-  edge: SnapEdge;
-  ratio: number;
-  collapsed: boolean;
-}
-
 const SNAP_MARGIN = 16;
-const STORAGE_KEY = "react-grab-dock-state";
 const MOBILE_BREAKPOINT = 768;
 const FADE_IN_DELAY_MS = 500;
 const DRAG_THRESHOLD = 5;
 const VELOCITY_MULTIPLIER = 150;
 const COLLAPSED_SIZE = 14;
-
-const Chevron: Component<{ class?: string }> = (props) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    stroke-width="2.5"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-    class={props.class}
-  >
-    <path d="m18 15-6-6-6 6" />
-  </svg>
-);
-
-const loadDockState = (): DockState | null => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored) as DockState;
-  } catch {}
-  return null;
-};
-
-const saveDockState = (state: DockState) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch {}
-};
 
 export const Dock: Component<DockProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
@@ -518,7 +484,7 @@ export const Dock: Component<DockProps> = (props) => {
           class="contain-layout shrink-0 flex items-center justify-center cursor-pointer transition-all hover:scale-105"
           onClick={handleToggleCollapse}
         >
-          <Chevron
+          <IconChevron
             class={cn(
               "text-[#B3B3B3] transition-transform duration-100",
               chevronRotation(),

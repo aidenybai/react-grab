@@ -173,9 +173,9 @@ export const createUndoableProxy = (element: HTMLElement) => {
           const nextSibling = target.nextSibling;
           target.replaceWith(...nodes);
           record(() => {
-            const firstNode = nodes.find(
-              (node) => typeof node !== "string",
-            ) as Node | undefined;
+            const firstNode = nodes.find((node) => typeof node !== "string") as
+              | Node
+              | undefined;
             if (parentNode) {
               parentNode.insertBefore(target, firstNode ?? nextSibling);
               removeNodes(nodes);
@@ -209,8 +209,7 @@ export const createUndoableProxy = (element: HTMLElement) => {
             position,
             insertedElement,
           );
-          if (result)
-            record(() => result.parentNode?.removeChild(result));
+          if (result) record(() => result.parentNode?.removeChild(result));
           return result;
         };
       default:
@@ -314,11 +313,7 @@ export const buildAncestorContext = (element: Element): string => {
   const ancestors: Element[] = [];
   let currentAncestor = element.parentElement;
 
-  for (
-    let level = 0;
-    level < ANCESTOR_LEVELS && currentAncestor;
-    level++
-  ) {
+  for (let level = 0; level < ANCESTOR_LEVELS && currentAncestor; level++) {
     if (
       currentAncestor === document.body ||
       currentAncestor === document.documentElement
