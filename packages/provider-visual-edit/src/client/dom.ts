@@ -1729,10 +1729,10 @@ export const createUndoableProxy = (element: HTMLElement) => {
         return (index: number) => {
           const tableTarget = target as HTMLTableElement | HTMLTableSectionElement;
           if ("deleteRow" in tableTarget && "rows" in tableTarget) {
-            const rowToDelete = tableTarget.rows[index];
+            const actualIndex = index < 0 ? tableTarget.rows.length + index : index;
+            const rowToDelete = tableTarget.rows[actualIndex];
             if (rowToDelete) {
               const rowHtml = rowToDelete.outerHTML;
-              const actualIndex = index < 0 ? tableTarget.rows.length + index : index;
               tableTarget.deleteRow(index);
               record(() => {
                 const tempTable = document.createElement("table");
@@ -1763,10 +1763,10 @@ export const createUndoableProxy = (element: HTMLElement) => {
         return (index: number) => {
           const rowTarget = target as HTMLTableRowElement;
           if ("deleteCell" in rowTarget && "cells" in rowTarget) {
-            const cellToDelete = rowTarget.cells[index];
+            const actualIndex = index < 0 ? rowTarget.cells.length + index : index;
+            const cellToDelete = rowTarget.cells[actualIndex];
             if (cellToDelete) {
               const cellHtml = cellToDelete.outerHTML;
-              const actualIndex = index < 0 ? rowTarget.cells.length + index : index;
               rowTarget.deleteCell(index);
               record(() => {
                 const tempRow = document.createElement("tr");
