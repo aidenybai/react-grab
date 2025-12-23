@@ -542,6 +542,7 @@ export const createVisualEditAgentProvider = (
 
     const undoFns: (() => void)[] = [];
     const sanitizedCodes: string[] = [];
+    const processedElements: Element[] = [];
 
     for (let i = 0; i < elements.length; i++) {
       const element = elements[i];
@@ -568,6 +569,7 @@ export const createVisualEditAgentProvider = (
         new Function("$el", sanitizedCode).bind(null)(proxy);
         undoFns.push(undo);
         sanitizedCodes.push(sanitizedCode);
+        processedElements.push(element);
       } catch (executionError) {
         undo();
         for (let j = undoFns.length - 1; j >= 0; j--) {
@@ -592,7 +594,7 @@ export const createVisualEditAgentProvider = (
     undoHistory.push(requestId);
     undoableCodeMap.set(requestId, {
       code: JSON.stringify(sanitizedCodes),
-      elements,
+      elements: processedElements,
     });
     redoHistory.length = 0;
 
