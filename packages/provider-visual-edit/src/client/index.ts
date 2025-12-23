@@ -363,6 +363,8 @@ export const createVisualEditAgentProvider = (
       iterationUndos[undoIndex]();
     }
 
+    conversationHistoryMap.set(sessionId ?? requestId, messages);
+
     return finalCode;
   };
 
