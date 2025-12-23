@@ -331,9 +331,9 @@ export const createAgentManager = (
         componentName,
       );
       session.lastStatus = "Thinking…";
-      sessionElements.set(session.id, elements);
     }
 
+    sessionElements.set(session.id, elements);
     setSessions((prev) => new Map(prev).set(session.id, session));
     saveSessionById(session, storage);
     agentOptions.onStart?.(session, elements);
