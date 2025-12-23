@@ -2327,9 +2327,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onUndoSession={(sessionId) => agentManager.session.undo(sessionId)}
             onFollowUpSubmitSession={(sessionId, prompt) => {
               const session = agentManager.sessions().get(sessionId);
-              const element = agentManager.session.getElement(sessionId);
+              const elements = agentManager.session.getElements(sessionId);
               const sessionBounds = session?.selectionBounds;
-              if (session && element && sessionBounds) {
+              if (session && elements.length > 0 && sessionBounds) {
                 const positionX = session.position.x;
                 const followUpSessionId =
                   session.context.sessionId ?? sessionId;
@@ -2337,7 +2337,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 agentManager.session.dismiss(sessionId);
 
                 void agentManager.session.start({
-                  elements: [element],
+                  elements,
                   prompt,
                   position: {
                     x: positionX,
