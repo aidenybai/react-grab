@@ -569,10 +569,10 @@ const stateMachine = setup({
           const element = context.sessionElements.get(sessionId);
           if (element && document.contains(element)) {
             const newBounds = createElementBounds(element);
-            const oldBounds = session.selectionBounds;
+            const oldFirstBounds = session.selectionBounds[0];
             let updatedPosition = session.position;
-            if (oldBounds) {
-              const oldCenterX = oldBounds.x + oldBounds.width / 2;
+            if (oldFirstBounds) {
+              const oldCenterX = oldFirstBounds.x + oldFirstBounds.width / 2;
               const offsetX = session.position.x - oldCenterX;
               const newCenterX = newBounds.x + newBounds.width / 2;
               updatedPosition = {
@@ -582,7 +582,7 @@ const stateMachine = setup({
             }
             updatedSessions.set(sessionId, {
               ...session,
-              selectionBounds: newBounds,
+              selectionBounds: [newBounds],
               position: updatedPosition,
             });
             didUpdate = true;

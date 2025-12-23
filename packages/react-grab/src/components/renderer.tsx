@@ -73,18 +73,20 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
       <Index each={agentSessionsList()}>
         {(session) => (
           <>
-            <Show when={session().selectionBounds}>
-              <SelectionBox
-                variant="processing"
-                bounds={session().selectionBounds!}
-                visible={true}
-                isCompleted={!session().isStreaming}
-              />
-            </Show>
+            <For each={session().selectionBounds}>
+              {(bounds) => (
+                <SelectionBox
+                  variant="processing"
+                  bounds={bounds}
+                  visible={true}
+                  isCompleted={!session().isStreaming}
+                />
+              )}
+            </For>
             <SelectionLabel
               tagName={session().tagName}
               componentName={session().componentName}
-              selectionBounds={session().selectionBounds}
+              selectionBounds={session().selectionBounds[0]}
               mouseX={session().position.x}
               visible={true}
               hasAgent={true}

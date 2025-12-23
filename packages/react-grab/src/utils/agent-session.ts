@@ -13,7 +13,7 @@ const generateSessionId = (): string =>
 export const createSession = (
   context: AgentContext,
   position: { x: number; y: number },
-  selectionBounds?: OverlayBounds,
+  selectionBounds: OverlayBounds[],
   tagName?: string,
   componentName?: string,
 ): AgentSession => {

@@ -24,7 +24,7 @@ interface StartSessionParams {
   elements: Element[];
   prompt: string;
   position: { x: number; y: number };
-  selectionBounds?: OverlayBounds;
+  selectionBounds: OverlayBounds[];
   sessionId?: string;
 }
 
@@ -189,10 +189,11 @@ export const createAgentManager = (
 
   const tryReacquireElement = (session: AgentSession): Element | undefined => {
     const { selectionBounds, tagName } = session;
-    if (!selectionBounds) return undefined;
+    const firstBounds = selectionBounds[0];
+    if (!firstBounds) return undefined;
 
-    const centerX = selectionBounds.x + selectionBounds.width / 2;
-    const centerY = selectionBounds.y + selectionBounds.height / 2;
+    const centerX = firstBounds.x + firstBounds.width / 2;
+    const centerY = firstBounds.y + firstBounds.height / 2;
 
     const element = document.elementFromPoint(centerX, centerY);
     if (!element) return undefined;
@@ -463,18 +464,22 @@ export const createAgentManager = (
 
     for (const [sessionId, session] of currentSessions) {
       const elements = sessionElements.get(sessionId) ?? [];
-      const element = elements[0];
+      const firstElement = elements[0];
 
-      if (element && document.contains(element)) {
-        const newBounds = createElementBounds(element);
-        if (newBounds) {
-          const oldBounds = session.selectionBounds;
+      if (firstElement && document.contains(firstElement)) {
+        const newBounds = elements
+          .filter((el) => document.contains(el))
+          .map((el) => createElementBounds(el));
+
+        if (newBounds.length > 0) {
+          const oldFirstBounds = session.selectionBounds[0];
+          const newFirstBounds = newBounds[0];
           let updatedPosition = session.position;
 
-          if (oldBounds) {
-            const oldCenterX = oldBounds.x + oldBounds.width / 2;
+          if (oldFirstBounds && newFirstBounds) {
+            const oldCenterX = oldFirstBounds.x + oldFirstBounds.width / 2;
             const offsetX = session.position.x - oldCenterX;
-            const newCenterX = newBounds.x + newBounds.width / 2;
+            const newCenterX = newFirstBounds.x + newFirstBounds.width / 2;
             updatedPosition = { ...session.position, x: newCenterX + offsetX };
           }
 

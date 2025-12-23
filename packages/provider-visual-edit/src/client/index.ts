@@ -109,20 +109,20 @@ export const createVisualEditAgentProvider = (
 ) => {
   const apiEndpoint = options.apiEndpoint ?? DEFAULT_API_ENDPOINT;
   const maxIterations = options.maxIterations ?? 3;
-  const elementHtmlMap = new Map<string, string>();
-  const elementOuterHtmlMap = new Map<string, string>();
-  const elementRefMap = new Map<string, Element>();
+  const elementHtmlListMap = new Map<string, string[]>();
+  const elementOuterHtmlListMap = new Map<string, string[]>();
+  const elementRefsMap = new Map<string, Element[]>();
   const resultCodeMap = new Map<string, string>();
   const undoFnMap = new Map<string, () => void>();
   const conversationHistoryMap = new Map<string, ConversationMessage[]>();
   const userPromptsMap = new Map<string, string[]>();
-  const sessionOriginalHtmlMap = new Map<string, string>();
+  const sessionOriginalHtmlMap = new Map<string, string[]>();
   const undoHistory: string[] = [];
   const redoHistory: string[] = [];
 
   interface UndoableEntry {
     code: string;
-    element: Element;
+    elements: Element[];
   }
   const undoableCodeMap = new Map<string, UndoableEntry>();
 
@@ -136,17 +136,18 @@ export const createVisualEditAgentProvider = (
   const onStart = (session: AgentSession, elements: Element[]) => {
     const requestId = (session.context.options as RequestContext | undefined)
       ?.requestId;
-    const element = elements[0];
-    if (!requestId || !element) return;
+    if (!requestId || elements.length === 0) return;
 
-    const html = buildAncestorContext(element);
-    elementHtmlMap.set(requestId, html);
-    elementOuterHtmlMap.set(requestId, element.outerHTML);
-    elementRefMap.set(requestId, element);
+    const htmlList = elements.map((el) => buildAncestorContext(el));
+    const outerHtmlList = elements.map((el) => el.outerHTML);
+
+    elementHtmlListMap.set(requestId, htmlList);
+    elementOuterHtmlListMap.set(requestId, outerHtmlList);
+    elementRefsMap.set(requestId, elements);
 
     const sessionId = session.id;
     if (sessionId && !sessionOriginalHtmlMap.has(sessionId)) {
-      sessionOriginalHtmlMap.set(sessionId, element.outerHTML);
+      sessionOriginalHtmlMap.set(sessionId, outerHtmlList);
     }
   };
 
@@ -270,6 +271,101 @@ export const createVisualEditAgentProvider = (
     }
   };
 
+  const processElement = async function* (
+    element: Element,
+    html: string,
+    prompt: string,
+    sessionId: string | undefined,
+    requestId: string,
+    signal: AbortSignal,
+    elementIndex: number,
+    totalElements: number,
+  ): AsyncGenerator<string, string | null, unknown> {
+    const existingMessages = sessionId
+      ? (conversationHistoryMap.get(sessionId) ?? [])
+      : [];
+
+    const isFirstMessage = existingMessages.length === 0;
+    const formattedUserMessage = buildUserMessage(prompt, html, isFirstMessage);
+
+    const messages: ConversationMessage[] = [
+      ...existingMessages,
+      { role: "user", content: formattedUserMessage },
+    ];
+
+    let iterationCount = 0;
+    let finalCode: string | null = null;
+    const iterationUndos: (() => void)[] = [];
+
+    while (iterationCount <= maxIterations) {
+      let responseText = "";
+      for await (const progress of fetchWithProgress(messages, signal)) {
+        if (typeof progress === "string" && !progress.startsWith("{")) {
+          const prefix =
+            totalElements > 1 ? `[${elementIndex + 1}/${totalElements}] ` : "";
+          yield `${prefix}${progress}`;
+        }
+        responseText = progress;
+      }
+
+      const parsedResponse = parseAgentResponse(responseText);
+
+      if (typeof parsedResponse === "string") {
+        finalCode = parsedResponse;
+        messages.push({ role: "assistant", content: responseText });
+        break;
+      }
+
+      if (!parsedResponse.iterate) {
+        finalCode = parsedResponse.code;
+        messages.push({ role: "assistant", content: responseText });
+        break;
+      }
+
+      messages.push({ role: "assistant", content: responseText });
+
+      const prefix =
+        totalElements > 1 ? `[${elementIndex + 1}/${totalElements}] ` : "";
+      yield `${prefix}Applying…`;
+
+      const { success, result, updatedHtml, undo, elementRemoved } =
+        executeIterationCode(element, parsedResponse.code);
+
+      iterationUndos.push(undo);
+
+      if (elementRemoved) {
+        for (
+          let undoIndex = iterationUndos.length - 1;
+          undoIndex >= 0;
+          undoIndex--
+        ) {
+          iterationUndos[undoIndex]();
+        }
+        throw new Error(
+          "Element was removed from the page during editing. This can happen if the page re-rendered.",
+        );
+      }
+
+      const iterationFeedback = buildIterationMessage(
+        updatedHtml,
+        success ? result : `Error: ${result}`,
+      );
+
+      messages.push({ role: "user", content: iterationFeedback });
+      iterationCount++;
+    }
+
+    for (
+      let undoIndex = iterationUndos.length - 1;
+      undoIndex >= 0;
+      undoIndex--
+    ) {
+      iterationUndos[undoIndex]();
+    }
+
+    return finalCode;
+  };
+
   const provider: AgentProvider<RequestContext> = {
     send: async function* (
       context: AgentContext<RequestContext>,
@@ -277,115 +373,58 @@ export const createVisualEditAgentProvider = (
     ) {
       const requestId = context.options?.requestId ?? "";
       const sessionId = context.sessionId;
-      const html = elementHtmlMap.get(requestId);
-      const element = elementRefMap.get(requestId);
+      const htmlList = elementHtmlListMap.get(requestId);
+      const elements = elementRefsMap.get(requestId);
 
-      if (!html || !element) {
+      if (!htmlList || !elements || elements.length === 0) {
         throw new Error("Could not capture element HTML");
       }
 
-      if (!document.contains(element)) {
-        throw new Error(
-          "Element was removed from the page. This can happen if the page re-rendered.",
-        );
+      for (const element of elements) {
+        if (!document.contains(element)) {
+          throw new Error(
+            "Element was removed from the page. This can happen if the page re-rendered.",
+          );
+        }
       }
-
-      const existingMessages = sessionId
-        ? (conversationHistoryMap.get(sessionId) ?? [])
-        : [];
-
-      const isFirstMessage = existingMessages.length === 0;
-      const formattedUserMessage = buildUserMessage(
-        context.prompt,
-        html,
-        isFirstMessage,
-      );
 
       const existingPrompts = sessionId
         ? (userPromptsMap.get(sessionId) ?? [])
         : [];
       const updatedPrompts = [...existingPrompts, context.prompt];
 
-      const messages: ConversationMessage[] = [
-        ...existingMessages,
-        { role: "user", content: formattedUserMessage },
-      ];
-
       lastRequestStartTime = Date.now();
-      let iterationCount = 0;
-      let finalCode: string | null = null;
-      const iterationUndos: (() => void)[] = [];
+      const finalCodes: string[] = [];
 
-      while (iterationCount <= maxIterations) {
-        let responseText = "";
-        for await (const progress of fetchWithProgress(messages, signal)) {
-          if (typeof progress === "string" && !progress.startsWith("{")) {
-            yield progress;
-          }
-          responseText = progress;
+      for (let i = 0; i < elements.length; i++) {
+        const element = elements[i];
+        const html = htmlList[i];
+
+        if (elements.length > 1) {
+          yield `Processing element ${i + 1} of ${elements.length}...`;
         }
 
-        const parsedResponse = parseAgentResponse(responseText);
+        const finalCode = yield* processElement(
+          element,
+          html,
+          context.prompt,
+          sessionId,
+          requestId,
+          signal,
+          i,
+          elements.length,
+        );
 
-        if (typeof parsedResponse === "string") {
-          finalCode = parsedResponse;
-          messages.push({ role: "assistant", content: responseText });
-          break;
-        }
-
-        if (!parsedResponse.iterate) {
-          finalCode = parsedResponse.code;
-          messages.push({ role: "assistant", content: responseText });
-          break;
-        }
-
-        messages.push({ role: "assistant", content: responseText });
-
-        yield `Applying…`;
-
-        const { success, result, updatedHtml, undo, elementRemoved } =
-          executeIterationCode(element, parsedResponse.code);
-
-        iterationUndos.push(undo);
-
-        if (elementRemoved) {
-          for (
-            let undoIndex = iterationUndos.length - 1;
-            undoIndex >= 0;
-            undoIndex--
-          ) {
-            iterationUndos[undoIndex]();
-          }
+        if (finalCode === null) {
           throw new Error(
-            "Element was removed from the page during editing. This can happen if the page re-rendered.",
+            `Max iterations reached without final code for element ${i + 1}`,
           );
         }
 
-        const iterationFeedback = buildIterationMessage(
-          updatedHtml,
-          success ? result : `Error: ${result}`,
-        );
-
-        messages.push({ role: "user", content: iterationFeedback });
-        iterationCount++;
+        finalCodes.push(finalCode);
       }
 
-      // HACK: Undo all iteration changes before applying final code with proper undo tracking
-      for (
-        let undoIndex = iterationUndos.length - 1;
-        undoIndex >= 0;
-        undoIndex--
-      ) {
-        iterationUndos[undoIndex]();
-      }
-
-      if (finalCode === null) {
-        throw new Error("Max iterations reached without final code");
-      }
-
-      resultCodeMap.set(requestId, finalCode);
-
-      conversationHistoryMap.set(sessionId ?? requestId, messages);
+      resultCodeMap.set(requestId, JSON.stringify(finalCodes));
       userPromptsMap.set(sessionId ?? requestId, updatedPrompts);
 
       yield "Applying changes…";
@@ -412,17 +451,32 @@ export const createVisualEditAgentProvider = (
       const entry = undoableCodeMap.get(requestIdToRedo);
       if (!entry) return;
 
-      const { code, element } = entry;
-      if (!document.contains(element)) return;
+      const { code, elements: entryElements } = entry;
+      const codes = JSON.parse(code) as string[];
+      const undoFns: (() => void)[] = [];
 
-      const { proxy, undo } = createUndoableProxy(element as HTMLElement);
+      for (let i = 0; i < entryElements.length; i++) {
+        const element = entryElements[i];
+        const elementCode = codes[i];
+        if (!document.contains(element) || !elementCode) continue;
 
-      try {
-        new Function("$el", code).bind(null)(proxy);
-        undoFnMap.set(requestIdToRedo, undo);
+        const { proxy, undo } = createUndoableProxy(element as HTMLElement);
+
+        try {
+          new Function("$el", elementCode).bind(null)(proxy);
+          undoFns.push(undo);
+        } catch {
+          undo();
+        }
+      }
+
+      if (undoFns.length > 0) {
+        undoFnMap.set(requestIdToRedo, () => {
+          for (let i = undoFns.length - 1; i >= 0; i--) {
+            undoFns[i]();
+          }
+        });
         undoHistory.push(requestIdToRedo);
-      } catch {
-        undo();
       }
     },
     canRedo: () => redoHistory.length > 0,
@@ -438,9 +492,9 @@ export const createVisualEditAgentProvider = (
   };
 
   const cleanup = (requestId: string) => {
-    elementHtmlMap.delete(requestId);
-    elementOuterHtmlMap.delete(requestId);
-    elementRefMap.delete(requestId);
+    elementHtmlListMap.delete(requestId);
+    elementOuterHtmlListMap.delete(requestId);
+    elementRefsMap.delete(requestId);
     resultCodeMap.delete(requestId);
   };
 
@@ -452,64 +506,100 @@ export const createVisualEditAgentProvider = (
       ?.requestId;
     if (!requestId) return;
 
-    const rawCode = resultCodeMap.get(requestId);
-    if (!rawCode) return;
-    const code = rawCode.trim();
+    const rawCodes = resultCodeMap.get(requestId);
+    if (!rawCodes) return;
 
-    const element = elements[0];
-    if (!element) {
+    let codes: string[];
+    try {
+      codes = JSON.parse(rawCodes) as string[];
+    } catch {
       cleanup(requestId);
-      return { error: "Failed to edit: element not found" };
+      return { error: "Failed to edit: invalid code format" };
     }
 
-    if (!document.contains(element)) {
+    if (elements.length === 0) {
       cleanup(requestId);
-      return {
-        error:
-          "Failed to edit: element was removed from the page. This can happen if the page re-rendered.",
-      };
+      return { error: "Failed to edit: no elements found" };
     }
 
-    if (code === "") {
-      cleanup(requestId);
-      return { error: "Failed to edit: no changes generated" };
-    }
-
-    const { isValid, error, sanitizedCode } = validateCode(code);
-    if (!isValid) {
-      cleanup(requestId);
-      return { error: `Failed to edit: ${error ?? "invalid code"}` };
+    for (const element of elements) {
+      if (!document.contains(element)) {
+        cleanup(requestId);
+        return {
+          error:
+            "Failed to edit: element was removed from the page. This can happen if the page re-rendered.",
+        };
+      }
     }
 
     const sessionId = session.id;
-    const originalOuterHtml =
+    const originalOuterHtmlList =
       (sessionId ? sessionOriginalHtmlMap.get(sessionId) : null) ??
-      elementOuterHtmlMap.get(requestId) ??
-      "";
+      elementOuterHtmlListMap.get(requestId) ??
+      [];
 
-    const { proxy, undo } = createUndoableProxy(element as HTMLElement);
+    const undoFns: (() => void)[] = [];
+    const sanitizedCodes: string[] = [];
 
-    try {
-      new Function("$el", sanitizedCode).bind(null)(proxy);
-    } catch (executionError) {
-      undo();
-      cleanup(requestId);
-      const errorMessage =
-        executionError instanceof Error
-          ? executionError.message
-          : "Execution failed";
-      return { error: `Failed to edit: ${errorMessage}` };
+    for (let i = 0; i < elements.length; i++) {
+      const element = elements[i];
+      const code = codes[i]?.trim() ?? "";
+
+      if (code === "") {
+        continue;
+      }
+
+      const { isValid, error, sanitizedCode } = validateCode(code);
+      if (!isValid) {
+        for (let j = undoFns.length - 1; j >= 0; j--) {
+          undoFns[j]();
+        }
+        cleanup(requestId);
+        return {
+          error: `Failed to edit element ${i + 1}: ${error ?? "invalid code"}`,
+        };
+      }
+
+      const { proxy, undo } = createUndoableProxy(element as HTMLElement);
+
+      try {
+        new Function("$el", sanitizedCode).bind(null)(proxy);
+        undoFns.push(undo);
+        sanitizedCodes.push(sanitizedCode);
+      } catch (executionError) {
+        undo();
+        for (let j = undoFns.length - 1; j >= 0; j--) {
+          undoFns[j]();
+        }
+        cleanup(requestId);
+        const errorMessage =
+          executionError instanceof Error
+            ? executionError.message
+            : "Execution failed";
+        return { error: `Failed to edit element ${i + 1}: ${errorMessage}` };
+      }
     }
 
-    undoFnMap.set(requestId, undo);
+    const combinedUndo = () => {
+      for (let i = undoFns.length - 1; i >= 0; i--) {
+        undoFns[i]();
+      }
+    };
+
+    undoFnMap.set(requestId, combinedUndo);
     undoHistory.push(requestId);
-    undoableCodeMap.set(requestId, { code: sanitizedCode, element });
+    undoableCodeMap.set(requestId, {
+      code: JSON.stringify(sanitizedCodes),
+      elements,
+    });
     redoHistory.length = 0;
 
     const userPrompts = userPromptsMap.get(sessionId ?? requestId) ?? [];
+    const firstElement = elements[0];
+    const firstOriginalHtml = originalOuterHtmlList[0] ?? "";
     const diffContext = await buildDiffContext(
-      element,
-      originalOuterHtml,
+      firstElement,
+      firstOriginalHtml,
       userPrompts,
     );
     copyContent(diffContext);

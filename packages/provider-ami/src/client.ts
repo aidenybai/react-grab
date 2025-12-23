@@ -137,9 +137,10 @@ const runAgent = async (
   existingChatId?: string,
 ): Promise<RunAgentResult> => {
   const isFollowUp = Boolean(existingMessages && existingMessages.length > 0);
+  const contentString = Array.isArray(context.content) ? context.content.join("\n\n") : context.content;
   const userMessageContent = isFollowUp
     ? context.prompt
-    : `${context.prompt}\n\n${context.content}`;
+    : `${context.prompt}\n\n${contentString}`;
 
   const messages: AmiUIMessage[] = existingMessages
     ? [...existingMessages]
