@@ -44,3 +44,4 @@ import "@react-grab/amp/client";
 - **Undo**: Undo the last change made by Amp
 - **Streaming**: Real-time status updates during execution
 - **Tool calls**: See tool usage as it happens
+

@@ -133,9 +133,10 @@ export const createVisualEditAgentProvider = (
     return { requestId };
   };
 
-  const onStart = (session: AgentSession, element: Element | undefined) => {
+  const onStart = (session: AgentSession, elements: Element[]) => {
     const requestId = (session.context.options as RequestContext | undefined)
       ?.requestId;
+    const element = elements[0];
     if (!requestId || !element) return;
 
     const html = buildAncestorContext(element);
@@ -445,7 +446,7 @@ export const createVisualEditAgentProvider = (
 
   const onComplete = async (
     session: AgentSession,
-    element: Element | undefined,
+    elements: Element[],
   ): Promise<AgentCompleteResult | void> => {
     const requestId = (session.context.options as RequestContext | undefined)
       ?.requestId;
@@ -455,6 +456,7 @@ export const createVisualEditAgentProvider = (
     if (!rawCode) return;
     const code = rawCode.trim();
 
+    const element = elements[0];
     if (!element) {
       cleanup(requestId);
       return { error: "Failed to edit: element not found" };
@@ -515,7 +517,7 @@ export const createVisualEditAgentProvider = (
     cleanup(requestId);
   };
 
-  const onUndo = () => {
+  const onUndo = (_session: AgentSession, _elements: Element[]) => {
     // HACK: Undo logic is handled by provider.undo, this callback is for session restoration in core.tsx
   };
 

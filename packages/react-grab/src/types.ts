@@ -170,17 +170,17 @@ export interface AgentOptions<T = any> {
   provider?: AgentProvider<T>;
   storage?: AgentSessionStorage | null;
   getOptions?: () => T;
-  onStart?: (session: AgentSession, element: Element | undefined) => void;
+  onStart?: (session: AgentSession, elements: Element[]) => void;
   onStatus?: (status: string, session: AgentSession) => void;
   onComplete?: (
     session: AgentSession,
-    element: Element | undefined,
+    elements: Element[],
   ) => AgentCompleteResult | void | Promise<AgentCompleteResult | void>;
   onError?: (error: Error, session: AgentSession) => void;
   onResume?: (session: AgentSession) => void;
-  onAbort?: (session: AgentSession, element: Element | undefined) => void;
-  onUndo?: (session: AgentSession, element: Element | undefined) => void;
-  onDismiss?: (session: AgentSession, element: Element | undefined) => void;
+  onAbort?: (session: AgentSession, elements: Element[]) => void;
+  onUndo?: (session: AgentSession, elements: Element[]) => void;
+  onDismiss?: (session: AgentSession, elements: Element[]) => void;
 }
 
 export type ActivationMode = "toggle" | "hold";
@@ -285,6 +285,8 @@ export interface SelectionLabelInstance {
 export interface ReactGrabRendererProps {
   selectionVisible?: boolean;
   selectionBounds?: OverlayBounds;
+  selectionBoundsMultiple?: OverlayBounds[];
+  selectionElementsCount?: number;
   selectionFilePath?: string;
   selectionLineNumber?: number;
   selectionTagName?: string;
@@ -419,6 +421,7 @@ export interface CompletionViewProps {
 export interface SelectionLabelProps {
   tagName?: string;
   componentName?: string;
+  elementsCount?: number;
   selectionBounds?: OverlayBounds;
   mouseX?: number;
   visible?: boolean;

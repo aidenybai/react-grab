@@ -517,6 +517,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isToggleFrozen()) {
         return snapshot().context.frozenElement;
       }
+      const frozen = snapshot().context.frozenElement;
+      if (frozen) {
+        return frozen;
+      }
       return targetElement();
     });
 
@@ -539,6 +543,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!element) return undefined;
       return createElementBounds(element);
     });
+
+    const frozenElementsBounds = createMemo((): OverlayBounds[] => {
+      void snapshot().context.viewportVersion;
+      const elements = snapshot().context.frozenElements;
+      if (elements.length === 0) return [];
+      return elements.map((element) => createElementBounds(element));
+    });
+
+    const frozenElementsCount = createMemo(
+      () => snapshot().context.frozenElements.length,
+    );
 
     const calculateDragDistance = (endX: number, endY: number) => {
       const endPageX = endX + window.scrollX;
@@ -936,8 +951,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const restoreInputFromSession = (
       session: AgentSession,
-      element: Element | undefined,
+      elements: Element[],
     ) => {
+      const element = elements[0];
       if (element && document.contains(element)) {
         const rect = element.getBoundingClientRect();
         const centerY = rect.top + rect.height / 2;
@@ -946,7 +962,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           type: "MOUSE_MOVE",
           position: { x: session.position.x, y: centerY },
         });
-        send({ type: "FREEZE_ELEMENT", element });
+        send({ type: "FREEZE_ELEMENTS", elements });
         send({ type: "INPUT_CHANGE", value: session.context.prompt });
         send({ type: "SET_TOGGLE_MODE", value: true });
 
@@ -959,13 +975,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const agentOptions = options.agent
       ? {
           ...options.agent,
-          onAbort: (session: AgentSession, element: Element | undefined) => {
-            options.agent?.onAbort?.(session, element);
-            restoreInputFromSession(session, element);
+          onAbort: (session: AgentSession, elements: Element[]) => {
+            options.agent?.onAbort?.(session, elements);
+            restoreInputFromSession(session, elements);
           },
-          onUndo: (session: AgentSession, element: Element | undefined) => {
-            options.agent?.onUndo?.(session, element);
-            restoreInputFromSession(session, element);
+          onUndo: (session: AgentSession, elements: Element[]) => {
+            options.agent?.onUndo?.(session, elements);
+            restoreInputFromSession(session, elements);
           },
         }
       : undefined;
@@ -978,6 +994,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleInputSubmit = () => {
       send({ type: "SET_LAST_COPIED", element: null });
+      const frozenElements = snapshot().context.frozenElements;
       const element = snapshot().context.frozenElement || targetElement();
       const prompt = isInputMode() ? snapshot().context.inputText.trim() : "";
 
@@ -985,6 +1002,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         deactivateRenderer();
         return;
       }
+
+      const elements =
+        frozenElements.length > 0 ? frozenElements : element ? [element] : [];
 
       const bounds = createElementBounds(element);
       const labelPositionX = snapshot().context.mousePosition.x;
@@ -999,7 +1019,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         send({ type: "SET_REPLY_SESSION", sessionId: null });
 
         void agentManager.session.start({
-          element,
+          elements,
           prompt,
           position: { x: labelPositionX, y: currentY },
           selectionBounds: bounds,
@@ -1023,7 +1043,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         void executeCopyOperation(
           currentX,
           currentY,
-          () => copyElementsToClipboard([element], prompt || undefined),
+          () => copyElementsToClipboard(elements, prompt || undefined),
           bounds,
           tagName,
           componentName ?? undefined,
@@ -1185,6 +1205,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         dragDistance.x > DRAG_THRESHOLD_PX ||
         dragDistance.y > DRAG_THRESHOLD_PX;
 
+      // HACK: Calculate drag rectangle BEFORE sending DRAG_END, because DRAG_END resets dragStart
+      const dragRect = wasDragGesture
+        ? calculateDragRectangle(clientX, clientY)
+        : null;
+
       if (wasDragGesture) {
         send({ type: "DRAG_END", position: { x: clientX, y: clientY } });
       } else {
@@ -1193,9 +1218,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       stopAutoScroll();
       document.body.style.userSelect = "";
 
-      if (wasDragGesture) {
-        const dragRect = calculateDragRectangle(clientX, clientY);
-
+      if (dragRect) {
         const elements = getElementsInDrag(dragRect, isValidGrabbableElement);
         const selectedElements =
           elements.length > 0
@@ -1221,7 +1244,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
           if (snapshot().context.hasAgentProvider) {
             send({ type: "MOUSE_MOVE", position: { x: centerX, y: centerY } });
-            send({ type: "FREEZE_ELEMENT", element: firstElement });
+            send({ type: "FREEZE_ELEMENTS", elements: selectedElements });
             activateInputMode();
             if (!isActivated()) {
               activateRenderer();
@@ -2265,6 +2288,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           <ReactGrabRenderer
             selectionVisible={selectionVisible()}
             selectionBounds={selectionBounds()}
+            selectionBoundsMultiple={frozenElementsBounds()}
+            selectionElementsCount={frozenElementsCount()}
             selectionFilePath={
               snapshot().context.selectionFilePath ?? undefined
             }
@@ -2302,9 +2327,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onUndoSession={(sessionId) => agentManager.session.undo(sessionId)}
             onFollowUpSubmitSession={(sessionId, prompt) => {
               const session = agentManager.sessions().get(sessionId);
-              const element = agentManager.session.getElement(sessionId);
+              const elements = agentManager.session.getElements(sessionId);
               const sessionBounds = session?.selectionBounds;
-              if (session && element && sessionBounds) {
+              if (session && elements.length > 0 && sessionBounds) {
                 const positionX = session.position.x;
                 const followUpSessionId =
                   session.context.sessionId ?? sessionId;
@@ -2312,7 +2337,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 agentManager.session.dismiss(sessionId);
 
                 void agentManager.session.start({
-                  element,
+                  elements,
                   prompt,
                   position: {
                     x: positionX,
@@ -2434,13 +2459,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           ...existingOptions,
           ...newAgentOptions,
           provider: newAgentOptions.provider ?? existingOptions?.provider,
-          onAbort: (session: AgentSession, element: Element | undefined) => {
-            newAgentOptions?.onAbort?.(session, element);
-            restoreInputFromSession(session, element);
+          onAbort: (session: AgentSession, elements: Element[]) => {
+            newAgentOptions?.onAbort?.(session, elements);
+            restoreInputFromSession(session, elements);
           },
-          onUndo: (session: AgentSession, element: Element | undefined) => {
-            newAgentOptions?.onUndo?.(session, element);
-            restoreInputFromSession(session, element);
+          onUndo: (session: AgentSession, elements: Element[]) => {
+            newAgentOptions?.onUndo?.(session, elements);
+            restoreInputFromSession(session, elements);
           },
           onDismiss: newAgentOptions?.onDismiss,
         };
