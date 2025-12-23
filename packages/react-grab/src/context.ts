@@ -139,7 +139,7 @@ export const getElementContext = async (
 };
 
 export const getHTMLPreview = (element: Element): string => {
-  const tagName = element.tagName.toLowerCase();
+  const tagName = (element.tagName || "").toLowerCase();
   if (!(element instanceof HTMLElement)) {
     return `<${tagName} />`;
   }
@@ -181,7 +181,7 @@ export const getHTMLPreview = (element: Element): string => {
     if (elements.length === 0) return "";
     if (elements.length <= 2) {
       return elements
-        .map((el) => `<${el.tagName.toLowerCase()} ...>`)
+        .map((el) => `<${(el.tagName || "").toLowerCase()} ...>`)
         .join("\n  ");
     }
     return `(${elements.length} elements)`;

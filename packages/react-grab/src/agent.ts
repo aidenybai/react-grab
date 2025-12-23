@@ -196,7 +196,7 @@ export const createAgentManager = (
     const element = document.elementFromPoint(centerX, centerY);
     if (!element) return undefined;
 
-    if (tagName && element.tagName.toLowerCase() !== tagName) {
+    if (tagName && (element.tagName || "").toLowerCase() !== tagName) {
       return undefined;
     }
 
