@@ -330,14 +330,6 @@ export interface ReactGrabRendererProps {
   isPendingAgentAbort?: boolean;
   onConfirmAgentAbort?: () => void;
   onCancelAgentAbort?: () => void;
-  nativeSelectionCursorVisible?: boolean;
-  nativeSelectionCursorX?: number;
-  nativeSelectionCursorY?: number;
-  nativeSelectionTagName?: string;
-  nativeSelectionComponentName?: string;
-  nativeSelectionBounds?: OverlayBounds;
-  onNativeSelectionCopy?: () => void;
-  onNativeSelectionEnter?: () => void;
   theme?: Required<Theme>;
   toolbarVisible?: boolean;
   isActive?: boolean;

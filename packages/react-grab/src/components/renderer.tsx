@@ -4,7 +4,6 @@ import type { ReactGrabRendererProps } from "../types.js";
 import { buildOpenFileUrl } from "../utils/build-open-file-url.js";
 import { SelectionBox } from "./selection-box.js";
 import { Crosshair } from "./crosshair.js";
-import { SelectionCursor } from "./selection-cursor.js";
 import { SelectionLabel } from "./selection-label.js";
 import { Toolbar } from "./toolbar/index.js";
 
@@ -179,25 +178,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           />
         )}
       </For>
-
-      <Show
-        when={
-          props.nativeSelectionCursorVisible &&
-          props.nativeSelectionCursorX !== undefined &&
-          props.nativeSelectionCursorY !== undefined
-        }
-      >
-        <SelectionCursor
-          x={props.nativeSelectionCursorX!}
-          y={props.nativeSelectionCursorY!}
-          tagName={props.nativeSelectionTagName}
-          componentName={props.nativeSelectionComponentName}
-          elementBounds={props.nativeSelectionBounds}
-          visible={props.nativeSelectionCursorVisible}
-          onClick={props.onNativeSelectionCopy}
-          onEnter={props.onNativeSelectionEnter}
-        />
-      </Show>
 
       <Show when={props.toolbarVisible !== false}>
         <Toolbar isActive={props.isActive} onToggle={props.onToggleActive} />

@@ -58,13 +58,25 @@ export const checkIsSourceComponentName = (name: string): boolean => {
   return true;
 };
 
+const FIBER_ACCESS_TIMEOUT_MS = 100;
+
 export const getStack = async (
   element: Element,
 ): Promise<StackFrame[] | null> => {
   if (!isInstrumentationActive()) return [];
-  const fiber = getFiberFromHostInstance(element);
-  if (!fiber) return null;
-  return await getOwnerStack(fiber);
+
+  try {
+    const fiber = getFiberFromHostInstance(element);
+    if (!fiber) return null;
+
+    const timeoutPromise = new Promise<null>((resolve) =>
+      setTimeout(() => resolve(null), FIBER_ACCESS_TIMEOUT_MS),
+    );
+
+    return await Promise.race([getOwnerStack(fiber), timeoutPromise]);
+  } catch {
+    return null;
+  }
 };
 
 export const getNearestComponentName = async (
