@@ -128,8 +128,9 @@ interface RunAgentResult {
   chatId: string;
 }
 
-const runAgent = async (
-  context: AgentContext,
+const runAgentForElement = async (
+  prompt: string,
+  elementContent: string,
   token: string,
   projectId: string,
   onStatus: StatusCallback,
@@ -137,10 +138,9 @@ const runAgent = async (
   existingChatId?: string,
 ): Promise<RunAgentResult> => {
   const isFollowUp = Boolean(existingMessages && existingMessages.length > 0);
-  const contentString = Array.isArray(context.content) ? context.content.join("\n\n") : context.content;
   const userMessageContent = isFollowUp
-    ? context.prompt
-    : `${context.prompt}\n\n${contentString}`;
+    ? prompt
+    : `${prompt}\n\n${elementContent}`;
 
   const messages: AmiUIMessage[] = existingMessages
     ? [...existingMessages]
@@ -198,6 +198,49 @@ const runAgent = async (
     default:
       return { status: COMPLETED_STATUS, messages, chatId };
   }
+};
+
+const runAgent = async (
+  context: AgentContext,
+  token: string,
+  projectId: string,
+  onStatus: StatusCallback,
+  existingMessages?: AmiUIMessage[],
+  existingChatId?: string,
+): Promise<RunAgentResult> => {
+  const contentItems = Array.isArray(context.content)
+    ? context.content
+    : [context.content];
+
+  let currentMessages = existingMessages;
+  let currentChatId = existingChatId;
+
+  for (let elementIndex = 0; elementIndex < contentItems.length; elementIndex++) {
+    const elementContent = contentItems[elementIndex];
+
+    if (contentItems.length > 1) {
+      onStatus(`Processing element ${elementIndex + 1} of ${contentItems.length}...`);
+    }
+
+    const result = await runAgentForElement(
+      context.prompt,
+      elementContent,
+      token,
+      projectId,
+      onStatus,
+      currentMessages,
+      currentChatId,
+    );
+
+    currentMessages = result.messages;
+    currentChatId = result.chatId;
+  }
+
+  return {
+    status: COMPLETED_STATUS,
+    messages: currentMessages ?? [],
+    chatId: currentChatId ?? "",
+  };
 };
 
 const isReactGrabApi = (value: unknown): value is ReactGrabAPI =>
