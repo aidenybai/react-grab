@@ -423,8 +423,8 @@ importers:
         specifier: ^2.0.0
         version: 2.0.0(solid-js@1.9.10)(xstate@5.25.0)
       bippy:
-        specifier: ^0.5.26
-        version: 0.5.26(@types/react@19.2.7)(react@19.2.1)
+        specifier: ^0.5.27
+        version: 0.5.27(@types/react@19.2.7)(react@19.2.1)
       solid-js:
         specifier: ^1.9.10
         version: 1.9.10
@@ -2199,8 +2199,8 @@ packages:
     resolution: {integrity: sha512-y9/ltK2TY+0HD1H2Sz7MvU3zFh4SjER6eQVNQfBx/0gK9N7S0QwHW6cmhHLx3CP25zN190LKHXPieMGqsVvrOQ==}
     engines: {node: '>=18'}
 
-  '@sourcegraph/amp@0.0.1766203476-g15bfc0':
-    resolution: {integrity: sha512-DPyRWsSZgwLdfaAroDBoMWL5vPCvC2uwwLRhtcRsAuXgbAvSpglszgODHb2TQDGaNEnnqCYL865BIcHRSbLHrA==}
+  '@sourcegraph/amp@0.0.1766534507-g06e602':
+    resolution: {integrity: sha512-ve7GaWFAgjtJuTo7im3aZCfBb+sJpS3BuhxrO3wL6KdiMvaXqMSG/acf9j8q3jO+o3TDqR4OzeX4yVaRlld+AQ==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -3028,8 +3028,8 @@ packages:
     peerDependencies:
       react: '>=17.0.1'
 
-  bippy@0.5.26:
-    resolution: {integrity: sha512-pOy5vxOX2gXo0L7lIwo5H9mqvrgAE5mCZgrPOli5SaxxXx8VnPHi1vxDr5nancX5F6rYqmigMpAalPrM2I3nCA==}
+  bippy@0.5.27:
+    resolution: {integrity: sha512-LvGYTQm5cMqEhnUT2tr6mSE1mrhmX/xxu3jiypHAscThhxC+9SWdaQW8Nye5CT/sR79LObNJlQpOUgi4DopTMg==}
     peerDependencies:
       react: '>=17.0.1'
 
@@ -7437,10 +7437,10 @@ snapshots:
 
   '@sourcegraph/amp-sdk@0.1.0-20251210081226-g90e3892':
     dependencies:
-      '@sourcegraph/amp': 0.0.1766203476-g15bfc0
+      '@sourcegraph/amp': 0.0.1766534507-g06e602
       zod: 3.25.76
 
-  '@sourcegraph/amp@0.0.1766203476-g15bfc0':
+  '@sourcegraph/amp@0.0.1766534507-g06e602':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
@@ -8237,7 +8237,7 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
-  bippy@0.5.26(@types/react@19.2.7)(react@19.2.1):
+  bippy@0.5.27(@types/react@19.2.7)(react@19.2.1):
     dependencies:
       '@types/react-reconciler': 0.28.9(@types/react@19.2.7)
       react: 19.2.1
