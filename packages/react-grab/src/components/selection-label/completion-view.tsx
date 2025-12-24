@@ -43,7 +43,12 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
 
     if (event.code === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      handleFollowUpSubmit();
+      const prompt = followUpInput().trim();
+      if (prompt) {
+        handleFollowUpSubmit();
+      } else {
+        handleAccept();
+      }
     } else if (event.code === "Escape") {
       event.preventDefault();
       handleAccept();
