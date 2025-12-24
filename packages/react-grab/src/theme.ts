@@ -18,7 +18,7 @@ export const DEFAULT_THEME: Required<Theme> = {
   crosshair: {
     enabled: true,
   },
-  dock: {
+  toolbar: {
     enabled: true,
   },
 };
@@ -47,8 +47,8 @@ const mergeThemeWithBase = (
   crosshair: {
     enabled: partialTheme.crosshair?.enabled ?? baseTheme.crosshair.enabled,
   },
-  dock: {
-    enabled: partialTheme.dock?.enabled ?? baseTheme.dock.enabled,
+  toolbar: {
+    enabled: partialTheme.toolbar?.enabled ?? baseTheme.toolbar.enabled,
   },
 });
 

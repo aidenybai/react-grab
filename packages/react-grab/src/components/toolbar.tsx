@@ -2,14 +2,14 @@ import { createSignal, onMount, onCleanup } from "solid-js";
 import type { Component } from "solid-js";
 import { cn } from "../utils/cn.js";
 import {
-  loadDockState,
-  saveDockState,
+  loadToolbarState,
+  saveToolbarState,
   type SnapEdge,
-} from "../utils/dock-state.js";
+} from "../utils/toolbar-state.js";
 import { IconSelect } from "./icon-select.js";
 import { IconChevron } from "./icon-chevron.js";
 
-interface DockProps {
+interface ToolbarProps {
   isActive?: boolean;
   onToggle?: () => void;
 }
@@ -21,7 +21,7 @@ const DRAG_THRESHOLD = 5;
 const VELOCITY_MULTIPLIER = 150;
 const COLLAPSED_SIZE = 14;
 
-export const Dock: Component<DockProps> = (props) => {
+export const Toolbar: Component<ToolbarProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
 
   const [isMobile, setIsMobile] = createSignal(
@@ -129,7 +129,7 @@ export const Dock: Component<DockProps> = (props) => {
     }
     setIsCollapsed((prev) => {
       const newCollapsed = !prev;
-      saveDockState({
+      saveToolbarState({
         edge: snapEdge(),
         ratio: positionRatio(),
         collapsed: newCollapsed,
@@ -298,7 +298,7 @@ export const Dock: Component<DockProps> = (props) => {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         setPosition({ x: snap.x, y: snap.y });
-        saveDockState({ edge: snap.edge, ratio, collapsed: isCollapsed() });
+        saveToolbarState({ edge: snap.edge, ratio, collapsed: isCollapsed() });
 
         setTimeout(() => {
           setIsSnapping(false);
@@ -359,7 +359,7 @@ export const Dock: Component<DockProps> = (props) => {
   };
 
   onMount(() => {
-    const savedState = loadDockState();
+    const savedState = loadToolbarState();
     const rect = containerRef?.getBoundingClientRect();
 
     if (savedState && rect) {
@@ -451,7 +451,7 @@ export const Dock: Component<DockProps> = (props) => {
           if (isCollapsed()) {
             event.stopPropagation();
             setIsCollapsed(false);
-            saveDockState({
+            saveToolbarState({
               edge: snapEdge(),
               ratio: positionRatio(),
               collapsed: false,

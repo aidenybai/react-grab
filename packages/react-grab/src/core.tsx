@@ -2378,7 +2378,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onNativeSelectionCopy={() => void handleNativeSelectionCopy()}
             onNativeSelectionEnter={handleNativeSelectionEnter}
             theme={theme()}
-            dockVisible={theme().dock.enabled}
+            toolbarVisible={theme().toolbar.enabled}
             isActive={isActivated()}
             onToggleActive={() => {
               if (isActivated()) {

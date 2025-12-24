@@ -1,5 +1,11 @@
 # @react-grab/cli
 
+## 0.0.92
+
+### Patch Changes
+
+- refactor: use state machines instead of signals
+
 ## 0.0.91
 
 ### Patch Changes

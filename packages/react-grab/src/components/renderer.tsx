@@ -6,7 +6,7 @@ import { SelectionBox } from "./selection-box.js";
 import { Crosshair } from "./crosshair.js";
 import { SelectionCursor } from "./selection-cursor.js";
 import { SelectionLabel } from "./selection-label.js";
-import { Dock } from "./dock.js";
+import { Toolbar } from "./toolbar.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
   const agentSessionsList = createMemo(() =>
@@ -199,8 +199,8 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         />
       </Show>
 
-      <Show when={props.dockVisible !== false}>
-        <Dock isActive={props.isActive} onToggle={props.onToggleActive} />
+      <Show when={props.toolbarVisible !== false}>
+        <Toolbar isActive={props.isActive} onToggle={props.onToggleActive} />
       </Show>
     </>
   );

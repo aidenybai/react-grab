@@ -1,5 +1,13 @@
 # @react-grab/ami
 
+## 0.0.92
+
+### Patch Changes
+
+- refactor: use state machines instead of signals
+- Updated dependencies
+  - react-grab@0.0.92
+
 ## 0.0.91
 
 ### Patch Changes
