@@ -1,5 +1,13 @@
 # @react-grab/opencode
 
+## 0.0.94
+
+### Patch Changes
+
+- fix: browser crashing on selection bug
+- Updated dependencies
+  - react-grab@0.0.94
+
 ## 0.0.93
 
 ### Patch Changes

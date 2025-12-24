@@ -1,5 +1,11 @@
 # @react-grab/utils
 
+## 0.0.94
+
+### Patch Changes
+
+- fix: browser crashing on selection bug
+
 ## 0.0.93
 
 ### Patch Changes
