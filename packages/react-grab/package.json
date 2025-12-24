@@ -45,6 +45,16 @@
         "default": "./dist/core.cjs"
       }
     },
+    "./visual-edit": {
+      "import": {
+        "types": "./dist/visual-edit.d.ts",
+        "default": "./dist/visual-edit.js"
+      },
+      "require": {
+        "types": "./dist/visual-edit.d.cts",
+        "default": "./dist/visual-edit.cjs"
+      }
+    },
     "./styles.css": "./dist/styles.css",
     "./dist/styles.css": "./dist/styles.css",
     "./dist/*": "./dist/*.js",

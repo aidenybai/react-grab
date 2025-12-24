@@ -92,7 +92,11 @@ export default defineConfig([
   {
     ...DEFAULT_OPTIONS,
     clean: false,
-    entry: ["./src/index.ts", "./src/core.tsx"],
+    entry: {
+      index: "./src/index.ts",
+      core: "./src/core.tsx",
+      "visual-edit": "./src/visual-edit/index.ts",
+    },
     format: ["cjs", "esm"],
     loader: {
       ".css": "text",

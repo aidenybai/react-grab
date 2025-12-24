@@ -344,12 +344,6 @@ export const createUndoableProxy = (element: HTMLElement) => {
   const unwrapProxy = (maybeProxy: Node): Node =>
     proxyToElement.get(maybeProxy) ?? maybeProxy;
 
-  const removeNodes = (nodes: (Node | string)[]) => {
-    for (const node of nodes) {
-      if (typeof node !== "string") node.parentNode?.removeChild(node);
-    }
-  };
-
   const unwrapNodes = (nodes: (Node | string)[]): (Node | string)[] =>
     nodes.map((node) => (typeof node === "string" ? node : unwrapProxy(node)));
 
@@ -767,7 +761,9 @@ export const createUndoableProxy = (element: HTMLElement) => {
           };
         }
         if (prop === Symbol.iterator) {
-          return target[Symbol.iterator].bind(target);
+          return (target as unknown as Iterable<unknown>)[Symbol.iterator].bind(
+            target,
+          );
         }
         const value = Reflect.get(target, prop);
         return typeof value === "function" ? value.bind(target) : value;
@@ -817,7 +813,9 @@ export const createUndoableProxy = (element: HTMLElement) => {
           };
         }
         if (property === "keys") {
-          return target.keys.bind(target);
+          return (target as unknown as { keys: () => IterableIterator<number> }).keys.bind(
+            target,
+          );
         }
         if (property === "values") {
           return function* () {
@@ -2489,7 +2487,7 @@ const stripSvgContent = (html: string): string => {
   container.innerHTML = html;
 
   const svgElements = container.querySelectorAll("svg");
-  for (const svg of svgElements) {
+  for (const svg of Array.from(svgElements)) {
     const strippedSvg = document.createElementNS(
       "http://www.w3.org/2000/svg",
       "svg",

@@ -1,4 +1,4 @@
-export { init } from "./core.js";
+export { init as initCore } from "./core.js";
 export {
   getStack,
   formatElementInfo,
@@ -28,16 +28,41 @@ export type {
   AgentCompleteResult,
   UpdatableOptions,
   ActivationMode,
+  VisualEditOptions,
 } from "./types.js";
 
-import { init } from "./core.js";
-import type { ReactGrabAPI } from "./types.js";
+import { init as initCore } from "./core.js";
+import { createVisualEditAgentProvider } from "./visual-edit/provider.js";
+import type { Options, ReactGrabAPI, VisualEditOptions } from "./types.js";
 
 declare global {
   interface Window {
     __REACT_GRAB__?: ReactGrabAPI;
   }
 }
+
+const attachVisualEdit = (api: ReactGrabAPI, options?: VisualEditOptions) => {
+  const { provider, getOptions, onStart, onComplete, onUndo } =
+    createVisualEditAgentProvider(options);
+
+  api.setAgent({
+    provider,
+    getOptions,
+    onStart,
+    onComplete,
+    onUndo,
+  });
+};
+
+export const init = (options?: Options): ReactGrabAPI => {
+  const api = initCore(options);
+  if (options?.visualEdit !== false) {
+    const visualEditOptions =
+      typeof options?.visualEdit === "object" ? options.visualEdit : undefined;
+    attachVisualEdit(api, visualEditOptions);
+  }
+  return api;
+};
 
 let globalApi: ReactGrabAPI | null = null;
 

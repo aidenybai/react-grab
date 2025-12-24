@@ -222,6 +222,12 @@ export interface Options {
   onCrosshair?: (visible: boolean, context: CrosshairContext) => void;
   onOpenFile?: (filePath: string, lineNumber?: number) => void;
   agent?: AgentOptions;
+  visualEdit?: VisualEditOptions | boolean;
+}
+
+export interface VisualEditOptions {
+  apiEndpoint?: string;
+  maxIterations?: number;
 }
 
 export type UpdatableOptions = Pick<

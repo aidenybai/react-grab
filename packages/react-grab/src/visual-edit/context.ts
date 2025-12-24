@@ -1,4 +1,4 @@
-import { formatElementInfo } from "react-grab/core";
+import { getElementContext as formatElementInfo } from "../context.js";
 
 export const buildDiffContext = async (
   element: Element,
@@ -17,3 +17,4 @@ export const buildDiffContext = async (
 
   return `${promptsSection}${elementInfo}\n\n${beforeSection}\n\n${afterSection}`;
 };
+
