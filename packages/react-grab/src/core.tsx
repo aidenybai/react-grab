@@ -1006,10 +1006,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const elements =
         frozenElements.length > 0 ? frozenElements : element ? [element] : [];
 
-      const bounds = createElementBounds(element);
+      const selectionBounds = elements.map((el) => createElementBounds(el));
+      const firstBounds = selectionBounds[0];
       const labelPositionX = snapshot().context.mousePosition.x;
-      const currentX = bounds.x + bounds.width / 2;
-      const currentY = bounds.y + bounds.height / 2;
+      const currentX = firstBounds.x + firstBounds.width / 2;
+      const currentY = firstBounds.y + firstBounds.height / 2;
 
       if (snapshot().context.hasAgentProvider && prompt) {
         elementInputCache.delete(element);
@@ -1022,7 +1023,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           elements,
           prompt,
           position: { x: labelPositionX, y: currentY },
-          selectionBounds: bounds,
+          selectionBounds,
           sessionId: currentReplySessionId ?? undefined,
         });
 
@@ -1044,7 +1045,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           currentX,
           currentY,
           () => copyElementsToClipboard(elements, prompt || undefined),
-          bounds,
+          firstBounds,
           tagName,
           componentName ?? undefined,
           element,
@@ -2328,8 +2329,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onFollowUpSubmitSession={(sessionId, prompt) => {
               const session = agentManager.sessions().get(sessionId);
               const elements = agentManager.session.getElements(sessionId);
-              const sessionBounds = session?.selectionBounds;
-              if (session && elements.length > 0 && sessionBounds) {
+              const selectionBounds = session?.selectionBounds ?? [];
+              const firstBounds = selectionBounds[0];
+              if (session && elements.length > 0 && firstBounds) {
                 const positionX = session.position.x;
                 const followUpSessionId =
                   session.context.sessionId ?? sessionId;
@@ -2341,9 +2343,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                   prompt,
                   position: {
                     x: positionX,
-                    y: sessionBounds.y + sessionBounds.height / 2,
+                    y: firstBounds.y + firstBounds.height / 2,
                   },
-                  selectionBounds: sessionBounds,
+                  selectionBounds,
                   sessionId: followUpSessionId,
                 });
               }

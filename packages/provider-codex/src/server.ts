@@ -166,22 +166,55 @@ export const createServer = () => {
     const { content, prompt, options, sessionId } = requestBody;
 
     const isFollowUp = Boolean(sessionId && threadMap.has(sessionId));
-    const formattedPrompt = isFollowUp
-      ? prompt
-      : `User Request: ${prompt}\n\nContext:\n${content}`;
+    const contentItems = Array.isArray(content) ? content : [content];
 
     return streamSSE(context, async (stream) => {
-      for await (const message of runAgent(formattedPrompt, {
-        ...options,
-        sessionId,
-      })) {
-        if (message.type === "error") {
+      if (isFollowUp) {
+        for await (const message of runAgent(prompt, {
+          ...options,
+          sessionId,
+        })) {
+          if (message.type === "error") {
+            await stream.writeSSE({
+              data: `Error: ${message.content}`,
+              event: "error",
+            });
+          } else {
+            await stream.writeSSE({
+              data: message.content,
+              event: message.type,
+            });
+          }
+        }
+        return;
+      }
+
+      for (let i = 0; i < contentItems.length; i++) {
+        const elementContent = contentItems[i];
+        const formattedPrompt = `User Request: ${prompt}\n\nContext:\n${elementContent}`;
+
+        if (contentItems.length > 1) {
           await stream.writeSSE({
-            data: `Error: ${message.content}`,
-            event: "error",
+            data: `Processing element ${i + 1} of ${contentItems.length}...`,
+            event: "status",
           });
-        } else {
-          await stream.writeSSE({ data: message.content, event: message.type });
+        }
+
+        for await (const message of runAgent(formattedPrompt, {
+          ...options,
+          sessionId,
+        })) {
+          if (message.type === "error") {
+            await stream.writeSSE({
+              data: `Error: ${message.content}`,
+              event: "error",
+            });
+          } else {
+            await stream.writeSSE({
+              data: message.content,
+              event: message.type,
+            });
+          }
         }
       }
     });

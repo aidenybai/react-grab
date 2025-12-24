@@ -7,7 +7,7 @@ interface GenerateSnippetOptions {
 export const generateSnippet = async (
   elements: Element[],
   options: GenerateSnippetOptions = {},
-): Promise<string> => {
+): Promise<string[]> => {
   const elementSnippetResults = await Promise.allSettled(
     elements.map((element) => getElementContext(element, options)),
   );
@@ -16,9 +16,5 @@ export const generateSnippet = async (
     .map((result) => (result.status === "fulfilled" ? result.value : ""))
     .filter((snippet) => snippet.trim());
 
-  if (elementSnippets.length === 0) {
-    return "";
-  }
-
-  return elementSnippets.join("\n\n");
+  return elementSnippets;
 };

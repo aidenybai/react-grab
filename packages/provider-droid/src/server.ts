@@ -293,26 +293,59 @@ export const createServer = () => {
       : undefined;
     const isFollowUp = Boolean(droidSessionId);
 
-    const userPrompt = isFollowUp
-      ? prompt
-      : `${prompt}
+    const contentItems = Array.isArray(content) ? content : [content];
+
+    return streamSSE(context, async (stream) => {
+      if (isFollowUp) {
+        for await (const message of runAgent(prompt, {
+          ...options,
+          sessionId,
+        })) {
+          if (message.type === "error") {
+            await stream.writeSSE({
+              data: `Error: ${message.content}`,
+              event: "error",
+            });
+          } else {
+            await stream.writeSSE({
+              data: message.content,
+              event: message.type,
+            });
+          }
+        }
+        return;
+      }
+
+      for (let i = 0; i < contentItems.length; i++) {
+        const elementContent = contentItems[i];
+        const userPrompt = `${prompt}
 
 Here is the selected React element context (file path, component name, and source code):
 
-${content}`;
+${elementContent}`;
 
-    return streamSSE(context, async (stream) => {
-      for await (const message of runAgent(userPrompt, {
-        ...options,
-        sessionId,
-      })) {
-        if (message.type === "error") {
+        if (contentItems.length > 1) {
           await stream.writeSSE({
-            data: `Error: ${message.content}`,
-            event: "error",
+            data: `Processing element ${i + 1} of ${contentItems.length}...`,
+            event: "status",
           });
-        } else {
-          await stream.writeSSE({ data: message.content, event: message.type });
+        }
+
+        for await (const message of runAgent(userPrompt, {
+          ...options,
+          sessionId,
+        })) {
+          if (message.type === "error") {
+            await stream.writeSSE({
+              data: `Error: ${message.content}`,
+              event: "error",
+            });
+          } else {
+            await stream.writeSSE({
+              data: message.content,
+              event: message.type,
+            });
+          }
         }
       }
     });

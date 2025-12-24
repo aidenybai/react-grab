@@ -73,57 +73,61 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
       <Index each={agentSessionsList()}>
         {(session) => (
           <>
-            <Show when={session().selectionBounds}>
-              <SelectionBox
-                variant="processing"
-                bounds={session().selectionBounds!}
+            <For each={session().selectionBounds}>
+              {(bounds) => (
+                <SelectionBox
+                  variant="processing"
+                  bounds={bounds}
+                  visible={true}
+                  isCompleted={!session().isStreaming}
+                />
+              )}
+            </For>
+            <Show when={session().selectionBounds.length > 0}>
+              <SelectionLabel
+                tagName={session().tagName}
+                componentName={session().componentName}
+                selectionBounds={session().selectionBounds[0]}
+                mouseX={session().position.x}
                 visible={true}
-                isCompleted={!session().isStreaming}
+                hasAgent={true}
+                isAgentConnected={true}
+                status={session().isStreaming ? "copying" : "copied"}
+                statusText={session().lastStatus || "Thinking…"}
+                inputValue={session().context.prompt}
+                previousPrompt={session().context.prompt}
+                supportsUndo={props.supportsUndo}
+                supportsFollowUp={props.supportsFollowUp}
+                dismissButtonText={props.dismissButtonText}
+                onAbort={() => props.onAbortSession?.(session().id)}
+                onDismiss={
+                  session().isStreaming
+                    ? undefined
+                    : () => props.onDismissSession?.(session().id)
+                }
+                onUndo={
+                  session().isStreaming
+                    ? undefined
+                    : () => props.onUndoSession?.(session().id)
+                }
+                onFollowUpSubmit={
+                  session().isStreaming
+                    ? undefined
+                    : (prompt) =>
+                        props.onFollowUpSubmitSession?.(session().id, prompt)
+                }
+                error={session().error}
+                onAcknowledgeError={() =>
+                  props.onAcknowledgeSessionError?.(session().id)
+                }
+                onRetry={() => props.onRetrySession?.(session().id)}
+                isPendingAbort={
+                  session().isStreaming ? props.isPendingAgentAbort : false
+                }
+                onConfirmAbort={props.onConfirmAgentAbort}
+                onCancelAbort={props.onCancelAgentAbort}
               />
             </Show>
-            <SelectionLabel
-              tagName={session().tagName}
-              componentName={session().componentName}
-              selectionBounds={session().selectionBounds}
-              mouseX={session().position.x}
-              visible={true}
-              hasAgent={true}
-              isAgentConnected={true}
-              status={session().isStreaming ? "copying" : "copied"}
-              statusText={session().lastStatus || "Thinking…"}
-              inputValue={session().context.prompt}
-              previousPrompt={session().context.prompt}
-              supportsUndo={props.supportsUndo}
-              supportsFollowUp={props.supportsFollowUp}
-              dismissButtonText={props.dismissButtonText}
-              onAbort={() => props.onAbortSession?.(session().id)}
-              onDismiss={
-                session().isStreaming
-                  ? undefined
-                  : () => props.onDismissSession?.(session().id)
-              }
-              onUndo={
-                session().isStreaming
-                  ? undefined
-                  : () => props.onUndoSession?.(session().id)
-              }
-              onFollowUpSubmit={
-                session().isStreaming
-                  ? undefined
-                  : (prompt) =>
-                      props.onFollowUpSubmitSession?.(session().id, prompt)
-              }
-              error={session().error}
-              onAcknowledgeError={() =>
-                props.onAcknowledgeSessionError?.(session().id)
-              }
-              onRetry={() => props.onRetrySession?.(session().id)}
-              isPendingAbort={
-                session().isStreaming ? props.isPendingAgentAbort : false
-              }
-              onConfirmAbort={props.onConfirmAgentAbort}
-              onCancelAbort={props.onCancelAgentAbort}
-            />
           </>
         )}
       </Index>

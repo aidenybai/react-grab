@@ -71,7 +71,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
 export interface StoredAgentContext {
-  content: string;
+  content: string[];
   prompt: string;
   options?: unknown;
   sessionId?: string;
@@ -104,7 +104,7 @@ export const getStoredAgentContext = (
 
   const content = context.content;
   const prompt = context.prompt;
-  if (typeof content !== "string" || typeof prompt !== "string") {
+  if (!Array.isArray(content) || typeof prompt !== "string") {
     throw new Error(`Session ${sessionId} is invalid`);
   }
 

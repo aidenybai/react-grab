@@ -112,7 +112,7 @@ export interface ActivationKey {
 }
 
 export interface AgentContext<T = unknown> {
-  content: string;
+  content: string[];
   prompt: string;
   options?: T;
   sessionId?: string;
@@ -126,7 +126,7 @@ export interface AgentSession {
   createdAt: number;
   lastUpdatedAt: number;
   position: { x: number; y: number };
-  selectionBounds?: OverlayBounds;
+  selectionBounds: OverlayBounds[];
   tagName?: string;
   componentName?: string;
   error?: string;
