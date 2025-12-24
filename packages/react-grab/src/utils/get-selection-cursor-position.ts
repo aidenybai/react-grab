@@ -15,3 +15,4 @@ export const getSelectionCursorPosition = (selection: Selection) => {
     y: cursorRect.top + cursorRect.height / 2,
   };
 };
+

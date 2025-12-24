@@ -1,5 +1,3 @@
-"use client";
-
 import { TodoItem } from "./todo-item";
 
 const todos = [

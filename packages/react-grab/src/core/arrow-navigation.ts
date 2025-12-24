@@ -138,3 +138,4 @@ export const createArrowNavigator = (
     clearHistory,
   };
 };
+

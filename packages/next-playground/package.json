@@ -12,6 +12,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "react-grab": "workspace:*",
     "bippy": "^0.5.11",
     "clsx": "^2.1.1",
     "next": "15.3.8",
