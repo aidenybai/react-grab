@@ -280,10 +280,12 @@ export const createVisualEditAgentProvider = (
     signal: AbortSignal,
     elementIndex: number,
     totalElements: number,
+    isFirstRequest: boolean,
   ): AsyncGenerator<string, string | null, unknown> {
-    const existingMessages = sessionId
-      ? (conversationHistoryMap.get(sessionId) ?? [])
-      : [];
+    const existingMessages =
+      sessionId && !isFirstRequest
+        ? (conversationHistoryMap.get(sessionId) ?? [])
+        : [];
 
     const isFirstMessage = existingMessages.length === 0;
     const formattedUserMessage = buildUserMessage(prompt, html, isFirstMessage);
@@ -393,6 +395,7 @@ export const createVisualEditAgentProvider = (
       const existingPrompts = sessionId
         ? (userPromptsMap.get(sessionId) ?? [])
         : [];
+      const isFirstRequest = existingPrompts.length === 0;
       const updatedPrompts = [...existingPrompts, context.prompt];
 
       lastRequestStartTime = Date.now();
@@ -415,6 +418,7 @@ export const createVisualEditAgentProvider = (
           signal,
           i,
           elements.length,
+          isFirstRequest,
         );
 
         if (finalCode === null) {
