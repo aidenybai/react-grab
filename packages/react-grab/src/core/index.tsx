@@ -61,6 +61,7 @@ import type {
   AgentSession,
   AgentOptions,
   UpdatableOptions,
+  AgentProvider,
 } from "../types.js";
 import { mergeTheme, deepMergeTheme } from "./theme.js";
 import { createAgentManager } from "./agent/index.js";
@@ -2127,7 +2128,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return await copyWithFallback(elementsArray);
     };
 
-    return {
+    // Create API object first
+    const api: ReactGrabAPI = {
       activate: () => {
         if (!isActivated()) {
           toggleActivate();
@@ -2214,6 +2216,28 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         options = { ...options, ...newOptions };
       },
     };
+
+    // Initialize visual-edit if configured
+    if (options.visualEdit !== false) {
+      void (async () => {
+        try {
+          const { initVisualEdit } = await import("../visual-edit/index.js");
+
+          if (options.visualEdit === true || options.visualEdit === undefined) {
+            // Use default hosted API
+            await initVisualEdit(api);
+          } else if (typeof options.visualEdit === "object") {
+            // Custom provider passed
+            const customProvider = options.visualEdit;
+            api.setAgent({ provider: customProvider });
+          }
+        } catch (error) {
+          console.error("[react-grab] Visual-edit initialization failed:", error);
+        }
+      })();
+    }
+
+    return api;
   });
 };
 
@@ -2233,6 +2257,7 @@ export type {
   AgentCompleteResult,
   AgentOptions,
   UpdatableOptions,
+  VisualEditProviderOptions,
 } from "../types.js";
 
 export { generateSnippet } from "../utils/generate-snippet.js";

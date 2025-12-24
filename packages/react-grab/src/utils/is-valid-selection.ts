@@ -3,3 +3,4 @@ export const isValidSelection = (
 ): selection is Selection =>
   Boolean(selection && !selection.isCollapsed && selection.rangeCount > 0);
 
+

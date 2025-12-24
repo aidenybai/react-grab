@@ -126,6 +126,51 @@ React Grab can send selected element context directly to your coding agent. This
 
 This means **no copying and pasting** - just select the element and let the agent do the rest. [Learn more →](https://react-grab.com/blog/agent)
 
+### Built-in Visual Edit Agent
+
+React Grab includes a built-in visual-edit agent that can modify DOM elements directly in the browser. No additional server setup needed - just use React Grab and visual-edit will work automatically!
+
+```html
+<!-- Just one script! Visual-edit is enabled by default -->
+<script src="//unpkg.com/react-grab/dist/index.global.js"></script>
+```
+
+Or using npm with any framework:
+
+```tsx
+import { init } from "react-grab";
+
+const api = init({
+  visualEdit: true, // enabled by default
+});
+```
+
+#### Self-hosted Visual Edit
+
+To use your own visual-edit API endpoint:
+
+```tsx
+import { init, createVisualEditAgentProvider } from "react-grab";
+
+const api = init({
+  visualEdit: createVisualEditAgentProvider({
+    apiEndpoint: "https://your-server.com/api/visual-edit",
+  }),
+});
+```
+
+Or disable visual-edit entirely:
+
+```tsx
+const api = init({
+  visualEdit: false,
+});
+```
+
+### External Coding Agents
+
+In addition to the built-in visual-edit agent, you can integrate with external coding agents:
+
 <details>
 <summary><strong>Claude Code</strong></summary>
 

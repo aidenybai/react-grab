@@ -8,3 +8,4 @@ export const isSelectionBackward = (selection: Selection): boolean => {
   return selection.anchorOffset > selection.focusOffset;
 };
 
+

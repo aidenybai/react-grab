@@ -6,6 +6,10 @@ export {
   DEFAULT_THEME,
 } from "./core/index.js";
 export { generateSnippet } from "./utils/generate-snippet.js";
+export {
+  createVisualEditAgentProvider,
+  initVisualEdit,
+} from "./visual-edit/index.js";
 export type {
   Options,
   ReactGrabAPI,
@@ -28,6 +32,7 @@ export type {
   AgentCompleteResult,
   UpdatableOptions,
   ActivationMode,
+  VisualEditProviderOptions,
 } from "./types.js";
 
 import { init } from "./core/index.js";

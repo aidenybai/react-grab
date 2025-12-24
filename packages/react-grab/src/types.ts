@@ -185,6 +185,11 @@ export interface AgentOptions<T = any> {
 
 export type ActivationMode = "toggle" | "hold";
 
+export interface VisualEditProviderOptions {
+  apiEndpoint?: string;
+  maxIterations?: number;
+}
+
 export interface Options {
   enabled?: boolean;
   activationMode?: ActivationMode;
@@ -222,6 +227,7 @@ export interface Options {
   onCrosshair?: (visible: boolean, context: CrosshairContext) => void;
   onOpenFile?: (filePath: string, lineNumber?: number) => void;
   agent?: AgentOptions;
+  visualEdit?: boolean | AgentProvider<unknown>;
 }
 
 export type UpdatableOptions = Pick<
