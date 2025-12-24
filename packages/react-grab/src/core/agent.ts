@@ -5,7 +5,7 @@ import type {
   AgentSession,
   AgentOptions,
   OverlayBounds,
-} from "./types.js";
+} from "../types.js";
 import {
   createSession,
   saveSessionById,
@@ -14,11 +14,11 @@ import {
   clearSessions,
   clearSessionById,
   updateSession,
-} from "./utils/agent-session.js";
-import { createElementBounds } from "./utils/create-element-bounds.js";
-import { generateSnippet } from "./utils/generate-snippet.js";
+} from "../utils/agent-session.js";
+import { createElementBounds } from "../utils/create-element-bounds.js";
+import { generateSnippet } from "../utils/generate-snippet.js";
 import { getNearestComponentName } from "./context.js";
-import { RECENT_THRESHOLD_MS } from "./constants.js";
+import { RECENT_THRESHOLD_MS } from "../constants.js";
 
 interface StartSessionParams {
   elements: Element[];

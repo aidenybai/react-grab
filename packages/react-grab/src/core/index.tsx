@@ -1,5 +1,5 @@
 // @ts-expect-error - CSS imported as text via tsup loader
-import cssText from "../dist/styles.css";
+import cssText from "../../dist/styles.css";
 import {
   createSignal,
   createMemo,
@@ -11,21 +11,21 @@ import {
 } from "solid-js";
 import { render } from "solid-js/web";
 import { useMachine } from "@xstate/solid";
-import { stateMachine } from "./state/machine.js";
-import { isKeyboardEventTriggeredByInput } from "./utils/is-keyboard-event-triggered-by-input.js";
-import { isSelectionInsideEditableElement } from "./utils/is-selection-inside-editable-element.js";
-import { mountRoot } from "./utils/mount-root.js";
-import { ReactGrabRenderer } from "./components/renderer.js";
+import { stateMachine } from "./machine.js";
+import { isKeyboardEventTriggeredByInput } from "../utils/is-keyboard-event-triggered-by-input.js";
+import { isSelectionInsideEditableElement } from "../utils/is-selection-inside-editable-element.js";
+import { mountRoot } from "../utils/mount-root.js";
+import { ReactGrabRenderer } from "../components/renderer.js";
 import { getStack, getNearestComponentName } from "./context.js";
 import { isSourceFile, normalizeFileName } from "bippy/source";
-import { createNoopApi } from "./core/noop-api.js";
-import { createEventListenerManager } from "./core/events.js";
-import { tryCopyWithFallback } from "./core/copy.js";
-import { getElementAtPosition } from "./utils/get-element-at-position.js";
-import { isValidGrabbableElement } from "./utils/is-valid-grabbable-element.js";
-import { getElementsInDrag } from "./utils/get-elements-in-drag.js";
-import { createElementBounds } from "./utils/create-element-bounds.js";
-import { getTagName } from "./utils/get-tag-name.js";
+import { createNoopApi } from "./noop-api.js";
+import { createEventListenerManager } from "./events.js";
+import { tryCopyWithFallback } from "./copy.js";
+import { getElementAtPosition } from "../utils/get-element-at-position.js";
+import { isValidGrabbableElement } from "../utils/is-valid-grabbable-element.js";
+import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
+import { createElementBounds } from "../utils/create-element-bounds.js";
+import { getTagName } from "../utils/get-tag-name.js";
 import {
   SUCCESS_LABEL_DURATION_MS,
   COPIED_LABEL_DURATION_MS,
@@ -39,16 +39,16 @@ import {
   DEFAULT_KEY_HOLD_DURATION_MS,
   DOUBLE_CLICK_THRESHOLD_MS,
   SELECTION_DEBOUNCE_MS,
-} from "./constants.js";
-import { getBoundsCenter } from "./utils/get-bounds-center.js";
-import { isValidSelection } from "./utils/is-valid-selection.js";
-import { getSelectionCursorPosition } from "./utils/get-selection-cursor-position.js";
-import { hasElements } from "./utils/has-elements.js";
-import { isCLikeKey } from "./utils/is-c-like-key.js";
-import { keyMatchesCode } from "./utils/key-matches-code.js";
-import { isTargetKeyCombination } from "./utils/is-target-key-combination.js";
-import { isEventFromOverlay } from "./utils/is-event-from-overlay.js";
-import { buildOpenFileUrl } from "./utils/build-open-file-url.js";
+} from "../constants.js";
+import { getBoundsCenter } from "../utils/get-bounds-center.js";
+import { isValidSelection } from "../utils/is-valid-selection.js";
+import { getSelectionCursorPosition } from "../utils/get-selection-cursor-position.js";
+import { hasElements } from "../utils/has-elements.js";
+import { isCLikeKey } from "../utils/is-c-like-key.js";
+import { keyMatchesCode } from "../utils/key-matches-code.js";
+import { isTargetKeyCombination } from "../utils/is-target-key-combination.js";
+import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
+import { buildOpenFileUrl } from "../utils/build-open-file-url.js";
 import type {
   Options,
   OverlayBounds,
@@ -61,22 +61,22 @@ import type {
   AgentSession,
   AgentOptions,
   UpdatableOptions,
-} from "./types.js";
+} from "../types.js";
 import { mergeTheme, deepMergeTheme } from "./theme.js";
 import { createAgentManager } from "./agent.js";
-import { createArrowNavigator } from "./core/arrow-navigation.js";
+import { createArrowNavigator } from "./arrow-navigation.js";
 import {
   getRequiredModifiers,
   setupKeyboardEventClaimer,
-} from "./core/keyboard-handlers.js";
+} from "./keyboard-handlers.js";
 import {
   createAutoScroller,
   getAutoScrollDirection,
-} from "./core/auto-scroll.js";
-import { logIntro } from "./core/log-intro.js";
-import { onIdle } from "./utils/on-idle.js";
-import { getScriptOptions } from "./utils/get-script-options.js";
-import { isEnterCode } from "./utils/is-enter-code.js";
+} from "./auto-scroll.js";
+import { logIntro } from "./log-intro.js";
+import { onIdle } from "../utils/on-idle.js";
+import { getScriptOptions } from "../utils/get-script-options.js";
+import { isEnterCode } from "../utils/is-enter-code.js";
 
 let hasInited = false;
 
@@ -2233,7 +2233,7 @@ export type {
   AgentCompleteResult,
   AgentOptions,
   UpdatableOptions,
-} from "./types.js";
+} from "../types.js";
 
-export { generateSnippet } from "./utils/generate-snippet.js";
-export { copyContent } from "./utils/copy-content.js";
+export { generateSnippet } from "../utils/generate-snippet.js";
+export { copyContent } from "../utils/copy-content.js";

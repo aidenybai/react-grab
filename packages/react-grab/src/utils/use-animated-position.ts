@@ -1,5 +1,5 @@
 import { createSignal, createEffect, onCleanup, Accessor } from "solid-js";
-import { lerp } from "../utils/lerp.js";
+import { lerp } from "./lerp.js";
 
 interface UseAnimatedPositionOptions {
   x: Accessor<number>;

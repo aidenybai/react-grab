@@ -4,7 +4,7 @@ import {
   getOwnerStack,
   StackFrame,
 } from "bippy/source";
-import { isCapitalized } from "./utils/is-capitalized.js";
+import { isCapitalized } from "../utils/is-capitalized.js";
 import { getFiberFromHostInstance, isInstrumentationActive } from "bippy";
 
 const NEXT_INTERNAL_COMPONENT_NAMES = new Set([

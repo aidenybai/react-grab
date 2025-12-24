@@ -1,4 +1,4 @@
-import { getElementContext } from "../context.js";
+import { getElementContext } from "../core/context.js";
 
 interface GenerateSnippetOptions {
   maxLines?: number;

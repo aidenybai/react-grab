@@ -1,4 +1,4 @@
-import type { Theme, DeepPartial } from "./types.js";
+import type { Theme, DeepPartial } from "../types.js";
 
 export const DEFAULT_THEME: Required<Theme> = {
   enabled: true,

@@ -1,6 +1,6 @@
 import { Show, createEffect, onCleanup } from "solid-js";
 import type { Component } from "solid-js";
-import { useAnimatedPosition } from "../hooks/use-animated-position.js";
+import { useAnimatedPosition } from "../utils/use-animated-position.js";
 
 const CROSSHAIR_COLOR = "rgba(210, 57, 192)";
 const CROSSHAIR_LERP_FACTOR = 0.3;

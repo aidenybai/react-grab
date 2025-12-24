@@ -41,9 +41,10 @@ export const tryCopyWithFallback = async (
         didCopy = copyContent(contentWithPrompt, { prompt: extraPrompt });
       }
     } else {
-      const combinedSnippets = await generateSnippet(elements, {
+      const snippets = await generateSnippet(elements, {
         maxLines: options.maxContextLines,
       });
+      const combinedSnippets = snippets.join("\n\n");
 
       if (combinedSnippets.trim()) {
         const plainTextContent = extraPrompt

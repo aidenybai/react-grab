@@ -1,10 +1,10 @@
-export { init } from "./core.js";
+export { init } from "./core/index.js";
 export {
   getStack,
   formatElementInfo,
   isInstrumentationActive,
   DEFAULT_THEME,
-} from "./core.js";
+} from "./core/index.js";
 export { generateSnippet } from "./utils/generate-snippet.js";
 export type {
   Options,
@@ -30,7 +30,7 @@ export type {
   ActivationMode,
 } from "./types.js";
 
-import { init } from "./core.js";
+import { init } from "./core/index.js";
 import type { ReactGrabAPI } from "./types.js";
 
 declare global {
