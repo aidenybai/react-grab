@@ -32,9 +32,6 @@ import {
   DRAG_THRESHOLD_PX,
   ELEMENT_DETECTION_THROTTLE_MS,
   Z_INDEX_LABEL,
-  AUTO_SCROLL_EDGE_THRESHOLD_PX,
-  AUTO_SCROLL_SPEED_PX,
-  LOGO_SVG,
   MODIFIER_KEYS,
   BLUR_DEACTIVATION_THRESHOLD_MS,
   BOUNDS_RECALC_INTERVAL_MS,
@@ -68,37 +65,20 @@ import type {
 import { mergeTheme, deepMergeTheme } from "./theme.js";
 import { createAgentManager } from "./agent.js";
 import { createArrowNavigator } from "./core/arrow-navigation.js";
-
-const onIdle = (callback: () => void) => {
-  if ("scheduler" in globalThis) {
-    return (
-      globalThis as unknown as {
-        scheduler: {
-          postTask: (cb: () => void, opts: { priority: string }) => void;
-        };
-      }
-    ).scheduler.postTask(callback, {
-      priority: "background",
-    });
-  }
-  if ("requestIdleCallback" in window) {
-    return requestIdleCallback(callback);
-  }
-  return setTimeout(callback, 0);
-};
+import {
+  getRequiredModifiers,
+  setupKeyboardEventClaimer,
+} from "./core/keyboard-handlers.js";
+import {
+  createAutoScroller,
+  getAutoScrollDirection,
+} from "./core/auto-scroll.js";
+import { logIntro } from "./core/log-intro.js";
+import { onIdle } from "./utils/on-idle.js";
+import { getScriptOptions } from "./utils/get-script-options.js";
+import { isEnterCode } from "./utils/is-enter-code.js";
 
 let hasInited = false;
-
-const getScriptOptions = (): Partial<Options> | null => {
-  if (typeof window === "undefined") return null;
-  try {
-    const dataOptions = document.currentScript?.getAttribute("data-options");
-    if (!dataOptions) return null;
-    return JSON.parse(dataOptions) as Partial<Options>;
-  } catch {
-    return null;
-  }
-};
 
 export const init = (rawOptions?: Options): ReactGrabAPI => {
   if (typeof window === "undefined") {
@@ -123,38 +103,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     return createNoopApi(mergedTheme);
   }
   hasInited = true;
-
-  const logIntro = () => {
-    try {
-      const version = process.env.VERSION;
-      const logoDataUri = `data:image/svg+xml;base64,${btoa(LOGO_SVG)}`;
-      console.log(
-        `%cReact Grab${version ? ` v${version}` : ""}%c\nhttps://react-grab.com`,
-        `background: #330039; color: #ffffff; border: 1px solid #d75fcb; padding: 4px 4px 4px 24px; border-radius: 4px; background-image: url("${logoDataUri}"); background-size: 16px 16px; background-repeat: no-repeat; background-position: 4px center; display: inline-block; margin-bottom: 4px;`,
-        "",
-      );
-      if (navigator.onLine && version) {
-        fetch(
-          `https://www.react-grab.com/api/version?source=browser&t=${Date.now()}`,
-          {
-            referrerPolicy: "origin",
-            keepalive: true,
-            priority: "low",
-            cache: "no-store",
-          } as RequestInit,
-        )
-          .then((res) => res.text())
-          .then((latestVersion) => {
-            if (latestVersion && latestVersion !== version) {
-              console.warn(
-                `[React Grab] v${version} is outdated (latest: v${latestVersion})`,
-              );
-            }
-          })
-          .catch(() => null);
-      }
-    } catch {}
-  };
 
   logIntro();
 
@@ -359,7 +307,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     let lastElementDetectionTime = 0;
     let keydownSpamTimerId: number | null = null;
-    let autoScrollAnimationId: number | null = null;
     let pendingClickTimeoutId: number | null = null;
     let pendingClickData: {
       clientX: number;
@@ -372,15 +319,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       createElementBounds,
     );
 
+    const autoScroller = createAutoScroller(
+      () => context().mousePosition,
+      () => isDragging(),
+    );
+
     const isRendererActive = createMemo(() => isActivated() && !isCopying());
-    const getAutoScrollDirection = (clientX: number, clientY: number) => {
-      return {
-        top: clientY < AUTO_SCROLL_EDGE_THRESHOLD_PX,
-        bottom: clientY > window.innerHeight - AUTO_SCROLL_EDGE_THRESHOLD_PX,
-        left: clientX < AUTO_SCROLL_EDGE_THRESHOLD_PX,
-        right: clientX > window.innerWidth - AUTO_SCROLL_EDGE_THRESHOLD_PX,
-      };
-    };
 
     const showTemporaryGrabbedBox = (
       bounds: OverlayBounds,
@@ -870,44 +814,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       ),
     );
 
-    const startAutoScroll = () => {
-      const scroll = () => {
-        if (!isDragging()) {
-          stopAutoScroll();
-          return;
-        }
-
-        const direction = getAutoScrollDirection(
-          context().mousePosition.x,
-          context().mousePosition.y,
-        );
-
-        if (direction.top) window.scrollBy(0, -AUTO_SCROLL_SPEED_PX);
-        if (direction.bottom) window.scrollBy(0, AUTO_SCROLL_SPEED_PX);
-        if (direction.left) window.scrollBy(-AUTO_SCROLL_SPEED_PX, 0);
-        if (direction.right) window.scrollBy(AUTO_SCROLL_SPEED_PX, 0);
-
-        if (
-          direction.top ||
-          direction.bottom ||
-          direction.left ||
-          direction.right
-        ) {
-          autoScrollAnimationId = requestAnimationFrame(scroll);
-        } else {
-          autoScrollAnimationId = null;
-        }
-      };
-
-      scroll();
-    };
-
-    const stopAutoScroll = () => {
-      if (autoScrollAnimationId !== null) {
-        cancelAnimationFrame(autoScrollAnimationId);
-        autoScrollAnimationId = null;
-      }
-    };
 
     const activateRenderer = () => {
       const wasInHoldingState = isHoldingKeys();
@@ -945,7 +851,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           });
         }
       }
-      stopAutoScroll();
+      autoScroller.stop();
       if (
         previousFocused instanceof HTMLElement &&
         document.contains(previousFocused)
@@ -1218,10 +1124,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           direction.left ||
           direction.right;
 
-        if (isNearEdge && autoScrollAnimationId === null) {
-          startAutoScroll();
-        } else if (!isNearEdge && autoScrollAnimationId !== null) {
-          stopAutoScroll();
+        if (isNearEdge && !autoScroller.isActive()) {
+          autoScroller.start();
+        } else if (!isNearEdge && autoScroller.isActive()) {
+          autoScroller.stop();
         }
       }
     };
@@ -1335,7 +1241,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       } else {
         send({ type: "DRAG_CANCEL", position: { x: clientX, y: clientY } });
       }
-      stopAutoScroll();
+      autoScroller.stop();
       document.body.style.userSelect = "";
 
       if (dragSelectionRect) {
@@ -1347,60 +1253,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const eventListenerManager = createEventListenerManager();
 
-    const claimedEvents = new WeakSet<KeyboardEvent>();
-    const isEnterCode = (code: string) =>
-      code === "Enter" || code === "NumpadEnter";
-
-    const getRequiredModifiers = () => {
-      if (options.activationKey) {
-        const { metaKey, ctrlKey, shiftKey, altKey } = options.activationKey;
-        return {
-          metaKey: Boolean(metaKey),
-          ctrlKey: Boolean(ctrlKey),
-          shiftKey: Boolean(shiftKey),
-          altKey: Boolean(altKey),
-        };
-      }
-      return {
-        metaKey: true,
-        ctrlKey: true,
-        shiftKey: false,
-        altKey: false,
-      };
-    };
-
-    const originalKeyDescriptor = Object.getOwnPropertyDescriptor(
-      KeyboardEvent.prototype,
-      "key",
-    ) as PropertyDescriptor & { get?: () => string };
-
-    let didPatchKeyboardEvent = false;
-    if (
-      originalKeyDescriptor?.get &&
-      !(originalKeyDescriptor.get as { __reactGrabPatched?: boolean })
-        .__reactGrabPatched
-    ) {
-      didPatchKeyboardEvent = true;
-      const originalGetter = originalKeyDescriptor.get;
-      const patchedGetter = function (this: KeyboardEvent) {
-        if (claimedEvents.has(this)) {
-          return "";
-        }
-        return originalGetter.call(this);
-      };
-      (patchedGetter as { __reactGrabPatched?: boolean }).__reactGrabPatched =
-        true;
-      Object.defineProperty(KeyboardEvent.prototype, "key", {
-        get: patchedGetter,
-        configurable: true,
-      });
-    }
+    const keyboardClaimer = setupKeyboardEventClaimer();
 
     const blockEnterIfNeeded = (event: KeyboardEvent) => {
       let originalKey: string;
       try {
-        originalKey = originalKeyDescriptor?.get
-          ? originalKeyDescriptor.get.call(event)
+        originalKey = keyboardClaimer.originalKeyDescriptor?.get
+          ? keyboardClaimer.originalKeyDescriptor.get.call(event)
           : event.key;
       } catch {
         return false;
@@ -1414,7 +1273,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         !context().isToggleMode;
 
       if (shouldBlockEnter) {
-        claimedEvents.add(event);
+        keyboardClaimer.claimedEvents.add(event);
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation();
@@ -1708,7 +1567,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           options.activationShortcut || options.activationKey,
         );
 
-        const requiredModifiers = getRequiredModifiers();
+        const requiredModifiers = getRequiredModifiers(options);
         const isReleasingModifier =
           requiredModifiers.metaKey || requiredModifiers.ctrlKey
             ? !event.metaKey && !event.ctrlKey
@@ -2076,16 +1935,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       eventListenerManager.abort();
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
       if (pendingClickTimeoutId) window.clearTimeout(pendingClickTimeoutId);
-      stopAutoScroll();
+      autoScroller.stop();
       document.body.style.userSelect = "";
       setCursorOverride(null);
-      if (didPatchKeyboardEvent && originalKeyDescriptor) {
-        Object.defineProperty(
-          KeyboardEvent.prototype,
-          "key",
-          originalKeyDescriptor,
-        );
-      }
+      keyboardClaimer.restore();
       actorRef.stop();
     });
 
