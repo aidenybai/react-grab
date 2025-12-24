@@ -4,7 +4,7 @@ import type { CompletionViewProps } from "../../types.js";
 import { COPIED_LABEL_DURATION_MS } from "../../constants.js";
 import { confirmationFocusManager } from "../../utils/confirmation-focus-manager.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
-import { IconReturn } from "../icon-return.js";
+import { IconReturn } from "../icons/icon-return.jsx";
 import { BottomSection } from "./bottom-section.js";
 
 export const CompletionView: Component<CompletionViewProps> = (props) => {

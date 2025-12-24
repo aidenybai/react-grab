@@ -4,7 +4,7 @@ import type { ErrorViewProps } from "../../types.js";
 import { MAX_ERROR_LENGTH } from "../../constants.js";
 import { confirmationFocusManager } from "../../utils/confirmation-focus-manager.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
-import { IconRetry } from "../icon-retry.js";
+import { IconRetry } from "../icons/icon-retry.jsx";
 import { BottomSection } from "./bottom-section.js";
 
 export const ErrorView: Component<ErrorViewProps> = (props) => {

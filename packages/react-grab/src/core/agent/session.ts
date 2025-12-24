@@ -3,7 +3,7 @@ import type {
   AgentSession,
   AgentSessionStorage,
   OverlayBounds,
-} from "../types.js";
+} from "../../types.js";
 
 const STORAGE_KEY = "react-grab:agent-sessions";
 
@@ -112,3 +112,4 @@ export const updateSession = (
   saveSessionById(updatedSession, storage);
   return updatedSession;
 };
+

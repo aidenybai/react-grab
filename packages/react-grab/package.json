@@ -1,11 +1,11 @@
 {
   "name": "react-grab",
   "version": "0.0.92",
-  "description": "Grab any element in your app and give it to Cursor, Claude Code, or other AI coding agents.",
+  "description": "Select context for coding agents directly from your website",
   "keywords": [
     "react",
     "grab",
-    "react",
+    "react-grab",
     "agent",
     "context"
   ],
@@ -37,12 +37,12 @@
     },
     "./core": {
       "import": {
-        "types": "./dist/core.d.ts",
-        "default": "./dist/core.js"
+        "types": "./dist/core/index.d.ts",
+        "default": "./dist/core/index.js"
       },
       "require": {
-        "types": "./dist/core.d.cts",
-        "default": "./dist/core.cjs"
+        "types": "./dist/core/index.d.cts",
+        "default": "./dist/core/index.cjs"
       }
     },
     "./styles.css": "./dist/styles.css",

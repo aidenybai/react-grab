@@ -2,7 +2,7 @@ import { Show, createSignal } from "solid-js";
 import type { Component } from "solid-js";
 import type { TagBadgeProps } from "../../types.js";
 import { cn } from "../../utils/cn.js";
-import { IconOpen } from "../icon-open.js";
+import { IconOpen } from "../icons/icon-open.jsx";
 
 export const TagBadge: Component<TagBadgeProps> = (props) => {
   const [isHovered, setIsHovered] = createSignal(false);

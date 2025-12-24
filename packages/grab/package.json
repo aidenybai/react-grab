@@ -1,11 +1,11 @@
 {
   "name": "grab",
   "version": "0.0.92",
-  "description": "Grab any element in your app and give it to Cursor, Claude Code, or other AI coding agents.",
+  "description": "Select context for coding agents directly from your website",
   "keywords": [
     "react",
     "grab",
-    "react",
+    "react-grab",
     "agent",
     "context"
   ],

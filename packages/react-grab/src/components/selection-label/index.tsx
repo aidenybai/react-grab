@@ -8,7 +8,7 @@ import {
   IDLE_TIMEOUT_MS,
 } from "../../constants.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
-import { IconReturn } from "../icon-return.js";
+import { IconReturn } from "../icons/icon-return.jsx";
 import { Arrow } from "./arrow.js";
 import { TagBadge } from "./tag-badge.js";
 import { ActionPill } from "./action-pill.js";

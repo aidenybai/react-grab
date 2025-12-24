@@ -63,7 +63,7 @@ import type {
   UpdatableOptions,
 } from "../types.js";
 import { mergeTheme, deepMergeTheme } from "./theme.js";
-import { createAgentManager } from "./agent.js";
+import { createAgentManager } from "./agent/index.js";
 import { createArrowNavigator } from "./arrow-navigation.js";
 import {
   getRequiredModifiers,

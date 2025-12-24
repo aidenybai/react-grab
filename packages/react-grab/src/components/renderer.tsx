@@ -6,7 +6,7 @@ import { SelectionBox } from "./selection-box.js";
 import { Crosshair } from "./crosshair.js";
 import { SelectionCursor } from "./selection-cursor.js";
 import { SelectionLabel } from "./selection-label.js";
-import { Toolbar } from "./toolbar.js";
+import { Toolbar } from "./toolbar/index.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
   const agentSessionsList = createMemo(() =>
