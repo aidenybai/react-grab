@@ -49,4 +49,3 @@ const VisualEditLayout = ({ children }: VisualEditLayoutProps) => {
 VisualEditLayout.displayName = "VisualEditLayout";
 
 export default VisualEditLayout;
-

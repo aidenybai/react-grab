@@ -71,6 +71,10 @@ export const createAgentManager = (
   const [canRedo, setCanRedo] = createSignal(false);
   const abortControllers = new Map<string, AbortController>();
   const sessionElements = new Map<string, Element[]>();
+  const undoneSessionsStack: Array<{
+    session: AgentSession;
+    elements: Element[];
+  }> = [];
 
   let agentOptions = initialAgentOptions;
 
@@ -135,6 +139,7 @@ export const createAgentManager = (
           elements,
         );
         updateUndoRedoState();
+        undoneSessionsStack.length = 0;
         if (result?.error) {
           const errorSession = updateSession(
             completedSession,
@@ -390,6 +395,7 @@ export const createAgentManager = (
     const session = currentSessions.get(sessionId);
     if (session) {
       const elements = sessionElements.get(sessionId) ?? [];
+      undoneSessionsStack.push({ session, elements });
       agentOptions?.onUndo?.(session, elements);
       void agentOptions?.provider?.undo?.();
     }
@@ -403,7 +409,25 @@ export const createAgentManager = (
   };
 
   const globalRedo = () => {
+    const undoneSessionData = undoneSessionsStack.pop();
     void agentOptions?.provider?.redo?.();
+
+    if (undoneSessionData) {
+      const { session, elements } = undoneSessionData;
+      const validElements = elements.filter((el) => document.contains(el));
+
+      if (validElements.length > 0) {
+        const newBounds = validElements.map((el) => createElementBounds(el));
+        const restoredSession: AgentSession = {
+          ...session,
+          selectionBounds: newBounds,
+        };
+
+        sessionElements.set(session.id, validElements);
+        setSessions((prev) => new Map(prev).set(session.id, restoredSession));
+      }
+    }
+
     updateUndoRedoState();
   };
 

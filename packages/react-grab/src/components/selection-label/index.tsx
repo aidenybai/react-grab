@@ -1,10 +1,4 @@
-import {
-  Show,
-  createSignal,
-  createEffect,
-  onMount,
-  onCleanup,
-} from "solid-js";
+import { Show, createSignal, createEffect, onMount, onCleanup } from "solid-js";
 import type { Component } from "solid-js";
 import type { ArrowPosition, SelectionLabelProps } from "../../types.js";
 import {

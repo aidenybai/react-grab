@@ -7,4 +7,3 @@ export const isSelectionBackward = (selection: Selection): boolean => {
   if (position & Node.DOCUMENT_POSITION_PRECEDING) return true;
   return selection.anchorOffset > selection.focusOffset;
 };
-

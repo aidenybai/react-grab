@@ -215,11 +215,17 @@ const runAgent = async (
   let currentMessages = existingMessages;
   let currentChatId = existingChatId;
 
-  for (let elementIndex = 0; elementIndex < contentItems.length; elementIndex++) {
+  for (
+    let elementIndex = 0;
+    elementIndex < contentItems.length;
+    elementIndex++
+  ) {
     const elementContent = contentItems[elementIndex];
 
     if (contentItems.length > 1) {
-      onStatus(`Processing element ${elementIndex + 1} of ${contentItems.length}...`);
+      onStatus(
+        `Processing element ${elementIndex + 1} of ${contentItems.length}...`,
+      );
     }
 
     const result = await runAgentForElement(

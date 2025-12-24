@@ -24,4 +24,3 @@ export const IconRetry: Component<IconRetryProps> = (props) => {
     </svg>
   );
 };
-
