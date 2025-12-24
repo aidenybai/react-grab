@@ -25,7 +25,6 @@ import { getElementAtPosition } from "./utils/get-element-at-position.js";
 import { isValidGrabbableElement } from "./utils/is-valid-grabbable-element.js";
 import { getElementsInDrag } from "./utils/get-elements-in-drag.js";
 import { createElementBounds } from "./utils/create-element-bounds.js";
-import { stripTranslateFromTransform } from "./utils/strip-translate-from-transform.js";
 import { getTagName } from "./utils/get-tag-name.js";
 import { isSelectionBackward } from "./utils/is-selection-backward.js";
 import {
@@ -64,6 +63,7 @@ import type {
 } from "./types.js";
 import { mergeTheme, deepMergeTheme } from "./theme.js";
 import { createAgentManager } from "./agent.js";
+import { createArrowNavigator } from "./core/arrow-navigation.js";
 
 const onIdle = (callback: () => void) => {
   if ("scheduler" in globalThis) {
@@ -166,7 +166,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
     });
 
-    // Create reactive signal for snapshot - direct subscription guarantees reactivity
     const [snapshot, setSnapshot] = createSignal(actorRef.getSnapshot());
     createEffect(() => {
       const subscription = actorRef.subscribe((nextSnapshot) => {
@@ -175,7 +174,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       onCleanup(() => subscription.unsubscribe());
     });
 
-    // Use actorRef.send directly instead of destructured send
     const send = actorRef.send.bind(actorRef);
 
     const isHoldingKeys = createMemo(() => {
@@ -230,21 +228,33 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return snapshot().matches({ agentAbortConfirmation: "confirming" });
     });
 
-    let wasHolding = false;
+    let previouslyHoldingKeys = false;
     createEffect(() => {
       const currentlyHolding = isHoldingKeys();
       const currentlyActive = isActivated();
 
-      if (wasHolding && !currentlyHolding && currentlyActive) {
+      if (previouslyHoldingKeys && !currentlyHolding && currentlyActive) {
         if (options.activationMode !== "hold") {
           send({ type: "SET_TOGGLE_MODE", value: true });
         }
         options.onActivate?.();
       }
-      wasHolding = currentlyHolding;
+      previouslyHoldingKeys = currentlyHolding;
     });
 
     const elementInputCache = new WeakMap<Element, string>();
+
+    const loadCachedInput = (element: Element) => {
+      const cachedInput = elementInputCache.get(element);
+      if (cachedInput) {
+        send({ type: "INPUT_CHANGE", value: cachedInput });
+      }
+    };
+
+    const prepareInputMode = (element: Element, positionX: number, positionY: number) => {
+      setCopyStartPosition(element, positionX, positionY);
+      loadCachedInput(element);
+    };
 
     const hasNativeSelection = createMemo(
       () => snapshot().context.nativeSelectionElements.length > 0,
@@ -355,7 +365,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     let lastElementDetectionTime = 0;
-    let progressAnimationId: number | null = null;
     let keydownSpamTimerId: number | null = null;
     let autoScrollAnimationId: number | null = null;
     let pendingClickTimeoutId: number | null = null;
@@ -364,6 +373,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       clientY: number;
       element: Element;
     } | null = null;
+
+    const arrowNavigator = createArrowNavigator(
+      isValidGrabbableElement,
+      createElementBounds,
+    );
 
     const isRendererActive = createMemo(() => isActivated() && !isCopying());
     const getAutoScrollDirection = (clientX: number, clientY: number) => {
@@ -450,7 +464,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       shouldDeactivateAfter?: boolean,
     ) => {
       send({ type: "COPY_START" });
-      startProgressAnimation();
 
       const instanceId =
         bounds && tagName
@@ -466,7 +479,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       await operation().finally(() => {
         send({ type: "COPY_DONE", element });
-        stopProgressAnimation();
 
         if (instanceId) {
           updateLabelInstance(instanceId, "copied");
@@ -504,6 +516,43 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       await new Promise((resolve) => requestAnimationFrame(resolve));
       await copyWithFallback(targetElements, extraPrompt);
       notifyElementsSelected(targetElements);
+    };
+
+    interface CopyWithLabelOptions {
+      element: Element;
+      positionX: number;
+      positionY: number;
+      elements?: Element[];
+      extraPrompt?: string;
+      shouldDeactivateAfter?: boolean;
+      onComplete?: () => void;
+    }
+
+    const performCopyWithLabel = ({
+      element,
+      positionX,
+      positionY,
+      elements,
+      extraPrompt,
+      shouldDeactivateAfter,
+      onComplete,
+    }: CopyWithLabelOptions) => {
+      const bounds = createElementBounds(element);
+      const tagName = getTagName(element);
+      void getNearestComponentName(element).then((componentName) => {
+        void executeCopyOperation(
+          positionX,
+          positionY,
+          () => copyElementsToClipboard(elements ?? [element], extraPrompt),
+          bounds,
+          tagName,
+          componentName ?? undefined,
+          element,
+          shouldDeactivateAfter,
+        ).then(() => {
+          onComplete?.();
+        });
+      });
     };
 
     const targetElement = createMemo(() => {
@@ -836,23 +885,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       ),
     );
 
-    const startProgressAnimation = () => {
-      const animateProgress = () => {
-        if (isCopying()) {
-          progressAnimationId = requestAnimationFrame(animateProgress);
-        }
-      };
-
-      animateProgress();
-    };
-
-    const stopProgressAnimation = () => {
-      if (progressAnimationId !== null) {
-        cancelAnimationFrame(progressAnimationId);
-        progressAnimationId = null;
-      }
-    };
-
     const startAutoScroll = () => {
       const scroll = () => {
         if (!isDragging()) {
@@ -893,11 +925,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const activateRenderer = () => {
-      stopProgressAnimation();
       const wasInHoldingState = isHoldingKeys();
       send({ type: "ACTIVATE" });
       // HACK: Only call onActivate if we weren't in holding state.
-      // When coming from holding state, the reactive effect (wasHolding transition)
+      // When coming from holding state, the reactive effect (previouslyHoldingKeys transition)
       // will handle calling onActivate to avoid duplicate invocations.
       if (!wasInHoldingState) {
         options.onActivate?.();
@@ -908,6 +939,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const wasDragging = isDragging();
       const previousFocused = snapshot().context.previouslyFocusedElement;
       send({ type: "DEACTIVATE" });
+      arrowNavigator.clearHistory();
       if (wasDragging) {
         document.body.style.userSelect = "";
       }
@@ -916,30 +948,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         window.clearTimeout(pendingClickTimeoutId);
         pendingClickTimeoutId = null;
 
-        const clickData = pendingClickData;
+        const pendingClickInfo = pendingClickData;
         pendingClickData = null;
 
-        if (clickData) {
-          send({ type: "SET_LAST_GRABBED", element: clickData.element });
-          const bounds = createElementBounds(clickData.element);
-          const tagName = getTagName(clickData.element);
-          void getNearestComponentName(clickData.element).then(
-            (componentName) => {
-              void executeCopyOperation(
-                clickData.clientX,
-                clickData.clientY,
-                () => copyElementsToClipboard([clickData.element]),
-                bounds,
-                tagName,
-                componentName ?? undefined,
-                clickData.element,
-              );
-            },
-          );
+        if (pendingClickInfo) {
+          send({ type: "SET_LAST_GRABBED", element: pendingClickInfo.element });
+          performCopyWithLabel({
+            element: pendingClickInfo.element,
+            positionX: pendingClickInfo.clientX,
+            positionY: pendingClickInfo.clientY,
+          });
         }
       }
       stopAutoScroll();
-      stopProgressAnimation();
       if (
         previousFocused instanceof HTMLElement &&
         document.contains(previousFocused)
@@ -1039,19 +1060,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         elementInputCache.delete(element);
       }
 
-      const tagName = getTagName(element);
-      void getNearestComponentName(element).then((componentName) => {
-        void executeCopyOperation(
-          currentX,
-          currentY,
-          () => copyElementsToClipboard(elements, prompt || undefined),
-          firstBounds,
-          tagName,
-          componentName ?? undefined,
-          element,
-        ).then(() => {
-          deactivateRenderer();
-        });
+      performCopyWithLabel({
+        element,
+        positionX: currentX,
+        positionY: currentY,
+        elements,
+        extraPrompt: prompt || undefined,
+        onComplete: deactivateRenderer,
       });
     };
 
@@ -1096,16 +1111,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!snapshot().context.hasAgentProvider) return;
       const element = snapshot().context.frozenElement || targetElement();
       if (element) {
-        setCopyStartPosition(
+        prepareInputMode(
           element,
           snapshot().context.mousePosition.x,
           snapshot().context.mousePosition.y,
         );
-
-        const cachedInput = elementInputCache.get(element);
-        if (cachedInput) {
-          send({ type: "INPUT_CHANGE", value: cachedInput });
-        }
       }
       activateInputMode();
     };
@@ -1197,17 +1207,98 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return true;
     };
 
+    const handleDragSelection = (
+      dragSelectionRect: ReturnType<typeof calculateDragRectangle>,
+    ) => {
+      const elements = getElementsInDrag(
+        dragSelectionRect,
+        isValidGrabbableElement,
+      );
+      const selectedElements =
+        elements.length > 0
+          ? elements
+          : getElementsInDrag(dragSelectionRect, isValidGrabbableElement, false);
+
+      if (selectedElements.length === 0) return;
+
+      options.onDragEnd?.(selectedElements, dragSelectionRect);
+      const firstElement = selectedElements[0];
+      const bounds = createElementBounds(firstElement);
+      const centerX = bounds.x + bounds.width / 2;
+      const centerY = bounds.y + bounds.height / 2;
+
+      if (snapshot().context.hasAgentProvider) {
+        send({ type: "MOUSE_MOVE", position: { x: centerX, y: centerY } });
+        send({ type: "FREEZE_ELEMENTS", elements: selectedElements });
+        activateInputMode();
+        if (!isActivated()) {
+          activateRenderer();
+        }
+      } else {
+        performCopyWithLabel({
+          element: firstElement,
+          positionX: centerX,
+          positionY: centerY,
+          elements: selectedElements,
+          shouldDeactivateAfter: true,
+        });
+      }
+    };
+
+    const handleSingleClick = (clientX: number, clientY: number) => {
+      const element = getElementAtPosition(clientX, clientY);
+      if (!element) return;
+
+      if (snapshot().context.hasAgentProvider) {
+        if (pendingClickTimeoutId !== null) {
+          window.clearTimeout(pendingClickTimeoutId);
+          pendingClickTimeoutId = null;
+
+          const clickElement = pendingClickData?.element ?? element;
+          pendingClickData = null;
+
+          prepareInputMode(clickElement, clientX, clientY);
+          send({ type: "MOUSE_MOVE", position: { x: clientX, y: clientY } });
+          send({ type: "FREEZE_ELEMENT", element: clickElement });
+          activateInputMode();
+          return;
+        }
+
+        pendingClickData = { clientX, clientY, element };
+        pendingClickTimeoutId = window.setTimeout(() => {
+          pendingClickTimeoutId = null;
+          const pendingClickInfo = pendingClickData;
+          pendingClickData = null;
+
+          if (!pendingClickInfo) return;
+
+          send({ type: "SET_LAST_GRABBED", element: pendingClickInfo.element });
+          performCopyWithLabel({
+            element: pendingClickInfo.element,
+            positionX: pendingClickInfo.clientX,
+            positionY: pendingClickInfo.clientY,
+          });
+        }, DOUBLE_CLICK_THRESHOLD_MS);
+      } else {
+        send({ type: "SET_LAST_GRABBED", element });
+        performCopyWithLabel({
+          element,
+          positionX: clientX,
+          positionY: clientY,
+        });
+      }
+    };
+
     const handlePointerUp = (clientX: number, clientY: number) => {
       if (!isDragging()) return;
 
       const dragDistance = calculateDragDistance(clientX, clientY);
-
       const wasDragGesture =
         dragDistance.x > DRAG_THRESHOLD_PX ||
         dragDistance.y > DRAG_THRESHOLD_PX;
 
       // HACK: Calculate drag rectangle BEFORE sending DRAG_END, because DRAG_END resets dragStart
-      const dragRect = wasDragGesture
+      const dragSelectionRect = wasDragGesture
         ? calculateDragRectangle(clientX, clientY)
         : null;
 
@@ -1219,118 +1310,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       stopAutoScroll();
       document.body.style.userSelect = "";
 
-      if (dragRect) {
-        const elements = getElementsInDrag(dragRect, isValidGrabbableElement);
-        const selectedElements =
-          elements.length > 0
-            ? elements
-            : getElementsInDrag(dragRect, isValidGrabbableElement, false);
-
-        if (selectedElements.length > 0) {
-          options.onDragEnd?.(selectedElements, dragRect);
-          const firstElement = selectedElements[0];
-          const firstElementRect = firstElement.getBoundingClientRect();
-          const bounds: OverlayBounds = {
-            x: firstElementRect.left,
-            y: firstElementRect.top,
-            width: firstElementRect.width,
-            height: firstElementRect.height,
-            borderRadius: "0px",
-            transform: stripTranslateFromTransform(firstElement),
-          };
-          const tagName = getTagName(firstElement);
-
-          const centerX = bounds.x + bounds.width / 2;
-          const centerY = bounds.y + bounds.height / 2;
-
-          if (snapshot().context.hasAgentProvider) {
-            send({ type: "MOUSE_MOVE", position: { x: centerX, y: centerY } });
-            send({ type: "FREEZE_ELEMENTS", elements: selectedElements });
-            activateInputMode();
-            if (!isActivated()) {
-              activateRenderer();
-            }
-          } else {
-            void getNearestComponentName(firstElement).then((componentName) => {
-              void executeCopyOperation(
-                centerX,
-                centerY,
-                () => copyElementsToClipboard(selectedElements),
-                bounds,
-                tagName,
-                componentName ?? undefined,
-                firstElement,
-                true,
-              );
-            });
-          }
-        }
+      if (dragSelectionRect) {
+        handleDragSelection(dragSelectionRect);
       } else {
-        const element = getElementAtPosition(clientX, clientY);
-        if (!element) return;
-
-        if (snapshot().context.hasAgentProvider) {
-          if (pendingClickTimeoutId !== null) {
-            window.clearTimeout(pendingClickTimeoutId);
-            pendingClickTimeoutId = null;
-
-            const clickElement = pendingClickData?.element ?? element;
-            pendingClickData = null;
-
-            setCopyStartPosition(clickElement, clientX, clientY);
-
-            const cachedInput = elementInputCache.get(clickElement);
-            if (cachedInput) {
-              send({ type: "INPUT_CHANGE", value: cachedInput });
-            }
-
-            send({ type: "MOUSE_MOVE", position: { x: clientX, y: clientY } });
-            send({ type: "FREEZE_ELEMENT", element: clickElement });
-            activateInputMode();
-            return;
-          }
-
-          pendingClickData = { clientX, clientY, element };
-          pendingClickTimeoutId = window.setTimeout(() => {
-            pendingClickTimeoutId = null;
-            const clickData = pendingClickData;
-            pendingClickData = null;
-
-            if (!clickData) return;
-
-            send({ type: "SET_LAST_GRABBED", element: clickData.element });
-            const bounds = createElementBounds(clickData.element);
-            const tagName = getTagName(clickData.element);
-            void getNearestComponentName(clickData.element).then(
-              (componentName) => {
-                void executeCopyOperation(
-                  clickData.clientX,
-                  clickData.clientY,
-                  () => copyElementsToClipboard([clickData.element]),
-                  bounds,
-                  tagName,
-                  componentName ?? undefined,
-                  clickData.element,
-                );
-              },
-            );
-          }, DOUBLE_CLICK_THRESHOLD_MS);
-        } else {
-          send({ type: "SET_LAST_GRABBED", element });
-          const bounds = createElementBounds(element);
-          const tagName = getTagName(element);
-          void getNearestComponentName(element).then((componentName) => {
-            void executeCopyOperation(
-              clientX,
-              clientY,
-              () => copyElementsToClipboard([element]),
-              bounds,
-              tagName,
-              componentName ?? undefined,
-              element,
-            );
-          });
-        }
+        handleSingleClick(clientX, clientY);
       }
     };
 
@@ -1404,35 +1387,220 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       capture: true,
     });
 
+    const handleUndoRedoKeys = (event: KeyboardEvent): boolean => {
+      const isUndoOrRedo =
+        event.code === "KeyZ" && (event.metaKey || event.ctrlKey);
+
+      if (!isUndoOrRedo) return false;
+
+      const hasActiveConfirmation = Array.from(
+        agentManager.sessions().values(),
+      ).some((session) => !session.isStreaming && !session.error);
+
+      if (hasActiveConfirmation) return false;
+
+      const isRedo = event.shiftKey;
+
+      if (isRedo && agentManager.canRedo()) {
+        event.preventDefault();
+        event.stopPropagation();
+        agentManager.history.redo();
+        return true;
+      } else if (!isRedo && agentManager.canUndo()) {
+        event.preventDefault();
+        event.stopPropagation();
+        agentManager.history.undo();
+        return true;
+      }
+
+      return false;
+    };
+
+    const handleArrowNavigation = (event: KeyboardEvent): boolean => {
+      if (!isActivated() || isInputMode()) return false;
+
+      const currentElement = effectiveElement();
+      if (!currentElement) return false;
+
+      const nextElement = arrowNavigator.findNext(event.key, currentElement);
+      if (!nextElement) return false;
+
+      event.preventDefault();
+      event.stopPropagation();
+      send({ type: "FREEZE_ELEMENT", element: nextElement });
+      send({ type: "FREEZE" });
+      const bounds = createElementBounds(nextElement);
+      send({
+        type: "MOUSE_MOVE",
+        position: {
+          x: bounds.x + bounds.width / 2,
+          y: bounds.y + bounds.height / 2,
+        },
+      });
+      return true;
+    };
+
+    const handleEnterKeyActivation = (event: KeyboardEvent): boolean => {
+      if (!isEnterCode(event.code)) return false;
+
+      const copiedElement = snapshot().context.lastCopiedElement;
+      const canActivateFromCopied =
+        !isHoldingKeys() &&
+        !isInputMode() &&
+        !isActivated() &&
+        copiedElement &&
+        document.contains(copiedElement) &&
+        snapshot().context.hasAgentProvider &&
+        !snapshot().context.labelInstances.some(
+          (instance) =>
+            instance.status === "copied" || instance.status === "fading",
+        );
+
+      if (canActivateFromCopied && copiedElement) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+
+        const bounds = createElementBounds(copiedElement);
+        const selectionCenterX = bounds.x + bounds.width / 2;
+        const centerY = bounds.y + bounds.height / 2;
+
+        send({
+          type: "MOUSE_MOVE",
+          position: { x: selectionCenterX, y: centerY },
+        });
+        prepareInputMode(copiedElement, selectionCenterX, centerY);
+        send({ type: "FREEZE_ELEMENT", element: copiedElement });
+        send({ type: "SET_LAST_COPIED", element: null });
+
+        activateInputMode();
+        activateRenderer();
+        return true;
+      }
+
+      const canActivateFromHolding =
+        isHoldingKeys() && !isInputMode() && snapshot().context.hasAgentProvider;
+
+      if (canActivateFromHolding) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+
+        const element = snapshot().context.frozenElement || targetElement();
+        if (element) {
+          prepareInputMode(
+            element,
+            snapshot().context.mousePosition.x,
+            snapshot().context.mousePosition.y,
+          );
+        }
+
+        activateInputMode();
+
+        if (keydownSpamTimerId !== null) {
+          window.clearTimeout(keydownSpamTimerId);
+          keydownSpamTimerId = null;
+        }
+
+        if (!isActivated()) {
+          activateRenderer();
+        }
+
+        return true;
+      }
+
+      return false;
+    };
+
+    const handleOpenFileShortcut = (event: KeyboardEvent): boolean => {
+      if (event.key?.toLowerCase() !== "o" || isInputMode()) return false;
+      if (!isActivated() || !(event.metaKey || event.ctrlKey)) return false;
+
+      const filePath = snapshot().context.selectionFilePath;
+      const lineNumber = snapshot().context.selectionLineNumber;
+      if (!filePath) return false;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (options.onOpenFile) {
+        options.onOpenFile(filePath, lineNumber ?? undefined);
+      } else {
+        const url = buildOpenFileUrl(filePath, lineNumber ?? undefined);
+        window.open(url, "_blank");
+      }
+      return true;
+    };
+
+    const handleActivationKeys = (event: KeyboardEvent): void => {
+      if (
+        !options.allowActivationInsideInput &&
+        isKeyboardEventTriggeredByInput(event)
+      ) {
+        return;
+      }
+
+      if (!isTargetKeyCombination(event, options)) {
+        if (
+          isActivated() &&
+          !snapshot().context.isToggleMode &&
+          (event.metaKey || event.ctrlKey)
+        ) {
+          if (
+            !MODIFIER_KEYS.includes(event.key) &&
+            !isEnterCode(event.code)
+          ) {
+            deactivateRenderer();
+          }
+        }
+        if (!isEnterCode(event.code) || !isHoldingKeys()) {
+          return;
+        }
+      }
+
+      if ((isActivated() || isHoldingKeys()) && !isInputMode()) {
+        event.preventDefault();
+        if (isEnterCode(event.code)) {
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+        }
+      }
+
+      if (isActivated()) {
+        if (
+          snapshot().context.isToggleMode &&
+          options.activationMode !== "hold"
+        )
+          return;
+        if (event.repeat) return;
+
+        if (keydownSpamTimerId !== null) {
+          window.clearTimeout(keydownSpamTimerId);
+        }
+        keydownSpamTimerId = window.setTimeout(() => {
+          deactivateRenderer();
+        }, 200);
+        return;
+      }
+
+      if (isHoldingKeys() && event.repeat) return;
+
+      if (!isHoldingKeys()) {
+        const keyHoldDuration =
+          options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS;
+        const activationDuration = isKeyboardEventTriggeredByInput(event)
+          ? keyHoldDuration + INPUT_FOCUS_ACTIVATION_DELAY_MS
+          : keyHoldDuration;
+        send({ type: "HOLD_START", duration: activationDuration });
+      }
+    };
+
     eventListenerManager.addWindowListener(
       "keydown",
       (event: KeyboardEvent) => {
         blockEnterIfNeeded(event);
 
-        const isUndoOrRedo =
-          event.code === "KeyZ" && (event.metaKey || event.ctrlKey);
-
-        if (isUndoOrRedo) {
-          const hasActiveConfirmation = Array.from(
-            agentManager.sessions().values(),
-          ).some((session) => !session.isStreaming && !session.error);
-
-          if (!hasActiveConfirmation) {
-            const isRedo = event.shiftKey;
-
-            if (isRedo && agentManager.canRedo()) {
-              event.preventDefault();
-              event.stopPropagation();
-              agentManager.history.redo();
-              return;
-            } else if (!isRedo && agentManager.canUndo()) {
-              event.preventDefault();
-              event.stopPropagation();
-              agentManager.history.undo();
-              return;
-            }
-          }
-        }
+        if (handleUndoRedoKeys(event)) return;
 
         const isEnterToActivateInput =
           isEnterCode(event.code) && isHoldingKeys() && !isInputMode();
@@ -1481,268 +1649,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           }
         }
 
-        if (isHoldingKeys() && !isInputMode()) {
-          const currentElement =
-            snapshot().context.frozenElement || targetElement();
-          if (!currentElement) return;
+        if (handleArrowNavigation(event)) return;
+        if (handleEnterKeyActivation(event)) return;
+        if (handleOpenFileShortcut(event)) return;
 
-          let nextElement: Element | null = null;
-
-          switch (event.key) {
-            case "ArrowUp":
-            case "ArrowDown": {
-              const bounds = createElementBounds(currentElement);
-              const elementsAtPoint = document
-                .elementsFromPoint(
-                  bounds.x + bounds.width / 2,
-                  bounds.y + bounds.height / 2,
-                )
-                .filter(isValidGrabbableElement);
-              const currentIndex = elementsAtPoint.indexOf(currentElement);
-              if (currentIndex !== -1) {
-                const direction = event.key === "ArrowUp" ? 1 : -1;
-                nextElement = elementsAtPoint[currentIndex + direction] ?? null;
-              }
-              break;
-            }
-            case "ArrowRight":
-            case "ArrowLeft": {
-              const isForward = event.key === "ArrowRight";
-
-              const findEdgeDescendant = (el: Element): Element | null => {
-                const children = Array.from(el.children);
-                const ordered = isForward ? children : children.reverse();
-                for (const child of ordered) {
-                  if (isForward) {
-                    if (isValidGrabbableElement(child)) return child;
-                    const descendant = findEdgeDescendant(child);
-                    if (descendant) return descendant;
-                  } else {
-                    const descendant = findEdgeDescendant(child);
-                    if (descendant) return descendant;
-                    if (isValidGrabbableElement(child)) return child;
-                  }
-                }
-                return null;
-              };
-
-              const getSibling = (el: Element) =>
-                isForward ? el.nextElementSibling : el.previousElementSibling;
-
-              if (isForward) {
-                nextElement = findEdgeDescendant(currentElement);
-              }
-
-              if (!nextElement) {
-                let searchElement: Element | null = currentElement;
-                while (searchElement) {
-                  let sibling = getSibling(searchElement);
-                  while (sibling) {
-                    const descendant = findEdgeDescendant(sibling);
-                    if (descendant) {
-                      nextElement = descendant;
-                      break;
-                    }
-                    if (isValidGrabbableElement(sibling)) {
-                      nextElement = sibling;
-                      break;
-                    }
-                    sibling = getSibling(sibling);
-                  }
-                  if (nextElement) break;
-                  const parentElement: HTMLElement | null =
-                    searchElement.parentElement;
-                  if (
-                    !isForward &&
-                    parentElement &&
-                    isValidGrabbableElement(parentElement)
-                  ) {
-                    nextElement = parentElement;
-                    break;
-                  }
-                  searchElement = parentElement;
-                }
-              }
-              break;
-            }
-            default:
-              break;
-          }
-
-          if (nextElement) {
-            event.preventDefault();
-            event.stopPropagation();
-            send({ type: "FREEZE_ELEMENT", element: nextElement });
-            send({ type: "FREEZE" });
-            const bounds = createElementBounds(nextElement);
-            send({
-              type: "MOUSE_MOVE",
-              position: {
-                x: bounds.x + bounds.width / 2,
-                y: bounds.y + bounds.height / 2,
-              },
-            });
-            return;
-          }
-        }
-
-        const copiedElement = snapshot().context.lastCopiedElement;
-        if (
-          isEnterCode(event.code) &&
-          !isHoldingKeys() &&
-          !isInputMode() &&
-          !isActivated() &&
-          copiedElement &&
-          document.contains(copiedElement) &&
-          snapshot().context.hasAgentProvider &&
-          !snapshot().context.labelInstances.some(
-            (instance) =>
-              instance.status === "copied" || instance.status === "fading",
-          )
-        ) {
-          event.preventDefault();
-          event.stopPropagation();
-          event.stopImmediatePropagation();
-
-          const bounds = createElementBounds(copiedElement);
-          const selectionCenterX = bounds.x + bounds.width / 2;
-          const centerY = bounds.y + bounds.height / 2;
-
-          send({
-            type: "MOUSE_MOVE",
-            position: { x: selectionCenterX, y: centerY },
-          });
-          setCopyStartPosition(copiedElement, selectionCenterX, centerY);
-          send({ type: "FREEZE_ELEMENT", element: copiedElement });
-          send({ type: "SET_LAST_COPIED", element: null });
-
-          const cachedInput = elementInputCache.get(copiedElement);
-          if (cachedInput) {
-            send({ type: "INPUT_CHANGE", value: cachedInput });
-          }
-
-          activateInputMode();
-          activateRenderer();
-          return;
-        }
-
-        if (
-          isEnterCode(event.code) &&
-          isHoldingKeys() &&
-          !isInputMode() &&
-          snapshot().context.hasAgentProvider
-        ) {
-          event.preventDefault();
-          event.stopPropagation();
-          event.stopImmediatePropagation();
-
-          const element = snapshot().context.frozenElement || targetElement();
-          if (element) {
-            setCopyStartPosition(
-              element,
-              snapshot().context.mousePosition.x,
-              snapshot().context.mousePosition.y,
-            );
-
-            const cachedInput = elementInputCache.get(element);
-            if (cachedInput) {
-              send({ type: "INPUT_CHANGE", value: cachedInput });
-            }
-          }
-
-          activateInputMode();
-
-          if (keydownSpamTimerId !== null) {
-            window.clearTimeout(keydownSpamTimerId);
-            keydownSpamTimerId = null;
-          }
-
-          if (!isActivated()) {
-            activateRenderer();
-          }
-
-          return;
-        }
-
-        if (event.key?.toLowerCase() === "o" && !isInputMode()) {
-          if (isActivated() && (event.metaKey || event.ctrlKey)) {
-            const filePath = snapshot().context.selectionFilePath;
-            const lineNumber = snapshot().context.selectionLineNumber;
-            if (filePath) {
-              event.preventDefault();
-              event.stopPropagation();
-
-              if (options.onOpenFile) {
-                options.onOpenFile(filePath, lineNumber ?? undefined);
-              } else {
-                const url = buildOpenFileUrl(filePath, lineNumber ?? undefined);
-                window.open(url, "_blank");
-              }
-            }
-            return;
-          }
-        }
-
-        if (
-          !options.allowActivationInsideInput &&
-          isKeyboardEventTriggeredByInput(event)
-        ) {
-          return;
-        }
-
-        if (!isTargetKeyCombination(event, options)) {
-          if (
-            isActivated() &&
-            !snapshot().context.isToggleMode &&
-            (event.metaKey || event.ctrlKey)
-          ) {
-            if (
-              !MODIFIER_KEYS.includes(event.key) &&
-              !isEnterCode(event.code)
-            ) {
-              deactivateRenderer();
-            }
-          }
-          if (!isEnterCode(event.code) || !isHoldingKeys()) {
-            return;
-          }
-        }
-
-        if ((isActivated() || isHoldingKeys()) && !isInputMode()) {
-          event.preventDefault();
-          if (isEnterCode(event.code)) {
-            event.stopPropagation();
-            event.stopImmediatePropagation();
-          }
-        }
-
-        if (isActivated()) {
-          if (
-            snapshot().context.isToggleMode &&
-            options.activationMode !== "hold"
-          )
-            return;
-          if (event.repeat) return;
-
-          if (keydownSpamTimerId !== null) {
-            window.clearTimeout(keydownSpamTimerId);
-          }
-          keydownSpamTimerId = window.setTimeout(() => {
-            deactivateRenderer();
-          }, 200);
-          return;
-        }
-
-        if (isHoldingKeys() && event.repeat) return;
-
-        if (!isHoldingKeys()) {
-          const keyHoldDuration =
-            options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS;
-          const activationDuration = isKeyboardEventTriggeredByInput(event)
-            ? keyHoldDuration + INPUT_FOCUS_ACTIVATION_DELAY_MS
-            : keyHoldDuration;
-          send({ type: "HOLD_START", duration: activationDuration });
-        }
+        handleActivationKeys(event);
       },
       { capture: true },
     );
@@ -1837,8 +1748,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     eventListenerManager.addWindowListener("mousemove", (event: MouseEvent) => {
       send({ type: "SET_TOUCH_MODE", value: false });
       if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-      if (isHoldingKeys() && !isInputMode() && isToggleFrozen()) {
+      if (isActivated() && !isInputMode() && isToggleFrozen()) {
         send({ type: "UNFREEZE" });
+        arrowNavigator.clearHistory();
       }
       handlePointerMove(event.clientX, event.clientY);
     });
@@ -1899,13 +1811,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           pendingClickData = null;
         }
 
-        setCopyStartPosition(element, event.clientX, event.clientY);
-
-        const cachedInput = elementInputCache.get(element);
-        if (cachedInput) {
-          send({ type: "INPUT_CHANGE", value: cachedInput });
-        }
-
+        prepareInputMode(element, event.clientX, event.clientY);
         send({
           type: "MOUSE_MOVE",
           position: { x: event.clientX, y: event.clientY },
@@ -1976,7 +1882,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             !isCopying() &&
             !isInputMode()
           ) {
-            // Don't deactivate if waiting for potential double-click
             if (pendingClickTimeoutId !== null) return;
 
             if (!isHoldingKeys()) {
@@ -2167,7 +2072,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
       if (pendingClickTimeoutId) window.clearTimeout(pendingClickTimeoutId);
       stopAutoScroll();
-      stopProgressAnimation();
       document.body.style.userSelect = "";
       setCursorOverride(null);
       if (didPatchKeyboardEvent && originalKeyDescriptor) {
