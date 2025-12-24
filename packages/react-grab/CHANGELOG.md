@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.0.93
+
+### Patch Changes
+
+- fix: copying not working
+
 ## 0.0.92
 
 ### Patch Changes

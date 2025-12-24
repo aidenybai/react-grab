@@ -1,5 +1,13 @@
 # @react-grab/gemini
 
+## 0.0.93
+
+### Patch Changes
+
+- fix: copying not working
+- Updated dependencies
+  - react-grab@0.0.93
+
 ## 0.0.92
 
 ### Patch Changes
