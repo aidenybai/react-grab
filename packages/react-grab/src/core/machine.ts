@@ -51,9 +51,6 @@ interface GrabMachineContext {
   grabbedBoxes: GrabbedBox[];
   labelInstances: SelectionLabelInstance[];
 
-  nativeSelectionCursor: { x: number; y: number };
-  nativeSelectionElements: Element[];
-
   agentSessions: Map<string, AgentSession>;
   sessionElements: Map<string, Element>;
   abortControllers: Map<string, AbortController>;
@@ -99,9 +96,6 @@ const createInitialContext = (theme: Required<Theme>): GrabMachineContext => ({
   viewportVersion: 0,
   grabbedBoxes: [],
   labelInstances: [],
-
-  nativeSelectionCursor: { x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION },
-  nativeSelectionElements: [],
 
   agentSessions: new Map(),
   sessionElements: new Map(),
@@ -156,8 +150,6 @@ type GrabMachineEvent =
   | { type: "FREEZE_ELEMENT"; element: Element }
   | { type: "FREEZE_ELEMENTS"; elements: Element[] }
   | { type: "SET_TOGGLE_MODE"; value: boolean }
-  | { type: "TEXT_SELECTED"; elements: Element[]; cursor: Position }
-  | { type: "SELECTION_CLEARED" }
   | {
       type: "SESSION_START";
       sessionId: string;
@@ -207,8 +199,7 @@ type GrabMachineEvent =
     }
   | { type: "CONFIRM_AGENT_ABORT" }
   | { type: "CANCEL_AGENT_ABORT" }
-  | { type: "UPDATE_SESSION_BOUNDS" }
-  | { type: "CLEAR_NATIVE_SELECTION" };
+  | { type: "UPDATE_SESSION_BOUNDS" };
 
 type GuardArgs = { context: GrabMachineContext };
 
@@ -217,9 +208,6 @@ const hasAgentProvider = ({ context }: GuardArgs): boolean =>
 
 const hasElement = ({ context }: GuardArgs): boolean =>
   context.frozenElement !== null || context.detectedElement !== null;
-
-const hasNativeSelection = ({ context }: GuardArgs): boolean =>
-  context.nativeSelectionElements.length > 0;
 
 const hasInputText = ({ context }: GuardArgs): boolean =>
   context.inputText.trim().length > 0;
@@ -265,7 +253,6 @@ const stateMachine = setup({
   guards: {
     hasAgentProvider,
     hasElement,
-    hasNativeSelection,
     hasInputText,
     isToggleMode,
     hasPendingClick,
@@ -392,23 +379,6 @@ const stateMachine = setup({
           : context.labelInstances,
     }),
     clearLabelInstances: assign({ labelInstances: () => [] }),
-    setNativeSelectionCursor: assign({
-      nativeSelectionCursor: ({ event }) =>
-        event.type === "TEXT_SELECTED"
-          ? event.cursor
-          : { x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION },
-    }),
-    setNativeSelectionElements: assign({
-      nativeSelectionElements: ({ event }) =>
-        event.type === "TEXT_SELECTED" ? event.elements : [],
-    }),
-    clearNativeSelection: assign({
-      nativeSelectionCursor: () => ({
-        x: OFFSCREEN_POSITION,
-        y: OFFSCREEN_POSITION,
-      }),
-      nativeSelectionElements: () => [],
-    }),
     setTouchMode: assign({
       isTouchMode: ({ event }) =>
         event.type === "SET_TOUCH_MODE" ? event.value : false,
@@ -852,41 +822,6 @@ const stateMachine = setup({
       },
     },
 
-    nativeSelection: {
-      initial: "inactive",
-      states: {
-        inactive: {
-          on: {
-            TEXT_SELECTED: {
-              target: "active",
-              actions: [
-                "setNativeSelectionCursor",
-                "setNativeSelectionElements",
-              ],
-            },
-          },
-        },
-        active: {
-          on: {
-            SELECTION_CLEARED: {
-              target: "inactive",
-              actions: ["clearNativeSelection"],
-            },
-            CLEAR_NATIVE_SELECTION: {
-              target: "inactive",
-              actions: ["clearNativeSelection"],
-            },
-            TEXT_SELECTED: {
-              actions: [
-                "setNativeSelectionCursor",
-                "setNativeSelectionElements",
-              ],
-            },
-          },
-        },
-      },
-    },
-
     agentSessions: {
       initial: "idle",
       states: {
@@ -977,7 +912,6 @@ export { stateMachine, createInitialContext };
 export {
   hasAgentProvider,
   hasElement,
-  hasNativeSelection,
   hasInputText,
   isToggleMode,
   hasPendingClick,

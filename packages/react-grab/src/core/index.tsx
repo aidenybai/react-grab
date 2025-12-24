@@ -13,7 +13,6 @@ import { render } from "solid-js/web";
 import { useMachine } from "@xstate/solid";
 import { stateMachine } from "./machine.js";
 import { isKeyboardEventTriggeredByInput } from "../utils/is-keyboard-event-triggered-by-input.js";
-import { isSelectionInsideEditableElement } from "../utils/is-selection-inside-editable-element.js";
 import { mountRoot } from "../utils/mount-root.js";
 import { ReactGrabRenderer } from "../components/renderer.js";
 import { getStack, getNearestComponentName } from "./context.js";
@@ -38,12 +37,8 @@ import {
   INPUT_FOCUS_ACTIVATION_DELAY_MS,
   DEFAULT_KEY_HOLD_DURATION_MS,
   DOUBLE_CLICK_THRESHOLD_MS,
-  SELECTION_DEBOUNCE_MS,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
-import { isValidSelection } from "../utils/is-valid-selection.js";
-import { getSelectionCursorPosition } from "../utils/get-selection-cursor-position.js";
-import { hasElements } from "../utils/has-elements.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
 import { keyMatchesCode } from "../utils/key-matches-code.js";
 import { isTargetKeyCombination } from "../utils/is-target-key-combination.js";
@@ -211,32 +206,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       loadCachedInput(element);
     };
 
-    const hasNativeSelection = createMemo(
-      () => context().nativeSelectionElements.length > 0,
-    );
-
-    const nativeSelectionTagName = createMemo(() => {
-      const elements = context().nativeSelectionElements;
-      if (!hasElements(elements)) return undefined;
-      return getTagName(elements[0]) || undefined;
-    });
-
-    const [nativeSelectionComponentName] = createResource(
-      () => {
-        const elements = context().nativeSelectionElements;
-        if (!hasElements(elements)) return null;
-        return elements[0];
-      },
-      async (element) => {
-        if (!element) return undefined;
-        return (await getNearestComponentName(element)) || undefined;
-      },
-    );
-
-    const clearNativeSelectionState = () => {
-      send({ type: "CLEAR_NATIVE_SELECTION" });
-    };
-
     const activateInputMode = () => {
       const element = context().frozenElement || targetElement();
       if (element) {
@@ -263,47 +232,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
       return createElementBounds(element);
     };
-
-    const recalculateNativeSelectionCursor = () => {
-      const currentSelection = window.getSelection();
-      if (!isValidSelection(currentSelection)) {
-        return;
-      }
-
-      const cursorPosition = getSelectionCursorPosition(currentSelection);
-      if (!cursorPosition) return;
-
-      const range = currentSelection.getRangeAt(0);
-      const container = range.commonAncestorContainer;
-      const element =
-        container instanceof Element ? container : container.parentElement;
-
-      if (element && isValidGrabbableElement(element)) {
-        send({
-          type: "TEXT_SELECTED",
-          elements: [element],
-          cursor: cursorPosition,
-        });
-      }
-    };
-
-    createEffect(
-      on(
-        () => context().viewportVersion,
-        () => {
-          if (hasNativeSelection()) {
-            recalculateNativeSelectionCursor();
-          }
-        },
-      ),
-    );
-
-    const nativeSelectionBounds = createMemo((): OverlayBounds | undefined => {
-      void context().viewportVersion;
-      const elements = context().nativeSelectionElements;
-      if (!hasElements(elements)) return undefined;
-      return createElementBounds(elements[0]);
-    });
 
     let lastElementDetectionTime = 0;
     let keydownSpamTimerId: number | null = null;
@@ -1014,53 +942,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         );
       }
       activateInputMode();
-    };
-
-    const handleNativeSelectionCopy = async () => {
-      const elements = context().nativeSelectionElements;
-      if (elements.length === 0) return;
-
-      const currentX = context().nativeSelectionCursor.x;
-      const currentY = context().nativeSelectionCursor.y;
-      const bounds = nativeSelectionBounds();
-      const tagName = nativeSelectionTagName();
-
-      clearNativeSelectionState();
-      window.getSelection()?.removeAllRanges();
-
-      const componentName = nativeSelectionComponentName();
-
-      await executeCopyOperation(
-        currentX,
-        currentY,
-        () => copyElementsToClipboard(elements),
-        bounds,
-        tagName,
-        componentName,
-      );
-    };
-
-    const handleNativeSelectionEnter = () => {
-      if (!hasAgentProvider()) return;
-      const elements = context().nativeSelectionElements;
-      if (elements.length === 0) return;
-
-      const bounds = nativeSelectionBounds();
-      const center = bounds ? getBoundsCenter(bounds) : null;
-
-      clearNativeSelectionState();
-      window.getSelection()?.removeAllRanges();
-
-      send({
-        type: "MOUSE_MOVE",
-        position: {
-          x: center?.x ?? context().nativeSelectionCursor.x,
-          y: center?.y ?? context().nativeSelectionCursor.y,
-        },
-      });
-      send({ type: "FREEZE_ELEMENT", element: elements[0] });
-      activateInputMode();
-      activateRenderer();
     };
 
     const handleFollowUpSubmit = (sessionId: string, prompt: string) => {
@@ -1802,17 +1683,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       send({ type: "VIEWPORT_CHANGE" });
     });
 
-    eventListenerManager.addWindowListener("popstate", () => {
-      clearNativeSelectionState();
-    });
-
     let boundsRecalcIntervalId: number | null = null;
+    let viewportChangeFrameId: number | null = null;
 
     const startBoundsRecalcIntervalIfNeeded = () => {
       const shouldRunInterval =
         theme().enabled &&
-        (hasNativeSelection() ||
-          isActivated() ||
+        (isActivated() ||
           isCopying() ||
           context().labelInstances.length > 0 ||
           context().grabbedBoxes.length > 0 ||
@@ -1820,28 +1697,25 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (shouldRunInterval && boundsRecalcIntervalId === null) {
         boundsRecalcIntervalId = window.setInterval(() => {
-          send({ type: "VIEWPORT_CHANGE" });
+          if (viewportChangeFrameId !== null) return;
 
-          if (hasNativeSelection()) {
-            const elements = context().nativeSelectionElements;
-            const isElementInDOM =
-              elements.length > 0 &&
-              elements[0] &&
-              document.body.contains(elements[0]);
-            if (!isElementInDOM) {
-              clearNativeSelectionState();
-            }
-          }
+          viewportChangeFrameId = requestAnimationFrame(() => {
+            viewportChangeFrameId = null;
+            send({ type: "VIEWPORT_CHANGE" });
+          });
         }, BOUNDS_RECALC_INTERVAL_MS);
       } else if (!shouldRunInterval && boundsRecalcIntervalId !== null) {
         window.clearInterval(boundsRecalcIntervalId);
         boundsRecalcIntervalId = null;
+        if (viewportChangeFrameId !== null) {
+          cancelAnimationFrame(viewportChangeFrameId);
+          viewportChangeFrameId = null;
+        }
       }
     };
 
     createEffect(() => {
       void theme().enabled;
-      void hasNativeSelection();
       void isActivated();
       void isCopying();
       void context().labelInstances.length;
@@ -1853,6 +1727,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     onCleanup(() => {
       if (boundsRecalcIntervalId !== null) {
         window.clearInterval(boundsRecalcIntervalId);
+      }
+      if (viewportChangeFrameId !== null) {
+        cancelAnimationFrame(viewportChangeFrameId);
       }
     });
 
@@ -1871,65 +1748,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
       { capture: true },
     );
-
-    let selectionDebounceTimerId: number | null = null;
-
-    eventListenerManager.addDocumentListener("selectionchange", () => {
-      if (isRendererActive()) return;
-
-      if (selectionDebounceTimerId !== null) {
-        window.clearTimeout(selectionDebounceTimerId);
-      }
-
-      clearNativeSelectionState();
-
-      const selection = window.getSelection();
-      if (!isValidSelection(selection)) {
-        return;
-      }
-
-      selectionDebounceTimerId = window.setTimeout(() => {
-        selectionDebounceTimerId = null;
-
-        const currentSelection = window.getSelection();
-        if (!isValidSelection(currentSelection)) {
-          return;
-        }
-
-        const range = currentSelection.getRangeAt(0);
-        const rangeRect = range.getBoundingClientRect();
-
-        if (rangeRect.width === 0 && rangeRect.height === 0) {
-          return;
-        }
-
-        const selectedText = currentSelection.toString().trim();
-        if (!selectedText) {
-          return;
-        }
-
-        const cursorPosition = getSelectionCursorPosition(currentSelection);
-        if (!cursorPosition) {
-          return;
-        }
-
-        if (isSelectionInsideEditableElement(cursorPosition.x, cursorPosition.y)) {
-          return;
-        }
-
-        const container = range.commonAncestorContainer;
-        const element =
-          container instanceof Element ? container : container.parentElement;
-
-        if (element && isValidGrabbableElement(element)) {
-          send({
-            type: "TEXT_SELECTED",
-            elements: [element],
-            cursor: cursorPosition,
-          });
-        }
-      }, SELECTION_DEBOUNCE_MS);
-    });
 
     onCleanup(() => {
       eventListenerManager.abort();
@@ -2097,14 +1915,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             isPendingAgentAbort={isPendingAgentAbort()}
             onConfirmAgentAbort={handleConfirmAgentAbort}
             onCancelAgentAbort={handleCancelAgentAbort}
-            nativeSelectionCursorVisible={hasNativeSelection()}
-            nativeSelectionCursorX={context().nativeSelectionCursor.x}
-            nativeSelectionCursorY={context().nativeSelectionCursor.y}
-            nativeSelectionTagName={nativeSelectionTagName()}
-            nativeSelectionComponentName={nativeSelectionComponentName()}
-            nativeSelectionBounds={nativeSelectionBounds()}
-            onNativeSelectionCopy={() => void handleNativeSelectionCopy()}
-            onNativeSelectionEnter={handleNativeSelectionEnter}
             theme={theme()}
             toolbarVisible={theme().toolbar.enabled}
             isActive={isActivated()}
