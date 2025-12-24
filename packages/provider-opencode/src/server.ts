@@ -286,11 +286,29 @@ export const createServer = () => {
     const contentItems = Array.isArray(content) ? content : [content];
 
     return streamSSE(context, async (stream) => {
+      if (isFollowUp) {
+        for await (const message of runAgent(prompt, {
+          ...options,
+          sessionId,
+        })) {
+          if (message.type === "error") {
+            await stream.writeSSE({
+              data: `Error: ${message.content}`,
+              event: "error",
+            });
+          } else {
+            await stream.writeSSE({
+              data: message.content,
+              event: message.type,
+            });
+          }
+        }
+        return;
+      }
+
       for (let i = 0; i < contentItems.length; i++) {
         const elementContent = contentItems[i];
-        const formattedPrompt = isFollowUp
-          ? prompt
-          : `
+        const formattedPrompt = `
 User Request: ${prompt}
 
 Context:
