@@ -414,7 +414,14 @@ export const createAgentManager = (
 
     if (undoneSessionData) {
       const { session, elements } = undoneSessionData;
-      const validElements = elements.filter((el) => document.contains(el));
+      let validElements = elements.filter((el) => document.contains(el));
+
+      if (validElements.length === 0) {
+        const reacquiredElement = tryReacquireElement(session);
+        if (reacquiredElement) {
+          validElements = [reacquiredElement];
+        }
+      }
 
       if (validElements.length > 0) {
         const newBounds = validElements.map((el) => createElementBounds(el));
