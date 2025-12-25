@@ -887,7 +887,6 @@ const stateMachine = setup({
         UPDATE_SESSION_BOUNDS: { actions: ["updateSessionBounds"] },
       },
     },
-
   },
 });
 

@@ -83,7 +83,9 @@ test.describe("Viewport and Scroll Handling", () => {
     expect(isVisible).toBe(true);
   });
 
-  test("should copy element after resize using click", async ({ reactGrab }) => {
+  test("should copy element after resize using click", async ({
+    reactGrab,
+  }) => {
     await reactGrab.activate();
     await reactGrab.hoverElement("h1");
     await reactGrab.waitForSelectionBox();

@@ -124,7 +124,9 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
                   session().isStreaming &&
                   props.pendingAbortSessionId === session().id
                 }
-                onConfirmAbort={() => props.onAbortSession?.(session().id, true)}
+                onConfirmAbort={() =>
+                  props.onAbortSession?.(session().id, true)
+                }
                 onCancelAbort={() =>
                   props.onAbortSession?.(session().id, false)
                 }
