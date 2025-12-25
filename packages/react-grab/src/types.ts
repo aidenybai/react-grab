@@ -314,7 +314,8 @@ export interface ReactGrabRendererProps {
   supportsUndo?: boolean;
   supportsFollowUp?: boolean;
   dismissButtonText?: string;
-  onAbortSession?: (sessionId: string) => void;
+  onRequestAbortSession?: (sessionId: string) => void;
+  onAbortSession?: (sessionId: string, confirmed: boolean) => void;
   onDismissSession?: (sessionId: string) => void;
   onUndoSession?: (sessionId: string) => void;
   onFollowUpSubmitSession?: (sessionId: string, prompt: string) => void;
@@ -327,9 +328,7 @@ export interface ReactGrabRendererProps {
   isPendingDismiss?: boolean;
   onConfirmDismiss?: () => void;
   onCancelDismiss?: () => void;
-  isPendingAgentAbort?: boolean;
-  onConfirmAgentAbort?: () => void;
-  onCancelAgentAbort?: () => void;
+  pendingAbortSessionId?: string | null;
   theme?: Required<Theme>;
   toolbarVisible?: boolean;
   isActive?: boolean;

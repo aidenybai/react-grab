@@ -169,8 +169,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
     });
 
-    const isPendingAgentAbort = createMemo(() => {
-      return snapshot().matches({ agentAbortConfirmation: "confirming" });
+    const pendingAbortSessionId = createMemo(() => {
+      return context().pendingAbortSessionId;
     });
 
     const hasAgentProvider = createMemo(() => context().hasAgentProvider);
@@ -923,13 +923,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       send({ type: "CANCEL_DISMISS" });
     };
 
-    const handleConfirmAgentAbort = () => {
-      send({ type: "CONFIRM_AGENT_ABORT" });
-      agentManager.session.abort();
-    };
-
-    const handleCancelAgentAbort = () => {
-      send({ type: "CANCEL_AGENT_ABORT" });
+    const handleAgentAbort = (sessionId: string, confirmed: boolean) => {
+      send({ type: "SET_PENDING_ABORT_SESSION", sessionId: null });
+      if (confirmed) {
+        agentManager.session.abort(sessionId);
+      }
     };
 
     const handleToggleExpand = () => {
@@ -1398,10 +1396,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             !isEnterToActivateInput)
         ) {
           if (event.key === "Escape") {
-            if (agentManager.isProcessing() && !isPendingAgentAbort()) {
+            if (pendingAbortSessionId()) {
               event.preventDefault();
               event.stopPropagation();
-              send({ type: "ESC" });
+              send({ type: "SET_PENDING_ABORT_SESSION", sessionId: null });
             } else if (context().isToggleMode && !isInputMode()) {
               deactivateRenderer();
             }
@@ -1410,12 +1408,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
 
         if (event.key === "Escape") {
+          if (pendingAbortSessionId()) {
+            event.preventDefault();
+            event.stopPropagation();
+            send({ type: "SET_PENDING_ABORT_SESSION", sessionId: null });
+            return;
+          }
+
           if (agentManager.isProcessing()) {
-            if (!isPendingAgentAbort()) {
-              event.preventDefault();
-              event.stopPropagation();
-              send({ type: "ESC" });
-            }
             return;
           }
 
@@ -1883,7 +1883,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             supportsUndo={context().supportsUndo}
             supportsFollowUp={context().supportsFollowUp}
             dismissButtonText={context().dismissButtonText}
-            onAbortSession={agentManager.session.abort}
             onDismissSession={agentManager.session.dismiss}
             onUndoSession={agentManager.session.undo}
             onFollowUpSubmitSession={handleFollowUpSubmit}
@@ -1896,9 +1895,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             isPendingDismiss={isPendingDismiss()}
             onConfirmDismiss={handleConfirmDismiss}
             onCancelDismiss={handleCancelDismiss}
-            isPendingAgentAbort={isPendingAgentAbort()}
-            onConfirmAgentAbort={handleConfirmAgentAbort}
-            onCancelAgentAbort={handleCancelAgentAbort}
+            pendingAbortSessionId={pendingAbortSessionId()}
+            onRequestAbortSession={(sessionId) =>
+              send({ type: "SET_PENDING_ABORT_SESSION", sessionId })
+            }
+            onAbortSession={handleAgentAbort}
             theme={theme()}
             toolbarVisible={theme().toolbar.enabled}
             isActive={isActivated()}

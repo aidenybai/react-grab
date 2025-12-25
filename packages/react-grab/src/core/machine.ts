@@ -68,6 +68,7 @@ interface GrabMachineContext {
   supportsUndo: boolean;
   supportsFollowUp: boolean;
   dismissButtonText: string | undefined;
+  pendingAbortSessionId: string | null;
 }
 
 const createInitialContext = (theme: Required<Theme>): GrabMachineContext => ({
@@ -114,6 +115,7 @@ const createInitialContext = (theme: Required<Theme>): GrabMachineContext => ({
   supportsUndo: false,
   supportsFollowUp: false,
   dismissButtonText: undefined,
+  pendingAbortSessionId: null,
 });
 
 interface GrabMachineInput {
@@ -197,8 +199,7 @@ type GrabMachineEvent =
       dismissButtonText: string | undefined;
       isAgentConnected: boolean;
     }
-  | { type: "CONFIRM_AGENT_ABORT" }
-  | { type: "CANCEL_AGENT_ABORT" }
+  | { type: "SET_PENDING_ABORT_SESSION"; sessionId: string | null }
   | { type: "UPDATE_SESSION_BOUNDS" };
 
 type GuardArgs = { context: GrabMachineContext };
@@ -522,6 +523,10 @@ const stateMachine = setup({
           ? event.isAgentConnected
           : false,
     }),
+    setPendingAbortSessionId: assign({
+      pendingAbortSessionId: ({ event }) =>
+        event.type === "SET_PENDING_ABORT_SESSION" ? event.sessionId : null,
+    }),
     resetActivationState: assign({
       isToggleMode: () => false,
       inputText: () => "",
@@ -713,6 +718,7 @@ const stateMachine = setup({
         SET_TOGGLE_MODE: { actions: ["setToggleMode"] },
         FREEZE_ELEMENT: { actions: ["setFrozenElement"] },
         FREEZE_ELEMENTS: { actions: ["setFrozenElements"] },
+        SET_PENDING_ABORT_SESSION: { actions: ["setPendingAbortSessionId"] },
       },
     },
 
@@ -882,29 +888,6 @@ const stateMachine = setup({
       },
     },
 
-    agentAbortConfirmation: {
-      initial: "inactive",
-      states: {
-        inactive: {
-          on: {
-            ESC: {
-              target: "confirming",
-              guard: "isAgentStreaming",
-            },
-          },
-        },
-        confirming: {
-          on: {
-            CONFIRM_AGENT_ABORT: {
-              target: "inactive",
-            },
-            CANCEL_AGENT_ABORT: {
-              target: "inactive",
-            },
-          },
-        },
-      },
-    },
   },
 });
 

@@ -98,7 +98,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
                 supportsUndo={props.supportsUndo}
                 supportsFollowUp={props.supportsFollowUp}
                 dismissButtonText={props.dismissButtonText}
-                onAbort={() => props.onAbortSession?.(session().id)}
+                onAbort={() => props.onRequestAbortSession?.(session().id)}
                 onDismiss={
                   session().isStreaming
                     ? undefined
@@ -121,10 +121,13 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
                 }
                 onRetry={() => props.onRetrySession?.(session().id)}
                 isPendingAbort={
-                  session().isStreaming ? props.isPendingAgentAbort : false
+                  session().isStreaming &&
+                  props.pendingAbortSessionId === session().id
                 }
-                onConfirmAbort={props.onConfirmAgentAbort}
-                onCancelAbort={props.onCancelAgentAbort}
+                onConfirmAbort={() => props.onAbortSession?.(session().id, true)}
+                onCancelAbort={() =>
+                  props.onAbortSession?.(session().id, false)
+                }
               />
             </Show>
           </>
