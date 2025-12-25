@@ -5,4 +5,4 @@ interface SpinnerOptions {
 }
 
 export const spinner = (text: string, options?: SpinnerOptions) =>
-  ora({ text, isSilent: options?.silent, stream: process.stdout });
+  ora({ text, isSilent: options?.silent });
