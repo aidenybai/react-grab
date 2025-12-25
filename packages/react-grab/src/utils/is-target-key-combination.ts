@@ -52,17 +52,17 @@ export const isTargetKeyCombination = (
       );
     }
 
-    const keyMatches =
-      event.key?.toLowerCase() === key.toLowerCase() ||
-      keyMatchesCode(key, event.code);
-    const hasModifier = metaKey || ctrlKey || shiftKey || altKey;
-    const modifiersMatch = hasModifier
-      ? (metaKey ? event.metaKey : true) &&
-        (ctrlKey ? event.ctrlKey : true) &&
-        (shiftKey ? event.shiftKey : true) &&
-        (altKey ? event.altKey : true)
-      : event.metaKey || event.ctrlKey;
-    return keyMatches && modifiersMatch;
+  const keyMatches =
+    event.key?.toLowerCase() === key.toLowerCase() ||
+    keyMatchesCode(key, event.code);
+  const hasModifier = metaKey || ctrlKey || shiftKey || altKey;
+  const modifiersMatch = hasModifier
+    ? (metaKey ? event.metaKey : true) &&
+      (ctrlKey ? event.ctrlKey : true) &&
+      (shiftKey ? event.shiftKey : true) &&
+      (altKey ? event.altKey : true)
+    : !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
+  return keyMatches && modifiersMatch;
   }
 
   const hasOnlyMetaOrCtrl =
