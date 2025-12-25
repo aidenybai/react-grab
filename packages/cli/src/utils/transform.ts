@@ -207,6 +207,24 @@ const addAgentToExistingNextApp = (
     };
   }
 
+  const bareScriptMatch = originalContent.match(
+    /<Script[^>]*react-grab[^>]*\/>/i,
+  );
+
+  if (bareScriptMatch) {
+    const newContent = originalContent.replace(
+      bareScriptMatch[0],
+      `${bareScriptMatch[0]}\n        <Script src="//unpkg.com/${agentPackage}/dist/client.global.js" strategy="lazyOnload" />`,
+    );
+    return {
+      success: true,
+      filePath,
+      message: `Add ${agent} agent`,
+      originalContent,
+      newContent,
+    };
+  }
+
   return {
     success: false,
     filePath,
