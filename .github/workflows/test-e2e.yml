@@ -1,4 +1,4 @@
-name: Test
+name: Test E2E
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  test-e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -33,14 +33,5 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Run tests
-        run: pnpm test
-
-      - name: Upload Playwright report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-report
-          path: packages/react-grab/playwright-report/
-          retention-days: 30
-          if-no-files-found: ignore
+      - name: Run E2E tests
+        run: pnpm --filter react-grab test
