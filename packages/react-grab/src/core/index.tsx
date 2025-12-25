@@ -1606,6 +1606,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         );
         if (didHandle) {
           event.preventDefault();
+          event.stopPropagation();
         }
       },
       { passive: false },
