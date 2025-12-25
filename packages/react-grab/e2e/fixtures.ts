@@ -3,7 +3,6 @@ import { test as base, expect, Page, Locator } from "@playwright/test";
 const ATTRIBUTE_NAME = "data-react-grab";
 const DEFAULT_KEY_HOLD_DURATION_MS = 200;
 const ACTIVATION_BUFFER_MS = 100;
-const ACTIVATION_KEY = "c";
 
 interface ReactGrabPageObject {
   page: Page;
@@ -16,10 +15,16 @@ interface ReactGrabPageObject {
   getShadowRoot: () => Promise<Element | null>;
   hoverElement: (selector: string) => Promise<void>;
   clickElement: (selector: string) => Promise<void>;
+  doubleClickElement: (selector: string) => Promise<void>;
   dragSelect: (startSelector: string, endSelector: string) => Promise<void>;
   getClipboardContent: () => Promise<string>;
   waitForSelectionBox: () => Promise<void>;
   pressEscape: () => Promise<void>;
+  pressArrowDown: () => Promise<void>;
+  pressArrowUp: () => Promise<void>;
+  pressArrowLeft: () => Promise<void>;
+  pressArrowRight: () => Promise<void>;
+  scrollPage: (deltaY: number) => Promise<void>;
 }
 
 const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
@@ -43,7 +48,8 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const holdToActivate = async (durationMs = DEFAULT_KEY_HOLD_DURATION_MS) => {
     await page.click("body");
-    await page.keyboard.down(ACTIVATION_KEY);
+    await page.keyboard.down("Meta");
+    await page.keyboard.down("c");
     await page.waitForTimeout(durationMs + ACTIVATION_BUFFER_MS);
   };
 
@@ -58,7 +64,8 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const activateViaKeyboard = async () => {
     await holdToActivate();
-    await page.keyboard.up(ACTIVATION_KEY);
+    await page.keyboard.up("c");
+    await page.keyboard.up("Meta");
     await page.waitForTimeout(100);
   };
 
@@ -114,6 +121,36 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     await page.keyboard.press("Escape");
   };
 
+  const pressArrowDown = async () => {
+    await page.keyboard.press("ArrowDown");
+    await page.waitForTimeout(50);
+  };
+
+  const pressArrowUp = async () => {
+    await page.keyboard.press("ArrowUp");
+    await page.waitForTimeout(50);
+  };
+
+  const pressArrowLeft = async () => {
+    await page.keyboard.press("ArrowLeft");
+    await page.waitForTimeout(50);
+  };
+
+  const pressArrowRight = async () => {
+    await page.keyboard.press("ArrowRight");
+    await page.waitForTimeout(50);
+  };
+
+  const doubleClickElement = async (selector: string) => {
+    const element = page.locator(selector).first();
+    await element.dblclick({ force: true });
+  };
+
+  const scrollPage = async (deltaY: number) => {
+    await page.mouse.wheel(0, deltaY);
+    await page.waitForTimeout(100);
+  };
+
   return {
     page,
     activate,
@@ -125,10 +162,16 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     getShadowRoot,
     hoverElement,
     clickElement,
+    doubleClickElement,
     dragSelect,
     getClipboardContent,
     waitForSelectionBox,
     pressEscape,
+    pressArrowDown,
+    pressArrowUp,
+    pressArrowLeft,
+    pressArrowRight,
+    scrollPage,
   };
 };
 

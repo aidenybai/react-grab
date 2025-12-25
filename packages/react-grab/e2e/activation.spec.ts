@@ -11,7 +11,7 @@ test.describe("Activation Flows", () => {
     expect(isVisibleAfter).toBe(true);
   });
 
-  test("should not activate if key released before threshold", async ({
+  test("should not activate when pressing C without Cmd/Ctrl modifier", async ({
     reactGrab,
   }) => {
     await reactGrab.page.keyboard.down("c");
