@@ -63,8 +63,8 @@ if (typeof window !== "undefined") {
   } else {
     globalApi = init();
     window.__REACT_GRAB__ = globalApi;
-    window.dispatchEvent(
-      new CustomEvent("react-grab:init", { detail: globalApi }),
-    );
   }
+  window.dispatchEvent(
+    new CustomEvent("react-grab:init", { detail: globalApi }),
+  );
 }
