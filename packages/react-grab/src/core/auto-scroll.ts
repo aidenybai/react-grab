@@ -48,7 +48,12 @@ export const createAutoScroller = (
     if (direction.left) window.scrollBy(-AUTO_SCROLL_SPEED_PX, 0);
     if (direction.right) window.scrollBy(AUTO_SCROLL_SPEED_PX, 0);
 
-    if (direction.top || direction.bottom || direction.left || direction.right) {
+    if (
+      direction.top ||
+      direction.bottom ||
+      direction.left ||
+      direction.right
+    ) {
       animationId = requestAnimationFrame(scroll);
     } else {
       animationId = null;

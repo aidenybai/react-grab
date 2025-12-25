@@ -27,7 +27,9 @@ export const getRequiredModifiers = (options: Options): ModifierKeys => {
 
 export interface KeyboardEventClaimer {
   claimedEvents: WeakSet<KeyboardEvent>;
-  originalKeyDescriptor: (PropertyDescriptor & { get?: () => string }) | undefined;
+  originalKeyDescriptor:
+    | (PropertyDescriptor & { get?: () => string })
+    | undefined;
   didPatch: boolean;
   restore: () => void;
 }

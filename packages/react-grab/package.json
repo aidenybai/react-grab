@@ -75,12 +75,16 @@
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write .",
     "check": "eslint src/**/*.ts && prettier --check .",
+    "test": "playwright test",
     "publint": "publint",
-    "prepublishOnly": "pnpm build"
+    "prepublishOnly": "pnpm build",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "devDependencies": {
     "@babel/core": "^7.28.5",
     "@babel/preset-typescript": "^7.28.5",
+    "@playwright/test": "^1.40.0",
     "@react-grab/cli": "workspace:*",
     "@tailwindcss/cli": "^4.1.17",
     "@types/node": "^20.19.23",

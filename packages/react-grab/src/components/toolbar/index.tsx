@@ -1,11 +1,7 @@
 import { createSignal, onMount, onCleanup } from "solid-js";
 import type { Component } from "solid-js";
 import { cn } from "../../utils/cn.js";
-import {
-  loadToolbarState,
-  saveToolbarState,
-  type SnapEdge,
-} from "./state.js";
+import { loadToolbarState, saveToolbarState, type SnapEdge } from "./state.js";
 import { IconSelect } from "../icons/icon-select.jsx";
 import { IconChevron } from "../icons/icon-chevron.jsx";
 
@@ -495,4 +491,3 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     </div>
   );
 };
-

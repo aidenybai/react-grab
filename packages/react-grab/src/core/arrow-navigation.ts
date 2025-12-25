@@ -4,10 +4,7 @@ type ElementValidator = (element: Element) => boolean;
 type BoundsCalculator = (element: Element) => OverlayBounds;
 
 export interface ArrowNavigator {
-  findNext: (
-    key: string,
-    currentElement: Element,
-  ) => Element | null;
+  findNext: (key: string, currentElement: Element) => Element | null;
   clearHistory: () => void;
 }
 
@@ -138,4 +135,3 @@ export const createArrowNavigator = (
     clearHistory,
   };
 };
-

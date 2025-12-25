@@ -64,10 +64,7 @@ import {
   getRequiredModifiers,
   setupKeyboardEventClaimer,
 } from "./keyboard-handlers.js";
-import {
-  createAutoScroller,
-  getAutoScrollDirection,
-} from "./auto-scroll.js";
+import { createAutoScroller, getAutoScrollDirection } from "./auto-scroll.js";
 import { logIntro } from "./log-intro.js";
 import { onIdle } from "../utils/on-idle.js";
 import { getScriptOptions } from "../utils/get-script-options.js";
@@ -201,7 +198,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    const prepareInputMode = (element: Element, positionX: number, positionY: number) => {
+    const prepareInputMode = (
+      element: Element,
+      positionX: number,
+      positionY: number,
+    ) => {
       setCopyStartPosition(element, positionX, positionY);
       loadCachedInput(element);
     };
@@ -427,8 +428,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return element;
     });
 
-    const effectiveElement = createMemo(() =>
-      context().frozenElement || (isToggleFrozen() ? null : targetElement()),
+    const effectiveElement = createMemo(
+      () =>
+        context().frozenElement || (isToggleFrozen() ? null : targetElement()),
     );
 
     createEffect(() => {
@@ -742,7 +744,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       ),
     );
 
-
     const activateRenderer = () => {
       const wasInHoldingState = isHoldingKeys();
       send({ type: "ACTIVATE" });
@@ -1034,7 +1035,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const selectedElements =
         elements.length > 0
           ? elements
-          : getElementsInDrag(dragSelectionRect, isValidGrabbableElement, false);
+          : getElementsInDrag(
+              dragSelectionRect,
+              isValidGrabbableElement,
+              false,
+            );
 
       if (selectedElements.length === 0) return;
 
@@ -1324,10 +1329,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           !context().isToggleMode &&
           (event.metaKey || event.ctrlKey)
         ) {
-          if (
-            !MODIFIER_KEYS.includes(event.key) &&
-            !isEnterCode(event.code)
-          ) {
+          if (!MODIFIER_KEYS.includes(event.key) && !isEnterCode(event.code)) {
             deactivateRenderer();
           }
         }
@@ -1345,11 +1347,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       if (isActivated()) {
-        if (
-          context().isToggleMode &&
-          options.activationMode !== "hold"
-        )
-          return;
+        if (context().isToggleMode && options.activationMode !== "hold") return;
         if (event.repeat) return;
 
         if (keydownSpamTimerId !== null) {
@@ -1467,10 +1465,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         if (isActivated()) {
           if (isReleasingModifier) {
-            if (
-              context().isToggleMode &&
-              options.activationMode !== "hold"
-            )
+            if (context().isToggleMode && options.activationMode !== "hold")
               return;
             deactivateRenderer();
           } else if (
@@ -1485,10 +1480,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
 
         if (isReleasingActivationKey || isReleasingModifier) {
-          if (
-            context().isToggleMode &&
-            options.activationMode !== "hold"
-          )
+          if (context().isToggleMode && options.activationMode !== "hold")
             return;
           if (isHoldingKeys()) {
             send({ type: "RELEASE" });
@@ -1636,11 +1628,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           event.preventDefault();
           event.stopPropagation();
 
-          if (
-            context().isToggleMode &&
-            !isCopying() &&
-            !isInputMode()
-          ) {
+          if (context().isToggleMode && !isCopying() && !isInputMode()) {
             if (pendingClickTimeoutId !== null) return;
 
             if (!isHoldingKeys()) {
@@ -1657,8 +1645,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     eventListenerManager.addDocumentListener("visibilitychange", () => {
       if (document.hidden) {
         send({ type: "CLEAR_GRABBED_BOXES" });
-        const contextActivationTimestamp =
-          context().activationTimestamp;
+        const contextActivationTimestamp = context().activationTimestamp;
         if (
           isActivated() &&
           !isInputMode() &&
@@ -1871,12 +1858,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             selectionBounds={selectionBounds()}
             selectionBoundsMultiple={frozenElementsBounds()}
             selectionElementsCount={frozenElementsCount()}
-            selectionFilePath={
-              context().selectionFilePath ?? undefined
-            }
-            selectionLineNumber={
-              context().selectionLineNumber ?? undefined
-            }
+            selectionFilePath={context().selectionFilePath ?? undefined}
+            selectionLineNumber={context().selectionLineNumber ?? undefined}
             selectionTagName={selectionTagName()}
             selectionComponentName={selectionComponentName()}
             selectionLabelVisible={selectionLabelVisible()}

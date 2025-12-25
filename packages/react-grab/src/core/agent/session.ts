@@ -112,5 +112,3 @@ export const updateSession = (
   saveSessionById(updatedSession, storage);
   return updatedSession;
 };
-
-
