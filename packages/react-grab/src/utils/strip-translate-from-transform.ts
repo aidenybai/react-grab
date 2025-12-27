@@ -54,6 +54,46 @@ const isIdentityMatrix3d = (values: number[]): boolean =>
   values[15] === 1;
 
 /**
+ * Strips translation from a computed transform string.
+ */
+export const stripTranslateFromTransformString = (transform: string): string => {
+  if (!transform || transform === "none") return "none";
+
+  if (transform.charCodeAt(0) === 109) {
+    if (transform.charCodeAt(6) === 51) {
+      const start = 9;
+      const end = transform.length - 1;
+      const values = parseMatrixValues(transform.slice(start, end), 16);
+
+      if (values) {
+        values[12] = 0;
+        values[13] = 0;
+        values[14] = 0;
+
+        if (isIdentityMatrix3d(values)) return "none";
+        return `matrix3d(${values[0]}, ${values[1]}, ${values[2]}, ${values[3]}, ${values[4]}, ${values[5]}, ${values[6]}, ${values[7]}, ${values[8]}, ${values[9]}, ${values[10]}, ${values[11]}, 0, 0, 0, ${values[15]})`;
+      }
+    } else {
+      const start = 7;
+      const end = transform.length - 1;
+      const values = parseMatrixValues(transform.slice(start, end), 6);
+
+      if (values) {
+        const a = values[0];
+        const b = values[1];
+        const c = values[2];
+        const d = values[3];
+
+        if (isIdentityMatrix2d(a, b, c, d)) return "none";
+        return `matrix(${a}, ${b}, ${c}, ${d}, 0, 0)`;
+      }
+    }
+  }
+
+  return "none";
+};
+
+/**
  * Strips translation components from a CSS transform while preserving other transformations.
  *
  * This is critical for virtualized lists where elements are positioned using transforms like
@@ -78,56 +118,7 @@ const isIdentityMatrix3d = (values: number[]): boolean =>
  * stripTranslateFromTransform(element) // Returns: "none" (only translation, nothing to preserve)
  */
 export const stripTranslateFromTransform = (element: Element): string => {
-  try {
-    if (!(element instanceof Element)) {
-      return "none";
-    }
-
-    const computedStyle = window.getComputedStyle(element);
-    if (!computedStyle) {
-      return "none";
-    }
-
-    const transform = computedStyle.transform;
-    if (!transform || transform === "none") {
-      return "none";
-    }
-
-    const matrix3dMatch = transform.match(/^matrix3d\(([^)]+)\)$/);
-    if (matrix3dMatch) {
-      const values = parseMatrixValues(matrix3dMatch[1], 16);
-
-      if (values && values.length === 16) {
-        const strippedValues = [...values];
-        strippedValues[12] = 0;
-        strippedValues[13] = 0;
-        strippedValues[14] = 0;
-
-        if (isIdentityMatrix3d(strippedValues)) {
-          return "none";
-        }
-
-        return `matrix3d(${strippedValues.join(", ")})`;
-      }
-    }
-
-    const matrixMatch = transform.match(/^matrix\(([^)]+)\)$/);
-    if (matrixMatch) {
-      const values = parseMatrixValues(matrixMatch[1], 6);
-
-      if (values && values.length === 6) {
-        const [a, b, c, d] = values;
-
-        if (isIdentityMatrix2d(a, b, c, d)) {
-          return "none";
-        }
-
-        return `matrix(${a}, ${b}, ${c}, ${d}, 0, 0)`;
-      }
-    }
-
-    return "none";
-  } catch {
-    return "none";
-  }
+  if (!(element instanceof Element)) return "none";
+  const computedStyle = window.getComputedStyle(element);
+  return stripTranslateFromTransformString(computedStyle.transform);
 };

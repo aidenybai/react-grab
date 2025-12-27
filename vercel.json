@@ -6,6 +6,11 @@
       "source": "/docs",
       "destination": "https://github.com/aidenybai/react-grab#readme",
       "permanent": false
+    },
+    {
+      "source": "/blog/visual-edit",
+      "destination": "/blog/agent",
+      "permanent": true
     }
   ],
   "headers": [

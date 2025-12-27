@@ -13,11 +13,6 @@ interface BlogPost {
 
 const blogPosts: BlogPost[] = [
   {
-    slug: "visual-edit",
-    title: "Visual Edit",
-    year: "2025",
-  },
-  {
     slug: "agent",
     title: "React Grab for Agents",
     year: "2025",
