@@ -1,10 +1,50 @@
 import type { OverlayBounds } from "../types.js";
-import { stripTranslateFromTransformString } from "./strip-translate-from-transform.js";
+import {
+  stripTranslateFromMatrix,
+  stripTranslateFromTransformString,
+} from "./strip-translate-from-transform.js";
+
+const MAX_ANCESTOR_DEPTH = 6;
+const EARLY_BAIL_DEPTH = 3;
+
+const getAccumulatedTransform = (
+  element: Element,
+  selfTransform: string,
+): string => {
+  const hasSelfTransform = selfTransform && selfTransform !== "none";
+
+  let accumulated: DOMMatrix | null = null;
+  let current = element.parentElement;
+  let depth = 0;
+
+  while (current && current !== document.documentElement && depth < MAX_ANCESTOR_DEPTH) {
+    const t = window.getComputedStyle(current).transform;
+    if (t && t !== "none") {
+      accumulated = accumulated
+        ? new DOMMatrix(t).multiply(accumulated)
+        : new DOMMatrix(t);
+    } else if (!hasSelfTransform && !accumulated && depth >= EARLY_BAIL_DEPTH) {
+      return "none";
+    }
+    current = current.parentElement;
+    depth++;
+  }
+
+  if (!accumulated) {
+    return hasSelfTransform ? stripTranslateFromTransformString(selfTransform) : "none";
+  }
+
+  if (hasSelfTransform) {
+    accumulated = accumulated.multiply(new DOMMatrix(selfTransform));
+  }
+
+  return stripTranslateFromMatrix(accumulated);
+};
 
 export const createElementBounds = (element: Element): OverlayBounds => {
   const rect = element.getBoundingClientRect();
   const style = window.getComputedStyle(element);
-  const transform = stripTranslateFromTransformString(style.transform);
+  const transform = getAccumulatedTransform(element, style.transform);
 
   if (transform !== "none" && element instanceof HTMLElement) {
     const ow = element.offsetWidth;

@@ -94,6 +94,30 @@ export const stripTranslateFromTransformString = (transform: string): string => 
 };
 
 /**
+ * Strips translation from a DOMMatrix, returning a CSS matrix string.
+ */
+export const stripTranslateFromMatrix = (matrix: DOMMatrix): string => {
+  if (matrix.isIdentity) return "none";
+
+  if (matrix.is2D) {
+    if (isIdentityMatrix2d(matrix.a, matrix.b, matrix.c, matrix.d)) return "none";
+    return `matrix(${matrix.a}, ${matrix.b}, ${matrix.c}, ${matrix.d}, 0, 0)`;
+  }
+
+  const m = matrix;
+  if (
+    m.m11 === 1 && m.m12 === 0 && m.m13 === 0 && m.m14 === 0 &&
+    m.m21 === 0 && m.m22 === 1 && m.m23 === 0 && m.m24 === 0 &&
+    m.m31 === 0 && m.m32 === 0 && m.m33 === 1 && m.m34 === 0 &&
+    m.m44 === 1
+  ) {
+    return "none";
+  }
+
+  return `matrix3d(${m.m11}, ${m.m12}, ${m.m13}, ${m.m14}, ${m.m21}, ${m.m22}, ${m.m23}, ${m.m24}, ${m.m31}, ${m.m32}, ${m.m33}, ${m.m34}, 0, 0, 0, ${m.m44})`;
+};
+
+/**
  * Strips translation components from a CSS transform while preserving other transformations.
  *
  * This is critical for virtualized lists where elements are positioned using transforms like
