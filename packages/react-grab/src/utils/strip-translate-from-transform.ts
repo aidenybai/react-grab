@@ -104,17 +104,16 @@ export const stripTranslateFromMatrix = (matrix: DOMMatrix): string => {
     return `matrix(${matrix.a}, ${matrix.b}, ${matrix.c}, ${matrix.d}, 0, 0)`;
   }
 
-  const m = matrix;
   if (
-    m.m11 === 1 && m.m12 === 0 && m.m13 === 0 && m.m14 === 0 &&
-    m.m21 === 0 && m.m22 === 1 && m.m23 === 0 && m.m24 === 0 &&
-    m.m31 === 0 && m.m32 === 0 && m.m33 === 1 && m.m34 === 0 &&
-    m.m44 === 1
+    matrix.m11 === 1 && matrix.m12 === 0 && matrix.m13 === 0 && matrix.m14 === 0 &&
+    matrix.m21 === 0 && matrix.m22 === 1 && matrix.m23 === 0 && matrix.m24 === 0 &&
+    matrix.m31 === 0 && matrix.m32 === 0 && matrix.m33 === 1 && matrix.m34 === 0 &&
+    matrix.m44 === 1
   ) {
     return "none";
   }
 
-  return `matrix3d(${m.m11}, ${m.m12}, ${m.m13}, ${m.m14}, ${m.m21}, ${m.m22}, ${m.m23}, ${m.m24}, ${m.m31}, ${m.m32}, ${m.m33}, ${m.m34}, 0, 0, 0, ${m.m44})`;
+  return `matrix3d(${matrix.m11}, ${matrix.m12}, ${matrix.m13}, ${matrix.m14}, ${matrix.m21}, ${matrix.m22}, ${matrix.m23}, ${matrix.m24}, ${matrix.m31}, ${matrix.m32}, ${matrix.m33}, ${matrix.m34}, 0, 0, 0, ${matrix.m44})`;
 };
 
 /**
