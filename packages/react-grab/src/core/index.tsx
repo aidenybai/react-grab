@@ -1537,10 +1537,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       { capture: true },
     );
 
-    eventListenerManager.addWindowListener("mouseup", (event: MouseEvent) => {
-      if (event.button !== 0) return;
-      handlePointerUp(event.clientX, event.clientY);
-    });
+    eventListenerManager.addWindowListener(
+      "mouseup",
+      (event: MouseEvent) => {
+        if (event.button !== 0) return;
+        handlePointerUp(event.clientX, event.clientY);
+      },
+      { capture: true },
+    );
 
     eventListenerManager.addWindowListener(
       "contextmenu",
