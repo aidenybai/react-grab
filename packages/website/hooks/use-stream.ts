@@ -60,6 +60,12 @@ interface StreamState {
   isPaused: boolean;
 }
 
+const hasRawParam = (): boolean => {
+  if (typeof window === "undefined") return false;
+  const params = new URLSearchParams(window.location.search);
+  return params.has("raw");
+};
+
 export const useStream = ({
   blocks,
   chunkSize,
@@ -92,11 +98,13 @@ export const useStream = ({
     if (hasCheckedStorage) return;
 
     if (typeof window !== "undefined") {
+      const shouldSkipStorage = hasRawParam();
       const hasCompleted =
-        skipAnimation || localStorage.getItem(storageKey) === "true";
+        skipAnimation ||
+        (!shouldSkipStorage && localStorage.getItem(storageKey) === "true");
 
       if (hasCompleted) {
-        if (skipAnimation) {
+        if (skipAnimation && !shouldSkipStorage) {
           localStorage.setItem(storageKey, "true");
         }
         // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -137,8 +145,10 @@ export const useStream = ({
     if (streamingRef.current || blocks.length === 0 || !hasCheckedStorage)
       return;
 
+    const shouldSkipStorage = hasRawParam();
     const hasCompleted =
       typeof window !== "undefined" &&
+      !shouldSkipStorage &&
       localStorage.getItem(storageKey) === "true";
     if (hasCompleted) return;
 
@@ -156,7 +166,7 @@ export const useStream = ({
           ...prev,
           status: "complete",
         }));
-        if (typeof window !== "undefined") {
+        if (typeof window !== "undefined" && !hasRawParam()) {
           localStorage.setItem(storageKey, "true");
         }
         return;
@@ -243,7 +253,7 @@ export const useStream = ({
                 ...prev,
                 status: "complete",
               }));
-              if (typeof window !== "undefined") {
+              if (typeof window !== "undefined" && !hasRawParam()) {
                 localStorage.setItem(storageKey, "true");
               }
             }
@@ -299,7 +309,7 @@ export const useStream = ({
             ...prev,
             status: "complete",
           }));
-          if (typeof window !== "undefined") {
+          if (typeof window !== "undefined" && !hasRawParam()) {
             localStorage.setItem(storageKey, "true");
           }
         }
@@ -400,7 +410,7 @@ export const useStream = ({
             ...prev,
             status: "complete",
           }));
-          if (typeof window !== "undefined") {
+          if (typeof window !== "undefined" && !hasRawParam()) {
             localStorage.setItem(storageKey, "true");
           }
         }

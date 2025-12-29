@@ -106,7 +106,7 @@ const getConversationBlocks = (): StreamBlock[] => [
     content: (
       <span>
         I see you attached{" "}
-        <span className="inline-flex items-center rounded-md bg-[#330039] px-1 py-0.5 text-xs font-mono text-[#ff4fff]">
+        <span className="inline-flex items-center rounded-md bg-[#330039] px-1 py-0.5 text-[13px] font-mono text-[#ff4fff]">
           src/components/ui/primary-button.tsx
         </span>
         . It&apos;s next to the cancel button at line 42, currently using{" "}
@@ -298,7 +298,7 @@ export const StreamDemo = () => {
                 Here{"'"}s the element
                 <span
                   key="badge"
-                  className="inline-flex items-center rounded-md bg-[#330039] px-1 py-0.5 text-xs font-mono text-[#ff4fff]"
+                  className="inline-flex items-center rounded-md bg-[#330039] px-1 py-0.5 text-[13px] font-mono text-[#ff4fff]"
                 >
                   {`<${elementTag}>`}
                 </span>

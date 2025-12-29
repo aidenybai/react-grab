@@ -40,12 +40,6 @@ export const Collapsible = ({
       <button
         onClick={handleToggle}
         className="w-full text-left group relative"
-        style={{
-          boxShadow:
-            isExpanded && !isStreaming
-              ? "0 -8px 12px -8px rgba(0, 0, 0, 0.3)"
-              : "none",
-        }}
       >
         <div className="flex items-center text-[#818181]">
           {header}

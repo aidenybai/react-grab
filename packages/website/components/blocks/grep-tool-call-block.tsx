@@ -39,7 +39,7 @@ export const GrepToolCallBlock = ({
       isStreaming={isStreaming}
       autoExpandOnStreaming={false}
     >
-      <div className="text-[#5b5b5b] mb-2 ml-4">{displayResult}</div>
+      <div className="text-[#5b5b5b] mt-1">{displayResult}</div>
     </Collapsible>
   );
 };

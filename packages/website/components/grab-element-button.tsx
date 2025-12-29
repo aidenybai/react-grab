@@ -316,7 +316,7 @@ export const GrabElementButton = ({
       <button
         onClick={toggleReactGrab}
         className={cn(
-          "flex h-12 w-full items-center justify-center gap-2 rounded-lg px-3 text-sm text-white transition-colors sm:w-auto",
+          "flex h-12 w-full items-center justify-center gap-2 rounded-lg px-3 text-sm text-white transition-colors sm:w-auto sm:text-base",
           hasAdvanced
             ? "border border-white/20 bg-white/5 hover:bg-white/10"
             : "border border-[#d75fcb] bg-[#330039] hover:bg-[#4a0052] shadow-[0_0_12px_rgba(215,95,203,0.4)]",
@@ -386,12 +386,15 @@ export const GrabElementButton = ({
                   </>
                 )}
               </span>
-              <span>for 1 second to select</span>
             </span>
           </>
         ) : (
-          <span className="animate-pulse">
-            Click an element to select, or Esc to cancel
+          <span className="animate-pulse flex items-center gap-1.5">
+            Click anywhere to select or press
+            <kbd className="inline-flex items-center justify-center h-7 px-1.5 rounded bg-white/10 text-xs">
+              Esc
+            </kbd>
+            to cancel
           </span>
         )}
       </button>

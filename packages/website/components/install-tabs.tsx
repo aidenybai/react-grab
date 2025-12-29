@@ -332,24 +332,24 @@ export const InstallTabs = ({
             <button
               type="button"
               onClick={() => setActiveTabId("next-app")}
-              className="ml-3 text-sm italic text-white/40 hover:text-white/60 hover:underline transition-colors"
+              className="ml-3 text-xs italic text-white/40 hover:text-white/60 hover:underline transition-colors sm:text-sm"
             >
               Prefer manual install?
             </button>
           )}
         </span>
       )}
-      <div className="mt-4 overflow-hidden rounded-lg border border-white/10 bg-white/5 text-sm text-white shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
+      <div className="mt-4 overflow-hidden rounded-lg border border-white/10 bg-white/5 text-white shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
         <div className="flex items-center gap-4 overflow-x-auto border-b border-white/10 px-4 pt-2">
           {installTabsData.map((tab) => {
             const isActive = tab.id === activeTab.id;
 
             return (
-              <button
+                <button
                 key={tab.id}
                 type="button"
                 className={cn(
-                  "shrink-0 whitespace-nowrap border-b pb-2 font-sans text-[13px] transition-colors",
+                  "shrink-0 whitespace-nowrap border-b pb-2 font-sans text-sm transition-colors sm:text-base",
                   isActive
                     ? "border-white text-white"
                     : "border-transparent text-white/60 hover:text-white",
@@ -408,12 +408,12 @@ export const InstallTabs = ({
         </div>
       </div>
       {activeTabId !== "cli" && (
-        <span className="mt-4 block text-sm text-white/50">
+        <span className="mt-4 block text-sm text-white/50 sm:text-base">
           {activeTab.description}
         </span>
       )}
       {showAgentNote && activeTabId !== "cli" && (
-        <span className="mt-2 block text-sm text-white/50">
+        <span className="mt-2 block text-sm text-white/50 sm:text-base">
           Want to integrate directly with your coding agent?{" "}
           <a href="/blog/agent" className="underline hover:text-white/70">
             See our agent integration guide

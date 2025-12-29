@@ -49,12 +49,15 @@ const OpenFileContent = () => {
     "editor",
     parseAsStringLiteral(EDITOR_OPTIONS),
   );
+  const [rawParam] = useQueryState("raw");
 
   const resolvedFilePath = filePath ?? filePathAlt ?? "";
 
   const getInitialEditor = (): { editor: Editor; hasSaved: boolean } => {
     if (typeof window === "undefined")
       return { editor: "cursor", hasSaved: false };
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("raw")) return { editor: "cursor", hasSaved: false };
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved && EDITORS.some((e) => e.id === saved)) {
       return { editor: saved as Editor, hasSaved: true };
@@ -110,7 +113,9 @@ const OpenFileContent = () => {
 
   const handleEditorChange = (editor: Editor) => {
     setPreferredEditor(editor);
-    localStorage.setItem(STORAGE_KEY, editor);
+    if (!rawParam) {
+      localStorage.setItem(STORAGE_KEY, editor);
+    }
     setEditorParam(editor);
     setIsDropdownOpen(false);
   };
