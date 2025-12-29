@@ -58,8 +58,6 @@ export const checkIsSourceComponentName = (name: string): boolean => {
   return true;
 };
 
-const FIBER_ACCESS_TIMEOUT_MS = 100;
-
 export const getStack = async (
   element: Element,
 ): Promise<StackFrame[] | null> => {
@@ -68,12 +66,7 @@ export const getStack = async (
   try {
     const fiber = getFiberFromHostInstance(element);
     if (!fiber) return null;
-
-    const timeoutPromise = new Promise<null>((resolve) =>
-      setTimeout(() => resolve(null), FIBER_ACCESS_TIMEOUT_MS),
-    );
-
-    return await Promise.race([getOwnerStack(fiber), timeoutPromise]);
+    return await getOwnerStack(fiber);
   } catch {
     return null;
   }
