@@ -1,5 +1,11 @@
 # grab
 
+## 0.0.95
+
+### Patch Changes
+
+- fix: selecting buttons with disabled states
+
 ## 0.0.94
 
 ### Patch Changes
