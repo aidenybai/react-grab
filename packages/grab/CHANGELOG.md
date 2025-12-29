@@ -1,5 +1,11 @@
 # grab
 
+## 0.0.96
+
+### Patch Changes
+
+- fix: fiber access timeout handling
+
 ## 0.0.95
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @react-grab/codex
 
+## 0.0.96
+
+### Patch Changes
+
+- fix: fiber access timeout handling
+- Updated dependencies
+  - react-grab@0.0.96
+
 ## 0.0.95
 
 ### Patch Changes
