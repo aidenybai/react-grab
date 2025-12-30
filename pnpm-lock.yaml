@@ -426,8 +426,8 @@ importers:
         specifier: ^2.0.0
         version: 2.0.0(solid-js@1.9.10)(xstate@5.25.0)
       bippy:
-        specifier: ^0.5.27
-        version: 0.5.27(@types/react@19.2.7)(react@19.2.1)
+        specifier: ^0.5.28
+        version: 0.5.28(@types/react@19.2.7)(react@19.2.1)
       solid-js:
         specifier: ^1.9.10
         version: 1.9.10
@@ -2210,8 +2210,8 @@ packages:
     resolution: {integrity: sha512-y9/ltK2TY+0HD1H2Sz7MvU3zFh4SjER6eQVNQfBx/0gK9N7S0QwHW6cmhHLx3CP25zN190LKHXPieMGqsVvrOQ==}
     engines: {node: '>=18'}
 
-  '@sourcegraph/amp@0.0.1766606479-gbadae7':
-    resolution: {integrity: sha512-E+MDo1wrARCyEbHCVUA10jQd4XusofKZDamrDVx281tGOEJnKUwnE+Am94ZHJuN3QP8xzy7/xBbafh8fBe6qxQ==}
+  '@sourcegraph/amp@0.0.1767052904-g3b007a':
+    resolution: {integrity: sha512-da1CIhf3u11WsO6/by2qpnEAucnOXgm7XHS0clJ/VZC1WiBU+4dG2JmTUB8mbLsZycQ1teQC/Nr/lhqJ9ISv5A==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -3039,8 +3039,8 @@ packages:
     peerDependencies:
       react: '>=17.0.1'
 
-  bippy@0.5.27:
-    resolution: {integrity: sha512-LvGYTQm5cMqEhnUT2tr6mSE1mrhmX/xxu3jiypHAscThhxC+9SWdaQW8Nye5CT/sR79LObNJlQpOUgi4DopTMg==}
+  bippy@0.5.28:
+    resolution: {integrity: sha512-n3UosYu2KoCQDeAw/zSyjoJksT2viBwGhmEgIdCcGXUQgQsmSJc1Hr7s9eneawAlTI2rbKV4gNFUOaotpLfdgA==}
     peerDependencies:
       react: '>=17.0.1'
 
@@ -7467,10 +7467,10 @@ snapshots:
 
   '@sourcegraph/amp-sdk@0.1.0-20251210081226-g90e3892':
     dependencies:
-      '@sourcegraph/amp': 0.0.1766606479-gbadae7
+      '@sourcegraph/amp': 0.0.1767052904-g3b007a
       zod: 3.25.76
 
-  '@sourcegraph/amp@0.0.1766606479-gbadae7':
+  '@sourcegraph/amp@0.0.1767052904-g3b007a':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
@@ -8267,7 +8267,7 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
-  bippy@0.5.27(@types/react@19.2.7)(react@19.2.1):
+  bippy@0.5.28(@types/react@19.2.7)(react@19.2.1):
     dependencies:
       '@types/react-reconciler': 0.28.9(@types/react@19.2.7)
       react: 19.2.1
@@ -8930,7 +8930,7 @@ snapshots:
       eslint: 9.37.0(jiti@2.6.1)
       eslint-import-resolver-node: 0.3.9
       eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1))
-      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1))
+      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.37.0(jiti@2.6.1))
       eslint-plugin-jsx-a11y: 6.10.2(eslint@9.37.0(jiti@2.6.1))
       eslint-plugin-react: 7.37.5(eslint@9.37.0(jiti@2.6.1))
       eslint-plugin-react-hooks: 7.0.1(eslint@9.37.0(jiti@2.6.1))
@@ -8963,7 +8963,7 @@ snapshots:
       tinyglobby: 0.2.15
       unrs-resolver: 1.11.1
     optionalDependencies:
-      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1))
+      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.37.0(jiti@2.6.1))
     transitivePeerDependencies:
       - supports-color
 
@@ -9032,7 +9032,7 @@ snapshots:
       - eslint-import-resolver-webpack
       - supports-color
 
-  eslint-plugin-import@2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)):
+  eslint-plugin-import@2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.37.0(jiti@2.6.1)):
     dependencies:
       '@rtsao/scc': 1.1.0
       array-includes: 3.1.9

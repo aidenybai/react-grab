@@ -56,7 +56,9 @@ const isIdentityMatrix3d = (values: number[]): boolean =>
 /**
  * Strips translation from a computed transform string.
  */
-export const stripTranslateFromTransformString = (transform: string): string => {
+export const stripTranslateFromTransformString = (
+  transform: string,
+): string => {
   if (!transform || transform === "none") return "none";
 
   if (transform.charCodeAt(0) === 109) {
@@ -100,14 +102,24 @@ export const stripTranslateFromMatrix = (matrix: DOMMatrix): string => {
   if (matrix.isIdentity) return "none";
 
   if (matrix.is2D) {
-    if (isIdentityMatrix2d(matrix.a, matrix.b, matrix.c, matrix.d)) return "none";
+    if (isIdentityMatrix2d(matrix.a, matrix.b, matrix.c, matrix.d))
+      return "none";
     return `matrix(${matrix.a}, ${matrix.b}, ${matrix.c}, ${matrix.d}, 0, 0)`;
   }
 
   if (
-    matrix.m11 === 1 && matrix.m12 === 0 && matrix.m13 === 0 && matrix.m14 === 0 &&
-    matrix.m21 === 0 && matrix.m22 === 1 && matrix.m23 === 0 && matrix.m24 === 0 &&
-    matrix.m31 === 0 && matrix.m32 === 0 && matrix.m33 === 1 && matrix.m34 === 0 &&
+    matrix.m11 === 1 &&
+    matrix.m12 === 0 &&
+    matrix.m13 === 0 &&
+    matrix.m14 === 0 &&
+    matrix.m21 === 0 &&
+    matrix.m22 === 1 &&
+    matrix.m23 === 0 &&
+    matrix.m24 === 0 &&
+    matrix.m31 === 0 &&
+    matrix.m32 === 0 &&
+    matrix.m33 === 1 &&
+    matrix.m34 === 0 &&
     matrix.m44 === 1
   ) {
     return "none";

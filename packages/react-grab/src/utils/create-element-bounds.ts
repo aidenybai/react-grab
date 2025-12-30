@@ -17,7 +17,11 @@ const getAccumulatedTransform = (
   let current = element.parentElement;
   let depth = 0;
 
-  while (current && current !== document.documentElement && depth < MAX_ANCESTOR_DEPTH) {
+  while (
+    current &&
+    current !== document.documentElement &&
+    depth < MAX_ANCESTOR_DEPTH
+  ) {
     const t = window.getComputedStyle(current).transform;
     if (t && t !== "none") {
       accumulated = accumulated
@@ -31,7 +35,9 @@ const getAccumulatedTransform = (
   }
 
   if (!accumulated) {
-    return hasSelfTransform ? stripTranslateFromTransformString(selfTransform) : "none";
+    return hasSelfTransform
+      ? stripTranslateFromTransformString(selfTransform)
+      : "none";
   }
 
   if (hasSelfTransform) {
