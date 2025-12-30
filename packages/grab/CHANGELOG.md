@@ -1,5 +1,11 @@
 # grab
 
+## 0.0.97
+
+### Patch Changes
+
+- fix: sourcemap error
+
 ## 0.0.96
 
 ### Patch Changes

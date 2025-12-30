@@ -1,5 +1,13 @@
 # @react-grab/amp
 
+## 0.0.97
+
+### Patch Changes
+
+- fix: sourcemap error
+- Updated dependencies
+  - react-grab@0.0.97
+
 ## 0.0.96
 
 ### Patch Changes
@@ -127,4 +135,3 @@
 - feat: add Amp SDK provider with undo and follow-up support
 - Updated dependencies
   - react-grab@0.0.81
-

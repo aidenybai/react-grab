@@ -1,5 +1,13 @@
 # @react-grab/opencode
 
+## 0.0.97
+
+### Patch Changes
+
+- fix: sourcemap error
+- Updated dependencies
+  - react-grab@0.0.97
+
 ## 0.0.96
 
 ### Patch Changes
