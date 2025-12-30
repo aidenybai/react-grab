@@ -196,12 +196,12 @@ export const init = new Command()
         let didAddAgent = false;
 
         if (availableAgents.length > 0) {
-          const { wantAddAgent } = await prompts({
-            type: "confirm",
-            name: "wantAddAgent",
-            message: `Would you like to add an ${highlighter.info("agent integration")}?`,
-            initial: true,
-          });
+        const { wantAddAgent } = await prompts({
+          type: "confirm",
+          name: "wantAddAgent",
+          message: `Would you like to add an ${highlighter.info("agent integration")}?`,
+          initial: false,
+        });
 
           if (wantAddAgent === undefined) {
             logger.break();
