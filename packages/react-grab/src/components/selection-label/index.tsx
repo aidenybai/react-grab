@@ -8,7 +8,6 @@ import {
   IDLE_TIMEOUT_MS,
 } from "../../constants.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
-import { IconReturn } from "../icons/icon-return.jsx";
 import { Arrow } from "./arrow.js";
 import { TagBadge } from "./tag-badge.js";
 import { ActionPill } from "./action-pill.js";
@@ -16,6 +15,8 @@ import { BottomSection } from "./bottom-section.js";
 import { DiscardPrompt } from "./discard-prompt.js";
 import { ErrorView } from "./error-view.js";
 import { CompletionView } from "./completion-view.js";
+import { ElementList } from "./element-list.js";
+import { ChatInput } from "./chat-input.js";
 
 export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
@@ -139,6 +140,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     void props.isPendingDismiss;
     void props.error;
     void props.isPendingAbort;
+    void props.selectedElements;
+    void props.isElementListExpanded;
     requestAnimationFrame(measureContainer);
   });
 
@@ -229,11 +232,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       event.preventDefault();
       props.onConfirmDismiss?.();
     }
-  };
-
-  const handleInput = (event: InputEvent) => {
-    const target = event.target as HTMLTextAreaElement;
-    props.onInputChange?.(target.value);
   };
 
   const tagDisplay = () => {
@@ -424,7 +422,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           <Show
             when={canInteract() && props.isInputMode && !props.isPendingDismiss}
           >
-            <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit max-w-[280px]">
+            <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit min-w-[280px] max-w-[360px]">
+              {/* Header with ActionPill and TagBadge */}
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5 pr-1">
                 <ActionPill
                   onClick={handleSubmit}
@@ -433,50 +432,64 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   hasAgent={props.hasAgent}
                   isEditing
                 />
-                <TagBadge
-                  tagName={tagDisplay()}
-                  isClickable={isTagClickable()}
-                  onClick={handleTagClick}
-                  onHoverChange={handleTagHoverChange}
-                  shrink
-                  forceShowIcon
-                />
-              </div>
-              <BottomSection>
-                <Show when={props.replyToPrompt}>
-                  <div class="shrink-0 flex items-center gap-0.5 w-full mb-0.5 overflow-hidden">
-                    <span class="text-[#a1a1aa] text-[10px] leading-3 shrink-0">
-                      {">previously:"}
-                    </span>
-                    <span class="text-[#a1a1aa] text-[10px] leading-3 italic truncate whitespace-nowrap">
-                      {props.replyToPrompt}
-                    </span>
-                  </div>
-                </Show>
-                <div class="shrink-0 flex justify-between items-end w-full min-h-4">
-                  <textarea
-                    ref={inputRef}
-                    data-react-grab-ignore-events
-                    class="text-black text-[13px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 wrap-break-word overflow-y-auto"
-                    style={{
-                      "field-sizing": "content",
-                      "min-height": "16px",
-                      "max-height": "95px",
-                      "scrollbar-width": "none",
-                    }}
-                    value={props.inputValue ?? ""}
-                    onInput={handleInput}
-                    onKeyDown={handleKeyDown}
-                    placeholder="type prompt"
-                    rows={1}
+                <Show
+                  when={
+                    !props.selectedElements ||
+                    props.selectedElements.length <= 1
+                  }
+                >
+                  <TagBadge
+                    tagName={tagDisplay()}
+                    isClickable={isTagClickable()}
+                    onClick={handleTagClick}
+                    onHoverChange={handleTagHoverChange}
+                    shrink
+                    forceShowIcon
                   />
-                  <button
-                    class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit cursor-pointer transition-all hover:scale-105 ml-1"
-                    onClick={handleSubmit}
-                  >
-                    <IconReturn size={10} class="opacity-[0.99] text-black" />
-                  </button>
+                </Show>
+              </div>
+
+              {/* Element list for multi-select */}
+              <Show
+                when={
+                  props.selectedElements && props.selectedElements.length > 1
+                }
+              >
+                <div class="w-full px-1">
+                  <ElementList
+                    elements={props.selectedElements!}
+                    isExpanded={props.isElementListExpanded ?? false}
+                    onToggle={() => props.onToggleElementList?.()}
+                    onElementClick={(el) => props.onElementClick?.(el)}
+                    onElementRemove={(el) => props.onElementRemove?.(el)}
+                  />
                 </div>
+              </Show>
+
+              {/* Previously prompt hint */}
+              <Show when={props.replyToPrompt}>
+                <div class="shrink-0 flex items-center gap-0.5 w-full px-1.5 mb-0.5 overflow-hidden">
+                  <span class="text-[#a1a1aa] text-[10px] leading-3 shrink-0">
+                    {">previously:"}
+                  </span>
+                  <span class="text-[#a1a1aa] text-[10px] leading-3 italic truncate whitespace-nowrap">
+                    {props.replyToPrompt}
+                  </span>
+                </div>
+              </Show>
+
+              {/* Chat Input */}
+              <BottomSection>
+                <ChatInput
+                  value={props.inputValue ?? ""}
+                  placeholder="Write your prompt here..."
+                  hasAgent={props.hasAgent}
+                  isLoading={false}
+                  onInput={(value) => props.onInputChange?.(value)}
+                  onSubmit={() => props.onSubmit?.()}
+                  onCancel={() => props.onCancel?.()}
+                  onKeyDown={handleKeyDown}
+                />
               </BottomSection>
             </div>
           </Show>
