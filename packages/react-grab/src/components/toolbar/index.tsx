@@ -481,22 +481,30 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             />
           </button>
 
-          <button
-            data-react-grab-ignore-events
-            class="contain-layout shrink-0 flex items-center justify-center cursor-pointer transition-all hover:scale-105"
-            onClick={(event) => {
-              event.stopPropagation();
-              setIsSettingsOpen((prev) => !prev);
-            }}
-          >
-            <IconSettings
-              size={14}
-              class={cn(
-                "transition-colors",
-                isSettingsOpen() ? "text-black" : "text-black/70",
-              )}
-            />
-          </button>
+          <Show when={props.currentShortcut && props.onShortcutChange}>
+            <button
+              type="button"
+              data-react-grab-ignore-events
+              class="contain-layout shrink-0 flex items-center justify-center cursor-pointer transition-all hover:scale-105"
+              onClick={(event) => {
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+                if (didDragOccur) {
+                  didDragOccur = false;
+                  return;
+                }
+                setIsSettingsOpen((prev) => !prev);
+              }}
+            >
+              <IconSettings
+                size={14}
+                class={cn(
+                  "transition-colors",
+                  isSettingsOpen() ? "text-black" : "text-black/70",
+                )}
+              />
+            </button>
+          </Show>
         </div>
         <button
           data-react-grab-ignore-events
