@@ -111,6 +111,14 @@ export interface ActivationKey {
   altKey?: boolean;
 }
 
+export interface RequiredActivationKey {
+  key: string | undefined;
+  metaKey: boolean;
+  ctrlKey: boolean;
+  shiftKey: boolean;
+  altKey: boolean;
+}
+
 export interface AgentContext<T = unknown> {
   content: string[];
   prompt: string;
@@ -258,6 +266,8 @@ export interface ReactGrabAPI {
   getTheme: () => Required<Theme>;
   setAgent: (options: AgentOptions) => void;
   updateOptions: (options: UpdatableOptions) => void;
+  updateShortcut: (shortcut: RequiredActivationKey) => void;
+  getShortcut: () => RequiredActivationKey;
 }
 
 export interface OverlayBounds {
@@ -333,6 +343,14 @@ export interface ReactGrabRendererProps {
   toolbarVisible?: boolean;
   isActive?: boolean;
   onToggleActive?: () => void;
+  currentShortcut?: RequiredActivationKey;
+  onShortcutChange?: (shortcut: RequiredActivationKey) => void;
+  // Multi-select element list props
+  selectedElements?: SelectedElementInfo[];
+  isElementListExpanded?: boolean;
+  onToggleElementList?: () => void;
+  onSelectedElementClick?: (element: SelectedElementInfo) => void;
+  onSelectedElementRemove?: (element: SelectedElementInfo) => void;
 }
 
 export interface GrabbedBox {
@@ -447,4 +465,92 @@ export interface SelectionLabelProps {
   error?: string;
   onAcknowledgeError?: () => void;
   onRetry?: () => void;
+  // Multi-select element list props
+  selectedElements?: SelectedElementInfo[];
+  isElementListExpanded?: boolean;
+  onToggleElementList?: () => void;
+  onElementClick?: (element: SelectedElementInfo) => void;
+  onElementRemove?: (element: SelectedElementInfo) => void;
+}
+
+// ============================================
+// Multi-Select Element List Types
+// ============================================
+
+/**
+ * Information about a selected element for display in the element list
+ */
+export interface SelectedElementInfo {
+  /** Unique identifier for this selection */
+  id: string;
+  /** The actual DOM element */
+  element: Element;
+  /** HTML tag name (e.g., "div", "button") */
+  tagName: string;
+  /** React component name (e.g., "Button", "Card") */
+  componentName?: string;
+  /** Source file path */
+  filePath?: string;
+  /** Line number in source file */
+  lineNumber?: number;
+  /** Element bounds for highlighting */
+  bounds: OverlayBounds;
+}
+
+/**
+ * Props for the ElementList component (expandable list of selected elements)
+ */
+export interface ElementListProps {
+  /** Array of selected elements with their metadata */
+  elements: SelectedElementInfo[];
+  /** Whether the list is expanded or collapsed */
+  isExpanded: boolean;
+  /** Toggle expand/collapse */
+  onToggle: () => void;
+  /** Click on an element (e.g., jump to file) */
+  onElementClick: (element: SelectedElementInfo) => void;
+  /** Remove an element from selection */
+  onElementRemove: (element: SelectedElementInfo) => void;
+}
+
+/**
+ * Props for individual element items in the list
+ */
+export interface ElementListItemProps {
+  /** The element info to display */
+  element: SelectedElementInfo;
+  /** Click handler (jump to file) */
+  onClick: () => void;
+  /** Remove from selection */
+  onRemove: () => void;
+  /** Whether this item is hovered */
+  isHovered?: boolean;
+}
+
+// ============================================
+// Chat Input Types
+// ============================================
+
+/**
+ * Props for the modern ChatInput component
+ */
+export interface ChatInputProps {
+  /** Current input value */
+  value: string;
+  /** Placeholder text */
+  placeholder?: string;
+  /** Whether the input is disabled */
+  isDisabled?: boolean;
+  /** Whether the agent is processing */
+  isLoading?: boolean;
+  /** Whether AI agent is available */
+  hasAgent?: boolean;
+  /** Called when input value changes */
+  onInput: (value: string) => void;
+  /** Called when user submits */
+  onSubmit: () => void;
+  /** Called when user cancels */
+  onCancel: () => void;
+  /** Called on key down */
+  onKeyDown?: (event: KeyboardEvent) => void;
 }

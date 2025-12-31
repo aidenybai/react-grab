@@ -6,6 +6,14 @@ export {
   DEFAULT_THEME,
 } from "./core/index.js";
 export { generateSnippet } from "./utils/generate-snippet.js";
+export { detectPlatform } from "./utils/detect-platform.js";
+export { formatShortcut } from "./utils/format-shortcut.js";
+export {
+  getDefaultShortcut,
+  loadShortcutConfig,
+  saveShortcutConfig,
+  clearShortcutConfig,
+} from "./shortcut/state.js";
 export type {
   Options,
   ReactGrabAPI,
@@ -28,6 +36,8 @@ export type {
   AgentCompleteResult,
   UpdatableOptions,
   ActivationMode,
+  ActivationKey,
+  RequiredActivationKey,
 } from "./types.js";
 
 import { init } from "./core/index.js";

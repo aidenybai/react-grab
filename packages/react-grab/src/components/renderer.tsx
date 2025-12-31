@@ -168,6 +168,11 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
               window.open(openFileUrl, "_blank");
             }
           }}
+          selectedElements={props.selectedElements}
+          isElementListExpanded={props.isElementListExpanded}
+          onToggleElementList={props.onToggleElementList}
+          onElementClick={props.onSelectedElementClick}
+          onElementRemove={props.onSelectedElementRemove}
         />
       </Show>
 
@@ -185,7 +190,12 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
       </For>
 
       <Show when={props.toolbarVisible !== false}>
-        <Toolbar isActive={props.isActive} onToggle={props.onToggleActive} />
+        <Toolbar
+          isActive={props.isActive}
+          onToggle={props.onToggleActive}
+          currentShortcut={props.currentShortcut}
+          onShortcutChange={props.onShortcutChange}
+        />
       </Show>
     </>
   );

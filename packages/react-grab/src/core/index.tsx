@@ -56,6 +56,7 @@ import type {
   AgentSession,
   AgentOptions,
   UpdatableOptions,
+  SelectedElementInfo,
 } from "../types.js";
 import { mergeTheme, deepMergeTheme } from "./theme.js";
 import { createAgentManager } from "./agent/index.js";
@@ -64,6 +65,12 @@ import {
   getRequiredModifiers,
   setupKeyboardEventClaimer,
 } from "./keyboard-handlers.js";
+import {
+  loadShortcutConfig,
+  getDefaultShortcut,
+  saveShortcutConfig,
+  type RequiredActivationKey,
+} from "../shortcut/state.js";
 import { createAutoScroller, getAutoScrollDirection } from "./auto-scroll.js";
 import { logIntro } from "./log-intro.js";
 import { onIdle } from "../utils/on-idle.js";
@@ -89,6 +96,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     ...rawOptions,
   };
 
+  const persistedShortcut = loadShortcutConfig();
+  const initialShortcut: RequiredActivationKey =
+    persistedShortcut ??
+    (options.activationKey as RequiredActivationKey) ??
+    getDefaultShortcut();
+
+  if (!options.activationKey) {
+    options.activationKey = initialShortcut;
+  }
+
   const mergedTheme = mergeTheme(options.theme);
 
   if (options.enabled === false || hasInited) {
@@ -100,6 +117,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
   return createRoot((dispose) => {
     const [theme, setTheme] = createSignal(mergedTheme);
+    const [currentShortcut, setCurrentShortcut] = createSignal(initialShortcut);
+
+    const updateShortcut = (shortcut: RequiredActivationKey) => {
+      setCurrentShortcut(shortcut);
+      options.activationKey = shortcut;
+      saveShortcutConfig(shortcut);
+    };
 
     const [, , actorRef] = useMachine(stateMachine, {
       input: {
@@ -242,6 +266,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       clientY: number;
       element: Element;
     } | null = null;
+    // Track if the current click sequence started with Shift pressed
+    // This prevents race conditions when Shift is released before mouse button
+    let wasShiftClickOnMousedown = false;
 
     const arrowNavigator = createArrowNavigator(
       isValidGrabbableElement,
@@ -457,11 +484,103 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       void context().viewportVersion;
       const elements = context().frozenElements;
       if (elements.length === 0) return [];
-      return elements.map((element) => createElementBounds(element));
+
+      const bounds = elements.map((element) => createElementBounds(element));
+
+      // During multi-select, also show hover on current target element
+      // This allows the user to see which element they're about to select
+      const target = targetElement();
+      if (target && !elements.includes(target)) {
+        bounds.push(createElementBounds(target));
+      }
+
+      return bounds;
     });
 
     const frozenElementsCount = createMemo(
       () => context().frozenElements.length,
+    );
+
+    // Create detailed info for each selected element (for the element list)
+    const [selectedElementsInfo] = createResource(
+      () => {
+        void context().viewportVersion;
+        return context().frozenElements;
+      },
+      async (elements): Promise<SelectedElementInfo[]> => {
+        if (elements.length === 0) return [];
+
+        const infos = await Promise.all(
+          elements.map(async (element, index) => {
+            const tagName = getTagName(element) || "element";
+            const componentName = await getNearestComponentName(element);
+            const stack = await getStack(element);
+            const sourceFrame = stack?.find(
+              (f) => f.fileName && isSourceFile(f.fileName),
+            );
+
+            return {
+              id: `el-${index}-${Date.now()}`,
+              element,
+              tagName,
+              componentName: componentName ?? undefined,
+              filePath: sourceFrame?.fileName
+                ? normalizeFileName(sourceFrame.fileName)
+                : undefined,
+              lineNumber: sourceFrame?.lineNumber,
+              bounds: createElementBounds(element),
+            };
+          }),
+        );
+
+        return infos;
+      },
+    );
+
+    // Calculate aggregate bounds that encompasses all selected elements
+    // Used for positioning SelectionLabel during multi-select
+    const aggregateSelectionBounds = createMemo(
+      (): OverlayBounds | undefined => {
+        void context().viewportVersion;
+        const elements = context().frozenElements;
+
+        // If no frozen elements, use effectiveElement (normal hover behavior)
+        if (elements.length === 0) {
+          const element = effectiveElement();
+          if (!element) return undefined;
+          return createElementBounds(element);
+        }
+
+        // If only one element, use its bounds directly
+        if (elements.length === 1) {
+          return createElementBounds(elements[0]);
+        }
+
+        // Multi-select: calculate bounding box that encompasses all elements
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+        let borderRadius = "0px";
+
+        for (const element of elements) {
+          const bounds = createElementBounds(element);
+          minX = Math.min(minX, bounds.x);
+          minY = Math.min(minY, bounds.y);
+          maxX = Math.max(maxX, bounds.x + bounds.width);
+          maxY = Math.max(maxY, bounds.y + bounds.height);
+          borderRadius = bounds.borderRadius;
+        }
+
+        return {
+          x: minX,
+          y: minY,
+          width: maxX - minX,
+          height: maxY - minY,
+          borderRadius,
+          transform: "",
+        };
+      },
     );
 
     const calculateDragDistance = (endX: number, endY: number) => {
@@ -523,6 +642,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const cursorPosition = createMemo(() => {
+      // During multi-select, use real mouse position so label follows cursor
+      if (context().frozenElements.length > 0 && !isInputMode()) {
+        return {
+          x: context().mousePosition.x,
+          y: context().mousePosition.y,
+        };
+      }
+
       if (isCopying() || isInputMode()) {
         void context().viewportVersion;
         const element = context().frozenElement || targetElement();
@@ -534,10 +661,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           };
         }
         return {
-          x: context().copyStart.x,
+          x: context().copyStart.x + context().copyOffsetFromCenterX,
           y: context().copyStart.y,
         };
       }
+
       return {
         x: context().mousePosition.x,
         y: context().mousePosition.y,
@@ -760,6 +888,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const previousFocused = context().previouslyFocusedElement;
       send({ type: "DEACTIVATE" });
       arrowNavigator.clearHistory();
+      wasShiftClickOnMousedown = false;
       if (wasDragging) {
         document.body.style.userSelect = "";
       }
@@ -980,6 +1109,23 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       } else {
         toggleActivate();
       }
+    };
+
+    const handleToggleElementList = () => {
+      send({ type: "TOGGLE_ELEMENT_LIST" });
+    };
+
+    const handleSelectedElementClick = (elementInfo: SelectedElementInfo) => {
+      if (elementInfo.filePath && options.onOpenFile) {
+        options.onOpenFile(elementInfo.filePath, elementInfo.lineNumber);
+      }
+    };
+
+    const handleSelectedElementRemove = (elementInfo: SelectedElementInfo) => {
+      send({
+        type: "REMOVE_ELEMENT_FROM_SELECTION",
+        element: elementInfo.element,
+      });
     };
 
     const handlePointerMove = (clientX: number, clientY: number) => {
@@ -1517,6 +1663,25 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
+        // Shift+Click: Toggle element selection for multi-select
+        if (
+          event.shiftKey &&
+          !event.metaKey &&
+          !event.ctrlKey &&
+          isRendererActive()
+        ) {
+          const element = getElementAtPosition(event.clientX, event.clientY);
+          if (element) {
+            event.preventDefault();
+            event.stopPropagation();
+            // Track that this click started with Shift pressed
+            // Used in click handler to prevent deactivation
+            wasShiftClickOnMousedown = true;
+            send({ type: "TOGGLE_ELEMENT_SELECTION", element });
+            return;
+          }
+        }
+
         const didHandle = handlePointerDown(event.clientX, event.clientY);
         if (didHandle) {
           event.preventDefault();
@@ -1644,6 +1809,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
           if (context().isToggleMode && !isCopying() && !isInputMode()) {
             if (pendingClickTimeoutId !== null) return;
+
+            // Skip deactivation if this click started with Shift pressed (multi-select mode)
+            // We check wasShiftClickOnMousedown instead of event.shiftKey to handle
+            // race conditions where Shift is released before mouse button
+            if (wasShiftClickOnMousedown) {
+              wasShiftClickOnMousedown = false;
+              return;
+            }
 
             if (!isHoldingKeys()) {
               deactivateRenderer();
@@ -1869,7 +2042,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         () => (
           <ReactGrabRenderer
             selectionVisible={selectionVisible()}
-            selectionBounds={selectionBounds()}
+            selectionBounds={aggregateSelectionBounds()}
             selectionBoundsMultiple={frozenElementsBounds()}
             selectionElementsCount={frozenElementsCount()}
             selectionFilePath={context().selectionFilePath ?? undefined}
@@ -1917,6 +2090,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             toolbarVisible={theme().toolbar.enabled}
             isActive={isActivated()}
             onToggleActive={handleToggleActive}
+            currentShortcut={currentShortcut()}
+            onShortcutChange={updateShortcut}
+            selectedElements={selectedElementsInfo() ?? []}
+            isElementListExpanded={context().isElementListExpanded}
+            onToggleElementList={handleToggleElementList}
+            onSelectedElementClick={handleSelectedElementClick}
+            onSelectedElementRemove={handleSelectedElementRemove}
           />
         ),
         rendererRoot,
@@ -2021,6 +2201,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       updateOptions: (newOptions: UpdatableOptions) => {
         options = { ...options, ...newOptions };
       },
+      updateShortcut,
+      getShortcut: () => currentShortcut(),
     };
   });
 };
