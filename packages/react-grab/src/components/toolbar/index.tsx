@@ -1,13 +1,18 @@
-import { createSignal, onMount, onCleanup } from "solid-js";
+import { createSignal, onMount, onCleanup, Show } from "solid-js";
 import type { Component } from "solid-js";
 import { cn } from "../../utils/cn.js";
 import { loadToolbarState, saveToolbarState, type SnapEdge } from "./state.js";
 import { IconSelect } from "../icons/icon-select.jsx";
 import { IconChevron } from "../icons/icon-chevron.jsx";
+import { IconSettings } from "../icons/icon-settings.jsx";
+import { ShortcutSettings } from "./shortcut-settings.jsx";
+import type { RequiredActivationKey } from "../../shortcut/state.js";
 
 interface ToolbarProps {
   isActive?: boolean;
   onToggle?: () => void;
+  currentShortcut?: RequiredActivationKey;
+  onShortcutChange?: (shortcut: RequiredActivationKey) => void;
 }
 
 const SNAP_MARGIN = 16;
@@ -34,6 +39,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [dragOffset, setDragOffset] = createSignal({ x: 0, y: 0 });
   const [velocity, setVelocity] = createSignal({ x: 0, y: 0 });
   const [hasDragMoved, setHasDragMoved] = createSignal(false);
+  const [isSettingsOpen, setIsSettingsOpen] = createSignal(false);
 
   let lastPointerPosition = { x: 0, y: 0, time: 0 };
   let pointerStartPosition = { x: 0, y: 0 };
@@ -474,6 +480,23 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               )}
             />
           </button>
+
+          <button
+            data-react-grab-ignore-events
+            class="contain-layout shrink-0 flex items-center justify-center cursor-pointer transition-all hover:scale-105"
+            onClick={(event) => {
+              event.stopPropagation();
+              setIsSettingsOpen((prev) => !prev);
+            }}
+          >
+            <IconSettings
+              size={14}
+              class={cn(
+                "transition-colors",
+                isSettingsOpen() ? "text-black" : "text-black/70",
+              )}
+            />
+          </button>
         </div>
         <button
           data-react-grab-ignore-events
@@ -488,6 +511,18 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           />
         </button>
       </div>
+
+      <Show
+        when={
+          isSettingsOpen() && props.currentShortcut && props.onShortcutChange
+        }
+      >
+        <ShortcutSettings
+          currentShortcut={props.currentShortcut!}
+          onShortcutChange={props.onShortcutChange!}
+          onClose={() => setIsSettingsOpen(false)}
+        />
+      </Show>
     </div>
   );
 };
