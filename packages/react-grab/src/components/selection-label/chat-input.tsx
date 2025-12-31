@@ -54,7 +54,7 @@ export const ChatInput: Component<ChatInputProps> = (props) => {
   };
 
   const handleSubmit = () => {
-    if (props.value.trim() && !props.isDisabled && !props.isLoading) {
+    if (canSubmit()) {
       props.onSubmit();
     }
   };
