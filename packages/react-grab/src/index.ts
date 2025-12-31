@@ -1,11 +1,40 @@
-export { init } from "./core/index.js";
+export { init, presets } from "./core/init.js";
+
 export {
-  getStack,
-  formatElementInfo,
-  isInstrumentationActive,
-  DEFAULT_THEME,
-} from "./core/index.js";
+  grab,
+  config,
+  setConfig,
+  theme,
+  updateTheme,
+  isActive,
+  isCopying,
+  isHolding,
+  targetEl,
+  pointer,
+} from "./core/state.js";
+
+export {
+  activate,
+  deactivate,
+  lock,
+  unlock,
+  copy,
+} from "./core/actions.js";
+
+export {
+  addOverlay,
+  onBeforeCopy,
+  onError,
+} from "./core/extend.js";
+
+export { getStack, getNearestComponentName } from "./core/context.js";
+export { isInstrumentationActive } from "bippy";
+export { DEFAULT_THEME } from "./core/theme.js";
 export { generateSnippet } from "./utils/generate-snippet.js";
+
+export type { GrabState, GrabConfig, Position } from "./core/state.js";
+export type { InitOptions, PresetConfig } from "./core/init.js";
+
 export type {
   Options,
   ReactGrabAPI,
@@ -30,7 +59,7 @@ export type {
   ActivationMode,
 } from "./types.js";
 
-import { init } from "./core/index.js";
+import { init } from "./core/init.js";
 import type { ReactGrabAPI } from "./types.js";
 
 declare global {
@@ -61,8 +90,10 @@ if (typeof window !== "undefined") {
   if (window.__REACT_GRAB__) {
     globalApi = window.__REACT_GRAB__;
   } else {
-    globalApi = init();
-    window.__REACT_GRAB__ = globalApi;
+    const cleanup = init();
+    if (typeof window !== "undefined" && window.__REACT_GRAB__) {
+      globalApi = window.__REACT_GRAB__;
+    }
   }
   window.dispatchEvent(
     new CustomEvent("react-grab:init", { detail: globalApi }),

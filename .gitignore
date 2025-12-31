@@ -11,3 +11,4 @@ tsup.config.bundled_*.mjs
 packages/website/public/react-grab.global.js
 test-results
 playwright-report
+.claude
