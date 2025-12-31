@@ -1,6 +1,22 @@
 # React Grab
 
-Grab any element in your app and give it to Cursor, Claude Code, or other AI coding agents. Hold ⌘C and click on any element to provide visual context directly to your AI assistant.
+Grab any element in your app and give it to Cursor, Claude Code, or other AI coding agents.
+
+## Usage
+
+Once installed, hover over any UI element in your browser and press:
+
+- **⌘C** (Cmd+C) on Mac
+- **Ctrl+C** on Windows/Linux
+
+This copies the element's context (file name, React component, and HTML source code) to your clipboard ready to paste into your coding agent. For example:
+
+```
+<a class="ml-auto inline-block text-sm" href="#">
+  Forgot your password?
+</a>
+in LoginForm at components/login-form.tsx:46:19
+```
 
 ## Installation
 
