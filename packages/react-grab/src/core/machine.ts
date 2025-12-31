@@ -69,6 +69,9 @@ interface GrabMachineContext {
   supportsFollowUp: boolean;
   dismissButtonText: string | undefined;
   pendingAbortSessionId: string | null;
+
+  // Element list expansion state
+  isElementListExpanded: boolean;
 }
 
 const createInitialContext = (theme: Required<Theme>): GrabMachineContext => ({
@@ -116,6 +119,8 @@ const createInitialContext = (theme: Required<Theme>): GrabMachineContext => ({
   supportsFollowUp: false,
   dismissButtonText: undefined,
   pendingAbortSessionId: null,
+
+  isElementListExpanded: false,
 });
 
 interface GrabMachineInput {
@@ -151,6 +156,7 @@ type GrabMachineEvent =
   | { type: "ELEMENT_DETECTED"; element: Element | null }
   | { type: "FREEZE_ELEMENT"; element: Element }
   | { type: "FREEZE_ELEMENTS"; elements: Element[] }
+  | { type: "TOGGLE_ELEMENT_SELECTION"; element: Element }
   | { type: "SET_TOGGLE_MODE"; value: boolean }
   | {
       type: "SESSION_START";
@@ -200,7 +206,9 @@ type GrabMachineEvent =
       isAgentConnected: boolean;
     }
   | { type: "SET_PENDING_ABORT_SESSION"; sessionId: string | null }
-  | { type: "UPDATE_SESSION_BOUNDS" };
+  | { type: "UPDATE_SESSION_BOUNDS" }
+  | { type: "TOGGLE_ELEMENT_LIST" }
+  | { type: "REMOVE_ELEMENT_FROM_SELECTION"; element: Element };
 
 type GuardArgs = { context: GrabMachineContext };
 
@@ -288,6 +296,31 @@ const stateMachine = setup({
     clearFrozenElement: assign({
       frozenElement: () => null,
       frozenElements: () => [],
+    }),
+    toggleElementSelection: assign({
+      frozenElements: ({ context, event }) => {
+        if (event.type !== "TOGGLE_ELEMENT_SELECTION")
+          return context.frozenElements;
+        const element = event.element;
+        const exists = context.frozenElements.includes(element);
+        if (exists) {
+          return context.frozenElements.filter((el) => el !== element);
+        }
+        return [...context.frozenElements, element];
+      },
+      frozenElement: ({ context, event }) => {
+        if (event.type !== "TOGGLE_ELEMENT_SELECTION")
+          return context.frozenElement;
+        const element = event.element;
+        const exists = context.frozenElements.includes(element);
+        if (exists) {
+          const remaining = context.frozenElements.filter(
+            (el) => el !== element,
+          );
+          return remaining[0] ?? null;
+        }
+        return context.frozenElement ?? element;
+      },
     }),
     setDragStart: assign({
       dragStart: ({ event }) => {
@@ -534,6 +567,7 @@ const stateMachine = setup({
       frozenElements: () => [],
       pendingClickData: () => null,
       activationTimestamp: () => null,
+      isElementListExpanded: () => false,
     }),
     updateSessionBounds: assign({
       agentSessions: ({ context }) => {
@@ -590,6 +624,37 @@ const stateMachine = setup({
       frozenElement: ({ event, context }) => {
         if (event.type === "INPUT_MODE_ENTER") return event.element;
         return context.frozenElement;
+      },
+    }),
+    toggleElementList: assign({
+      isElementListExpanded: ({ context }) => !context.isElementListExpanded,
+    }),
+    removeElementFromSelection: assign({
+      frozenElements: ({ context, event }) => {
+        if (event.type !== "REMOVE_ELEMENT_FROM_SELECTION")
+          return context.frozenElements;
+        return context.frozenElements.filter((el) => el !== event.element);
+      },
+      frozenElement: ({ context, event }) => {
+        if (event.type !== "REMOVE_ELEMENT_FROM_SELECTION")
+          return context.frozenElement;
+        const remaining = context.frozenElements.filter(
+          (el) => el !== event.element,
+        );
+        if (context.frozenElement === event.element) {
+          return remaining[0] ?? null;
+        }
+        return context.frozenElement;
+      },
+      isElementListExpanded: ({ context, event }) => {
+        if (event.type !== "REMOVE_ELEMENT_FROM_SELECTION")
+          return context.isElementListExpanded;
+        const remaining = context.frozenElements.filter(
+          (el) => el !== event.element,
+        );
+        // Collapse list if only 1 element remains
+        if (remaining.length <= 1) return false;
+        return context.isElementListExpanded;
       },
     }),
   },
@@ -718,6 +783,7 @@ const stateMachine = setup({
         SET_TOGGLE_MODE: { actions: ["setToggleMode"] },
         FREEZE_ELEMENT: { actions: ["setFrozenElement"] },
         FREEZE_ELEMENTS: { actions: ["setFrozenElements"] },
+        TOGGLE_ELEMENT_SELECTION: { actions: ["toggleElementSelection"] },
         SET_PENDING_ABORT_SESSION: { actions: ["setPendingAbortSessionId"] },
       },
     },
@@ -806,6 +872,10 @@ const stateMachine = setup({
             INPUT_CANCEL: {
               target: "idle",
               actions: ["clearInputText", "clearReplySessionId"],
+            },
+            TOGGLE_ELEMENT_LIST: { actions: ["toggleElementList"] },
+            REMOVE_ELEMENT_FROM_SELECTION: {
+              actions: ["removeElementFromSelection"],
             },
           },
         },
