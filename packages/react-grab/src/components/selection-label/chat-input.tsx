@@ -46,7 +46,7 @@ export const ChatInput: Component<ChatInputProps> = (props) => {
     // Enter to submit (without Shift)
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (props.value.trim() && !props.isDisabled && !props.isLoading) {
+      if (canSubmit()) {
         props.onSubmit();
       }
       return;
