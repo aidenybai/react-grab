@@ -63,7 +63,7 @@ export const ElementListItem: Component<ElementListItemProps> = (props) => {
               <span class="text-[11px] text-gray-400 shrink-0">&rarr;</span>
               {/* File path */}
               <span class="text-[11px] text-gray-500 truncate min-w-0">
-                {location}
+                {location()}
               </span>
             </>
           )}
