@@ -1,4 +1,10 @@
-import type { ReactGrabAPI, ReactGrabState, Theme } from "../types.js";
+import type {
+  ReactGrabAPI,
+  ReactGrabState,
+  Theme,
+  RequiredActivationKey,
+} from "../types.js";
+import { getDefaultShortcut } from "../shortcut/state.js";
 
 export const createNoopApi = (theme: Required<Theme>): ReactGrabAPI => {
   const getState = (): ReactGrabState => {
@@ -12,6 +18,8 @@ export const createNoopApi = (theme: Required<Theme>): ReactGrabAPI => {
     };
   };
 
+  let currentShortcut: RequiredActivationKey = getDefaultShortcut();
+
   return {
     activate: () => {},
     deactivate: () => {},
@@ -24,5 +32,9 @@ export const createNoopApi = (theme: Required<Theme>): ReactGrabAPI => {
     getTheme: () => theme,
     setAgent: () => {},
     updateOptions: () => {},
+    updateShortcut: (shortcut: RequiredActivationKey) => {
+      currentShortcut = shortcut;
+    },
+    getShortcut: () => currentShortcut,
   };
 };
