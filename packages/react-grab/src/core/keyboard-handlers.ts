@@ -1,4 +1,5 @@
 import type { Options } from "../types.js";
+import { detectPlatform } from "../utils/detect-platform.js";
 
 interface ModifierKeys {
   metaKey: boolean;
@@ -17,10 +18,22 @@ export const getRequiredModifiers = (options: Options): ModifierKeys => {
       altKey: Boolean(altKey),
     };
   }
+
+  const { isMac } = detectPlatform();
+
+  if (isMac) {
+    return {
+      metaKey: true,
+      ctrlKey: true,
+      shiftKey: false,
+      altKey: false,
+    };
+  }
+
   return {
-    metaKey: true,
+    metaKey: false,
     ctrlKey: true,
-    shiftKey: false,
+    shiftKey: true,
     altKey: false,
   };
 };
