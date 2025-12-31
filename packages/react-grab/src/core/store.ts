@@ -1,0 +1,624 @@
+import { createStore, produce } from "solid-js/store";
+import type {
+  Theme,
+  GrabbedBox,
+  SelectionLabelInstance,
+  AgentSession,
+} from "../types.js";
+import { OFFSCREEN_POSITION } from "../constants.js";
+import { createElementBounds } from "../utils/create-element-bounds.js";
+
+interface Position {
+  x: number;
+  y: number;
+}
+
+interface PendingClickData {
+  clientX: number;
+  clientY: number;
+  element: Element;
+}
+
+type GrabPhase = "hovering" | "frozen" | "dragging" | "justDragged";
+
+type GrabState =
+  | { state: "idle" }
+  | { state: "holding"; startedAt: number }
+  | {
+      state: "active";
+      phase: GrabPhase;
+      isInputMode: boolean;
+      isPendingDismiss: boolean;
+    }
+  | { state: "copying"; startedAt: number }
+  | { state: "justCopied"; copiedAt: number };
+
+interface GrabStore {
+  current: GrabState;
+
+  isToggleMode: boolean;
+  hasAgentProvider: boolean;
+  keyHoldDuration: number;
+
+  pointer: Position;
+  dragStart: Position;
+  copyStart: Position;
+  copyOffsetFromCenterX: number;
+
+  detectedElement: Element | null;
+  frozenElement: Element | null;
+  frozenElements: Element[];
+  lastGrabbedElement: Element | null;
+  lastCopiedElement: Element | null;
+
+  selectionFilePath: string | null;
+  selectionLineNumber: number | null;
+
+  inputText: string;
+  pendingClickData: PendingClickData | null;
+  replySessionId: string | null;
+
+  viewportVersion: number;
+  grabbedBoxes: GrabbedBox[];
+  labelInstances: SelectionLabelInstance[];
+
+  agentSessions: Map<string, AgentSession>;
+  sessionElements: Map<string, Element>;
+
+  isTouchMode: boolean;
+
+  theme: Required<Theme>;
+
+  activationTimestamp: number | null;
+  previouslyFocusedElement: Element | null;
+
+  canUndo: boolean;
+  canRedo: boolean;
+  isAgentConnected: boolean;
+  supportsUndo: boolean;
+  supportsFollowUp: boolean;
+  dismissButtonText: string | undefined;
+  pendingAbortSessionId: string | null;
+}
+
+interface GrabStoreInput {
+  theme: Required<Theme>;
+  hasAgentProvider: boolean;
+  keyHoldDuration: number;
+}
+
+const createInitialStore = (input: GrabStoreInput): GrabStore => ({
+  current: { state: "idle" },
+
+  isToggleMode: false,
+  hasAgentProvider: input.hasAgentProvider,
+  keyHoldDuration: input.keyHoldDuration,
+
+  pointer: { x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION },
+  dragStart: { x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION },
+  copyStart: { x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION },
+  copyOffsetFromCenterX: 0,
+
+  detectedElement: null,
+  frozenElement: null,
+  frozenElements: [],
+  lastGrabbedElement: null,
+  lastCopiedElement: null,
+
+  selectionFilePath: null,
+  selectionLineNumber: null,
+
+  inputText: "",
+  pendingClickData: null,
+  replySessionId: null,
+
+  viewportVersion: 0,
+  grabbedBoxes: [],
+  labelInstances: [],
+
+  agentSessions: new Map(),
+  sessionElements: new Map(),
+
+  isTouchMode: false,
+
+  theme: input.theme,
+
+  activationTimestamp: null,
+  previouslyFocusedElement: null,
+
+  canUndo: false,
+  canRedo: false,
+  isAgentConnected: false,
+  supportsUndo: false,
+  supportsFollowUp: false,
+  dismissButtonText: undefined,
+  pendingAbortSessionId: null,
+});
+
+interface GrabActions {
+  startHold: (duration?: number) => void;
+  release: () => void;
+  activate: () => void;
+  deactivate: () => void;
+  toggle: () => void;
+  freeze: () => void;
+  unfreeze: () => void;
+  startDrag: (position: Position) => void;
+  endDrag: () => void;
+  cancelDrag: () => void;
+  finishJustDragged: () => void;
+  startCopy: () => void;
+  completeCopy: (element?: Element) => void;
+  finishJustCopied: () => void;
+  enterInputMode: (position: Position, element: Element) => void;
+  exitInputMode: () => void;
+  setInputText: (value: string) => void;
+  clearInputText: () => void;
+  setPendingDismiss: (value: boolean) => void;
+  setPointer: (position: Position) => void;
+  setDetectedElement: (element: Element | null) => void;
+  setFrozenElement: (element: Element) => void;
+  setFrozenElements: (elements: Element[]) => void;
+  clearFrozenElement: () => void;
+  setCopyStart: (position: Position, element: Element) => void;
+  setLastGrabbed: (element: Element | null) => void;
+  setLastCopied: (element: Element | null) => void;
+  clearLastCopied: () => void;
+  setToggleMode: (value: boolean) => void;
+  setTouchMode: (value: boolean) => void;
+  setSelectionSource: (filePath: string | null, lineNumber: number | null) => void;
+  clearSelectionSource: () => void;
+  setPendingClickData: (data: PendingClickData | null) => void;
+  clearPendingClickData: () => void;
+  setReplySessionId: (sessionId: string | null) => void;
+  clearReplySessionId: () => void;
+  incrementViewportVersion: () => void;
+  addGrabbedBox: (box: GrabbedBox) => void;
+  removeGrabbedBox: (boxId: string) => void;
+  clearGrabbedBoxes: () => void;
+  addLabelInstance: (instance: SelectionLabelInstance) => void;
+  updateLabelInstance: (instanceId: string, status: SelectionLabelInstance["status"]) => void;
+  removeLabelInstance: (instanceId: string) => void;
+  clearLabelInstances: () => void;
+  setHasAgentProvider: (value: boolean) => void;
+  setUndoRedoState: (canUndo: boolean, canRedo: boolean) => void;
+  setAgentCapabilities: (capabilities: {
+    supportsUndo: boolean;
+    supportsFollowUp: boolean;
+    dismissButtonText: string | undefined;
+    isAgentConnected: boolean;
+  }) => void;
+  setPendingAbortSessionId: (sessionId: string | null) => void;
+  updateSessionBounds: () => void;
+  addAgentSession: (sessionId: string, session: AgentSession, element: Element) => void;
+  updateAgentSessionStatus: (sessionId: string, status: string) => void;
+  completeAgentSession: (sessionId: string, status?: string) => void;
+  setAgentSessionError: (sessionId: string, error: string) => void;
+  removeAgentSession: (sessionId: string) => void;
+}
+
+const createGrabStore = (input: GrabStoreInput) => {
+  const [store, setStore] = createStore<GrabStore>(createInitialStore(input));
+
+  const isActive = () => store.current.state === "active";
+  const isHolding = () => store.current.state === "holding";
+
+  const actions: GrabActions = {
+    startHold: (duration?: number) => {
+      if (duration !== undefined) {
+        setStore("keyHoldDuration", duration);
+      }
+      setStore("current", { state: "holding", startedAt: Date.now() });
+    },
+
+    release: () => {
+      if (store.current.state === "holding") {
+        setStore("current", { state: "idle" });
+      }
+    },
+
+    activate: () => {
+      setStore("current", {
+        state: "active",
+        phase: "hovering",
+        isInputMode: false,
+        isPendingDismiss: false,
+      });
+      setStore("activationTimestamp", Date.now());
+      setStore("previouslyFocusedElement", document.activeElement);
+    },
+
+    deactivate: () => {
+      setStore("current", { state: "idle" });
+      setStore("isToggleMode", false);
+      setStore("inputText", "");
+      setStore("frozenElement", null);
+      setStore("frozenElements", []);
+      setStore("pendingClickData", null);
+      setStore("activationTimestamp", null);
+      setStore("previouslyFocusedElement", null);
+    },
+
+    toggle: () => {
+      if (store.activationTimestamp !== null) {
+        actions.deactivate();
+      } else {
+        setStore("isToggleMode", true);
+        actions.activate();
+      }
+    },
+
+    freeze: () => {
+      if (store.current.state === "active") {
+        const elementToFreeze = store.frozenElement ?? store.detectedElement;
+        if (elementToFreeze) {
+          setStore("frozenElement", elementToFreeze);
+        }
+        setStore("current", produce((current) => {
+          if (current.state === "active") {
+            current.phase = "frozen";
+          }
+        }));
+      }
+    },
+
+    unfreeze: () => {
+      if (store.current.state === "active") {
+        setStore("frozenElement", null);
+        setStore("frozenElements", []);
+        setStore("current", produce((current) => {
+          if (current.state === "active") {
+            current.phase = "hovering";
+          }
+        }));
+      }
+    },
+
+    startDrag: (position: Position) => {
+      if (store.current.state === "active") {
+        setStore("dragStart", {
+          x: position.x + window.scrollX,
+          y: position.y + window.scrollY,
+        });
+        setStore("current", produce((current) => {
+          if (current.state === "active") {
+            current.phase = "dragging";
+          }
+        }));
+      }
+    },
+
+    endDrag: () => {
+      if (store.current.state === "active" && store.current.phase === "dragging") {
+        setStore("dragStart", { x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION });
+        setStore("current", produce((current) => {
+          if (current.state === "active") {
+            current.phase = "justDragged";
+          }
+        }));
+      }
+    },
+
+    cancelDrag: () => {
+      if (store.current.state === "active" && store.current.phase === "dragging") {
+        setStore("dragStart", { x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION });
+        setStore("current", produce((current) => {
+          if (current.state === "active") {
+            current.phase = "hovering";
+          }
+        }));
+      }
+    },
+
+    finishJustDragged: () => {
+      if (store.current.state === "active" && store.current.phase === "justDragged") {
+        setStore("current", produce((current) => {
+          if (current.state === "active") {
+            current.phase = "hovering";
+          }
+        }));
+      }
+    },
+
+    startCopy: () => {
+      setStore("current", { state: "copying", startedAt: Date.now() });
+    },
+
+    completeCopy: (element?: Element) => {
+      setStore("pendingClickData", null);
+      if (element) {
+        setStore("lastCopiedElement", element);
+      }
+      setStore("current", { state: "justCopied", copiedAt: Date.now() });
+    },
+
+    finishJustCopied: () => {
+      if (store.current.state === "justCopied") {
+        setStore("current", { state: "idle" });
+      }
+    },
+
+    enterInputMode: (position: Position, element: Element) => {
+      const bounds = createElementBounds(element);
+      const selectionCenterX = bounds.x + bounds.width / 2;
+
+      setStore("copyStart", position);
+      setStore("copyOffsetFromCenterX", position.x - selectionCenterX);
+      setStore("pointer", position);
+      setStore("frozenElement", element);
+
+      if (store.current.state !== "active") {
+        setStore("current", {
+          state: "active",
+          phase: "frozen",
+          isInputMode: true,
+          isPendingDismiss: false,
+        });
+        setStore("activationTimestamp", Date.now());
+        setStore("previouslyFocusedElement", document.activeElement);
+      } else {
+        setStore("current", produce((current) => {
+          if (current.state === "active") {
+            current.isInputMode = true;
+            current.phase = "frozen";
+          }
+        }));
+      }
+    },
+
+    exitInputMode: () => {
+      if (store.current.state === "active") {
+        setStore("current", produce((current) => {
+          if (current.state === "active") {
+            current.isInputMode = false;
+            current.isPendingDismiss = false;
+          }
+        }));
+      }
+    },
+
+    setInputText: (value: string) => {
+      setStore("inputText", value);
+    },
+
+    clearInputText: () => {
+      setStore("inputText", "");
+    },
+
+    setPendingDismiss: (value: boolean) => {
+      if (store.current.state === "active") {
+        setStore("current", produce((current) => {
+          if (current.state === "active") {
+            current.isPendingDismiss = value;
+          }
+        }));
+      }
+    },
+
+    setPointer: (position: Position) => {
+      setStore("pointer", position);
+    },
+
+    setDetectedElement: (element: Element | null) => {
+      setStore("detectedElement", element);
+    },
+
+    setFrozenElement: (element: Element) => {
+      setStore("frozenElement", element);
+      setStore("frozenElements", [element]);
+    },
+
+    setFrozenElements: (elements: Element[]) => {
+      setStore("frozenElements", elements);
+      setStore("frozenElement", elements.length > 0 ? elements[0] : null);
+    },
+
+    clearFrozenElement: () => {
+      setStore("frozenElement", null);
+      setStore("frozenElements", []);
+    },
+
+    setCopyStart: (position: Position, element: Element) => {
+      const bounds = createElementBounds(element);
+      const selectionCenterX = bounds.x + bounds.width / 2;
+      setStore("copyStart", position);
+      setStore("copyOffsetFromCenterX", position.x - selectionCenterX);
+    },
+
+    setLastGrabbed: (element: Element | null) => {
+      setStore("lastGrabbedElement", element);
+    },
+
+    setLastCopied: (element: Element | null) => {
+      setStore("lastCopiedElement", element);
+    },
+
+    clearLastCopied: () => {
+      setStore("lastCopiedElement", null);
+    },
+
+    setToggleMode: (value: boolean) => {
+      setStore("isToggleMode", value);
+    },
+
+    setTouchMode: (value: boolean) => {
+      setStore("isTouchMode", value);
+    },
+
+    setSelectionSource: (filePath: string | null, lineNumber: number | null) => {
+      setStore("selectionFilePath", filePath);
+      setStore("selectionLineNumber", lineNumber);
+    },
+
+    clearSelectionSource: () => {
+      setStore("selectionFilePath", null);
+      setStore("selectionLineNumber", null);
+    },
+
+    setPendingClickData: (data: PendingClickData | null) => {
+      setStore("pendingClickData", data);
+    },
+
+    clearPendingClickData: () => {
+      setStore("pendingClickData", null);
+    },
+
+    setReplySessionId: (sessionId: string | null) => {
+      setStore("replySessionId", sessionId);
+    },
+
+    clearReplySessionId: () => {
+      setStore("replySessionId", null);
+    },
+
+    incrementViewportVersion: () => {
+      setStore("viewportVersion", (version) => version + 1);
+    },
+
+    addGrabbedBox: (box: GrabbedBox) => {
+      setStore("grabbedBoxes", (boxes) => [...boxes, box]);
+    },
+
+    removeGrabbedBox: (boxId: string) => {
+      setStore("grabbedBoxes", (boxes) => boxes.filter((box) => box.id !== boxId));
+    },
+
+    clearGrabbedBoxes: () => {
+      setStore("grabbedBoxes", []);
+    },
+
+    addLabelInstance: (instance: SelectionLabelInstance) => {
+      setStore("labelInstances", (instances) => [...instances, instance]);
+    },
+
+    updateLabelInstance: (instanceId: string, status: SelectionLabelInstance["status"]) => {
+      setStore("labelInstances", (instances) =>
+        instances.map((instance) =>
+          instance.id === instanceId ? { ...instance, status } : instance
+        )
+      );
+    },
+
+    removeLabelInstance: (instanceId: string) => {
+      setStore("labelInstances", (instances) =>
+        instances.filter((instance) => instance.id !== instanceId)
+      );
+    },
+
+    clearLabelInstances: () => {
+      setStore("labelInstances", []);
+    },
+
+    setHasAgentProvider: (value: boolean) => {
+      setStore("hasAgentProvider", value);
+    },
+
+    setUndoRedoState: (canUndo: boolean, canRedo: boolean) => {
+      setStore("canUndo", canUndo);
+      setStore("canRedo", canRedo);
+    },
+
+    setAgentCapabilities: (capabilities) => {
+      setStore("supportsUndo", capabilities.supportsUndo);
+      setStore("supportsFollowUp", capabilities.supportsFollowUp);
+      setStore("dismissButtonText", capabilities.dismissButtonText);
+      setStore("isAgentConnected", capabilities.isAgentConnected);
+    },
+
+    setPendingAbortSessionId: (sessionId: string | null) => {
+      setStore("pendingAbortSessionId", sessionId);
+    },
+
+    updateSessionBounds: () => {
+      const currentSessions = store.agentSessions;
+      if (currentSessions.size === 0) return;
+
+      const updatedSessions = new Map(currentSessions);
+      let didUpdate = false;
+
+      for (const [sessionId, session] of currentSessions) {
+        const element = store.sessionElements.get(sessionId);
+        if (element && document.contains(element)) {
+          const newBounds = createElementBounds(element);
+          const oldFirstBounds = session.selectionBounds[0];
+          let updatedPosition = session.position;
+
+          if (oldFirstBounds) {
+            const oldCenterX = oldFirstBounds.x + oldFirstBounds.width / 2;
+            const offsetX = session.position.x - oldCenterX;
+            const newCenterX = newBounds.x + newBounds.width / 2;
+            updatedPosition = { ...session.position, x: newCenterX + offsetX };
+          }
+
+          updatedSessions.set(sessionId, {
+            ...session,
+            selectionBounds: [newBounds],
+            position: updatedPosition,
+          });
+          didUpdate = true;
+        }
+      }
+
+      if (didUpdate) {
+        setStore("agentSessions", updatedSessions);
+      }
+    },
+
+    addAgentSession: (sessionId: string, session: AgentSession, element: Element) => {
+      const newSessions = new Map(store.agentSessions);
+      newSessions.set(sessionId, session);
+      setStore("agentSessions", newSessions);
+
+      const newSessionElements = new Map(store.sessionElements);
+      newSessionElements.set(sessionId, element);
+      setStore("sessionElements", newSessionElements);
+    },
+
+    updateAgentSessionStatus: (sessionId: string, status: string) => {
+      const session = store.agentSessions.get(sessionId);
+      if (!session) return;
+
+      const newSessions = new Map(store.agentSessions);
+      newSessions.set(sessionId, { ...session, lastStatus: status });
+      setStore("agentSessions", newSessions);
+    },
+
+    completeAgentSession: (sessionId: string, status?: string) => {
+      const session = store.agentSessions.get(sessionId);
+      if (!session) return;
+
+      const newSessions = new Map(store.agentSessions);
+      newSessions.set(sessionId, {
+        ...session,
+        isStreaming: false,
+        lastStatus: status ?? session.lastStatus,
+      });
+      setStore("agentSessions", newSessions);
+    },
+
+    setAgentSessionError: (sessionId: string, error: string) => {
+      const session = store.agentSessions.get(sessionId);
+      if (!session) return;
+
+      const newSessions = new Map(store.agentSessions);
+      newSessions.set(sessionId, { ...session, isStreaming: false, error });
+      setStore("agentSessions", newSessions);
+    },
+
+    removeAgentSession: (sessionId: string) => {
+      const newSessions = new Map(store.agentSessions);
+      newSessions.delete(sessionId);
+      setStore("agentSessions", newSessions);
+
+      const newSessionElements = new Map(store.sessionElements);
+      newSessionElements.delete(sessionId);
+      setStore("sessionElements", newSessionElements);
+    },
+  };
+
+  return { store, setStore, actions, isActive, isHolding };
+};
+
+export { createGrabStore };
+export type { GrabStore, GrabState, GrabPhase, GrabActions, GrabStoreInput, PendingClickData, Position };
+
