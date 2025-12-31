@@ -57,15 +57,17 @@ export const ElementListItem: Component<ElementListItemProps> = (props) => {
         </span>
 
         {/* Arrow separator */}
-        {locationDisplay() && (
-          <>
-            <span class="text-[11px] text-gray-400 shrink-0">&rarr;</span>
-            {/* File path */}
-            <span class="text-[11px] text-gray-500 truncate min-w-0">
-              {locationDisplay()}
-            </span>
-          </>
-        )}
+        <Show when={locationDisplay()}>
+          {(location) => (
+            <>
+              <span class="text-[11px] text-gray-400 shrink-0">&rarr;</span>
+              {/* File path */}
+              <span class="text-[11px] text-gray-500 truncate min-w-0">
+                {location}
+              </span>
+            </>
+          )}
+        </Show>
 
         {/* Open file icon (shows on hover when clickable) */}
         {props.element.filePath && (
