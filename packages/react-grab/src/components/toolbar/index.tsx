@@ -514,7 +514,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
       <Show
         when={
-          isSettingsOpen() && props.currentShortcut && props.onShortcutChange
+          isSettingsOpen() && !isCollapsed() && props.currentShortcut && props.onShortcutChange
         }
       >
         <ShortcutSettings
