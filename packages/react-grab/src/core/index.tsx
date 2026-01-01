@@ -1875,12 +1875,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const element = store.contextMenuElement;
       if (!element) return;
 
-      const position = store.contextMenuPosition;
+      const position = store.contextMenuPosition ?? store.pointer;
 
       performCopyWithLabel({
         element,
-        positionX: position?.x ?? 0,
-        positionY: position?.y ?? 0,
+        positionX: position.x,
+        positionY: position.y,
         shouldDeactivateAfter: store.isToggleMode,
       });
 
