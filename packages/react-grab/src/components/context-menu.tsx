@@ -148,6 +148,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       <div
         ref={containerRef}
         data-react-grab-ignore-events
+        data-react-grab-context-menu
         class="fixed font-sans text-[13px] antialiased transition-opacity duration-150 ease-out filter-[drop-shadow(0px_0px_4px_#51515180)] select-none"
         style={{
           top: `${computedPosition().top}px`,
@@ -168,6 +169,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
               {(item) => (
                 <button
                   data-react-grab-ignore-events
+                  data-react-grab-menu-item={item.label.toLowerCase()}
                   class="contain-layout flex items-center px-0.5 py-0.5 cursor-pointer transition-colors hover:bg-black/5 text-left border-none bg-transparent rounded-sm disabled:opacity-40 disabled:cursor-default disabled:hover:bg-transparent"
                   disabled={!item.enabled}
                   onPointerDown={(event) => event.stopPropagation()}

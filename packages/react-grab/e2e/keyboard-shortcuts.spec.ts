@@ -3,10 +3,10 @@ import { test, expect } from "./fixtures.js";
 test.describe("Keyboard Shortcuts", () => {
   test("should copy selected element when clicking", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("h1");
+    await reactGrab.hoverElement("[data-testid='todo-list'] h1");
     await reactGrab.waitForSelectionBox();
 
-    await reactGrab.clickElement("h1");
+    await reactGrab.clickElement("[data-testid='todo-list'] h1");
     await reactGrab.page.waitForTimeout(500);
 
     const clipboardContent = await reactGrab.getClipboardContent();
@@ -40,14 +40,14 @@ test.describe("Keyboard Shortcuts", () => {
 
   test("should copy list item when clicked", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("li:nth-child(2)");
+    await reactGrab.hoverElement("[data-testid='todo-list'] li:nth-child(2)");
     await reactGrab.waitForSelectionBox();
 
-    await reactGrab.clickElement("li:nth-child(2)");
+    await reactGrab.clickElement("[data-testid='todo-list'] li:nth-child(2)");
     await reactGrab.page.waitForTimeout(500);
 
     const clipboardContent = await reactGrab.getClipboardContent();
-    expect(clipboardContent).toContain("Write a blog post");
+    expect(clipboardContent).toContain("Walk the dog");
   });
 
   test("should keep overlay active while navigating with arrow keys", async ({

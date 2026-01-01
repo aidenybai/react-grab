@@ -36,10 +36,10 @@ test.describe("Element Selection", () => {
 
   test("should copy heading element to clipboard", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("h1");
+    await reactGrab.hoverElement("[data-testid='todo-list'] h1");
     await reactGrab.waitForSelectionBox();
 
-    await reactGrab.clickElement("h1");
+    await reactGrab.clickElement("[data-testid='todo-list'] h1");
     await reactGrab.page.waitForTimeout(500);
 
     const clipboardContent = await reactGrab.getClipboardContent();
@@ -123,5 +123,94 @@ test.describe("Element Selection", () => {
 
     const isVisible = await reactGrab.isOverlayVisible();
     expect(isVisible).toBe(true);
+  });
+});
+
+test.describe("Selection Bounds and Mutations", () => {
+  test("selection box should update when element size changes", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    const initialBounds = await reactGrab.getSelectionBoxBounds();
+    expect(initialBounds).not.toBeNull();
+
+    await reactGrab.page.evaluate(() => {
+      const element = document.querySelector("li:first-child") as HTMLElement;
+      if (element) {
+        element.style.height = "200px";
+      }
+    });
+    await reactGrab.page.waitForTimeout(300);
+
+    const updatedBounds = await reactGrab.getSelectionBoxBounds();
+    expect(updatedBounds).not.toBeNull();
+
+    if (initialBounds && updatedBounds) {
+      expect(updatedBounds.height).toBeGreaterThan(initialBounds.height);
+    }
+  });
+
+  test("selection should handle element being hidden", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("[data-testid='toggleable-element']");
+    await reactGrab.waitForSelectionBox();
+
+    await reactGrab.hideElement("[data-testid='toggleable-element']");
+    await reactGrab.page.waitForTimeout(100);
+
+    await reactGrab.hoverElement("li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    const isVisible = await reactGrab.isSelectionBoxVisible();
+    expect(isVisible).toBe(true);
+  });
+
+  test("selection should recalculate after scroll", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    const boundsBefore = await reactGrab.getSelectionBoxBounds();
+
+    await reactGrab.scrollPage(50);
+    await reactGrab.page.waitForTimeout(150);
+
+    const boundsAfter = await reactGrab.getSelectionBoxBounds();
+
+    if (boundsBefore && boundsAfter) {
+      expect(boundsBefore.y).not.toBe(boundsAfter.y);
+    }
+  });
+
+  test("multiple selection boxes should display for drag selection", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+    await reactGrab.dragSelect("li:first-child", "li:nth-child(3)");
+    await reactGrab.page.waitForTimeout(200);
+
+    const grabbedInfo = await reactGrab.getGrabbedBoxInfo();
+    expect(grabbedInfo.count).toBeGreaterThan(1);
+  });
+
+  test("selection should work on deeply nested elements", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("[data-testid='deeply-nested-text']");
+    await reactGrab.waitForSelectionBox();
+
+    await reactGrab.clickElement("[data-testid='deeply-nested-text']");
+    await reactGrab.page.waitForTimeout(500);
+
+    const clipboardContent = await reactGrab.getClipboardContent();
+    expect(clipboardContent).toContain("deeply nested");
   });
 });

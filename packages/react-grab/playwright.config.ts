@@ -12,7 +12,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: "html",
   use: {
-    baseURL: "http://localhost:5173",
+    baseURL: "http://localhost:5174",
     trace: "on-first-retry",
     permissions: ["clipboard-read", "clipboard-write"],
   },
@@ -20,13 +20,22 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
+      testIgnore: /touch-mode\.spec\.ts/,
+    },
+    {
+      name: "chromium-touch",
+      use: {
+        ...devices["Desktop Chrome"],
+        hasTouch: true,
+      },
+      testMatch: /touch-mode\.spec\.ts/,
     },
   ],
   webServer: {
     command: "pnpm dev",
-    url: "http://localhost:5173",
+    url: "http://localhost:5174",
     reuseExistingServer: !process.env.CI,
-    cwd: path.resolve(__dirname, "../vite-playground"),
+    cwd: path.resolve(__dirname, "../e2e-playground"),
     timeout: 30000,
   },
 });

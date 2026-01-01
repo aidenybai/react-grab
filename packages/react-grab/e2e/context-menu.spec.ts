@@ -55,9 +55,9 @@ test.describe("Context Menu", () => {
   test.describe("Menu Items", () => {
     test("should copy element when clicking Copy", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("h1");
+      await reactGrab.hoverElement("[data-testid='todo-list'] h1");
       await reactGrab.waitForSelectionBox();
-      await reactGrab.rightClickElement("h1");
+      await reactGrab.rightClickElement("[data-testid='todo-list'] h1");
       await reactGrab.clickContextMenuItem("Copy");
 
       await reactGrab.page.waitForTimeout(500);
@@ -260,9 +260,9 @@ test.describe("Context Menu", () => {
       reactGrab,
     }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("h1");
+      await reactGrab.hoverElement("[data-testid='todo-list'] h1");
       await reactGrab.waitForSelectionBox();
-      await reactGrab.rightClickElement("h1");
+      await reactGrab.rightClickElement("[data-testid='todo-list'] h1");
       await reactGrab.clickContextMenuItem("Copy");
 
       await reactGrab.page.waitForTimeout(500);
@@ -346,9 +346,9 @@ test.describe("Context Menu", () => {
       reactGrab,
     }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("h1");
+      await reactGrab.hoverElement("[data-testid='todo-list'] h1");
       await reactGrab.waitForSelectionBox();
-      await reactGrab.rightClickElement("h1");
+      await reactGrab.rightClickElement("[data-testid='todo-list'] h1");
       await reactGrab.clickContextMenuItem("Copy");
       await reactGrab.page.waitForTimeout(500);
 
@@ -356,15 +356,109 @@ test.describe("Context Menu", () => {
       expect(firstCopy).toContain("Todo List");
 
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
+      await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
       await reactGrab.waitForSelectionBox();
-      await reactGrab.rightClickElement("li:first-child");
+      await reactGrab.rightClickElement("[data-testid='todo-list'] li:first-child");
       await reactGrab.clickContextMenuItem("Copy");
       await reactGrab.page.waitForTimeout(500);
 
       const secondCopy = await reactGrab.getClipboardContent();
       expect(secondCopy).toBeTruthy();
       expect(secondCopy).not.toContain("Todo List");
+    });
+  });
+
+  test.describe("Prompt Menu Item", () => {
+    test("Prompt item should appear when agent is configured", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.setupMockAgent();
+      await reactGrab.activate();
+      await reactGrab.hoverElement("li:first-child");
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.rightClickElement("li:first-child");
+
+      const menuInfo = await reactGrab.getContextMenuInfo();
+      expect(menuInfo.isVisible).toBe(true);
+      expect(menuInfo.menuItems).toContain("Prompt");
+    });
+
+    test("Prompt item should enter input mode when clicked", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.setupMockAgent();
+      await reactGrab.activate();
+      await reactGrab.hoverElement("li:first-child");
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.rightClickElement("li:first-child");
+      await reactGrab.page.waitForTimeout(100);
+
+      await reactGrab.clickContextMenuItem("Prompt");
+      await reactGrab.page.waitForTimeout(200);
+
+      const isInputMode = await reactGrab.isInputModeActive();
+      expect(isInputMode).toBe(true);
+    });
+  });
+
+  test.describe("Context Menu Positioning", () => {
+    test("context menu should appear near click position", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+      await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.rightClickElement("[data-testid='todo-list'] li:first-child");
+      await reactGrab.page.waitForTimeout(200);
+
+      const menuInfo = await reactGrab.getContextMenuInfo();
+      expect(menuInfo.isVisible).toBe(true);
+      expect(menuInfo.position).toBeDefined();
+    });
+
+    test("context menu should stay within viewport at bottom edge", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+      await reactGrab.hoverElement("[data-testid='edge-bottom-left']");
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.rightClickElement("[data-testid='edge-bottom-left']");
+
+      const menuInfo = await reactGrab.getContextMenuInfo();
+      const viewport = await reactGrab.getViewportSize();
+
+      if (menuInfo.position) {
+        expect(menuInfo.position.y).toBeLessThan(viewport.height);
+      }
+    });
+
+    test("context menu should stay within viewport at right edge", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+      await reactGrab.hoverElement("[data-testid='edge-top-right']");
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.rightClickElement("[data-testid='edge-top-right']");
+
+      const menuInfo = await reactGrab.getContextMenuInfo();
+      const viewport = await reactGrab.getViewportSize();
+
+      if (menuInfo.position) {
+        expect(menuInfo.position.x).toBeLessThan(viewport.width);
+      }
+    });
+  });
+
+  test.describe("Context Menu After Drag Selection", () => {
+    test("drag selection should create selection label", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+      await reactGrab.dragSelect("li:first-child", "li:nth-child(3)");
+      await reactGrab.page.waitForTimeout(500);
+
+      const selectionInfo = await reactGrab.getSelectionLabelInfo();
+      expect(selectionInfo.isVisible).toBe(true);
     });
   });
 });

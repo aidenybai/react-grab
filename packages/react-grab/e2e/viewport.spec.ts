@@ -87,13 +87,13 @@ test.describe("Viewport and Scroll Handling", () => {
     reactGrab,
   }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("h1");
+    await reactGrab.hoverElement("[data-testid='todo-list'] h1");
     await reactGrab.waitForSelectionBox();
 
     await reactGrab.page.setViewportSize({ width: 600, height: 400 });
     await reactGrab.page.waitForTimeout(200);
 
-    await reactGrab.clickElement("h1");
+    await reactGrab.clickElement("[data-testid='todo-list'] h1");
     await reactGrab.page.waitForTimeout(500);
 
     const clipboardContent = await reactGrab.getClipboardContent();

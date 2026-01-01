@@ -99,6 +99,46 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(@types/node@24.10.2)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.37.0)(tsx@4.20.6)(yaml@2.8.1)
 
+  packages/e2e-playground:
+    dependencies:
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
+      react:
+        specifier: 19.1.2
+        version: 19.1.2
+      react-dom:
+        specifier: 19.1.2
+        version: 19.1.2(react@19.1.2)
+      react-grab:
+        specifier: workspace:*
+        version: link:../react-grab
+      tailwind-merge:
+        specifier: ^2.6.0
+        version: 2.6.0
+    devDependencies:
+      '@tailwindcss/vite':
+        specifier: 4.0.0-beta.8
+        version: 4.0.0-beta.8(vite@6.4.1(@types/node@24.10.2)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.37.0)(tsx@4.20.6)(yaml@2.8.1))
+      '@types/react':
+        specifier: ^19.0.4
+        version: 19.2.7
+      '@types/react-dom':
+        specifier: ^19.0.2
+        version: 19.2.2(@types/react@19.2.7)
+      '@vitejs/plugin-react':
+        specifier: ^4.3.4
+        version: 4.7.0(vite@6.4.1(@types/node@24.10.2)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.37.0)(tsx@4.20.6)(yaml@2.8.1))
+      tailwindcss:
+        specifier: 4.0.0-beta.8
+        version: 4.0.0-beta.8
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+      vite:
+        specifier: ^6.0.2
+        version: 6.4.1(@types/node@24.10.2)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.37.0)(tsx@4.20.6)(yaml@2.8.1)
+
   packages/grab: {}
 
   packages/next-playground:
@@ -2204,8 +2244,8 @@ packages:
     resolution: {integrity: sha512-y9/ltK2TY+0HD1H2Sz7MvU3zFh4SjER6eQVNQfBx/0gK9N7S0QwHW6cmhHLx3CP25zN190LKHXPieMGqsVvrOQ==}
     engines: {node: '>=18'}
 
-  '@sourcegraph/amp@0.0.1767172180-g2c9ff0':
-    resolution: {integrity: sha512-CPLZmfgEh3WiG9LmYEACUHW3UuR3srvW/Bz/L5ORabUUk5cCVfPv8XuU027cPAoDLDN0pVczOLJDudZVOzICEQ==}
+  '@sourcegraph/amp@0.0.1767254483-g812f6b':
+    resolution: {integrity: sha512-a0tb1GUcDOvf2r8lZylBGOmaFvFwXwF5aQ5o4Na7er6IPRuBkJGN5HGcZEfQGPpGFRoOwkzTgHW0Cr76k69Mbw==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -7449,10 +7489,10 @@ snapshots:
 
   '@sourcegraph/amp-sdk@0.1.0-20251210081226-g90e3892':
     dependencies:
-      '@sourcegraph/amp': 0.0.1767172180-g2c9ff0
+      '@sourcegraph/amp': 0.0.1767254483-g812f6b
       zod: 3.25.76
 
-  '@sourcegraph/amp@0.0.1767172180-g2c9ff0':
+  '@sourcegraph/amp@0.0.1767254483-g812f6b':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
@@ -7779,6 +7819,10 @@ snapshots:
   '@types/react-dom@19.2.2(@types/react@19.2.2)':
     dependencies:
       '@types/react': 19.2.2
+
+  '@types/react-dom@19.2.2(@types/react@19.2.7)':
+    dependencies:
+      '@types/react': 19.2.7
 
   '@types/react-reconciler@0.28.9(@types/react@19.2.2)':
     dependencies:
