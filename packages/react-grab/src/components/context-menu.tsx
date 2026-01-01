@@ -1,4 +1,4 @@
-import { Show, For, onMount, onCleanup, createSignal, createEffect } from "solid-js";
+import { Show, For, onMount, onCleanup, createSignal, createEffect, createMemo } from "solid-js";
 import type { Component } from "solid-js";
 import type { OverlayBounds } from "../types.js";
 import {
@@ -38,7 +38,6 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
 
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
-  const [arrowPosition, setArrowPosition] = createSignal<"bottom" | "top">("bottom");
 
   const isVisible = () => props.position !== null;
 
@@ -63,14 +62,14 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     }
   });
 
-  const computedPosition = () => {
+  const computedPosition = createMemo(() => {
     const bounds = props.selectionBounds;
     const clickPosition = props.position;
     const labelWidth = measuredWidth();
     const labelHeight = measuredHeight();
 
     if (labelWidth === 0 || labelHeight === 0 || !bounds || !clickPosition) {
-      return { left: -9999, top: -9999, arrowLeft: 0 };
+      return { left: -9999, top: -9999, arrowLeft: 0, arrowPosition: "bottom" as const };
     }
 
     const viewportWidth = window.innerWidth;
@@ -85,19 +84,17 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     const totalHeightNeeded = labelHeight + ARROW_HEIGHT_PX + LABEL_GAP_PX;
     const fitsBelow = positionTop + labelHeight <= viewportHeight - VIEWPORT_MARGIN_PX;
 
+    const arrowPosition: "bottom" | "top" = fitsBelow ? "bottom" : "top";
     if (!fitsBelow) {
       positionTop = bounds.y - totalHeightNeeded;
-      setArrowPosition("top");
-    } else {
-      setArrowPosition("bottom");
     }
 
     positionTop = Math.max(VIEWPORT_MARGIN_PX, positionTop);
 
     const arrowLeft = Math.max(12, Math.min(cursorX - positionLeft, labelWidth - 12));
 
-    return { left: positionLeft, top: positionTop, arrowLeft };
-  };
+    return { left: positionLeft, top: positionTop, arrowLeft, arrowPosition };
+  });
 
   const menuItems = (): MenuItem[] => {
     const items: MenuItem[] = [
@@ -162,7 +159,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         onMouseDown={(event) => event.stopImmediatePropagation()}
         onClick={(event) => event.stopImmediatePropagation()}
       >
-        <Arrow position={arrowPosition()} leftPx={computedPosition().arrowLeft} />
+        <Arrow position={computedPosition().arrowPosition} leftPx={computedPosition().arrowLeft} />
 
         <div class="[font-synthesis:none] contain-layout flex flex-col rounded-sm bg-white antialiased w-fit h-fit overflow-hidden p-1.5 gap-1">
           <TagBadge tagName={displayName()} isClickable={false} onClick={(event) => event.stopPropagation()} shrink />
