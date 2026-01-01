@@ -235,6 +235,8 @@ const createGrabStore = (input: GrabStoreInput) => {
       setStore("frozenElement", null);
       setStore("frozenElements", []);
       setStore("pendingClickData", null);
+      setStore("replySessionId", null);
+      setStore("pendingAbortSessionId", null);
       setStore("activationTimestamp", null);
       setStore("previouslyFocusedElement", null);
     },
