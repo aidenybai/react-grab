@@ -30,8 +30,8 @@ type GrabState =
       isInputMode: boolean;
       isPendingDismiss: boolean;
     }
-  | { state: "copying"; startedAt: number }
-  | { state: "justCopied"; copiedAt: number };
+  | { state: "copying"; startedAt: number; wasActive: boolean }
+  | { state: "justCopied"; copiedAt: number; wasActive: boolean };
 
 interface GrabStore {
   current: GrabState;
@@ -321,7 +321,8 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
 
     startCopy: () => {
-      setStore("current", { state: "copying", startedAt: Date.now() });
+      const wasActive = store.current.state === "active";
+      setStore("current", { state: "copying", startedAt: Date.now(), wasActive });
     },
 
     completeCopy: (element?: Element) => {
@@ -329,12 +330,23 @@ const createGrabStore = (input: GrabStoreInput) => {
       if (element) {
         setStore("lastCopiedElement", element);
       }
-      setStore("current", { state: "justCopied", copiedAt: Date.now() });
+      const wasActive = store.current.state === "copying" ? store.current.wasActive : false;
+      setStore("current", { state: "justCopied", copiedAt: Date.now(), wasActive });
     },
 
     finishJustCopied: () => {
       if (store.current.state === "justCopied") {
-        setStore("current", { state: "idle" });
+        const shouldReturnToActive = store.current.wasActive && !store.isToggleMode;
+        if (shouldReturnToActive) {
+          setStore("current", {
+            state: "active",
+            phase: "hovering",
+            isInputMode: false,
+            isPendingDismiss: false,
+          });
+        } else {
+          setStore("current", { state: "idle" });
+        }
       }
     },
 
@@ -621,4 +633,3 @@ const createGrabStore = (input: GrabStoreInput) => {
 
 export { createGrabStore };
 export type { GrabStore, GrabState, GrabPhase, GrabActions, GrabStoreInput, PendingClickData, Position };
-
