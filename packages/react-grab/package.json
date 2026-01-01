@@ -103,9 +103,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@xstate/solid": "^2.0.0",
     "bippy": "^0.5.28",
-    "solid-js": "^1.9.10",
-    "xstate": "^5.25.0"
+    "solid-js": "^1.9.10"
   }
 }

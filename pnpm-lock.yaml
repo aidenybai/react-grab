@@ -422,18 +422,12 @@ importers:
 
   packages/react-grab:
     dependencies:
-      '@xstate/solid':
-        specifier: ^2.0.0
-        version: 2.0.0(solid-js@1.9.10)(xstate@5.25.0)
       bippy:
         specifier: ^0.5.28
         version: 0.5.28(@types/react@19.2.7)(react@19.2.1)
       solid-js:
         specifier: ^1.9.10
         version: 1.9.10
-      xstate:
-        specifier: ^5.25.0
-        version: 5.25.0
     devDependencies:
       '@babel/core':
         specifier: ^7.28.5
@@ -2210,8 +2204,8 @@ packages:
     resolution: {integrity: sha512-y9/ltK2TY+0HD1H2Sz7MvU3zFh4SjER6eQVNQfBx/0gK9N7S0QwHW6cmhHLx3CP25zN190LKHXPieMGqsVvrOQ==}
     engines: {node: '>=18'}
 
-  '@sourcegraph/amp@0.0.1767052904-g3b007a':
-    resolution: {integrity: sha512-da1CIhf3u11WsO6/by2qpnEAucnOXgm7XHS0clJ/VZC1WiBU+4dG2JmTUB8mbLsZycQ1teQC/Nr/lhqJ9ISv5A==}
+  '@sourcegraph/amp@0.0.1767172180-g2c9ff0':
+    resolution: {integrity: sha512-CPLZmfgEh3WiG9LmYEACUHW3UuR3srvW/Bz/L5ORabUUk5cCVfPv8XuU027cPAoDLDN0pVczOLJDudZVOzICEQ==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -2835,15 +2829,6 @@ packages:
 
   '@vitest/utils@3.2.4':
     resolution: {integrity: sha512-fB2V0JFrQSMsCo9HiSq3Ezpdv4iYaXRG1Sx8edX3MwxfyNn83mKiGzOcH+Fkxt4MHxr3y42fQi1oeAInqgX2QA==}
-
-  '@xstate/solid@2.0.0':
-    resolution: {integrity: sha512-ycGMMJWPtfnc+CGhUxxe664wTVr4M2NXEJx4EsShbcT5G0d2bP378AtAsVvVhSjr6W5+7Br6htDivND1I6DOfQ==}
-    peerDependencies:
-      solid-js: ^1.6.0
-      xstate: ^5.20.0
-    peerDependenciesMeta:
-      xstate:
-        optional: true
 
   acorn-jsx@5.3.2:
     resolution: {integrity: sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==}
@@ -6087,9 +6072,6 @@ packages:
     resolution: {integrity: sha512-fDlsI/kFEx7gLvbecc0/ohLG50fugQp8ryHzMTuW9vSa1GJ0XYWKnhsUx7oie3G98+r56aTQIUB4kht42R3JvA==}
     engines: {node: '>=4.0'}
 
-  xstate@5.25.0:
-    resolution: {integrity: sha512-yyWzfhVRoTHNLjLoMmdwZGagAYfmnzpm9gPjlX2MhJZsDojXGqRxODDOi4BsgGRKD46NZRAdcLp6CKOyvQS0Bw==}
-
   y18n@5.0.8:
     resolution: {integrity: sha512-0pfFzegeDWJHJIAmTLRP2DwHjdF5s7jo9tuztdQxAhINCdvS+3nGINqPd00AphqJR/0LhANUS6/+7SCb98YOfA==}
     engines: {node: '>=10'}
@@ -7467,10 +7449,10 @@ snapshots:
 
   '@sourcegraph/amp-sdk@0.1.0-20251210081226-g90e3892':
     dependencies:
-      '@sourcegraph/amp': 0.0.1767052904-g3b007a
+      '@sourcegraph/amp': 0.0.1767172180-g2c9ff0
       zod: 3.25.76
 
-  '@sourcegraph/amp@0.0.1767052904-g3b007a':
+  '@sourcegraph/amp@0.0.1767172180-g2c9ff0':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
@@ -8040,12 +8022,6 @@ snapshots:
       '@vitest/pretty-format': 3.2.4
       loupe: 3.2.1
       tinyrainbow: 2.0.0
-
-  '@xstate/solid@2.0.0(solid-js@1.9.10)(xstate@5.25.0)':
-    dependencies:
-      solid-js: 1.9.10
-    optionalDependencies:
-      xstate: 5.25.0
 
   acorn-jsx@5.3.2(acorn@8.15.0):
     dependencies:
@@ -8930,7 +8906,7 @@ snapshots:
       eslint: 9.37.0(jiti@2.6.1)
       eslint-import-resolver-node: 0.3.9
       eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1))
-      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.37.0(jiti@2.6.1))
+      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1))
       eslint-plugin-jsx-a11y: 6.10.2(eslint@9.37.0(jiti@2.6.1))
       eslint-plugin-react: 7.37.5(eslint@9.37.0(jiti@2.6.1))
       eslint-plugin-react-hooks: 7.0.1(eslint@9.37.0(jiti@2.6.1))
@@ -8963,7 +8939,7 @@ snapshots:
       tinyglobby: 0.2.15
       unrs-resolver: 1.11.1
     optionalDependencies:
-      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.37.0(jiti@2.6.1))
+      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1))
     transitivePeerDependencies:
       - supports-color
 
@@ -9032,7 +9008,7 @@ snapshots:
       - eslint-import-resolver-webpack
       - supports-color
 
-  eslint-plugin-import@2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.37.0(jiti@2.6.1)):
+  eslint-plugin-import@2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)):
     dependencies:
       '@rtsao/scc': 1.1.0
       array-includes: 3.1.9
@@ -11739,8 +11715,6 @@ snapshots:
       xmlbuilder: 11.0.1
 
   xmlbuilder@11.0.1: {}
-
-  xstate@5.25.0: {}
 
   y18n@5.0.8: {}
 
