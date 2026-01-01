@@ -1,4 +1,4 @@
-import { Show, onMount, onCleanup, createSignal, createEffect } from "solid-js";
+import { Show, For, onMount, onCleanup, createSignal, createEffect } from "solid-js";
 import type { Component } from "solid-js";
 import type { OverlayBounds } from "../types.js";
 import {
@@ -165,20 +165,22 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         <div class="[font-synthesis:none] contain-layout flex flex-col rounded-sm bg-white antialiased w-fit h-fit overflow-hidden p-1.5 gap-1">
           <TagBadge tagName={displayName()} isClickable={false} onClick={(event) => event.stopPropagation()} shrink />
           <div class="flex flex-col">
-            {menuItems().map((item) => (
-              <button
-                data-react-grab-ignore-events
-                class="contain-layout flex items-center px-0.5 py-0.5 cursor-pointer transition-colors hover:bg-black/5 text-left border-none bg-transparent rounded-sm disabled:opacity-40 disabled:cursor-default disabled:hover:bg-transparent"
-                disabled={!item.enabled}
-                onPointerDown={(event) => event.stopPropagation()}
-                onPointerUp={(event) => handleAction(item, event)}
-                onClick={(event) => handleAction(item, event)}
-              >
-                <span class="text-[13px] leading-4 font-sans font-medium text-black">
-                  {item.label}
-                </span>
-              </button>
-            ))}
+            <For each={menuItems()}>
+              {(item) => (
+                <button
+                  data-react-grab-ignore-events
+                  class="contain-layout flex items-center px-0.5 py-0.5 cursor-pointer transition-colors hover:bg-black/5 text-left border-none bg-transparent rounded-sm disabled:opacity-40 disabled:cursor-default disabled:hover:bg-transparent"
+                  disabled={!item.enabled}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onPointerUp={(event) => handleAction(item, event)}
+                  onClick={(event) => handleAction(item, event)}
+                >
+                  <span class="text-[13px] leading-4 font-sans font-medium text-black">
+                    {item.label}
+                  </span>
+                </button>
+              )}
+            </For>
           </div>
         </div>
       </div>
