@@ -4,6 +4,13 @@ const ATTRIBUTE_NAME = "data-react-grab";
 const DEFAULT_KEY_HOLD_DURATION_MS = 200;
 const ACTIVATION_BUFFER_MS = 100;
 
+interface ContextMenuInfo {
+  isVisible: boolean;
+  tagBadgeText: string | null;
+  menuItems: string[];
+  position: { x: number; y: number } | null;
+}
+
 interface ReactGrabPageObject {
   page: Page;
   activate: () => Promise<void>;
@@ -17,11 +24,15 @@ interface ReactGrabPageObject {
   clickElement: (selector: string) => Promise<void>;
   doubleClickElement: (selector: string) => Promise<void>;
   rightClickElement: (selector: string) => Promise<void>;
+  rightClickAtPosition: (x: number, y: number) => Promise<void>;
   dragSelect: (startSelector: string, endSelector: string) => Promise<void>;
   getClipboardContent: () => Promise<string>;
   waitForSelectionBox: () => Promise<void>;
   isContextMenuVisible: () => Promise<boolean>;
+  getContextMenuInfo: () => Promise<ContextMenuInfo>;
+  isContextMenuItemEnabled: (label: string) => Promise<boolean>;
   clickContextMenuItem: (label: string) => Promise<void>;
+  isSelectionBoxVisible: () => Promise<boolean>;
   pressEscape: () => Promise<void>;
   pressArrowDown: () => Promise<void>;
   pressArrowUp: () => Promise<void>;
@@ -155,6 +166,11 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     await page.waitForTimeout(100);
   };
 
+  const rightClickAtPosition = async (x: number, y: number) => {
+    await page.mouse.click(x, y, { button: "right" });
+    await page.waitForTimeout(100);
+  };
+
   const isContextMenuVisible = async () => {
     return page.evaluate((attrName) => {
       const host = document.querySelector(`[${attrName}]`);
@@ -162,9 +178,9 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       if (!shadowRoot) return false;
       const root = shadowRoot.querySelector(`[${attrName}]`);
       if (!root) return false;
-      const buttons = root.querySelectorAll("button[data-react-grab-ignore-events]");
+      const buttons = Array.from(root.querySelectorAll("button[data-react-grab-ignore-events]"));
       for (const button of buttons) {
-        const text = button.textContent?.trim();
+        const text = (button as HTMLElement).textContent?.trim();
         if (text === "Copy" || text === "Open" || text === "Prompt") {
           return true;
         }
@@ -181,9 +197,9 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         if (!shadowRoot) throw new Error("No shadow root found");
         const root = shadowRoot.querySelector(`[${attrName}]`);
         if (!root) throw new Error("No inner root found");
-        const buttons = root.querySelectorAll("button[data-react-grab-ignore-events]");
+        const buttons = Array.from(root.querySelectorAll("button[data-react-grab-ignore-events]"));
         for (const button of buttons) {
-          if (button.textContent?.trim() === itemLabel) {
+          if ((button as HTMLElement).textContent?.trim() === itemLabel) {
             (button as HTMLButtonElement).click();
             return;
           }
@@ -193,6 +209,76 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       { attrName: ATTRIBUTE_NAME, itemLabel: label },
     );
     await page.waitForTimeout(100);
+  };
+
+  const getContextMenuInfo = async (): Promise<ContextMenuInfo> => {
+    return page.evaluate((attrName) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      if (!shadowRoot) return { isVisible: false, tagBadgeText: null, menuItems: [], position: null };
+
+      const root = shadowRoot.querySelector(`[${attrName}]`);
+      if (!root) return { isVisible: false, tagBadgeText: null, menuItems: [], position: null };
+
+      const contextMenuContainer = root.querySelector<HTMLElement>("[data-react-grab-ignore-events]");
+      if (!contextMenuContainer) return { isVisible: false, tagBadgeText: null, menuItems: [], position: null };
+
+      const buttons = Array.from(contextMenuContainer.querySelectorAll("button[data-react-grab-ignore-events]"));
+      const menuItems: string[] = [];
+      let hasContextMenuItems = false;
+
+      for (const button of buttons) {
+        const text = (button as HTMLElement).textContent?.trim();
+        if (text === "Copy" || text === "Open" || text === "Prompt") {
+          hasContextMenuItems = true;
+          menuItems.push(text);
+        }
+      }
+
+      if (!hasContextMenuItems) return { isVisible: false, tagBadgeText: null, menuItems: [], position: null };
+
+      const tagBadgeElement = contextMenuContainer.querySelector("span");
+      const tagBadgeText = tagBadgeElement?.textContent?.trim() ?? null;
+
+      const style = contextMenuContainer.style;
+      const position = style.left && style.top
+        ? { x: parseFloat(style.left), y: parseFloat(style.top) }
+        : null;
+
+      return { isVisible: true, tagBadgeText, menuItems, position };
+    }, ATTRIBUTE_NAME);
+  };
+
+  const isContextMenuItemEnabled = async (label: string): Promise<boolean> => {
+    return page.evaluate(
+      ({ attrName, itemLabel }) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const shadowRoot = host?.shadowRoot;
+        if (!shadowRoot) return false;
+        const root = shadowRoot.querySelector(`[${attrName}]`);
+        if (!root) return false;
+        const buttons = Array.from(root.querySelectorAll("button[data-react-grab-ignore-events]"));
+        for (const button of buttons) {
+          if ((button as HTMLElement).textContent?.trim() === itemLabel) {
+            return !(button as HTMLButtonElement).disabled;
+          }
+        }
+        return false;
+      },
+      { attrName: ATTRIBUTE_NAME, itemLabel: label },
+    );
+  };
+
+  const isSelectionBoxVisible = async (): Promise<boolean> => {
+    return page.evaluate((attrName) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      if (!shadowRoot) return false;
+      const root = shadowRoot.querySelector(`[${attrName}]`);
+      if (!root) return false;
+      const svgElements = root.querySelectorAll("svg");
+      return svgElements.length > 0;
+    }, ATTRIBUTE_NAME);
   };
 
   const scrollPage = async (deltaY: number) => {
@@ -213,11 +299,15 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     clickElement,
     doubleClickElement,
     rightClickElement,
+    rightClickAtPosition,
     dragSelect,
     getClipboardContent,
     waitForSelectionBox,
     isContextMenuVisible,
+    getContextMenuInfo,
+    isContextMenuItemEnabled,
     clickContextMenuItem,
+    isSelectionBoxVisible,
     pressEscape,
     pressArrowDown,
     pressArrowUp,
