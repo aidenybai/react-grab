@@ -169,6 +169,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
               window.open(openFileUrl, "_blank");
             }
           }}
+          isContextMenuOpen={props.contextMenuPosition !== null}
         />
       </Show>
 
@@ -198,7 +199,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         hasAgent={props.contextMenuHasAgent ?? false}
         onCopy={props.onContextMenuCopy ?? (() => {})}
         onOpen={props.onContextMenuOpen ?? (() => {})}
-        onPrompt={props.onContextMenuPrompt ?? (() => {})}
+        onEdit={props.onContextMenuEdit ?? (() => {})}
         onDismiss={props.onContextMenuDismiss ?? (() => {})}
       />
     </>

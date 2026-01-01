@@ -1026,7 +1026,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (hasAgentProvider()) {
         actions.setPointer(center);
         actions.setFrozenElements(selectedElements);
-        activateInputMode();
+        actions.freeze();
+        actions.showContextMenu(center, firstElement);
         if (!isActivated()) {
           activateRenderer();
         }
@@ -1655,6 +1656,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => {
         actions.incrementViewportVersion();
         actions.updateSessionBounds();
+        actions.updateContextMenuPosition();
       },
       { capture: true },
     );
@@ -1662,6 +1664,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     eventListenerManager.addWindowListener("resize", () => {
       actions.incrementViewportVersion();
       actions.updateSessionBounds();
+      actions.updateContextMenuPosition();
     });
 
     let boundsRecalcIntervalId: number | null = null;
@@ -1841,9 +1844,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const contextMenuBounds = createMemo((): OverlayBounds | null => {
+      void store.viewportVersion;
       const element = store.contextMenuElement;
       if (!element) return null;
       return createElementBounds(element);
+    });
+
+    const contextMenuPosition = createMemo(() => {
+      void store.viewportVersion;
+      return store.contextMenuPosition;
     });
 
     const contextMenuTagName = createMemo(() => {
@@ -2019,7 +2028,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             toolbarVisible={theme().toolbar.enabled}
             isActive={isActivated()}
             onToggleActive={handleToggleActive}
-            contextMenuPosition={store.contextMenuPosition}
+            contextMenuPosition={contextMenuPosition()}
             contextMenuBounds={contextMenuBounds()}
             contextMenuTagName={contextMenuTagName()}
             contextMenuComponentName={contextMenuComponentName()}
@@ -2027,7 +2036,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             contextMenuHasAgent={hasAgentProvider()}
             onContextMenuCopy={handleContextMenuCopy}
             onContextMenuOpen={handleContextMenuOpen}
-            onContextMenuPrompt={handleContextMenuPrompt}
+            onContextMenuEdit={handleContextMenuPrompt}
             onContextMenuDismiss={handleContextMenuDismiss}
           />
         ),

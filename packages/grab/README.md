@@ -6,7 +6,7 @@
 
 Select context for coding agents directly from your website
 
-How? Point at any element and it'll send the file name, React component, and HTML source code.
+How? Point at any element and press **⌘C** (Mac) or **Ctrl+C** (Windows/Linux) to copy the file name, React component, and HTML source code.
 
 It makes tools like Cursor, Claude Code, Copilot run up to [**3× faster**](https://react-grab.com/blog/intro) and more accurate.
 
@@ -20,6 +20,22 @@ Run this command to install React Grab into your project. Ensure you are running
 
 ```html
 npx grab@latest init
+```
+
+## Usage
+
+Once installed, hover over any UI element in your browser and press:
+
+- **⌘C** (Cmd+C) on Mac
+- **Ctrl+C** on Windows/Linux
+
+This copies the element's context (file name, React component, and HTML source code) to your clipboard ready to paste into your coding agent. For example:
+
+```js
+<a class="ml-auto inline-block text-sm" href="#">
+  Forgot your password?
+</a>
+in LoginForm at components/login-form.tsx:46:19
 ```
 
 ## Manual Installation
@@ -124,7 +140,9 @@ if (process.env.NODE_ENV === "development") {
 
 React Grab can send selected element context directly to your coding agent. This enables a workflow where you select a UI element and an agent automatically makes changes to your codebase.
 
-This means **no copying and pasting** - just select the element and let the agent do the rest. [Learn more →](https://react-grab.com/blog/agent)
+This means **no copying and pasting** - just select the element and let the agent do the rest. [Read more about coding agent integration →](https://react-grab.com/blog/agent)
+
+> **Click to expand** setup instructions for your coding agent:
 
 <details>
 <summary><strong>Claude Code</strong></summary>

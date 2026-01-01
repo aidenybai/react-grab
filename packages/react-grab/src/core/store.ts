@@ -82,6 +82,7 @@ interface GrabStore {
 
   contextMenuPosition: Position | null;
   contextMenuElement: Element | null;
+  contextMenuClickOffset: Position | null;
 }
 
 interface GrabStoreInput {
@@ -139,6 +140,7 @@ const createInitialStore = (input: GrabStoreInput): GrabStore => ({
 
   contextMenuPosition: null,
   contextMenuElement: null,
+  contextMenuClickOffset: null,
 });
 
 interface GrabActions {
@@ -213,6 +215,7 @@ interface GrabActions {
   removeAgentSession: (sessionId: string) => void;
   showContextMenu: (position: Position, element: Element) => void;
   hideContextMenu: () => void;
+  updateContextMenuPosition: () => void;
 }
 
 const createGrabStore = (input: GrabStoreInput) => {
@@ -259,6 +262,7 @@ const createGrabStore = (input: GrabStoreInput) => {
       setStore("previouslyFocusedElement", null);
       setStore("contextMenuPosition", null);
       setStore("contextMenuElement", null);
+      setStore("contextMenuClickOffset", null);
     },
 
     toggle: () => {
@@ -709,13 +713,38 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
 
     showContextMenu: (position: Position, element: Element) => {
+      const bounds = createElementBounds(element);
+      const centerX = bounds.x + bounds.width / 2;
+      const centerY = bounds.y + bounds.height / 2;
       setStore("contextMenuPosition", position);
       setStore("contextMenuElement", element);
+      setStore("contextMenuClickOffset", {
+        x: position.x - centerX,
+        y: position.y - centerY,
+      });
     },
 
     hideContextMenu: () => {
       setStore("contextMenuPosition", null);
       setStore("contextMenuElement", null);
+      setStore("contextMenuClickOffset", null);
+    },
+
+    updateContextMenuPosition: () => {
+      const element = store.contextMenuElement;
+      const clickOffset = store.contextMenuClickOffset;
+
+      if (!element || !clickOffset) return;
+      if (!document.contains(element)) return;
+
+      const newBounds = createElementBounds(element);
+      const newCenterX = newBounds.x + newBounds.width / 2;
+      const newCenterY = newBounds.y + newBounds.height / 2;
+
+      setStore("contextMenuPosition", {
+        x: newCenterX + clickOffset.x,
+        y: newCenterY + clickOffset.y,
+      });
     },
   };
 

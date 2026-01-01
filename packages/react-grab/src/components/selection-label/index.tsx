@@ -41,6 +41,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     props.status !== "copied" &&
     props.status !== "fading";
 
+  const showOpenIndicator = () => props.isContextMenuOpen === true;
+
   const measureContainer = () => {
     if (containerRef && !isTagCurrentlyHovered) {
       const rect = containerRef.getBoundingClientRect();
@@ -411,6 +413,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   onClick={handleTagClick}
                   onHoverChange={handleTagHoverChange}
                   shrink
+                  forceShowIcon={showOpenIndicator()}
                 />
               </div>
               <BottomSection>
@@ -418,6 +421,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   onClick={handleSubmit}
                   shrink
                   hasAgent={props.hasAgent}
+                  showOpenIndicator={showOpenIndicator()}
                 />
               </BottomSection>
             </div>
@@ -434,6 +438,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   shrink
                   hasAgent={props.hasAgent}
                   isEditing
+                  showOpenIndicator={showOpenIndicator()}
                 />
                 <TagBadge
                   tagName={tagDisplay()}

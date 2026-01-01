@@ -400,7 +400,7 @@ test.describe("Context Menu", () => {
   });
 
   test.describe("Prompt Menu Item", () => {
-    test("Prompt item should appear when agent is configured", async ({
+    test("Edit item should appear when agent is configured", async ({
       reactGrab,
     }) => {
       await reactGrab.setupMockAgent();
@@ -411,10 +411,10 @@ test.describe("Context Menu", () => {
 
       const menuInfo = await reactGrab.getContextMenuInfo();
       expect(menuInfo.isVisible).toBe(true);
-      expect(menuInfo.menuItems).toContain("Prompt");
+      expect(menuInfo.menuItems).toContain("Edit");
     });
 
-    test("Prompt item should enter input mode when clicked", async ({
+    test("Edit item should enter input mode when clicked", async ({
       reactGrab,
     }) => {
       await reactGrab.setupMockAgent();
@@ -424,7 +424,7 @@ test.describe("Context Menu", () => {
       await reactGrab.rightClickElement("li:first-child");
       await reactGrab.page.waitForTimeout(100);
 
-      await reactGrab.clickContextMenuItem("Prompt");
+      await reactGrab.clickContextMenuItem("Edit");
       await reactGrab.page.waitForTimeout(200);
 
       const isInputMode = await reactGrab.isInputModeActive();

@@ -345,7 +345,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       );
       for (const button of buttons) {
         const text = (button as HTMLElement).textContent?.trim();
-        if (text === "Copy" || text === "Open" || text === "Prompt") {
+        if (text === "Copy" || text === "Open" || text === "Edit") {
           return true;
         }
       }

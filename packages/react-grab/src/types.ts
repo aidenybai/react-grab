@@ -346,7 +346,7 @@ export interface ReactGrabRendererProps {
   contextMenuHasAgent?: boolean;
   onContextMenuCopy?: () => void;
   onContextMenuOpen?: () => void;
-  onContextMenuPrompt?: () => void;
+  onContextMenuEdit?: () => void;
   onContextMenuDismiss?: () => void;
 }
 
@@ -395,6 +395,7 @@ export interface ActionPillProps {
   shrink?: boolean;
   hasAgent?: boolean;
   isEditing?: boolean;
+  showOpenIndicator?: boolean;
 }
 
 export interface BottomSectionProps {
@@ -462,4 +463,5 @@ export interface SelectionLabelProps {
   error?: string;
   onAcknowledgeError?: () => void;
   onRetry?: () => void;
+  isContextMenuOpen?: boolean;
 }

@@ -5,7 +5,6 @@ import {
   onCleanup,
   createSignal,
   createEffect,
-  createMemo,
 } from "solid-js";
 import type { Component } from "solid-js";
 import type { OverlayBounds } from "../types.js";
@@ -16,6 +15,7 @@ import {
 } from "../constants.js";
 import { Arrow } from "./selection-label/arrow.js";
 import { TagBadge } from "./selection-label/tag-badge.js";
+import { BottomSection } from "./selection-label/bottom-section.js";
 
 interface ContextMenuProps {
   position: { x: number; y: number } | null;
@@ -26,7 +26,7 @@ interface ContextMenuProps {
   hasAgent: boolean;
   onCopy: () => void;
   onOpen: () => void;
-  onPrompt: () => void;
+  onEdit: () => void;
   onDismiss: () => void;
 }
 
@@ -50,6 +50,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
 
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
+  const [viewportVersion, setViewportVersion] = createSignal(0);
 
   const isVisible = () => props.position !== null;
 
@@ -68,13 +69,18 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     }
   };
 
+  const handleViewportChange = () => {
+    setViewportVersion((version) => version + 1);
+  };
+
   createEffect(() => {
     if (isVisible()) {
       requestAnimationFrame(measureContainer);
     }
   });
 
-  const computedPosition = createMemo(() => {
+  const computedPosition = () => {
+    viewportVersion();
     const bounds = props.selectionBounds;
     const clickPosition = props.position;
     const labelWidth = measuredWidth();
@@ -118,7 +124,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     );
 
     return { left: positionLeft, top: positionTop, arrowLeft, arrowPosition };
-  });
+  };
 
   const menuItems = (): MenuItem[] => {
     const items: MenuItem[] = [
@@ -126,7 +132,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       { label: "Open", action: props.onOpen, enabled: props.hasFilePath },
     ];
     if (props.hasAgent) {
-      items.push({ label: "Prompt", action: props.onPrompt, enabled: true });
+      items.push({ label: "Edit", action: props.onEdit, enabled: true });
     }
     return items;
   };
@@ -164,6 +170,8 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       });
     });
     window.addEventListener("keydown", handleKeyDown, { capture: true });
+    window.addEventListener("scroll", handleViewportChange, true);
+    window.addEventListener("resize", handleViewportChange);
 
     onCleanup(() => {
       cancelAnimationFrame(frameId);
@@ -174,6 +182,8 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         capture: true,
       });
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
+      window.removeEventListener("scroll", handleViewportChange, true);
+      window.removeEventListener("resize", handleViewportChange);
     });
   });
 
@@ -203,31 +213,41 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
           leftPx={computedPosition().arrowLeft}
         />
 
-        <div class="[font-synthesis:none] contain-layout flex flex-col rounded-sm bg-white antialiased w-fit h-fit overflow-hidden p-1.5 gap-1">
-          <TagBadge
-            tagName={displayName()}
-            isClickable={false}
-            onClick={(event) => event.stopPropagation()}
-            shrink
-          />
-          <div class="flex flex-col">
-            <For each={menuItems()}>
-              {(item) => (
-                <button
-                  data-react-grab-ignore-events
-                  data-react-grab-menu-item={item.label.toLowerCase()}
-                  class="contain-layout flex items-center px-0.5 py-0.5 cursor-pointer transition-colors hover:bg-black/5 text-left border-none bg-transparent rounded-sm disabled:opacity-40 disabled:cursor-default disabled:hover:bg-transparent"
-                  disabled={!item.enabled}
-                  onPointerDown={(event) => event.stopPropagation()}
-                  onClick={(event) => handleAction(item, event)}
-                >
-                  <span class="text-[13px] leading-4 font-sans font-medium text-black">
-                    {item.label}
-                  </span>
-                </button>
-              )}
-            </For>
+        <div class="[font-synthesis:none] contain-layout flex flex-col justify-center items-start gap-1 rounded-sm bg-white antialiased w-fit h-fit min-w-[100px]">
+          <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5 pr-1">
+            <TagBadge
+              tagName={displayName()}
+              isClickable={props.hasFilePath}
+              onClick={(event) => {
+                event.stopPropagation();
+                if (props.hasFilePath) {
+                  props.onOpen();
+                }
+              }}
+              shrink
+              forceShowIcon={props.hasFilePath}
+            />
           </div>
+          <BottomSection>
+            <div class="flex flex-col w-[calc(100%+16px)] -mx-2 -my-[5px]">
+              <For each={menuItems()}>
+                {(item) => (
+                  <button
+                    data-react-grab-ignore-events
+                    data-react-grab-menu-item={item.label.toLowerCase()}
+                    class="contain-layout flex items-center w-full px-2 py-1 cursor-pointer transition-colors hover:bg-black/5 text-left border-none bg-transparent disabled:opacity-40 disabled:cursor-default disabled:hover:bg-transparent"
+                    disabled={!item.enabled}
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={(event) => handleAction(item, event)}
+                  >
+                    <span class="text-[13px] leading-4 font-sans font-medium text-black">
+                      {item.label}
+                    </span>
+                  </button>
+                )}
+              </For>
+            </div>
+          </BottomSection>
         </div>
       </div>
     </Show>
