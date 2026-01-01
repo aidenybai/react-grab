@@ -87,7 +87,6 @@ interface ReactGrabPageObject {
   pressKeyCombo: (modifiers: string[], key: string) => Promise<void>;
   scrollPage: (deltaY: number) => Promise<void>;
 
-  // Input mode helpers
   enterInputMode: (selector: string) => Promise<void>;
   isInputModeActive: () => Promise<boolean>;
   typeInInput: (text: string) => Promise<void>;
@@ -96,7 +95,6 @@ interface ReactGrabPageObject {
   clearInput: () => Promise<void>;
   isPendingDismissVisible: () => Promise<boolean>;
 
-  // Toolbar helpers
   isToolbarVisible: () => Promise<boolean>;
   isToolbarCollapsed: () => Promise<boolean>;
   getToolbarInfo: () => Promise<ToolbarInfo>;
@@ -104,12 +102,10 @@ interface ReactGrabPageObject {
   clickToolbarCollapse: () => Promise<void>;
   dragToolbar: (deltaX: number, deltaY: number) => Promise<void>;
 
-  // Selection label helpers
   getSelectionLabelInfo: () => Promise<SelectionLabelInfo>;
   isSelectionLabelVisible: () => Promise<boolean>;
   getLabelStatusText: () => Promise<string | null>;
 
-  // Visual feedback helpers
   getCrosshairInfo: () => Promise<CrosshairInfo>;
   isCrosshairVisible: () => Promise<boolean>;
   getGrabbedBoxInfo: () => Promise<GrabbedBoxInfo>;
@@ -117,7 +113,6 @@ interface ReactGrabPageObject {
   getDragBoxBounds: () => Promise<{ x: number; y: number; width: number; height: number } | null>;
   getSelectionBoxBounds: () => Promise<{ x: number; y: number; width: number; height: number } | null>;
 
-  // API helpers
   getState: () => Promise<ReactGrabState>;
   toggle: () => Promise<void>;
   dispose: () => Promise<void>;
@@ -128,7 +123,6 @@ interface ReactGrabPageObject {
   updateOptions: (options: Record<string, unknown>) => Promise<void>;
   reinitialize: (options?: Record<string, unknown>) => Promise<void>;
 
-  // Agent session helpers
   setupMockAgent: (options?: { delay?: number; error?: string; statusUpdates?: string[] }) => Promise<void>;
   getAgentSessions: () => Promise<AgentSessionInfo[]>;
   isAgentSessionVisible: () => Promise<boolean>;
@@ -141,25 +135,21 @@ interface ReactGrabPageObject {
   confirmAgentAbort: () => Promise<void>;
   cancelAgentAbort: () => Promise<void>;
 
-  // Touch helpers
   touchStart: (x: number, y: number) => Promise<void>;
   touchMove: (x: number, y: number) => Promise<void>;
-  touchEnd: () => Promise<void>;
+  touchEnd: (x: number, y: number) => Promise<void>;
   touchTap: (selector: string) => Promise<void>;
   touchDrag: (startX: number, startY: number, endX: number, endY: number) => Promise<void>;
   isTouchMode: () => Promise<boolean>;
 
-  // Viewport helpers
   setViewportSize: (width: number, height: number) => Promise<void>;
   getViewportSize: () => Promise<{ width: number; height: number }>;
 
-  // Element manipulation helpers
   removeElement: (selector: string) => Promise<void>;
   hideElement: (selector: string) => Promise<void>;
   showElement: (selector: string) => Promise<void>;
   getElementBounds: (selector: string) => Promise<{ x: number; y: number; width: number; height: number } | null>;
 
-  // Callback tracking helpers
   setupCallbackTracking: () => Promise<void>;
   getCallbackHistory: () => Promise<Array<{ name: string; args: unknown[]; timestamp: number }>>;
   clearCallbackHistory: () => Promise<void>;
@@ -414,7 +404,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     await page.waitForTimeout(100);
   };
 
-  // Input mode helpers
   const enterInputMode = async (selector: string) => {
     await activate();
     await hoverElement(selector);
@@ -491,7 +480,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     }, ATTRIBUTE_NAME);
   };
 
-  // Toolbar helpers
   const isToolbarVisible = async (): Promise<boolean> => {
     return page.evaluate((attrName) => {
       const host = document.querySelector(`[${attrName}]`);
@@ -604,7 +592,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     await page.waitForTimeout(300);
   };
 
-  // Selection label helpers
   const getSelectionLabelInfo = async (): Promise<SelectionLabelInfo> => {
     return page.evaluate((attrName) => {
       const host = document.querySelector(`[${attrName}]`);
@@ -679,7 +666,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     }, ATTRIBUTE_NAME);
   };
 
-  // Visual feedback helpers
   const getCrosshairInfo = async (): Promise<CrosshairInfo> => {
     return page.evaluate((attrName) => {
       const host = document.querySelector(`[${attrName}]`);
@@ -784,7 +770,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     }, ATTRIBUTE_NAME);
   };
 
-  // API helpers
   const getState = async (): Promise<ReactGrabState> => {
     return page.evaluate(() => {
       const api = (window as { __REACT_GRAB__?: { getState: () => ReactGrabState } })
@@ -877,7 +862,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     await page.waitForTimeout(200);
   };
 
-  // Agent session helpers
   const setupMockAgent = async (options?: { delay?: number; error?: string; statusUpdates?: string[] }) => {
     await page.evaluate((opts) => {
       const delay = opts?.delay ?? 500;
@@ -1048,17 +1032,49 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     await page.waitForTimeout(100);
   };
 
-  // Touch helpers
+  const dispatchTouchEvent = async (
+    type: "touchstart" | "touchmove" | "touchend",
+    x: number,
+    y: number,
+    identifier = 0
+  ) => {
+    await page.evaluate(
+      ({ type, x, y, identifier }) => {
+        const target = document.elementFromPoint(x, y) || document.body;
+        const touch = new Touch({
+          identifier,
+          target,
+          clientX: x,
+          clientY: y,
+          pageX: x + window.scrollX,
+          pageY: y + window.scrollY,
+          screenX: x,
+          screenY: y,
+        });
+        const touches = type === "touchend" ? [] : [touch];
+        const touchEvent = new TouchEvent(type, {
+          bubbles: true,
+          cancelable: true,
+          touches,
+          targetTouches: touches,
+          changedTouches: [touch],
+        });
+        target.dispatchEvent(touchEvent);
+      },
+      { type, x, y, identifier }
+    );
+  };
+
   const touchStart = async (x: number, y: number) => {
-    await page.touchscreen.tap(x, y);
+    await dispatchTouchEvent("touchstart", x, y);
   };
 
   const touchMove = async (x: number, y: number) => {
-    await page.mouse.move(x, y);
+    await dispatchTouchEvent("touchmove", x, y);
   };
 
-  const touchEnd = async () => {
-    await page.waitForTimeout(50);
+  const touchEnd = async (x: number, y: number) => {
+    await dispatchTouchEvent("touchend", x, y);
   };
 
   const touchTap = async (selector: string) => {
@@ -1070,15 +1086,18 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   };
 
   const touchDrag = async (startX: number, startY: number, endX: number, endY: number) => {
-    await page.touchscreen.tap(startX, startY);
+    await dispatchTouchEvent("touchstart", startX, startY);
     await page.waitForTimeout(50);
+
     const steps = 10;
     for (let i = 1; i <= steps; i++) {
       const currentX = startX + ((endX - startX) * i) / steps;
       const currentY = startY + ((endY - startY) * i) / steps;
-      await page.mouse.move(currentX, currentY);
+      await dispatchTouchEvent("touchmove", currentX, currentY);
       await page.waitForTimeout(10);
     }
+
+    await dispatchTouchEvent("touchend", endX, endY);
     await page.waitForTimeout(50);
   };
 
@@ -1090,7 +1109,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     });
   };
 
-  // Viewport helpers
   const setViewportSize = async (width: number, height: number) => {
     await page.setViewportSize({ width, height });
     await page.waitForTimeout(200);
@@ -1103,7 +1121,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     }));
   };
 
-  // Element manipulation helpers
   const removeElement = async (selector: string) => {
     await page.evaluate((sel) => {
       const element = document.querySelector(sel);
@@ -1134,7 +1151,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     return box ? { x: box.x, y: box.y, width: box.width, height: box.height } : null;
   };
 
-  // Callback tracking helpers
   const setupCallbackTracking = async () => {
     await page.evaluate(() => {
       (window as { __CALLBACK_HISTORY__?: Array<{ name: string; args: unknown[]; timestamp: number }> })
@@ -1227,7 +1243,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     pressKeyCombo,
     scrollPage,
 
-    // Input mode helpers
     enterInputMode,
     isInputModeActive,
     typeInInput,
@@ -1236,7 +1251,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     clearInput,
     isPendingDismissVisible,
 
-    // Toolbar helpers
     isToolbarVisible,
     isToolbarCollapsed,
     getToolbarInfo,
@@ -1244,12 +1258,10 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     clickToolbarCollapse,
     dragToolbar,
 
-    // Selection label helpers
     getSelectionLabelInfo,
     isSelectionLabelVisible,
     getLabelStatusText,
 
-    // Visual feedback helpers
     getCrosshairInfo,
     isCrosshairVisible,
     getGrabbedBoxInfo,
@@ -1257,7 +1269,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     getDragBoxBounds,
     getSelectionBoxBounds,
 
-    // API helpers
     getState,
     toggle,
     dispose,
@@ -1268,7 +1279,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     updateOptions,
     reinitialize,
 
-    // Agent session helpers
     setupMockAgent,
     getAgentSessions,
     isAgentSessionVisible,
@@ -1281,7 +1291,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     confirmAgentAbort,
     cancelAgentAbort,
 
-    // Touch helpers
     touchStart,
     touchMove,
     touchEnd,
@@ -1289,17 +1298,14 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     touchDrag,
     isTouchMode,
 
-    // Viewport helpers
     setViewportSize,
     getViewportSize,
 
-    // Element manipulation helpers
     removeElement,
     hideElement,
     showElement,
     getElementBounds,
 
-    // Callback tracking helpers
     setupCallbackTracking,
     getCallbackHistory,
     clearCallbackHistory,
