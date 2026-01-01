@@ -161,6 +161,10 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         onPointerDown={(event) => event.stopImmediatePropagation()}
         onMouseDown={(event) => event.stopImmediatePropagation()}
         onClick={(event) => event.stopImmediatePropagation()}
+        onContextMenu={(event) => {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        }}
       >
         <Arrow position={computedPosition().arrowPosition} leftPx={computedPosition().arrowLeft} />
 
