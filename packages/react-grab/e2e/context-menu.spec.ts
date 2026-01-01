@@ -281,15 +281,19 @@ test.describe("Context Menu", () => {
       reactGrab,
     }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("[data-testid='todo-list'] h1");
+      await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
-      await reactGrab.rightClickElement("[data-testid='todo-list'] h1");
+
+      await reactGrab.pressArrowDown();
+      await reactGrab.waitForSelectionBox();
+
+      await reactGrab.rightClickElement("li:nth-child(2)");
       await reactGrab.clickContextMenuItem("Copy");
 
       await reactGrab.page.waitForTimeout(500);
 
       const clipboardContent = await reactGrab.getClipboardContent();
-      expect(clipboardContent).toContain("Todo List");
+      expect(clipboardContent).toContain("Walk the dog");
     });
   });
 
