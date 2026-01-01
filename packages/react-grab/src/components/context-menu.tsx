@@ -120,7 +120,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
   onMount(() => {
     measureContainer();
 
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (!isVisible() || isEventFromOverlay(event)) return;
       props.onDismiss();
     };
@@ -131,15 +131,17 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       }
     };
 
-    // HACK: Delay mousedown listener to avoid catching the triggering right-click
+    // HACK: Delay mousedown/touchstart listener to avoid catching the triggering right-click
     const frameId = requestAnimationFrame(() => {
       window.addEventListener("mousedown", handleClickOutside, { capture: true });
+      window.addEventListener("touchstart", handleClickOutside, { capture: true });
     });
     window.addEventListener("keydown", handleKeyDown, { capture: true });
 
     onCleanup(() => {
       cancelAnimationFrame(frameId);
       window.removeEventListener("mousedown", handleClickOutside, { capture: true });
+      window.removeEventListener("touchstart", handleClickOutside, { capture: true });
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
     });
   });
