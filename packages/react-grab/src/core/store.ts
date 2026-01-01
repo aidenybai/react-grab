@@ -358,6 +358,7 @@ const createGrabStore = (input: GrabStoreInput) => {
       setStore("copyOffsetFromCenterX", position.x - selectionCenterX);
       setStore("pointer", position);
       setStore("frozenElement", element);
+      setStore("isToggleMode", true);
 
       if (store.current.state !== "active") {
         setStore("current", {
