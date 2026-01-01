@@ -119,6 +119,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
 
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (!isVisible() || isEventFromOverlay(event)) return;
+      if (event instanceof MouseEvent && event.button === 2) return;
       props.onDismiss();
     };
 

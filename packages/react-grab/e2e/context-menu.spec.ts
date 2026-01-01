@@ -237,6 +237,24 @@ test.describe("Context Menu", () => {
       const secondMenuVisible = await reactGrab.isContextMenuVisible();
       expect(secondMenuVisible).toBe(true);
     });
+
+    test("should switch to new context menu when right-clicking different element while menu is open", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+
+      await reactGrab.hoverElement("h1");
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.rightClickElement("h1");
+      const firstMenuVisible = await reactGrab.isContextMenuVisible();
+      expect(firstMenuVisible).toBe(true);
+
+      await reactGrab.rightClickElement("li:first-child");
+      await reactGrab.page.waitForTimeout(100);
+
+      const secondMenuVisible = await reactGrab.isContextMenuVisible();
+      expect(secondMenuVisible).toBe(true);
+    });
   });
 
   test.describe("Keyboard Navigation Integration", () => {
