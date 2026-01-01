@@ -1478,6 +1478,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: MouseEvent) => {
         if (event.button !== 0) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
+        if (store.contextMenuPosition !== null) return;
 
         if (isInputMode()) {
           handleInputCancel();
@@ -1498,6 +1499,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: PointerEvent) => {
         if (event.button !== 0) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
+        if (store.contextMenuPosition !== null) return;
         if (!isRendererActive() || isCopying() || isInputMode()) return;
         event.stopPropagation();
       },
