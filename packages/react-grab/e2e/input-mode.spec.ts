@@ -2,7 +2,9 @@ import { test, expect } from "./fixtures.js";
 
 test.describe("Input Mode", () => {
   test.describe("Entering Input Mode", () => {
-    test("double-click should enter input mode when agent is configured", async ({ reactGrab }) => {
+    test("double-click should enter input mode when agent is configured", async ({
+      reactGrab,
+    }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
@@ -15,7 +17,9 @@ test.describe("Input Mode", () => {
       expect(isInputMode).toBe(true);
     });
 
-    test("single click should copy without entering input mode when no agent", async ({ reactGrab }) => {
+    test("single click should copy without entering input mode when no agent", async ({
+      reactGrab,
+    }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
@@ -27,7 +31,9 @@ test.describe("Input Mode", () => {
       expect(clipboardContent).toBeTruthy();
     });
 
-    test("should focus input textarea when entering input mode", async ({ reactGrab }) => {
+    test("should focus input textarea when entering input mode", async ({
+      reactGrab,
+    }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
@@ -43,7 +49,10 @@ test.describe("Input Mode", () => {
         const root = shadowRoot.querySelector(`[${attrName}]`);
         if (!root) return false;
         const textarea = root.querySelector("textarea");
-        return document.activeElement === textarea || shadowRoot.activeElement === textarea;
+        return (
+          document.activeElement === textarea ||
+          shadowRoot.activeElement === textarea
+        );
       }, "data-react-grab");
 
       expect(isFocused).toBe(true);
@@ -114,14 +123,17 @@ test.describe("Input Mode", () => {
       await reactGrab.doubleClickElement("li:first-child");
       await reactGrab.page.waitForTimeout(200);
 
-      const longText = "This is a very long prompt that should be handled properly by the textarea input field and might need to scroll within the container.";
+      const longText =
+        "This is a very long prompt that should be handled properly by the textarea input field and might need to scroll within the container.";
       await reactGrab.typeInInput(longText);
 
       const inputValue = await reactGrab.getInputValue();
       expect(inputValue).toBe(longText);
     });
 
-    test("should handle multiline input with shift+enter", async ({ reactGrab }) => {
+    test("should handle multiline input with shift+enter", async ({
+      reactGrab,
+    }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
@@ -176,7 +188,9 @@ test.describe("Input Mode", () => {
       expect(isInputMode).toBe(false);
     });
 
-    test("Escape in textarea should dismiss input mode directly", async ({ reactGrab }) => {
+    test("Escape in textarea should dismiss input mode directly", async ({
+      reactGrab,
+    }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
@@ -198,7 +212,9 @@ test.describe("Input Mode", () => {
       expect(isStillInputActive).toBe(false);
     });
 
-    test("confirming dismiss should close input mode", async ({ reactGrab }) => {
+    test("confirming dismiss should close input mode", async ({
+      reactGrab,
+    }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
@@ -218,7 +234,9 @@ test.describe("Input Mode", () => {
       expect(isActive).toBe(false);
     });
 
-    test("empty input should cancel without confirmation", async ({ reactGrab }) => {
+    test("empty input should cancel without confirmation", async ({
+      reactGrab,
+    }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
@@ -236,7 +254,9 @@ test.describe("Input Mode", () => {
   });
 
   test.describe("Input Mode with Selection", () => {
-    test("should freeze selection while in input mode", async ({ reactGrab }) => {
+    test("should freeze selection while in input mode", async ({
+      reactGrab,
+    }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
@@ -263,7 +283,9 @@ test.describe("Input Mode", () => {
       expect(isInputMode).toBe(true);
     });
 
-    test("should show multi-element count in input mode", async ({ reactGrab }) => {
+    test("should show multi-element count in input mode", async ({
+      reactGrab,
+    }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.activate();
 
@@ -277,7 +299,9 @@ test.describe("Input Mode", () => {
   });
 
   test.describe("Keyboard Shortcuts in Input Mode", () => {
-    test("arrow keys should not navigate elements in input mode", async ({ reactGrab }) => {
+    test("arrow keys should not navigate elements in input mode", async ({
+      reactGrab,
+    }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
@@ -292,7 +316,9 @@ test.describe("Input Mode", () => {
       expect(isInputMode).toBe(true);
     });
 
-    test("activation shortcut should cancel input mode", async ({ reactGrab }) => {
+    test("activation shortcut should cancel input mode", async ({
+      reactGrab,
+    }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
@@ -312,7 +338,9 @@ test.describe("Input Mode", () => {
   });
 
   test.describe("Input Preservation", () => {
-    test("input should be cleared after dismissing input mode", async ({ reactGrab }) => {
+    test("input should be cleared after dismissing input mode", async ({
+      reactGrab,
+    }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
@@ -353,7 +381,9 @@ test.describe("Input Mode", () => {
       expect(isInputMode).toBe(false);
     });
 
-    test("double-click maintains overlay in input mode", async ({ reactGrab }) => {
+    test("double-click maintains overlay in input mode", async ({
+      reactGrab,
+    }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");

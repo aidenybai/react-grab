@@ -111,7 +111,10 @@ test.describe("Drag Selection", () => {
   test("should handle drag across entire list", async ({ reactGrab }) => {
     await reactGrab.activate();
 
-    await reactGrab.dragSelect("[data-testid='todo-list'] li:first-child", "[data-testid='todo-list'] li:last-child");
+    await reactGrab.dragSelect(
+      "[data-testid='todo-list'] li:first-child",
+      "[data-testid='todo-list'] li:last-child",
+    );
     await reactGrab.page.waitForTimeout(500);
 
     const clipboardContent = await reactGrab.getClipboardContent();
@@ -168,9 +171,7 @@ test.describe("Drag Selection with Scroll", () => {
     expect(clipboardContent).toBeTruthy();
   });
 
-  test("should maintain drag while scrolling", async ({
-    reactGrab,
-  }) => {
+  test("should maintain drag while scrolling", async ({ reactGrab }) => {
     await reactGrab.activate();
 
     const firstItem = reactGrab.page.locator("li").first();
@@ -179,7 +180,9 @@ test.describe("Drag Selection with Scroll", () => {
 
     await reactGrab.page.mouse.move(firstBox.x - 10, firstBox.y - 10);
     await reactGrab.page.mouse.down();
-    await reactGrab.page.mouse.move(firstBox.x + 100, firstBox.y + 100, { steps: 5 });
+    await reactGrab.page.mouse.move(firstBox.x + 100, firstBox.y + 100, {
+      steps: 5,
+    });
 
     await reactGrab.scrollPage(50);
     await reactGrab.page.waitForTimeout(100);
@@ -190,9 +193,7 @@ test.describe("Drag Selection with Scroll", () => {
     expect(state).toBeDefined();
   });
 
-  test("should select elements after scrolling down", async ({
-    reactGrab,
-  }) => {
+  test("should select elements after scrolling down", async ({ reactGrab }) => {
     await reactGrab.activate();
     await reactGrab.scrollPage(300);
     await reactGrab.page.waitForTimeout(200);
@@ -220,7 +221,9 @@ test.describe("Drag Selection with Scroll", () => {
 
     await reactGrab.page.mouse.move(firstBox.x - 10, firstBox.y - 10);
     await reactGrab.page.mouse.down();
-    await reactGrab.page.mouse.move(firstBox.x + 200, firstBox.y + 200, { steps: 5 });
+    await reactGrab.page.mouse.move(firstBox.x + 200, firstBox.y + 200, {
+      steps: 5,
+    });
     await reactGrab.page.waitForTimeout(100);
 
     const bounds = await reactGrab.getDragBoxBounds();
@@ -234,7 +237,9 @@ test.describe("Drag Selection with Scroll", () => {
   }) => {
     await reactGrab.activate();
 
-    const scrollContainer = reactGrab.page.locator("[data-testid='scroll-container']");
+    const scrollContainer = reactGrab.page.locator(
+      "[data-testid='scroll-container']",
+    );
     const box = await scrollContainer.boundingBox();
 
     if (box) {

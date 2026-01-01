@@ -1,4 +1,12 @@
-import { Show, For, onMount, onCleanup, createSignal, createEffect, createMemo } from "solid-js";
+import {
+  Show,
+  For,
+  onMount,
+  onCleanup,
+  createSignal,
+  createEffect,
+  createMemo,
+} from "solid-js";
 import type { Component } from "solid-js";
 import type { OverlayBounds } from "../types.js";
 import {
@@ -29,9 +37,13 @@ interface MenuItem {
 }
 
 const isEventFromOverlay = (event: Event) =>
-  event.composedPath().some(
-    (element) => element instanceof HTMLElement && element.hasAttribute("data-react-grab-ignore-events")
-  );
+  event
+    .composedPath()
+    .some(
+      (element) =>
+        element instanceof HTMLElement &&
+        element.hasAttribute("data-react-grab-ignore-events"),
+    );
 
 export const ContextMenu: Component<ContextMenuProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
@@ -69,7 +81,12 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     const labelHeight = measuredHeight();
 
     if (labelWidth === 0 || labelHeight === 0 || !bounds || !clickPosition) {
-      return { left: -9999, top: -9999, arrowLeft: 0, arrowPosition: "bottom" as const };
+      return {
+        left: -9999,
+        top: -9999,
+        arrowLeft: 0,
+        arrowPosition: "bottom" as const,
+      };
     }
 
     const viewportWidth = window.innerWidth;
@@ -79,10 +96,14 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     let positionLeft = cursorX - labelWidth / 2;
     let positionTop = bounds.y + bounds.height + ARROW_HEIGHT_PX + LABEL_GAP_PX;
 
-    positionLeft = Math.max(VIEWPORT_MARGIN_PX, Math.min(positionLeft, viewportWidth - labelWidth - VIEWPORT_MARGIN_PX));
+    positionLeft = Math.max(
+      VIEWPORT_MARGIN_PX,
+      Math.min(positionLeft, viewportWidth - labelWidth - VIEWPORT_MARGIN_PX),
+    );
 
     const totalHeightNeeded = labelHeight + ARROW_HEIGHT_PX + LABEL_GAP_PX;
-    const fitsBelow = positionTop + labelHeight <= viewportHeight - VIEWPORT_MARGIN_PX;
+    const fitsBelow =
+      positionTop + labelHeight <= viewportHeight - VIEWPORT_MARGIN_PX;
 
     const arrowPosition: "bottom" | "top" = fitsBelow ? "bottom" : "top";
     if (!fitsBelow) {
@@ -91,7 +112,10 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
 
     positionTop = Math.max(VIEWPORT_MARGIN_PX, positionTop);
 
-    const arrowLeft = Math.max(12, Math.min(cursorX - positionLeft, labelWidth - 12));
+    const arrowLeft = Math.max(
+      12,
+      Math.min(cursorX - positionLeft, labelWidth - 12),
+    );
 
     return { left: positionLeft, top: positionTop, arrowLeft, arrowPosition };
   });
@@ -132,15 +156,23 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
 
     // HACK: Delay mousedown/touchstart listener to avoid catching the triggering right-click
     const frameId = requestAnimationFrame(() => {
-      window.addEventListener("mousedown", handleClickOutside, { capture: true });
-      window.addEventListener("touchstart", handleClickOutside, { capture: true });
+      window.addEventListener("mousedown", handleClickOutside, {
+        capture: true,
+      });
+      window.addEventListener("touchstart", handleClickOutside, {
+        capture: true,
+      });
     });
     window.addEventListener("keydown", handleKeyDown, { capture: true });
 
     onCleanup(() => {
       cancelAnimationFrame(frameId);
-      window.removeEventListener("mousedown", handleClickOutside, { capture: true });
-      window.removeEventListener("touchstart", handleClickOutside, { capture: true });
+      window.removeEventListener("mousedown", handleClickOutside, {
+        capture: true,
+      });
+      window.removeEventListener("touchstart", handleClickOutside, {
+        capture: true,
+      });
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
     });
   });
@@ -166,10 +198,18 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
           event.stopImmediatePropagation();
         }}
       >
-        <Arrow position={computedPosition().arrowPosition} leftPx={computedPosition().arrowLeft} />
+        <Arrow
+          position={computedPosition().arrowPosition}
+          leftPx={computedPosition().arrowLeft}
+        />
 
         <div class="[font-synthesis:none] contain-layout flex flex-col rounded-sm bg-white antialiased w-fit h-fit overflow-hidden p-1.5 gap-1">
-          <TagBadge tagName={displayName()} isClickable={false} onClick={(event) => event.stopPropagation()} shrink />
+          <TagBadge
+            tagName={displayName()}
+            isClickable={false}
+            onClick={(event) => event.stopPropagation()}
+            shrink
+          />
           <div class="flex flex-col">
             <For each={menuItems()}>
               {(item) => (

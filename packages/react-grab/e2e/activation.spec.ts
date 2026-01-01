@@ -92,9 +92,7 @@ test.describe("Activation Mode Configuration", () => {
     expect(await reactGrab.isOverlayVisible()).toBe(true);
   });
 
-  test("API toggle should deactivate on second call", async ({
-    reactGrab,
-  }) => {
+  test("API toggle should deactivate on second call", async ({ reactGrab }) => {
     await reactGrab.toggle();
     expect(await reactGrab.isOverlayVisible()).toBe(true);
 
@@ -170,9 +168,7 @@ test.describe("Activation Mode Configuration", () => {
     expect(await reactGrab.isOverlayVisible()).toBe(true);
   });
 
-  test("should handle activation during page scroll", async ({
-    reactGrab,
-  }) => {
+  test("should handle activation during page scroll", async ({ reactGrab }) => {
     await reactGrab.scrollPage(200);
     await reactGrab.page.waitForTimeout(100);
 
@@ -195,9 +191,7 @@ test.describe("Activation Mode Configuration", () => {
     await reactGrab.setViewportSize(1280, 720);
   });
 
-  test("activation state should survive DOM changes", async ({
-    reactGrab,
-  }) => {
+  test("activation state should survive DOM changes", async ({ reactGrab }) => {
     await reactGrab.activate();
     expect(await reactGrab.isOverlayVisible()).toBe(true);
 

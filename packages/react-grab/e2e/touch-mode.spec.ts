@@ -2,7 +2,9 @@ import { test, expect } from "./fixtures.js";
 
 test.describe("Touch Mode", () => {
   test.describe("Touch Events", () => {
-    test("touch tap should work for element selection", async ({ reactGrab }) => {
+    test("touch tap should work for element selection", async ({
+      reactGrab,
+    }) => {
       await reactGrab.activate();
 
       await reactGrab.touchTap("li:first-child");
@@ -19,7 +21,10 @@ test.describe("Touch Mode", () => {
       const box = await listItem.boundingBox();
       if (!box) throw new Error("Could not get bounding box");
 
-      await reactGrab.page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+      await reactGrab.page.touchscreen.tap(
+        box.x + box.width / 2,
+        box.y + box.height / 2,
+      );
       await reactGrab.page.waitForTimeout(100);
 
       const state = await reactGrab.getState();
@@ -41,7 +46,7 @@ test.describe("Touch Mode", () => {
         startBox.x - 10,
         startBox.y - 10,
         endBox.x + endBox.width + 10,
-        endBox.y + endBox.height + 10
+        endBox.y + endBox.height + 10,
       );
       await reactGrab.page.waitForTimeout(500);
 
@@ -59,21 +64,29 @@ test.describe("Touch Mode", () => {
       const box = await listItem.boundingBox();
       if (!box) throw new Error("Could not get bounding box");
 
-      await reactGrab.page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+      await reactGrab.page.touchscreen.tap(
+        box.x + box.width / 2,
+        box.y + box.height / 2,
+      );
       await reactGrab.page.waitForTimeout(100);
 
       const theme = await reactGrab.getTheme();
       expect(theme.crosshair).toBeDefined();
     });
 
-    test("touch events should update pointer position", async ({ reactGrab }) => {
+    test("touch events should update pointer position", async ({
+      reactGrab,
+    }) => {
       await reactGrab.activate();
 
       const listItem = reactGrab.page.locator("li").first();
       const box = await listItem.boundingBox();
       if (!box) throw new Error("Could not get bounding box");
 
-      await reactGrab.page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+      await reactGrab.page.touchscreen.tap(
+        box.x + box.width / 2,
+        box.y + box.height / 2,
+      );
       await reactGrab.page.waitForTimeout(100);
 
       const state = await reactGrab.getState();
@@ -89,7 +102,10 @@ test.describe("Touch Mode", () => {
       const box = await element.boundingBox();
       if (!box) throw new Error("Could not get bounding box");
 
-      await reactGrab.page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+      await reactGrab.page.touchscreen.tap(
+        box.x + box.width / 2,
+        box.y + box.height / 2,
+      );
       await reactGrab.page.waitForTimeout(500);
 
       const clipboard = await reactGrab.getClipboardContent();
@@ -115,7 +131,9 @@ test.describe("Touch Mode", () => {
   });
 
   test.describe("Touch Drag Selection", () => {
-    test("touch drag should select multiple elements", async ({ reactGrab }) => {
+    test("touch drag should select multiple elements", async ({
+      reactGrab,
+    }) => {
       await reactGrab.activate();
 
       const firstItem = reactGrab.page.locator("li").first();
@@ -130,7 +148,7 @@ test.describe("Touch Mode", () => {
         startBox.x - 5,
         startBox.y - 5,
         endBox.x + endBox.width + 5,
-        endBox.y + endBox.height + 5
+        endBox.y + endBox.height + 5,
       );
       await reactGrab.page.waitForTimeout(500);
 
@@ -149,7 +167,7 @@ test.describe("Touch Mode", () => {
         box.x + box.width / 2,
         box.y + box.height / 2,
         box.x + box.width / 2 + 2,
-        box.y + box.height / 2 + 2
+        box.y + box.height / 2 + 2,
       );
       await reactGrab.page.waitForTimeout(500);
 
@@ -190,7 +208,9 @@ test.describe("Touch Mode", () => {
   });
 
   test.describe("Touch Input Mode", () => {
-    test("double tap should enter input mode with agent", async ({ reactGrab }) => {
+    test("double tap should enter input mode with agent", async ({
+      reactGrab,
+    }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.activate();
 
@@ -198,9 +218,15 @@ test.describe("Touch Mode", () => {
       const box = await listItem.boundingBox();
       if (!box) throw new Error("Could not get bounding box");
 
-      await reactGrab.page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+      await reactGrab.page.touchscreen.tap(
+        box.x + box.width / 2,
+        box.y + box.height / 2,
+      );
       await reactGrab.page.waitForTimeout(100);
-      await reactGrab.page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+      await reactGrab.page.touchscreen.tap(
+        box.x + box.width / 2,
+        box.y + box.height / 2,
+      );
       await reactGrab.page.waitForTimeout(200);
 
       const state = await reactGrab.getState();
@@ -216,7 +242,10 @@ test.describe("Touch Mode", () => {
       const listItem = reactGrab.page.locator("li").first();
       const box = await listItem.boundingBox();
       if (box) {
-        await reactGrab.page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+        await reactGrab.page.touchscreen.tap(
+          box.x + box.width / 2,
+          box.y + box.height / 2,
+        );
         await reactGrab.page.waitForTimeout(500);
 
         const clipboard = await reactGrab.getClipboardContent();
@@ -236,7 +265,7 @@ test.describe("Touch Mode", () => {
       for (let i = 0; i < 5; i++) {
         await reactGrab.page.touchscreen.tap(
           box.x + box.width / 2 + i * 10,
-          box.y + box.height / 2
+          box.y + box.height / 2,
         );
         await reactGrab.page.waitForTimeout(50);
       }
@@ -253,7 +282,7 @@ test.describe("Touch Mode", () => {
       if (toolbarInfo.position) {
         await reactGrab.page.touchscreen.tap(
           toolbarInfo.position.x + 20,
-          toolbarInfo.position.y + 10
+          toolbarInfo.position.y + 10,
         );
         await reactGrab.page.waitForTimeout(200);
       }

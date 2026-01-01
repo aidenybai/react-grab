@@ -14,7 +14,9 @@ test.describe("Context Menu", () => {
       expect(isContextMenuVisible).toBe(true);
     });
 
-    test("should not show context menu when inactive", async ({ reactGrab }) => {
+    test("should not show context menu when inactive", async ({
+      reactGrab,
+    }) => {
       const isVisibleBefore = await reactGrab.isOverlayVisible();
       expect(isVisibleBefore).toBe(false);
 
@@ -334,7 +336,9 @@ test.describe("Context Menu", () => {
   });
 
   test.describe("Edge Cases", () => {
-    test("should work correctly after scrolling page", async ({ reactGrab }) => {
+    test("should work correctly after scrolling page", async ({
+      reactGrab,
+    }) => {
       await reactGrab.activate();
       await reactGrab.scrollPage(100);
       await reactGrab.page.waitForTimeout(100);
@@ -383,7 +387,9 @@ test.describe("Context Menu", () => {
       await reactGrab.activate();
       await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
       await reactGrab.waitForSelectionBox();
-      await reactGrab.rightClickElement("[data-testid='todo-list'] li:first-child");
+      await reactGrab.rightClickElement(
+        "[data-testid='todo-list'] li:first-child",
+      );
       await reactGrab.clickContextMenuItem("Copy");
       await reactGrab.page.waitForTimeout(500);
 
@@ -433,7 +439,9 @@ test.describe("Context Menu", () => {
       await reactGrab.activate();
       await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
       await reactGrab.waitForSelectionBox();
-      await reactGrab.rightClickElement("[data-testid='todo-list'] li:first-child");
+      await reactGrab.rightClickElement(
+        "[data-testid='todo-list'] li:first-child",
+      );
       await reactGrab.page.waitForTimeout(200);
 
       const menuInfo = await reactGrab.getContextMenuInfo();

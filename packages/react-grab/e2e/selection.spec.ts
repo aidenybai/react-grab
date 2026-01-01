@@ -170,9 +170,7 @@ test.describe("Selection Bounds and Mutations", () => {
     expect(isVisible).toBe(true);
   });
 
-  test("selection should recalculate after scroll", async ({
-    reactGrab,
-  }) => {
+  test("selection should recalculate after scroll", async ({ reactGrab }) => {
     await reactGrab.activate();
     await reactGrab.hoverElement("li:first-child");
     await reactGrab.waitForSelectionBox();

@@ -82,7 +82,9 @@ test.describe("Keyboard Navigation", () => {
     await reactGrab.page.keyboard.press("ArrowDown");
     await reactGrab.waitForSelectionBox();
 
-    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li:nth-child(2)");
+    const secondItem = reactGrab.page.locator(
+      "[data-testid='todo-list'] li:nth-child(2)",
+    );
     const box = await secondItem.boundingBox();
     if (box) {
       await reactGrab.page.mouse.click(box.x + 10, box.y + 10);

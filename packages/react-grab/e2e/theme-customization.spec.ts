@@ -129,7 +129,9 @@ test.describe("Theme Customization", () => {
       await reactGrab.page.waitForTimeout(200);
 
       const theme = await reactGrab.getTheme();
-      const grabbedBoxesConfig = theme.grabbedBoxes as { enabled: boolean } | undefined;
+      const grabbedBoxesConfig = theme.grabbedBoxes as
+        | { enabled: boolean }
+        | undefined;
       expect(grabbedBoxesConfig?.enabled).toBe(false);
     });
   });
@@ -194,7 +196,9 @@ test.describe("Theme Customization", () => {
   });
 
   test.describe("Global Enable/Disable", () => {
-    test("should disable entire overlay when enabled is false", async ({ reactGrab }) => {
+    test("should disable entire overlay when enabled is false", async ({
+      reactGrab,
+    }) => {
       await reactGrab.updateTheme({ enabled: false });
 
       await reactGrab.activate();
@@ -221,14 +225,20 @@ test.describe("Theme Customization", () => {
       const theme = await reactGrab.getTheme();
       expect(theme.hue).toBe(45);
 
-      const crosshairConfig = theme.crosshair as { enabled: boolean } | undefined;
+      const crosshairConfig = theme.crosshair as
+        | { enabled: boolean }
+        | undefined;
       expect(crosshairConfig?.enabled).toBe(false);
 
-      const labelConfig = theme.elementLabel as { enabled: boolean } | undefined;
+      const labelConfig = theme.elementLabel as
+        | { enabled: boolean }
+        | undefined;
       expect(labelConfig?.enabled).toBe(false);
     });
 
-    test("should allow re-enabling disabled features", async ({ reactGrab }) => {
+    test("should allow re-enabling disabled features", async ({
+      reactGrab,
+    }) => {
       await reactGrab.updateTheme({ crosshair: { enabled: false } });
       await reactGrab.activate();
 
@@ -245,7 +255,9 @@ test.describe("Theme Customization", () => {
   });
 
   test.describe("Theme Persistence", () => {
-    test("theme should persist across activation cycles", async ({ reactGrab }) => {
+    test("theme should persist across activation cycles", async ({
+      reactGrab,
+    }) => {
       await reactGrab.updateTheme({ hue: 120 });
 
       await reactGrab.activate();

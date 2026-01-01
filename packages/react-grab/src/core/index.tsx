@@ -141,9 +141,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         store.current.isPendingDismiss,
     );
 
-    const pendingAbortSessionId = createMemo(
-      () => store.pendingAbortSessionId,
-    );
+    const pendingAbortSessionId = createMemo(() => store.pendingAbortSessionId);
 
     const hasAgentProvider = createMemo(() => store.hasAgentProvider);
 
@@ -620,7 +618,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     createEffect(
       on(
         () =>
-          [isInputMode(), store.pointer.x, store.pointer.y, targetElement()] as const,
+          [
+            isInputMode(),
+            store.pointer.x,
+            store.pointer.y,
+            targetElement(),
+          ] as const,
         ([inputMode, x, y, target]) => {
           options.onInputModeChange?.(inputMode, {
             x,
@@ -953,7 +956,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handlePointerMove = (clientX: number, clientY: number) => {
-      if (isInputMode() || isToggleFrozen() || store.contextMenuPosition !== null) return;
+      if (
+        isInputMode() ||
+        isToggleFrozen() ||
+        store.contextMenuPosition !== null
+      )
+        return;
 
       actions.setPointer({ x: clientX, y: clientY });
 
@@ -1855,7 +1863,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const [contextMenuFilePath] = createResource(
       () => store.contextMenuElement,
-      async (element): Promise<{ filePath: string; lineNumber: number | undefined } | null> => {
+      async (
+        element,
+      ): Promise<{
+        filePath: string;
+        lineNumber: number | undefined;
+      } | null> => {
         if (!element) return null;
         const stack = await getStack(element);
         if (!stack || stack.length === 0) return null;
@@ -1894,9 +1907,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const fileInfo = contextMenuFilePath();
       if (fileInfo) {
         if (options.onOpenFile) {
-          options.onOpenFile(fileInfo.filePath, fileInfo.lineNumber ?? undefined);
+          options.onOpenFile(
+            fileInfo.filePath,
+            fileInfo.lineNumber ?? undefined,
+          );
         } else {
-          const openFileUrl = buildOpenFileUrl(fileInfo.filePath, fileInfo.lineNumber);
+          const openFileUrl = buildOpenFileUrl(
+            fileInfo.filePath,
+            fileInfo.lineNumber,
+          );
           window.open(openFileUrl, "_blank", "noopener,noreferrer");
         }
       }
