@@ -174,7 +174,6 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
                   class="contain-layout flex items-center px-0.5 py-0.5 cursor-pointer transition-colors hover:bg-black/5 text-left border-none bg-transparent rounded-sm disabled:opacity-40 disabled:cursor-default disabled:hover:bg-transparent"
                   disabled={!item.enabled}
                   onPointerDown={(event) => event.stopPropagation()}
-                  onPointerUp={(event) => handleAction(item, event)}
                   onClick={(event) => handleAction(item, event)}
                 >
                   <span class="text-[13px] leading-4 font-sans font-medium text-black">
