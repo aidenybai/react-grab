@@ -1545,10 +1545,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           pendingClickData = null;
         }
 
-        actions.setPointer({ x: event.clientX, y: event.clientY });
+        const position = { x: event.clientX, y: event.clientY };
+        actions.setPointer(position);
         actions.setFrozenElement(element);
         actions.freeze();
-        actions.showContextMenu({ x: event.clientX, y: event.clientY }, element);
+        actions.showContextMenu(position, element);
+        options.onContextMenu?.(element, position);
       },
       { capture: true },
     );

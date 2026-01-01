@@ -220,6 +220,7 @@ export interface Options {
     context: ElementLabelContext,
   ) => void;
   onCrosshair?: (visible: boolean, context: CrosshairContext) => void;
+  onContextMenu?: (element: Element, position: { x: number; y: number }) => void;
   onOpenFile?: (filePath: string, lineNumber?: number) => void;
   agent?: AgentOptions;
 }
@@ -243,6 +244,7 @@ export type UpdatableOptions = Pick<
   | "onGrabbedBox"
   | "onElementLabel"
   | "onCrosshair"
+  | "onContextMenu"
   | "onOpenFile"
 >;
 

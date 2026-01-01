@@ -16,9 +16,12 @@ interface ReactGrabPageObject {
   hoverElement: (selector: string) => Promise<void>;
   clickElement: (selector: string) => Promise<void>;
   doubleClickElement: (selector: string) => Promise<void>;
+  rightClickElement: (selector: string) => Promise<void>;
   dragSelect: (startSelector: string, endSelector: string) => Promise<void>;
   getClipboardContent: () => Promise<string>;
   waitForSelectionBox: () => Promise<void>;
+  isContextMenuVisible: () => Promise<boolean>;
+  clickContextMenuItem: (label: string) => Promise<void>;
   pressEscape: () => Promise<void>;
   pressArrowDown: () => Promise<void>;
   pressArrowUp: () => Promise<void>;
@@ -146,6 +149,52 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     await element.dblclick({ force: true });
   };
 
+  const rightClickElement = async (selector: string) => {
+    const element = page.locator(selector).first();
+    await element.click({ button: "right", force: true });
+    await page.waitForTimeout(100);
+  };
+
+  const isContextMenuVisible = async () => {
+    return page.evaluate((attrName) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      if (!shadowRoot) return false;
+      const root = shadowRoot.querySelector(`[${attrName}]`);
+      if (!root) return false;
+      const buttons = root.querySelectorAll("button[data-react-grab-ignore-events]");
+      for (const button of buttons) {
+        const text = button.textContent?.trim();
+        if (text === "Copy" || text === "Open" || text === "Prompt") {
+          return true;
+        }
+      }
+      return false;
+    }, ATTRIBUTE_NAME);
+  };
+
+  const clickContextMenuItem = async (label: string) => {
+    await page.evaluate(
+      ({ attrName, itemLabel }) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const shadowRoot = host?.shadowRoot;
+        if (!shadowRoot) throw new Error("No shadow root found");
+        const root = shadowRoot.querySelector(`[${attrName}]`);
+        if (!root) throw new Error("No inner root found");
+        const buttons = root.querySelectorAll("button[data-react-grab-ignore-events]");
+        for (const button of buttons) {
+          if (button.textContent?.trim() === itemLabel) {
+            (button as HTMLButtonElement).click();
+            return;
+          }
+        }
+        throw new Error(`Context menu item "${itemLabel}" not found`);
+      },
+      { attrName: ATTRIBUTE_NAME, itemLabel: label },
+    );
+    await page.waitForTimeout(100);
+  };
+
   const scrollPage = async (deltaY: number) => {
     await page.mouse.wheel(0, deltaY);
     await page.waitForTimeout(100);
@@ -163,9 +212,12 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     hoverElement,
     clickElement,
     doubleClickElement,
+    rightClickElement,
     dragSelect,
     getClipboardContent,
     waitForSelectionBox,
+    isContextMenuVisible,
+    clickContextMenuItem,
     pressEscape,
     pressArrowDown,
     pressArrowUp,
