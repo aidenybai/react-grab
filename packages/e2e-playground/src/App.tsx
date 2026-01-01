@@ -154,8 +154,10 @@ const DynamicElements = () => {
   };
 
   const addElement = () => {
-    const newId = Math.max(0, ...elements.map((element) => element.id)) + 1;
-    setElements((prev) => [...prev, { id: newId, text: `Dynamic Element ${newId}` }]);
+    setElements((prev) => {
+      const newId = Math.max(0, ...prev.map((element) => element.id)) + 1;
+      return [...prev, { id: newId, text: `Dynamic Element ${newId}` }];
+    });
   };
 
   return (
