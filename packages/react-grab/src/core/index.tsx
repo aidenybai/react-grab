@@ -1220,7 +1220,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.setLastCopied(null);
 
         activateInputMode();
-        activateRenderer();
+        if (!isActivated()) {
+          activateRenderer();
+        }
         return true;
       }
 
