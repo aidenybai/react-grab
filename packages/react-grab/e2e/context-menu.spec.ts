@@ -49,6 +49,9 @@ test.describe("Context Menu", () => {
 
       const isCopyEnabled = await reactGrab.isContextMenuItemEnabled("Copy");
       expect(isCopyEnabled).toBe(true);
+
+      const isOpenEnabled = await reactGrab.isContextMenuItemEnabled("Open");
+      expect(isOpenEnabled).toBe(true);
     });
   });
 
