@@ -333,6 +333,16 @@ export interface ReactGrabRendererProps {
   toolbarVisible?: boolean;
   isActive?: boolean;
   onToggleActive?: () => void;
+  contextMenuPosition?: { x: number; y: number } | null;
+  contextMenuBounds?: OverlayBounds | null;
+  contextMenuTagName?: string;
+  contextMenuComponentName?: string;
+  contextMenuHasFilePath?: boolean;
+  contextMenuHasAgent?: boolean;
+  onContextMenuCopy?: () => void;
+  onContextMenuOpen?: () => void;
+  onContextMenuPrompt?: () => void;
+  onContextMenuDismiss?: () => void;
 }
 
 export interface GrabbedBox {

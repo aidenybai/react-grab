@@ -953,7 +953,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handlePointerMove = (clientX: number, clientY: number) => {
-      if (isInputMode() || isToggleFrozen()) return;
+      if (isInputMode() || isToggleFrozen() || store.contextMenuPosition !== null) return;
 
       actions.setPointer({ x: clientX, y: clientY });
 
@@ -1465,6 +1465,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     eventListenerManager.addWindowListener("mousemove", (event: MouseEvent) => {
       actions.setTouchMode(false);
       if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
+      if (store.contextMenuPosition !== null) return;
       if (isActivated() && !isInputMode() && isToggleFrozen()) {
         actions.unfreeze();
         arrowNavigator.clearHistory();
@@ -1507,6 +1508,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "pointerup",
       (event: PointerEvent) => {
         if (event.button !== 0) return;
+        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
+        if (store.contextMenuPosition !== null) return;
         handlePointerUp(event.clientX, event.clientY);
       },
       { capture: true },
@@ -1516,6 +1519,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "mouseup",
       (event: MouseEvent) => {
         if (event.button !== 0) return;
+        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
+        if (store.contextMenuPosition !== null) return;
         handlePointerUp(event.clientX, event.clientY);
       },
       { capture: true },
@@ -1525,7 +1530,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "contextmenu",
       (event: MouseEvent) => {
         if (!isRendererActive() || isCopying() || isInputMode()) return;
-        if (!hasAgentProvider()) return;
 
         event.preventDefault();
         event.stopPropagation();
@@ -1541,10 +1545,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           pendingClickData = null;
         }
 
-        prepareInputMode(element, event.clientX, event.clientY);
         actions.setPointer({ x: event.clientX, y: event.clientY });
         actions.setFrozenElement(element);
-        activateInputMode();
+        actions.freeze();
+        actions.showContextMenu({ x: event.clientX, y: event.clientY }, element);
       },
       { capture: true },
     );
@@ -1600,6 +1604,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "click",
       (event: MouseEvent) => {
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
+        if (store.contextMenuPosition !== null) return;
 
         if (isRendererActive() || isCopying() || didJustDrag()) {
           event.preventDefault();
@@ -1755,7 +1760,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
     );
 
-    const selectionLabelVisible = createElementVisibilityMemo("elementLabel");
+    const selectionLabelVisible = createMemo(() => {
+      if (store.contextMenuPosition !== null) return false;
+      if (!theme().elementLabel.enabled) return false;
+      if (didJustCopy()) return false;
+      return isRendererActive() && !isDragging() && Boolean(effectiveElement());
+    });
 
     const computedLabelInstances = createMemo(() => {
       void store.viewportVersion;
@@ -1815,8 +1825,110 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         !isDragging() &&
         !store.isTouchMode &&
         !isToggleFrozen() &&
-        !isInputMode(),
+        !isInputMode() &&
+        store.contextMenuPosition === null,
     );
+
+    const contextMenuBounds = createMemo((): OverlayBounds | null => {
+      const element = store.contextMenuElement;
+      if (!element) return null;
+      return createElementBounds(element);
+    });
+
+    const contextMenuTagName = createMemo(() => {
+      const element = store.contextMenuElement;
+      if (!element) return undefined;
+      return getTagName(element) || undefined;
+    });
+
+    const [contextMenuComponentName] = createResource(
+      () => store.contextMenuElement,
+      async (element) => {
+        if (!element) return undefined;
+        const name = await getNearestComponentName(element);
+        return name ?? undefined;
+      },
+    );
+
+    const [contextMenuFilePath] = createResource(
+      () => store.contextMenuElement,
+      async (element): Promise<{ filePath: string; lineNumber: number | undefined } | null> => {
+        if (!element) return null;
+        const stack = await getStack(element);
+        if (!stack || stack.length === 0) return null;
+        for (const frame of stack) {
+          if (frame.fileName && isSourceFile(frame.fileName)) {
+            return {
+              filePath: normalizeFileName(frame.fileName),
+              lineNumber: frame.lineNumber,
+            };
+          }
+        }
+        return null;
+      },
+    );
+
+    const handleContextMenuCopy = () => {
+      const element = store.contextMenuElement;
+      if (!element) return;
+
+      const position = store.contextMenuPosition;
+
+      performCopyWithLabel({
+        element,
+        positionX: position?.x ?? 0,
+        positionY: position?.y ?? 0,
+        shouldDeactivateAfter: store.isToggleMode,
+      });
+
+      // HACK: Defer hiding context menu until after click event propagates fully
+      setTimeout(() => {
+        actions.hideContextMenu();
+      }, 0);
+    };
+
+    const handleContextMenuOpen = () => {
+      const fileInfo = contextMenuFilePath();
+      if (fileInfo) {
+        const openFileUrl = buildOpenFileUrl(fileInfo.filePath, fileInfo.lineNumber);
+        window.open(openFileUrl, "_blank");
+      }
+
+      // HACK: Defer hiding context menu until after click event propagates fully
+      setTimeout(() => {
+        actions.hideContextMenu();
+        actions.unfreeze();
+      }, 0);
+    };
+
+    const handleContextMenuPrompt = () => {
+      const element = store.contextMenuElement;
+      const position = store.contextMenuPosition;
+      if (!element || !position) return;
+
+      if (!hasAgentProvider()) {
+        handleContextMenuCopy();
+        return;
+      }
+
+      prepareInputMode(element, position.x, position.y);
+      actions.setPointer({ x: position.x, y: position.y });
+      actions.setFrozenElement(element);
+      activateInputMode();
+
+      // HACK: Defer hiding context menu until after click event propagates fully
+      setTimeout(() => {
+        actions.hideContextMenu();
+      }, 0);
+    };
+
+    const handleContextMenuDismiss = () => {
+      // HACK: Defer hiding context menu until after click event propagates fully
+      setTimeout(() => {
+        actions.hideContextMenu();
+        actions.unfreeze();
+      }, 0);
+    };
 
     createEffect(
       on(theme, (currentTheme) => {
@@ -1881,6 +1993,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             toolbarVisible={theme().toolbar.enabled}
             isActive={isActivated()}
             onToggleActive={handleToggleActive}
+            contextMenuPosition={store.contextMenuPosition}
+            contextMenuBounds={contextMenuBounds()}
+            contextMenuTagName={contextMenuTagName()}
+            contextMenuComponentName={contextMenuComponentName()}
+            contextMenuHasFilePath={Boolean(contextMenuFilePath()?.filePath)}
+            contextMenuHasAgent={hasAgentProvider()}
+            onContextMenuCopy={handleContextMenuCopy}
+            onContextMenuOpen={handleContextMenuOpen}
+            onContextMenuPrompt={handleContextMenuPrompt}
+            onContextMenuDismiss={handleContextMenuDismiss}
           />
         ),
         rendererRoot,

@@ -79,6 +79,9 @@ interface GrabStore {
   supportsFollowUp: boolean;
   dismissButtonText: string | undefined;
   pendingAbortSessionId: string | null;
+
+  contextMenuPosition: Position | null;
+  contextMenuElement: Element | null;
 }
 
 interface GrabStoreInput {
@@ -133,6 +136,9 @@ const createInitialStore = (input: GrabStoreInput): GrabStore => ({
   supportsFollowUp: false,
   dismissButtonText: undefined,
   pendingAbortSessionId: null,
+
+  contextMenuPosition: null,
+  contextMenuElement: null,
 });
 
 interface GrabActions {
@@ -195,6 +201,8 @@ interface GrabActions {
   completeAgentSession: (sessionId: string, status?: string) => void;
   setAgentSessionError: (sessionId: string, error: string) => void;
   removeAgentSession: (sessionId: string) => void;
+  showContextMenu: (position: Position, element: Element) => void;
+  hideContextMenu: () => void;
 }
 
 const createGrabStore = (input: GrabStoreInput) => {
@@ -628,6 +636,16 @@ const createGrabStore = (input: GrabStoreInput) => {
       const newSessionElements = new Map(store.sessionElements);
       newSessionElements.delete(sessionId);
       setStore("sessionElements", newSessionElements);
+    },
+
+    showContextMenu: (position: Position, element: Element) => {
+      setStore("contextMenuPosition", position);
+      setStore("contextMenuElement", element);
+    },
+
+    hideContextMenu: () => {
+      setStore("contextMenuPosition", null);
+      setStore("contextMenuElement", null);
     },
   };
 

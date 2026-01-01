@@ -6,6 +6,7 @@ import { SelectionBox } from "./selection-box.js";
 import { Crosshair } from "./crosshair.js";
 import { SelectionLabel } from "./selection-label.js";
 import { Toolbar } from "./toolbar/index.js";
+import { ContextMenu } from "./context-menu.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
   const agentSessionsList = createMemo(() =>
@@ -187,6 +188,19 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
       <Show when={props.toolbarVisible !== false}>
         <Toolbar isActive={props.isActive} onToggle={props.onToggleActive} />
       </Show>
+
+      <ContextMenu
+        position={props.contextMenuPosition ?? null}
+        selectionBounds={props.contextMenuBounds ?? null}
+        tagName={props.contextMenuTagName}
+        componentName={props.contextMenuComponentName}
+        hasFilePath={props.contextMenuHasFilePath ?? false}
+        hasAgent={props.contextMenuHasAgent ?? false}
+        onCopy={props.onContextMenuCopy ?? (() => {})}
+        onOpen={props.onContextMenuOpen ?? (() => {})}
+        onPrompt={props.onContextMenuPrompt ?? (() => {})}
+        onDismiss={props.onContextMenuDismiss ?? (() => {})}
+      />
     </>
   );
 };
