@@ -1233,10 +1233,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         event.stopImmediatePropagation();
 
         const element = store.frozenElement || targetElement();
+        const pointerX = store.pointer.x;
+        const pointerY = store.pointer.y;
         if (element) {
-          prepareInputMode(element, store.pointer.x, store.pointer.y);
+          prepareInputMode(element, pointerX, pointerY);
         }
 
+        actions.setPointer({ x: pointerX, y: pointerY });
+        if (element) {
+          actions.setFrozenElement(element);
+        }
         activateInputMode();
 
         if (keydownSpamTimerId !== null) {
