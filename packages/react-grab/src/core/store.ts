@@ -247,6 +247,8 @@ const createGrabStore = (input: GrabStoreInput) => {
       setStore("pendingAbortSessionId", null);
       setStore("activationTimestamp", null);
       setStore("previouslyFocusedElement", null);
+      setStore("contextMenuPosition", null);
+      setStore("contextMenuElement", null);
     },
 
     toggle: () => {
