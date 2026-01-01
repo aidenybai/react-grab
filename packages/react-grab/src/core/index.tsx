@@ -884,7 +884,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       actions.clearInputText();
       actions.clearReplySessionId();
-      deactivateRenderer();
+      actions.exitInputMode();
+      actions.unfreeze();
     };
 
     const handleConfirmDismiss = () => {
