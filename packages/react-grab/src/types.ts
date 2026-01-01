@@ -220,6 +220,10 @@ export interface Options {
     context: ElementLabelContext,
   ) => void;
   onCrosshair?: (visible: boolean, context: CrosshairContext) => void;
+  onContextMenu?: (
+    element: Element,
+    position: { x: number; y: number },
+  ) => void;
   onOpenFile?: (filePath: string, lineNumber?: number) => void;
   agent?: AgentOptions;
 }
@@ -243,6 +247,7 @@ export type UpdatableOptions = Pick<
   | "onGrabbedBox"
   | "onElementLabel"
   | "onCrosshair"
+  | "onContextMenu"
   | "onOpenFile"
 >;
 
@@ -333,6 +338,16 @@ export interface ReactGrabRendererProps {
   toolbarVisible?: boolean;
   isActive?: boolean;
   onToggleActive?: () => void;
+  contextMenuPosition?: { x: number; y: number } | null;
+  contextMenuBounds?: OverlayBounds | null;
+  contextMenuTagName?: string;
+  contextMenuComponentName?: string;
+  contextMenuHasFilePath?: boolean;
+  contextMenuHasAgent?: boolean;
+  onContextMenuCopy?: () => void;
+  onContextMenuOpen?: () => void;
+  onContextMenuPrompt?: () => void;
+  onContextMenuDismiss?: () => void;
 }
 
 export interface GrabbedBox {

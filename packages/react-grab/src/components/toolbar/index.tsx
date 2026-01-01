@@ -406,6 +406,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     <div
       ref={containerRef}
       data-react-grab-ignore-events
+      data-react-grab-toolbar
       class={cn(
         "fixed left-0 top-0 font-sans text-[13px] antialiased filter-[drop-shadow(0px_0px_4px_#51515180)] select-none",
         isCollapsed()
@@ -463,6 +464,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         >
           <button
             data-react-grab-ignore-events
+            data-react-grab-toolbar-toggle
             class="contain-layout shrink-0 flex items-center justify-center cursor-pointer transition-all hover:scale-105"
             onClick={handleToggle}
           >
@@ -477,6 +479,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         </div>
         <button
           data-react-grab-ignore-events
+          data-react-grab-toolbar-collapse
           class="contain-layout shrink-0 flex items-center justify-center cursor-pointer transition-all hover:scale-105"
           onClick={handleToggleCollapse}
         >

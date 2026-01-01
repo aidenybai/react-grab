@@ -84,6 +84,7 @@ export const Crosshair: Component<CrosshairProps> = (props) => {
     <Show when={props.visible !== false}>
       <canvas
         ref={canvasRef}
+        data-react-grab-crosshair
         style={{
           position: "fixed",
           top: "0",

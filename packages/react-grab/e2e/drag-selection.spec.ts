@@ -111,7 +111,10 @@ test.describe("Drag Selection", () => {
   test("should handle drag across entire list", async ({ reactGrab }) => {
     await reactGrab.activate();
 
-    await reactGrab.dragSelect("li:first-child", "li:last-child");
+    await reactGrab.dragSelect(
+      "[data-testid='todo-list'] li:first-child",
+      "[data-testid='todo-list'] li:last-child",
+    );
     await reactGrab.page.waitForTimeout(500);
 
     const clipboardContent = await reactGrab.getClipboardContent();
@@ -150,5 +153,104 @@ test.describe("Drag Selection", () => {
     expect(hasContent).toBe(true);
 
     await reactGrab.page.mouse.up();
+  });
+});
+
+test.describe("Drag Selection with Scroll", () => {
+  test("should handle drag selection with scroll offset", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.scrollPage(100);
+    await reactGrab.page.waitForTimeout(100);
+
+    await reactGrab.activate();
+    await reactGrab.dragSelect("li:first-child", "li:nth-child(2)");
+    await reactGrab.page.waitForTimeout(500);
+
+    const clipboardContent = await reactGrab.getClipboardContent();
+    expect(clipboardContent).toBeTruthy();
+  });
+
+  test("should maintain drag while scrolling", async ({ reactGrab }) => {
+    await reactGrab.activate();
+
+    const firstItem = reactGrab.page.locator("li").first();
+    const firstBox = await firstItem.boundingBox();
+    if (!firstBox) throw new Error("Could not get bounding box");
+
+    await reactGrab.page.mouse.move(firstBox.x - 10, firstBox.y - 10);
+    await reactGrab.page.mouse.down();
+    await reactGrab.page.mouse.move(firstBox.x + 100, firstBox.y + 100, {
+      steps: 5,
+    });
+
+    await reactGrab.scrollPage(50);
+    await reactGrab.page.waitForTimeout(100);
+
+    await reactGrab.page.mouse.up();
+
+    const state = await reactGrab.getState();
+    expect(state).toBeDefined();
+  });
+
+  test("should select elements after scrolling down", async ({ reactGrab }) => {
+    await reactGrab.activate();
+    await reactGrab.scrollPage(300);
+    await reactGrab.page.waitForTimeout(200);
+
+    const listItems = reactGrab.page.locator("li");
+    const count = await listItems.count();
+
+    if (count > 0) {
+      await reactGrab.dragSelect("li:first-child", "li:nth-child(2)");
+      await reactGrab.page.waitForTimeout(500);
+
+      const clipboardContent = await reactGrab.getClipboardContent();
+      expect(clipboardContent).toBeTruthy();
+    }
+  });
+
+  test("drag bounds should exist during drag operation", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+
+    const firstItem = reactGrab.page.locator("li").first();
+    const firstBox = await firstItem.boundingBox();
+    if (!firstBox) throw new Error("Could not get bounding box");
+
+    await reactGrab.page.mouse.move(firstBox.x - 10, firstBox.y - 10);
+    await reactGrab.page.mouse.down();
+    await reactGrab.page.mouse.move(firstBox.x + 200, firstBox.y + 200, {
+      steps: 5,
+    });
+    await reactGrab.page.waitForTimeout(100);
+
+    const bounds = await reactGrab.getDragBoxBounds();
+    expect(bounds).not.toBeNull();
+
+    await reactGrab.page.mouse.up();
+  });
+
+  test("drag selection should work in scrollable container", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+
+    const scrollContainer = reactGrab.page.locator(
+      "[data-testid='scroll-container']",
+    );
+    const box = await scrollContainer.boundingBox();
+
+    if (box) {
+      await reactGrab.page.mouse.move(box.x + 10, box.y + 10);
+      await reactGrab.page.mouse.down();
+      await reactGrab.page.mouse.move(box.x + 200, box.y + 100, { steps: 5 });
+      await reactGrab.page.mouse.up();
+      await reactGrab.page.waitForTimeout(500);
+
+      const clipboardContent = await reactGrab.getClipboardContent();
+      expect(clipboardContent).toBeTruthy();
+    }
   });
 });

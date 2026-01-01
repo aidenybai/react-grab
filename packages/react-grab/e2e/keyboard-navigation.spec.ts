@@ -76,16 +76,19 @@ test.describe("Keyboard Navigation", () => {
     reactGrab,
   }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("li:first-child");
+    await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
     await reactGrab.waitForSelectionBox();
 
     await reactGrab.page.keyboard.press("ArrowDown");
     await reactGrab.waitForSelectionBox();
 
-    await reactGrab.page.mouse.click(
-      (await reactGrab.page.locator("li:nth-child(2)").boundingBox())!.x + 10,
-      (await reactGrab.page.locator("li:nth-child(2)").boundingBox())!.y + 10,
+    const secondItem = reactGrab.page.locator(
+      "[data-testid='todo-list'] li:nth-child(2)",
     );
+    const box = await secondItem.boundingBox();
+    if (box) {
+      await reactGrab.page.mouse.click(box.x + 10, box.y + 10);
+    }
     await reactGrab.page.waitForTimeout(500);
 
     const clipboardContent = await reactGrab.getClipboardContent();
@@ -107,5 +110,100 @@ test.describe("Keyboard Navigation", () => {
 
     const isVisible = await reactGrab.isOverlayVisible();
     expect(isVisible).toBe(true);
+  });
+});
+
+test.describe("Navigation History and Wrapping", () => {
+  test("ArrowLeft should go back to previous element", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    await reactGrab.pressArrowDown();
+    await reactGrab.pressArrowDown();
+
+    await reactGrab.pressArrowLeft();
+    await reactGrab.waitForSelectionBox();
+
+    const isVisible = await reactGrab.isSelectionBoxVisible();
+    expect(isVisible).toBe(true);
+  });
+
+  test("multiple ArrowDown should navigate through siblings", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    await reactGrab.pressArrowDown();
+    await reactGrab.pressArrowDown();
+    await reactGrab.pressArrowDown();
+    await reactGrab.waitForSelectionBox();
+
+    const isVisible = await reactGrab.isOverlayVisible();
+    expect(isVisible).toBe(true);
+  });
+
+  test("ArrowUp at first sibling should stay on element", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    await reactGrab.pressArrowUp();
+    await reactGrab.waitForSelectionBox();
+
+    const isVisible = await reactGrab.isSelectionBoxVisible();
+    expect(isVisible).toBe(true);
+  });
+
+  test("ArrowDown at last sibling should stay on element", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("li:last-child");
+    await reactGrab.waitForSelectionBox();
+
+    await reactGrab.pressArrowDown();
+    await reactGrab.waitForSelectionBox();
+
+    const isVisible = await reactGrab.isSelectionBoxVisible();
+    expect(isVisible).toBe(true);
+  });
+
+  test("navigation should work on deeply nested elements", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("[data-testid='deeply-nested-text']");
+    await reactGrab.waitForSelectionBox();
+
+    await reactGrab.pressArrowLeft();
+    await reactGrab.waitForSelectionBox();
+
+    const isVisible = await reactGrab.isSelectionBoxVisible();
+    expect(isVisible).toBe(true);
+  });
+
+  test("keyboard navigation should update selection label", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    const labelBefore = await reactGrab.getSelectionLabelInfo();
+
+    await reactGrab.pressArrowLeft();
+    await reactGrab.waitForSelectionBox();
+
+    const labelAfter = await reactGrab.getSelectionLabelInfo();
+
+    expect(labelBefore.isVisible).toBe(true);
+    expect(labelAfter.isVisible).toBe(true);
   });
 });

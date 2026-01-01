@@ -120,6 +120,7 @@ export const SelectionBox: Component<SelectionBoxProps> = (props) => {
   return (
     <Show when={props.visible !== false}>
       <div
+        data-react-grab-selection-box={props.variant}
         class={cn(
           "fixed box-border",
           props.variant === "drag" && "pointer-events-none",

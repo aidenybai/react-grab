@@ -288,6 +288,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       <div
         ref={containerRef}
         data-react-grab-ignore-events
+        data-react-grab-selection-label
         class="fixed font-sans text-[13px] antialiased transition-opacity duration-300 ease-out filter-[drop-shadow(0px_0px_4px_#51515180)] select-none"
         style={{
           top: `${computedPosition().top}px`,
@@ -370,6 +371,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   <Show when={props.onAbort}>
                     <button
                       data-react-grab-ignore-events
+                      data-react-grab-abort
                       class="contain-layout shrink-0 flex flex-col items-start rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] p-1 size-fit cursor-pointer ml-1 transition-none hover:scale-105"
                       onPointerDown={(event) => event.stopPropagation()}
                       onMouseDown={(event) => event.stopPropagation()}
@@ -457,6 +459,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   <textarea
                     ref={inputRef}
                     data-react-grab-ignore-events
+                    data-react-grab-input
                     class="text-black text-[13px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 wrap-break-word overflow-y-auto"
                     style={{
                       "field-sizing": "content",
@@ -471,6 +474,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     rows={1}
                   />
                   <button
+                    data-react-grab-submit
                     class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit cursor-pointer transition-all hover:scale-105 ml-1"
                     onClick={handleSubmit}
                   >

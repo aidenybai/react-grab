@@ -105,6 +105,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
 
   return (
     <div
+      data-react-grab-completion
       class="[font-synthesis:none] contain-layout shrink-0 flex flex-col justify-center items-end rounded-sm bg-white antialiased w-fit h-fit max-w-[280px]"
       onPointerDown={handleFocus}
       onClick={handleFocus}
@@ -117,6 +118,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
           <div class="contain-layout shrink-0 flex items-center gap-[5px] h-fit">
             <Show when={props.supportsUndo && props.onUndo}>
               <button
+                data-react-grab-undo
                 class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#7e0002] cursor-pointer transition-all hover:bg-[#FEF2F2] h-[17px]"
                 onClick={() => props.onUndo?.()}
               >
@@ -127,6 +129,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
             </Show>
             <Show when={props.onDismiss}>
               <button
+                data-react-grab-dismiss
                 class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
                 onClick={handleAccept}
                 disabled={didCopy()}
@@ -157,6 +160,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
             <textarea
               ref={inputRef}
               data-react-grab-ignore-events
+              data-react-grab-followup-input
               class="text-black text-[13px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 wrap-break-word overflow-y-auto"
               style={{
                 "field-sizing": "content",
@@ -171,6 +175,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
               rows={1}
             />
             <button
+              data-react-grab-followup-submit
               class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit cursor-pointer transition-all hover:scale-105 ml-1"
               onClick={handleFollowUpSubmit}
             >

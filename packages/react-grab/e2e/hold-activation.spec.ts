@@ -67,13 +67,13 @@ test.describe("Hold Activation Mode", () => {
   }) => {
     await reactGrab.activate();
 
-    await reactGrab.hoverElement("h1");
+    await reactGrab.hoverElement("[data-testid='main-title']");
     await reactGrab.waitForSelectionBox();
 
-    await reactGrab.clickElement("h1");
+    await reactGrab.clickElement("[data-testid='main-title']");
     await reactGrab.page.waitForTimeout(500);
 
     const clipboardContent = await reactGrab.getClipboardContent();
-    expect(clipboardContent).toContain("Todo List");
+    expect(clipboardContent).toContain("React Grab");
   });
 });

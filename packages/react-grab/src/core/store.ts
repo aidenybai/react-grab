@@ -79,6 +79,9 @@ interface GrabStore {
   supportsFollowUp: boolean;
   dismissButtonText: string | undefined;
   pendingAbortSessionId: string | null;
+
+  contextMenuPosition: Position | null;
+  contextMenuElement: Element | null;
 }
 
 interface GrabStoreInput {
@@ -133,6 +136,9 @@ const createInitialStore = (input: GrabStoreInput): GrabStore => ({
   supportsFollowUp: false,
   dismissButtonText: undefined,
   pendingAbortSessionId: null,
+
+  contextMenuPosition: null,
+  contextMenuElement: null,
 });
 
 interface GrabActions {
@@ -166,7 +172,10 @@ interface GrabActions {
   clearLastCopied: () => void;
   setToggleMode: (value: boolean) => void;
   setTouchMode: (value: boolean) => void;
-  setSelectionSource: (filePath: string | null, lineNumber: number | null) => void;
+  setSelectionSource: (
+    filePath: string | null,
+    lineNumber: number | null,
+  ) => void;
   clearSelectionSource: () => void;
   setPendingClickData: (data: PendingClickData | null) => void;
   clearPendingClickData: () => void;
@@ -177,7 +186,10 @@ interface GrabActions {
   removeGrabbedBox: (boxId: string) => void;
   clearGrabbedBoxes: () => void;
   addLabelInstance: (instance: SelectionLabelInstance) => void;
-  updateLabelInstance: (instanceId: string, status: SelectionLabelInstance["status"]) => void;
+  updateLabelInstance: (
+    instanceId: string,
+    status: SelectionLabelInstance["status"],
+  ) => void;
   removeLabelInstance: (instanceId: string) => void;
   clearLabelInstances: () => void;
   setHasAgentProvider: (value: boolean) => void;
@@ -190,11 +202,17 @@ interface GrabActions {
   }) => void;
   setPendingAbortSessionId: (sessionId: string | null) => void;
   updateSessionBounds: () => void;
-  addAgentSession: (sessionId: string, session: AgentSession, element: Element) => void;
+  addAgentSession: (
+    sessionId: string,
+    session: AgentSession,
+    element: Element,
+  ) => void;
   updateAgentSessionStatus: (sessionId: string, status: string) => void;
   completeAgentSession: (sessionId: string, status?: string) => void;
   setAgentSessionError: (sessionId: string, error: string) => void;
   removeAgentSession: (sessionId: string) => void;
+  showContextMenu: (position: Position, element: Element) => void;
+  hideContextMenu: () => void;
 }
 
 const createGrabStore = (input: GrabStoreInput) => {
@@ -239,6 +257,8 @@ const createGrabStore = (input: GrabStoreInput) => {
       setStore("pendingAbortSessionId", null);
       setStore("activationTimestamp", null);
       setStore("previouslyFocusedElement", null);
+      setStore("contextMenuPosition", null);
+      setStore("contextMenuElement", null);
     },
 
     toggle: () => {
@@ -256,11 +276,14 @@ const createGrabStore = (input: GrabStoreInput) => {
         if (elementToFreeze) {
           setStore("frozenElement", elementToFreeze);
         }
-        setStore("current", produce((current) => {
-          if (current.state === "active") {
-            current.phase = "frozen";
-          }
-        }));
+        setStore(
+          "current",
+          produce((current) => {
+            if (current.state === "active") {
+              current.phase = "frozen";
+            }
+          }),
+        );
       }
     },
 
@@ -268,11 +291,14 @@ const createGrabStore = (input: GrabStoreInput) => {
       if (store.current.state === "active") {
         setStore("frozenElement", null);
         setStore("frozenElements", []);
-        setStore("current", produce((current) => {
-          if (current.state === "active") {
-            current.phase = "hovering";
-          }
-        }));
+        setStore(
+          "current",
+          produce((current) => {
+            if (current.state === "active") {
+              current.phase = "hovering";
+            }
+          }),
+        );
       }
     },
 
@@ -282,49 +308,74 @@ const createGrabStore = (input: GrabStoreInput) => {
           x: position.x + window.scrollX,
           y: position.y + window.scrollY,
         });
-        setStore("current", produce((current) => {
-          if (current.state === "active") {
-            current.phase = "dragging";
-          }
-        }));
+        setStore(
+          "current",
+          produce((current) => {
+            if (current.state === "active") {
+              current.phase = "dragging";
+            }
+          }),
+        );
       }
     },
 
     endDrag: () => {
-      if (store.current.state === "active" && store.current.phase === "dragging") {
+      if (
+        store.current.state === "active" &&
+        store.current.phase === "dragging"
+      ) {
         setStore("dragStart", { x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION });
-        setStore("current", produce((current) => {
-          if (current.state === "active") {
-            current.phase = "justDragged";
-          }
-        }));
+        setStore(
+          "current",
+          produce((current) => {
+            if (current.state === "active") {
+              current.phase = "justDragged";
+            }
+          }),
+        );
       }
     },
 
     cancelDrag: () => {
-      if (store.current.state === "active" && store.current.phase === "dragging") {
+      if (
+        store.current.state === "active" &&
+        store.current.phase === "dragging"
+      ) {
         setStore("dragStart", { x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION });
-        setStore("current", produce((current) => {
-          if (current.state === "active") {
-            current.phase = "hovering";
-          }
-        }));
+        setStore(
+          "current",
+          produce((current) => {
+            if (current.state === "active") {
+              current.phase = "hovering";
+            }
+          }),
+        );
       }
     },
 
     finishJustDragged: () => {
-      if (store.current.state === "active" && store.current.phase === "justDragged") {
-        setStore("current", produce((current) => {
-          if (current.state === "active") {
-            current.phase = "hovering";
-          }
-        }));
+      if (
+        store.current.state === "active" &&
+        store.current.phase === "justDragged"
+      ) {
+        setStore(
+          "current",
+          produce((current) => {
+            if (current.state === "active") {
+              current.phase = "hovering";
+            }
+          }),
+        );
       }
     },
 
     startCopy: () => {
       const wasActive = store.current.state === "active";
-      setStore("current", { state: "copying", startedAt: Date.now(), wasActive });
+      setStore("current", {
+        state: "copying",
+        startedAt: Date.now(),
+        wasActive,
+      });
     },
 
     completeCopy: (element?: Element) => {
@@ -332,13 +383,19 @@ const createGrabStore = (input: GrabStoreInput) => {
       if (element) {
         setStore("lastCopiedElement", element);
       }
-      const wasActive = store.current.state === "copying" ? store.current.wasActive : false;
-      setStore("current", { state: "justCopied", copiedAt: Date.now(), wasActive });
+      const wasActive =
+        store.current.state === "copying" ? store.current.wasActive : false;
+      setStore("current", {
+        state: "justCopied",
+        copiedAt: Date.now(),
+        wasActive,
+      });
     },
 
     finishJustCopied: () => {
       if (store.current.state === "justCopied") {
-        const shouldReturnToActive = store.current.wasActive && !store.isToggleMode;
+        const shouldReturnToActive =
+          store.current.wasActive && !store.isToggleMode;
         if (shouldReturnToActive) {
           setStore("current", {
             state: "active",
@@ -372,23 +429,29 @@ const createGrabStore = (input: GrabStoreInput) => {
         setStore("activationTimestamp", Date.now());
         setStore("previouslyFocusedElement", document.activeElement);
       } else {
-        setStore("current", produce((current) => {
-          if (current.state === "active") {
-            current.isInputMode = true;
-            current.phase = "frozen";
-          }
-        }));
+        setStore(
+          "current",
+          produce((current) => {
+            if (current.state === "active") {
+              current.isInputMode = true;
+              current.phase = "frozen";
+            }
+          }),
+        );
       }
     },
 
     exitInputMode: () => {
       if (store.current.state === "active") {
-        setStore("current", produce((current) => {
-          if (current.state === "active") {
-            current.isInputMode = false;
-            current.isPendingDismiss = false;
-          }
-        }));
+        setStore(
+          "current",
+          produce((current) => {
+            if (current.state === "active") {
+              current.isInputMode = false;
+              current.isPendingDismiss = false;
+            }
+          }),
+        );
       }
     },
 
@@ -402,11 +465,14 @@ const createGrabStore = (input: GrabStoreInput) => {
 
     setPendingDismiss: (value: boolean) => {
       if (store.current.state === "active") {
-        setStore("current", produce((current) => {
-          if (current.state === "active") {
-            current.isPendingDismiss = value;
-          }
-        }));
+        setStore(
+          "current",
+          produce((current) => {
+            if (current.state === "active") {
+              current.isPendingDismiss = value;
+            }
+          }),
+        );
       }
     },
 
@@ -460,7 +526,10 @@ const createGrabStore = (input: GrabStoreInput) => {
       setStore("isTouchMode", value);
     },
 
-    setSelectionSource: (filePath: string | null, lineNumber: number | null) => {
+    setSelectionSource: (
+      filePath: string | null,
+      lineNumber: number | null,
+    ) => {
       setStore("selectionFilePath", filePath);
       setStore("selectionLineNumber", lineNumber);
     },
@@ -495,7 +564,9 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
 
     removeGrabbedBox: (boxId: string) => {
-      setStore("grabbedBoxes", (boxes) => boxes.filter((box) => box.id !== boxId));
+      setStore("grabbedBoxes", (boxes) =>
+        boxes.filter((box) => box.id !== boxId),
+      );
     },
 
     clearGrabbedBoxes: () => {
@@ -506,17 +577,20 @@ const createGrabStore = (input: GrabStoreInput) => {
       setStore("labelInstances", (instances) => [...instances, instance]);
     },
 
-    updateLabelInstance: (instanceId: string, status: SelectionLabelInstance["status"]) => {
+    updateLabelInstance: (
+      instanceId: string,
+      status: SelectionLabelInstance["status"],
+    ) => {
       setStore("labelInstances", (instances) =>
         instances.map((instance) =>
-          instance.id === instanceId ? { ...instance, status } : instance
-        )
+          instance.id === instanceId ? { ...instance, status } : instance,
+        ),
       );
     },
 
     removeLabelInstance: (instanceId: string) => {
       setStore("labelInstances", (instances) =>
-        instances.filter((instance) => instance.id !== instanceId)
+        instances.filter((instance) => instance.id !== instanceId),
       );
     },
 
@@ -579,7 +653,11 @@ const createGrabStore = (input: GrabStoreInput) => {
       }
     },
 
-    addAgentSession: (sessionId: string, session: AgentSession, element: Element) => {
+    addAgentSession: (
+      sessionId: string,
+      session: AgentSession,
+      element: Element,
+    ) => {
       const newSessions = new Map(store.agentSessions);
       newSessions.set(sessionId, session);
       setStore("agentSessions", newSessions);
@@ -629,10 +707,28 @@ const createGrabStore = (input: GrabStoreInput) => {
       newSessionElements.delete(sessionId);
       setStore("sessionElements", newSessionElements);
     },
+
+    showContextMenu: (position: Position, element: Element) => {
+      setStore("contextMenuPosition", position);
+      setStore("contextMenuElement", element);
+    },
+
+    hideContextMenu: () => {
+      setStore("contextMenuPosition", null);
+      setStore("contextMenuElement", null);
+    },
   };
 
   return { store, setStore, actions, isActive, isHolding };
 };
 
 export { createGrabStore };
-export type { GrabStore, GrabState, GrabPhase, GrabActions, GrabStoreInput, PendingClickData, Position };
+export type {
+  GrabStore,
+  GrabState,
+  GrabPhase,
+  GrabActions,
+  GrabStoreInput,
+  PendingClickData,
+  Position,
+};
