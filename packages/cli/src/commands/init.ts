@@ -19,7 +19,11 @@ import {
 } from "../utils/install.js";
 import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
-import type { AgentIntegration } from "../utils/templates.js";
+import {
+  AGENTS,
+  AGENT_NAMES,
+  type AgentIntegration,
+} from "../utils/templates.js";
 import {
   applyOptionsTransform,
   applyPackageJsonTransform,
@@ -90,17 +94,6 @@ const UNSUPPORTED_FRAMEWORK_NAMES: Record<
   gatsby: "Gatsby",
 };
 
-const AGENT_NAMES: Record<string, string> = {
-  "claude-code": "Claude Code",
-  cursor: "Cursor",
-  opencode: "OpenCode",
-  codex: "Codex",
-  gemini: "Gemini",
-  amp: "Amp",
-  ami: "Ami",
-  "visual-edit": "Visual Edit",
-};
-
 const MODIFIER_KEY_NAMES: Record<string, string> = {
   metaKey: process.platform === "darwin" ? "⌘ Command" : "⊞ Windows",
   ctrlKey: "Ctrl",
@@ -169,15 +162,7 @@ export const init = new Command()
         logger.success("React Grab is already installed.");
         logger.break();
 
-        const allAgents = [
-          "claude-code",
-          "cursor",
-          "opencode",
-          "codex",
-          "gemini",
-          "amp",
-          "visual-edit",
-        ] as const;
+        const allAgents = AGENTS;
 
         const availableAgents = allAgents.filter(
           (agent) => !projectInfo.installedAgents.includes(agent),
@@ -906,13 +891,10 @@ export const init = new Command()
           message: `Would you like to add an ${highlighter.info("agent integration")}?`,
           choices: [
             { title: "None", value: "none" },
-            { title: "Claude Code", value: "claude-code" },
-            { title: "Cursor", value: "cursor" },
-            { title: "OpenCode", value: "opencode" },
-            { title: "Codex", value: "codex" },
-            { title: "Gemini", value: "gemini" },
-            { title: "Amp", value: "amp" },
-            { title: "Visual Edit", value: "visual-edit" },
+            ...AGENTS.map((innerAgent) => ({
+              title: AGENT_NAMES[innerAgent],
+              value: innerAgent,
+            })),
           ],
         });
 

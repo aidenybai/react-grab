@@ -1,12 +1,32 @@
-export type AgentIntegration =
-  | "claude-code"
-  | "cursor"
-  | "opencode"
-  | "codex"
-  | "gemini"
-  | "amp"
-  | "visual-edit"
-  | "none";
+export const AGENTS = [
+  "claude-code",
+  "cursor",
+  "opencode",
+  "codex",
+  "gemini",
+  "amp",
+  "ami",
+  "visual-edit",
+] as const;
+
+export type Agent = (typeof AGENTS)[number];
+
+export type AgentIntegration = Agent | "none";
+
+export const AGENT_NAMES: Record<Agent, string> = {
+  "claude-code": "Claude Code",
+  cursor: "Cursor",
+  opencode: "OpenCode",
+  codex: "Codex",
+  gemini: "Gemini",
+  amp: "Amp",
+  ami: "Ami",
+  "visual-edit": "Visual Edit",
+};
+
+export const PROVIDERS = AGENTS.filter((agent) => agent !== "ami").map(
+  (agent) => `@react-grab/${agent}` as const,
+);
 
 export const NEXT_APP_ROUTER_SCRIPT = `{process.env.NODE_ENV === "development" && (
           <Script

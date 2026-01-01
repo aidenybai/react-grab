@@ -8,6 +8,7 @@ import { highlighter } from "../utils/highlighter.js";
 import { getPackagesToUninstall, uninstallPackages } from "../utils/install.js";
 import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
+import { AGENT_NAMES } from "../utils/templates.js";
 import {
   applyPackageJsonTransform,
   applyTransform,
@@ -16,17 +17,6 @@ import {
 } from "../utils/transform.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
-
-const AGENT_NAMES: Record<string, string> = {
-  "claude-code": "Claude Code",
-  cursor: "Cursor",
-  opencode: "OpenCode",
-  codex: "Codex",
-  gemini: "Gemini",
-  amp: "Amp",
-  ami: "Ami",
-  "visual-edit": "Visual Edit",
-};
 
 export const remove = new Command()
   .name("remove")

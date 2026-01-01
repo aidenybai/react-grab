@@ -10,6 +10,7 @@ import prompts from "prompts";
 import { highlighter } from "../utils/highlighter.js";
 import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
+import { AGENT_NAMES, PROVIDERS } from "../utils/templates.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
 const DEFAULT_PROXY_PORT = 2000;
@@ -103,13 +104,13 @@ export const start = new Command()
           message: `Select a ${highlighter.info("provider")} to use:`,
           choices: [
             { title: "None", value: "" },
-            { title: "Claude Code", value: "@react-grab/claude-code" },
-            { title: "Cursor", value: "@react-grab/cursor" },
-            { title: "OpenCode", value: "@react-grab/opencode" },
-            { title: "Codex", value: "@react-grab/codex" },
-            { title: "Gemini", value: "@react-grab/gemini" },
-            { title: "Amp", value: "@react-grab/amp" },
-            { title: "Visual Edit", value: "@react-grab/visual-edit" },
+            ...PROVIDERS.map((provider) => {
+              const agentName = provider.replace("@react-grab/", "");
+              return {
+                title: AGENT_NAMES[agentName as keyof typeof AGENT_NAMES],
+                value: provider,
+              };
+            }),
           ],
         });
 

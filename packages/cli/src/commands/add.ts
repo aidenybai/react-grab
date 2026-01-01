@@ -13,7 +13,11 @@ import {
 } from "../utils/install.js";
 import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
-import type { AgentIntegration } from "../utils/templates.js";
+import {
+  AGENTS,
+  AGENT_NAMES,
+  type AgentIntegration,
+} from "../utils/templates.js";
 import {
   applyPackageJsonTransform,
   applyTransform,
@@ -24,16 +28,6 @@ import {
 } from "../utils/transform.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
-
-const AGENT_NAMES: Record<string, string> = {
-  "claude-code": "Claude Code",
-  cursor: "Cursor",
-  opencode: "OpenCode",
-  codex: "Codex",
-  gemini: "Gemini",
-  amp: "Amp",
-  "visual-edit": "Visual Edit",
-};
 
 export const add = new Command()
   .name("add")
@@ -74,17 +68,7 @@ export const add = new Command()
 
       preflightSpinner.succeed();
 
-      const allAgents = [
-        "claude-code",
-        "cursor",
-        "opencode",
-        "codex",
-        "gemini",
-        "amp",
-        "visual-edit",
-      ] as const;
-
-      const availableAgents = allAgents.filter(
+      const availableAgents = AGENTS.filter(
         (agent) => !projectInfo.installedAgents.includes(agent),
       );
 
@@ -99,7 +83,7 @@ export const add = new Command()
       let agentsToRemove: string[] = [];
 
       if (agentArg) {
-        if (!allAgents.includes(agentArg as (typeof allAgents)[number])) {
+        if (!AGENTS.includes(agentArg as (typeof AGENTS)[number])) {
           logger.break();
           logger.error(`Invalid agent: ${agentArg}`);
           logger.error(
