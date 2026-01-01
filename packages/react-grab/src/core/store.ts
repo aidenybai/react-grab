@@ -347,7 +347,7 @@ const createGrabStore = (input: GrabStoreInput) => {
             isPendingDismiss: false,
           });
         } else {
-          setStore("current", { state: "idle" });
+          actions.deactivate();
         }
       }
     },
