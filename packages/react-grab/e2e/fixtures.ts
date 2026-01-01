@@ -294,7 +294,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       await page.keyboard.down(modifier);
     }
     await page.keyboard.press(key);
-    for (const modifier of modifiers.reverse()) {
+    for (const modifier of [...modifiers].reverse()) {
       await page.keyboard.up(modifier);
     }
     await page.waitForTimeout(50);
