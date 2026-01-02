@@ -1926,7 +1926,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         element,
         positionX: position.x,
         positionY: position.y,
-        shouldDeactivateAfter: true,
+        shouldDeactivateAfter: store.isToggleMode,
       });
 
       // HACK: Defer hiding context menu until after click event propagates fully
