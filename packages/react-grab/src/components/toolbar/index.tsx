@@ -47,21 +47,21 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
+    const minX = SNAP_MARGIN;
+    const maxX = Math.max(SNAP_MARGIN, viewportWidth - elementWidth - SNAP_MARGIN);
+    const minY = SNAP_MARGIN;
+    const maxY = Math.max(SNAP_MARGIN, viewportHeight - elementHeight - SNAP_MARGIN);
+
     if (edge === "top" || edge === "bottom") {
-      const availableWidth = viewportWidth - elementWidth - SNAP_MARGIN * 2;
-      const positionX = SNAP_MARGIN + availableWidth * ratio;
-      const positionY =
-        edge === "top"
-          ? SNAP_MARGIN
-          : viewportHeight - elementHeight - SNAP_MARGIN;
+      const availableWidth = Math.max(0, viewportWidth - elementWidth - SNAP_MARGIN * 2);
+      const positionX = Math.min(maxX, Math.max(minX, SNAP_MARGIN + availableWidth * ratio));
+      const positionY = edge === "top" ? minY : maxY;
       return { x: positionX, y: positionY };
     }
-    const availableHeight = viewportHeight - elementHeight - SNAP_MARGIN * 2;
-    const positionY = SNAP_MARGIN + availableHeight * ratio;
-    const positionX =
-      edge === "left"
-        ? SNAP_MARGIN
-        : viewportWidth - elementWidth - SNAP_MARGIN;
+
+    const availableHeight = Math.max(0, viewportHeight - elementHeight - SNAP_MARGIN * 2);
+    const positionY = Math.min(maxY, Math.max(minY, SNAP_MARGIN + availableHeight * ratio));
+    const positionX = edge === "left" ? minX : maxX;
     return { x: positionX, y: positionY };
   };
 
@@ -378,6 +378,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     }
 
     window.addEventListener("resize", handleResize);
+    window.visualViewport?.addEventListener("resize", handleResize);
 
     const fadeInTimeout = setTimeout(() => {
       setIsVisible(true);
@@ -390,6 +391,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   onCleanup(() => {
     window.removeEventListener("resize", handleResize);
+    window.visualViewport?.removeEventListener("resize", handleResize);
     if (resizeTimeout) {
       clearTimeout(resizeTimeout);
     }
