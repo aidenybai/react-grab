@@ -1,10 +1,7 @@
 import { Show, createSignal, createEffect, onMount, onCleanup } from "solid-js";
 import type { Component } from "solid-js";
 import type { CompletionViewProps } from "../../types.js";
-import {
-  COPIED_LABEL_DURATION_MS,
-  FADE_DURATION_MS,
-} from "../../constants.js";
+import { COPIED_LABEL_DURATION_MS, FADE_DURATION_MS } from "../../constants.js";
 import { confirmationFocusManager } from "../../utils/confirmation-focus-manager.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
 import { IconReturn } from "../icons/icon-return.jsx";
