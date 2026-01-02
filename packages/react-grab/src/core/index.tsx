@@ -1787,16 +1787,28 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return isRendererActive() && !isDragging() && Boolean(effectiveElement());
     });
 
+    const labelInstanceCache = new Map<string, SelectionLabelInstance>();
     const computedLabelInstances = createMemo(() => {
       void store.viewportVersion;
-      return store.labelInstances.map((instance) => {
-        if (!instance.element || !document.body.contains(instance.element)) {
-          return instance;
+      const currentIds = new Set(store.labelInstances.map((i) => i.id));
+      for (const cachedId of labelInstanceCache.keys()) {
+        if (!currentIds.has(cachedId)) {
+          labelInstanceCache.delete(cachedId);
         }
-        return {
-          ...instance,
-          bounds: createElementBounds(instance.element),
-        };
+      }
+      return store.labelInstances.map((instance) => {
+        const newBounds =
+          instance.element && document.body.contains(instance.element)
+            ? createElementBounds(instance.element)
+            : instance.bounds;
+        const cached = labelInstanceCache.get(instance.id);
+        if (cached && cached.status === instance.status) {
+          cached.bounds = newBounds;
+          return cached;
+        }
+        const newCached = { ...instance, bounds: newBounds };
+        labelInstanceCache.set(instance.id, newCached);
+        return newCached;
       });
     });
 

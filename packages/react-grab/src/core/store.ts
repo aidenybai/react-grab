@@ -585,11 +585,12 @@ const createGrabStore = (input: GrabStoreInput) => {
       instanceId: string,
       status: SelectionLabelInstance["status"],
     ) => {
-      setStore("labelInstances", (instances) =>
-        instances.map((instance) =>
-          instance.id === instanceId ? { ...instance, status } : instance,
-        ),
+      const index = store.labelInstances.findIndex(
+        (instance) => instance.id === instanceId,
       );
+      if (index !== -1) {
+        setStore("labelInstances", index, "status", status);
+      }
     },
 
     removeLabelInstance: (instanceId: string) => {

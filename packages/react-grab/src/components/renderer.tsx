@@ -178,23 +178,23 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         />
       </Show>
 
-      <Index each={props.labelInstances ?? []}>
+      <For each={props.labelInstances ?? []}>
         {(instance) => (
           <SelectionLabel
-            tagName={instance().tagName}
-            componentName={instance().componentName}
-            selectionBounds={instance().bounds}
-            mouseX={instance().mouseX}
+            tagName={instance.tagName}
+            componentName={instance.componentName}
+            selectionBounds={instance.bounds}
+            mouseX={instance.mouseX}
             visible={true}
-            status={instance().status}
+            status={instance.status}
             onShowContextMenu={
-              instance().status === "copied" || instance().status === "fading"
-                ? () => props.onShowContextMenuInstance?.(instance().id)
+              instance.status === "copied" || instance.status === "fading"
+                ? () => props.onShowContextMenuInstance?.(instance.id)
                 : undefined
             }
           />
         )}
-      </Index>
+      </For>
 
       <Show when={props.toolbarVisible !== false}>
         <Toolbar isActive={props.isActive} onToggle={props.onToggleActive} />
