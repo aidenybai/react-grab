@@ -48,6 +48,7 @@ import {
   copyImageToClipboard,
   combineBounds,
 } from "../utils/capture-screenshot.js";
+import { delay } from "../utils/delay.js";
 import type {
   Options,
   OverlayBounds,
@@ -1959,7 +1960,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       rendererRoot.style.visibility = "hidden";
 
       // HACK: Wait for UI to be hidden before capturing
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await delay(50);
 
       try {
         const blob = await captureElementScreenshot(bounds);

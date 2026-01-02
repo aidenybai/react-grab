@@ -1,3 +1,5 @@
+import { delay } from "./delay.js";
+
 interface ElementBounds {
   x: number;
   y: number;
@@ -106,7 +108,7 @@ export const captureElementScreenshot = async (
   });
 
   // HACK: Small delay to ensure video frame is ready
-  await new Promise((resolve) => setTimeout(resolve, 100));
+  await delay(100);
 
   try {
     const blob = await captureVideoFrame(video, bounds);
