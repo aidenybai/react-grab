@@ -1293,89 +1293,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return false;
     };
 
-    const performOpenFile = (
-      filePath: string,
-      lineNumber: number | null | undefined,
-    ) => {
-      if (options.onOpenFile) {
-        options.onOpenFile(filePath, lineNumber ?? undefined);
-      } else {
-        const url = buildOpenFileUrl(filePath, lineNumber ?? undefined);
-        window.open(url, "_blank", "noopener,noreferrer");
-      }
-    };
-
-    const performScreenshot = async (
-      allBounds: OverlayBounds[],
-      singleBounds: OverlayBounds | undefined,
-      element: Element | null | undefined,
-    ) => {
-      const bounds =
-        allBounds.length > 1 ? combineBounds(allBounds) : singleBounds;
-      if (!bounds) return;
-
-      const tagName = element ? getTagName(element) || "element" : "element";
-
-      // HACK: Hide entire overlay to avoid it appearing in screenshot
-      rendererRoot.style.visibility = "hidden";
-
-      // HACK: Wait for UI to be hidden before capturing
-      await delay(50);
-
-      let didSucceed = false;
-      let errorMessage: string | undefined;
-
-      try {
-        const blob = await captureElementScreenshot(bounds);
-        didSucceed = await copyImageToClipboard(blob);
-        if (!didSucceed) {
-          errorMessage = "Failed to copy";
-        }
-      } catch (error) {
-        errorMessage =
-          error instanceof Error ? error.message : "Screenshot failed";
-      }
-
-      rendererRoot.style.visibility = "";
-
-      const overlayBounds: OverlayBounds = {
-        ...bounds,
-        borderRadius: "0px",
-        transform: "",
-      };
-
-      const boundsForLabel =
-        allBounds.length > 1 ? allBounds : singleBounds ? [singleBounds] : [];
-
-      const instanceId = createLabelInstance(
-        overlayBounds,
-        tagName,
-        undefined,
-        didSucceed ? "copied" : "error",
-        element ?? undefined,
-        bounds.x + bounds.width / 2,
-        undefined,
-        boundsForLabel,
-      );
-
-      if (!didSucceed && errorMessage) {
-        updateLabelInstance(instanceId, "error", errorMessage);
-      }
-
-      setTimeout(() => {
-        updateLabelInstance(instanceId, "fading");
-        setTimeout(() => {
-          removeLabelInstance(instanceId);
-        }, 150);
-      }, COPIED_LABEL_DURATION_MS);
-
-      if (store.wasActivatedByToggle) {
-        deactivateRenderer();
-      } else {
-        actions.unfreeze();
-      }
-    };
-
     const handleOpenFileShortcut = (event: KeyboardEvent): boolean => {
       if (event.key?.toLowerCase() !== "o" || isPromptMode()) return false;
       if (!isActivated() || !(event.metaKey || event.ctrlKey)) return false;
@@ -1387,7 +1304,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       event.preventDefault();
       event.stopPropagation();
 
-      performOpenFile(filePath, lineNumber);
+      if (options.onOpenFile) {
+        options.onOpenFile(filePath, lineNumber ?? undefined);
+      } else {
+        const url = buildOpenFileUrl(filePath, lineNumber ?? undefined);
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
       return true;
     };
 
@@ -1397,12 +1319,76 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const allBounds = frozenElementsBounds();
       const singleBounds = selectionBounds();
-      if (allBounds.length === 0 && !singleBounds) return false;
+      const element = store.frozenElement || targetElement();
+      const bounds =
+        allBounds.length > 1 ? combineBounds(allBounds) : singleBounds;
+      if (!bounds) return false;
 
       event.preventDefault();
       event.stopPropagation();
 
-      void performScreenshot(allBounds, singleBounds, effectiveElement());
+      const tagName = element ? getTagName(element) || "element" : "element";
+      const shouldDeactivate = store.wasActivatedByToggle;
+      const overlayBounds: OverlayBounds = {
+        ...bounds,
+        borderRadius: "0px",
+        transform: "",
+      };
+      const selectionBoundsArray =
+        allBounds.length > 1 ? allBounds : singleBounds ? [singleBounds] : [];
+
+      const instanceId = createLabelInstance(
+        overlayBounds,
+        tagName,
+        undefined,
+        "copying",
+        element ?? undefined,
+        bounds.x + bounds.width / 2,
+        undefined,
+        selectionBoundsArray,
+      );
+
+      rendererRoot.style.visibility = "hidden";
+
+      void (async () => {
+        await delay(50);
+
+        let didSucceed = false;
+        let errorMessage: string | undefined;
+
+        try {
+          const blob = await captureElementScreenshot(bounds);
+          didSucceed = await copyImageToClipboard(blob);
+          if (!didSucceed) {
+            errorMessage = "Failed to copy";
+          }
+        } catch (error) {
+          errorMessage =
+            error instanceof Error ? error.message : "Screenshot failed";
+        }
+
+        rendererRoot.style.visibility = "";
+
+        updateLabelInstance(
+          instanceId,
+          didSucceed ? "copied" : "error",
+          didSucceed ? undefined : errorMessage,
+        );
+
+        setTimeout(() => {
+          updateLabelInstance(instanceId, "fading");
+          setTimeout(() => {
+            removeLabelInstance(instanceId);
+          }, 150);
+        }, COPIED_LABEL_DURATION_MS);
+
+        if (shouldDeactivate) {
+          deactivateRenderer();
+        } else {
+          actions.unfreeze();
+        }
+      })();
+
       return true;
     };
 
@@ -2055,19 +2041,91 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, 0);
     };
 
-    const handleContextMenuCopyScreenshot = () => {
+    const handleContextMenuCopyScreenshot = async () => {
+      const allBounds = frozenElementsBounds();
+      const singleBounds = contextMenuBounds();
+      const element = store.contextMenuElement;
+      const bounds =
+        allBounds.length > 1 ? combineBounds(allBounds) : singleBounds;
+      if (!bounds) return;
+
+      const tagName = element ? getTagName(element) || "element" : "element";
+      const shouldDeactivate = store.wasActivatedByToggle;
+      const overlayBounds: OverlayBounds = {
+        ...bounds,
+        borderRadius: "0px",
+        transform: "",
+      };
+      const selectionBoundsArray =
+        allBounds.length > 1 ? allBounds : singleBounds ? [singleBounds] : [];
+
       actions.hideContextMenu();
-      void performScreenshot(
-        frozenElementsBounds(),
-        contextMenuBounds() ?? undefined,
-        store.contextMenuElement,
+
+      const instanceId = createLabelInstance(
+        overlayBounds,
+        tagName,
+        undefined,
+        "copying",
+        element ?? undefined,
+        bounds.x + bounds.width / 2,
+        undefined,
+        selectionBoundsArray,
       );
+
+      rendererRoot.style.visibility = "hidden";
+      await delay(50);
+
+      let didSucceed = false;
+      let errorMessage: string | undefined;
+
+      try {
+        const blob = await captureElementScreenshot(bounds);
+        didSucceed = await copyImageToClipboard(blob);
+        if (!didSucceed) {
+          errorMessage = "Failed to copy";
+        }
+      } catch (error) {
+        errorMessage =
+          error instanceof Error ? error.message : "Screenshot failed";
+      }
+
+      rendererRoot.style.visibility = "";
+
+      updateLabelInstance(
+        instanceId,
+        didSucceed ? "copied" : "error",
+        didSucceed ? undefined : errorMessage,
+      );
+
+      setTimeout(() => {
+        updateLabelInstance(instanceId, "fading");
+        setTimeout(() => {
+          removeLabelInstance(instanceId);
+        }, 150);
+      }, COPIED_LABEL_DURATION_MS);
+
+      if (shouldDeactivate) {
+        deactivateRenderer();
+      } else {
+        actions.unfreeze();
+      }
     };
 
     const handleContextMenuOpen = () => {
       const fileInfo = contextMenuFilePath();
       if (fileInfo) {
-        performOpenFile(fileInfo.filePath, fileInfo.lineNumber);
+        if (options.onOpenFile) {
+          options.onOpenFile(
+            fileInfo.filePath,
+            fileInfo.lineNumber ?? undefined,
+          );
+        } else {
+          const openFileUrl = buildOpenFileUrl(
+            fileInfo.filePath,
+            fileInfo.lineNumber,
+          );
+          window.open(openFileUrl, "_blank", "noopener,noreferrer");
+        }
       }
 
       // HACK: Defer hiding context menu until after click event propagates fully
