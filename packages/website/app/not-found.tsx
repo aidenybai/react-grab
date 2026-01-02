@@ -25,8 +25,8 @@ const NotFound = () => {
         </div>
 
         <div className="text-white mt-4">
-          <span className="font-bold shimmer-text-pink">404</span> &middot; Couldn&apos;t grab
-          this page.
+          <span className="font-bold shimmer-text-pink">404</span> &middot;
+          Couldn&apos;t grab this page.
         </div>
       </div>
     </div>
