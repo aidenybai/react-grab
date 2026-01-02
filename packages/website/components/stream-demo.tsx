@@ -360,10 +360,11 @@ export const StreamDemo = () => {
                           loop
                           muted
                           playsInline
+                          controls
                           className="mt-3 w-full rounded-lg border border-white/10"
                         />
-                        <p className="mt-2 text-center text-sm text-white/50">
-                          (Best viewed on desktop)
+                        <p className="mt-3 text-center text-xs text-white/30">
+                          Desktop recommended
                         </p>
                       </>
                     )}
