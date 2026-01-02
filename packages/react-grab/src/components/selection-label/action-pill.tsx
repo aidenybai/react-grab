@@ -5,18 +5,12 @@ import { cn } from "../../utils/cn.js";
 
 export const ActionPill: Component<ActionPillProps> = (props) => {
   const labelPrefix = () => {
-    if (props.hasAgent) {
-      if (props.isEditing) return null;
-      return "Right click to ";
-    }
+    if (props.isEditing) return null;
     return "Click to ";
   };
 
   const labelAction = () => {
-    if (props.hasAgent) {
-      if (props.isEditing) return "Editing";
-      return "Edit";
-    }
+    if (props.isEditing) return "Editing";
     return "Copy";
   };
 

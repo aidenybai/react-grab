@@ -5,7 +5,56 @@ import { COPIED_LABEL_DURATION_MS } from "../../constants.js";
 import { confirmationFocusManager } from "../../utils/confirmation-focus-manager.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
 import { IconReturn } from "../icons/icon-return.jsx";
+import { IconEllipsis } from "../icons/icon-ellipsis.js";
 import { BottomSection } from "./bottom-section.js";
+
+interface MoreOptionsButtonProps {
+  onClick: () => void;
+}
+
+const MoreOptionsButton: Component<MoreOptionsButtonProps> = (props) => {
+  const [isHovered, setIsHovered] = createSignal(false);
+
+  return (
+    <button
+      data-react-grab-ignore-events
+      data-react-grab-more-options
+      style={{
+        display: "flex",
+        "align-items": "center",
+        "justify-content": "center",
+        width: "18px",
+        height: "18px",
+        "border-radius": "2px",
+        cursor: "pointer",
+        background: isHovered() ? "rgba(0, 0, 0, 0.1)" : "transparent",
+        color: isHovered() ? "black" : "rgba(0, 0, 0, 0.3)",
+        border: "none",
+        outline: "none",
+        padding: "0",
+        "flex-shrink": "0",
+      }}
+      on:mouseenter={() => setIsHovered(true)}
+      on:mouseleave={() => setIsHovered(false)}
+      on:pointerdown={(event) => {
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+      }}
+      on:mousedown={(event) => {
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+      }}
+      on:click={(event) => {
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        event.preventDefault();
+        props.onClick();
+      }}
+    >
+      <IconEllipsis size={14} />
+    </button>
+  );
+};
 
 export const CompletionView: Component<CompletionViewProps> = (props) => {
   const instanceId = Symbol();
@@ -112,9 +161,14 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
     >
       <Show when={!didCopy() && (props.onDismiss || props.onUndo)}>
         <div class="contain-layout shrink-0 flex items-center justify-between gap-2 pt-1.5 pb-1 px-1.5 w-full h-fit">
-          <span class="text-black text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit tabular-nums">
-            {displayStatusText()}
-          </span>
+          <div class="contain-layout shrink-0 flex items-center gap-1 h-fit">
+            <span class="text-black text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit tabular-nums">
+              {displayStatusText()}
+            </span>
+            <Show when={props.onShowContextMenu}>
+              <MoreOptionsButton onClick={() => props.onShowContextMenu?.()} />
+            </Show>
+          </div>
           <div class="contain-layout shrink-0 flex items-center gap-[5px] h-fit">
             <Show when={props.supportsUndo && props.onUndo}>
               <button
@@ -150,6 +204,9 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
           <span class="text-black text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit tabular-nums">
             {displayStatusText()}
           </span>
+          <Show when={props.onShowContextMenu}>
+            <MoreOptionsButton onClick={() => props.onShowContextMenu?.()} />
+          </Show>
         </div>
       </Show>
       <Show

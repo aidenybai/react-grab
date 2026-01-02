@@ -326,6 +326,8 @@ export interface ReactGrabRendererProps {
   onFollowUpSubmitSession?: (sessionId: string, prompt: string) => void;
   onAcknowledgeSessionError?: (sessionId: string) => void;
   onRetrySession?: (sessionId: string) => void;
+  onShowContextMenuSession?: (sessionId: string) => void;
+  onShowContextMenuInstance?: (instanceId: string) => void;
   onInputChange?: (value: string) => void;
   onInputSubmit?: () => void;
   onInputCancel?: () => void;
@@ -423,6 +425,7 @@ export interface CompletionViewProps {
   onUndo?: () => void;
   onFollowUpSubmit?: (prompt: string) => void;
   onCopyStateChange?: () => void;
+  onShowContextMenu?: () => void;
 }
 
 export interface SelectionLabelProps {
@@ -464,4 +467,5 @@ export interface SelectionLabelProps {
   onAcknowledgeError?: () => void;
   onRetry?: () => void;
   isContextMenuOpen?: boolean;
+  onShowContextMenu?: () => void;
 }

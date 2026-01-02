@@ -291,14 +291,15 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         ref={containerRef}
         data-react-grab-ignore-events
         data-react-grab-selection-label
-        class="fixed font-sans text-[13px] antialiased transition-opacity duration-300 ease-out filter-[drop-shadow(0px_0px_4px_#51515180)] select-none"
+        class="fixed font-sans text-[13px] antialiased transition-opacity duration-100 ease-out filter-[drop-shadow(0px_0px_4px_#51515180)] select-none"
         style={{
           top: `${computedPosition().top}px`,
           left: `${computedPosition().left}px`,
           "z-index": "2147483647",
           "pointer-events":
             props.isInputMode ||
-            (props.status === "copied" && props.onDismiss) ||
+            ((props.status === "copied" || props.status === "fading") &&
+              (props.onDismiss || props.onShowContextMenu)) ||
             (props.status === "copying" && props.onAbort)
               ? "auto"
               : "none",
@@ -331,6 +332,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             onUndo={props.onUndo}
             onFollowUpSubmit={props.onFollowUpSubmit}
             onCopyStateChange={() => requestAnimationFrame(measureContainer)}
+            onShowContextMenu={props.onShowContextMenu}
           />
         </Show>
 

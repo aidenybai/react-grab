@@ -131,6 +131,11 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
                 onCancelAbort={() =>
                   props.onAbortSession?.(session().id, false)
                 }
+                onShowContextMenu={
+                  session().isStreaming
+                    ? undefined
+                    : () => props.onShowContextMenuSession?.(session().id)
+                }
               />
             </Show>
           </>
@@ -173,18 +178,23 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         />
       </Show>
 
-      <For each={props.labelInstances ?? []}>
+      <Index each={props.labelInstances ?? []}>
         {(instance) => (
           <SelectionLabel
-            tagName={instance.tagName}
-            componentName={instance.componentName}
-            selectionBounds={instance.bounds}
-            mouseX={instance.mouseX}
+            tagName={instance().tagName}
+            componentName={instance().componentName}
+            selectionBounds={instance().bounds}
+            mouseX={instance().mouseX}
             visible={true}
-            status={instance.status}
+            status={instance().status}
+            onShowContextMenu={
+              instance().status === "copied" || instance().status === "fading"
+                ? () => props.onShowContextMenuInstance?.(instance().id)
+                : undefined
+            }
           />
         )}
-      </For>
+      </Index>
 
       <Show when={props.toolbarVisible !== false}>
         <Toolbar isActive={props.isActive} onToggle={props.onToggleActive} />
