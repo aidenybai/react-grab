@@ -288,6 +288,7 @@ export type SelectionLabelStatus =
 export interface SelectionLabelInstance {
   id: string;
   bounds: OverlayBounds;
+  boundsMultiple?: OverlayBounds[];
   tagName: string;
   componentName?: string;
   status: SelectionLabelStatus;

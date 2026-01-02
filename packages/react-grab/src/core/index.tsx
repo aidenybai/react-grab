@@ -292,11 +292,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       element?: Element,
       mouseX?: number,
       elements?: Element[],
+      boundsMultiple?: OverlayBounds[],
     ): string => {
       const instanceId = `label-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const instance: SelectionLabelInstance = {
         id: instanceId,
         bounds,
+        boundsMultiple,
         tagName,
         componentName,
         status,
@@ -1988,6 +1990,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         transform: "",
       };
 
+      const selectionBounds =
+        allBounds.length > 0 ? allBounds : singleBounds ? [singleBounds] : [];
+
       const instanceId = createLabelInstance(
         overlayBounds,
         tagName,
@@ -1996,6 +2001,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         element ?? undefined,
         bounds.x + bounds.width / 2,
         undefined,
+        selectionBounds,
       );
 
       if (!didSucceed && errorMessage) {
@@ -2009,7 +2015,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }, 150);
       }, COPIED_LABEL_DURATION_MS);
 
-      actions.unfreeze();
+      if (store.wasActivatedByToggle) {
+        deactivateRenderer();
+      } else {
+        actions.unfreeze();
+      }
     };
 
     const handleContextMenuOpen = () => {

@@ -1,4 +1,8 @@
-import { delay } from "./delay.js";
+import {
+  VIDEO_METADATA_TIMEOUT_MS,
+  VIDEO_READY_POLL_INTERVAL_MS,
+  VIDEO_READY_TIMEOUT_MS,
+} from "../constants.js";
 
 interface ElementBounds {
   x: number;
@@ -100,15 +104,42 @@ export const captureElementScreenshot = async (
   video.autoplay = true;
   video.playsInline = true;
 
-  await new Promise<void>((resolve) => {
+  await new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error("Video metadata loading timed out"));
+    }, VIDEO_METADATA_TIMEOUT_MS);
+
+    video.onerror = () => {
+      clearTimeout(timeout);
+      reject(new Error("Video failed to load"));
+    };
+
     video.onloadedmetadata = () => {
+      clearTimeout(timeout);
       void video.play();
       resolve();
     };
   });
 
-  // HACK: Small delay to ensure video frame is ready
-  await delay(100);
+  await new Promise<void>((resolve, reject) => {
+    const startTime = Date.now();
+
+    const checkReady = () => {
+      if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+        resolve();
+        return;
+      }
+
+      if (Date.now() - startTime >= VIDEO_READY_TIMEOUT_MS) {
+        reject(new Error("Video frame not ready within timeout"));
+        return;
+      }
+
+      setTimeout(checkReady, VIDEO_READY_POLL_INTERVAL_MS);
+    };
+
+    checkReady();
+  });
 
   try {
     const blob = await captureVideoFrame(video, bounds);

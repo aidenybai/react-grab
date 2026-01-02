@@ -16,6 +16,8 @@ import {
 import { Arrow } from "./selection-label/arrow.js";
 import { TagBadge } from "./selection-label/tag-badge.js";
 import { BottomSection } from "./selection-label/bottom-section.js";
+import { isMac } from "../utils/is-mac.js";
+import { formatShortcut } from "../utils/format-shortcut.js";
 
 interface ContextMenuProps {
   position: { x: number; y: number } | null;
@@ -46,10 +48,6 @@ const isEventFromOverlay = (event: Event) =>
         element instanceof HTMLElement &&
         element.hasAttribute("data-react-grab-ignore-events"),
     );
-
-const isMac = () =>
-  typeof navigator !== "undefined" &&
-  /Mac|iPhone|iPad/.test(navigator.platform);
 
 export const ContextMenu: Component<ContextMenuProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
@@ -136,7 +134,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     const items: MenuItem[] = [
       { label: "Copy", action: props.onCopy, enabled: true, shortcut: "C" },
       {
-        label: "Copy screenshot",
+        label: "Screenshot",
         action: props.onCopyScreenshot,
         enabled: true,
         shortcut: "⇧C",
@@ -294,11 +292,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
                     </span>
                     <Show when={item.shortcut}>
                       <span class="text-[11px] font-sans text-black/50 ml-4">
-                        {item.shortcut === "Enter"
-                          ? "↵"
-                          : isMac()
-                            ? `⌘${item.shortcut}`
-                            : `Ctrl+${item.shortcut}`}
+                        {formatShortcut(item.shortcut!)}
                       </span>
                     </Show>
                   </button>
