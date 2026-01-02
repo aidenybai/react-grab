@@ -278,7 +278,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   const shouldPersistDuringFade = () =>
     hadValidBounds() &&
-    (props.status === "copied" || props.status === "fading");
+    (props.status === "copied" ||
+      props.status === "fading" ||
+      props.status === "error");
 
   return (
     <Show

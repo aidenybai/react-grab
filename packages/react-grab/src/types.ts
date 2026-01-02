@@ -278,7 +278,12 @@ export interface OverlayBounds {
   y: number;
 }
 
-export type SelectionLabelStatus = "idle" | "copying" | "copied" | "fading";
+export type SelectionLabelStatus =
+  | "idle"
+  | "copying"
+  | "copied"
+  | "fading"
+  | "error";
 
 export interface SelectionLabelInstance {
   id: string;
@@ -290,6 +295,7 @@ export interface SelectionLabelInstance {
   element?: Element;
   elements?: Element[];
   mouseX?: number;
+  errorMessage?: string;
 }
 
 export interface ReactGrabRendererProps {

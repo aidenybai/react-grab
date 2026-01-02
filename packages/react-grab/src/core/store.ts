@@ -191,6 +191,7 @@ interface GrabActions {
   updateLabelInstance: (
     instanceId: string,
     status: SelectionLabelInstance["status"],
+    errorMessage?: string,
   ) => void;
   removeLabelInstance: (instanceId: string) => void;
   clearLabelInstances: () => void;
@@ -584,12 +585,16 @@ const createGrabStore = (input: GrabStoreInput) => {
     updateLabelInstance: (
       instanceId: string,
       status: SelectionLabelInstance["status"],
+      errorMessage?: string,
     ) => {
       const index = store.labelInstances.findIndex(
         (instance) => instance.id === instanceId,
       );
       if (index !== -1) {
         setStore("labelInstances", index, "status", status);
+        if (errorMessage !== undefined) {
+          setStore("labelInstances", index, "errorMessage", errorMessage);
+        }
       }
     },
 
