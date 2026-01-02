@@ -35,7 +35,6 @@ import {
   BOUNDS_RECALC_INTERVAL_MS,
   INPUT_FOCUS_ACTIVATION_DELAY_MS,
   DEFAULT_KEY_HOLD_DURATION_MS,
-  DOUBLE_CLICK_THRESHOLD_MS,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
@@ -236,13 +235,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     let lastElementDetectionTime = 0;
     let keydownSpamTimerId: number | null = null;
-    let pendingClickTimeoutId: number | null = null;
     let isScreenshotInProgress = false;
-    let pendingClickData: {
-      clientX: number;
-      clientY: number;
-      element: Element;
-    } | null = null;
 
     const arrowNavigator = createArrowNavigator(
       isValidGrabbableElement,
@@ -754,22 +747,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         document.body.style.userSelect = "";
       }
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
-      if (pendingClickTimeoutId) {
-        window.clearTimeout(pendingClickTimeoutId);
-        pendingClickTimeoutId = null;
-
-        const pendingClick = pendingClickData;
-        pendingClickData = null;
-
-        if (pendingClick) {
-          actions.setLastGrabbed(pendingClick.element);
-          performCopyWithLabel({
-            element: pendingClick.element,
-            positionX: pendingClick.clientX,
-            positionY: pendingClick.clientY,
-          });
-        }
-      }
       autoScroller.stop();
       if (
         previousFocused instanceof HTMLElement &&
@@ -1062,44 +1039,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const element = getElementAtPosition(clientX, clientY);
       if (!element) return;
 
-      if (hasAgentProvider()) {
-        if (pendingClickTimeoutId !== null) {
-          window.clearTimeout(pendingClickTimeoutId);
-          pendingClickTimeoutId = null;
-
-          const clickElement = pendingClickData?.element ?? element;
-          pendingClickData = null;
-
-          preparePromptMode(clickElement, clientX, clientY);
-          actions.setPointer({ x: clientX, y: clientY });
-          actions.setFrozenElement(clickElement);
-          activatePromptMode();
-          return;
-        }
-
-        pendingClickData = { clientX, clientY, element };
-        pendingClickTimeoutId = window.setTimeout(() => {
-          pendingClickTimeoutId = null;
-          const pendingClick = pendingClickData;
-          pendingClickData = null;
-
-          if (!pendingClick) return;
-
-          actions.setLastGrabbed(pendingClick.element);
-          performCopyWithLabel({
-            element: pendingClick.element,
-            positionX: pendingClick.clientX,
-            positionY: pendingClick.clientY,
-          });
-        }, DOUBLE_CLICK_THRESHOLD_MS);
-      } else {
-        actions.setLastGrabbed(element);
-        performCopyWithLabel({
-          element,
-          positionX: clientX,
-          positionY: clientY,
-        });
-      }
+      actions.setLastGrabbed(element);
+      performCopyWithLabel({
+        element,
+        positionX: clientX,
+        positionY: clientY,
+      });
     };
 
     const handlePointerUp = (clientX: number, clientY: number) => {
@@ -1660,12 +1605,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const element = getElementAtPosition(event.clientX, event.clientY);
         if (!element) return;
 
-        if (pendingClickTimeoutId !== null) {
-          window.clearTimeout(pendingClickTimeoutId);
-          pendingClickTimeoutId = null;
-          pendingClickData = null;
-        }
-
         const position = { x: event.clientX, y: event.clientY };
         actions.setPointer(position);
         actions.setFrozenElement(element);
@@ -1734,8 +1673,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           event.stopPropagation();
 
           if (store.wasActivatedByToggle && !isCopying() && !isPromptMode()) {
-            if (pendingClickTimeoutId !== null) return;
-
             if (!isHoldingKeys()) {
               deactivateRenderer();
             } else {
@@ -1849,7 +1786,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     onCleanup(() => {
       eventListenerManager.abort();
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
-      if (pendingClickTimeoutId) window.clearTimeout(pendingClickTimeoutId);
       autoScroller.stop();
       document.body.style.userSelect = "";
       setCursorOverride(null);
