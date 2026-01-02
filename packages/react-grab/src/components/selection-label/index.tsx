@@ -39,7 +39,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const canInteract = () =>
     props.status !== "copying" &&
     props.status !== "copied" &&
-    props.status !== "fading";
+    props.status !== "fading" &&
+    props.status !== "error";
 
   const showOpenIndicator = () => props.isContextMenuOpen === true;
 
