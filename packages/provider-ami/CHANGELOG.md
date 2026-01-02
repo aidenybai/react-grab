@@ -1,5 +1,13 @@
 # @react-grab/ami
 
+## 0.0.98
+
+### Patch Changes
+
+- feat: new state architecture and context menu
+- Updated dependencies
+  - react-grab@0.0.98
+
 ## 0.0.97
 
 ### Patch Changes

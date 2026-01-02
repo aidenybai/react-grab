@@ -1,5 +1,11 @@
 # @react-grab/utils
 
+## 0.0.98
+
+### Patch Changes
+
+- feat: new state architecture and context menu
+
 ## 0.0.97
 
 ### Patch Changes
