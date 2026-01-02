@@ -40,7 +40,7 @@ interface ReactGrabState {
   isActive: boolean;
   isDragging: boolean;
   isCopying: boolean;
-  isInputMode: boolean;
+  isPromptMode: boolean;
   targetElement: boolean;
   dragBounds: { x: number; y: number; width: number; height: number } | null;
 }
@@ -90,8 +90,8 @@ interface ReactGrabPageObject {
   pressKeyCombo: (modifiers: string[], key: string) => Promise<void>;
   scrollPage: (deltaY: number) => Promise<void>;
 
-  enterInputMode: (selector: string) => Promise<void>;
-  isInputModeActive: () => Promise<boolean>;
+  enterPromptMode: (selector: string) => Promise<void>;
+  isPromptModeActive: () => Promise<boolean>;
   typeInInput: (text: string) => Promise<void>;
   getInputValue: () => Promise<string>;
   submitInput: () => Promise<void>;
@@ -456,7 +456,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     await page.waitForTimeout(100);
   };
 
-  const enterInputMode = async (selector: string) => {
+  const enterPromptMode = async (selector: string) => {
     await activate();
     await hoverElement(selector);
     await waitForSelectionBox();
@@ -464,14 +464,14 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     await page.waitForTimeout(100);
   };
 
-  const isInputModeActive = async (): Promise<boolean> => {
+  const isPromptModeActive = async (): Promise<boolean> => {
     return page.evaluate(() => {
       const api = (
         window as {
-          __REACT_GRAB__?: { getState: () => { isInputMode: boolean } };
+          __REACT_GRAB__?: { getState: () => { isPromptMode: boolean } };
         }
       ).__REACT_GRAB__;
-      return api?.getState()?.isInputMode ?? false;
+      return api?.getState()?.isPromptMode ?? false;
     });
   };
 
@@ -934,7 +934,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
           isActive: false,
           isDragging: false,
           isCopying: false,
-          isInputMode: false,
+          isPromptMode: false,
           targetElement: false,
           dragBounds: null,
         }
@@ -1429,7 +1429,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         onCopySuccess: trackCallback("onCopySuccess"),
         onCopyError: trackCallback("onCopyError"),
         onStateChange: trackCallback("onStateChange"),
-        onInputModeChange: trackCallback("onInputModeChange"),
+        onPromptModeChange: trackCallback("onPromptModeChange"),
         onSelectionBox: trackCallback("onSelectionBox"),
         onDragBox: trackCallback("onDragBox"),
         onCrosshair: trackCallback("onCrosshair"),
@@ -1518,8 +1518,8 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     pressKeyCombo,
     scrollPage,
 
-    enterInputMode,
-    isInputModeActive,
+    enterPromptMode,
+    isPromptModeActive,
     typeInInput,
     getInputValue,
     submitInput,

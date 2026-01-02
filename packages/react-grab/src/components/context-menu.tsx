@@ -47,7 +47,8 @@ const isEventFromOverlay = (event: Event) =>
     );
 
 const isMac = () =>
-  typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
+  typeof navigator !== "undefined" &&
+  /Mac|iPhone|iPad/.test(navigator.platform);
 
 export const ContextMenu: Component<ContextMenuProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
@@ -133,10 +134,20 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
   const menuItems = (): MenuItem[] => {
     const items: MenuItem[] = [
       { label: "Copy", action: props.onCopy, enabled: true, shortcut: "C" },
-      { label: "Open", action: props.onOpen, enabled: props.hasFilePath, shortcut: "O" },
+      {
+        label: "Open",
+        action: props.onOpen,
+        enabled: props.hasFilePath,
+        shortcut: "O",
+      },
     ];
     if (props.hasAgent) {
-      items.push({ label: "Edit", action: props.onEdit, enabled: true, shortcut: "Enter" });
+      items.push({
+        label: "Edit",
+        action: props.onEdit,
+        enabled: true,
+        shortcut: "Enter",
+      });
     }
     return items;
   };

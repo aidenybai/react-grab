@@ -428,8 +428,8 @@ test.describe("Context Menu", () => {
       await reactGrab.clickContextMenuItem("Edit");
       await reactGrab.page.waitForTimeout(200);
 
-      const isInputMode = await reactGrab.isInputModeActive();
-      expect(isInputMode).toBe(true);
+      const isPromptMode = await reactGrab.isPromptModeActive();
+      expect(isPromptMode).toBe(true);
     });
   });
 

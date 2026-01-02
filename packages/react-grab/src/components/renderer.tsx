@@ -92,7 +92,13 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
                 visible={true}
                 hasAgent={true}
                 isAgentConnected={true}
-                status={session().isStreaming ? "copying" : "copied"}
+                status={
+                  session().isFading
+                    ? "fading"
+                    : session().isStreaming
+                      ? "copying"
+                      : "copied"
+                }
                 statusText={session().lastStatus || "Thinking…"}
                 inputValue={session().context.prompt}
                 previousPrompt={session().context.prompt}
@@ -150,7 +156,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           selectionBounds={props.selectionBounds}
           mouseX={props.mouseX}
           visible={props.selectionLabelVisible}
-          isInputMode={props.isInputMode}
+          isPromptMode={props.isPromptMode}
           inputValue={props.inputValue}
           replyToPrompt={props.replyToPrompt}
           hasAgent={props.hasAgent}
@@ -178,23 +184,23 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         />
       </Show>
 
-      <For each={props.labelInstances ?? []}>
+      <Index each={props.labelInstances ?? []}>
         {(instance) => (
           <SelectionLabel
-            tagName={instance.tagName}
-            componentName={instance.componentName}
-            selectionBounds={instance.bounds}
-            mouseX={instance.mouseX}
+            tagName={instance().tagName}
+            componentName={instance().componentName}
+            selectionBounds={instance().bounds}
+            mouseX={instance().mouseX}
             visible={true}
-            status={instance.status}
+            status={instance().status}
             onShowContextMenu={
-              instance.status === "copied" || instance.status === "fading"
-                ? () => props.onShowContextMenuInstance?.(instance.id)
+              instance().status === "copied" || instance().status === "fading"
+                ? () => props.onShowContextMenuInstance?.(instance().id)
                 : undefined
             }
           />
         )}
-      </For>
+      </Index>
 
       <Show when={props.toolbarVisible !== false}>
         <Toolbar isActive={props.isActive} onToggle={props.onToggleActive} />

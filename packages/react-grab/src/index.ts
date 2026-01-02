@@ -17,7 +17,7 @@ export type {
   Rect,
   DeepPartial,
   ElementLabelVariant,
-  InputModeContext,
+  PromptModeContext,
   CrosshairContext,
   ElementLabelContext,
   AgentContext,

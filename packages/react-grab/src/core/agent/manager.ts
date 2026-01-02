@@ -18,6 +18,7 @@ import {
 import { createElementBounds } from "../../utils/create-element-bounds.js";
 import { generateSnippet } from "../../utils/generate-snippet.js";
 import { getNearestComponentName } from "../context.js";
+import { FADE_DURATION_MS } from "../../constants.js";
 import { RECENT_THRESHOLD_MS } from "../../constants.js";
 
 interface StartSessionParams {
@@ -377,17 +378,33 @@ export const createAgentManager = (
     const currentSessions = sessions();
     const session = currentSessions.get(sessionId);
     const elements = sessionElements.get(sessionId) ?? [];
+
+    if (session?.isFading) return;
+
     if (session && elements.length > 0) {
       agentOptions?.onDismiss?.(session, elements);
     }
-    const storage = agentOptions?.storage;
-    sessionElements.delete(sessionId);
-    clearSessionById(sessionId, storage);
+
     setSessions((prev) => {
       const next = new Map(prev);
-      next.delete(sessionId);
+      const existingSession = next.get(sessionId);
+      if (existingSession) {
+        next.set(sessionId, { ...existingSession, isFading: true });
+      }
       return next;
     });
+
+    // HACK: Wait for CSS opacity transition + buffer before removing
+    setTimeout(() => {
+      const storage = agentOptions?.storage;
+      sessionElements.delete(sessionId);
+      clearSessionById(sessionId, storage);
+      setSessions((prev) => {
+        const next = new Map(prev);
+        next.delete(sessionId);
+        return next;
+      });
+    }, FADE_DURATION_MS + 50);
   };
 
   const undoSession = (sessionId: string) => {

@@ -22,7 +22,7 @@ const getRoutes = (directory: string, basePath = ""): Array<string> => {
 
     if (stat.isDirectory()) {
       const hasPage = readdirSync(fullPath).some(
-        (file) => file === "page.tsx" || file === "page.ts"
+        (file) => file === "page.tsx" || file === "page.ts",
       );
 
       if (hasPage) {

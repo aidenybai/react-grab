@@ -12,8 +12,8 @@ test.describe("Agent Integration", () => {
       await reactGrab.doubleClickElement("li:first-child");
       await reactGrab.page.waitForTimeout(200);
 
-      const isInputMode = await reactGrab.isInputModeActive();
-      expect(isInputMode).toBe(true);
+      const isPromptMode = await reactGrab.isPromptModeActive();
+      expect(isPromptMode).toBe(true);
     });
 
     test("should allow agent provider with custom delay", async ({
@@ -28,8 +28,8 @@ test.describe("Agent Integration", () => {
       await reactGrab.doubleClickElement("li:first-child");
       await reactGrab.page.waitForTimeout(200);
 
-      const isInputMode = await reactGrab.isInputModeActive();
-      expect(isInputMode).toBe(true);
+      const isPromptMode = await reactGrab.isPromptModeActive();
+      expect(isPromptMode).toBe(true);
     });
 
     test("should allow custom status updates", async ({ reactGrab }) => {

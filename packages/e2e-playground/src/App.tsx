@@ -36,10 +36,18 @@ const TodoList = () => {
   );
 };
 
-const NestedCard = ({ title, children }: { title: string; children: React.ReactNode }) => {
+const NestedCard = ({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) => {
   return (
     <div className="border rounded-lg p-4 bg-gray-50" data-testid="nested-card">
-      <h3 className="font-semibold mb-2" data-testid="card-title">{title}</h3>
+      <h3 className="font-semibold mb-2" data-testid="card-title">
+        {title}
+      </h3>
       <div className="pl-4" data-testid="card-content">
         {children}
       </div>
@@ -53,7 +61,10 @@ const DeeplyNested = () => {
       <NestedCard title="Middle Card">
         <NestedCard title="Inner Card">
           <p data-testid="deeply-nested-text">This is deeply nested content</p>
-          <button className="bg-blue-500 text-white px-2 py-1 rounded text-sm" data-testid="nested-button">
+          <button
+            className="bg-blue-500 text-white px-2 py-1 rounded text-sm"
+            data-testid="nested-button"
+          >
             Nested Button
           </button>
         </NestedCard>
@@ -71,7 +82,10 @@ const FormSection = () => {
       <h2 className="text-lg font-bold mb-4">Form Elements</h2>
       <div className="space-y-4">
         <div>
-          <label htmlFor="test-input" className="block text-sm font-medium mb-1">
+          <label
+            htmlFor="test-input"
+            className="block text-sm font-medium mb-1"
+          >
             Text Input
           </label>
           <input
@@ -85,7 +99,10 @@ const FormSection = () => {
           />
         </div>
         <div>
-          <label htmlFor="test-textarea" className="block text-sm font-medium mb-1">
+          <label
+            htmlFor="test-textarea"
+            className="block text-sm font-medium mb-1"
+          >
             Textarea
           </label>
           <textarea
@@ -128,10 +145,17 @@ const ScrollableSection = () => {
   return (
     <section className="border rounded-lg p-4" data-testid="scrollable-section">
       <h2 className="text-lg font-bold mb-4">Scrollable Content</h2>
-      <div className="h-64 overflow-y-auto border rounded" data-testid="scroll-container">
+      <div
+        className="h-64 overflow-y-auto border rounded"
+        data-testid="scroll-container"
+      >
         <ul className="divide-y">
           {items.map((item) => (
-            <li key={item.id} className="p-3 hover:bg-gray-50" data-testid={`scroll-item-${item.id}`}>
+            <li
+              key={item.id}
+              className="p-3 hover:bg-gray-50"
+              data-testid={`scroll-item-${item.id}`}
+            >
               <div className="font-medium">{item.title}</div>
               <div className="text-sm text-gray-500">{item.description}</div>
             </li>
@@ -229,35 +253,71 @@ const VariousElements = () => {
       <h2 className="text-lg font-bold mb-4">Various Element Types</h2>
       <div className="space-y-4">
         <div className="flex gap-4 items-center">
-          <span className="text-sm" data-testid="span-element">Span Element</span>
+          <span className="text-sm" data-testid="span-element">
+            Span Element
+          </span>
           <strong data-testid="strong-element">Strong Element</strong>
           <em data-testid="em-element">Emphasized</em>
-          <code className="bg-gray-100 px-1 rounded" data-testid="code-element">code element</code>
+          <code className="bg-gray-100 px-1 rounded" data-testid="code-element">
+            code element
+          </code>
         </div>
 
         <div className="flex gap-2">
-          <a href="#" className="text-blue-500 underline" data-testid="link-element">Link Element</a>
-          <button className="border px-2 py-1 rounded" data-testid="plain-button">Plain Button</button>
+          <a
+            href="#"
+            className="text-blue-500 underline"
+            data-testid="link-element"
+          >
+            Link Element
+          </a>
+          <button
+            className="border px-2 py-1 rounded"
+            data-testid="plain-button"
+          >
+            Plain Button
+          </button>
         </div>
 
-        <table className="border-collapse border w-full" data-testid="table-element">
+        <table
+          className="border-collapse border w-full"
+          data-testid="table-element"
+        >
           <thead>
             <tr className="bg-gray-100">
-              <th className="border p-2" data-testid="th-1">Header 1</th>
-              <th className="border p-2" data-testid="th-2">Header 2</th>
-              <th className="border p-2" data-testid="th-3">Header 3</th>
+              <th className="border p-2" data-testid="th-1">
+                Header 1
+              </th>
+              <th className="border p-2" data-testid="th-2">
+                Header 2
+              </th>
+              <th className="border p-2" data-testid="th-3">
+                Header 3
+              </th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td className="border p-2" data-testid="td-1-1">Cell 1-1</td>
-              <td className="border p-2" data-testid="td-1-2">Cell 1-2</td>
-              <td className="border p-2" data-testid="td-1-3">Cell 1-3</td>
+              <td className="border p-2" data-testid="td-1-1">
+                Cell 1-1
+              </td>
+              <td className="border p-2" data-testid="td-1-2">
+                Cell 1-2
+              </td>
+              <td className="border p-2" data-testid="td-1-3">
+                Cell 1-3
+              </td>
             </tr>
             <tr>
-              <td className="border p-2" data-testid="td-2-1">Cell 2-1</td>
-              <td className="border p-2" data-testid="td-2-2">Cell 2-2</td>
-              <td className="border p-2" data-testid="td-2-3">Cell 2-3</td>
+              <td className="border p-2" data-testid="td-2-1">
+                Cell 2-1
+              </td>
+              <td className="border p-2" data-testid="td-2-2">
+                Cell 2-2
+              </td>
+              <td className="border p-2" data-testid="td-2-3">
+                Cell 2-3
+              </td>
             </tr>
           </tbody>
         </table>
@@ -275,14 +335,20 @@ const VariousElements = () => {
           />
         </div>
 
-        <article className="p-3 bg-gray-50 rounded" data-testid="article-element">
+        <article
+          className="p-3 bg-gray-50 rounded"
+          data-testid="article-element"
+        >
           <header data-testid="article-header">
             <h4 className="font-semibold">Article Title</h4>
           </header>
           <p className="text-sm text-gray-600" data-testid="article-content">
             Article content goes here. This is a semantic article element.
           </p>
-          <footer className="text-xs text-gray-400 mt-2" data-testid="article-footer">
+          <footer
+            className="text-xs text-gray-400 mt-2"
+            data-testid="article-footer"
+          >
             Article Footer
           </footer>
         </article>
@@ -293,12 +359,19 @@ const VariousElements = () => {
 
 const ZeroDimensionElements = () => {
   return (
-    <section className="border rounded-lg p-4" data-testid="zero-dimension-section">
+    <section
+      className="border rounded-lg p-4"
+      data-testid="zero-dimension-section"
+    >
       <h2 className="text-lg font-bold mb-4">Edge Case Elements</h2>
       <div className="space-y-2">
         <div className="w-0 h-0" data-testid="zero-size-element" />
-        <div className="invisible" data-testid="invisible-element">Invisible Element</div>
-        <div className="opacity-0" data-testid="transparent-element">Transparent Element</div>
+        <div className="invisible" data-testid="invisible-element">
+          Invisible Element
+        </div>
+        <div className="opacity-0" data-testid="transparent-element">
+          Transparent Element
+        </div>
         <div className="overflow-hidden w-20">
           <span className="whitespace-nowrap" data-testid="overflow-element">
             This text is very long and will overflow its container
@@ -314,7 +387,10 @@ const HiddenToggleSection = () => {
   const elementRef = useRef<HTMLDivElement>(null);
 
   return (
-    <section className="border rounded-lg p-4" data-testid="hidden-toggle-section">
+    <section
+      className="border rounded-lg p-4"
+      data-testid="hidden-toggle-section"
+    >
       <h2 className="text-lg font-bold mb-4">Visibility Toggle</h2>
       <button
         onClick={() => setIsVisible(!isVisible)}
@@ -342,7 +418,9 @@ export default function App() {
       <EdgeElements />
 
       <header className="mb-4">
-        <h1 className="text-2xl font-bold" data-testid="main-title">React Grab E2E Test Page</h1>
+        <h1 className="text-2xl font-bold" data-testid="main-title">
+          React Grab E2E Test Page
+        </h1>
         <p className="text-gray-600" data-testid="main-description">
           Comprehensive test page for E2E testing
         </p>
@@ -364,11 +442,17 @@ export default function App() {
 
       <HiddenToggleSection />
 
-      <div className="h-96 flex items-center justify-center bg-gray-100 rounded-lg" data-testid="spacer-section">
+      <div
+        className="h-96 flex items-center justify-center bg-gray-100 rounded-lg"
+        data-testid="spacer-section"
+      >
         <p className="text-gray-400">Spacer for scroll testing</p>
       </div>
 
-      <footer className="text-center text-gray-400 text-sm" data-testid="footer">
+      <footer
+        className="text-center text-gray-400 text-sm"
+        data-testid="footer"
+      >
         End of test page
       </footer>
     </div>

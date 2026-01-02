@@ -27,7 +27,7 @@ type GrabState =
   | {
       state: "active";
       phase: GrabPhase;
-      isInputMode: boolean;
+      isPromptMode: boolean;
       isPendingDismiss: boolean;
     }
   | { state: "copying"; startedAt: number; wasActive: boolean }
@@ -36,7 +36,7 @@ type GrabState =
 interface GrabStore {
   current: GrabState;
 
-  isToggleMode: boolean;
+  wasActivatedByToggle: boolean;
   hasAgentProvider: boolean;
   keyHoldDuration: number;
 
@@ -94,7 +94,7 @@ interface GrabStoreInput {
 const createInitialStore = (input: GrabStoreInput): GrabStore => ({
   current: { state: "idle" },
 
-  isToggleMode: false,
+  wasActivatedByToggle: false,
   hasAgentProvider: input.hasAgentProvider,
   keyHoldDuration: input.keyHoldDuration,
 
@@ -158,8 +158,8 @@ interface GrabActions {
   startCopy: () => void;
   completeCopy: (element?: Element) => void;
   finishJustCopied: () => void;
-  enterInputMode: (position: Position, element: Element) => void;
-  exitInputMode: () => void;
+  enterPromptMode: (position: Position, element: Element) => void;
+  exitPromptMode: () => void;
   setInputText: (value: string) => void;
   clearInputText: () => void;
   setPendingDismiss: (value: boolean) => void;
@@ -172,7 +172,7 @@ interface GrabActions {
   setLastGrabbed: (element: Element | null) => void;
   setLastCopied: (element: Element | null) => void;
   clearLastCopied: () => void;
-  setToggleMode: (value: boolean) => void;
+  setWasActivatedByToggle: (value: boolean) => void;
   setTouchMode: (value: boolean) => void;
   setSelectionSource: (
     filePath: string | null,
@@ -242,7 +242,7 @@ const createGrabStore = (input: GrabStoreInput) => {
       setStore("current", {
         state: "active",
         phase: "hovering",
-        isInputMode: false,
+        isPromptMode: false,
         isPendingDismiss: false,
       });
       setStore("activationTimestamp", Date.now());
@@ -251,7 +251,7 @@ const createGrabStore = (input: GrabStoreInput) => {
 
     deactivate: () => {
       setStore("current", { state: "idle" });
-      setStore("isToggleMode", false);
+      setStore("wasActivatedByToggle", false);
       setStore("inputText", "");
       setStore("frozenElement", null);
       setStore("frozenElements", []);
@@ -269,7 +269,7 @@ const createGrabStore = (input: GrabStoreInput) => {
       if (store.activationTimestamp !== null) {
         actions.deactivate();
       } else {
-        setStore("isToggleMode", true);
+        setStore("wasActivatedByToggle", true);
         actions.activate();
       }
     },
@@ -399,12 +399,12 @@ const createGrabStore = (input: GrabStoreInput) => {
     finishJustCopied: () => {
       if (store.current.state === "justCopied") {
         const shouldReturnToActive =
-          store.current.wasActive && !store.isToggleMode;
+          store.current.wasActive && !store.wasActivatedByToggle;
         if (shouldReturnToActive) {
           setStore("current", {
             state: "active",
             phase: "hovering",
-            isInputMode: false,
+            isPromptMode: false,
             isPendingDismiss: false,
           });
         } else {
@@ -413,7 +413,7 @@ const createGrabStore = (input: GrabStoreInput) => {
       }
     },
 
-    enterInputMode: (position: Position, element: Element) => {
+    enterPromptMode: (position: Position, element: Element) => {
       const bounds = createElementBounds(element);
       const selectionCenterX = bounds.x + bounds.width / 2;
 
@@ -421,13 +421,13 @@ const createGrabStore = (input: GrabStoreInput) => {
       setStore("copyOffsetFromCenterX", position.x - selectionCenterX);
       setStore("pointer", position);
       setStore("frozenElement", element);
-      setStore("isToggleMode", true);
+      setStore("wasActivatedByToggle", true);
 
       if (store.current.state !== "active") {
         setStore("current", {
           state: "active",
           phase: "frozen",
-          isInputMode: true,
+          isPromptMode: true,
           isPendingDismiss: false,
         });
         setStore("activationTimestamp", Date.now());
@@ -437,7 +437,7 @@ const createGrabStore = (input: GrabStoreInput) => {
           "current",
           produce((current) => {
             if (current.state === "active") {
-              current.isInputMode = true;
+              current.isPromptMode = true;
               current.phase = "frozen";
             }
           }),
@@ -445,13 +445,13 @@ const createGrabStore = (input: GrabStoreInput) => {
       }
     },
 
-    exitInputMode: () => {
+    exitPromptMode: () => {
       if (store.current.state === "active") {
         setStore(
           "current",
           produce((current) => {
             if (current.state === "active") {
-              current.isInputMode = false;
+              current.isPromptMode = false;
               current.isPendingDismiss = false;
             }
           }),
@@ -522,8 +522,8 @@ const createGrabStore = (input: GrabStoreInput) => {
       setStore("lastCopiedElement", null);
     },
 
-    setToggleMode: (value: boolean) => {
-      setStore("isToggleMode", value);
+    setWasActivatedByToggle: (value: boolean) => {
+      setStore("wasActivatedByToggle", value);
     },
 
     setTouchMode: (value: boolean) => {

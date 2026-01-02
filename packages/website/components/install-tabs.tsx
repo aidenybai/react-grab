@@ -345,7 +345,7 @@ export const InstallTabs = ({
             const isActive = tab.id === activeTab.id;
 
             return (
-                <button
+              <button
                 key={tab.id}
                 type="button"
                 className={cn(

@@ -76,7 +76,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     if (
       event.code === "Enter" &&
       isIdle() &&
-      !props.isInputMode &&
+      !props.isPromptMode &&
       canInteract()
     ) {
       event.preventDefault();
@@ -137,7 +137,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     void props.statusText;
     void props.inputValue;
     void props.hasAgent;
-    void props.isInputMode;
+    void props.isPromptMode;
     void props.isPendingDismiss;
     void props.error;
     void props.isPendingAbort;
@@ -156,7 +156,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   });
 
   createEffect(() => {
-    if (props.isInputMode && inputRef) {
+    if (props.isPromptMode && inputRef) {
       setTimeout(() => {
         inputRef?.focus();
       }, 0);
@@ -266,7 +266,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const handleContainerPointerDown = (event: PointerEvent) => {
     stopPropagation(event);
     const isEditableInputVisible =
-      canInteract() && props.isInputMode && !props.isPendingDismiss;
+      canInteract() && props.isPromptMode && !props.isPendingDismiss;
     if (isEditableInputVisible && inputRef) {
       inputRef.focus();
     }
@@ -297,7 +297,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           left: `${computedPosition().left}px`,
           "z-index": "2147483647",
           "pointer-events":
-            props.isInputMode ||
+            props.isPromptMode ||
             ((props.status === "copied" || props.status === "fading") &&
               (props.onDismiss || props.onShowContextMenu)) ||
             (props.status === "copying" && props.onAbort)
@@ -406,7 +406,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             />
           </Show>
 
-          <Show when={canInteract() && !props.isInputMode}>
+          <Show when={canInteract() && !props.isPromptMode}>
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5 pr-1">
                 <TagBadge
@@ -430,7 +430,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           </Show>
 
           <Show
-            when={canInteract() && props.isInputMode && !props.isPendingDismiss}
+            when={
+              canInteract() && props.isPromptMode && !props.isPendingDismiss
+            }
           >
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit max-w-[280px]">
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5 pr-1">

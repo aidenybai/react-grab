@@ -6,7 +6,7 @@ export const createNoopApi = (theme: Required<Theme>): ReactGrabAPI => {
       isActive: false,
       isDragging: false,
       isCopying: false,
-      isInputMode: false,
+      isPromptMode: false,
       targetElement: null,
       dragBounds: null,
     };

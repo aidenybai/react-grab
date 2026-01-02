@@ -79,14 +79,14 @@ export interface ReactGrabState {
   isActive: boolean;
   isDragging: boolean;
   isCopying: boolean;
-  isInputMode: boolean;
+  isPromptMode: boolean;
   targetElement: Element | null;
   dragBounds: DragRect | null;
 }
 
 export type ElementLabelVariant = "hover" | "processing" | "success";
 
-export interface InputModeContext {
+export interface PromptModeContext {
   x: number;
   y: number;
   targetElement: Element | null;
@@ -123,6 +123,7 @@ export interface AgentSession {
   context: AgentContext;
   lastStatus: string;
   isStreaming: boolean;
+  isFading?: boolean;
   createdAt: number;
   lastUpdatedAt: number;
   position: { x: number; y: number };
@@ -206,7 +207,10 @@ export interface Options {
   onCopySuccess?: (elements: Element[], content: string) => void;
   onCopyError?: (error: Error) => void;
   onStateChange?: (state: ReactGrabState) => void;
-  onInputModeChange?: (isInputMode: boolean, context: InputModeContext) => void;
+  onPromptModeChange?: (
+    isPromptMode: boolean,
+    context: PromptModeContext,
+  ) => void;
   onSelectionBox?: (
     visible: boolean,
     bounds: OverlayBounds | null,
@@ -241,7 +245,7 @@ export type UpdatableOptions = Pick<
   | "onCopySuccess"
   | "onCopyError"
   | "onStateChange"
-  | "onInputModeChange"
+  | "onPromptModeChange"
   | "onSelectionBox"
   | "onDragBox"
   | "onGrabbedBox"
@@ -284,6 +288,7 @@ export interface SelectionLabelInstance {
   status: SelectionLabelStatus;
   createdAt: number;
   element?: Element;
+  elements?: Element[];
   mouseX?: number;
 }
 
@@ -311,7 +316,7 @@ export interface ReactGrabRendererProps {
   mouseY?: number;
   crosshairVisible?: boolean;
   inputValue?: string;
-  isInputMode?: boolean;
+  isPromptMode?: boolean;
   replyToPrompt?: string;
   hasAgent?: boolean;
   isAgentConnected?: boolean;
@@ -435,7 +440,7 @@ export interface SelectionLabelProps {
   selectionBounds?: OverlayBounds;
   mouseX?: number;
   visible?: boolean;
-  isInputMode?: boolean;
+  isPromptMode?: boolean;
   inputValue?: string;
   replyToPrompt?: string;
   previousPrompt?: string;

@@ -1,7 +1,10 @@
 import { Show, createSignal, createEffect, onMount, onCleanup } from "solid-js";
 import type { Component } from "solid-js";
 import type { CompletionViewProps } from "../../types.js";
-import { COPIED_LABEL_DURATION_MS } from "../../constants.js";
+import {
+  COPIED_LABEL_DURATION_MS,
+  FADE_DURATION_MS,
+} from "../../constants.js";
 import { confirmationFocusManager } from "../../utils/confirmation-focus-manager.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
 import { IconReturn } from "../icons/icon-return.jsx";
@@ -38,18 +41,23 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
   const instanceId = Symbol();
   let inputRef: HTMLTextAreaElement | undefined;
   const [didCopy, setDidCopy] = createSignal(false);
+  const [isFading, setIsFading] = createSignal(false);
   const [displayStatusText, setDisplayStatusText] = createSignal(
     props.statusText,
   );
   const [followUpInput, setFollowUpInput] = createSignal("");
 
   const handleAccept = () => {
+    if (didCopy()) return;
     setDidCopy(true);
     setDisplayStatusText("Copied");
     props.onCopyStateChange?.();
     setTimeout(() => {
-      props.onDismiss?.();
-    }, COPIED_LABEL_DURATION_MS);
+      setIsFading(true);
+      setTimeout(() => {
+        props.onDismiss?.();
+      }, FADE_DURATION_MS);
+    }, COPIED_LABEL_DURATION_MS - FADE_DURATION_MS);
   };
 
   const handleFollowUpSubmit = () => {
@@ -133,7 +141,8 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
   return (
     <div
       data-react-grab-completion
-      class="[font-synthesis:none] contain-layout shrink-0 flex flex-col justify-center items-end rounded-sm bg-white antialiased w-fit h-fit max-w-[280px]"
+      class="[font-synthesis:none] contain-layout shrink-0 flex flex-col justify-center items-end rounded-sm bg-white antialiased w-fit h-fit max-w-[280px] transition-opacity duration-100 ease-out"
+      style={{ opacity: isFading() ? 0 : 1 }}
       onPointerDown={handleFocus}
       onClick={handleFocus}
     >

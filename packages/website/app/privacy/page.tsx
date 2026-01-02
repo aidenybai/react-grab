@@ -49,12 +49,17 @@ const PrivacyPage = () => {
 
         <div className="inline-flex" style={{ padding: "2px" }}>
           <Link href="/" className="transition-opacity hover:opacity-80">
-            <ReactGrabLogo width={42} height={42} className="logo-shimmer-once" />
+            <ReactGrabLogo
+              width={42}
+              height={42}
+              className="logo-shimmer-once"
+            />
           </Link>
         </div>
 
         <div className="text-white mt-4">
-          <h1 className="font-bold inline">Privacy Policy</h1> &middot; Last updated{" "}
+          <h1 className="font-bold inline">Privacy Policy</h1> &middot; Last
+          updated{" "}
           {new Date().toLocaleDateString("en-US", {
             year: "numeric",
             month: "long",
@@ -119,12 +124,13 @@ const PrivacyPage = () => {
                 webpage you visit.
               </li>
               <li>
-                <span className="text-white">Storage:</span> Used only to store your extension
-                preferences locally on your device.
+                <span className="text-white">Storage:</span> Used only to store
+                your extension preferences locally on your device.
               </li>
               <li>
-                <span className="text-white">Active Tab:</span> Needed to interact with the
-                currently active tab when you use the keyboard shortcut.
+                <span className="text-white">Active Tab:</span> Needed to
+                interact with the currently active tab when you use the keyboard
+                shortcut.
               </li>
             </ul>
             <p className="mt-2">
