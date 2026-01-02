@@ -352,6 +352,7 @@ export interface ReactGrabRendererProps {
   contextMenuHasFilePath?: boolean;
   contextMenuHasAgent?: boolean;
   onContextMenuCopy?: () => void;
+  onContextMenuCopyScreenshot?: () => void;
   onContextMenuOpen?: () => void;
   onContextMenuEdit?: () => void;
   onContextMenuDismiss?: () => void;

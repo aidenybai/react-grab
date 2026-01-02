@@ -25,6 +25,7 @@ interface ContextMenuProps {
   hasFilePath: boolean;
   hasAgent: boolean;
   onCopy: () => void;
+  onCopyScreenshot: () => void;
   onOpen: () => void;
   onEdit: () => void;
   onDismiss: () => void;
@@ -135,6 +136,12 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     const items: MenuItem[] = [
       { label: "Copy", action: props.onCopy, enabled: true, shortcut: "C" },
       {
+        label: "Copy screenshot",
+        action: props.onCopyScreenshot,
+        enabled: true,
+        shortcut: "⇧C",
+      },
+      {
         label: "Open",
         action: props.onOpen,
         enabled: props.hasFilePath,
@@ -187,7 +194,11 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       const modifierKey = isMac() ? event.metaKey : event.ctrlKey;
       if (!modifierKey) return;
 
-      if (event.key.toLowerCase() === "c") {
+      if (event.key.toLowerCase() === "c" && event.shiftKey) {
+        event.preventDefault();
+        event.stopPropagation();
+        props.onCopyScreenshot();
+      } else if (event.key.toLowerCase() === "c") {
         event.preventDefault();
         event.stopPropagation();
         props.onCopy();

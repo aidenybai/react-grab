@@ -43,6 +43,11 @@ import { keyMatchesCode } from "../utils/key-matches-code.js";
 import { isTargetKeyCombination } from "../utils/is-target-key-combination.js";
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
 import { buildOpenFileUrl } from "../utils/build-open-file-url.js";
+import {
+  captureElementScreenshot,
+  copyImageToClipboard,
+  combineBounds,
+} from "../utils/capture-screenshot.js";
 import type {
   Options,
   OverlayBounds,
@@ -1028,22 +1033,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const firstElement = selectedElements[0];
       const center = getBoundsCenter(createElementBounds(firstElement));
 
-      if (hasAgentProvider()) {
-        actions.setPointer(center);
-        actions.setFrozenElements(selectedElements);
-        actions.freeze();
-        actions.showContextMenu(center, firstElement);
-        if (!isActivated()) {
-          activateRenderer();
-        }
-      } else {
-        performCopyWithLabel({
-          element: firstElement,
-          positionX: center.x,
-          positionY: center.y,
-          elements: selectedElements,
-          shouldDeactivateAfter: true,
-        });
+      actions.setPointer(center);
+      actions.setFrozenElements(selectedElements);
+      actions.freeze();
+      actions.showContextMenu(center, firstElement);
+      if (!isActivated()) {
+        activateRenderer();
       }
     };
 
@@ -1952,6 +1947,31 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, 0);
     };
 
+    const handleContextMenuCopyScreenshot = async () => {
+      const allBounds = frozenElementsBounds();
+      const singleBounds = contextMenuBounds();
+      const bounds =
+        allBounds.length > 1 ? combineBounds(allBounds) : singleBounds;
+      if (!bounds) return;
+
+      // HACK: Hide entire overlay to avoid it appearing in screenshot
+      actions.hideContextMenu();
+      rendererRoot.style.visibility = "hidden";
+
+      // HACK: Wait for UI to be hidden before capturing
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      try {
+        const blob = await captureElementScreenshot(bounds);
+        await copyImageToClipboard(blob);
+      } catch {
+        // User cancelled or API unavailable
+      }
+
+      rendererRoot.style.visibility = "";
+      actions.unfreeze();
+    };
+
     const handleContextMenuOpen = () => {
       const fileInfo = contextMenuFilePath();
       if (fileInfo) {
@@ -2129,6 +2149,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             contextMenuHasFilePath={Boolean(contextMenuFilePath()?.filePath)}
             contextMenuHasAgent={hasAgentProvider()}
             onContextMenuCopy={handleContextMenuCopy}
+            onContextMenuCopyScreenshot={() =>
+              void handleContextMenuCopyScreenshot()
+            }
             onContextMenuOpen={handleContextMenuOpen}
             onContextMenuEdit={handleContextMenuPrompt}
             onContextMenuDismiss={handleContextMenuDismiss}
