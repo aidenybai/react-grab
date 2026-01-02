@@ -12,7 +12,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: "html",
   use: {
-    baseURL: "http://localhost:5174",
+    baseURL: "http://localhost:5175",
     trace: "on-first-retry",
     permissions: ["clipboard-read", "clipboard-write"],
   },
@@ -33,7 +33,7 @@ export default defineConfig({
   ],
   webServer: {
     command: "pnpm dev",
-    url: "http://localhost:5174",
+    url: "http://localhost:5175",
     reuseExistingServer: !process.env.CI,
     cwd: path.resolve(__dirname, "../e2e-playground"),
     timeout: 30000,

@@ -1801,10 +1801,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           instance.element && document.body.contains(instance.element)
             ? createElementBounds(instance.element)
             : instance.bounds;
-        const cached = labelInstanceCache.get(instance.id);
-        if (cached && cached.status === instance.status) {
-          cached.bounds = newBounds;
-          return cached;
+        const previousInstance = labelInstanceCache.get(instance.id);
+        const boundsUnchanged =
+          previousInstance &&
+          previousInstance.bounds.x === newBounds.x &&
+          previousInstance.bounds.y === newBounds.y &&
+          previousInstance.bounds.width === newBounds.width &&
+          previousInstance.bounds.height === newBounds.height;
+        if (previousInstance && previousInstance.status === instance.status && boundsUnchanged) {
+          return previousInstance;
         }
         const newCached = { ...instance, bounds: newBounds };
         labelInstanceCache.set(instance.id, newCached);
@@ -1966,7 +1971,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       prepareInputMode(element, position.x, position.y);
       actions.setPointer({ x: position.x, y: position.y });
-      actions.setFrozenElement(element);
+      if (store.frozenElements.length === 0) {
+        actions.setFrozenElement(element);
+      }
       activateInputMode();
 
       // HACK: Defer hiding context menu until after click event propagates fully
