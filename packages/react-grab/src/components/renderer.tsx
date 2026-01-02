@@ -137,11 +137,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
                 onCancelAbort={() =>
                   props.onAbortSession?.(session().id, false)
                 }
-                onShowContextMenu={
-                  session().isStreaming
-                    ? undefined
-                    : () => props.onShowContextMenuSession?.(session().id)
-                }
+                onShowContextMenu={undefined}
               />
             </Show>
           </>
