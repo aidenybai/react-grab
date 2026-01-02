@@ -23,3 +23,4 @@ export const IconEllipsis: Component<IconEllipsisProps> = (props) => {
     </svg>
   );
 };
+

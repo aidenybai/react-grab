@@ -2122,6 +2122,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // HACK: Defer context menu display to avoid event interference
       setTimeout(() => {
         if (!isActivated()) {
+          actions.setWasActivatedByToggle(true);
           activateRenderer();
         }
         actions.setPointer(session.position);
@@ -2152,6 +2153,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // HACK: Defer context menu display to avoid event interference
       setTimeout(() => {
         if (!isActivated()) {
+          actions.setWasActivatedByToggle(true);
           activateRenderer();
         }
         actions.setPointer(position);
