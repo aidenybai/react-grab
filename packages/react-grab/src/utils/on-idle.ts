@@ -10,7 +10,7 @@ export const onIdle = (callback: () => void) => {
       priority: "background",
     });
   }
-  if ("requestIdleCallback" in window) {
+  if (typeof window !== "undefined" && "requestIdleCallback" in window) {
     return requestIdleCallback(callback);
   }
   return setTimeout(callback, 0);
