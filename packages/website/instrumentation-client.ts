@@ -28,20 +28,20 @@ if (typeof window !== "undefined" && !window.__REACT_GRAB__) {
     },
   });
 
-  // // HACK: Temporarily disable visual edit for abusive regions
-  // if (!isUserInAbusiveRegion()) {
-  //   const { provider, getOptions, onStart, onComplete, onUndo } =
-  //     createVisualEditAgentProvider({ apiEndpoint: "/api/visual-edit" });
+  // HACK: Temporarily disable visual edit for abusive regions
+  if (!isUserInAbusiveRegion()) {
+    const { provider, getOptions, onStart, onComplete, onUndo } =
+      createVisualEditAgentProvider({ apiEndpoint: "/api/visual-edit" });
 
-  //   api.setAgent({
-  //     provider,
-  //     getOptions,
-  //     storage: sessionStorage,
-  //     onStart,
-  //     onComplete,
-  //     onUndo,
-  //   });
-  // }
+    api.setAgent({
+      provider,
+      getOptions,
+      storage: sessionStorage,
+      onStart,
+      onComplete,
+      onUndo,
+    });
+  }
 
   window.__REACT_GRAB__ = api;
 }
