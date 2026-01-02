@@ -1037,12 +1037,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const firstElement = selectedElements[0];
       const center = getBoundsCenter(createElementBounds(firstElement));
 
-      actions.setPointer(center);
-      actions.setFrozenElements(selectedElements);
-      actions.freeze();
-      actions.showContextMenu(center, firstElement);
-      if (!isActivated()) {
-        activateRenderer();
+      if (hasAgentProvider()) {
+        actions.setPointer(center);
+        actions.setFrozenElements(selectedElements);
+        actions.freeze();
+        actions.showContextMenu(center, firstElement);
+        if (!isActivated()) {
+          activateRenderer();
+        }
+      } else {
+        performCopyWithLabel({
+          element: firstElement,
+          positionX: center.x,
+          positionY: center.y,
+          elements: selectedElements,
+          shouldDeactivateAfter: true,
+        });
       }
     };
 
