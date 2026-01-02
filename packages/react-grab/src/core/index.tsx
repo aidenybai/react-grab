@@ -48,6 +48,7 @@ import {
   copyImageToClipboard,
   combineBounds,
 } from "../utils/capture-screenshot.js";
+import { isScreenshotSupported } from "../utils/is-screenshot-supported.js";
 import { delay } from "../utils/delay.js";
 import type {
   Options,
@@ -1314,6 +1315,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleScreenshotShortcut = (event: KeyboardEvent): boolean => {
+      if (!isScreenshotSupported()) return false;
       if (event.key?.toLowerCase() !== "s" || isPromptMode()) return false;
       if (!isActivated() || !(event.metaKey || event.ctrlKey)) return false;
 

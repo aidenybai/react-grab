@@ -18,6 +18,7 @@ import { TagBadge } from "./selection-label/tag-badge.js";
 import { BottomSection } from "./selection-label/bottom-section.js";
 import { isMac } from "../utils/is-mac.js";
 import { formatShortcut } from "../utils/format-shortcut.js";
+import { isScreenshotSupported } from "../utils/is-screenshot-supported.js";
 
 interface ContextMenuProps {
   position: { x: number; y: number } | null;
@@ -133,19 +134,21 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
   const menuItems = (): MenuItem[] => {
     const items: MenuItem[] = [
       { label: "Copy", action: props.onCopy, enabled: true, shortcut: "C" },
-      {
+    ];
+    if (isScreenshotSupported()) {
+      items.push({
         label: "Screenshot",
         action: props.onCopyScreenshot,
         enabled: true,
         shortcut: "S",
-      },
-      {
-        label: "Open",
-        action: props.onOpen,
-        enabled: props.hasFilePath,
-        shortcut: "O",
-      },
-    ];
+      });
+    }
+    items.push({
+      label: "Open",
+      action: props.onOpen,
+      enabled: props.hasFilePath,
+      shortcut: "O",
+    });
     if (props.hasAgent) {
       items.push({
         label: "Edit",
@@ -192,7 +195,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       const modifierKey = isMac() ? event.metaKey : event.ctrlKey;
       if (!modifierKey) return;
 
-      if (event.key.toLowerCase() === "s") {
+      if (event.key.toLowerCase() === "s" && isScreenshotSupported()) {
         event.preventDefault();
         event.stopPropagation();
         props.onCopyScreenshot();

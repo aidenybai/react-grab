@@ -353,7 +353,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         >
           <Show when={props.status === "copying" && !props.isPendingAbort}>
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit max-w-[280px]">
-              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-auto h-fit">
+              <div class="contain-layout shrink-0 flex items-center gap-1 py-1 px-1.5 w-auto h-fit">
                 <span class="text-[13px] leading-4 font-sans font-medium w-auto h-fit whitespace-normal text-[#71717a] animate-pulse tabular-nums">
                   {props.statusText ?? "Grabbing…"}
                 </span>
