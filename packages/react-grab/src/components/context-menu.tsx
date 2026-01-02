@@ -137,7 +137,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         label: "Screenshot",
         action: props.onCopyScreenshot,
         enabled: true,
-        shortcut: "⇧C",
+        shortcut: "S",
       },
       {
         label: "Open",
@@ -192,7 +192,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       const modifierKey = isMac() ? event.metaKey : event.ctrlKey;
       if (!modifierKey) return;
 
-      if (event.key.toLowerCase() === "c" && event.shiftKey) {
+      if (event.key.toLowerCase() === "s") {
         event.preventDefault();
         event.stopPropagation();
         props.onCopyScreenshot();
