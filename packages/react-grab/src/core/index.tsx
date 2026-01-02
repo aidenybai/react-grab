@@ -237,6 +237,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let lastElementDetectionTime = 0;
     let keydownSpamTimerId: number | null = null;
     let pendingClickTimeoutId: number | null = null;
+    let isScreenshotInProgress = false;
     let pendingClickData: {
       clientX: number;
       clientY: number;
@@ -1350,6 +1351,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         selectionBoundsArray,
       );
 
+      isScreenshotInProgress = true;
       rendererRoot.style.visibility = "hidden";
 
       void (async () => {
@@ -1369,6 +1371,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             error instanceof Error ? error.message : "Screenshot failed";
         }
 
+        isScreenshotInProgress = false;
         rendererRoot.style.visibility = "";
 
         updateLabelInstance(
@@ -1751,6 +1754,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (
           isActivated() &&
           !isPromptMode() &&
+          !isScreenshotInProgress &&
           storeActivationTimestamp !== null &&
           Date.now() - storeActivationTimestamp > BLUR_DEACTIVATION_THRESHOLD_MS
         ) {
@@ -1913,6 +1917,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (
           previousInstance &&
           previousInstance.status === instance.status &&
+          previousInstance.errorMessage === instance.errorMessage &&
           boundsUnchanged
         ) {
           return previousInstance;
@@ -2074,6 +2079,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         selectionBoundsArray,
       );
 
+      isScreenshotInProgress = true;
       rendererRoot.style.visibility = "hidden";
       await delay(50);
 
@@ -2091,6 +2097,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           error instanceof Error ? error.message : "Screenshot failed";
       }
 
+      isScreenshotInProgress = false;
       rendererRoot.style.visibility = "";
 
       updateLabelInstance(
