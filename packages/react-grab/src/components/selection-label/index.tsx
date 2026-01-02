@@ -303,7 +303,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             props.isPromptMode ||
             ((props.status === "copied" || props.status === "fading") &&
               (props.onDismiss || props.onShowContextMenu)) ||
-            (props.status === "copying" && props.onAbort)
+            (props.status === "copying" && props.onAbort) ||
+            (props.status === "error" &&
+              (props.onAcknowledgeError || props.onRetry))
               ? "auto"
               : "none",
           opacity: props.status === "fading" ? 0 : 1,
