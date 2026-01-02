@@ -64,7 +64,7 @@ const PrivacyPage = () => {
 
         <div className="space-y-6 text-neutral-300 mt-4">
           <section>
-            <p className="text-white font-bold mb-2">Overview</p>
+            <h2 className="text-white font-bold mb-2">Overview</h2>
             <p>
               React Grab is a developer tool that helps you inspect and copy
               React components from web pages. This privacy policy explains how
