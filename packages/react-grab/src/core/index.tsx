@@ -43,6 +43,12 @@ import { keyMatchesCode } from "../utils/key-matches-code.js";
 import { isTargetKeyCombination } from "../utils/is-target-key-combination.js";
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
 import { buildOpenFileUrl } from "../utils/build-open-file-url.js";
+import {
+  captureElementScreenshot,
+  copyImageToClipboard,
+  combineBounds,
+} from "../utils/capture-screenshot.js";
+import { delay } from "../utils/delay.js";
 import type {
   Options,
   OverlayBounds,
@@ -286,11 +292,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       element?: Element,
       mouseX?: number,
       elements?: Element[],
+      boundsMultiple?: OverlayBounds[],
     ): string => {
       const instanceId = `label-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const instance: SelectionLabelInstance = {
         id: instanceId,
         bounds,
+        boundsMultiple,
         tagName,
         componentName,
         status,
@@ -306,8 +314,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const updateLabelInstance = (
       instanceId: string,
       status: SelectionLabelInstance["status"],
+      errorMessage?: string,
     ) => {
-      actions.updateLabelInstance(instanceId, status);
+      actions.updateLabelInstance(instanceId, status, errorMessage);
     };
 
     const removeLabelInstance = (instanceId: string) => {
@@ -1952,6 +1961,77 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, 0);
     };
 
+    const handleContextMenuCopyScreenshot = async () => {
+      const allBounds = frozenElementsBounds();
+      const singleBounds = contextMenuBounds();
+      const element = store.contextMenuElement;
+      const bounds =
+        allBounds.length > 1 ? combineBounds(allBounds) : singleBounds;
+      if (!bounds) return;
+
+      const tagName = element ? getTagName(element) || "element" : "element";
+
+      // HACK: Hide entire overlay to avoid it appearing in screenshot
+      actions.hideContextMenu();
+      rendererRoot.style.visibility = "hidden";
+
+      // HACK: Wait for UI to be hidden before capturing
+      await delay(50);
+
+      let didSucceed = false;
+      let errorMessage: string | undefined;
+
+      try {
+        const blob = await captureElementScreenshot(bounds);
+        didSucceed = await copyImageToClipboard(blob);
+        if (!didSucceed) {
+          errorMessage = "Failed to copy";
+        }
+      } catch (error) {
+        errorMessage =
+          error instanceof Error ? error.message : "Screenshot failed";
+      }
+
+      rendererRoot.style.visibility = "";
+
+      const overlayBounds: OverlayBounds = {
+        ...bounds,
+        borderRadius: "0px",
+        transform: "",
+      };
+
+      const selectionBounds =
+        allBounds.length > 1 ? allBounds : singleBounds ? [singleBounds] : [];
+
+      const instanceId = createLabelInstance(
+        overlayBounds,
+        tagName,
+        undefined,
+        didSucceed ? "copied" : "error",
+        element ?? undefined,
+        bounds.x + bounds.width / 2,
+        undefined,
+        selectionBounds,
+      );
+
+      if (!didSucceed && errorMessage) {
+        updateLabelInstance(instanceId, "error", errorMessage);
+      }
+
+      setTimeout(() => {
+        updateLabelInstance(instanceId, "fading");
+        setTimeout(() => {
+          removeLabelInstance(instanceId);
+        }, 150);
+      }, COPIED_LABEL_DURATION_MS);
+
+      if (store.wasActivatedByToggle) {
+        deactivateRenderer();
+      } else {
+        actions.unfreeze();
+      }
+    };
+
     const handleContextMenuOpen = () => {
       const fileInfo = contextMenuFilePath();
       if (fileInfo) {
@@ -2129,6 +2209,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             contextMenuHasFilePath={Boolean(contextMenuFilePath()?.filePath)}
             contextMenuHasAgent={hasAgentProvider()}
             onContextMenuCopy={handleContextMenuCopy}
+            onContextMenuCopyScreenshot={() =>
+              void handleContextMenuCopyScreenshot()
+            }
             onContextMenuOpen={handleContextMenuOpen}
             onContextMenuEdit={handleContextMenuPrompt}
             onContextMenuDismiss={handleContextMenuDismiss}

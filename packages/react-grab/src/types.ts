@@ -278,11 +278,17 @@ export interface OverlayBounds {
   y: number;
 }
 
-export type SelectionLabelStatus = "idle" | "copying" | "copied" | "fading";
+export type SelectionLabelStatus =
+  | "idle"
+  | "copying"
+  | "copied"
+  | "fading"
+  | "error";
 
 export interface SelectionLabelInstance {
   id: string;
   bounds: OverlayBounds;
+  boundsMultiple?: OverlayBounds[];
   tagName: string;
   componentName?: string;
   status: SelectionLabelStatus;
@@ -290,6 +296,7 @@ export interface SelectionLabelInstance {
   element?: Element;
   elements?: Element[];
   mouseX?: number;
+  errorMessage?: string;
 }
 
 export interface ReactGrabRendererProps {
@@ -352,6 +359,7 @@ export interface ReactGrabRendererProps {
   contextMenuHasFilePath?: boolean;
   contextMenuHasAgent?: boolean;
   onContextMenuCopy?: () => void;
+  onContextMenuCopyScreenshot?: () => void;
   onContextMenuOpen?: () => void;
   onContextMenuEdit?: () => void;
   onContextMenuDismiss?: () => void;

@@ -186,19 +186,32 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
 
       <Index each={props.labelInstances ?? []}>
         {(instance) => (
-          <SelectionLabel
-            tagName={instance().tagName}
-            componentName={instance().componentName}
-            selectionBounds={instance().bounds}
-            mouseX={instance().mouseX}
-            visible={true}
-            status={instance().status}
-            onShowContextMenu={
-              instance().status === "copied" || instance().status === "fading"
-                ? () => props.onShowContextMenuInstance?.(instance().id)
-                : undefined
-            }
-          />
+          <>
+            <For each={instance().boundsMultiple ?? [instance().bounds]}>
+              {(bounds) => (
+                <SelectionBox
+                  variant="grabbed"
+                  bounds={bounds}
+                  visible={true}
+                  isFading={instance().status === "fading"}
+                />
+              )}
+            </For>
+            <SelectionLabel
+              tagName={instance().tagName}
+              componentName={instance().componentName}
+              selectionBounds={instance().bounds}
+              mouseX={instance().mouseX}
+              visible={true}
+              status={instance().status}
+              error={instance().errorMessage}
+              onShowContextMenu={
+                instance().status === "copied" || instance().status === "fading"
+                  ? () => props.onShowContextMenuInstance?.(instance().id)
+                  : undefined
+              }
+            />
+          </>
         )}
       </Index>
 
@@ -214,6 +227,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         hasFilePath={props.contextMenuHasFilePath ?? false}
         hasAgent={props.contextMenuHasAgent ?? false}
         onCopy={props.onContextMenuCopy ?? (() => {})}
+        onCopyScreenshot={props.onContextMenuCopyScreenshot ?? (() => {})}
         onOpen={props.onContextMenuOpen ?? (() => {})}
         onEdit={props.onContextMenuEdit ?? (() => {})}
         onDismiss={props.onContextMenuDismiss ?? (() => {})}

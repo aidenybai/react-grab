@@ -39,7 +39,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const canInteract = () =>
     props.status !== "copying" &&
     props.status !== "copied" &&
-    props.status !== "fading";
+    props.status !== "fading" &&
+    props.status !== "error";
 
   const showOpenIndicator = () => props.isContextMenuOpen === true;
 
@@ -278,7 +279,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   const shouldPersistDuringFade = () =>
     hadValidBounds() &&
-    (props.status === "copied" || props.status === "fading");
+    (props.status === "copied" ||
+      props.status === "fading" ||
+      props.status === "error");
 
   return (
     <Show
@@ -300,7 +303,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             props.isPromptMode ||
             ((props.status === "copied" || props.status === "fading") &&
               (props.onDismiss || props.onShowContextMenu)) ||
-            (props.status === "copying" && props.onAbort)
+            (props.status === "copying" && props.onAbort) ||
+            (props.status === "error" &&
+              (props.onAcknowledgeError || props.onRetry))
               ? "auto"
               : "none",
           opacity: props.status === "fading" ? 0 : 1,
