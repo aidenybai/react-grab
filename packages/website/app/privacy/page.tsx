@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { ReactGrabLogo } from "@/components/react-grab-logo";
 
 const title = "Privacy Policy";
 const description =
@@ -34,22 +37,34 @@ export const metadata: Metadata = {
 
 const PrivacyPage = () => {
   return (
-    <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
-      <div className="max-w-4xl mx-auto px-6 py-16">
-        <h1 className="text-4xl font-bold mb-8">Privacy Policy</h1>
+    <div className="min-h-screen bg-black px-4 py-6 sm:px-8 sm:py-8">
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 pt-4 text-base sm:pt-8 sm:text-lg">
+        <Link
+          href="/"
+          className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-all mb-4 underline underline-offset-4 opacity-50 hover:opacity-100"
+        >
+          <ArrowLeft size={16} />
+          Back to home
+        </Link>
 
-        <div className="space-y-6 text-gray-800 dark:text-gray-200">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Last updated:{" "}
-            {new Date().toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-          </p>
+        <div className="inline-flex" style={{ padding: "2px" }}>
+          <Link href="/" className="transition-opacity hover:opacity-80">
+            <ReactGrabLogo width={42} height={42} className="logo-shimmer-once" />
+          </Link>
+        </div>
 
+        <div className="text-white mt-4">
+          <span className="font-bold">Privacy Policy</span> &middot; Last updated{" "}
+          {new Date().toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })}
+        </div>
+
+        <div className="space-y-6 text-neutral-300 mt-4">
           <section>
-            <h2 className="text-2xl font-semibold mb-4">Overview</h2>
+            <p className="text-white font-bold mb-2">Overview</p>
             <p>
               React Grab is a developer tool that helps you inspect and copy
               React components from web pages. This privacy policy explains how
@@ -58,12 +73,12 @@ const PrivacyPage = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">Data Collection</h2>
-            <p className="mb-3">
+            <p className="text-white font-bold mb-2">Data Collection</p>
+            <p className="mb-2">
               React Grab does NOT collect, store, or transmit any personal data.
               Specifically:
             </p>
-            <ul className="list-disc pl-6 space-y-2">
+            <ul className="list-disc pl-6 space-y-1">
               <li>We do not collect any personally identifiable information</li>
               <li>We do not track your browsing history</li>
               <li>We do not store any data about the websites you visit</li>
@@ -73,14 +88,12 @@ const PrivacyPage = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">
-              How React Grab Works
-            </h2>
-            <p className="mb-3">
+            <p className="text-white font-bold mb-2">How React Grab Works</p>
+            <p className="mb-2">
               React Grab operates entirely locally in your browser. When you use
               the extension:
             </p>
-            <ul className="list-disc pl-6 space-y-2">
+            <ul className="list-disc pl-6 space-y-1">
               <li>
                 The extension injects code into web pages to enable element
                 selection
@@ -95,36 +108,33 @@ const PrivacyPage = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">Permissions</h2>
-            <p className="mb-3">
+            <p className="text-white font-bold mb-2">Permissions</p>
+            <p className="mb-2">
               The extension requires the following permissions:
             </p>
-            <ul className="list-disc pl-6 space-y-2">
+            <ul className="list-disc pl-6 space-y-1">
               <li>
-                <strong>Access to all websites ("&lt;all_urls&gt;"):</strong>{" "}
+                <span className="text-white">Access to all websites:</span>{" "}
                 Required to inject the element selection functionality into any
-                webpage you visit. This enables you to grab elements from any
-                site.
+                webpage you visit.
               </li>
               <li>
-                <strong>Storage:</strong> Used only to store your extension
-                preferences locally on your device (such as whether the
-                extension is enabled or disabled).
+                <span className="text-white">Storage:</span> Used only to store your extension
+                preferences locally on your device.
               </li>
               <li>
-                <strong>Active Tab:</strong> Needed to interact with the
-                currently active tab when you use the keyboard shortcut to grab
-                elements.
+                <span className="text-white">Active Tab:</span> Needed to interact with the
+                currently active tab when you use the keyboard shortcut.
               </li>
             </ul>
-            <p className="mt-3">
+            <p className="mt-2">
               These permissions are used solely for the core functionality of
               the extension and are not used to collect or transmit any data.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">Local Storage</h2>
+            <p className="text-white font-bold mb-2">Local Storage</p>
             <p>
               React Grab may store minimal settings locally on your device using
               browser storage APIs. This data never leaves your device and can
@@ -134,9 +144,7 @@ const PrivacyPage = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">
-              Third-Party Services
-            </h2>
+            <p className="text-white font-bold mb-2">Third-Party Services</p>
             <p>
               React Grab does not integrate with any third-party analytics,
               tracking, or advertising services. The extension operates entirely
@@ -145,7 +153,7 @@ const PrivacyPage = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">Open Source</h2>
+            <p className="text-white font-bold mb-2">Open Source</p>
             <p>
               React Grab is open source software. You can review the complete
               source code on{" "}
@@ -153,7 +161,7 @@ const PrivacyPage = () => {
                 href="https://github.com/aidenybai/react-grab"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-pink-600 dark:text-pink-400 hover:underline"
+                className="text-white underline underline-offset-4 hover:opacity-80 transition-opacity"
               >
                 GitHub
               </a>{" "}
@@ -162,19 +170,15 @@ const PrivacyPage = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">
-              Changes to This Policy
-            </h2>
+            <p className="text-white font-bold mb-2">Changes to This Policy</p>
             <p>
               We may update this privacy policy from time to time. Any changes
-              will be posted on this page with an updated revision date. Since
-              we don't collect your contact information, we cannot notify you
-              directly of changes.
+              will be posted on this page with an updated revision date.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">Contact</h2>
+            <p className="text-white font-bold mb-2">Contact</p>
             <p>
               If you have questions about this privacy policy, please open an
               issue on our{" "}
@@ -182,7 +186,7 @@ const PrivacyPage = () => {
                 href="https://github.com/aidenybai/react-grab/issues"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-pink-600 dark:text-pink-400 hover:underline"
+                className="text-white underline underline-offset-4 hover:opacity-80 transition-opacity"
               >
                 GitHub repository
               </a>{" "}
@@ -191,7 +195,7 @@ const PrivacyPage = () => {
                 href="https://discord.com/invite/G7zxfUzkm7"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-pink-600 dark:text-pink-400 hover:underline"
+                className="text-white underline underline-offset-4 hover:opacity-80 transition-opacity"
               >
                 Discord community
               </a>
@@ -199,10 +203,10 @@ const PrivacyPage = () => {
             </p>
           </section>
 
-          <section className="pt-8 border-t border-gray-200 dark:border-gray-800">
-            <h2 className="text-2xl font-semibold mb-4">Summary</h2>
-            <p className="text-lg font-medium">
-              React Grab respects your privacy. We don't collect, store, or
+          <section className="pt-6 border-t border-neutral-800">
+            <p className="text-white font-bold mb-2">Summary</p>
+            <p>
+              React Grab respects your privacy. We don&apos;t collect, store, or
               transmit any of your personal data. The extension works entirely
               locally on your device.
             </p>

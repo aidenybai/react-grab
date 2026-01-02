@@ -5,7 +5,7 @@ import { COPIED_LABEL_DURATION_MS } from "../../constants.js";
 import { confirmationFocusManager } from "../../utils/confirmation-focus-manager.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
 import { IconReturn } from "../icons/icon-return.jsx";
-import { IconEllipsis } from "../icons/icon-ellipsis.js";
+import { IconEllipsis } from "../icons/icon-ellipsis.jsx";
 import { BottomSection } from "./bottom-section.js";
 
 interface MoreOptionsButtonProps {
@@ -13,41 +13,19 @@ interface MoreOptionsButtonProps {
 }
 
 const MoreOptionsButton: Component<MoreOptionsButtonProps> = (props) => {
-  const [isHovered, setIsHovered] = createSignal(false);
-
   return (
     <button
       data-react-grab-ignore-events
       data-react-grab-more-options
-      style={{
-        display: "flex",
-        "align-items": "center",
-        "justify-content": "center",
-        width: "18px",
-        height: "18px",
-        "border-radius": "2px",
-        cursor: "pointer",
-        background: isHovered() ? "rgba(0, 0, 0, 0.1)" : "transparent",
-        color: isHovered() ? "black" : "rgba(0, 0, 0, 0.3)",
-        border: "none",
-        outline: "none",
-        padding: "0",
-        "flex-shrink": "0",
-      }}
-      on:mouseenter={() => setIsHovered(true)}
-      on:mouseleave={() => setIsHovered(false)}
+      class="flex items-center justify-center size-[18px] rounded-sm cursor-pointer bg-transparent hover:bg-black/10 text-black/30 hover:text-black border-none outline-none p-0 shrink-0"
+      // HACK: Native events with stopImmediatePropagation needed to block document-level handlers in the overlay system
       on:pointerdown={(event) => {
-        event.stopPropagation();
-        event.stopImmediatePropagation();
-      }}
-      on:mousedown={(event) => {
         event.stopPropagation();
         event.stopImmediatePropagation();
       }}
       on:click={(event) => {
         event.stopPropagation();
         event.stopImmediatePropagation();
-        event.preventDefault();
         props.onClick();
       }}
     >

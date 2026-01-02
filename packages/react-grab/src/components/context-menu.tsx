@@ -160,6 +160,8 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!isVisible()) return;
       if (event.code === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
         props.onDismiss();
         return;
       }
