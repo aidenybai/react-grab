@@ -2001,7 +2001,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
 
       const selectionBounds =
-        allBounds.length > 0 ? allBounds : singleBounds ? [singleBounds] : [];
+        allBounds.length > 1 ? allBounds : singleBounds ? [singleBounds] : [];
 
       const instanceId = createLabelInstance(
         overlayBounds,
