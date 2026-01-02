@@ -44,7 +44,7 @@ export const ErrorView: Component<ErrorViewProps> = (props) => {
     window.removeEventListener("keydown", handleKeyDown, { capture: true });
   });
 
-  const hasActions = () => props.onRetry || props.onAcknowledge;
+  const hasActions = () => Boolean(props.onRetry || props.onAcknowledge);
 
   return (
     <div
