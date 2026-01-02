@@ -363,8 +363,8 @@ export const StreamDemo = () => {
                           controls
                           className="mt-3 w-full rounded-lg border border-white/10"
                         />
-                        <p className="mt-3 text-center text-xs text-white/30">
-                          Desktop recommended
+                        <p className="mt-1 text-sm text-white/30">
+                          This website is best viewed on desktop
                         </p>
                       </>
                     )}
