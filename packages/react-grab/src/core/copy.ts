@@ -2,24 +2,6 @@ import type { Options } from "../types.js";
 import { copyContent } from "../utils/copy-content.js";
 import { generateSnippet } from "../utils/generate-snippet.js";
 
-const hasInnerText = (
-  element: Element,
-): element is Element & { innerText: string } => "innerText" in element;
-
-const extractElementTextContent = (element: Element): string => {
-  if (hasInnerText(element)) {
-    return element.innerText;
-  }
-
-  return element.textContent ?? "";
-};
-
-const createCombinedTextContent = (elements: Element[]): string =>
-  elements
-    .map((element) => extractElementTextContent(element).trim())
-    .filter((textContent) => textContent.length > 0)
-    .join("\n\n");
-
 export const tryCopyWithFallback = async (
   options: Options,
   elements: Element[],
@@ -54,33 +36,11 @@ export const tryCopyWithFallback = async (
         copiedContent = plainTextContent;
         didCopy = copyContent(plainTextContent, { prompt: extraPrompt });
       }
-
-      if (!didCopy) {
-        const plainTextContentOnly = createCombinedTextContent(elements);
-        if (plainTextContentOnly.length > 0) {
-          const contentWithPrompt = extraPrompt
-            ? `${extraPrompt}\n\n${plainTextContentOnly}`
-            : plainTextContentOnly;
-
-          copiedContent = contentWithPrompt;
-          didCopy = copyContent(contentWithPrompt, { prompt: extraPrompt });
-        }
-      }
     }
   } catch (error) {
     const resolvedError =
       error instanceof Error ? error : new Error(String(error));
     options.onCopyError?.(resolvedError);
-
-    const plainTextContentOnly = createCombinedTextContent(elements);
-    if (plainTextContentOnly.length > 0) {
-      const contentWithPrompt = extraPrompt
-        ? `${extraPrompt}\n\n${plainTextContentOnly}`
-        : plainTextContentOnly;
-
-      copiedContent = contentWithPrompt;
-      didCopy = copyContent(contentWithPrompt, { prompt: extraPrompt });
-    }
   }
 
   if (didCopy) {
