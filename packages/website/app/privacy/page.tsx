@@ -54,7 +54,7 @@ const PrivacyPage = () => {
         </div>
 
         <div className="text-white mt-4">
-          <span className="font-bold">Privacy Policy</span> &middot; Last updated{" "}
+          <h1 className="font-bold inline">Privacy Policy</h1> &middot; Last updated{" "}
           {new Date().toLocaleDateString("en-US", {
             year: "numeric",
             month: "long",
