@@ -325,7 +325,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   const rightClickElement = async (selector: string) => {
     const element = page.locator(selector).first();
     await element.click({ button: "right", force: true });
-    await page.waitForTimeout(100);
+    await page.waitForTimeout(200);
   };
 
   const rightClickAtPosition = async (x: number, y: number) => {
@@ -340,16 +340,8 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       if (!shadowRoot) return false;
       const root = shadowRoot.querySelector(`[${attrName}]`);
       if (!root) return false;
-      const buttons = Array.from(
-        root.querySelectorAll("button[data-react-grab-ignore-events]"),
-      );
-      for (const button of buttons) {
-        const text = (button as HTMLElement).textContent?.trim();
-        if (text === "Copy" || text === "Open" || text === "Edit") {
-          return true;
-        }
-      }
-      return false;
+      const menuItem = root.querySelector("[data-react-grab-menu-item]");
+      return menuItem !== null;
     }, ATTRIBUTE_NAME);
   };
 

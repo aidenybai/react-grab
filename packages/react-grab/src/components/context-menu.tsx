@@ -34,6 +34,7 @@ interface MenuItem {
   label: string;
   action: () => void;
   enabled: boolean;
+  shortcut?: string;
 }
 
 const isEventFromOverlay = (event: Event) =>
@@ -44,6 +45,9 @@ const isEventFromOverlay = (event: Event) =>
         element instanceof HTMLElement &&
         element.hasAttribute("data-react-grab-ignore-events"),
     );
+
+const isMac = () =>
+  typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
 
 export const ContextMenu: Component<ContextMenuProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
@@ -128,11 +132,11 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
 
   const menuItems = (): MenuItem[] => {
     const items: MenuItem[] = [
-      { label: "Copy", action: props.onCopy, enabled: true },
-      { label: "Open", action: props.onOpen, enabled: props.hasFilePath },
+      { label: "Copy", action: props.onCopy, enabled: true, shortcut: "C" },
+      { label: "Open", action: props.onOpen, enabled: props.hasFilePath, shortcut: "O" },
     ];
     if (props.hasAgent) {
-      items.push({ label: "Edit", action: props.onEdit, enabled: true });
+      items.push({ label: "Edit", action: props.onEdit, enabled: true, shortcut: "Enter" });
     }
     return items;
   };
@@ -156,7 +160,30 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!isVisible()) return;
       if (event.code === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
         props.onDismiss();
+        return;
+      }
+
+      if (event.key === "Enter" && props.hasAgent) {
+        event.preventDefault();
+        event.stopPropagation();
+        props.onEdit();
+        return;
+      }
+
+      const modifierKey = isMac() ? event.metaKey : event.ctrlKey;
+      if (!modifierKey) return;
+
+      if (event.key.toLowerCase() === "c") {
+        event.preventDefault();
+        event.stopPropagation();
+        props.onCopy();
+      } else if (event.key.toLowerCase() === "o" && props.hasFilePath) {
+        event.preventDefault();
+        event.stopPropagation();
+        props.onOpen();
       }
     };
 
@@ -235,7 +262,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
                   <button
                     data-react-grab-ignore-events
                     data-react-grab-menu-item={item.label.toLowerCase()}
-                    class="contain-layout flex items-center w-full px-2 py-1 cursor-pointer transition-colors hover:bg-black/5 text-left border-none bg-transparent disabled:opacity-40 disabled:cursor-default disabled:hover:bg-transparent"
+                    class="contain-layout flex items-center justify-between w-full px-2 py-1 cursor-pointer transition-colors hover:bg-black/5 text-left border-none bg-transparent disabled:opacity-40 disabled:cursor-default disabled:hover:bg-transparent"
                     disabled={!item.enabled}
                     onPointerDown={(event) => event.stopPropagation()}
                     onClick={(event) => handleAction(item, event)}
@@ -243,6 +270,15 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
                     <span class="text-[13px] leading-4 font-sans font-medium text-black">
                       {item.label}
                     </span>
+                    <Show when={item.shortcut}>
+                      <span class="text-[11px] font-sans text-black/50 ml-4">
+                        {item.shortcut === "Enter"
+                          ? "↵"
+                          : isMac()
+                            ? `⌘${item.shortcut}`
+                            : `Ctrl+${item.shortcut}`}
+                      </span>
+                    </Show>
                   </button>
                 )}
               </For>

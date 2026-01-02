@@ -5,7 +5,34 @@ import { COPIED_LABEL_DURATION_MS } from "../../constants.js";
 import { confirmationFocusManager } from "../../utils/confirmation-focus-manager.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
 import { IconReturn } from "../icons/icon-return.jsx";
+import { IconEllipsis } from "../icons/icon-ellipsis.jsx";
 import { BottomSection } from "./bottom-section.js";
+
+interface MoreOptionsButtonProps {
+  onClick: () => void;
+}
+
+const MoreOptionsButton: Component<MoreOptionsButtonProps> = (props) => {
+  return (
+    <button
+      data-react-grab-ignore-events
+      data-react-grab-more-options
+      class="flex items-center justify-center size-[18px] rounded-sm cursor-pointer bg-transparent hover:bg-black/10 text-black/30 hover:text-black border-none outline-none p-0 shrink-0"
+      // HACK: Native events with stopImmediatePropagation needed to block document-level handlers in the overlay system
+      on:pointerdown={(event) => {
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+      }}
+      on:click={(event) => {
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        props.onClick();
+      }}
+    >
+      <IconEllipsis size={14} />
+    </button>
+  );
+};
 
 export const CompletionView: Component<CompletionViewProps> = (props) => {
   const instanceId = Symbol();
@@ -112,9 +139,14 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
     >
       <Show when={!didCopy() && (props.onDismiss || props.onUndo)}>
         <div class="contain-layout shrink-0 flex items-center justify-between gap-2 pt-1.5 pb-1 px-1.5 w-full h-fit">
-          <span class="text-black text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit tabular-nums">
-            {displayStatusText()}
-          </span>
+          <div class="contain-layout shrink-0 flex items-center gap-1 h-fit">
+            <span class="text-black text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit tabular-nums">
+              {displayStatusText()}
+            </span>
+            <Show when={props.onShowContextMenu}>
+              <MoreOptionsButton onClick={() => props.onShowContextMenu?.()} />
+            </Show>
+          </div>
           <div class="contain-layout shrink-0 flex items-center gap-[5px] h-fit">
             <Show when={props.supportsUndo && props.onUndo}>
               <button
@@ -150,6 +182,9 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
           <span class="text-black text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit tabular-nums">
             {displayStatusText()}
           </span>
+          <Show when={props.onShowContextMenu}>
+            <MoreOptionsButton onClick={() => props.onShowContextMenu?.()} />
+          </Show>
         </div>
       </Show>
       <Show

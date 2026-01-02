@@ -291,14 +291,15 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         ref={containerRef}
         data-react-grab-ignore-events
         data-react-grab-selection-label
-        class="fixed font-sans text-[13px] antialiased transition-opacity duration-300 ease-out filter-[drop-shadow(0px_0px_4px_#51515180)] select-none"
+        class="fixed font-sans text-[13px] antialiased transition-opacity duration-100 ease-out filter-[drop-shadow(0px_0px_4px_#51515180)] select-none"
         style={{
           top: `${computedPosition().top}px`,
           left: `${computedPosition().left}px`,
           "z-index": "2147483647",
           "pointer-events":
             props.isInputMode ||
-            (props.status === "copied" && props.onDismiss) ||
+            ((props.status === "copied" || props.status === "fading") &&
+              (props.onDismiss || props.onShowContextMenu)) ||
             (props.status === "copying" && props.onAbort)
               ? "auto"
               : "none",
@@ -331,6 +332,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             onUndo={props.onUndo}
             onFollowUpSubmit={props.onFollowUpSubmit}
             onCopyStateChange={() => requestAnimationFrame(measureContainer)}
+            onShowContextMenu={props.onShowContextMenu}
           />
         </Show>
 
@@ -347,53 +349,53 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           <Show when={props.status === "copying" && !props.isPendingAbort}>
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit max-w-[280px]">
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-auto h-fit">
-                <div class="contain-layout flex items-center px-0 py-px w-auto h-fit rounded-sm gap-[3px]">
-                  <span class="text-[13px] leading-4 font-sans font-medium w-auto h-fit whitespace-normal text-[#71717a] animate-pulse tabular-nums">
-                    {props.statusText ?? "Grabbing…"}
-                  </span>
-                </div>
+                <span class="text-[13px] leading-4 font-sans font-medium w-auto h-fit whitespace-normal text-[#71717a] animate-pulse tabular-nums">
+                  {props.statusText ?? "Grabbing…"}
+                </span>
               </div>
-              <BottomSection>
-                <div class="shrink-0 flex justify-between items-end w-full min-h-4">
-                  <textarea
-                    ref={inputRef}
-                    data-react-grab-ignore-events
-                    class="text-black text-[13px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 opacity-50 wrap-break-word overflow-y-auto"
-                    style={{
-                      "field-sizing": "content",
-                      "min-height": "16px",
-                      "max-height": "95px",
-                      "scrollbar-width": "none",
-                    }}
-                    value={props.inputValue ?? ""}
-                    placeholder="type to edit"
-                    rows={1}
-                    disabled
-                  />
-                  <Show when={props.onAbort}>
-                    <button
+              <Show when={props.hasAgent && props.inputValue}>
+                <BottomSection>
+                  <div class="shrink-0 flex justify-between items-end w-full min-h-4">
+                    <textarea
+                      ref={inputRef}
                       data-react-grab-ignore-events
-                      data-react-grab-abort
-                      class="contain-layout shrink-0 flex flex-col items-start rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] p-1 size-fit cursor-pointer ml-1 transition-none hover:scale-105"
-                      onPointerDown={(event) => event.stopPropagation()}
-                      onMouseDown={(event) => event.stopPropagation()}
-                      onPointerUp={(event) => {
-                        event.stopPropagation();
-                        props.onAbort?.();
+                      class="text-black text-[13px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 opacity-50 wrap-break-word overflow-y-auto"
+                      style={{
+                        "field-sizing": "content",
+                        "min-height": "16px",
+                        "max-height": "95px",
+                        "scrollbar-width": "none",
                       }}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        props.onAbort?.();
-                      }}
-                    >
-                      <div
+                      value={props.inputValue ?? ""}
+                      placeholder="type to edit"
+                      rows={1}
+                      disabled
+                    />
+                    <Show when={props.onAbort}>
+                      <button
                         data-react-grab-ignore-events
-                        class="shrink-0 w-[7px] h-[7px] rounded-[1px] bg-black pointer-events-none"
-                      />
-                    </button>
-                  </Show>
-                </div>
-              </BottomSection>
+                        data-react-grab-abort
+                        class="contain-layout shrink-0 flex flex-col items-start rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] p-1 size-fit cursor-pointer ml-1 transition-none hover:scale-105"
+                        onPointerDown={(event) => event.stopPropagation()}
+                        onMouseDown={(event) => event.stopPropagation()}
+                        onPointerUp={(event) => {
+                          event.stopPropagation();
+                          props.onAbort?.();
+                        }}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          props.onAbort?.();
+                        }}
+                      >
+                        <div
+                          data-react-grab-ignore-events
+                          class="shrink-0 w-[7px] h-[7px] rounded-[1px] bg-black pointer-events-none"
+                        />
+                      </button>
+                    </Show>
+                  </div>
+                </BottomSection>
+              </Show>
             </div>
           </Show>
 

@@ -279,6 +279,12 @@ test.describe("Input Mode", () => {
       await reactGrab.dragSelect("li:first-child", "li:nth-child(3)");
       await reactGrab.page.waitForTimeout(300);
 
+      const isContextMenuVisible = await reactGrab.isContextMenuVisible();
+      expect(isContextMenuVisible).toBe(true);
+
+      await reactGrab.clickContextMenuItem("Edit");
+      await reactGrab.page.waitForTimeout(200);
+
       const isInputMode = await reactGrab.isInputModeActive();
       expect(isInputMode).toBe(true);
     });
@@ -290,7 +296,10 @@ test.describe("Input Mode", () => {
       await reactGrab.activate();
 
       await reactGrab.dragSelect("li:first-child", "li:nth-child(3)");
-      await reactGrab.page.waitForTimeout(500);
+      await reactGrab.page.waitForTimeout(300);
+
+      await reactGrab.clickContextMenuItem("Edit");
+      await reactGrab.page.waitForTimeout(200);
 
       const labelInfo = await reactGrab.getSelectionLabelInfo();
       expect(labelInfo.isVisible).toBe(true);

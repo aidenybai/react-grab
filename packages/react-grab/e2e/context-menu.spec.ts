@@ -379,12 +379,13 @@ test.describe("Context Menu", () => {
       await reactGrab.waitForSelectionBox();
       await reactGrab.rightClickElement("[data-testid='todo-list'] h1");
       await reactGrab.clickContextMenuItem("Copy");
-      await reactGrab.page.waitForTimeout(500);
+      await reactGrab.page.waitForTimeout(1600);
 
       const firstCopy = await reactGrab.getClipboardContent();
       expect(firstCopy).toContain("Todo List");
 
       await reactGrab.activate();
+      await reactGrab.page.waitForTimeout(100);
       await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
       await reactGrab.waitForSelectionBox();
       await reactGrab.rightClickElement(

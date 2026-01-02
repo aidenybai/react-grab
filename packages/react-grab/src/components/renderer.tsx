@@ -131,6 +131,11 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
                 onCancelAbort={() =>
                   props.onAbortSession?.(session().id, false)
                 }
+                onShowContextMenu={
+                  session().isStreaming
+                    ? undefined
+                    : () => props.onShowContextMenuSession?.(session().id)
+                }
               />
             </Show>
           </>
@@ -182,6 +187,11 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
             mouseX={instance.mouseX}
             visible={true}
             status={instance.status}
+            onShowContextMenu={
+              instance.status === "copied" || instance.status === "fading"
+                ? () => props.onShowContextMenuInstance?.(instance.id)
+                : undefined
+            }
           />
         )}
       </For>

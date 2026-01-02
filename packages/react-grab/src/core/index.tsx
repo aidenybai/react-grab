@@ -344,10 +344,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
           setTimeout(() => {
             updateLabelInstance(instanceId, "fading");
-            // HACK: Wait slightly longer than CSS transition (300ms) to ensure fade completes before unmount
+            // HACK: Wait slightly longer than CSS transition (100ms) to ensure fade completes before unmount
             setTimeout(() => {
               removeLabelInstance(instanceId);
-            }, 350);
+            }, 150);
           }, COPIED_LABEL_DURATION_MS);
         }
 
@@ -1195,7 +1195,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.setFrozenElement(nextElement);
       actions.freeze();
       const bounds = createElementBounds(nextElement);
-      actions.setPointer(getBoundsCenter(bounds));
+      const center = getBoundsCenter(bounds);
+      actions.setPointer(center);
+
+      if (store.contextMenuPosition !== null) {
+        actions.showContextMenu(center, nextElement);
+      }
+
       return true;
     };
 
@@ -1781,16 +1787,33 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return isRendererActive() && !isDragging() && Boolean(effectiveElement());
     });
 
+    const labelInstanceCache = new Map<string, SelectionLabelInstance>();
     const computedLabelInstances = createMemo(() => {
       void store.viewportVersion;
-      return store.labelInstances.map((instance) => {
-        if (!instance.element || !document.body.contains(instance.element)) {
-          return instance;
+      const currentIds = new Set(store.labelInstances.map((i) => i.id));
+      for (const cachedId of labelInstanceCache.keys()) {
+        if (!currentIds.has(cachedId)) {
+          labelInstanceCache.delete(cachedId);
         }
-        return {
-          ...instance,
-          bounds: createElementBounds(instance.element),
-        };
+      }
+      return store.labelInstances.map((instance) => {
+        const newBounds =
+          instance.element && document.body.contains(instance.element)
+            ? createElementBounds(instance.element)
+            : instance.bounds;
+        const previousInstance = labelInstanceCache.get(instance.id);
+        const boundsUnchanged =
+          previousInstance &&
+          previousInstance.bounds.x === newBounds.x &&
+          previousInstance.bounds.y === newBounds.y &&
+          previousInstance.bounds.width === newBounds.width &&
+          previousInstance.bounds.height === newBounds.height;
+        if (previousInstance && previousInstance.status === instance.status && boundsUnchanged) {
+          return previousInstance;
+        }
+        const newCached = { ...instance, bounds: newBounds };
+        labelInstanceCache.set(instance.id, newCached);
+        return newCached;
       });
     });
 
@@ -1948,7 +1971,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       prepareInputMode(element, position.x, position.y);
       actions.setPointer({ x: position.x, y: position.y });
-      actions.setFrozenElement(element);
+      if (store.frozenElements.length === 0) {
+        actions.setFrozenElement(element);
+      }
       activateInputMode();
 
       // HACK: Defer hiding context menu until after click event propagates fully
@@ -1962,6 +1987,51 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setTimeout(() => {
         actions.hideContextMenu();
         actions.unfreeze();
+      }, 0);
+    };
+
+    const handleShowContextMenuSession = (sessionId: string) => {
+      const session = agentManager.sessions().get(sessionId);
+      if (!session) return;
+
+      const element = store.sessionElements.get(sessionId);
+      if (!element) return;
+      if (!document.contains(element)) return;
+
+      // HACK: Defer context menu display to avoid event interference
+      setTimeout(() => {
+        if (!isActivated()) {
+          activateRenderer();
+        }
+        actions.setPointer(session.position);
+        actions.setFrozenElement(element);
+        actions.freeze();
+        actions.showContextMenu(session.position, element);
+      }, 0);
+    };
+
+    const handleShowContextMenuInstance = (instanceId: string) => {
+      const instance = store.labelInstances.find(
+        (labelInstance) => labelInstance.id === instanceId,
+      );
+      if (!instance?.element) return;
+      if (!document.contains(instance.element)) return;
+
+      const elementBounds = createElementBounds(instance.element);
+      const position = {
+        x: instance.mouseX ?? elementBounds.x + elementBounds.width / 2,
+        y: elementBounds.y + elementBounds.height / 2,
+      };
+
+      // HACK: Defer context menu display to avoid event interference
+      setTimeout(() => {
+        if (!isActivated()) {
+          activateRenderer();
+        }
+        actions.setPointer(position);
+        actions.setFrozenElement(instance.element!);
+        actions.freeze();
+        actions.showContextMenu(position, instance.element!);
       }, 0);
     };
 
@@ -2012,6 +2082,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onFollowUpSubmitSession={handleFollowUpSubmit}
             onAcknowledgeSessionError={handleAcknowledgeError}
             onRetrySession={agentManager.session.retry}
+            onShowContextMenuSession={handleShowContextMenuSession}
+            onShowContextMenuInstance={handleShowContextMenuInstance}
             onInputChange={handleInputChange}
             onInputSubmit={() => void handleInputSubmit()}
             onInputCancel={handleInputCancel}
