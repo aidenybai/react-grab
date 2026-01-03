@@ -1,3 +1,10 @@
+"use client";
+
+import { useState } from "react";
+
+const BASE_ANIMATION_DURATION_MS = 400;
+const SPEED_INCREMENT = 0.5;
+
 interface ReactGrabLogoProps {
   width?: number;
   height?: number;
@@ -8,21 +15,39 @@ export const ReactGrabLogo = ({
   width = 44,
   height = 44,
   className,
-}: ReactGrabLogoProps) => (
-  <svg
-    width={width}
-    height={height}
-    viewBox="0 0 330 330"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    className={`react-grab-logo ${className ?? ""}`}
-    style={{
-      display: "inline-block",
-      verticalAlign: "middle",
-      marginRight: 8,
-      cursor: "pointer",
-    }}
-  >
+}: ReactGrabLogoProps) => {
+  const [clickCount, setClickCount] = useState(0);
+
+  const speedMultiplier = 1 + clickCount * SPEED_INCREMENT;
+  const animationDuration = Math.round(BASE_ANIMATION_DURATION_MS / speedMultiplier);
+
+  const handleClick = () => {
+    setClickCount((previousCount) => previousCount + 1);
+  };
+
+  const handleMouseLeave = () => {
+    setClickCount(0);
+  };
+
+  return (
+    <svg
+      width={width}
+      height={height}
+      viewBox="0 0 330 330"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={`react-grab-logo ${className ?? ""}`}
+      onClick={handleClick}
+      onMouseLeave={handleMouseLeave}
+      style={{
+        display: "inline-block",
+        verticalAlign: "middle",
+        marginRight: 8,
+        cursor: "pointer",
+        // @ts-expect-error CSS custom property
+        "--arrow-animation-duration": `${animationDuration}ms`,
+      }}
+    >
     <g clipPath="url(#clip0_0_3)">
       <mask
         id="mask0_0_3"
@@ -77,6 +102,7 @@ export const ReactGrabLogo = ({
       </clipPath>
     </defs>
   </svg>
-);
+  );
+};
 
 ReactGrabLogo.displayName = "ReactGrabLogo";
