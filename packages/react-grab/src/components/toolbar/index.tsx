@@ -428,7 +428,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       data-react-grab-ignore-events
       data-react-grab-toolbar
       class={cn(
-        "fixed left-0 top-0 font-sans text-[13px] antialiased filter-[drop-shadow(0px_0px_4px_#51515180)] select-none",
+        "fixed left-0 top-0 font-sans text-[13px] antialiased select-none",
         isCollapsed()
           ? "cursor-pointer"
           : isDragging()
@@ -451,7 +451,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     >
       <div
         class={cn(
-          "[font-synthesis:none] contain-layout flex items-center justify-center rounded-sm bg-white antialiased transition-all duration-100 ease-out",
+          "[font-synthesis:none] contain-layout flex items-center justify-center rounded-sm bg-[#0a0a0a] [border-width:0.5px] border-solid border-[#343434] antialiased transition-all duration-100 ease-out",
           isCollapsed() ? "" : "gap-1.5 px-2 py-1.5",
           isCollapsed() && snapEdge() === "top" && "rounded-t-none",
           isCollapsed() && snapEdge() === "bottom" && "rounded-b-none",
@@ -492,7 +492,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               size={14}
               class={cn(
                 "transition-colors",
-                props.isActive ? "text-black" : "text-black/70",
+                props.isActive ? "text-[#ededed]" : "text-[#a0a0a0]",
               )}
             />
           </button>
@@ -505,7 +505,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         >
           <IconChevron
             class={cn(
-              "text-[#B3B3B3] transition-transform duration-100",
+              "text-[#666666] transition-transform duration-100",
               chevronRotation(),
             )}
           />

@@ -295,7 +295,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         ref={containerRef}
         data-react-grab-ignore-events
         data-react-grab-context-menu
-        class="fixed font-sans text-[13px] antialiased transition-opacity duration-150 ease-out filter-[drop-shadow(0px_0px_4px_#51515180)] select-none"
+        class="fixed font-sans text-[13px] antialiased transition-opacity duration-150 ease-out select-none"
         style={{
           top: `${computedPosition().top}px`,
           left: `${computedPosition().left}px`,
@@ -315,7 +315,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
           leftPx={computedPosition().arrowLeft}
         />
 
-        <div class="[font-synthesis:none] contain-layout flex flex-col justify-center items-start gap-1 rounded-sm bg-white antialiased w-fit h-fit min-w-[100px]">
+        <div class="[font-synthesis:none] contain-layout flex flex-col justify-center items-start gap-1 rounded-sm bg-[#0a0a0a] [border-width:0.5px] border-solid border-[#343434] antialiased w-fit h-fit min-w-[100px]">
           <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5 pr-1">
             <TagBadge
               tagName={displayName()}
@@ -337,16 +337,16 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
                   <button
                     data-react-grab-ignore-events
                     data-react-grab-menu-item={item.label.toLowerCase()}
-                    class="contain-layout flex items-center justify-between w-full px-2 py-1 cursor-pointer transition-colors hover:bg-black/5 text-left border-none bg-transparent disabled:opacity-40 disabled:cursor-default disabled:hover:bg-transparent"
+                    class="contain-layout flex items-center justify-between w-full px-2 py-1 cursor-pointer transition-colors hover:bg-[#1e1e1e] text-left border-none bg-transparent disabled:opacity-40 disabled:cursor-default disabled:hover:bg-transparent"
                     disabled={!item.enabled}
                     onPointerDown={(event) => event.stopPropagation()}
                     onClick={(event) => handleAction(item, event)}
                   >
-                    <span class="text-[13px] leading-4 font-sans font-medium text-black">
+                    <span class="text-[13px] leading-4 font-sans font-medium text-[#ededed]">
                       {item.label}
                     </span>
                     <Show when={item.shortcut}>
-                      <span class="text-[11px] font-sans text-black/50 ml-4">
+                      <span class="text-[11px] font-sans text-[#a0a0a0] ml-4">
                         {formatShortcut(item.shortcut!)}
                       </span>
                     </Show>

@@ -2,7 +2,7 @@ import type { Component } from "solid-js";
 import type { ArrowProps } from "../../types.js";
 
 export const Arrow: Component<ArrowProps> = (props) => {
-  const arrowColor = () => props.color ?? "white";
+  const arrowColor = () => props.color ?? "#0a0a0a";
 
   return (
     <div

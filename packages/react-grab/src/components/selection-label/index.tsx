@@ -294,7 +294,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         ref={containerRef}
         data-react-grab-ignore-events
         data-react-grab-selection-label
-        class="fixed font-sans text-[13px] antialiased transition-opacity duration-100 ease-out filter-[drop-shadow(0px_0px_4px_#51515180)] select-none"
+        class="fixed font-sans text-[13px] antialiased transition-opacity duration-100 ease-out select-none"
         style={{
           top: `${computedPosition().top}px`,
           left: `${computedPosition().left}px`,
@@ -342,7 +342,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         </Show>
 
         <div
-          class="[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-sm bg-white antialiased w-fit h-fit p-0"
+          class="[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-sm bg-[#0a0a0a] [border-width:0.5px] border-solid border-[#343434] antialiased w-fit h-fit p-0"
           style={{
             display:
               (props.status === "copied" || props.status === "fading") &&
@@ -354,7 +354,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           <Show when={props.status === "copying" && !props.isPendingAbort}>
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit max-w-[280px]">
               <div class="contain-layout shrink-0 flex items-center gap-1 py-1 px-1.5 w-auto h-fit">
-                <span class="text-[13px] leading-4 font-sans font-medium w-auto h-fit whitespace-normal text-[#71717a] animate-pulse tabular-nums">
+                <span class="text-[13px] leading-4 font-sans font-medium w-auto h-fit whitespace-normal text-[#a0a0a0] animate-pulse tabular-nums">
                   {props.statusText ?? "Grabbing…"}
                 </span>
               </div>
@@ -364,7 +364,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     <textarea
                       ref={inputRef}
                       data-react-grab-ignore-events
-                      class="text-black text-[13px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 opacity-50 wrap-break-word overflow-y-auto"
+                      class="text-[#ededed] text-[13px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 opacity-50 wrap-break-word overflow-y-auto"
                       style={{
                         "field-sizing": "content",
                         "min-height": "16px",
@@ -380,7 +380,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                       <button
                         data-react-grab-ignore-events
                         data-react-grab-abort
-                        class="contain-layout shrink-0 flex flex-col items-start rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] p-1 size-fit cursor-pointer ml-1 transition-none hover:scale-105"
+                        class="contain-layout shrink-0 flex flex-col items-start rounded-sm bg-[#0a0a0a] [border-width:0.5px] border-solid border-[#343434] p-1 size-fit cursor-pointer ml-1 transition-none hover:scale-105"
                         onPointerDown={(event) => event.stopPropagation()}
                         onMouseDown={(event) => event.stopPropagation()}
                         onPointerUp={(event) => {
@@ -461,10 +461,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               <BottomSection>
                 <Show when={props.replyToPrompt}>
                   <div class="shrink-0 flex items-center gap-0.5 w-full mb-0.5 overflow-hidden">
-                    <span class="text-[#a1a1aa] text-[10px] leading-3 shrink-0">
+                    <span class="text-[#a0a0a0] text-[10px] leading-3 shrink-0">
                       {">previously:"}
                     </span>
-                    <span class="text-[#a1a1aa] text-[10px] leading-3 italic truncate whitespace-nowrap">
+                    <span class="text-[#a0a0a0] text-[10px] leading-3 italic truncate whitespace-nowrap">
                       {props.replyToPrompt}
                     </span>
                   </div>
@@ -474,7 +474,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     ref={inputRef}
                     data-react-grab-ignore-events
                     data-react-grab-input
-                    class="text-black text-[13px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 wrap-break-word overflow-y-auto"
+                    class="text-[#ededed] text-[13px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 wrap-break-word overflow-y-auto"
                     style={{
                       "field-sizing": "content",
                       "min-height": "16px",
@@ -489,10 +489,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   />
                   <button
                     data-react-grab-submit
-                    class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit cursor-pointer transition-all hover:scale-105 ml-1"
+                    class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-sm bg-[#0a0a0a] [border-width:0.5px] border-solid border-[#343434] size-fit cursor-pointer transition-all hover:scale-105 ml-1"
                     onClick={handleSubmit}
                   >
-                    <IconReturn size={10} class="opacity-[0.99] text-black" />
+                    <IconReturn size={10} class="opacity-[0.99] text-[#ededed]" />
                   </button>
                 </div>
               </BottomSection>

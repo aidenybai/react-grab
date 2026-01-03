@@ -49,6 +49,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           mouseX={props.mouseX!}
           mouseY={props.mouseY!}
           visible={true}
+          selectionBounds={props.selectionBounds}
         />
       </Show>
 

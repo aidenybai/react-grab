@@ -33,7 +33,7 @@ export const VIDEO_READY_POLL_INTERVAL_MS = 10;
 export const VIDEO_READY_TIMEOUT_MS = 2000;
 
 export const BOTTOM_SECTION_GRADIENT =
-  "linear-gradient(in oklab 180deg, oklab(100% 0 0) 0%, oklab(96.1% 0 0) 5.92%)";
+  "linear-gradient(in oklab 180deg, #0a0a0a 0%, #0f0f0f 5.92%)";
 
 export const MODIFIER_KEYS: readonly string[] = [
   "Meta",

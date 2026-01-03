@@ -11,3 +11,4 @@ export const confirmationFocusManager = {
   },
   isActive: (id: symbol): boolean => activeConfirmationId === id,
 };
+

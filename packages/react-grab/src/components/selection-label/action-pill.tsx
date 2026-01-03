@@ -26,9 +26,9 @@ export const ActionPill: Component<ActionPillProps> = (props) => {
     >
       <div class="text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
         <Show when={labelPrefix()}>
-          <span class="text-black/50">{labelPrefix()}</span>
+          <span class="text-[#a0a0a0]">{labelPrefix()}</span>
         </Show>
-        <span class="text-black">{labelAction()}</span>
+        <span class="text-[#ededed]">{labelAction()}</span>
       </div>
     </div>
   );

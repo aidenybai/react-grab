@@ -20,7 +20,7 @@ export const TagBadge: Component<TagBadgeProps> = (props) => {
   return (
     <div
       class={cn(
-        "contain-layout flex items-center px-[3px] py-0 h-4 rounded-sm gap-0.5 [border-width:0.5px] border-solid border-black bg-black",
+        "contain-layout flex items-center px-[3px] py-0 h-4 rounded-sm gap-0.5 [border-width:0.5px] border-solid border-[#292929] bg-[#292929]",
         props.shrink && "shrink-0 w-fit",
         props.isClickable && "cursor-pointer",
       )}

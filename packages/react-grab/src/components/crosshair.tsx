@@ -1,5 +1,6 @@
 import { Show, createEffect, onCleanup } from "solid-js";
 import type { Component } from "solid-js";
+import type { OverlayBounds } from "../types.js";
 import { useAnimatedPosition } from "../utils/use-animated-position.js";
 
 const CROSSHAIR_COLOR = "rgba(210, 57, 192)";
@@ -9,6 +10,7 @@ interface CrosshairProps {
   mouseX: number;
   mouseY: number;
   visible?: boolean;
+  selectionBounds?: OverlayBounds | null;
 }
 
 export const Crosshair: Component<CrosshairProps> = (props) => {
@@ -47,6 +49,14 @@ export const Crosshair: Component<CrosshairProps> = (props) => {
 
     context.clearRect(0, 0, width, height);
 
+    context.fillStyle = "rgba(0, 0, 0, 0.5)";
+    context.fillRect(0, 0, width, height);
+
+    const bounds = props.selectionBounds;
+    if (bounds && bounds.width > 0 && bounds.height > 0) {
+      context.clearRect(bounds.x, bounds.y, bounds.width, bounds.height);
+    }
+
     context.strokeStyle = CROSSHAIR_COLOR;
     context.lineWidth = 1;
 
@@ -77,11 +87,45 @@ export const Crosshair: Component<CrosshairProps> = (props) => {
   createEffect(() => {
     position.x();
     position.y();
+    void props.selectionBounds;
     render();
   });
 
+  const blurClipPath = () => {
+    const bounds = props.selectionBounds;
+    if (!bounds || bounds.width <= 0 || bounds.height <= 0) {
+      return "none";
+    }
+    return `polygon(
+      0% 0%,
+      0% 100%,
+      ${bounds.x}px 100%,
+      ${bounds.x}px ${bounds.y}px,
+      ${bounds.x + bounds.width}px ${bounds.y}px,
+      ${bounds.x + bounds.width}px ${bounds.y + bounds.height}px,
+      ${bounds.x}px ${bounds.y + bounds.height}px,
+      ${bounds.x}px 100%,
+      100% 100%,
+      100% 0%
+    )`;
+  };
+
   return (
     <Show when={props.visible !== false}>
+      <div
+        data-react-grab-blur
+        style={{
+          position: "fixed",
+          top: "0",
+          left: "0",
+          width: "100vw",
+          height: "100vh",
+          "pointer-events": "none",
+          "z-index": "2147483644",
+          "backdrop-filter": "blur(1px)",
+          "clip-path": blurClipPath(),
+        }}
+      />
       <canvas
         ref={canvasRef}
         data-react-grab-crosshair

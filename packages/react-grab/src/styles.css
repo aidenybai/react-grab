@@ -7,12 +7,12 @@
   --color-grab-purple: rgb(210, 57, 192);
   --color-label-tag-border: #730079;
   --color-label-tag-text: #1e001f;
-  --color-label-gray-border: #b0b0b0;
+  --color-label-gray-border: #343434;
   --color-label-success-bg: #d9ffe4;
   --color-label-success-border: #00bb69;
   --color-label-success-text: #006e3b;
-  --color-label-divider: #dedede;
-  --color-label-muted: #767676;
+  --color-label-divider: #343434;
+  --color-label-muted: #666666;
 }
 
 @keyframes spin {

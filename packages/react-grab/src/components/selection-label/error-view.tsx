@@ -58,7 +58,7 @@ export const ErrorView: Component<ErrorViewProps> = (props) => {
         classList={{ "pt-1": hasActions(), "py-1": !hasActions() }}
       >
         <span
-          class="text-[#B91C1C] text-[13px] leading-4 font-sans font-medium"
+          class="text-[#ff6469] text-[13px] leading-4 font-sans font-medium"
           title={props.error}
         >
           {truncatedError()}
@@ -69,20 +69,20 @@ export const ErrorView: Component<ErrorViewProps> = (props) => {
           <div class="contain-layout shrink-0 flex items-center justify-end gap-[5px] w-full h-fit">
             <button
               data-react-grab-retry
-              class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
+              class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-[#0a0a0a] [border-width:0.5px] border-solid border-[#343434] cursor-pointer transition-all hover:bg-[#1e1e1e] h-[17px]"
               onClick={props.onRetry}
             >
-              <span class="text-black text-[13px] leading-3.5 font-sans font-medium">
+              <span class="text-[#ededed] text-[13px] leading-3.5 font-sans font-medium">
                 Retry
               </span>
-              <IconRetry size={10} class="text-black/50" />
+              <IconRetry size={10} class="text-[#ededed]/50" />
             </button>
             <button
               data-react-grab-error-ok
-              class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
+              class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-[#0a0a0a] [border-width:0.5px] border-solid border-[#343434] cursor-pointer transition-all hover:bg-[#1e1e1e] h-[17px]"
               onClick={props.onAcknowledge}
             >
-              <span class="text-black text-[13px] leading-3.5 font-sans font-medium">
+              <span class="text-[#ededed] text-[13px] leading-3.5 font-sans font-medium">
                 Ok
               </span>
             </button>
