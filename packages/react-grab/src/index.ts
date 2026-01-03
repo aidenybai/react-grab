@@ -31,7 +31,7 @@ export type {
   ContextMenuAction,
   ContextMenuActionContext,
   Plugin,
-  PluginContribution,
+  PluginConfig,
   PluginHooks,
 } from "./types.js";
 

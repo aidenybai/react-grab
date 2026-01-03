@@ -63,7 +63,6 @@ import type {
 import { DEFAULT_THEME } from "./theme.js";
 import { createPluginRegistry } from "./plugin-registry.js";
 import { createAgentManager } from "./agent/index.js";
-import { createOptionsStore } from "./options-store.js";
 import { createArrowNavigator } from "./arrow-navigation.js";
 import {
   getRequiredModifiers,
@@ -102,17 +101,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   logIntro();
 
   return createRoot((dispose) => {
-    const pluginRegistry = createPluginRegistry();
-
-    const optionsStore = createOptionsStore({
-      ...initialOptions,
-    });
+    const pluginRegistry = createPluginRegistry(initialOptions);
 
     const { store, actions } = createGrabStore({
       theme: DEFAULT_THEME,
       hasAgentProvider: Boolean(pluginRegistry.store.agent?.provider),
       keyHoldDuration:
-        optionsStore.store.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS,
+        pluginRegistry.store.options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS,
     });
 
     const isHoldingKeys = createMemo(() => store.current.state === "holding");
@@ -191,7 +186,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const currentlyActive = isActivated();
 
       if (previouslyHoldingKeys && !currentlyHolding && currentlyActive) {
-        if (optionsStore.store.activationMode !== "hold") {
+        if (pluginRegistry.store.options.activationMode !== "hold") {
           actions.setWasActivatedByToggle(true);
         }
         pluginRegistry.hooks.onActivate();
@@ -371,8 +366,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const copyWithFallback = (elements: Element[], extraPrompt?: string) =>
       tryCopyWithFallback(
         {
-          maxContextLines: optionsStore.store.maxContextLines,
-          getContent: optionsStore.store.getContent,
+          maxContextLines: pluginRegistry.store.options.maxContextLines,
+          getContent: pluginRegistry.store.options.getContent,
         },
         {
           onBeforeCopy: pluginRegistry.hooks.onBeforeCopy,
@@ -1428,13 +1423,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleActivationKeys = (event: KeyboardEvent): void => {
       if (
-        !optionsStore.store.allowActivationInsideInput &&
+        !pluginRegistry.store.options.allowActivationInsideInput &&
         isKeyboardEventTriggeredByInput(event)
       ) {
         return;
       }
 
-      if (!isTargetKeyCombination(event, optionsStore.store)) {
+      if (!isTargetKeyCombination(event, pluginRegistry.store.options)) {
         if (
           isActivated() &&
           !store.wasActivatedByToggle &&
@@ -1460,7 +1455,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isActivated()) {
         if (
           store.wasActivatedByToggle &&
-          optionsStore.store.activationMode !== "hold"
+          pluginRegistry.store.options.activationMode !== "hold"
         )
           return;
         if (event.repeat) return;
@@ -1478,7 +1473,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (!isHoldingKeys()) {
         const keyHoldDuration =
-          optionsStore.store.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS;
+          pluginRegistry.store.options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS;
         const activationDuration = isKeyboardEventTriggeredByInput(event)
           ? keyHoldDuration + INPUT_FOCUS_ACTIVATION_DELAY_MS
           : keyHoldDuration;
@@ -1498,7 +1493,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         if (
           isPromptMode() &&
-          isTargetKeyCombination(event, optionsStore.store) &&
+          isTargetKeyCombination(event, pluginRegistry.store.options) &&
           !event.repeat
         ) {
           event.preventDefault();
@@ -1561,24 +1556,24 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (isPromptMode()) return;
 
         const hasCustomShortcut = Boolean(
-          optionsStore.store.activationShortcut ||
-            optionsStore.store.activationKey,
+          pluginRegistry.store.options.activationShortcut ||
+            pluginRegistry.store.options.activationKey,
         );
 
-        const requiredModifiers = getRequiredModifiers(optionsStore.store);
+        const requiredModifiers = getRequiredModifiers(pluginRegistry.store.options);
         const isReleasingModifier =
           requiredModifiers.metaKey || requiredModifiers.ctrlKey
             ? !event.metaKey && !event.ctrlKey
             : (requiredModifiers.shiftKey && !event.shiftKey) ||
               (requiredModifiers.altKey && !event.altKey);
 
-        const isReleasingActivationKey = optionsStore.store.activationShortcut
-          ? !optionsStore.store.activationShortcut(event)
-          : optionsStore.store.activationKey
-            ? optionsStore.store.activationKey.key
+        const isReleasingActivationKey = pluginRegistry.store.options.activationShortcut
+          ? !pluginRegistry.store.options.activationShortcut(event)
+          : pluginRegistry.store.options.activationKey
+            ? pluginRegistry.store.options.activationKey.key
               ? event.key?.toLowerCase() ===
-                  optionsStore.store.activationKey.key.toLowerCase() ||
-                keyMatchesCode(optionsStore.store.activationKey.key, event.code)
+                  pluginRegistry.store.options.activationKey.key.toLowerCase() ||
+                keyMatchesCode(pluginRegistry.store.options.activationKey.key, event.code)
               : false
             : isCLikeKey(event.key, event.code);
 
@@ -1586,7 +1581,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           if (isReleasingModifier) {
             if (
               store.wasActivatedByToggle &&
-              optionsStore.store.activationMode !== "hold"
+              pluginRegistry.store.options.activationMode !== "hold"
             )
               return;
             deactivateRenderer();
@@ -1604,7 +1599,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (isReleasingActivationKey || isReleasingModifier) {
           if (
             store.wasActivatedByToggle &&
-            optionsStore.store.activationMode !== "hold"
+            pluginRegistry.store.options.activationMode !== "hold"
           )
             return;
           if (isHoldingKeys()) {
@@ -2496,7 +2491,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         dragBounds: dragBounds() ?? null,
       }),
       setOptions: (newOptions: SettableOptions) => {
-        optionsStore.setOptions(newOptions);
+        pluginRegistry.setOptions(newOptions);
       },
       registerPlugin: (plugin: Plugin) => {
         pluginRegistry.register(plugin, api);
@@ -2532,7 +2527,7 @@ export type {
   ContextMenuAction,
   ContextMenuActionContext,
   Plugin,
-  PluginContribution,
+  PluginConfig,
   PluginHooks,
 } from "../types.js";
 

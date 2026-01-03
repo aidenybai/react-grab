@@ -1,7 +1,7 @@
 import { createStore } from "solid-js/store";
 import type {
   Plugin,
-  PluginContribution,
+  PluginConfig,
   PluginHooks,
   Theme,
   AgentOptions,
@@ -13,58 +13,97 @@ import type {
   ElementLabelVariant,
   ElementLabelContext,
   CrosshairContext,
+  ActivationMode,
+  ActivationKey,
+  SettableOptions,
 } from "../types.js";
 import { DEFAULT_THEME, deepMergeTheme } from "./theme.js";
+import { DEFAULT_KEY_HOLD_DURATION_MS } from "../constants.js";
 
 interface RegisteredPlugin {
   plugin: Plugin;
-  contribution: PluginContribution;
+  config: PluginConfig;
 }
+
+interface OptionsState {
+  activationMode: ActivationMode;
+  keyHoldDuration: number;
+  allowActivationInsideInput: boolean;
+  maxContextLines: number;
+  activationShortcut: ((event: KeyboardEvent) => boolean) | undefined;
+  activationKey: ActivationKey | undefined;
+  getContent: ((elements: Element[]) => Promise<string> | string) | undefined;
+}
+
+const DEFAULT_OPTIONS: OptionsState = {
+  activationMode: "toggle",
+  keyHoldDuration: DEFAULT_KEY_HOLD_DURATION_MS,
+  allowActivationInsideInput: true,
+  maxContextLines: 3,
+  activationShortcut: undefined,
+  activationKey: undefined,
+  getContent: undefined,
+};
 
 interface PluginStoreState {
   theme: Required<Theme>;
   agent: AgentOptions | undefined;
+  options: OptionsState;
   contextMenuActions: ContextMenuAction[];
 }
 
 type HookName = keyof PluginHooks;
 
-const createPluginRegistry = () => {
+const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
   const plugins = new Map<string, RegisteredPlugin>();
 
   const [store, setStore] = createStore<PluginStoreState>({
     theme: DEFAULT_THEME,
     agent: undefined,
+    options: { ...DEFAULT_OPTIONS, ...initialOptions },
     contextMenuActions: [],
   });
 
   const recomputeStore = () => {
     let mergedTheme: Required<Theme> = DEFAULT_THEME;
     let mergedAgent: AgentOptions | undefined = undefined;
+    let mergedOptions: OptionsState = { ...DEFAULT_OPTIONS, ...initialOptions };
     const allContextMenuActions: ContextMenuAction[] = [];
 
-    for (const { contribution } of plugins.values()) {
-      if (contribution.theme) {
-        mergedTheme = deepMergeTheme(mergedTheme, contribution.theme);
+    for (const { config } of plugins.values()) {
+      if (config.theme) {
+        mergedTheme = deepMergeTheme(mergedTheme, config.theme);
       }
 
-      if (contribution.agent) {
-        const agentContribution = contribution.agent as AgentOptions;
+      if (config.agent) {
+        const agentConfig = config.agent as AgentOptions;
         if (mergedAgent) {
-          mergedAgent = Object.assign({}, mergedAgent, agentContribution);
+          mergedAgent = Object.assign({}, mergedAgent, agentConfig);
         } else {
-          mergedAgent = agentContribution;
+          mergedAgent = agentConfig;
         }
       }
 
-      if (contribution.contextMenuActions) {
-        allContextMenuActions.push(...contribution.contextMenuActions);
+      if (config.options) {
+        mergedOptions = { ...mergedOptions, ...config.options };
+      }
+
+      if (config.contextMenuActions) {
+        allContextMenuActions.push(...config.contextMenuActions);
       }
     }
 
     setStore("theme", mergedTheme);
     setStore("agent", mergedAgent);
+    setStore("options", mergedOptions);
     setStore("contextMenuActions", allContextMenuActions);
+  };
+
+  const setOptions = (optionUpdates: SettableOptions) => {
+    for (const [optionKey, optionValue] of Object.entries(optionUpdates)) {
+      if (optionValue === undefined) continue;
+      setStore("options", optionKey as keyof OptionsState, optionValue as OptionsState[keyof OptionsState]);
+    }
   };
 
   const register = (plugin: Plugin, api: unknown) => {
@@ -72,53 +111,60 @@ const createPluginRegistry = () => {
       unregister(plugin.name);
     }
 
-    let contribution: PluginContribution;
+    let config: PluginConfig;
 
     if (plugin.setup) {
       const setupResult = plugin.setup(api as Parameters<NonNullable<Plugin["setup"]>>[0]);
-      contribution = setupResult ?? {};
+      config = setupResult ?? {};
     } else {
-      contribution = {};
+      config = {};
     }
 
     if (plugin.theme) {
-      contribution.theme = contribution.theme
+      config.theme = config.theme
         ? deepMergeTheme(
             deepMergeTheme(DEFAULT_THEME, plugin.theme),
-            contribution.theme,
+            config.theme,
           )
         : plugin.theme;
     }
 
     if (plugin.agent) {
-      contribution.agent = contribution.agent
-        ? { ...plugin.agent, ...contribution.agent }
+      config.agent = config.agent
+        ? { ...plugin.agent, ...config.agent }
         : plugin.agent;
     }
 
     if (plugin.contextMenuActions) {
-      contribution.contextMenuActions = [
+      config.contextMenuActions = [
         ...plugin.contextMenuActions,
-        ...(contribution.contextMenuActions ?? []),
+        ...(config.contextMenuActions ?? []),
       ];
     }
 
     if (plugin.hooks) {
-      contribution.hooks = contribution.hooks
-        ? { ...plugin.hooks, ...contribution.hooks }
+      config.hooks = config.hooks
+        ? { ...plugin.hooks, ...config.hooks }
         : plugin.hooks;
     }
 
-    plugins.set(plugin.name, { plugin, contribution });
+    if (plugin.options) {
+      config.options = config.options
+        ? { ...plugin.options, ...config.options }
+        : plugin.options;
+    }
+
+    plugins.set(plugin.name, { plugin, config });
     recomputeStore();
+    return config;
   };
 
   const unregister = (name: string) => {
     const registered = plugins.get(name);
     if (!registered) return;
 
-    if (registered.contribution.cleanup) {
-      registered.contribution.cleanup();
+    if (registered.config.cleanup) {
+      registered.config.cleanup();
     }
 
     plugins.delete(name);
@@ -133,8 +179,8 @@ const createPluginRegistry = () => {
     hookName: K,
     ...args: Parameters<NonNullable<PluginHooks[K]>>
   ): void => {
-    for (const { contribution } of plugins.values()) {
-      const hook = contribution.hooks?.[hookName] as
+    for (const { config } of plugins.values()) {
+      const hook = config.hooks?.[hookName] as
         | ((...hookArgs: Parameters<NonNullable<PluginHooks[K]>>) => void)
         | undefined;
       if (hook) {
@@ -148,8 +194,8 @@ const createPluginRegistry = () => {
     ...args: Parameters<NonNullable<PluginHooks[K]>>
   ): boolean => {
     let handled = false;
-    for (const { contribution } of plugins.values()) {
-      const hook = contribution.hooks?.[hookName] as
+    for (const { config } of plugins.values()) {
+      const hook = config.hooks?.[hookName] as
         | ((...hookArgs: Parameters<NonNullable<PluginHooks[K]>>) => boolean | void)
         | undefined;
       if (hook) {
@@ -166,8 +212,8 @@ const createPluginRegistry = () => {
     hookName: K,
     ...args: Parameters<NonNullable<PluginHooks[K]>>
   ): Promise<void> => {
-    for (const { contribution } of plugins.values()) {
-      const hook = contribution.hooks?.[hookName] as
+    for (const { config } of plugins.values()) {
+      const hook = config.hooks?.[hookName] as
         | ((...hookArgs: Parameters<NonNullable<PluginHooks[K]>>) => ReturnType<NonNullable<PluginHooks[K]>>)
         | undefined;
       if (hook) {
@@ -206,9 +252,11 @@ const createPluginRegistry = () => {
     register,
     unregister,
     getPluginNames,
+    setOptions,
     store,
     hooks,
   };
 };
 
 export { createPluginRegistry };
+export type { OptionsState };

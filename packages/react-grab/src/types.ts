@@ -229,9 +229,10 @@ export interface PluginHooks {
   onOpenFile?: (filePath: string, lineNumber?: number) => boolean | void;
 }
 
-export interface PluginContribution {
+export interface PluginConfig {
   theme?: DeepPartial<Theme>;
   agent?: Partial<AgentOptions>;
+  options?: SettableOptions;
   contextMenuActions?: ContextMenuAction[];
   hooks?: PluginHooks;
   cleanup?: () => void;
@@ -241,9 +242,10 @@ export interface Plugin {
   name: string;
   theme?: DeepPartial<Theme>;
   agent?: Partial<AgentOptions>;
+  options?: SettableOptions;
   contextMenuActions?: ContextMenuAction[];
   hooks?: PluginHooks;
-  setup?: (api: ReactGrabAPI) => PluginContribution | void;
+  setup?: (api: ReactGrabAPI) => PluginConfig | void;
 }
 
 export interface Options {
