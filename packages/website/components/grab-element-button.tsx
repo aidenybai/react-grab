@@ -68,11 +68,16 @@ const updateReactGrabHotkey = (hotkey: RecordedHotkey | null) => {
         : undefined;
       const newApi = reactGrab.init({
         activationKey,
-        onActivate: () => {
-          window.dispatchEvent(new CustomEvent("react-grab:activated"));
-        },
-        onDeactivate: () => {
-          window.dispatchEvent(new CustomEvent("react-grab:deactivated"));
+      });
+      newApi.registerPlugin({
+        name: "website-events",
+        hooks: {
+          onActivate: () => {
+            window.dispatchEvent(new CustomEvent("react-grab:activated"));
+          },
+          onDeactivate: () => {
+            window.dispatchEvent(new CustomEvent("react-grab:deactivated"));
+          },
         },
       });
       reactGrab.setGlobalApi(newApi);
