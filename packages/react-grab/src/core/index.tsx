@@ -1335,9 +1335,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       event.preventDefault();
       event.stopPropagation();
 
-      pluginRegistry.hooks.onOpenFile(filePath, lineNumber ?? undefined);
-      const url = buildOpenFileUrl(filePath, lineNumber ?? undefined);
-      window.open(url, "_blank", "noopener,noreferrer");
+      const wasHandled = pluginRegistry.hooks.onOpenFile(filePath, lineNumber ?? undefined);
+      if (!wasHandled) {
+        const url = buildOpenFileUrl(filePath, lineNumber ?? undefined);
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
       return true;
     };
 
@@ -2220,12 +2222,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handleContextMenuOpen = () => {
       const fileInfo = contextMenuFilePath();
       if (fileInfo) {
-        pluginRegistry.hooks.onOpenFile(fileInfo.filePath, fileInfo.lineNumber ?? undefined);
-        const openFileUrl = buildOpenFileUrl(
-          fileInfo.filePath,
-          fileInfo.lineNumber,
-        );
-        window.open(openFileUrl, "_blank", "noopener,noreferrer");
+        const wasHandled = pluginRegistry.hooks.onOpenFile(fileInfo.filePath, fileInfo.lineNumber ?? undefined);
+        if (!wasHandled) {
+          const openFileUrl = buildOpenFileUrl(
+            fileInfo.filePath,
+            fileInfo.lineNumber,
+          );
+          window.open(openFileUrl, "_blank", "noopener,noreferrer");
+        }
       }
 
       // HACK: Defer hiding context menu until after click event propagates fully

@@ -226,7 +226,7 @@ export interface PluginHooks {
   onElementLabel?: (visible: boolean, variant: ElementLabelVariant, context: ElementLabelContext) => void;
   onCrosshair?: (visible: boolean, context: CrosshairContext) => void;
   onContextMenu?: (element: Element, position: { x: number; y: number }) => void;
-  onOpenFile?: (filePath: string, lineNumber?: number) => void;
+  onOpenFile?: (filePath: string, lineNumber?: number) => boolean | void;
 }
 
 export interface PluginContribution {

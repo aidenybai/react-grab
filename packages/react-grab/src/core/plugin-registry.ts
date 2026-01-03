@@ -143,6 +143,25 @@ const createPluginRegistry = () => {
     }
   };
 
+  const callHookWithHandled = <K extends HookName>(
+    hookName: K,
+    ...args: Parameters<NonNullable<PluginHooks[K]>>
+  ): boolean => {
+    let handled = false;
+    for (const { contribution } of plugins.values()) {
+      const hook = contribution.hooks?.[hookName] as
+        | ((...hookArgs: Parameters<NonNullable<PluginHooks[K]>>) => boolean | void)
+        | undefined;
+      if (hook) {
+        const result = hook(...args);
+        if (result === true) {
+          handled = true;
+        }
+      }
+    }
+    return handled;
+  };
+
   const callHookAsync = async <K extends HookName>(
     hookName: K,
     ...args: Parameters<NonNullable<PluginHooks[K]>>
@@ -180,7 +199,7 @@ const createPluginRegistry = () => {
     onCrosshair: (visible: boolean, context: CrosshairContext) => callHook("onCrosshair", visible, context),
     onContextMenu: (element: Element, position: { x: number; y: number }) =>
       callHook("onContextMenu", element, position),
-    onOpenFile: (filePath: string, lineNumber?: number) => callHook("onOpenFile", filePath, lineNumber),
+    onOpenFile: (filePath: string, lineNumber?: number) => callHookWithHandled("onOpenFile", filePath, lineNumber),
   };
 
   return {
