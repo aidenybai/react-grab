@@ -5,14 +5,14 @@ interface ReactGrabLogoProps {
 }
 
 export const ReactGrabLogo = ({
-  width = 24,
-  height = 24,
+  width = 44,
+  height = 44,
   className,
 }: ReactGrabLogoProps) => (
   <svg
     width={width}
     height={height}
-    viewBox="0 0 360 360"
+    viewBox="0 0 330 330"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
     className={`react-grab-logo ${className ?? ""}`}

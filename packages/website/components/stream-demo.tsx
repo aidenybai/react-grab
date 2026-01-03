@@ -151,8 +151,8 @@ const getConversationBlocks = (): StreamBlock[] => [
         >
           <ReactGrabLogo
             key="logo"
-            width={42}
-            height={42}
+            width={44}
+            height={44}
             className="logo-shimmer-once"
           />
         </div>
