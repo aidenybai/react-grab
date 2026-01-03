@@ -38,7 +38,8 @@ if (typeof window !== "undefined" && !window.__REACT_GRAB__) {
     const { provider, getOptions, onStart, onComplete, onUndo } =
       createVisualEditAgentProvider({ apiEndpoint: "/api/visual-edit" });
 
-    api.setOptions({
+    api.registerPlugin({
+      name: "visual-edit-agent",
       agent: {
         provider,
         getOptions,
