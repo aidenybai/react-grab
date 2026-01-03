@@ -52,12 +52,13 @@ const captureVideoFrame = (
       return;
     }
 
-    const devicePixelRatio = window.devicePixelRatio || 1;
+    const scaleX = video.videoWidth / window.innerWidth;
+    const scaleY = video.videoHeight / window.innerHeight;
     const scaledBounds = {
-      x: bounds.x * devicePixelRatio,
-      y: bounds.y * devicePixelRatio,
-      width: bounds.width * devicePixelRatio,
-      height: bounds.height * devicePixelRatio,
+      x: bounds.x * scaleX,
+      y: bounds.y * scaleY,
+      width: bounds.width * scaleX,
+      height: bounds.height * scaleY,
     };
 
     canvas.width = scaledBounds.width;

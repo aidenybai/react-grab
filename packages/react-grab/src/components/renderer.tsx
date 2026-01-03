@@ -202,7 +202,12 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
               status={instance().status}
               error={instance().errorMessage}
               onShowContextMenu={
-                instance().status === "copied" || instance().status === "fading"
+                (instance().status === "copied" ||
+                  instance().status === "fading") &&
+                instance().element &&
+                (document.body ?? document.documentElement).contains(
+                  instance().element,
+                )
                   ? () => props.onShowContextMenuInstance?.(instance().id)
                   : undefined
               }
