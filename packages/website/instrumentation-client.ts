@@ -19,12 +19,17 @@ const isUserInAbusiveRegion = (): boolean => {
 };
 
 if (typeof window !== "undefined" && !window.__REACT_GRAB__) {
-  const api = init({
-    onActivate: () => {
-      window.dispatchEvent(new CustomEvent("react-grab:activated"));
-    },
-    onDeactivate: () => {
-      window.dispatchEvent(new CustomEvent("react-grab:deactivated"));
+  const api = init();
+
+  api.registerPlugin({
+    name: "website-events",
+    hooks: {
+      onActivate: () => {
+        window.dispatchEvent(new CustomEvent("react-grab:activated"));
+      },
+      onDeactivate: () => {
+        window.dispatchEvent(new CustomEvent("react-grab:deactivated"));
+      },
     },
   });
 
