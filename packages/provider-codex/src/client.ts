@@ -30,7 +30,7 @@ interface CodexAgentProviderOptions {
 }
 
 const isReactGrabApi = (value: unknown): value is ReactGrabAPI =>
-  typeof value === "object" && value !== null && "setOptions" in value;
+  typeof value === "object" && value !== null && "registerPlugin" in value;
 
 export const createCodexAgentProvider = (
   options: CodexAgentProviderOptions = {},
@@ -112,7 +112,10 @@ export const attachAgent = async () => {
   const provider = createCodexAgentProvider();
 
   const attach = (api: ReactGrabAPI) => {
-    api.setOptions({ agent: { provider, storage: sessionStorage } });
+    api.registerPlugin({
+      name: "codex-agent",
+      agent: { provider, storage: sessionStorage },
+    });
   };
 
   const existingApi = window.__REACT_GRAB__;

@@ -529,37 +529,124 @@ export default function RootLayout({ children }) {
 
 ## Extending React Grab
 
-React Grab provides an public customization API. Check out the [type definitions](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) to see all available options for extending React Grab.
+React Grab uses a plugin system to extend functionality. Check out the [type definitions](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) to see all available options.
+
+### Basic Usage
 
 ```typescript
 import { init } from "grab/core";
 
-const api = init({
-  theme: {
-    enabled: true, // disable all UI by setting to false
-    hue: 180, // shift colors by 180 degrees (pink → cyan/turquoise)
-    crosshair: {
-      enabled: false, // disable crosshair
-    },
-    elementLabel: {
-      enabled: false, // disable element label
-    },
-  },
+const api = init();
 
-  onElementSelect: (element) => {
-    console.log("Selected:", element);
-  },
-  onCopySuccess: (elements, content) => {
-    console.log("Copied to clipboard:", content);
-  },
-  onStateChange: (state) => {
-    console.log("Active:", state.isActive);
-  },
-});
-
+// Use the API
 api.activate();
 api.copyElement(document.querySelector(".my-element"));
 console.log(api.getState());
+```
+
+### Lifecycle Hooks Plugin
+
+Register a plugin with lifecycle hooks and custom context menu actions:
+
+```typescript
+api.registerPlugin({
+  name: "my-analytics-plugin",
+  theme: {
+    hue: 180, // shift colors (pink → cyan)
+    crosshair: { enabled: false },
+  },
+  hooks: {
+    onActivate: () => console.log("React Grab activated"),
+    onDeactivate: () => console.log("React Grab deactivated"),
+    onElementSelect: (element) => {
+      analytics.track("element_selected", { tagName: element.tagName });
+    },
+    onCopySuccess: (elements, content) => {
+      console.log(`Copied ${elements.length} elements`);
+    },
+  },
+  contextMenuActions: [
+    {
+      label: "Inspect in DevTools",
+      handler: ({ elements }) => {
+        console.log("Inspecting:", elements[0]);
+        // Custom action logic
+      },
+    },
+    {
+      label: "Export as JSON",
+      handler: ({ elements }) => {
+        const data = elements.map((el) => ({
+          tag: el.tagName,
+          classes: el.className,
+        }));
+        navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+      },
+    },
+  ],
+});
+```
+
+### Agent Plugin
+
+Create a custom agent that processes selected elements:
+
+```typescript
+api.registerPlugin({
+  name: "my-custom-agent",
+  agent: {
+    provider: {
+      async *send({ prompt, elements, content }) {
+        // Stream status updates to the UI
+        yield "Analyzing element...";
+
+        const response = await fetch("/api/ai", {
+          method: "POST",
+          body: JSON.stringify({ prompt, content }),
+        });
+
+        yield "Processing response...";
+
+        const result = await response.json();
+        yield `Done: ${result.message}`;
+      },
+    },
+  },
+});
+```
+
+### Plugin with Setup Function
+
+For more control, use a setup function that receives the API:
+
+```typescript
+api.registerPlugin({
+  name: "advanced-plugin",
+  setup: (api) => {
+    // Access the full API during setup
+    const cleanup = setupKeyboardShortcuts(api);
+
+    return {
+      hooks: {
+        onStateChange: (state) => {
+          if (state.isActive) {
+            document.body.classList.add("react-grab-active");
+          } else {
+            document.body.classList.remove("react-grab-active");
+          }
+        },
+      },
+      cleanup, // Called when plugin is unregistered
+    };
+  },
+});
+```
+
+### Unregistering Plugins
+
+```typescript
+api.unregisterPlugin("my-analytics-plugin");
+api.getPlugins(); // Returns array of registered plugin names
 ```
 
 ## Resources & Contributing Back

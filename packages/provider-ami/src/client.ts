@@ -250,7 +250,7 @@ const runAgent = async (
 };
 
 const isReactGrabApi = (value: unknown): value is ReactGrabAPI =>
-  typeof value === "object" && value !== null && "setOptions" in value;
+  typeof value === "object" && value !== null && "registerPlugin" in value;
 
 interface SessionData {
   messages: AmiUIMessage[];
@@ -550,7 +550,10 @@ export const attachAgent = async () => {
   const provider = createAmiAgentProvider();
 
   const attach = (api: ReactGrabAPI) => {
-    api.setOptions({ agent: { provider, storage: sessionStorage } });
+    api.registerPlugin({
+      name: "ami-agent",
+      agent: { provider, storage: sessionStorage },
+    });
   };
 
   const existingApi = window.__REACT_GRAB__;

@@ -979,10 +979,14 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     await page.evaluate((opts) => {
       const api = (
         window as {
-          __REACT_GRAB__?: { setOptions: (o: Record<string, unknown>) => void };
+          __REACT_GRAB__?: {
+            unregisterPlugin: (name: string) => void;
+            registerPlugin: (plugin: { name: string; agent: Record<string, unknown> }) => void;
+          };
         }
       ).__REACT_GRAB__;
-      api?.setOptions({ agent: opts });
+      api?.unregisterPlugin("test-agent");
+      api?.registerPlugin({ name: "test-agent", agent: opts });
     }, options);
     await page.waitForTimeout(100);
   };
@@ -993,10 +997,47 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         window as {
           __REACT_GRAB__?: {
             setOptions: (o: Record<string, unknown>) => void;
+            unregisterPlugin: (name: string) => void;
+            registerPlugin: (plugin: Record<string, unknown>) => void;
           };
         }
       ).__REACT_GRAB__;
-      api?.setOptions(opts);
+
+      const pluginKeys = ["theme", "agent", "contextMenuActions"];
+      const hookKeys = [
+        "onActivate", "onDeactivate", "onElementHover", "onElementSelect",
+        "onDragStart", "onDragEnd", "onBeforeCopy", "onAfterCopy",
+        "onCopySuccess", "onCopyError", "onStateChange", "onPromptModeChange",
+        "onSelectionBox", "onDragBox", "onCrosshair", "onGrabbedBox",
+        "onContextMenu", "onOpenFile", "onElementLabel",
+      ];
+
+      const pluginOpts: Record<string, unknown> = {};
+      const hooks: Record<string, unknown> = {};
+      const regularOpts: Record<string, unknown> = {};
+
+      for (const [key, value] of Object.entries(opts)) {
+        if (pluginKeys.includes(key)) {
+          pluginOpts[key] = value;
+        } else if (hookKeys.includes(key)) {
+          hooks[key] = value;
+        } else {
+          regularOpts[key] = value;
+        }
+      }
+
+      if (Object.keys(regularOpts).length > 0) {
+        api?.setOptions(regularOpts);
+      }
+
+      if (Object.keys(pluginOpts).length > 0 || Object.keys(hooks).length > 0) {
+        api?.unregisterPlugin("test-options");
+        api?.registerPlugin({
+          name: "test-options",
+          ...pluginOpts,
+          ...(Object.keys(hooks).length > 0 ? { hooks } : {}),
+        });
+      }
     }, options);
     await page.waitForTimeout(100);
   };
@@ -1051,10 +1092,14 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
       const api = (
         window as {
-          __REACT_GRAB__?: { setOptions: (o: Record<string, unknown>) => void };
+          __REACT_GRAB__?: {
+            unregisterPlugin: (name: string) => void;
+            registerPlugin: (plugin: { name: string; agent: Record<string, unknown> }) => void;
+          };
         }
       ).__REACT_GRAB__;
-      api?.setOptions({ agent: { provider: mockProvider } });
+      api?.unregisterPlugin("mock-agent");
+      api?.registerPlugin({ name: "mock-agent", agent: { provider: mockProvider } });
     }, options);
     await page.waitForTimeout(100);
   };
@@ -1390,29 +1435,34 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       const api = (
         window as {
           __REACT_GRAB__?: {
-            setOptions: (o: Record<string, unknown>) => void;
+            unregisterPlugin: (name: string) => void;
+            registerPlugin: (plugin: { name: string; hooks: Record<string, unknown> }) => void;
           };
         }
       ).__REACT_GRAB__;
-      api?.setOptions({
-        onActivate: trackCallback("onActivate"),
-        onDeactivate: trackCallback("onDeactivate"),
-        onElementHover: trackCallback("onElementHover"),
-        onElementSelect: trackCallback("onElementSelect"),
-        onDragStart: trackCallback("onDragStart"),
-        onDragEnd: trackCallback("onDragEnd"),
-        onBeforeCopy: trackCallback("onBeforeCopy"),
-        onAfterCopy: trackCallback("onAfterCopy"),
-        onCopySuccess: trackCallback("onCopySuccess"),
-        onCopyError: trackCallback("onCopyError"),
-        onStateChange: trackCallback("onStateChange"),
-        onPromptModeChange: trackCallback("onPromptModeChange"),
-        onSelectionBox: trackCallback("onSelectionBox"),
-        onDragBox: trackCallback("onDragBox"),
-        onCrosshair: trackCallback("onCrosshair"),
-        onGrabbedBox: trackCallback("onGrabbedBox"),
-        onContextMenu: trackCallback("onContextMenu"),
-        onOpenFile: trackCallback("onOpenFile"),
+      api?.unregisterPlugin("callback-tracking");
+      api?.registerPlugin({
+        name: "callback-tracking",
+        hooks: {
+          onActivate: trackCallback("onActivate"),
+          onDeactivate: trackCallback("onDeactivate"),
+          onElementHover: trackCallback("onElementHover"),
+          onElementSelect: trackCallback("onElementSelect"),
+          onDragStart: trackCallback("onDragStart"),
+          onDragEnd: trackCallback("onDragEnd"),
+          onBeforeCopy: trackCallback("onBeforeCopy"),
+          onAfterCopy: trackCallback("onAfterCopy"),
+          onCopySuccess: trackCallback("onCopySuccess"),
+          onCopyError: trackCallback("onCopyError"),
+          onStateChange: trackCallback("onStateChange"),
+          onPromptModeChange: trackCallback("onPromptModeChange"),
+          onSelectionBox: trackCallback("onSelectionBox"),
+          onDragBox: trackCallback("onDragBox"),
+          onCrosshair: trackCallback("onCrosshair"),
+          onGrabbedBox: trackCallback("onGrabbedBox"),
+          onContextMenu: trackCallback("onContextMenu"),
+          onOpenFile: trackCallback("onOpenFile"),
+        },
       });
     });
   };

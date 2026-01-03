@@ -207,16 +207,7 @@ export interface ContextMenuAction {
   onAction: (context: ContextMenuActionContext) => void;
 }
 
-export interface Options {
-  enabled?: boolean;
-  activationMode?: ActivationMode;
-  keyHoldDuration?: number;
-  allowActivationInsideInput?: boolean;
-  maxContextLines?: number;
-  theme?: Theme;
-  activationShortcut?: (event: KeyboardEvent) => boolean;
-  activationKey?: ActivationKey;
-  getContent?: (elements: Element[]) => Promise<string> | string;
+export interface PluginHooks {
   onActivate?: () => void;
   onDeactivate?: () => void;
   onElementHover?: (element: Element) => void;
@@ -228,36 +219,45 @@ export interface Options {
   onCopySuccess?: (elements: Element[], content: string) => void;
   onCopyError?: (error: Error) => void;
   onStateChange?: (state: ReactGrabState) => void;
-  onPromptModeChange?: (
-    isPromptMode: boolean,
-    context: PromptModeContext,
-  ) => void;
-  onSelectionBox?: (
-    visible: boolean,
-    bounds: OverlayBounds | null,
-    element: Element | null,
-  ) => void;
+  onPromptModeChange?: (isPromptMode: boolean, context: PromptModeContext) => void;
+  onSelectionBox?: (visible: boolean, bounds: OverlayBounds | null, element: Element | null) => void;
   onDragBox?: (visible: boolean, bounds: OverlayBounds | null) => void;
   onGrabbedBox?: (bounds: OverlayBounds, element: Element) => void;
-  onElementLabel?: (
-    visible: boolean,
-    variant: ElementLabelVariant,
-    context: ElementLabelContext,
-  ) => void;
+  onElementLabel?: (visible: boolean, variant: ElementLabelVariant, context: ElementLabelContext) => void;
   onCrosshair?: (visible: boolean, context: CrosshairContext) => void;
-  onContextMenu?: (
-    element: Element,
-    position: { x: number; y: number },
-  ) => void;
+  onContextMenu?: (element: Element, position: { x: number; y: number }) => void;
   onOpenFile?: (filePath: string, lineNumber?: number) => void;
-  agent?: AgentOptions;
-  contextMenuActions?: ContextMenuAction[];
 }
 
-export type SettableOptions = Omit<Options, "enabled" | "theme" | "agent"> & {
+export interface PluginContribution {
   theme?: DeepPartial<Theme>;
   agent?: Partial<AgentOptions>;
-};
+  contextMenuActions?: ContextMenuAction[];
+  hooks?: PluginHooks;
+  cleanup?: () => void;
+}
+
+export interface Plugin {
+  name: string;
+  theme?: DeepPartial<Theme>;
+  agent?: Partial<AgentOptions>;
+  contextMenuActions?: ContextMenuAction[];
+  hooks?: PluginHooks;
+  setup?: (api: ReactGrabAPI) => PluginContribution | void;
+}
+
+export interface Options {
+  enabled?: boolean;
+  activationMode?: ActivationMode;
+  keyHoldDuration?: number;
+  allowActivationInsideInput?: boolean;
+  maxContextLines?: number;
+  activationShortcut?: (event: KeyboardEvent) => boolean;
+  activationKey?: ActivationKey;
+  getContent?: (elements: Element[]) => Promise<string> | string;
+}
+
+export type SettableOptions = Omit<Options, "enabled">;
 
 export interface ReactGrabAPI {
   activate: () => void;
@@ -268,6 +268,9 @@ export interface ReactGrabAPI {
   copyElement: (elements: Element | Element[]) => Promise<boolean>;
   getState: () => ReactGrabState;
   setOptions: (options: SettableOptions) => void;
+  registerPlugin: (plugin: Plugin) => void;
+  unregisterPlugin: (name: string) => void;
+  getPlugins: () => string[];
 }
 
 export interface OverlayBounds {

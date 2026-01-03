@@ -21,5 +21,8 @@ export const createNoopApi = (): ReactGrabAPI => {
     copyElement: () => Promise.resolve(false),
     getState,
     setOptions: () => {},
+    registerPlugin: () => {},
+    unregisterPlugin: () => {},
+    getPlugins: () => [],
   };
 };

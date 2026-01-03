@@ -629,7 +629,7 @@ declare global {
 }
 
 const isReactGrabApi = (value: unknown): value is ReactGrabAPI =>
-  typeof value === "object" && value !== null && "setOptions" in value;
+  typeof value === "object" && value !== null && "registerPlugin" in value;
 
 const checkHealth = async (): Promise<boolean> => {
   const controller = new AbortController();
@@ -662,7 +662,8 @@ export const attachAgent = async () => {
     createVisualEditAgentProvider();
 
   const attach = (api: ReactGrabAPI) => {
-    api.setOptions({
+    api.registerPlugin({
+      name: "visual-edit-agent",
       agent: {
         provider,
         getOptions,

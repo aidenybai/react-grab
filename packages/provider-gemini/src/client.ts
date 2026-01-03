@@ -30,7 +30,7 @@ interface GeminiAgentProviderOptions {
 }
 
 const isReactGrabApi = (value: unknown): value is ReactGrabAPI =>
-  typeof value === "object" && value !== null && "setOptions" in value;
+  typeof value === "object" && value !== null && "registerPlugin" in value;
 
 export const createGeminiAgentProvider = (
   providerOptions: GeminiAgentProviderOptions = {},
@@ -118,7 +118,10 @@ export const attachAgent = async () => {
   const provider = createGeminiAgentProvider();
 
   const attach = (api: ReactGrabAPI) => {
-    api.setOptions({ agent: { provider, storage: sessionStorage } });
+    api.registerPlugin({
+      name: "gemini-agent",
+      agent: { provider, storage: sessionStorage },
+    });
   };
 
   const existingApi = window.__REACT_GRAB__;
