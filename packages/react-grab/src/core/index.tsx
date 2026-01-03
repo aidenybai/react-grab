@@ -2424,25 +2424,42 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       actions.setHasAgentProvider(Boolean(agentOpts?.provider));
       if (agentOpts?.provider) {
+        const capturedProvider = agentOpts.provider;
         actions.setAgentCapabilities({
-          supportsUndo: Boolean(agentOpts.provider.undo),
-          supportsFollowUp: Boolean(agentOpts.provider.supportsFollowUp),
-          dismissButtonText: agentOpts.provider.dismissButtonText,
+          supportsUndo: Boolean(capturedProvider.undo),
+          supportsFollowUp: Boolean(capturedProvider.supportsFollowUp),
+          dismissButtonText: capturedProvider.dismissButtonText,
           isAgentConnected: false,
         });
 
-        if (agentOpts.provider.checkConnection) {
-          void agentOpts.provider.checkConnection().then((connected) => {
-            actions.setAgentCapabilities({
-              supportsUndo: Boolean(agentOpts.provider?.undo),
-              supportsFollowUp: Boolean(agentOpts.provider?.supportsFollowUp),
-              dismissButtonText: agentOpts.provider?.dismissButtonText,
-              isAgentConnected: connected,
+        if (capturedProvider.checkConnection) {
+          capturedProvider
+            .checkConnection()
+            .then((isConnected) => {
+              const currentAgentOpts = getAgentOptionsWithCallbacks();
+              if (currentAgentOpts?.provider !== capturedProvider) {
+                return;
+              }
+              actions.setAgentCapabilities({
+                supportsUndo: Boolean(capturedProvider.undo),
+                supportsFollowUp: Boolean(capturedProvider.supportsFollowUp),
+                dismissButtonText: capturedProvider.dismissButtonText,
+                isAgentConnected: isConnected,
+              });
+            })
+            .catch(() => {
+              // Connection check failed - leave isAgentConnected as false
             });
-          });
         }
 
         agentManager.session.tryResume();
+      } else {
+        actions.setAgentCapabilities({
+          supportsUndo: false,
+          supportsFollowUp: false,
+          dismissButtonText: undefined,
+          isAgentConnected: false,
+        });
       }
     };
 
