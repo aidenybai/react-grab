@@ -1055,75 +1055,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    let pendingSingleClickCopy: ReturnType<typeof setTimeout> | null = null;
-
-    const cancelPendingSingleClickCopy = () => {
-      if (pendingSingleClickCopy) {
-        clearTimeout(pendingSingleClickCopy);
-        pendingSingleClickCopy = null;
-      }
-    };
-
-    let lastMouseUpTime = 0;
-    let lastMouseUpPosition = { x: 0, y: 0 };
-    const DOUBLE_CLICK_THRESHOLD_MS = 300;
-    const DOUBLE_CLICK_DISTANCE_PX = 10;
-
     const handleSingleClick = (clientX: number, clientY: number) => {
       const element = getElementAtPosition(clientX, clientY);
       if (!element) return;
 
       actions.setLastGrabbed(element);
-
-      // HACK: Detect double-click by tracking mouseup timing
-      if (hasAgentProvider()) {
-        const now = Date.now();
-        const timeSinceLastUp = now - lastMouseUpTime;
-        const distance = Math.sqrt(
-          Math.pow(clientX - lastMouseUpPosition.x, 2) +
-            Math.pow(clientY - lastMouseUpPosition.y, 2),
-        );
-
-        if (
-          timeSinceLastUp < DOUBLE_CLICK_THRESHOLD_MS &&
-          distance < DOUBLE_CLICK_DISTANCE_PX
-        ) {
-          // Double-click detected - enter prompt mode
-          cancelPendingSingleClickCopy();
-          if (pendingClickDeactivation) {
-            clearTimeout(pendingClickDeactivation);
-            pendingClickDeactivation = null;
-          }
-          preparePromptMode(element, clientX, clientY);
-          actions.setPointer({ x: clientX, y: clientY });
-          actions.setFrozenElement(element);
-          activatePromptMode();
-          lastMouseUpTime = 0;
-          return;
-        }
-
-        lastMouseUpTime = now;
-        lastMouseUpPosition = { x: clientX, y: clientY };
-
-        // Delay copy to allow for double-click detection
-        cancelPendingSingleClickCopy();
-        pendingSingleClickCopy = setTimeout(() => {
-          pendingSingleClickCopy = null;
-          if (!isPromptMode()) {
-            performCopyWithLabel({
-              element,
-              positionX: clientX,
-              positionY: clientY,
-            });
-          }
-        }, 300);
-      } else {
-        performCopyWithLabel({
-          element,
-          positionX: clientX,
-          positionY: clientY,
-        });
-      }
+      performCopyWithLabel({
+        element,
+        positionX: clientX,
+        positionY: clientY,
+      });
     };
 
     const handlePointerUp = (clientX: number, clientY: number) => {
@@ -1751,8 +1692,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       );
     });
 
-    let pendingClickDeactivation: ReturnType<typeof setTimeout> | null = null;
-
     eventListenerManager.addWindowListener(
       "click",
       (event: MouseEvent) => {
@@ -1765,55 +1704,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
           if (store.wasActivatedByToggle && !isCopying() && !isPromptMode()) {
             if (!isHoldingKeys()) {
-              // HACK: When agent is configured, delay deactivation to allow for double-click detection
-              if (hasAgentProvider()) {
-                if (pendingClickDeactivation) {
-                  clearTimeout(pendingClickDeactivation);
-                }
-                pendingClickDeactivation = setTimeout(() => {
-                  pendingClickDeactivation = null;
-                  if (!isPromptMode()) {
-                    deactivateRenderer();
-                  }
-                }, 300);
-              } else {
-                deactivateRenderer();
-              }
+              deactivateRenderer();
             } else {
               actions.setWasActivatedByToggle(false);
             }
           }
         }
-      },
-      { capture: true },
-    );
-
-    eventListenerManager.addWindowListener(
-      "dblclick",
-      (event: MouseEvent) => {
-        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        if (store.contextMenuPosition !== null) return;
-        if (!hasAgentProvider()) return;
-        if (isPromptMode()) return;
-        if (!isRendererActive()) return;
-
-        // HACK: Cancel pending single-click copy and deactivation
-        cancelPendingSingleClickCopy();
-        if (pendingClickDeactivation) {
-          clearTimeout(pendingClickDeactivation);
-          pendingClickDeactivation = null;
-        }
-
-        event.preventDefault();
-        event.stopPropagation();
-
-        const element = getElementAtPosition(event.clientX, event.clientY);
-        if (!element) return;
-
-        preparePromptMode(element, event.clientX, event.clientY);
-        actions.setPointer({ x: event.clientX, y: event.clientY });
-        actions.setFrozenElement(element);
-        activatePromptMode();
       },
       { capture: true },
     );

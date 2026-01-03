@@ -3,7 +3,6 @@ import { test as base, expect, Page, Locator } from "@playwright/test";
 const ATTRIBUTE_NAME = "data-react-grab";
 const DEFAULT_KEY_HOLD_DURATION_MS = 200;
 const ACTIVATION_BUFFER_MS = 100;
-const DOUBLE_CLICK_DELAY_MS = 50;
 
 interface ContextMenuInfo {
   isVisible: boolean;
@@ -69,7 +68,6 @@ interface ReactGrabPageObject {
   getShadowRoot: () => Promise<Element | null>;
   hoverElement: (selector: string) => Promise<void>;
   clickElement: (selector: string) => Promise<void>;
-  doubleClickElement: (selector: string) => Promise<void>;
   rightClickElement: (selector: string) => Promise<void>;
   rightClickAtPosition: (x: number, y: number) => Promise<void>;
   dragSelect: (startSelector: string, endSelector: string) => Promise<void>;
@@ -314,16 +312,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     await page.waitForTimeout(50);
   };
 
-  const doubleClickElement = async (selector: string) => {
-    const element = page.locator(selector).first();
-    const box = await element.boundingBox();
-    if (!box) throw new Error("Could not get bounding box for double-click");
-    const x = box.x + box.width / 2;
-    const y = box.y + box.height / 2;
-    await page.mouse.dblclick(x, y);
-    await page.waitForTimeout(DOUBLE_CLICK_DELAY_MS);
-  };
-
   const rightClickElement = async (selector: string) => {
     const element = page.locator(selector).first();
     await element.click({ button: "right", force: true });
@@ -462,7 +450,9 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     await activate();
     await hoverElement(selector);
     await waitForSelectionBox();
-    await doubleClickElement(selector);
+    await rightClickElement(selector);
+    await page.waitForTimeout(100);
+    await clickContextMenuItem("Edit");
     await page.waitForTimeout(100);
   };
 
@@ -1524,7 +1514,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     getShadowRoot,
     hoverElement,
     clickElement,
-    doubleClickElement,
     rightClickElement,
     rightClickAtPosition,
     dragSelect,

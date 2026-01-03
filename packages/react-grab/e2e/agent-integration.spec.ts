@@ -4,12 +4,7 @@ test.describe("Agent Integration", () => {
   test.describe("Agent Provider Setup", () => {
     test("should configure mock agent provider", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent();
-
-      await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
-
-      await reactGrab.doubleClickElement("li:first-child");
+      await reactGrab.enterPromptMode("li:first-child");
       await reactGrab.page.waitForTimeout(200);
 
       const isPromptMode = await reactGrab.isPromptModeActive();
@@ -20,12 +15,7 @@ test.describe("Agent Integration", () => {
       reactGrab,
     }) => {
       await reactGrab.setupMockAgent({ delay: 1000 });
-
-      await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
-
-      await reactGrab.doubleClickElement("li:first-child");
+      await reactGrab.enterPromptMode("li:first-child");
       await reactGrab.page.waitForTimeout(200);
 
       const isPromptMode = await reactGrab.isPromptModeActive();
@@ -37,11 +27,7 @@ test.describe("Agent Integration", () => {
         delay: 500,
         statusUpdates: ["Starting...", "Processing...", "Finishing..."],
       });
-
-      await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
-      await reactGrab.doubleClickElement("li:first-child");
+      await reactGrab.enterPromptMode("li:first-child");
       await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Test prompt");
@@ -56,10 +42,7 @@ test.describe("Agent Integration", () => {
   test.describe("Session Lifecycle", () => {
     test("should start session on input submit", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 1000 });
-      await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
-      await reactGrab.doubleClickElement("li:first-child");
+      await reactGrab.enterPromptMode("li:first-child");
       await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Analyze this element");
@@ -74,10 +57,7 @@ test.describe("Agent Integration", () => {
       reactGrab,
     }) => {
       await reactGrab.setupMockAgent({ delay: 2000 });
-      await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
-      await reactGrab.doubleClickElement("li:first-child");
+      await reactGrab.enterPromptMode("li:first-child");
       await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Test prompt");
@@ -91,10 +71,7 @@ test.describe("Agent Integration", () => {
 
     test("should complete session after processing", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 300 });
-      await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
-      await reactGrab.doubleClickElement("li:first-child");
+      await reactGrab.enterPromptMode("li:first-child");
       await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Quick test");
@@ -108,10 +85,7 @@ test.describe("Agent Integration", () => {
 
     test("should display completion message", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 200 });
-      await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
-      await reactGrab.doubleClickElement("li:first-child");
+      await reactGrab.enterPromptMode("li:first-child");
       await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Test");
@@ -131,10 +105,7 @@ test.describe("Agent Integration", () => {
         delay: 200,
         error: "Test error message",
       });
-      await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
-      await reactGrab.doubleClickElement("li:first-child");
+      await reactGrab.enterPromptMode("li:first-child");
       await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Trigger error");
@@ -154,10 +125,7 @@ test.describe("Agent Integration", () => {
 
     test("should show retry option on error", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 100, error: "Error occurred" });
-      await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
-      await reactGrab.doubleClickElement("li:first-child");
+      await reactGrab.enterPromptMode("li:first-child");
       await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Test");
@@ -180,10 +148,7 @@ test.describe("Agent Integration", () => {
   test.describe("Session Actions", () => {
     test("should dismiss session", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 100 });
-      await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
-      await reactGrab.doubleClickElement("li:first-child");
+      await reactGrab.enterPromptMode("li:first-child");
       await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Test");
@@ -201,10 +166,7 @@ test.describe("Agent Integration", () => {
 
     test("should abort streaming session", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 5000 });
-      await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
-      await reactGrab.doubleClickElement("li:first-child");
+      await reactGrab.enterPromptMode("li:first-child");
       await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Long running task");
@@ -234,10 +196,7 @@ test.describe("Agent Integration", () => {
 
     test("should confirm abort", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 5000 });
-      await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
-      await reactGrab.doubleClickElement("li:first-child");
+      await reactGrab.enterPromptMode("li:first-child");
       await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Long task");
@@ -258,10 +217,7 @@ test.describe("Agent Integration", () => {
 
     test("should cancel abort", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 5000 });
-      await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
-      await reactGrab.doubleClickElement("li:first-child");
+      await reactGrab.enterPromptMode("li:first-child");
       await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Long task");
@@ -284,10 +240,7 @@ test.describe("Agent Integration", () => {
   test.describe("Undo/Redo Operations", () => {
     test("should support undo after completion", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 100 });
-      await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
-      await reactGrab.doubleClickElement("li:first-child");
+      await reactGrab.enterPromptMode("li:first-child");
       await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Test");
@@ -309,10 +262,7 @@ test.describe("Agent Integration", () => {
 
     test("should trigger undo via keyboard shortcut", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 100 });
-      await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
-      await reactGrab.doubleClickElement("li:first-child");
+      await reactGrab.enterPromptMode("li:first-child");
       await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Test");
@@ -337,10 +287,7 @@ test.describe("Agent Integration", () => {
       reactGrab,
     }) => {
       await reactGrab.setupMockAgent({ delay: 100 });
-      await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
-      await reactGrab.doubleClickElement("li:first-child");
+      await reactGrab.enterPromptMode("li:first-child");
       await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Initial prompt");
@@ -366,11 +313,7 @@ test.describe("Agent Integration", () => {
       reactGrab,
     }) => {
       await reactGrab.setupMockAgent({ delay: 500 });
-      await reactGrab.activate();
-
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
-      await reactGrab.doubleClickElement("li:first-child");
+      await reactGrab.enterPromptMode("li:first-child");
       await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("First element");
@@ -386,10 +329,7 @@ test.describe("Agent Integration", () => {
   test.describe("Session State Persistence", () => {
     test("session should update bounds on scroll", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 2000 });
-      await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
-      await reactGrab.doubleClickElement("li:first-child");
+      await reactGrab.enterPromptMode("li:first-child");
       await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Test scroll");
@@ -406,10 +346,7 @@ test.describe("Agent Integration", () => {
 
     test("session should update bounds on resize", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 2000 });
-      await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
-      await reactGrab.doubleClickElement("li:first-child");
+      await reactGrab.enterPromptMode("li:first-child");
       await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Test resize");
@@ -430,10 +367,7 @@ test.describe("Agent Integration", () => {
   test.describe("Edge Cases", () => {
     test("should handle empty prompt submission", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 100 });
-      await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
-      await reactGrab.doubleClickElement("li:first-child");
+      await reactGrab.enterPromptMode("li:first-child");
       await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.submitInput();
@@ -447,10 +381,7 @@ test.describe("Agent Integration", () => {
       await reactGrab.setupMockAgent({ delay: 100 });
 
       for (let i = 0; i < 3; i++) {
-        await reactGrab.activate();
-        await reactGrab.hoverElement("li:first-child");
-        await reactGrab.waitForSelectionBox();
-        await reactGrab.doubleClickElement("li:first-child");
+        await reactGrab.enterPromptMode("li:first-child");
         await reactGrab.page.waitForTimeout(100);
 
         await reactGrab.typeInInput(`Prompt ${i}`);
