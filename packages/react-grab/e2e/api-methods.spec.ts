@@ -188,39 +188,11 @@ test.describe("API Methods", () => {
     });
   });
 
-  test.describe("Theme APIs", () => {
-    test("getTheme() should return current theme", async ({ reactGrab }) => {
-      const theme = await reactGrab.getTheme();
-
-      expect(theme).toBeDefined();
-      expect(typeof theme).toBe("object");
-      expect(theme.enabled).toBeDefined();
-    });
-
-    test("updateTheme() should update theme properties", async ({
+  test.describe("Theme via setOptions", () => {
+    test("setOptions({ theme }) should apply hue rotation filter", async ({
       reactGrab,
     }) => {
-      await reactGrab.updateTheme({ hue: 180 });
-
-      const theme = await reactGrab.getTheme();
-      expect(theme.hue).toBe(180);
-    });
-
-    test("updateTheme() should support partial updates", async ({
-      reactGrab,
-    }) => {
-      const originalTheme = await reactGrab.getTheme();
-
-      await reactGrab.updateTheme({ crosshair: { enabled: false } });
-
-      const updatedTheme = await reactGrab.getTheme();
-      expect(updatedTheme.enabled).toBe(originalTheme.enabled);
-    });
-
-    test("updateTheme() should apply hue rotation filter", async ({
-      reactGrab,
-    }) => {
-      await reactGrab.updateTheme({ hue: 90 });
+      await reactGrab.updateOptions({ theme: { hue: 90 } });
       await reactGrab.activate();
 
       const hasFilter = await reactGrab.page.evaluate(() => {
@@ -235,12 +207,23 @@ test.describe("API Methods", () => {
       expect(hasFilter).toBe(true);
     });
 
-    test("multiple theme updates should accumulate", async ({ reactGrab }) => {
-      await reactGrab.updateTheme({ hue: 45 });
-      await reactGrab.updateTheme({ crosshair: { enabled: false } });
+    test("multiple theme updates via setOptions should accumulate", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.updateOptions({ theme: { hue: 45 } });
+      await reactGrab.updateOptions({ theme: { crosshair: { enabled: false } } });
+      await reactGrab.activate();
 
-      const theme = await reactGrab.getTheme();
-      expect(theme.hue).toBe(45);
+      const hasFilter = await reactGrab.page.evaluate(() => {
+        const host = document.querySelector("[data-react-grab]");
+        const shadowRoot = host?.shadowRoot;
+        const root = shadowRoot?.querySelector(
+          "[data-react-grab]",
+        ) as HTMLElement;
+        return root?.style.filter?.includes("hue-rotate(45deg)") ?? false;
+      });
+
+      expect(hasFilter).toBe(true);
     });
   });
 
@@ -424,13 +407,20 @@ test.describe("API Methods", () => {
     test("theme should persist across activation cycles", async ({
       reactGrab,
     }) => {
-      await reactGrab.updateTheme({ hue: 120 });
+      await reactGrab.updateOptions({ theme: { hue: 120 } });
       await reactGrab.activate();
       await reactGrab.deactivate();
       await reactGrab.activate();
 
-      const theme = await reactGrab.getTheme();
-      expect(theme.hue).toBe(120);
+      const hasFilter = await reactGrab.page.evaluate(() => {
+        const host = document.querySelector("[data-react-grab]");
+        const shadowRoot = host?.shadowRoot;
+        const root = shadowRoot?.querySelector(
+          "[data-react-grab]",
+        ) as HTMLElement;
+        return root?.style.filter?.includes("hue-rotate(120deg)") ?? false;
+      });
+      expect(hasFilter).toBe(true);
     });
   });
 });

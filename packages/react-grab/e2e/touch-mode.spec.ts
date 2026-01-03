@@ -57,7 +57,7 @@ test.describe("Touch Mode", () => {
 
   test.describe("Touch Mode Behavior", () => {
     test("crosshair should be hidden in touch mode", async ({ reactGrab }) => {
-      await reactGrab.updateTheme({ crosshair: { enabled: true } });
+      await reactGrab.updateOptions({ theme: { crosshair: { enabled: true } } });
       await reactGrab.activate();
 
       const listItem = reactGrab.page.locator("li").first();
@@ -70,8 +70,8 @@ test.describe("Touch Mode", () => {
       );
       await reactGrab.page.waitForTimeout(100);
 
-      const theme = await reactGrab.getTheme();
-      expect(theme.crosshair).toBeDefined();
+      const isCrosshairVisible = await reactGrab.isCrosshairVisible();
+      expect(isCrosshairVisible).toBe(false);
     });
 
     test("touch events should update pointer position", async ({

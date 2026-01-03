@@ -1,7 +1,6 @@
 // @ts-expect-error - CSS imported as text via tsup loader
 import cssText from "../../dist/styles.css";
 import {
-  createSignal,
   createMemo,
   createRoot,
   onCleanup,
@@ -55,15 +54,12 @@ import type {
   GrabbedBox,
   ReactGrabAPI,
   ReactGrabState,
-  DeepPartial,
-  Theme,
   SelectionLabelInstance,
   AgentSession,
-  ContextMenuAction,
   ContextMenuActionContext,
   SettableOptions,
 } from "../types.js";
-import { mergeTheme, deepMergeTheme } from "./theme.js";
+import { mergeTheme } from "./theme.js";
 import { createAgentManager } from "./agent/index.js";
 import { createOptionsStore } from "./options-store.js";
 import { createArrowNavigator } from "./arrow-navigation.js";
@@ -81,7 +77,7 @@ let hasInited = false;
 
 export const init = (rawOptions?: Options): ReactGrabAPI => {
   if (typeof window === "undefined") {
-    return createNoopApi(mergeTheme(rawOptions?.theme));
+    return createNoopApi();
   }
 
   const scriptOptions = getScriptOptions();
@@ -99,16 +95,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   const mergedTheme = mergeTheme(initialOptions.theme);
 
   if (initialOptions.enabled === false || hasInited) {
-    return createNoopApi(mergedTheme);
+    return createNoopApi();
   }
   hasInited = true;
 
   logIntro();
 
   return createRoot((dispose) => {
-    const [theme, setTheme] = createSignal(mergedTheme);
-
-    const optionsStore = createOptionsStore(initialOptions);
+    const optionsStore = createOptionsStore({
+      ...initialOptions,
+      theme: mergedTheme,
+    });
 
     const { store, actions } = createGrabStore({
       theme: mergedTheme,
@@ -388,7 +385,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       for (const element of targetElements) {
         optionsStore.callbacks.onElementSelect?.(element);
-        if (theme().grabbedBoxes.enabled) {
+        if (optionsStore.store.theme.grabbedBoxes.enabled) {
           showTemporaryGrabbedBox(createElementBounds(element), element);
         }
       }
@@ -1857,7 +1854,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const startBoundsRecalcIntervalIfNeeded = () => {
       const shouldRunInterval =
-        theme().enabled &&
+        optionsStore.store.theme.enabled &&
         (isActivated() ||
           isCopying() ||
           store.labelInstances.length > 0 ||
@@ -1885,7 +1882,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     createEffect(() => {
-      void theme().enabled;
+      void optionsStore.store.theme.enabled;
       void isActivated();
       void isCopying();
       void store.labelInstances.length;
@@ -1934,7 +1931,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       themeKey: "selectionBox" | "elementLabel",
     ) =>
       createMemo(() => {
-        if (!theme()[themeKey].enabled) return false;
+        if (!optionsStore.store.theme.enabled) return false;
+        if (!optionsStore.store.theme[themeKey].enabled) return false;
         if (didJustCopy()) return false;
         return (
           isRendererActive() && !isDragging() && Boolean(effectiveElement())
@@ -1960,13 +1958,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const selectionLabelVisible = createMemo(() => {
       if (store.contextMenuPosition !== null) return false;
-      if (!theme().elementLabel.enabled) return false;
+      if (!optionsStore.store.theme.elementLabel.enabled) return false;
       if (didJustCopy()) return false;
       return isRendererActive() && !isDragging() && Boolean(effectiveElement());
     });
 
     const labelInstanceCache = new Map<string, SelectionLabelInstance>();
     const computedLabelInstances = createMemo(() => {
+      if (!optionsStore.store.theme.enabled) return [];
+      if (!optionsStore.store.theme.grabbedBoxes.enabled) return [];
       void store.viewportVersion;
       const currentIds = new Set(store.labelInstances.map((i) => i.id));
       for (const cachedId of labelInstanceCache.keys()) {
@@ -2001,6 +2001,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const computedGrabbedBoxes = createMemo(() => {
+      if (!optionsStore.store.theme.enabled) return [];
+      if (!optionsStore.store.theme.grabbedBoxes.enabled) return [];
       void store.viewportVersion;
       return store.grabbedBoxes.map((box) => {
         if (!box.element || !document.body.contains(box.element)) {
@@ -2015,7 +2017,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const dragVisible = createMemo(
       () =>
-        theme().dragBox.enabled &&
+        optionsStore.store.theme.enabled &&
+        optionsStore.store.theme.dragBox.enabled &&
         isRendererActive() &&
         isDraggingBeyondThreshold(),
     );
@@ -2025,7 +2028,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const labelVisible = createMemo(() => {
-      const themeEnabled = theme().elementLabel.enabled;
+      if (!optionsStore.store.theme.enabled) return false;
+      const themeEnabled = optionsStore.store.theme.elementLabel.enabled;
       const inPromptMode = isPromptMode();
       const copying = isCopying();
       const rendererActive = isRendererActive();
@@ -2040,7 +2044,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const crosshairVisible = createMemo(
       () =>
-        theme().crosshair.enabled &&
+        optionsStore.store.theme.enabled &&
+        optionsStore.store.theme.crosshair.enabled &&
         isRendererActive() &&
         !isDragging() &&
         !store.isTouchMode &&
@@ -2315,17 +2320,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, 0);
     };
 
-    createEffect(
-      on(theme, (currentTheme) => {
-        if (currentTheme.hue !== 0) {
-          rendererRoot.style.filter = `hue-rotate(${currentTheme.hue}deg)`;
-        } else {
-          rendererRoot.style.filter = "";
-        }
-      }),
-    );
+    createEffect(() => {
+      const hue = optionsStore.store.theme.hue;
+      if (hue !== 0) {
+        rendererRoot.style.filter = `hue-rotate(${hue}deg)`;
+      } else {
+        rendererRoot.style.filter = "";
+      }
+    });
 
-    if (theme().enabled) {
+    if (optionsStore.store.theme.enabled) {
       render(
         () => (
           <ReactGrabRenderer
@@ -2342,9 +2346,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             labelInstances={computedLabelInstances()}
             dragVisible={dragVisible()}
             dragBounds={dragBounds()}
-            grabbedBoxes={
-              theme().grabbedBoxes.enabled ? computedGrabbedBoxes() : []
-            }
+            grabbedBoxes={computedGrabbedBoxes()}
             labelZIndex={Z_INDEX_LABEL}
             mouseX={cursorPosition().x}
             mouseY={cursorPosition().y}
@@ -2376,8 +2378,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               actions.setPendingAbortSessionId(sessionId)
             }
             onAbortSession={handleAgentAbort}
-            theme={theme()}
-            toolbarVisible={theme().toolbar.enabled}
+            theme={optionsStore.store.theme}
+            toolbarVisible={optionsStore.store.theme.toolbar.enabled}
             isActive={isActivated()}
             onToggleActive={handleToggleActive}
             contextMenuPosition={contextMenuPosition()}
@@ -2445,13 +2447,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         targetElement: targetElement(),
         dragBounds: dragBounds() ?? null,
       }),
-      updateTheme: (partialTheme: DeepPartial<Theme>) => {
-        const currentTheme = theme();
-        const updatedTheme = deepMergeTheme(currentTheme, partialTheme);
-        setTheme(updatedTheme);
-      },
-      getTheme: () => theme(),
-      setOptions: (newOptions: Partial<SettableOptions>) => {
+      setOptions: (newOptions: SettableOptions) => {
         optionsStore.setOptions(newOptions);
 
         if (newOptions.agent !== undefined) {
@@ -2484,12 +2480,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             agentManager.session.tryResume();
           }
         }
-      },
-      registerContextMenuAction: (action: ContextMenuAction) => {
-        optionsStore.registerContextMenuAction(action);
-      },
-      unregisterContextMenuAction: (actionId: string) => {
-        optionsStore.unregisterContextMenuAction(actionId);
       },
     };
   });

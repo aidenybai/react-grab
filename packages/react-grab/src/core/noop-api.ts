@@ -1,6 +1,6 @@
-import type { ReactGrabAPI, ReactGrabState, Theme } from "../types.js";
+import type { ReactGrabAPI, ReactGrabState } from "../types.js";
 
-export const createNoopApi = (theme: Required<Theme>): ReactGrabAPI => {
+export const createNoopApi = (): ReactGrabAPI => {
   const getState = (): ReactGrabState => {
     return {
       isActive: false,
@@ -20,10 +20,6 @@ export const createNoopApi = (theme: Required<Theme>): ReactGrabAPI => {
     dispose: () => {},
     copyElement: () => Promise.resolve(false),
     getState,
-    updateTheme: () => {},
-    getTheme: () => theme,
     setOptions: () => {},
-    registerContextMenuAction: () => {},
-    unregisterContextMenuAction: () => {},
   };
 };

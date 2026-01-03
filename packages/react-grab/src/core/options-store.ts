@@ -11,8 +11,11 @@ import type {
   ElementLabelContext,
   DragRect,
   ContextMenuAction,
+  Theme,
+  DeepPartial,
 } from "../types.js";
 import { DEFAULT_KEY_HOLD_DURATION_MS } from "../constants.js";
+import { deepMergeTheme } from "./theme.js";
 
 interface OptionsStoreState {
   activationMode: ActivationMode;
@@ -24,6 +27,7 @@ interface OptionsStoreState {
   getContent: ((elements: Element[]) => Promise<string> | string) | undefined;
   contextMenuActions: ContextMenuAction[];
   agent: AgentOptions | undefined;
+  theme: Required<Theme>;
 }
 
 interface CallbacksState {
@@ -70,6 +74,8 @@ interface CallbacksState {
   onOpenFile: ((filePath: string, lineNumber?: number) => void) | undefined;
 }
 
+const isCallbackKey = (key: string): boolean => key.startsWith("on");
+
 interface OptionsStoreInput {
   activationMode?: ActivationMode;
   keyHoldDuration?: number;
@@ -80,6 +86,7 @@ interface OptionsStoreInput {
   getContent?: (elements: Element[]) => Promise<string> | string;
   contextMenuActions?: ContextMenuAction[];
   agent?: AgentOptions;
+  theme: Required<Theme>;
   onActivate?: () => void;
   onDeactivate?: () => void;
   onElementHover?: (element: Element) => void;
@@ -115,85 +122,45 @@ interface OptionsStoreInput {
   onOpenFile?: (filePath: string, lineNumber?: number) => void;
 }
 
-type SettableKeys = keyof OptionsStoreState | keyof CallbacksState;
-
-const createOptionsStore = (input: OptionsStoreInput) => {
-  const [store, setStore] = createStore<OptionsStoreState>({
-    activationMode: input.activationMode ?? "toggle",
-    keyHoldDuration: input.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS,
-    allowActivationInsideInput: input.allowActivationInsideInput ?? true,
-    maxContextLines: input.maxContextLines ?? 3,
-    activationShortcut: input.activationShortcut,
-    activationKey: input.activationKey,
-    getContent: input.getContent,
-    contextMenuActions: input.contextMenuActions ?? [],
-    agent: input.agent,
+const createOptionsStore = (initialOptions: OptionsStoreInput) => {
+  const [optionsState, setOptionsState] = createStore<OptionsStoreState>({
+    activationMode: initialOptions.activationMode ?? "toggle",
+    keyHoldDuration: initialOptions.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS,
+    allowActivationInsideInput: initialOptions.allowActivationInsideInput ?? true,
+    maxContextLines: initialOptions.maxContextLines ?? 3,
+    activationShortcut: initialOptions.activationShortcut,
+    activationKey: initialOptions.activationKey,
+    getContent: initialOptions.getContent,
+    contextMenuActions: initialOptions.contextMenuActions ?? [],
+    agent: initialOptions.agent,
+    theme: initialOptions.theme,
   });
 
-  // HACK: Store callbacks in a regular object to avoid SolidJS store proxy issues with functions
-  const callbacks: CallbacksState = {
-    onActivate: input.onActivate,
-    onDeactivate: input.onDeactivate,
-    onElementHover: input.onElementHover,
-    onElementSelect: input.onElementSelect,
-    onDragStart: input.onDragStart,
-    onDragEnd: input.onDragEnd,
-    onBeforeCopy: input.onBeforeCopy,
-    onAfterCopy: input.onAfterCopy,
-    onCopySuccess: input.onCopySuccess,
-    onCopyError: input.onCopyError,
-    onStateChange: input.onStateChange,
-    onPromptModeChange: input.onPromptModeChange,
-    onSelectionBox: input.onSelectionBox,
-    onDragBox: input.onDragBox,
-    onGrabbedBox: input.onGrabbedBox,
-    onElementLabel: input.onElementLabel,
-    onCrosshair: input.onCrosshair,
-    onContextMenu: input.onContextMenu,
-    onOpenFile: input.onOpenFile,
-  };
+  // HACK: store callbacks in a regular object to avoid SolidJS store proxy issues with functions
+  const callbackHandlers = Object.fromEntries(
+    Object.entries(initialOptions).filter(([optionKey]) => isCallbackKey(optionKey)),
+  ) as CallbacksState;
 
-  const callbackKeys = new Set<string>(Object.keys(callbacks));
+  const setOptions = (optionUpdates: Partial<Omit<OptionsStoreInput, "theme" | "agent">> & { theme?: DeepPartial<Theme>; agent?: Partial<AgentOptions> }) => {
+    if (optionUpdates.theme) setOptionsState("theme", deepMergeTheme(optionsState.theme, optionUpdates.theme));
+    if (optionUpdates.agent) setOptionsState("agent", { ...optionsState.agent, ...optionUpdates.agent });
 
-  const setOptions = (partial: Partial<OptionsStoreInput>) => {
-    for (const key of Object.keys(partial) as SettableKeys[]) {
-      if (partial[key] !== undefined) {
-        if (callbackKeys.has(key)) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (callbacks as any)[key] = partial[key];
-        } else {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          setStore(key as keyof OptionsStoreState, partial[key] as any);
-        }
+    for (const [optionKey, optionValue] of Object.entries(optionUpdates)) {
+      if (optionKey === "theme" || optionKey === "agent" || optionValue === undefined) continue;
+
+      if (isCallbackKey(optionKey)) {
+        Object.assign(callbackHandlers, { [optionKey]: optionValue });
+      } else {
+        setOptionsState(optionKey as keyof OptionsStoreState, optionValue as OptionsStoreState[keyof OptionsStoreState]);
       }
     }
   };
 
-  const registerContextMenuAction = (action: ContextMenuAction) => {
-    setStore("contextMenuActions", (actions) => {
-      const existingIndex = actions.findIndex((a) => a.id === action.id);
-      if (existingIndex !== -1) {
-        const updated = [...actions];
-        updated[existingIndex] = action;
-        return updated;
-      }
-      return [...actions, action];
-    });
-  };
-
-  const unregisterContextMenuAction = (actionId: string) => {
-    setStore("contextMenuActions", (actions) =>
-      actions.filter((a) => a.id !== actionId),
-    );
-  };
-
   return {
-    store,
-    callbacks,
-    setStore,
+    store: optionsState,
+    callbacks: callbackHandlers,
+    setStore: setOptionsState,
     setOptions,
-    registerContextMenuAction,
-    unregisterContextMenuAction,
   };
 };
 

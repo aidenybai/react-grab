@@ -1,5 +1,9 @@
 export type DeepPartial<T> = {
-  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
+  [P in keyof T]?: T[P] extends object
+    ? T[P] extends (...args: unknown[]) => unknown
+      ? T[P]
+      : DeepPartial<T[P]>
+    : T[P];
 };
 
 export interface Theme {
@@ -250,7 +254,10 @@ export interface Options {
   contextMenuActions?: ContextMenuAction[];
 }
 
-export type SettableOptions = Omit<Options, "enabled" | "theme">;
+export type SettableOptions = Omit<Options, "enabled" | "theme" | "agent"> & {
+  theme?: DeepPartial<Theme>;
+  agent?: Partial<AgentOptions>;
+};
 
 export interface ReactGrabAPI {
   activate: () => void;
@@ -260,11 +267,7 @@ export interface ReactGrabAPI {
   dispose: () => void;
   copyElement: (elements: Element | Element[]) => Promise<boolean>;
   getState: () => ReactGrabState;
-  updateTheme: (theme: DeepPartial<Theme>) => void;
-  getTheme: () => Required<Theme>;
-  setOptions: (options: Partial<SettableOptions>) => void;
-  registerContextMenuAction: (action: ContextMenuAction) => void;
-  unregisterContextMenuAction: (actionId: string) => void;
+  setOptions: (options: SettableOptions) => void;
 }
 
 export interface OverlayBounds {

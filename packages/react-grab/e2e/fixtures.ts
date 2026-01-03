@@ -130,8 +130,6 @@ interface ReactGrabPageObject {
   toggle: () => Promise<void>;
   dispose: () => Promise<void>;
   copyElementViaApi: (selector: string) => Promise<boolean>;
-  updateTheme: (theme: Record<string, unknown>) => Promise<void>;
-  getTheme: () => Promise<Record<string, unknown>>;
   setAgent: (options: Record<string, unknown>) => Promise<void>;
   updateOptions: (options: Record<string, unknown>) => Promise<void>;
   reinitialize: (options?: Record<string, unknown>) => Promise<void>;
@@ -977,31 +975,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     }, selector);
   };
 
-  const updateTheme = async (theme: Record<string, unknown>) => {
-    await page.evaluate((themeArg) => {
-      const api = (
-        window as {
-          __REACT_GRAB__?: {
-            updateTheme: (t: Record<string, unknown>) => void;
-          };
-        }
-      ).__REACT_GRAB__;
-      api?.updateTheme(themeArg);
-    }, theme);
-    await page.waitForTimeout(100);
-  };
-
-  const getTheme = async (): Promise<Record<string, unknown>> => {
-    return page.evaluate(() => {
-      const api = (
-        window as {
-          __REACT_GRAB__?: { getTheme: () => Record<string, unknown> };
-        }
-      ).__REACT_GRAB__;
-      return api?.getTheme() ?? {};
-    });
-  };
-
   const setAgent = async (options: Record<string, unknown>) => {
     await page.evaluate((opts) => {
       const api = (
@@ -1552,8 +1525,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     toggle,
     dispose,
     copyElementViaApi,
-    updateTheme,
-    getTheme,
     setAgent,
     updateOptions,
     reinitialize,
