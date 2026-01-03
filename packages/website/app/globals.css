@@ -78,6 +78,20 @@ body {
   animation: logo-shimmer 0.9s ease-out;
 }
 
+@keyframes arrow-bounce {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(25px, 25px);
+  }
+}
+
+.react-grab-logo:hover .react-grab-arrow {
+  animation: arrow-bounce 0.4s ease-in-out infinite;
+}
+
 ::selection {
   background: #d75fcb33;
   color: #d75fcb;

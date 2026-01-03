@@ -12,10 +12,10 @@ export const ReactGrabLogo = ({
   <svg
     width={width}
     height={height}
-    viewBox="0 0 294 294"
+    viewBox="0 0 360 360"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
-    className={className}
+    className={`react-grab-logo ${className ?? ""}`}
     style={{
       display: "inline-block",
       verticalAlign: "middle",
@@ -61,6 +61,7 @@ export const ReactGrabLogo = ({
       </mask>
       <g mask="url(#mask1_0_3)">
         <path
+          className="react-grab-arrow"
           d="M136.863 129.916L213.258 141.224C220.669 142.322 222.495 152.179 215.967 155.856L187.592 171.843L184.135 204.227C183.339 211.678 173.564 213.901 169.624 207.526L129.021 141.831C125.503 136.14 130.245 128.936 136.863 129.916Z"
           fill="#fc4efd"
           stroke="#fc4efd"
