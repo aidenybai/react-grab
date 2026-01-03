@@ -9,6 +9,6 @@
     "strict": true,
     "lib": ["esnext", "dom"]
   },
-  "include": ["src", "tsup.config.ts", "esbuild-plugin-babel.d.ts", "e2e"],
+  "include": ["src", "tsup.config.ts", "e2e", "playwright.config.ts"],
   "exclude": ["**/node_modules/**", "dist"]
 }
