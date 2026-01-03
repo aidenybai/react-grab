@@ -56,6 +56,7 @@ type HookName = keyof PluginHooks;
 
 const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
   const plugins = new Map<string, RegisteredPlugin>();
+  const directOptionOverrides: Partial<OptionsState> = {};
 
   const [store, setStore] = createStore<PluginStoreState>({
     theme: DEFAULT_THEME,
@@ -93,6 +94,8 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       }
     }
 
+    mergedOptions = { ...mergedOptions, ...directOptionOverrides };
+
     setStore("theme", mergedTheme);
     setStore("agent", mergedAgent);
     setStore("options", mergedOptions);
@@ -102,6 +105,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
   const setOptions = (optionUpdates: SettableOptions) => {
     for (const [optionKey, optionValue] of Object.entries(optionUpdates)) {
       if (optionValue === undefined) continue;
+      (directOptionOverrides as Record<string, unknown>)[optionKey] = optionValue;
       setStore("options", optionKey as keyof OptionsState, optionValue as OptionsState[keyof OptionsState]);
     }
   };
