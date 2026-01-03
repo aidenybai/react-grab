@@ -22,7 +22,8 @@ export const createNoopApi = (theme: Required<Theme>): ReactGrabAPI => {
     getState,
     updateTheme: () => {},
     getTheme: () => theme,
-    setAgent: () => {},
-    updateOptions: () => {},
+    setOptions: () => {},
+    registerContextMenuAction: () => {},
+    unregisterContextMenuAction: () => {},
   };
 };

@@ -13,11 +13,11 @@ test.describe("Open File", () => {
         const api = (
           window as {
             __REACT_GRAB__?: {
-              updateOptions: (o: Record<string, unknown>) => void;
+              setOptions: (o: Record<string, unknown>) => void;
             };
           }
         ).__REACT_GRAB__;
-        api?.updateOptions({
+        api?.setOptions({
           onOpenFile: () => {
             (
               window as { __OPEN_FILE_CALLED__?: boolean }
@@ -70,11 +70,11 @@ test.describe("Open File", () => {
         const api = (
           window as {
             __REACT_GRAB__?: {
-              updateOptions: (o: Record<string, unknown>) => void;
+              setOptions: (o: Record<string, unknown>) => void;
             };
           }
         ).__REACT_GRAB__;
-        api?.updateOptions({
+        api?.setOptions({
           onOpenFile: () => {
             (
               window as { __OPEN_FILE_CALLED__?: boolean }
@@ -107,11 +107,11 @@ test.describe("Open File", () => {
         const api = (
           window as {
             __REACT_GRAB__?: {
-              updateOptions: (o: Record<string, unknown>) => void;
+              setOptions: (o: Record<string, unknown>) => void;
             };
           }
         ).__REACT_GRAB__;
-        api?.updateOptions({
+        api?.setOptions({
           onOpenFile: () => {},
         });
       });
@@ -138,11 +138,11 @@ test.describe("Open File", () => {
         const api = (
           window as {
             __REACT_GRAB__?: {
-              updateOptions: (o: Record<string, unknown>) => void;
+              setOptions: (o: Record<string, unknown>) => void;
             };
           }
         ).__REACT_GRAB__;
-        api?.updateOptions({
+        api?.setOptions({
           onOpenFile: () => {
             (
               window as { __OPEN_FILE_CALLED__?: boolean }
@@ -195,11 +195,11 @@ test.describe("Open File", () => {
         const api = (
           window as {
             __REACT_GRAB__?: {
-              updateOptions: (o: Record<string, unknown>) => void;
+              setOptions: (o: Record<string, unknown>) => void;
             };
           }
         ).__REACT_GRAB__;
-        api?.updateOptions({
+        api?.setOptions({
           onOpenFile: (info: unknown) => {
             (window as { __OPEN_FILE_INFO__?: unknown }).__OPEN_FILE_INFO__ =
               info;
@@ -235,11 +235,11 @@ test.describe("Open File", () => {
         const api = (
           window as {
             __REACT_GRAB__?: {
-              updateOptions: (o: Record<string, unknown>) => void;
+              setOptions: (o: Record<string, unknown>) => void;
             };
           }
         ).__REACT_GRAB__;
-        api?.updateOptions({
+        api?.setOptions({
           onOpenFile: (info: Record<string, unknown>) => {
             (
               window as { __OPEN_FILE_INFO__?: Record<string, unknown> | null }
@@ -279,11 +279,11 @@ test.describe("Open File", () => {
         const api = (
           window as {
             __REACT_GRAB__?: {
-              updateOptions: (o: Record<string, unknown>) => void;
+              setOptions: (o: Record<string, unknown>) => void;
             };
           }
         ).__REACT_GRAB__;
-        api?.updateOptions({
+        api?.setOptions({
           onOpenFile: () => {
             (
               window as { __OPEN_FILE_CALLED__?: boolean }
@@ -339,11 +339,11 @@ test.describe("Open File", () => {
         const api = (
           window as {
             __REACT_GRAB__?: {
-              updateOptions: (o: Record<string, unknown>) => void;
+              setOptions: (o: Record<string, unknown>) => void;
             };
           }
         ).__REACT_GRAB__;
-        api?.updateOptions({
+        api?.setOptions({
           onOpenFile: () => {
             (window as { __OPEN_FILE_COUNT__?: number }).__OPEN_FILE_COUNT__ =
               ((window as { __OPEN_FILE_COUNT__?: number })
@@ -388,11 +388,11 @@ test.describe("Open File", () => {
         const api = (
           window as {
             __REACT_GRAB__?: {
-              updateOptions: (o: Record<string, unknown>) => void;
+              setOptions: (o: Record<string, unknown>) => void;
             };
           }
         ).__REACT_GRAB__;
-        api?.updateOptions({
+        api?.setOptions({
           onOpenFile: () => {
             (
               window as { __OPEN_FILE_CALLED__?: boolean }

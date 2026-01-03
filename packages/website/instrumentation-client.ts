@@ -33,13 +33,15 @@ if (typeof window !== "undefined" && !window.__REACT_GRAB__) {
     const { provider, getOptions, onStart, onComplete, onUndo } =
       createVisualEditAgentProvider({ apiEndpoint: "/api/visual-edit" });
 
-    api.setAgent({
-      provider,
-      getOptions,
-      storage: sessionStorage,
-      onStart,
-      onComplete,
-      onUndo,
+    api.setOptions({
+      agent: {
+        provider,
+        getOptions,
+        storage: sessionStorage,
+        onStart,
+        onComplete,
+        onUndo,
+      },
     });
   }
 

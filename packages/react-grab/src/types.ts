@@ -186,6 +186,23 @@ export interface AgentOptions<T = any> {
 
 export type ActivationMode = "toggle" | "hold";
 
+export interface ContextMenuActionContext {
+  element: Element;
+  elements: Element[];
+  filePath?: string;
+  lineNumber?: number;
+  componentName?: string;
+  tagName?: string;
+}
+
+export interface ContextMenuAction {
+  id: string;
+  label: string;
+  shortcut?: string;
+  enabled?: boolean | ((context: ContextMenuActionContext) => boolean);
+  onAction: (context: ContextMenuActionContext) => void;
+}
+
 export interface Options {
   enabled?: boolean;
   activationMode?: ActivationMode;
@@ -230,30 +247,10 @@ export interface Options {
   ) => void;
   onOpenFile?: (filePath: string, lineNumber?: number) => void;
   agent?: AgentOptions;
+  contextMenuActions?: ContextMenuAction[];
 }
 
-export type UpdatableOptions = Pick<
-  Options,
-  | "onActivate"
-  | "onDeactivate"
-  | "onElementHover"
-  | "onElementSelect"
-  | "onDragStart"
-  | "onDragEnd"
-  | "onBeforeCopy"
-  | "onAfterCopy"
-  | "onCopySuccess"
-  | "onCopyError"
-  | "onStateChange"
-  | "onPromptModeChange"
-  | "onSelectionBox"
-  | "onDragBox"
-  | "onGrabbedBox"
-  | "onElementLabel"
-  | "onCrosshair"
-  | "onContextMenu"
-  | "onOpenFile"
->;
+export type SettableOptions = Omit<Options, "enabled" | "theme">;
 
 export interface ReactGrabAPI {
   activate: () => void;
@@ -265,8 +262,9 @@ export interface ReactGrabAPI {
   getState: () => ReactGrabState;
   updateTheme: (theme: DeepPartial<Theme>) => void;
   getTheme: () => Required<Theme>;
-  setAgent: (options: AgentOptions) => void;
-  updateOptions: (options: UpdatableOptions) => void;
+  setOptions: (options: Partial<SettableOptions>) => void;
+  registerContextMenuAction: (action: ContextMenuAction) => void;
+  unregisterContextMenuAction: (actionId: string) => void;
 }
 
 export interface OverlayBounds {
@@ -358,6 +356,8 @@ export interface ReactGrabRendererProps {
   contextMenuComponentName?: string;
   contextMenuHasFilePath?: boolean;
   contextMenuHasAgent?: boolean;
+  contextMenuActions?: ContextMenuAction[];
+  contextMenuActionContext?: ContextMenuActionContext;
   onContextMenuCopy?: () => void;
   onContextMenuCopyScreenshot?: () => void;
   onContextMenuOpen?: () => void;

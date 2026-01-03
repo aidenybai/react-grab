@@ -26,8 +26,10 @@ export type {
   AgentSessionStorage,
   AgentOptions,
   AgentCompleteResult,
-  UpdatableOptions,
+  SettableOptions,
   ActivationMode,
+  ContextMenuAction,
+  ContextMenuActionContext,
 } from "./types.js";
 
 import { init } from "./core/index.js";

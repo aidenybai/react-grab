@@ -287,7 +287,7 @@ test.describe("API Methods", () => {
     });
   });
 
-  test.describe("updateOptions()", () => {
+  test.describe("setOptions()", () => {
     test("should update callback options", async ({ reactGrab }) => {
       let callbackCalled = false;
 
@@ -298,11 +298,11 @@ test.describe("API Methods", () => {
         const api = (
           window as {
             __REACT_GRAB__?: {
-              updateOptions: (o: Record<string, unknown>) => void;
+              setOptions: (o: Record<string, unknown>) => void;
             };
           }
         ).__REACT_GRAB__;
-        api?.updateOptions({
+        api?.setOptions({
           onActivate: () => {
             (
               window as { __TEST_CALLBACK_CALLED__?: boolean }
@@ -329,11 +329,11 @@ test.describe("API Methods", () => {
         const api = (
           window as {
             __REACT_GRAB__?: {
-              updateOptions: (o: Record<string, unknown>) => void;
+              setOptions: (o: Record<string, unknown>) => void;
             };
           }
         ).__REACT_GRAB__;
-        api?.updateOptions({
+        api?.setOptions({
           onActivate: () => {
             (window as { __CALLBACKS__?: string[] }).__CALLBACKS__?.push(
               "activate",
@@ -359,7 +359,7 @@ test.describe("API Methods", () => {
     });
   });
 
-  test.describe("setAgent()", () => {
+  test.describe("setOptions() for agent", () => {
     test("should configure agent provider", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent();
 

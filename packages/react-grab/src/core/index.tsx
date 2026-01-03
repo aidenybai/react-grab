@@ -59,11 +59,13 @@ import type {
   Theme,
   SelectionLabelInstance,
   AgentSession,
-  AgentOptions,
-  UpdatableOptions,
+  ContextMenuAction,
+  ContextMenuActionContext,
+  SettableOptions,
 } from "../types.js";
 import { mergeTheme, deepMergeTheme } from "./theme.js";
 import { createAgentManager } from "./agent/index.js";
+import { createOptionsStore } from "./options-store.js";
 import { createArrowNavigator } from "./arrow-navigation.js";
 import {
   getRequiredModifiers,
@@ -84,7 +86,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
   const scriptOptions = getScriptOptions();
 
-  let options: Options = {
+  const initialOptions: Options = {
     enabled: true,
     activationMode: "toggle",
     keyHoldDuration: DEFAULT_KEY_HOLD_DURATION_MS,
@@ -94,9 +96,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     ...rawOptions,
   };
 
-  const mergedTheme = mergeTheme(options.theme);
+  const mergedTheme = mergeTheme(initialOptions.theme);
 
-  if (options.enabled === false || hasInited) {
+  if (initialOptions.enabled === false || hasInited) {
     return createNoopApi(mergedTheme);
   }
   hasInited = true;
@@ -106,10 +108,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   return createRoot((dispose) => {
     const [theme, setTheme] = createSignal(mergedTheme);
 
+    const optionsStore = createOptionsStore(initialOptions);
+
     const { store, actions } = createGrabStore({
       theme: mergedTheme,
-      hasAgentProvider: Boolean(options.agent?.provider),
-      keyHoldDuration: options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS,
+      hasAgentProvider: Boolean(optionsStore.store.agent?.provider),
+      keyHoldDuration:
+        optionsStore.store.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS,
     });
 
     const isHoldingKeys = createMemo(() => store.current.state === "holding");
@@ -188,10 +193,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const currentlyActive = isActivated();
 
       if (previouslyHoldingKeys && !currentlyHolding && currentlyActive) {
-        if (options.activationMode !== "hold") {
+        if (optionsStore.store.activationMode !== "hold") {
           actions.setWasActivatedByToggle(true);
         }
-        options.onActivate?.();
+        optionsStore.callbacks.onActivate?.();
       }
       previouslyHoldingKeys = currentlyHolding;
     });
@@ -258,7 +263,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const newBox: GrabbedBox = { id: boxId, bounds, createdAt, element };
 
       actions.addGrabbedBox(newBox);
-      options.onGrabbedBox?.(bounds, element);
+      optionsStore.callbacks.onGrabbedBox?.(bounds, element);
 
       setTimeout(() => {
         actions.removeGrabbedBox(boxId);
@@ -366,7 +371,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const copyWithFallback = (elements: Element[], extraPrompt?: string) =>
-      tryCopyWithFallback(options, elements, extraPrompt);
+      tryCopyWithFallback(
+        {
+          ...optionsStore.store,
+          ...optionsStore.callbacks,
+        },
+        elements,
+        extraPrompt,
+      );
 
     const copyElementsToClipboard = async (
       targetElements: Element[],
@@ -375,7 +387,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (targetElements.length === 0) return;
 
       for (const element of targetElements) {
-        options.onElementSelect?.(element);
+        optionsStore.callbacks.onElementSelect?.(element);
         if (theme().grabbedBoxes.enabled) {
           showTemporaryGrabbedBox(createElementBounds(element), element);
         }
@@ -548,7 +560,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             actions.setLastGrabbed(null);
           }
           if (currentElement) {
-            options.onElementHover?.(currentElement);
+            optionsStore.callbacks.onElementHover?.(currentElement);
           }
         },
       ),
@@ -605,7 +617,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             dragBounds(),
           ] as const,
         ([active, dragging, copying, inputMode, target, drag]) => {
-          options.onStateChange?.({
+          optionsStore.callbacks.onStateChange?.({
             isActive: active,
             isDragging: dragging,
             isCopying: copying,
@@ -634,7 +646,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             targetElement(),
           ] as const,
         ([inputMode, x, y, target]) => {
-          options.onPromptModeChange?.(inputMode, {
+          optionsStore.callbacks.onPromptModeChange?.(inputMode, {
             x,
             y,
             targetElement: target,
@@ -647,7 +659,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       on(
         () => [selectionVisible(), selectionBounds(), targetElement()] as const,
         ([visible, bounds, element]) => {
-          options.onSelectionBox?.(Boolean(visible), bounds ?? null, element);
+          optionsStore.callbacks.onSelectionBox?.(
+            Boolean(visible),
+            bounds ?? null,
+            element,
+          );
         },
       ),
     );
@@ -656,7 +672,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       on(
         () => [dragVisible(), dragBounds()] as const,
         ([visible, bounds]) => {
-          options.onDragBox?.(Boolean(visible), bounds ?? null);
+          optionsStore.callbacks.onDragBox?.(Boolean(visible), bounds ?? null);
         },
       ),
     );
@@ -665,7 +681,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       on(
         () => [crosshairVisible(), store.pointer.x, store.pointer.y] as const,
         ([visible, x, y]) => {
-          options.onCrosshair?.(Boolean(visible), { x, y });
+          optionsStore.callbacks.onCrosshair?.(Boolean(visible), { x, y });
         },
       ),
     );
@@ -674,7 +690,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       on(
         () => [labelVisible(), labelVariant(), cursorPosition()] as const,
         ([visible, variant, position]) => {
-          options.onElementLabel?.(Boolean(visible), variant, {
+          optionsStore.callbacks.onElementLabel?.(Boolean(visible), variant, {
             x: position.x,
             y: position.y,
             content: "",
@@ -734,7 +750,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // When coming from holding state, the reactive effect (previouslyHoldingKeys transition)
       // will handle calling onActivate to avoid duplicate invocations.
       if (!wasInHoldingState) {
-        options.onActivate?.();
+        optionsStore.callbacks.onActivate?.();
       }
     };
 
@@ -754,7 +770,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       ) {
         previousFocused.focus();
       }
-      options.onDeactivate?.();
+      optionsStore.callbacks.onDeactivate?.();
     };
 
     const toggleActivate = () => {
@@ -782,21 +798,23 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    const agentOptions = options.agent
-      ? {
-          ...options.agent,
-          onAbort: (session: AgentSession, elements: Element[]) => {
-            options.agent?.onAbort?.(session, elements);
-            restoreInputFromSession(session, elements);
-          },
-          onUndo: (session: AgentSession, elements: Element[]) => {
-            options.agent?.onUndo?.(session, elements);
-            restoreInputFromSession(session, elements);
-          },
-        }
-      : undefined;
+    const getAgentOptionsWithCallbacks = () => {
+      const agent = optionsStore.store.agent;
+      if (!agent) return undefined;
+      return {
+        ...agent,
+        onAbort: (session: AgentSession, elements: Element[]) => {
+          optionsStore.store.agent?.onAbort?.(session, elements);
+          restoreInputFromSession(session, elements);
+        },
+        onUndo: (session: AgentSession, elements: Element[]) => {
+          optionsStore.store.agent?.onUndo?.(session, elements);
+          restoreInputFromSession(session, elements);
+        },
+      };
+    };
 
-    const agentManager = createAgentManager(agentOptions);
+    const agentManager = createAgentManager(getAgentOptionsWithCallbacks());
 
     const handleInputChange = (value: string) => {
       actions.setInputText(value);
@@ -989,7 +1007,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.startDrag({ x: clientX, y: clientY });
       document.body.style.userSelect = "none";
 
-      options.onDragStart?.(clientX + window.scrollX, clientY + window.scrollY);
+      optionsStore.callbacks.onDragStart?.(
+        clientX + window.scrollX,
+        clientY + window.scrollY,
+      );
 
       return true;
     };
@@ -1012,7 +1033,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (selectedElements.length === 0) return;
 
-      options.onDragEnd?.(selectedElements, dragSelectionRect);
+      optionsStore.callbacks.onDragEnd?.(selectedElements, dragSelectionRect);
       const firstElement = selectedElements[0];
       const center = getBoundsCenter(createElementBounds(firstElement));
 
@@ -1035,16 +1056,75 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
+    let pendingSingleClickCopy: ReturnType<typeof setTimeout> | null = null;
+
+    const cancelPendingSingleClickCopy = () => {
+      if (pendingSingleClickCopy) {
+        clearTimeout(pendingSingleClickCopy);
+        pendingSingleClickCopy = null;
+      }
+    };
+
+    let lastMouseUpTime = 0;
+    let lastMouseUpPosition = { x: 0, y: 0 };
+    const DOUBLE_CLICK_THRESHOLD_MS = 300;
+    const DOUBLE_CLICK_DISTANCE_PX = 10;
+
     const handleSingleClick = (clientX: number, clientY: number) => {
       const element = getElementAtPosition(clientX, clientY);
       if (!element) return;
 
       actions.setLastGrabbed(element);
-      performCopyWithLabel({
-        element,
-        positionX: clientX,
-        positionY: clientY,
-      });
+
+      // HACK: Detect double-click by tracking mouseup timing
+      if (hasAgentProvider()) {
+        const now = Date.now();
+        const timeSinceLastUp = now - lastMouseUpTime;
+        const distance = Math.sqrt(
+          Math.pow(clientX - lastMouseUpPosition.x, 2) +
+            Math.pow(clientY - lastMouseUpPosition.y, 2),
+        );
+
+        if (
+          timeSinceLastUp < DOUBLE_CLICK_THRESHOLD_MS &&
+          distance < DOUBLE_CLICK_DISTANCE_PX
+        ) {
+          // Double-click detected - enter prompt mode
+          cancelPendingSingleClickCopy();
+          if (pendingClickDeactivation) {
+            clearTimeout(pendingClickDeactivation);
+            pendingClickDeactivation = null;
+          }
+          preparePromptMode(element, clientX, clientY);
+          actions.setPointer({ x: clientX, y: clientY });
+          actions.setFrozenElement(element);
+          activatePromptMode();
+          lastMouseUpTime = 0;
+          return;
+        }
+
+        lastMouseUpTime = now;
+        lastMouseUpPosition = { x: clientX, y: clientY };
+
+        // Delay copy to allow for double-click detection
+        cancelPendingSingleClickCopy();
+        pendingSingleClickCopy = setTimeout(() => {
+          pendingSingleClickCopy = null;
+          if (!isPromptMode()) {
+            performCopyWithLabel({
+              element,
+              positionX: clientX,
+              positionY: clientY,
+            });
+          }
+        }, 300);
+      } else {
+        performCopyWithLabel({
+          element,
+          positionX: clientX,
+          positionY: clientY,
+        });
+      }
     };
 
     const handlePointerUp = (clientX: number, clientY: number) => {
@@ -1251,8 +1331,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       event.preventDefault();
       event.stopPropagation();
 
-      if (options.onOpenFile) {
-        options.onOpenFile(filePath, lineNumber ?? undefined);
+      if (optionsStore.callbacks.onOpenFile) {
+        optionsStore.callbacks.onOpenFile(filePath, lineNumber ?? undefined);
       } else {
         const url = buildOpenFileUrl(filePath, lineNumber ?? undefined);
         window.open(url, "_blank", "noopener,noreferrer");
@@ -1344,13 +1424,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleActivationKeys = (event: KeyboardEvent): void => {
       if (
-        !options.allowActivationInsideInput &&
+        !optionsStore.store.allowActivationInsideInput &&
         isKeyboardEventTriggeredByInput(event)
       ) {
         return;
       }
 
-      if (!isTargetKeyCombination(event, options)) {
+      if (!isTargetKeyCombination(event, optionsStore.store)) {
         if (
           isActivated() &&
           !store.wasActivatedByToggle &&
@@ -1374,7 +1454,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       if (isActivated()) {
-        if (store.wasActivatedByToggle && options.activationMode !== "hold")
+        if (
+          store.wasActivatedByToggle &&
+          optionsStore.store.activationMode !== "hold"
+        )
           return;
         if (event.repeat) return;
 
@@ -1391,7 +1474,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (!isHoldingKeys()) {
         const keyHoldDuration =
-          options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS;
+          optionsStore.store.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS;
         const activationDuration = isKeyboardEventTriggeredByInput(event)
           ? keyHoldDuration + INPUT_FOCUS_ACTIVATION_DELAY_MS
           : keyHoldDuration;
@@ -1411,7 +1494,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         if (
           isPromptMode() &&
-          isTargetKeyCombination(event, options) &&
+          isTargetKeyCombination(event, optionsStore.store) &&
           !event.repeat
         ) {
           event.preventDefault();
@@ -1474,29 +1557,33 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (isPromptMode()) return;
 
         const hasCustomShortcut = Boolean(
-          options.activationShortcut || options.activationKey,
+          optionsStore.store.activationShortcut ||
+            optionsStore.store.activationKey,
         );
 
-        const requiredModifiers = getRequiredModifiers(options);
+        const requiredModifiers = getRequiredModifiers(optionsStore.store);
         const isReleasingModifier =
           requiredModifiers.metaKey || requiredModifiers.ctrlKey
             ? !event.metaKey && !event.ctrlKey
             : (requiredModifiers.shiftKey && !event.shiftKey) ||
               (requiredModifiers.altKey && !event.altKey);
 
-        const isReleasingActivationKey = options.activationShortcut
-          ? !options.activationShortcut(event)
-          : options.activationKey
-            ? options.activationKey.key
+        const isReleasingActivationKey = optionsStore.store.activationShortcut
+          ? !optionsStore.store.activationShortcut(event)
+          : optionsStore.store.activationKey
+            ? optionsStore.store.activationKey.key
               ? event.key?.toLowerCase() ===
-                  options.activationKey.key.toLowerCase() ||
-                keyMatchesCode(options.activationKey.key, event.code)
+                  optionsStore.store.activationKey.key.toLowerCase() ||
+                keyMatchesCode(optionsStore.store.activationKey.key, event.code)
               : false
             : isCLikeKey(event.key, event.code);
 
         if (isActivated()) {
           if (isReleasingModifier) {
-            if (store.wasActivatedByToggle && options.activationMode !== "hold")
+            if (
+              store.wasActivatedByToggle &&
+              optionsStore.store.activationMode !== "hold"
+            )
               return;
             deactivateRenderer();
           } else if (
@@ -1511,7 +1598,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
 
         if (isReleasingActivationKey || isReleasingModifier) {
-          if (store.wasActivatedByToggle && options.activationMode !== "hold")
+          if (
+            store.wasActivatedByToggle &&
+            optionsStore.store.activationMode !== "hold"
+          )
             return;
           if (isHoldingKeys()) {
             actions.release();
@@ -1610,7 +1700,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.setFrozenElement(element);
         actions.freeze();
         actions.showContextMenu(position, element);
-        options.onContextMenu?.(element, position);
+        optionsStore.callbacks.onContextMenu?.(element, position);
       },
       { capture: true },
     );
@@ -1662,6 +1752,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       );
     });
 
+    let pendingClickDeactivation: ReturnType<typeof setTimeout> | null = null;
+
     eventListenerManager.addWindowListener(
       "click",
       (event: MouseEvent) => {
@@ -1674,12 +1766,55 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
           if (store.wasActivatedByToggle && !isCopying() && !isPromptMode()) {
             if (!isHoldingKeys()) {
-              deactivateRenderer();
+              // HACK: When agent is configured, delay deactivation to allow for double-click detection
+              if (hasAgentProvider()) {
+                if (pendingClickDeactivation) {
+                  clearTimeout(pendingClickDeactivation);
+                }
+                pendingClickDeactivation = setTimeout(() => {
+                  pendingClickDeactivation = null;
+                  if (!isPromptMode()) {
+                    deactivateRenderer();
+                  }
+                }, 300);
+              } else {
+                deactivateRenderer();
+              }
             } else {
               actions.setWasActivatedByToggle(false);
             }
           }
         }
+      },
+      { capture: true },
+    );
+
+    eventListenerManager.addWindowListener(
+      "dblclick",
+      (event: MouseEvent) => {
+        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
+        if (store.contextMenuPosition !== null) return;
+        if (!hasAgentProvider()) return;
+        if (isPromptMode()) return;
+        if (!isRendererActive()) return;
+
+        // HACK: Cancel pending single-click copy and deactivation
+        cancelPendingSingleClickCopy();
+        if (pendingClickDeactivation) {
+          clearTimeout(pendingClickDeactivation);
+          pendingClickDeactivation = null;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const element = getElementAtPosition(event.clientX, event.clientY);
+        if (!element) return;
+
+        preparePromptMode(element, event.clientX, event.clientY);
+        actions.setPointer({ x: event.clientX, y: event.clientY });
+        actions.setFrozenElement(element);
+        activatePromptMode();
       },
       { capture: true },
     );
@@ -1963,6 +2098,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
     );
 
+    const contextMenuActionContext = createMemo(
+      (): ContextMenuActionContext | undefined => {
+        const element = store.contextMenuElement;
+        if (!element) return undefined;
+        const fileInfo = contextMenuFilePath();
+        return {
+          element,
+          elements: store.frozenElements.length > 0 ? store.frozenElements : [element],
+          filePath: fileInfo?.filePath,
+          lineNumber: fileInfo?.lineNumber,
+          componentName: contextMenuComponentName(),
+          tagName: contextMenuTagName(),
+        };
+      },
+    );
+
     const handleContextMenuCopy = () => {
       const element = store.contextMenuElement;
       if (!element) return;
@@ -2059,8 +2210,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handleContextMenuOpen = () => {
       const fileInfo = contextMenuFilePath();
       if (fileInfo) {
-        if (options.onOpenFile) {
-          options.onOpenFile(
+        if (optionsStore.callbacks.onOpenFile) {
+          optionsStore.callbacks.onOpenFile(
             fileInfo.filePath,
             fileInfo.lineNumber ?? undefined,
           );
@@ -2234,6 +2385,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             contextMenuComponentName={contextMenuComponentName()}
             contextMenuHasFilePath={Boolean(contextMenuFilePath()?.filePath)}
             contextMenuHasAgent={hasAgentProvider()}
+            contextMenuActions={optionsStore.store.contextMenuActions}
+            contextMenuActionContext={contextMenuActionContext()}
             onContextMenuCopy={handleContextMenuCopy}
             onContextMenuCopyScreenshot={() =>
               void handleContextMenuCopyScreenshot()
@@ -2297,48 +2450,54 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         setTheme(updatedTheme);
       },
       getTheme: () => theme(),
-      setAgent: (newAgentOptions: AgentOptions) => {
-        const existingOptions = agentManager._internal.getOptions();
-        const mergedOptions: AgentOptions = {
-          ...existingOptions,
-          ...newAgentOptions,
-          provider: newAgentOptions.provider ?? existingOptions?.provider,
-          onAbort: (session: AgentSession, elements: Element[]) => {
-            newAgentOptions?.onAbort?.(session, elements);
-            restoreInputFromSession(session, elements);
-          },
-          onUndo: (session: AgentSession, elements: Element[]) => {
-            newAgentOptions?.onUndo?.(session, elements);
-            restoreInputFromSession(session, elements);
-          },
-          onDismiss: newAgentOptions?.onDismiss,
-        };
-        agentManager._internal.setOptions(mergedOptions);
-        actions.setHasAgentProvider(Boolean(mergedOptions.provider));
-        actions.setAgentCapabilities({
-          supportsUndo: Boolean(mergedOptions.provider?.undo),
-          supportsFollowUp: Boolean(mergedOptions.provider?.supportsFollowUp),
-          dismissButtonText: mergedOptions.provider?.dismissButtonText,
-          isAgentConnected: false,
-        });
+      setOptions: (newOptions: Partial<SettableOptions>) => {
+        // HACK: Debug logging for e2e tests
+        console.log("[react-grab setOptions]", JSON.stringify(Object.keys(newOptions)));
+        optionsStore.setOptions(newOptions);
 
-        if (mergedOptions.provider?.checkConnection) {
-          void mergedOptions.provider.checkConnection().then((connected) => {
+        if (newOptions.agent !== undefined) {
+          const agentOpts = getAgentOptionsWithCallbacks();
+          console.log(
+            "[react-grab setOptions agent]",
+            JSON.stringify({
+              hasAgentOpts: !!agentOpts,
+              hasProvider: Boolean(agentOpts?.provider),
+            }),
+          );
+          if (agentOpts) {
+            agentManager._internal.setOptions(agentOpts);
+          }
+          actions.setHasAgentProvider(Boolean(agentOpts?.provider));
+          if (agentOpts?.provider) {
             actions.setAgentCapabilities({
-              supportsUndo: Boolean(mergedOptions.provider?.undo),
-              supportsFollowUp: Boolean(
-                mergedOptions.provider?.supportsFollowUp,
-              ),
-              dismissButtonText: mergedOptions.provider?.dismissButtonText,
-              isAgentConnected: connected,
+              supportsUndo: Boolean(agentOpts.provider.undo),
+              supportsFollowUp: Boolean(agentOpts.provider.supportsFollowUp),
+              dismissButtonText: agentOpts.provider.dismissButtonText,
+              isAgentConnected: false,
             });
-          });
-        }
 
-        agentManager.session.tryResume();
+            if (agentOpts.provider.checkConnection) {
+              void agentOpts.provider.checkConnection().then((connected) => {
+                actions.setAgentCapabilities({
+                  supportsUndo: Boolean(agentOpts.provider?.undo),
+                  supportsFollowUp: Boolean(
+                    agentOpts.provider?.supportsFollowUp,
+                  ),
+                  dismissButtonText: agentOpts.provider?.dismissButtonText,
+                  isAgentConnected: connected,
+                });
+              });
+            }
+
+            agentManager.session.tryResume();
+          }
+        }
       },
-      updateOptions: (newOptions: UpdatableOptions) => {
-        options = { ...options, ...newOptions };
+      registerContextMenuAction: (action: ContextMenuAction) => {
+        optionsStore.registerContextMenuAction(action);
+      },
+      unregisterContextMenuAction: (actionId: string) => {
+        optionsStore.unregisterContextMenuAction(actionId);
       },
     };
   });
@@ -2359,7 +2518,9 @@ export type {
   AgentProvider,
   AgentCompleteResult,
   AgentOptions,
-  UpdatableOptions,
+  SettableOptions,
+  ContextMenuAction,
+  ContextMenuActionContext,
 } from "../types.js";
 
 export { generateSnippet } from "../utils/generate-snippet.js";

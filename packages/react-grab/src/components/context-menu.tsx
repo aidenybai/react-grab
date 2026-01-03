@@ -7,7 +7,11 @@ import {
   createEffect,
 } from "solid-js";
 import type { Component } from "solid-js";
-import type { OverlayBounds } from "../types.js";
+import type {
+  OverlayBounds,
+  ContextMenuAction,
+  ContextMenuActionContext,
+} from "../types.js";
 import {
   VIEWPORT_MARGIN_PX,
   ARROW_HEIGHT_PX,
@@ -27,6 +31,8 @@ interface ContextMenuProps {
   componentName?: string;
   hasFilePath: boolean;
   hasAgent: boolean;
+  customActions?: ContextMenuAction[];
+  actionContext?: ContextMenuActionContext;
   onCopy: () => void;
   onCopyScreenshot: () => void;
   onOpen: () => void;
@@ -157,6 +163,29 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         shortcut: "Enter",
       });
     }
+
+    const customActions = props.customActions ?? [];
+    const context = props.actionContext;
+    for (const customAction of customActions) {
+      const isEnabled =
+        typeof customAction.enabled === "function"
+          ? context
+            ? customAction.enabled(context)
+            : false
+          : customAction.enabled ?? true;
+
+      items.push({
+        label: customAction.label,
+        action: () => {
+          if (context) {
+            customAction.onAction(context);
+          }
+        },
+        enabled: isEnabled,
+        shortcut: customAction.shortcut,
+      });
+    }
+
     return items;
   };
 
@@ -207,6 +236,29 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         event.preventDefault();
         event.stopPropagation();
         props.onOpen();
+      } else {
+        const customActions = props.customActions ?? [];
+        const context = props.actionContext;
+        for (const customAction of customActions) {
+          if (
+            customAction.shortcut &&
+            event.key.toLowerCase() === customAction.shortcut.toLowerCase()
+          ) {
+            const isEnabled =
+              typeof customAction.enabled === "function"
+                ? context
+                  ? customAction.enabled(context)
+                  : false
+                : customAction.enabled ?? true;
+
+            if (isEnabled && context) {
+              event.preventDefault();
+              event.stopPropagation();
+              customAction.onAction(context);
+              return;
+            }
+          }
+        }
       }
     };
 

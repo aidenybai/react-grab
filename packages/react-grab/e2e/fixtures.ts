@@ -318,7 +318,11 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const doubleClickElement = async (selector: string) => {
     const element = page.locator(selector).first();
-    await element.dblclick({ force: true });
+    const box = await element.boundingBox();
+    if (!box) throw new Error("Could not get bounding box for double-click");
+    const x = box.x + box.width / 2;
+    const y = box.y + box.height / 2;
+    await page.mouse.dblclick(x, y);
     await page.waitForTimeout(DOUBLE_CLICK_DELAY_MS);
   };
 
@@ -1002,10 +1006,10 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     await page.evaluate((opts) => {
       const api = (
         window as {
-          __REACT_GRAB__?: { setAgent: (o: Record<string, unknown>) => void };
+          __REACT_GRAB__?: { setOptions: (o: Record<string, unknown>) => void };
         }
       ).__REACT_GRAB__;
-      api?.setAgent(opts);
+      api?.setOptions({ agent: opts });
     }, options);
     await page.waitForTimeout(100);
   };
@@ -1015,11 +1019,11 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       const api = (
         window as {
           __REACT_GRAB__?: {
-            updateOptions: (o: Record<string, unknown>) => void;
+            setOptions: (o: Record<string, unknown>) => void;
           };
         }
       ).__REACT_GRAB__;
-      api?.updateOptions(opts);
+      api?.setOptions(opts);
     }, options);
     await page.waitForTimeout(100);
   };
@@ -1074,10 +1078,10 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
       const api = (
         window as {
-          __REACT_GRAB__?: { setAgent: (o: Record<string, unknown>) => void };
+          __REACT_GRAB__?: { setOptions: (o: Record<string, unknown>) => void };
         }
       ).__REACT_GRAB__;
-      api?.setAgent({ provider: mockProvider });
+      api?.setOptions({ agent: { provider: mockProvider } });
     }, options);
     await page.waitForTimeout(100);
   };
@@ -1413,11 +1417,11 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       const api = (
         window as {
           __REACT_GRAB__?: {
-            updateOptions: (o: Record<string, unknown>) => void;
+            setOptions: (o: Record<string, unknown>) => void;
           };
         }
       ).__REACT_GRAB__;
-      api?.updateOptions({
+      api?.setOptions({
         onActivate: trackCallback("onActivate"),
         onDeactivate: trackCallback("onDeactivate"),
         onElementHover: trackCallback("onElementHover"),

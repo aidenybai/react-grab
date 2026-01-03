@@ -4,13 +4,15 @@ declare global {
   interface Window {
     __REACT_GRAB__?: {
       activate: () => void;
-      setAgent: (options: {
-        storage?: Storage;
-        onStart?: (session: { id: string }) => void;
-        onStatus?: (status: string) => void;
-        onComplete?: () => void;
-        onError?: (error: Error) => void;
-        onResume?: (session: { id: string }) => void;
+      setOptions: (options: {
+        agent?: {
+          storage?: Storage;
+          onStart?: (session: { id: string }) => void;
+          onStatus?: (status: string) => void;
+          onComplete?: () => void;
+          onError?: (error: Error) => void;
+          onResume?: (session: { id: string }) => void;
+        };
       }) => void;
     };
   }
@@ -95,17 +97,20 @@ export const App = () => {
 
     const api = window.__REACT_GRAB__;
     if (!api) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       addLog("error", "React Grab not initialized");
       return;
     }
 
-    api.setAgent({
-      storage: sessionStorage,
-      onStart: (session) => addLog("start", session.id),
-      onStatus: (status) => addLog("status", status),
-      onComplete: () => addLog("done", "Complete"),
-      onError: (error) => addLog("error", error.message),
-      onResume: (session) => addLog("resume", session.id),
+    api.setOptions({
+      agent: {
+        storage: sessionStorage,
+        onStart: (session) => addLog("start", session.id),
+        onStatus: (status) => addLog("status", status),
+        onComplete: () => addLog("done", "Complete"),
+        onError: (error) => addLog("error", error.message),
+        onResume: (session) => addLog("resume", session.id),
+      },
     });
 
     addLog("info", "Ready");
