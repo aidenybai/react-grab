@@ -2452,19 +2452,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
       getTheme: () => theme(),
       setOptions: (newOptions: Partial<SettableOptions>) => {
-        // HACK: Debug logging for e2e tests
-        console.log("[react-grab setOptions]", JSON.stringify(Object.keys(newOptions)));
         optionsStore.setOptions(newOptions);
 
         if (newOptions.agent !== undefined) {
           const agentOpts = getAgentOptionsWithCallbacks();
-          console.log(
-            "[react-grab setOptions agent]",
-            JSON.stringify({
-              hasAgentOpts: !!agentOpts,
-              hasProvider: Boolean(agentOpts?.provider),
-            }),
-          );
           if (agentOpts) {
             agentManager._internal.setOptions(agentOpts);
           }
