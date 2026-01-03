@@ -1342,6 +1342,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleScreenshotShortcut = (event: KeyboardEvent): boolean => {
       if (!isScreenshotSupported()) return false;
+      if (store.contextMenuPosition !== null) return false;
       if (event.key?.toLowerCase() !== "s" || isPromptMode()) return false;
       if (!isActivated() || !(event.metaKey || event.ctrlKey)) return false;
 
