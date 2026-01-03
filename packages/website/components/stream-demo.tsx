@@ -156,9 +156,9 @@ const getConversationBlocks = (): StreamBlock[] => [
             className="logo-shimmer-once"
           />
         </div>
-        <div>
-          <span className="font-bold">React Grab</span> lets you select context
-          for coding agents directly from your website.
+        <div className="text-pretty">
+          <span className="font-bold">React&nbsp;Grab</span> lets you select
+          context for coding agents directly from your&nbsp;website.
         </div>
       </div>
     ),
@@ -167,27 +167,28 @@ const getConversationBlocks = (): StreamBlock[] => [
     id: "message-5",
     type: "message",
     content: (
-      <span>
+      <span className="text-pretty">
         It makes tools like{" "}
-        <span className="inline-flex items-baseline gap-1">
+        <span className="inline-flex items-baseline gap-1 whitespace-nowrap">
           <IconCursor width={16} height={16} className="translate-y-[2px]" />
           Cursor
         </span>
         ,{" "}
-        <span className="inline-flex items-baseline gap-1">
+        <span className="inline-flex items-baseline gap-1 whitespace-nowrap">
           <IconClaude width={16} height={16} className="translate-y-[2px]" />
-          Claude Code
+          Claude&nbsp;Code
         </span>
         ,{" "}
-        <span className="inline-flex items-baseline gap-1">
+        <span className="inline-flex items-baseline gap-1 whitespace-nowrap">
           <IconCopilot width={18} height={18} className="translate-y-[2px]" />
-          Copilot run up to
+          Copilot
         </span>{" "}
+        run up to{" "}
         <BenchmarkTooltip
           href="/blog/intro"
           className="shimmer-text-pink inline-block touch-manipulation py-1"
         >
-          <span className="font-bold">3×</span> faster
+          <span className="font-bold">3×</span>&nbsp;faster
         </BenchmarkTooltip>
       </span>
     ),
