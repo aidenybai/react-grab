@@ -29,7 +29,7 @@ interface AmpAgentProviderOptions {
 }
 
 const isReactGrabApi = (value: unknown): value is ReactGrabAPI =>
-  typeof value === "object" && value !== null && "setOptions" in value;
+  typeof value === "object" && value !== null && "registerPlugin" in value;
 
 export const createAmpAgentProvider = (
   providerOptions: AmpAgentProviderOptions = {},
@@ -115,7 +115,10 @@ export const attachAgent = async () => {
   const provider = createAmpAgentProvider();
 
   const attach = (api: ReactGrabAPI) => {
-    api.setOptions({ agent: { provider, storage: sessionStorage } });
+    api.registerPlugin({
+      name: "amp-agent",
+      agent: { provider, storage: sessionStorage },
+    });
   };
 
   const existingApi = window.__REACT_GRAB__;

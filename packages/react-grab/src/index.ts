@@ -30,6 +30,9 @@ export type {
   ActivationMode,
   ContextMenuAction,
   ContextMenuActionContext,
+  Plugin,
+  PluginConfig,
+  PluginHooks,
 } from "./types.js";
 
 import { init } from "./core/index.js";

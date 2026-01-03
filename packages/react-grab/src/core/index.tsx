@@ -58,10 +58,11 @@ import type {
   AgentSession,
   ContextMenuActionContext,
   SettableOptions,
+  Plugin,
 } from "../types.js";
-import { mergeTheme } from "./theme.js";
+import { DEFAULT_THEME } from "./theme.js";
+import { createPluginRegistry } from "./plugin-registry.js";
 import { createAgentManager } from "./agent/index.js";
-import { createOptionsStore } from "./options-store.js";
 import { createArrowNavigator } from "./arrow-navigation.js";
 import {
   getRequiredModifiers,
@@ -92,8 +93,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     ...rawOptions,
   };
 
-  const mergedTheme = mergeTheme(initialOptions.theme);
-
   if (initialOptions.enabled === false || hasInited) {
     return createNoopApi();
   }
@@ -102,16 +101,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   logIntro();
 
   return createRoot((dispose) => {
-    const optionsStore = createOptionsStore({
-      ...initialOptions,
-      theme: mergedTheme,
-    });
+    const pluginRegistry = createPluginRegistry(initialOptions);
 
     const { store, actions } = createGrabStore({
-      theme: mergedTheme,
-      hasAgentProvider: Boolean(optionsStore.store.agent?.provider),
+      theme: DEFAULT_THEME,
+      hasAgentProvider: Boolean(pluginRegistry.store.agent?.provider),
       keyHoldDuration:
-        optionsStore.store.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS,
+        pluginRegistry.store.options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS,
     });
 
     const isHoldingKeys = createMemo(() => store.current.state === "holding");
@@ -190,10 +186,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const currentlyActive = isActivated();
 
       if (previouslyHoldingKeys && !currentlyHolding && currentlyActive) {
-        if (optionsStore.store.activationMode !== "hold") {
+        if (pluginRegistry.store.options.activationMode !== "hold") {
           actions.setWasActivatedByToggle(true);
         }
-        optionsStore.callbacks.onActivate?.();
+        pluginRegistry.hooks.onActivate();
       }
       previouslyHoldingKeys = currentlyHolding;
     });
@@ -260,7 +256,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const newBox: GrabbedBox = { id: boxId, bounds, createdAt, element };
 
       actions.addGrabbedBox(newBox);
-      optionsStore.callbacks.onGrabbedBox?.(bounds, element);
+      pluginRegistry.hooks.onGrabbedBox(bounds, element);
 
       setTimeout(() => {
         actions.removeGrabbedBox(boxId);
@@ -370,8 +366,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const copyWithFallback = (elements: Element[], extraPrompt?: string) =>
       tryCopyWithFallback(
         {
-          ...optionsStore.store,
-          ...optionsStore.callbacks,
+          maxContextLines: pluginRegistry.store.options.maxContextLines,
+          getContent: pluginRegistry.store.options.getContent,
+        },
+        {
+          onBeforeCopy: pluginRegistry.hooks.onBeforeCopy,
+          onAfterCopy: pluginRegistry.hooks.onAfterCopy,
+          onCopySuccess: pluginRegistry.hooks.onCopySuccess,
+          onCopyError: pluginRegistry.hooks.onCopyError,
         },
         elements,
         extraPrompt,
@@ -384,8 +386,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (targetElements.length === 0) return;
 
       for (const element of targetElements) {
-        optionsStore.callbacks.onElementSelect?.(element);
-        if (optionsStore.store.theme.grabbedBoxes.enabled) {
+        pluginRegistry.hooks.onElementSelect(element);
+        if (pluginRegistry.store.theme.grabbedBoxes.enabled) {
           showTemporaryGrabbedBox(createElementBounds(element), element);
         }
       }
@@ -557,7 +559,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             actions.setLastGrabbed(null);
           }
           if (currentElement) {
-            optionsStore.callbacks.onElementHover?.(currentElement);
+            pluginRegistry.hooks.onElementHover(currentElement);
           }
         },
       ),
@@ -614,7 +616,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             dragBounds(),
           ] as const,
         ([active, dragging, copying, inputMode, target, drag]) => {
-          optionsStore.callbacks.onStateChange?.({
+          pluginRegistry.hooks.onStateChange({
             isActive: active,
             isDragging: dragging,
             isCopying: copying,
@@ -643,7 +645,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             targetElement(),
           ] as const,
         ([inputMode, x, y, target]) => {
-          optionsStore.callbacks.onPromptModeChange?.(inputMode, {
+          pluginRegistry.hooks.onPromptModeChange(inputMode, {
             x,
             y,
             targetElement: target,
@@ -656,7 +658,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       on(
         () => [selectionVisible(), selectionBounds(), targetElement()] as const,
         ([visible, bounds, element]) => {
-          optionsStore.callbacks.onSelectionBox?.(
+          pluginRegistry.hooks.onSelectionBox(
             Boolean(visible),
             bounds ?? null,
             element,
@@ -669,7 +671,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       on(
         () => [dragVisible(), dragBounds()] as const,
         ([visible, bounds]) => {
-          optionsStore.callbacks.onDragBox?.(Boolean(visible), bounds ?? null);
+          pluginRegistry.hooks.onDragBox(Boolean(visible), bounds ?? null);
         },
       ),
     );
@@ -678,7 +680,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       on(
         () => [crosshairVisible(), store.pointer.x, store.pointer.y] as const,
         ([visible, x, y]) => {
-          optionsStore.callbacks.onCrosshair?.(Boolean(visible), { x, y });
+          pluginRegistry.hooks.onCrosshair(Boolean(visible), { x, y });
         },
       ),
     );
@@ -687,7 +689,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       on(
         () => [labelVisible(), labelVariant(), cursorPosition()] as const,
         ([visible, variant, position]) => {
-          optionsStore.callbacks.onElementLabel?.(Boolean(visible), variant, {
+          pluginRegistry.hooks.onElementLabel(Boolean(visible), variant, {
             x: position.x,
             y: position.y,
             content: "",
@@ -747,7 +749,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // When coming from holding state, the reactive effect (previouslyHoldingKeys transition)
       // will handle calling onActivate to avoid duplicate invocations.
       if (!wasInHoldingState) {
-        optionsStore.callbacks.onActivate?.();
+        pluginRegistry.hooks.onActivate();
       }
     };
 
@@ -767,7 +769,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       ) {
         previousFocused.focus();
       }
-      optionsStore.callbacks.onDeactivate?.();
+      pluginRegistry.hooks.onDeactivate();
     };
 
     const toggleActivate = () => {
@@ -796,16 +798,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const getAgentOptionsWithCallbacks = () => {
-      const agent = optionsStore.store.agent;
+      const agent = pluginRegistry.store.agent;
       if (!agent) return undefined;
       return {
         ...agent,
         onAbort: (session: AgentSession, elements: Element[]) => {
-          optionsStore.store.agent?.onAbort?.(session, elements);
+          pluginRegistry.store.agent?.onAbort?.(session, elements);
           restoreInputFromSession(session, elements);
         },
         onUndo: (session: AgentSession, elements: Element[]) => {
-          optionsStore.store.agent?.onUndo?.(session, elements);
+          pluginRegistry.store.agent?.onUndo?.(session, elements);
           restoreInputFromSession(session, elements);
         },
       };
@@ -1004,7 +1006,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.startDrag({ x: clientX, y: clientY });
       document.body.style.userSelect = "none";
 
-      optionsStore.callbacks.onDragStart?.(
+      pluginRegistry.hooks.onDragStart(
         clientX + window.scrollX,
         clientY + window.scrollY,
       );
@@ -1030,7 +1032,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (selectedElements.length === 0) return;
 
-      optionsStore.callbacks.onDragEnd?.(selectedElements, dragSelectionRect);
+      pluginRegistry.hooks.onDragEnd(selectedElements, dragSelectionRect);
       const firstElement = selectedElements[0];
       const center = getBoundsCenter(createElementBounds(firstElement));
 
@@ -1328,9 +1330,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       event.preventDefault();
       event.stopPropagation();
 
-      if (optionsStore.callbacks.onOpenFile) {
-        optionsStore.callbacks.onOpenFile(filePath, lineNumber ?? undefined);
-      } else {
+      const wasHandled = pluginRegistry.hooks.onOpenFile(filePath, lineNumber ?? undefined);
+      if (!wasHandled) {
         const url = buildOpenFileUrl(filePath, lineNumber ?? undefined);
         window.open(url, "_blank", "noopener,noreferrer");
       }
@@ -1422,13 +1423,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleActivationKeys = (event: KeyboardEvent): void => {
       if (
-        !optionsStore.store.allowActivationInsideInput &&
+        !pluginRegistry.store.options.allowActivationInsideInput &&
         isKeyboardEventTriggeredByInput(event)
       ) {
         return;
       }
 
-      if (!isTargetKeyCombination(event, optionsStore.store)) {
+      if (!isTargetKeyCombination(event, pluginRegistry.store.options)) {
         if (
           isActivated() &&
           !store.wasActivatedByToggle &&
@@ -1454,7 +1455,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isActivated()) {
         if (
           store.wasActivatedByToggle &&
-          optionsStore.store.activationMode !== "hold"
+          pluginRegistry.store.options.activationMode !== "hold"
         )
           return;
         if (event.repeat) return;
@@ -1472,7 +1473,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (!isHoldingKeys()) {
         const keyHoldDuration =
-          optionsStore.store.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS;
+          pluginRegistry.store.options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS;
         const activationDuration = isKeyboardEventTriggeredByInput(event)
           ? keyHoldDuration + INPUT_FOCUS_ACTIVATION_DELAY_MS
           : keyHoldDuration;
@@ -1492,7 +1493,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         if (
           isPromptMode() &&
-          isTargetKeyCombination(event, optionsStore.store) &&
+          isTargetKeyCombination(event, pluginRegistry.store.options) &&
           !event.repeat
         ) {
           event.preventDefault();
@@ -1555,24 +1556,24 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (isPromptMode()) return;
 
         const hasCustomShortcut = Boolean(
-          optionsStore.store.activationShortcut ||
-            optionsStore.store.activationKey,
+          pluginRegistry.store.options.activationShortcut ||
+            pluginRegistry.store.options.activationKey,
         );
 
-        const requiredModifiers = getRequiredModifiers(optionsStore.store);
+        const requiredModifiers = getRequiredModifiers(pluginRegistry.store.options);
         const isReleasingModifier =
           requiredModifiers.metaKey || requiredModifiers.ctrlKey
             ? !event.metaKey && !event.ctrlKey
             : (requiredModifiers.shiftKey && !event.shiftKey) ||
               (requiredModifiers.altKey && !event.altKey);
 
-        const isReleasingActivationKey = optionsStore.store.activationShortcut
-          ? !optionsStore.store.activationShortcut(event)
-          : optionsStore.store.activationKey
-            ? optionsStore.store.activationKey.key
+        const isReleasingActivationKey = pluginRegistry.store.options.activationShortcut
+          ? !pluginRegistry.store.options.activationShortcut(event)
+          : pluginRegistry.store.options.activationKey
+            ? pluginRegistry.store.options.activationKey.key
               ? event.key?.toLowerCase() ===
-                  optionsStore.store.activationKey.key.toLowerCase() ||
-                keyMatchesCode(optionsStore.store.activationKey.key, event.code)
+                  pluginRegistry.store.options.activationKey.key.toLowerCase() ||
+                keyMatchesCode(pluginRegistry.store.options.activationKey.key, event.code)
               : false
             : isCLikeKey(event.key, event.code);
 
@@ -1580,7 +1581,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           if (isReleasingModifier) {
             if (
               store.wasActivatedByToggle &&
-              optionsStore.store.activationMode !== "hold"
+              pluginRegistry.store.options.activationMode !== "hold"
             )
               return;
             deactivateRenderer();
@@ -1598,7 +1599,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (isReleasingActivationKey || isReleasingModifier) {
           if (
             store.wasActivatedByToggle &&
-            optionsStore.store.activationMode !== "hold"
+            pluginRegistry.store.options.activationMode !== "hold"
           )
             return;
           if (isHoldingKeys()) {
@@ -1698,7 +1699,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.setFrozenElement(element);
         actions.freeze();
         actions.showContextMenu(position, element);
-        optionsStore.callbacks.onContextMenu?.(element, position);
+        pluginRegistry.hooks.onContextMenu(element, position);
       },
       { capture: true },
     );
@@ -1854,7 +1855,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const startBoundsRecalcIntervalIfNeeded = () => {
       const shouldRunInterval =
-        optionsStore.store.theme.enabled &&
+        pluginRegistry.store.theme.enabled &&
         (isActivated() ||
           isCopying() ||
           store.labelInstances.length > 0 ||
@@ -1882,7 +1883,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     createEffect(() => {
-      void optionsStore.store.theme.enabled;
+      void pluginRegistry.store.theme.enabled;
       void isActivated();
       void isCopying();
       void store.labelInstances.length;
@@ -1931,8 +1932,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       themeKey: "selectionBox" | "elementLabel",
     ) =>
       createMemo(() => {
-        if (!optionsStore.store.theme.enabled) return false;
-        if (!optionsStore.store.theme[themeKey].enabled) return false;
+        if (!pluginRegistry.store.theme.enabled) return false;
+        if (!pluginRegistry.store.theme[themeKey].enabled) return false;
         if (didJustCopy()) return false;
         return (
           isRendererActive() && !isDragging() && Boolean(effectiveElement())
@@ -1958,15 +1959,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const selectionLabelVisible = createMemo(() => {
       if (store.contextMenuPosition !== null) return false;
-      if (!optionsStore.store.theme.elementLabel.enabled) return false;
+      if (!pluginRegistry.store.theme.elementLabel.enabled) return false;
       if (didJustCopy()) return false;
       return isRendererActive() && !isDragging() && Boolean(effectiveElement());
     });
 
     const labelInstanceCache = new Map<string, SelectionLabelInstance>();
     const computedLabelInstances = createMemo(() => {
-      if (!optionsStore.store.theme.enabled) return [];
-      if (!optionsStore.store.theme.grabbedBoxes.enabled) return [];
+      if (!pluginRegistry.store.theme.enabled) return [];
+      if (!pluginRegistry.store.theme.grabbedBoxes.enabled) return [];
       void store.viewportVersion;
       const currentIds = new Set(store.labelInstances.map((i) => i.id));
       for (const cachedId of labelInstanceCache.keys()) {
@@ -2001,8 +2002,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const computedGrabbedBoxes = createMemo(() => {
-      if (!optionsStore.store.theme.enabled) return [];
-      if (!optionsStore.store.theme.grabbedBoxes.enabled) return [];
+      if (!pluginRegistry.store.theme.enabled) return [];
+      if (!pluginRegistry.store.theme.grabbedBoxes.enabled) return [];
       void store.viewportVersion;
       return store.grabbedBoxes.map((box) => {
         if (!box.element || !document.body.contains(box.element)) {
@@ -2017,8 +2018,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const dragVisible = createMemo(
       () =>
-        optionsStore.store.theme.enabled &&
-        optionsStore.store.theme.dragBox.enabled &&
+        pluginRegistry.store.theme.enabled &&
+        pluginRegistry.store.theme.dragBox.enabled &&
         isRendererActive() &&
         isDraggingBeyondThreshold(),
     );
@@ -2028,8 +2029,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const labelVisible = createMemo(() => {
-      if (!optionsStore.store.theme.enabled) return false;
-      const themeEnabled = optionsStore.store.theme.elementLabel.enabled;
+      if (!pluginRegistry.store.theme.enabled) return false;
+      const themeEnabled = pluginRegistry.store.theme.elementLabel.enabled;
       const inPromptMode = isPromptMode();
       const copying = isCopying();
       const rendererActive = isRendererActive();
@@ -2044,8 +2045,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const crosshairVisible = createMemo(
       () =>
-        optionsStore.store.theme.enabled &&
-        optionsStore.store.theme.crosshair.enabled &&
+        pluginRegistry.store.theme.enabled &&
+        pluginRegistry.store.theme.crosshair.enabled &&
         isRendererActive() &&
         !isDragging() &&
         !store.isTouchMode &&
@@ -2216,12 +2217,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handleContextMenuOpen = () => {
       const fileInfo = contextMenuFilePath();
       if (fileInfo) {
-        if (optionsStore.callbacks.onOpenFile) {
-          optionsStore.callbacks.onOpenFile(
-            fileInfo.filePath,
-            fileInfo.lineNumber ?? undefined,
-          );
-        } else {
+        const wasHandled = pluginRegistry.hooks.onOpenFile(fileInfo.filePath, fileInfo.lineNumber ?? undefined);
+        if (!wasHandled) {
           const openFileUrl = buildOpenFileUrl(
             fileInfo.filePath,
             fileInfo.lineNumber,
@@ -2321,7 +2318,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     createEffect(() => {
-      const hue = optionsStore.store.theme.hue;
+      const hue = pluginRegistry.store.theme.hue;
       if (hue !== 0) {
         rendererRoot.style.filter = `hue-rotate(${hue}deg)`;
       } else {
@@ -2329,7 +2326,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     });
 
-    if (optionsStore.store.theme.enabled) {
+    if (pluginRegistry.store.theme.enabled) {
       render(
         () => (
           <ReactGrabRenderer
@@ -2378,8 +2375,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               actions.setPendingAbortSessionId(sessionId)
             }
             onAbortSession={handleAgentAbort}
-            theme={optionsStore.store.theme}
-            toolbarVisible={optionsStore.store.theme.toolbar.enabled}
+            theme={pluginRegistry.store.theme}
+            toolbarVisible={pluginRegistry.store.theme.toolbar.enabled}
             isActive={isActivated()}
             onToggleActive={handleToggleActive}
             contextMenuPosition={contextMenuPosition()}
@@ -2388,7 +2385,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             contextMenuComponentName={contextMenuComponentName()}
             contextMenuHasFilePath={Boolean(contextMenuFilePath()?.filePath)}
             contextMenuHasAgent={hasAgentProvider()}
-            contextMenuActions={optionsStore.store.contextMenuActions}
+            contextMenuActions={pluginRegistry.store.contextMenuActions}
             contextMenuActionContext={contextMenuActionContext()}
             onContextMenuCopy={handleContextMenuCopy}
             onContextMenuCopyScreenshot={() =>
@@ -2415,7 +2412,53 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return await copyWithFallback(elementsArray);
     };
 
-    return {
+    const syncAgentFromRegistry = () => {
+      const agentOpts = getAgentOptionsWithCallbacks();
+      if (agentOpts) {
+        agentManager._internal.setOptions(agentOpts);
+      }
+      actions.setHasAgentProvider(Boolean(agentOpts?.provider));
+      if (agentOpts?.provider) {
+        const capturedProvider = agentOpts.provider;
+        actions.setAgentCapabilities({
+          supportsUndo: Boolean(capturedProvider.undo),
+          supportsFollowUp: Boolean(capturedProvider.supportsFollowUp),
+          dismissButtonText: capturedProvider.dismissButtonText,
+          isAgentConnected: false,
+        });
+
+        if (capturedProvider.checkConnection) {
+          capturedProvider
+            .checkConnection()
+            .then((isConnected) => {
+              const currentAgentOpts = getAgentOptionsWithCallbacks();
+              if (currentAgentOpts?.provider !== capturedProvider) {
+                return;
+              }
+              actions.setAgentCapabilities({
+                supportsUndo: Boolean(capturedProvider.undo),
+                supportsFollowUp: Boolean(capturedProvider.supportsFollowUp),
+                dismissButtonText: capturedProvider.dismissButtonText,
+                isAgentConnected: isConnected,
+              });
+            })
+            .catch(() => {
+              // Connection check failed - leave isAgentConnected as false
+            });
+        }
+
+        agentManager.session.tryResume();
+      } else {
+        actions.setAgentCapabilities({
+          supportsUndo: false,
+          supportsFollowUp: false,
+          dismissButtonText: undefined,
+          isAgentConnected: false,
+        });
+      }
+    };
+
+    const api: ReactGrabAPI = {
       activate: () => {
         if (!isActivated()) {
           toggleActivate();
@@ -2448,40 +2491,20 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         dragBounds: dragBounds() ?? null,
       }),
       setOptions: (newOptions: SettableOptions) => {
-        optionsStore.setOptions(newOptions);
-
-        if (newOptions.agent !== undefined) {
-          const agentOpts = getAgentOptionsWithCallbacks();
-          if (agentOpts) {
-            agentManager._internal.setOptions(agentOpts);
-          }
-          actions.setHasAgentProvider(Boolean(agentOpts?.provider));
-          if (agentOpts?.provider) {
-            actions.setAgentCapabilities({
-              supportsUndo: Boolean(agentOpts.provider.undo),
-              supportsFollowUp: Boolean(agentOpts.provider.supportsFollowUp),
-              dismissButtonText: agentOpts.provider.dismissButtonText,
-              isAgentConnected: false,
-            });
-
-            if (agentOpts.provider.checkConnection) {
-              void agentOpts.provider.checkConnection().then((connected) => {
-                actions.setAgentCapabilities({
-                  supportsUndo: Boolean(agentOpts.provider?.undo),
-                  supportsFollowUp: Boolean(
-                    agentOpts.provider?.supportsFollowUp,
-                  ),
-                  dismissButtonText: agentOpts.provider?.dismissButtonText,
-                  isAgentConnected: connected,
-                });
-              });
-            }
-
-            agentManager.session.tryResume();
-          }
-        }
+        pluginRegistry.setOptions(newOptions);
       },
+      registerPlugin: (plugin: Plugin) => {
+        pluginRegistry.register(plugin, api);
+        syncAgentFromRegistry();
+      },
+      unregisterPlugin: (name: string) => {
+        pluginRegistry.unregister(name);
+        syncAgentFromRegistry();
+      },
+      getPlugins: () => pluginRegistry.getPluginNames(),
     };
+
+    return api;
   });
 };
 
@@ -2503,6 +2526,9 @@ export type {
   SettableOptions,
   ContextMenuAction,
   ContextMenuActionContext,
+  Plugin,
+  PluginConfig,
+  PluginHooks,
 } from "../types.js";
 
 export { generateSnippet } from "../utils/generate-snippet.js";

@@ -270,8 +270,8 @@ test.describe("API Methods", () => {
     });
   });
 
-  test.describe("setOptions()", () => {
-    test("should update callback options", async ({ reactGrab }) => {
+  test.describe("registerPlugin()", () => {
+    test("should register plugin with hooks", async ({ reactGrab }) => {
       let callbackCalled = false;
 
       await reactGrab.page.evaluate(() => {
@@ -281,15 +281,18 @@ test.describe("API Methods", () => {
         const api = (
           window as {
             __REACT_GRAB__?: {
-              setOptions: (o: Record<string, unknown>) => void;
+              registerPlugin: (plugin: Record<string, unknown>) => void;
             };
           }
         ).__REACT_GRAB__;
-        api?.setOptions({
-          onActivate: () => {
-            (
-              window as { __TEST_CALLBACK_CALLED__?: boolean }
-            ).__TEST_CALLBACK_CALLED__ = true;
+        api?.registerPlugin({
+          name: "test-plugin",
+          hooks: {
+            onActivate: () => {
+              (
+                window as { __TEST_CALLBACK_CALLED__?: boolean }
+              ).__TEST_CALLBACK_CALLED__ = true;
+            },
           },
         });
       });
@@ -306,26 +309,29 @@ test.describe("API Methods", () => {
       expect(callbackCalled).toBe(true);
     });
 
-    test("should allow updating multiple callbacks", async ({ reactGrab }) => {
+    test("should allow registering plugin with multiple hooks", async ({ reactGrab }) => {
       await reactGrab.page.evaluate(() => {
         (window as { __CALLBACKS__?: string[] }).__CALLBACKS__ = [];
         const api = (
           window as {
             __REACT_GRAB__?: {
-              setOptions: (o: Record<string, unknown>) => void;
+              registerPlugin: (plugin: Record<string, unknown>) => void;
             };
           }
         ).__REACT_GRAB__;
-        api?.setOptions({
-          onActivate: () => {
-            (window as { __CALLBACKS__?: string[] }).__CALLBACKS__?.push(
-              "activate",
-            );
-          },
-          onDeactivate: () => {
-            (window as { __CALLBACKS__?: string[] }).__CALLBACKS__?.push(
-              "deactivate",
-            );
+        api?.registerPlugin({
+          name: "test-plugin",
+          hooks: {
+            onActivate: () => {
+              (window as { __CALLBACKS__?: string[] }).__CALLBACKS__?.push(
+                "activate",
+              );
+            },
+            onDeactivate: () => {
+              (window as { __CALLBACKS__?: string[] }).__CALLBACKS__?.push(
+                "deactivate",
+              );
+            },
           },
         });
       });

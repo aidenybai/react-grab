@@ -1,0 +1,266 @@
+import { createStore } from "solid-js/store";
+import type {
+  Plugin,
+  PluginConfig,
+  PluginHooks,
+  Theme,
+  AgentOptions,
+  ContextMenuAction,
+  ReactGrabState,
+  PromptModeContext,
+  OverlayBounds,
+  DragRect,
+  ElementLabelVariant,
+  ElementLabelContext,
+  CrosshairContext,
+  ActivationMode,
+  ActivationKey,
+  SettableOptions,
+} from "../types.js";
+import { DEFAULT_THEME, deepMergeTheme } from "./theme.js";
+import { DEFAULT_KEY_HOLD_DURATION_MS } from "../constants.js";
+
+interface RegisteredPlugin {
+  plugin: Plugin;
+  config: PluginConfig;
+}
+
+interface OptionsState {
+  activationMode: ActivationMode;
+  keyHoldDuration: number;
+  allowActivationInsideInput: boolean;
+  maxContextLines: number;
+  activationShortcut: ((event: KeyboardEvent) => boolean) | undefined;
+  activationKey: ActivationKey | undefined;
+  getContent: ((elements: Element[]) => Promise<string> | string) | undefined;
+}
+
+const DEFAULT_OPTIONS: OptionsState = {
+  activationMode: "toggle",
+  keyHoldDuration: DEFAULT_KEY_HOLD_DURATION_MS,
+  allowActivationInsideInput: true,
+  maxContextLines: 3,
+  activationShortcut: undefined,
+  activationKey: undefined,
+  getContent: undefined,
+};
+
+interface PluginStoreState {
+  theme: Required<Theme>;
+  agent: AgentOptions | undefined;
+  options: OptionsState;
+  contextMenuActions: ContextMenuAction[];
+}
+
+type HookName = keyof PluginHooks;
+
+const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
+  const plugins = new Map<string, RegisteredPlugin>();
+  const directOptionOverrides: Partial<OptionsState> = {};
+
+  const [store, setStore] = createStore<PluginStoreState>({
+    theme: DEFAULT_THEME,
+    agent: undefined,
+    options: { ...DEFAULT_OPTIONS, ...initialOptions },
+    contextMenuActions: [],
+  });
+
+  const recomputeStore = () => {
+    let mergedTheme: Required<Theme> = DEFAULT_THEME;
+    let mergedAgent: AgentOptions | undefined = undefined;
+    let mergedOptions: OptionsState = { ...DEFAULT_OPTIONS, ...initialOptions };
+    const allContextMenuActions: ContextMenuAction[] = [];
+
+    for (const { config } of plugins.values()) {
+      if (config.theme) {
+        mergedTheme = deepMergeTheme(mergedTheme, config.theme);
+      }
+
+      if (config.agent) {
+        const agentConfig = config.agent as AgentOptions;
+        if (mergedAgent) {
+          mergedAgent = Object.assign({}, mergedAgent, agentConfig);
+        } else {
+          mergedAgent = agentConfig;
+        }
+      }
+
+      if (config.options) {
+        mergedOptions = { ...mergedOptions, ...config.options };
+      }
+
+      if (config.contextMenuActions) {
+        allContextMenuActions.push(...config.contextMenuActions);
+      }
+    }
+
+    mergedOptions = { ...mergedOptions, ...directOptionOverrides };
+
+    setStore("theme", mergedTheme);
+    setStore("agent", mergedAgent);
+    setStore("options", mergedOptions);
+    setStore("contextMenuActions", allContextMenuActions);
+  };
+
+  const setOptions = (optionUpdates: SettableOptions) => {
+    for (const [optionKey, optionValue] of Object.entries(optionUpdates)) {
+      if (optionValue === undefined) continue;
+      (directOptionOverrides as Record<string, unknown>)[optionKey] = optionValue;
+      setStore("options", optionKey as keyof OptionsState, optionValue as OptionsState[keyof OptionsState]);
+    }
+  };
+
+  const register = (plugin: Plugin, api: unknown) => {
+    if (plugins.has(plugin.name)) {
+      unregister(plugin.name);
+    }
+
+    let config: PluginConfig;
+
+    if (plugin.setup) {
+      const setupResult = plugin.setup(api as Parameters<NonNullable<Plugin["setup"]>>[0]);
+      config = setupResult ?? {};
+    } else {
+      config = {};
+    }
+
+    if (plugin.theme) {
+      config.theme = config.theme
+        ? deepMergeTheme(
+            deepMergeTheme(DEFAULT_THEME, plugin.theme),
+            config.theme,
+          )
+        : plugin.theme;
+    }
+
+    if (plugin.agent) {
+      config.agent = config.agent
+        ? { ...plugin.agent, ...config.agent }
+        : plugin.agent;
+    }
+
+    if (plugin.contextMenuActions) {
+      config.contextMenuActions = [
+        ...plugin.contextMenuActions,
+        ...(config.contextMenuActions ?? []),
+      ];
+    }
+
+    if (plugin.hooks) {
+      config.hooks = config.hooks
+        ? { ...plugin.hooks, ...config.hooks }
+        : plugin.hooks;
+    }
+
+    if (plugin.options) {
+      config.options = config.options
+        ? { ...plugin.options, ...config.options }
+        : plugin.options;
+    }
+
+    plugins.set(plugin.name, { plugin, config });
+    recomputeStore();
+    return config;
+  };
+
+  const unregister = (name: string) => {
+    const registered = plugins.get(name);
+    if (!registered) return;
+
+    if (registered.config.cleanup) {
+      registered.config.cleanup();
+    }
+
+    plugins.delete(name);
+    recomputeStore();
+  };
+
+  const getPluginNames = (): string[] => {
+    return Array.from(plugins.keys());
+  };
+
+  const callHook = <K extends HookName>(
+    hookName: K,
+    ...args: Parameters<NonNullable<PluginHooks[K]>>
+  ): void => {
+    for (const { config } of plugins.values()) {
+      const hook = config.hooks?.[hookName] as
+        | ((...hookArgs: Parameters<NonNullable<PluginHooks[K]>>) => void)
+        | undefined;
+      if (hook) {
+        hook(...args);
+      }
+    }
+  };
+
+  const callHookWithHandled = <K extends HookName>(
+    hookName: K,
+    ...args: Parameters<NonNullable<PluginHooks[K]>>
+  ): boolean => {
+    let handled = false;
+    for (const { config } of plugins.values()) {
+      const hook = config.hooks?.[hookName] as
+        | ((...hookArgs: Parameters<NonNullable<PluginHooks[K]>>) => boolean | void)
+        | undefined;
+      if (hook) {
+        const result = hook(...args);
+        if (result === true) {
+          handled = true;
+        }
+      }
+    }
+    return handled;
+  };
+
+  const callHookAsync = async <K extends HookName>(
+    hookName: K,
+    ...args: Parameters<NonNullable<PluginHooks[K]>>
+  ): Promise<void> => {
+    for (const { config } of plugins.values()) {
+      const hook = config.hooks?.[hookName] as
+        | ((...hookArgs: Parameters<NonNullable<PluginHooks[K]>>) => ReturnType<NonNullable<PluginHooks[K]>>)
+        | undefined;
+      if (hook) {
+        await hook(...args);
+      }
+    }
+  };
+
+  const hooks = {
+    onActivate: () => callHook("onActivate"),
+    onDeactivate: () => callHook("onDeactivate"),
+    onElementHover: (element: Element) => callHook("onElementHover", element),
+    onElementSelect: (element: Element) => callHook("onElementSelect", element),
+    onDragStart: (startX: number, startY: number) => callHook("onDragStart", startX, startY),
+    onDragEnd: (elements: Element[], bounds: DragRect) => callHook("onDragEnd", elements, bounds),
+    onBeforeCopy: async (elements: Element[]) => callHookAsync("onBeforeCopy", elements),
+    onAfterCopy: (elements: Element[], success: boolean) => callHook("onAfterCopy", elements, success),
+    onCopySuccess: (elements: Element[], content: string) => callHook("onCopySuccess", elements, content),
+    onCopyError: (error: Error) => callHook("onCopyError", error),
+    onStateChange: (state: ReactGrabState) => callHook("onStateChange", state),
+    onPromptModeChange: (isPromptMode: boolean, context: PromptModeContext) =>
+      callHook("onPromptModeChange", isPromptMode, context),
+    onSelectionBox: (visible: boolean, bounds: OverlayBounds | null, element: Element | null) =>
+      callHook("onSelectionBox", visible, bounds, element),
+    onDragBox: (visible: boolean, bounds: OverlayBounds | null) => callHook("onDragBox", visible, bounds),
+    onGrabbedBox: (bounds: OverlayBounds, element: Element) => callHook("onGrabbedBox", bounds, element),
+    onElementLabel: (visible: boolean, variant: ElementLabelVariant, context: ElementLabelContext) =>
+      callHook("onElementLabel", visible, variant, context),
+    onCrosshair: (visible: boolean, context: CrosshairContext) => callHook("onCrosshair", visible, context),
+    onContextMenu: (element: Element, position: { x: number; y: number }) =>
+      callHook("onContextMenu", element, position),
+    onOpenFile: (filePath: string, lineNumber?: number) => callHookWithHandled("onOpenFile", filePath, lineNumber),
+  };
+
+  return {
+    register,
+    unregister,
+    getPluginNames,
+    setOptions,
+    store,
+    hooks,
+  };
+};
+
+export { createPluginRegistry };
+export type { OptionsState };

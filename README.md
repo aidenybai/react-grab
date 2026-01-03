@@ -529,37 +529,98 @@ export default function RootLayout({ children }) {
 
 ## Extending React Grab
 
-React Grab provides an public customization API. Check out the [type definitions](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) to see all available options for extending React Grab.
+React Grab uses a plugin system to extend functionality. Check out the [type definitions](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) to see all available options.
+
+#### Basic Usage
 
 ```typescript
 import { init } from "react-grab/core";
 
-const api = init({
-  theme: {
-    enabled: true, // disable all UI by setting to false
-    hue: 180, // shift colors by 180 degrees (pink → cyan/turquoise)
-    crosshair: {
-      enabled: false, // disable crosshair
-    },
-    elementLabel: {
-      enabled: false, // disable element label
-    },
-  },
-
-  onElementSelect: (element) => {
-    console.log("Selected:", element);
-  },
-  onCopySuccess: (elements, content) => {
-    console.log("Copied to clipboard:", content);
-  },
-  onStateChange: (state) => {
-    console.log("Active:", state.isActive);
-  },
-});
+const api = init();
 
 api.activate();
 api.copyElement(document.querySelector(".my-element"));
 console.log(api.getState());
+```
+
+#### Lifecycle Hooks Plugin
+
+Track element selections with analytics:
+
+```typescript
+api.registerPlugin({
+  name: "analytics",
+  hooks: {
+    onElementSelect: (element) => {
+      analytics.track("element_selected", { tagName: element.tagName });
+    },
+    onDragEnd: (elements, bounds) => {
+      analytics.track("drag_end", { count: elements.length, bounds });
+    },
+    onCopySuccess: (elements, content) => {
+      analytics.track("copy", { count: elements.length });
+    },
+  },
+});
+```
+
+#### Context Menu Plugin
+
+Add custom actions to the right-click menu:
+
+```typescript
+api.registerPlugin({
+  name: "custom-actions",
+  contextMenuActions: [
+    {
+      label: "Log to Console",
+      handler: ({ elements }) => console.dir(elements[0]),
+    },
+  ],
+});
+```
+
+#### Theme Plugin
+
+Customize the UI appearance:
+
+```typescript
+api.registerPlugin({
+  name: "theme",
+  theme: {
+    hue: 180, // shift colors (pink → cyan)
+    crosshair: { enabled: false },
+    elementLabel: { enabled: false },
+  },
+});
+```
+
+#### Agent Plugin
+
+Create a custom agent that processes selected elements:
+
+```typescript
+api.registerPlugin({
+  name: "my-custom-agent",
+  agent: {
+    provider: {
+      async *send({ prompt, elements, content }) {
+        yield "Analyzing element...";
+
+        const response = await fetch("/api/ai", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt, content }),
+        });
+
+        yield "Processing response...";
+
+        const result = await response.json();
+        yield `Done: ${result.message}`;
+      },
+    },
+  },
+});
 ```
 
 ## Resources & Contributing Back

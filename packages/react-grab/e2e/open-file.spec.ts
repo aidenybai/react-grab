@@ -13,15 +13,18 @@ test.describe("Open File", () => {
         const api = (
           window as {
             __REACT_GRAB__?: {
-              setOptions: (o: Record<string, unknown>) => void;
+              registerPlugin: (plugin: Record<string, unknown>) => void;
             };
           }
         ).__REACT_GRAB__;
-        api?.setOptions({
-          onOpenFile: () => {
-            (
-              window as { __OPEN_FILE_CALLED__?: boolean }
-            ).__OPEN_FILE_CALLED__ = true;
+        api?.registerPlugin({
+          name: "test-open-file",
+          hooks: {
+            onOpenFile: () => {
+              (
+                window as { __OPEN_FILE_CALLED__?: boolean }
+              ).__OPEN_FILE_CALLED__ = true;
+            },
           },
         });
       });
@@ -70,15 +73,18 @@ test.describe("Open File", () => {
         const api = (
           window as {
             __REACT_GRAB__?: {
-              setOptions: (o: Record<string, unknown>) => void;
+              registerPlugin: (plugin: Record<string, unknown>) => void;
             };
           }
         ).__REACT_GRAB__;
-        api?.setOptions({
-          onOpenFile: () => {
-            (
-              window as { __OPEN_FILE_CALLED__?: boolean }
-            ).__OPEN_FILE_CALLED__ = true;
+        api?.registerPlugin({
+          name: "test-open-file",
+          hooks: {
+            onOpenFile: () => {
+              (
+                window as { __OPEN_FILE_CALLED__?: boolean }
+              ).__OPEN_FILE_CALLED__ = true;
+            },
           },
         });
       });
@@ -107,12 +113,15 @@ test.describe("Open File", () => {
         const api = (
           window as {
             __REACT_GRAB__?: {
-              setOptions: (o: Record<string, unknown>) => void;
+              registerPlugin: (plugin: Record<string, unknown>) => void;
             };
           }
         ).__REACT_GRAB__;
-        api?.setOptions({
-          onOpenFile: () => {},
+        api?.registerPlugin({
+          name: "test-open-file",
+          hooks: {
+            onOpenFile: () => {},
+          },
         });
       });
 
@@ -138,15 +147,18 @@ test.describe("Open File", () => {
         const api = (
           window as {
             __REACT_GRAB__?: {
-              setOptions: (o: Record<string, unknown>) => void;
+              registerPlugin: (plugin: Record<string, unknown>) => void;
             };
           }
         ).__REACT_GRAB__;
-        api?.setOptions({
-          onOpenFile: () => {
-            (
-              window as { __OPEN_FILE_CALLED__?: boolean }
-            ).__OPEN_FILE_CALLED__ = true;
+        api?.registerPlugin({
+          name: "test-open-file",
+          hooks: {
+            onOpenFile: () => {
+              (
+                window as { __OPEN_FILE_CALLED__?: boolean }
+              ).__OPEN_FILE_CALLED__ = true;
+            },
           },
         });
       });
@@ -195,14 +207,17 @@ test.describe("Open File", () => {
         const api = (
           window as {
             __REACT_GRAB__?: {
-              setOptions: (o: Record<string, unknown>) => void;
+              registerPlugin: (plugin: Record<string, unknown>) => void;
             };
           }
         ).__REACT_GRAB__;
-        api?.setOptions({
-          onOpenFile: (info: unknown) => {
-            (window as { __OPEN_FILE_INFO__?: unknown }).__OPEN_FILE_INFO__ =
-              info;
+        api?.registerPlugin({
+          name: "test-open-file",
+          hooks: {
+            onOpenFile: (info: unknown) => {
+              (window as { __OPEN_FILE_INFO__?: unknown }).__OPEN_FILE_INFO__ =
+                info;
+            },
           },
         });
       });
@@ -235,15 +250,18 @@ test.describe("Open File", () => {
         const api = (
           window as {
             __REACT_GRAB__?: {
-              setOptions: (o: Record<string, unknown>) => void;
+              registerPlugin: (plugin: Record<string, unknown>) => void;
             };
           }
         ).__REACT_GRAB__;
-        api?.setOptions({
-          onOpenFile: (info: Record<string, unknown>) => {
-            (
-              window as { __OPEN_FILE_INFO__?: Record<string, unknown> | null }
-            ).__OPEN_FILE_INFO__ = info;
+        api?.registerPlugin({
+          name: "test-open-file",
+          hooks: {
+            onOpenFile: (info: Record<string, unknown>) => {
+              (
+                window as { __OPEN_FILE_INFO__?: Record<string, unknown> | null }
+              ).__OPEN_FILE_INFO__ = info;
+            },
           },
         });
       });
@@ -279,15 +297,18 @@ test.describe("Open File", () => {
         const api = (
           window as {
             __REACT_GRAB__?: {
-              setOptions: (o: Record<string, unknown>) => void;
+              registerPlugin: (plugin: Record<string, unknown>) => void;
             };
           }
         ).__REACT_GRAB__;
-        api?.setOptions({
-          onOpenFile: () => {
-            (
-              window as { __OPEN_FILE_CALLED__?: boolean }
-            ).__OPEN_FILE_CALLED__ = true;
+        api?.registerPlugin({
+          name: "test-open-file",
+          hooks: {
+            onOpenFile: () => {
+              (
+                window as { __OPEN_FILE_CALLED__?: boolean }
+              ).__OPEN_FILE_CALLED__ = true;
+            },
           },
         });
       });
@@ -339,15 +360,18 @@ test.describe("Open File", () => {
         const api = (
           window as {
             __REACT_GRAB__?: {
-              setOptions: (o: Record<string, unknown>) => void;
+              registerPlugin: (plugin: Record<string, unknown>) => void;
             };
           }
         ).__REACT_GRAB__;
-        api?.setOptions({
-          onOpenFile: () => {
-            (window as { __OPEN_FILE_COUNT__?: number }).__OPEN_FILE_COUNT__ =
-              ((window as { __OPEN_FILE_COUNT__?: number })
-                .__OPEN_FILE_COUNT__ ?? 0) + 1;
+        api?.registerPlugin({
+          name: "test-open-file",
+          hooks: {
+            onOpenFile: () => {
+              (window as { __OPEN_FILE_COUNT__?: number }).__OPEN_FILE_COUNT__ =
+                ((window as { __OPEN_FILE_COUNT__?: number })
+                  .__OPEN_FILE_COUNT__ ?? 0) + 1;
+            },
           },
         });
       });
@@ -388,15 +412,18 @@ test.describe("Open File", () => {
         const api = (
           window as {
             __REACT_GRAB__?: {
-              setOptions: (o: Record<string, unknown>) => void;
+              registerPlugin: (plugin: Record<string, unknown>) => void;
             };
           }
         ).__REACT_GRAB__;
-        api?.setOptions({
-          onOpenFile: () => {
-            (
-              window as { __OPEN_FILE_CALLED__?: boolean }
-            ).__OPEN_FILE_CALLED__ = true;
+        api?.registerPlugin({
+          name: "test-open-file",
+          hooks: {
+            onOpenFile: () => {
+              (
+                window as { __OPEN_FILE_CALLED__?: boolean }
+              ).__OPEN_FILE_CALLED__ = true;
+            },
           },
         });
       });

@@ -1,16 +1,28 @@
-import type { Options } from "../types.js";
 import { copyContent } from "../utils/copy-content.js";
 import { generateSnippet } from "../utils/generate-snippet.js";
 
+interface CopyOptions {
+  maxContextLines?: number;
+  getContent?: (elements: Element[]) => Promise<string> | string;
+}
+
+interface CopyHooks {
+  onBeforeCopy: (elements: Element[]) => Promise<void>;
+  onAfterCopy: (elements: Element[], success: boolean) => void;
+  onCopySuccess: (elements: Element[], content: string) => void;
+  onCopyError: (error: Error) => void;
+}
+
 export const tryCopyWithFallback = async (
-  options: Options,
+  options: CopyOptions,
+  hooks: CopyHooks,
   elements: Element[],
   extraPrompt?: string,
 ): Promise<boolean> => {
   let didCopy = false;
   let copiedContent = "";
 
-  await options.onBeforeCopy?.(elements);
+  await hooks.onBeforeCopy(elements);
 
   try {
     if (options.getContent) {
@@ -40,13 +52,13 @@ export const tryCopyWithFallback = async (
   } catch (error) {
     const resolvedError =
       error instanceof Error ? error : new Error(String(error));
-    options.onCopyError?.(resolvedError);
+    hooks.onCopyError(resolvedError);
   }
 
   if (didCopy) {
-    options.onCopySuccess?.(elements, copiedContent);
+    hooks.onCopySuccess(elements, copiedContent);
   }
-  options.onAfterCopy?.(elements, didCopy);
+  hooks.onAfterCopy(elements, didCopy);
 
   return didCopy;
 };
