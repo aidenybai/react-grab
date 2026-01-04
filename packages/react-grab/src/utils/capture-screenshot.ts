@@ -4,7 +4,7 @@ import {
   VIDEO_READY_TIMEOUT_MS,
 } from "../constants.js";
 
-interface ElementBounds {
+export interface ElementBounds {
   x: number;
   y: number;
   width: number;
