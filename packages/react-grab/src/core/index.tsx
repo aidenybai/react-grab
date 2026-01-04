@@ -107,7 +107,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       theme: DEFAULT_THEME,
       hasAgentProvider: Boolean(pluginRegistry.store.agent?.provider),
       keyHoldDuration:
-        pluginRegistry.store.options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS,
+        pluginRegistry.store.options.keyHoldDuration ??
+        DEFAULT_KEY_HOLD_DURATION_MS,
     });
 
     const isHoldingKeys = createMemo(() => store.current.state === "holding");
@@ -687,12 +688,24 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     createEffect(
       on(
-        () => [labelVisible(), labelVariant(), cursorPosition()] as const,
-        ([visible, variant, position]) => {
+        () =>
+          [
+            labelVisible(),
+            labelVariant(),
+            cursorPosition(),
+            targetElement(),
+            store.selectionFilePath,
+            store.selectionLineNumber,
+          ] as const,
+        ([visible, variant, position, element, filePath, lineNumber]) => {
           pluginRegistry.hooks.onElementLabel(Boolean(visible), variant, {
             x: position.x,
             y: position.y,
             content: "",
+            element: element ?? undefined,
+            tagName: element ? getTagName(element) || undefined : undefined,
+            filePath: filePath ?? undefined,
+            lineNumber: lineNumber ?? undefined,
           });
         },
       ),
@@ -1271,7 +1284,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       event.preventDefault();
       event.stopPropagation();
 
-      const wasHandled = pluginRegistry.hooks.onOpenFile(filePath, lineNumber ?? undefined);
+      const wasHandled = pluginRegistry.hooks.onOpenFile(
+        filePath,
+        lineNumber ?? undefined,
+      );
       if (!wasHandled) {
         const url = buildOpenFileUrl(filePath, lineNumber ?? undefined);
         window.open(url, "_blank", "noopener,noreferrer");
@@ -1414,7 +1430,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (!isHoldingKeys()) {
         const keyHoldDuration =
-          pluginRegistry.store.options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS;
+          pluginRegistry.store.options.keyHoldDuration ??
+          DEFAULT_KEY_HOLD_DURATION_MS;
         const activationDuration = isKeyboardEventTriggeredByInput(event)
           ? keyHoldDuration + INPUT_FOCUS_ACTIVATION_DELAY_MS
           : keyHoldDuration;
@@ -1501,20 +1518,26 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             pluginRegistry.store.options.activationKey,
         );
 
-        const requiredModifiers = getRequiredModifiers(pluginRegistry.store.options);
+        const requiredModifiers = getRequiredModifiers(
+          pluginRegistry.store.options,
+        );
         const isReleasingModifier =
           requiredModifiers.metaKey || requiredModifiers.ctrlKey
             ? !event.metaKey && !event.ctrlKey
             : (requiredModifiers.shiftKey && !event.shiftKey) ||
               (requiredModifiers.altKey && !event.altKey);
 
-        const isReleasingActivationKey = pluginRegistry.store.options.activationShortcut
+        const isReleasingActivationKey = pluginRegistry.store.options
+          .activationShortcut
           ? !pluginRegistry.store.options.activationShortcut(event)
           : pluginRegistry.store.options.activationKey
             ? pluginRegistry.store.options.activationKey.key
               ? event.key?.toLowerCase() ===
                   pluginRegistry.store.options.activationKey.key.toLowerCase() ||
-                keyMatchesCode(pluginRegistry.store.options.activationKey.key, event.code)
+                keyMatchesCode(
+                  pluginRegistry.store.options.activationKey.key,
+                  event.code,
+                )
               : false
             : isCLikeKey(event.key, event.code);
 
@@ -2008,7 +2031,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const fileInfo = contextMenuFilePath();
         return {
           element,
-          elements: store.frozenElements.length > 0 ? store.frozenElements : [element],
+          elements:
+            store.frozenElements.length > 0 ? store.frozenElements : [element],
           filePath: fileInfo?.filePath,
           lineNumber: fileInfo?.lineNumber,
           componentName: contextMenuComponentName(),
@@ -2113,7 +2137,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handleContextMenuOpen = () => {
       const fileInfo = contextMenuFilePath();
       if (fileInfo) {
-        const wasHandled = pluginRegistry.hooks.onOpenFile(fileInfo.filePath, fileInfo.lineNumber ?? undefined);
+        const wasHandled = pluginRegistry.hooks.onOpenFile(
+          fileInfo.filePath,
+          fileInfo.lineNumber ?? undefined,
+        );
         if (!wasHandled) {
           const openFileUrl = buildOpenFileUrl(
             fileInfo.filePath,

@@ -105,6 +105,11 @@ export interface ElementLabelContext {
   x: number;
   y: number;
   content: string;
+  element?: Element;
+  tagName?: string;
+  componentName?: string;
+  filePath?: string;
+  lineNumber?: number;
 }
 
 export interface ActivationKey {
@@ -219,13 +224,27 @@ export interface PluginHooks {
   onCopySuccess?: (elements: Element[], content: string) => void;
   onCopyError?: (error: Error) => void;
   onStateChange?: (state: ReactGrabState) => void;
-  onPromptModeChange?: (isPromptMode: boolean, context: PromptModeContext) => void;
-  onSelectionBox?: (visible: boolean, bounds: OverlayBounds | null, element: Element | null) => void;
+  onPromptModeChange?: (
+    isPromptMode: boolean,
+    context: PromptModeContext,
+  ) => void;
+  onSelectionBox?: (
+    visible: boolean,
+    bounds: OverlayBounds | null,
+    element: Element | null,
+  ) => void;
   onDragBox?: (visible: boolean, bounds: OverlayBounds | null) => void;
   onGrabbedBox?: (bounds: OverlayBounds, element: Element) => void;
-  onElementLabel?: (visible: boolean, variant: ElementLabelVariant, context: ElementLabelContext) => void;
+  onElementLabel?: (
+    visible: boolean,
+    variant: ElementLabelVariant,
+    context: ElementLabelContext,
+  ) => void;
   onCrosshair?: (visible: boolean, context: CrosshairContext) => void;
-  onContextMenu?: (element: Element, position: { x: number; y: number }) => void;
+  onContextMenu?: (
+    element: Element,
+    position: { x: number; y: number },
+  ) => void;
   onOpenFile?: (filePath: string, lineNumber?: number) => boolean | void;
 }
 
