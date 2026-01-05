@@ -202,6 +202,17 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     });
   };
 
+  const waitForActive = async (expectedState: boolean) => {
+    await page.waitForFunction(
+      (expected) => {
+        const api = (window as { __REACT_GRAB__?: { isActive: () => boolean } }).__REACT_GRAB__;
+        return api?.isActive() === expected;
+      },
+      expectedState,
+      { timeout: 2000 }
+    );
+  };
+
   const holdToActivate = async (durationMs = DEFAULT_KEY_HOLD_DURATION_MS) => {
     await page.click("body");
     await page.keyboard.down("Meta");
@@ -215,25 +226,25 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         .__REACT_GRAB__;
       api?.activate();
     });
-    await page.waitForTimeout(100);
+    await waitForActive(true);
   };
 
   const activateViaKeyboard = async () => {
     await holdToActivate();
     await page.keyboard.up("c");
     await page.keyboard.up("Meta");
-    await page.waitForTimeout(100);
+    await waitForActive(true);
   };
 
   const deactivate = async () => {
     await page.keyboard.press("Escape");
-    await page.waitForTimeout(100);
+    await waitForActive(false);
   };
 
   const hoverElement = async (selector: string) => {
     const element = page.locator(selector).first();
     await element.hover();
-    await page.waitForTimeout(50);
+    await page.waitForTimeout(100);
   };
 
   const clickElement = async (selector: string) => {
@@ -259,9 +270,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.waitForTimeout(50);
     await page.mouse.move(endX, endY, { steps: 10 });
-    await page.waitForTimeout(50);
     await page.mouse.up();
   };
 
@@ -270,16 +279,14 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   };
 
   const waitForSelectionBox = async () => {
-    const startTime = Date.now();
-    const timeout = 2000;
-    while (Date.now() - startTime < timeout) {
-      const isVisible = await page.evaluate(() => {
-        const api = (window as { __REACT_GRAB__?: { getState: () => { isSelectionBoxVisible: boolean } } }).__REACT_GRAB__;
-        return api?.getState()?.isSelectionBoxVisible ?? false;
-      });
-      if (isVisible) return;
-      await page.waitForTimeout(50);
-    }
+    await page.waitForFunction(
+      () => {
+        const api = (window as { __REACT_GRAB__?: { getState: () => { isSelectionBoxVisible: boolean; targetElement: unknown } } }).__REACT_GRAB__;
+        const state = api?.getState();
+        return state?.isSelectionBoxVisible || state?.targetElement !== null;
+      },
+      { timeout: 2000 }
+    );
   };
 
   const pressEscape = async () => {
@@ -288,32 +295,26 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const pressArrowDown = async () => {
     await page.keyboard.press("ArrowDown");
-    await page.waitForTimeout(50);
   };
 
   const pressArrowUp = async () => {
     await page.keyboard.press("ArrowUp");
-    await page.waitForTimeout(50);
   };
 
   const pressArrowLeft = async () => {
     await page.keyboard.press("ArrowLeft");
-    await page.waitForTimeout(50);
   };
 
   const pressArrowRight = async () => {
     await page.keyboard.press("ArrowRight");
-    await page.waitForTimeout(50);
   };
 
   const pressEnter = async () => {
     await page.keyboard.press("Enter");
-    await page.waitForTimeout(50);
   };
 
   const pressKey = async (key: string) => {
     await page.keyboard.press(key);
-    await page.waitForTimeout(50);
   };
 
   const pressKeyCombo = async (modifiers: string[], key: string) => {
@@ -324,18 +325,39 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     for (const modifier of [...modifiers].reverse()) {
       await page.keyboard.up(modifier);
     }
-    await page.waitForTimeout(50);
+  };
+
+  const waitForContextMenu = async (visible: boolean) => {
+    await page.waitForFunction(
+      ({ attrName, expectedVisible }) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const shadowRoot = host?.shadowRoot;
+        if (!shadowRoot) return !expectedVisible;
+        const root = shadowRoot.querySelector(`[${attrName}]`);
+        if (!root) return !expectedVisible;
+        const menuItem = root.querySelector("[data-react-grab-menu-item]");
+        return expectedVisible ? menuItem !== null : menuItem === null;
+      },
+      { attrName: ATTRIBUTE_NAME, expectedVisible: visible },
+      { timeout: 2000 }
+    );
   };
 
   const rightClickElement = async (selector: string) => {
     const element = page.locator(selector).first();
     await element.click({ button: "right", force: true });
-    await page.waitForTimeout(200);
+    const isActive = await isOverlayVisible();
+    if (isActive) {
+      await waitForContextMenu(true);
+    }
   };
 
   const rightClickAtPosition = async (x: number, y: number) => {
     await page.mouse.click(x, y, { button: "right" });
-    await page.waitForTimeout(100);
+    const isActive = await isOverlayVisible();
+    if (isActive) {
+      await waitForContextMenu(true);
+    }
   };
 
   const isContextMenuVisible = async () => {
@@ -367,7 +389,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       },
       { attrName: ATTRIBUTE_NAME, itemLabel: label },
     );
-    await page.waitForTimeout(100);
+    await waitForContextMenu(false);
   };
 
   const getContextMenuInfo = async (): Promise<ContextMenuInfo> => {
@@ -450,8 +472,26 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   };
 
   const scrollPage = async (deltaY: number) => {
+    const scrollBefore = await page.evaluate(() => window.scrollY);
     await page.mouse.wheel(0, deltaY);
-    await page.waitForTimeout(100);
+    await page.waitForFunction(
+      (prevScroll) => window.scrollY !== prevScroll,
+      scrollBefore,
+      { timeout: 2000 }
+    ).catch(() => {
+      // Scroll may not change if at edge of page, that's okay
+    });
+  };
+
+  const waitForPromptMode = async (active: boolean) => {
+    await page.waitForFunction(
+      (expected) => {
+        const api = (window as { __REACT_GRAB__?: { getState: () => { isPromptMode: boolean } } }).__REACT_GRAB__;
+        return api?.getState()?.isPromptMode === expected;
+      },
+      active,
+      { timeout: 2000 }
+    );
   };
 
   const enterPromptMode = async (selector: string) => {
@@ -459,9 +499,8 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     await hoverElement(selector);
     await waitForSelectionBox();
     await rightClickElement(selector);
-    await page.waitForTimeout(100);
     await clickContextMenuItem("Edit");
-    await page.waitForTimeout(100);
+    await waitForPromptMode(true);
   };
 
   const isPromptModeActive = async (): Promise<boolean> => {
@@ -490,7 +529,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       }
     }, ATTRIBUTE_NAME);
     await page.keyboard.type(text);
-    await page.waitForTimeout(50);
   };
 
   const getInputValue = async (): Promise<string> => {
@@ -509,7 +547,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const submitInput = async () => {
     await page.keyboard.press("Enter");
-    await page.waitForTimeout(100);
   };
 
   const clearInput = async () => {
@@ -642,6 +679,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   };
 
   const clickToolbarToggle = async () => {
+    const wasActive = await isOverlayVisible();
     await page.evaluate((attrName) => {
       const host = document.querySelector(`[${attrName}]`);
       const shadowRoot = host?.shadowRoot;
@@ -653,7 +691,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       );
       toggleButton?.click();
     }, ATTRIBUTE_NAME);
-    await page.waitForTimeout(100);
+    await waitForActive(!wasActive);
   };
 
   const clickToolbarCollapse = async () => {
@@ -668,7 +706,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       );
       collapseButton?.click();
     }, ATTRIBUTE_NAME);
-    await page.waitForTimeout(100);
   };
 
   const dragToolbar = async (deltaX: number, deltaY: number) => {
@@ -677,14 +714,15 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
     const startX = toolbarInfo.position.x + 20;
     const startY = toolbarInfo.position.y + 10;
+    const expectedX = startX + deltaX;
+    const expectedY = startY + deltaY;
 
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.waitForTimeout(50);
-    await page.mouse.move(startX + deltaX, startY + deltaY, { steps: 10 });
-    await page.waitForTimeout(50);
+    await page.mouse.move(expectedX, expectedY, { steps: 10 });
     await page.mouse.up();
-    await page.waitForTimeout(300);
+    // HACK: Wait for snap animation to complete
+    await page.waitForTimeout(150);
   };
 
   const getSelectionLabelInfo = async (): Promise<SelectionLabelInfo> => {
@@ -761,13 +799,19 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   };
 
   const waitForSelectionLabel = async () => {
-    const startTime = Date.now();
-    const timeout = 2000;
-    while (Date.now() - startTime < timeout) {
-      const info = await getSelectionLabelInfo();
-      if (info.isVisible) return;
-      await page.waitForTimeout(50);
-    }
+    await page.waitForFunction(
+      (attrName) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const shadowRoot = host?.shadowRoot;
+        if (!shadowRoot) return false;
+        const root = shadowRoot.querySelector(`[${attrName}]`);
+        if (!root) return false;
+        const label = root.querySelector("[data-react-grab-selection-label]");
+        return label !== null;
+      },
+      ATTRIBUTE_NAME,
+      { timeout: 2000 }
+    );
   };
 
   const getLabelStatusText = async (): Promise<string | null> => {
@@ -941,12 +985,13 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   };
 
   const toggle = async () => {
+    const wasActive = await isOverlayVisible();
     await page.evaluate(() => {
       const api = (window as { __REACT_GRAB__?: { toggle: () => void } })
         .__REACT_GRAB__;
       api?.toggle();
     });
-    await page.waitForTimeout(100);
+    await waitForActive(!wasActive);
   };
 
   const dispose = async () => {
@@ -955,7 +1000,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         .__REACT_GRAB__;
       api?.dispose();
     });
-    await page.waitForTimeout(100);
   };
 
   const copyElementViaApi = async (selector: string): Promise<boolean> => {
@@ -984,7 +1028,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       api?.unregisterPlugin("test-agent");
       api?.registerPlugin({ name: "test-agent", agent: opts });
     }, options);
-    await page.waitForTimeout(100);
   };
 
   const updateOptions = async (options: Record<string, unknown>) => {
@@ -1035,7 +1078,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         });
       }
     }, options);
-    await page.waitForTimeout(100);
   };
 
   const reinitialize = async (options?: Record<string, unknown>) => {
@@ -1050,7 +1092,10 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       ).initReactGrab;
       initFn?.(opts);
     }, options);
-    await page.waitForTimeout(200);
+    await page.waitForFunction(() => {
+      const api = (window as { __REACT_GRAB__?: unknown }).__REACT_GRAB__;
+      return api !== undefined;
+    }, { timeout: 2000 });
   };
 
   const setupMockAgent = async (options?: {
@@ -1097,7 +1142,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       api?.unregisterPlugin("mock-agent");
       api?.registerPlugin({ name: "mock-agent", agent: { provider: mockProvider } });
     }, options);
-    await page.waitForTimeout(100);
   };
 
   const getAgentSessions = async (): Promise<AgentSessionInfo[]> => {
@@ -1145,24 +1189,52 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   };
 
   const waitForAgentSession = async (timeout = 5000) => {
-    const startTime = Date.now();
-    while (Date.now() - startTime < timeout) {
-      const isVisible = await isAgentSessionVisible();
-      if (isVisible) return;
-      await page.waitForTimeout(100);
-    }
-    throw new Error("Agent session did not appear within timeout");
+    await page.waitForFunction(
+      (attrName) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const shadowRoot = host?.shadowRoot;
+        if (!shadowRoot) return false;
+        const root = shadowRoot.querySelector(`[${attrName}]`);
+        if (!root) return false;
+        const sessionElements = Array.from(root.querySelectorAll("[data-react-grab-ignore-events]"));
+        for (let i = 0; i < sessionElements.length; i++) {
+          const text = sessionElements[i].textContent ?? "";
+          if (text.includes("Processing") || text.includes("Completed") || text.includes("Error") || text.includes("Grabbing")) {
+            return true;
+          }
+        }
+        return false;
+      },
+      ATTRIBUTE_NAME,
+      { timeout }
+    );
   };
 
   const waitForAgentComplete = async (timeout = 10000) => {
-    const startTime = Date.now();
-    while (Date.now() - startTime < timeout) {
-      const sessions = await getAgentSessions();
-      const hasStreamingSession = sessions.some((s) => s.isStreaming);
-      if (!hasStreamingSession && sessions.length > 0) return;
-      await page.waitForTimeout(100);
-    }
-    throw new Error("Agent session did not complete within timeout");
+    await page.waitForFunction(
+      (attrName) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const shadowRoot = host?.shadowRoot;
+        if (!shadowRoot) return false;
+        const root = shadowRoot.querySelector(`[${attrName}]`);
+        if (!root) return false;
+        const sessionElements = Array.from(root.querySelectorAll("[data-react-grab-ignore-events]"));
+        let hasSession = false;
+        let isStreaming = false;
+        for (let i = 0; i < sessionElements.length; i++) {
+          const text = sessionElements[i].textContent ?? "";
+          if (text.includes("Processing") || text.includes("Completed") || text.includes("Error") || text.includes("Grabbing")) {
+            hasSession = true;
+            if (text.includes("Processing") || text.includes("Grabbing")) {
+              isStreaming = true;
+            }
+          }
+        }
+        return hasSession && !isStreaming;
+      },
+      ATTRIBUTE_NAME,
+      { timeout }
+    );
   };
 
   const clickAgentDismiss = async () => {
@@ -1178,7 +1250,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       );
       dismissButton?.click();
     }, ATTRIBUTE_NAME);
-    await page.waitForTimeout(100);
   };
 
   const clickAgentUndo = async () => {
@@ -1194,7 +1265,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       );
       undoButton?.click();
     }, ATTRIBUTE_NAME);
-    await page.waitForTimeout(100);
   };
 
   const clickAgentRetry = async () => {
@@ -1210,7 +1280,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       );
       retryButton?.click();
     }, ATTRIBUTE_NAME);
-    await page.waitForTimeout(100);
   };
 
   const clickAgentAbort = async () => {
@@ -1226,7 +1295,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       );
       abortButton?.click();
     }, ATTRIBUTE_NAME);
-    await page.waitForTimeout(100);
   };
 
   const confirmAgentAbort = async () => {
@@ -1242,7 +1310,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       );
       yesButton?.click();
     }, ATTRIBUTE_NAME);
-    await page.waitForTimeout(100);
   };
 
   const cancelAgentAbort = async () => {
@@ -1258,7 +1325,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       );
       noButton?.click();
     }, ATTRIBUTE_NAME);
-    await page.waitForTimeout(100);
   };
 
   const dispatchTouchEvent = async (
@@ -1321,18 +1387,15 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     endY: number,
   ) => {
     await dispatchTouchEvent("touchstart", startX, startY);
-    await page.waitForTimeout(50);
 
     const steps = 10;
     for (let i = 1; i <= steps; i++) {
       const currentX = startX + ((endX - startX) * i) / steps;
       const currentY = startY + ((endY - startY) * i) / steps;
       await dispatchTouchEvent("touchmove", currentX, currentY);
-      await page.waitForTimeout(10);
     }
 
     await dispatchTouchEvent("touchend", endX, endY);
-    await page.waitForTimeout(50);
   };
 
   const isTouchMode = async (): Promise<boolean> => {
@@ -1350,7 +1413,12 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const setViewportSize = async (width: number, height: number) => {
     await page.setViewportSize({ width, height });
-    await page.waitForTimeout(200);
+    await page.waitForFunction(
+      ({ expectedWidth, expectedHeight }) =>
+        window.innerWidth === expectedWidth && window.innerHeight === expectedHeight,
+      { expectedWidth: width, expectedHeight: height },
+      { timeout: 2000 }
+    );
   };
 
   const getViewportSize = async (): Promise<{
@@ -1368,7 +1436,11 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       const element = document.querySelector(sel);
       element?.remove();
     }, selector);
-    await page.waitForTimeout(50);
+    await page.waitForFunction(
+      (sel) => document.querySelector(sel) === null,
+      selector,
+      { timeout: 2000 }
+    );
   };
 
   const hideElement = async (selector: string) => {
@@ -1376,7 +1448,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       const element = document.querySelector(sel) as HTMLElement;
       if (element) element.style.display = "none";
     }, selector);
-    await page.waitForTimeout(50);
   };
 
   const showElement = async (selector: string) => {
@@ -1384,7 +1455,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       const element = document.querySelector(sel) as HTMLElement;
       if (element) element.style.display = "";
     }, selector);
-    await page.waitForTimeout(50);
   };
 
   const getElementBounds = async (
@@ -1499,14 +1569,17 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     name: string,
     timeout = 5000,
   ): Promise<unknown[]> => {
-    const startTime = Date.now();
-    while (Date.now() - startTime < timeout) {
-      const history = await getCallbackHistory();
-      const callback = history.find((c) => c.name === name);
-      if (callback) return callback.args;
-      await page.waitForTimeout(50);
-    }
-    throw new Error(`Callback "${name}" was not called within timeout`);
+    await page.waitForFunction(
+      (callbackName) => {
+        const history = (window as { __CALLBACK_HISTORY__?: Array<{ name: string }> }).__CALLBACK_HISTORY__ ?? [];
+        return history.some((c) => c.name === callbackName);
+      },
+      name,
+      { timeout }
+    );
+    const history = await getCallbackHistory();
+    const callback = history.find((c) => c.name === name);
+    return callback?.args ?? [];
   };
 
   return {
@@ -1612,7 +1685,11 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 export const test = base.extend<{ reactGrab: ReactGrabPageObject }>({
   reactGrab: async ({ page }, use) => {
     await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
+    await page.waitForFunction(() => {
+      const api = (window as { __REACT_GRAB__?: unknown }).__REACT_GRAB__;
+      return api !== undefined;
+    }, { timeout: 5000 });
     const reactGrab = createReactGrabPageObject(page);
     await use(reactGrab);
   },

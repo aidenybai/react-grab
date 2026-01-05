@@ -5,7 +5,6 @@ test.describe("Agent Integration", () => {
     test("should configure mock agent provider", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       const isPromptMode = await reactGrab.isPromptModeActive();
       expect(isPromptMode).toBe(true);
@@ -16,7 +15,6 @@ test.describe("Agent Integration", () => {
     }) => {
       await reactGrab.setupMockAgent({ delay: 1000 });
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       const isPromptMode = await reactGrab.isPromptModeActive();
       expect(isPromptMode).toBe(true);
@@ -28,7 +26,6 @@ test.describe("Agent Integration", () => {
         statusUpdates: ["Starting...", "Processing...", "Finishing..."],
       });
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Test prompt");
       await reactGrab.submitInput();
@@ -43,7 +40,6 @@ test.describe("Agent Integration", () => {
     test("should start session on input submit", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 1000 });
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Analyze this element");
       await reactGrab.submitInput();
@@ -58,7 +54,6 @@ test.describe("Agent Integration", () => {
     }) => {
       await reactGrab.setupMockAgent({ delay: 2000 });
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Test prompt");
       await reactGrab.submitInput();
@@ -72,7 +67,6 @@ test.describe("Agent Integration", () => {
     test("should complete session after processing", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 300 });
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Quick test");
       await reactGrab.submitInput();
@@ -86,16 +80,13 @@ test.describe("Agent Integration", () => {
     test("should display completion message", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 200 });
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Test");
       await reactGrab.submitInput();
 
       await reactGrab.waitForAgentComplete(3000);
-      await reactGrab.page.waitForTimeout(200);
 
-      const statusText = await reactGrab.getLabelStatusText();
-      expect(statusText).toBeTruthy();
+      await expect.poll(() => reactGrab.getLabelStatusText()).toBeTruthy();
     });
   });
 
@@ -106,42 +97,37 @@ test.describe("Agent Integration", () => {
         error: "Test error message",
       });
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Trigger error");
       await reactGrab.submitInput();
 
-      await reactGrab.page.waitForTimeout(1500);
-
-      const hasErrorView = await reactGrab.page.evaluate((attrName) => {
-        const host = document.querySelector(`[${attrName}]`);
-        const shadowRoot = host?.shadowRoot;
-        if (!shadowRoot) return false;
-        const root = shadowRoot.querySelector(`[${attrName}]`);
-        return !!root?.querySelector("[data-react-grab-error]");
-      }, "data-react-grab");
-      expect(hasErrorView).toBe(true);
+      await expect.poll(async () => {
+        return reactGrab.page.evaluate((attrName) => {
+          const host = document.querySelector(`[${attrName}]`);
+          const shadowRoot = host?.shadowRoot;
+          if (!shadowRoot) return false;
+          const root = shadowRoot.querySelector(`[${attrName}]`);
+          return !!root?.querySelector("[data-react-grab-error]");
+        }, "data-react-grab");
+      }, { timeout: 3000 }).toBe(true);
     });
 
     test("should show retry option on error", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 100, error: "Error occurred" });
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Test");
       await reactGrab.submitInput();
 
-      await reactGrab.page.waitForTimeout(500);
-
-      const hasRetryOption = await reactGrab.page.evaluate((attrName) => {
-        const host = document.querySelector(`[${attrName}]`);
-        const shadowRoot = host?.shadowRoot;
-        if (!shadowRoot) return false;
-        const root = shadowRoot.querySelector(`[${attrName}]`);
-        return root?.textContent?.toLowerCase().includes("retry") ?? false;
-      }, "data-react-grab");
-
-      expect(hasRetryOption).toBe(true);
+      await expect.poll(async () => {
+        return reactGrab.page.evaluate((attrName) => {
+          const host = document.querySelector(`[${attrName}]`);
+          const shadowRoot = host?.shadowRoot;
+          if (!shadowRoot) return false;
+          const root = shadowRoot.querySelector(`[${attrName}]`);
+          return root?.textContent?.toLowerCase().includes("retry") ?? false;
+        }, "data-react-grab");
+      }, { timeout: 2000 }).toBe(true);
     });
   });
 
@@ -149,88 +135,69 @@ test.describe("Agent Integration", () => {
     test("should dismiss session", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 100 });
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Test");
       await reactGrab.submitInput();
 
       await reactGrab.waitForAgentComplete(3000);
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.clickAgentDismiss();
-      await reactGrab.page.waitForTimeout(500);
 
-      const isVisible = await reactGrab.isAgentSessionVisible();
-      expect(isVisible).toBe(false);
+      await expect.poll(() => reactGrab.isAgentSessionVisible(), { timeout: 2000 }).toBe(false);
     });
 
     test("should abort streaming session", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 5000 });
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Long running task");
       await reactGrab.submitInput();
 
       await reactGrab.waitForAgentSession(2000);
-      await reactGrab.page.waitForTimeout(300);
 
       await reactGrab.clickAgentAbort();
-      await reactGrab.page.waitForTimeout(200);
 
-      const hasAbortConfirmation = await reactGrab.page.evaluate((attrName) => {
-        const host = document.querySelector(`[${attrName}]`);
-        const shadowRoot = host?.shadowRoot;
-        if (!shadowRoot) return false;
-        const root = shadowRoot.querySelector(`[${attrName}]`);
-        const text = root?.textContent?.toLowerCase() ?? "";
-        return (
-          text.includes("discard") ||
-          text.includes("abort") ||
-          text.includes("stop")
-        );
-      }, "data-react-grab");
-
-      expect(hasAbortConfirmation).toBe(true);
+      await expect.poll(async () => {
+        return reactGrab.page.evaluate((attrName) => {
+          const host = document.querySelector(`[${attrName}]`);
+          const shadowRoot = host?.shadowRoot;
+          if (!shadowRoot) return false;
+          const root = shadowRoot.querySelector(`[${attrName}]`);
+          const text = root?.textContent?.toLowerCase() ?? "";
+          return text.includes("discard") || text.includes("abort") || text.includes("stop");
+        }, "data-react-grab");
+      }, { timeout: 2000 }).toBe(true);
     });
 
     test("should confirm abort", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 5000 });
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Long task");
       await reactGrab.submitInput();
 
       await reactGrab.waitForAgentSession(2000);
-      await reactGrab.page.waitForTimeout(300);
 
       await reactGrab.clickAgentAbort();
-      await reactGrab.page.waitForTimeout(200);
-
       await reactGrab.confirmAgentAbort();
-      await reactGrab.page.waitForTimeout(500);
 
-      const sessions = await reactGrab.getAgentSessions();
-      expect(sessions.length).toBeLessThanOrEqual(1);
+      await expect.poll(async () => {
+        const sessions = await reactGrab.getAgentSessions();
+        return sessions.length;
+      }, { timeout: 2000 }).toBeLessThanOrEqual(1);
     });
 
     test("should cancel abort", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 5000 });
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Long task");
       await reactGrab.submitInput();
 
       await reactGrab.waitForAgentSession(2000);
-      await reactGrab.page.waitForTimeout(300);
 
       await reactGrab.clickAgentAbort();
-      await reactGrab.page.waitForTimeout(200);
-
       await reactGrab.cancelAgentAbort();
-      await reactGrab.page.waitForTimeout(200);
 
       const sessions = await reactGrab.getAgentSessions();
       expect(sessions.length).toBeGreaterThan(0);
@@ -241,41 +208,36 @@ test.describe("Agent Integration", () => {
     test("should support undo after completion", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 100 });
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Test");
       await reactGrab.submitInput();
 
       await reactGrab.waitForAgentComplete(3000);
-      await reactGrab.page.waitForTimeout(200);
 
-      const hasUndoOption = await reactGrab.page.evaluate((attrName) => {
-        const host = document.querySelector(`[${attrName}]`);
-        const shadowRoot = host?.shadowRoot;
-        if (!shadowRoot) return false;
-        const root = shadowRoot.querySelector(`[${attrName}]`);
-        return root?.textContent?.toLowerCase().includes("undo") ?? false;
-      }, "data-react-grab");
-
-      expect(hasUndoOption).toBe(true);
+      await expect.poll(async () => {
+        return reactGrab.page.evaluate((attrName) => {
+          const host = document.querySelector(`[${attrName}]`);
+          const shadowRoot = host?.shadowRoot;
+          if (!shadowRoot) return false;
+          const root = shadowRoot.querySelector(`[${attrName}]`);
+          return root?.textContent?.toLowerCase().includes("undo") ?? false;
+        }, "data-react-grab");
+      }, { timeout: 2000 }).toBe(true);
     });
 
     test("should trigger undo via keyboard shortcut", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 100 });
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Test");
       await reactGrab.submitInput();
 
       await reactGrab.waitForAgentComplete(3000);
       await reactGrab.clickAgentDismiss();
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.page.keyboard.down("Meta");
       await reactGrab.page.keyboard.press("z");
       await reactGrab.page.keyboard.up("Meta");
-      await reactGrab.page.waitForTimeout(200);
 
       const state = await reactGrab.getState();
       expect(state).toBeDefined();
@@ -288,13 +250,11 @@ test.describe("Agent Integration", () => {
     }) => {
       await reactGrab.setupMockAgent({ delay: 100 });
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Initial prompt");
       await reactGrab.submitInput();
 
       await reactGrab.waitForAgentComplete(3000);
-      await reactGrab.page.waitForTimeout(200);
 
       const hasFollowUpInput = await reactGrab.page.evaluate((attrName) => {
         const host = document.querySelector(`[${attrName}]`);
@@ -314,7 +274,6 @@ test.describe("Agent Integration", () => {
     }) => {
       await reactGrab.setupMockAgent({ delay: 500 });
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("First element");
       await reactGrab.submitInput();
@@ -330,7 +289,6 @@ test.describe("Agent Integration", () => {
     test("session should update bounds on scroll", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 2000 });
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Test scroll");
       await reactGrab.submitInput();
@@ -338,7 +296,6 @@ test.describe("Agent Integration", () => {
       await reactGrab.waitForAgentSession(2000);
 
       await reactGrab.scrollPage(50);
-      await reactGrab.page.waitForTimeout(200);
 
       const isVisible = await reactGrab.isAgentSessionVisible();
       expect(isVisible).toBe(true);
@@ -347,7 +304,6 @@ test.describe("Agent Integration", () => {
     test("session should update bounds on resize", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 2000 });
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Test resize");
       await reactGrab.submitInput();
@@ -355,7 +311,6 @@ test.describe("Agent Integration", () => {
       await reactGrab.waitForAgentSession(2000);
 
       await reactGrab.setViewportSize(800, 600);
-      await reactGrab.page.waitForTimeout(200);
 
       const isVisible = await reactGrab.isAgentSessionVisible();
       expect(isVisible).toBe(true);
@@ -368,10 +323,8 @@ test.describe("Agent Integration", () => {
     test("should handle empty prompt submission", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 100 });
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.submitInput();
-      await reactGrab.page.waitForTimeout(300);
 
       const state = await reactGrab.getState();
       expect(state).toBeDefined();
@@ -382,14 +335,11 @@ test.describe("Agent Integration", () => {
 
       for (let i = 0; i < 3; i++) {
         await reactGrab.enterPromptMode("li:first-child");
-        await reactGrab.page.waitForTimeout(100);
 
         await reactGrab.typeInInput(`Prompt ${i}`);
         await reactGrab.submitInput();
-        await reactGrab.page.waitForTimeout(200);
 
         await reactGrab.clickAgentDismiss();
-        await reactGrab.page.waitForTimeout(200);
       }
 
       const state = await reactGrab.getState();
