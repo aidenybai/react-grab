@@ -632,6 +632,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             pluginRegistry.store.theme.enabled,
             pluginRegistry.store.theme.selectionBox.enabled,
             pluginRegistry.store.theme.dragBox.enabled,
+            isDraggingBeyondThreshold(),
+            effectiveElement(),
+            didJustCopy(),
           ] as const,
         ([
           active,
@@ -645,17 +648,25 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           themeEnabled,
           selectionBoxEnabled,
           dragBoxEnabled,
+          draggingBeyondThreshold,
+          effectiveTarget,
+          justCopied,
         ]) => {
           const isSelectionBoxVisible = Boolean(
             themeEnabled &&
               selectionBoxEnabled &&
               active &&
               !copying &&
+              !justCopied &&
               !dragging &&
-              target != null,
+              effectiveTarget != null,
           );
           const isDragBoxVisible = Boolean(
-            themeEnabled && dragBoxEnabled && active && !copying && dragging,
+            themeEnabled &&
+              dragBoxEnabled &&
+              active &&
+              !copying &&
+              draggingBeyondThreshold,
           );
           pluginRegistry.hooks.onStateChange({
             isActive: active,
