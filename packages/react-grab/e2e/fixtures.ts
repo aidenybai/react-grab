@@ -842,7 +842,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         };
       }).__REACT_GRAB__;
 
-      return api?.getState().isCrosshairVisible ?? false;
+      return api?.getState()?.isCrosshairVisible ?? false;
     });
   };
 
