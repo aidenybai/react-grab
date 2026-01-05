@@ -15,29 +15,32 @@ import {
   FADE_OUT_BUFFER_MS,
   MIN_DEVICE_PIXEL_RATIO,
   Z_INDEX_OVERLAY_CANVAS,
+  OVERLAY_CROSSHAIR_COLOR,
+  OVERLAY_BORDER_COLOR_DRAG,
+  OVERLAY_FILL_COLOR_DRAG,
+  OVERLAY_BORDER_COLOR_DEFAULT,
+  OVERLAY_FILL_COLOR_DEFAULT,
 } from "../constants.js";
-
-const CROSSHAIR_COLOR = "rgba(210, 57, 192, 1)";
 
 const LAYER_STYLES = {
   drag: {
-    borderColor: "rgba(210, 57, 192, 0.4)",
-    fillColor: "rgba(210, 57, 192, 0.05)",
+    borderColor: OVERLAY_BORDER_COLOR_DRAG,
+    fillColor: OVERLAY_FILL_COLOR_DRAG,
     lerpFactor: DRAG_LERP_FACTOR,
   },
   selection: {
-    borderColor: "rgba(210, 57, 192, 0.5)",
-    fillColor: "rgba(210, 57, 192, 0.08)",
+    borderColor: OVERLAY_BORDER_COLOR_DEFAULT,
+    fillColor: OVERLAY_FILL_COLOR_DEFAULT,
     lerpFactor: SELECTION_LERP_FACTOR,
   },
   grabbed: {
-    borderColor: "rgba(210, 57, 192, 0.5)",
-    fillColor: "rgba(210, 57, 192, 0.08)",
+    borderColor: OVERLAY_BORDER_COLOR_DEFAULT,
+    fillColor: OVERLAY_FILL_COLOR_DEFAULT,
     lerpFactor: SELECTION_LERP_FACTOR,
   },
   processing: {
-    borderColor: "rgba(210, 57, 192, 0.5)",
-    fillColor: "rgba(210, 57, 192, 0.08)",
+    borderColor: OVERLAY_BORDER_COLOR_DEFAULT,
+    fillColor: OVERLAY_FILL_COLOR_DEFAULT,
     lerpFactor: SELECTION_LERP_FACTOR,
   },
 } as const;
@@ -164,6 +167,50 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     return match ? parseFloat(match[1]) : 0;
   };
 
+  const createAnimatedBounds = (
+    id: string,
+    bounds: OverlayBounds,
+    options?: { createdAt?: number; opacity?: number },
+  ): AnimatedBounds => ({
+    id,
+    current: {
+      x: bounds.x,
+      y: bounds.y,
+      width: bounds.width,
+      height: bounds.height,
+    },
+    target: {
+      x: bounds.x,
+      y: bounds.y,
+      width: bounds.width,
+      height: bounds.height,
+    },
+    borderRadius: parseBorderRadiusValue(bounds.borderRadius),
+    opacity: options?.opacity ?? 1,
+    createdAt: options?.createdAt,
+    isInitialized: true,
+  });
+
+  const updateAnimationTarget = (
+    animation: AnimatedBounds,
+    bounds: OverlayBounds,
+    opacity?: number,
+  ) => {
+    animation.target = {
+      x: bounds.x,
+      y: bounds.y,
+      width: bounds.width,
+      height: bounds.height,
+    };
+    animation.borderRadius = parseBorderRadiusValue(bounds.borderRadius);
+    if (opacity !== undefined) {
+      animation.opacity = opacity;
+    }
+  };
+
+  const resolveBoundsArray = (instance: SelectionLabelInstance): OverlayBounds[] =>
+    instance.boundsMultiple ?? [instance.bounds];
+
   const drawRoundedRectangle = (
     context: OffscreenCanvasRenderingContext2D,
     rectX: number,
@@ -210,7 +257,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
     if (!props.crosshairVisible) return;
 
-    context.strokeStyle = CROSSHAIR_COLOR;
+    context.strokeStyle = OVERLAY_CROSSHAIR_COLOR;
     context.lineWidth = 1;
 
     context.beginPath();
@@ -441,25 +488,26 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
         }
       }
 
-      if (
-        animation.createdAt &&
-        currentTimestamp - animation.createdAt > SUCCESS_LABEL_DURATION_MS
-      ) {
-        animation.opacity = 0;
-      }
-
-      if (animation.opacity > 0) {
+      if (animation.createdAt) {
+        const elapsed = currentTimestamp - animation.createdAt;
         const fadeOutDeadline =
           SUCCESS_LABEL_DURATION_MS + FADE_OUT_BUFFER_MS;
-        if (
-          animation.createdAt &&
-          currentTimestamp - animation.createdAt < fadeOutDeadline
-        ) {
+
+        if (elapsed >= fadeOutDeadline) {
+          return false;
+        }
+
+        if (elapsed > SUCCESS_LABEL_DURATION_MS) {
+          const fadeProgress =
+            (elapsed - SUCCESS_LABEL_DURATION_MS) / FADE_OUT_BUFFER_MS;
+          animation.opacity = 1 - fadeProgress;
           shouldContinueAnimating = true;
         }
+
         return true;
       }
-      return false;
+
+      return animation.opacity > 0;
     });
 
     for (const animation of processingAnimations) {
@@ -552,37 +600,13 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
           const existingAnimation = selectionAnimations.find(
             (animation) => animation.id === animationId,
           );
-          const cornerRadius = parseBorderRadiusValue(bounds.borderRadius);
 
           if (existingAnimation) {
-            existingAnimation.target = {
-              x: bounds.x,
-              y: bounds.y,
-              width: bounds.width,
-              height: bounds.height,
-            };
-            existingAnimation.borderRadius = cornerRadius;
+            updateAnimationTarget(existingAnimation, bounds);
             return existingAnimation;
           }
 
-          return {
-            id: animationId,
-            current: {
-              x: bounds.x,
-              y: bounds.y,
-              width: bounds.width,
-              height: bounds.height,
-            },
-            target: {
-              x: bounds.x,
-              y: bounds.y,
-              width: bounds.width,
-              height: bounds.height,
-            },
-            borderRadius: cornerRadius,
-            opacity: 1,
-            isInitialized: true,
-          };
+          return createAnimatedBounds(animationId, bounds);
         });
 
         scheduleAnimationFrame();
@@ -600,35 +624,10 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
           return;
         }
 
-        const cornerRadius = parseBorderRadiusValue(bounds.borderRadius);
-
         if (dragAnimation) {
-          dragAnimation.target = {
-            x: bounds.x,
-            y: bounds.y,
-            width: bounds.width,
-            height: bounds.height,
-          };
-          dragAnimation.borderRadius = cornerRadius;
+          updateAnimationTarget(dragAnimation, bounds);
         } else {
-          dragAnimation = {
-            id: "drag",
-            current: {
-              x: bounds.x,
-              y: bounds.y,
-              width: bounds.width,
-              height: bounds.height,
-            },
-            target: {
-              x: bounds.x,
-              y: bounds.y,
-              width: bounds.width,
-              height: bounds.height,
-            },
-            borderRadius: cornerRadius,
-            opacity: 1,
-            isInitialized: true,
-          };
+          dragAnimation = createAnimatedBounds("drag", bounds);
         }
 
         scheduleAnimationFrame();
@@ -647,26 +646,9 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
         for (const box of boxesToProcess) {
           if (!existingAnimationIds.has(box.id)) {
-            const cornerRadius = parseBorderRadiusValue(box.bounds.borderRadius);
-            grabbedAnimations.push({
-              id: box.id,
-              current: {
-                x: box.bounds.x,
-                y: box.bounds.y,
-                width: box.bounds.width,
-                height: box.bounds.height,
-              },
-              target: {
-                x: box.bounds.x,
-                y: box.bounds.y,
-                width: box.bounds.width,
-                height: box.bounds.height,
-              },
-              borderRadius: cornerRadius,
-              opacity: 1,
-              createdAt: box.createdAt,
-              isInitialized: true,
-            });
+            grabbedAnimations.push(
+              createAnimatedBounds(box.id, box.bounds, { createdAt: box.createdAt }),
+            );
           }
         }
 
@@ -675,16 +657,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
             (box) => box.id === animation.id,
           );
           if (matchingBox) {
-            const cornerRadius = parseBorderRadiusValue(
-              matchingBox.bounds.borderRadius,
-            );
-            animation.target = {
-              x: matchingBox.bounds.x,
-              y: matchingBox.bounds.y,
-              width: matchingBox.bounds.width,
-              height: matchingBox.bounds.height,
-            };
-            animation.borderRadius = cornerRadius;
+            updateAnimationTarget(animation, matchingBox.bounds);
           }
         }
 
@@ -712,36 +685,12 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
             const existingAnimation = processingAnimations.find(
               (animation) => animation.id === animationId,
             );
-            const cornerRadius = parseBorderRadiusValue(bounds.borderRadius);
 
             if (existingAnimation) {
-              existingAnimation.target = {
-                x: bounds.x,
-                y: bounds.y,
-                width: bounds.width,
-                height: bounds.height,
-              };
-              existingAnimation.borderRadius = cornerRadius;
+              updateAnimationTarget(existingAnimation, bounds);
               updatedAnimations.push(existingAnimation);
             } else {
-              updatedAnimations.push({
-                id: animationId,
-                current: {
-                  x: bounds.x,
-                  y: bounds.y,
-                  width: bounds.width,
-                  height: bounds.height,
-                },
-                target: {
-                  x: bounds.x,
-                  y: bounds.y,
-                  width: bounds.width,
-                  height: bounds.height,
-                },
-                borderRadius: cornerRadius,
-                opacity: 1,
-                isInitialized: true,
-              });
+              updatedAnimations.push(createAnimatedBounds(animationId, bounds));
             }
           }
         }
@@ -759,7 +708,8 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
         const instancesToProcess = labelInstances ?? [];
 
         for (const instance of instancesToProcess) {
-          const boundsToRender = instance.boundsMultiple ?? [instance.bounds];
+          const boundsToRender = resolveBoundsArray(instance);
+          const targetOpacity = instance.status === "fading" ? 0 : 1;
 
           for (let index = 0; index < boundsToRender.length; index++) {
             const bounds = boundsToRender[index];
@@ -767,44 +717,20 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
             const existingAnimation = grabbedAnimations.find(
               (animation) => animation.id === animationId,
             );
-            const cornerRadius = parseBorderRadiusValue(bounds.borderRadius);
-            const shouldFade = instance.status === "fading";
 
             if (existingAnimation) {
-              existingAnimation.target = {
-                x: bounds.x,
-                y: bounds.y,
-                width: bounds.width,
-                height: bounds.height,
-              };
-              existingAnimation.borderRadius = cornerRadius;
-              existingAnimation.opacity = shouldFade ? 0 : 1;
+              updateAnimationTarget(existingAnimation, bounds, targetOpacity);
             } else {
-              grabbedAnimations.push({
-                id: animationId,
-                current: {
-                  x: bounds.x,
-                  y: bounds.y,
-                  width: bounds.width,
-                  height: bounds.height,
-                },
-                target: {
-                  x: bounds.x,
-                  y: bounds.y,
-                  width: bounds.width,
-                  height: bounds.height,
-                },
-                borderRadius: cornerRadius,
-                opacity: shouldFade ? 0 : 1,
-                isInitialized: true,
-              });
+              grabbedAnimations.push(
+                createAnimatedBounds(animationId, bounds, { opacity: targetOpacity }),
+              );
             }
           }
         }
 
         const activeLabelIds = new Set<string>();
         for (const instance of instancesToProcess) {
-          const boundsToRender = instance.boundsMultiple ?? [instance.bounds];
+          const boundsToRender = resolveBoundsArray(instance);
           for (let index = 0; index < boundsToRender.length; index++) {
             activeLabelIds.add(`label-${instance.id}-${index}`);
           }

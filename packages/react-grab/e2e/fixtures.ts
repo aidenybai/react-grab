@@ -42,6 +42,11 @@ interface ReactGrabState {
   isPromptMode: boolean;
   targetElement: boolean;
   dragBounds: { x: number; y: number; width: number; height: number } | null;
+  grabbedBoxes: Array<{
+    id: string;
+    bounds: { x: number; y: number; width: number; height: number };
+    createdAt: number;
+  }>;
 }
 
 interface CrosshairInfo {
@@ -922,6 +927,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
           isPromptMode: false,
           targetElement: false,
           dragBounds: null,
+          grabbedBoxes: [],
         }
       );
     });

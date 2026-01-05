@@ -30,6 +30,13 @@ export const LERP_CONVERGENCE_THRESHOLD_PX = 0.5;
 export const FADE_OUT_BUFFER_MS = 100;
 export const MIN_DEVICE_PIXEL_RATIO = 2;
 
+export const GRAB_PURPLE_RGB = "210, 57, 192";
+export const OVERLAY_CROSSHAIR_COLOR = `rgba(${GRAB_PURPLE_RGB}, 1)`;
+export const OVERLAY_BORDER_COLOR_DRAG = `rgba(${GRAB_PURPLE_RGB}, 0.4)`;
+export const OVERLAY_FILL_COLOR_DRAG = `rgba(${GRAB_PURPLE_RGB}, 0.05)`;
+export const OVERLAY_BORDER_COLOR_DEFAULT = `rgba(${GRAB_PURPLE_RGB}, 0.5)`;
+export const OVERLAY_FILL_COLOR_DEFAULT = `rgba(${GRAB_PURPLE_RGB}, 0.08)`;
+
 export const ARROW_HEIGHT_PX = 8;
 export const LABEL_GAP_PX = 4;
 export const IDLE_TIMEOUT_MS = 400;
