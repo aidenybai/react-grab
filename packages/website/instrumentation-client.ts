@@ -1,4 +1,5 @@
 import { createVisualEditAgentProvider } from "@react-grab/visual-edit/client";
+import { createClient } from "@react-grab/playwright/client";
 import { init } from "react-grab/core";
 
 declare global {
@@ -52,4 +53,11 @@ if (typeof window !== "undefined" && !window.__REACT_GRAB__) {
   }
 
   window.__REACT_GRAB__ = api;
+
+  const playwrightClient = createClient({
+    onConnect: () => console.log("[playwright] connected"),
+    onDisconnect: () => console.log("[playwright] disconnected"),
+    onError: (error) => console.error("[playwright] error:", error),
+  });
+  playwrightClient.connect();
 }

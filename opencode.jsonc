@@ -1,0 +1,6 @@
+{
+  "plugin": [
+    "@tarquinen/opencode-dcp@latest"
+  ],
+  "$schema": "https://opencode.ai/config.json"
+}

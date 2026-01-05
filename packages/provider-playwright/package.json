@@ -1,0 +1,38 @@
+{
+  "name": "@react-grab/playwright",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js",
+      "require": "./dist/client.cjs"
+    },
+    "./relay": {
+      "types": "./dist/relay.d.ts",
+      "import": "./dist/relay.js",
+      "require": "./dist/relay.cjs"
+    }
+  },
+  "bin": {
+    "playwright-relay": "./dist/bin/relay.js",
+    "playwright-exec": "./dist/bin/exec.js"
+  },
+  "browser": "dist/client.global.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsup --watch",
+    "build": "rm -rf dist && NODE_ENV=production tsup"
+  },
+  "devDependencies": {
+    "@react-grab/utils": "workspace:*",
+    "@types/node": "^22.10.7",
+    "tsup": "^8.4.0"
+  },
+  "dependencies": {
+    "react-grab": "workspace:*",
+    "ws": "^8.18.0"
+  }
+}
