@@ -84,6 +84,9 @@ export interface ReactGrabState {
   isDragging: boolean;
   isCopying: boolean;
   isPromptMode: boolean;
+  isCrosshairVisible: boolean;
+  isSelectionBoxVisible: boolean;
+  isDragBoxVisible: boolean;
   targetElement: Element | null;
   dragBounds: DragRect | null;
   /**

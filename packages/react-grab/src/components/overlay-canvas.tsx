@@ -640,6 +640,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
       () => props.grabbedBoxes,
       (grabbedBoxes) => {
         const boxesToProcess = grabbedBoxes ?? [];
+        const activeBoxIds = new Set(boxesToProcess.map((box) => box.id));
         const existingAnimationIds = new Set(
           grabbedAnimations.map((animation) => animation.id),
         );
@@ -660,6 +661,13 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
             updateAnimationTarget(animation, matchingBox.bounds);
           }
         }
+
+        grabbedAnimations = grabbedAnimations.filter((animation) => {
+          if (animation.id.startsWith("label-")) {
+            return true;
+          }
+          return activeBoxIds.has(animation.id);
+        });
 
         scheduleAnimationFrame();
       },

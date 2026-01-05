@@ -29,10 +29,12 @@ test.describe("Visual Feedback", () => {
 
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
+      await reactGrab.page.waitForTimeout(100);
       const bounds1 = await reactGrab.getSelectionBoxBounds();
 
       await reactGrab.hoverElement("h1");
       await reactGrab.waitForSelectionBox();
+      await reactGrab.page.waitForTimeout(100);
       const bounds2 = await reactGrab.getSelectionBoxBounds();
 
       if (bounds1 && bounds2) {
@@ -202,6 +204,7 @@ test.describe("Visual Feedback", () => {
       await reactGrab.activate();
       await reactGrab.hoverElement("h1");
       await reactGrab.waitForSelectionBox();
+      await reactGrab.waitForSelectionLabel();
 
       const labelInfo = await reactGrab.getSelectionLabelInfo();
       expect(labelInfo.tagName).toBe("h1");
@@ -236,6 +239,7 @@ test.describe("Visual Feedback", () => {
       await reactGrab.activate();
       await reactGrab.hoverElement("[data-testid='edge-bottom-left']");
       await reactGrab.waitForSelectionBox();
+      await reactGrab.waitForSelectionLabel();
 
       const labelInfo = await reactGrab.getSelectionLabelInfo();
       expect(labelInfo.isVisible).toBe(true);
@@ -288,6 +292,7 @@ test.describe("Visual Feedback", () => {
       await reactGrab.scrollPage(500);
       await reactGrab.hoverElement("[data-testid='footer']");
       await reactGrab.waitForSelectionBox();
+      await reactGrab.waitForSelectionLabel();
 
       const labelInfo = await reactGrab.getSelectionLabelInfo();
       expect(labelInfo.isVisible).toBe(true);
@@ -301,6 +306,7 @@ test.describe("Visual Feedback", () => {
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
+      await reactGrab.waitForSelectionLabel();
 
       const selectionVisible = await reactGrab.isSelectionBoxVisible();
       const labelVisible = await reactGrab.isSelectionLabelVisible();

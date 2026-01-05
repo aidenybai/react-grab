@@ -110,6 +110,7 @@ interface ReactGrabPageObject {
 
   getSelectionLabelInfo: () => Promise<SelectionLabelInfo>;
   isSelectionLabelVisible: () => Promise<boolean>;
+  waitForSelectionLabel: () => Promise<void>;
   getLabelStatusText: () => Promise<string | null>;
 
   getCrosshairInfo: () => Promise<CrosshairInfo>;
@@ -269,7 +270,16 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   };
 
   const waitForSelectionBox = async () => {
-    await page.waitForTimeout(100);
+    const startTime = Date.now();
+    const timeout = 2000;
+    while (Date.now() - startTime < timeout) {
+      const isVisible = await page.evaluate(() => {
+        const api = (window as { __REACT_GRAB__?: { getState: () => { isSelectionBoxVisible: boolean } } }).__REACT_GRAB__;
+        return api?.getState()?.isSelectionBoxVisible ?? false;
+      });
+      if (isVisible) return;
+      await page.waitForTimeout(50);
+    }
   };
 
   const pressEscape = async () => {
@@ -433,17 +443,10 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   };
 
   const isSelectionBoxVisible = async (): Promise<boolean> => {
-    return page.evaluate((attrName) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      if (!shadowRoot) return false;
-      const root = shadowRoot.querySelector(`[${attrName}]`);
-      if (!root) return false;
-      const canvas = root.querySelector("[data-react-grab-overlay-canvas]");
-      if (!canvas) return false;
-      const api = (window as { __REACT_GRAB__?: { getState: () => { targetElement: Element | null } } }).__REACT_GRAB__;
-      return api?.getState()?.targetElement != null;
-    }, ATTRIBUTE_NAME);
+    return page.evaluate(() => {
+      const api = (window as { __REACT_GRAB__?: { getState: () => { isSelectionBoxVisible: boolean } } }).__REACT_GRAB__;
+      return api?.getState()?.isSelectionBoxVisible ?? false;
+    });
   };
 
   const scrollPage = async (deltaY: number) => {
@@ -757,6 +760,16 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     return info.isVisible;
   };
 
+  const waitForSelectionLabel = async () => {
+    const startTime = Date.now();
+    const timeout = 2000;
+    while (Date.now() - startTime < timeout) {
+      const info = await getSelectionLabelInfo();
+      if (info.isVisible) return;
+      await page.waitForTimeout(50);
+    }
+  };
+
   const getLabelStatusText = async (): Promise<string | null> => {
     return page.evaluate((attrName) => {
       const host = document.querySelector(`[${attrName}]`);
@@ -820,23 +833,17 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   };
 
   const isCrosshairVisible = async (): Promise<boolean> => {
-    return page.evaluate((attrName) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      if (!shadowRoot) return false;
-      const root = shadowRoot.querySelector(`[${attrName}]`);
-      if (!root) return false;
-      const canvas = root.querySelector("[data-react-grab-overlay-canvas]");
-      if (!canvas) return false;
-
+    return page.evaluate(() => {
       const api = (window as {
         __REACT_GRAB__?: {
-          isActive: () => boolean;
+          getState: () => {
+            isCrosshairVisible: boolean;
+          };
         };
       }).__REACT_GRAB__;
 
-      return api?.isActive() ?? false;
-    }, ATTRIBUTE_NAME);
+      return api?.getState().isCrosshairVisible ?? false;
+    });
   };
 
   const getGrabbedBoxInfo = async (): Promise<GrabbedBoxInfo> => {
@@ -888,9 +895,9 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     height: number;
   } | null> => {
     return page.evaluate(() => {
-      const api = (window as { __REACT_GRAB__?: { getState: () => { isDragging: boolean; dragBounds: { x: number; y: number; width: number; height: number } | null } } }).__REACT_GRAB__;
+      const api = (window as { __REACT_GRAB__?: { getState: () => { isDragBoxVisible: boolean; dragBounds: { x: number; y: number; width: number; height: number } | null } } }).__REACT_GRAB__;
       const state = api?.getState();
-      if (!state?.isDragging || !state?.dragBounds) return null;
+      if (!state?.isDragBoxVisible || !state?.dragBounds) return null;
       return state.dragBounds;
     });
   };
@@ -902,9 +909,9 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     height: number;
   } | null> => {
     return page.evaluate(() => {
-      const api = (window as { __REACT_GRAB__?: { getState: () => { targetElement: Element | null } } }).__REACT_GRAB__;
+      const api = (window as { __REACT_GRAB__?: { getState: () => { isSelectionBoxVisible: boolean; targetElement: Element | null } } }).__REACT_GRAB__;
       const state = api?.getState();
-      if (!state?.targetElement) return null;
+      if (!state?.isSelectionBoxVisible || !state?.targetElement) return null;
       const rect = state.targetElement.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
         return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
@@ -1550,6 +1557,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
     getSelectionLabelInfo,
     isSelectionLabelVisible,
+    waitForSelectionLabel,
     getLabelStatusText,
 
     getCrosshairInfo,
