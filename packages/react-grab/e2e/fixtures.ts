@@ -428,7 +428,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   };
 
   const isSelectionBoxVisible = async (): Promise<boolean> => {
-    // With canvas-based rendering, we check if overlay canvas exists and state has a target element
     return page.evaluate((attrName) => {
       const host = document.querySelector(`[${attrName}]`);
       const shadowRoot = host?.shadowRoot;
@@ -437,7 +436,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       if (!root) return false;
       const canvas = root.querySelector("[data-react-grab-overlay-canvas]");
       if (!canvas) return false;
-      // Check if there's an active selection via API
       const api = (window as { __REACT_GRAB__?: { getState: () => { targetElement: Element | null } } }).__REACT_GRAB__;
       return api?.getState()?.targetElement !== null;
     }, ATTRIBUTE_NAME);
@@ -817,8 +815,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   };
 
   const isCrosshairVisible = async (): Promise<boolean> => {
-    // With canvas-based rendering, crosshair visibility is determined by internal state
-    // We check if the overlay is active and canvas exists
     return page.evaluate((attrName) => {
       const host = document.querySelector(`[${attrName}]`);
       const shadowRoot = host?.shadowRoot;
@@ -839,7 +835,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   };
 
   const getGrabbedBoxInfo = async (): Promise<GrabbedBoxInfo> => {
-    // Get grabbed boxes from the API state
     return page.evaluate(() => {
       const api = (window as {
         __REACT_GRAB__?: {
@@ -867,7 +862,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   };
 
   const isGrabbedBoxVisible = async (): Promise<boolean> => {
-    // Check if there are any grabbed boxes currently visible via API state
     return page.evaluate(() => {
       const api = (window as {
         __REACT_GRAB__?: {
@@ -888,7 +882,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     width: number;
     height: number;
   } | null> => {
-    // With canvas-based rendering, we get drag bounds from API state
     return page.evaluate(() => {
       const api = (window as { __REACT_GRAB__?: { getState: () => { isDragging: boolean; dragBounds: { x: number; y: number; width: number; height: number } | null } } }).__REACT_GRAB__;
       const state = api?.getState();
@@ -903,7 +896,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     width: number;
     height: number;
   } | null> => {
-    // With canvas-based rendering, we get selection bounds from the target element
     return page.evaluate(() => {
       const api = (window as { __REACT_GRAB__?: { getState: () => { targetElement: Element | null } } }).__REACT_GRAB__;
       const state = api?.getState();

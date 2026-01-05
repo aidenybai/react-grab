@@ -70,7 +70,7 @@ export default defineConfig([
       VERSION: version,
     },
     format: ["iife"],
-    globalName: "ReactGrab",
+    globalName: "globalThis.__REACT_GRAB_MODULE__",
     loader: {
       ".css": "text",
     },
