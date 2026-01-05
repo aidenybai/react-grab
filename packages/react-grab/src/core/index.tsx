@@ -2418,7 +2418,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         isPromptMode: isPromptMode(),
         targetElement: targetElement(),
         dragBounds: dragBounds() ?? null,
-        grabbedBoxes: computedGrabbedBoxes().map((box) => ({
+        grabbedBoxes: store.grabbedBoxes.map((box) => ({
           id: box.id,
           bounds: box.bounds,
           createdAt: box.createdAt,
