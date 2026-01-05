@@ -437,7 +437,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       const canvas = root.querySelector("[data-react-grab-overlay-canvas]");
       if (!canvas) return false;
       const api = (window as { __REACT_GRAB__?: { getState: () => { targetElement: Element | null } } }).__REACT_GRAB__;
-      return api?.getState()?.targetElement !== null;
+      return api?.getState()?.targetElement != null;
     }, ATTRIBUTE_NAME);
   };
 
