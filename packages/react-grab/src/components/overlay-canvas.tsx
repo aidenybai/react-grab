@@ -828,6 +828,8 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
     window.addEventListener("resize", handleWindowResize);
 
+    let currentDprMediaQuery: MediaQueryList | null = null;
+
     const handleDevicePixelRatioChange = () => {
       const newDevicePixelRatio = Math.max(
         window.devicePixelRatio || 1,
@@ -835,23 +837,36 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
       );
       if (newDevicePixelRatio !== devicePixelRatio) {
         handleWindowResize();
+        setupDprMediaQuery();
       }
     };
 
-    const devicePixelRatioMediaQuery = window.matchMedia(
-      `(resolution: ${window.devicePixelRatio}dppx)`,
-    );
-    devicePixelRatioMediaQuery.addEventListener(
-      "change",
-      handleDevicePixelRatioChange,
-    );
-
-    onCleanup(() => {
-      window.removeEventListener("resize", handleWindowResize);
-      devicePixelRatioMediaQuery.removeEventListener(
+    const setupDprMediaQuery = () => {
+      if (currentDprMediaQuery) {
+        currentDprMediaQuery.removeEventListener(
+          "change",
+          handleDevicePixelRatioChange,
+        );
+      }
+      currentDprMediaQuery = window.matchMedia(
+        `(resolution: ${window.devicePixelRatio}dppx)`,
+      );
+      currentDprMediaQuery.addEventListener(
         "change",
         handleDevicePixelRatioChange,
       );
+    };
+
+    setupDprMediaQuery();
+
+    onCleanup(() => {
+      window.removeEventListener("resize", handleWindowResize);
+      if (currentDprMediaQuery) {
+        currentDprMediaQuery.removeEventListener(
+          "change",
+          handleDevicePixelRatioChange,
+        );
+      }
       if (animationFrameId !== null) {
         cancelAnimationFrame(animationFrameId);
       }
