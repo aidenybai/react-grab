@@ -86,6 +86,15 @@ export interface ReactGrabState {
   isPromptMode: boolean;
   targetElement: Element | null;
   dragBounds: DragRect | null;
+  /**
+   * Currently visible grabbed boxes (success flash effects).
+   * These are temporary visual indicators shown after elements are grabbed/copied.
+   */
+  grabbedBoxes: Array<{
+    id: string;
+    bounds: OverlayBounds;
+    createdAt: number;
+  }>;
 }
 
 export type ElementLabelVariant = "hover" | "processing" | "success";

@@ -9,6 +9,7 @@ export const createNoopApi = (): ReactGrabAPI => {
       isPromptMode: false,
       targetElement: null,
       dragBounds: null,
+      grabbedBoxes: [],
     };
   };
 

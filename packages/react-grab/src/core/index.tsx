@@ -615,8 +615,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             isPromptMode(),
             targetElement(),
             dragBounds(),
+            store.grabbedBoxes,
           ] as const,
-        ([active, dragging, copying, inputMode, target, drag]) => {
+        ([active, dragging, copying, inputMode, target, drag, grabbedBoxes]) => {
           pluginRegistry.hooks.onStateChange({
             isActive: active,
             isDragging: dragging,
@@ -631,6 +632,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                   height: drag.height,
                 }
               : null,
+            grabbedBoxes: grabbedBoxes.map((box) => ({
+              id: box.id,
+              bounds: box.bounds,
+              createdAt: box.createdAt,
+            })),
           });
         },
       ),
@@ -2412,6 +2418,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         isPromptMode: isPromptMode(),
         targetElement: targetElement(),
         dragBounds: dragBounds() ?? null,
+        grabbedBoxes: store.grabbedBoxes.map((box) => ({
+          id: box.id,
+          bounds: box.bounds,
+          createdAt: box.createdAt,
+        })),
       }),
       setOptions: (newOptions: SettableOptions) => {
         pluginRegistry.setOptions(newOptions);

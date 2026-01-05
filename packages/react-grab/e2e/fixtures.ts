@@ -839,27 +839,47 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   };
 
   const getGrabbedBoxInfo = async (): Promise<GrabbedBoxInfo> => {
-    // With canvas-based rendering, we can only check if grabbed boxes exist via internal state
-    // For now, we check if there's a last grabbed element
+    // Get grabbed boxes from the API state
     return page.evaluate(() => {
-      const api = (window as { __REACT_GRAB__?: { getState: () => { targetElement: Element | null } } }).__REACT_GRAB__;
-      // We can't get exact box info from canvas, return minimal info
-      return { count: 0, boxes: [] };
+      const api = (window as {
+        __REACT_GRAB__?: {
+          getState: () => {
+            grabbedBoxes: Array<{
+              id: string;
+              bounds: { x: number; y: number; width: number; height: number };
+              createdAt: number;
+            }>;
+          };
+        };
+      }).__REACT_GRAB__;
+
+      const state = api?.getState();
+      const grabbedBoxes = state?.grabbedBoxes ?? [];
+
+      return {
+        count: grabbedBoxes.length,
+        boxes: grabbedBoxes.map((box) => ({
+          id: box.id,
+          bounds: box.bounds,
+        })),
+      };
     });
   };
 
   const isGrabbedBoxVisible = async (): Promise<boolean> => {
-    // With canvas-based rendering, we check if the overlay canvas exists
-    // Grabbed boxes are rendered to canvas but we can't query them directly
-    return page.evaluate((attrName) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      if (!shadowRoot) return false;
-      const root = shadowRoot.querySelector(`[${attrName}]`);
-      if (!root) return false;
-      const canvas = root.querySelector("[data-react-grab-overlay-canvas]");
-      return canvas !== null;
-    }, ATTRIBUTE_NAME);
+    // Check if there are any grabbed boxes currently visible via API state
+    return page.evaluate(() => {
+      const api = (window as {
+        __REACT_GRAB__?: {
+          getState: () => {
+            grabbedBoxes: Array<{ id: string }>;
+          };
+        };
+      }).__REACT_GRAB__;
+
+      const state = api?.getState();
+      return (state?.grabbedBoxes?.length ?? 0) > 0;
+    });
   };
 
   const getDragBoxBounds = async (): Promise<{
