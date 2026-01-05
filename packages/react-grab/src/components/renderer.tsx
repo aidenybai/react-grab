@@ -1,88 +1,33 @@
-import { Show, For, Index, createMemo } from "solid-js";
+import { Show, Index } from "solid-js";
 import type { Component } from "solid-js";
 import type { ReactGrabRendererProps } from "../types.js";
 import { buildOpenFileUrl } from "../utils/build-open-file-url.js";
-import { SelectionBox } from "./selection-box.js";
-import { Crosshair } from "./crosshair.js";
+import { OverlayCanvas } from "./overlay-canvas.js";
 import { SelectionLabel } from "./selection-label.js";
 import { Toolbar } from "./toolbar/index.js";
 import { ContextMenu } from "./context-menu.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
-  const agentSessionsList = createMemo(() =>
-    props.agentSessions ? Array.from(props.agentSessions.values()) : [],
-  );
-
-  const selectionBoundsList = createMemo(() => {
-    if (
-      props.selectionBoundsMultiple &&
-      props.selectionBoundsMultiple.length > 0
-    ) {
-      return props.selectionBoundsMultiple;
-    }
-    return props.selectionBounds ? [props.selectionBounds] : [];
-  });
-
   return (
     <>
-      <Show when={props.selectionVisible}>
-        <For each={selectionBoundsList()}>
-          {(bounds) => (
-            <SelectionBox
-              variant="selection"
-              bounds={bounds}
-              visible={props.selectionVisible}
-              isFading={props.selectionLabelStatus === "fading"}
-            />
-          )}
-        </For>
-      </Show>
+      <OverlayCanvas
+        crosshairVisible={props.crosshairVisible}
+        mouseX={props.mouseX}
+        mouseY={props.mouseY}
+        selectionVisible={props.selectionVisible}
+        selectionBounds={props.selectionBounds}
+        selectionBoundsMultiple={props.selectionBoundsMultiple}
+        selectionIsFading={props.selectionLabelStatus === "fading"}
+        dragVisible={props.dragVisible}
+        dragBounds={props.dragBounds}
+        grabbedBoxes={props.grabbedBoxes}
+        agentSessions={props.agentSessions}
+        labelInstances={props.labelInstances}
+      />
 
-      <Show
-        when={
-          props.crosshairVisible === true &&
-          props.mouseX !== undefined &&
-          props.mouseY !== undefined
-        }
-      >
-        <Crosshair
-          mouseX={props.mouseX!}
-          mouseY={props.mouseY!}
-          visible={true}
-        />
-      </Show>
-
-      <Show when={props.dragVisible && props.dragBounds}>
-        <SelectionBox
-          variant="drag"
-          bounds={props.dragBounds!}
-          visible={props.dragVisible}
-        />
-      </Show>
-
-      <For each={props.grabbedBoxes ?? []}>
-        {(box) => (
-          <SelectionBox
-            variant="grabbed"
-            bounds={box.bounds}
-            createdAt={box.createdAt}
-          />
-        )}
-      </For>
-
-      <Index each={agentSessionsList()}>
+      <Index each={props.agentSessions ? Array.from(props.agentSessions.values()) : []}>
         {(session) => (
           <>
-            <For each={session().selectionBounds}>
-              {(bounds) => (
-                <SelectionBox
-                  variant="processing"
-                  bounds={bounds}
-                  visible={true}
-                  isCompleted={!session().isStreaming}
-                />
-              )}
-            </For>
             <Show when={session().selectionBounds.length > 0}>
               <SelectionLabel
                 tagName={session().tagName}
@@ -182,37 +127,25 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
 
       <Index each={props.labelInstances ?? []}>
         {(instance) => (
-          <>
-            <For each={instance().boundsMultiple ?? [instance().bounds]}>
-              {(bounds) => (
-                <SelectionBox
-                  variant="grabbed"
-                  bounds={bounds}
-                  visible={true}
-                  isFading={instance().status === "fading"}
-                />
-              )}
-            </For>
-            <SelectionLabel
-              tagName={instance().tagName}
-              componentName={instance().componentName}
-              selectionBounds={instance().bounds}
-              mouseX={instance().mouseX}
-              visible={true}
-              status={instance().status}
-              error={instance().errorMessage}
-              onShowContextMenu={
-                (instance().status === "copied" ||
-                  instance().status === "fading") &&
-                instance().element &&
-                (document.body ?? document.documentElement).contains(
-                  instance().element,
-                )
-                  ? () => props.onShowContextMenuInstance?.(instance().id)
-                  : undefined
-              }
-            />
-          </>
+          <SelectionLabel
+            tagName={instance().tagName}
+            componentName={instance().componentName}
+            selectionBounds={instance().bounds}
+            mouseX={instance().mouseX}
+            visible={true}
+            status={instance().status}
+            error={instance().errorMessage}
+            onShowContextMenu={
+              (instance().status === "copied" ||
+                instance().status === "fading") &&
+              instance().element &&
+              (document.body ?? document.documentElement).contains(
+                instance().element as Node,
+              )
+                ? () => props.onShowContextMenuInstance?.(instance().id)
+                : undefined
+            }
+          />
         )}
       </Index>
 
