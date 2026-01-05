@@ -58,6 +58,7 @@ interface AnimatedBounds {
   target: { x: number; y: number; width: number; height: number };
   borderRadius: number;
   opacity: number;
+  targetOpacity: number;
   createdAt?: number;
   isInitialized: boolean;
 }
@@ -170,7 +171,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   const createAnimatedBounds = (
     id: string,
     bounds: OverlayBounds,
-    options?: { createdAt?: number; opacity?: number },
+    options?: { createdAt?: number; opacity?: number; targetOpacity?: number },
   ): AnimatedBounds => ({
     id,
     current: {
@@ -187,6 +188,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     },
     borderRadius: parseBorderRadiusValue(bounds.borderRadius),
     opacity: options?.opacity ?? 1,
+    targetOpacity: options?.targetOpacity ?? options?.opacity ?? 1,
     createdAt: options?.createdAt,
     isInitialized: true,
   });
@@ -194,7 +196,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   const updateAnimationTarget = (
     animation: AnimatedBounds,
     bounds: OverlayBounds,
-    opacity?: number,
+    targetOpacity?: number,
   ) => {
     animation.target = {
       x: bounds.x,
@@ -203,8 +205,8 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
       height: bounds.height,
     };
     animation.borderRadius = parseBorderRadiusValue(bounds.borderRadius);
-    if (opacity !== undefined) {
-      animation.opacity = opacity;
+    if (targetOpacity !== undefined) {
+      animation.targetOpacity = targetOpacity;
     }
   };
 
@@ -396,6 +398,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   const interpolateBounds = (
     animation: AnimatedBounds,
     lerpFactor: number,
+    options?: { interpolateOpacity?: boolean },
   ): boolean => {
     const lerpedX = lerp(animation.current.x, animation.target.x, lerpFactor);
     const lerpedY = lerp(animation.current.y, animation.target.y, lerpFactor);
@@ -410,7 +413,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
       lerpFactor,
     );
 
-    const hasConverged =
+    const hasBoundsConverged =
       Math.abs(lerpedX - animation.target.x) < LERP_CONVERGENCE_THRESHOLD_PX &&
       Math.abs(lerpedY - animation.target.y) < LERP_CONVERGENCE_THRESHOLD_PX &&
       Math.abs(lerpedWidth - animation.target.width) <
@@ -418,16 +421,31 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
       Math.abs(lerpedHeight - animation.target.height) <
         LERP_CONVERGENCE_THRESHOLD_PX;
 
-    animation.current.x = hasConverged ? animation.target.x : lerpedX;
-    animation.current.y = hasConverged ? animation.target.y : lerpedY;
-    animation.current.width = hasConverged
+    animation.current.x = hasBoundsConverged ? animation.target.x : lerpedX;
+    animation.current.y = hasBoundsConverged ? animation.target.y : lerpedY;
+    animation.current.width = hasBoundsConverged
       ? animation.target.width
       : lerpedWidth;
-    animation.current.height = hasConverged
+    animation.current.height = hasBoundsConverged
       ? animation.target.height
       : lerpedHeight;
 
-    return !hasConverged;
+    let hasOpacityConverged = true;
+    if (options?.interpolateOpacity) {
+      const lerpedOpacity = lerp(
+        animation.opacity,
+        animation.targetOpacity,
+        lerpFactor,
+      );
+      const opacityThreshold = 0.01;
+      hasOpacityConverged =
+        Math.abs(lerpedOpacity - animation.targetOpacity) < opacityThreshold;
+      animation.opacity = hasOpacityConverged
+        ? animation.targetOpacity
+        : lerpedOpacity;
+    }
+
+    return !hasBoundsConverged || !hasOpacityConverged;
   };
 
   const runAnimationFrame = () => {
@@ -482,8 +500,15 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
     const currentTimestamp = Date.now();
     grabbedAnimations = grabbedAnimations.filter((animation) => {
+      const isLabelAnimation = animation.id.startsWith("label-");
+
       if (animation.isInitialized) {
-        if (interpolateBounds(animation, LAYER_STYLES.grabbed.lerpFactor)) {
+        const isStillAnimating = interpolateBounds(
+          animation,
+          LAYER_STYLES.grabbed.lerpFactor,
+          { interpolateOpacity: isLabelAnimation },
+        );
+        if (isStillAnimating) {
           shouldContinueAnimating = true;
         }
       }
@@ -504,6 +529,15 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
           shouldContinueAnimating = true;
         }
 
+        return true;
+      }
+
+      if (isLabelAnimation) {
+        const hasOpacityConverged =
+          Math.abs(animation.opacity - animation.targetOpacity) < 0.01;
+        if (hasOpacityConverged && animation.targetOpacity === 0) {
+          return false;
+        }
         return true;
       }
 
@@ -730,7 +764,10 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
               updateAnimationTarget(existingAnimation, bounds, targetOpacity);
             } else {
               grabbedAnimations.push(
-                createAnimatedBounds(animationId, bounds, { opacity: targetOpacity }),
+                createAnimatedBounds(animationId, bounds, {
+                  opacity: 1,
+                  targetOpacity,
+                }),
               );
             }
           }
