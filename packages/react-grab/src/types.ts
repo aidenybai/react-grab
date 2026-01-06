@@ -98,6 +98,7 @@ export interface ReactGrabState {
     bounds: OverlayBounds;
     createdAt: number;
   }>;
+  selectionFilePath: string | null;
 }
 
 export type ElementLabelVariant = "hover" | "processing" | "success";

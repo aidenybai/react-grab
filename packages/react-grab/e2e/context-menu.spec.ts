@@ -211,11 +211,15 @@ test.describe("Context Menu", () => {
       await reactGrab.rightClickElement("h1");
 
       await reactGrab.page.mouse.click(10, 10);
-      await reactGrab.page.waitForTimeout(200);
+      await reactGrab.page.waitForTimeout(300);
 
-      await reactGrab.hoverElement("li");
-      await reactGrab.waitForSelectionBox();
-      await reactGrab.rightClickElement("li");
+      await reactGrab.hoverElement("li:first-child");
+
+      await expect
+        .poll(async () => reactGrab.isSelectionBoxVisible(), { timeout: 5000 })
+        .toBe(true);
+
+      await reactGrab.rightClickElement("li:first-child");
 
       const isContextMenuVisible = await reactGrab.isContextMenuVisible();
       expect(isContextMenuVisible).toBe(true);

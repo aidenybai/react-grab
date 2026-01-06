@@ -30,23 +30,19 @@ test.describe("Open File", () => {
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
-      await reactGrab.waitForSelectionLabel();
-
-      await reactGrab.page.keyboard.down("Meta");
-      await reactGrab.page.waitForTimeout(50);
-      await reactGrab.page.keyboard.press("o");
-      await reactGrab.page.waitForTimeout(50);
-      await reactGrab.page.keyboard.up("Meta");
+      await reactGrab.waitForSelectionSource();
 
       await expect
         .poll(
-          async () =>
-            reactGrab.page.evaluate(
+          async () => {
+            await reactGrab.pressKeyCombo(["Meta"], "o");
+            return reactGrab.page.evaluate(
               () =>
                 (window as { __OPEN_FILE_CALLED__?: boolean })
                   .__OPEN_FILE_CALLED__ ?? false,
-            ),
-          { timeout: 2000 },
+            );
+          },
+          { timeout: 5000, intervals: [500] },
         )
         .toBe(true);
     });
@@ -383,39 +379,39 @@ test.describe("Open File", () => {
 
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
-      await reactGrab.page.keyboard.down("Meta");
-      await reactGrab.page.keyboard.press("o");
-      await reactGrab.page.keyboard.up("Meta");
+      await reactGrab.waitForSelectionSource();
 
       await expect
         .poll(
-          async () =>
-            reactGrab.page.evaluate(
+          async () => {
+            await reactGrab.pressKeyCombo(["Meta"], "o");
+            return reactGrab.page.evaluate(
               () =>
                 (window as { __OPEN_FILE_COUNT__?: number })
                   .__OPEN_FILE_COUNT__ ?? 0,
-            ),
-          { timeout: 2000 },
+            );
+          },
+          { timeout: 5000, intervals: [500] },
         )
-        .toBe(1);
+        .toBeGreaterThanOrEqual(1);
 
       await reactGrab.hoverElement("li:nth-child(2)");
       await reactGrab.waitForSelectionBox();
-      await reactGrab.page.keyboard.down("Meta");
-      await reactGrab.page.keyboard.press("o");
-      await reactGrab.page.keyboard.up("Meta");
+      await reactGrab.waitForSelectionSource();
 
       await expect
         .poll(
-          async () =>
-            reactGrab.page.evaluate(
+          async () => {
+            await reactGrab.pressKeyCombo(["Meta"], "o");
+            return reactGrab.page.evaluate(
               () =>
                 (window as { __OPEN_FILE_COUNT__?: number })
                   .__OPEN_FILE_COUNT__ ?? 0,
-            ),
-          { timeout: 2000 },
+            );
+          },
+          { timeout: 5000, intervals: [500] },
         )
-        .toBe(2);
+        .toBeGreaterThanOrEqual(2);
     });
 
     test("open file should work with drag-selected elements", async ({

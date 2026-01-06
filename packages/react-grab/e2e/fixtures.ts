@@ -78,6 +78,7 @@ interface ReactGrabPageObject {
   dragSelect: (startSelector: string, endSelector: string) => Promise<void>;
   getClipboardContent: () => Promise<string>;
   waitForSelectionBox: () => Promise<void>;
+  waitForSelectionSource: () => Promise<void>;
   isContextMenuVisible: () => Promise<boolean>;
   getContextMenuInfo: () => Promise<ContextMenuInfo>;
   isContextMenuItemEnabled: (label: string) => Promise<boolean>;
@@ -286,6 +287,16 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         return state?.isSelectionBoxVisible || state?.targetElement !== null;
       },
       { timeout: 2000 }
+    );
+  };
+
+  const waitForSelectionSource = async () => {
+    await page.waitForFunction(
+      () => {
+        const api = (window as { __REACT_GRAB__?: { getState: () => { selectionFilePath: string | null } } }).__REACT_GRAB__;
+        return api?.getState()?.selectionFilePath !== null;
+      },
+      { timeout: 5000 }
     );
   };
 
@@ -1598,6 +1609,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     dragSelect,
     getClipboardContent,
     waitForSelectionBox,
+    waitForSelectionSource,
     isContextMenuVisible,
     getContextMenuInfo,
     isContextMenuItemEnabled,

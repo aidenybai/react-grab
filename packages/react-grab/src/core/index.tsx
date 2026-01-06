@@ -690,6 +690,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               bounds: box.bounds,
               createdAt: box.createdAt,
             })),
+            selectionFilePath: store.selectionFilePath,
           });
         },
       ),
@@ -2467,6 +2468,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           bounds: box.bounds,
           createdAt: box.createdAt,
         })),
+        selectionFilePath: store.selectionFilePath,
       }),
       setOptions: (newOptions: SettableOptions) => {
         pluginRegistry.setOptions(newOptions);
