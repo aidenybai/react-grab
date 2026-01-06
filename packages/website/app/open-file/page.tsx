@@ -111,6 +111,17 @@ const OpenFileContent = () => {
     }
   }, [resolvedFilePath, didAttemptOpen, handleOpen, hasSavedPreference]);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Enter" && !isDropdownOpen) {
+        handleOpen();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [handleOpen, isDropdownOpen]);
+
   const handleEditorChange = (editor: Editor) => {
     setPreferredEditor(editor);
     if (!rawParam) {

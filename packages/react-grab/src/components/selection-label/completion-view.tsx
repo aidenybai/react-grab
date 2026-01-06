@@ -5,7 +5,10 @@ import { COPIED_LABEL_DURATION_MS, FADE_DURATION_MS } from "../../constants.js";
 import { confirmationFocusManager } from "../../utils/confirmation-focus-manager.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
 import { IconReturn } from "../icons/icon-return.jsx";
+import { IconSubmit } from "../icons/icon-submit.jsx";
 import { IconEllipsis } from "../icons/icon-ellipsis.jsx";
+import { cn } from "../../utils/cn.js";
+import { IconCheck } from "../icons/icon-check.jsx";
 import { BottomSection } from "./bottom-section.js";
 
 interface MoreOptionsButtonProps {
@@ -184,7 +187,8 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
         </div>
       </Show>
       <Show when={didCopy() || (!props.onDismiss && !props.onUndo)}>
-        <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 px-1.5 w-full h-fit">
+        <div class="contain-layout shrink-0 flex items-center gap-0.5 pt-1.5 pb-1 px-1.5 w-full h-fit">
+          <IconCheck size={14} class="text-black/85 shrink-0" />
           <span class="text-black text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit tabular-nums">
             {displayStatusText()}
           </span>
@@ -217,10 +221,13 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
             />
             <button
               data-react-grab-followup-submit
-              class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit cursor-pointer transition-all hover:scale-105 ml-1"
+              class={cn(
+                "contain-layout shrink-0 size-fit cursor-pointer transition-all hover:scale-105 ml-1",
+                !followUpInput().trim() && "opacity-35",
+              )}
               onClick={handleFollowUpSubmit}
             >
-              <IconReturn size={10} class="opacity-[0.99] text-black" />
+              <IconSubmit size={16} class="text-black" />
             </button>
           </div>
         </BottomSection>

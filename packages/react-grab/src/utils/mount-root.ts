@@ -1,6 +1,24 @@
 export const ATTRIBUTE_NAME = "data-react-grab";
 
+const FONT_LINK_ID = "react-grab-fonts";
+const FONT_LINK_URL =
+  "https://fonts.googleapis.com/css2?family=Geist+Mono:wght@500&family=Geist:wght@500&display=swap";
+
+const loadFonts = () => {
+  if (document.getElementById(FONT_LINK_ID)) return;
+
+  if (!document.head) return;
+
+  const link = document.createElement("link");
+  link.id = FONT_LINK_ID;
+  link.rel = "stylesheet";
+  link.href = FONT_LINK_URL;
+  document.head.appendChild(link);
+};
+
 export const mountRoot = (cssText?: string) => {
+  loadFonts();
+
   const mountedHost = document.querySelector(`[${ATTRIBUTE_NAME}]`);
   if (mountedHost) {
     const mountedRoot = mountedHost.shadowRoot?.querySelector(

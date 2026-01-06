@@ -8,7 +8,9 @@ import {
   IDLE_TIMEOUT_MS,
 } from "../../constants.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
-import { IconReturn } from "../icons/icon-return.jsx";
+import { cn } from "../../utils/cn.js";
+import { IconSubmit } from "../icons/icon-submit.jsx";
+import { IconStop } from "../icons/icon-stop.jsx";
 import { Arrow } from "./arrow.js";
 import { TagBadge } from "./tag-badge.js";
 import { ActionPill } from "./action-pill.js";
@@ -380,7 +382,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                       <button
                         data-react-grab-ignore-events
                         data-react-grab-abort
-                        class="contain-layout shrink-0 flex flex-col items-start rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] p-1 size-fit cursor-pointer ml-1 transition-none hover:scale-105"
+                        class="contain-layout shrink-0 size-fit cursor-pointer ml-1 hover:scale-105"
                         onPointerDown={(event) => event.stopPropagation()}
                         onMouseDown={(event) => event.stopPropagation()}
                         onPointerUp={(event) => {
@@ -392,10 +394,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                           props.onAbort?.();
                         }}
                       >
-                        <div
-                          data-react-grab-ignore-events
-                          class="shrink-0 w-[7px] h-[7px] rounded-[1px] bg-black pointer-events-none"
-                        />
+                        <IconStop size={16} class="text-black" />
                       </button>
                     </Show>
                   </div>
@@ -413,7 +412,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
           <Show when={canInteract() && !props.isPromptMode}>
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
-              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5 pr-1">
+              <div class="contain-layout shrink-0 flex items-center gap-1 py-1 w-fit h-fit pl-1.5 pr-1">
                 <TagBadge
                   tagName={tagDisplay()}
                   isClickable={isTagClickable()}
@@ -423,14 +422,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   forceShowIcon={showOpenIndicator()}
                 />
               </div>
-              <BottomSection>
-                <ActionPill
-                  onClick={handleSubmit}
-                  shrink
-                  hasAgent={props.hasAgent}
-                  showOpenIndicator={showOpenIndicator()}
-                />
-              </BottomSection>
             </div>
           </Show>
 
@@ -489,10 +480,13 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   />
                   <button
                     data-react-grab-submit
-                    class="contain-layout shrink-0 flex flex-col items-start px-[3px] py-[3px] rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] size-fit cursor-pointer transition-all hover:scale-105 ml-1"
+                    class={cn(
+                      "contain-layout shrink-0 size-fit cursor-pointer transition-all hover:scale-105 ml-1",
+                      !props.inputValue?.trim() && "opacity-35",
+                    )}
                     onClick={handleSubmit}
                   >
-                    <IconReturn size={10} class="opacity-[0.99] text-black" />
+                    <IconSubmit size={16} class="text-black" />
                   </button>
                 </div>
               </BottomSection>
