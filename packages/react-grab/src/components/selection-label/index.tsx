@@ -144,6 +144,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     void props.isPendingDismiss;
     void props.error;
     void props.isPendingAbort;
+    void isIdle();
     requestAnimationFrame(measureContainer);
   });
 
@@ -412,7 +413,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
           <Show when={canInteract() && !props.isPromptMode}>
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
-              <div class="contain-layout shrink-0 flex items-center gap-1 py-1 w-fit h-fit pl-1.5 pr-1">
+              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5 pr-1">
                 <TagBadge
                   tagName={tagDisplay()}
                   isClickable={isTagClickable()}
@@ -422,6 +423,15 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   forceShowIcon={showOpenIndicator()}
                 />
               </div>
+              <BottomSection>
+                <ActionPill
+                  onClick={handleSubmit}
+                  shrink
+                  hasAgent={props.hasAgent}
+                  isIdle={isIdle()}
+                  showOpenIndicator={showOpenIndicator()}
+                />
+              </BottomSection>
             </div>
           </Show>
 

@@ -450,6 +450,7 @@ export interface ActionPillProps {
   shrink?: boolean;
   hasAgent?: boolean;
   isEditing?: boolean;
+  isIdle?: boolean;
   showOpenIndicator?: boolean;
 }
 

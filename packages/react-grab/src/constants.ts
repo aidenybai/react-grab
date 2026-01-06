@@ -39,7 +39,7 @@ export const OVERLAY_FILL_COLOR_DEFAULT = `rgba(${GRAB_PURPLE_RGB}, 0.08)`;
 
 export const ARROW_HEIGHT_PX = 8;
 export const LABEL_GAP_PX = 4;
-export const IDLE_TIMEOUT_MS = 400;
+export const IDLE_TIMEOUT_MS = 800;
 export const MAX_ERROR_LENGTH = 50;
 
 export const VIDEO_METADATA_TIMEOUT_MS = 5000;

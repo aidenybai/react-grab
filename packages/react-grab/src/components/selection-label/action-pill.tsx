@@ -16,8 +16,18 @@ export const ActionPill: Component<ActionPillProps> = (props) => {
         onClick={props.onClick}
       >
         <div class="text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
-          <span class="text-black/50">Click to </span>
-          <span class="text-black">Copy</span>
+          <Show
+            when={props.isIdle}
+            fallback={
+              <>
+                <span class="text-black/50">Click to </span>
+                <span class="text-black">Copy</span>
+              </>
+            }
+          >
+            <span class="text-black/50">Right click for </span>
+            <span class="text-black">more</span>
+          </Show>
         </div>
       </div>
     </Show>
