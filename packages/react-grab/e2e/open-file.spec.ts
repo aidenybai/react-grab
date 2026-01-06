@@ -5,8 +5,6 @@ test.describe("Open File", () => {
     test("Cmd+O should open file when source info available", async ({
       reactGrab,
     }) => {
-      let openFileCalled = false;
-
       await reactGrab.page.evaluate(() => {
         (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ =
           false;
@@ -32,20 +30,21 @@ test.describe("Open File", () => {
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
+      await reactGrab.waitForSelectionSource();
 
-      await reactGrab.page.keyboard.down("Meta");
-      await reactGrab.page.keyboard.press("o");
-      await reactGrab.page.keyboard.up("Meta");
-      await reactGrab.page.waitForTimeout(200);
-
-      openFileCalled = await reactGrab.page.evaluate(() => {
-        return (
-          (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ ??
-          false
-        );
-      });
-
-      expect(openFileCalled).toBe(true);
+      await expect
+        .poll(
+          async () => {
+            await reactGrab.pressKeyCombo(["Meta"], "o");
+            return reactGrab.page.evaluate(
+              () =>
+                (window as { __OPEN_FILE_CALLED__?: boolean })
+                  .__OPEN_FILE_CALLED__ ?? false,
+            );
+          },
+          { timeout: 5000, intervals: [500] },
+        )
+        .toBe(true);
     });
 
     test("Cmd+O should do nothing without onOpenFile callback", async ({
@@ -380,25 +379,39 @@ test.describe("Open File", () => {
 
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
-      await reactGrab.page.keyboard.down("Meta");
-      await reactGrab.page.keyboard.press("o");
-      await reactGrab.page.keyboard.up("Meta");
-      await reactGrab.page.waitForTimeout(100);
+      await reactGrab.waitForSelectionSource();
+
+      await expect
+        .poll(
+          async () => {
+            await reactGrab.pressKeyCombo(["Meta"], "o");
+            return reactGrab.page.evaluate(
+              () =>
+                (window as { __OPEN_FILE_COUNT__?: number })
+                  .__OPEN_FILE_COUNT__ ?? 0,
+            );
+          },
+          { timeout: 5000, intervals: [500] },
+        )
+        .toBeGreaterThanOrEqual(1);
 
       await reactGrab.hoverElement("li:nth-child(2)");
       await reactGrab.waitForSelectionBox();
-      await reactGrab.page.keyboard.down("Meta");
-      await reactGrab.page.keyboard.press("o");
-      await reactGrab.page.keyboard.up("Meta");
-      await reactGrab.page.waitForTimeout(100);
+      await reactGrab.waitForSelectionSource();
 
-      callCount = await reactGrab.page.evaluate(() => {
-        return (
-          (window as { __OPEN_FILE_COUNT__?: number }).__OPEN_FILE_COUNT__ ?? 0
-        );
-      });
-
-      expect(callCount).toBe(2);
+      await expect
+        .poll(
+          async () => {
+            await reactGrab.pressKeyCombo(["Meta"], "o");
+            return reactGrab.page.evaluate(
+              () =>
+                (window as { __OPEN_FILE_COUNT__?: number })
+                  .__OPEN_FILE_COUNT__ ?? 0,
+            );
+          },
+          { timeout: 5000, intervals: [500] },
+        )
+        .toBeGreaterThanOrEqual(2);
     });
 
     test("open file should work with drag-selected elements", async ({

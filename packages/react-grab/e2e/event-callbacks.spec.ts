@@ -65,10 +65,18 @@ test.describe("Event Callbacks", () => {
 
       await reactGrab.hoverElement("li:first-child");
 
-      const history = await reactGrab.getCallbackHistory();
-      const hoverCalls = history.filter((c) => c.name === "onElementHover");
-
-      expect(hoverCalls.length).toBeGreaterThan(0);
+      await expect
+        .poll(
+          async () => {
+            const history = await reactGrab.getCallbackHistory();
+            const hoverCalls = history.filter(
+              (c) => c.name === "onElementHover",
+            );
+            return hoverCalls.length;
+          },
+          { timeout: 2000 },
+        )
+        .toBeGreaterThan(0);
     });
 
     test("onElementHover should receive element as argument", async ({
@@ -78,12 +86,19 @@ test.describe("Event Callbacks", () => {
       await reactGrab.clearCallbackHistory();
 
       await reactGrab.hoverElement("h1");
-      await reactGrab.page.waitForTimeout(100);
 
-      const history = await reactGrab.getCallbackHistory();
-      const hoverCalls = history.filter((c) => c.name === "onElementHover");
-
-      expect(hoverCalls.length).toBeGreaterThan(0);
+      await expect
+        .poll(
+          async () => {
+            const history = await reactGrab.getCallbackHistory();
+            const hoverCalls = history.filter(
+              (c) => c.name === "onElementHover",
+            );
+            return hoverCalls.length;
+          },
+          { timeout: 5000 },
+        )
+        .toBeGreaterThan(0);
     });
 
     test("onElementSelect should fire when element is clicked", async ({

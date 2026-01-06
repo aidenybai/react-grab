@@ -1,8 +1,8 @@
 import { test, expect } from "./fixtures.js";
 
-test.describe("Input Mode", () => {
-  test.describe("Entering Input Mode", () => {
-    test("context menu edit should enter input mode when agent is configured", async ({
+test.describe("Prompt Mode", () => {
+  test.describe("Entering Prompt Mode", () => {
+    test("context menu edit should enter prompt mode when agent is configured", async ({
       reactGrab,
     }) => {
       await reactGrab.setupMockAgent();
@@ -11,15 +11,12 @@ test.describe("Input Mode", () => {
       await reactGrab.waitForSelectionBox();
 
       await reactGrab.rightClickElement("li:first-child");
-      await reactGrab.page.waitForTimeout(100);
       await reactGrab.clickContextMenuItem("Edit");
-      await reactGrab.page.waitForTimeout(200);
 
-      const isPromptMode = await reactGrab.isPromptModeActive();
-      expect(isPromptMode).toBe(true);
+      await expect.poll(() => reactGrab.isPromptModeActive()).toBe(true);
     });
 
-    test("single click should copy without entering input mode when no agent", async ({
+    test("single click should copy without entering prompt mode when no agent", async ({
       reactGrab,
     }) => {
       await reactGrab.activate();
@@ -27,18 +24,15 @@ test.describe("Input Mode", () => {
       await reactGrab.waitForSelectionBox();
 
       await reactGrab.clickElement("li:first-child");
-      await reactGrab.page.waitForTimeout(500);
 
-      const clipboardContent = await reactGrab.getClipboardContent();
-      expect(clipboardContent).toBeTruthy();
+      await expect.poll(() => reactGrab.getClipboardContent()).toBeTruthy();
     });
 
-    test("should focus input textarea when entering input mode", async ({
+    test("should focus input textarea when entering prompt mode", async ({
       reactGrab,
     }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       const isFocused = await reactGrab.page.evaluate((attrName) => {
         const host = document.querySelector(`[${attrName}]`);
@@ -56,10 +50,9 @@ test.describe("Input Mode", () => {
       expect(isFocused).toBe(true);
     });
 
-    test("input mode should show input textarea", async ({ reactGrab }) => {
+    test("prompt mode should show input textarea", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.enterPromptMode("h1");
-      await reactGrab.page.waitForTimeout(200);
 
       const hasTextarea = await reactGrab.page.evaluate((attrName) => {
         const host = document.querySelector(`[${attrName}]`);
@@ -78,7 +71,6 @@ test.describe("Input Mode", () => {
     test("should accept text input", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Test prompt text");
 
@@ -89,7 +81,6 @@ test.describe("Input Mode", () => {
     test("should allow editing typed text", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Hello");
       await reactGrab.page.keyboard.press("Backspace");
@@ -103,7 +94,6 @@ test.describe("Input Mode", () => {
     test("should handle long text input", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       const longText =
         "This is a very long prompt that should be handled properly by the textarea input field and might need to scroll within the container.";
@@ -118,7 +108,6 @@ test.describe("Input Mode", () => {
     }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Line 1");
       await reactGrab.page.keyboard.down("Shift");
@@ -136,64 +125,48 @@ test.describe("Input Mode", () => {
     test("Enter key should submit input", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent({ delay: 100 });
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Test prompt");
       await reactGrab.submitInput();
-      await reactGrab.page.waitForTimeout(300);
 
-      const isPromptMode = await reactGrab.isPromptModeActive();
-      expect(isPromptMode).toBe(false);
+      await expect.poll(() => reactGrab.isPromptModeActive()).toBe(false);
     });
 
-    test("Escape should cancel input mode", async ({ reactGrab }) => {
+    test("Escape should cancel prompt mode", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.pressEscape();
-      await reactGrab.page.waitForTimeout(100);
 
-      const isPromptMode = await reactGrab.isPromptModeActive();
-      expect(isPromptMode).toBe(false);
+      await expect.poll(() => reactGrab.isPromptModeActive()).toBe(false);
     });
 
-    test("Escape in textarea should dismiss input mode directly", async ({
+    test("Escape in textarea should dismiss prompt mode directly", async ({
       reactGrab,
     }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(300);
 
-      const isPromptActive = await reactGrab.isPromptModeActive();
-      expect(isPromptActive).toBe(true);
+      expect(await reactGrab.isPromptModeActive()).toBe(true);
 
       await reactGrab.typeInInput("Some unsaved text");
-      await reactGrab.page.waitForTimeout(100);
 
       await reactGrab.pressEscape();
-      await reactGrab.page.waitForTimeout(300);
 
-      const isStillPromptActive = await reactGrab.isPromptModeActive();
-      expect(isStillPromptActive).toBe(false);
+      await expect.poll(() => reactGrab.isPromptModeActive()).toBe(false);
     });
 
-    test("confirming dismiss should close input mode", async ({
+    test("confirming dismiss should close prompt mode", async ({
       reactGrab,
     }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Some text");
       await reactGrab.pressEscape();
-      await reactGrab.page.waitForTimeout(100);
-
       await reactGrab.pressEscape();
-      await reactGrab.page.waitForTimeout(100);
 
-      const isActive = await reactGrab.isOverlayVisible();
-      expect(isActive).toBe(false);
+      await expect.poll(() => reactGrab.isOverlayVisible()).toBe(false);
     });
 
     test("empty input should cancel without confirmation", async ({
@@ -201,73 +174,65 @@ test.describe("Input Mode", () => {
     }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.pressEscape();
-      await reactGrab.page.waitForTimeout(100);
 
       const isPendingDismiss = await reactGrab.isPendingDismissVisible();
       expect(isPendingDismiss).toBe(false);
     });
   });
 
-  test.describe("Input Mode with Selection", () => {
-    test("should freeze selection while in input mode", async ({
+  test.describe("Prompt Mode with Selection", () => {
+    test("should freeze selection while in prompt mode", async ({
       reactGrab,
     }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.page.mouse.move(500, 500);
-      await reactGrab.page.waitForTimeout(100);
 
       const isPromptMode = await reactGrab.isPromptModeActive();
       expect(isPromptMode).toBe(true);
     });
 
-    test("input mode via drag selection should work", async ({ reactGrab }) => {
+    test("prompt mode via drag selection should work", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.activate();
 
       await reactGrab.dragSelect("li:first-child", "li:nth-child(3)");
-      await reactGrab.page.waitForTimeout(300);
 
-      const isContextMenuVisible = await reactGrab.isContextMenuVisible();
-      expect(isContextMenuVisible).toBe(true);
+      await expect.poll(() => reactGrab.isContextMenuVisible()).toBe(true);
 
       await reactGrab.clickContextMenuItem("Edit");
-      await reactGrab.page.waitForTimeout(200);
 
-      const isPromptMode = await reactGrab.isPromptModeActive();
-      expect(isPromptMode).toBe(true);
+      await expect.poll(() => reactGrab.isPromptModeActive()).toBe(true);
     });
 
-    test("should show multi-element count in input mode", async ({
+    test("should show multi-element count in prompt mode", async ({
       reactGrab,
     }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.activate();
 
       await reactGrab.dragSelect("li:first-child", "li:nth-child(3)");
-      await reactGrab.page.waitForTimeout(300);
+
+      await expect.poll(() => reactGrab.isContextMenuVisible()).toBe(true);
 
       await reactGrab.clickContextMenuItem("Edit");
-      await reactGrab.page.waitForTimeout(200);
 
-      const labelInfo = await reactGrab.getSelectionLabelInfo();
-      expect(labelInfo.isVisible).toBe(true);
-      expect(labelInfo.elementsCount).toBeGreaterThan(1);
+      await expect.poll(async () => {
+        const labelInfo = await reactGrab.getSelectionLabelInfo();
+        return labelInfo.isVisible && (labelInfo.elementsCount ?? 0) > 1;
+      }).toBe(true);
     });
   });
 
-  test.describe("Keyboard Shortcuts in Input Mode", () => {
-    test("arrow keys should not navigate elements in input mode", async ({
+  test.describe("Keyboard Shortcuts in Prompt Mode", () => {
+    test("arrow keys should not navigate elements in prompt mode", async ({
       reactGrab,
     }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.pressArrowDown();
 
@@ -275,37 +240,31 @@ test.describe("Input Mode", () => {
       expect(isPromptMode).toBe(true);
     });
 
-    test("activation shortcut should cancel input mode", async ({
+    test("activation shortcut should cancel prompt mode", async ({
       reactGrab,
     }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.page.keyboard.down("Meta");
       await reactGrab.page.keyboard.press("c");
       await reactGrab.page.keyboard.up("Meta");
-      await reactGrab.page.waitForTimeout(100);
 
-      const isActive = await reactGrab.isOverlayVisible();
-      expect(isActive).toBe(false);
+      await expect.poll(() => reactGrab.isOverlayVisible()).toBe(false);
     });
   });
 
   test.describe("Input Preservation", () => {
-    test("input should be cleared after dismissing input mode", async ({
+    test("input should be cleared after dismissing prompt mode", async ({
       reactGrab,
     }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.typeInInput("Some text");
       await reactGrab.pressEscape();
-      await reactGrab.page.waitForTimeout(100);
 
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       const inputValue = await reactGrab.getInputValue();
       expect(inputValue).toBe("");
@@ -313,24 +272,20 @@ test.describe("Input Mode", () => {
   });
 
   test.describe("Edge Cases", () => {
-    test("clicking outside should cancel input mode", async ({ reactGrab }) => {
+    test("clicking outside should cancel prompt mode", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.page.mouse.click(10, 10);
-      await reactGrab.page.waitForTimeout(100);
 
-      const isPromptMode = await reactGrab.isPromptModeActive();
-      expect(isPromptMode).toBe(false);
+      await expect.poll(() => reactGrab.isPromptModeActive()).toBe(false);
     });
 
-    test("context menu edit maintains overlay in input mode", async ({
+    test("context menu edit maintains overlay in prompt mode", async ({
       reactGrab,
     }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.enterPromptMode("li:first-child");
-      await reactGrab.page.waitForTimeout(200);
 
       const isPromptActive = await reactGrab.isPromptModeActive();
       expect(isPromptActive).toBe(true);
@@ -339,7 +294,7 @@ test.describe("Input Mode", () => {
       expect(isOverlayActive).toBe(true);
     });
 
-    test("input mode should work after scroll", async ({ reactGrab }) => {
+    test("prompt mode should work after scroll", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.activate();
       await reactGrab.scrollPage(100);
@@ -348,12 +303,9 @@ test.describe("Input Mode", () => {
       await reactGrab.waitForSelectionBox();
 
       await reactGrab.rightClickElement("li:first-child");
-      await reactGrab.page.waitForTimeout(100);
       await reactGrab.clickContextMenuItem("Edit");
-      await reactGrab.page.waitForTimeout(200);
 
-      const isPromptMode = await reactGrab.isPromptModeActive();
-      expect(isPromptMode).toBe(true);
+      await expect.poll(() => reactGrab.isPromptModeActive()).toBe(true);
     });
   });
 });

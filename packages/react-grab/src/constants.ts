@@ -22,6 +22,20 @@ export const AUTO_SCROLL_EDGE_THRESHOLD_PX = 25;
 export const AUTO_SCROLL_SPEED_PX = 10;
 
 export const Z_INDEX_LABEL = 2147483647;
+export const Z_INDEX_OVERLAY_CANVAS = 2147483645;
+
+export const CROSSHAIR_LERP_FACTOR = 0.3;
+export const DRAG_LERP_FACTOR = 0.7;
+export const LERP_CONVERGENCE_THRESHOLD_PX = 0.5;
+export const FADE_OUT_BUFFER_MS = 100;
+export const MIN_DEVICE_PIXEL_RATIO = 2;
+
+export const GRAB_PURPLE_RGB = "210, 57, 192";
+export const OVERLAY_CROSSHAIR_COLOR = `rgba(${GRAB_PURPLE_RGB}, 1)`;
+export const OVERLAY_BORDER_COLOR_DRAG = `rgba(${GRAB_PURPLE_RGB}, 0.4)`;
+export const OVERLAY_FILL_COLOR_DRAG = `rgba(${GRAB_PURPLE_RGB}, 0.05)`;
+export const OVERLAY_BORDER_COLOR_DEFAULT = `rgba(${GRAB_PURPLE_RGB}, 0.5)`;
+export const OVERLAY_FILL_COLOR_DEFAULT = `rgba(${GRAB_PURPLE_RGB}, 0.08)`;
 
 export const ARROW_HEIGHT_PX = 8;
 export const LABEL_GAP_PX = 4;

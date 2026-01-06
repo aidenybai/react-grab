@@ -248,6 +248,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const isRendererActive = createMemo(() => isActivated() && !isCopying());
 
+    const crosshairVisible = createMemo(
+      () =>
+        pluginRegistry.store.theme.enabled &&
+        pluginRegistry.store.theme.crosshair.enabled &&
+        isRendererActive() &&
+        !isDragging() &&
+        !store.isTouchMode &&
+        !isToggleFrozen() &&
+        !isPromptMode() &&
+        store.contextMenuPosition === null,
+    );
+
     const showTemporaryGrabbedBox = (
       bounds: OverlayBounds,
       element: Element,
@@ -613,15 +625,57 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             isDragging(),
             isCopying(),
             isPromptMode(),
+            crosshairVisible(),
             targetElement(),
             dragBounds(),
+            store.grabbedBoxes,
+            pluginRegistry.store.theme.enabled,
+            pluginRegistry.store.theme.selectionBox.enabled,
+            pluginRegistry.store.theme.dragBox.enabled,
+            isDraggingBeyondThreshold(),
+            effectiveElement(),
+            didJustCopy(),
           ] as const,
-        ([active, dragging, copying, inputMode, target, drag]) => {
+        ([
+          active,
+          dragging,
+          copying,
+          inputMode,
+          isCrosshairVisible,
+          target,
+          drag,
+          grabbedBoxes,
+          themeEnabled,
+          selectionBoxEnabled,
+          dragBoxEnabled,
+          draggingBeyondThreshold,
+          effectiveTarget,
+          justCopied,
+        ]) => {
+          const isSelectionBoxVisible = Boolean(
+            themeEnabled &&
+              selectionBoxEnabled &&
+              active &&
+              !copying &&
+              !justCopied &&
+              !dragging &&
+              effectiveTarget != null,
+          );
+          const isDragBoxVisible = Boolean(
+            themeEnabled &&
+              dragBoxEnabled &&
+              active &&
+              !copying &&
+              draggingBeyondThreshold,
+          );
           pluginRegistry.hooks.onStateChange({
             isActive: active,
             isDragging: dragging,
             isCopying: copying,
             isPromptMode: inputMode,
+            isCrosshairVisible: isCrosshairVisible ?? false,
+            isSelectionBoxVisible,
+            isDragBoxVisible,
             targetElement: target,
             dragBounds: drag
               ? {
@@ -631,6 +685,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                   height: drag.height,
                 }
               : null,
+            grabbedBoxes: grabbedBoxes.map((box) => ({
+              id: box.id,
+              bounds: box.bounds,
+              createdAt: box.createdAt,
+            })),
+            selectionFilePath: store.selectionFilePath,
           });
         },
       ),
@@ -1962,18 +2022,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return rendererActive && !dragging && hasElement;
     });
 
-    const crosshairVisible = createMemo(
-      () =>
-        pluginRegistry.store.theme.enabled &&
-        pluginRegistry.store.theme.crosshair.enabled &&
-        isRendererActive() &&
-        !isDragging() &&
-        !store.isTouchMode &&
-        !isToggleFrozen() &&
-        !isPromptMode() &&
-        store.contextMenuPosition === null,
-    );
-
     const contextMenuBounds = createMemo((): OverlayBounds | null => {
       void store.viewportVersion;
       const element = store.contextMenuElement;
@@ -2410,8 +2458,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         isDragging: isDragging(),
         isCopying: isCopying(),
         isPromptMode: isPromptMode(),
+        isCrosshairVisible: crosshairVisible() ?? false,
+        isSelectionBoxVisible: selectionVisible() ?? false,
+        isDragBoxVisible: dragVisible() ?? false,
         targetElement: targetElement(),
         dragBounds: dragBounds() ?? null,
+        grabbedBoxes: store.grabbedBoxes.map((box) => ({
+          id: box.id,
+          bounds: box.bounds,
+          createdAt: box.createdAt,
+        })),
+        selectionFilePath: store.selectionFilePath,
       }),
       setOptions: (newOptions: SettableOptions) => {
         pluginRegistry.setOptions(newOptions);
