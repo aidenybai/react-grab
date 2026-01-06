@@ -1711,6 +1711,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: MouseEvent) => {
         if (!isRendererActive() || isCopying() || isPromptMode()) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
+        if (store.contextMenuPosition !== null) {
+          event.preventDefault();
+          return;
+        }
 
         event.preventDefault();
         event.stopPropagation();
@@ -2232,7 +2236,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // HACK: Defer hiding context menu until after click event propagates fully
       setTimeout(() => {
         actions.hideContextMenu();
-        actions.unfreeze();
+        deactivateRenderer();
       }, 0);
     };
 

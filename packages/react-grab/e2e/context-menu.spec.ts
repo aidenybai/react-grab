@@ -213,6 +213,7 @@ test.describe("Context Menu", () => {
       await reactGrab.page.mouse.click(10, 10);
       await reactGrab.page.waitForTimeout(300);
 
+      await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
 
       await expect
@@ -239,6 +240,7 @@ test.describe("Context Menu", () => {
       await reactGrab.page.mouse.click(10, 10);
       await reactGrab.page.waitForTimeout(200);
 
+      await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
       await reactGrab.rightClickElement("li:first-child");
@@ -247,7 +249,7 @@ test.describe("Context Menu", () => {
       expect(secondMenuVisible).toBe(true);
     });
 
-    test("should switch to new context menu when right-clicking different element while menu is open", async ({
+    test("should keep context menu on original element when right-clicking different element while menu is open", async ({
       reactGrab,
     }) => {
       await reactGrab.activate();
@@ -258,11 +260,12 @@ test.describe("Context Menu", () => {
       const firstMenuVisible = await reactGrab.isContextMenuVisible();
       expect(firstMenuVisible).toBe(true);
 
+      // Right-clicking elsewhere while menu is open should NOT switch to new element
       await reactGrab.rightClickElement("li:first-child");
       await reactGrab.page.waitForTimeout(100);
 
-      const secondMenuVisible = await reactGrab.isContextMenuVisible();
-      expect(secondMenuVisible).toBe(true);
+      const menuStillVisible = await reactGrab.isContextMenuVisible();
+      expect(menuStillVisible).toBe(true);
     });
   });
 
