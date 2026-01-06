@@ -19,12 +19,12 @@ export const DemoFooter = () => {
       <button
         type="button"
         onClick={handleRestartClick}
-        className="inline-flex items-center gap-1 hover:text-white/80"
+        className="hidden items-center gap-1 hover:text-white/80 sm:inline-flex"
       >
         <span className="underline underline-offset-4">restart demo</span>
         <RotateCcw size={13} className="align-middle" />
-      </button>{" "}
-      &middot;{" "}
+      </button>
+      <span className="hidden sm:inline"> &middot; </span>
       <a
         href="/blog"
         className="underline underline-offset-4 hover:text-white/80"
