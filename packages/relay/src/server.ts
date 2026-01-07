@@ -193,8 +193,72 @@ export const createRelayServer = (
     }
   };
 
+  const createRemoteHandler = (
+    agentId: string,
+    socket: WebSocket,
+  ): AgentHandler => {
+    return {
+      agentId,
+      run: async function* (userPrompt, options) {
+        const sessionId =
+          options?.sessionId ??
+          `session-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+        const invokeMessage: RelayToHandlerMessage = {
+          type: "invoke-handler",
+          method: "run",
+          sessionId,
+          payload: { prompt: userPrompt },
+        };
+
+        if (socket.readyState !== WebSocket.OPEN) {
+          yield { type: "error", content: "Handler disconnected" };
+          return;
+        }
+
+        socket.send(JSON.stringify(invokeMessage));
+      },
+      abort: (sessionId) => {
+        if (socket.readyState === WebSocket.OPEN) {
+          const abortMessage: RelayToHandlerMessage = {
+            type: "invoke-handler",
+            method: "abort",
+            sessionId,
+          };
+          socket.send(JSON.stringify(abortMessage));
+        }
+      },
+      undo: async () => {
+        if (socket.readyState === WebSocket.OPEN) {
+          const undoMessage: RelayToHandlerMessage = {
+            type: "invoke-handler",
+            method: "undo",
+            sessionId: "",
+          };
+          socket.send(JSON.stringify(undoMessage));
+        }
+      },
+      redo: async () => {
+        if (socket.readyState === WebSocket.OPEN) {
+          const redoMessage: RelayToHandlerMessage = {
+            type: "invoke-handler",
+            method: "redo",
+            sessionId: "",
+          };
+          socket.send(JSON.stringify(redoMessage));
+        }
+      },
+    };
+  };
+
   const handleHandlerMessage = (socket: WebSocket, message: HandlerMessage) => {
     if (message.type === "register-handler") {
+      const remoteHandler = createRemoteHandler(message.agentId, socket);
+      registeredHandlers.set(message.agentId, {
+        agentId: message.agentId,
+        handler: remoteHandler,
+        socket,
+      });
       handlerSockets.set(socket, message.agentId);
       broadcastHandlerList();
     } else if (message.type === "unregister-handler") {
