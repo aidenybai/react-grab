@@ -147,6 +147,8 @@ export const createRelayServer = (
     const combinedPrompt = `${context.prompt}\n\n${context.content.join("\n\n")}`;
 
     try {
+      let didComplete = false;
+
       for await (const message of handler.run(combinedPrompt, {
         sessionId,
         signal,
@@ -166,11 +168,12 @@ export const createRelayServer = (
         });
 
         if (message.type === "done" || message.type === "error") {
+          didComplete = true;
           break;
         }
       }
 
-      if (!signal.aborted) {
+      if (!signal.aborted && !didComplete) {
         sendToBrowser(browserSocket, {
           type: "agent-done",
           agentId: handler.agentId,
