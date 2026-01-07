@@ -159,8 +159,8 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         tagName={props.contextMenuTagName}
         componentName={props.contextMenuComponentName}
         hasFilePath={props.contextMenuHasFilePath ?? false}
-        actions={props.contextMenuActions}
-        actionContext={props.contextMenuActionContext}
+        actions={props.actions}
+        actionContext={props.actionContext}
         onCopy={props.onContextMenuCopy ?? (() => {})}
         onCopyScreenshot={props.onContextMenuCopyScreenshot ?? (() => {})}
         onOpen={props.onContextMenuOpen ?? (() => {})}

@@ -10,7 +10,7 @@ import type { Component } from "solid-js";
 import type {
   OverlayBounds,
   ContextMenuAction,
-  ContextMenuActionContext,
+  ActionContext,
 } from "../types.js";
 import {
   VIEWPORT_MARGIN_PX,
@@ -30,7 +30,7 @@ interface ContextMenuProps {
   componentName?: string;
   hasFilePath: boolean;
   actions?: ContextMenuAction[];
-  actionContext?: ContextMenuActionContext;
+  actionContext?: ActionContext;
   onCopy: () => void;
   onCopyScreenshot: () => void;
   onOpen: () => void;

@@ -208,7 +208,7 @@ export interface AgentOptions<T = any> {
 
 export type ActivationMode = "toggle" | "hold";
 
-export interface ContextMenuActionContext {
+export interface ActionContext {
   element: Element;
   elements: Element[];
   filePath?: string;
@@ -222,8 +222,8 @@ export interface ContextMenuAction {
   id: string;
   label: string;
   shortcut?: string;
-  enabled?: boolean | ((context: ContextMenuActionContext) => boolean);
-  onAction: (context: ContextMenuActionContext) => void;
+  enabled?: boolean | ((context: ActionContext) => boolean);
+  onAction: (context: ActionContext) => void;
   agent?: AgentOptions;
 }
 
@@ -395,8 +395,8 @@ export interface ReactGrabRendererProps {
   contextMenuTagName?: string;
   contextMenuComponentName?: string;
   contextMenuHasFilePath?: boolean;
-  contextMenuActions?: ContextMenuAction[];
-  contextMenuActionContext?: ContextMenuActionContext;
+  actions?: ContextMenuAction[];
+  actionContext?: ActionContext;
   onContextMenuCopy?: () => void;
   onContextMenuCopyScreenshot?: () => void;
   onContextMenuOpen?: () => void;

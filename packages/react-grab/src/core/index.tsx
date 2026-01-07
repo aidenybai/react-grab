@@ -57,7 +57,7 @@ import type {
   SelectionLabelInstance,
   AgentSession,
   AgentOptions,
-  ContextMenuActionContext,
+  ActionContext,
   SettableOptions,
   Plugin,
 } from "../types.js";
@@ -2102,7 +2102,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const contextMenuActionContext = createMemo(
-      (): ContextMenuActionContext | undefined => {
+      (): ActionContext | undefined => {
         const element = store.contextMenuElement;
         if (!element) return undefined;
         const fileInfo = contextMenuFilePath();
@@ -2396,8 +2396,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             contextMenuTagName={contextMenuTagName()}
             contextMenuComponentName={contextMenuComponentName()}
             contextMenuHasFilePath={Boolean(contextMenuFilePath()?.filePath)}
-            contextMenuActions={pluginRegistry.store.actions}
-            contextMenuActionContext={contextMenuActionContext()}
+            actions={pluginRegistry.store.actions}
+            actionContext={contextMenuActionContext()}
             onContextMenuCopy={handleContextMenuCopy}
             onContextMenuCopyScreenshot={() =>
               void handleContextMenuCopyScreenshot()
@@ -2546,7 +2546,7 @@ export type {
   AgentOptions,
   SettableOptions,
   ContextMenuAction,
-  ContextMenuActionContext,
+  ActionContext,
   Plugin,
   PluginConfig,
   PluginHooks,
