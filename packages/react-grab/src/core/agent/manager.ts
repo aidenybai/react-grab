@@ -305,7 +305,8 @@ export const createAgentManager = (
   const startSession = async (params: StartSessionParams) => {
     const { elements, prompt, position, selectionBounds, sessionId, agent } =
       params;
-    const activeAgent = agent ?? agentOptions;
+    const activeAgent =
+      agent ?? (sessionId ? getAgentForSession(sessionId) : agentOptions);
     const storage = activeAgent?.storage;
 
     if (!activeAgent?.provider || elements.length === 0) {
@@ -448,11 +449,11 @@ export const createAgentManager = (
 
   const globalRedo = () => {
     const undoneSessionData = undoneSessionsStack.pop();
-    void agentOptions?.provider?.redo?.();
+    const effectiveAgent = undoneSessionData?.agent ?? agentOptions;
+    void effectiveAgent?.provider?.redo?.();
 
     if (undoneSessionData) {
-      const { session, elements, agent } = undoneSessionData;
-      const effectiveAgent = agent ?? agentOptions;
+      const { session, elements } = undoneSessionData;
       let validElements = elements.filter((el) => document.contains(el));
 
       if (validElements.length === 0) {
