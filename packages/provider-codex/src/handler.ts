@@ -140,6 +140,7 @@ const abortCodexAgent = (sessionId: string) => {
     abortController.abort();
     abortControllers.delete(sessionId);
   }
+  threadMap.delete(sessionId);
 };
 
 const undoCodexAgent = async (): Promise<void> => {
