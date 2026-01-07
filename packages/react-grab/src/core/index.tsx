@@ -933,7 +933,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const currentX = firstBounds.x + firstBounds.width / 2;
       const currentY = firstBounds.y + firstBounds.height / 2;
 
-      if (hasAgentProvider() && prompt) {
+      if ((store.selectedAgent || hasAgentProvider()) && prompt) {
         elementInputCache.delete(element);
         deactivateRenderer();
 
@@ -2240,7 +2240,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const position = store.contextMenuPosition;
       if (!element || !position) return;
 
-      if (!hasAgentProvider()) {
+      if (!hasAgentProvider() && !agent) {
         handleContextMenuCopy();
         return;
       }
