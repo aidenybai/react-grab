@@ -2281,7 +2281,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const session = agentManager.sessions().get(sessionId);
       if (!session) return;
 
-      const element = store.sessionElements.get(sessionId);
+      const element = agentManager.session.getElement(sessionId);
       if (!element) return;
       if (!document.contains(element)) return;
 
