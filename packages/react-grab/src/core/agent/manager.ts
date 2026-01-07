@@ -408,11 +408,15 @@ export const createAgentManager = (
     }
   };
 
-  const dismissSession = (sessionId: string) => {
+  const dismissSession = (
+    sessionId: string,
+    knownAgent?: AgentOptions,
+    knownElements?: Element[],
+  ) => {
     const currentSessions = sessions();
     const session = currentSessions.get(sessionId);
-    const activeAgent = getAgentForSession(sessionId);
-    const elements = getElementsForSession(sessionId);
+    const activeAgent = knownAgent ?? getAgentForSession(sessionId);
+    const elements = knownElements ?? getElementsForSession(sessionId);
 
     if (session?.isFading) return;
 
@@ -431,7 +435,7 @@ export const createAgentManager = (
 
     // HACK: Wait for CSS opacity transition + buffer before removing
     setTimeout(() => {
-      const storage = getAgentForSession(sessionId)?.storage;
+      const storage = activeAgent?.storage;
       sessionMetadata.delete(sessionId);
       clearSessionById(sessionId, storage);
       setSessions((prev) => {
@@ -446,8 +450,9 @@ export const createAgentManager = (
     const currentSessions = sessions();
     const session = currentSessions.get(sessionId);
     const activeAgent = getAgentForSession(sessionId);
+    const elements = getElementsForSession(sessionId);
+
     if (session) {
-      const elements = getElementsForSession(sessionId);
       undoneSessionsStack.push({ session, elements, agent: activeAgent });
 
       const completedIndex = completedSessionsStack.findIndex(
@@ -460,7 +465,7 @@ export const createAgentManager = (
       activeAgent?.onUndo?.(session, elements);
       void activeAgent?.provider?.undo?.();
     }
-    dismissSession(sessionId);
+    dismissSession(sessionId, activeAgent, elements);
     updateUndoRedoState(activeAgent);
   };
 
@@ -476,7 +481,7 @@ export const createAgentManager = (
     undoneSessionsStack.push(completedSessionData);
     effectiveAgent?.onUndo?.(session, elements);
     void effectiveAgent?.provider?.undo?.();
-    dismissSession(session.id);
+    dismissSession(session.id, effectiveAgent, elements);
     updateUndoRedoState(effectiveAgent);
   };
 
