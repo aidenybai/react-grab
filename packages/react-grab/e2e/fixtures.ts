@@ -1032,12 +1032,25 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         window as {
           __REACT_GRAB__?: {
             unregisterPlugin: (name: string) => void;
-            registerPlugin: (plugin: { name: string; agent: Record<string, unknown> }) => void;
+            registerPlugin: (plugin: { name: string; actions: Array<Record<string, unknown>> }) => void;
           };
         }
       ).__REACT_GRAB__;
       api?.unregisterPlugin("test-agent");
-      api?.registerPlugin({ name: "test-agent", agent: opts });
+      api?.registerPlugin({
+        name: "test-agent",
+        actions: [
+          {
+            id: "edit-with-test-agent",
+            label: "Edit",
+            shortcut: "Enter",
+            onAction: (context: { enterPromptMode?: () => void }) => {
+              context.enterPromptMode?.();
+            },
+            agent: opts,
+          },
+        ],
+      });
     }, options);
   };
 
@@ -1053,7 +1066,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         }
       ).__REACT_GRAB__;
 
-      const pluginKeys = ["theme", "agent", "contextMenuActions"];
+      const pluginKeys = ["theme", "actions"];
       const hookKeys = [
         "onActivate", "onDeactivate", "onElementHover", "onElementSelect",
         "onDragStart", "onDragEnd", "onBeforeCopy", "onAfterCopy",
@@ -1146,12 +1159,25 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         window as {
           __REACT_GRAB__?: {
             unregisterPlugin: (name: string) => void;
-            registerPlugin: (plugin: { name: string; agent: Record<string, unknown> }) => void;
+            registerPlugin: (plugin: { name: string; actions: Array<Record<string, unknown>> }) => void;
           };
         }
       ).__REACT_GRAB__;
       api?.unregisterPlugin("mock-agent");
-      api?.registerPlugin({ name: "mock-agent", agent: { provider: mockProvider } });
+      api?.registerPlugin({
+        name: "mock-agent",
+        actions: [
+          {
+            id: "edit-with-mock-agent",
+            label: "Edit",
+            shortcut: "Enter",
+            onAction: (context: { enterPromptMode?: () => void }) => {
+              context.enterPromptMode?.();
+            },
+            agent: { provider: mockProvider },
+          },
+        ],
+      });
     }, options);
   };
 

@@ -4,18 +4,13 @@ declare global {
   interface Window {
     __REACT_GRAB__?: {
       activate: () => void;
-      setOptions: (options: {
-        agent?: {
-          storage?: Storage;
-          onStart?: (session: { id: string }) => void;
-          onStatus?: (status: string) => void;
-          onComplete?: () => void;
-          onError?: (error: Error) => void;
-          onResume?: (session: { id: string }) => void;
-        };
-      }) => void;
     };
   }
+}
+
+interface AppProps {
+  loadedProviders: string[];
+  availableProviders: string[];
 }
 
 const ReactGrabLogo = ({ size = 24 }: { size?: number }) => (
@@ -25,6 +20,7 @@ const ReactGrabLogo = ({ size = 24 }: { size?: number }) => (
     viewBox="0 0 294 294"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
+    className="logo-shimmer cursor-pointer"
   >
     <g clipPath="url(#clip0_0_3)">
       <mask
@@ -81,14 +77,54 @@ const ReactGrabLogo = ({ size = 24 }: { size?: number }) => (
   </svg>
 );
 
-export const App = () => {
-  const [logs, setLogs] = useState<
-    Array<{ type: string; message: string; time: Date }>
-  >([]);
+interface ProviderBadgeProps {
+  provider: string;
+  isActive: boolean;
+  onClick?: () => void;
+}
+
+const ProviderBadge = ({ provider, isActive, onClick }: ProviderBadgeProps) => {
+  return (
+    <button
+      onClick={onClick}
+      className={`
+        px-2.5 py-1 text-sm rounded-md border transition-colors
+        ${
+          isActive
+            ? "bg-white/10 text-white border-white/20 hover:bg-white/15"
+            : "bg-transparent text-white/40 border-white/10 hover:bg-white/5 hover:text-white/60"
+        }
+      `}
+    >
+      {provider}
+    </button>
+  );
+};
+
+interface LogEntry {
+  type: string;
+  message: string;
+  time: Date;
+}
+
+const LOG_TYPE_STYLES: Record<string, { icon: string; color: string }> = {
+  info: { icon: "◆", color: "text-white/60" },
+  start: { icon: "▶", color: "text-white/60" },
+  status: { icon: "◉", color: "text-white/60" },
+  done: { icon: "✓", color: "text-white/60" },
+  error: { icon: "!", color: "text-[#ff6b6b]" },
+  resume: { icon: "↻", color: "text-white/60" },
+};
+
+export const App = ({ loadedProviders, availableProviders }: AppProps) => {
+  const [logs, setLogs] = useState<LogEntry[]>([]);
   const didInit = useRef(false);
 
   const addLog = (type: string, message: string) => {
-    setLogs((prev) => [...prev, { type, message, time: new Date() }]);
+    setLogs((previousLogs) => [
+      ...previousLogs,
+      { type, message, time: new Date() },
+    ]);
   };
 
   useEffect(() => {
@@ -97,143 +133,173 @@ export const App = () => {
 
     const api = window.__REACT_GRAB__;
     if (!api) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       addLog("error", "React Grab not initialized");
       return;
     }
 
-    api.setOptions({
-      agent: {
-        storage: sessionStorage,
-        onStart: (session) => addLog("start", session.id),
-        onStatus: (status) => addLog("status", status),
-        onComplete: () => addLog("done", "Complete"),
-        onError: (error) => addLog("error", error.message),
-        onResume: (session) => addLog("resume", session.id),
-      },
-    });
+    if (loadedProviders.length === 0) {
+      addLog("info", "No providers loaded. Add ?provider=cursor,claude to URL");
+    } else {
+      for (const provider of loadedProviders) {
+        addLog("info", `Provider loaded: ${provider}`);
+      }
+      addLog("info", "Ready – select an element to see available actions");
+    }
+  }, [loadedProviders]);
 
-    addLog("info", "Ready");
-  }, []);
+  const handleAddProvider = (provider: string) => {
+    const currentProviders =
+      new URLSearchParams(window.location.search).get("provider") ?? "";
+    const providerList = currentProviders ? currentProviders.split(",") : [];
+
+    if (providerList.includes(provider)) {
+      return;
+    }
+
+    providerList.push(provider);
+    const newUrl = new URL(window.location.href);
+    newUrl.searchParams.set("provider", providerList.join(","));
+    window.location.href = newUrl.toString();
+  };
+
+  const handleRemoveProvider = (provider: string) => {
+    const currentProviders =
+      new URLSearchParams(window.location.search).get("provider") ?? "";
+    const providerList = currentProviders
+      .split(",")
+      .filter((providerInList) => providerInList !== provider);
+
+    const newUrl = new URL(window.location.href);
+    if (providerList.length === 0) {
+      newUrl.searchParams.delete("provider");
+    } else {
+      newUrl.searchParams.set("provider", providerList.join(","));
+    }
+    window.location.href = newUrl.toString();
+  };
+
+  const inactiveProviders = availableProviders.filter(
+    (provider) => !loadedProviders.includes(provider),
+  );
 
   return (
-    <div className="min-h-screen bg-black text-white p-8">
-      <div className="max-w-xl mx-auto flex flex-col gap-8">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <ReactGrabLogo size={28} />
-            <h1 className="text-lg font-bold">Agent Playground</h1>
+    <div className="min-h-screen bg-black text-white px-4 py-8 sm:px-8">
+      <div className="max-w-lg mx-auto flex flex-col gap-10">
+        <header className="flex flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <ReactGrabLogo size={32} />
+            <h1 className="text-xl font-semibold tracking-tight">
+              Agent Playground
+            </h1>
           </div>
-          <p className="text-sm mb-4 italic text-white/60">
-            Select any element and send it to the agent
+          <p className="text-white/50 text-sm">
+            Select any element and choose an agent from the context menu
           </p>
           <button
             onClick={() => window.__REACT_GRAB__?.activate()}
-            className="text-sm px-3 py-1.5 bg-white text-black hover:bg-white/90 rounded transition-colors italic"
+            className="
+              self-start px-4 py-2 text-sm font-medium
+              bg-white text-black rounded-md
+              hover:bg-white/90 transition-colors
+            "
           >
             Grab Element
           </button>
-        </div>
+        </header>
 
-        <div className="flex flex-col gap-3">
-          <div className="text-xs text-white/30 uppercase tracking-wide">
+        <section className="flex flex-col gap-3">
+          <div className="text-xs text-white/30 uppercase tracking-wider">
+            Providers
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {loadedProviders.length === 0 && inactiveProviders.length === 0 ? (
+              <span className="text-white/30 text-sm">None available</span>
+            ) : (
+              <>
+                {loadedProviders.map((provider) => (
+                  <ProviderBadge
+                    key={provider}
+                    provider={provider}
+                    isActive={true}
+                    onClick={() => handleRemoveProvider(provider)}
+                  />
+                ))}
+                {inactiveProviders.map((provider) => (
+                  <ProviderBadge
+                    key={provider}
+                    provider={provider}
+                    isActive={false}
+                    onClick={() => handleAddProvider(provider)}
+                  />
+                ))}
+              </>
+            )}
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-3">
+          <div className="text-xs text-white/30 uppercase tracking-wider">
             Test Elements
           </div>
           <div className="flex gap-2">
-            <button className="text-sm px-3 py-1.5 bg-white/10 rounded border border-white/30 italic">
+            <button className="px-3 py-1.5 text-sm bg-[#330039] text-[#fc4efd] rounded-md border border-[#fc4efd]/30 hover:bg-[#4a0052] transition-colors">
               Submit
             </button>
-            <button className="text-sm px-3 py-1.5 bg-white/10 rounded border border-white/20">
+            <button className="px-3 py-1.5 text-sm bg-white/5 text-white/70 rounded-md border border-white/10 hover:bg-white/10 transition-colors">
               Cancel
             </button>
           </div>
-          <div className="p-3 bg-white/5 rounded text-sm">
-            <div className="font-medium">User Card</div>
-            <div className="text-white/50 text-xs mt-1 italic">
-              john@example.com
-            </div>
+          <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+            <div className="text-sm font-medium text-white">User Card</div>
+            <div className="text-white/40 text-xs mt-1">john@example.com</div>
           </div>
           <input
             type="text"
-            placeholder="Search..."
-            className="text-sm px-3 py-1.5 bg-white/5 border border-white/10 rounded placeholder:text-white/30 placeholder:italic focus:outline-none focus:border-white/20"
+            placeholder="Search…"
+            className="
+              px-3 py-2 text-sm bg-white/5 border border-white/10 rounded-md
+              placeholder:text-white/30
+              focus:outline-none focus:border-white/20 focus:ring-1 focus:ring-white/10
+              transition-colors
+            "
           />
-        </div>
+        </section>
 
-        <div className="flex flex-col gap-2">
-          <div className="text-xs text-white/30 uppercase tracking-wide">
+        <section className="flex flex-col gap-3">
+          <div className="text-xs text-white/30 uppercase tracking-wider">
             Activity
           </div>
-          <div className="bg-white/5 rounded p-3 min-h-[120px] font-mono text-xs">
+          <div className="bg-white/5 rounded-lg border border-white/10 p-1 min-h-[140px]">
             {logs.length === 0 ? (
-              <span className="text-white/30">Waiting...</span>
+              <div className="px-3 py-2 text-white/30 text-sm">Waiting…</div>
             ) : (
-              logs.map((log, i) => {
-                const getStatusBadge = () => {
-                  const typeStyles: Record<
-                    string,
-                    { bg: string; text: string; icon: string }
-                  > = {
-                    info: {
-                      bg: "bg-blue-500/20",
-                      text: "text-blue-300",
-                      icon: "◆",
-                    },
-                    start: {
-                      bg: "bg-green-500/20",
-                      text: "text-green-300",
-                      icon: "▶",
-                    },
-                    status: {
-                      bg: "bg-cyan-500/20",
-                      text: "text-cyan-300",
-                      icon: "◉",
-                    },
-                    done: {
-                      bg: "bg-emerald-500/20",
-                      text: "text-emerald-300",
-                      icon: "✓",
-                    },
-                    error: {
-                      bg: "bg-red-500/20",
-                      text: "text-red-300",
-                      icon: "!",
-                    },
-                    resume: {
-                      bg: "bg-purple-500/20",
-                      text: "text-purple-300",
-                      icon: "↻",
-                    },
-                  };
-                  const style = typeStyles[log.type] || typeStyles.info;
-
+              <div className="flex flex-col">
+                {logs.map((log, logIndex) => {
+                  const style = LOG_TYPE_STYLES[log.type] ?? LOG_TYPE_STYLES.info;
                   return (
-                    <span
-                      className={`${style.bg} ${style.text} px-2 py-1 rounded text-xs font-medium w-12 flex items-center gap-1`}
+                    <div
+                      key={logIndex}
+                      className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-white/5 transition-colors"
                     >
-                      <span>{style.icon}</span>
-                    </span>
+                      <span className={`${style.color} text-xs w-3`}>
+                        {style.icon}
+                      </span>
+                      <span
+                        className="text-white/70 text-sm flex-1"
+                        style={{ fontFamily: "var(--font-geist-mono)" }}
+                      >
+                        {log.message}
+                      </span>
+                      <span className="text-white/20 text-xs tabular-nums">
+                        {log.time.toLocaleTimeString()}
+                      </span>
+                    </div>
                   );
-                };
-
-                return (
-                  <div
-                    key={i}
-                    className="flex gap-3 py-1.5 items-center hover:bg-white/5 px-2 rounded transition-colors"
-                  >
-                    {getStatusBadge()}
-                    <span className="text-white/70 flex-1 italic">
-                      {log.message}
-                    </span>
-                    <span className="text-white/20 text-xs">
-                      {log.time.toLocaleTimeString()}
-                    </span>
-                  </div>
-                );
-              })
+                })}
+              </div>
             )}
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );

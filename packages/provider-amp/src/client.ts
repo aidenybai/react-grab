@@ -117,7 +117,17 @@ export const attachAgent = async () => {
   const attach = (api: ReactGrabAPI) => {
     api.registerPlugin({
       name: "amp-agent",
-      agent: { provider, storage: sessionStorage },
+      actions: [
+        {
+          id: "edit-with-amp",
+          label: "Edit with Amp",
+          shortcut: "Enter",
+          onAction: (context) => {
+            context.enterPromptMode?.();
+          },
+          agent: { provider, storage: sessionStorage },
+        },
+      ],
     });
   };
 

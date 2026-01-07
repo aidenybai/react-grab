@@ -118,6 +118,18 @@ export default defineConfig({
               return;
             }
           }
+          if (req.url?.startsWith("/@provider-visual-edit/")) {
+            const filePath = path.join(
+              __dirname,
+              "../provider-visual-edit/dist",
+              req.url.replace("/@provider-visual-edit/", ""),
+            );
+            if (fs.existsSync(filePath)) {
+              res.setHeader("Content-Type", "application/javascript");
+              fs.createReadStream(filePath).pipe(res);
+              return;
+            }
+          }
           next();
         });
       },

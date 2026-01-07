@@ -103,9 +103,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   return createRoot((dispose) => {
     const pluginRegistry = createPluginRegistry(initialOptions);
 
+    const getAgentFromActions = () => {
+      for (const action of pluginRegistry.store.actions) {
+        if (action.agent?.provider) {
+          return action.agent;
+        }
+      }
+      return undefined;
+    };
+
     const { store, actions } = createGrabStore({
       theme: DEFAULT_THEME,
-      hasAgentProvider: Boolean(pluginRegistry.store.agent?.provider),
+      hasAgentProvider: Boolean(getAgentFromActions()?.provider),
       keyHoldDuration:
         pluginRegistry.store.options.keyHoldDuration ??
         DEFAULT_KEY_HOLD_DURATION_MS,
@@ -871,16 +880,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const getAgentOptionsWithCallbacks = () => {
-      const agent = pluginRegistry.store.agent;
+      const agent = getAgentFromActions();
       if (!agent) return undefined;
       return {
         ...agent,
         onAbort: (session: AgentSession, elements: Element[]) => {
-          pluginRegistry.store.agent?.onAbort?.(session, elements);
+          agent.onAbort?.(session, elements);
           restoreInputFromSession(session, elements);
         },
         onUndo: (session: AgentSession, elements: Element[]) => {
-          pluginRegistry.store.agent?.onUndo?.(session, elements);
+          agent.onUndo?.(session, elements);
           restoreInputFromSession(session, elements);
         },
       };
@@ -2089,6 +2098,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           lineNumber: fileInfo?.lineNumber,
           componentName: contextMenuComponentName(),
           tagName: contextMenuTagName(),
+          enterPromptMode: handleContextMenuPrompt,
         };
       },
     );
@@ -2359,15 +2369,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             contextMenuTagName={contextMenuTagName()}
             contextMenuComponentName={contextMenuComponentName()}
             contextMenuHasFilePath={Boolean(contextMenuFilePath()?.filePath)}
-            contextMenuHasAgent={hasAgentProvider()}
-            contextMenuActions={pluginRegistry.store.contextMenuActions}
+            contextMenuActions={pluginRegistry.store.actions}
             contextMenuActionContext={contextMenuActionContext()}
             onContextMenuCopy={handleContextMenuCopy}
             onContextMenuCopyScreenshot={() =>
               void handleContextMenuCopyScreenshot()
             }
             onContextMenuOpen={handleContextMenuOpen}
-            onContextMenuEdit={handleContextMenuPrompt}
             onContextMenuDismiss={handleContextMenuDismiss}
           />
         ),
@@ -2392,8 +2400,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (agentOpts) {
         agentManager._internal.setOptions(agentOpts);
       }
-      actions.setHasAgentProvider(Boolean(agentOpts?.provider));
-      if (agentOpts?.provider) {
+      const hasProvider = Boolean(agentOpts?.provider);
+      actions.setHasAgentProvider(hasProvider);
+      if (hasProvider && agentOpts?.provider) {
         const capturedProvider = agentOpts.provider;
         actions.setAgentCapabilities({
           supportsUndo: Boolean(capturedProvider.undo),

@@ -30,13 +30,11 @@ interface ContextMenuProps {
   tagName?: string;
   componentName?: string;
   hasFilePath: boolean;
-  hasAgent: boolean;
-  customActions?: ContextMenuAction[];
+  actions?: ContextMenuAction[];
   actionContext?: ContextMenuActionContext;
   onCopy: () => void;
   onCopyScreenshot: () => void;
   onOpen: () => void;
-  onEdit: () => void;
   onDismiss: () => void;
 }
 
@@ -155,16 +153,8 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       enabled: props.hasFilePath,
       shortcut: "O",
     });
-    if (props.hasAgent) {
-      items.push({
-        label: "Edit",
-        action: props.onEdit,
-        enabled: true,
-        shortcut: "Enter",
-      });
-    }
 
-    const customActions = props.customActions ?? [];
+    const customActions = props.actions ?? [];
     const context = props.actionContext;
     for (const customAction of customActions) {
       const isEnabled =
@@ -214,10 +204,27 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         return;
       }
 
-      if (event.key === "Enter" && props.hasAgent) {
-        event.preventDefault();
-        event.stopPropagation();
-        props.onEdit();
+      const customActions = props.actions ?? [];
+      const context = props.actionContext;
+
+      if (event.key === "Enter") {
+        for (const customAction of customActions) {
+          if (customAction.shortcut === "Enter") {
+            const isEnabled =
+              typeof customAction.enabled === "function"
+                ? context
+                  ? customAction.enabled(context)
+                  : false
+                : customAction.enabled ?? true;
+
+            if (isEnabled && context) {
+              event.preventDefault();
+              event.stopPropagation();
+              customAction.onAction(context);
+              return;
+            }
+          }
+        }
         return;
       }
 
@@ -237,11 +244,10 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         event.stopPropagation();
         props.onOpen();
       } else {
-        const customActions = props.customActions ?? [];
-        const context = props.actionContext;
         for (const customAction of customActions) {
           if (
             customAction.shortcut &&
+            customAction.shortcut !== "Enter" &&
             event.key.toLowerCase() === customAction.shortcut.toLowerCase()
           ) {
             const isEnabled =
