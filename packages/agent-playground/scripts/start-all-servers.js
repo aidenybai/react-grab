@@ -41,13 +41,29 @@ const startServer = (provider) => {
 
 const children = PROVIDERS_WITH_SERVERS.map(startServer);
 
+const waitForChildrenToExit = () => {
+  const aliveChildren = children.filter((child) => !child.killed);
+  if (aliveChildren.length === 0) {
+    process.exit(0);
+  }
+
+  return Promise.all(
+    aliveChildren.map(
+      (child) =>
+        new Promise((resolve) => {
+          child.on("exit", resolve);
+        }),
+    ),
+  ).then(() => process.exit(0));
+};
+
 process.on("SIGINT", () => {
   console.log("\nShutting down all servers...");
   children.forEach((child) => child.kill("SIGINT"));
-  process.exit(0);
+  waitForChildrenToExit();
 });
 
 process.on("SIGTERM", () => {
   children.forEach((child) => child.kill("SIGTERM"));
-  process.exit(0);
+  waitForChildrenToExit();
 });
