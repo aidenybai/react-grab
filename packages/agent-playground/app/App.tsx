@@ -10,6 +10,7 @@ declare global {
 
 interface AppProps {
   loadedProviders: string[];
+  failedProviders: string[];
   availableProviders: string[];
 }
 
@@ -116,7 +117,11 @@ const LOG_TYPE_STYLES: Record<string, { icon: string; color: string }> = {
   resume: { icon: "↻", color: "text-white/60" },
 };
 
-export const App = ({ loadedProviders, availableProviders }: AppProps) => {
+export const App = ({
+  loadedProviders,
+  failedProviders,
+  availableProviders,
+}: AppProps) => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const didInit = useRef(false);
 
@@ -137,15 +142,21 @@ export const App = ({ loadedProviders, availableProviders }: AppProps) => {
       return;
     }
 
-    if (loadedProviders.length === 0) {
+    for (const provider of failedProviders) {
+      addLog("error", `Failed to load provider: ${provider}`);
+    }
+
+    if (loadedProviders.length === 0 && failedProviders.length === 0) {
       addLog("info", "No providers loaded. Add ?provider=cursor,claude to URL");
     } else {
       for (const provider of loadedProviders) {
         addLog("info", `Provider loaded: ${provider}`);
       }
-      addLog("info", "Ready – select an element to see available actions");
+      if (loadedProviders.length > 0) {
+        addLog("info", "Ready – select an element to see available actions");
+      }
     }
-  }, [loadedProviders]);
+  }, [loadedProviders, failedProviders]);
 
   const handleAddProvider = (provider: string) => {
     const currentProviders =
@@ -179,7 +190,9 @@ export const App = ({ loadedProviders, availableProviders }: AppProps) => {
   };
 
   const inactiveProviders = availableProviders.filter(
-    (provider) => !loadedProviders.includes(provider),
+    (provider) =>
+      !loadedProviders.includes(provider) &&
+      !failedProviders.includes(provider),
   );
 
   return (
@@ -212,7 +225,9 @@ export const App = ({ loadedProviders, availableProviders }: AppProps) => {
             Providers
           </div>
           <div className="flex flex-wrap gap-2">
-            {loadedProviders.length === 0 && inactiveProviders.length === 0 ? (
+            {loadedProviders.length === 0 &&
+            failedProviders.length === 0 &&
+            inactiveProviders.length === 0 ? (
               <span className="text-white/30 text-sm">None available</span>
             ) : (
               <>
@@ -223,6 +238,16 @@ export const App = ({ loadedProviders, availableProviders }: AppProps) => {
                     isActive={true}
                     onClick={() => handleRemoveProvider(provider)}
                   />
+                ))}
+                {failedProviders.map((provider) => (
+                  <button
+                    key={provider}
+                    onClick={() => handleRemoveProvider(provider)}
+                    className="px-2.5 py-1 text-sm rounded-md border transition-colors bg-[#ff6b6b]/10 text-[#ff6b6b] border-[#ff6b6b]/30 hover:bg-[#ff6b6b]/20"
+                    title={`Failed to load: ${provider}`}
+                  >
+                    {provider} ✕
+                  </button>
                 ))}
                 {inactiveProviders.map((provider) => (
                   <ProviderBadge
