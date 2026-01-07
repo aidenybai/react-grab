@@ -98,12 +98,16 @@ export const createRelayServer = (
       sessionId ?? `session-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
     if (type === "agent-request") {
-      if (!context) {
+      if (
+        !context ||
+        typeof context.prompt !== "string" ||
+        !Array.isArray(context.content)
+      ) {
         sendToBrowser(socket, {
           type: "agent-error",
           agentId,
           sessionId: effectiveSessionId,
-          content: "Missing context in agent request",
+          content: "Invalid context: missing or malformed prompt/content",
         });
         return;
       }
@@ -131,9 +135,31 @@ export const createRelayServer = (
         activeSessions.delete(effectiveSessionId);
       }
     } else if (type === "agent-undo") {
-      registered.handler.undo?.();
+      try {
+        await registered.handler.undo?.();
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        sendToBrowser(socket, {
+          type: "agent-error",
+          agentId,
+          sessionId: effectiveSessionId,
+          content: `Undo failed: ${errorMessage}`,
+        });
+      }
     } else if (type === "agent-redo") {
-      registered.handler.redo?.();
+      try {
+        await registered.handler.redo?.();
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        sendToBrowser(socket, {
+          type: "agent-error",
+          agentId,
+          sessionId: effectiveSessionId,
+          content: `Redo failed: ${errorMessage}`,
+        });
+      }
     }
   };
 
