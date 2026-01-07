@@ -79,6 +79,7 @@ export const createAgentManager = (
   const undoneSessionsStack: Array<{
     session: AgentSession;
     elements: Element[];
+    agent: AgentOptions | undefined;
   }> = [];
 
   let agentOptions = initialAgentOptions;
@@ -432,7 +433,7 @@ export const createAgentManager = (
     const activeAgent = getAgentForSession(sessionId);
     if (session) {
       const elements = getElementsForSession(sessionId);
-      undoneSessionsStack.push({ session, elements });
+      undoneSessionsStack.push({ session, elements, agent: activeAgent });
       activeAgent?.onUndo?.(session, elements);
       void activeAgent?.provider?.undo?.();
     }
@@ -450,7 +451,8 @@ export const createAgentManager = (
     void agentOptions?.provider?.redo?.();
 
     if (undoneSessionData) {
-      const { session, elements } = undoneSessionData;
+      const { session, elements, agent } = undoneSessionData;
+      const effectiveAgent = agent ?? agentOptions;
       let validElements = elements.filter((el) => document.contains(el));
 
       if (validElements.length === 0) {
@@ -460,7 +462,7 @@ export const createAgentManager = (
         }
       }
 
-      if (validElements.length > 0 && agentOptions) {
+      if (validElements.length > 0 && effectiveAgent) {
         const newBounds = validElements.map((el) => createElementBounds(el));
         const restoredSession: AgentSession = {
           ...session,
@@ -469,7 +471,7 @@ export const createAgentManager = (
 
         sessionMetadata.set(session.id, {
           elements: validElements,
-          agent: agentOptions,
+          agent: effectiveAgent,
         });
         setSessions((prev) => new Map(prev).set(session.id, restoredSession));
       }
