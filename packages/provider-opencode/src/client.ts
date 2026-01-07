@@ -114,9 +114,20 @@ export const attachAgent = async () => {
   const provider = createOpenCodeAgentProvider();
 
   const attach = (api: ReactGrabAPI) => {
+    const agent = { provider, storage: sessionStorage };
     api.registerPlugin({
       name: "opencode-agent",
-      agent: { provider, storage: sessionStorage },
+      actions: [
+        {
+          id: "edit-with-opencode",
+          label: "Edit with OpenCode",
+          shortcut: "Enter",
+          onAction: (context) => {
+            context.enterPromptMode?.(agent);
+          },
+          agent,
+        },
+      ],
     });
   };
 

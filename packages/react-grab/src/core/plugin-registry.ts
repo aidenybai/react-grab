@@ -4,7 +4,6 @@ import type {
   PluginConfig,
   PluginHooks,
   Theme,
-  AgentOptions,
   ContextMenuAction,
   ReactGrabState,
   PromptModeContext,
@@ -47,9 +46,8 @@ const DEFAULT_OPTIONS: OptionsState = {
 
 interface PluginStoreState {
   theme: Required<Theme>;
-  agent: AgentOptions | undefined;
   options: OptionsState;
-  contextMenuActions: ContextMenuAction[];
+  actions: ContextMenuAction[];
 }
 
 type HookName = keyof PluginHooks;
@@ -60,46 +58,34 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
 
   const [store, setStore] = createStore<PluginStoreState>({
     theme: DEFAULT_THEME,
-    agent: undefined,
     options: { ...DEFAULT_OPTIONS, ...initialOptions },
-    contextMenuActions: [],
+    actions: [],
   });
 
   const recomputeStore = () => {
     let mergedTheme: Required<Theme> = DEFAULT_THEME;
-    let mergedAgent: AgentOptions | undefined = undefined;
     let mergedOptions: OptionsState = { ...DEFAULT_OPTIONS, ...initialOptions };
-    const allContextMenuActions: ContextMenuAction[] = [];
+    const allActions: ContextMenuAction[] = [];
 
     for (const { config } of plugins.values()) {
       if (config.theme) {
         mergedTheme = deepMergeTheme(mergedTheme, config.theme);
       }
 
-      if (config.agent) {
-        const agentConfig = config.agent as AgentOptions;
-        if (mergedAgent) {
-          mergedAgent = Object.assign({}, mergedAgent, agentConfig);
-        } else {
-          mergedAgent = agentConfig;
-        }
-      }
-
       if (config.options) {
         mergedOptions = { ...mergedOptions, ...config.options };
       }
 
-      if (config.contextMenuActions) {
-        allContextMenuActions.push(...config.contextMenuActions);
+      if (config.actions) {
+        allActions.push(...config.actions);
       }
     }
 
     mergedOptions = { ...mergedOptions, ...directOptionOverrides };
 
     setStore("theme", mergedTheme);
-    setStore("agent", mergedAgent);
     setStore("options", mergedOptions);
-    setStore("contextMenuActions", allContextMenuActions);
+    setStore("actions", allActions);
   };
 
   const setOptions = (optionUpdates: SettableOptions) => {
@@ -133,16 +119,10 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
         : plugin.theme;
     }
 
-    if (plugin.agent) {
-      config.agent = config.agent
-        ? { ...plugin.agent, ...config.agent }
-        : plugin.agent;
-    }
-
-    if (plugin.contextMenuActions) {
-      config.contextMenuActions = [
-        ...plugin.contextMenuActions,
-        ...(config.contextMenuActions ?? []),
+    if (plugin.actions) {
+      config.actions = [
+        ...plugin.actions,
+        ...(config.actions ?? []),
       ];
     }
 

@@ -18,8 +18,11 @@ import {
 import { createElementBounds } from "../../utils/create-element-bounds.js";
 import { generateSnippet } from "../../utils/generate-snippet.js";
 import { getNearestComponentName } from "../context.js";
-import { FADE_DURATION_MS } from "../../constants.js";
-import { RECENT_THRESHOLD_MS } from "../../constants.js";
+import {
+  DISMISS_ANIMATION_BUFFER_MS,
+  FADE_DURATION_MS,
+  RECENT_THRESHOLD_MS,
+} from "../../constants.js";
 
 interface StartSessionParams {
   elements: Element[];
@@ -27,6 +30,7 @@ interface StartSessionParams {
   position: { x: number; y: number };
   selectionBounds: OverlayBounds[];
   sessionId?: string;
+  agent?: AgentOptions;
 }
 
 interface SessionOperations {
@@ -71,17 +75,33 @@ export const createAgentManager = (
   const [canUndo, setCanUndo] = createSignal(false);
   const [canRedo, setCanRedo] = createSignal(false);
   const abortControllers = new Map<string, AbortController>();
-  const sessionElements = new Map<string, Element[]>();
+  const sessionMetadata = new Map<
+    string,
+    { elements: Element[]; agent: AgentOptions }
+  >();
   const undoneSessionsStack: Array<{
     session: AgentSession;
     elements: Element[];
+    agent: AgentOptions | undefined;
+  }> = [];
+  const completedSessionsStack: Array<{
+    session: AgentSession;
+    elements: Element[];
+    agent: AgentOptions | undefined;
   }> = [];
 
   let agentOptions = initialAgentOptions;
 
-  const updateUndoRedoState = () => {
-    const providerCanUndo = agentOptions?.provider?.canUndo?.() ?? false;
-    const providerCanRedo = agentOptions?.provider?.canRedo?.() ?? false;
+  const getAgentForSession = (sessionId: string): AgentOptions | undefined =>
+    sessionMetadata.get(sessionId)?.agent ?? agentOptions;
+
+  const getElementsForSession = (sessionId: string): Element[] =>
+    sessionMetadata.get(sessionId)?.elements ?? [];
+
+  const updateUndoRedoState = (agent?: AgentOptions) => {
+    const effectiveAgent = agent ?? agentOptions;
+    const providerCanUndo = effectiveAgent?.provider?.canUndo?.() ?? false;
+    const providerCanRedo = effectiveAgent?.provider?.canRedo?.() ?? false;
     setCanUndo(providerCanUndo);
     setCanRedo(providerCanRedo);
   };
@@ -101,8 +121,10 @@ export const createAgentManager = (
   const executeSessionStream = async (
     session: AgentSession,
     streamIterator: AsyncIterable<string>,
+    activeAgent?: AgentOptions,
   ) => {
-    const storage = agentOptions?.storage;
+    const effectiveAgent = activeAgent ?? agentOptions;
+    const storage = effectiveAgent?.storage;
     let wasAborted = false;
 
     try {
@@ -117,14 +139,14 @@ export const createAgentManager = (
           storage,
         );
         setSessions((prev) => new Map(prev).set(session.id, updatedSession));
-        agentOptions?.onStatus?.(status, updatedSession);
+        effectiveAgent?.onStatus?.(status, updatedSession);
       }
 
       const finalSessions = sessions();
       const finalSession = finalSessions.get(session.id);
       if (finalSession) {
         const completionMessage =
-          agentOptions?.provider?.getCompletionMessage?.();
+          effectiveAgent?.provider?.getCompletionMessage?.();
         const completedSession = updateSession(
           finalSession,
           {
@@ -134,12 +156,23 @@ export const createAgentManager = (
           storage,
         );
         setSessions((prev) => new Map(prev).set(session.id, completedSession));
-        const elements = sessionElements.get(session.id) ?? [];
-        const result = await agentOptions?.onComplete?.(
+        const elements = getElementsForSession(session.id);
+        const result = await effectiveAgent?.onComplete?.(
           completedSession,
           elements,
         );
-        updateUndoRedoState();
+        const existingCompletedIndex = completedSessionsStack.findIndex(
+          (entry) => entry.session.id === session.id,
+        );
+        if (existingCompletedIndex !== -1) {
+          completedSessionsStack.splice(existingCompletedIndex, 1);
+        }
+        completedSessionsStack.push({
+          session: completedSession,
+          elements,
+          agent: effectiveAgent,
+        });
+        updateUndoRedoState(effectiveAgent);
         undoneSessionsStack.length = 0;
         if (result?.error) {
           const errorSession = updateSession(
@@ -156,8 +189,8 @@ export const createAgentManager = (
       if (error instanceof Error && error.name === "AbortError") {
         wasAborted = true;
         if (currentSession) {
-          const elements = sessionElements.get(session.id) ?? [];
-          agentOptions?.onAbort?.(currentSession, elements);
+          const elements = getElementsForSession(session.id);
+          effectiveAgent?.onAbort?.(currentSession, elements);
         }
       } else {
         const errorMessage =
@@ -174,7 +207,7 @@ export const createAgentManager = (
           );
           setSessions((prev) => new Map(prev).set(session.id, errorSession));
           if (error instanceof Error) {
-            agentOptions?.onError?.(error, errorSession);
+            effectiveAgent?.onError?.(error, errorSession);
           }
         }
       }
@@ -182,7 +215,7 @@ export const createAgentManager = (
       abortControllers.delete(session.id);
 
       if (wasAborted) {
-        sessionElements.delete(session.id);
+        sessionMetadata.delete(session.id);
         clearSessionById(session.id, storage);
         setSessions((prev) => {
           const next = new Map(prev);
@@ -255,8 +288,11 @@ export const createAgentManager = (
 
     for (const existingSession of resumableSessions) {
       const reacquiredElement = tryReacquireElement(existingSession);
-      if (reacquiredElement) {
-        sessionElements.set(existingSession.id, [reacquiredElement]);
+      if (reacquiredElement && agentOptions) {
+        sessionMetadata.set(existingSession.id, {
+          elements: [reacquiredElement],
+          agent: agentOptions,
+        });
       }
 
       const sessionWithResumeStatus = {
@@ -287,10 +323,13 @@ export const createAgentManager = (
   };
 
   const startSession = async (params: StartSessionParams) => {
-    const { elements, prompt, position, selectionBounds, sessionId } = params;
-    const storage = agentOptions?.storage;
+    const { elements, prompt, position, selectionBounds, sessionId, agent } =
+      params;
+    const activeAgent =
+      agent ?? (sessionId ? getAgentForSession(sessionId) : agentOptions);
+    const storage = activeAgent?.storage;
 
-    if (!agentOptions?.provider || elements.length === 0) {
+    if (!activeAgent?.provider || elements.length === 0) {
       return;
     }
 
@@ -305,7 +344,7 @@ export const createAgentManager = (
     const context: AgentContext = {
       content,
       prompt,
-      options: agentOptions?.getOptions?.() as unknown,
+      options: activeAgent?.getOptions?.(),
       sessionId: isFollowUp ? sessionId : undefined,
     };
 
@@ -340,10 +379,10 @@ export const createAgentManager = (
       session.lastStatus = "Thinking…";
     }
 
-    sessionElements.set(session.id, elements);
+    sessionMetadata.set(session.id, { elements, agent: activeAgent });
     setSessions((prev) => new Map(prev).set(session.id, session));
     saveSessionById(session, storage);
-    agentOptions.onStart?.(session, elements);
+    activeAgent.onStart?.(session, elements);
 
     const abortController = new AbortController();
     abortControllers.set(session.id, abortController);
@@ -353,11 +392,11 @@ export const createAgentManager = (
       sessionId: sessionId ?? session.id,
     };
 
-    const streamIterator = agentOptions.provider.send(
+    const streamIterator = activeAgent.provider.send(
       contextWithSessionId,
       abortController.signal,
     );
-    void executeSessionStream(session, streamIterator);
+    void executeSessionStream(session, streamIterator, activeAgent);
   };
 
   const abort = (sessionId?: string) => {
@@ -369,20 +408,29 @@ export const createAgentManager = (
     } else {
       abortControllers.forEach((controller) => controller.abort());
       abortControllers.clear();
+      sessionMetadata.clear();
+      completedSessionsStack.length = 0;
+      undoneSessionsStack.length = 0;
       setSessions(new Map());
       clearSessions(agentOptions?.storage);
+      updateUndoRedoState();
     }
   };
 
-  const dismissSession = (sessionId: string) => {
+  const dismissSession = (
+    sessionId: string,
+    knownAgent?: AgentOptions,
+    knownElements?: Element[],
+  ) => {
     const currentSessions = sessions();
     const session = currentSessions.get(sessionId);
-    const elements = sessionElements.get(sessionId) ?? [];
+    const activeAgent = knownAgent ?? getAgentForSession(sessionId);
+    const elements = knownElements ?? getElementsForSession(sessionId);
 
     if (session?.isFading) return;
 
     if (session && elements.length > 0) {
-      agentOptions?.onDismiss?.(session, elements);
+      activeAgent?.onDismiss?.(session, elements);
     }
 
     setSessions((prev) => {
@@ -396,63 +444,93 @@ export const createAgentManager = (
 
     // HACK: Wait for CSS opacity transition + buffer before removing
     setTimeout(() => {
-      const storage = agentOptions?.storage;
-      sessionElements.delete(sessionId);
+      const storage = activeAgent?.storage;
+      sessionMetadata.delete(sessionId);
       clearSessionById(sessionId, storage);
       setSessions((prev) => {
         const next = new Map(prev);
         next.delete(sessionId);
         return next;
       });
-    }, FADE_DURATION_MS + 50);
+    }, FADE_DURATION_MS + DISMISS_ANIMATION_BUFFER_MS);
   };
 
   const undoSession = (sessionId: string) => {
     const currentSessions = sessions();
     const session = currentSessions.get(sessionId);
+    const activeAgent = getAgentForSession(sessionId);
+    const elements = getElementsForSession(sessionId);
+
     if (session) {
-      const elements = sessionElements.get(sessionId) ?? [];
-      undoneSessionsStack.push({ session, elements });
-      agentOptions?.onUndo?.(session, elements);
-      void agentOptions?.provider?.undo?.();
+      undoneSessionsStack.push({ session, elements, agent: activeAgent });
+
+      const completedIndex = completedSessionsStack.findIndex(
+        (entry) => entry.session.id === sessionId,
+      );
+      if (completedIndex !== -1) {
+        completedSessionsStack.splice(completedIndex, 1);
+      }
+
+      activeAgent?.onUndo?.(session, elements);
+      void activeAgent?.provider?.undo?.();
     }
-    dismissSession(sessionId);
-    updateUndoRedoState();
+    dismissSession(sessionId, activeAgent, elements);
+    updateUndoRedoState(activeAgent);
   };
 
   const globalUndo = () => {
-    void agentOptions?.provider?.undo?.();
-    updateUndoRedoState();
+    const completedSessionData = completedSessionsStack.pop();
+    if (!completedSessionData) {
+      return;
+    }
+
+    const { session, elements, agent } = completedSessionData;
+    const effectiveAgent = agent ?? agentOptions;
+
+    undoneSessionsStack.push(completedSessionData);
+    effectiveAgent?.onUndo?.(session, elements);
+    void effectiveAgent?.provider?.undo?.();
+    dismissSession(session.id, effectiveAgent, elements);
+    updateUndoRedoState(effectiveAgent);
   };
 
   const globalRedo = () => {
     const undoneSessionData = undoneSessionsStack.pop();
-    void agentOptions?.provider?.redo?.();
+    if (!undoneSessionData) {
+      return;
+    }
 
-    if (undoneSessionData) {
-      const { session, elements } = undoneSessionData;
-      let validElements = elements.filter((el) => document.contains(el));
+    const effectiveAgent = undoneSessionData.agent ?? agentOptions;
+    const { session, elements } = undoneSessionData;
 
-      if (validElements.length === 0) {
-        const reacquiredElement = tryReacquireElement(session);
-        if (reacquiredElement) {
-          validElements = [reacquiredElement];
-        }
-      }
+    void effectiveAgent?.provider?.redo?.();
 
-      if (validElements.length > 0) {
-        const newBounds = validElements.map((el) => createElementBounds(el));
-        const restoredSession: AgentSession = {
-          ...session,
-          selectionBounds: newBounds,
-        };
+    let validElements = elements.filter((element) => document.contains(element));
 
-        sessionElements.set(session.id, validElements);
-        setSessions((prev) => new Map(prev).set(session.id, restoredSession));
+    if (validElements.length === 0) {
+      const reacquiredElement = tryReacquireElement(session);
+      if (reacquiredElement) {
+        validElements = [reacquiredElement];
       }
     }
 
-    updateUndoRedoState();
+    if (validElements.length > 0 && effectiveAgent) {
+      completedSessionsStack.push(undoneSessionData);
+
+      const newBounds = validElements.map((element) => createElementBounds(element));
+      const restoredSession: AgentSession = {
+        ...session,
+        selectionBounds: newBounds,
+      };
+
+      sessionMetadata.set(session.id, {
+        elements: validElements,
+        agent: effectiveAgent,
+      });
+      setSessions((prev) => new Map(prev).set(session.id, restoredSession));
+    }
+
+    updateUndoRedoState(effectiveAgent);
   };
 
   const acknowledgeSessionError = (sessionId: string): string | undefined => {
@@ -466,10 +544,11 @@ export const createAgentManager = (
   const retrySession = (sessionId: string) => {
     const currentSessions = sessions();
     const session = currentSessions.get(sessionId);
-    if (!session || !agentOptions?.provider) return;
+    const activeAgent = getAgentForSession(sessionId);
+    if (!session || !activeAgent?.provider) return;
 
-    const storage = agentOptions.storage;
-    const elements = sessionElements.get(sessionId) ?? [];
+    const storage = activeAgent.storage;
+    const elements = getElementsForSession(sessionId);
 
     const retriedSession = updateSession(
       session,
@@ -485,7 +564,7 @@ export const createAgentManager = (
     saveSessionById(retriedSession, storage);
 
     if (elements.length > 0) {
-      agentOptions.onStart?.(retriedSession, elements);
+      activeAgent.onStart?.(retriedSession, elements);
     }
 
     const abortController = new AbortController();
@@ -496,11 +575,11 @@ export const createAgentManager = (
       sessionId,
     };
 
-    const streamIterator = agentOptions.provider.send(
+    const streamIterator = activeAgent.provider.send(
       contextWithSessionId,
       abortController.signal,
     );
-    void executeSessionStream(retriedSession, streamIterator);
+    void executeSessionStream(retriedSession, streamIterator, activeAgent);
   };
 
   const updateSessionBoundsOnViewportChange = () => {
@@ -511,7 +590,7 @@ export const createAgentManager = (
     let didUpdate = false;
 
     for (const [sessionId, session] of currentSessions) {
-      const elements = sessionElements.get(sessionId) ?? [];
+      const elements = getElementsForSession(sessionId);
       const firstElement = elements[0];
 
       if (firstElement && document.contains(firstElement)) {
@@ -546,14 +625,11 @@ export const createAgentManager = (
     }
   };
 
-  const getSessionElement = (sessionId: string): Element | undefined => {
-    const elements = sessionElements.get(sessionId);
-    return elements?.[0];
-  };
+  const getSessionElement = (sessionId: string): Element | undefined =>
+    getElementsForSession(sessionId)[0];
 
-  const getSessionElements = (sessionId: string): Element[] => {
-    return sessionElements.get(sessionId) ?? [];
-  };
+  const getSessionElements = (sessionId: string): Element[] =>
+    getElementsForSession(sessionId);
 
   return {
     sessions,

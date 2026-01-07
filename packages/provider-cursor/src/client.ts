@@ -119,9 +119,20 @@ export const attachAgent = async () => {
   const provider = createCursorAgentProvider();
 
   const attach = (api: ReactGrabAPI) => {
+    const agent = { provider, storage: sessionStorage };
     api.registerPlugin({
       name: "cursor-agent",
-      agent: { provider, storage: sessionStorage },
+      actions: [
+        {
+          id: "edit-with-cursor",
+          label: "Edit with Cursor",
+          shortcut: "Enter",
+          onAction: (context) => {
+            context.enterPromptMode?.(agent);
+          },
+          agent,
+        },
+      ],
     });
   };
 

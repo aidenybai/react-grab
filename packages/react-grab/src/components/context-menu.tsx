@@ -10,7 +10,7 @@ import type { Component } from "solid-js";
 import type {
   OverlayBounds,
   ContextMenuAction,
-  ContextMenuActionContext,
+  ActionContext,
 } from "../types.js";
 import {
   VIEWPORT_MARGIN_PX,
@@ -20,7 +20,6 @@ import {
 import { Arrow } from "./selection-label/arrow.js";
 import { TagBadge } from "./selection-label/tag-badge.js";
 import { BottomSection } from "./selection-label/bottom-section.js";
-import { isMac } from "../utils/is-mac.js";
 import { formatShortcut } from "../utils/format-shortcut.js";
 import { isScreenshotSupported } from "../utils/is-screenshot-supported.js";
 
@@ -30,14 +29,13 @@ interface ContextMenuProps {
   tagName?: string;
   componentName?: string;
   hasFilePath: boolean;
-  hasAgent: boolean;
-  customActions?: ContextMenuAction[];
-  actionContext?: ContextMenuActionContext;
+  actions?: ContextMenuAction[];
+  actionContext?: ActionContext;
   onCopy: () => void;
   onCopyScreenshot: () => void;
   onOpen: () => void;
-  onEdit: () => void;
   onDismiss: () => void;
+  onHide: () => void;
 }
 
 interface MenuItem {
@@ -155,16 +153,8 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       enabled: props.hasFilePath,
       shortcut: "O",
     });
-    if (props.hasAgent) {
-      items.push({
-        label: "Edit",
-        action: props.onEdit,
-        enabled: true,
-        shortcut: "Enter",
-      });
-    }
 
-    const customActions = props.customActions ?? [];
+    const customActions = props.actions ?? [];
     const context = props.actionContext;
     for (const customAction of customActions) {
       const isEnabled =
@@ -193,6 +183,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     event.stopPropagation();
     if (item.enabled) {
       item.action();
+      props.onHide();
     }
   };
 
@@ -214,34 +205,54 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         return;
       }
 
-      if (event.key === "Enter" && props.hasAgent) {
-        event.preventDefault();
-        event.stopPropagation();
-        props.onEdit();
+      const customActions = props.actions ?? [];
+      const context = props.actionContext;
+
+      if (event.key === "Enter") {
+        for (const customAction of customActions) {
+          if (customAction.shortcut === "Enter") {
+            const isEnabled =
+              typeof customAction.enabled === "function"
+                ? context
+                  ? customAction.enabled(context)
+                  : false
+                : customAction.enabled ?? true;
+
+            if (isEnabled && context) {
+              event.preventDefault();
+              event.stopPropagation();
+              customAction.onAction(context);
+              props.onHide();
+              return;
+            }
+          }
+        }
         return;
       }
 
-      const modifierKey = isMac() ? event.metaKey : event.ctrlKey;
-      if (!modifierKey) return;
+      const hasModifierKey = event.metaKey || event.ctrlKey;
+      if (!hasModifierKey) return;
 
       if (event.key.toLowerCase() === "s" && isScreenshotSupported()) {
         event.preventDefault();
         event.stopPropagation();
         props.onCopyScreenshot();
+        props.onHide();
       } else if (event.key.toLowerCase() === "c") {
         event.preventDefault();
         event.stopPropagation();
         props.onCopy();
+        props.onHide();
       } else if (event.key.toLowerCase() === "o" && props.hasFilePath) {
         event.preventDefault();
         event.stopPropagation();
         props.onOpen();
+        props.onHide();
       } else {
-        const customActions = props.customActions ?? [];
-        const context = props.actionContext;
         for (const customAction of customActions) {
           if (
             customAction.shortcut &&
+            customAction.shortcut !== "Enter" &&
             event.key.toLowerCase() === customAction.shortcut.toLowerCase()
           ) {
             const isEnabled =
@@ -255,6 +266,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
               event.preventDefault();
               event.stopPropagation();
               customAction.onAction(context);
+              props.onHide();
               return;
             }
           }

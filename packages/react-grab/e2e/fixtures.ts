@@ -92,6 +92,7 @@ interface ReactGrabPageObject {
   pressEnter: () => Promise<void>;
   pressKey: (key: string) => Promise<void>;
   pressKeyCombo: (modifiers: string[], key: string) => Promise<void>;
+  pressModifierKeyCombo: (key: string) => Promise<void>;
   scrollPage: (deltaY: number) => Promise<void>;
 
   enterPromptMode: (selector: string) => Promise<void>;
@@ -336,6 +337,13 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     for (const modifier of [...modifiers].reverse()) {
       await page.keyboard.up(modifier);
     }
+  };
+
+  const pressModifierKeyCombo = async (key: string) => {
+    const modifier = process.platform === "darwin" ? "Meta" : "Control";
+    await page.keyboard.down(modifier);
+    await page.keyboard.press(key);
+    await page.keyboard.up(modifier);
   };
 
   const waitForContextMenu = async (visible: boolean) => {
@@ -1032,12 +1040,28 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         window as {
           __REACT_GRAB__?: {
             unregisterPlugin: (name: string) => void;
-            registerPlugin: (plugin: { name: string; agent: Record<string, unknown> }) => void;
+            registerPlugin: (plugin: { name: string; actions: Array<Record<string, unknown>> }) => void;
           };
         }
       ).__REACT_GRAB__;
       api?.unregisterPlugin("test-agent");
-      api?.registerPlugin({ name: "test-agent", agent: opts });
+      const agent = opts;
+      api?.registerPlugin({
+        name: "test-agent",
+        actions: [
+          {
+            id: "edit-with-test-agent",
+            label: "Edit",
+            shortcut: "Enter",
+            onAction: (context: {
+              enterPromptMode?: (agent?: Record<string, unknown>) => void;
+            }) => {
+              context.enterPromptMode?.(agent);
+            },
+            agent,
+          },
+        ],
+      });
     }, options);
   };
 
@@ -1053,7 +1077,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         }
       ).__REACT_GRAB__;
 
-      const pluginKeys = ["theme", "agent", "contextMenuActions"];
+      const pluginKeys = ["theme", "actions"];
       const hookKeys = [
         "onActivate", "onDeactivate", "onElementHover", "onElementSelect",
         "onDragStart", "onDragEnd", "onBeforeCopy", "onAfterCopy",
@@ -1146,12 +1170,28 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         window as {
           __REACT_GRAB__?: {
             unregisterPlugin: (name: string) => void;
-            registerPlugin: (plugin: { name: string; agent: Record<string, unknown> }) => void;
+            registerPlugin: (plugin: { name: string; actions: Array<Record<string, unknown>> }) => void;
           };
         }
       ).__REACT_GRAB__;
       api?.unregisterPlugin("mock-agent");
-      api?.registerPlugin({ name: "mock-agent", agent: { provider: mockProvider } });
+      const agent = { provider: mockProvider };
+      api?.registerPlugin({
+        name: "mock-agent",
+        actions: [
+          {
+            id: "edit-with-mock-agent",
+            label: "Edit",
+            shortcut: "Enter",
+            onAction: (context: {
+              enterPromptMode?: (agent?: Record<string, unknown>) => void;
+            }) => {
+              context.enterPromptMode?.(agent);
+            },
+            agent,
+          },
+        ],
+      });
     }, options);
   };
 
@@ -1623,6 +1663,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     pressEnter,
     pressKey,
     pressKeyCombo,
+    pressModifierKeyCombo,
     scrollPage,
 
     enterPromptMode,

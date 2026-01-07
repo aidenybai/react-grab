@@ -120,9 +120,20 @@ export const attachAgent = async () => {
   const provider = createClaudeAgentProvider();
 
   const attach = (api: ReactGrabAPI) => {
+    const agent = { provider, storage: sessionStorage };
     api.registerPlugin({
       name: "claude-code-agent",
-      agent: { provider, storage: sessionStorage },
+      actions: [
+        {
+          id: "edit-with-claude-code",
+          label: "Edit with Claude",
+          shortcut: "Enter",
+          onAction: (context) => {
+            context.enterPromptMode?.(agent);
+          },
+          agent,
+        },
+      ],
     });
   };
 

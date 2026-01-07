@@ -662,15 +662,26 @@ export const attachAgent = async () => {
     createVisualEditAgentProvider();
 
   const attach = (api: ReactGrabAPI) => {
+    const agent = {
+      provider,
+      getOptions,
+      onStart,
+      onComplete,
+      onUndo,
+    };
     api.registerPlugin({
       name: "visual-edit-agent",
-      agent: {
-        provider,
-        getOptions,
-        onStart,
-        onComplete,
-        onUndo,
-      },
+      actions: [
+        {
+          id: "edit-with-visual-edit",
+          label: "Visual Edit",
+          shortcut: "Enter",
+          onAction: (context) => {
+            context.enterPromptMode?.(agent);
+          },
+          agent,
+        },
+      ],
     });
   };
 

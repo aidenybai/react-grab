@@ -502,4 +502,333 @@ test.describe("Context Menu", () => {
       expect(selectionInfo.isVisible).toBe(true);
     });
   });
+
+  test.describe("Custom Actions with Agent", () => {
+    test("custom action with agent should appear in menu", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.page.evaluate(() => {
+        const api = (
+          window as {
+            __REACT_GRAB__?: {
+              unregisterPlugin: (name: string) => void;
+              registerPlugin: (plugin: Record<string, unknown>) => void;
+            };
+          }
+        ).__REACT_GRAB__;
+
+        const mockProvider = {
+          async *send() {
+            yield "Processing...";
+            yield "Completed";
+          },
+          supportsFollowUp: true,
+        };
+
+        api?.unregisterPlugin("custom-agent-action");
+        const agent = { provider: mockProvider };
+        api?.registerPlugin({
+          name: "custom-agent-action",
+          actions: [
+            {
+              id: "custom-edit",
+              label: "Custom Edit",
+              shortcut: "E",
+              onAction: (context: {
+                enterPromptMode?: (agent?: Record<string, unknown>) => void;
+              }) => {
+                context.enterPromptMode?.(agent);
+              },
+              agent,
+            },
+          ],
+        });
+      });
+
+      await reactGrab.activate();
+      await reactGrab.hoverElement("li:first-child");
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.rightClickElement("li:first-child");
+
+      const menuInfo = await reactGrab.getContextMenuInfo();
+      expect(menuInfo.isVisible).toBe(true);
+      expect(menuInfo.menuItems.map((item: string) => item.toLowerCase())).toContain("custom edit");
+    });
+
+    test("custom action should trigger enterPromptMode", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.page.evaluate(() => {
+        const api = (
+          window as {
+            __REACT_GRAB__?: {
+              unregisterPlugin: (name: string) => void;
+              registerPlugin: (plugin: Record<string, unknown>) => void;
+            };
+          }
+        ).__REACT_GRAB__;
+
+        const mockProvider = {
+          async *send() {
+            yield "Processing...";
+            yield "Completed";
+          },
+          supportsFollowUp: true,
+        };
+
+        api?.unregisterPlugin("custom-agent-action");
+        const agent = { provider: mockProvider };
+        api?.registerPlugin({
+          name: "custom-agent-action",
+          actions: [
+            {
+              id: "custom-edit",
+              label: "Custom Edit",
+              shortcut: "E",
+              onAction: (context: {
+                enterPromptMode?: (agent?: Record<string, unknown>) => void;
+              }) => {
+                context.enterPromptMode?.(agent);
+              },
+              agent,
+            },
+          ],
+        });
+      });
+
+      await reactGrab.activate();
+      await reactGrab.hoverElement("li:first-child");
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.rightClickElement("li:first-child");
+      await reactGrab.page.waitForTimeout(100);
+
+      await reactGrab.clickContextMenuItem("Custom edit");
+      await reactGrab.page.waitForTimeout(200);
+
+      const isPromptMode = await reactGrab.isPromptModeActive();
+      expect(isPromptMode).toBe(true);
+    });
+
+    test("action without agent should just execute onAction", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.page.evaluate(() => {
+        const api = (
+          window as {
+            __REACT_GRAB__?: {
+              unregisterPlugin: (name: string) => void;
+              registerPlugin: (plugin: Record<string, unknown>) => void;
+            };
+          }
+        ).__REACT_GRAB__;
+
+        api?.unregisterPlugin("plain-action");
+        api?.registerPlugin({
+          name: "plain-action",
+          actions: [
+            {
+              id: "plain-action",
+              label: "Plain Action",
+              onAction: () => {
+                (window as { __plainActionCalled?: boolean }).__plainActionCalled = true;
+              },
+            },
+          ],
+        });
+      });
+
+      await reactGrab.activate();
+      await reactGrab.hoverElement("li:first-child");
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.rightClickElement("li:first-child");
+
+      const menuInfo = await reactGrab.getContextMenuInfo();
+      const lowerMenuItems = menuInfo.menuItems.map((item: string) => item.toLowerCase());
+      expect(lowerMenuItems).toContain("plain action");
+
+      await reactGrab.clickContextMenuItem("Plain Action");
+      await reactGrab.page.waitForTimeout(100);
+
+      const actionCalled = await reactGrab.page.evaluate(
+        () => (window as { __plainActionCalled?: boolean }).__plainActionCalled ?? false
+      );
+      expect(actionCalled).toBe(true);
+    });
+
+    test("multiple actions should all appear in menu", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.page.evaluate(() => {
+        const api = (
+          window as {
+            __REACT_GRAB__?: {
+              unregisterPlugin: (name: string) => void;
+              registerPlugin: (plugin: Record<string, unknown>) => void;
+            };
+          }
+        ).__REACT_GRAB__;
+
+        api?.unregisterPlugin("multi-actions");
+        api?.registerPlugin({
+          name: "multi-actions",
+          actions: [
+            {
+              id: "action-1",
+              label: "First Action",
+              onAction: () => {},
+            },
+            {
+              id: "action-2",
+              label: "Second Action",
+              onAction: () => {},
+            },
+          ],
+        });
+      });
+
+      await reactGrab.activate();
+      await reactGrab.hoverElement("li:first-child");
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.rightClickElement("li:first-child");
+
+      const menuInfo = await reactGrab.getContextMenuInfo();
+      const lowerMenuItems = menuInfo.menuItems.map((item: string) => item.toLowerCase());
+      expect(lowerMenuItems).toContain("first action");
+      expect(lowerMenuItems).toContain("second action");
+    });
+
+    test("action with shortcut should be triggerable via keyboard", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.page.evaluate(() => {
+        const api = (
+          window as {
+            __REACT_GRAB__?: {
+              unregisterPlugin: (name: string) => void;
+              registerPlugin: (plugin: Record<string, unknown>) => void;
+            };
+          }
+        ).__REACT_GRAB__;
+
+        api?.unregisterPlugin("keyboard-action");
+        api?.registerPlugin({
+          name: "keyboard-action",
+          actions: [
+            {
+              id: "keyboard-action",
+              label: "Keyboard Action",
+              shortcut: "K",
+              onAction: () => {
+                (window as { __keyboardActionCalled?: boolean }).__keyboardActionCalled = true;
+              },
+            },
+          ],
+        });
+      });
+
+      await reactGrab.activate();
+      await reactGrab.hoverElement("li:first-child");
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.rightClickElement("li:first-child");
+      await reactGrab.page.waitForTimeout(100);
+
+      await reactGrab.pressModifierKeyCombo("k");
+      await reactGrab.page.waitForTimeout(200);
+
+      const actionCalled = await reactGrab.page.evaluate(
+        () =>
+          (window as { __keyboardActionCalled?: boolean })
+            .__keyboardActionCalled ?? false
+      );
+      expect(actionCalled).toBe(true);
+    });
+
+    test("disabled action should appear but be disabled", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.page.evaluate(() => {
+        const api = (
+          window as {
+            __REACT_GRAB__?: {
+              unregisterPlugin: (name: string) => void;
+              registerPlugin: (plugin: Record<string, unknown>) => void;
+            };
+          }
+        ).__REACT_GRAB__;
+
+        api?.unregisterPlugin("disabled-action");
+        api?.registerPlugin({
+          name: "disabled-action",
+          actions: [
+            {
+              id: "disabled-action",
+              label: "Disabled Action",
+              enabled: false,
+              onAction: () => {},
+            },
+          ],
+        });
+      });
+
+      await reactGrab.activate();
+      await reactGrab.hoverElement("li:first-child");
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.rightClickElement("li:first-child");
+
+      const isDisabled = await reactGrab.page.evaluate((attrName) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const shadowRoot = host?.shadowRoot;
+        if (!shadowRoot) return false;
+        const root = shadowRoot.querySelector(`[${attrName}]`);
+        const button = root?.querySelector('[data-react-grab-menu-item="disabled action"]');
+        return button?.hasAttribute("disabled") ?? false;
+      }, "data-react-grab");
+      expect(isDisabled).toBe(true);
+    });
+
+    test("action enabled function should receive context", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.page.evaluate(() => {
+        const api = (
+          window as {
+            __REACT_GRAB__?: {
+              unregisterPlugin: (name: string) => void;
+              registerPlugin: (plugin: Record<string, unknown>) => void;
+            };
+          }
+        ).__REACT_GRAB__;
+
+        api?.unregisterPlugin("context-action");
+        api?.registerPlugin({
+          name: "context-action",
+          actions: [
+            {
+              id: "context-action",
+              label: "Context Action",
+              enabled: (context: { element: Element }) => {
+                (window as { __enabledTagName?: string }).__enabledTagName = context.element.tagName;
+                return context.element.tagName.toLowerCase() === "li";
+              },
+              onAction: () => {},
+            },
+          ],
+        });
+      });
+
+      await reactGrab.activate();
+      await reactGrab.hoverElement("li:first-child");
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.rightClickElement("li:first-child");
+
+      const enabledTagName = await reactGrab.page.evaluate(
+        () => (window as { __enabledTagName?: string }).__enabledTagName
+      );
+      expect(enabledTagName).toBe("LI");
+
+      const menuInfo = await reactGrab.getContextMenuInfo();
+      const lowerMenuItems = menuInfo.menuItems.map((item: string) => item.toLowerCase());
+      expect(lowerMenuItems).toContain("context action");
+    });
+  });
 });

@@ -8,7 +8,7 @@ import type {
 import { lerp } from "../utils/lerp.js";
 import {
   SELECTION_LERP_FACTOR,
-  SUCCESS_LABEL_DURATION_MS,
+  FEEDBACK_DURATION_MS,
   CROSSHAIR_LERP_FACTOR,
   DRAG_LERP_FACTOR,
   LERP_CONVERGENCE_THRESHOLD_PX,
@@ -516,15 +516,15 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
       if (animation.createdAt) {
         const elapsed = currentTimestamp - animation.createdAt;
         const fadeOutDeadline =
-          SUCCESS_LABEL_DURATION_MS + FADE_OUT_BUFFER_MS;
+          FEEDBACK_DURATION_MS + FADE_OUT_BUFFER_MS;
 
         if (elapsed >= fadeOutDeadline) {
           return false;
         }
 
-        if (elapsed > SUCCESS_LABEL_DURATION_MS) {
+        if (elapsed > FEEDBACK_DURATION_MS) {
           const fadeProgress =
-            (elapsed - SUCCESS_LABEL_DURATION_MS) / FADE_OUT_BUFFER_MS;
+            (elapsed - FEEDBACK_DURATION_MS) / FADE_OUT_BUFFER_MS;
           animation.opacity = 1 - fadeProgress;
           shouldContinueAnimating = true;
         }

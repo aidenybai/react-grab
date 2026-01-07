@@ -208,21 +208,23 @@ export interface AgentOptions<T = any> {
 
 export type ActivationMode = "toggle" | "hold";
 
-export interface ContextMenuActionContext {
+export interface ActionContext {
   element: Element;
   elements: Element[];
   filePath?: string;
   lineNumber?: number;
   componentName?: string;
   tagName?: string;
+  enterPromptMode?: (agent?: AgentOptions) => void;
 }
 
 export interface ContextMenuAction {
   id: string;
   label: string;
   shortcut?: string;
-  enabled?: boolean | ((context: ContextMenuActionContext) => boolean);
-  onAction: (context: ContextMenuActionContext) => void;
+  enabled?: boolean | ((context: ActionContext) => boolean);
+  onAction: (context: ActionContext) => void;
+  agent?: AgentOptions;
 }
 
 export interface PluginHooks {
@@ -263,9 +265,8 @@ export interface PluginHooks {
 
 export interface PluginConfig {
   theme?: DeepPartial<Theme>;
-  agent?: Partial<AgentOptions>;
   options?: SettableOptions;
-  contextMenuActions?: ContextMenuAction[];
+  actions?: ContextMenuAction[];
   hooks?: PluginHooks;
   cleanup?: () => void;
 }
@@ -273,9 +274,8 @@ export interface PluginConfig {
 export interface Plugin {
   name: string;
   theme?: DeepPartial<Theme>;
-  agent?: Partial<AgentOptions>;
   options?: SettableOptions;
-  contextMenuActions?: ContextMenuAction[];
+  actions?: ContextMenuAction[];
   hooks?: PluginHooks;
   setup?: (api: ReactGrabAPI) => PluginConfig | void;
 }
@@ -395,14 +395,13 @@ export interface ReactGrabRendererProps {
   contextMenuTagName?: string;
   contextMenuComponentName?: string;
   contextMenuHasFilePath?: boolean;
-  contextMenuHasAgent?: boolean;
-  contextMenuActions?: ContextMenuAction[];
-  contextMenuActionContext?: ContextMenuActionContext;
+  actions?: ContextMenuAction[];
+  actionContext?: ActionContext;
   onContextMenuCopy?: () => void;
   onContextMenuCopyScreenshot?: () => void;
   onContextMenuOpen?: () => void;
-  onContextMenuEdit?: () => void;
   onContextMenuDismiss?: () => void;
+  onContextMenuHide?: () => void;
 }
 
 export interface GrabbedBox {
