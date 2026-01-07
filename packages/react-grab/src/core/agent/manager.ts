@@ -81,6 +81,11 @@ export const createAgentManager = (
     elements: Element[];
     agent: AgentOptions | undefined;
   }> = [];
+  const completedSessionsStack: Array<{
+    session: AgentSession;
+    elements: Element[];
+    agent: AgentOptions | undefined;
+  }> = [];
 
   let agentOptions = initialAgentOptions;
 
@@ -90,9 +95,10 @@ export const createAgentManager = (
   const getElementsForSession = (sessionId: string): Element[] =>
     sessionMetadata.get(sessionId)?.elements ?? [];
 
-  const updateUndoRedoState = () => {
-    const providerCanUndo = agentOptions?.provider?.canUndo?.() ?? false;
-    const providerCanRedo = agentOptions?.provider?.canRedo?.() ?? false;
+  const updateUndoRedoState = (agent?: AgentOptions) => {
+    const effectiveAgent = agent ?? agentOptions;
+    const providerCanUndo = effectiveAgent?.provider?.canUndo?.() ?? false;
+    const providerCanRedo = effectiveAgent?.provider?.canRedo?.() ?? false;
     setCanUndo(providerCanUndo);
     setCanRedo(providerCanRedo);
   };
@@ -152,6 +158,11 @@ export const createAgentManager = (
           completedSession,
           elements,
         );
+        completedSessionsStack.push({
+          session: completedSession,
+          elements,
+          agent: effectiveAgent,
+        });
         updateUndoRedoState();
         undoneSessionsStack.length = 0;
         if (result?.error) {
@@ -435,16 +446,31 @@ export const createAgentManager = (
     if (session) {
       const elements = getElementsForSession(sessionId);
       undoneSessionsStack.push({ session, elements, agent: activeAgent });
+
+      const completedIndex = completedSessionsStack.findIndex(
+        (entry) => entry.session.id === sessionId,
+      );
+      if (completedIndex !== -1) {
+        completedSessionsStack.splice(completedIndex, 1);
+      }
+
       activeAgent?.onUndo?.(session, elements);
       void activeAgent?.provider?.undo?.();
     }
     dismissSession(sessionId);
-    updateUndoRedoState();
+    updateUndoRedoState(activeAgent);
   };
 
   const globalUndo = () => {
-    void agentOptions?.provider?.undo?.();
-    updateUndoRedoState();
+    const completedSessionData = completedSessionsStack.pop();
+    const effectiveAgent = completedSessionData?.agent ?? agentOptions;
+    void effectiveAgent?.provider?.undo?.();
+
+    if (completedSessionData) {
+      undoneSessionsStack.push(completedSessionData);
+    }
+
+    updateUndoRedoState(effectiveAgent);
   };
 
   const globalRedo = () => {
@@ -453,6 +479,7 @@ export const createAgentManager = (
     void effectiveAgent?.provider?.redo?.();
 
     if (undoneSessionData) {
+      completedSessionsStack.push(undoneSessionData);
       const { session, elements } = undoneSessionData;
       let validElements = elements.filter((el) => document.contains(el));
 
@@ -478,7 +505,7 @@ export const createAgentManager = (
       }
     }
 
-    updateUndoRedoState();
+    updateUndoRedoState(effectiveAgent);
   };
 
   const acknowledgeSessionError = (sessionId: string): string | undefined => {
