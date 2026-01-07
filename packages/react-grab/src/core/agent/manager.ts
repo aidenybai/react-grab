@@ -27,6 +27,7 @@ interface StartSessionParams {
   position: { x: number; y: number };
   selectionBounds: OverlayBounds[];
   sessionId?: string;
+  agent?: AgentOptions;
 }
 
 interface SessionOperations {
@@ -101,8 +102,10 @@ export const createAgentManager = (
   const executeSessionStream = async (
     session: AgentSession,
     streamIterator: AsyncIterable<string>,
+    activeAgent?: AgentOptions,
   ) => {
-    const storage = agentOptions?.storage;
+    const effectiveAgent = activeAgent ?? agentOptions;
+    const storage = effectiveAgent?.storage;
     let wasAborted = false;
 
     try {
@@ -117,14 +120,14 @@ export const createAgentManager = (
           storage,
         );
         setSessions((prev) => new Map(prev).set(session.id, updatedSession));
-        agentOptions?.onStatus?.(status, updatedSession);
+        effectiveAgent?.onStatus?.(status, updatedSession);
       }
 
       const finalSessions = sessions();
       const finalSession = finalSessions.get(session.id);
       if (finalSession) {
         const completionMessage =
-          agentOptions?.provider?.getCompletionMessage?.();
+          effectiveAgent?.provider?.getCompletionMessage?.();
         const completedSession = updateSession(
           finalSession,
           {
@@ -135,7 +138,7 @@ export const createAgentManager = (
         );
         setSessions((prev) => new Map(prev).set(session.id, completedSession));
         const elements = sessionElements.get(session.id) ?? [];
-        const result = await agentOptions?.onComplete?.(
+        const result = await effectiveAgent?.onComplete?.(
           completedSession,
           elements,
         );
@@ -157,7 +160,7 @@ export const createAgentManager = (
         wasAborted = true;
         if (currentSession) {
           const elements = sessionElements.get(session.id) ?? [];
-          agentOptions?.onAbort?.(currentSession, elements);
+          effectiveAgent?.onAbort?.(currentSession, elements);
         }
       } else {
         const errorMessage =
@@ -174,7 +177,7 @@ export const createAgentManager = (
           );
           setSessions((prev) => new Map(prev).set(session.id, errorSession));
           if (error instanceof Error) {
-            agentOptions?.onError?.(error, errorSession);
+            effectiveAgent?.onError?.(error, errorSession);
           }
         }
       }
@@ -287,10 +290,12 @@ export const createAgentManager = (
   };
 
   const startSession = async (params: StartSessionParams) => {
-    const { elements, prompt, position, selectionBounds, sessionId } = params;
-    const storage = agentOptions?.storage;
+    const { elements, prompt, position, selectionBounds, sessionId, agent } =
+      params;
+    const activeAgent = agent ?? agentOptions;
+    const storage = activeAgent?.storage;
 
-    if (!agentOptions?.provider || elements.length === 0) {
+    if (!activeAgent?.provider || elements.length === 0) {
       return;
     }
 
@@ -305,7 +310,7 @@ export const createAgentManager = (
     const context: AgentContext = {
       content,
       prompt,
-      options: agentOptions?.getOptions?.() as unknown,
+      options: activeAgent?.getOptions?.() as unknown,
       sessionId: isFollowUp ? sessionId : undefined,
     };
 
@@ -343,7 +348,7 @@ export const createAgentManager = (
     sessionElements.set(session.id, elements);
     setSessions((prev) => new Map(prev).set(session.id, session));
     saveSessionById(session, storage);
-    agentOptions.onStart?.(session, elements);
+    activeAgent.onStart?.(session, elements);
 
     const abortController = new AbortController();
     abortControllers.set(session.id, abortController);
@@ -353,11 +358,11 @@ export const createAgentManager = (
       sessionId: sessionId ?? session.id,
     };
 
-    const streamIterator = agentOptions.provider.send(
+    const streamIterator = activeAgent.provider.send(
       contextWithSessionId,
       abortController.signal,
     );
-    void executeSessionStream(session, streamIterator);
+    void executeSessionStream(session, streamIterator, activeAgent);
   };
 
   const abort = (sessionId?: string) => {

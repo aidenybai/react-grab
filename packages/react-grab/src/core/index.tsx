@@ -56,6 +56,7 @@ import type {
   ReactGrabState,
   SelectionLabelInstance,
   AgentSession,
+  AgentOptions,
   ContextMenuActionContext,
   SettableOptions,
   Plugin,
@@ -879,9 +880,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    const getAgentOptionsWithCallbacks = () => {
-      const agent = getAgentFromActions();
-      if (!agent) return undefined;
+    const wrapAgentWithCallbacks = (agent: AgentOptions): AgentOptions => {
       return {
         ...agent,
         onAbort: (session: AgentSession, elements: Element[]) => {
@@ -893,6 +892,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           restoreInputFromSession(session, elements);
         },
       };
+    };
+
+    const getAgentOptionsWithCallbacks = () => {
+      const agent = getAgentFromActions();
+      if (!agent) return undefined;
+      return wrapAgentWithCallbacks(agent);
     };
 
     const agentManager = createAgentManager(getAgentOptionsWithCallbacks());
@@ -930,12 +935,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const currentReplySessionId = store.replySessionId;
         actions.setReplySessionId(null);
 
+        const selectedAgent = store.selectedAgent;
+        actions.clearSelectedAgent();
+
         void agentManager.session.start({
           elements,
           prompt,
           position: { x: labelPositionX, y: currentY },
           selectionBounds: currentSelectionBounds,
           sessionId: currentReplySessionId ?? undefined,
+          agent: selectedAgent
+            ? wrapAgentWithCallbacks(selectedAgent)
+            : undefined,
         });
 
         return;
@@ -2219,7 +2230,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, 0);
     };
 
-    const handleContextMenuPrompt = () => {
+    const handleContextMenuPrompt = (agent?: AgentOptions) => {
       const element = store.contextMenuElement;
       const position = store.contextMenuPosition;
       if (!element || !position) return;
@@ -2227,6 +2238,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!hasAgentProvider()) {
         handleContextMenuCopy();
         return;
+      }
+
+      if (agent) {
+        actions.setSelectedAgent(agent);
       }
 
       preparePromptMode(element, position.x, position.y);

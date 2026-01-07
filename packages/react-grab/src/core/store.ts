@@ -4,6 +4,7 @@ import type {
   GrabbedBox,
   SelectionLabelInstance,
   AgentSession,
+  AgentOptions,
 } from "../types.js";
 import { OFFSCREEN_POSITION } from "../constants.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
@@ -83,6 +84,8 @@ interface GrabStore {
   contextMenuPosition: Position | null;
   contextMenuElement: Element | null;
   contextMenuClickOffset: Position | null;
+
+  selectedAgent: AgentOptions | null;
 }
 
 interface GrabStoreInput {
@@ -141,6 +144,8 @@ const createInitialStore = (input: GrabStoreInput): GrabStore => ({
   contextMenuPosition: null,
   contextMenuElement: null,
   contextMenuClickOffset: null,
+
+  selectedAgent: null,
 });
 
 interface GrabActions {
@@ -217,6 +222,8 @@ interface GrabActions {
   showContextMenu: (position: Position, element: Element) => void;
   hideContextMenu: () => void;
   updateContextMenuPosition: () => void;
+  setSelectedAgent: (agent: AgentOptions | null) => void;
+  clearSelectedAgent: () => void;
 }
 
 const createGrabStore = (input: GrabStoreInput) => {
@@ -751,6 +758,14 @@ const createGrabStore = (input: GrabStoreInput) => {
         x: newCenterX + clickOffset.x,
         y: newCenterY + clickOffset.y,
       });
+    },
+
+    setSelectedAgent: (agent: AgentOptions | null) => {
+      setStore("selectedAgent", agent);
+    },
+
+    clearSelectedAgent: () => {
+      setStore("selectedAgent", null);
     },
   };
 

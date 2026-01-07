@@ -215,7 +215,7 @@ export interface ContextMenuActionContext {
   lineNumber?: number;
   componentName?: string;
   tagName?: string;
-  enterPromptMode?: () => void;
+  enterPromptMode?: (agent?: AgentOptions) => void;
 }
 
 export interface ContextMenuAction {

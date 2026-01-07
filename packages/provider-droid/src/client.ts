@@ -119,6 +119,7 @@ export const attachAgent = async () => {
   const provider = createDroidAgentProvider();
 
   const attach = (api: ReactGrabAPI) => {
+    const agent = { provider, storage: sessionStorage };
     api.registerPlugin({
       name: "droid-agent",
       actions: [
@@ -127,9 +128,9 @@ export const attachAgent = async () => {
           label: "Edit with Droid",
           shortcut: "Enter",
           onAction: (context) => {
-            context.enterPromptMode?.();
+            context.enterPromptMode?.(agent);
           },
-          agent: { provider, storage: sessionStorage },
+          agent,
         },
       ],
     });

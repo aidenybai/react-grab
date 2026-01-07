@@ -112,6 +112,7 @@ export const attachAgent = async () => {
   const provider = createCodexAgentProvider();
 
   const attach = (api: ReactGrabAPI) => {
+    const agent = { provider, storage: sessionStorage };
     api.registerPlugin({
       name: "codex-agent",
       actions: [
@@ -120,9 +121,9 @@ export const attachAgent = async () => {
           label: "Edit with Codex",
           shortcut: "Enter",
           onAction: (context) => {
-            context.enterPromptMode?.();
+            context.enterPromptMode?.(agent);
           },
-          agent: { provider, storage: sessionStorage },
+          agent,
         },
       ],
     });

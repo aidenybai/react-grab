@@ -550,6 +550,7 @@ export const attachAgent = async () => {
   const provider = createAmiAgentProvider();
 
   const attach = (api: ReactGrabAPI) => {
+    const agent = { provider, storage: sessionStorage };
     api.registerPlugin({
       name: "ami-agent",
       actions: [
@@ -558,9 +559,9 @@ export const attachAgent = async () => {
           label: "Edit with Ami",
           shortcut: "Enter",
           onAction: (context) => {
-            context.enterPromptMode?.();
+            context.enterPromptMode?.(agent);
           },
-          agent: { provider, storage: sessionStorage },
+          agent,
         },
       ],
     });
