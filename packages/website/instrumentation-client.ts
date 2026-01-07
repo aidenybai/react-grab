@@ -40,14 +40,24 @@ if (typeof window !== "undefined" && !window.__REACT_GRAB__) {
 
     api.registerPlugin({
       name: "visual-edit-agent",
-      agent: {
-        provider,
-        getOptions,
-        storage: sessionStorage,
-        onStart,
-        onComplete,
-        onUndo,
-      },
+      actions: [
+        {
+          id: "edit-with-visual-edit",
+          label: "Visual Edit",
+          shortcut: "Enter",
+          onAction: (context) => {
+            context.enterPromptMode?.();
+          },
+          agent: {
+            provider,
+            getOptions,
+            storage: sessionStorage,
+            onStart,
+            onComplete,
+            onUndo,
+          },
+        },
+      ],
     });
   }
 

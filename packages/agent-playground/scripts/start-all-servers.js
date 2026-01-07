@@ -52,7 +52,9 @@ const startServer = (provider) => {
 const children = PROVIDERS_WITH_SERVERS.map(startServer);
 
 const waitForChildrenToExit = () => {
-  const aliveChildren = children.filter((child) => child.exitCode === null);
+  const aliveChildren = children.filter(
+    (child) => child.exitCode === null && child.signalCode === null,
+  );
   if (aliveChildren.length === 0) {
     process.exit(0);
   }
