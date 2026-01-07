@@ -863,6 +863,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const restoreInputFromSession = (
       session: AgentSession,
       elements: Element[],
+      agent?: AgentOptions,
     ) => {
       const element = elements[0];
       if (element && document.contains(element)) {
@@ -873,6 +874,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.setFrozenElements(elements);
         actions.setInputText(session.context.prompt);
         actions.setWasActivatedByToggle(true);
+
+        if (agent) {
+          actions.setSelectedAgent(agent);
+        }
 
         if (!isActivated()) {
           activateRenderer();
@@ -885,11 +890,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         ...agent,
         onAbort: (session: AgentSession, elements: Element[]) => {
           agent.onAbort?.(session, elements);
-          restoreInputFromSession(session, elements);
+          restoreInputFromSession(session, elements, agent);
         },
         onUndo: (session: AgentSession, elements: Element[]) => {
           agent.onUndo?.(session, elements);
-          restoreInputFromSession(session, elements);
+          restoreInputFromSession(session, elements, agent);
         },
       };
     };

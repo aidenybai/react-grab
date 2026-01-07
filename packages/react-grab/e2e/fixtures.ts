@@ -1045,6 +1045,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         }
       ).__REACT_GRAB__;
       api?.unregisterPlugin("test-agent");
+      const agent = opts;
       api?.registerPlugin({
         name: "test-agent",
         actions: [
@@ -1052,10 +1053,12 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
             id: "edit-with-test-agent",
             label: "Edit",
             shortcut: "Enter",
-            onAction: (context: { enterPromptMode?: () => void }) => {
-              context.enterPromptMode?.();
+            onAction: (context: {
+              enterPromptMode?: (agent?: Record<string, unknown>) => void;
+            }) => {
+              context.enterPromptMode?.(agent);
             },
-            agent: opts,
+            agent,
           },
         ],
       });
@@ -1172,6 +1175,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         }
       ).__REACT_GRAB__;
       api?.unregisterPlugin("mock-agent");
+      const agent = { provider: mockProvider };
       api?.registerPlugin({
         name: "mock-agent",
         actions: [
@@ -1179,10 +1183,12 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
             id: "edit-with-mock-agent",
             label: "Edit",
             shortcut: "Enter",
-            onAction: (context: { enterPromptMode?: () => void }) => {
-              context.enterPromptMode?.();
+            onAction: (context: {
+              enterPromptMode?: (agent?: Record<string, unknown>) => void;
+            }) => {
+              context.enterPromptMode?.(agent);
             },
-            agent: { provider: mockProvider },
+            agent,
           },
         ],
       });

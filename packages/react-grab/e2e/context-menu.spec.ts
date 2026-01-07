@@ -526,6 +526,7 @@ test.describe("Context Menu", () => {
         };
 
         api?.unregisterPlugin("custom-agent-action");
+        const agent = { provider: mockProvider };
         api?.registerPlugin({
           name: "custom-agent-action",
           actions: [
@@ -533,10 +534,12 @@ test.describe("Context Menu", () => {
               id: "custom-edit",
               label: "Custom Edit",
               shortcut: "E",
-              onAction: (context: { enterPromptMode?: () => void }) => {
-                context.enterPromptMode?.();
+              onAction: (context: {
+                enterPromptMode?: (agent?: Record<string, unknown>) => void;
+              }) => {
+                context.enterPromptMode?.(agent);
               },
-              agent: { provider: mockProvider },
+              agent,
             },
           ],
         });
@@ -574,6 +577,7 @@ test.describe("Context Menu", () => {
         };
 
         api?.unregisterPlugin("custom-agent-action");
+        const agent = { provider: mockProvider };
         api?.registerPlugin({
           name: "custom-agent-action",
           actions: [
@@ -581,10 +585,12 @@ test.describe("Context Menu", () => {
               id: "custom-edit",
               label: "Custom Edit",
               shortcut: "E",
-              onAction: (context: { enterPromptMode?: () => void }) => {
-                context.enterPromptMode?.();
+              onAction: (context: {
+                enterPromptMode?: (agent?: Record<string, unknown>) => void;
+              }) => {
+                context.enterPromptMode?.(agent);
               },
-              agent: { provider: mockProvider },
+              agent,
             },
           ],
         });
