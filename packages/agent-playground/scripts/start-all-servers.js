@@ -36,6 +36,16 @@ const startServer = (provider) => {
     console.error(`Failed to start ${provider}:`, error.message);
   });
 
+  child.on("exit", (code, signal) => {
+    if (signal) {
+      console.log(`${provider} server terminated by signal ${signal}`);
+    } else if (code !== 0) {
+      console.error(`${provider} server crashed with exit code ${code}`);
+    } else {
+      console.log(`${provider} server exited`);
+    }
+  });
+
   return child;
 };
 
