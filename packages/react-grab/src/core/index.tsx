@@ -24,8 +24,7 @@ import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { getTagName } from "../utils/get-tag-name.js";
 import {
-  SUCCESS_LABEL_DURATION_MS,
-  COPIED_LABEL_DURATION_MS,
+  FEEDBACK_DURATION_MS,
   DRAG_THRESHOLD_PX,
   ELEMENT_DETECTION_THROTTLE_MS,
   Z_INDEX_LABEL,
@@ -178,7 +177,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return;
       const timerId = setTimeout(() => {
         actions.finishJustDragged();
-      }, SUCCESS_LABEL_DURATION_MS);
+      }, FEEDBACK_DURATION_MS);
       onCleanup(() => clearTimeout(timerId));
     });
 
@@ -187,7 +186,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (store.current.state !== "justCopied") return;
       const timerId = setTimeout(() => {
         actions.finishJustCopied();
-      }, COPIED_LABEL_DURATION_MS);
+      }, FEEDBACK_DURATION_MS);
       onCleanup(() => clearTimeout(timerId));
     });
 
@@ -283,7 +282,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       setTimeout(() => {
         actions.removeGrabbedBox(boxId);
-      }, SUCCESS_LABEL_DURATION_MS);
+      }, FEEDBACK_DURATION_MS);
     };
 
     const notifyElementsSelected = (elements: Element[]) => {
@@ -377,7 +376,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             setTimeout(() => {
               removeLabelInstance(instanceId);
             }, 150);
-          }, COPIED_LABEL_DURATION_MS);
+          }, FEEDBACK_DURATION_MS);
         }
 
         if (store.wasActivatedByToggle || shouldDeactivateAfter) {
@@ -1451,7 +1450,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           setTimeout(() => {
             removeLabelInstance(instanceId);
           }, 150);
-        }, COPIED_LABEL_DURATION_MS);
+        }, FEEDBACK_DURATION_MS);
 
         if (shouldDeactivate) {
           deactivateRenderer();
@@ -2203,7 +2202,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         setTimeout(() => {
           removeLabelInstance(instanceId);
         }, 150);
-      }, COPIED_LABEL_DURATION_MS);
+      }, FEEDBACK_DURATION_MS);
 
       if (shouldDeactivate) {
         deactivateRenderer();

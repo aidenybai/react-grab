@@ -5,9 +5,9 @@ export const OFFSCREEN_POSITION = -1000;
 
 export const SELECTION_LERP_FACTOR = 0.95;
 
-export const SUCCESS_LABEL_DURATION_MS = 1500;
-export const COPIED_LABEL_DURATION_MS = 1500;
+export const FEEDBACK_DURATION_MS = 1500;
 export const FADE_DURATION_MS = 100;
+export const DISMISS_ANIMATION_BUFFER_MS = 50;
 export const BLUR_DEACTIVATION_THRESHOLD_MS = 500;
 export const INPUT_FOCUS_ACTIVATION_DELAY_MS = 150;
 export const DEFAULT_KEY_HOLD_DURATION_MS = 200;
@@ -30,7 +30,7 @@ export const LERP_CONVERGENCE_THRESHOLD_PX = 0.5;
 export const FADE_OUT_BUFFER_MS = 100;
 export const MIN_DEVICE_PIXEL_RATIO = 2;
 
-export const GRAB_PURPLE_RGB = "210, 57, 192";
+const GRAB_PURPLE_RGB = "210, 57, 192";
 export const OVERLAY_CROSSHAIR_COLOR = `rgba(${GRAB_PURPLE_RGB}, 1)`;
 export const OVERLAY_BORDER_COLOR_DRAG = `rgba(${GRAB_PURPLE_RGB}, 0.4)`;
 export const OVERLAY_FILL_COLOR_DRAG = `rgba(${GRAB_PURPLE_RGB}, 0.05)`;

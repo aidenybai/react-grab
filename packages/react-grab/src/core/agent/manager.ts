@@ -18,8 +18,11 @@ import {
 import { createElementBounds } from "../../utils/create-element-bounds.js";
 import { generateSnippet } from "../../utils/generate-snippet.js";
 import { getNearestComponentName } from "../context.js";
-import { FADE_DURATION_MS } from "../../constants.js";
-import { RECENT_THRESHOLD_MS } from "../../constants.js";
+import {
+  DISMISS_ANIMATION_BUFFER_MS,
+  FADE_DURATION_MS,
+  RECENT_THRESHOLD_MS,
+} from "../../constants.js";
 
 interface StartSessionParams {
   elements: Element[];
@@ -335,7 +338,7 @@ export const createAgentManager = (
     const context: AgentContext = {
       content,
       prompt,
-      options: activeAgent?.getOptions?.() as unknown,
+      options: activeAgent?.getOptions?.(),
       sessionId: isFollowUp ? sessionId : undefined,
     };
 
@@ -443,7 +446,7 @@ export const createAgentManager = (
         next.delete(sessionId);
         return next;
       });
-    }, FADE_DURATION_MS + 50);
+    }, FADE_DURATION_MS + DISMISS_ANIMATION_BUFFER_MS);
   };
 
   const undoSession = (sessionId: string) => {
