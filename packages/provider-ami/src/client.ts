@@ -4,36 +4,38 @@ import type {
   ReactGrabAPI,
   Plugin,
   ActionContext,
+  AgentContext,
+  AgentProvider,
 } from "react-grab/core";
-import {
-  createRelayClient,
-  createRelayAgentProvider,
-  getDefaultRelayClient,
-  type RelayClient,
-  type AgentProvider,
-} from "@react-grab/relay/client";
 
 export type { AgentCompleteResult };
 
-const AGENT_ID = "ami";
+const AMI_DEEPLINK_BASE = "ami://new-chat";
 
-interface AmiAgentProviderOptions {
-  relayClient?: RelayClient;
-}
+const createDeeplinkAgentProvider = (): AgentProvider => {
+  const send = async function* (context: AgentContext): AsyncIterable<string> {
+    const encodedPrompt = encodeURIComponent(context.prompt);
+    const deeplinkUrl = `${AMI_DEEPLINK_BASE}?prompt=${encodedPrompt}`;
+
+    window.open(deeplinkUrl, "_self");
+
+    yield "Opening Ami...";
+  };
+
+  return {
+    send,
+    checkConnection: async () => true,
+    supportsResume: false,
+    supportsFollowUp: false,
+  };
+};
+
+export const createAmiAgentProvider = (): AgentProvider => {
+  return createDeeplinkAgentProvider();
+};
 
 const isReactGrabApi = (value: unknown): value is ReactGrabAPI =>
   typeof value === "object" && value !== null && "registerPlugin" in value;
-
-export const createAmiAgentProvider = (
-  providerOptions: AmiAgentProviderOptions = {},
-): AgentProvider => {
-  const relayClient = providerOptions.relayClient ?? getDefaultRelayClient();
-
-  return createRelayAgentProvider({
-    relayClient,
-    agentId: AGENT_ID,
-  });
-};
 
 declare global {
   interface Window {
@@ -41,21 +43,10 @@ declare global {
   }
 }
 
-export const attachAgent = async () => {
+export const attachAgent = () => {
   if (typeof window === "undefined") return;
 
-  const relayClient = createRelayClient();
-
-  try {
-    await relayClient.connect();
-  } catch {
-    return;
-  }
-
-  const provider = createRelayAgentProvider({
-    relayClient,
-    agentId: AGENT_ID,
-  });
+  const provider = createDeeplinkAgentProvider();
 
   const attach = (api: ReactGrabAPI) => {
     const agent = { provider, storage: sessionStorage };

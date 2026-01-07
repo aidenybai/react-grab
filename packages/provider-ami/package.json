@@ -2,19 +2,11 @@
   "name": "@react-grab/ami",
   "version": "0.0.98",
   "type": "module",
-  "bin": {
-    "react-grab-ami": "./dist/cli.cjs"
-  },
   "exports": {
     "./client": {
       "types": "./dist/client.d.ts",
       "import": "./dist/client.js",
       "require": "./dist/client.cjs"
-    },
-    "./handler": {
-      "types": "./dist/handler.d.ts",
-      "import": "./dist/handler.js",
-      "require": "./dist/handler.cjs"
     },
     "./dist/*": "./dist/*.js",
     "./dist/*.js": "./dist/*.js"
@@ -32,7 +24,6 @@
     "tsup": "^8.4.0"
   },
   "dependencies": {
-    "@react-grab/relay": "workspace:*",
     "react-grab": "workspace:*"
   }
 }
