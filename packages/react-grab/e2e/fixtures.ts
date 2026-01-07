@@ -92,6 +92,7 @@ interface ReactGrabPageObject {
   pressEnter: () => Promise<void>;
   pressKey: (key: string) => Promise<void>;
   pressKeyCombo: (modifiers: string[], key: string) => Promise<void>;
+  pressModifierKeyCombo: (key: string) => Promise<void>;
   scrollPage: (deltaY: number) => Promise<void>;
 
   enterPromptMode: (selector: string) => Promise<void>;
@@ -336,6 +337,13 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     for (const modifier of [...modifiers].reverse()) {
       await page.keyboard.up(modifier);
     }
+  };
+
+  const pressModifierKeyCombo = async (key: string) => {
+    const modifier = process.platform === "darwin" ? "Meta" : "Control";
+    await page.keyboard.down(modifier);
+    await page.keyboard.press(key);
+    await page.keyboard.up(modifier);
   };
 
   const waitForContextMenu = async (visible: boolean) => {
@@ -1649,6 +1657,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     pressEnter,
     pressKey,
     pressKeyCombo,
+    pressModifierKeyCombo,
     scrollPage,
 
     enterPromptMode,

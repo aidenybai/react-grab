@@ -726,13 +726,13 @@ test.describe("Context Menu", () => {
       await reactGrab.rightClickElement("li:first-child");
       await reactGrab.page.waitForTimeout(100);
 
-      await reactGrab.page.keyboard.down("Meta");
-      await reactGrab.page.keyboard.press("k");
-      await reactGrab.page.keyboard.up("Meta");
+      await reactGrab.pressModifierKeyCombo("k");
       await reactGrab.page.waitForTimeout(200);
 
       const actionCalled = await reactGrab.page.evaluate(
-        () => (window as { __keyboardActionCalled?: boolean }).__keyboardActionCalled ?? false
+        () =>
+          (window as { __keyboardActionCalled?: boolean })
+            .__keyboardActionCalled ?? false
       );
       expect(actionCalled).toBe(true);
     });
