@@ -639,6 +639,14 @@ test.describe("Context Menu", () => {
       const menuInfo = await reactGrab.getContextMenuInfo();
       const lowerMenuItems = menuInfo.menuItems.map((item: string) => item.toLowerCase());
       expect(lowerMenuItems).toContain("plain action");
+
+      await reactGrab.clickContextMenuItem("Plain Action");
+      await reactGrab.page.waitForTimeout(100);
+
+      const actionCalled = await reactGrab.page.evaluate(
+        () => (window as { __plainActionCalled?: boolean }).__plainActionCalled ?? false
+      );
+      expect(actionCalled).toBe(true);
     });
 
     test("multiple actions should all appear in menu", async ({
