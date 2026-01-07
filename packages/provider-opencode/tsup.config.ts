@@ -9,12 +9,11 @@ const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8")) as {
 export default defineConfig([
   {
     entry: {
-      server: "./src/server.ts",
+      handler: "./src/handler.ts",
       cli: "./src/cli.ts",
     },
     format: ["cjs", "esm"],
-    // HACK: Skip DTS for now due to cross-package type resolution issues
-    dts: false,
+    dts: true,
     clean: false,
     splitting: false,
     sourcemap: false,
@@ -32,15 +31,14 @@ export default defineConfig([
       client: "./src/client.ts",
     },
     format: ["cjs", "esm"],
-    // HACK: Skip DTS for now
-    dts: false,
+    dts: true,
     clean: false,
     splitting: false,
     sourcemap: false,
     target: "esnext",
     platform: "browser",
     treeshake: true,
-    noExternal: ["@react-grab/utils"],
+    noExternal: ["@react-grab/relay"],
   },
   {
     entry: ["./src/client.ts"],

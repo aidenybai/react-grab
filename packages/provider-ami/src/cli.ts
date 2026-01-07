@@ -1,8 +1,11 @@
 #!/usr/bin/env node
-import pc from "picocolors";
+import { connectRelay } from "@react-grab/relay";
+import { amiAgentHandler } from "./handler.js";
 
-const VERSION = process.env.VERSION ?? "0.0.0";
+try {
+  fetch(
+    `https://www.react-grab.com/api/version?source=ami&t=${Date.now()}`,
+  ).catch(() => {});
+} catch {}
 
-console.log(
-  `${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim("(Ami)")}`,
-);
+connectRelay({ handler: amiAgentHandler });

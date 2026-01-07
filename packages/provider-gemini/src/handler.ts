@@ -1,35 +1,12 @@
 import { execa, type ResultPromise } from "execa";
-import { pathToFileURL } from "node:url";
-import { Hono } from "hono";
-import { cors } from "hono/cors";
-import { streamSSE } from "hono/streaming";
-import { serve } from "@hono/node-server";
-import fkill from "fkill";
-import pc from "picocolors";
-import type { AgentContext } from "react-grab/core";
-import { DEFAULT_PORT, COMPLETED_STATUS } from "./constants.js";
+import type { AgentHandler, AgentMessage, AgentRunOptions } from "@react-grab/relay";
+import { formatSpawnError } from "@react-grab/utils/server";
+import { COMPLETED_STATUS } from "./constants.js";
 
-const VERSION = process.env.VERSION ?? "0.0.0";
-
-try {
-  fetch(
-    `https://www.react-grab.com/api/version?source=gemini&t=${Date.now()}`,
-  ).catch(() => {});
-} catch {}
-
-import {
-  sleep,
-  formatSpawnError,
-  type AgentMessage,
-  type AgentCoreOptions,
-} from "@react-grab/utils/server";
-
-export interface GeminiAgentOptions extends AgentCoreOptions {
+export interface GeminiAgentOptions extends AgentRunOptions {
   model?: string;
   includeDirectories?: string;
 }
-
-type GeminiAgentContext = AgentContext<GeminiAgentOptions>;
 
 interface GeminiStreamEvent {
   type: "init" | "message" | "tool_use" | "tool_result" | "error" | "result";
@@ -61,7 +38,7 @@ const parseStreamLine = (line: string): GeminiStreamEvent | null => {
   }
 };
 
-export const runAgent = async function* (
+const runGeminiAgent = async function* (
   prompt: string,
   options?: GeminiAgentOptions,
 ): AsyncGenerator<AgentMessage> {
@@ -265,133 +242,39 @@ export const runAgent = async function* (
   }
 };
 
-export const createServer = () => {
-  const app = new Hono();
-
-  app.use("*", cors());
-
-  app.post("/agent", async (context) => {
-    const body = await context.req.json<GeminiAgentContext>();
-    const { content, prompt, options, sessionId } = body;
-
-    const geminiSessionId = sessionId
-      ? geminiSessionMap.get(sessionId)
-      : undefined;
-    const isFollowUp = Boolean(geminiSessionId);
-
-    const contentItems = Array.isArray(content) ? content : [content];
-
-    return streamSSE(context, async (stream) => {
-      if (isFollowUp) {
-        for await (const message of runAgent(prompt, {
-          ...options,
-          sessionId,
-        })) {
-          if (message.type === "error") {
-            await stream.writeSSE({
-              data: `Error: ${message.content}`,
-              event: "error",
-            });
-          } else {
-            await stream.writeSSE({
-              data: message.content,
-              event: message.type,
-            });
-          }
-        }
-        return;
-      }
-
-      for (let i = 0; i < contentItems.length; i++) {
-        const elementContent = contentItems[i];
-        const userPrompt = `${prompt}\n\n${elementContent}`;
-
-        if (contentItems.length > 1) {
-          await stream.writeSSE({
-            data: `Processing element ${i + 1} of ${contentItems.length}...`,
-            event: "status",
-          });
-        }
-
-        for await (const message of runAgent(userPrompt, {
-          ...options,
-          sessionId,
-        })) {
-          if (message.type === "error") {
-            await stream.writeSSE({
-              data: `Error: ${message.content}`,
-              event: "error",
-            });
-          } else {
-            await stream.writeSSE({
-              data: message.content,
-              event: message.type,
-            });
-          }
-        }
-      }
-    });
-  });
-
-  app.post("/abort/:sessionId", (context) => {
-    const { sessionId } = context.req.param();
-    const activeProcess = activeProcesses.get(sessionId);
-    if (activeProcess && !activeProcess.killed) {
-      activeProcess.kill("SIGTERM");
-      activeProcesses.delete(sessionId);
-    }
-    return context.json({ status: "ok" });
-  });
-
-  app.post("/undo", async (context) => {
-    if (!lastGeminiSessionId) {
-      return context.json({ status: "error", message: "No session to undo" });
-    }
-
-    try {
-      const geminiArgs = [
-        "--output-format",
-        "stream-json",
-        "--yolo",
-        "--session",
-        lastGeminiSessionId,
-        "undo",
-      ];
-
-      await execa("gemini", geminiArgs, {
-        stdout: "pipe",
-        stderr: "pipe",
-        env: { ...process.env },
-        cwd: process.env.REACT_GRAB_CWD ?? process.cwd(),
-      });
-
-      return context.json({ status: "ok" });
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      return context.json({ status: "error", message: errorMessage });
-    }
-  });
-
-  app.get("/health", (context) => {
-    return context.json({ status: "ok", provider: "gemini" });
-  });
-
-  return app;
+const abortGeminiAgent = (sessionId: string) => {
+  const activeProcess = activeProcesses.get(sessionId);
+  if (activeProcess && !activeProcess.killed) {
+    activeProcess.kill("SIGTERM");
+    activeProcesses.delete(sessionId);
+  }
 };
 
-export const startServer = async (port: number = DEFAULT_PORT) => {
-  await fkill(`:${port}`, { force: true, silent: true }).catch(() => {});
-  await sleep(100);
+const undoGeminiAgent = async (): Promise<void> => {
+  if (!lastGeminiSessionId) {
+    return;
+  }
 
-  const app = createServer();
-  serve({ fetch: app.fetch, port });
-  console.log(
-    `${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim("(Gemini)")}`,
-  );
-  console.log(`- Local:    ${pc.cyan(`http://localhost:${port}`)}`);
+  const geminiArgs = [
+    "--output-format",
+    "stream-json",
+    "--yolo",
+    "--session",
+    lastGeminiSessionId,
+    "undo",
+  ];
+
+  await execa("gemini", geminiArgs, {
+    stdout: "pipe",
+    stderr: "pipe",
+    env: { ...process.env },
+    cwd: process.env.REACT_GRAB_CWD ?? process.cwd(),
+  });
 };
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-  startServer(DEFAULT_PORT).catch(console.error);
-}
+export const geminiAgentHandler: AgentHandler = {
+  agentId: "gemini",
+  run: runGeminiAgent,
+  abort: abortGeminiAgent,
+  undo: undoGeminiAgent,
+};

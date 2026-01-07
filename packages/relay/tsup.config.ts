@@ -9,8 +9,10 @@ const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8")) as {
 export default defineConfig([
   {
     entry: {
-      handler: "./src/handler.ts",
-      cli: "./src/cli.ts",
+      index: "./src/index.ts",
+      server: "./src/server.ts",
+      connection: "./src/connection.ts",
+      protocol: "./src/protocol.ts",
     },
     format: ["cjs", "esm"],
     dts: true,
@@ -38,21 +40,5 @@ export default defineConfig([
     target: "esnext",
     platform: "browser",
     treeshake: true,
-    noExternal: ["@react-grab/relay"],
-  },
-  {
-    entry: ["./src/client.ts"],
-    format: ["iife"],
-    globalName: "ReactGrabAmp",
-    outExtension: () => ({ js: ".global.js" }),
-    dts: false,
-    clean: false,
-    minify: process.env.NODE_ENV === "production",
-    splitting: false,
-    sourcemap: false,
-    target: "esnext",
-    platform: "browser",
-    treeshake: true,
-    noExternal: [/.*/],
   },
 ]);

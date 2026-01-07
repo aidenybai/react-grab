@@ -11,12 +11,15 @@
       "import": "./dist/client.js",
       "require": "./dist/client.cjs"
     },
-    "./server": {
-      "types": "./dist/server.d.ts",
-      "import": "./dist/server.js",
-      "require": "./dist/server.cjs"
-    }
+    "./handler": {
+      "types": "./dist/handler.d.ts",
+      "import": "./dist/handler.js",
+      "require": "./dist/handler.cjs"
+    },
+    "./dist/*": "./dist/*.js",
+    "./dist/*.js": "./dist/*.js"
   },
+  "browser": "dist/client.global.js",
   "files": [
     "dist"
   ],
@@ -25,13 +28,11 @@
     "build": "rm -rf dist && NODE_ENV=production tsup"
   },
   "devDependencies": {
-    "@react-grab/utils": "workspace:*",
     "@types/node": "^22.10.7",
     "tsup": "^8.4.0"
   },
   "dependencies": {
-    "ami-sdk": "^0.0.6",
-    "picocolors": "^1.1.1",
+    "@react-grab/relay": "workspace:*",
     "react-grab": "workspace:*"
   }
 }

@@ -11,10 +11,10 @@
       "import": "./dist/client.js",
       "require": "./dist/client.cjs"
     },
-    "./server": {
-      "types": "./dist/server.d.ts",
-      "import": "./dist/server.js",
-      "require": "./dist/server.cjs"
+    "./handler": {
+      "types": "./dist/handler.d.ts",
+      "import": "./dist/handler.js",
+      "require": "./dist/handler.cjs"
     },
     "./dist/*": "./dist/*.js",
     "./dist/*.js": "./dist/*.js"
@@ -33,12 +33,9 @@
     "tsup": "^8.4.0"
   },
   "dependencies": {
-    "@hono/node-server": "^1.19.6",
-    "@opencode-ai/sdk": "^1.0.0",
-    "execa": "^9.6.0",
+    "@opencode-ai/sdk": "^1.0.132",
+    "@react-grab/relay": "workspace:*",
     "fkill": "^9.0.0",
-    "hono": "^4.0.0",
-    "picocolors": "^1.1.1",
     "react-grab": "workspace:*"
   }
 }
