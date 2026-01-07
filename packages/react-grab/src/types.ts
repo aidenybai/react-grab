@@ -401,6 +401,7 @@ export interface ReactGrabRendererProps {
   onContextMenuCopyScreenshot?: () => void;
   onContextMenuOpen?: () => void;
   onContextMenuDismiss?: () => void;
+  onContextMenuHide?: () => void;
 }
 
 export interface GrabbedBox {

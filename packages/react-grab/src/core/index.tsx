@@ -2265,6 +2265,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, 0);
     };
 
+    const handleContextMenuHide = () => {
+      // HACK: Defer hiding context menu until after click event propagates fully
+      setTimeout(() => {
+        actions.hideContextMenu();
+      }, 0);
+    };
+
     const handleShowContextMenuSession = (sessionId: string) => {
       const session = agentManager.sessions().get(sessionId);
       if (!session) return;
@@ -2392,6 +2399,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             }
             onContextMenuOpen={handleContextMenuOpen}
             onContextMenuDismiss={handleContextMenuDismiss}
+            onContextMenuHide={handleContextMenuHide}
           />
         ),
         rendererRoot,

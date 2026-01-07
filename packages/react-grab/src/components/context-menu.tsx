@@ -36,6 +36,7 @@ interface ContextMenuProps {
   onCopyScreenshot: () => void;
   onOpen: () => void;
   onDismiss: () => void;
+  onHide: () => void;
 }
 
 interface MenuItem {
@@ -183,6 +184,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     event.stopPropagation();
     if (item.enabled) {
       item.action();
+      props.onHide();
     }
   };
 
@@ -221,6 +223,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
               event.preventDefault();
               event.stopPropagation();
               customAction.onAction(context);
+              props.onHide();
               return;
             }
           }
@@ -235,14 +238,17 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         event.preventDefault();
         event.stopPropagation();
         props.onCopyScreenshot();
+        props.onHide();
       } else if (event.key.toLowerCase() === "c") {
         event.preventDefault();
         event.stopPropagation();
         props.onCopy();
+        props.onHide();
       } else if (event.key.toLowerCase() === "o" && props.hasFilePath) {
         event.preventDefault();
         event.stopPropagation();
         props.onOpen();
+        props.onHide();
       } else {
         for (const customAction of customActions) {
           if (
@@ -261,6 +267,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
               event.preventDefault();
               event.stopPropagation();
               customAction.onAction(context);
+              props.onHide();
               return;
             }
           }

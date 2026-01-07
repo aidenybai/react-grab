@@ -165,6 +165,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         onCopyScreenshot={props.onContextMenuCopyScreenshot ?? (() => {})}
         onOpen={props.onContextMenuOpen ?? (() => {})}
         onDismiss={props.onContextMenuDismiss ?? (() => {})}
+        onHide={props.onContextMenuHide ?? (() => {})}
       />
     </>
   );
