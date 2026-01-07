@@ -39,4 +39,4 @@ jobs:
         run: pnpm build
 
       - name: Run E2E tests
-        run: pnpm --filter react-grab test -- --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+        run: pnpm --filter react-grab exec playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
