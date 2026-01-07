@@ -161,6 +161,12 @@ export const createAgentManager = (
           completedSession,
           elements,
         );
+        const existingCompletedIndex = completedSessionsStack.findIndex(
+          (entry) => entry.session.id === session.id,
+        );
+        if (existingCompletedIndex !== -1) {
+          completedSessionsStack.splice(existingCompletedIndex, 1);
+        }
         completedSessionsStack.push({
           session: completedSession,
           elements,
@@ -496,7 +502,10 @@ export const createAgentManager = (
 
     const effectiveAgent = undoneSessionData.agent ?? agentOptions;
     const { session, elements } = undoneSessionData;
-    let validElements = elements.filter((el) => document.contains(el));
+
+    void effectiveAgent?.provider?.redo?.();
+
+    let validElements = elements.filter((element) => document.contains(element));
 
     if (validElements.length === 0) {
       const reacquiredElement = tryReacquireElement(session);
@@ -507,9 +516,8 @@ export const createAgentManager = (
 
     if (validElements.length > 0 && effectiveAgent) {
       completedSessionsStack.push(undoneSessionData);
-      void effectiveAgent.provider?.redo?.();
 
-      const newBounds = validElements.map((el) => createElementBounds(el));
+      const newBounds = validElements.map((element) => createElementBounds(element));
       const restoredSession: AgentSession = {
         ...session,
         selectionBounds: newBounds,
@@ -520,8 +528,6 @@ export const createAgentManager = (
         agent: effectiveAgent,
       });
       setSessions((prev) => new Map(prev).set(session.id, restoredSession));
-    } else {
-      undoneSessionsStack.push(undoneSessionData);
     }
 
     updateUndoRedoState(effectiveAgent);

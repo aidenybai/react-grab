@@ -934,12 +934,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if ((store.selectedAgent || hasAgentProvider()) && prompt) {
         elementInputCache.delete(element);
-        deactivateRenderer();
 
         const currentReplySessionId = store.replySessionId;
-        actions.setReplySessionId(null);
-
         const selectedAgent = store.selectedAgent;
+
+        deactivateRenderer();
+
+        actions.setReplySessionId(null);
         actions.clearSelectedAgent();
 
         void agentManager.session.start({
