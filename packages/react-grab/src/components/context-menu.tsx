@@ -20,7 +20,6 @@ import {
 import { Arrow } from "./selection-label/arrow.js";
 import { TagBadge } from "./selection-label/tag-badge.js";
 import { BottomSection } from "./selection-label/bottom-section.js";
-import { isMac } from "../utils/is-mac.js";
 import { formatShortcut } from "../utils/format-shortcut.js";
 import { isScreenshotSupported } from "../utils/is-screenshot-supported.js";
 
@@ -231,8 +230,8 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         return;
       }
 
-      const modifierKey = isMac() ? event.metaKey : event.ctrlKey;
-      if (!modifierKey) return;
+      const hasModifierKey = event.metaKey || event.ctrlKey;
+      if (!hasModifierKey) return;
 
       if (event.key.toLowerCase() === "s" && isScreenshotSupported()) {
         event.preventDefault();
