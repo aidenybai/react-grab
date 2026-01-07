@@ -163,7 +163,7 @@ export const createAgentManager = (
           elements,
           agent: effectiveAgent,
         });
-        updateUndoRedoState();
+        updateUndoRedoState(effectiveAgent);
         undoneSessionsStack.length = 0;
         if (result?.error) {
           const errorSession = updateSession(
@@ -400,8 +400,11 @@ export const createAgentManager = (
       abortControllers.forEach((controller) => controller.abort());
       abortControllers.clear();
       sessionMetadata.clear();
+      completedSessionsStack.length = 0;
+      undoneSessionsStack.length = 0;
       setSessions(new Map());
       clearSessions(agentOptions?.storage);
+      updateUndoRedoState();
     }
   };
 
@@ -463,46 +466,54 @@ export const createAgentManager = (
 
   const globalUndo = () => {
     const completedSessionData = completedSessionsStack.pop();
-    const effectiveAgent = completedSessionData?.agent ?? agentOptions;
-    void effectiveAgent?.provider?.undo?.();
-
-    if (completedSessionData) {
-      undoneSessionsStack.push(completedSessionData);
+    if (!completedSessionData) {
+      return;
     }
 
+    const { session, elements, agent } = completedSessionData;
+    const effectiveAgent = agent ?? agentOptions;
+
+    undoneSessionsStack.push(completedSessionData);
+    effectiveAgent?.onUndo?.(session, elements);
+    void effectiveAgent?.provider?.undo?.();
+    dismissSession(session.id);
     updateUndoRedoState(effectiveAgent);
   };
 
   const globalRedo = () => {
     const undoneSessionData = undoneSessionsStack.pop();
-    const effectiveAgent = undoneSessionData?.agent ?? agentOptions;
-    void effectiveAgent?.provider?.redo?.();
+    if (!undoneSessionData) {
+      return;
+    }
 
-    if (undoneSessionData) {
+    const effectiveAgent = undoneSessionData.agent ?? agentOptions;
+    const { session, elements } = undoneSessionData;
+    let validElements = elements.filter((el) => document.contains(el));
+
+    if (validElements.length === 0) {
+      const reacquiredElement = tryReacquireElement(session);
+      if (reacquiredElement) {
+        validElements = [reacquiredElement];
+      }
+    }
+
+    if (validElements.length > 0 && effectiveAgent) {
       completedSessionsStack.push(undoneSessionData);
-      const { session, elements } = undoneSessionData;
-      let validElements = elements.filter((el) => document.contains(el));
+      void effectiveAgent.provider?.redo?.();
 
-      if (validElements.length === 0) {
-        const reacquiredElement = tryReacquireElement(session);
-        if (reacquiredElement) {
-          validElements = [reacquiredElement];
-        }
-      }
+      const newBounds = validElements.map((el) => createElementBounds(el));
+      const restoredSession: AgentSession = {
+        ...session,
+        selectionBounds: newBounds,
+      };
 
-      if (validElements.length > 0 && effectiveAgent) {
-        const newBounds = validElements.map((el) => createElementBounds(el));
-        const restoredSession: AgentSession = {
-          ...session,
-          selectionBounds: newBounds,
-        };
-
-        sessionMetadata.set(session.id, {
-          elements: validElements,
-          agent: effectiveAgent,
-        });
-        setSessions((prev) => new Map(prev).set(session.id, restoredSession));
-      }
+      sessionMetadata.set(session.id, {
+        elements: validElements,
+        agent: effectiveAgent,
+      });
+      setSessions((prev) => new Map(prev).set(session.id, restoredSession));
+    } else {
+      undoneSessionsStack.push(undoneSessionData);
     }
 
     updateUndoRedoState(effectiveAgent);
