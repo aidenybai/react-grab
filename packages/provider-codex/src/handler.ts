@@ -28,7 +28,7 @@ interface CodexEvent {
 let codexInstance: Codex | null = null;
 const threadMap = new Map<string, ThreadState>();
 const abortControllers = new Map<string, AbortController>();
-let lastThreadId: string | undefined;
+let lastSessionId: string | undefined;
 
 const getCodexInstance = (): Codex => {
   if (!codexInstance) {
@@ -97,8 +97,8 @@ const runCodexAgent = async function* (
       workingDirectory: options?.workingDirectory ?? options?.cwd,
     });
 
-    if (sessionId && thread.id) {
-      lastThreadId = thread.id;
+    if (sessionId) {
+      lastSessionId = sessionId;
     }
 
     const { events } = await thread.runStreamed(prompt);
@@ -144,12 +144,17 @@ const abortCodexAgent = (sessionId: string) => {
 };
 
 const undoCodexAgent = async (): Promise<void> => {
-  if (!lastThreadId) {
+  if (!lastSessionId) {
+    return;
+  }
+
+  const threadState = threadMap.get(lastSessionId);
+  if (!threadState) {
     return;
   }
 
   const codex = getCodexInstance();
-  const thread = codex.resumeThread(lastThreadId);
+  const thread = codex.resumeThread(threadState.threadId);
   await thread.run("Please undo the last change you made.");
 };
 
