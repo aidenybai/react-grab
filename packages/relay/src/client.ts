@@ -45,13 +45,14 @@ export const createRelayClient = (
   let reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null;
   let pendingConnectionPromise: Promise<void> | null = null;
   let pendingConnectionReject: ((error: Error) => void) | null = null;
+  let isIntentionalDisconnect = false;
 
   const messageCallbacks = new Set<(message: RelayToBrowserMessage) => void>();
   const handlersChangeCallbacks = new Set<(handlers: string[]) => void>();
   const connectionChangeCallbacks = new Set<(connected: boolean) => void>();
 
   const scheduleReconnect = () => {
-    if (!autoReconnect || reconnectTimeoutId) return;
+    if (!autoReconnect || reconnectTimeoutId || isIntentionalDisconnect) return;
 
     reconnectTimeoutId = setTimeout(() => {
       reconnectTimeoutId = null;
@@ -84,6 +85,8 @@ export const createRelayClient = (
     if (pendingConnectionPromise) {
       return pendingConnectionPromise;
     }
+
+    isIntentionalDisconnect = false;
 
     pendingConnectionPromise = new Promise((resolve, reject) => {
       pendingConnectionReject = reject;
@@ -130,6 +133,7 @@ export const createRelayClient = (
   };
 
   const disconnect = () => {
+    isIntentionalDisconnect = true;
     if (reconnectTimeoutId) {
       clearTimeout(reconnectTimeoutId);
       reconnectTimeoutId = null;
