@@ -76,6 +76,7 @@ interface ActiveSession {
   sessionId: string;
   agentId: string;
   browserSocket: WebSocket;
+  handlerSocket?: WebSocket;
   abortController: AbortController;
 }
 
@@ -176,6 +177,7 @@ export const createRelayServer = (
         sessionId: effectiveSessionId,
         agentId,
         browserSocket: socket,
+        handlerSocket: registered.socket,
         abortController,
       });
 
@@ -444,6 +446,24 @@ export const createRelayServer = (
     }
   };
 
+  const cleanupSessionsByHandlerSocket = (socket: WebSocket) => {
+    for (const [sessionId, session] of activeSessions) {
+      if (session.handlerSocket === socket) {
+        const queue = sessionMessageQueues.get(sessionId);
+        if (queue) {
+          queue.push({
+            type: "error",
+            content: "Handler disconnected",
+          });
+          queue.close();
+          sessionMessageQueues.delete(sessionId);
+        }
+        session.abortController.abort();
+        activeSessions.delete(sessionId);
+      }
+    }
+  };
+
   const handleHandlerMessage = (socket: WebSocket, message: HandlerMessage) => {
     if (message.type === "register-handler") {
       const remoteHandler = createRemoteHandler(message.agentId, socket);
@@ -546,11 +566,14 @@ export const createRelayServer = (
           const cleanupHandlerSocket = () => {
             const agentId = handlerSockets.get(socket);
             if (agentId) {
+              // Always clean up sessions running on this specific socket,
+              // even if another handler has already taken over the same agentId
+              cleanupSessionsByHandlerSocket(socket);
+
               const registeredHandler = registeredHandlers.get(agentId);
               const isCurrentHandler = registeredHandler?.socket === socket;
 
               if (isCurrentHandler) {
-                cleanupAgentSessions(agentId);
                 registeredHandlers.delete(agentId);
                 broadcastHandlerList();
               }
