@@ -37,6 +37,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const [viewportVersion, setViewportVersion] = createSignal(0);
   const [isIdle, setIsIdle] = createSignal(false);
   const [hadValidBounds, setHadValidBounds] = createSignal(false);
+  const [isContainerHovered, setIsContainerHovered] = createSignal(false);
 
   const canInteract = () =>
     props.status !== "copying" &&
@@ -169,6 +170,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   const computedPosition = () => {
     viewportVersion();
+
+    if (isContainerHovered() && lastValidPosition) {
+      return lastValidPosition;
+    }
+
     const bounds = props.selectionBounds;
     const labelWidth = measuredWidth();
     const labelHeight = measuredHeight();
@@ -316,6 +322,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         onPointerDown={handleContainerPointerDown}
         onMouseDown={stopPropagation}
         onClick={stopPropagation}
+        onMouseEnter={() => setIsContainerHovered(true)}
+        onMouseLeave={() => setIsContainerHovered(false)}
       >
         <Arrow
           position={arrowPosition()}
