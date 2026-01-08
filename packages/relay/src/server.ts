@@ -353,7 +353,7 @@ export const createRelayServer = (
           throw new Error("Handler disconnected");
         }
 
-        const sessionId = `undo-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const sessionId = `undo-${agentId}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
         const messageQueue = createSessionMessageQueue();
         sessionMessageQueues.set(sessionId, messageQueue);
 
@@ -383,7 +383,7 @@ export const createRelayServer = (
           throw new Error("Handler disconnected");
         }
 
-        const sessionId = `redo-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const sessionId = `redo-${agentId}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
         const messageQueue = createSessionMessageQueue();
         sessionMessageQueues.set(sessionId, messageQueue);
 
@@ -510,7 +510,9 @@ export const createRelayServer = (
                 }
 
                 for (const [sessionId, queue] of sessionMessageQueues) {
-                  if (sessionId.startsWith("undo-") || sessionId.startsWith("redo-")) {
+                  const isOwnedUndoSession = sessionId.startsWith(`undo-${agentId}-`);
+                  const isOwnedRedoSession = sessionId.startsWith(`redo-${agentId}-`);
+                  if (isOwnedUndoSession || isOwnedRedoSession) {
                     queue.push({
                       type: "error",
                       content: "Handler disconnected",
