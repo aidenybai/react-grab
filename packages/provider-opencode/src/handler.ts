@@ -38,23 +38,33 @@ interface LastMessageInfo {
 }
 
 let opencodeInstance: OpenCodeInstance | null = null;
+let initializationPromise: Promise<OpenCodeInstance> | null = null;
 const sessionMap = new Map<string, string>();
 const abortedSessions = new Set<string>();
 let lastMessageInfo: LastMessageInfo | undefined;
 
 const getOpenCodeClient = async () => {
-  if (!opencodeInstance) {
-    await fkill(`:${OPENCODE_SDK_PORT}`, { force: true, silent: true }).catch(
-      () => {},
-    );
-    await sleep(POST_KILL_DELAY_MS);
-    const instance = await createOpencode({
-      hostname: "127.0.0.1",
-      port: OPENCODE_SDK_PORT,
-    });
-    opencodeInstance = instance;
+  if (opencodeInstance) {
+    return opencodeInstance.client;
   }
-  return opencodeInstance.client;
+
+  if (!initializationPromise) {
+    initializationPromise = (async () => {
+      await fkill(`:${OPENCODE_SDK_PORT}`, { force: true, silent: true }).catch(
+        () => {},
+      );
+      await sleep(POST_KILL_DELAY_MS);
+      const instance = await createOpencode({
+        hostname: "127.0.0.1",
+        port: OPENCODE_SDK_PORT,
+      });
+      opencodeInstance = instance;
+      return instance;
+    })();
+  }
+
+  const instance = await initializationPromise;
+  return instance.client;
 };
 
 const executeOpenCodePrompt = async (
