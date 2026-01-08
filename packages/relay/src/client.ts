@@ -15,6 +15,7 @@ export interface RelayClient {
   redoAgent: (agentId: string) => void;
   onMessage: (callback: (message: RelayToBrowserMessage) => void) => () => void;
   onHandlersChange: (callback: (handlers: string[]) => void) => () => void;
+  onConnectionChange: (callback: (connected: boolean) => void) => () => void;
   getAvailableHandlers: () => string[];
 }
 
@@ -39,6 +40,7 @@ export const createRelayClient = (
 
   const messageCallbacks = new Set<(message: RelayToBrowserMessage) => void>();
   const handlersChangeCallbacks = new Set<(handlers: string[]) => void>();
+  const connectionChangeCallbacks = new Set<(connected: boolean) => void>();
 
   const scheduleReconnect = () => {
     if (!autoReconnect || reconnectTimeoutId) return;
@@ -77,6 +79,9 @@ export const createRelayClient = (
 
       webSocketConnection.onopen = () => {
         isConnectedState = true;
+        for (const callback of connectionChangeCallbacks) {
+          callback(true);
+        }
         resolve();
       };
 
@@ -87,6 +92,9 @@ export const createRelayClient = (
         availableHandlers = [];
         for (const callback of handlersChangeCallbacks) {
           callback(availableHandlers);
+        }
+        for (const callback of connectionChangeCallbacks) {
+          callback(false);
         }
         scheduleReconnect();
       };
@@ -161,6 +169,13 @@ export const createRelayClient = (
     return () => handlersChangeCallbacks.delete(callback);
   };
 
+  const onConnectionChange = (
+    callback: (connected: boolean) => void,
+  ): (() => void) => {
+    connectionChangeCallbacks.add(callback);
+    return () => connectionChangeCallbacks.delete(callback);
+  };
+
   const getAvailableHandlers = () => availableHandlers;
 
   return {
@@ -173,6 +188,7 @@ export const createRelayClient = (
     redoAgent,
     onMessage,
     onHandlersChange,
+    onConnectionChange,
     getAvailableHandlers,
   };
 };
@@ -226,6 +242,7 @@ export const createRelayAgentProvider = (
 
     const messageQueue: string[] = [];
     let resolveNext: ((value: IteratorResult<string>) => void) | null = null;
+    let rejectNext: ((error: Error) => void) | null = null;
     let isDone = false;
     let errorMessage: string | null = null;
 
@@ -235,12 +252,28 @@ export const createRelayAgentProvider = (
       if (resolveNext) {
         resolveNext({ value: undefined as unknown as string, done: true });
         resolveNext = null;
+        rejectNext = null;
       }
     };
 
     signal.addEventListener("abort", handleAbort);
 
-    const unsubscribe = relayClient.onMessage((message) => {
+    const handleConnectionChange = (connected: boolean) => {
+      if (!connected && !isDone) {
+        errorMessage = "Relay connection lost";
+        isDone = true;
+        if (rejectNext) {
+          rejectNext(new Error(errorMessage));
+          resolveNext = null;
+          rejectNext = null;
+        }
+      }
+    };
+
+    const unsubscribeConnection =
+      relayClient.onConnectionChange(handleConnectionChange);
+
+    const unsubscribeMessage = relayClient.onMessage((message) => {
       if (message.sessionId !== sessionId) return;
 
       if (message.type === "agent-status" && message.content) {
@@ -250,6 +283,7 @@ export const createRelayAgentProvider = (
           if (next !== undefined) {
             resolveNext({ value: next, done: false });
             resolveNext = null;
+            rejectNext = null;
           }
         }
       } else if (message.type === "agent-done") {
@@ -257,6 +291,7 @@ export const createRelayAgentProvider = (
         if (resolveNext) {
           resolveNext({ value: undefined as unknown as string, done: true });
           resolveNext = null;
+          rejectNext = null;
         }
       } else if (message.type === "agent-error") {
         errorMessage = message.content ?? "Unknown error";
@@ -264,6 +299,7 @@ export const createRelayAgentProvider = (
         if (resolveNext) {
           resolveNext({ value: undefined as unknown as string, done: true });
           resolveNext = null;
+          rejectNext = null;
         }
       }
     });
@@ -271,22 +307,30 @@ export const createRelayAgentProvider = (
     relayClient.sendAgentRequest(agentId, contextWithSession);
 
     try {
-      while (!isDone && !signal.aborted) {
+      while (true) {
+        // Drain pending messages first (matching server-side pattern)
         if (messageQueue.length > 0) {
           const next = messageQueue.shift();
           if (next !== undefined) {
             yield next;
           }
-        } else {
-          const result = await new Promise<IteratorResult<string>>(
-            (resolve) => {
-              resolveNext = resolve;
-            },
-          );
-
-          if (result.done) break;
-          yield result.value;
+          continue;
         }
+
+        // Only check done/aborted state after queue is empty
+        if (isDone || signal.aborted) {
+          break;
+        }
+
+        const result = await new Promise<IteratorResult<string>>(
+          (resolve, reject) => {
+            resolveNext = resolve;
+            rejectNext = reject;
+          },
+        );
+
+        if (result.done) break;
+        yield result.value;
       }
 
       if (errorMessage) {
@@ -294,7 +338,8 @@ export const createRelayAgentProvider = (
       }
     } finally {
       signal.removeEventListener("abort", handleAbort);
-      unsubscribe();
+      unsubscribeConnection();
+      unsubscribeMessage();
     }
   };
 

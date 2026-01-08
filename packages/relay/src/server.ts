@@ -384,9 +384,12 @@ export const createRelayServer = (
     } else if (message.type === "unregister-handler") {
       const agentId = handlerSockets.get(socket);
       if (agentId) {
-        registeredHandlers.delete(agentId);
+        const registeredHandler = registeredHandlers.get(agentId);
+        if (registeredHandler?.socket === socket) {
+          registeredHandlers.delete(agentId);
+          broadcastHandlerList();
+        }
         handlerSockets.delete(socket);
-        broadcastHandlerList();
       }
     } else if (
       message.type === "agent-status" ||
@@ -442,25 +445,31 @@ export const createRelayServer = (
           const cleanupHandlerSocket = () => {
             const agentId = handlerSockets.get(socket);
             if (agentId) {
-              for (const [sessionId, session] of activeSessions) {
-                if (session.agentId === agentId) {
-                  const queue = sessionMessageQueues.get(sessionId);
-                  if (queue) {
-                    queue.push({
-                      type: "error",
-                      content: "Handler disconnected unexpectedly",
-                    });
-                    queue.close();
-                    sessionMessageQueues.delete(sessionId);
+              const registeredHandler = registeredHandlers.get(agentId);
+              const isCurrentHandler = registeredHandler?.socket === socket;
+
+              if (isCurrentHandler) {
+                for (const [sessionId, session] of activeSessions) {
+                  if (session.agentId === agentId) {
+                    const queue = sessionMessageQueues.get(sessionId);
+                    if (queue) {
+                      queue.push({
+                        type: "error",
+                        content: "Handler disconnected unexpectedly",
+                      });
+                      queue.close();
+                      sessionMessageQueues.delete(sessionId);
+                    }
+                    session.abortController.abort();
+                    activeSessions.delete(sessionId);
                   }
-                  session.abortController.abort();
-                  activeSessions.delete(sessionId);
                 }
+
+                registeredHandlers.delete(agentId);
+                broadcastHandlerList();
               }
 
-              registeredHandlers.delete(agentId);
               handlerSockets.delete(socket);
-              broadcastHandlerList();
             }
           };
 
