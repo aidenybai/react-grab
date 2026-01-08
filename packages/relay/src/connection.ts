@@ -144,9 +144,7 @@ const connectToExistingRelay = async (
               await handler.redo?.();
             }
           }
-        } catch (error) {
-          console.error("[relay] Failed to handle message:", error);
-        }
+        } catch {}
       });
 
       const proxyServer: RelayServer = {

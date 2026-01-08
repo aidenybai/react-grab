@@ -11,6 +11,5 @@ try {
 (async () => {
   await connectRelay({ handler: geminiAgentHandler });
 })().catch((error) => {
-  console.error("Failed to connect to relay:", error instanceof Error ? error.message : error);
-  process.exit(1);
+  throw error;
 });

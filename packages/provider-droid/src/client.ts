@@ -48,8 +48,7 @@ export const attachAgent = async () => {
 
   try {
     await relayClient.connect();
-  } catch (error) {
-    console.warn("[droid] Failed to connect to relay:", error);
+  } catch {
     return;
   }
 

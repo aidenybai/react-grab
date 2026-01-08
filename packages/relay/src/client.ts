@@ -63,9 +63,7 @@ export const createRelayClient = (
       for (const callback of messageCallbacks) {
         callback(message);
       }
-    } catch (error) {
-      console.error("[relay-client] Failed to parse message:", error);
-    }
+    } catch {}
   };
 
   const connect = (): Promise<void> => {
