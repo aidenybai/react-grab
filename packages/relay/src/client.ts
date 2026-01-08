@@ -406,10 +406,19 @@ export const createRelayAgentProvider = (
 
   const waitForOperationResponse = (sessionId: string): Promise<void> => {
     return new Promise((resolve, reject) => {
-      const unsubscribe = relayClient.onMessage((message) => {
+      let didCleanup = false;
+
+      const cleanup = () => {
+        if (didCleanup) return;
+        didCleanup = true;
+        unsubscribeMessage();
+        unsubscribeConnection();
+      };
+
+      const unsubscribeMessage = relayClient.onMessage((message) => {
         if (message.sessionId !== sessionId) return;
 
-        unsubscribe();
+        cleanup();
 
         if (message.type === "agent-done") {
           resolve();
@@ -417,27 +426,34 @@ export const createRelayAgentProvider = (
           reject(new Error(message.content ?? "Operation failed"));
         }
       });
+
+      const unsubscribeConnection = relayClient.onConnectionChange(
+        (connected) => {
+          if (!connected) {
+            cleanup();
+            reject(new Error("Connection lost while waiting for operation response"));
+          }
+        },
+      );
     });
   };
 
   const undo = async (): Promise<void> => {
     const sessionId = `undo-${agentId}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const responsePromise = waitForOperationResponse(sessionId);
     const didSend = relayClient.undoAgent(agentId, sessionId);
     if (!didSend) {
       throw new Error("Failed to send undo request: connection not open");
     }
-    return responsePromise;
+    return waitForOperationResponse(sessionId);
   };
 
   const redo = async (): Promise<void> => {
     const sessionId = `redo-${agentId}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const responsePromise = waitForOperationResponse(sessionId);
     const didSend = relayClient.redoAgent(agentId, sessionId);
     if (!didSend) {
       throw new Error("Failed to send redo request: connection not open");
     }
-    return responsePromise;
+    return waitForOperationResponse(sessionId);
   };
 
   return {
