@@ -201,10 +201,6 @@ export const App = ({
       setRelayConnected(isConnected);
       setRelayHandlers(relayClient.getAvailableHandlers());
 
-      if (isConnected) {
-        addLog("connect", "Relay connected");
-      }
-
       const unsubscribeConnection = relayClient.onConnectionChange((connected) => {
         setRelayConnected(connected);
         addLog(connected ? "connect" : "disconnect", connected ? "Relay connected" : "Relay disconnected");

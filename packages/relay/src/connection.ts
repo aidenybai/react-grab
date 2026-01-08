@@ -131,6 +131,7 @@ const connectToExistingRelay = async (
 
             if (method === "run" && payload?.prompt) {
               try {
+                let didComplete = false;
                 for await (const agentMessage of handler.run(payload.prompt, {
                   sessionId,
                 })) {
@@ -145,6 +146,19 @@ const connectToExistingRelay = async (
                       sessionId,
                       agentId: handler.agentId,
                       content: agentMessage.content,
+                    }),
+                  );
+                  if (agentMessage.type === "done" || agentMessage.type === "error") {
+                    didComplete = true;
+                  }
+                }
+                if (!didComplete) {
+                  socket.send(
+                    JSON.stringify({
+                      type: "agent-done",
+                      sessionId,
+                      agentId: handler.agentId,
+                      content: "",
                     }),
                   );
                 }
