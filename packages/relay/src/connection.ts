@@ -175,13 +175,8 @@ const connectToExistingRelay = async (
 };
 
 const printStartupMessage = (agentId: string, port: number) => {
-  const formattedAgentId = agentId
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-
   console.log(
-    `${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim(`(${formattedAgentId})`)}`,
+    `${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim(`(${agentId})`)}`,
   );
   console.log(`- Local:    ${pc.cyan(`ws://localhost:${port}`)}`);
 };
