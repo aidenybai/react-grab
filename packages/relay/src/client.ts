@@ -108,8 +108,11 @@ export const createRelayClient = (
       webSocketConnection.onmessage = handleMessage;
 
       webSocketConnection.onclose = () => {
+        if (pendingConnectionReject) {
+          pendingConnectionReject(new Error("WebSocket connection closed"));
+          pendingConnectionReject = null;
+        }
         pendingConnectionPromise = null;
-        pendingConnectionReject = null;
         isConnectedState = false;
         availableHandlers = [];
         for (const callback of handlersChangeCallbacks) {
