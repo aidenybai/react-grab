@@ -411,8 +411,8 @@ export const createRelayAgentProvider = (
       const cleanup = () => {
         if (didCleanup) return;
         didCleanup = true;
-        unsubscribeMessage();
-        unsubscribeConnection();
+        unsubscribeMessage?.();
+        unsubscribeConnection?.();
       };
 
       const unsubscribeMessage = relayClient.onMessage((message) => {
