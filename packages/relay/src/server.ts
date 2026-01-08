@@ -458,7 +458,7 @@ export const createRelayServer = (
   };
 
   const start = async (): Promise<void> => {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       httpServer = createHttpServer((req, res) => {
         if (req.url === "/health") {
           res.writeHead(200, { "Content-Type": "application/json" });
@@ -467,6 +467,10 @@ export const createRelayServer = (
         }
         res.writeHead(404);
         res.end();
+      });
+
+      httpServer.on("error", (error) => {
+        reject(error);
       });
 
       wss = new WebSocketServer({ server: httpServer });
@@ -502,6 +506,17 @@ export const createRelayServer = (
                     }
                     session.abortController.abort();
                     activeSessions.delete(sessionId);
+                  }
+                }
+
+                for (const [sessionId, queue] of sessionMessageQueues) {
+                  if (sessionId.startsWith("undo-") || sessionId.startsWith("redo-")) {
+                    queue.push({
+                      type: "error",
+                      content: "Handler disconnected",
+                    });
+                    queue.close();
+                    sessionMessageQueues.delete(sessionId);
                   }
                 }
 

@@ -97,10 +97,6 @@ const runCodexAgent = async function* (
       workingDirectory: options?.workingDirectory ?? options?.cwd,
     });
 
-    if (sessionId) {
-      lastSessionId = sessionId;
-    }
-
     const { events } = await thread.runStreamed(prompt);
 
     for await (const event of events) {
@@ -114,6 +110,7 @@ const runCodexAgent = async function* (
 
     if (sessionId && !isAborted() && thread.id) {
       threadMap.set(sessionId, { thread, threadId: thread.id });
+      lastSessionId = sessionId;
     }
 
     if (!isAborted()) {

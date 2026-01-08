@@ -38,6 +38,7 @@ export const createRelayClient = (
   let availableHandlers: string[] = [];
   let reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null;
   let pendingConnectionPromise: Promise<void> | null = null;
+  let pendingConnectionReject: ((error: Error) => void) | null = null;
 
   const messageCallbacks = new Set<(message: RelayToBrowserMessage) => void>();
   const handlersChangeCallbacks = new Set<(handlers: string[]) => void>();
@@ -79,10 +80,12 @@ export const createRelayClient = (
     }
 
     pendingConnectionPromise = new Promise((resolve, reject) => {
+      pendingConnectionReject = reject;
       webSocketConnection = new WebSocket(serverUrl);
 
       webSocketConnection.onopen = () => {
         pendingConnectionPromise = null;
+        pendingConnectionReject = null;
         isConnectedState = true;
         for (const callback of connectionChangeCallbacks) {
           callback(true);
@@ -94,6 +97,7 @@ export const createRelayClient = (
 
       webSocketConnection.onclose = () => {
         pendingConnectionPromise = null;
+        pendingConnectionReject = null;
         isConnectedState = false;
         availableHandlers = [];
         for (const callback of handlersChangeCallbacks) {
@@ -107,6 +111,7 @@ export const createRelayClient = (
 
       webSocketConnection.onerror = () => {
         pendingConnectionPromise = null;
+        pendingConnectionReject = null;
         isConnectedState = false;
         reject(new Error("WebSocket connection failed"));
       };
@@ -119,6 +124,10 @@ export const createRelayClient = (
     if (reconnectTimeoutId) {
       clearTimeout(reconnectTimeoutId);
       reconnectTimeoutId = null;
+    }
+    if (pendingConnectionReject) {
+      pendingConnectionReject(new Error("Connection aborted"));
+      pendingConnectionReject = null;
     }
     pendingConnectionPromise = null;
     webSocketConnection?.close();
