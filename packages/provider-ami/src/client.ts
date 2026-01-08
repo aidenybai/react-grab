@@ -43,7 +43,7 @@ declare global {
   }
 }
 
-export const attachAgent = () => {
+export const attachAgent = async () => {
   if (typeof window === "undefined") return;
 
   const provider = createDeeplinkAgentProvider();

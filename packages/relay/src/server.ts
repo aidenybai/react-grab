@@ -340,7 +340,9 @@ export const createRelayServer = (
             try {
               const message = JSON.parse(data.toString()) as HandlerMessage;
               handleHandlerMessage(socket, message);
-            } catch {}
+            } catch (error) {
+              console.error("[relay] Failed to handle handler message:", error);
+            }
           });
 
           socket.on("close", () => {
@@ -363,7 +365,9 @@ export const createRelayServer = (
             try {
               const message = JSON.parse(data.toString()) as BrowserToRelayMessage;
               handleBrowserMessage(socket, message);
-            } catch {}
+            } catch (error) {
+              console.error("[relay] Failed to handle browser message:", error);
+            }
           });
 
           socket.on("close", () => {

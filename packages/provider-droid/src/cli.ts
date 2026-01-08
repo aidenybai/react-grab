@@ -8,4 +8,6 @@ try {
   ).catch(() => {});
 } catch {}
 
-connectRelay({ handler: droidAgentHandler });
+(async () => {
+  await connectRelay({ handler: droidAgentHandler });
+})();

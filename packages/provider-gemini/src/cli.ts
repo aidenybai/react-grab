@@ -8,4 +8,6 @@ try {
   ).catch(() => {});
 } catch {}
 
-connectRelay({ handler: geminiAgentHandler });
+(async () => {
+  await connectRelay({ handler: geminiAgentHandler });
+})();

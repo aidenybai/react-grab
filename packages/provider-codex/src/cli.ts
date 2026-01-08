@@ -8,4 +8,6 @@ try {
   ).catch(() => {});
 } catch {}
 
-connectRelay({ handler: codexAgentHandler });
+(async () => {
+  await connectRelay({ handler: codexAgentHandler });
+})();

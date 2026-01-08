@@ -192,12 +192,21 @@ const runGeminiAgent = async function* (
         activeProcesses.delete(options.sessionId);
       }
       processEnded = true;
-      const errorMessage = formatSpawnError(error, "gemini");
-      const stderrContent = stderrBuffer.trim();
-      const fullError = stderrContent
-        ? `${errorMessage}\n\nstderr:\n${stderrContent}`
-        : errorMessage;
-      enqueueMessage({ type: "error", content: fullError });
+      const isNotInstalled = "code" in error && error.code === "ENOENT";
+      if (isNotInstalled) {
+        enqueueMessage({
+          type: "error",
+          content:
+            "gemini CLI is not installed. Please install the Gemini CLI to use this provider.\n\nInstallation: https://github.com/google-gemini/gemini-cli",
+        });
+      } else {
+        const errorMessage = formatSpawnError(error, "gemini");
+        const stderrContent = stderrBuffer.trim();
+        const fullError = stderrContent
+          ? `${errorMessage}\n\nstderr:\n${stderrContent}`
+          : errorMessage;
+        enqueueMessage({ type: "error", content: fullError });
+      }
       enqueueMessage({ type: "done", content: "" });
       if (resolveWait) {
         resolveWait();
@@ -255,21 +264,29 @@ const undoGeminiAgent = async (): Promise<void> => {
     return;
   }
 
-  const geminiArgs = [
-    "--output-format",
-    "stream-json",
-    "--yolo",
-    "--session",
-    lastGeminiSessionId,
-    "undo",
-  ];
+  try {
+    const geminiArgs = [
+      "--output-format",
+      "stream-json",
+      "--yolo",
+      "--session",
+      lastGeminiSessionId,
+      "undo",
+    ];
 
-  await execa("gemini", geminiArgs, {
-    stdout: "pipe",
-    stderr: "pipe",
-    env: { ...process.env },
-    cwd: process.env.REACT_GRAB_CWD ?? process.cwd(),
-  });
+    await execa("gemini", geminiArgs, {
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { ...process.env },
+      cwd: process.env.REACT_GRAB_CWD ?? process.cwd(),
+    });
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? formatSpawnError(error, "gemini")
+        : "Unknown error";
+    throw new Error(`Undo failed: ${errorMessage}`);
+  }
 };
 
 export const geminiAgentHandler: AgentHandler = {

@@ -138,22 +138,30 @@ const undoClaudeAgent = async (): Promise<void> => {
     return;
   }
 
-  const env = { ...process.env };
-  delete env.NODE_OPTIONS;
-  delete env.VSCODE_INSPECTOR_OPTIONS;
+  try {
+    const env = { ...process.env };
+    delete env.NODE_OPTIONS;
+    delete env.VSCODE_INSPECTOR_OPTIONS;
 
-  const queryResult = query({
-    prompt: "undo",
-    options: {
-      pathToClaudeCodeExecutable: resolveClaudePath(),
-      env,
-      cwd: process.env.REACT_GRAB_CWD ?? process.cwd(),
-      resume: lastClaudeSessionId,
-    },
-  });
+    const queryResult = query({
+      prompt: "undo",
+      options: {
+        pathToClaudeCodeExecutable: resolveClaudePath(),
+        env,
+        cwd: process.env.REACT_GRAB_CWD ?? process.cwd(),
+        resume: lastClaudeSessionId,
+      },
+    });
 
-  // HACK: consume all messages to complete the undo
-  for await (const _message of queryResult) {}
+    // HACK: consume all messages to complete the undo
+    for await (const _message of queryResult) {}
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? formatSpawnError(error, "claude")
+        : "Unknown error";
+    throw new Error(`Undo failed: ${errorMessage}`);
+  }
 };
 
 export const claudeAgentHandler: AgentHandler = {

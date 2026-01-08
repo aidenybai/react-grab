@@ -17,14 +17,8 @@ export type { AgentCompleteResult };
 
 const AGENT_ID = "cursor";
 
-interface CursorAgentOptions {
-  model?: string;
-  workspace?: string;
-}
-
 interface CursorAgentProviderOptions {
   relayClient?: RelayClient;
-  getOptions?: () => Partial<CursorAgentOptions>;
 }
 
 const isReactGrabApi = (value: unknown): value is ReactGrabAPI =>
@@ -54,7 +48,8 @@ export const attachAgent = async () => {
 
   try {
     await relayClient.connect();
-  } catch {
+  } catch (error) {
+    console.warn("[cursor] Failed to connect to relay:", error);
     return;
   }
 

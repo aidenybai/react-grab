@@ -127,6 +127,7 @@ const runAmpAgent = async function* (
   } finally {
     if (sessionId) {
       abortControllers.delete(sessionId);
+      threadMap.delete(sessionId);
     }
   }
 };

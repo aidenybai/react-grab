@@ -8,4 +8,6 @@ try {
   ).catch(() => {});
 } catch {}
 
-connectRelay({ handler: ampAgentHandler });
+(async () => {
+  await connectRelay({ handler: ampAgentHandler });
+})();

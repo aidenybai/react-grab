@@ -260,8 +260,8 @@ const abortDroidAgent = (sessionId: string) => {
   const activeProcess = activeProcesses.get(sessionId);
   if (activeProcess && !activeProcess.killed) {
     activeProcess.kill("SIGTERM");
-    activeProcesses.delete(sessionId);
   }
+  activeProcesses.delete(sessionId);
 };
 
 const undoDroidAgent = async (): Promise<void> => {
@@ -269,32 +269,40 @@ const undoDroidAgent = async (): Promise<void> => {
     return;
   }
 
-  const droidArgs = [
-    "exec",
-    "--output-format",
-    "stream-json",
-    "--auto",
-    "low",
-    "--session-id",
-    lastDroidSessionId,
-  ];
+  try {
+    const droidArgs = [
+      "exec",
+      "--output-format",
+      "stream-json",
+      "--auto",
+      "low",
+      "--session-id",
+      lastDroidSessionId,
+    ];
 
-  const workspacePath = process.env.REACT_GRAB_CWD ?? process.cwd();
+    const workspacePath = process.env.REACT_GRAB_CWD ?? process.cwd();
 
-  const droidProcess = execa("droid", droidArgs, {
-    stdin: "pipe",
-    stdout: "pipe",
-    stderr: "pipe",
-    env: { ...process.env },
-    cwd: workspacePath,
-  });
+    const droidProcess = execa("droid", droidArgs, {
+      stdin: "pipe",
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { ...process.env },
+      cwd: workspacePath,
+    });
 
-  if (droidProcess.stdin) {
-    droidProcess.stdin.write("undo the last change you made");
-    droidProcess.stdin.end();
+    if (droidProcess.stdin) {
+      droidProcess.stdin.write("undo the last change you made");
+      droidProcess.stdin.end();
+    }
+
+    await droidProcess;
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? formatSpawnError(error, "droid")
+        : "Unknown error";
+    throw new Error(`Undo failed: ${errorMessage}`);
   }
-
-  await droidProcess;
 };
 
 export const droidAgentHandler: AgentHandler = {

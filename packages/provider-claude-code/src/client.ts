@@ -48,7 +48,8 @@ export const attachAgent = async () => {
 
   try {
     await relayClient.connect();
-  } catch {
+  } catch (error) {
+    console.warn("[claude-code] Failed to connect to relay:", error);
     return;
   }
 
@@ -92,7 +93,7 @@ export const attachAgent = async () => {
     { once: true },
   );
 
-  // HACK: check again after adding listener in case of race condition
+  // HACK: Check again after adding listener in case of race condition
   const apiAfterListener = window.__REACT_GRAB__;
   if (isReactGrabApi(apiAfterListener)) {
     attach(apiAfterListener);

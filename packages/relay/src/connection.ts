@@ -69,6 +69,8 @@ export const connectRelay = async (
 
   return {
     disconnect: async () => {
+      process.off("SIGTERM", handleShutdown);
+      process.off("SIGINT", handleShutdown);
       if (isRelayHost) {
         await relayServer?.stop();
       } else {
@@ -142,7 +144,9 @@ const connectToExistingRelay = async (
               await handler.redo?.();
             }
           }
-        } catch {}
+        } catch (error) {
+          console.error("[relay] Failed to handle message:", error);
+        }
       });
 
       const proxyServer: RelayServer = {

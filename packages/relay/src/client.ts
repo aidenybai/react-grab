@@ -63,7 +63,9 @@ export const createRelayClient = (
       for (const callback of messageCallbacks) {
         callback(message);
       }
-    } catch {}
+    } catch (error) {
+      console.error("[relay-client] Failed to parse message:", error);
+    }
   };
 
   const connect = (): Promise<void> => {
@@ -85,6 +87,9 @@ export const createRelayClient = (
       webSocketConnection.onclose = () => {
         isConnectedState = false;
         availableHandlers = [];
+        for (const callback of handlersChangeCallbacks) {
+          callback(availableHandlers);
+        }
         scheduleReconnect();
       };
 

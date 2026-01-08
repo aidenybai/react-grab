@@ -300,31 +300,39 @@ const undoCursorAgent = async (): Promise<void> => {
     return;
   }
 
-  const cursorAgentArgs = [
-    "--print",
-    "--output-format",
-    "stream-json",
-    "--force",
-    "--resume",
-    lastCursorChatId,
-  ];
+  try {
+    const cursorAgentArgs = [
+      "--print",
+      "--output-format",
+      "stream-json",
+      "--force",
+      "--resume",
+      lastCursorChatId,
+    ];
 
-  const workspacePath = process.env.REACT_GRAB_CWD ?? process.cwd();
+    const workspacePath = process.env.REACT_GRAB_CWD ?? process.cwd();
 
-  const cursorProcess = execa("cursor-agent", cursorAgentArgs, {
-    stdin: "pipe",
-    stdout: "pipe",
-    stderr: "pipe",
-    env: { ...process.env },
-    cwd: workspacePath,
-  });
+    const cursorProcess = execa("cursor-agent", cursorAgentArgs, {
+      stdin: "pipe",
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { ...process.env },
+      cwd: workspacePath,
+    });
 
-  if (cursorProcess.stdin) {
-    cursorProcess.stdin.write("undo");
-    cursorProcess.stdin.end();
+    if (cursorProcess.stdin) {
+      cursorProcess.stdin.write("undo");
+      cursorProcess.stdin.end();
+    }
+
+    await cursorProcess;
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? formatSpawnError(error, "cursor-agent")
+        : "Unknown error";
+    throw new Error(`Undo failed: ${errorMessage}`);
   }
-
-  await cursorProcess;
 };
 
 export const cursorAgentHandler: AgentHandler = {

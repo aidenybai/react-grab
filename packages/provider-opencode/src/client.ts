@@ -48,7 +48,8 @@ export const attachAgent = async () => {
 
   try {
     await relayClient.connect();
-  } catch {
+  } catch (error) {
+    console.warn("[opencode] Failed to connect to relay:", error);
     return;
   }
 

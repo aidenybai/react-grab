@@ -29,7 +29,7 @@
   ],
   "scripts": {
     "dev": "tsup --watch",
-    "build": "rm -rf dist && NODE_ENV=production tsup"
+    "build": "NODE_ENV=production tsup --clean"
   },
   "devDependencies": {
     "@types/node": "^22.10.7",
