@@ -15,8 +15,8 @@ export interface RelayClient {
   isConnected: () => boolean;
   sendAgentRequest: (agentId: string, context: AgentContext) => boolean;
   abortAgent: (agentId: string, sessionId: string) => void;
-  undoAgent: (agentId: string) => void;
-  redoAgent: (agentId: string) => void;
+  undoAgent: (agentId: string, sessionId: string) => boolean;
+  redoAgent: (agentId: string, sessionId: string) => boolean;
   onMessage: (callback: (message: RelayToBrowserMessage) => void) => () => void;
   onHandlersChange: (callback: (handlers: string[]) => void) => () => void;
   onConnectionChange: (callback: (connected: boolean) => void) => () => void;
@@ -176,17 +176,19 @@ export const createRelayClient = (
     });
   };
 
-  const undoAgent = (agentId: string) => {
-    sendMessage({
+  const undoAgent = (agentId: string, sessionId: string): boolean => {
+    return sendMessage({
       type: "agent-undo",
       agentId,
+      sessionId,
     });
   };
 
-  const redoAgent = (agentId: string) => {
-    sendMessage({
+  const redoAgent = (agentId: string, sessionId: string): boolean => {
+    return sendMessage({
       type: "agent-redo",
       agentId,
+      sessionId,
     });
   };
 
@@ -337,8 +339,8 @@ export const createRelayAgentProvider = (
       } else if (message.type === "agent-error") {
         errorMessage = message.content ?? "Unknown error";
         isDone = true;
-        if (resolveNextMessage) {
-          resolveNextMessage({ value: undefined, done: true });
+        if (rejectNextMessage) {
+          rejectNextMessage(new Error(errorMessage));
           resolveNextMessage = null;
           rejectNextMessage = null;
         }
@@ -399,12 +401,40 @@ export const createRelayAgentProvider = (
     relayClient.abortAgent(agentId, sessionId);
   };
 
+  const waitForOperationResponse = (sessionId: string): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const unsubscribe = relayClient.onMessage((message) => {
+        if (message.sessionId !== sessionId) return;
+
+        unsubscribe();
+
+        if (message.type === "agent-done") {
+          resolve();
+        } else if (message.type === "agent-error") {
+          reject(new Error(message.content ?? "Operation failed"));
+        }
+      });
+    });
+  };
+
   const undo = async (): Promise<void> => {
-    relayClient.undoAgent(agentId);
+    const sessionId = `undo-${agentId}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const responsePromise = waitForOperationResponse(sessionId);
+    const didSend = relayClient.undoAgent(agentId, sessionId);
+    if (!didSend) {
+      throw new Error("Failed to send undo request: connection not open");
+    }
+    return responsePromise;
   };
 
   const redo = async (): Promise<void> => {
-    relayClient.redoAgent(agentId);
+    const sessionId = `redo-${agentId}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const responsePromise = waitForOperationResponse(sessionId);
+    const didSend = relayClient.redoAgent(agentId, sessionId);
+    if (!didSend) {
+      throw new Error("Failed to send redo request: connection not open");
+    }
+    return responsePromise;
   };
 
   return {

@@ -133,7 +133,9 @@ const connectToExistingRelay = async (
       socket.on("close", () => {
         isSocketClosed = true;
         for (const sessionId of activeSessionIds) {
-          handler.abort?.(sessionId);
+          try {
+            handler.abort?.(sessionId);
+          } catch {}
         }
         activeSessionIds.clear();
       });
@@ -260,7 +262,7 @@ const connectToExistingRelay = async (
         },
         registerHandler: () => {},
         unregisterHandler: (agentId) => {
-          socket.send(
+          sendData(
             JSON.stringify({
               type: "unregister-handler",
               agentId,

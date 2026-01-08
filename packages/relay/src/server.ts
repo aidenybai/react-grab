@@ -199,6 +199,11 @@ export const createRelayServer = (
     } else if (type === "agent-undo") {
       try {
         await registered.handler.undo?.();
+        sendToBrowser(socket, {
+          type: "agent-done",
+          agentId,
+          sessionId: effectiveSessionId,
+        });
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : "Unknown error";
@@ -212,6 +217,11 @@ export const createRelayServer = (
     } else if (type === "agent-redo") {
       try {
         await registered.handler.redo?.();
+        sendToBrowser(socket, {
+          type: "agent-done",
+          agentId,
+          sessionId: effectiveSessionId,
+        });
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : "Unknown error";
