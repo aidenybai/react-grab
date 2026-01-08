@@ -74,7 +74,7 @@ const BlogPage = () => {
                 )}
                 <Link
                   href={`/blog/${post.slug}`}
-                  className="group grid grid-cols-[1fr] sm:grid-cols-[80px_1fr] sm:gap-8 py-2 sm:py-3 sm:-mx-3 sm:px-3 rounded-lg transition-colors hover:bg-[#1a1a1a]"
+                  className="group grid grid-cols-[1fr] sm:grid-cols-[80px_1fr] sm:gap-8 py-2 sm:py-3 sm:-mx-3 sm:px-3 rounded-lg transition-colors hover:bg-[#0f0f0f]"
                 >
                   <span className="hidden sm:block text-neutral-500 text-base tabular-nums">
                     {showYear ? post.year : ""}
