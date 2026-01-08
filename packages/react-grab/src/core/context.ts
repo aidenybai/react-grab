@@ -35,6 +35,14 @@ const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
   "MotionDOMComponent",
 ]);
 
+const REACT_INTERNAL_COMPONENT_NAMES = new Set([
+  "Suspense",
+  "Fragment",
+  "StrictMode",
+  "Profiler",
+  "SuspenseList",
+]);
+
 export const checkIsNextProject = (): boolean => {
   if (typeof document === "undefined") return false;
   return Boolean(
@@ -46,6 +54,7 @@ export const checkIsNextProject = (): boolean => {
 export const checkIsInternalComponentName = (name: string): boolean => {
   if (name.startsWith("_")) return true;
   if (NEXT_INTERNAL_COMPONENT_NAMES.has(name)) return true;
+  if (REACT_INTERNAL_COMPONENT_NAMES.has(name)) return true;
   return false;
 };
 
