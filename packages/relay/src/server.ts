@@ -9,7 +9,7 @@ import type {
   RelayToBrowserMessage,
   AgentContext,
 } from "./protocol.js";
-import { DEFAULT_RELAY_PORT } from "./protocol.js";
+import { DEFAULT_RELAY_PORT, RELAY_TOKEN_PARAM } from "./protocol.js";
 
 interface RegisteredHandler {
   agentId: string;
@@ -81,6 +81,7 @@ interface ActiveSession {
 
 interface RelayServerOptions {
   port?: number;
+  token?: string;
 }
 
 export interface RelayServer {
@@ -95,6 +96,7 @@ export const createRelayServer = (
   options: RelayServerOptions = {},
 ): RelayServer => {
   const port = options.port ?? DEFAULT_RELAY_PORT;
+  const token = options.token;
 
   const registeredHandlers = new Map<string, RegisteredHandler>();
   const activeSessions = new Map<string, ActiveSession>();
@@ -492,7 +494,17 @@ export const createRelayServer = (
   const start = async (): Promise<void> => {
     return new Promise((resolve, reject) => {
       httpServer = createHttpServer((req, res) => {
-        if (req.url === "/health") {
+        const requestUrl = new URL(req.url ?? "", `http://localhost:${port}`);
+
+        if (requestUrl.pathname === "/health") {
+          if (token) {
+            const clientToken = requestUrl.searchParams.get(RELAY_TOKEN_PARAM);
+            if (clientToken !== token) {
+              res.writeHead(401, { "Content-Type": "application/json" });
+              res.end(JSON.stringify({ error: "Unauthorized" }));
+              return;
+            }
+          }
           res.writeHead(200, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ status: "ok", handlers: getRegisteredHandlerIds() }));
           return;
@@ -512,6 +524,15 @@ export const createRelayServer = (
       });
 
       webSocketServer.on("connection", (socket, request) => {
+        if (token) {
+          const connectionUrl = new URL(request.url ?? "", `http://localhost:${port}`);
+          const clientToken = connectionUrl.searchParams.get(RELAY_TOKEN_PARAM);
+          if (clientToken !== token) {
+            socket.close(4001, "Unauthorized");
+            return;
+          }
+        }
+
         const isHandlerConnection = request.headers["x-relay-handler"] === "true";
 
         if (isHandlerConnection) {

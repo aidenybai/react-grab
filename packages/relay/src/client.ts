@@ -6,6 +6,7 @@ import type {
 import {
   DEFAULT_RELAY_PORT,
   DEFAULT_RECONNECT_INTERVAL_MS,
+  RELAY_TOKEN_PARAM,
 } from "./protocol.js";
 
 export interface RelayClient {
@@ -26,6 +27,7 @@ interface RelayClientOptions {
   serverUrl?: string;
   autoReconnect?: boolean;
   reconnectIntervalMs?: number;
+  token?: string;
 }
 
 export const createRelayClient = (
@@ -35,6 +37,7 @@ export const createRelayClient = (
   const autoReconnect = options.autoReconnect ?? true;
   const reconnectIntervalMs =
     options.reconnectIntervalMs ?? DEFAULT_RECONNECT_INTERVAL_MS;
+  const token = options.token;
 
   let webSocketConnection: WebSocket | null = null;
   let isConnectedState = false;
@@ -84,7 +87,10 @@ export const createRelayClient = (
 
     pendingConnectionPromise = new Promise((resolve, reject) => {
       pendingConnectionReject = reject;
-      webSocketConnection = new WebSocket(serverUrl);
+      const connectionUrl = token
+        ? `${serverUrl}?${RELAY_TOKEN_PARAM}=${encodeURIComponent(token)}`
+        : serverUrl;
+      webSocketConnection = new WebSocket(connectionUrl);
 
       webSocketConnection.onopen = () => {
         pendingConnectionPromise = null;

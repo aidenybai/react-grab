@@ -2,6 +2,7 @@ export const DEFAULT_RELAY_PORT = 4722;
 export const DEFAULT_RECONNECT_INTERVAL_MS = 3000;
 export const HEALTH_CHECK_TIMEOUT_MS = 1000;
 export const POST_KILL_DELAY_MS = 100;
+export const RELAY_TOKEN_PARAM = "react-grab-relay-token";
 
 export interface AgentMessage {
   type: "status" | "error" | "done";
