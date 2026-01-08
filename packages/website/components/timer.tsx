@@ -1,6 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import {
+  TIMER_UPDATE_INTERVAL_MS,
+  TIMER_DISPLAY_THRESHOLD_MS,
+} from "../constants";
 
 interface TimerProps {
   isRunning: boolean;
@@ -56,7 +60,7 @@ export const Timer = ({
 
       intervalRef.current = setInterval(() => {
         setElapsed(Date.now() - startTime);
-      }, 100);
+      }, TIMER_UPDATE_INTERVAL_MS);
     }
 
     return () => {
@@ -72,7 +76,7 @@ export const Timer = ({
     ? Math.min(elapsed, maxDurationMs)
     : elapsed;
 
-  if (clampedElapsed < 1000) return null;
+  if (clampedElapsed < TIMER_DISPLAY_THRESHOLD_MS) return null;
 
   return <span>{formatDuration(clampedElapsed)}</span>;
 };

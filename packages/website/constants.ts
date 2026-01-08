@@ -1,0 +1,2 @@
+export const TIMER_UPDATE_INTERVAL_MS = 100;
+export const TIMER_DISPLAY_THRESHOLD_MS = 1000;
