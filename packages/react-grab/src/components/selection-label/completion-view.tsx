@@ -49,7 +49,6 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
 
   const handleAccept = () => {
     if (didCopy()) return;
-    if (!props.onDismiss) return;
     setDidCopy(true);
     setDisplayStatusText("Copied");
     props.onCopyStateChange?.();

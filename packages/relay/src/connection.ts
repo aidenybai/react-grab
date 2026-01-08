@@ -115,6 +115,29 @@ const connectToExistingRelay = async (
     });
 
     socket.on("open", () => {
+      let isSocketClosed = false;
+      const activeSessionIds = new Set<string>();
+
+      const sendData = (data: string): boolean => {
+        if (isSocketClosed || socket.readyState !== WebSocket.OPEN) {
+          return false;
+        }
+        try {
+          socket.send(data);
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
+      socket.on("close", () => {
+        isSocketClosed = true;
+        for (const sessionId of activeSessionIds) {
+          handler.abort?.(sessionId);
+        }
+        activeSessionIds.clear();
+      });
+
       socket.send(
         JSON.stringify({
           type: "register-handler",
@@ -130,12 +153,16 @@ const connectToExistingRelay = async (
             const { method, sessionId, payload } = message;
 
             if (method === "run" && payload?.prompt) {
+              activeSessionIds.add(sessionId);
               try {
                 let didComplete = false;
                 for await (const agentMessage of handler.run(payload.prompt, {
                   sessionId,
                 })) {
-                  socket.send(
+                  if (isSocketClosed) {
+                    break;
+                  }
+                  sendData(
                     JSON.stringify({
                       type:
                         agentMessage.type === "status"
@@ -152,8 +179,8 @@ const connectToExistingRelay = async (
                     didComplete = true;
                   }
                 }
-                if (!didComplete) {
-                  socket.send(
+                if (!didComplete && !isSocketClosed) {
+                  sendData(
                     JSON.stringify({
                       type: "agent-done",
                       sessionId,
@@ -163,7 +190,7 @@ const connectToExistingRelay = async (
                   );
                 }
               } catch (error) {
-                socket.send(
+                sendData(
                   JSON.stringify({
                     type: "agent-error",
                     sessionId,
@@ -172,13 +199,15 @@ const connectToExistingRelay = async (
                       error instanceof Error ? error.message : "Unknown error",
                   }),
                 );
+              } finally {
+                activeSessionIds.delete(sessionId);
               }
             } else if (method === "abort") {
               handler.abort?.(sessionId);
             } else if (method === "undo") {
               try {
                 await handler.undo?.();
-                socket.send(
+                sendData(
                   JSON.stringify({
                     type: "agent-done",
                     sessionId,
@@ -187,7 +216,7 @@ const connectToExistingRelay = async (
                   }),
                 );
               } catch (error) {
-                socket.send(
+                sendData(
                   JSON.stringify({
                     type: "agent-error",
                     sessionId,
@@ -200,7 +229,7 @@ const connectToExistingRelay = async (
             } else if (method === "redo") {
               try {
                 await handler.redo?.();
-                socket.send(
+                sendData(
                   JSON.stringify({
                     type: "agent-done",
                     sessionId,
@@ -209,7 +238,7 @@ const connectToExistingRelay = async (
                   }),
                 );
               } catch (error) {
-                socket.send(
+                sendData(
                   JSON.stringify({
                     type: "agent-error",
                     sessionId,
