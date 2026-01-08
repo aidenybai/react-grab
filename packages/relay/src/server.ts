@@ -104,6 +104,7 @@ export const createRelayServer = (
   const browserSockets = new Set<WebSocket>();
   const handlerSockets = new Map<WebSocket, string>();
   const sessionMessageQueues = new Map<string, SessionMessageQueue>();
+  const undoRedoSessionOwners = new Map<string, WebSocket>();
 
   let httpServer: ReturnType<typeof createHttpServer> | null = null;
   let webSocketServer: WebSocketServer | null = null;
@@ -360,6 +361,7 @@ export const createRelayServer = (
         const sessionId = `undo-${agentId}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
         const messageQueue = createSessionMessageQueue();
         sessionMessageQueues.set(sessionId, messageQueue);
+        undoRedoSessionOwners.set(sessionId, socket);
 
         const undoMessage: RelayToHandlerMessage = {
           type: "invoke-handler",
@@ -380,6 +382,7 @@ export const createRelayServer = (
         } finally {
           messageQueue.close();
           sessionMessageQueues.delete(sessionId);
+          undoRedoSessionOwners.delete(sessionId);
         }
       },
       redo: async () => {
@@ -390,6 +393,7 @@ export const createRelayServer = (
         const sessionId = `redo-${agentId}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
         const messageQueue = createSessionMessageQueue();
         sessionMessageQueues.set(sessionId, messageQueue);
+        undoRedoSessionOwners.set(sessionId, socket);
 
         const redoMessage: RelayToHandlerMessage = {
           type: "invoke-handler",
@@ -410,15 +414,13 @@ export const createRelayServer = (
         } finally {
           messageQueue.close();
           sessionMessageQueues.delete(sessionId);
+          undoRedoSessionOwners.delete(sessionId);
         }
       },
     };
   };
 
-  const cleanupSessionsByHandlerSocket = (
-    socket: WebSocket,
-    agentId?: string,
-  ) => {
+  const cleanupSessionsByHandlerSocket = (socket: WebSocket) => {
     for (const [sessionId, session] of activeSessions) {
       if (session.handlerSocket === socket) {
         const queue = sessionMessageQueues.get(sessionId);
@@ -435,11 +437,10 @@ export const createRelayServer = (
       }
     }
 
-    if (agentId) {
-      for (const [sessionId, queue] of sessionMessageQueues) {
-        const isOwnedUndoSession = sessionId.startsWith(`undo-${agentId}-`);
-        const isOwnedRedoSession = sessionId.startsWith(`redo-${agentId}-`);
-        if (isOwnedUndoSession || isOwnedRedoSession) {
+    for (const [sessionId, ownerSocket] of undoRedoSessionOwners) {
+      if (ownerSocket === socket) {
+        const queue = sessionMessageQueues.get(sessionId);
+        if (queue) {
           queue.push({
             type: "error",
             content: "Handler disconnected",
@@ -447,6 +448,7 @@ export const createRelayServer = (
           queue.close();
           sessionMessageQueues.delete(sessionId);
         }
+        undoRedoSessionOwners.delete(sessionId);
       }
     }
   };
@@ -467,10 +469,7 @@ export const createRelayServer = (
         const registeredHandler = registeredHandlers.get(agentId);
         const isCurrentHandler = registeredHandler?.socket === socket;
 
-        cleanupSessionsByHandlerSocket(
-          socket,
-          isCurrentHandler ? agentId : undefined,
-        );
+        cleanupSessionsByHandlerSocket(socket);
 
         if (isCurrentHandler) {
           registeredHandlers.delete(agentId);
@@ -562,13 +561,7 @@ export const createRelayServer = (
               const registeredHandler = registeredHandlers.get(agentId);
               const isCurrentHandler = registeredHandler?.socket === socket;
 
-              // Always clean up sessions running on this specific socket,
-              // even if another handler has already taken over the same agentId.
-              // Also clean up undo/redo sessions if this is the current handler.
-              cleanupSessionsByHandlerSocket(
-                socket,
-                isCurrentHandler ? agentId : undefined,
-              );
+              cleanupSessionsByHandlerSocket(socket);
 
               if (isCurrentHandler) {
                 registeredHandlers.delete(agentId);
@@ -629,6 +622,7 @@ export const createRelayServer = (
       queue.close();
     }
     sessionMessageQueues.clear();
+    undoRedoSessionOwners.clear();
 
     for (const socket of browserSockets) {
       socket.close();
