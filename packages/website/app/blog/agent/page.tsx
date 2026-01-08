@@ -93,7 +93,7 @@ const AgentPage = () => {
                 <Image
                   src={ReactGrabLogo}
                   alt="React Grab"
-                  className="w-16 h-16"
+                  className="w-10 h-10"
                 />
               </Link>
               <h1 className="text-xl font-medium text-white">
