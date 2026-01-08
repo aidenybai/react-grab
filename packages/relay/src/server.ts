@@ -301,6 +301,11 @@ export const createRelayServer = (
 
         if (signal) {
           signal.addEventListener("abort", cleanupQueue, { once: true });
+
+          if (signal.aborted) {
+            cleanupQueue();
+            return;
+          }
         }
 
         const invokeMessage: RelayToHandlerMessage = {
@@ -436,14 +441,33 @@ export const createRelayServer = (
             }
           });
 
-          socket.on("close", () => {
+          const cleanupHandlerSocket = () => {
             const agentId = handlerSockets.get(socket);
             if (agentId) {
+              for (const [sessionId, session] of activeSessions) {
+                if (session.agentId === agentId) {
+                  const queue = sessionMessageQueues.get(sessionId);
+                  if (queue) {
+                    queue.push({
+                      type: "error",
+                      content: "Handler disconnected unexpectedly",
+                    });
+                    queue.close();
+                    sessionMessageQueues.delete(sessionId);
+                  }
+                  session.abortController.abort();
+                  activeSessions.delete(sessionId);
+                }
+              }
+
               registeredHandlers.delete(agentId);
               handlerSockets.delete(socket);
               broadcastHandlerList();
             }
-          });
+          };
+
+          socket.on("close", cleanupHandlerSocket);
+          socket.on("error", cleanupHandlerSocket);
         } else {
           browserSockets.add(socket);
 
