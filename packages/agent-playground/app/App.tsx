@@ -189,6 +189,8 @@ export const App = ({
   }, [loadedProviders, failedProviders, addLog]);
 
   useEffect(() => {
+    let relayCleanup: (() => void) | false = false;
+
     const checkForRelay = () => {
       const relayClient = window.__REACT_GRAB_RELAY__;
       if (!relayClient) return false;
@@ -240,11 +242,17 @@ export const App = ({
     const intervalId = setInterval(() => {
       const result = checkForRelay();
       if (result) {
+        relayCleanup = result;
         clearInterval(intervalId);
       }
     }, 100);
 
-    return () => clearInterval(intervalId);
+    return () => {
+      clearInterval(intervalId);
+      if (relayCleanup) {
+        relayCleanup();
+      }
+    };
   }, [addLog]);
 
   const handleAddProvider = (provider: string) => {
