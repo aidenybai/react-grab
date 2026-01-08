@@ -1,5 +1,8 @@
 export {
   DEFAULT_RELAY_PORT,
+  DEFAULT_RECONNECT_INTERVAL_MS,
+  HEALTH_CHECK_TIMEOUT_MS,
+  POST_KILL_DELAY_MS,
   type AgentMessage,
   type AgentContext,
   type AgentRunOptions,

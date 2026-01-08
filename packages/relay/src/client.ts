@@ -3,7 +3,7 @@ import type {
   BrowserToRelayMessage,
   RelayToBrowserMessage,
 } from "./protocol.js";
-import { DEFAULT_RELAY_PORT } from "./protocol.js";
+import { DEFAULT_RELAY_PORT, DEFAULT_RECONNECT_INTERVAL_MS } from "./protocol.js";
 
 export interface RelayClient {
   connect: () => Promise<void>;
@@ -31,7 +31,7 @@ export const createRelayClient = (
   const serverUrl =
     options.serverUrl ?? `ws://localhost:${DEFAULT_RELAY_PORT}`;
   const autoReconnect = options.autoReconnect ?? true;
-  const reconnectIntervalMs = options.reconnectIntervalMs ?? 3000;
+  const reconnectIntervalMs = options.reconnectIntervalMs ?? DEFAULT_RECONNECT_INTERVAL_MS;
 
   let webSocketConnection: WebSocket | null = null;
   let isConnectedState = false;
@@ -264,7 +264,7 @@ export const createRelayAgentProvider = (
     };
 
     const messageQueue: string[] = [];
-    let resolveNext: ((value: IteratorResult<string>) => void) | null = null;
+    let resolveNext: ((value: IteratorResult<string, void>) => void) | null = null;
     let rejectNext: ((error: Error) => void) | null = null;
     let isDone = false;
     let errorMessage: string | null = null;
@@ -273,7 +273,7 @@ export const createRelayAgentProvider = (
       relayClient.abortAgent(agentId, sessionId);
       isDone = true;
       if (resolveNext) {
-        resolveNext({ value: undefined as unknown as string, done: true });
+        resolveNext({ value: undefined, done: true });
         resolveNext = null;
         rejectNext = null;
       }
@@ -312,7 +312,7 @@ export const createRelayAgentProvider = (
       } else if (message.type === "agent-done") {
         isDone = true;
         if (resolveNext) {
-          resolveNext({ value: undefined as unknown as string, done: true });
+          resolveNext({ value: undefined, done: true });
           resolveNext = null;
           rejectNext = null;
         }
@@ -320,7 +320,7 @@ export const createRelayAgentProvider = (
         errorMessage = message.content ?? "Unknown error";
         isDone = true;
         if (resolveNext) {
-          resolveNext({ value: undefined as unknown as string, done: true });
+          resolveNext({ value: undefined, done: true });
           resolveNext = null;
           rejectNext = null;
         }
@@ -331,7 +331,6 @@ export const createRelayAgentProvider = (
 
     try {
       while (true) {
-        // Drain pending messages first (matching server-side pattern)
         if (messageQueue.length > 0) {
           const next = messageQueue.shift();
           if (next !== undefined) {
@@ -340,12 +339,11 @@ export const createRelayAgentProvider = (
           continue;
         }
 
-        // Only check done/aborted state after queue is empty
         if (isDone || signal.aborted) {
           break;
         }
 
-        const result = await new Promise<IteratorResult<string>>(
+        const result = await new Promise<IteratorResult<string, void>>(
           (resolve, reject) => {
             resolveNext = resolve;
             rejectNext = reject;

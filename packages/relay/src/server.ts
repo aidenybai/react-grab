@@ -103,7 +103,7 @@ export const createRelayServer = (
   const sessionMessageQueues = new Map<string, SessionMessageQueue>();
 
   let httpServer: ReturnType<typeof createHttpServer> | null = null;
-  let wss: WebSocketServer | null = null;
+  let webSocketServer: WebSocketServer | null = null;
 
   const broadcastHandlerList = () => {
     const handlerIds = Array.from(registeredHandlers.keys());
@@ -505,9 +505,9 @@ export const createRelayServer = (
         reject(error);
       });
 
-      wss = new WebSocketServer({ server: httpServer });
+      webSocketServer = new WebSocketServer({ server: httpServer });
 
-      wss.on("connection", (socket, request) => {
+      webSocketServer.on("connection", (socket, request) => {
         const isHandlerConnection = request.headers["x-relay-handler"] === "true";
 
         if (isHandlerConnection) {
@@ -595,7 +595,7 @@ export const createRelayServer = (
     }
     handlerSockets.clear();
 
-    wss?.close();
+    webSocketServer?.close();
     httpServer?.close();
   };
 

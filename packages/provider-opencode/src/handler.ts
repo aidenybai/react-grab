@@ -1,7 +1,7 @@
 import { createOpencode } from "@opencode-ai/sdk";
 import fkill from "fkill";
 import type { AgentHandler, AgentMessage, AgentRunOptions } from "@react-grab/relay";
-import { COMPLETED_STATUS } from "./constants.js";
+import { COMPLETED_STATUS, OPENCODE_SDK_PORT, POST_KILL_DELAY_MS, STATUS_TEXT_TRUNCATE_LENGTH } from "./constants.js";
 
 export interface OpenCodeAgentOptions extends AgentRunOptions {
   model?: string;
@@ -35,8 +35,6 @@ interface LastMessageInfo {
   messageId: string;
 }
 
-const OPENCODE_SDK_PORT = 4096;
-
 let opencodeInstance: OpenCodeInstance | null = null;
 const sessionMap = new Map<string, string>();
 const abortedSessions = new Set<string>();
@@ -50,7 +48,7 @@ const getOpenCodeClient = async () => {
     await fkill(`:${OPENCODE_SDK_PORT}`, { force: true, silent: true }).catch(
       () => {},
     );
-    await sleep(100);
+    await sleep(POST_KILL_DELAY_MS);
     const instance = await createOpencode({
       hostname: "127.0.0.1",
       port: OPENCODE_SDK_PORT,
@@ -137,7 +135,9 @@ const executeOpenCodePrompt = async (
 
       if (part.type === "text" && part.text) {
         const truncatedText =
-          part.text.length > 100 ? `${part.text.slice(0, 100)}...` : part.text;
+          part.text.length > STATUS_TEXT_TRUNCATE_LENGTH
+            ? `${part.text.slice(0, STATUS_TEXT_TRUNCATE_LENGTH)}...`
+            : part.text;
         onStatus?.(truncatedText);
       } else if (part.type === "tool-invocation" && part.toolName) {
         const stateLabel = part.state === "running" ? "Running" : "Using";

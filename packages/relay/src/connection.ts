@@ -1,7 +1,7 @@
 import pc from "picocolors";
 import fkill from "fkill";
 import type { AgentHandler } from "./protocol.js";
-import { DEFAULT_RELAY_PORT } from "./protocol.js";
+import { DEFAULT_RELAY_PORT, HEALTH_CHECK_TIMEOUT_MS, POST_KILL_DELAY_MS } from "./protocol.js";
 import { createRelayServer, type RelayServer } from "./server.js";
 
 const VERSION = process.env.VERSION ?? "0.0.0";
@@ -22,7 +22,7 @@ const checkIfRelayServerIsRunning = async (port: number): Promise<boolean> => {
   try {
     const response = await fetch(`http://localhost:${port}/health`, {
       method: "GET",
-      signal: AbortSignal.timeout(1000),
+      signal: AbortSignal.timeout(HEALTH_CHECK_TIMEOUT_MS),
     });
     return response.ok;
   } catch {
@@ -45,7 +45,7 @@ export const connectRelay = async (
     relayServer = await connectToExistingRelay(relayPort, handler);
   } else {
     await fkill(`:${relayPort}`, { force: true, silent: true }).catch(() => {});
-    await sleep(100);
+    await sleep(POST_KILL_DELAY_MS);
 
     relayServer = createRelayServer({ port: relayPort });
     relayServer.registerHandler(handler);
