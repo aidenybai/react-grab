@@ -309,6 +309,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       elements?: Element[],
       boundsMultiple?: OverlayBounds[],
     ): string => {
+      if (element) {
+        actions.removeLabelsForElement(element);
+      }
       const instanceId = `label-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const instance: SelectionLabelInstance = {
         id: instanceId,

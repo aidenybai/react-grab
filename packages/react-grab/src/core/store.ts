@@ -199,6 +199,7 @@ interface GrabActions {
     errorMessage?: string,
   ) => void;
   removeLabelInstance: (instanceId: string) => void;
+  removeLabelsForElement: (element: Element) => void;
   clearLabelInstances: () => void;
   setHasAgentProvider: (value: boolean) => void;
   setUndoRedoState: (canUndo: boolean, canRedo: boolean) => void;
@@ -615,6 +616,12 @@ const createGrabStore = (input: GrabStoreInput) => {
     removeLabelInstance: (instanceId: string) => {
       setStore("labelInstances", (instances) =>
         instances.filter((instance) => instance.id !== instanceId),
+      );
+    },
+
+    removeLabelsForElement: (element: Element) => {
+      setStore("labelInstances", (instances) =>
+        instances.filter((instance) => instance.element !== element),
       );
     },
 
