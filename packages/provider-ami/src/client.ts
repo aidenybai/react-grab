@@ -28,6 +28,8 @@ const createDeeplinkAgentProvider = (): AgentProvider => {
     checkConnection: async () => true,
     supportsResume: false,
     supportsFollowUp: false,
+    undo: undefined,
+    redo: undefined,
     dismissButtonText: "Copy",
   };
 };
