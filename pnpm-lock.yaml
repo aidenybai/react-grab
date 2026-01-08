@@ -445,6 +445,9 @@ importers:
 
   packages/relay:
     dependencies:
+      '@react-grab/utils':
+        specifier: workspace:*
+        version: link:../utils
       fkill:
         specifier: ^9.0.0
         version: 9.0.0
@@ -2205,8 +2208,8 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
-  '@sourcegraph/amp@0.0.1767835856-g79efaa':
-    resolution: {integrity: sha512-/HFZeAtY8vkOUnrZJk1qGSv2RDn0jtfluer159mRXaOqJhUuWsKbfaIFDzU9rtaa1BzT0Gv/NNSXTjTk3+HEdw==}
+  '@sourcegraph/amp@0.0.1767845655-gffe829':
+    resolution: {integrity: sha512-yyKwPHSSr3ZSrdgsvW8zhnRwE0WiR9DupSHb0SylkPoPrkE9Qqv1QkSZe3oCUQDuDPUoEv/WPJz58/zOHvidFQ==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -7448,14 +7451,14 @@ snapshots:
 
   '@sourcegraph/amp-sdk@0.1.0-20251210081226-g90e3892':
     dependencies:
-      '@sourcegraph/amp': 0.0.1767835856-g79efaa
+      '@sourcegraph/amp': 0.0.1767845655-gffe829
       zod: 3.25.76
 
   '@sourcegraph/amp@0.0.1767830505-ga62310':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
-  '@sourcegraph/amp@0.0.1767835856-g79efaa':
+  '@sourcegraph/amp@0.0.1767845655-gffe829':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 

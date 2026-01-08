@@ -37,6 +37,7 @@
     "tsup": "^8.4.0"
   },
   "dependencies": {
+    "@react-grab/utils": "workspace:*",
     "fkill": "^9.0.0",
     "picocolors": "^1.1.1",
     "ws": "^8.18.0"
