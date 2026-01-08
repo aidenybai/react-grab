@@ -173,7 +173,9 @@ export const App = ({
 
     const api = window.__REACT_GRAB__;
     if (!api) {
-      addLog("error", "React Grab not initialized");
+      queueMicrotask(() => {
+        addLog("error", "React Grab not initialized");
+      });
       return;
     }
 
@@ -265,7 +267,7 @@ export const App = ({
     providerList.push(provider);
     const newUrl = new URL(window.location.href);
     newUrl.searchParams.set("provider", providerList.join(","));
-    window.location.href = newUrl.toString();
+    window.location.assign(newUrl.toString());
   };
 
   const handleRemoveProvider = (provider: string) => {
@@ -281,7 +283,7 @@ export const App = ({
     } else {
       newUrl.searchParams.set("provider", providerList.join(","));
     }
-    window.location.href = newUrl.toString();
+    window.location.assign(newUrl.toString());
   };
 
   const inactiveProviders = availableProviders.filter(
