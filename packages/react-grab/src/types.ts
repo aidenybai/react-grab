@@ -435,6 +435,7 @@ export interface ArrowProps {
 
 export interface TagBadgeProps {
   tagName: string;
+  componentName?: string;
   isClickable: boolean;
   onClick: (event: MouseEvent) => void;
   onHoverChange?: (hovered: boolean) => void;

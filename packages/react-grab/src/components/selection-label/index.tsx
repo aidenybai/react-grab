@@ -252,10 +252,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     if (props.elementsCount && props.elementsCount > 1) {
       return `${props.elementsCount} elements`;
     }
-    if (props.componentName && props.tagName) {
-      return `${props.componentName}.${props.tagName}`;
+    return props.tagName || props.componentName || "element";
+  };
+
+  const componentNameDisplay = () => {
+    if (props.elementsCount && props.elementsCount > 1) {
+      return undefined;
     }
-    return props.componentName || props.tagName || "element";
+    return props.tagName ? props.componentName : undefined;
   };
 
   const handleTagClick = (event: MouseEvent) => {
@@ -424,6 +428,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5 pr-1">
                 <TagBadge
                   tagName={tagDisplay()}
+                  componentName={componentNameDisplay()}
                   isClickable={isTagClickable()}
                   onClick={handleTagClick}
                   onHoverChange={handleTagHoverChange}
@@ -460,6 +465,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 />
                 <TagBadge
                   tagName={tagDisplay()}
+                  componentName={componentNameDisplay()}
                   isClickable={isTagClickable()}
                   onClick={handleTagClick}
                   onHoverChange={handleTagHoverChange}

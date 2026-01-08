@@ -25,8 +25,7 @@ export const ActionPill: Component<ActionPillProps> = (props) => {
               </>
             }
           >
-            <span class="text-black/50">Right click for </span>
-            <span class="text-black">more</span>
+            <span class="text-black/50">Right click for more</span>
           </Show>
         </div>
       </div>

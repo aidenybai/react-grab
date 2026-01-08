@@ -28,13 +28,19 @@ export const TagBadge: Component<TagBadgeProps> = (props) => {
       onMouseLeave={handleMouseLeave}
       onClick={props.onClick}
     >
-      <span
-        class={cn(
-          "text-white text-[13px] leading-3.5 shrink-0 w-fit h-fit font-medium",
-        )}
-      >
-        {props.tagName}
-      </span>
+      <Show when={props.componentName}>
+        <span class="text-white text-[13px] leading-3.5 shrink-0 w-fit h-fit font-medium">
+          {props.componentName}
+        </span>
+        <span class="text-white/70 text-[13px] leading-3.5 shrink-0 w-fit h-fit font-medium">
+          .{props.tagName}
+        </span>
+      </Show>
+      <Show when={!props.componentName}>
+        <span class="text-white text-[13px] leading-3.5 shrink-0 w-fit h-fit font-medium">
+          {props.tagName}
+        </span>
+      </Show>
       <Show when={props.isClickable || props.forceShowIcon}>
         <IconOpen
           size={10}
