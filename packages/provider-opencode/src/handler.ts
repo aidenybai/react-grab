@@ -1,7 +1,9 @@
 import { createOpencode } from "@opencode-ai/sdk";
 import fkill from "fkill";
 import type { AgentHandler, AgentMessage, AgentRunOptions } from "@react-grab/relay";
-import { COMPLETED_STATUS, OPENCODE_SDK_PORT, POST_KILL_DELAY_MS, STATUS_TEXT_TRUNCATE_LENGTH } from "./constants.js";
+import { COMPLETED_STATUS, POST_KILL_DELAY_MS } from "@react-grab/relay";
+import { sleep } from "@react-grab/utils/server";
+import { OPENCODE_SDK_PORT, STATUS_TEXT_TRUNCATE_LENGTH } from "./constants.js";
 
 export interface OpenCodeAgentOptions extends AgentRunOptions {
   model?: string;
@@ -39,9 +41,6 @@ let opencodeInstance: OpenCodeInstance | null = null;
 const sessionMap = new Map<string, string>();
 const abortedSessions = new Set<string>();
 let lastMessageInfo: LastMessageInfo | undefined;
-
-const sleep = (ms: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, ms));
 
 const getOpenCodeClient = async () => {
   if (!opencodeInstance) {

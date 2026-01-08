@@ -136,6 +136,8 @@ const LOG_TYPE_STYLES: Record<string, { icon: string; color: string }> = {
 };
 
 const MAX_LOG_ENTRIES = 50;
+const STATUS_TRUNCATE_LENGTH = 60;
+const RELAY_CHECK_INTERVAL_MS = 100;
 
 export const App = ({
   loadedProviders,
@@ -217,8 +219,8 @@ export const App = ({
 
       const unsubscribeMessage = relayClient.onMessage((message) => {
         if (message.type === "agent-status" && message.content && message.agentId) {
-          const truncatedContent = message.content.length > 60
-            ? `${message.content.slice(0, 60)}…`
+          const truncatedContent = message.content.length > STATUS_TRUNCATE_LENGTH
+            ? `${message.content.slice(0, STATUS_TRUNCATE_LENGTH)}…`
             : message.content;
           addLog("status", `[${message.agentId}] ${truncatedContent}`);
         } else if (message.type === "agent-done" && message.agentId) {
@@ -245,7 +247,7 @@ export const App = ({
         relayCleanup = result;
         clearInterval(intervalId);
       }
-    }, 100);
+    }, RELAY_CHECK_INTERVAL_MS);
 
     return () => {
       clearInterval(intervalId);

@@ -1,6 +1,6 @@
 import { execute } from "@sourcegraph/amp-sdk";
 import type { AgentHandler, AgentMessage, AgentRunOptions } from "@react-grab/relay";
-import { COMPLETED_STATUS } from "./constants.js";
+import { COMPLETED_STATUS } from "@react-grab/relay";
 
 export interface AmpAgentOptions extends AgentRunOptions {}
 

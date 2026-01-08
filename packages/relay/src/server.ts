@@ -114,11 +114,11 @@ export const createRelayServer = (
       type: "handlers",
       handlers: handlerIds,
     };
-    const messageStr = JSON.stringify(message);
+    const serializedMessage = JSON.stringify(message);
 
     for (const socket of browserSockets) {
       if (socket.readyState === WebSocket.OPEN) {
-        socket.send(messageStr);
+        socket.send(serializedMessage);
       }
     }
   };

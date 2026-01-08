@@ -4,6 +4,7 @@ export {
   HEALTH_CHECK_TIMEOUT_MS,
   POST_KILL_DELAY_MS,
   RELAY_TOKEN_PARAM,
+  COMPLETED_STATUS,
   type AgentMessage,
   type AgentContext,
   type AgentRunOptions,

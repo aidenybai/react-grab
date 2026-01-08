@@ -3,6 +3,7 @@ import fkill from "fkill";
 import type { AgentHandler } from "./protocol.js";
 import { DEFAULT_RELAY_PORT, HEALTH_CHECK_TIMEOUT_MS, POST_KILL_DELAY_MS, RELAY_TOKEN_PARAM } from "./protocol.js";
 import { createRelayServer, type RelayServer } from "./server.js";
+import { sleep } from "@react-grab/utils/server";
 
 const VERSION = process.env.VERSION ?? "0.0.0";
 
@@ -15,9 +16,6 @@ interface ConnectRelayOptions {
 interface RelayConnection {
   disconnect: () => Promise<void>;
 }
-
-const sleep = (ms: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, ms));
 
 const checkIfRelayServerIsRunning = async (port: number, token?: string): Promise<boolean> => {
   try {

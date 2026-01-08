@@ -277,19 +277,19 @@ export const createRelayAgentProvider = (
     };
 
     const messageQueue: string[] = [];
-    let resolveNext: ((value: IteratorResult<string, void>) => void) | null =
+    let resolveNextMessage: ((value: IteratorResult<string, void>) => void) | null =
       null;
-    let rejectNext: ((error: Error) => void) | null = null;
+    let rejectNextMessage: ((error: Error) => void) | null = null;
     let isDone = false;
     let errorMessage: string | null = null;
 
     const handleAbort = () => {
       relayClient.abortAgent(agentId, sessionId);
       isDone = true;
-      if (resolveNext) {
-        resolveNext({ value: undefined, done: true });
-        resolveNext = null;
-        rejectNext = null;
+      if (resolveNextMessage) {
+        resolveNextMessage({ value: undefined, done: true });
+        resolveNextMessage = null;
+        rejectNextMessage = null;
       }
     };
 
@@ -299,10 +299,10 @@ export const createRelayAgentProvider = (
       if (!connected && !isDone) {
         errorMessage = "Relay connection lost";
         isDone = true;
-        if (rejectNext) {
-          rejectNext(new Error(errorMessage));
-          resolveNext = null;
-          rejectNext = null;
+        if (rejectNextMessage) {
+          rejectNextMessage(new Error(errorMessage));
+          resolveNextMessage = null;
+          rejectNextMessage = null;
         }
       }
     };
@@ -316,28 +316,28 @@ export const createRelayAgentProvider = (
 
       if (message.type === "agent-status" && message.content) {
         messageQueue.push(message.content);
-        if (resolveNext) {
-          const next = messageQueue.shift();
-          if (next !== undefined) {
-            resolveNext({ value: next, done: false });
-            resolveNext = null;
-            rejectNext = null;
+        if (resolveNextMessage) {
+          const nextMessage = messageQueue.shift();
+          if (nextMessage !== undefined) {
+            resolveNextMessage({ value: nextMessage, done: false });
+            resolveNextMessage = null;
+            rejectNextMessage = null;
           }
         }
       } else if (message.type === "agent-done") {
         isDone = true;
-        if (resolveNext) {
-          resolveNext({ value: undefined, done: true });
-          resolveNext = null;
-          rejectNext = null;
+        if (resolveNextMessage) {
+          resolveNextMessage({ value: undefined, done: true });
+          resolveNextMessage = null;
+          rejectNextMessage = null;
         }
       } else if (message.type === "agent-error") {
         errorMessage = message.content ?? "Unknown error";
         isDone = true;
-        if (resolveNext) {
-          resolveNext({ value: undefined, done: true });
-          resolveNext = null;
-          rejectNext = null;
+        if (resolveNextMessage) {
+          resolveNextMessage({ value: undefined, done: true });
+          resolveNextMessage = null;
+          rejectNextMessage = null;
         }
       }
     });
@@ -360,8 +360,8 @@ export const createRelayAgentProvider = (
 
         const result = await new Promise<IteratorResult<string, void>>(
           (resolve, reject) => {
-            resolveNext = resolve;
-            rejectNext = reject;
+            resolveNextMessage = resolve;
+            rejectNextMessage = reject;
           },
         );
 

@@ -1,6 +1,6 @@
 import { Codex } from "@openai/codex-sdk";
 import type { AgentHandler, AgentMessage, AgentRunOptions } from "@react-grab/relay";
-import { COMPLETED_STATUS } from "./constants.js";
+import { COMPLETED_STATUS } from "@react-grab/relay";
 
 export interface CodexAgentOptions extends AgentRunOptions {
   model?: string;

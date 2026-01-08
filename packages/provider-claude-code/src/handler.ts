@@ -5,8 +5,8 @@ import {
   type SDKAssistantMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import type { AgentHandler, AgentMessage, AgentRunOptions } from "@react-grab/relay";
+import { COMPLETED_STATUS } from "@react-grab/relay";
 import { formatSpawnError } from "@react-grab/utils/server";
-import { COMPLETED_STATUS } from "./constants.js";
 
 export interface ClaudeAgentOptions extends AgentRunOptions, Omit<Options, "cwd"> {}
 
