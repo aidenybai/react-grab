@@ -2,6 +2,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { createServer as createHttpServer } from "node:http";
 import type {
   AgentHandler,
+  AgentMessage,
   BrowserToRelayMessage,
   HandlerMessage,
   RelayToHandlerMessage,
@@ -15,6 +16,61 @@ interface RegisteredHandler {
   handler: AgentHandler;
   socket?: WebSocket;
 }
+
+interface SessionMessageQueue {
+  push: (message: AgentMessage) => void;
+  close: () => void;
+  [Symbol.asyncIterator]: () => AsyncIterator<AgentMessage>;
+}
+
+const createSessionMessageQueue = (): SessionMessageQueue => {
+  const pendingMessages: AgentMessage[] = [];
+  let resolveNextMessage:
+    | ((result: IteratorResult<AgentMessage>) => void)
+    | null = null;
+  let isClosed = false;
+
+  return {
+    push: (message) => {
+      if (isClosed) return;
+      if (resolveNextMessage) {
+        resolveNextMessage({ value: message, done: false });
+        resolveNextMessage = null;
+      } else {
+        pendingMessages.push(message);
+      }
+    },
+    close: () => {
+      isClosed = true;
+      if (resolveNextMessage) {
+        resolveNextMessage({
+          value: undefined,
+          done: true,
+        } as IteratorResult<AgentMessage>);
+        resolveNextMessage = null;
+      }
+    },
+    [Symbol.asyncIterator]: () => ({
+      next: () => {
+        if (pendingMessages.length > 0) {
+          return Promise.resolve({
+            value: pendingMessages.shift()!,
+            done: false,
+          });
+        }
+        if (isClosed) {
+          return Promise.resolve({
+            value: undefined,
+            done: true,
+          } as IteratorResult<AgentMessage>);
+        }
+        return new Promise((resolve) => {
+          resolveNextMessage = resolve;
+        });
+      },
+    }),
+  };
+};
 
 interface ActiveSession {
   sessionId: string;
@@ -44,6 +100,7 @@ export const createRelayServer = (
   const activeSessions = new Map<string, ActiveSession>();
   const browserSockets = new Set<WebSocket>();
   const handlerSockets = new Map<WebSocket, string>();
+  const sessionMessageQueues = new Map<string, SessionMessageQueue>();
 
   let httpServer: ReturnType<typeof createHttpServer> | null = null;
   let wss: WebSocketServer | null = null;
@@ -232,6 +289,19 @@ export const createRelayServer = (
         const sessionId =
           options?.sessionId ??
           `session-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const signal = options?.signal;
+
+        const messageQueue = createSessionMessageQueue();
+        sessionMessageQueues.set(sessionId, messageQueue);
+
+        const cleanupQueue = () => {
+          messageQueue.close();
+          sessionMessageQueues.delete(sessionId);
+        };
+
+        if (signal) {
+          signal.addEventListener("abort", cleanupQueue, { once: true });
+        }
 
         const invokeMessage: RelayToHandlerMessage = {
           type: "invoke-handler",
@@ -242,10 +312,26 @@ export const createRelayServer = (
 
         if (socket.readyState !== WebSocket.OPEN) {
           yield { type: "error", content: "Handler disconnected" };
+          cleanupQueue();
           return;
         }
 
         socket.send(JSON.stringify(invokeMessage));
+
+        try {
+          for await (const message of messageQueue) {
+            if (signal?.aborted) break;
+            yield message;
+            if (message.type === "done" || message.type === "error") {
+              break;
+            }
+          }
+        } finally {
+          if (signal) {
+            signal.removeEventListener("abort", cleanupQueue);
+          }
+          cleanupQueue();
+        }
       },
       abort: (sessionId) => {
         if (socket.readyState === WebSocket.OPEN) {
@@ -302,17 +388,22 @@ export const createRelayServer = (
       message.type === "agent-done" ||
       message.type === "agent-error"
     ) {
-      const session = activeSessions.get(message.sessionId);
-      if (session) {
-        sendToBrowser(session.browserSocket, {
-          type: message.type,
-          agentId: message.agentId,
-          sessionId: message.sessionId,
-          content: message.content,
+      const messageQueue = sessionMessageQueues.get(message.sessionId);
+      if (messageQueue) {
+        const mappedType =
+          message.type === "agent-status"
+            ? "status"
+            : message.type === "agent-done"
+              ? "done"
+              : "error";
+
+        messageQueue.push({
+          type: mappedType,
+          content: message.content ?? "",
         });
 
         if (message.type === "agent-done" || message.type === "agent-error") {
-          activeSessions.delete(message.sessionId);
+          messageQueue.close();
         }
       }
     }
@@ -396,6 +487,11 @@ export const createRelayServer = (
       session.abortController.abort();
     }
     activeSessions.clear();
+
+    for (const queue of sessionMessageQueues.values()) {
+      queue.close();
+    }
+    sessionMessageQueues.clear();
 
     for (const socket of browserSockets) {
       socket.close();
