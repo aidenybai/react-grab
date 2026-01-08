@@ -1,10 +1,27 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
+
+interface RelayClient {
+  onMessage: (callback: (message: RelayMessage) => void) => () => void;
+  onConnectionChange: (callback: (connected: boolean) => void) => () => void;
+  onHandlersChange: (callback: (handlers: string[]) => void) => () => void;
+  getAvailableHandlers: () => string[];
+  isConnected: () => boolean;
+}
+
+interface RelayMessage {
+  type: string;
+  agentId?: string;
+  sessionId?: string;
+  content?: string;
+  handlers?: string[];
+}
 
 declare global {
   interface Window {
     __REACT_GRAB__?: {
       activate: () => void;
     };
+    __REACT_GRAB_RELAY__?: RelayClient;
   }
 }
 
@@ -110,12 +127,17 @@ interface LogEntry {
 
 const LOG_TYPE_STYLES: Record<string, { icon: string; color: string }> = {
   info: { icon: "◆", color: "text-white/60" },
-  start: { icon: "▶", color: "text-white/60" },
-  status: { icon: "◉", color: "text-white/60" },
-  done: { icon: "✓", color: "text-white/60" },
-  error: { icon: "!", color: "text-[#ff6b6b]" },
-  resume: { icon: "↻", color: "text-white/60" },
+  connect: { icon: "●", color: "text-green-400" },
+  disconnect: { icon: "○", color: "text-red-400" },
+  handlers: { icon: "↔", color: "text-blue-400" },
+  status: { icon: "◉", color: "text-[#fc4efd]" },
+  done: { icon: "✓", color: "text-green-400" },
+  error: { icon: "✕", color: "text-red-400" },
 };
+
+const MAX_LOG_ENTRIES = 50;
+const STATUS_TRUNCATE_LENGTH = 60;
+const RELAY_CHECK_INTERVAL_MS = 100;
 
 export const App = ({
   loadedProviders,
@@ -123,14 +145,27 @@ export const App = ({
   availableProviders,
 }: AppProps) => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [relayConnected, setRelayConnected] = useState(false);
+  const [relayHandlers, setRelayHandlers] = useState<string[]>([]);
   const didInit = useRef(false);
+  const logsEndRef = useRef<HTMLDivElement>(null);
 
-  const addLog = (type: string, message: string) => {
-    setLogs((previousLogs) => [
-      ...previousLogs,
-      { type, message, time: new Date() },
-    ]);
-  };
+  const addLog = useCallback((type: string, message: string) => {
+    setLogs((previousLogs) => {
+      const newLogs = [
+        ...previousLogs,
+        { type, message, time: new Date() },
+      ];
+      if (newLogs.length > MAX_LOG_ENTRIES) {
+        return newLogs.slice(-MAX_LOG_ENTRIES);
+      }
+      return newLogs;
+    });
+  }, []);
+
+  useEffect(() => {
+    logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [logs]);
 
   useEffect(() => {
     if (didInit.current) return;
@@ -138,25 +173,87 @@ export const App = ({
 
     const api = window.__REACT_GRAB__;
     if (!api) {
-      addLog("error", "React Grab not initialized");
+      queueMicrotask(() => {
+        addLog("error", "React Grab not initialized");
+      });
       return;
     }
 
     for (const provider of failedProviders) {
-      addLog("error", `Failed to load provider: ${provider}`);
+      addLog("error", `Failed to load: ${provider}`);
     }
 
     if (loadedProviders.length === 0 && failedProviders.length === 0) {
       addLog("info", "No providers loaded. Add ?provider=cursor,claude to URL");
     } else {
       for (const provider of loadedProviders) {
-        addLog("info", `Provider loaded: ${provider}`);
-      }
-      if (loadedProviders.length > 0) {
-        addLog("info", "Ready – select an element to see available actions");
+        addLog("info", `Loaded: ${provider}`);
       }
     }
-  }, [loadedProviders, failedProviders]);
+  }, [loadedProviders, failedProviders, addLog]);
+
+  useEffect(() => {
+    let relayCleanup: (() => void) | false = false;
+
+    const checkForRelay = () => {
+      const relayClient = window.__REACT_GRAB_RELAY__;
+      if (!relayClient) return false;
+
+      const isConnected = relayClient.isConnected();
+      setRelayConnected(isConnected);
+      setRelayHandlers(relayClient.getAvailableHandlers());
+
+      const unsubscribeConnection = relayClient.onConnectionChange((connected) => {
+        setRelayConnected(connected);
+        addLog(connected ? "connect" : "disconnect", connected ? "Relay connected" : "Relay disconnected");
+      });
+
+      const unsubscribeHandlers = relayClient.onHandlersChange((handlers) => {
+        setRelayHandlers(handlers);
+        if (handlers.length > 0) {
+          addLog("handlers", `Available: ${handlers.join(", ")}`);
+        }
+      });
+
+      const unsubscribeMessage = relayClient.onMessage((message) => {
+        if (message.type === "agent-status" && message.content && message.agentId) {
+          const truncatedContent = message.content.length > STATUS_TRUNCATE_LENGTH
+            ? `${message.content.slice(0, STATUS_TRUNCATE_LENGTH)}…`
+            : message.content;
+          addLog("status", `[${message.agentId}] ${truncatedContent}`);
+        } else if (message.type === "agent-done" && message.agentId) {
+          addLog("done", `[${message.agentId}] Completed`);
+        } else if (message.type === "agent-error" && message.agentId) {
+          const errorContent = message.content || "Unknown error";
+          addLog("error", `[${message.agentId}] ${errorContent}`);
+        }
+      });
+
+      return () => {
+        unsubscribeConnection();
+        unsubscribeHandlers();
+        unsubscribeMessage();
+      };
+    };
+
+    const cleanup = checkForRelay();
+    if (cleanup) return cleanup;
+
+    const intervalId = setInterval(() => {
+      const result = checkForRelay();
+      if (result) {
+        relayCleanup = result;
+        clearInterval(intervalId);
+      }
+    }, RELAY_CHECK_INTERVAL_MS);
+
+    return () => {
+      clearInterval(intervalId);
+      if (relayCleanup) {
+        relayCleanup();
+      }
+    };
+  }, [addLog]);
 
   const handleAddProvider = (provider: string) => {
     const currentProviders =
@@ -170,7 +267,7 @@ export const App = ({
     providerList.push(provider);
     const newUrl = new URL(window.location.href);
     newUrl.searchParams.set("provider", providerList.join(","));
-    window.location.href = newUrl.toString();
+    window.location.assign(newUrl.toString());
   };
 
   const handleRemoveProvider = (provider: string) => {
@@ -186,7 +283,7 @@ export const App = ({
     } else {
       newUrl.searchParams.set("provider", providerList.join(","));
     }
-    window.location.href = newUrl.toString();
+    window.location.assign(newUrl.toString());
   };
 
   const inactiveProviders = availableProviders.filter(
@@ -204,6 +301,16 @@ export const App = ({
             <h1 className="text-xl font-semibold tracking-tight">
               Agent Playground
             </h1>
+            <div className="flex items-center gap-1.5 ml-auto">
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  relayConnected ? "bg-green-400" : "bg-red-400"
+                }`}
+              />
+              <span className="text-xs text-white/50">
+                {relayConnected ? "Connected" : "Disconnected"}
+              </span>
+            </div>
           </div>
           <p className="text-white/50 text-sm">
             Select any element and choose an agent from the context menu
@@ -221,8 +328,15 @@ export const App = ({
         </header>
 
         <section className="flex flex-col gap-3">
-          <div className="text-xs text-white/30 uppercase tracking-wider">
-            Providers
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-white/30 uppercase tracking-wider">
+              Providers
+            </span>
+            {relayHandlers.length > 0 && (
+              <span className="text-xs text-white/20">
+                ({relayHandlers.length} handler{relayHandlers.length !== 1 ? "s" : ""} ready)
+              </span>
+            )}
           </div>
           <div className="flex flex-wrap gap-2">
             {loadedProviders.length === 0 &&
@@ -291,10 +405,20 @@ export const App = ({
         </section>
 
         <section className="flex flex-col gap-3">
-          <div className="text-xs text-white/30 uppercase tracking-wider">
-            Activity
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-white/30 uppercase tracking-wider">
+              Activity
+            </span>
+            {logs.length > 0 && (
+              <button
+                onClick={() => setLogs([])}
+                className="text-xs text-white/30 hover:text-white/50 transition-colors"
+              >
+                Clear
+              </button>
+            )}
           </div>
-          <div className="bg-white/5 rounded-lg border border-white/10 p-1 min-h-[140px]">
+          <div className="bg-white/5 rounded-lg border border-white/10 p-1 min-h-[180px] max-h-[300px] overflow-y-auto">
             {logs.length === 0 ? (
               <div className="px-3 py-2 text-white/30 text-sm">Waiting…</div>
             ) : (
@@ -304,23 +428,24 @@ export const App = ({
                   return (
                     <div
                       key={logIndex}
-                      className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-white/5 transition-colors"
+                      className="flex items-start gap-3 px-3 py-1.5 rounded-md hover:bg-white/5 transition-colors"
                     >
-                      <span className={`${style.color} text-xs w-3`}>
+                      <span className={`${style.color} text-xs w-3 mt-0.5 shrink-0`}>
                         {style.icon}
                       </span>
                       <span
-                        className="text-white/70 text-sm flex-1"
+                        className="text-white/70 text-sm flex-1 break-all"
                         style={{ fontFamily: "var(--font-geist-mono)" }}
                       >
                         {log.message}
                       </span>
-                      <span className="text-white/20 text-xs tabular-nums">
+                      <span className="text-white/20 text-xs tabular-nums shrink-0">
                         {log.time.toLocaleTimeString()}
                       </span>
                     </div>
                   );
                 })}
+                <div ref={logsEndRef} />
               </div>
             )}
           </div>

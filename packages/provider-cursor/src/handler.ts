@@ -1,35 +1,12 @@
 import { execa, type ResultPromise } from "execa";
-import { pathToFileURL } from "node:url";
-import { Hono } from "hono";
-import { cors } from "hono/cors";
-import { streamSSE } from "hono/streaming";
-import { serve } from "@hono/node-server";
-import fkill from "fkill";
-import pc from "picocolors";
-import type { AgentContext } from "react-grab/core";
-import { DEFAULT_PORT, COMPLETED_STATUS } from "./constants.js";
+import type { AgentHandler, AgentMessage, AgentRunOptions } from "@react-grab/relay";
+import { COMPLETED_STATUS } from "@react-grab/relay";
+import { formatSpawnError } from "@react-grab/utils/server";
 
-const VERSION = process.env.VERSION ?? "0.0.0";
-
-try {
-  fetch(
-    `https://www.react-grab.com/api/version?source=cursor&t=${Date.now()}`,
-  ).catch(() => {});
-} catch {}
-
-import {
-  sleep,
-  formatSpawnError,
-  type AgentMessage,
-  type AgentCoreOptions,
-} from "@react-grab/utils/server";
-
-export interface CursorAgentOptions extends AgentCoreOptions {
+export interface CursorAgentOptions extends AgentRunOptions {
   model?: string;
   workspace?: string;
 }
-
-type CursorAgentContext = AgentContext<CursorAgentOptions>;
 
 interface CursorStreamEvent {
   type: "system" | "user" | "thinking" | "assistant" | "result";
@@ -70,7 +47,7 @@ const extractTextFromMessage = (
     .trim();
 };
 
-export const runAgent = async function* (
+const runCursorAgent = async function* (
   prompt: string,
   options?: CursorAgentOptions,
 ): AsyncGenerator<AgentMessage> {
@@ -101,6 +78,7 @@ export const runAgent = async function* (
 
   let cursorProcess: ResultPromise | undefined;
   let stderrBuffer = "";
+  let cleanupSignalListener: (() => void) | undefined;
 
   try {
     yield { type: "status", content: "Thinking…" };
@@ -126,6 +104,7 @@ export const runAgent = async function* (
     const messageQueue: AgentMessage[] = [];
     let resolveWait: (() => void) | null = null;
     let processEnded = false;
+    let aborted = false;
     let capturedCursorChatId: string | undefined;
 
     const enqueueMessage = (message: AgentMessage) => {
@@ -133,6 +112,32 @@ export const runAgent = async function* (
       if (resolveWait) {
         resolveWait();
         resolveWait = null;
+      }
+    };
+
+    const handleAbort = () => {
+      aborted = true;
+      if (cursorProcess && !cursorProcess.killed) {
+        cursorProcess.kill("SIGTERM");
+      }
+      if (resolveWait) {
+        resolveWait();
+        resolveWait = null;
+      }
+    };
+
+    const signal = options?.signal;
+    if (signal) {
+      if (signal.aborted) {
+        handleAbort();
+      } else {
+        signal.addEventListener("abort", handleAbort);
+      }
+    }
+
+    cleanupSignalListener = () => {
+      if (signal) {
+        signal.removeEventListener("abort", handleAbort);
       }
     };
 
@@ -243,30 +248,32 @@ export const runAgent = async function* (
       }
     });
 
-    while (true) {
-      if (options?.signal?.aborted) {
-        if (cursorProcess && !cursorProcess.killed) {
-          cursorProcess.kill("SIGTERM");
-        }
-        return;
-      }
-
-      if (messageQueue.length > 0) {
-        const message = messageQueue.shift()!;
-        if (message.type === "done") {
-          yield message;
+    try {
+      while (true) {
+        if (aborted) {
           return;
         }
-        yield message;
-      } else if (processEnded) {
-        return;
-      } else {
-        await new Promise<void>((resolve) => {
-          resolveWait = resolve;
-        });
+
+        if (messageQueue.length > 0) {
+          const message = messageQueue.shift()!;
+          if (message.type === "done") {
+            yield message;
+            return;
+          }
+          yield message;
+        } else if (processEnded) {
+          return;
+        } else {
+          await new Promise<void>((resolve) => {
+            resolveWait = resolve;
+          });
+        }
       }
+    } finally {
+      cleanupSignalListener?.();
     }
   } catch (error) {
+    cleanupSignalListener?.();
     const errorMessage =
       error instanceof Error
         ? formatSpawnError(error, "cursor-agent")
@@ -280,142 +287,57 @@ export const runAgent = async function* (
   }
 };
 
-export const createServer = () => {
-  const app = new Hono();
+const abortCursorAgent = (sessionId: string) => {
+  const activeProcess = activeProcesses.get(sessionId);
+  if (activeProcess && !activeProcess.killed) {
+    activeProcess.kill("SIGTERM");
+    activeProcesses.delete(sessionId);
+  }
+};
 
-  app.use("*", cors());
+const undoCursorAgent = async (): Promise<void> => {
+  if (!lastCursorChatId) {
+    return;
+  }
 
-  app.post("/agent", async (context) => {
-    const body = await context.req.json<CursorAgentContext>();
-    const { content, prompt, options, sessionId } = body;
+  try {
+    const cursorAgentArgs = [
+      "--print",
+      "--output-format",
+      "stream-json",
+      "--force",
+      "--resume",
+      lastCursorChatId,
+    ];
 
-    const cursorChatId = sessionId
-      ? cursorSessionMap.get(sessionId)
-      : undefined;
-    const isFollowUp = Boolean(cursorChatId);
+    const workspacePath = process.env.REACT_GRAB_CWD ?? process.cwd();
 
-    const contentItems = Array.isArray(content) ? content : [content];
-
-    return streamSSE(context, async (stream) => {
-      if (isFollowUp) {
-        for await (const message of runAgent(prompt, {
-          ...options,
-          sessionId,
-        })) {
-          if (message.type === "error") {
-            await stream.writeSSE({
-              data: `Error: ${message.content}`,
-              event: "error",
-            });
-          } else {
-            await stream.writeSSE({
-              data: message.content,
-              event: message.type,
-            });
-          }
-        }
-        return;
-      }
-
-      for (let i = 0; i < contentItems.length; i++) {
-        const elementContent = contentItems[i];
-        const userPrompt = `${prompt}\n\n${elementContent}`;
-
-        if (contentItems.length > 1) {
-          await stream.writeSSE({
-            data: `Processing element ${i + 1} of ${contentItems.length}...`,
-            event: "status",
-          });
-        }
-
-        for await (const message of runAgent(userPrompt, {
-          ...options,
-          sessionId,
-        })) {
-          if (message.type === "error") {
-            await stream.writeSSE({
-              data: `Error: ${message.content}`,
-              event: "error",
-            });
-          } else {
-            await stream.writeSSE({
-              data: message.content,
-              event: message.type,
-            });
-          }
-        }
-      }
+    const cursorProcess = execa("cursor-agent", cursorAgentArgs, {
+      stdin: "pipe",
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { ...process.env },
+      cwd: workspacePath,
     });
-  });
 
-  app.post("/abort/:sessionId", (context) => {
-    const { sessionId } = context.req.param();
-    const activeProcess = activeProcesses.get(sessionId);
-    if (activeProcess && !activeProcess.killed) {
-      activeProcess.kill("SIGTERM");
-      activeProcesses.delete(sessionId);
-    }
-    return context.json({ status: "ok" });
-  });
-
-  app.post("/undo", async (context) => {
-    if (!lastCursorChatId) {
-      return context.json({ status: "error", message: "No session to undo" });
+    if (cursorProcess.stdin) {
+      cursorProcess.stdin.write("undo");
+      cursorProcess.stdin.end();
     }
 
-    try {
-      const cursorAgentArgs = [
-        "--print",
-        "--output-format",
-        "stream-json",
-        "--force",
-        "--resume",
-        lastCursorChatId,
-      ];
-
-      const workspacePath = process.env.REACT_GRAB_CWD ?? process.cwd();
-
-      const cursorProcess = execa("cursor-agent", cursorAgentArgs, {
-        stdin: "pipe",
-        stdout: "pipe",
-        stderr: "pipe",
-        env: { ...process.env },
-        cwd: workspacePath,
-      });
-
-      if (cursorProcess.stdin) {
-        cursorProcess.stdin.write("undo");
-        cursorProcess.stdin.end();
-      }
-
-      await cursorProcess;
-      return context.json({ status: "ok" });
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      return context.json({ status: "error", message: errorMessage });
-    }
-  });
-
-  app.get("/health", (context) => {
-    return context.json({ status: "ok", provider: "cursor" });
-  });
-
-  return app;
+    await cursorProcess;
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? formatSpawnError(error, "cursor-agent")
+        : "Unknown error";
+    throw new Error(`Undo failed: ${errorMessage}`);
+  }
 };
 
-export const startServer = async (port: number = DEFAULT_PORT) => {
-  await fkill(`:${port}`, { force: true, silent: true }).catch(() => {});
-  await sleep(100);
-
-  const app = createServer();
-  serve({ fetch: app.fetch, port });
-  console.log(
-    `${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim("(Cursor)")}`,
-  );
-  console.log(`- Local:    ${pc.cyan(`http://localhost:${port}`)}`);
+export const cursorAgentHandler: AgentHandler = {
+  agentId: "cursor",
+  run: runCursorAgent,
+  abort: abortCursorAgent,
+  undo: undoCursorAgent,
 };
-
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-  startServer(DEFAULT_PORT).catch(console.error);
-}

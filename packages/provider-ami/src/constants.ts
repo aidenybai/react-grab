@@ -1,1 +1,0 @@
-export const COMPLETED_STATUS = "COMPLETED_STATUS";

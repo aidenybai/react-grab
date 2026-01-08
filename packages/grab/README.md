@@ -571,10 +571,11 @@ Add custom actions to the right-click menu:
 ```typescript
 api.registerPlugin({
   name: "custom-actions",
-  contextMenuActions: [
+  actions: [
     {
+      id: "log-to-console",
       label: "Log to Console",
-      handler: ({ elements }) => console.dir(elements[0]),
+      onAction: ({ elements }) => console.dir(elements[0]),
     },
   ],
 });
@@ -602,24 +603,32 @@ Create a custom agent that processes selected elements:
 ```typescript
 api.registerPlugin({
   name: "my-custom-agent",
-  agent: {
-    provider: {
-      async *send({ prompt, elements, content }) {
-        yield "Analyzing element...";
+  actions: [
+    {
+      id: "custom-agent",
+      label: "Ask AI",
+      onAction: ({ enterPromptMode }) => enterPromptMode?.(),
+      agent: {
+        provider: {
+          async *send({ prompt, content }, signal) {
+            yield "Analyzing element...";
 
-        const response = await fetch("/api/ai", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt, content }),
-        });
+            const response = await fetch("/api/ai", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ prompt, content }),
+              signal,
+            });
 
-        yield "Processing response...";
+            yield "Processing response...";
 
-        const result = await response.json();
-        yield `Done: ${result.message}`;
+            const result = await response.json();
+            yield `Done: ${result.message}`;
+          },
+        },
       },
     },
-  },
+  ],
 });
 ```
 

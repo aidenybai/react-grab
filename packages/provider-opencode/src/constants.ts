@@ -1,2 +1,2 @@
-export const DEFAULT_PORT = 6567;
-export const COMPLETED_STATUS = "Completed successfully";
+export const OPENCODE_SDK_PORT = 4096;
+export const STATUS_TEXT_TRUNCATE_LENGTH = 100;

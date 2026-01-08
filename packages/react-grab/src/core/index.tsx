@@ -1434,7 +1434,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           }
         } catch (error) {
           errorMessage =
-            error instanceof Error ? error.message : "Screenshot failed";
+            error instanceof Error && error.message
+              ? error.message
+              : "Screenshot failed";
         }
 
         isScreenshotInProgress = false;
@@ -1443,7 +1445,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         updateLabelInstance(
           instanceId,
           didSucceed ? "copied" : "error",
-          didSucceed ? undefined : errorMessage,
+          didSucceed ? undefined : errorMessage || "Unknown error",
         );
 
         setTimeout(() => {
@@ -2186,7 +2188,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
       } catch (error) {
         errorMessage =
-          error instanceof Error ? error.message : "Screenshot failed";
+          error instanceof Error && error.message
+            ? error.message
+            : "Screenshot failed";
       }
 
       isScreenshotInProgress = false;
@@ -2195,7 +2199,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       updateLabelInstance(
         instanceId,
         didSucceed ? "copied" : "error",
-        didSucceed ? undefined : errorMessage,
+        didSucceed ? undefined : errorMessage || "Unknown error",
       );
 
       setTimeout(() => {

@@ -1,21 +1,15 @@
 #!/usr/bin/env node
-import { join } from "node:path";
-import { execa } from "execa";
-import pc from "picocolors";
-import { DEFAULT_PORT } from "./constants.js";
+import { connectRelay } from "@react-grab/relay";
+import { codexAgentHandler } from "./handler.js";
 
-declare const __dirname: string;
+try {
+  fetch(
+    `https://www.react-grab.com/api/version?source=codex&t=${Date.now()}`,
+  ).catch(() => {});
+} catch {}
 
-const VERSION = process.env.VERSION ?? "0.0.0";
-
-const serverPath = join(__dirname, "server.js");
-execa(process.execPath, [serverPath], {
-  detached: true,
-  stdio: "ignore",
-  cleanup: false,
-}).unref();
-
-console.log(
-  `${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim("(Codex)")}`,
-);
-console.log(`- Local:    ${pc.cyan(`http://localhost:${DEFAULT_PORT}`)}`);
+(async () => {
+  await connectRelay({ handler: codexAgentHandler });
+})().catch((error) => {
+  throw error;
+});

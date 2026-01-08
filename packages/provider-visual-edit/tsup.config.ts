@@ -56,7 +56,7 @@ export default defineConfig([
     treeshake: true,
   },
   {
-    entry: ["./src/client/index.ts"],
+    entry: { client: "./src/client/index.ts" },
     format: ["iife"],
     globalName: "ReactGrabVisualEdit",
     outExtension: () => ({ js: ".global.js" }),

@@ -9,23 +9,7 @@ const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8")) as {
 export default defineConfig([
   {
     entry: {
-      server: "./src/server.ts",
-    },
-    format: ["cjs", "esm"],
-    dts: true,
-    clean: false,
-    splitting: false,
-    sourcemap: false,
-    target: "node18",
-    platform: "node",
-    treeshake: true,
-    noExternal: ["@react-grab/utils"],
-    env: {
-      VERSION: process.env.VERSION ?? packageJson.version,
-    },
-  },
-  {
-    entry: {
+      handler: "./src/handler.ts",
       cli: "./src/cli.ts",
     },
     format: ["cjs", "esm"],
@@ -54,7 +38,7 @@ export default defineConfig([
     target: "esnext",
     platform: "browser",
     treeshake: true,
-    noExternal: ["@react-grab/utils"],
+    noExternal: ["@react-grab/relay"],
   },
   {
     entry: ["./src/client.ts"],

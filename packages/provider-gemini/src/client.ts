@@ -1,32 +1,23 @@
 import type {
-  AgentContext,
-  AgentSessionStorage,
   AgentCompleteResult,
   init,
   ReactGrabAPI,
+  Plugin,
+  ActionContext,
 } from "react-grab/core";
 import {
-  CONNECTION_CHECK_TTL_MS,
-  createCachedConnectionChecker,
-  getStoredAgentContext,
-  streamAgentStatusFromServer,
-} from "@react-grab/utils/client";
+  createRelayAgentProvider,
+  getDefaultRelayClient,
+  type RelayClient,
+  type AgentProvider,
+} from "@react-grab/relay/client";
 
 export type { AgentCompleteResult };
-import { DEFAULT_PORT, COMPLETED_STATUS } from "./constants.js";
 
-const DEFAULT_SERVER_URL = `http://localhost:${DEFAULT_PORT}`;
-
-interface GeminiAgentOptions {
-  model?: string;
-  includeDirectories?: string;
-}
-
-type GeminiAgentContext = AgentContext<GeminiAgentOptions>;
+const AGENT_ID = "gemini";
 
 interface GeminiAgentProviderOptions {
-  serverUrl?: string;
-  getOptions?: () => Partial<GeminiAgentOptions>;
+  relayClient?: RelayClient;
 }
 
 const isReactGrabApi = (value: unknown): value is ReactGrabAPI =>
@@ -34,76 +25,16 @@ const isReactGrabApi = (value: unknown): value is ReactGrabAPI =>
 
 export const createGeminiAgentProvider = (
   providerOptions: GeminiAgentProviderOptions = {},
-) => {
-  const { serverUrl = DEFAULT_SERVER_URL, getOptions } = providerOptions;
+): AgentProvider => {
+  const relayClient = providerOptions.relayClient ?? getDefaultRelayClient();
+  if (!relayClient) {
+    throw new Error("RelayClient is required in browser environments");
+  }
 
-  const mergeOptions = (
-    contextOptions?: GeminiAgentOptions,
-  ): GeminiAgentOptions => ({
-    ...(getOptions?.() ?? {}),
-    ...(contextOptions ?? {}),
+  return createRelayAgentProvider({
+    relayClient,
+    agentId: AGENT_ID,
   });
-
-  const checkConnection = createCachedConnectionChecker(async () => {
-    const response = await fetch(`${serverUrl}/health`, { method: "GET" });
-    return response.ok;
-  }, CONNECTION_CHECK_TTL_MS);
-
-  return {
-    send: async function* (context: GeminiAgentContext, signal: AbortSignal) {
-      const mergedContext = {
-        ...context,
-        options: mergeOptions(context.options),
-      };
-      yield* streamAgentStatusFromServer(
-        { serverUrl, completedStatus: COMPLETED_STATUS },
-        mergedContext,
-        signal,
-      );
-    },
-
-    resume: async function* (
-      sessionId: string,
-      signal: AbortSignal,
-      storage: AgentSessionStorage,
-    ) {
-      const storedContext = getStoredAgentContext(storage, sessionId);
-      const context: GeminiAgentContext = {
-        content: storedContext.content,
-        prompt: storedContext.prompt,
-        options: storedContext.options as GeminiAgentOptions | undefined,
-        sessionId: storedContext.sessionId ?? sessionId,
-      };
-      const mergedContext = {
-        ...context,
-        options: mergeOptions(context.options),
-      };
-
-      yield "Resuming...";
-      yield* streamAgentStatusFromServer(
-        { serverUrl, completedStatus: COMPLETED_STATUS },
-        mergedContext,
-        signal,
-      );
-    },
-
-    supportsResume: true,
-    supportsFollowUp: true,
-
-    checkConnection,
-
-    abort: async (sessionId: string) => {
-      try {
-        await fetch(`${serverUrl}/abort/${sessionId}`, { method: "POST" });
-      } catch {}
-    },
-
-    undo: async () => {
-      try {
-        await fetch(`${serverUrl}/undo`, { method: "POST" });
-      } catch {}
-    },
-  };
 };
 
 declare global {
@@ -115,24 +46,37 @@ declare global {
 export const attachAgent = async () => {
   if (typeof window === "undefined") return;
 
-  const provider = createGeminiAgentProvider();
+  const relayClient = getDefaultRelayClient();
+  if (!relayClient) return;
+
+  try {
+    await relayClient.connect();
+  } catch {
+    return;
+  }
+
+  const provider = createRelayAgentProvider({
+    relayClient,
+    agentId: AGENT_ID,
+  });
 
   const attach = (api: ReactGrabAPI) => {
     const agent = { provider, storage: sessionStorage };
-    api.registerPlugin({
+    const plugin: Plugin = {
       name: "gemini-agent",
       actions: [
         {
           id: "edit-with-gemini",
           label: "Edit with Gemini",
           shortcut: "Enter",
-          onAction: (context) => {
-            context.enterPromptMode?.(agent);
+          onAction: (actionContext: ActionContext) => {
+            actionContext.enterPromptMode?.(agent);
           },
           agent,
         },
       ],
-    });
+    };
+    api.registerPlugin(plugin);
   };
 
   const existingApi = window.__REACT_GRAB__;

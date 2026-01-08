@@ -1,37 +1,14 @@
 import { execa, type ResultPromise } from "execa";
-import { pathToFileURL } from "node:url";
-import { Hono } from "hono";
-import { cors } from "hono/cors";
-import { streamSSE } from "hono/streaming";
-import { serve } from "@hono/node-server";
-import fkill from "fkill";
-import pc from "picocolors";
-import type { AgentContext } from "react-grab/core";
-import { DEFAULT_PORT, COMPLETED_STATUS } from "./constants.js";
+import type { AgentHandler, AgentMessage, AgentRunOptions } from "@react-grab/relay";
+import { COMPLETED_STATUS } from "@react-grab/relay";
+import { formatSpawnError } from "@react-grab/utils/server";
 
-const VERSION = process.env.VERSION ?? "0.0.0";
-
-try {
-  fetch(
-    `https://www.react-grab.com/api/version?source=droid&t=${Date.now()}`,
-  ).catch(() => {});
-} catch {}
-
-import {
-  sleep,
-  formatSpawnError,
-  type AgentMessage,
-  type AgentCoreOptions,
-} from "@react-grab/utils/server";
-
-export interface DroidAgentOptions extends AgentCoreOptions {
+export interface DroidAgentOptions extends AgentRunOptions {
   autoLevel?: "low" | "medium" | "high";
   model?: string;
   reasoningEffort?: "low" | "medium" | "high";
   workspace?: string;
 }
-
-type DroidAgentContext = AgentContext<DroidAgentOptions>;
 
 interface DroidStreamEvent {
   type: "system" | "message" | "tool_call" | "tool_result" | "completion";
@@ -59,7 +36,7 @@ const parseStreamLine = (line: string): DroidStreamEvent | null => {
   }
 };
 
-export const runAgent = async function* (
+const runDroidAgent = async function* (
   prompt: string,
   options?: DroidAgentOptions,
 ): AsyncGenerator<AgentMessage> {
@@ -279,147 +256,58 @@ export const runAgent = async function* (
   }
 };
 
-export const createServer = () => {
-  const app = new Hono();
+const abortDroidAgent = (sessionId: string) => {
+  const activeProcess = activeProcesses.get(sessionId);
+  if (activeProcess && !activeProcess.killed) {
+    activeProcess.kill("SIGTERM");
+  }
+  activeProcesses.delete(sessionId);
+};
 
-  app.use("*", cors());
+const undoDroidAgent = async (): Promise<void> => {
+  if (!lastDroidSessionId) {
+    return;
+  }
 
-  app.post("/agent", async (context) => {
-    const body = await context.req.json<DroidAgentContext>();
-    const { content, prompt, options, sessionId } = body;
+  try {
+    const droidArgs = [
+      "exec",
+      "--output-format",
+      "stream-json",
+      "--auto",
+      "low",
+      "--session-id",
+      lastDroidSessionId,
+    ];
 
-    const droidSessionId = sessionId
-      ? droidSessionMap.get(sessionId)
-      : undefined;
-    const isFollowUp = Boolean(droidSessionId);
+    const workspacePath = process.env.REACT_GRAB_CWD ?? process.cwd();
 
-    const contentItems = Array.isArray(content) ? content : [content];
-
-    return streamSSE(context, async (stream) => {
-      if (isFollowUp) {
-        for await (const message of runAgent(prompt, {
-          ...options,
-          sessionId,
-        })) {
-          if (message.type === "error") {
-            await stream.writeSSE({
-              data: `Error: ${message.content}`,
-              event: "error",
-            });
-          } else {
-            await stream.writeSSE({
-              data: message.content,
-              event: message.type,
-            });
-          }
-        }
-        return;
-      }
-
-      for (let i = 0; i < contentItems.length; i++) {
-        const elementContent = contentItems[i];
-        const userPrompt = `${prompt}
-
-Here is the selected React element context (file path, component name, and source code):
-
-${elementContent}`;
-
-        if (contentItems.length > 1) {
-          await stream.writeSSE({
-            data: `Processing element ${i + 1} of ${contentItems.length}...`,
-            event: "status",
-          });
-        }
-
-        for await (const message of runAgent(userPrompt, {
-          ...options,
-          sessionId,
-        })) {
-          if (message.type === "error") {
-            await stream.writeSSE({
-              data: `Error: ${message.content}`,
-              event: "error",
-            });
-          } else {
-            await stream.writeSSE({
-              data: message.content,
-              event: message.type,
-            });
-          }
-        }
-      }
+    const droidProcess = execa("droid", droidArgs, {
+      stdin: "pipe",
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { ...process.env },
+      cwd: workspacePath,
     });
-  });
 
-  app.post("/abort/:sessionId", (context) => {
-    const { sessionId } = context.req.param();
-    const activeProcess = activeProcesses.get(sessionId);
-    if (activeProcess && !activeProcess.killed) {
-      activeProcess.kill("SIGTERM");
-      activeProcesses.delete(sessionId);
-    }
-    return context.json({ status: "ok" });
-  });
-
-  app.post("/undo", async (context) => {
-    if (!lastDroidSessionId) {
-      return context.json({ status: "error", message: "No session to undo" });
+    if (droidProcess.stdin) {
+      droidProcess.stdin.write("undo the last change you made");
+      droidProcess.stdin.end();
     }
 
-    try {
-      const droidArgs = [
-        "exec",
-        "--output-format",
-        "stream-json",
-        "--auto",
-        "low",
-        "--session-id",
-        lastDroidSessionId,
-      ];
-
-      const workspacePath = process.env.REACT_GRAB_CWD ?? process.cwd();
-
-      const droidProcess = execa("droid", droidArgs, {
-        stdin: "pipe",
-        stdout: "pipe",
-        stderr: "pipe",
-        env: { ...process.env },
-        cwd: workspacePath,
-      });
-
-      if (droidProcess.stdin) {
-        droidProcess.stdin.write("undo the last change you made");
-        droidProcess.stdin.end();
-      }
-
-      await droidProcess;
-      return context.json({ status: "ok" });
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      return context.json({ status: "error", message: errorMessage });
-    }
-  });
-
-  app.get("/health", (context) => {
-    return context.json({ status: "ok", provider: "droid" });
-  });
-
-  return app;
+    await droidProcess;
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? formatSpawnError(error, "droid")
+        : "Unknown error";
+    throw new Error(`Undo failed: ${errorMessage}`);
+  }
 };
 
-export const startServer = async (port: number = DEFAULT_PORT) => {
-  await fkill(`:${port}`, { force: true, silent: true }).catch(() => {});
-  await sleep(100);
-
-  const app = createServer();
-  serve({ fetch: app.fetch, port });
-  console.log(
-    `${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim("(Factory Droid)")}`,
-  );
-  console.log(`- Local:    ${pc.cyan(`http://localhost:${port}`)}`);
+export const droidAgentHandler: AgentHandler = {
+  agentId: "droid",
+  run: runDroidAgent,
+  abort: abortDroidAgent,
+  undo: undoDroidAgent,
 };
-
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-  startServer(DEFAULT_PORT).catch(console.error);
-}

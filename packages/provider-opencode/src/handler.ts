@@ -1,66 +1,20 @@
 import { createOpencode } from "@opencode-ai/sdk";
 import fkill from "fkill";
-import { Hono } from "hono";
-import { cors } from "hono/cors";
-import { streamSSE } from "hono/streaming";
-import { serve } from "@hono/node-server";
-import pc from "picocolors";
-import type { AgentContext } from "react-grab/core";
-import { DEFAULT_PORT, COMPLETED_STATUS } from "./constants.js";
+import type { AgentHandler, AgentMessage, AgentRunOptions } from "@react-grab/relay";
+import { COMPLETED_STATUS, POST_KILL_DELAY_MS } from "@react-grab/relay";
+import { sleep } from "@react-grab/utils/server";
+import { OPENCODE_SDK_PORT, STATUS_TEXT_TRUNCATE_LENGTH } from "./constants.js";
 
-const VERSION = process.env.VERSION ?? "0.0.0";
-
-try {
-  fetch(
-    `https://www.react-grab.com/api/version?source=opencode&t=${Date.now()}`,
-  ).catch(() => {});
-} catch {}
-
-import {
-  sleep,
-  type AgentMessage,
-  type AgentCoreOptions,
-} from "@react-grab/utils/server";
-
-export interface OpenCodeAgentOptions extends AgentCoreOptions {
+export interface OpenCodeAgentOptions extends AgentRunOptions {
   model?: string;
   agent?: string;
   directory?: string;
 }
 
-type OpenCodeAgentContext = AgentContext<OpenCodeAgentOptions>;
-
 interface OpenCodeInstance {
   client: Awaited<ReturnType<typeof createOpencode>>["client"];
   server: Awaited<ReturnType<typeof createOpencode>>["server"];
 }
-
-const OPENCODE_SDK_PORT = 4096;
-
-interface LastMessageInfo {
-  sessionId: string;
-  messageId: string;
-}
-
-let opencodeInstance: OpenCodeInstance | null = null;
-const sessionMap = new Map<string, string>();
-const abortedSessions = new Set<string>();
-let lastMessageInfo: LastMessageInfo | undefined;
-
-const getOpenCodeClient = async () => {
-  if (!opencodeInstance) {
-    await fkill(`:${OPENCODE_SDK_PORT}`, { force: true, silent: true }).catch(
-      () => {},
-    );
-    await sleep(100);
-    const instance = await createOpencode({
-      hostname: "127.0.0.1",
-      port: OPENCODE_SDK_PORT,
-    });
-    opencodeInstance = instance;
-  }
-  return opencodeInstance.client;
-};
 
 interface OpenCodeEvent {
   type: string;
@@ -77,6 +31,46 @@ interface OpenCodeEvent {
     };
   };
 }
+
+interface LastMessageInfo {
+  sessionId: string;
+  messageId: string;
+}
+
+let opencodeInstance: OpenCodeInstance | null = null;
+let initializationPromise: Promise<OpenCodeInstance> | null = null;
+const sessionMap = new Map<string, string>();
+const abortedSessions = new Set<string>();
+let lastMessageInfo: LastMessageInfo | undefined;
+
+const getOpenCodeClient = async () => {
+  if (opencodeInstance) {
+    return opencodeInstance.client;
+  }
+
+  if (!initializationPromise) {
+    initializationPromise = (async () => {
+      await fkill(`:${OPENCODE_SDK_PORT}`, { force: true, silent: true }).catch(
+        () => {},
+      );
+      await sleep(POST_KILL_DELAY_MS);
+      const instance = await createOpencode({
+        hostname: "127.0.0.1",
+        port: OPENCODE_SDK_PORT,
+      });
+      opencodeInstance = instance;
+      return instance;
+    })();
+  }
+
+  try {
+    const instance = await initializationPromise;
+    return instance.client;
+  } catch (error) {
+    initializationPromise = null;
+    throw error;
+  }
+};
 
 const executeOpenCodePrompt = async (
   prompt: string,
@@ -155,7 +149,9 @@ const executeOpenCodePrompt = async (
 
       if (part.type === "text" && part.text) {
         const truncatedText =
-          part.text.length > 100 ? `${part.text.slice(0, 100)}...` : part.text;
+          part.text.length > STATUS_TEXT_TRUNCATE_LENGTH
+            ? `${part.text.slice(0, STATUS_TEXT_TRUNCATE_LENGTH)}...`
+            : part.text;
         onStatus?.(truncatedText);
       } else if (part.type === "tool-invocation" && part.toolName) {
         const stateLabel = part.state === "running" ? "Running" : "Using";
@@ -167,7 +163,7 @@ const executeOpenCodePrompt = async (
   return opencodeSessionId;
 };
 
-export const runAgent = async function* (
+const runOpenCodeAgent = async function* (
   prompt: string,
   options?: OpenCodeAgentOptions,
 ): AsyncGenerator<AgentMessage> {
@@ -273,123 +269,26 @@ export const runAgent = async function* (
   }
 };
 
-export const createServer = () => {
-  const honoApplication = new Hono();
-
-  honoApplication.use("*", cors());
-
-  honoApplication.post("/agent", async (context) => {
-    const requestBody = await context.req.json<OpenCodeAgentContext>();
-    const { content, prompt, options, sessionId } = requestBody;
-
-    const isFollowUp = Boolean(sessionId && sessionMap.has(sessionId));
-    const contentItems = Array.isArray(content) ? content : [content];
-
-    return streamSSE(context, async (stream) => {
-      if (isFollowUp) {
-        for await (const message of runAgent(prompt, {
-          ...options,
-          sessionId,
-        })) {
-          if (message.type === "error") {
-            await stream.writeSSE({
-              data: `Error: ${message.content}`,
-              event: "error",
-            });
-          } else {
-            await stream.writeSSE({
-              data: message.content,
-              event: message.type,
-            });
-          }
-        }
-        return;
-      }
-
-      for (let i = 0; i < contentItems.length; i++) {
-        const elementContent = contentItems[i];
-        const formattedPrompt = `
-User Request: ${prompt}
-
-Context:
-${elementContent}
-`;
-
-        if (contentItems.length > 1) {
-          await stream.writeSSE({
-            data: `Processing element ${i + 1} of ${contentItems.length}...`,
-            event: "status",
-          });
-        }
-
-        for await (const message of runAgent(formattedPrompt, {
-          ...options,
-          sessionId,
-        })) {
-          if (message.type === "error") {
-            await stream.writeSSE({
-              data: `Error: ${message.content}`,
-              event: "error",
-            });
-          } else {
-            await stream.writeSSE({
-              data: message.content,
-              event: message.type,
-            });
-          }
-        }
-      }
-    });
-  });
-
-  honoApplication.post("/abort/:sessionId", (context) => {
-    const { sessionId } = context.req.param();
-    abortedSessions.add(sessionId);
-    return context.json({ status: "ok" });
-  });
-
-  honoApplication.post("/undo", async (context) => {
-    if (!lastMessageInfo) {
-      return context.json({ status: "error", message: "No message to undo" });
-    }
-
-    try {
-      const client = await getOpenCodeClient();
-
-      await client.session.revert({
-        path: { id: lastMessageInfo.sessionId },
-        body: { messageID: lastMessageInfo.messageId },
-      });
-
-      return context.json({ status: "ok" });
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      return context.json({ status: "error", message: errorMessage });
-    }
-  });
-
-  honoApplication.get("/health", (context) => {
-    return context.json({ status: "ok", provider: "opencode" });
-  });
-
-  return honoApplication;
+const abortOpenCodeAgent = (sessionId: string) => {
+  abortedSessions.add(sessionId);
 };
 
-export const startServer = async (port: number = DEFAULT_PORT) => {
-  await fkill(`:${port}`, { force: true, silent: true }).catch(() => {});
-  await sleep(100);
+const undoOpenCodeAgent = async (): Promise<void> => {
+  if (!lastMessageInfo) {
+    return;
+  }
 
-  const honoApplication = createServer();
-  serve({ fetch: honoApplication.fetch, port });
-  console.log(
-    `${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim("(OpenCode)")}`,
-  );
-  console.log(`- Local:    ${pc.cyan(`http://localhost:${port}`)}`);
+  const client = await getOpenCodeClient();
+
+  await client.session.revert({
+    path: { id: lastMessageInfo.sessionId },
+    body: { messageID: lastMessageInfo.messageId },
+  });
 };
 
-import { pathToFileURL } from "node:url";
-
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-  startServer(DEFAULT_PORT).catch(console.error);
-}
+export const openCodeAgentHandler: AgentHandler = {
+  agentId: "opencode",
+  run: runOpenCodeAgent,
+  abort: abortOpenCodeAgent,
+  undo: undoOpenCodeAgent,
+};

@@ -86,7 +86,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
       }
     } else if (event.code === "Escape") {
       event.preventDefault();
-      handleAccept();
+      props.onDismiss?.();
     }
   };
 
@@ -107,10 +107,14 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
 
     if (isKeyboardEventTriggeredByInput(event)) return;
 
-    if (event.code === "Enter" || event.code === "Escape") {
+    if (event.code === "Enter") {
       event.preventDefault();
       event.stopPropagation();
       handleAccept();
+    } else if (event.code === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      props.onDismiss?.();
     }
   };
 

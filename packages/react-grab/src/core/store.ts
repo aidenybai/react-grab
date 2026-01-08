@@ -599,10 +599,16 @@ const createGrabStore = (input: GrabStoreInput) => {
         (instance) => instance.id === instanceId,
       );
       if (index !== -1) {
-        setStore("labelInstances", index, "status", status);
-        if (errorMessage !== undefined) {
-          setStore("labelInstances", index, "errorMessage", errorMessage);
-        }
+        setStore(
+          "labelInstances",
+          index,
+          produce((instance) => {
+            instance.status = status;
+            if (errorMessage !== undefined) {
+              instance.errorMessage = errorMessage;
+            }
+          }),
+        );
       }
     },
 

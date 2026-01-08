@@ -198,19 +198,10 @@ importers:
 
   packages/provider-ami:
     dependencies:
-      ami-sdk:
-        specifier: ^0.0.6
-        version: 0.0.6
-      picocolors:
-        specifier: ^1.1.1
-        version: 1.1.1
       react-grab:
         specifier: workspace:*
         version: link:../react-grab
     devDependencies:
-      '@react-grab/utils':
-        specifier: workspace:*
-        version: link:../utils
       '@types/node':
         specifier: ^22.10.7
         version: 22.19.2
@@ -220,24 +211,15 @@ importers:
 
   packages/provider-amp:
     dependencies:
-      '@hono/node-server':
-        specifier: ^1.19.6
-        version: 1.19.6(hono@4.10.7)
+      '@react-grab/relay':
+        specifier: workspace:*
+        version: link:../relay
+      '@sourcegraph/amp':
+        specifier: ^0.0.1767830505-ga62310
+        version: 0.0.1767830505-ga62310
       '@sourcegraph/amp-sdk':
-        specifier: 0.1.0-20251210081226-g90e3892
+        specifier: ^0.1.0-20251210081226-g90e3892
         version: 0.1.0-20251210081226-g90e3892
-      execa:
-        specifier: ^9.6.0
-        version: 9.6.1
-      fkill:
-        specifier: ^9.0.0
-        version: 9.0.0
-      hono:
-        specifier: ^4.0.0
-        version: 4.10.7
-      picocolors:
-        specifier: ^1.1.1
-        version: 1.1.1
       react-grab:
         specifier: workspace:*
         version: link:../react-grab
@@ -257,21 +239,9 @@ importers:
       '@anthropic-ai/claude-agent-sdk':
         specifier: ^0.1.0
         version: 0.1.46(zod@4.1.13)
-      '@hono/node-server':
-        specifier: ^1.19.6
-        version: 1.19.6(hono@4.10.7)
-      execa:
-        specifier: ^9.6.0
-        version: 9.6.1
-      fkill:
-        specifier: ^9.0.0
-        version: 9.0.0
-      hono:
-        specifier: ^4.0.0
-        version: 4.10.7
-      picocolors:
-        specifier: ^1.1.1
-        version: 1.1.1
+      '@react-grab/relay':
+        specifier: workspace:*
+        version: link:../relay
       react-grab:
         specifier: workspace:*
         version: link:../react-grab
@@ -288,24 +258,12 @@ importers:
 
   packages/provider-codex:
     dependencies:
-      '@hono/node-server':
-        specifier: ^1.19.6
-        version: 1.19.6(hono@4.10.7)
       '@openai/codex-sdk':
         specifier: ^0.66.0
         version: 0.66.0
-      execa:
-        specifier: ^9.6.0
-        version: 9.6.1
-      fkill:
-        specifier: ^9.0.0
-        version: 9.0.0
-      hono:
-        specifier: ^4.0.0
-        version: 4.10.7
-      picocolors:
-        specifier: ^1.1.1
-        version: 1.1.1
+      '@react-grab/relay':
+        specifier: workspace:*
+        version: link:../relay
       react-grab:
         specifier: workspace:*
         version: link:../react-grab
@@ -322,21 +280,12 @@ importers:
 
   packages/provider-cursor:
     dependencies:
-      '@hono/node-server':
-        specifier: ^1.19.6
-        version: 1.19.6(hono@4.10.7)
+      '@react-grab/relay':
+        specifier: workspace:*
+        version: link:../relay
       execa:
         specifier: ^9.6.0
         version: 9.6.1
-      fkill:
-        specifier: ^9.0.0
-        version: 9.0.0
-      hono:
-        specifier: ^4.0.0
-        version: 4.10.7
-      picocolors:
-        specifier: ^1.1.1
-        version: 1.1.1
       react-grab:
         specifier: workspace:*
         version: link:../react-grab
@@ -353,21 +302,12 @@ importers:
 
   packages/provider-droid:
     dependencies:
-      '@hono/node-server':
-        specifier: ^1.19.6
-        version: 1.19.6(hono@4.10.7)
+      '@react-grab/relay':
+        specifier: workspace:*
+        version: link:../relay
       execa:
         specifier: ^9.6.0
         version: 9.6.1
-      fkill:
-        specifier: ^9.0.0
-        version: 9.0.0
-      hono:
-        specifier: ^4.0.0
-        version: 4.10.7
-      picocolors:
-        specifier: ^1.1.1
-        version: 1.1.1
       react-grab:
         specifier: workspace:*
         version: link:../react-grab
@@ -384,21 +324,12 @@ importers:
 
   packages/provider-gemini:
     dependencies:
-      '@hono/node-server':
-        specifier: ^1.19.6
-        version: 1.19.6(hono@4.10.7)
+      '@react-grab/relay':
+        specifier: workspace:*
+        version: link:../relay
       execa:
         specifier: ^9.6.0
         version: 9.6.1
-      fkill:
-        specifier: ^9.0.0
-        version: 9.0.0
-      hono:
-        specifier: ^4.0.0
-        version: 4.10.7
-      picocolors:
-        specifier: ^1.1.1
-        version: 1.1.1
       react-grab:
         specifier: workspace:*
         version: link:../react-grab
@@ -415,24 +346,15 @@ importers:
 
   packages/provider-opencode:
     dependencies:
-      '@hono/node-server':
-        specifier: ^1.19.6
-        version: 1.19.6(hono@4.10.7)
       '@opencode-ai/sdk':
-        specifier: ^1.0.0
+        specifier: ^1.0.132
         version: 1.0.132
-      execa:
-        specifier: ^9.6.0
-        version: 9.6.1
+      '@react-grab/relay':
+        specifier: workspace:*
+        version: link:../relay
       fkill:
         specifier: ^9.0.0
         version: 9.0.0
-      hono:
-        specifier: ^4.0.0
-        version: 4.10.7
-      picocolors:
-        specifier: ^1.1.1
-        version: 1.1.1
       react-grab:
         specifier: workspace:*
         version: link:../react-grab
@@ -520,6 +442,31 @@ importers:
       typescript-eslint:
         specifier: ^8.46.1
         version: 8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3)
+
+  packages/relay:
+    dependencies:
+      '@react-grab/utils':
+        specifier: workspace:*
+        version: link:../utils
+      fkill:
+        specifier: ^9.0.0
+        version: 9.0.0
+      picocolors:
+        specifier: ^1.1.1
+        version: 1.1.1
+      ws:
+        specifier: ^8.18.0
+        version: 8.19.0
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.7
+        version: 22.19.2
+      '@types/ws':
+        specifier: ^8.5.13
+        version: 8.18.1
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
 
   packages/utils:
     devDependencies:
@@ -1533,12 +1480,6 @@ packages:
     resolution: {integrity: sha512-sB5uyeq+dwCWyPi31B2gQlVlo+j5brPlWx4yZBrEaRo/nhdDE8Xke1gsGgtiBdaBTxuTkceLVuVt/pclrasb0A==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
-  '@hono/node-server@1.19.6':
-    resolution: {integrity: sha512-Shz/KjlIeAhfiuE93NDKVdZ7HdBVLQAfdbaXEaoAVO3ic9ibRSLGIQGkcBbFyuLr+7/1D5ZCINM8B+6IvXeMtw==}
-    engines: {node: '>=18.14.1'}
-    peerDependencies:
-      hono: ^4
-
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
     engines: {node: '>=18.18.0'}
@@ -2262,8 +2203,13 @@ packages:
     resolution: {integrity: sha512-y9/ltK2TY+0HD1H2Sz7MvU3zFh4SjER6eQVNQfBx/0gK9N7S0QwHW6cmhHLx3CP25zN190LKHXPieMGqsVvrOQ==}
     engines: {node: '>=18'}
 
-  '@sourcegraph/amp@0.0.1767254483-g812f6b':
-    resolution: {integrity: sha512-a0tb1GUcDOvf2r8lZylBGOmaFvFwXwF5aQ5o4Na7er6IPRuBkJGN5HGcZEfQGPpGFRoOwkzTgHW0Cr76k69Mbw==}
+  '@sourcegraph/amp@0.0.1767830505-ga62310':
+    resolution: {integrity: sha512-wOSLY+2ZAHAGHPnltYOLHoveF78TRbz09nbdtwPImgcAHQt9KcUvJmW7oq3z+XIuvJe/cdvUa0OcdOwPo7oOYg==}
+    engines: {node: '>=20'}
+    hasBin: true
+
+  '@sourcegraph/amp@0.0.1767845655-gffe829':
+    resolution: {integrity: sha512-yyKwPHSSr3ZSrdgsvW8zhnRwE0WiR9DupSHb0SylkPoPrkE9Qqv1QkSZe3oCUQDuDPUoEv/WPJz58/zOHvidFQ==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -2658,6 +2604,9 @@ packages:
   '@types/webextension-polyfill@0.12.4':
     resolution: {integrity: sha512-wK8YdSI0pDiaehSLDIvtvonYmLwUUivg4Z6JCJO8rkyssMAG82cFJgwPK/V7NO61mJBLg/tXeoXQL8AFzpXZmQ==}
 
+  '@types/ws@8.18.1':
+    resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
+
   '@typescript-eslint/eslint-plugin@8.46.1':
     resolution: {integrity: sha512-rUsLh8PXmBjdiPY+Emjz9NX2yHvhS11v0SR6xNJkm5GM1MO9ea/1GoDKlHHZGrOJclL/cZ2i/vRUYVtjRhrHVQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
@@ -2929,9 +2878,6 @@ packages:
 
   ajv@8.17.1:
     resolution: {integrity: sha512-B/gBuNg5SiMTrPkC+A2+cW0RszwxYmn6VYxB/inlBStS5nx6xHIt/ehKRhIMhqusl7a8LjQoZnjCs5vhwxOQ1g==}
-
-  ami-sdk@0.0.6:
-    resolution: {integrity: sha512-uChazUW26V9qpLOv+ZsSrYmo9b6hfebxHFly+1CnaZV8H78AAMHlNew5mPp94iFKJ6nFHCLDS/zyxTs3THRDoQ==}
 
   ansi-align@3.0.1:
     resolution: {integrity: sha512-IOfwwBF5iczOjp/WeY4YxyjqAFMQoZufdQWDd19SEExbVLNXqvpzSJ/M7Za4/sCPmQ0+GRquoA7bGcINcxew6w==}
@@ -3470,10 +3416,6 @@ packages:
 
   devlop@1.1.0:
     resolution: {integrity: sha512-RWmIqhcFf1lRYBvNmr7qTNuyCt/7/ns2jbpp1+PalgE/rDQcBT0fioSMUpJ93irlUhC5hrg4cYqe6U+0ImW0rA==}
-
-  diff@7.0.0:
-    resolution: {integrity: sha512-PJWHUb1RFevKCwaFA9RlG5tCd+FO5iRh9A8HEtkmBH2Li03iJriB6m6JIN4rGz3K3JLawI7/veA1xzRKP6ISBw==}
-    engines: {node: '>=0.3.1'}
 
   dir-glob@3.0.1:
     resolution: {integrity: sha512-WkrWp9GR4KXfKGYzOLmTuGVi1UWFfws377n9cc55/tb6DuqyF6pcQ5AbiHEshaDpY9v6oaSr2XCDidGmMwdzIA==}
@@ -4076,10 +4018,6 @@ packages:
   hermes-parser@0.25.1:
     resolution: {integrity: sha512-6pEjquH3rqaI6cYAXYPcz9MS4rY6R4ngRgrgfDshRptUZIc3lw0MCIJIGDj9++mfySOuPTHB4nrSW99BCvOPIA==}
 
-  hono@4.10.7:
-    resolution: {integrity: sha512-icXIITfw/07Q88nLSkB9aiUrd8rYzSweK681Kjo/TSggaGbOX4RRyxxm71v+3PC8C/j+4rlxGeoTRxQDkaJkUw==}
-    engines: {node: '>=16.9.0'}
-
   html-entities@2.3.3:
     resolution: {integrity: sha512-DV5Ln36z34NNTDgnz0EWGBLZENelNAtkiFA4kyNOG2tDI6Mz1uSWiq1wAKdyjnJwyDiDO7Fa2SO1CTxPXL8VxA==}
 
@@ -4393,9 +4331,6 @@ packages:
   jiti@2.6.1:
     resolution: {integrity: sha512-ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ==}
     hasBin: true
-
-  jose@5.10.0:
-    resolution: {integrity: sha512-s+3Al/p9g32Iq+oqXxkW//7jk2Vig6FF1CFqzVXoTUXt2qz89YWbL+OwS17NFYEvxC35n0FKeGO2LGYSxeM2Gg==}
 
   joycon@3.1.1:
     resolution: {integrity: sha512-34wB/Y7MW7bzjKRjUKTa46I2Z7eV62Rkhva+KkopW7Qvv/OSWBqvkSY7vusOPrNuZcUG3tApvdVgNB8POj3SPw==}
@@ -4740,11 +4675,6 @@ packages:
   nanoid@3.3.11:
     resolution: {integrity: sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
-    hasBin: true
-
-  nanoid@5.1.6:
-    resolution: {integrity: sha512-c7+7RQ+dMB5dPwwCp4ee1/iV/q2P6aK1mTZcfr1BTuVlyW9hJYiMPybJCcnBlQtuSmTIWNeazm/zqNoZSSElBg==}
-    engines: {node: ^18 || >=20}
     hasBin: true
 
   napi-postinstall@0.3.4:
@@ -6118,6 +6048,18 @@ packages:
   wrappy@1.0.2:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
 
+  ws@8.19.0:
+    resolution: {integrity: sha512-blAT2mjOEIi0ZzruJfIhb3nps74PRWTCz1IjglWEEpQl5XS/UNama6u2/rjFkDDouqr4L67ry+1aGIALViWjDg==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+
   xdg-basedir@5.1.0:
     resolution: {integrity: sha512-GCPAHLvrIH13+c0SuacwvRYj2SxJXQ4kaVTT5xgL3kPrz56XxkF21IGhjSE1+W0aw7gpBWRGXLCPnPby6lSpmQ==}
     engines: {node: '>=12'}
@@ -6965,10 +6907,6 @@ snapshots:
       '@eslint/core': 0.16.0
       levn: 0.4.1
 
-  '@hono/node-server@1.19.6(hono@4.10.7)':
-    dependencies:
-      hono: 4.10.7
-
   '@humanfs/core@0.19.1': {}
 
   '@humanfs/node@0.16.7':
@@ -7513,10 +7451,14 @@ snapshots:
 
   '@sourcegraph/amp-sdk@0.1.0-20251210081226-g90e3892':
     dependencies:
-      '@sourcegraph/amp': 0.0.1767254483-g812f6b
+      '@sourcegraph/amp': 0.0.1767845655-gffe829
       zod: 3.25.76
 
-  '@sourcegraph/amp@0.0.1767254483-g812f6b':
+  '@sourcegraph/amp@0.0.1767830505-ga62310':
+    dependencies:
+      '@napi-rs/keyring': 1.1.9
+
+  '@sourcegraph/amp@0.0.1767845655-gffe829':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
@@ -7872,6 +7814,10 @@ snapshots:
 
   '@types/webextension-polyfill@0.12.4': {}
 
+  '@types/ws@8.18.1':
+    dependencies:
+      '@types/node': 20.19.23
+
   '@typescript-eslint/eslint-plugin@8.46.1(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3)':
     dependencies:
       '@eslint-community/regexpp': 4.12.1
@@ -8141,15 +8087,6 @@ snapshots:
       fast-uri: 3.1.0
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
-
-  ami-sdk@0.0.6:
-    dependencies:
-      ai: 5.0.108(zod@4.1.13)
-      diff: 7.0.0
-      jose: 5.10.0
-      nanoid: 5.1.6
-      pathe: 2.0.3
-      zod: 4.1.13
 
   ansi-align@3.0.1:
     dependencies:
@@ -8674,8 +8611,6 @@ snapshots:
   devlop@1.1.0:
     dependencies:
       dequal: 2.0.3
-
-  diff@7.0.0: {}
 
   dir-glob@3.0.1:
     dependencies:
@@ -9597,8 +9532,6 @@ snapshots:
     dependencies:
       hermes-estree: 0.25.1
 
-  hono@4.10.7: {}
-
   html-entities@2.3.3: {}
 
   html-escaper@3.0.3: {}
@@ -9878,8 +9811,6 @@ snapshots:
       '@pkgjs/parseargs': 0.11.0
 
   jiti@2.6.1: {}
-
-  jose@5.10.0: {}
 
   joycon@3.1.1: {}
 
@@ -10193,8 +10124,6 @@ snapshots:
       thenify-all: 1.6.0
 
   nanoid@3.3.11: {}
-
-  nanoid@5.1.6: {}
 
   napi-postinstall@0.3.4: {}
 
@@ -11774,6 +11703,8 @@ snapshots:
       strip-ansi: 7.1.0
 
   wrappy@1.0.2: {}
+
+  ws@8.19.0: {}
 
   xdg-basedir@5.1.0: {}
 
