@@ -97,14 +97,17 @@ const runCodexAgent = async function* (
       workingDirectory: options?.workingDirectory ?? options?.cwd,
     });
 
-    const { events } = await thread.runStreamed(prompt);
+    const result = await thread.runStreamed(prompt);
+    const events = result?.events;
 
-    for await (const event of events) {
-      if (isAborted()) break;
+    if (events) {
+      for await (const event of events) {
+        if (isAborted()) break;
 
-      const statusText = formatStreamEvent(event as CodexEvent);
-      if (statusText && !isAborted()) {
-        yield { type: "status", content: statusText };
+        const statusText = formatStreamEvent(event as CodexEvent);
+        if (statusText && !isAborted()) {
+          yield { type: "status", content: statusText };
+        }
       }
     }
 

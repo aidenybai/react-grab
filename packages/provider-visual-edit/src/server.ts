@@ -10,7 +10,7 @@ try {
 
 export const startServer = async (_port?: number) => {
   console.log(
-    `${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim("(Visual Edit)")}`,
+    `${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim("(visual edit)")}`,
   );
   console.log(
     `${pc.yellow("⚠")} Visual Edit provider does not require a server`,

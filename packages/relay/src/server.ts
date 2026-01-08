@@ -507,6 +507,10 @@ export const createRelayServer = (
 
       webSocketServer = new WebSocketServer({ server: httpServer });
 
+      webSocketServer.on("error", (error) => {
+        reject(error);
+      });
+
       webSocketServer.on("connection", (socket, request) => {
         const isHandlerConnection = request.headers["x-relay-handler"] === "true";
 

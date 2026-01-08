@@ -6,7 +6,6 @@ import type {
   ActionContext,
 } from "react-grab/core";
 import {
-  createRelayClient,
   createRelayAgentProvider,
   getDefaultRelayClient,
   type RelayClient,
@@ -28,6 +27,9 @@ export const createCursorAgentProvider = (
   providerOptions: CursorAgentProviderOptions = {},
 ): AgentProvider => {
   const relayClient = providerOptions.relayClient ?? getDefaultRelayClient();
+  if (!relayClient) {
+    throw new Error("RelayClient is required in browser environments");
+  }
 
   return createRelayAgentProvider({
     relayClient,
@@ -44,7 +46,8 @@ declare global {
 export const attachAgent = async () => {
   if (typeof window === "undefined") return;
 
-  const relayClient = createRelayClient();
+  const relayClient = getDefaultRelayClient();
+  if (!relayClient) return;
 
   try {
     await relayClient.connect();

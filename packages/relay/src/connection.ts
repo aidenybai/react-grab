@@ -49,8 +49,25 @@ export const connectRelay = async (
 
     relayServer = createRelayServer({ port: relayPort });
     relayServer.registerHandler(handler);
-    await relayServer.start();
-    isRelayHost = true;
+
+    try {
+      await relayServer.start();
+      isRelayHost = true;
+    } catch (error) {
+      const isAddressInUse =
+        error instanceof Error &&
+        "code" in error &&
+        (error as NodeJS.ErrnoException).code === "EADDRINUSE";
+
+      if (!isAddressInUse) throw error;
+
+      await sleep(POST_KILL_DELAY_MS);
+      const isNowRunning = await checkIfRelayServerIsRunning(relayPort);
+
+      if (!isNowRunning) throw error;
+
+      relayServer = await connectToExistingRelay(relayPort, handler);
+    }
   }
 
   printStartupMessage(handler.agentId, relayPort);

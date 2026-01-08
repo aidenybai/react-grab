@@ -34,6 +34,7 @@
   },
   "dependencies": {
     "@react-grab/relay": "workspace:*",
+    "@sourcegraph/amp": "^0.0.1767830505-ga62310",
     "@sourcegraph/amp-sdk": "^0.1.0-20251210081226-g90e3892",
     "react-grab": "workspace:*"
   }

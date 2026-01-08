@@ -20,7 +20,7 @@ const createDeeplinkAgentProvider = (): AgentProvider => {
 
     window.open(deeplinkUrl, "_self");
 
-    yield "Opening Ami...";
+    yield "Opened";
   };
 
   return {
@@ -28,6 +28,7 @@ const createDeeplinkAgentProvider = (): AgentProvider => {
     checkConnection: async () => true,
     supportsResume: false,
     supportsFollowUp: false,
+    dismissButtonText: "Copy",
   };
 };
 

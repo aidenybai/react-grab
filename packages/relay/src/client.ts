@@ -3,7 +3,10 @@ import type {
   BrowserToRelayMessage,
   RelayToBrowserMessage,
 } from "./protocol.js";
-import { DEFAULT_RELAY_PORT, DEFAULT_RECONNECT_INTERVAL_MS } from "./protocol.js";
+import {
+  DEFAULT_RELAY_PORT,
+  DEFAULT_RECONNECT_INTERVAL_MS,
+} from "./protocol.js";
 
 export interface RelayClient {
   connect: () => Promise<void>;
@@ -28,10 +31,10 @@ interface RelayClientOptions {
 export const createRelayClient = (
   options: RelayClientOptions = {},
 ): RelayClient => {
-  const serverUrl =
-    options.serverUrl ?? `ws://localhost:${DEFAULT_RELAY_PORT}`;
+  const serverUrl = options.serverUrl ?? `ws://localhost:${DEFAULT_RELAY_PORT}`;
   const autoReconnect = options.autoReconnect ?? true;
-  const reconnectIntervalMs = options.reconnectIntervalMs ?? DEFAULT_RECONNECT_INTERVAL_MS;
+  const reconnectIntervalMs =
+    options.reconnectIntervalMs ?? DEFAULT_RECONNECT_INTERVAL_MS;
 
   let webSocketConnection: WebSocket | null = null;
   let isConnectedState = false;
@@ -148,6 +151,7 @@ export const createRelayClient = (
     sendMessage({
       type: "agent-request",
       agentId,
+      sessionId: context.sessionId,
       context,
     });
   };
@@ -213,10 +217,7 @@ export const createRelayClient = (
 };
 
 export interface AgentProvider {
-  send: (
-    context: AgentContext,
-    signal: AbortSignal,
-  ) => AsyncIterable<string>;
+  send: (context: AgentContext, signal: AbortSignal) => AsyncIterable<string>;
   abort?: (sessionId: string) => Promise<void>;
   undo?: () => Promise<void>;
   redo?: () => Promise<void>;
@@ -254,6 +255,8 @@ export const createRelayAgentProvider = (
       throw new DOMException("Aborted", "AbortError");
     }
 
+    yield "Connecting…";
+
     const sessionId =
       context.sessionId ??
       `session-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -264,7 +267,8 @@ export const createRelayAgentProvider = (
     };
 
     const messageQueue: string[] = [];
-    let resolveNext: ((value: IteratorResult<string, void>) => void) | null = null;
+    let resolveNext: ((value: IteratorResult<string, void>) => void) | null =
+      null;
     let rejectNext: ((error: Error) => void) | null = null;
     let isDone = false;
     let errorMessage: string | null = null;
@@ -293,8 +297,9 @@ export const createRelayAgentProvider = (
       }
     };
 
-    const unsubscribeConnection =
-      relayClient.onConnectionChange(handleConnectionChange);
+    const unsubscribeConnection = relayClient.onConnectionChange(
+      handleConnectionChange,
+    );
 
     const unsubscribeMessage = relayClient.onMessage((message) => {
       if (message.sessionId !== sessionId) return;
@@ -387,11 +392,27 @@ export const createRelayAgentProvider = (
   };
 };
 
+declare global {
+  interface Window {
+    __REACT_GRAB_RELAY__?: RelayClient;
+  }
+}
+
 let defaultRelayClient: RelayClient | null = null;
 
-export const getDefaultRelayClient = (): RelayClient => {
+export const getDefaultRelayClient = (): RelayClient | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  if (window.__REACT_GRAB_RELAY__) {
+    defaultRelayClient = window.__REACT_GRAB_RELAY__;
+    return defaultRelayClient;
+  }
+
   if (!defaultRelayClient) {
     defaultRelayClient = createRelayClient();
+    window.__REACT_GRAB_RELAY__ = defaultRelayClient;
   }
   return defaultRelayClient;
 };
