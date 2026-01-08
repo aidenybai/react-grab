@@ -10,4 +10,7 @@ try {
 
 (async () => {
   await connectRelay({ handler: cursorAgentHandler });
-})();
+})().catch((error) => {
+  console.error("Failed to connect to relay:", error instanceof Error ? error.message : error);
+  process.exit(1);
+});

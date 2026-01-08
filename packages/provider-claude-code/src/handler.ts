@@ -160,7 +160,15 @@ const undoClaudeAgent = async (): Promise<void> => {
       error instanceof Error
         ? formatSpawnError(error, "claude")
         : "Unknown error";
-    throw new Error(`Undo failed: ${errorMessage}`);
+    const stderr =
+      error instanceof Error && "stderr" in error
+        ? String(error.stderr)
+        : undefined;
+    const fullError =
+      stderr && stderr.trim()
+        ? `${errorMessage}\n\nstderr:\n${stderr.trim()}`
+        : errorMessage;
+    throw new Error(`Undo failed: ${fullError}`);
   }
 };
 
