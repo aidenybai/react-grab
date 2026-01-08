@@ -349,23 +349,63 @@ export const createRelayServer = (
         }
       },
       undo: async () => {
-        if (socket.readyState === WebSocket.OPEN) {
-          const undoMessage: RelayToHandlerMessage = {
-            type: "invoke-handler",
-            method: "undo",
-            sessionId: "",
-          };
-          socket.send(JSON.stringify(undoMessage));
+        if (socket.readyState !== WebSocket.OPEN) {
+          throw new Error("Handler disconnected");
+        }
+
+        const sessionId = `undo-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const messageQueue = createSessionMessageQueue();
+        sessionMessageQueues.set(sessionId, messageQueue);
+
+        const undoMessage: RelayToHandlerMessage = {
+          type: "invoke-handler",
+          method: "undo",
+          sessionId,
+        };
+        socket.send(JSON.stringify(undoMessage));
+
+        try {
+          for await (const message of messageQueue) {
+            if (message.type === "error") {
+              throw new Error(message.content);
+            }
+            if (message.type === "done") {
+              return;
+            }
+          }
+        } finally {
+          messageQueue.close();
+          sessionMessageQueues.delete(sessionId);
         }
       },
       redo: async () => {
-        if (socket.readyState === WebSocket.OPEN) {
-          const redoMessage: RelayToHandlerMessage = {
-            type: "invoke-handler",
-            method: "redo",
-            sessionId: "",
-          };
-          socket.send(JSON.stringify(redoMessage));
+        if (socket.readyState !== WebSocket.OPEN) {
+          throw new Error("Handler disconnected");
+        }
+
+        const sessionId = `redo-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const messageQueue = createSessionMessageQueue();
+        sessionMessageQueues.set(sessionId, messageQueue);
+
+        const redoMessage: RelayToHandlerMessage = {
+          type: "invoke-handler",
+          method: "redo",
+          sessionId,
+        };
+        socket.send(JSON.stringify(redoMessage));
+
+        try {
+          for await (const message of messageQueue) {
+            if (message.type === "error") {
+              throw new Error(message.content);
+            }
+            if (message.type === "done") {
+              return;
+            }
+          }
+        } finally {
+          messageQueue.close();
+          sessionMessageQueues.delete(sessionId);
         }
       },
     };

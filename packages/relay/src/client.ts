@@ -37,6 +37,7 @@ export const createRelayClient = (
   let isConnectedState = false;
   let availableHandlers: string[] = [];
   let reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  let pendingConnectionPromise: Promise<void> | null = null;
 
   const messageCallbacks = new Set<(message: RelayToBrowserMessage) => void>();
   const handlersChangeCallbacks = new Set<(handlers: string[]) => void>();
@@ -69,15 +70,19 @@ export const createRelayClient = (
   };
 
   const connect = (): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      if (webSocketConnection?.readyState === WebSocket.OPEN) {
-        resolve();
-        return;
-      }
+    if (webSocketConnection?.readyState === WebSocket.OPEN) {
+      return Promise.resolve();
+    }
 
+    if (pendingConnectionPromise) {
+      return pendingConnectionPromise;
+    }
+
+    pendingConnectionPromise = new Promise((resolve, reject) => {
       webSocketConnection = new WebSocket(serverUrl);
 
       webSocketConnection.onopen = () => {
+        pendingConnectionPromise = null;
         isConnectedState = true;
         for (const callback of connectionChangeCallbacks) {
           callback(true);
@@ -88,6 +93,7 @@ export const createRelayClient = (
       webSocketConnection.onmessage = handleMessage;
 
       webSocketConnection.onclose = () => {
+        pendingConnectionPromise = null;
         isConnectedState = false;
         availableHandlers = [];
         for (const callback of handlersChangeCallbacks) {
@@ -100,10 +106,13 @@ export const createRelayClient = (
       };
 
       webSocketConnection.onerror = () => {
+        pendingConnectionPromise = null;
         isConnectedState = false;
         reject(new Error("WebSocket connection failed"));
       };
     });
+
+    return pendingConnectionPromise;
   };
 
   const disconnect = () => {
@@ -111,6 +120,7 @@ export const createRelayClient = (
       clearTimeout(reconnectTimeoutId);
       reconnectTimeoutId = null;
     }
+    pendingConnectionPromise = null;
     webSocketConnection?.close();
     webSocketConnection = null;
     isConnectedState = false;

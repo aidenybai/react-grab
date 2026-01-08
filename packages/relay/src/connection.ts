@@ -139,9 +139,49 @@ const connectToExistingRelay = async (
             } else if (method === "abort") {
               handler.abort?.(sessionId);
             } else if (method === "undo") {
-              await handler.undo?.();
+              try {
+                await handler.undo?.();
+                socket.send(
+                  JSON.stringify({
+                    type: "agent-done",
+                    sessionId,
+                    agentId: handler.agentId,
+                    content: "",
+                  }),
+                );
+              } catch (error) {
+                socket.send(
+                  JSON.stringify({
+                    type: "agent-error",
+                    sessionId,
+                    agentId: handler.agentId,
+                    content:
+                      error instanceof Error ? error.message : "Unknown error",
+                  }),
+                );
+              }
             } else if (method === "redo") {
-              await handler.redo?.();
+              try {
+                await handler.redo?.();
+                socket.send(
+                  JSON.stringify({
+                    type: "agent-done",
+                    sessionId,
+                    agentId: handler.agentId,
+                    content: "",
+                  }),
+                );
+              } catch (error) {
+                socket.send(
+                  JSON.stringify({
+                    type: "agent-error",
+                    sessionId,
+                    agentId: handler.agentId,
+                    content:
+                      error instanceof Error ? error.message : "Unknown error",
+                  }),
+                );
+              }
             }
           }
         } catch {}
