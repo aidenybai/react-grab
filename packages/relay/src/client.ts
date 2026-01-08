@@ -13,7 +13,7 @@ export interface RelayClient {
   connect: () => Promise<void>;
   disconnect: () => void;
   isConnected: () => boolean;
-  sendAgentRequest: (agentId: string, context: AgentContext) => void;
+  sendAgentRequest: (agentId: string, context: AgentContext) => boolean;
   abortAgent: (agentId: string, sessionId: string) => void;
   undoAgent: (agentId: string) => void;
   redoAgent: (agentId: string) => void;
@@ -151,14 +151,16 @@ export const createRelayClient = (
 
   const isConnected = () => isConnectedState;
 
-  const sendMessage = (message: BrowserToRelayMessage) => {
+  const sendMessage = (message: BrowserToRelayMessage): boolean => {
     if (webSocketConnection?.readyState === WebSocket.OPEN) {
       webSocketConnection.send(JSON.stringify(message));
+      return true;
     }
+    return false;
   };
 
-  const sendAgentRequest = (agentId: string, context: AgentContext) => {
-    sendMessage({
+  const sendAgentRequest = (agentId: string, context: AgentContext): boolean => {
+    return sendMessage({
       type: "agent-request",
       agentId,
       sessionId: context.sessionId,
@@ -206,6 +208,7 @@ export const createRelayClient = (
     callback: (connected: boolean) => void,
   ): (() => void) => {
     connectionChangeCallbacks.add(callback);
+    callback(isConnectedState);
     return () => connectionChangeCallbacks.delete(callback);
   };
 
@@ -342,7 +345,20 @@ export const createRelayAgentProvider = (
       }
     });
 
-    relayClient.sendAgentRequest(agentId, contextWithSession);
+    if (!relayClient.isConnected()) {
+      unsubscribeConnection();
+      unsubscribeMessage();
+      signal.removeEventListener("abort", handleAbort);
+      throw new Error("Relay connection is not open");
+    }
+
+    const didSendRequest = relayClient.sendAgentRequest(agentId, contextWithSession);
+    if (!didSendRequest) {
+      unsubscribeConnection();
+      unsubscribeMessage();
+      signal.removeEventListener("abort", handleAbort);
+      throw new Error("Failed to send agent request: connection not open");
+    }
 
     try {
       while (true) {

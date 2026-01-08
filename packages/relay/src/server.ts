@@ -415,38 +415,10 @@ export const createRelayServer = (
     };
   };
 
-  const cleanupAgentSessions = (agentId: string) => {
-    for (const [sessionId, session] of activeSessions) {
-      if (session.agentId === agentId) {
-        const queue = sessionMessageQueues.get(sessionId);
-        if (queue) {
-          queue.push({
-            type: "error",
-            content: "Handler disconnected",
-          });
-          queue.close();
-          sessionMessageQueues.delete(sessionId);
-        }
-        session.abortController.abort();
-        activeSessions.delete(sessionId);
-      }
-    }
-
-    for (const [sessionId, queue] of sessionMessageQueues) {
-      const isOwnedUndoSession = sessionId.startsWith(`undo-${agentId}-`);
-      const isOwnedRedoSession = sessionId.startsWith(`redo-${agentId}-`);
-      if (isOwnedUndoSession || isOwnedRedoSession) {
-        queue.push({
-          type: "error",
-          content: "Handler disconnected",
-        });
-        queue.close();
-        sessionMessageQueues.delete(sessionId);
-      }
-    }
-  };
-
-  const cleanupSessionsByHandlerSocket = (socket: WebSocket) => {
+  const cleanupSessionsByHandlerSocket = (
+    socket: WebSocket,
+    agentId?: string,
+  ) => {
     for (const [sessionId, session] of activeSessions) {
       if (session.handlerSocket === socket) {
         const queue = sessionMessageQueues.get(sessionId);
@@ -460,6 +432,21 @@ export const createRelayServer = (
         }
         session.abortController.abort();
         activeSessions.delete(sessionId);
+      }
+    }
+
+    if (agentId) {
+      for (const [sessionId, queue] of sessionMessageQueues) {
+        const isOwnedUndoSession = sessionId.startsWith(`undo-${agentId}-`);
+        const isOwnedRedoSession = sessionId.startsWith(`redo-${agentId}-`);
+        if (isOwnedUndoSession || isOwnedRedoSession) {
+          queue.push({
+            type: "error",
+            content: "Handler disconnected",
+          });
+          queue.close();
+          sessionMessageQueues.delete(sessionId);
+        }
       }
     }
   };
@@ -478,8 +465,14 @@ export const createRelayServer = (
       const agentId = handlerSockets.get(socket);
       if (agentId) {
         const registeredHandler = registeredHandlers.get(agentId);
-        if (registeredHandler?.socket === socket) {
-          cleanupAgentSessions(agentId);
+        const isCurrentHandler = registeredHandler?.socket === socket;
+
+        cleanupSessionsByHandlerSocket(
+          socket,
+          isCurrentHandler ? agentId : undefined,
+        );
+
+        if (isCurrentHandler) {
           registeredHandlers.delete(agentId);
           broadcastHandlerList();
         }
@@ -566,12 +559,16 @@ export const createRelayServer = (
           const cleanupHandlerSocket = () => {
             const agentId = handlerSockets.get(socket);
             if (agentId) {
-              // Always clean up sessions running on this specific socket,
-              // even if another handler has already taken over the same agentId
-              cleanupSessionsByHandlerSocket(socket);
-
               const registeredHandler = registeredHandlers.get(agentId);
               const isCurrentHandler = registeredHandler?.socket === socket;
+
+              // Always clean up sessions running on this specific socket,
+              // even if another handler has already taken over the same agentId.
+              // Also clean up undo/redo sessions if this is the current handler.
+              cleanupSessionsByHandlerSocket(
+                socket,
+                isCurrentHandler ? agentId : undefined,
+              );
 
               if (isCurrentHandler) {
                 registeredHandlers.delete(agentId);

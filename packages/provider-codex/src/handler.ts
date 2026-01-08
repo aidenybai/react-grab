@@ -98,16 +98,19 @@ const runCodexAgent = async function* (
     });
 
     const result = await thread.runStreamed(prompt);
-    const events = result?.events;
 
-    if (events) {
-      for await (const event of events) {
-        if (isAborted()) break;
+    if (!result || !result.events) {
+      throw new Error(
+        "Codex SDK returned an unexpected response: missing events stream",
+      );
+    }
 
-        const statusText = formatStreamEvent(event as CodexEvent);
-        if (statusText && !isAborted()) {
-          yield { type: "status", content: statusText };
-        }
+    for await (const event of result.events) {
+      if (isAborted()) break;
+
+      const statusText = formatStreamEvent(event as CodexEvent);
+      if (statusText && !isAborted()) {
+        yield { type: "status", content: statusText };
       }
     }
 
@@ -139,8 +142,8 @@ const abortCodexAgent = (sessionId: string) => {
   if (abortController) {
     abortController.abort();
     abortControllers.delete(sessionId);
+    threadMap.delete(sessionId);
   }
-  threadMap.delete(sessionId);
 };
 
 const undoCodexAgent = async (): Promise<void> => {
