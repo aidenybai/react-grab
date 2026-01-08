@@ -78,6 +78,7 @@ const runCursorAgent = async function* (
 
   let cursorProcess: ResultPromise | undefined;
   let stderrBuffer = "";
+  let cleanupSignalListener: (() => void) | undefined;
 
   try {
     yield { type: "status", content: "Thinking…" };
@@ -103,6 +104,7 @@ const runCursorAgent = async function* (
     const messageQueue: AgentMessage[] = [];
     let resolveWait: (() => void) | null = null;
     let processEnded = false;
+    let aborted = false;
     let capturedCursorChatId: string | undefined;
 
     const enqueueMessage = (message: AgentMessage) => {
@@ -110,6 +112,32 @@ const runCursorAgent = async function* (
       if (resolveWait) {
         resolveWait();
         resolveWait = null;
+      }
+    };
+
+    const handleAbort = () => {
+      aborted = true;
+      if (cursorProcess && !cursorProcess.killed) {
+        cursorProcess.kill("SIGTERM");
+      }
+      if (resolveWait) {
+        resolveWait();
+        resolveWait = null;
+      }
+    };
+
+    const signal = options?.signal;
+    if (signal) {
+      if (signal.aborted) {
+        handleAbort();
+      } else {
+        signal.addEventListener("abort", handleAbort);
+      }
+    }
+
+    cleanupSignalListener = () => {
+      if (signal) {
+        signal.removeEventListener("abort", handleAbort);
       }
     };
 
@@ -220,30 +248,32 @@ const runCursorAgent = async function* (
       }
     });
 
-    while (true) {
-      if (options?.signal?.aborted) {
-        if (cursorProcess && !cursorProcess.killed) {
-          cursorProcess.kill("SIGTERM");
-        }
-        return;
-      }
-
-      if (messageQueue.length > 0) {
-        const message = messageQueue.shift()!;
-        if (message.type === "done") {
-          yield message;
+    try {
+      while (true) {
+        if (aborted) {
           return;
         }
-        yield message;
-      } else if (processEnded) {
-        return;
-      } else {
-        await new Promise<void>((resolve) => {
-          resolveWait = resolve;
-        });
+
+        if (messageQueue.length > 0) {
+          const message = messageQueue.shift()!;
+          if (message.type === "done") {
+            yield message;
+            return;
+          }
+          yield message;
+        } else if (processEnded) {
+          return;
+        } else {
+          await new Promise<void>((resolve) => {
+            resolveWait = resolve;
+          });
+        }
       }
+    } finally {
+      cleanupSignalListener?.();
     }
   } catch (error) {
+    cleanupSignalListener?.();
     const errorMessage =
       error instanceof Error
         ? formatSpawnError(error, "cursor-agent")
