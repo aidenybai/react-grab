@@ -63,8 +63,13 @@ const getOpenCodeClient = async () => {
     })();
   }
 
-  const instance = await initializationPromise;
-  return instance.client;
+  try {
+    const instance = await initializationPromise;
+    return instance.client;
+  } catch (error) {
+    initializationPromise = null;
+    throw error;
+  }
 };
 
 const executeOpenCodePrompt = async (
