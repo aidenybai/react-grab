@@ -407,6 +407,13 @@ export const createRelayAgentProvider = (
   const waitForOperationResponse = (sessionId: string): Promise<void> => {
     return new Promise((resolve, reject) => {
       let didCleanup = false;
+      // HACK: Using `let` instead of `const` to avoid TDZ (Temporal Dead Zone) errors.
+      // `onConnectionChange` synchronously invokes the callback, which may call `cleanup()`
+      // before the assignment completes if connection is already disconnected.
+      // eslint-disable-next-line prefer-const
+      let unsubscribeMessage: (() => void) | undefined;
+      // eslint-disable-next-line prefer-const
+      let unsubscribeConnection: (() => void) | undefined;
 
       const cleanup = () => {
         if (didCleanup) return;
@@ -415,7 +422,7 @@ export const createRelayAgentProvider = (
         unsubscribeConnection?.();
       };
 
-      const unsubscribeMessage = relayClient.onMessage((message) => {
+      unsubscribeMessage = relayClient.onMessage((message) => {
         if (message.sessionId !== sessionId) return;
 
         cleanup();
@@ -427,14 +434,12 @@ export const createRelayAgentProvider = (
         }
       });
 
-      const unsubscribeConnection = relayClient.onConnectionChange(
-        (connected) => {
-          if (!connected) {
-            cleanup();
-            reject(new Error("Connection lost while waiting for operation response"));
-          }
-        },
-      );
+      unsubscribeConnection = relayClient.onConnectionChange((connected) => {
+        if (!connected) {
+          cleanup();
+          reject(new Error("Connection lost while waiting for operation response"));
+        }
+      });
     });
   };
 
