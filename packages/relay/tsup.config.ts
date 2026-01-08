@@ -31,6 +31,7 @@ export default defineConfig([
   {
     entry: {
       client: "./src/client.ts",
+      protocol: "./src/protocol.ts",
     },
     format: ["cjs", "esm"],
     dts: true,
