@@ -250,6 +250,10 @@ export const createRelayAgentProvider = (
     context: AgentContext,
     signal: AbortSignal,
   ): AsyncIterable<string> {
+    if (signal.aborted) {
+      throw new DOMException("Aborted", "AbortError");
+    }
+
     const sessionId =
       context.sessionId ??
       `session-${Date.now()}-${Math.random().toString(36).slice(2)}`;

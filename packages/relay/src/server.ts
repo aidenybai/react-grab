@@ -411,6 +411,37 @@ export const createRelayServer = (
     };
   };
 
+  const cleanupAgentSessions = (agentId: string) => {
+    for (const [sessionId, session] of activeSessions) {
+      if (session.agentId === agentId) {
+        const queue = sessionMessageQueues.get(sessionId);
+        if (queue) {
+          queue.push({
+            type: "error",
+            content: "Handler disconnected",
+          });
+          queue.close();
+          sessionMessageQueues.delete(sessionId);
+        }
+        session.abortController.abort();
+        activeSessions.delete(sessionId);
+      }
+    }
+
+    for (const [sessionId, queue] of sessionMessageQueues) {
+      const isOwnedUndoSession = sessionId.startsWith(`undo-${agentId}-`);
+      const isOwnedRedoSession = sessionId.startsWith(`redo-${agentId}-`);
+      if (isOwnedUndoSession || isOwnedRedoSession) {
+        queue.push({
+          type: "error",
+          content: "Handler disconnected",
+        });
+        queue.close();
+        sessionMessageQueues.delete(sessionId);
+      }
+    }
+  };
+
   const handleHandlerMessage = (socket: WebSocket, message: HandlerMessage) => {
     if (message.type === "register-handler") {
       const remoteHandler = createRemoteHandler(message.agentId, socket);
@@ -426,6 +457,7 @@ export const createRelayServer = (
       if (agentId) {
         const registeredHandler = registeredHandlers.get(agentId);
         if (registeredHandler?.socket === socket) {
+          cleanupAgentSessions(agentId);
           registeredHandlers.delete(agentId);
           broadcastHandlerList();
         }
@@ -493,35 +525,7 @@ export const createRelayServer = (
               const isCurrentHandler = registeredHandler?.socket === socket;
 
               if (isCurrentHandler) {
-                for (const [sessionId, session] of activeSessions) {
-                  if (session.agentId === agentId) {
-                    const queue = sessionMessageQueues.get(sessionId);
-                    if (queue) {
-                      queue.push({
-                        type: "error",
-                        content: "Handler disconnected unexpectedly",
-                      });
-                      queue.close();
-                      sessionMessageQueues.delete(sessionId);
-                    }
-                    session.abortController.abort();
-                    activeSessions.delete(sessionId);
-                  }
-                }
-
-                for (const [sessionId, queue] of sessionMessageQueues) {
-                  const isOwnedUndoSession = sessionId.startsWith(`undo-${agentId}-`);
-                  const isOwnedRedoSession = sessionId.startsWith(`redo-${agentId}-`);
-                  if (isOwnedUndoSession || isOwnedRedoSession) {
-                    queue.push({
-                      type: "error",
-                      content: "Handler disconnected",
-                    });
-                    queue.close();
-                    sessionMessageQueues.delete(sessionId);
-                  }
-                }
-
+                cleanupAgentSessions(agentId);
                 registeredHandlers.delete(agentId);
                 broadcastHandlerList();
               }

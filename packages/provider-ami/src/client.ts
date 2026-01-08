@@ -14,7 +14,8 @@ const AMI_DEEPLINK_BASE = "ami://new-chat";
 
 const createDeeplinkAgentProvider = (): AgentProvider => {
   const send = async function* (context: AgentContext): AsyncIterable<string> {
-    const encodedPrompt = encodeURIComponent(context.prompt);
+    const combinedPrompt = `${context.prompt}\n\n${context.content.join("\n\n")}`;
+    const encodedPrompt = encodeURIComponent(combinedPrompt);
     const deeplinkUrl = `${AMI_DEEPLINK_BASE}?prompt=${encodedPrompt}`;
 
     window.open(deeplinkUrl, "_self");
