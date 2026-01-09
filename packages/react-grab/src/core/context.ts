@@ -2,8 +2,11 @@ import {
   isSourceFile,
   normalizeFileName,
   getOwnerStack,
+  sourceMapCache,
+  getSourceMap,
   StackFrame,
 } from "bippy/source";
+import type { SourceMap } from "bippy/source";
 import { isCapitalized } from "../utils/is-capitalized.js";
 import {
   getFiberFromHostInstance,
@@ -13,10 +16,12 @@ import {
   traverseFiber,
 } from "bippy";
 import {
+  DEFAULT_STACK_CONTEXT_LINES,
   MAX_HTML_FALLBACK_LENGTH,
   PREVIEW_ATTR_VALUE_MAX_LENGTH,
   PREVIEW_MAX_ATTRS,
   PREVIEW_PRIORITY_ATTRS,
+  SOURCE_CONTEXT_LINES,
 } from "../constants.js";
 
 const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
@@ -54,6 +59,151 @@ const REACT_INTERNAL_COMPONENT_NAMES = new Set([
   "Profiler",
   "SuspenseList",
 ]);
+
+interface SourceMapData {
+  [filename: string]: string;
+}
+
+const isWeakRef = (
+  value: SourceMap | WeakRef<SourceMap>,
+): value is WeakRef<SourceMap> =>
+  typeof WeakRef !== "undefined" && value instanceof WeakRef;
+
+const resolveSourceMapFromCache = (
+  cacheEntry: SourceMap | WeakRef<SourceMap> | null,
+): SourceMap | null => {
+  if (!cacheEntry) return null;
+  if (isWeakRef(cacheEntry)) return cacheEntry.deref() ?? null;
+  return cacheEntry;
+};
+
+const extractSourceMapData = (sourceMap: SourceMap): SourceMapData => {
+  const result: SourceMapData = {};
+
+  const processSources = (
+    sources: string[],
+    contents: (string | null)[] | undefined,
+  ) => {
+    if (!contents) return;
+
+    for (let i = 0; i < sources.length; i++) {
+      const filename = normalizeFileName(sources[i]);
+      const content = contents[i];
+      if (filename && content && !result[filename]) {
+        result[filename] = content;
+      }
+    }
+  };
+
+  if (sourceMap.sections) {
+    for (const section of sourceMap.sections) {
+      processSources(section.map.sources, section.map.sourcesContent);
+    }
+  }
+
+  processSources(sourceMap.sources, sourceMap.sourcesContent);
+  return result;
+};
+
+const hasJavaScriptType = (script: Element): boolean => {
+  const type = script.getAttribute("type")?.toLowerCase().trim();
+  return (
+    !type ||
+    type === "text/javascript" ||
+    type === "application/javascript" ||
+    type === "module"
+  );
+};
+
+const getScriptUrls = (): string[] => {
+  if (typeof document === "undefined") return [];
+
+  const urls = new Set<string>();
+
+  for (const script of Array.from(document.querySelectorAll("script[src]"))) {
+    const src = script.getAttribute("src");
+    if (!src || !hasJavaScriptType(script)) continue;
+
+    try {
+      const url = new URL(src, window.location.href).href;
+      if (url.split("?")[0].endsWith(".js")) {
+        urls.add(url);
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return Array.from(urls);
+};
+
+const getSourceMapDataFromCache = (): SourceMapData => {
+  const result: SourceMapData = {};
+
+  for (const cacheEntry of sourceMapCache.values()) {
+    const sourceMap = resolveSourceMapFromCache(cacheEntry);
+    if (sourceMap) {
+      Object.assign(result, extractSourceMapData(sourceMap));
+    }
+  }
+
+  return result;
+};
+
+const getSourceMapDataForUrl = async (url: string): Promise<SourceMapData> => {
+  try {
+    const sourceMap = await getSourceMap(url, true);
+    return sourceMap ? extractSourceMapData(sourceMap) : {};
+  } catch {
+    return {};
+  }
+};
+
+const getSourceMapDataFromScripts = async (): Promise<SourceMapData> => {
+  const cachedUrls = new Set(sourceMapCache.keys());
+  const uncachedUrls = getScriptUrls().filter((url) => !cachedUrls.has(url));
+
+  const results = await Promise.all(
+    uncachedUrls.map((url) => getSourceMapDataForUrl(url)),
+  );
+
+  const combined: SourceMapData = {};
+  for (const data of results) {
+    Object.assign(combined, data);
+  }
+  return combined;
+};
+
+const getSourceMapData = async (): Promise<SourceMapData> => {
+  const cached = getSourceMapDataFromCache();
+  const fromScripts = await getSourceMapDataFromScripts();
+  return { ...cached, ...fromScripts };
+};
+
+const getFileExtension = (filename: string): string => {
+  const match = filename.match(/\.([^.]+)$/);
+  return match ? match[1] : "js";
+};
+
+const getSourceContext = (
+  fileContent: string,
+  lineNumber: number,
+  contextLines: number,
+): string => {
+  const lines = fileContent.split("\n");
+  const startLine = Math.max(0, lineNumber - contextLines - 1);
+  const endLine = Math.min(lines.length, lineNumber + contextLines);
+
+  const contextSnippet: string[] = [];
+  const maxLineNumWidth = String(endLine).length;
+
+  for (let i = startLine; i < endLine; i++) {
+    const lineNum = String(i + 1).padStart(maxLineNumWidth, " ");
+    contextSnippet.push(`${lineNum} | ${lines[i]}`);
+  }
+
+  return contextSnippet.join("\n");
+};
 
 export const checkIsNextProject = (): boolean => {
   if (typeof document === "undefined") return false;
@@ -197,12 +347,13 @@ export const getElementContext = async (
   element: Element,
   options: GetElementContextOptions = {},
 ): Promise<string> => {
-  const { maxLines = 3 } = options;
+  const { maxLines = DEFAULT_STACK_CONTEXT_LINES } = options;
   const stack = await getStack(element);
   const html = getHTMLPreview(element);
 
   if (hasSourceFiles(stack)) {
     const isNextProject = checkIsNextProject();
+    const sourceMapData = isNextProject ? await getSourceMapData() : {};
     const stackContext: string[] = [];
 
     if (stack) {
@@ -219,7 +370,28 @@ export const getElementContext = async (
           );
           continue;
         }
+
         if (frame.fileName && isSourceFile(frame.fileName)) {
+          const filename = normalizeFileName(frame.fileName);
+          const fileContent = sourceMapData[filename];
+
+          if (isNextProject && fileContent && frame.lineNumber) {
+            const extension = getFileExtension(filename);
+            const sourceContext = getSourceContext(
+              fileContent,
+              frame.lineNumber,
+              SOURCE_CONTEXT_LINES,
+            );
+            const locationInfo = frame.columnNumber
+              ? `${filename}:${frame.lineNumber}:${frame.columnNumber}`
+              : `${filename}:${frame.lineNumber}`;
+
+            stackContext.push(
+              `\n\n\`\`\`${extension}\n${sourceContext}\n\`\`\`\nat ${locationInfo}`,
+            );
+            continue;
+          }
+
           let line = "\n  in ";
           const hasComponentName =
             frame.functionName &&
@@ -229,7 +401,7 @@ export const getElementContext = async (
             line += `${frame.functionName} (at `;
           }
 
-          line += normalizeFileName(frame.fileName);
+          line += filename;
 
           // HACK: bundlers like vite mess up the line number and column number
           if (isNextProject && frame.lineNumber && frame.columnNumber) {
