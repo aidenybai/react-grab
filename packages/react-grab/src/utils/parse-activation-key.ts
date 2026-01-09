@@ -13,11 +13,14 @@ const MODIFIER_MAP: Record<string, keyof Omit<ParsedModifiers, "key">> = {
   meta: "metaKey",
   cmd: "metaKey",
   command: "metaKey",
+  win: "metaKey",
+  windows: "metaKey",
   ctrl: "ctrlKey",
   control: "ctrlKey",
   shift: "shiftKey",
   alt: "altKey",
   option: "altKey",
+  opt: "altKey",
 };
 
 const parseString = (shortcut: string): ParsedModifiers => {
