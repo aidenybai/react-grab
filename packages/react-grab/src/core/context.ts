@@ -279,6 +279,8 @@ export const getElementContext = async (
   const sourceMapData = isNextProject ? await getSourceMapData() : {};
 
   const stackContext: string[] = [];
+  let hasAttachedSource = false;
+
   for (const frame of stack) {
     if (stackContext.length >= maxLines) break;
 
@@ -296,7 +298,8 @@ export const getElementContext = async (
       const filename = normalizeFileName(frame.fileName);
       const fileContent = sourceMapData[filename];
 
-      if (isNextProject && fileContent && frame.lineNumber) {
+      if (!hasAttachedSource && isNextProject && fileContent && frame.lineNumber) {
+        hasAttachedSource = true;
         const ext = getFileExtension(filename);
         const sourceContext = getSourceContext(
           fileContent,
