@@ -5,6 +5,11 @@ interface SourceMapData {
   [filename: string]: string;
 }
 
+interface SectionMap {
+  sources: string[];
+  sourcesContent?: string[];
+}
+
 const isWeakRef = (
   value: SourceMap | WeakRef<SourceMap> | null,
 ): value is WeakRef<SourceMap> =>
@@ -22,19 +27,11 @@ const resolveSourceMap = (
   return entry;
 };
 
-const extractDataFromSourceMap = (
-  sourceMap: SourceMap,
+const extractSourcesFromMap = (
+  sources: string[],
+  sourcesContent: (string | null)[] | undefined,
   data: SourceMapData,
 ): void => {
-  const { sources, sourcesContent, sections } = sourceMap;
-
-  if (sections) {
-    for (const section of sections) {
-      extractDataFromSourceMap(section.map as SourceMap, data);
-    }
-    return;
-  }
-
   if (!sourcesContent || sourcesContent.length === 0) {
     return;
   }
@@ -52,6 +49,28 @@ const extractDataFromSourceMap = (
       data[normalizedFilename] = content;
     }
   }
+};
+
+const extractDataFromSectionMap = (
+  sectionMap: SectionMap,
+  data: SourceMapData,
+): void => {
+  extractSourcesFromMap(sectionMap.sources, sectionMap.sourcesContent, data);
+};
+
+const extractDataFromSourceMap = (
+  sourceMap: SourceMap,
+  data: SourceMapData,
+): void => {
+  const { sources, sourcesContent, sections } = sourceMap;
+
+  if (sections && sections.length > 0) {
+    for (const section of sections) {
+      extractDataFromSectionMap(section.map as SectionMap, data);
+    }
+  }
+
+  extractSourcesFromMap(sources, sourcesContent, data);
 };
 
 export const getSourceMapData = (): SourceMapData => {
