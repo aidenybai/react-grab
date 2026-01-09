@@ -596,7 +596,10 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   createEffect(
     on(
       () => props.crosshairVisible,
-      () => {
+      (visible) => {
+        if (!visible) {
+          isCrosshairInitialized = false;
+        }
         scheduleAnimationFrame();
       },
     ),

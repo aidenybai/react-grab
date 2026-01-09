@@ -78,12 +78,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   const handleGlobalKeyDown = (event: KeyboardEvent) => {
     if (isKeyboardEventTriggeredByInput(event)) return;
-    if (
-      event.code === "Enter" &&
-      isIdle() &&
-      !props.isPromptMode &&
-      canInteract()
-    ) {
+    if (event.code === "Enter" && !props.isPromptMode && canInteract()) {
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
