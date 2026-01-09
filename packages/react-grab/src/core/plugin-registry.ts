@@ -29,7 +29,6 @@ interface OptionsState {
   keyHoldDuration: number;
   allowActivationInsideInput: boolean;
   maxContextLines: number;
-  activationShortcut: ((event: KeyboardEvent) => boolean) | undefined;
   activationKey: ActivationKey | undefined;
   getContent: ((elements: Element[]) => Promise<string> | string) | undefined;
 }
@@ -39,7 +38,6 @@ const DEFAULT_OPTIONS: OptionsState = {
   keyHoldDuration: DEFAULT_KEY_HOLD_DURATION_MS,
   allowActivationInsideInput: true,
   maxContextLines: 3,
-  activationShortcut: undefined,
   activationKey: undefined,
   getContent: undefined,
 };

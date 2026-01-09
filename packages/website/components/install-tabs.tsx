@@ -7,6 +7,7 @@ import { detectMobile } from "@/utils/detect-mobile";
 import { cn } from "@/utils/classnames";
 import { useHotkey } from "./hotkey-context";
 import type { RecordedHotkey } from "./grab-element-button";
+import { hotkeyToString } from "@/utils/hotkey-to-string";
 
 interface InlineCodeProps {
   children: React.ReactNode;
@@ -29,25 +30,8 @@ interface InstallTab {
   getChangedLines: (hotkey: RecordedHotkey | null) => number[];
 }
 
-const formatDataOptions = (hotkey: RecordedHotkey): string => {
-  const activationKey = {
-    ...(hotkey.key && { key: hotkey.key.toLowerCase() }),
-    ...(hotkey.metaKey && { metaKey: true }),
-    ...(hotkey.ctrlKey && { ctrlKey: true }),
-    ...(hotkey.shiftKey && { shiftKey: true }),
-    ...(hotkey.altKey && { altKey: true }),
-  };
-  return JSON.stringify({ activationKey });
-};
-
-const formatDataOptionsForNextjs = (hotkey: RecordedHotkey): string => {
-  const parts: string[] = [];
-  if (hotkey.key) parts.push(`key: "${hotkey.key.toLowerCase()}"`);
-  if (hotkey.metaKey) parts.push("metaKey: true");
-  if (hotkey.ctrlKey) parts.push("ctrlKey: true");
-  if (hotkey.shiftKey) parts.push("shiftKey: true");
-  if (hotkey.altKey) parts.push("altKey: true");
-  return `{ activationKey: { ${parts.join(", ")} } }`;
+const formatInitOptions = (hotkey: RecordedHotkey): string => {
+  return `{ activationKey: "${hotkeyToString(hotkey)}" }`;
 };
 
 const installTabsData: InstallTab[] = [
@@ -56,7 +40,12 @@ const installTabsData: InstallTab[] = [
     label: "CLI",
     description: "Run this command at your project root",
     lang: "bash",
-    getCode: () => `npx grab@latest init`,
+    getCode: (hotkey) => {
+      if (hotkey) {
+        return `npx grab@latest init --key "${hotkeyToString(hotkey)}"`;
+      }
+      return `npx grab@latest init`;
+    },
     getChangedLines: () => [],
   },
   {
@@ -69,7 +58,7 @@ const installTabsData: InstallTab[] = [
     ),
     getCode: (hotkey) => {
       const dataOptionsAttr = hotkey
-        ? `\n            data-options={JSON.stringify(\n              ${formatDataOptionsForNextjs(hotkey)}\n            )}`
+        ? `\n            data-options='{"activationKey":"${hotkeyToString(hotkey)}"}'`
         : "";
       return `import Script from "next/script";
 
@@ -92,7 +81,7 @@ export default function RootLayout({ children }) {
     },
     getChangedLines: (hotkey) =>
       hotkey
-        ? [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+        ? [7, 8, 9, 10, 11, 12, 13, 14]
         : [7, 8, 9, 10, 11, 12, 13],
   },
   {
@@ -105,7 +94,7 @@ export default function RootLayout({ children }) {
     ),
     getCode: (hotkey) => {
       const dataOptionsAttr = hotkey
-        ? `\n            data-options={JSON.stringify(\n              ${formatDataOptionsForNextjs(hotkey)}\n            )}`
+        ? `\n            data-options='{"activationKey":"${hotkeyToString(hotkey)}"}'`
         : "";
       return `import { Html, Head, Main, NextScript } from "next/document";
 import Script from "next/script";
@@ -132,7 +121,7 @@ export default function Document() {
     },
     getChangedLines: (hotkey) =>
       hotkey
-        ? [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+        ? [8, 9, 10, 11, 12, 13, 14, 15]
         : [8, 9, 10, 11, 12, 13, 14],
   },
   {
@@ -146,7 +135,6 @@ export default function Document() {
     ),
     getCode: (hotkey) => {
       if (hotkey) {
-        const optionsArg = formatDataOptions(hotkey);
         return `<!doctype html>
 <html lang="en">
   <head>
@@ -155,7 +143,7 @@ export default function Document() {
       // then in head:
       if (import.meta.env.DEV) {
         const { init } = await import("react-grab/core");
-        init(${optionsArg});
+        init(${formatInitOptions(hotkey)});
       }
     </script>
   </head>
@@ -196,14 +184,13 @@ export default function Document() {
     ),
     getCode: (hotkey) => {
       if (hotkey) {
-        const optionsArg = formatDataOptions(hotkey);
         return `import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 
 if (process.env.NODE_ENV === "development") {
   import("react-grab/core").then(({ init }) => {
-    init(${optionsArg});
+    init(${formatInitOptions(hotkey)});
   });
 }
 

@@ -22,6 +22,7 @@ import { TagBadge } from "./selection-label/tag-badge.js";
 import { BottomSection } from "./selection-label/bottom-section.js";
 import { formatShortcut } from "../utils/format-shortcut.js";
 import { isScreenshotSupported } from "../utils/is-screenshot-supported.js";
+import { getTagDisplay } from "../utils/get-tag-display.js";
 
 interface ContextMenuProps {
   position: { x: number; y: number } | null;
@@ -63,12 +64,11 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
 
   const isVisible = () => props.position !== null;
 
-  const displayName = () => {
-    if (props.componentName && props.tagName) {
-      return `${props.componentName}.${props.tagName}`;
-    }
-    return props.componentName || props.tagName || "element";
-  };
+  const tagDisplayResult = () =>
+    getTagDisplay({
+      tagName: props.tagName,
+      componentName: props.componentName,
+    });
 
   const measureContainer = () => {
     if (containerRef) {
@@ -330,7 +330,8 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         <div class="[font-synthesis:none] contain-layout flex flex-col justify-center items-start gap-1 rounded-sm bg-white antialiased w-fit h-fit min-w-[100px]">
           <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5 pr-1">
             <TagBadge
-              tagName={displayName()}
+              tagName={tagDisplayResult().tagName}
+              componentName={tagDisplayResult().componentName}
               isClickable={props.hasFilePath}
               onClick={(event) => {
                 event.stopPropagation();
