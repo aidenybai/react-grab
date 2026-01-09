@@ -500,7 +500,7 @@ export const configure = new Command()
         logger.break();
         console.log(`  ${pc.cyan(configJson)}`);
         logger.break();
-        process.exit(0);
+        process.exit(1);
       }
 
       const hasChanges =
@@ -510,19 +510,21 @@ export const configure = new Command()
         logger.break();
         printDiff(result.filePath, result.originalContent!, result.newContent!);
 
-        logger.break();
-        const { proceed } = await prompts({
-          type: "confirm",
-          name: "proceed",
-          message: "Apply these changes?",
-          initial: true,
-        });
+        if (!opts.yes) {
+          logger.break();
+          const { proceed } = await prompts({
+            type: "confirm",
+            name: "proceed",
+            message: "Apply these changes?",
+            initial: true,
+          });
 
-        if (!proceed) {
-          logger.break();
-          logger.log("Changes cancelled.");
-          logger.break();
-          process.exit(0);
+          if (!proceed) {
+            logger.break();
+            logger.log("Changes cancelled.");
+            logger.break();
+            process.exit(0);
+          }
         }
 
         const writeSpinner = spinner(
