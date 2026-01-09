@@ -599,6 +599,10 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
       (visible) => {
         if (!visible) {
           isCrosshairInitialized = false;
+        } else {
+          crosshairCurrentPosition.x = crosshairTargetPosition.x;
+          crosshairCurrentPosition.y = crosshairTargetPosition.y;
+          isCrosshairInitialized = true;
         }
         scheduleAnimationFrame();
       },
