@@ -1619,8 +1619,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const isReleasingActivationKey = pluginRegistry.store.options
           .activationKey
           ? typeof pluginRegistry.store.options.activationKey === "function"
-            ? !pluginRegistry.store.options.activationKey(event)
-            : !parseActivationKey(pluginRegistry.store.options.activationKey)(
+            ? pluginRegistry.store.options.activationKey(event)
+            : parseActivationKey(pluginRegistry.store.options.activationKey)(
                 event,
               )
           : isCLikeKey(event.key, event.code);

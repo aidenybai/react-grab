@@ -2,6 +2,13 @@ import { Command } from "commander";
 import pc from "picocolors";
 import prompts from "prompts";
 import {
+  applyPackageJsonWithFeedback,
+  applyTransformWithFeedback,
+  formatInstalledAgentNames,
+  installPackagesWithFeedback,
+  uninstallPackagesWithFeedback,
+} from "../utils/cli-helpers.js";
+import {
   detectProject,
   findWorkspaceProjects,
   type Framework,
@@ -14,8 +21,6 @@ import { highlighter } from "../utils/highlighter.js";
 import {
   getPackagesToInstall,
   getPackagesToUninstall,
-  installPackages,
-  uninstallPackages,
 } from "../utils/install.js";
 import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
@@ -25,9 +30,6 @@ import {
   type AgentIntegration,
 } from "../utils/templates.js";
 import {
-  applyOptionsTransform,
-  applyPackageJsonTransform,
-  applyTransform,
   previewAgentRemoval,
   previewOptionsTransform,
   previewPackageJsonAgentRemoval,
@@ -152,6 +154,43 @@ export const init = new Command()
 
       const projectInfo = await detectProject(cwd);
 
+      const removeAgents = async (agentsToRemove: string[], skipInstall: boolean = false) => {
+        for (const agentToRemove of agentsToRemove) {
+          const removalResult = previewAgentRemoval(
+            projectInfo.projectRoot,
+            projectInfo.framework,
+            projectInfo.nextRouterType,
+            agentToRemove,
+          );
+          const removalPackageJsonResult = previewPackageJsonAgentRemoval(
+            projectInfo.projectRoot,
+            agentToRemove,
+          );
+
+          if (!skipInstall) {
+            uninstallPackagesWithFeedback(
+              getPackagesToUninstall(agentToRemove),
+              projectInfo.packageManager,
+              projectInfo.projectRoot,
+            );
+          }
+
+          if (removalResult.success && !removalResult.noChanges && removalResult.newContent) {
+            applyTransformWithFeedback(
+              removalResult,
+              `Removing ${getAgentName(agentToRemove)} from ${removalResult.filePath}.`,
+            );
+          }
+
+          if (removalPackageJsonResult.success && !removalPackageJsonResult.noChanges && removalPackageJsonResult.newContent) {
+            applyPackageJsonWithFeedback(
+              removalPackageJsonResult,
+              `Removing ${getAgentName(agentToRemove)} from ${removalPackageJsonResult.filePath}.`,
+            );
+          }
+        }
+      };
+
       if (projectInfo.hasReactGrab && !opts.force) {
         preflightSpinner.succeed();
 
@@ -176,11 +215,8 @@ export const init = new Command()
         );
 
         if (projectInfo.installedAgents.length > 0) {
-          const installedNames = projectInfo.installedAgents
-            .map((innerAgent) => getAgentName(innerAgent))
-            .join(", ");
           logger.log(
-            `Currently installed agents: ${highlighter.info(installedNames)}`,
+            `Currently installed agents: ${highlighter.info(formatInstalledAgentNames(projectInfo.installedAgents))}`,
           );
           logger.break();
         }
@@ -220,9 +256,7 @@ export const init = new Command()
             let agentsToRemove: string[] = [];
 
             if (projectInfo.installedAgents.length > 0) {
-              const installedNames = projectInfo.installedAgents
-                .map((innerAgent) => getAgentName(innerAgent))
-                .join(", ");
+              const installedNames = formatInstalledAgentNames(projectInfo.installedAgents);
 
               const { action } = await prompts({
                 type: "select",
@@ -250,90 +284,10 @@ export const init = new Command()
                 }
 
                 if (agentsToRemove.length > 0) {
-                  for (const agentToRemove of agentsToRemove) {
-                    const removalResult = previewAgentRemoval(
-                      projectInfo.projectRoot,
-                      projectInfo.framework,
-                      projectInfo.nextRouterType,
-                      agentToRemove,
-                    );
-
-                    const removalPackageJsonResult =
-                      previewPackageJsonAgentRemoval(
-                        projectInfo.projectRoot,
-                        agentToRemove,
-                      );
-
-                    const packagesToRemove =
-                      getPackagesToUninstall(agentToRemove);
-
-                    if (packagesToRemove.length > 0) {
-                      const uninstallSpinner = spinner(
-                        `Removing ${packagesToRemove.join(", ")}.`,
-                      ).start();
-
-                      try {
-                        uninstallPackages(
-                          packagesToRemove,
-                          projectInfo.packageManager,
-                          projectInfo.projectRoot,
-                        );
-                        uninstallSpinner.succeed();
-                      } catch (error) {
-                        uninstallSpinner.fail();
-                        handleError(error);
-                      }
-                    }
-
-                    if (
-                      removalResult.success &&
-                      !removalResult.noChanges &&
-                      removalResult.newContent
-                    ) {
-                      const removeWriteSpinner = spinner(
-                        `Removing ${getAgentName(agentToRemove)} from ${removalResult.filePath}.`,
-                      ).start();
-                      const writeResult = applyTransform(removalResult);
-                      if (!writeResult.success) {
-                        removeWriteSpinner.fail();
-                        logger.break();
-                        logger.error(
-                          writeResult.error || "Failed to write file.",
-                        );
-                        logger.break();
-                        process.exit(1);
-                      }
-                      removeWriteSpinner.succeed();
-                    }
-
-                    if (
-                      removalPackageJsonResult.success &&
-                      !removalPackageJsonResult.noChanges &&
-                      removalPackageJsonResult.newContent
-                    ) {
-                      const removePackageJsonSpinner = spinner(
-                        `Removing ${getAgentName(agentToRemove)} from ${removalPackageJsonResult.filePath}.`,
-                      ).start();
-                      const packageJsonWriteResult = applyPackageJsonTransform(
-                        removalPackageJsonResult,
-                      );
-                      if (!packageJsonWriteResult.success) {
-                        removePackageJsonSpinner.fail();
-                        logger.break();
-                        logger.error(
-                          packageJsonWriteResult.error ||
-                            "Failed to write file.",
-                        );
-                        logger.break();
-                        process.exit(1);
-                      }
-                      removePackageJsonSpinner.succeed();
-                    }
-                  }
-
+                  await removeAgents(agentsToRemove);
                   projectInfo.installedAgents =
                     projectInfo.installedAgents.filter(
-                      (innerAgent) => !agentsToRemove.includes(innerAgent),
+                      (agent) => !agentsToRemove.includes(agent),
                     );
                 }
 
@@ -404,63 +358,18 @@ export const init = new Command()
                       logger.break();
                       logger.log("Agent addition cancelled.");
                     } else {
-                      const packages = getPackagesToInstall(
-                        agentIntegration,
-                        false,
+                      installPackagesWithFeedback(
+                        getPackagesToInstall(agentIntegration, false),
+                        projectInfo.packageManager,
+                        projectInfo.projectRoot,
                       );
 
-                      if (packages.length > 0) {
-                        const installSpinner = spinner(
-                          `Installing ${packages.join(", ")}.`,
-                        ).start();
-
-                        try {
-                          installPackages(
-                            packages,
-                            projectInfo.packageManager,
-                            projectInfo.projectRoot,
-                          );
-                          installSpinner.succeed();
-                        } catch (error) {
-                          installSpinner.fail();
-                          handleError(error);
-                        }
-                      }
-
                       if (hasLayoutChanges) {
-                        const writeSpinner = spinner(
-                          `Applying changes to ${result.filePath}.`,
-                        ).start();
-                        const writeResult = applyTransform(result);
-                        if (!writeResult.success) {
-                          writeSpinner.fail();
-                          logger.break();
-                          logger.error(
-                            writeResult.error || "Failed to write file.",
-                          );
-                          logger.break();
-                          process.exit(1);
-                        }
-                        writeSpinner.succeed();
+                        applyTransformWithFeedback(result);
                       }
 
                       if (hasPackageJsonChanges) {
-                        const packageJsonSpinner = spinner(
-                          `Applying changes to ${packageJsonResult.filePath}.`,
-                        ).start();
-                        const packageJsonWriteResult =
-                          applyPackageJsonTransform(packageJsonResult);
-                        if (!packageJsonWriteResult.success) {
-                          packageJsonSpinner.fail();
-                          logger.break();
-                          logger.error(
-                            packageJsonWriteResult.error ||
-                              "Failed to write file.",
-                          );
-                          logger.break();
-                          process.exit(1);
-                        }
-                        packageJsonSpinner.succeed();
+                        applyPackageJsonWithFeedback(packageJsonResult);
                       }
 
                       didAddAgent = true;
@@ -470,63 +379,18 @@ export const init = new Command()
                       );
                     }
                   } else {
-                    const packages = getPackagesToInstall(
-                      agentIntegration,
-                      false,
+                    installPackagesWithFeedback(
+                      getPackagesToInstall(agentIntegration, false),
+                      projectInfo.packageManager,
+                      projectInfo.projectRoot,
                     );
 
-                    if (packages.length > 0) {
-                      const installSpinner = spinner(
-                        `Installing ${packages.join(", ")}.`,
-                      ).start();
-
-                      try {
-                        installPackages(
-                          packages,
-                          projectInfo.packageManager,
-                          projectInfo.projectRoot,
-                        );
-                        installSpinner.succeed();
-                      } catch (error) {
-                        installSpinner.fail();
-                        handleError(error);
-                      }
-                    }
-
                     if (hasLayoutChanges) {
-                      const writeSpinner = spinner(
-                        `Applying changes to ${result.filePath}.`,
-                      ).start();
-                      const writeResult = applyTransform(result);
-                      if (!writeResult.success) {
-                        writeSpinner.fail();
-                        logger.break();
-                        logger.error(
-                          writeResult.error || "Failed to write file.",
-                        );
-                        logger.break();
-                        process.exit(1);
-                      }
-                      writeSpinner.succeed();
+                      applyTransformWithFeedback(result);
                     }
 
                     if (hasPackageJsonChanges) {
-                      const packageJsonSpinner = spinner(
-                        `Applying changes to ${packageJsonResult.filePath}.`,
-                      ).start();
-                      const packageJsonWriteResult =
-                        applyPackageJsonTransform(packageJsonResult);
-                      if (!packageJsonWriteResult.success) {
-                        packageJsonSpinner.fail();
-                        logger.break();
-                        logger.error(
-                          packageJsonWriteResult.error ||
-                            "Failed to write file.",
-                        );
-                        logger.break();
-                        process.exit(1);
-                      }
-                      packageJsonSpinner.succeed();
+                      applyPackageJsonWithFeedback(packageJsonResult);
                     }
 
                     didAddAgent = true;
@@ -712,18 +576,7 @@ export const init = new Command()
               logger.break();
               logger.log("Options configuration cancelled.");
             } else {
-              const writeSpinner = spinner(
-                `Applying changes to ${optionsResult.filePath}.`,
-              ).start();
-              const writeResult = applyOptionsTransform(optionsResult);
-              if (!writeResult.success) {
-                writeSpinner.fail();
-                logger.break();
-                logger.error(writeResult.error || "Failed to write file.");
-                logger.break();
-                process.exit(1);
-              }
-              writeSpinner.succeed();
+              applyTransformWithFeedback(optionsResult);
 
               logger.break();
               logger.success("React Grab options have been configured.");
@@ -863,10 +716,7 @@ export const init = new Command()
         logger.break();
 
         if (opts.force && projectInfo.installedAgents.length > 0) {
-          const installedNames = projectInfo.installedAgents
-            .map((innerAgent) => getAgentName(innerAgent))
-            .join(", ");
-          logger.warn(`Currently installed: ${installedNames}`);
+          logger.warn(`Currently installed: ${formatInstalledAgentNames(projectInfo.installedAgents)}`);
           logger.break();
         }
 
@@ -896,9 +746,7 @@ export const init = new Command()
           agentIntegration !== "none" &&
           !projectInfo.installedAgents.includes(agentIntegration)
         ) {
-          const installedNames = projectInfo.installedAgents
-            .map((innerAgent) => getAgentName(innerAgent))
-            .join(", ");
+          const installedNames = formatInstalledAgentNames(projectInfo.installedAgents);
 
           const { action } = await prompts({
             type: "select",
@@ -935,9 +783,7 @@ export const init = new Command()
         !projectInfo.installedAgents.includes(opts.agent) &&
         !isNonInteractive
       ) {
-        const installedNames = projectInfo.installedAgents
-          .map((innerAgent) => getAgentName(innerAgent))
-          .join(", ");
+        const installedNames = formatInstalledAgentNames(projectInfo.installedAgents);
 
         logger.break();
         logger.warn(`Currently installed: ${installedNames}`);
@@ -1047,84 +893,9 @@ export const init = new Command()
       }
 
       if (agentsToRemove.length > 0) {
-        for (const agentToRemove of agentsToRemove) {
-          const removalResult = previewAgentRemoval(
-            projectInfo.projectRoot,
-            projectInfo.framework,
-            projectInfo.nextRouterType,
-            agentToRemove,
-          );
-
-          const removalPackageJsonResult = previewPackageJsonAgentRemoval(
-            projectInfo.projectRoot,
-            agentToRemove,
-          );
-
-          const packagesToRemove = getPackagesToUninstall(agentToRemove);
-
-          if (packagesToRemove.length > 0 && !opts.skipInstall) {
-            const uninstallSpinner = spinner(
-              `Removing ${packagesToRemove.join(", ")}.`,
-            ).start();
-
-            try {
-              uninstallPackages(
-                packagesToRemove,
-                finalPackageManager,
-                projectInfo.projectRoot,
-              );
-              uninstallSpinner.succeed();
-            } catch (error) {
-              uninstallSpinner.fail();
-              handleError(error);
-            }
-          }
-
-          if (
-            removalResult.success &&
-            !removalResult.noChanges &&
-            removalResult.newContent
-          ) {
-            const removeWriteSpinner = spinner(
-              `Removing ${getAgentName(agentToRemove)} from ${removalResult.filePath}.`,
-            ).start();
-            const writeResult = applyTransform(removalResult);
-            if (!writeResult.success) {
-              removeWriteSpinner.fail();
-              logger.break();
-              logger.error(writeResult.error || "Failed to write file.");
-              logger.break();
-              process.exit(1);
-            }
-            removeWriteSpinner.succeed();
-          }
-
-          if (
-            removalPackageJsonResult.success &&
-            !removalPackageJsonResult.noChanges &&
-            removalPackageJsonResult.newContent
-          ) {
-            const removePackageJsonSpinner = spinner(
-              `Removing ${getAgentName(agentToRemove)} from ${removalPackageJsonResult.filePath}.`,
-            ).start();
-            const packageJsonWriteResult = applyPackageJsonTransform(
-              removalPackageJsonResult,
-            );
-            if (!packageJsonWriteResult.success) {
-              removePackageJsonSpinner.fail();
-              logger.break();
-              logger.error(
-                packageJsonWriteResult.error || "Failed to write file.",
-              );
-              logger.break();
-              process.exit(1);
-            }
-            removePackageJsonSpinner.succeed();
-          }
-        }
-
+        await removeAgents(agentsToRemove, opts.skipInstall);
         projectInfo.installedAgents = projectInfo.installedAgents.filter(
-          (innerAgent) => !agentsToRemove.includes(innerAgent),
+          (agent) => !agentsToRemove.includes(agent),
         );
       }
 
@@ -1134,59 +905,19 @@ export const init = new Command()
         !projectInfo.installedAgents.includes(agentIntegration);
 
       if (!opts.skipInstall && (shouldInstallReactGrab || shouldInstallAgent)) {
-        const packages = getPackagesToInstall(
-          agentIntegration,
-          shouldInstallReactGrab,
+        installPackagesWithFeedback(
+          getPackagesToInstall(agentIntegration, shouldInstallReactGrab),
+          finalPackageManager,
+          projectInfo.projectRoot,
         );
-
-        if (packages.length > 0) {
-          const installSpinner = spinner(
-            `Installing ${packages.join(", ")}.`,
-          ).start();
-
-          try {
-            installPackages(
-              packages,
-              finalPackageManager,
-              projectInfo.projectRoot,
-            );
-            installSpinner.succeed();
-          } catch (error) {
-            installSpinner.fail();
-            handleError(error);
-          }
-        }
       }
 
       if (hasLayoutChanges) {
-        const writeSpinner = spinner(
-          `Applying changes to ${result.filePath}.`,
-        ).start();
-        const writeResult = applyTransform(result);
-        if (!writeResult.success) {
-          writeSpinner.fail();
-          logger.break();
-          logger.error(writeResult.error || "Failed to write file.");
-          logger.break();
-          process.exit(1);
-        }
-        writeSpinner.succeed();
+        applyTransformWithFeedback(result);
       }
 
       if (hasPackageJsonChanges) {
-        const packageJsonSpinner = spinner(
-          `Applying changes to ${packageJsonResult.filePath}.`,
-        ).start();
-        const packageJsonWriteResult =
-          applyPackageJsonTransform(packageJsonResult);
-        if (!packageJsonWriteResult.success) {
-          packageJsonSpinner.fail();
-          logger.break();
-          logger.error(packageJsonWriteResult.error || "Failed to write file.");
-          logger.break();
-          process.exit(1);
-        }
-        packageJsonSpinner.succeed();
+        applyPackageJsonWithFeedback(packageJsonResult);
       }
 
       logger.break();

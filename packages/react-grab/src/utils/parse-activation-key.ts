@@ -102,7 +102,7 @@ export const parseActivationKey = (
         (parsed.ctrlKey ? event.ctrlKey : true) &&
         (parsed.shiftKey ? event.shiftKey : true) &&
         (parsed.altKey ? event.altKey : true)
-      : true;
+      : !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
 
     return keyMatches && modifiersMatch;
   };
