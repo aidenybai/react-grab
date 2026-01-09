@@ -43,8 +43,37 @@ const extractSourceMapData = (sourceMap: SourceMap): SourceMapData => {
   return filenameToContent;
 };
 
-const isJavaScriptType = (typeAttribute: string | null): boolean => {
+const NON_JS_EXTENSIONS = [
+  ".css",
+  ".scss",
+  ".sass",
+  ".less",
+  ".json",
+  ".html",
+  ".svg",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".gif",
+  ".webp",
+  ".woff",
+  ".woff2",
+  ".ttf",
+  ".eot",
+];
+
+const isLikelyJavaScriptUrl = (url: string): boolean => {
+  const pathWithoutQuery = url.split("?")[0].toLowerCase();
+  return !NON_JS_EXTENSIONS.some((extension) =>
+    pathWithoutQuery.endsWith(extension),
+  );
+};
+
+const isJavaScriptScriptElement = (script: Element): boolean => {
+  const typeAttribute = script.getAttribute("type");
+
   if (!typeAttribute) return true;
+
   const normalizedType = typeAttribute.toLowerCase().trim();
   return (
     normalizedType === "" ||
@@ -54,39 +83,36 @@ const isJavaScriptType = (typeAttribute: string | null): boolean => {
   );
 };
 
-const isJavaScriptUrl = (url: string): boolean => {
-  const pathWithoutQuery = url.split("?")[0];
-  return (
-    pathWithoutQuery.endsWith(".js") ||
-    pathWithoutQuery.endsWith(".mjs") ||
-    pathWithoutQuery.endsWith(".cjs")
-  );
-};
-
 const getScriptUrlsFromDocument = (): string[] => {
   if (typeof document === "undefined") return [];
 
   const scriptUrls: string[] = [];
+  const seenUrls = new Set<string>();
   const scriptElements = Array.from(document.querySelectorAll("script[src]"));
 
   for (const script of scriptElements) {
     const srcAttribute = script.getAttribute("src");
-    const typeAttribute = script.getAttribute("type");
-
     if (!srcAttribute) continue;
-    if (!isJavaScriptType(typeAttribute)) continue;
+    if (!isJavaScriptScriptElement(script)) continue;
 
     try {
       const absoluteUrl = new URL(srcAttribute, window.location.href).href;
-      if (isJavaScriptUrl(absoluteUrl) && !scriptUrls.includes(absoluteUrl)) {
-        scriptUrls.push(absoluteUrl);
-      }
+
+      if (seenUrls.has(absoluteUrl)) continue;
+      if (!isLikelyJavaScriptUrl(absoluteUrl)) continue;
+
+      seenUrls.add(absoluteUrl);
+      scriptUrls.push(absoluteUrl);
     } catch {
       continue;
     }
   }
 
   return scriptUrls;
+};
+
+const getCachedSourceMapUrls = (): Set<string> => {
+  return new Set(sourceMapCache.keys());
 };
 
 export const getSourceMapDataFromCache = (): SourceMapData => {
@@ -112,18 +138,25 @@ export const getSourceMapDataForUrl = async (
   bundleUrl: string,
   fetchFn?: (url: string) => Promise<Response>,
 ): Promise<SourceMapData> => {
-  const sourceMap = await getSourceMap(bundleUrl, true, fetchFn);
-  return sourceMap ? extractSourceMapData(sourceMap) : {};
+  try {
+    const sourceMap = await getSourceMap(bundleUrl, true, fetchFn);
+    return sourceMap ? extractSourceMapData(sourceMap) : {};
+  } catch {
+    return {};
+  }
 };
 
 export const getSourceMapDataFromScripts = async (
   fetchFn?: (url: string) => Promise<Response>,
 ): Promise<SourceMapData> => {
   const scriptUrls = getScriptUrlsFromDocument();
+  const cachedUrls = getCachedSourceMapUrls();
+  const uncachedScriptUrls = scriptUrls.filter((url) => !cachedUrls.has(url));
+
   const filenameToContent: SourceMapData = {};
 
   const fetchResults = await Promise.all(
-    scriptUrls.map((url) => getSourceMapDataForUrl(url, fetchFn)),
+    uncachedScriptUrls.map((url) => getSourceMapDataForUrl(url, fetchFn)),
   );
 
   for (const fetchedData of fetchResults) {
