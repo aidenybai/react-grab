@@ -865,7 +865,7 @@ const formatOptionsForNextjs = (options: ReactGrabOptions): string => {
   const parts: string[] = [];
 
   if (options.activationKey) {
-    parts.push(`activationKey: "${options.activationKey}"`);
+    parts.push(`activationKey: ${JSON.stringify(options.activationKey)}`);
   }
 
   if (options.activationMode) {
