@@ -75,7 +75,9 @@
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write .",
     "check": "eslint src/**/*.ts && prettier --check .",
-    "test": "playwright test",
+    "test": "vitest run && playwright test",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
     "publint": "publint",
     "prepublishOnly": "pnpm build",
     "test:e2e": "playwright test",
@@ -97,7 +99,8 @@
     "tailwind-merge": "^2.5.5",
     "tailwindcss": "^4.1.0",
     "tsup": "^8.2.4",
-    "typescript-eslint": "^8.46.1"
+    "typescript-eslint": "^8.46.1",
+    "vitest": "^3.2.4"
   },
   "publishConfig": {
     "access": "public"

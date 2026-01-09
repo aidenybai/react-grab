@@ -13,6 +13,11 @@ export {
 } from "./utils/capture-screenshot.js";
 export type { ElementBounds } from "./utils/capture-screenshot.js";
 export { isScreenshotSupported } from "./utils/is-screenshot-supported.js";
+export {
+  parseActivationKeyString,
+  normalizeActivationKey,
+  MODIFIER_MAP,
+} from "./utils/parse-activation-key.js";
 export type {
   Options,
   ReactGrabAPI,
@@ -35,6 +40,7 @@ export type {
   AgentCompleteResult,
   SettableOptions,
   ActivationMode,
+  ActivationKey,
   ContextMenuAction,
   ActionContext,
   Plugin,

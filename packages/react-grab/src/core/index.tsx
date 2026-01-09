@@ -73,6 +73,7 @@ import { logIntro } from "./log-intro.js";
 import { onIdle } from "../utils/on-idle.js";
 import { getScriptOptions } from "../utils/get-script-options.js";
 import { isEnterCode } from "../utils/is-enter-code.js";
+import { normalizeActivationKey } from "../utils/parse-activation-key.js";
 
 let hasInited = false;
 
@@ -83,6 +84,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
   const scriptOptions = getScriptOptions();
 
+  // Normalize activationKey if it's provided as a string (e.g., "Win+K")
+  const normalizedRawOptions = rawOptions
+    ? {
+        ...rawOptions,
+        activationKey: rawOptions.activationKey
+          ? (normalizeActivationKey(
+              rawOptions.activationKey as string | Options["activationKey"],
+            ) ?? rawOptions.activationKey)
+          : undefined,
+      }
+    : undefined;
+
   const initialOptions: Options = {
     enabled: true,
     activationMode: "toggle",
@@ -90,7 +103,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     allowActivationInsideInput: true,
     maxContextLines: 3,
     ...scriptOptions,
-    ...rawOptions,
+    ...normalizedRawOptions,
   };
 
   if (initialOptions.enabled === false || hasInited) {
