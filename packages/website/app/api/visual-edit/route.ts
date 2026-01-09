@@ -159,7 +159,7 @@ export const POST = async (request: Request) => {
     console.log("shouldUsePrimaryModel", shouldUsePrimaryModel);
     // if (shouldUsePrimaryModel) {
     const result = await generateText({
-      model: "cerebras/glm-4.6",
+      model: "cerebras/glm-4.7",
       system: SYSTEM_PROMPT,
       messages,
     });
