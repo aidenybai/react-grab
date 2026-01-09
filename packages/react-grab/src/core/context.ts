@@ -174,10 +174,22 @@ const getSourceMapDataFromScripts = async (): Promise<SourceMapData> => {
   return combined;
 };
 
+let sourceMapDataCache: SourceMapData | null = null;
+let sourceMapDataPromise: Promise<SourceMapData> | null = null;
+
 const getSourceMapData = async (): Promise<SourceMapData> => {
-  const cached = getSourceMapDataFromCache();
-  const fromScripts = await getSourceMapDataFromScripts();
-  return { ...cached, ...fromScripts };
+  if (sourceMapDataCache) return sourceMapDataCache;
+
+  if (!sourceMapDataPromise) {
+    sourceMapDataPromise = (async () => {
+      const cached = getSourceMapDataFromCache();
+      const fromScripts = await getSourceMapDataFromScripts();
+      sourceMapDataCache = { ...cached, ...fromScripts };
+      return sourceMapDataCache;
+    })();
+  }
+
+  return sourceMapDataPromise;
 };
 
 const getFileExtension = (filename: string): string => {
