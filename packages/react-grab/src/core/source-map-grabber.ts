@@ -50,29 +50,12 @@ const extractSourceMapData = (sourceMap: SourceMap): SourceMapData => {
   return filenameToContent;
 };
 
-const NON_JAVASCRIPT_EXTENSIONS = [
-  ".css",
-  ".scss",
-  ".sass",
-  ".less",
-  ".json",
-  ".html",
-  ".svg",
-  ".png",
-  ".jpg",
-  ".jpeg",
-  ".gif",
-  ".webp",
-  ".woff",
-  ".woff2",
-  ".ttf",
-  ".eot",
-];
+const JAVASCRIPT_EXTENSIONS = [".js", ".mjs", ".cjs", ".jsx", ".tsx"];
 
-const isLikelyJavaScriptUrl = (scriptUrl: string): boolean => {
+const isJavaScriptUrl = (scriptUrl: string): boolean => {
   const urlPathWithoutQueryString = scriptUrl.split("?")[0].toLowerCase();
-  return !NON_JAVASCRIPT_EXTENSIONS.some((nonJsExtension) =>
-    urlPathWithoutQueryString.endsWith(nonJsExtension),
+  return JAVASCRIPT_EXTENSIONS.some((jsExtension) =>
+    urlPathWithoutQueryString.endsWith(jsExtension),
   );
 };
 
@@ -107,7 +90,7 @@ const getScriptUrlsFromDocument = (): string[] => {
         .href;
 
       if (alreadyProcessedUrls.has(absoluteScriptUrl)) continue;
-      if (!isLikelyJavaScriptUrl(absoluteScriptUrl)) continue;
+      if (!isJavaScriptUrl(absoluteScriptUrl)) continue;
 
       alreadyProcessedUrls.add(absoluteScriptUrl);
       discoveredScriptUrls.push(absoluteScriptUrl);
