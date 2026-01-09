@@ -12,7 +12,9 @@ export const DiscardPrompt: Component<DiscardPromptProps> = (props) => {
   const handleKeyDown = (event: KeyboardEvent) => {
     if (!confirmationFocusManager.isActive(instanceId)) return;
     if (isKeyboardEventTriggeredByInput(event)) return;
-    if (event.code === "Enter" || event.code === "Escape") {
+
+    const isConfirmKey = event.code === "Enter" || event.code === "Escape";
+    if (isConfirmKey) {
       event.preventDefault();
       event.stopPropagation();
       props.onConfirm?.();

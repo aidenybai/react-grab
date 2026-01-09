@@ -13,11 +13,15 @@ export const ErrorView: Component<ErrorViewProps> = (props) => {
   const handleKeyDown = (event: KeyboardEvent) => {
     if (!confirmationFocusManager.isActive(instanceId)) return;
     if (isKeyboardEventTriggeredByInput(event)) return;
-    if (event.code === "Enter") {
+
+    const isEnter = event.code === "Enter";
+    const isEscape = event.code === "Escape";
+
+    if (isEnter) {
       event.preventDefault();
       event.stopPropagation();
       props.onRetry?.();
-    } else if (event.code === "Escape") {
+    } else if (isEscape) {
       event.preventDefault();
       event.stopPropagation();
       props.onAcknowledge?.();

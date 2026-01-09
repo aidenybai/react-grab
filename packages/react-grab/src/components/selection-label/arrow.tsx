@@ -3,20 +3,22 @@ import type { ArrowProps } from "../../types.js";
 
 export const Arrow: Component<ArrowProps> = (props) => {
   const arrowColor = () => props.color ?? "white";
+  const isBottom = () => props.position === "bottom";
 
   return (
     <div
       class="absolute w-0 h-0"
       style={{
         left: `${props.leftPx}px`,
-        ...(props.position === "bottom"
-          ? { top: "0", transform: "translateX(-50%) translateY(-100%)" }
-          : { bottom: "0", transform: "translateX(-50%) translateY(100%)" }),
+        top: isBottom() ? "0" : undefined,
+        bottom: isBottom() ? undefined : "0",
+        transform: isBottom()
+          ? "translateX(-50%) translateY(-100%)"
+          : "translateX(-50%) translateY(100%)",
         "border-left": "8px solid transparent",
         "border-right": "8px solid transparent",
-        ...(props.position === "bottom"
-          ? { "border-bottom": `8px solid ${arrowColor()}` }
-          : { "border-top": `8px solid ${arrowColor()}` }),
+        "border-bottom": isBottom() ? `8px solid ${arrowColor()}` : undefined,
+        "border-top": isBottom() ? undefined : `8px solid ${arrowColor()}`,
       }}
     />
   );

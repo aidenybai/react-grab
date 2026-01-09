@@ -46,6 +46,15 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     props.status !== "fading" &&
     props.status !== "error";
 
+  const isCompletedStatus = () =>
+    props.status === "copied" || props.status === "fading";
+
+  const shouldEnablePointerEvents = (): boolean =>
+    props.isPromptMode ||
+    (isCompletedStatus() && Boolean(props.onDismiss || props.onShowContextMenu)) ||
+    (props.status === "copying" && Boolean(props.onAbort)) ||
+    (props.status === "error" && Boolean(props.onAcknowledgeError || props.onRetry));
+
   const showOpenIndicator = () => props.isContextMenuOpen === true;
 
   const measureContainer = () => {
@@ -78,21 +87,25 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   const handleGlobalKeyDown = (event: KeyboardEvent) => {
     if (isKeyboardEventTriggeredByInput(event)) return;
-    if (event.code === "Enter" && !props.isPromptMode && canInteract()) {
+
+    const isEnterToExpand =
+      event.code === "Enter" && !props.isPromptMode && canInteract();
+    const isCtrlCToAbort =
+      event.code === "KeyC" &&
+      event.ctrlKey &&
+      props.status === "copying" &&
+      props.onAbort;
+
+    if (isEnterToExpand) {
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
       props.onToggleExpand?.();
-    } else if (
-      event.code === "KeyC" &&
-      event.ctrlKey &&
-      props.status === "copying" &&
-      props.onAbort
-    ) {
+    } else if (isCtrlCToAbort) {
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
-      props.onAbort();
+      props.onAbort?.();
     }
   };
 
@@ -141,18 +154,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     void props.isPendingDismiss;
     void props.error;
     void props.isPendingAbort;
-    void isIdle();
-    requestAnimationFrame(measureContainer);
-  });
-
-  createEffect(() => {
-    if (props.visible) {
-      requestAnimationFrame(measureContainer);
-    }
-  });
-
-  createEffect(() => {
+    void props.visible;
     void props.status;
+    void isIdle();
     requestAnimationFrame(measureContainer);
   });
 
@@ -230,10 +234,13 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     event.stopPropagation();
     event.stopImmediatePropagation();
 
-    if (event.code === "Enter" && !event.shiftKey) {
+    const isEnterWithoutShift = event.code === "Enter" && !event.shiftKey;
+    const isEscape = event.code === "Escape";
+
+    if (isEnterWithoutShift) {
       event.preventDefault();
       props.onSubmit?.();
-    } else if (event.code === "Escape") {
+    } else if (isEscape) {
       event.preventDefault();
       props.onConfirmDismiss?.();
     }
@@ -264,13 +271,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   const isTagClickable = () => Boolean(props.filePath && props.onOpen);
 
-  const stopPropagation = (event: Event) => {
+  const handleContainerPointerDown = (event: PointerEvent) => {
     event.stopPropagation();
     event.stopImmediatePropagation();
-  };
-
-  const handleContainerPointerDown = (event: PointerEvent) => {
-    stopPropagation(event);
     const isEditableInputVisible =
       canInteract() && props.isPromptMode && !props.isPendingDismiss;
     if (isEditableInputVisible && inputRef) {
@@ -283,10 +286,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   };
 
   const shouldPersistDuringFade = () =>
-    hadValidBounds() &&
-    (props.status === "copied" ||
-      props.status === "fading" ||
-      props.status === "error");
+    hadValidBounds() && (isCompletedStatus() || props.status === "error");
 
   return (
     <Show
@@ -304,20 +304,18 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           top: `${computedPosition().top}px`,
           left: `${computedPosition().left}px`,
           "z-index": "2147483647",
-          "pointer-events":
-            props.isPromptMode ||
-            ((props.status === "copied" || props.status === "fading") &&
-              (props.onDismiss || props.onShowContextMenu)) ||
-            (props.status === "copying" && props.onAbort) ||
-            (props.status === "error" &&
-              (props.onAcknowledgeError || props.onRetry))
-              ? "auto"
-              : "none",
+          "pointer-events": shouldEnablePointerEvents() ? "auto" : "none",
           opacity: props.status === "fading" ? 0 : 1,
         }}
         onPointerDown={handleContainerPointerDown}
-        onMouseDown={stopPropagation}
-        onClick={stopPropagation}
+        onMouseDown={(event) => {
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+        }}
+        onClick={(event) => {
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+        }}
         onMouseEnter={() => setIsContainerHovered(true)}
         onMouseLeave={() => setIsContainerHovered(false)}
       >
@@ -326,12 +324,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           leftPx={computedPosition().arrowLeft}
         />
 
-        <Show
-          when={
-            (props.status === "copied" || props.status === "fading") &&
-            !props.error
-          }
-        >
+        <Show when={isCompletedStatus() && !props.error}>
           <CompletionView
             statusText={
               props.hasAgent ? (props.statusText ?? "Completed") : "Copied"
@@ -351,11 +344,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         <div
           class="[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-sm bg-white antialiased w-fit h-fit p-0"
           style={{
-            display:
-              (props.status === "copied" || props.status === "fading") &&
-              !props.error
-                ? "none"
-                : undefined,
+            display: isCompletedStatus() && !props.error ? "none" : undefined,
           }}
         >
           <Show when={props.status === "copying" && !props.isPendingAbort}>

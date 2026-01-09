@@ -70,13 +70,15 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
   const handleInputKeyDown = (event: KeyboardEvent) => {
     const isUndoRedo =
       event.code === "KeyZ" && (event.metaKey || event.ctrlKey);
+    const isEnterWithoutShift = event.code === "Enter" && !event.shiftKey;
+    const isEscape = event.code === "Escape";
 
     if (!isUndoRedo) {
       event.stopPropagation();
       event.stopImmediatePropagation();
     }
 
-    if (event.code === "Enter" && !event.shiftKey) {
+    if (isEnterWithoutShift) {
       event.preventDefault();
       const prompt = followUpInput().trim();
       if (prompt) {
@@ -84,7 +86,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
       } else {
         handleAccept();
       }
-    } else if (event.code === "Escape") {
+    } else if (isEscape) {
       event.preventDefault();
       props.onDismiss?.();
     }
@@ -97,6 +99,8 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
       event.code === "KeyZ" &&
       (event.metaKey || event.ctrlKey) &&
       !event.shiftKey;
+    const isEnter = event.code === "Enter";
+    const isEscape = event.code === "Escape";
 
     if (isUndo && props.supportsUndo && props.onUndo) {
       event.preventDefault();
@@ -107,11 +111,11 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
 
     if (isKeyboardEventTriggeredByInput(event)) return;
 
-    if (event.code === "Enter") {
+    if (isEnter) {
       event.preventDefault();
       event.stopPropagation();
       handleAccept();
-    } else if (event.code === "Escape") {
+    } else if (isEscape) {
       event.preventDefault();
       event.stopPropagation();
       props.onDismiss?.();

@@ -198,7 +198,13 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!isVisible()) return;
-      if (event.code === "Escape") {
+
+      const isEscape = event.code === "Escape";
+      const isEnter = event.key === "Enter";
+      const hasModifierKey = event.metaKey || event.ctrlKey;
+      const keyLower = event.key.toLowerCase();
+
+      if (isEscape) {
         event.preventDefault();
         event.stopPropagation();
         props.onDismiss();
@@ -208,7 +214,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       const customActions = props.actions ?? [];
       const context = props.actionContext;
 
-      if (event.key === "Enter") {
+      if (isEnter) {
         for (const customAction of customActions) {
           if (customAction.shortcut === "Enter") {
             const isEnabled =
@@ -230,20 +236,19 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         return;
       }
 
-      const hasModifierKey = event.metaKey || event.ctrlKey;
       if (!hasModifierKey) return;
 
-      if (event.key.toLowerCase() === "s" && isScreenshotSupported()) {
+      if (keyLower === "s" && isScreenshotSupported()) {
         event.preventDefault();
         event.stopPropagation();
         props.onCopyScreenshot();
         props.onHide();
-      } else if (event.key.toLowerCase() === "c") {
+      } else if (keyLower === "c") {
         event.preventDefault();
         event.stopPropagation();
         props.onCopy();
         props.onHide();
-      } else if (event.key.toLowerCase() === "o" && props.hasFilePath) {
+      } else if (keyLower === "o" && props.hasFilePath) {
         event.preventDefault();
         event.stopPropagation();
         props.onOpen();
@@ -253,7 +258,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
           if (
             customAction.shortcut &&
             customAction.shortcut !== "Enter" &&
-            event.key.toLowerCase() === customAction.shortcut.toLowerCase()
+            keyLower === customAction.shortcut.toLowerCase()
           ) {
             const isEnabled =
               typeof customAction.enabled === "function"
