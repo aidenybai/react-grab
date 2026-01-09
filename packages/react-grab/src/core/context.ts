@@ -319,6 +319,7 @@ export const getElementContext = async (
 
         line += filename;
 
+        // HACK: bundlers like vite mess up the line number and column number
         if (isNextProject && frame.lineNumber && frame.columnNumber) {
           line += `:${frame.lineNumber}:${frame.columnNumber}`;
         }
