@@ -50,13 +50,9 @@ const extractSourceMapData = (sourceMap: SourceMap): SourceMapData => {
   return filenameToContent;
 };
 
-const JAVASCRIPT_EXTENSIONS = [".js", ".mjs", ".cjs", ".jsx", ".tsx"];
-
 const isJavaScriptUrl = (scriptUrl: string): boolean => {
   const urlPathWithoutQueryString = scriptUrl.split("?")[0].toLowerCase();
-  return JAVASCRIPT_EXTENSIONS.some((jsExtension) =>
-    urlPathWithoutQueryString.endsWith(jsExtension),
-  );
+  return urlPathWithoutQueryString.endsWith(".js");
 };
 
 const isJavaScriptScriptElement = (scriptElement: Element): boolean => {
