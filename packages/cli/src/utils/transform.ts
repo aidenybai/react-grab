@@ -26,13 +26,7 @@ export interface TransformResult {
 }
 
 export interface ReactGrabOptions {
-  activationKey?: {
-    key?: string;
-    metaKey?: boolean;
-    ctrlKey?: boolean;
-    shiftKey?: boolean;
-    altKey?: boolean;
-  };
+  activationKey?: string;
   activationMode?: "toggle" | "hold";
   keyHoldDuration?: number;
   allowActivationInsideInput?: boolean;
@@ -871,16 +865,7 @@ const formatOptionsForNextjs = (options: ReactGrabOptions): string => {
   const parts: string[] = [];
 
   if (options.activationKey) {
-    const keyParts: string[] = [];
-    if (options.activationKey.key)
-      keyParts.push(`key: "${options.activationKey.key}"`);
-    if (options.activationKey.metaKey) keyParts.push("metaKey: true");
-    if (options.activationKey.ctrlKey) keyParts.push("ctrlKey: true");
-    if (options.activationKey.shiftKey) keyParts.push("shiftKey: true");
-    if (options.activationKey.altKey) keyParts.push("altKey: true");
-    if (keyParts.length > 0) {
-      parts.push(`activationKey: { ${keyParts.join(", ")} }`);
-    }
+    parts.push(`activationKey: "${options.activationKey}"`);
   }
 
   if (options.activationMode) {
@@ -908,16 +893,7 @@ const formatOptionsAsJson = (options: ReactGrabOptions): string => {
   const cleanOptions: Record<string, unknown> = {};
 
   if (options.activationKey) {
-    const activationKey: Record<string, unknown> = {};
-    if (options.activationKey.key)
-      activationKey.key = options.activationKey.key;
-    if (options.activationKey.metaKey) activationKey.metaKey = true;
-    if (options.activationKey.ctrlKey) activationKey.ctrlKey = true;
-    if (options.activationKey.shiftKey) activationKey.shiftKey = true;
-    if (options.activationKey.altKey) activationKey.altKey = true;
-    if (Object.keys(activationKey).length > 0) {
-      cleanOptions.activationKey = activationKey;
-    }
+    cleanOptions.activationKey = options.activationKey;
   }
 
   if (options.activationMode) {

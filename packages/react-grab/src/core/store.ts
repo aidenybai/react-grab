@@ -318,6 +318,8 @@ const createGrabStore = (input: GrabStoreInput) => {
 
     startDrag: (position: Position) => {
       if (store.current.state === "active") {
+        setStore("frozenElement", null);
+        setStore("frozenElements", []);
         setStore("dragStart", {
           x: position.x + window.scrollX,
           y: position.y + window.scrollY,

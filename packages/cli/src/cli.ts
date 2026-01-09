@@ -42,6 +42,15 @@ if (initAgentOption) {
     }
   };
 }
+const initKeyOption = initCommand?.options.get("key");
+if (initKeyOption) {
+  initKeyOption.handler = (complete) => {
+    complete("Meta+K", "Cmd+K / Win+K");
+    complete("Ctrl+K", "Ctrl+K");
+    complete("Space", "Spacebar");
+    complete("Alt", "Option / Alt");
+  };
+}
 
 const addCommand = completion.commands.get("add");
 const addAgentArg = addCommand?.arguments.get("agent");
@@ -78,6 +87,25 @@ if (startPortOption) {
     complete("2000", "Default port");
     complete("3000", "Common dev port");
     complete("8080", "Alternative port");
+  };
+}
+
+const configureCommand = completion.commands.get("configure");
+const configureKeyOption = configureCommand?.options.get("key");
+if (configureKeyOption) {
+  configureKeyOption.handler = (complete) => {
+    complete("Meta+K", "Cmd+K / Win+K");
+    complete("Ctrl+K", "Ctrl+K");
+    complete("Space", "Spacebar");
+    complete("Alt", "Option / Alt");
+    complete("Ctrl+Shift+G", "Ctrl+Shift+G");
+  };
+}
+const configureModeOption = configureCommand?.options.get("mode");
+if (configureModeOption) {
+  configureModeOption.handler = (complete) => {
+    complete("toggle", "Press to activate/deactivate");
+    complete("hold", "Hold key to keep active");
   };
 }
 

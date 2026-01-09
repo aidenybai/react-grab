@@ -125,13 +125,9 @@ export interface ElementLabelContext {
   lineNumber?: number;
 }
 
-export interface ActivationKey {
-  key?: string;
-  metaKey?: boolean;
-  ctrlKey?: boolean;
-  shiftKey?: boolean;
-  altKey?: boolean;
-}
+export type ActivationKey =
+  | string
+  | ((event: KeyboardEvent) => boolean);
 
 export interface AgentContext<T = unknown> {
   content: string[];
@@ -286,7 +282,6 @@ export interface Options {
   keyHoldDuration?: number;
   allowActivationInsideInput?: boolean;
   maxContextLines?: number;
-  activationShortcut?: (event: KeyboardEvent) => boolean;
   activationKey?: ActivationKey;
   getContent?: (elements: Element[]) => Promise<string> | string;
 }
@@ -334,6 +329,7 @@ export interface SelectionLabelInstance {
   element?: Element;
   elements?: Element[];
   mouseX?: number;
+  mouseXOffsetFromCenter?: number;
   errorMessage?: string;
 }
 

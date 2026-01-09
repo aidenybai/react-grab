@@ -1,4 +1,5 @@
 import type { Options } from "../types.js";
+import { getModifiersFromActivationKey } from "../utils/parse-activation-key.js";
 
 interface ModifierKeys {
   metaKey: boolean;
@@ -8,20 +9,12 @@ interface ModifierKeys {
 }
 
 export const getRequiredModifiers = (options: Options): ModifierKeys => {
-  if (options.activationKey) {
-    const { metaKey, ctrlKey, shiftKey, altKey } = options.activationKey;
-    return {
-      metaKey: Boolean(metaKey),
-      ctrlKey: Boolean(ctrlKey),
-      shiftKey: Boolean(shiftKey),
-      altKey: Boolean(altKey),
-    };
-  }
+  const modifiers = getModifiersFromActivationKey(options.activationKey);
   return {
-    metaKey: true,
-    ctrlKey: true,
-    shiftKey: false,
-    altKey: false,
+    metaKey: modifiers.metaKey,
+    ctrlKey: modifiers.ctrlKey,
+    shiftKey: modifiers.shiftKey,
+    altKey: modifiers.altKey,
   };
 };
 

@@ -36,8 +36,8 @@ import {
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
-import { keyMatchesCode } from "../utils/key-matches-code.js";
 import { isTargetKeyCombination } from "../utils/is-target-key-combination.js";
+import { parseActivationKey } from "../utils/parse-activation-key.js";
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
 import { buildOpenFileUrl } from "../utils/build-open-file-url.js";
 import {
@@ -311,6 +311,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     ): string => {
       actions.clearLabelInstances();
       const instanceId = `label-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const boundsCenterX = bounds.x + bounds.width / 2;
       const instance: SelectionLabelInstance = {
         id: instanceId,
         bounds,
@@ -322,6 +323,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         element,
         elements,
         mouseX,
+        mouseXOffsetFromCenter: mouseX !== undefined ? mouseX - boundsCenterX : undefined,
       };
       actions.addLabelInstance(instance);
       return instanceId;
@@ -1602,8 +1604,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (isPromptMode()) return;
 
         const hasCustomShortcut = Boolean(
-          pluginRegistry.store.options.activationShortcut ||
-            pluginRegistry.store.options.activationKey,
+          pluginRegistry.store.options.activationKey,
         );
 
         const requiredModifiers = getRequiredModifiers(
@@ -1616,26 +1617,33 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               (requiredModifiers.altKey && !event.altKey);
 
         const isReleasingActivationKey = pluginRegistry.store.options
-          .activationShortcut
-          ? !pluginRegistry.store.options.activationShortcut(event)
-          : pluginRegistry.store.options.activationKey
-            ? pluginRegistry.store.options.activationKey.key
-              ? event.key?.toLowerCase() ===
-                  pluginRegistry.store.options.activationKey.key.toLowerCase() ||
-                keyMatchesCode(
-                  pluginRegistry.store.options.activationKey.key,
-                  event.code,
-                )
-              : false
-            : isCLikeKey(event.key, event.code);
+          .activationKey
+          ? typeof pluginRegistry.store.options.activationKey === "function"
+            ? !pluginRegistry.store.options.activationKey(event)
+            : !parseActivationKey(pluginRegistry.store.options.activationKey)(
+                event,
+              )
+          : isCLikeKey(event.key, event.code);
+
+        const isHoldMode =
+          pluginRegistry.store.options.activationMode === "hold";
 
         if (isActivated()) {
+          const hasContextMenu = store.contextMenuPosition !== null;
           if (isReleasingModifier) {
             if (
               store.wasActivatedByToggle &&
               pluginRegistry.store.options.activationMode !== "hold"
             )
               return;
+            if (hasContextMenu) return;
+            deactivateRenderer();
+          } else if (isHoldMode && isReleasingActivationKey) {
+            if (keydownSpamTimerId !== null) {
+              window.clearTimeout(keydownSpamTimerId);
+              keydownSpamTimerId = null;
+            }
+            if (hasContextMenu) return;
             deactivateRenderer();
           } else if (
             !hasCustomShortcut &&
@@ -2006,7 +2014,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         ) {
           return previousInstance;
         }
-        const newCached = { ...instance, bounds: newBounds };
+        const newBoundsCenterX = newBounds.x + newBounds.width / 2;
+        const newMouseX = instance.mouseXOffsetFromCenter !== undefined
+          ? newBoundsCenterX + instance.mouseXOffsetFromCenter
+          : instance.mouseX;
+        const newCached = { ...instance, bounds: newBounds, mouseX: newMouseX };
         labelInstanceCache.set(instance.id, newCached);
         return newCached;
       });

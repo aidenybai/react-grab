@@ -6,6 +6,7 @@ import { detectMobile } from "@/utils/detect-mobile";
 import { cn } from "@/utils/classnames";
 import { useHotkey } from "./hotkey-context";
 import { getKeyFromCode } from "@/utils/get-key-from-code";
+import { hotkeyToString } from "@/utils/hotkey-to-string";
 
 export interface RecordedHotkey {
   key: string | null;
@@ -57,15 +58,7 @@ const updateReactGrabHotkey = (hotkey: RecordedHotkey | null) => {
       if (api) {
         api.dispose();
       }
-      const activationKey = hotkey
-        ? {
-            key: hotkey.key?.toLowerCase() ?? undefined,
-            metaKey: hotkey.metaKey || undefined,
-            ctrlKey: hotkey.ctrlKey || undefined,
-            shiftKey: hotkey.shiftKey || undefined,
-            altKey: hotkey.altKey || undefined,
-          }
-        : undefined;
+      const activationKey = hotkey ? hotkeyToString(hotkey) : undefined;
       const newApi = reactGrab.init({
         activationKey,
       });

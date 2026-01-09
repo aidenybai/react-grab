@@ -94,26 +94,29 @@ const UNSUPPORTED_FRAMEWORK_NAMES: Record<
   gatsby: "Gatsby",
 };
 
-const MODIFIER_KEY_NAMES: Record<string, string> = {
-  metaKey: process.platform === "darwin" ? "⌘ Command" : "⊞ Windows",
-  ctrlKey: "Ctrl",
-  shiftKey: "Shift",
-  altKey: process.platform === "darwin" ? "⌥ Option" : "Alt",
+const getAgentName = (agent: string): string => {
+  if (agent in AGENT_NAMES) {
+    return AGENT_NAMES[agent as keyof typeof AGENT_NAMES];
+  }
+  return agent;
 };
 
-const formatActivationKey = (
+const formatActivationKeyDisplay = (
   activationKey: ReactGrabOptions["activationKey"],
 ): string => {
   if (!activationKey) return "Default (Option/Alt)";
-  const parts: string[] = [];
-  if (activationKey.metaKey)
-    parts.push(process.platform === "darwin" ? "⌘" : "Win");
-  if (activationKey.ctrlKey) parts.push("Ctrl");
-  if (activationKey.shiftKey) parts.push("Shift");
-  if (activationKey.altKey)
-    parts.push(process.platform === "darwin" ? "⌥" : "Alt");
-  if (activationKey.key) parts.push(activationKey.key.toUpperCase());
-  return parts.length > 0 ? parts.join(" + ") : "Default (Option/Alt)";
+  return activationKey
+    .split("+")
+    .map((part) => {
+      const lower = part.toLowerCase();
+      if (lower === "meta") return process.platform === "darwin" ? "⌘" : "Win";
+      if (lower === "alt") return process.platform === "darwin" ? "⌥" : "Alt";
+      if (lower === "ctrl") return "Ctrl";
+      if (lower === "shift") return "Shift";
+      if (lower === "space" || lower === " ") return "Space";
+      return part.toUpperCase();
+    })
+    .join(" + ");
 };
 
 export const init = new Command()
@@ -124,6 +127,10 @@ export const init = new Command()
   .option(
     "-a, --agent <agent>",
     "agent integration (claude-code, cursor, opencode, codex, gemini, amp, visual-edit)",
+  )
+  .option(
+    "-k, --key <key>",
+    "activation key (e.g., Meta+K, Ctrl+Shift+G, Space)",
   )
   .option("--skip-install", "skip package installation", false)
   .option(
@@ -170,7 +177,7 @@ export const init = new Command()
 
         if (projectInfo.installedAgents.length > 0) {
           const installedNames = projectInfo.installedAgents
-            .map((innerAgent) => AGENT_NAMES[innerAgent] || innerAgent)
+            .map((innerAgent) => getAgentName(innerAgent))
             .join(", ");
           logger.log(
             `Currently installed agents: ${highlighter.info(installedNames)}`,
@@ -199,7 +206,7 @@ export const init = new Command()
               name: "agent",
               message: `Which ${highlighter.info("agent integration")} would you like to add?`,
               choices: availableAgents.map((innerAgent) => ({
-                title: AGENT_NAMES[innerAgent],
+                title: getAgentName(innerAgent),
                 value: innerAgent,
               })),
             });
@@ -214,7 +221,7 @@ export const init = new Command()
 
             if (projectInfo.installedAgents.length > 0) {
               const installedNames = projectInfo.installedAgents
-                .map((innerAgent) => AGENT_NAMES[innerAgent] || innerAgent)
+                .map((innerAgent) => getAgentName(innerAgent))
                 .join(", ");
 
               const { action } = await prompts({
@@ -223,11 +230,11 @@ export const init = new Command()
                 message: "How would you like to proceed?",
                 choices: [
                   {
-                    title: `Replace ${installedNames} with ${AGENT_NAMES[agentIntegration]}`,
+                    title: `Replace ${installedNames} with ${getAgentName(agentIntegration)}`,
                     value: "replace",
                   },
                   {
-                    title: `Add ${AGENT_NAMES[agentIntegration]} alongside existing`,
+                    title: `Add ${getAgentName(agentIntegration)} alongside existing`,
                     value: "add",
                   },
                   { title: "Cancel", value: "cancel" },
@@ -284,7 +291,7 @@ export const init = new Command()
                       removalResult.newContent
                     ) {
                       const removeWriteSpinner = spinner(
-                        `Removing ${AGENT_NAMES[agentToRemove] || agentToRemove} from ${removalResult.filePath}.`,
+                        `Removing ${getAgentName(agentToRemove)} from ${removalResult.filePath}.`,
                       ).start();
                       const writeResult = applyTransform(removalResult);
                       if (!writeResult.success) {
@@ -305,7 +312,7 @@ export const init = new Command()
                       removalPackageJsonResult.newContent
                     ) {
                       const removePackageJsonSpinner = spinner(
-                        `Removing ${AGENT_NAMES[agentToRemove] || agentToRemove} from ${removalPackageJsonResult.filePath}.`,
+                        `Removing ${getAgentName(agentToRemove)} from ${removalPackageJsonResult.filePath}.`,
                       ).start();
                       const packageJsonWriteResult = applyPackageJsonTransform(
                         removalPackageJsonResult,
@@ -459,7 +466,7 @@ export const init = new Command()
                       didAddAgent = true;
                       logger.break();
                       logger.success(
-                        `${AGENT_NAMES[agentIntegration]} has been added.`,
+                        `${getAgentName(agentIntegration)} has been added.`,
                       );
                     }
                   } else {
@@ -525,7 +532,7 @@ export const init = new Command()
                     didAddAgent = true;
                     logger.break();
                     logger.success(
-                      `${AGENT_NAMES[agentIntegration]} has been added.`,
+                      `${getAgentName(agentIntegration)} has been added.`,
                     );
                   }
                 }
@@ -550,72 +557,50 @@ export const init = new Command()
           process.exit(1);
         }
 
-        if (wantCustomizeOptions) {
+        if (wantCustomizeOptions || opts.key) {
           logger.break();
           logger.log(`Configure ${highlighter.info("React Grab")} options:`);
           logger.break();
 
           const collectedOptions: ReactGrabOptions = {};
 
-          const { wantActivationKey } = await prompts({
-            type: "confirm",
-            name: "wantActivationKey",
-            message: `Configure ${highlighter.info("activation key")}?`,
-            initial: false,
-          });
-
-          if (wantActivationKey === undefined) {
-            logger.break();
-            process.exit(1);
-          }
-
-          if (wantActivationKey) {
-            const { key } = await prompts({
-              type: "text",
-              name: "key",
-              message: "Enter the activation key (e.g., g, k, space):",
-              initial: "",
-            });
-
-            if (key === undefined) {
-              logger.break();
-              process.exit(1);
-            }
-
-            const { modifiers } = await prompts({
-              type: "multiselect",
-              name: "modifiers",
-              message:
-                "Select modifier keys (space to select, enter to confirm):",
-              choices: [
-                { title: MODIFIER_KEY_NAMES.metaKey, value: "metaKey" },
-                { title: MODIFIER_KEY_NAMES.ctrlKey, value: "ctrlKey" },
-                { title: MODIFIER_KEY_NAMES.shiftKey, value: "shiftKey" },
-                {
-                  title: MODIFIER_KEY_NAMES.altKey,
-                  value: "altKey",
-                  selected: true,
-                },
-              ],
-              hint: "- Space to select, Enter to confirm",
-            });
-
-            if (modifiers === undefined) {
-              logger.break();
-              process.exit(1);
-            }
-
-            collectedOptions.activationKey = {
-              ...(key && { key: key.toLowerCase() }),
-              ...(modifiers.includes("metaKey") && { metaKey: true }),
-              ...(modifiers.includes("ctrlKey") && { ctrlKey: true }),
-              ...(modifiers.includes("shiftKey") && { shiftKey: true }),
-              ...(modifiers.includes("altKey") && { altKey: true }),
-            };
-
+          if (opts.key) {
+            collectedOptions.activationKey = opts.key;
             logger.log(
-              `  Activation key: ${highlighter.info(formatActivationKey(collectedOptions.activationKey))}`,
+              `  Activation key: ${highlighter.info(formatActivationKeyDisplay(collectedOptions.activationKey))}`,
             );
+          } else {
+            const { wantActivationKey } = await prompts({
+              type: "confirm",
+              name: "wantActivationKey",
+              message: `Configure ${highlighter.info("activation key")}?`,
+              initial: false,
+            });
+
+            if (wantActivationKey === undefined) {
+              logger.break();
+              process.exit(1);
+            }
+
+            if (wantActivationKey) {
+              const { key } = await prompts({
+                type: "text",
+                name: "key",
+                message: "Enter the activation key (e.g., g, k, space):",
+                initial: "",
+              });
+
+              if (key === undefined) {
+                logger.break();
+                process.exit(1);
+              }
+
+              collectedOptions.activationKey = key ? key.toLowerCase() : undefined;
+
+              logger.log(
+                `  Activation key: ${highlighter.info(formatActivationKeyDisplay(collectedOptions.activationKey))}`,
+              );
+            }
           }
 
           const { activationMode } = await prompts({
@@ -867,9 +852,9 @@ export const init = new Command()
         `Detecting package manager. Found ${highlighter.info(PACKAGE_MANAGER_NAMES[projectInfo.packageManager])}.`,
       );
 
-      let finalFramework = projectInfo.framework;
-      let finalPackageManager = projectInfo.packageManager;
-      let finalNextRouterType = projectInfo.nextRouterType;
+      const finalFramework = projectInfo.framework;
+      const finalPackageManager = projectInfo.packageManager;
+      const finalNextRouterType = projectInfo.nextRouterType;
       let agentIntegration: AgentIntegration =
         (opts.agent as AgentIntegration) || "none";
       let agentsToRemove: string[] = [];
@@ -879,7 +864,7 @@ export const init = new Command()
 
         if (opts.force && projectInfo.installedAgents.length > 0) {
           const installedNames = projectInfo.installedAgents
-            .map((innerAgent) => AGENT_NAMES[innerAgent] || innerAgent)
+            .map((innerAgent) => getAgentName(innerAgent))
             .join(", ");
           logger.warn(`Currently installed: ${installedNames}`);
           logger.break();
@@ -892,7 +877,7 @@ export const init = new Command()
           choices: [
             { title: "None", value: "none" },
             ...AGENTS.map((innerAgent) => ({
-              title: AGENT_NAMES[innerAgent],
+              title: getAgentName(innerAgent),
               value: innerAgent,
             })),
           ],
@@ -912,7 +897,7 @@ export const init = new Command()
           !projectInfo.installedAgents.includes(agentIntegration)
         ) {
           const installedNames = projectInfo.installedAgents
-            .map((innerAgent) => AGENT_NAMES[innerAgent] || innerAgent)
+            .map((innerAgent) => getAgentName(innerAgent))
             .join(", ");
 
           const { action } = await prompts({
@@ -921,11 +906,11 @@ export const init = new Command()
             message: "How would you like to proceed?",
             choices: [
               {
-                title: `Replace ${installedNames} with ${AGENT_NAMES[agentIntegration]}`,
+                title: `Replace ${installedNames} with ${getAgentName(agentIntegration)}`,
                 value: "replace",
               },
               {
-                title: `Add ${AGENT_NAMES[agentIntegration]} alongside existing`,
+                title: `Add ${getAgentName(agentIntegration)} alongside existing`,
                 value: "add",
               },
               { title: "Cancel", value: "cancel" },
@@ -951,7 +936,7 @@ export const init = new Command()
         !isNonInteractive
       ) {
         const installedNames = projectInfo.installedAgents
-          .map((innerAgent) => AGENT_NAMES[innerAgent] || innerAgent)
+          .map((innerAgent) => getAgentName(innerAgent))
           .join(", ");
 
         logger.break();
@@ -963,11 +948,11 @@ export const init = new Command()
           message: "How would you like to proceed?",
           choices: [
             {
-              title: `Replace ${installedNames} with ${AGENT_NAMES[agentIntegration]}`,
+              title: `Replace ${installedNames} with ${getAgentName(agentIntegration)}`,
               value: "replace",
             },
             {
-              title: `Add ${AGENT_NAMES[agentIntegration]} alongside existing`,
+              title: `Add ${getAgentName(agentIntegration)} alongside existing`,
               value: "add",
             },
             { title: "Cancel", value: "cancel" },
@@ -1101,7 +1086,7 @@ export const init = new Command()
             removalResult.newContent
           ) {
             const removeWriteSpinner = spinner(
-              `Removing ${AGENT_NAMES[agentToRemove] || agentToRemove} from ${removalResult.filePath}.`,
+              `Removing ${getAgentName(agentToRemove)} from ${removalResult.filePath}.`,
             ).start();
             const writeResult = applyTransform(removalResult);
             if (!writeResult.success) {
@@ -1120,7 +1105,7 @@ export const init = new Command()
             removalPackageJsonResult.newContent
           ) {
             const removePackageJsonSpinner = spinner(
-              `Removing ${AGENT_NAMES[agentToRemove] || agentToRemove} from ${removalPackageJsonResult.filePath}.`,
+              `Removing ${getAgentName(agentToRemove)} from ${removalPackageJsonResult.filePath}.`,
             ).start();
             const packageJsonWriteResult = applyPackageJsonTransform(
               removalPackageJsonResult,

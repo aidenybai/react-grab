@@ -9,6 +9,7 @@ import {
 } from "../../constants.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
 import { cn } from "../../utils/cn.js";
+import { getTagDisplay } from "../../utils/get-tag-display.js";
 import { IconSubmit } from "../icons/icon-submit.jsx";
 import { IconStop } from "../icons/icon-stop.jsx";
 import { Arrow } from "./arrow.js";
@@ -248,19 +249,15 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     props.onInputChange?.(target.value);
   };
 
-  const tagDisplay = () => {
-    if (props.elementsCount && props.elementsCount > 1) {
-      return `${props.elementsCount} elements`;
-    }
-    return props.tagName || props.componentName || "element";
-  };
+  const tagDisplayResult = () =>
+    getTagDisplay({
+      tagName: props.tagName,
+      componentName: props.componentName,
+      elementsCount: props.elementsCount,
+    });
 
-  const componentNameDisplay = () => {
-    if (props.elementsCount && props.elementsCount > 1) {
-      return undefined;
-    }
-    return props.tagName ? props.componentName : undefined;
-  };
+  const tagDisplay = () => tagDisplayResult().tagName;
+  const componentNameDisplay = () => tagDisplayResult().componentName;
 
   const handleTagClick = (event: MouseEvent) => {
     event.stopPropagation();
