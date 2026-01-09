@@ -6,127 +6,97 @@ interface SourceMapData {
 }
 
 const isWeakRef = (
-  cacheValue: SourceMap | WeakRef<SourceMap> | null,
-): cacheValue is WeakRef<SourceMap> =>
-  typeof WeakRef !== "undefined" && cacheValue instanceof WeakRef;
+  value: SourceMap | WeakRef<SourceMap>,
+): value is WeakRef<SourceMap> =>
+  typeof WeakRef !== "undefined" && value instanceof WeakRef;
+
+const resolveSourceMapFromCache = (
+  cacheEntry: SourceMap | WeakRef<SourceMap> | null,
+): SourceMap | null => {
+  if (!cacheEntry) return null;
+  if (isWeakRef(cacheEntry)) return cacheEntry.deref() ?? null;
+  return cacheEntry;
+};
 
 const extractSourceMapData = (sourceMap: SourceMap): SourceMapData => {
-  const filenameToContent: SourceMapData = {};
+  const result: SourceMapData = {};
 
-  const processSourcesArray = (
-    sourceFilenames: string[],
-    sourceFileContents: (string | null)[] | undefined,
+  const processSources = (
+    sources: string[],
+    contents: (string | null)[] | undefined,
   ) => {
-    if (!sourceFileContents) return;
+    if (!contents) return;
 
-    for (
-      let sourceIndex = 0;
-      sourceIndex < sourceFilenames.length;
-      sourceIndex++
-    ) {
-      const rawSourceFilename = sourceFilenames[sourceIndex];
-      const sourceFileContent = sourceFileContents[sourceIndex];
-
-      if (!rawSourceFilename || !sourceFileContent) continue;
-
-      const normalizedFilename = normalizeFileName(rawSourceFilename);
-      if (normalizedFilename && !filenameToContent[normalizedFilename]) {
-        filenameToContent[normalizedFilename] = sourceFileContent;
+    for (let i = 0; i < sources.length; i++) {
+      const filename = normalizeFileName(sources[i]);
+      const content = contents[i];
+      if (filename && content && !result[filename]) {
+        result[filename] = content;
       }
     }
   };
 
   if (sourceMap.sections) {
-    for (const sourceMapSection of sourceMap.sections) {
-      processSourcesArray(
-        sourceMapSection.map.sources,
-        sourceMapSection.map.sourcesContent,
-      );
+    for (const section of sourceMap.sections) {
+      processSources(section.map.sources, section.map.sourcesContent);
     }
   }
 
-  processSourcesArray(sourceMap.sources, sourceMap.sourcesContent);
-
-  return filenameToContent;
+  processSources(sourceMap.sources, sourceMap.sourcesContent);
+  return result;
 };
 
-const isJavaScriptUrl = (scriptUrl: string): boolean => {
-  const urlPathWithoutQueryString = scriptUrl.split("?")[0].toLowerCase();
-  return urlPathWithoutQueryString.endsWith(".js");
-};
-
-const isJavaScriptScriptElement = (scriptElement: Element): boolean => {
-  const typeAttribute = scriptElement.getAttribute("type");
-
-  if (!typeAttribute) return true;
-
-  const normalizedTypeAttribute = typeAttribute.toLowerCase().trim();
+const hasJavaScriptType = (script: Element): boolean => {
+  const type = script.getAttribute("type")?.toLowerCase().trim();
   return (
-    normalizedTypeAttribute === "" ||
-    normalizedTypeAttribute === "text/javascript" ||
-    normalizedTypeAttribute === "application/javascript" ||
-    normalizedTypeAttribute === "module"
+    !type ||
+    type === "text/javascript" ||
+    type === "application/javascript" ||
+    type === "module"
   );
 };
 
-const getScriptUrlsFromDocument = (): string[] => {
+const getScriptUrls = (): string[] => {
   if (typeof document === "undefined") return [];
 
-  const discoveredScriptUrls: string[] = [];
-  const alreadyProcessedUrls = new Set<string>();
-  const scriptElements = Array.from(document.querySelectorAll("script[src]"));
+  const urls = new Set<string>();
 
-  for (const scriptElement of scriptElements) {
-    const srcAttribute = scriptElement.getAttribute("src");
-    if (!srcAttribute) continue;
-    if (!isJavaScriptScriptElement(scriptElement)) continue;
+  for (const script of Array.from(document.querySelectorAll("script[src]"))) {
+    const src = script.getAttribute("src");
+    if (!src || !hasJavaScriptType(script)) continue;
 
     try {
-      const absoluteScriptUrl = new URL(srcAttribute, window.location.href)
-        .href;
-
-      if (alreadyProcessedUrls.has(absoluteScriptUrl)) continue;
-      if (!isJavaScriptUrl(absoluteScriptUrl)) continue;
-
-      alreadyProcessedUrls.add(absoluteScriptUrl);
-      discoveredScriptUrls.push(absoluteScriptUrl);
+      const url = new URL(src, window.location.href).href;
+      if (url.split("?")[0].endsWith(".js")) {
+        urls.add(url);
+      }
     } catch {
       continue;
     }
   }
 
-  return discoveredScriptUrls;
-};
-
-const getAlreadyCachedSourceMapUrls = (): Set<string> => {
-  return new Set(sourceMapCache.keys());
+  return Array.from(urls);
 };
 
 export const getSourceMapDataFromCache = (): SourceMapData => {
-  const filenameToContent: SourceMapData = {};
+  const result: SourceMapData = {};
 
-  for (const sourceMapCacheEntry of sourceMapCache.values()) {
-    const resolvedSourceMap =
-      sourceMapCacheEntry === null
-        ? null
-        : isWeakRef(sourceMapCacheEntry)
-          ? (sourceMapCacheEntry.deref() ?? null)
-          : sourceMapCacheEntry;
-
-    if (resolvedSourceMap) {
-      Object.assign(filenameToContent, extractSourceMapData(resolvedSourceMap));
+  for (const cacheEntry of sourceMapCache.values()) {
+    const sourceMap = resolveSourceMapFromCache(cacheEntry);
+    if (sourceMap) {
+      Object.assign(result, extractSourceMapData(sourceMap));
     }
   }
 
-  return filenameToContent;
+  return result;
 };
 
 export const getSourceMapDataForUrl = async (
-  bundleUrl: string,
-  fetchFunction?: (url: string) => Promise<Response>,
+  url: string,
+  fetchFn?: (url: string) => Promise<Response>,
 ): Promise<SourceMapData> => {
   try {
-    const sourceMap = await getSourceMap(bundleUrl, true, fetchFunction);
+    const sourceMap = await getSourceMap(url, true, fetchFn);
     return sourceMap ? extractSourceMapData(sourceMap) : {};
   } catch {
     return {};
@@ -134,36 +104,28 @@ export const getSourceMapDataForUrl = async (
 };
 
 export const getSourceMapDataFromScripts = async (
-  fetchFunction?: (url: string) => Promise<Response>,
+  fetchFn?: (url: string) => Promise<Response>,
 ): Promise<SourceMapData> => {
-  const allScriptUrls = getScriptUrlsFromDocument();
-  const alreadyCachedUrls = getAlreadyCachedSourceMapUrls();
-  const scriptUrlsNotYetCached = allScriptUrls.filter(
-    (scriptUrl) => !alreadyCachedUrls.has(scriptUrl),
+  const cachedUrls = new Set(sourceMapCache.keys());
+  const uncachedUrls = getScriptUrls().filter((url) => !cachedUrls.has(url));
+
+  const results = await Promise.all(
+    uncachedUrls.map((url) => getSourceMapDataForUrl(url, fetchFn)),
   );
 
-  const filenameToContent: SourceMapData = {};
-
-  const sourceMapFetchResults = await Promise.all(
-    scriptUrlsNotYetCached.map((scriptUrl) =>
-      getSourceMapDataForUrl(scriptUrl, fetchFunction),
-    ),
-  );
-
-  for (const fetchedSourceMapData of sourceMapFetchResults) {
-    Object.assign(filenameToContent, fetchedSourceMapData);
+  const combined: SourceMapData = {};
+  for (const data of results) {
+    Object.assign(combined, data);
   }
-
-  return filenameToContent;
+  return combined;
 };
 
 export const getSourceMapData = async (
-  fetchFunction?: (url: string) => Promise<Response>,
+  fetchFn?: (url: string) => Promise<Response>,
 ): Promise<SourceMapData> => {
-  const cachedSourceMapData = getSourceMapDataFromCache();
-  const scriptSourceMapData = await getSourceMapDataFromScripts(fetchFunction);
-
-  return { ...cachedSourceMapData, ...scriptSourceMapData };
+  const cached = getSourceMapDataFromCache();
+  const fromScripts = await getSourceMapDataFromScripts(fetchFn);
+  return { ...cached, ...fromScripts };
 };
 
 export type { SourceMapData };
