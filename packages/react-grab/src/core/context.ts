@@ -369,6 +369,7 @@ export const getElementContext = async (
     const stackContext: string[] = [];
 
     if (stack) {
+      let hasAttachedSource = false;
       for (const frame of stack) {
         if (stackContext.length >= maxLines) break;
 
@@ -387,7 +388,13 @@ export const getElementContext = async (
           const filename = normalizeFileName(frame.fileName);
           const fileContent = sourceMapData[filename];
 
-          if (isNextProject && fileContent && frame.lineNumber) {
+          if (
+            !hasAttachedSource &&
+            isNextProject &&
+            fileContent &&
+            frame.lineNumber
+          ) {
+            hasAttachedSource = true;
             const extension = getFileExtension(filename);
             const sourceContext = getSourceContext(
               fileContent,
