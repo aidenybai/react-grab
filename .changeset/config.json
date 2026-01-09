@@ -29,6 +29,6 @@
     "@react-grab/website",
     "@react-grab/web-extension",
     "@react-grab/benchmarks",
-    "@react-grab/agent-playground"
+    "@react-grab/gym"
   ]
 }
