@@ -43,15 +43,62 @@ const extractSourceMapData = (sourceMap: SourceMap): SourceMapData => {
   return filenameToContent;
 };
 
-export const getSourceMapData = (): SourceMapData => {
+const isJavaScriptType = (typeAttribute: string | null): boolean => {
+  if (!typeAttribute) return true;
+  const normalizedType = typeAttribute.toLowerCase().trim();
+  return (
+    normalizedType === "" ||
+    normalizedType === "text/javascript" ||
+    normalizedType === "application/javascript" ||
+    normalizedType === "module"
+  );
+};
+
+const isJavaScriptUrl = (url: string): boolean => {
+  const pathWithoutQuery = url.split("?")[0];
+  return (
+    pathWithoutQuery.endsWith(".js") ||
+    pathWithoutQuery.endsWith(".mjs") ||
+    pathWithoutQuery.endsWith(".cjs")
+  );
+};
+
+const getScriptUrlsFromDocument = (): string[] => {
+  if (typeof document === "undefined") return [];
+
+  const scriptUrls: string[] = [];
+  const scriptElements = Array.from(document.querySelectorAll("script[src]"));
+
+  for (const script of scriptElements) {
+    const srcAttribute = script.getAttribute("src");
+    const typeAttribute = script.getAttribute("type");
+
+    if (!srcAttribute) continue;
+    if (!isJavaScriptType(typeAttribute)) continue;
+
+    try {
+      const absoluteUrl = new URL(srcAttribute, window.location.href).href;
+      if (isJavaScriptUrl(absoluteUrl) && !scriptUrls.includes(absoluteUrl)) {
+        scriptUrls.push(absoluteUrl);
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return scriptUrls;
+};
+
+export const getSourceMapDataFromCache = (): SourceMapData => {
   const filenameToContent: SourceMapData = {};
 
   for (const cacheEntry of sourceMapCache.values()) {
-    const sourceMap = cacheEntry === null
-      ? null
-      : isWeakRef(cacheEntry)
-        ? cacheEntry.deref() ?? null
-        : cacheEntry;
+    const sourceMap =
+      cacheEntry === null
+        ? null
+        : isWeakRef(cacheEntry)
+          ? (cacheEntry.deref() ?? null)
+          : cacheEntry;
 
     if (sourceMap) {
       Object.assign(filenameToContent, extractSourceMapData(sourceMap));
@@ -69,18 +116,14 @@ export const getSourceMapDataForUrl = async (
   return sourceMap ? extractSourceMapData(sourceMap) : {};
 };
 
-export const getAllSourceMapData = async (
-  bundleUrls?: string[],
+export const getSourceMapDataFromScripts = async (
   fetchFn?: (url: string) => Promise<Response>,
 ): Promise<SourceMapData> => {
-  const filenameToContent = getSourceMapData();
-
-  if (!bundleUrls || bundleUrls.length === 0) {
-    return filenameToContent;
-  }
+  const scriptUrls = getScriptUrlsFromDocument();
+  const filenameToContent: SourceMapData = {};
 
   const fetchResults = await Promise.all(
-    bundleUrls.map((url) => getSourceMapDataForUrl(url, fetchFn)),
+    scriptUrls.map((url) => getSourceMapDataForUrl(url, fetchFn)),
   );
 
   for (const fetchedData of fetchResults) {
@@ -88,6 +131,15 @@ export const getAllSourceMapData = async (
   }
 
   return filenameToContent;
+};
+
+export const getSourceMapData = async (
+  fetchFn?: (url: string) => Promise<Response>,
+): Promise<SourceMapData> => {
+  const cachedData = getSourceMapDataFromCache();
+  const scriptData = await getSourceMapDataFromScripts(fetchFn);
+
+  return { ...cachedData, ...scriptData };
 };
 
 export type { SourceMapData };
