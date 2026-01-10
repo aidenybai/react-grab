@@ -69,13 +69,14 @@ export const startMcpServer = async (): Promise<void> => {
 
   server.tool(
     "browser_snapshot",
-    "Get an accessibility tree snapshot of the current page with element refs for interaction",
+    "Get an accessibility tree snapshot of the current page with element refs for interaction. Use format:'compact' for minimal output.",
     {
       page: z.string().optional().default("default").describe("Named page context for multi-turn sessions"),
       maxDepth: z.number().optional().describe("Limit tree depth (e.g., 5)"),
       interactableOnly: z.boolean().optional().describe("Only show elements with refs"),
+      format: z.enum(["yaml", "compact"]).optional().default("yaml").describe("Output format: 'yaml' (default) or 'compact' (ref:role:name|...)"),
     },
-    async ({ page: pageName, maxDepth, interactableOnly }) => {
+    async ({ page: pageName, maxDepth, interactableOnly, format }) => {
       let browser: Browser | null = null;
       let activePage: Page | null = null;
 
@@ -95,6 +96,7 @@ export const startMcpServer = async (): Promise<void> => {
         interface SnapshotOptions {
           maxDepth?: number;
           interactableOnly?: boolean;
+          format?: string;
         }
 
         const snapshotResult = await activePage.evaluate(
@@ -106,7 +108,7 @@ export const startMcpServer = async (): Promise<void> => {
             }
             return windowGlobal.__REACT_GRAB_SNAPSHOT__(opts);
           },
-          { script: snapshotScript, opts: { maxDepth, interactableOnly } }
+          { script: snapshotScript, opts: { maxDepth, interactableOnly, format } }
         );
 
         return {

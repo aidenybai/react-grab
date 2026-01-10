@@ -335,6 +335,7 @@ const execute = new Command()
       interface SnapshotOptions {
         maxDepth?: number;
         interactableOnly?: boolean;
+        format?: "yaml" | "compact";
       }
 
       const snapshot = async (options?: SnapshotOptions): Promise<string> => {
@@ -504,37 +505,51 @@ const BROWSER_HELP = `
 Playwright automation with your real browser cookies. Pages persist across
 executions. Output is always JSON: {ok, result, error, url, title, logs}
 
+PERFORMANCE TIPS
+  1. Batch multiple actions in a single execute call to minimize round-trips.
+     Each execute spawns a new connection, so combining actions is 3-5x faster.
+
+  2. Use compact format or limit depth for smaller snapshots (faster, fewer tokens).
+     - snapshot({format: 'compact'})      -> minimal ref:role:name output
+     - snapshot({interactableOnly: true}) -> only clickable/input elements
+     - snapshot({maxDepth: 5})            -> limit tree depth
+
+  # SLOW: 3 separate round-trips, full snapshot
+  execute "await page.goto('https://example.com')"
+  execute "await (await ref('e1')).click()"
+  execute "return await snapshot()"
+
+  # FAST: 1 round-trip, compact output
+  execute "
+    await page.goto('https://example.com');
+    await (await ref('e1')).click();
+    return await snapshot({format: 'compact'});
+  "
+
 HELPERS
   page              - Playwright Page object
   snapshot(opts?)   - Get ARIA accessibility tree with refs
                       opts.maxDepth: limit tree depth (e.g., 5)
                       opts.interactableOnly: only show elements with refs
+                      opts.format: "yaml" (default) or "compact"
   ref(id)           - Get element by ref ID (returns ElementHandle)
   fill(id, s)       - Clear and fill input (works with rich text editors)
   grab              - React Grab client API (activate, copyElement, etc)
 
-WORKFLOW (batch actions in single execute for speed)
-  # Navigate + compact snapshot (recommended for large pages)
-  execute "await page.goto('https://example.com'); return await snapshot({interactableOnly: true})"
-
-  # Click + fill + click + snapshot
-  execute "
-    await (await ref('e1')).click();
-    await fill('e2', 'hello@example.com');
-    await (await ref('e3')).click();
-    return await snapshot({maxDepth: 8});
-  "
-
-COMMON PATTERNS
-  # Compact snapshot (only interactable elements - much smaller!)
-  execute "return await snapshot({interactableOnly: true})"
-
-  # Limited depth snapshot
-  execute "return await snapshot({maxDepth: 6})"
-
-  # Full snapshot (can be very large)
+SNAPSHOT FORMATS
+  # Full YAML tree (default, can be large)
   execute "return await snapshot()"
 
+  # Interactable only (recommended - much smaller!)
+  execute "return await snapshot({interactableOnly: true})"
+
+  # Compact format (minimal output: ref:role:name|ref:role:name)
+  execute "return await snapshot({format: 'compact'})"
+
+  # Combined options
+  execute "return await snapshot({interactableOnly: true, maxDepth: 6})"
+
+COMMON PATTERNS
   # Click by ref
   execute "await (await ref('e1')).click()"
 
@@ -546,6 +561,9 @@ COMMON PATTERNS
 
   # Get page info
   execute "return {url: page.url(), title: await page.title()}"
+
+  # CSS selector fallback (refs are now in DOM as aria-ref)
+  execute "await page.click('[aria-ref=\"e1\"]')"
 
 MULTI-PAGE SESSIONS
   execute "await page.goto('https://github.com')" --page github

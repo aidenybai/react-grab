@@ -676,6 +676,7 @@ function computeAriaRef(ariaNode, options) {
     ariaNode.element._ariaRef = ariaRef;
   }
   ariaNode.ref = ariaRef.ref;
+  ariaNode.element.setAttribute("aria-ref", ariaRef.ref);
 }
 
 function toAriaNode(element, options) {
@@ -814,37 +815,119 @@ function getSnapshot(options) {
   options = options || {};
   const maxDepth = options.maxDepth || 0;
   const interactableOnly = options.interactableOnly || false;
+  const format = options.format || "yaml";
   const snapshot = generateAriaTree(document.body);
   const refsObject = {};
   for (const [ref, element] of snapshot.elements) refsObject[ref] = element;
   window.__REACT_GRAB_REFS__ = refsObject;
-  let result = renderAriaTree(snapshot);
-  if (maxDepth > 0) {
-    const lines = result.split("\\n");
-    const filtered = [];
-    for (const line of lines) {
-      const indent = line.match(/^(\\s*)/)[1].length;
-      const depth = indent / 2;
-      if (depth < maxDepth) filtered.push(line);
-    }
-    result = filtered.join("\\n");
+  window.__REACT_GRAB_SNAPSHOT_TIME__ = Date.now();
+  if (format === "compact") {
+    return renderCompact(snapshot, { maxDepth, interactableOnly });
   }
-  if (interactableOnly) {
-    const lines = result.split("\\n");
-    const filtered = [];
-    const refPattern = /\\[ref=([^\\]]+)\\]/;
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const match = line.match(refPattern);
-      if (match) {
-        const trimmed = line.replace(/^\\s*-\\s*/, "- ");
-        if (trimmed.includes("generic [ref=") && !trimmed.includes("[cursor=pointer]")) continue;
-        filtered.push(trimmed);
+  return renderAriaTreeFiltered(snapshot, { maxDepth, interactableOnly });
+}
+
+function renderCompact(snapshot, options) {
+  const items = [];
+  const maxDepth = options.maxDepth || 0;
+  const interactableOnly = options.interactableOnly || false;
+  const collectRefs = (node, depth) => {
+    if (maxDepth > 0 && depth >= maxDepth) return;
+    if (typeof node === "string") return;
+    if (node.ref) {
+      if (interactableOnly && node.role === "generic" && !hasPointerCursor(node)) return;
+      const name = node.name ? ":" + node.name.slice(0, 50) : "";
+      items.push(node.ref + ":" + node.role + name);
+    }
+    for (const child of node.children || []) {
+      collectRefs(child, depth + 1);
+    }
+  };
+  const startNodes = snapshot.root.role === "fragment" ? snapshot.root.children : [snapshot.root];
+  for (const node of startNodes) collectRefs(node, 0);
+  return items.join("|");
+}
+
+function renderAriaTreeFiltered(ariaSnapshot, filterOptions) {
+  const options = { visibility: "ariaOrVisible", refs: "interactable", refPrefix: "", includeGenericRole: true, renderActive: true, renderCursorPointer: true };
+  const maxDepth = filterOptions.maxDepth || 0;
+  const interactableOnly = filterOptions.interactableOnly || false;
+  const lines = [];
+  let nodesToRender = ariaSnapshot.root.role === "fragment" ? ariaSnapshot.root.children : [ariaSnapshot.root];
+
+  const visitText = (text, indent) => {
+    const escaped = yamlEscapeValueIfNeeded(text);
+    if (escaped) lines.push(indent + "- text: " + escaped);
+  };
+
+  const createKey = (ariaNode, renderCursorPointer) => {
+    let key = ariaNode.role;
+    if (ariaNode.name && ariaNode.name.length <= 900) {
+      const name = ariaNode.name;
+      if (name) {
+        const stringifiedName = name.startsWith("/") && name.endsWith("/") ? name : JSON.stringify(name);
+        key += " " + stringifiedName;
       }
     }
-    result = filtered.join("\\n");
+    if (ariaNode.checked === "mixed") key += " [checked=mixed]";
+    if (ariaNode.checked === true) key += " [checked]";
+    if (ariaNode.disabled) key += " [disabled]";
+    if (ariaNode.expanded) key += " [expanded]";
+    if (ariaNode.active && options.renderActive) key += " [active]";
+    if (ariaNode.level) key += " [level=" + ariaNode.level + "]";
+    if (ariaNode.pressed === "mixed") key += " [pressed=mixed]";
+    if (ariaNode.pressed === true) key += " [pressed]";
+    if (ariaNode.selected === true) key += " [selected]";
+    if (ariaNode.ref) {
+      key += " [ref=" + ariaNode.ref + "]";
+      if (renderCursorPointer && hasPointerCursor(ariaNode)) key += " [cursor=pointer]";
+    }
+    return key;
+  };
+
+  const getSingleInlinedTextChild = (ariaNode) => {
+    return ariaNode?.children.length === 1 && typeof ariaNode.children[0] === "string" && !Object.keys(ariaNode.props).length ? ariaNode.children[0] : undefined;
+  };
+
+  const visit = (ariaNode, indent, renderCursorPointer, depth) => {
+    if (maxDepth > 0 && depth >= maxDepth) return;
+    if (interactableOnly) {
+      if (!ariaNode.ref) return;
+      if (ariaNode.role === "generic" && !hasPointerCursor(ariaNode)) return;
+    }
+    const escapedKey = (interactableOnly ? "" : indent) + "- " + yamlEscapeKeyIfNeeded(createKey(ariaNode, renderCursorPointer));
+    const singleInlinedTextChild = getSingleInlinedTextChild(ariaNode);
+    if (!ariaNode.children.length && !Object.keys(ariaNode.props).length) {
+      lines.push(escapedKey);
+    } else if (singleInlinedTextChild !== undefined) {
+      lines.push(escapedKey + ": " + yamlEscapeValueIfNeeded(singleInlinedTextChild));
+    } else {
+      if (interactableOnly) {
+        lines.push(escapedKey);
+      } else {
+        lines.push(escapedKey + ":");
+        for (const [name, value] of Object.entries(ariaNode.props)) lines.push(indent + "  - /" + name + ": " + yamlEscapeValueIfNeeded(value));
+      }
+      const childIndent = indent + "  ";
+      const inCursorPointer = !!ariaNode.ref && renderCursorPointer && hasPointerCursor(ariaNode);
+      for (const child of ariaNode.children) {
+        if (typeof child === "string") {
+          if (!interactableOnly) visitText(child, childIndent);
+        } else {
+          visit(child, childIndent, renderCursorPointer && !inCursorPointer, depth + 1);
+        }
+      }
+    }
+  };
+
+  for (const nodeToRender of nodesToRender) {
+    if (typeof nodeToRender === "string") {
+      if (!interactableOnly) visitText(nodeToRender, "");
+    } else {
+      visit(nodeToRender, "", !!options.renderCursorPointer, 0);
+    }
   }
-  return result;
+  return lines.join("\\n");
 }
 
 function getRef(ref) {
@@ -852,8 +935,38 @@ function getRef(ref) {
   if (!refs) throw new Error("No refs found. Call snapshot() first.");
   const element = refs[ref];
   if (!element) throw new Error('Ref "' + ref + '" not found. Available refs: ' + Object.keys(refs).join(", "));
+  const snapshotTime = window.__REACT_GRAB_SNAPSHOT_TIME__;
+  if (snapshotTime) {
+    const ageMs = Date.now() - snapshotTime;
+    if (ageMs > 5000) console.warn("[react-grab] Snapshot is " + Math.round(ageMs / 1000) + "s old. Consider re-snapshotting.");
+  }
   return element;
 }
+
+function queryElement(selector, options) {
+  options = options || {};
+  const element = document.querySelector(selector);
+  if (!element) return { exists: false };
+  beginAriaCaches();
+  try {
+    const box = computeBox(element);
+    const role = getAriaRole(element);
+    const name = normalizeWhiteSpace(getElementAccessibleName(element, false) || "");
+    return {
+      exists: true,
+      visible: box.visible,
+      role: role,
+      name: name,
+      cursor: box.cursor,
+      tagName: element.tagName.toLowerCase(),
+      className: element.className || undefined
+    };
+  } finally {
+    endAriaCaches();
+  }
+}
+
+window.__REACT_GRAB_QUERY__ = queryElement;
 `;
 
 export const clearSnapshotScriptCache = (): void => {
