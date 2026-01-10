@@ -119,6 +119,7 @@ export default defineConfig([
     clean: false,
     dts: false,
     entry: { cli: "./src/cli.ts" },
+    external: ["playwright-core", "playwright", "chromium-bidi"],
     format: ["cjs"],
     noExternal: [
       /@react-grab\/cli/,

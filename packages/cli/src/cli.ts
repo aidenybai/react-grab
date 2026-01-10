@@ -4,6 +4,7 @@
 import { Command } from "commander";
 import tab from "@bomb.sh/tab/commander";
 import { add } from "./commands/add.js";
+import { browser } from "./commands/browser.js";
 import { configure } from "./commands/configure.js";
 import { init } from "./commands/init.js";
 import { remove } from "./commands/remove.js";
@@ -30,6 +31,7 @@ program.addCommand(add);
 program.addCommand(remove);
 program.addCommand(configure);
 program.addCommand(start);
+program.addCommand(browser);
 
 const completion = tab(program);
 
