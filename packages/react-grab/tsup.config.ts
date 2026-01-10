@@ -61,84 +61,91 @@ const DEFAULT_OPTIONS: Options = {
   treeshake: true,
 };
 
-export default defineConfig([
-  {
-    ...DEFAULT_OPTIONS,
-    entry: ["./src/index.ts"],
-    env: {
-      ...DEFAULT_OPTIONS.env,
-      VERSION: version,
-    },
-    format: ["iife"],
-    globalName: "globalThis.__REACT_GRAB_MODULE__",
-    loader: {
-      ".css": "text",
-    },
-    outDir: "./dist",
-    platform: "browser",
-    esbuildPlugins: [
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- babel is not typed
-      babel({
-        filter: /\.(tsx|jsx)$/,
-        config: {
-          presets: [
-            ["@babel/preset-typescript", { onlyRemoveTypeImports: true }],
-            "babel-preset-solid",
-          ],
-        },
-      }),
-    ],
+const browserBuildConfig: Options = {
+  ...DEFAULT_OPTIONS,
+  entry: ["./src/index.ts"],
+  env: {
+    ...DEFAULT_OPTIONS.env,
+    VERSION: version,
   },
-  {
-    ...DEFAULT_OPTIONS,
-    clean: false,
-    entry: ["./src/index.ts", "./src/core/index.tsx"],
-    format: ["cjs", "esm"],
-    loader: {
-      ".css": "text",
-    },
-    outDir: "./dist",
-    platform: "neutral",
-    splitting: true,
-    esbuildPlugins: [
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- babel is not typed
-      babel({
-        filter: /\.(tsx|jsx)$/,
-        config: {
-          presets: [
-            ["@babel/preset-typescript", { onlyRemoveTypeImports: true }],
-            "babel-preset-solid",
-          ],
-        },
-      }),
-    ],
+  format: ["iife"],
+  globalName: "globalThis.__REACT_GRAB_MODULE__",
+  loader: {
+    ".css": "text",
   },
-  {
-    ...DEFAULT_OPTIONS,
-    banner: undefined,
-    clean: false,
-    dts: false,
-    entry: { cli: "./src/cli.ts" },
-    external: ["playwright-core", "playwright", "chromium-bidi"],
-    format: ["cjs"],
-    noExternal: [
-      /@react-grab\/cli/,
-      "commander",
-      "kleur",
-      "ora",
-      "prompts",
-      "@antfu/ni",
-    ],
-    outDir: "./dist",
-    platform: "node",
-    splitting: false,
-    esbuildOptions(options) {
-      options.banner = {
-        js: "#!/usr/bin/env node",
-      };
-      options.alias = {
-        "@react-grab/cli": "../cli/src/cli.ts",
-      };
-    },
+  outDir: "./dist",
+  platform: "browser",
+  esbuildPlugins: [
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- babel is not typed
+    babel({
+      filter: /\.(tsx|jsx)$/,
+      config: {
+        presets: [
+          ["@babel/preset-typescript", { onlyRemoveTypeImports: true }],
+          "babel-preset-solid",
+        ],
+      },
+    }),
+  ],
+};
+
+const libraryBuildConfig: Options = {
+  ...DEFAULT_OPTIONS,
+  clean: false,
+  entry: ["./src/index.ts", "./src/core/index.tsx"],
+  format: ["cjs", "esm"],
+  loader: {
+    ".css": "text",
   },
-]);
+  outDir: "./dist",
+  platform: "neutral",
+  splitting: true,
+  esbuildPlugins: [
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- babel is not typed
+    babel({
+      filter: /\.(tsx|jsx)$/,
+      config: {
+        presets: [
+          ["@babel/preset-typescript", { onlyRemoveTypeImports: true }],
+          "babel-preset-solid",
+        ],
+      },
+    }),
+  ],
+};
+
+const cliBuildConfig: Options = {
+  ...DEFAULT_OPTIONS,
+  banner: undefined,
+  clean: false,
+  dts: false,
+  entry: { cli: "./src/cli.ts" },
+  external: ["playwright-core", "playwright", "chromium-bidi"],
+  format: ["cjs"],
+  noExternal: [
+    /@react-grab\/cli/,
+    "commander",
+    "kleur",
+    "ora",
+    "prompts",
+    "@antfu/ni",
+  ],
+  outDir: "./dist",
+  platform: "node",
+  splitting: false,
+  esbuildOptions(options) {
+    options.banner = {
+      js: "#!/usr/bin/env node",
+    };
+    options.alias = {
+      "@react-grab/cli": "../cli/src/cli.ts",
+    };
+  },
+};
+
+// note: we skip CLI build on Vercel - it's not needed for the website and causes build to fail
+export default defineConfig(
+  isVercel
+    ? [browserBuildConfig, libraryBuildConfig]
+    : [browserBuildConfig, libraryBuildConfig, cliBuildConfig],
+);
