@@ -26,6 +26,7 @@ import type { ElementHandle } from "playwright";
 import { highlighter } from "../utils/highlighter.js";
 import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
+import { startMcpServer } from "./browser-mcp.js";
 
 const handleError = (error: unknown): never => {
   logger.error(error instanceof Error ? error.message : "Failed");
@@ -561,6 +562,13 @@ export const browser = new Command()
     browser.help();
   });
 
+const mcp = new Command()
+  .name("mcp")
+  .description("start MCP server for browser automation (stdio transport)")
+  .action(async () => {
+    await startMcpServer();
+  });
+
 browser.addCommand(list);
 browser.addCommand(dump);
 browser.addCommand(start);
@@ -568,3 +576,4 @@ browser.addCommand(stop);
 browser.addCommand(status);
 browser.addCommand(execute);
 browser.addCommand(pages);
+browser.addCommand(mcp);

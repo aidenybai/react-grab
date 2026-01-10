@@ -29,12 +29,14 @@
   },
   "dependencies": {
     "@antfu/ni": "^0.23.0",
+    "@modelcontextprotocol/sdk": "^1.25.2",
     "@react-grab/browser": "workspace:*",
     "commander": "^14.0.0",
     "http-proxy-middleware": "^3.0.3",
     "ora": "^8.2.0",
     "picocolors": "^1.1.1",
     "playwright": "^1.50.0",
-    "prompts": "^2.4.2"
+    "prompts": "^2.4.2",
+    "zod": "^4.3.5"
   }
 }
