@@ -68,6 +68,10 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
   };
 
   const handleInputKeyDown = (event: KeyboardEvent) => {
+    if (event.isComposing || event.keyCode === 229) {
+      return;
+    }
+
     const isUndoRedo =
       event.code === "KeyZ" && (event.metaKey || event.ctrlKey);
     const isEnterWithoutShift = event.code === "Enter" && !event.shiftKey;
