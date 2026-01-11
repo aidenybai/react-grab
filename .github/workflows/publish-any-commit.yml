@@ -23,4 +23,4 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - run: pnpm dlx pkg-pr-new publish ./packages/react-grab ./packages/cli
+      - run: pnpm dlx pkg-pr-new publish ./packages/react-grab ./packages/cli ./packages/browser
