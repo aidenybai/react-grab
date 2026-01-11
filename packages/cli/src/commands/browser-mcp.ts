@@ -69,7 +69,7 @@ export const startMcpServer = async (): Promise<void> => {
 
   server.tool(
     "browser_snapshot",
-    "Get accessibility tree with element refs (e1, e2...). Use these refs with browser_execute: ref('e1').click(). Prefer interactableOnly:true for smaller output. Use screenshot:true to also capture a screenshot.",
+    "Get accessibility tree with element refs (e1, e2...). PREFER this over screenshots for finding and interacting with elements - the a11y tree is more reliable and structured. Use refs with browser_execute: ref('e1').click(). Use interactableOnly:true for smaller output. Only use screenshot:true to validate visual appearance, not for element discovery.",
     {
       page: z.string().optional().default("default").describe("Named page context for multi-turn sessions"),
       maxDepth: z.number().optional().describe("Limit tree depth (e.g., 5)"),
@@ -147,7 +147,7 @@ export const startMcpServer = async (): Promise<void> => {
 
   server.tool(
     "browser_execute",
-    "Execute Playwright code. IMPORTANT: Always call snapshot() first to get element refs (e1, e2...), then use ref('e1').click() to interact. ref() is chainable: .click(), .fill(), .source() (React file). Avoid page.locator() - use refs instead.",
+    "Execute Playwright code. IMPORTANT: Always call snapshot() first to get element refs from the a11y tree (e1, e2...), then use ref('e1').click() to interact. The a11y tree is the source of truth for element discovery - use screenshots only to verify visual appearance. ref() is chainable: .click(), .fill(), .source() (React file). Avoid page.locator() - use refs instead.",
     {
       code: z.string().describe("JavaScript code to execute (use 'page' for Playwright Page, 'return' for output)"),
       page: z.string().optional().default("default").describe("Named page context for multi-turn sessions"),
