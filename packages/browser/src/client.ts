@@ -13,6 +13,9 @@ import {
   PAGE_LOAD_TIMEOUT_MS,
   PAGE_LOAD_POLL_INTERVAL_MS,
   PAGE_LOAD_MINIMUM_WAIT_MS,
+  NON_CRITICAL_RESOURCE_TIMEOUT_MS,
+  LONG_RUNNING_REQUEST_TIMEOUT_MS,
+  MAX_URL_LENGTH_FOR_LOGGING,
 } from "./utils/constants.js";
 
 export type { WaitForPageLoadOptions, WaitForPageLoadResult };
@@ -44,56 +47,63 @@ interface PageLoadState {
 }
 
 const getPageLoadState = async (page: Page): Promise<PageLoadState> =>
-  page.evaluate(() => {
-    const globals = globalThis as { document?: Document; performance?: Performance };
-    const performance = globals.performance!;
-    const document = globals.document!;
+  page.evaluate(
+    ({ maxUrlLength, longRunningTimeout, nonCriticalTimeout }) => {
+      const globals = globalThis as { document?: Document; performance?: Performance };
+      const performance = globals.performance!;
+      const document = globals.document!;
 
-    const now = performance.now();
-    const resources = performance.getEntriesByType("resource") as PerformanceResourceTiming[];
-    const pending: Array<{ url: string; loadingDurationMs: number; resourceType: string }> = [];
+      const now = performance.now();
+      const resources = performance.getEntriesByType("resource") as PerformanceResourceTiming[];
+      const pending: Array<{ url: string; loadingDurationMs: number; resourceType: string }> = [];
 
-    const adPatterns = [
-      "doubleclick.net", "googlesyndication.com", "googletagmanager.com",
-      "google-analytics.com", "facebook.net", "connect.facebook.net",
-      "analytics", "ads", "tracking", "pixel", "hotjar.com", "clarity.ms",
-      "mixpanel.com", "segment.com", "newrelic.com", "nr-data.net",
-      "/tracker/", "/collector/", "/beacon/", "/telemetry/", "/log/",
-      "/events/", "/track.", "/metrics/",
-    ];
+      const adPatterns = [
+        "doubleclick.net", "googlesyndication.com", "googletagmanager.com",
+        "google-analytics.com", "facebook.net", "connect.facebook.net",
+        "analytics", "ads", "tracking", "pixel", "hotjar.com", "clarity.ms",
+        "mixpanel.com", "segment.com", "newrelic.com", "nr-data.net",
+        "/tracker/", "/collector/", "/beacon/", "/telemetry/", "/log/",
+        "/events/", "/track.", "/metrics/",
+      ];
 
-    const nonCriticalTypes = ["img", "image", "icon", "font"];
+      const nonCriticalTypes = ["img", "image", "icon", "font"];
 
-    for (const entry of resources) {
-      if (entry.responseEnd === 0) {
-        const url = entry.name;
-        const isAd = adPatterns.some((pattern) => url.includes(pattern));
-        if (isAd) continue;
-        if (url.startsWith("data:") || url.length > 500) continue;
+      for (const entry of resources) {
+        if (entry.responseEnd === 0) {
+          const url = entry.name;
+          const isAd = adPatterns.some((pattern) => url.includes(pattern));
+          if (isAd) continue;
+          if (url.startsWith("data:") || url.length > maxUrlLength) continue;
 
-        const loadingDuration = now - entry.startTime;
-        if (loadingDuration > 10000) continue;
+          const loadingDuration = now - entry.startTime;
+          if (loadingDuration > longRunningTimeout) continue;
 
-        const resourceType = entry.initiatorType || "unknown";
-        if (nonCriticalTypes.includes(resourceType) && loadingDuration > 3000) continue;
+          const resourceType = entry.initiatorType || "unknown";
+          if (nonCriticalTypes.includes(resourceType) && loadingDuration > nonCriticalTimeout) continue;
 
-        const isImageUrl = /\.(jpg|jpeg|png|gif|webp|svg|ico)(\?|$)/i.test(url);
-        if (isImageUrl && loadingDuration > 3000) continue;
+          const isImageUrl = /\.(jpg|jpeg|png|gif|webp|svg|ico)(\?|$)/i.test(url);
+          if (isImageUrl && loadingDuration > nonCriticalTimeout) continue;
 
-        pending.push({
-          url,
-          loadingDurationMs: Math.round(loadingDuration),
-          resourceType,
-        });
+          pending.push({
+            url,
+            loadingDurationMs: Math.round(loadingDuration),
+            resourceType,
+          });
+        }
       }
-    }
 
-    return {
-      documentReadyState: document.readyState,
-      documentLoading: document.readyState !== "complete",
-      pendingRequests: pending,
-    };
-  });
+      return {
+        documentReadyState: document.readyState,
+        documentLoading: document.readyState !== "complete",
+        pendingRequests: pending,
+      };
+    },
+    {
+      maxUrlLength: MAX_URL_LENGTH_FOR_LOGGING,
+      longRunningTimeout: LONG_RUNNING_REQUEST_TIMEOUT_MS,
+      nonCriticalTimeout: NON_CRITICAL_RESOURCE_TIMEOUT_MS,
+    }
+  );
 
 export const waitForPageLoad = async (
   page: Page,
@@ -140,7 +150,7 @@ export const waitForPageLoad = async (
     waitTimeMs: Date.now() - startTime,
     timedOut: true,
   };
-}
+};
 
 export const findPageByTargetId = async (browserInstance: Browser, targetId: string): Promise<Page | null> => {
   for (const context of browserInstance.contexts()) {
@@ -162,7 +172,6 @@ export const findPageByTargetId = async (browserInstance: Browser, targetId: str
 
 export const connect = async (serverUrl = "http://localhost:9222"): Promise<BrowserClient> => {
   let browser: Browser | null = null;
-  let wsEndpoint: string | null = null;
   let connectingPromise: Promise<Browser> | null = null;
 
   const ensureConnected = async (): Promise<Browser> => {
@@ -181,9 +190,8 @@ export const connect = async (serverUrl = "http://localhost:9222"): Promise<Brow
           throw new Error(`Server returned ${response.status}: ${await response.text()}`);
         }
         const info = (await response.json()) as ServerInfoResponse;
-        wsEndpoint = info.wsEndpoint;
 
-        browser = await chromium.connectOverCDP(wsEndpoint);
+        browser = await chromium.connectOverCDP(info.wsEndpoint);
         return browser;
       } finally {
         connectingPromise = null;
@@ -218,10 +226,6 @@ export const connect = async (serverUrl = "http://localhost:9222"): Promise<Brow
 
       if (allPages.length === 0) {
         throw new Error(`No pages available in browser`);
-      }
-
-      if (allPages.length === 1) {
-        return allPages[0]!;
       }
 
       if (pageInfo.url) {

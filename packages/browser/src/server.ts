@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync, unlinkSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { createServer, type Server, type IncomingMessage, type ServerResponse } from "node:http";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { spawn } from "node:child_process";
 import { chromium, type BrowserContext, type Page } from "playwright";
 import { getSnapshotScript } from "./snapshot/index.js";
@@ -274,7 +274,7 @@ export const serve = async (options: ServeOptions = {}): Promise<BrowserServer> 
     sendJson(res, 404, { error: "not found" });
   };
 
-  const server: Server = createServer((req, res) => {
+  const server = createServer((req, res) => {
     handleRequest(req, res).catch((err) => {
       sendJson(res, 500, { error: err instanceof Error ? err.message : "Internal error" });
     });
