@@ -18,6 +18,7 @@ export default defineConfig([
     target: "node18",
     platform: "node",
     treeshake: true,
+    noExternal: ["zod"],
     env: {
       VERSION: process.env.VERSION ?? packageJson.version,
     },
