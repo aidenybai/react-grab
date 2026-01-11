@@ -67,15 +67,17 @@ export const startMcpServer = async (): Promise<void> => {
     version: "1.0.0",
   });
 
-  server.tool(
+  server.registerTool(
     "browser_snapshot",
-    "Get accessibility tree with element refs (e1, e2...). PREFER this over screenshots for finding and interacting with elements - the a11y tree is more reliable and structured. Use refs with browser_execute: ref('e1').click(). Use interactableOnly:true for smaller output. Only use screenshot:true to validate visual appearance, not for element discovery.",
     {
-      page: z.string().optional().default("default").describe("Named page context for multi-turn sessions"),
-      maxDepth: z.number().optional().describe("Limit tree depth (e.g., 5)"),
-      interactableOnly: z.boolean().optional().describe("Only show elements with refs"),
-      format: z.enum(["yaml", "compact"]).optional().default("yaml").describe("Output format: 'yaml' (default) or 'compact' (ref:role:name|...)"),
-      screenshot: z.boolean().optional().default(false).describe("Also capture a screenshot and return file path"),
+      description: "Get accessibility tree with element refs (e1, e2...). PREFER this over screenshots for finding and interacting with elements - the a11y tree is more reliable and structured. Use refs with browser_execute: ref('e1').click(). Use interactableOnly:true for smaller output. Only use screenshot:true to validate visual appearance, not for element discovery.",
+      inputSchema: {
+        page: z.string().optional().default("default").describe("Named page context for multi-turn sessions"),
+        maxDepth: z.number().optional().describe("Limit tree depth (e.g., 5)"),
+        interactableOnly: z.boolean().optional().describe("Only show elements with refs"),
+        format: z.enum(["yaml", "compact"]).optional().default("yaml").describe("Output format: 'yaml' (default) or 'compact' (ref:role:name|...)"),
+        screenshot: z.boolean().optional().default(false).describe("Also capture a screenshot and return file path"),
+      },
     },
     async ({ page: pageName, maxDepth, interactableOnly, format, screenshot }) => {
       let browser: Browser | null = null;
@@ -145,14 +147,16 @@ export const startMcpServer = async (): Promise<void> => {
     }
   );
 
-  server.tool(
+  server.registerTool(
     "browser_execute",
-    "Execute Playwright code. IMPORTANT: Always call snapshot() first to get element refs from the a11y tree (e1, e2...), then use ref('e1').click() to interact. The a11y tree is the source of truth for element discovery - use screenshots only to verify visual appearance. ref() is chainable: .click(), .fill(), .source() (React file). Avoid page.locator() - use refs instead.",
     {
-      code: z.string().describe("JavaScript code to execute (use 'page' for Playwright Page, 'return' for output)"),
-      page: z.string().optional().default("default").describe("Named page context for multi-turn sessions"),
-      url: z.string().optional().describe("Navigate to URL before executing"),
-      timeout: z.number().optional().default(DEFAULT_NAVIGATION_TIMEOUT_MS).describe("Navigation timeout in milliseconds"),
+      description: "Execute Playwright code. IMPORTANT: Always call snapshot() first to get element refs from the a11y tree (e1, e2...), then use ref('e1').click() to interact. The a11y tree is the source of truth for element discovery - use screenshots only to verify visual appearance. ref() is chainable: .click(), .fill(), .source() (React file). Avoid page.locator() - use refs instead.",
+      inputSchema: {
+        code: z.string().describe("JavaScript code to execute (use 'page' for Playwright Page, 'return' for output)"),
+        page: z.string().optional().default("default").describe("Named page context for multi-turn sessions"),
+        url: z.string().optional().describe("Navigate to URL before executing"),
+        timeout: z.number().optional().default(DEFAULT_NAVIGATION_TIMEOUT_MS).describe("Navigation timeout in milliseconds"),
+      },
     },
     async ({ code, page: pageName, url, timeout }) => {
       let browser: Browser | null = null;
