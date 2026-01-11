@@ -365,6 +365,18 @@ export interface SpawnServerOptions {
   domain?: string;
 }
 
+const filterErrorOutput = (output: string): string => {
+  const lines = output.split("\n");
+  const errorLines = lines.filter((line) => {
+    const trimmed = line.trim();
+    if (!trimmed) return false;
+    if (trimmed.startsWith("-") || trimmed.startsWith("✖") || trimmed.startsWith("✔") || trimmed.startsWith("✿")) return false;
+    if (trimmed.includes("Starting server") || trimmed.includes("Loading cookies")) return false;
+    return true;
+  });
+  return errorLines.join("\n").trim();
+};
+
 export const spawnServer = async (
   options: SpawnServerOptions,
 ): Promise<BrowserServer> => {
@@ -376,18 +388,22 @@ export const spawnServer = async (
   if (options.browser) args.push("-b", options.browser);
   if (options.domain) args.push("-d", options.domain);
 
-  let stderrOutput = "";
+  let combinedOutput = "";
   let exitCode: number | null = null;
   let exitSignal: string | null = null;
 
   const child = spawn(options.cliPath, args, {
     detached: true,
-    stdio: ["ignore", "ignore", "pipe"],
+    stdio: ["ignore", "pipe", "pipe"],
     shell: true,
   });
 
+  child.stdout?.on("data", (data) => {
+    combinedOutput += data.toString();
+  });
+
   child.stderr?.on("data", (data) => {
-    stderrOutput += data.toString();
+    combinedOutput += data.toString();
   });
 
   child.on("exit", (code, signal) => {
@@ -401,12 +417,13 @@ export const spawnServer = async (
     await new Promise((r) => setTimeout(r, SERVER_SPAWN_DELAY_MS));
 
     if (exitCode !== null && exitCode !== 0) {
-      const details = stderrOutput.trim() || `exit code ${exitCode}`;
-      throw new Error(`Server process exited: ${details}`);
+      const filtered = filterErrorOutput(combinedOutput);
+      const details = filtered || `exit code ${exitCode}`;
+      throw new Error(`Server failed: ${details}`);
     }
 
     if (exitSignal) {
-      throw new Error(`Server process killed by signal: ${exitSignal}`);
+      throw new Error(`Server killed by signal: ${exitSignal}`);
     }
 
     const info = getServerInfo();
@@ -431,14 +448,11 @@ export const spawnServer = async (
     }
   }
 
-  const errorDetails: string[] = [];
-  if (stderrOutput.trim()) {
-    errorDetails.push(stderrOutput.trim());
-  }
-  if (exitCode !== null) {
-    errorDetails.push(`exit code: ${exitCode}`);
-  }
+  const filtered = filterErrorOutput(combinedOutput);
+  const errorParts: string[] = [];
+  if (filtered) errorParts.push(filtered);
+  if (exitCode !== null) errorParts.push(`exit code: ${exitCode}`);
 
-  const details = errorDetails.length > 0 ? `: ${errorDetails.join(", ")}` : "";
-  throw new Error(`Failed to start server in background${details}`);
+  const details = errorParts.length > 0 ? `: ${errorParts.join(", ")}` : "";
+  throw new Error(`Failed to start server${details}`);
 };
