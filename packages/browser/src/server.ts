@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { createServer, type Server, type IncomingMessage, type ServerResponse } from "node:http";
 import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { chromium, type BrowserContext, type Page } from "playwright";
 import { getSnapshotScript } from "./snapshot/index.js";
 import {
@@ -18,8 +19,26 @@ const SERVER_INFO_PATH = join(tmpdir(), "react-grab-browser-server.json");
 
 let cachedReactGrabScript: string | null = null;
 
+const loadLocalReactGrabScript = (): string | null => {
+  try {
+    const resolvedPath = import.meta.resolve("react-grab/dist/index.global.js");
+    const filePath = fileURLToPath(resolvedPath);
+    if (existsSync(filePath)) {
+      return readFileSync(filePath, "utf-8");
+    }
+  } catch {}
+  return null;
+};
+
 const fetchReactGrabScript = async (): Promise<string> => {
   if (cachedReactGrabScript) return cachedReactGrabScript;
+
+  const localScript = loadLocalReactGrabScript();
+  if (localScript) {
+    cachedReactGrabScript = localScript;
+    return cachedReactGrabScript;
+  }
+
   try {
     const response = await fetch("https://unpkg.com/react-grab/dist/index.global.js");
     if (response.ok) {
