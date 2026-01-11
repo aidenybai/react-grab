@@ -1,7 +1,17 @@
-import { existsSync, mkdirSync, writeFileSync, unlinkSync, readFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  writeFileSync,
+  unlinkSync,
+  readFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from "node:http";
 import { spawn } from "node:child_process";
 import { chromium, type BrowserContext, type Page } from "playwright";
 import { getSnapshotScript } from "./snapshot/index.js";
@@ -29,7 +39,9 @@ const fetchReactGrabScript = async (): Promise<string> => {
   }
 
   try {
-    const response = await fetch("https://unpkg.com/react-grab/dist/index.global.js");
+    const response = await fetch(
+      "https://unpkg.com/react-grab/dist/index.global.js",
+    );
     if (response.ok) {
       cachedReactGrabScript = await response.text();
       return cachedReactGrabScript;
@@ -116,7 +128,10 @@ export const stopServer = async (): Promise<void> => {
   deleteServerInfo();
 };
 
-const getTargetId = async (context: BrowserContext, page: Page): Promise<string> => {
+const getTargetId = async (
+  context: BrowserContext,
+  page: Page,
+): Promise<string> => {
   const cdpSession = await context.newCDPSession(page);
   try {
     const { targetInfo } = await cdpSession.send("Target.getTargetInfo");
@@ -129,7 +144,9 @@ const getTargetId = async (context: BrowserContext, page: Page): Promise<string>
 const parseBody = (req: IncomingMessage): Promise<Record<string, unknown>> => {
   return new Promise((resolve, reject) => {
     let body = "";
-    req.on("data", (chunk) => { body += chunk; });
+    req.on("data", (chunk) => {
+      body += chunk;
+    });
     req.on("end", () => {
       try {
         resolve(body ? JSON.parse(body) : {});
@@ -153,7 +170,9 @@ export interface ServeOptions {
   profileDir?: string;
 }
 
-export const serve = async (options: ServeOptions = {}): Promise<BrowserServer> => {
+export const serve = async (
+  options: ServeOptions = {},
+): Promise<BrowserServer> => {
   const port = options.port ?? DEFAULT_SERVER_PORT;
   const cdpPort = options.cdpPort ?? DEFAULT_CDP_PORT;
   const headless = options.headless ?? true;
@@ -168,10 +187,12 @@ export const serve = async (options: ServeOptions = {}): Promise<BrowserServer> 
     headless,
     args: [
       `--remote-debugging-port=${cdpPort}`,
-      ...(headless ? [
-        "--disable-blink-features=AutomationControlled",
-        "--disable-features=IsolateOrigins,site-per-process",
-      ] : []),
+      ...(headless
+        ? [
+            "--disable-blink-features=AutomationControlled",
+            "--disable-features=IsolateOrigins,site-per-process",
+          ]
+        : []),
     ],
   });
 
@@ -181,7 +202,11 @@ export const serve = async (options: ServeOptions = {}): Promise<BrowserServer> 
   }
   await context.addInitScript(getSnapshotScript());
 
-  const fetchUntilReady = async (url: string, maxAttempts = MAX_CDP_READY_ATTEMPTS, delayMs = CDP_READY_DELAY_MS): Promise<Response> => {
+  const fetchUntilReady = async (
+    url: string,
+    maxAttempts = MAX_CDP_READY_ATTEMPTS,
+    delayMs = CDP_READY_DELAY_MS,
+  ): Promise<Response> => {
     for (let i = 0; i < maxAttempts; i++) {
       try {
         const res = await fetch(url);
@@ -192,13 +217,20 @@ export const serve = async (options: ServeOptions = {}): Promise<BrowserServer> 
     throw new Error(`Failed to fetch ${url} after ${maxAttempts} retries`);
   };
 
-  const cdpResponse = await fetchUntilReady(`http://127.0.0.1:${cdpPort}/json/version`);
-  const cdpInfo = await cdpResponse.json() as { webSocketDebuggerUrl: string };
+  const cdpResponse = await fetchUntilReady(
+    `http://127.0.0.1:${cdpPort}/json/version`,
+  );
+  const cdpInfo = (await cdpResponse.json()) as {
+    webSocketDebuggerUrl: string;
+  };
   const wsEndpoint = cdpInfo.webSocketDebuggerUrl;
 
   const registry = new Map<string, PageEntry>();
 
-  const handleRequest = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
+  const handleRequest = async (
+    req: IncomingMessage,
+    res: ServerResponse,
+  ): Promise<void> => {
     const url = new URL(req.url ?? "/", `http://127.0.0.1:${port}`);
     const method = req.method ?? "GET";
 
@@ -213,7 +245,10 @@ export const serve = async (options: ServeOptions = {}): Promise<BrowserServer> 
         await testPage.close();
         sendJson(res, 200, { healthy: true });
       } catch {
-        sendJson(res, 503, { healthy: false, error: "Browser context is closed" });
+        sendJson(res, 503, {
+          healthy: false,
+          error: "Browser context is closed",
+        });
       }
       return;
     }
@@ -276,7 +311,9 @@ export const serve = async (options: ServeOptions = {}): Promise<BrowserServer> 
 
   const server = createServer((req, res) => {
     handleRequest(req, res).catch((err) => {
-      sendJson(res, 500, { error: err instanceof Error ? err.message : "Internal error" });
+      sendJson(res, 500, {
+        error: err instanceof Error ? err.message : "Internal error",
+      });
     });
   });
 
@@ -328,7 +365,9 @@ export interface SpawnServerOptions {
   domain?: string;
 }
 
-export const spawnServer = async (options: SpawnServerOptions): Promise<BrowserServer> => {
+export const spawnServer = async (
+  options: SpawnServerOptions,
+): Promise<BrowserServer> => {
   const port = options.port ?? DEFAULT_SERVER_PORT;
   const headless = options.headless ?? false;
 
