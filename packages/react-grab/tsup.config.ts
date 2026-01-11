@@ -120,25 +120,14 @@ const cliBuildConfig: Options = {
   clean: false,
   dts: false,
   entry: { cli: "./src/cli.ts" },
-  external: ["playwright-core", "playwright", "chromium-bidi"],
   format: ["cjs"],
-  noExternal: [
-    /@react-grab\/cli/,
-    "commander",
-    "kleur",
-    "ora",
-    "prompts",
-    "@antfu/ni",
-  ],
+  noExternal: [],
   outDir: "./dist",
   platform: "node",
   splitting: false,
   esbuildOptions(options) {
     options.banner = {
       js: "#!/usr/bin/env node",
-    };
-    options.alias = {
-      "@react-grab/cli": "../cli/src/cli.ts",
     };
   },
 };

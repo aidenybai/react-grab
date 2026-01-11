@@ -350,41 +350,163 @@ const execute = new Command()
         }, { script: snapshotScript, opts: options });
       };
 
-      const ref = async (refId: string): Promise<ElementHandle | null> => {
-        const currentPage = getActivePage();
-        const elementHandle = await currentPage.evaluateHandle((id: string) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const windowGlobal = globalThis as any;
-          const refs = windowGlobal.__REACT_GRAB_REFS__;
-          if (!refs) {
-            throw new Error("No refs found. Call snapshot() first.");
-          }
-          const element = refs[id];
+      const resolveSelector = (target: string): string => {
+        if (/^e\d+$/.test(target)) {
+          return `[aria-ref="${target}"]`;
+        }
+        return target;
+      };
+
+      interface SourceInfo {
+        filePath: string;
+        lineNumber: number | null;
+        componentName: string | null;
+      }
+
+      const ref = (refId: string): ElementHandle & PromiseLike<ElementHandle> & { source: () => Promise<SourceInfo | null> } => {
+        const getElement = async (): Promise<ElementHandle> => {
+          const currentPage = getActivePage();
+          const elementHandle = await currentPage.evaluateHandle((id: string) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const windowGlobal = globalThis as any;
+            const refs = windowGlobal.__REACT_GRAB_REFS__;
+            if (!refs) {
+              throw new Error("No refs found. Call snapshot() first.");
+            }
+            const element = refs[id];
+            if (!element) {
+              throw new Error(`Ref "${id}" not found. Available refs: ${Object.keys(refs).join(", ")}`);
+            }
+            return element;
+          }, refId);
+
+          const element = elementHandle.asElement();
           if (!element) {
-            throw new Error(`Ref "${id}" not found. Available refs: ${Object.keys(refs).join(", ")}`);
+            await elementHandle.dispose();
+            throw new Error(`Ref "${refId}" is not an element`);
           }
           return element;
-        }, refId);
+        };
 
-        const element = elementHandle.asElement();
-        if (!element) {
-          await elementHandle.dispose();
-          return null;
-        }
-        return element;
+        const getSource = async (): Promise<SourceInfo | null> => {
+          const element = await getElement();
+          const currentPage = getActivePage();
+          return currentPage.evaluate((el) => {
+            const api = (globalThis as { __REACT_GRAB__?: { getSource: (element: Element) => Promise<SourceInfo | null> } }).__REACT_GRAB__;
+            if (!api) return null;
+            return api.getSource(el as Element);
+          }, element);
+        };
+
+        return new Proxy({} as ElementHandle & PromiseLike<ElementHandle> & { source: () => Promise<SourceInfo | null> }, {
+          get(_, prop: string) {
+            if (prop === "then") {
+              return (
+                resolve: (value: ElementHandle) => void,
+                reject: (error: Error) => void
+              ) => getElement().then(resolve, reject);
+            }
+            if (prop === "source") {
+              return getSource;
+            }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            return (...args: unknown[]) => getElement().then((element) => (element as any)[prop](...args));
+          },
+        });
       };
 
       const fill = async (refId: string, text: string): Promise<void> => {
         const element = await ref(refId);
-        if (!element) {
-          throw new Error(`Element "${refId}" not found`);
-        }
         await element.click();
         const currentPage = getActivePage();
         const isMac = process.platform === "darwin";
         const modifier = isMac ? "Meta" : "Control";
         await currentPage.keyboard.press(`${modifier}+a`);
         await currentPage.keyboard.type(text);
+      };
+
+      interface DragOptions {
+        from: string;
+        to: string;
+        dataTransfer?: Record<string, string>;
+      }
+
+      const drag = async (options: DragOptions): Promise<void> => {
+        const currentPage = getActivePage();
+        const { from, to, dataTransfer = {} } = options;
+        const fromSelector = resolveSelector(from);
+        const toSelector = resolveSelector(to);
+
+        await currentPage.evaluate(
+          ({ fromSel, toSel, data }: { fromSel: string; toSel: string; data: Record<string, string> }) => {
+            const fromElement = document.querySelector(fromSel);
+            const toElement = document.querySelector(toSel);
+            if (!fromElement) throw new Error(`Source element not found: ${fromSel}`);
+            if (!toElement) throw new Error(`Target element not found: ${toSel}`);
+
+            const dataTransferObject = new DataTransfer();
+            for (const [type, value] of Object.entries(data)) {
+              dataTransferObject.setData(type, value);
+            }
+
+            const dragStartEvent = new DragEvent("dragstart", { bubbles: true, cancelable: true, dataTransfer: dataTransferObject });
+            const dragOverEvent = new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: dataTransferObject });
+            const dropEvent = new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: dataTransferObject });
+            const dragEndEvent = new DragEvent("dragend", { bubbles: true, cancelable: true, dataTransfer: dataTransferObject });
+
+            fromElement.dispatchEvent(dragStartEvent);
+            toElement.dispatchEvent(dragOverEvent);
+            toElement.dispatchEvent(dropEvent);
+            fromElement.dispatchEvent(dragEndEvent);
+          },
+          { fromSel: fromSelector, toSel: toSelector, data: dataTransfer }
+        );
+      };
+
+      interface DispatchOptions {
+        target: string;
+        event: string;
+        bubbles?: boolean;
+        cancelable?: boolean;
+        dataTransfer?: Record<string, string>;
+        detail?: unknown;
+      }
+
+      const dispatch = async (options: DispatchOptions): Promise<boolean> => {
+        const currentPage = getActivePage();
+        const { target, event, bubbles = true, cancelable = true, dataTransfer, detail } = options;
+        const selector = resolveSelector(target);
+
+        return currentPage.evaluate(
+          ({ sel, eventType, opts }: { sel: string; eventType: string; opts: { bubbles: boolean; cancelable: boolean; dataTransfer?: Record<string, string>; detail?: unknown } }) => {
+            const element = document.querySelector(sel);
+            if (!element) throw new Error(`Element not found: ${sel}`);
+
+            let evt: Event;
+            if (opts.dataTransfer) {
+              const dataTransferObject = new DataTransfer();
+              for (const [type, value] of Object.entries(opts.dataTransfer)) {
+                dataTransferObject.setData(type, value);
+              }
+              evt = new DragEvent(eventType, {
+                bubbles: opts.bubbles,
+                cancelable: opts.cancelable,
+                dataTransfer: dataTransferObject,
+              });
+            } else if (opts.detail !== undefined) {
+              evt = new CustomEvent(eventType, {
+                bubbles: opts.bubbles,
+                cancelable: opts.cancelable,
+                detail: opts.detail,
+              });
+            } else {
+              evt = new Event(eventType, { bubbles: opts.bubbles, cancelable: opts.cancelable });
+            }
+
+            return element.dispatchEvent(evt);
+          },
+          { sel: selector, eventType: event, opts: { bubbles, cancelable, dataTransfer, detail } }
+        );
       };
 
       const grab = {
@@ -441,11 +563,13 @@ const execute = new Command()
         "snapshot",
         "ref",
         "fill",
+        "drag",
+        "dispatch",
         "grab",
         `return (async () => { ${code} })();`,
       );
 
-      const result = await executeFunction(getActivePage(), getActivePage, snapshot, ref, fill, grab);
+      const result = await executeFunction(getActivePage(), getActivePage, snapshot, ref, fill, drag, dispatch, grab);
       await outputJson(true, result);
       process.exit(0);
     } catch (error) {
@@ -516,13 +640,13 @@ PERFORMANCE TIPS
 
   # SLOW: 3 separate round-trips, full snapshot
   execute "await page.goto('https://example.com')"
-  execute "await (await ref('e1')).click()"
+  execute "await ref('e1').click()"
   execute "return await snapshot()"
 
   # FAST: 1 round-trip, compact output
   execute "
     await page.goto('https://example.com');
-    await (await ref('e1')).click();
+    await ref('e1').click();
     return await snapshot({format: 'compact'});
   "
 
@@ -532,8 +656,21 @@ HELPERS
                       opts.maxDepth: limit tree depth (e.g., 5)
                       opts.interactableOnly: only show elements with refs
                       opts.format: "yaml" (default) or "compact"
-  ref(id)           - Get element by ref ID (returns ElementHandle)
-  fill(id, s)       - Clear and fill input (works with rich text editors)
+  ref(id)           - Get element by ref ID (chainable - supports all ElementHandle methods)
+                      Example: await ref('e1').click()
+                      Example: await ref('e1').getAttribute('data-foo')
+  fill(id, text)    - Clear and fill input (works with rich text editors)
+  drag(opts)        - Drag with custom MIME types
+                      opts.from: source selector or ref ID (e.g., "e1" or "text=src")
+                      opts.to: target selector or ref ID
+                      opts.dataTransfer: { "mime/type": "value" }
+  dispatch(opts)    - Dispatch custom events (drag, custom, etc)
+                      opts.target: selector or ref ID
+                      opts.event: event type name
+                      opts.dataTransfer: for drag events
+                      opts.detail: for CustomEvent
+  ref(id).source()  - Get React component source file info for element
+                      Returns { filePath, lineNumber, componentName } or null
   grab              - React Grab client API (activate, copyElement, etc)
 
 SNAPSHOT FORMATS
@@ -550,11 +687,31 @@ SNAPSHOT FORMATS
   execute "return await snapshot({interactableOnly: true, maxDepth: 6})"
 
 COMMON PATTERNS
-  # Click by ref
-  execute "await (await ref('e1')).click()"
+  # Click by ref (chainable - no double await needed!)
+  execute "await ref('e1').click()"
+
+  # Get element attribute
+  execute "return await ref('e1').getAttribute('data-id')"
 
   # Fill input (clears existing content)
   execute "await fill('e1', 'text')"
+
+  # Drag with custom MIME types
+  execute "await drag({
+    from: 'text=src',
+    to: '[contenteditable]',
+    dataTransfer: { 'application/x-custom': 'data', 'text/plain': 'src' }
+  })"
+
+  # Dispatch custom event
+  execute "await dispatch({
+    target: '[contenteditable]',
+    event: 'drop',
+    dataTransfer: { 'application/x-custom': 'data' }
+  })"
+
+  # Get React component source file
+  execute "return await ref('e1').source()"
 
   # Screenshot
   execute "await page.screenshot({path:'/tmp/shot.png'})"

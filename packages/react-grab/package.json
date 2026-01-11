@@ -85,7 +85,6 @@
     "@babel/core": "^7.28.5",
     "@babel/preset-typescript": "^7.28.5",
     "@playwright/test": "^1.40.0",
-    "@react-grab/cli": "workspace:*",
     "@tailwindcss/cli": "^4.1.17",
     "@types/node": "^20.19.23",
     "babel-preset-solid": "^1.9.10",
@@ -103,6 +102,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@react-grab/cli": "workspace:*",
     "bippy": "^0.5.28",
     "solid-js": "^1.9.10"
   }

@@ -13,7 +13,7 @@ import { createGrabStore } from "./store.js";
 import { isKeyboardEventTriggeredByInput } from "../utils/is-keyboard-event-triggered-by-input.js";
 import { mountRoot } from "../utils/mount-root.js";
 import { ReactGrabRenderer } from "../components/renderer.js";
-import { getStack, getNearestComponentName } from "./context.js";
+import { getStack, getNearestComponentName, checkIsSourceComponentName } from "./context.js";
 import { isSourceFile, normalizeFileName } from "bippy/source";
 import { createNoopApi } from "./noop-api.js";
 import { createEventListenerManager } from "./events.js";
@@ -58,6 +58,7 @@ import type {
   AgentOptions,
   ActionContext,
   SettableOptions,
+  SourceInfo,
   Plugin,
 } from "../types.js";
 import { DEFAULT_THEME } from "./theme.js";
@@ -2511,6 +2512,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         dispose();
       },
       copyElement: copyElementAPI,
+      getSource: async (element: Element): Promise<SourceInfo | null> => {
+        const stack = await getStack(element);
+        if (!stack) return null;
+        for (const frame of stack) {
+          if (frame.fileName && isSourceFile(frame.fileName)) {
+            return {
+              filePath: normalizeFileName(frame.fileName),
+              lineNumber: frame.lineNumber ?? null,
+              componentName: frame.functionName && checkIsSourceComponentName(frame.functionName)
+                ? frame.functionName
+                : null,
+            };
+          }
+        }
+        return null;
+      },
       getState: (): ReactGrabState => ({
         isActive: isActivated(),
         isDragging: isDragging(),
@@ -2555,6 +2572,7 @@ export type {
   OverlayBounds,
   ReactGrabRendererProps,
   ReactGrabAPI,
+  SourceInfo,
   AgentContext,
   AgentSession,
   AgentSessionStorage,

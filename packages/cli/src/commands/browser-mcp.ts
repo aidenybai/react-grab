@@ -69,7 +69,7 @@ export const startMcpServer = async (): Promise<void> => {
 
   server.tool(
     "browser_snapshot",
-    "Get an accessibility tree snapshot of the current page with element refs for interaction. Use format:'compact' for minimal output.",
+    "Get accessibility tree with element refs (e1, e2...). Use these refs with browser_execute: ref('e1').click(). Prefer interactableOnly:true for smaller output.",
     {
       page: z.string().optional().default("default").describe("Named page context for multi-turn sessions"),
       maxDepth: z.number().optional().describe("Limit tree depth (e.g., 5)"),
@@ -133,7 +133,7 @@ export const startMcpServer = async (): Promise<void> => {
 
   server.tool(
     "browser_execute",
-    "Execute Playwright code with 'page' variable available. Use 'return' for output. Helpers: snapshot(opts?), ref(id), fill(id, text)",
+    "Execute Playwright code. IMPORTANT: Always call snapshot() first to get element refs (e1, e2...), then use ref('e1').click() to interact. ref() is chainable: .click(), .fill(), .source() (React file). Avoid page.locator() - use refs instead.",
     {
       code: z.string().describe("JavaScript code to execute (use 'page' for Playwright Page, 'return' for output)"),
       page: z.string().optional().default("default").describe("Named page context for multi-turn sessions"),
@@ -206,35 +206,73 @@ export const startMcpServer = async (): Promise<void> => {
           );
         };
 
-        const ref = async (refId: string): Promise<ElementHandle | null> => {
-          const currentPage = getActivePage();
-          const elementHandle = await currentPage.evaluateHandle((id: string) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const windowGlobal = globalThis as any;
-            const refs = windowGlobal.__REACT_GRAB_REFS__;
-            if (!refs) {
-              throw new Error("No refs found. Call snapshot() first.");
-            }
-            const element = refs[id];
+        const resolveSelector = (target: string): string => {
+          if (/^e\d+$/.test(target)) {
+            return `[aria-ref="${target}"]`;
+          }
+          return target;
+        };
+
+        interface SourceInfo {
+          filePath: string;
+          lineNumber: number | null;
+          componentName: string | null;
+        }
+
+        const ref = (refId: string): ElementHandle & PromiseLike<ElementHandle> & { source: () => Promise<SourceInfo | null> } => {
+          const getElement = async (): Promise<ElementHandle> => {
+            const currentPage = getActivePage();
+            const elementHandle = await currentPage.evaluateHandle((id: string) => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const windowGlobal = globalThis as any;
+              const refs = windowGlobal.__REACT_GRAB_REFS__;
+              if (!refs) {
+                throw new Error("No refs found. Call snapshot() first.");
+              }
+              const element = refs[id];
+              if (!element) {
+                throw new Error(`Ref "${id}" not found. Available refs: ${Object.keys(refs).join(", ")}`);
+              }
+              return element;
+            }, refId);
+
+            const element = elementHandle.asElement();
             if (!element) {
-              throw new Error(`Ref "${id}" not found. Available refs: ${Object.keys(refs).join(", ")}`);
+              await elementHandle.dispose();
+              throw new Error(`Ref "${refId}" is not an element`);
             }
             return element;
-          }, refId);
+          };
 
-          const element = elementHandle.asElement();
-          if (!element) {
-            await elementHandle.dispose();
-            return null;
-          }
-          return element;
+          const getSource = async (): Promise<SourceInfo | null> => {
+            const element = await getElement();
+            const currentPage = getActivePage();
+            return currentPage.evaluate((el) => {
+              const api = (globalThis as { __REACT_GRAB__?: { getSource: (element: Element) => Promise<SourceInfo | null> } }).__REACT_GRAB__;
+              if (!api) return null;
+              return api.getSource(el as Element);
+            }, element);
+          };
+
+          return new Proxy({} as ElementHandle & PromiseLike<ElementHandle> & { source: () => Promise<SourceInfo | null> }, {
+            get(_, prop: string) {
+              if (prop === "then") {
+                return (
+                  resolve: (value: ElementHandle) => void,
+                  reject: (error: Error) => void
+                ) => getElement().then(resolve, reject);
+              }
+              if (prop === "source") {
+                return getSource;
+              }
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              return (...args: unknown[]) => getElement().then((element) => (element as any)[prop](...args));
+            },
+          });
         };
 
         const fill = async (refId: string, text: string): Promise<void> => {
           const element = await ref(refId);
-          if (!element) {
-            throw new Error(`Element "${refId}" not found`);
-          }
           await element.click();
           const currentPage = getActivePage();
           const isMac = process.platform === "darwin";
@@ -243,16 +281,102 @@ export const startMcpServer = async (): Promise<void> => {
           await currentPage.keyboard.type(text);
         };
 
+        interface DragOptions {
+          from: string;
+          to: string;
+          dataTransfer?: Record<string, string>;
+        }
+
+        const drag = async (options: DragOptions): Promise<void> => {
+          const currentPage = getActivePage();
+          const { from, to, dataTransfer = {} } = options;
+          const fromSelector = resolveSelector(from);
+          const toSelector = resolveSelector(to);
+
+          await currentPage.evaluate(
+            ({ fromSel, toSel, data }: { fromSel: string; toSel: string; data: Record<string, string> }) => {
+              const fromElement = document.querySelector(fromSel);
+              const toElement = document.querySelector(toSel);
+              if (!fromElement) throw new Error(`Source element not found: ${fromSel}`);
+              if (!toElement) throw new Error(`Target element not found: ${toSel}`);
+
+              const dataTransferObject = new DataTransfer();
+              for (const [type, value] of Object.entries(data)) {
+                dataTransferObject.setData(type, value);
+              }
+
+              const dragStartEvent = new DragEvent("dragstart", { bubbles: true, cancelable: true, dataTransfer: dataTransferObject });
+              const dragOverEvent = new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: dataTransferObject });
+              const dropEvent = new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: dataTransferObject });
+              const dragEndEvent = new DragEvent("dragend", { bubbles: true, cancelable: true, dataTransfer: dataTransferObject });
+
+              fromElement.dispatchEvent(dragStartEvent);
+              toElement.dispatchEvent(dragOverEvent);
+              toElement.dispatchEvent(dropEvent);
+              fromElement.dispatchEvent(dragEndEvent);
+            },
+            { fromSel: fromSelector, toSel: toSelector, data: dataTransfer }
+          );
+        };
+
+        interface DispatchOptions {
+          target: string;
+          event: string;
+          bubbles?: boolean;
+          cancelable?: boolean;
+          dataTransfer?: Record<string, string>;
+          detail?: unknown;
+        }
+
+        const dispatch = async (options: DispatchOptions): Promise<boolean> => {
+          const currentPage = getActivePage();
+          const { target, event, bubbles = true, cancelable = true, dataTransfer, detail } = options;
+          const selector = resolveSelector(target);
+
+          return currentPage.evaluate(
+            ({ sel, eventType, opts }: { sel: string; eventType: string; opts: { bubbles: boolean; cancelable: boolean; dataTransfer?: Record<string, string>; detail?: unknown } }) => {
+              const element = document.querySelector(sel);
+              if (!element) throw new Error(`Element not found: ${sel}`);
+
+              let evt: Event;
+              if (opts.dataTransfer) {
+                const dataTransferObject = new DataTransfer();
+                for (const [type, value] of Object.entries(opts.dataTransfer)) {
+                  dataTransferObject.setData(type, value);
+                }
+                evt = new DragEvent(eventType, {
+                  bubbles: opts.bubbles,
+                  cancelable: opts.cancelable,
+                  dataTransfer: dataTransferObject,
+                });
+              } else if (opts.detail !== undefined) {
+                evt = new CustomEvent(eventType, {
+                  bubbles: opts.bubbles,
+                  cancelable: opts.cancelable,
+                  detail: opts.detail,
+                });
+              } else {
+                evt = new Event(eventType, { bubbles: opts.bubbles, cancelable: opts.cancelable });
+              }
+
+              return element.dispatchEvent(evt);
+            },
+            { sel: selector, eventType: event, opts: { bubbles, cancelable, dataTransfer, detail } }
+          );
+        };
+
         const executeFunction = new Function(
           "page",
           "getActivePage",
           "snapshot",
           "ref",
           "fill",
+          "drag",
+          "dispatch",
           `return (async () => { ${code} })();`
         );
 
-        const result = await executeFunction(getActivePage(), getActivePage, snapshot, ref, fill);
+        const result = await executeFunction(getActivePage(), getActivePage, snapshot, ref, fill, drag, dispatch);
         const output = await outputJson(true, result);
 
         return {

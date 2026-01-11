@@ -16,6 +16,7 @@ export { isScreenshotSupported } from "./utils/is-screenshot-supported.js";
 export type {
   Options,
   ReactGrabAPI,
+  SourceInfo,
   Theme,
   ReactGrabState,
   OverlayBounds,
