@@ -50,7 +50,7 @@ const promptMcpInstall = async (cwd: string, customPkg?: string): Promise<void> 
     type: "confirm",
     name: "wantMcp",
     message: `Would you like to add the ${highlighter.info("MCP server")}? (gives your agent access to your browser)`,
-    initial: false,
+    initial: true,
   });
 
   if (!wantMcp) return;

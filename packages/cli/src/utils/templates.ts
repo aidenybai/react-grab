@@ -123,13 +123,13 @@ export const MCP_CLIENTS = [
   "opencode",
   "codex",
   "gemini-cli",
-  "cline",
-  "roo-cline",
+  // "cline",
+  // "roo-cline",
   "windsurf",
   "zed",
-  "warp",
+  // "warp",
   "droid",
-  "claude",
+  // "claude",
 ] as const;
 
 export type McpClient = (typeof MCP_CLIENTS)[number];
@@ -137,15 +137,15 @@ export type McpClient = (typeof MCP_CLIENTS)[number];
 export const MCP_CLIENT_NAMES: Record<McpClient, string> = {
   "cursor": "Cursor",
   "claude-code": "Claude Code",
-  "vscode": "VS Code",
+  "vscode": "VSCode",
   "opencode": "OpenCode",
   "codex": "Codex",
   "gemini-cli": "Gemini CLI",
-  "cline": "Cline",
-  "roo-cline": "Roo Cline",
+  // "cline": "Cline",
+  // "roo-cline": "Roo Cline",
   "windsurf": "Windsurf",
   "zed": "Zed",
-  "warp": "Warp",
+  // "warp": "Warp",
   "droid": "Droid",
-  "claude": "Claude Desktop",
+  // "claude": "Claude Desktop",
 };

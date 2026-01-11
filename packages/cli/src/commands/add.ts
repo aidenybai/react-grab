@@ -68,6 +68,11 @@ export const add = new Command()
       if (agentArg === "mcp") {
         let mcpClient: McpClient | undefined = opts.client as McpClient;
 
+        // HACK: rename claude to claude-code because we only care about coding tools
+        if (mcpClient === ("claude" as McpClient)) {
+          mcpClient = "claude-code";
+        }
+
         if (mcpClient && !MCP_CLIENTS.includes(mcpClient)) {
           logger.break();
           logger.error(`Invalid MCP client: ${mcpClient}`);
