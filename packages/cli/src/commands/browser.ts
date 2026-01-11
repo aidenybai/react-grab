@@ -751,6 +751,23 @@ SNAPSHOT FORMATS
   # Combined options
   execute "return await snapshot({interactableOnly: true, maxDepth: 6})"
 
+SCREENSHOTS - PREFER ELEMENT OVER FULL PAGE
+  For visual issues (wrong color, broken styling, misalignment), ALWAYS screenshot
+  the specific element instead of the full page. Element screenshots are:
+  - Faster (smaller image)
+  - More precise (shows exactly what's wrong)
+  - Easier to compare
+
+  # Element screenshot (PREFERRED)
+  execute "await ref('e1').screenshot({path: '/tmp/button.png'})"
+  execute "await ref('e5').screenshot({path: '/tmp/card.png'})"
+
+  # Full page (only when needed)
+  execute "await page.screenshot({path: '/tmp/full.png'})"
+
+  Use element screenshots for: color bugs, styling issues, broken UI, "how does X look"
+  Use full page only for: layout overview, "screenshot entire page"
+
 COMMON PATTERNS
   # Click by ref (chainable - no double await needed!)
   execute "await ref('e1').click()"
@@ -777,9 +794,6 @@ COMMON PATTERNS
 
   # Get React component source file
   execute "return await ref('e1').source()"
-
-  # Screenshot
-  execute "await page.screenshot({path:'/tmp/shot.png'})"
 
   # Get page info
   execute "return {url: page.url(), title: await page.title()}"

@@ -47,6 +47,10 @@ export const add = new Command()
     "MCP client to configure (cursor, claude-code, vscode, etc.)",
   )
   .option(
+    "--pkg <pkg>",
+    "custom package URL for MCP (e.g., https://pkg.pr.new/.../@react-grab/cli@abc123)",
+  )
+  .option(
     "-c, --cwd <cwd>",
     "working directory (defaults to current directory)",
     process.cwd(),
@@ -116,16 +120,20 @@ export const add = new Command()
           process.exit(1);
         }
 
+        const customPkg = opts.pkg as string | undefined;
+        const mcpCommand = customPkg
+          ? `npx ${customPkg} browser mcp`
+          : `npx @react-grab/cli browser mcp`;
         const mcpSpinner = spinner(`Configuring MCP for ${MCP_CLIENT_NAMES[mcpClient]}`).start();
         try {
           execSync(
-            `npx -y install-mcp 'npx @react-grab/cli browser mcp' --client ${mcpClient} --yes`,
+            `npx -y install-mcp '${mcpCommand}' --client ${mcpClient} --yes`,
             { stdio: "ignore", cwd },
           );
           mcpSpinner.succeed(`MCP configured for ${MCP_CLIENT_NAMES[mcpClient]}`);
         } catch {
           mcpSpinner.fail(`Failed to configure MCP for ${MCP_CLIENT_NAMES[mcpClient]}`);
-          logger.dim("Try manually: npx install-mcp 'npx @react-grab/cli browser mcp' --client " + mcpClient);
+          logger.dim(`Try manually: npx install-mcp '${mcpCommand}' --client ${mcpClient}`);
         }
         logger.break();
         process.exit(0);
@@ -246,16 +254,20 @@ export const add = new Command()
           }
 
           const mcpClient = client as McpClient;
+          const customPkg = opts.pkg as string | undefined;
+          const mcpCommand = customPkg
+            ? `npx ${customPkg} browser mcp`
+            : `npx @react-grab/cli browser mcp`;
           const mcpSpinner = spinner(`Configuring MCP for ${MCP_CLIENT_NAMES[mcpClient]}`).start();
           try {
             execSync(
-              `npx -y install-mcp 'npx @react-grab/cli browser mcp' --client ${mcpClient} --yes`,
+              `npx -y install-mcp '${mcpCommand}' --client ${mcpClient} --yes`,
               { stdio: "ignore", cwd },
             );
             mcpSpinner.succeed(`MCP configured for ${MCP_CLIENT_NAMES[mcpClient]}`);
           } catch {
             mcpSpinner.fail(`Failed to configure MCP for ${MCP_CLIENT_NAMES[mcpClient]}`);
-            logger.dim("Try manually: npx install-mcp 'npx @react-grab/cli browser mcp' --client " + mcpClient);
+            logger.dim(`Try manually: npx install-mcp '${mcpCommand}' --client ${mcpClient}`);
           }
           logger.break();
           process.exit(0);
