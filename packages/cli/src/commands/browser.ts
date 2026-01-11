@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import pc from "picocolors";
 import { chromium, type Browser, type Page } from "playwright";
 import {
   SUPPORTED_BROWSERS,
@@ -27,6 +28,15 @@ import { highlighter } from "../utils/highlighter.js";
 import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
 import { startMcpServer } from "./browser-mcp.js";
+
+const VERSION = process.env.VERSION ?? "0.0.1";
+
+const printHeader = (): void => {
+  console.log(
+    `${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)}`,
+  );
+  console.log();
+};
 
 const handleError = (error: unknown): never => {
   logger.error(error instanceof Error ? error.message : "Failed");
@@ -78,13 +88,14 @@ const list = new Command()
   .name("list")
   .description("list installed browsers")
   .action(() => {
+    printHeader();
     const browsers = findInstalledBrowsers();
     if (browsers.length === 0) {
       logger.warn("No supported browsers found.");
       return;
     }
     for (const browserName of browsers) {
-      logger.log(`${highlighter.success("●")} ${BROWSER_DISPLAY_NAMES[browserName]}`);
+      logger.log(`  ${BROWSER_DISPLAY_NAMES[browserName]}`);
     }
   });
 
@@ -96,6 +107,7 @@ const dump = new Command()
   .option("-l, --limit <limit>", "limit count", parseInt)
   .option("-j, --json", "output JSON", false)
   .action((browserArg: string | undefined, opts) => {
+    if (!opts.json) printHeader();
     const sourceBrowser = resolveSourceBrowser(browserArg);
     try {
       const cookies = dumpCookies(sourceBrowser, {
@@ -108,9 +120,9 @@ const dump = new Command()
         return;
       }
 
-      logger.success(`Found ${highlighter.info(cookies.length.toString())} cookies`);
+      logger.success(`Found ${cookies.length} cookies`);
       for (const cookie of cookies.slice(0, COOKIE_PREVIEW_LIMIT)) {
-        logger.log(`  ${highlighter.dim(cookie.hostKey)}: ${cookie.name}`);
+        logger.dim(`  ${cookie.hostKey}: ${cookie.name}`);
       }
       if (cookies.length > COOKIE_PREVIEW_LIMIT) {
         logger.dim(`  ... and ${cookies.length - COOKIE_PREVIEW_LIMIT} more`);
@@ -127,7 +139,10 @@ const start = new Command()
   .option("--headed", "show browser window (default is headless)")
   .option("-b, --browser <browser>", "source browser for cookies (chrome, edge, brave, arc)")
   .option("-d, --domain <domain>", "only load cookies matching this domain")
+  .option("--foreground", "run in foreground instead of detaching")
   .action(async (options) => {
+    printHeader();
+
     if (await isServerRunning()) {
       const info = getServerInfo();
       logger.error(`Server already running on port ${info?.port}`);
@@ -136,6 +151,25 @@ const start = new Command()
 
     const sourceBrowser = resolveSourceBrowser(options.browser);
     const port = parseInt(options.port, 10);
+
+    if (!options.foreground) {
+      const serverSpinner = spinner("Starting server").start();
+      try {
+        const browserServer = await spawnServer({
+          port,
+          headless: !options.headed,
+          cliPath: process.argv[1],
+          browser: options.browser,
+          domain: options.domain,
+        });
+        serverSpinner.succeed(`Server running on port ${browserServer.port}`);
+        logger.dim(`CDP: ${browserServer.wsEndpoint}`);
+      } catch (error) {
+        serverSpinner.fail();
+        handleError(error);
+      }
+      return;
+    }
 
     const serverSpinner = spinner("Starting server").start();
 
@@ -147,12 +181,10 @@ const start = new Command()
 
       serverSpinner.succeed(`Server running on port ${browserServer.port}`);
       logger.dim(`CDP: ${browserServer.wsEndpoint}`);
-      logger.break();
-
+      const cookieSpinner = spinner("Loading cookies").start();
       try {
         const cookies = dumpCookies(sourceBrowser, { domain: options.domain });
         const playwrightCookies = toPlaywrightCookies(cookies);
-        logger.info(`Loaded ${playwrightCookies.length} cookies from ${sourceBrowser}`);
 
         const browser = await chromium.connectOverCDP(browserServer.wsEndpoint);
         const contexts = browser.contexts();
@@ -161,14 +193,44 @@ const start = new Command()
           await applyStealthScripts(contexts[0]);
         }
         await browser.close();
+        cookieSpinner.succeed(`Loaded ${playwrightCookies.length} cookies from ${sourceBrowser}`);
       } catch (cookieError) {
-        logger.warn(`Failed to load cookies from ${sourceBrowser}: ${cookieError instanceof Error ? cookieError.message : "Unknown error"}`);
-        logger.dim("Continuing without cookies");
-      }
+        const errorMessage = cookieError instanceof Error ? cookieError.message : "Unknown error";
+        const isModuleVersionError = errorMessage.includes("NODE_MODULE_VERSION");
 
-      logger.break();
-      logger.success("Server ready. Use 'browser execute' to connect.");
-      logger.dim("Press Ctrl+C to stop.");
+        if (isModuleVersionError) {
+          cookieSpinner.info("Native module mismatch. Rebuilding...");
+          try {
+            const { execSync, spawn } = await import("child_process");
+            const { dirname, join } = await import("path");
+            const { fileURLToPath } = await import("url");
+            const currentDir = dirname(fileURLToPath(import.meta.url));
+            const browserPkgDir = join(currentDir, "..", "..");
+            execSync("npm rebuild better-sqlite3", {
+              stdio: "ignore",
+              cwd: browserPkgDir,
+            });
+
+            await browserServer.stop();
+
+            const rebuildSpinner = spinner("Restarting server").start();
+            rebuildSpinner.succeed("Restarting server");
+
+            const args = process.argv.slice(2);
+            const child = spawn(process.argv[0], [process.argv[1], ...args], {
+              stdio: "inherit",
+              detached: false,
+            });
+            child.on("exit", (code) => process.exit(code ?? 0));
+            return;
+          } catch {
+            cookieSpinner.fail("Auto-rebuild failed. Run: npm rebuild better-sqlite3");
+          }
+        } else {
+          cookieSpinner.fail(`Failed to load cookies from ${sourceBrowser}`);
+        }
+      }
+      spinner("Server ready. Press Ctrl+C to stop.").succeed();
 
       await new Promise(() => {});
     } catch (error) {
@@ -181,9 +243,10 @@ const stop = new Command()
   .name("stop")
   .description("stop the browser server")
   .action(async () => {
+    printHeader();
     const info = getServerInfo();
     if (!info) {
-      logger.dim("No server running");
+      logger.log("No server running");
       return;
     }
 
@@ -193,7 +256,7 @@ const stop = new Command()
       logger.success("Server stopped");
     } catch {
       deleteServerInfo();
-      logger.dim("Server was not running");
+      logger.log("Server was not running");
     }
   });
 
@@ -203,6 +266,7 @@ const status = new Command()
   .option("-j, --json", "output structured JSON: {running, port, pages}", false)
   .action(async (options) => {
     const jsonMode = options.json as boolean;
+    if (!jsonMode) printHeader();
 
     if (await isServerRunning()) {
       const info = getServerInfo();
@@ -221,13 +285,12 @@ const status = new Command()
           pages: pagesData,
         }));
       } else {
-        logger.log(`${highlighter.success("●")} Server running on port ${info?.port}`);
-
+        logger.success(`Server running on port ${info?.port}`);
         if (pagesData.length > 0) {
           logger.break();
           logger.info("Pages:");
           for (const page of pagesData) {
-            logger.log(`  ${page.name}: ${highlighter.dim(page.url)}`);
+            logger.dim(`  ${page.name}: ${page.url}`);
           }
         }
       }
@@ -239,7 +302,7 @@ const status = new Command()
           pages: [],
         }));
       } else {
-        logger.log(`${highlighter.error("○")} Server not running`);
+        logger.log("Server not running");
       }
     }
   });
@@ -584,9 +647,10 @@ const pages = new Command()
   .option("-k, --kill <name>", "unregister a page (tab stays open)")
   .option("--kill-all", "unregister all pages")
   .action(async (options) => {
+    printHeader();
     const serverInfo = getServerInfo();
     if (!serverInfo || !(await isServerRunning())) {
-      logger.error("Server not running. Start with 'browser start'");
+      logger.log("Server not running. Start with 'browser start'");
       process.exit(1);
     }
 
@@ -616,12 +680,13 @@ const pages = new Command()
     const pagesResult = await pagesResponse.json() as { pages: Array<{ name: string; url: string }> };
 
     if (pagesResult.pages.length === 0) {
-      logger.dim("No pages");
+      logger.info("No pages");
       return;
     }
 
     for (const pageEntry of pagesResult.pages) {
-      logger.log(`${highlighter.success("●")} ${pageEntry.name}: ${highlighter.dim(pageEntry.url)}`);
+      logger.log(`  ${pageEntry.name}`);
+      logger.dim(`    ${pageEntry.url}`);
     }
   });
 

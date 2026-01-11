@@ -16,8 +16,12 @@ import { spinner } from "../utils/spinner.js";
 import {
   AGENTS,
   AGENT_NAMES,
-  type AgentIntegration,
+  MCP_CLIENTS,
+  MCP_CLIENT_NAMES,
+  type Agent,
+  type McpClient,
 } from "../utils/templates.js";
+import { execSync } from "child_process";
 import {
   applyPackageJsonTransform,
   applyTransform,
@@ -31,12 +35,17 @@ const VERSION = process.env.VERSION ?? "0.0.1";
 
 export const add = new Command()
   .name("add")
-  .description("add an agent integration")
+  .alias("install")
+  .description("add an agent integration or MCP server")
   .argument(
     "[agent]",
-    "agent to add (claude-code, cursor, opencode, codex, gemini, amp, visual-edit)",
+    "agent to add (claude-code, cursor, opencode, codex, gemini, amp, visual-edit, mcp)",
   )
   .option("-y, --yes", "skip confirmation prompts", false)
+  .option(
+    "--client <client>",
+    "MCP client to configure (cursor, claude-code, vscode, etc.)",
+  )
   .option(
     "-c, --cwd <cwd>",
     "working directory (defaults to current directory)",
@@ -68,6 +77,60 @@ export const add = new Command()
 
       preflightSpinner.succeed();
 
+      if (agentArg === "mcp") {
+        let mcpClient: McpClient | undefined = opts.client as McpClient;
+
+        if (mcpClient && !MCP_CLIENTS.includes(mcpClient)) {
+          logger.break();
+          logger.error(`Invalid MCP client: ${mcpClient}`);
+          logger.error(`Available clients: ${MCP_CLIENTS.join(", ")}`);
+          logger.break();
+          process.exit(1);
+        }
+
+        if (!mcpClient && !isNonInteractive) {
+          logger.break();
+          const { client } = await prompts({
+            type: "select",
+            name: "client",
+            message: `Which ${highlighter.info("client")} would you like to configure?`,
+            choices: MCP_CLIENTS.map((innerClient) => ({
+              title: MCP_CLIENT_NAMES[innerClient],
+              value: innerClient,
+            })),
+          });
+
+          if (!client) {
+            logger.break();
+            process.exit(1);
+          }
+
+          mcpClient = client;
+        }
+
+        if (!mcpClient) {
+          logger.break();
+          logger.error("Please specify an MCP client with --client");
+          logger.error(`Available clients: ${MCP_CLIENTS.join(", ")}`);
+          logger.break();
+          process.exit(1);
+        }
+
+        const mcpSpinner = spinner(`Configuring MCP for ${MCP_CLIENT_NAMES[mcpClient]}`).start();
+        try {
+          execSync(
+            `npx -y install-mcp 'npx @react-grab/cli browser mcp' --client ${mcpClient} --yes`,
+            { stdio: "ignore", cwd },
+          );
+          mcpSpinner.succeed(`MCP configured for ${MCP_CLIENT_NAMES[mcpClient]}`);
+        } catch {
+          mcpSpinner.fail(`Failed to configure MCP for ${MCP_CLIENT_NAMES[mcpClient]}`);
+          logger.dim("Try manually: npx install-mcp 'npx @react-grab/cli browser mcp' --client " + mcpClient);
+        }
+        logger.break();
+        process.exit(0);
+      }
+
       const availableAgents = AGENTS.filter(
         (agent) => !projectInfo.installedAgents.includes(agent),
       );
@@ -79,8 +142,8 @@ export const add = new Command()
         process.exit(0);
       }
 
-      let agentIntegration: AgentIntegration;
-      let agentsToRemove: string[] = [];
+      let agentIntegration: Agent;
+      let agentsToRemove: Agent[] = [];
 
       if (agentArg) {
         if (!AGENTS.includes(agentArg as (typeof AGENTS)[number])) {
@@ -93,18 +156,20 @@ export const add = new Command()
           process.exit(1);
         }
 
-        if (projectInfo.installedAgents.includes(agentArg)) {
+        const validAgent = agentArg as Agent;
+
+        if (projectInfo.installedAgents.includes(validAgent)) {
           logger.break();
-          logger.warn(`${AGENT_NAMES[agentArg]} is already installed.`);
+          logger.warn(`${AGENT_NAMES[validAgent]} is already installed.`);
           logger.break();
           process.exit(0);
         }
 
-        agentIntegration = agentArg as AgentIntegration;
+        agentIntegration = validAgent;
 
         if (projectInfo.installedAgents.length > 0 && !isNonInteractive) {
           const installedNames = projectInfo.installedAgents
-            .map((innerAgent) => AGENT_NAMES[innerAgent] || innerAgent)
+            .map((innerAgent) => AGENT_NAMES[innerAgent as Agent] || innerAgent)
             .join(", ");
 
           logger.break();
@@ -135,15 +200,70 @@ export const add = new Command()
           }
 
           if (action === "replace") {
-            agentsToRemove = [...projectInfo.installedAgents];
+            agentsToRemove = [...projectInfo.installedAgents] as Agent[];
           }
         }
       } else if (!isNonInteractive) {
         logger.break();
 
+        const { addType } = await prompts({
+          type: "select",
+          name: "addType",
+          message: "What would you like to add?",
+          choices: [
+            {
+              title: "MCP Server",
+              description: "Give your agent access to your browser",
+              value: "mcp",
+            },
+            {
+              title: "Agent Integration",
+              description: "Run agents through the React Grab interface",
+              value: "agent",
+            },
+          ],
+        });
+
+        if (!addType) {
+          logger.break();
+          process.exit(1);
+        }
+
+        if (addType === "mcp") {
+          const { client } = await prompts({
+            type: "select",
+            name: "client",
+            message: `Which ${highlighter.info("client")} would you like to configure?`,
+            choices: MCP_CLIENTS.map((innerClient) => ({
+              title: MCP_CLIENT_NAMES[innerClient],
+              value: innerClient,
+            })),
+          });
+
+          if (!client) {
+            logger.break();
+            process.exit(1);
+          }
+
+          const mcpClient = client as McpClient;
+          const mcpSpinner = spinner(`Configuring MCP for ${MCP_CLIENT_NAMES[mcpClient]}`).start();
+          try {
+            execSync(
+              `npx -y install-mcp 'npx @react-grab/cli browser mcp' --client ${mcpClient} --yes`,
+              { stdio: "ignore", cwd },
+            );
+            mcpSpinner.succeed(`MCP configured for ${MCP_CLIENT_NAMES[mcpClient]}`);
+          } catch {
+            mcpSpinner.fail(`Failed to configure MCP for ${MCP_CLIENT_NAMES[mcpClient]}`);
+            logger.dim("Try manually: npx install-mcp 'npx @react-grab/cli browser mcp' --client " + mcpClient);
+          }
+          logger.break();
+          process.exit(0);
+        }
+
         if (projectInfo.installedAgents.length > 0) {
           const installedNames = projectInfo.installedAgents
-            .map((innerAgent) => AGENT_NAMES[innerAgent] || innerAgent)
+            .map((innerAgent) => AGENT_NAMES[innerAgent as Agent] || innerAgent)
             .join(", ");
           logger.warn(`Currently installed: ${installedNames}`);
           logger.break();
@@ -168,7 +288,7 @@ export const add = new Command()
 
         if (projectInfo.installedAgents.length > 0) {
           const installedNames = projectInfo.installedAgents
-            .map((innerAgent) => AGENT_NAMES[innerAgent] || innerAgent)
+            .map((innerAgent) => AGENT_NAMES[innerAgent as Agent] || innerAgent)
             .join(", ");
 
           const { action } = await prompts({
@@ -196,7 +316,7 @@ export const add = new Command()
           }
 
           if (action === "replace") {
-            agentsToRemove = [...projectInfo.installedAgents];
+            agentsToRemove = [...projectInfo.installedAgents] as Agent[];
           }
         }
       } else {
@@ -247,7 +367,7 @@ export const add = new Command()
             removalResult.newContent
           ) {
             const removeWriteSpinner = spinner(
-              `Removing ${AGENT_NAMES[agentToRemove] || agentToRemove} from ${removalResult.filePath}.`,
+              `Removing ${AGENT_NAMES[agentToRemove]} from ${removalResult.filePath}.`,
             ).start();
             const writeResult = applyTransform(removalResult);
             if (!writeResult.success) {
@@ -266,7 +386,7 @@ export const add = new Command()
             removalPackageJsonResult.newContent
           ) {
             const removePackageJsonSpinner = spinner(
-              `Removing ${AGENT_NAMES[agentToRemove] || agentToRemove} from ${removalPackageJsonResult.filePath}.`,
+              `Removing ${AGENT_NAMES[agentToRemove]} from ${removalPackageJsonResult.filePath}.`,
             ).start();
             const packageJsonWriteResult = applyPackageJsonTransform(
               removalPackageJsonResult,
@@ -285,7 +405,7 @@ export const add = new Command()
         }
 
         projectInfo.installedAgents = projectInfo.installedAgents.filter(
-          (innerAgent) => !agentsToRemove.includes(innerAgent),
+          (innerAgent) => !agentsToRemove.includes(innerAgent as Agent),
         );
       }
 

@@ -9,7 +9,7 @@ import { configure } from "./commands/configure.js";
 import { init } from "./commands/init.js";
 import { remove } from "./commands/remove.js";
 import { start } from "./commands/start.js";
-import { AGENTS, PROVIDERS } from "./utils/templates.js";
+import { AGENTS, MCP_CLIENTS, PROVIDERS } from "./utils/templates.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
 const VERSION_API_URL = "https://www.react-grab.com/api/version";
@@ -58,8 +58,17 @@ const addCommand = completion.commands.get("add");
 const addAgentArg = addCommand?.arguments.get("agent");
 if (addAgentArg) {
   addAgentArg.handler = (complete) => {
+    complete("mcp", "MCP server for browser automation");
     for (const agent of AGENTS) {
       complete(agent, "");
+    }
+  };
+}
+const addClientOption = addCommand?.options.get("client");
+if (addClientOption) {
+  addClientOption.handler = (complete) => {
+    for (const client of MCP_CLIENTS) {
+      complete(client, "");
     }
   };
 }

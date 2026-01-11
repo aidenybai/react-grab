@@ -332,14 +332,15 @@ export const spawnServer = async (options: SpawnServerOptions): Promise<BrowserS
   const port = options.port ?? DEFAULT_SERVER_PORT;
   const headless = options.headless ?? false;
 
-  const args = ["browser", "start", "-p", String(port)];
-  if (headless) args.push("--headless");
+  const args = ["browser", "start", "--foreground", "-p", String(port)];
+  if (!headless) args.push("--headed");
   if (options.browser) args.push("-b", options.browser);
   if (options.domain) args.push("-d", options.domain);
 
-  const child = spawn(process.execPath, [options.cliPath, ...args], {
+  const child = spawn(options.cliPath, args, {
     detached: true,
     stdio: "ignore",
+    shell: true,
   });
 
   child.unref();
