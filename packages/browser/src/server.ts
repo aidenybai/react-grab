@@ -5,7 +5,7 @@ import {
   unlinkSync,
   readFileSync,
 } from "node:fs";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import {
   createServer,
@@ -13,6 +13,7 @@ import {
   type ServerResponse,
 } from "node:http";
 import { spawn } from "node:child_process";
+import { createRequire } from "node:module";
 import { chromium, type BrowserContext, type Page } from "playwright";
 import { getSnapshotScript } from "./snapshot/index.js";
 import {
@@ -378,10 +379,13 @@ const filterErrorOutput = (output: string): string => {
 };
 
 const ensurePlaywrightBrowsers = async (): Promise<void> => {
+  const require = createRequire(import.meta.url);
+  const playwrightPath = require.resolve("playwright");
+  const playwrightCli = join(dirname(playwrightPath), "cli.js");
+
   return new Promise((resolve, reject) => {
-    const child = spawn("npx", ["playwright", "install", "chromium"], {
+    const child = spawn(process.execPath, [playwrightCli, "install", "chromium"], {
       stdio: "inherit",
-      shell: true,
     });
 
     child.on("exit", (code) => {
@@ -454,18 +458,7 @@ export const spawnServer = async (
       try {
         const res = await fetch(`http://127.0.0.1:${info.port}/`);
         if (res.ok) {
-          const data = (await res.json()) as { wsEndpoint: string };
-          return {
-            port: info.port,
-            cdpPort: info.cdpPort,
-            wsEndpoint: data.wsEndpoint,
-            stop: async () => {
-              try {
-                process.kill(info.pid, "SIGTERM");
-              } catch {}
-              deleteServerInfo();
-            },
-          };
+          process.exit(0);
         }
       } catch {}
     }

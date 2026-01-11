@@ -76,7 +76,19 @@ export const startMcpServer = async (): Promise<void> => {
     {
       description: `Get ARIA accessibility tree with element refs (e1, e2...).
 
-SCREENSHOT RULE: NEVER set screenshot=true unless the user literally says words like "screenshot", "how does it look", "visual", "appearance", or "show me". The a11y tree contains all information needed for interaction and validation.
+SCREENSHOT STRATEGY - ALWAYS prefer element screenshots over full page:
+1. First: Get refs with snapshot (this tool)
+2. Then: Screenshot specific element via browser_execute: await ref('e1').screenshot({path: '/tmp/element.png'})
+
+USE ELEMENT SCREENSHOTS (ref('eX').screenshot()) FOR:
+- Visual bugs: "wrong color", "broken", "misaligned", "styling issue", "CSS bug"
+- Appearance checks: "how does X look", "show me the button", "what does Y display"
+- UI verification: "is it visible", "check the layout", "verify the design"
+- Any visual concern about a SPECIFIC component
+
+USE FULL PAGE screenshot=true ONLY FOR:
+- "screenshot the whole page", "full page", "entire screen"
+- No specific element mentioned AND need visual context
 
 PERFORMANCE:
 - interactableOnly:true = much smaller output (recommended)
@@ -105,7 +117,7 @@ After getting refs, use browser_execute with: ref('e1').click()`,
           .optional()
           .default(false)
           .describe(
-            "NEVER use unless user explicitly asks for screenshot/visual/appearance",
+            "Full page only. For element screenshots (PREFERRED), use browser_execute: ref('eX').screenshot()",
           ),
       },
     },
@@ -210,13 +222,18 @@ AVAILABLE HELPERS:
 - drag({from, to, dataTransfer?}): Drag with custom MIME types
 - dispatch({target, event, dataTransfer?, detail?}): Dispatch custom events
 
+ELEMENT SCREENSHOTS (PREFERRED for visual issues):
+- await ref('e1').screenshot({path: '/tmp/button.png'})
+- await ref('e2').screenshot({path: '/tmp/card.png'})
+Use for: wrong color, broken styling, visual bugs, "how does X look", UI verification
+
 COMMON PATTERNS:
 - Click: await ref('e1').click()
 - Fill input: await fill('e1', 'hello')
 - Get attribute: return await ref('e1').getAttribute('href')
 - Get React source: return await ref('e1').source()
 - Navigate: await page.goto('https://example.com')
-- Screenshot: await page.screenshot({path: '/tmp/shot.png'})
+- Full page screenshot (rare): await page.screenshot({path: '/tmp/full.png'})
 
 PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.`,
       inputSchema: {
