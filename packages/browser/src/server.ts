@@ -377,11 +377,34 @@ const filterErrorOutput = (output: string): string => {
   return errorLines.join("\n").trim();
 };
 
+const ensurePlaywrightBrowsers = async (): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const child = spawn("npx", ["playwright", "install", "chromium"], {
+      stdio: "inherit",
+      shell: true,
+    });
+
+    child.on("exit", (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error("Failed to install Playwright browsers. Run: npx playwright install chromium"));
+      }
+    });
+
+    child.on("error", (err) => {
+      reject(new Error(`Failed to install Playwright browsers: ${err.message}`));
+    });
+  });
+};
+
 export const spawnServer = async (
   options: SpawnServerOptions,
 ): Promise<BrowserServer> => {
   const port = options.port ?? DEFAULT_SERVER_PORT;
   const headless = options.headless ?? false;
+
+  await ensurePlaywrightBrowsers();
 
   const args = ["browser", "start", "--foreground", "-p", String(port)];
   if (!headless) args.push("--headed");
