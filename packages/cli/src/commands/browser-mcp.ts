@@ -31,13 +31,17 @@ interface ExecuteResult {
 
 const DEFAULT_NAVIGATION_TIMEOUT_MS = 30000;
 
-const getOrCreatePage = async (serverUrl: string, name: string): Promise<PageInfo> => {
+const getOrCreatePage = async (
+  serverUrl: string,
+  name: string,
+): Promise<PageInfo> => {
   const response = await fetch(`${serverUrl}/pages`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name }),
   });
-  if (!response.ok) throw new Error(`Failed to get page: ${await response.text()}`);
+  if (!response.ok)
+    throw new Error(`Failed to get page: ${await response.text()}`);
   return response.json() as Promise<PageInfo>;
 };
 
@@ -81,14 +85,37 @@ PERFORMANCE:
 
 After getting refs, use browser_execute with: ref('e1').click()`,
       inputSchema: {
-        page: z.string().optional().default("default").describe("Named page context"),
+        page: z
+          .string()
+          .optional()
+          .default("default")
+          .describe("Named page context"),
         maxDepth: z.number().optional().describe("Limit tree depth"),
-        interactableOnly: z.boolean().optional().describe("Only clickable/input elements (recommended)"),
-        format: z.enum(["yaml", "compact"]).optional().default("yaml").describe("'yaml' or 'compact'"),
-        screenshot: z.boolean().optional().default(false).describe("NEVER use unless user explicitly asks for screenshot/visual/appearance"),
+        interactableOnly: z
+          .boolean()
+          .optional()
+          .describe("Only clickable/input elements (recommended)"),
+        format: z
+          .enum(["yaml", "compact"])
+          .optional()
+          .default("yaml")
+          .describe("'yaml' or 'compact'"),
+        screenshot: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe(
+            "NEVER use unless user explicitly asks for screenshot/visual/appearance",
+          ),
       },
     },
-    async ({ page: pageName, maxDepth, interactableOnly, format, screenshot }) => {
+    async ({
+      page: pageName,
+      maxDepth,
+      interactableOnly,
+      format,
+      screenshot,
+    }) => {
       let browser: Browser | null = null;
       let activePage: Page | null = null;
 
@@ -120,18 +147,30 @@ After getting refs, use browser_execute with: ref('e1').click()`,
             }
             return windowGlobal.__REACT_GRAB_SNAPSHOT__(opts);
           },
-          { script: snapshotScript, opts: { maxDepth, interactableOnly, format } }
+          {
+            script: snapshotScript,
+            opts: { maxDepth, interactableOnly, format },
+          },
         );
 
         if (screenshot) {
           const { tmpdir } = await import("os");
           const { join } = await import("path");
-          const screenshotPath = join(tmpdir(), `react-grab-screenshot-${Date.now()}.png`);
-          await activePage.screenshot({ path: screenshotPath, fullPage: false });
+          const screenshotPath = join(
+            tmpdir(),
+            `react-grab-screenshot-${Date.now()}.png`,
+          );
+          await activePage.screenshot({
+            path: screenshotPath,
+            fullPage: false,
+          });
           return {
             content: [
               { type: "text" as const, text: snapshotResult },
-              { type: "text" as const, text: `\n\nScreenshot saved: ${screenshotPath}` },
+              {
+                type: "text" as const,
+                text: `\n\nScreenshot saved: ${screenshotPath}`,
+              },
             ],
           };
         }
@@ -153,7 +192,7 @@ After getting refs, use browser_execute with: ref('e1').click()`,
           isError: true,
         };
       }
-    }
+    },
   );
 
   server.registerTool(
@@ -181,17 +220,36 @@ COMMON PATTERNS:
 
 PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.`,
       inputSchema: {
-        code: z.string().describe("JavaScript code. Use 'page' for Playwright, 'ref(id)' for elements, 'return' for output"),
-        page: z.string().optional().default("default").describe("Named page context for multi-turn sessions"),
-        url: z.string().optional().describe("Navigate to URL before executing code"),
-        timeout: z.number().optional().default(DEFAULT_NAVIGATION_TIMEOUT_MS).describe("Navigation timeout in ms"),
+        code: z
+          .string()
+          .describe(
+            "JavaScript code. Use 'page' for Playwright, 'ref(id)' for elements, 'return' for output",
+          ),
+        page: z
+          .string()
+          .optional()
+          .default("default")
+          .describe("Named page context for multi-turn sessions"),
+        url: z
+          .string()
+          .optional()
+          .describe("Navigate to URL before executing code"),
+        timeout: z
+          .number()
+          .optional()
+          .default(DEFAULT_NAVIGATION_TIMEOUT_MS)
+          .describe("Navigation timeout in ms"),
       },
     },
     async ({ code, page: pageName, url, timeout }) => {
       let browser: Browser | null = null;
       let activePage: Page | null = null;
 
-      const outputJson = async (ok: boolean, result?: unknown, error?: string): Promise<ExecuteResult> => {
+      const outputJson = async (
+        ok: boolean,
+        result?: unknown,
+        error?: string,
+      ): Promise<ExecuteResult> => {
         return {
           ok,
           url: activePage ? activePage.url() : "",
@@ -228,7 +286,9 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
         const getActivePage = (): Page => {
           const allPages = context.pages();
           if (allPages.length === 0) throw new Error("No pages available");
-          return activePage && allPages.includes(activePage) ? activePage : allPages[allPages.length - 1];
+          return activePage && allPages.includes(activePage)
+            ? activePage
+            : allPages[allPages.length - 1];
         };
 
         const snapshotScript = getSnapshotScript();
@@ -249,7 +309,7 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
               }
               return windowGlobal.__REACT_GRAB_SNAPSHOT__(opts);
             },
-            { script: snapshotScript, opts: options }
+            { script: snapshotScript, opts: options },
           );
         };
 
@@ -266,22 +326,32 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
           componentName: string | null;
         }
 
-        const ref = (refId: string): ElementHandle & PromiseLike<ElementHandle> & { source: () => Promise<SourceInfo | null> } => {
+        const ref = (
+          refId: string,
+        ): ElementHandle &
+          PromiseLike<ElementHandle> & {
+            source: () => Promise<SourceInfo | null>;
+          } => {
           const getElement = async (): Promise<ElementHandle> => {
             const currentPage = getActivePage();
-            const elementHandle = await currentPage.evaluateHandle((id: string) => {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const windowGlobal = globalThis as any;
-              const refs = windowGlobal.__REACT_GRAB_REFS__;
-              if (!refs) {
-                throw new Error("No refs found. Call snapshot() first.");
-              }
-              const element = refs[id];
-              if (!element) {
-                throw new Error(`Ref "${id}" not found. Available refs: ${Object.keys(refs).join(", ")}`);
-              }
-              return element;
-            }, refId);
+            const elementHandle = await currentPage.evaluateHandle(
+              (id: string) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const windowGlobal = globalThis as any;
+                const refs = windowGlobal.__REACT_GRAB_REFS__;
+                if (!refs) {
+                  throw new Error("No refs found. Call snapshot() first.");
+                }
+                const element = refs[id];
+                if (!element) {
+                  throw new Error(
+                    `Ref "${id}" not found. Available refs: ${Object.keys(refs).join(", ")}`,
+                  );
+                }
+                return element;
+              },
+              refId,
+            );
 
             const element = elementHandle.asElement();
             if (!element) {
@@ -295,27 +365,42 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
             const element = await getElement();
             const currentPage = getActivePage();
             return currentPage.evaluate((el) => {
-              const api = (globalThis as { __REACT_GRAB__?: { getSource: (element: Element) => Promise<SourceInfo | null> } }).__REACT_GRAB__;
+              const api = (
+                globalThis as {
+                  __REACT_GRAB__?: {
+                    getSource: (element: Element) => Promise<SourceInfo | null>;
+                  };
+                }
+              ).__REACT_GRAB__;
               if (!api) return null;
               return api.getSource(el as Element);
             }, element);
           };
 
-          return new Proxy({} as ElementHandle & PromiseLike<ElementHandle> & { source: () => Promise<SourceInfo | null> }, {
-            get(_, prop: string) {
-              if (prop === "then") {
-                return (
-                  resolve: (value: ElementHandle) => void,
-                  reject: (error: Error) => void
-                ) => getElement().then(resolve, reject);
-              }
-              if (prop === "source") {
-                return getSource;
-              }
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              return (...args: unknown[]) => getElement().then((element) => (element as any)[prop](...args));
+          return new Proxy(
+            {} as ElementHandle &
+              PromiseLike<ElementHandle> & {
+                source: () => Promise<SourceInfo | null>;
+              },
+            {
+              get(_, prop: string) {
+                if (prop === "then") {
+                  return (
+                    resolve: (value: ElementHandle) => void,
+                    reject: (error: Error) => void,
+                  ) => getElement().then(resolve, reject);
+                }
+                if (prop === "source") {
+                  return getSource;
+                }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                return (...args: unknown[]) =>
+                  getElement().then((element) =>
+                    (element as any)[prop](...args),
+                  );
+              },
             },
-          });
+          );
         };
 
         const fill = async (refId: string, text: string): Promise<void> => {
@@ -341,28 +426,54 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
           const toSelector = resolveSelector(to);
 
           await currentPage.evaluate(
-            ({ fromSel, toSel, data }: { fromSel: string; toSel: string; data: Record<string, string> }) => {
+            ({
+              fromSel,
+              toSel,
+              data,
+            }: {
+              fromSel: string;
+              toSel: string;
+              data: Record<string, string>;
+            }) => {
               const fromElement = document.querySelector(fromSel);
               const toElement = document.querySelector(toSel);
-              if (!fromElement) throw new Error(`Source element not found: ${fromSel}`);
-              if (!toElement) throw new Error(`Target element not found: ${toSel}`);
+              if (!fromElement)
+                throw new Error(`Source element not found: ${fromSel}`);
+              if (!toElement)
+                throw new Error(`Target element not found: ${toSel}`);
 
               const dataTransferObject = new DataTransfer();
               for (const [type, value] of Object.entries(data)) {
                 dataTransferObject.setData(type, value);
               }
 
-              const dragStartEvent = new DragEvent("dragstart", { bubbles: true, cancelable: true, dataTransfer: dataTransferObject });
-              const dragOverEvent = new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: dataTransferObject });
-              const dropEvent = new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: dataTransferObject });
-              const dragEndEvent = new DragEvent("dragend", { bubbles: true, cancelable: true, dataTransfer: dataTransferObject });
+              const dragStartEvent = new DragEvent("dragstart", {
+                bubbles: true,
+                cancelable: true,
+                dataTransfer: dataTransferObject,
+              });
+              const dragOverEvent = new DragEvent("dragover", {
+                bubbles: true,
+                cancelable: true,
+                dataTransfer: dataTransferObject,
+              });
+              const dropEvent = new DragEvent("drop", {
+                bubbles: true,
+                cancelable: true,
+                dataTransfer: dataTransferObject,
+              });
+              const dragEndEvent = new DragEvent("dragend", {
+                bubbles: true,
+                cancelable: true,
+                dataTransfer: dataTransferObject,
+              });
 
               fromElement.dispatchEvent(dragStartEvent);
               toElement.dispatchEvent(dragOverEvent);
               toElement.dispatchEvent(dropEvent);
               fromElement.dispatchEvent(dragEndEvent);
             },
-            { fromSel: fromSelector, toSel: toSelector, data: dataTransfer }
+            { fromSel: fromSelector, toSel: toSelector, data: dataTransfer },
           );
         };
 
@@ -377,11 +488,31 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
 
         const dispatch = async (options: DispatchOptions): Promise<boolean> => {
           const currentPage = getActivePage();
-          const { target, event, bubbles = true, cancelable = true, dataTransfer, detail } = options;
+          const {
+            target,
+            event,
+            bubbles = true,
+            cancelable = true,
+            dataTransfer,
+            detail,
+          } = options;
           const selector = resolveSelector(target);
 
           return currentPage.evaluate(
-            ({ sel, eventType, opts }: { sel: string; eventType: string; opts: { bubbles: boolean; cancelable: boolean; dataTransfer?: Record<string, string>; detail?: unknown } }) => {
+            ({
+              sel,
+              eventType,
+              opts,
+            }: {
+              sel: string;
+              eventType: string;
+              opts: {
+                bubbles: boolean;
+                cancelable: boolean;
+                dataTransfer?: Record<string, string>;
+                detail?: unknown;
+              };
+            }) => {
               const element = document.querySelector(sel);
               if (!element) throw new Error(`Element not found: ${sel}`);
 
@@ -403,12 +534,19 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
                   detail: opts.detail,
                 });
               } else {
-                evt = new Event(eventType, { bubbles: opts.bubbles, cancelable: opts.cancelable });
+                evt = new Event(eventType, {
+                  bubbles: opts.bubbles,
+                  cancelable: opts.cancelable,
+                });
               }
 
               return element.dispatchEvent(evt);
             },
-            { sel: selector, eventType: event, opts: { bubbles, cancelable, dataTransfer, detail } }
+            {
+              sel: selector,
+              eventType: event,
+              opts: { bubbles, cancelable, dataTransfer, detail },
+            },
           );
         };
 
@@ -420,24 +558,36 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
           "fill",
           "drag",
           "dispatch",
-          `return (async () => { ${code} })();`
+          `return (async () => { ${code} })();`,
         );
 
-        const result = await executeFunction(getActivePage(), getActivePage, snapshot, ref, fill, drag, dispatch);
+        const result = await executeFunction(
+          getActivePage(),
+          getActivePage,
+          snapshot,
+          ref,
+          fill,
+          drag,
+          dispatch,
+        );
         const output = await outputJson(true, result);
 
         return {
           content: [{ type: "text" as const, text: JSON.stringify(output) }],
         };
       } catch (error) {
-        const output = await outputJson(false, undefined, error instanceof Error ? error.message : "Failed");
+        const output = await outputJson(
+          false,
+          undefined,
+          error instanceof Error ? error.message : "Failed",
+        );
 
         return {
           content: [{ type: "text" as const, text: JSON.stringify(output) }],
           isError: true,
         };
       }
-    }
+    },
   );
 
   const transport = new StdioServerTransport();
