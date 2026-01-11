@@ -27,8 +27,11 @@ import { spinner } from "../utils/spinner.js";
 import {
   AGENTS,
   AGENT_NAMES,
+  MCP_CLIENTS,
+  MCP_CLIENT_NAMES,
   type AgentIntegration,
 } from "../utils/templates.js";
+import { execSync } from "child_process";
 import {
   previewAgentRemoval,
   previewOptionsTransform,
@@ -932,6 +935,44 @@ export const init = new Command()
         logger.log("You may now start your development server.");
       }
       logger.break();
+
+      if (!isNonInteractive) {
+        const { wantMcp } = await prompts({
+          type: "confirm",
+          name: "wantMcp",
+          message: `Would you like to add the ${highlighter.info("MCP server")} to your coding tool?`,
+          initial: false,
+        });
+
+        if (wantMcp) {
+          const { mcpClient } = await prompts({
+            type: "select",
+            name: "mcpClient",
+            message: `Which ${highlighter.info("client")} would you like to configure?`,
+            choices: MCP_CLIENTS.map((client) => ({
+              title: MCP_CLIENT_NAMES[client],
+              value: client,
+            })),
+          });
+
+          if (mcpClient) {
+            logger.break();
+            try {
+              execSync(
+                `npx install-mcp 'npx @react-grab/cli browser mcp' --client ${mcpClient}`,
+                { stdio: "inherit", cwd: projectInfo.projectRoot },
+              );
+              logger.break();
+              logger.success("MCP server has been configured.");
+            } catch {
+              logger.break();
+              logger.warn("Failed to configure MCP server. You can try again later with:");
+              logger.log(`  npx install-mcp 'npx @react-grab/cli browser mcp' --client ${mcpClient}`);
+            }
+            logger.break();
+          }
+        }
+      }
 
       await reportToCli("completed", {
         framework: finalFramework,

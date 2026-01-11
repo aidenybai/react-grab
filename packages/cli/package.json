@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "@antfu/ni": "^0.23.0",
+    "install-mcp": "^1.10.0",
     "@modelcontextprotocol/sdk": "^1.25.2",
     "@react-grab/browser": "workspace:*",
     "commander": "^14.0.0",
