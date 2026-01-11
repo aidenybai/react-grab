@@ -1,5 +1,6 @@
 import { createVisualEditAgentProvider } from "@react-grab/visual-edit/client";
-import { init } from "react-grab/core";
+import { init, setGlobalIDEInfo } from "react-grab/core";
+import { getDefaultRelayClient } from "@react-grab/relay/client";
 
 declare global {
   interface Window {
@@ -25,6 +26,12 @@ if (typeof window !== "undefined" && !window.__REACT_GRAB__) {
     // keyHoldDuration: 300,
     // allowActivationInsideInput: false,
     // maxContextLines: 3,
+  });
+
+  // Subscribe to IDE info changes from the relay client
+  const relayClient = getDefaultRelayClient();
+  relayClient.onIDEInfoChange((ideInfo) => {
+    setGlobalIDEInfo(ideInfo);
   });
 
   api.registerPlugin({

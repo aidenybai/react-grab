@@ -13,6 +13,12 @@ export {
 } from "./utils/capture-screenshot.js";
 export type { ElementBounds } from "./utils/capture-screenshot.js";
 export { isScreenshotSupported } from "./utils/is-screenshot-supported.js";
+export {
+  setGlobalIDEInfo,
+  getGlobalIDEInfo,
+  buildOpenFileUrl,
+} from "./utils/build-open-file-url.js";
+export type { EditorId, IDEInfo } from "./utils/build-open-file-url.js";
 export type {
   Options,
   ReactGrabAPI,

@@ -5,6 +5,8 @@ export {
   POST_KILL_DELAY_MS,
   RELAY_TOKEN_PARAM,
   COMPLETED_STATUS,
+  type EditorId,
+  type IDEInfo,
   type AgentMessage,
   type AgentContext,
   type AgentRunOptions,
@@ -16,6 +18,8 @@ export {
   type BrowserToRelayMessage,
   type RelayToBrowserMessage,
 } from "./protocol.js";
+
+export { buildEditorUrl } from "./detect-ide.js";
 
 export { createRelayServer, type RelayServer } from "./server.js";
 

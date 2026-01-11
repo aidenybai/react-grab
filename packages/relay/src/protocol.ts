@@ -5,6 +5,20 @@ export const POST_KILL_DELAY_MS = 100;
 export const RELAY_TOKEN_PARAM = "token";
 export const COMPLETED_STATUS = "Completed";
 
+export type EditorId =
+  | "cursor"
+  | "vscode"
+  | "antigravity"
+  | "zed"
+  | "webstorm"
+  | null;
+
+export interface IDEInfo {
+  editorId: EditorId;
+  editorName: string | null;
+  urlScheme: string | null;
+}
+
 export interface AgentMessage {
   type: "status" | "error" | "done";
   content: string;
@@ -37,6 +51,7 @@ export interface AgentHandler {
 export interface HandlerRegistrationMessage {
   type: "register-handler";
   agentId: string;
+  ideInfo?: IDEInfo;
 }
 
 export interface HandlerUnregisterMessage {
@@ -79,6 +94,7 @@ export interface RelayToBrowserMessage {
   sessionId?: string;
   content?: string;
   handlers?: string[];
+  ideInfo?: IDEInfo;
 }
 
 export type HandlerMessage =

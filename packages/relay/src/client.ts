@@ -2,6 +2,7 @@ import type {
   AgentContext,
   BrowserToRelayMessage,
   RelayToBrowserMessage,
+  IDEInfo,
 } from "./protocol.js";
 import {
   DEFAULT_RELAY_PORT,
@@ -20,7 +21,9 @@ export interface RelayClient {
   onMessage: (callback: (message: RelayToBrowserMessage) => void) => () => void;
   onHandlersChange: (callback: (handlers: string[]) => void) => () => void;
   onConnectionChange: (callback: (connected: boolean) => void) => () => void;
+  onIDEInfoChange: (callback: (ideInfo: IDEInfo | null) => void) => () => void;
   getAvailableHandlers: () => string[];
+  getIDEInfo: () => IDEInfo | null;
 }
 
 interface RelayClientOptions {
@@ -42,6 +45,7 @@ export const createRelayClient = (
   let webSocketConnection: WebSocket | null = null;
   let isConnectedState = false;
   let availableHandlers: string[] = [];
+  let currentIDEInfo: IDEInfo | null = null;
   let reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null;
   let pendingConnectionPromise: Promise<void> | null = null;
   let pendingConnectionReject: ((error: Error) => void) | null = null;
@@ -50,6 +54,7 @@ export const createRelayClient = (
   const messageCallbacks = new Set<(message: RelayToBrowserMessage) => void>();
   const handlersChangeCallbacks = new Set<(handlers: string[]) => void>();
   const connectionChangeCallbacks = new Set<(connected: boolean) => void>();
+  const ideInfoChangeCallbacks = new Set<(ideInfo: IDEInfo | null) => void>();
 
   const scheduleReconnect = () => {
     if (!autoReconnect || reconnectTimeoutId || isIntentionalDisconnect) return;
@@ -64,10 +69,23 @@ export const createRelayClient = (
     try {
       const message = JSON.parse(event.data as string) as RelayToBrowserMessage;
 
-      if (message.type === "handlers" && message.handlers) {
-        availableHandlers = message.handlers;
-        for (const callback of handlersChangeCallbacks) {
-          callback(availableHandlers);
+      if (message.type === "handlers") {
+        if (message.handlers) {
+          availableHandlers = message.handlers;
+          for (const callback of handlersChangeCallbacks) {
+            callback(availableHandlers);
+          }
+        }
+
+        // Handle IDE info update
+        const newIDEInfo = message.ideInfo ?? null;
+        const ideChanged =
+          newIDEInfo?.editorId !== currentIDEInfo?.editorId;
+        if (ideChanged) {
+          currentIDEInfo = newIDEInfo;
+          for (const callback of ideInfoChangeCallbacks) {
+            callback(currentIDEInfo);
+          }
         }
       }
 
@@ -150,6 +168,7 @@ export const createRelayClient = (
     webSocketConnection = null;
     isConnectedState = false;
     availableHandlers = [];
+    currentIDEInfo = null;
   };
 
   const isConnected = () => isConnectedState;
@@ -221,7 +240,21 @@ export const createRelayClient = (
     return () => connectionChangeCallbacks.delete(callback);
   };
 
+  const onIDEInfoChange = (
+    callback: (ideInfo: IDEInfo | null) => void,
+  ): (() => void) => {
+    ideInfoChangeCallbacks.add(callback);
+    queueMicrotask(() => {
+      if (ideInfoChangeCallbacks.has(callback)) {
+        callback(currentIDEInfo);
+      }
+    });
+    return () => ideInfoChangeCallbacks.delete(callback);
+  };
+
   const getAvailableHandlers = () => availableHandlers;
+
+  const getIDEInfo = () => currentIDEInfo;
 
   return {
     connect,
@@ -234,7 +267,9 @@ export const createRelayClient = (
     onMessage,
     onHandlersChange,
     onConnectionChange,
+    onIDEInfoChange,
     getAvailableHandlers,
+    getIDEInfo,
   };
 };
 

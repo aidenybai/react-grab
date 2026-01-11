@@ -2571,3 +2571,9 @@ export type {
 
 export { generateSnippet } from "../utils/generate-snippet.js";
 export { copyContent } from "../utils/copy-content.js";
+export {
+  setGlobalIDEInfo,
+  getGlobalIDEInfo,
+  buildOpenFileUrl,
+} from "../utils/build-open-file-url.js";
+export type { EditorId, IDEInfo } from "../utils/build-open-file-url.js";

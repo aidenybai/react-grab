@@ -676,6 +676,9 @@ importers:
 
   packages/website:
     dependencies:
+      '@react-grab/relay':
+        specifier: workspace:*
+        version: link:../relay
       '@react-grab/visual-edit':
         specifier: workspace:*
         version: link:../provider-visual-edit
@@ -2836,8 +2839,8 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
-  '@sourcegraph/amp@0.0.1767937288-g8b9247':
-    resolution: {integrity: sha512-JjhjK+LX2rglQPenUKx2TZVEI1/8ss+gUdTlvCpB2q3VNhcw06uE995Jt1ShVCyIFVitM1GXxro+yCKaeJKK8w==}
+  '@sourcegraph/amp@0.0.1768047350-g16764b':
+    resolution: {integrity: sha512-lF8sma/PrTzmyjX24Qs51ndt1V75DODH3vuCJIJ8a3HuF5zAbCW8au6D5VR9HCuhw0GIIk8unF2GIspeWYhlmw==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -8749,14 +8752,14 @@ snapshots:
 
   '@sourcegraph/amp-sdk@0.1.0-20251210081226-g90e3892':
     dependencies:
-      '@sourcegraph/amp': 0.0.1767937288-g8b9247
+      '@sourcegraph/amp': 0.0.1768047350-g16764b
       zod: 3.25.76
 
   '@sourcegraph/amp@0.0.1767830505-ga62310':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
-  '@sourcegraph/amp@0.0.1767937288-g8b9247':
+  '@sourcegraph/amp@0.0.1768047350-g16764b':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
