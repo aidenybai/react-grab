@@ -5,11 +5,11 @@ import { useState, useEffect, useCallback, Suspense, useRef } from "react";
 import { ReactGrabLogo } from "@/components/react-grab-logo";
 import { cn } from "@/utils/classnames";
 import { IconCursor } from "@/components/icon-cursor";
-import { IconVSCode, IconZed, IconWebStorm } from "@/components/icons";
+import { IconVSCode, IconZed, IconWebStorm, IconAntigravity } from "@/components/icons";
 import { ChevronDown, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 
-const EDITOR_OPTIONS = ["cursor", "vscode", "zed", "webstorm"] as const;
+const EDITOR_OPTIONS = ["cursor", "vscode", "antigravity", "zed", "webstorm"] as const;
 type Editor = (typeof EDITOR_OPTIONS)[number];
 
 interface EditorOption {
@@ -21,6 +21,7 @@ interface EditorOption {
 const EDITORS: EditorOption[] = [
   { id: "cursor", name: "Cursor", icon: <IconCursor width={16} height={16} /> },
   { id: "vscode", name: "VS Code", icon: <IconVSCode /> },
+  { id: "antigravity", name: "Antigravity", icon: <IconAntigravity /> },
   { id: "zed", name: "Zed", icon: <IconZed /> },
   { id: "webstorm", name: "WebStorm", icon: <IconWebStorm /> },
 ];
