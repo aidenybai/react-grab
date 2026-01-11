@@ -186,6 +186,21 @@ export const serve = async (
 
   const context = await chromium.launchPersistentContext(userDataDir, {
     headless,
+    permissions: [
+      "clipboard-read",
+      "clipboard-write",
+      "geolocation",
+      "microphone",
+      "camera",
+      "notifications",
+      "midi",
+      "background-sync",
+      "accelerometer",
+      "gyroscope",
+      "magnetometer",
+      "accessibility-events",
+      "payment-handler",
+    ],
     args: [
       `--remote-debugging-port=${cdpPort}`,
       ...(headless
