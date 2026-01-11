@@ -39,7 +39,7 @@ export const add = new Command()
   .description("add an agent integration or MCP server")
   .argument(
     "[agent]",
-    "agent to add (claude-code, cursor, opencode, codex, gemini, amp, visual-edit, mcp)",
+    "agent to add (claude-code, cursor, opencode, codex, gemini, amp, visual-edit, mcp, skill)",
   )
   .option("-y, --yes", "skip confirmation prompts", false)
   .option(
@@ -128,6 +128,41 @@ export const add = new Command()
         process.exit(0);
       }
 
+      if (agentArg === "skill") {
+        logger.break();
+        const installSpinner = spinner("Installing browser automation skill").start();
+        try {
+          execSync(
+            `npx -y openskills install aidenybai/react-grab -y`,
+            { stdio: "ignore", cwd },
+          );
+          installSpinner.succeed("Skill installed to .claude/skills/");
+        } catch {
+          installSpinner.fail("Failed to install skill");
+          logger.dim("Try manually: npx openskills install aidenybai/react-grab");
+          logger.break();
+          process.exit(1);
+        }
+
+        const syncSpinner = spinner("Syncing skills to AGENTS.md").start();
+        try {
+          execSync(
+            `npx -y openskills sync -y`,
+            { stdio: "ignore", cwd },
+          );
+          syncSpinner.succeed("Skills synced to AGENTS.md");
+        } catch {
+          syncSpinner.fail("Failed to sync skills");
+          logger.dim("Try manually: npx openskills sync");
+        }
+
+        logger.break();
+        logger.success("Browser automation skill installed!");
+        logger.dim("Agents can now use: openskills read react-grab-browser");
+        logger.break();
+        process.exit(0);
+      }
+
       if (!agentArg && !isNonInteractive) {
         logger.break();
 
@@ -140,6 +175,11 @@ export const add = new Command()
               title: "MCP Server",
               description: "Give your agent access to your browser",
               value: "mcp",
+            },
+            {
+              title: "Skill",
+              description: "Install browser automation skill for AI agents",
+              value: "skill",
             },
             {
               title: "Agent Integration",
@@ -186,6 +226,40 @@ export const add = new Command()
             mcpSpinner.fail(`Failed to configure MCP for ${MCP_CLIENT_NAMES[mcpClient]}`);
             logger.dim(`Try manually: npx install-mcp '${mcpCommand}' --client ${mcpClient}`);
           }
+          logger.break();
+          process.exit(0);
+        }
+
+        if (addType === "skill") {
+          const installSpinner = spinner("Installing browser automation skill").start();
+          try {
+            execSync(
+              `npx -y openskills install aidenybai/react-grab -y`,
+              { stdio: "ignore", cwd },
+            );
+            installSpinner.succeed("Skill installed to .claude/skills/");
+          } catch {
+            installSpinner.fail("Failed to install skill");
+            logger.dim("Try manually: npx openskills install aidenybai/react-grab");
+            logger.break();
+            process.exit(1);
+          }
+
+          const syncSpinner = spinner("Syncing skills to AGENTS.md").start();
+          try {
+            execSync(
+              `npx -y openskills sync -y`,
+              { stdio: "ignore", cwd },
+            );
+            syncSpinner.succeed("Skills synced to AGENTS.md");
+          } catch {
+            syncSpinner.fail("Failed to sync skills");
+            logger.dim("Try manually: npx openskills sync");
+          }
+
+          logger.break();
+          logger.success("Browser automation skill installed!");
+          logger.dim("Agents can now use: openskills read react-grab-browser");
           logger.break();
           process.exit(0);
         }

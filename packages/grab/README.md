@@ -19,7 +19,7 @@ It makes tools like Cursor, Claude Code, Copilot run up to [**3× faster**](http
 Run this command to install React Grab into your project. Ensure you are running at project root (e.g. where the `next.config.ts` or `vite.config.ts` file is located).
 
 ```html
-npx grab@latest init
+npx -y grab@latest init
 ```
 
 ## Usage

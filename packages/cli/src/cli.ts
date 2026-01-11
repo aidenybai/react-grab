@@ -1,6 +1,3 @@
-// HACK: suppress util._extend deprecation warning from http-proxy-middleware
-(process as NodeJS.Process & { noDeprecation: boolean }).noDeprecation = true;
-
 import { Command } from "commander";
 import tab from "@bomb.sh/tab/commander";
 import { add } from "./commands/add.js";
@@ -8,8 +5,7 @@ import { browser } from "./commands/browser.js";
 import { configure } from "./commands/configure.js";
 import { init } from "./commands/init.js";
 import { remove } from "./commands/remove.js";
-import { start } from "./commands/start.js";
-import { AGENTS, MCP_CLIENTS, PROVIDERS } from "./utils/templates.js";
+import { AGENTS, MCP_CLIENTS } from "./utils/templates.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
 const VERSION_API_URL = "https://www.react-grab.com/api/version";
@@ -30,7 +26,6 @@ program.addCommand(init);
 program.addCommand(add);
 program.addCommand(remove);
 program.addCommand(configure);
-program.addCommand(start);
 program.addCommand(browser);
 
 const completion = tab(program);
@@ -80,24 +75,6 @@ if (removeAgentArg) {
     for (const agent of AGENTS) {
       complete(agent, "");
     }
-  };
-}
-
-const startCommand = completion.commands.get("start");
-const startProviderOption = startCommand?.options.get("provider");
-if (startProviderOption) {
-  startProviderOption.handler = (complete) => {
-    for (const provider of PROVIDERS) {
-      complete(provider, "");
-    }
-  };
-}
-const startPortOption = startCommand?.options.get("port");
-if (startPortOption) {
-  startPortOption.handler = (complete) => {
-    complete("2000", "Default port");
-    complete("3000", "Common dev port");
-    complete("8080", "Alternative port");
   };
 }
 

@@ -42,9 +42,9 @@ const installTabsData: InstallTab[] = [
     lang: "bash",
     getCode: (hotkey) => {
       if (hotkey) {
-        return `npx grab@latest init --key "${hotkeyToString(hotkey)}"`;
+        return `npx -y grab@latest init --key "${hotkeyToString(hotkey)}"`;
       }
-      return `npx grab@latest init`;
+      return `npx -y grab@latest init`;
     },
     getChangedLines: () => [],
   },
