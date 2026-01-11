@@ -72,24 +72,20 @@ export const startMcpServer = async (): Promise<void> => {
     {
       description: `Get ARIA accessibility tree with element refs (e1, e2...).
 
-IMPORTANT: ALWAYS use the a11y tree for finding and interacting with elements - it is the source of truth. DO NOT use screenshot unless the user explicitly asks about visual appearance, layout, or styling.
+SCREENSHOT RULE: NEVER set screenshot=true unless the user literally says words like "screenshot", "how does it look", "visual", "appearance", or "show me". The a11y tree contains all information needed for interaction and validation.
 
-PERFORMANCE TIPS:
-- Use interactableOnly:true for much smaller output (recommended)
-- Use format:'compact' for minimal ref:role:name output
-- Use maxDepth to limit tree depth
-
-OUTPUT FORMATS:
-- yaml (default): Full hierarchical tree, can be large
-- compact: Minimal "ref:role:name|ref:role:name" format, fastest
+PERFORMANCE:
+- interactableOnly:true = much smaller output (recommended)
+- format:'compact' = minimal ref:role:name output
+- maxDepth = limit tree depth
 
 After getting refs, use browser_execute with: ref('e1').click()`,
       inputSchema: {
-        page: z.string().optional().default("default").describe("Named page context for multi-turn sessions"),
-        maxDepth: z.number().optional().describe("Limit tree depth (e.g., 5) for faster output"),
-        interactableOnly: z.boolean().optional().describe("Only show clickable/input elements with refs (recommended - much smaller!)"),
-        format: z.enum(["yaml", "compact"]).optional().default("yaml").describe("'yaml' (hierarchical) or 'compact' (ref:role:name|...)"),
-        screenshot: z.boolean().optional().default(false).describe("ONLY use when user explicitly asks about visuals/layout/styling"),
+        page: z.string().optional().default("default").describe("Named page context"),
+        maxDepth: z.number().optional().describe("Limit tree depth"),
+        interactableOnly: z.boolean().optional().describe("Only clickable/input elements (recommended)"),
+        format: z.enum(["yaml", "compact"]).optional().default("yaml").describe("'yaml' or 'compact'"),
+        screenshot: z.boolean().optional().default(false).describe("NEVER use unless user explicitly asks for screenshot/visual/appearance"),
       },
     },
     async ({ page: pageName, maxDepth, interactableOnly, format, screenshot }) => {
