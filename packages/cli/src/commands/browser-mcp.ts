@@ -69,14 +69,15 @@ export const startMcpServer = async (): Promise<void> => {
 
   server.tool(
     "browser_snapshot",
-    "Get accessibility tree with element refs (e1, e2...). Use these refs with browser_execute: ref('e1').click(). Prefer interactableOnly:true for smaller output.",
+    "Get accessibility tree with element refs (e1, e2...). Use these refs with browser_execute: ref('e1').click(). Prefer interactableOnly:true for smaller output. Use screenshot:true to also capture a screenshot.",
     {
       page: z.string().optional().default("default").describe("Named page context for multi-turn sessions"),
       maxDepth: z.number().optional().describe("Limit tree depth (e.g., 5)"),
       interactableOnly: z.boolean().optional().describe("Only show elements with refs"),
       format: z.enum(["yaml", "compact"]).optional().default("yaml").describe("Output format: 'yaml' (default) or 'compact' (ref:role:name|...)"),
+      screenshot: z.boolean().optional().default(false).describe("Also capture a screenshot and return file path"),
     },
-    async ({ page: pageName, maxDepth, interactableOnly, format }) => {
+    async ({ page: pageName, maxDepth, interactableOnly, format, screenshot }) => {
       let browser: Browser | null = null;
       let activePage: Page | null = null;
 
@@ -110,6 +111,19 @@ export const startMcpServer = async (): Promise<void> => {
           },
           { script: snapshotScript, opts: { maxDepth, interactableOnly, format } }
         );
+
+        if (screenshot) {
+          const { tmpdir } = await import("os");
+          const { join } = await import("path");
+          const screenshotPath = join(tmpdir(), `react-grab-screenshot-${Date.now()}.png`);
+          await activePage.screenshot({ path: screenshotPath, fullPage: false });
+          return {
+            content: [
+              { type: "text" as const, text: snapshotResult },
+              { type: "text" as const, text: `\n\nScreenshot saved: ${screenshotPath}` },
+            ],
+          };
+        }
 
         return {
           content: [{ type: "text" as const, text: snapshotResult }],
