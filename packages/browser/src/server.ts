@@ -3,7 +3,6 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { createServer, type Server, type IncomingMessage, type ServerResponse } from "node:http";
 import { spawn } from "node:child_process";
-import { fileURLToPath } from "node:url";
 import { chromium, type BrowserContext, type Page } from "playwright";
 import { getSnapshotScript } from "./snapshot/index.js";
 import {
@@ -15,27 +14,17 @@ import {
   SERVER_SPAWN_DELAY_MS,
 } from "./utils/constants.js";
 
+declare const __REACT_GRAB_SCRIPT__: string;
+
 const SERVER_INFO_PATH = join(tmpdir(), "react-grab-browser-server.json");
 
 let cachedReactGrabScript: string | null = null;
 
-const loadLocalReactGrabScript = (): string | null => {
-  try {
-    const resolvedPath = import.meta.resolve("react-grab/dist/index.global.js");
-    const filePath = fileURLToPath(resolvedPath);
-    if (existsSync(filePath)) {
-      return readFileSync(filePath, "utf-8");
-    }
-  } catch {}
-  return null;
-};
-
 const fetchReactGrabScript = async (): Promise<string> => {
   if (cachedReactGrabScript) return cachedReactGrabScript;
 
-  const localScript = loadLocalReactGrabScript();
-  if (localScript) {
-    cachedReactGrabScript = localScript;
+  if (__REACT_GRAB_SCRIPT__) {
+    cachedReactGrabScript = __REACT_GRAB_SCRIPT__;
     return cachedReactGrabScript;
   }
 

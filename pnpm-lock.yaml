@@ -48,9 +48,6 @@ importers:
       playwright:
         specifier: ^1.50.0
         version: 1.57.0
-      react-grab:
-        specifier: workspace:*
-        version: link:../react-grab
     devDependencies:
       '@types/better-sqlite3':
         specifier: ^7.6.13
