@@ -959,7 +959,7 @@ export const init = new Command()
             logger.break();
             try {
               execSync(
-                `npx install-mcp 'npx @react-grab/cli browser mcp' --client ${mcpClient}`,
+                `npx -y install-mcp 'npx @react-grab/cli browser mcp' --client ${mcpClient} --yes`,
                 { stdio: "inherit", cwd: projectInfo.projectRoot },
               );
               logger.break();
