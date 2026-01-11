@@ -48,7 +48,7 @@ export const add = new Command()
   )
   .option(
     "--pkg <pkg>",
-    "custom package URL for MCP (e.g., https://pkg.pr.new/.../@react-grab/cli@abc123)",
+    "custom package URL for CLI (e.g., @react-grab/cli)",
   )
   .option(
     "-c, --cwd <cwd>",
@@ -64,22 +64,6 @@ export const add = new Command()
     try {
       const cwd = opts.cwd;
       const isNonInteractive = opts.yes;
-
-      const preflightSpinner = spinner("Preflight checks.").start();
-
-      const projectInfo = await detectProject(cwd);
-
-      if (!projectInfo.hasReactGrab) {
-        preflightSpinner.fail("React Grab is not installed.");
-        logger.break();
-        logger.error(
-          `Run ${highlighter.info("react-grab init")} first to install React Grab.`,
-        );
-        logger.break();
-        process.exit(1);
-      }
-
-      preflightSpinner.succeed();
 
       if (agentArg === "mcp") {
         let mcpClient: McpClient | undefined = opts.client as McpClient;
@@ -138,6 +122,85 @@ export const add = new Command()
         logger.break();
         process.exit(0);
       }
+
+      if (!agentArg && !isNonInteractive) {
+        logger.break();
+
+        const { addType } = await prompts({
+          type: "select",
+          name: "addType",
+          message: "What would you like to add?",
+          choices: [
+            {
+              title: "MCP Server",
+              description: "Give your agent access to your browser",
+              value: "mcp",
+            },
+            {
+              title: "Agent Integration",
+              description: "Run agents through the React Grab interface",
+              value: "agent",
+            },
+          ],
+        });
+
+        if (!addType) {
+          logger.break();
+          process.exit(1);
+        }
+
+        if (addType === "mcp") {
+          const { client } = await prompts({
+            type: "select",
+            name: "client",
+            message: `Which ${highlighter.info("client")} would you like to configure?`,
+            choices: MCP_CLIENTS.map((innerClient) => ({
+              title: MCP_CLIENT_NAMES[innerClient],
+              value: innerClient,
+            })),
+          });
+
+          if (!client) {
+            logger.break();
+            process.exit(1);
+          }
+
+          const mcpClient = client as McpClient;
+          const customPkg = opts.pkg as string | undefined;
+          const mcpCommand = customPkg
+            ? `npx ${customPkg} browser mcp`
+            : `npx @react-grab/cli browser mcp`;
+          const mcpSpinner = spinner(`Configuring MCP for ${MCP_CLIENT_NAMES[mcpClient]}`).start();
+          try {
+            execSync(
+              `npx -y install-mcp '${mcpCommand}' --client ${mcpClient} --yes`,
+              { stdio: "ignore", cwd },
+            );
+            mcpSpinner.succeed(`MCP configured for ${MCP_CLIENT_NAMES[mcpClient]}`);
+          } catch {
+            mcpSpinner.fail(`Failed to configure MCP for ${MCP_CLIENT_NAMES[mcpClient]}`);
+            logger.dim(`Try manually: npx install-mcp '${mcpCommand}' --client ${mcpClient}`);
+          }
+          logger.break();
+          process.exit(0);
+        }
+      }
+
+      const preflightSpinner = spinner("Preflight checks.").start();
+
+      const projectInfo = await detectProject(cwd);
+
+      if (!projectInfo.hasReactGrab) {
+        preflightSpinner.fail("React Grab is not installed.");
+        logger.break();
+        logger.error(
+          `Run ${highlighter.info("react-grab init")} first to install React Grab.`,
+        );
+        logger.break();
+        process.exit(1);
+      }
+
+      preflightSpinner.succeed();
 
       const availableAgents = AGENTS.filter(
         (agent) => !projectInfo.installedAgents.includes(agent),
@@ -212,67 +275,6 @@ export const add = new Command()
           }
         }
       } else if (!isNonInteractive) {
-        logger.break();
-
-        const { addType } = await prompts({
-          type: "select",
-          name: "addType",
-          message: "What would you like to add?",
-          choices: [
-            {
-              title: "MCP Server",
-              description: "Give your agent access to your browser",
-              value: "mcp",
-            },
-            {
-              title: "Agent Integration",
-              description: "Run agents through the React Grab interface",
-              value: "agent",
-            },
-          ],
-        });
-
-        if (!addType) {
-          logger.break();
-          process.exit(1);
-        }
-
-        if (addType === "mcp") {
-          const { client } = await prompts({
-            type: "select",
-            name: "client",
-            message: `Which ${highlighter.info("client")} would you like to configure?`,
-            choices: MCP_CLIENTS.map((innerClient) => ({
-              title: MCP_CLIENT_NAMES[innerClient],
-              value: innerClient,
-            })),
-          });
-
-          if (!client) {
-            logger.break();
-            process.exit(1);
-          }
-
-          const mcpClient = client as McpClient;
-          const customPkg = opts.pkg as string | undefined;
-          const mcpCommand = customPkg
-            ? `npx ${customPkg} browser mcp`
-            : `npx @react-grab/cli browser mcp`;
-          const mcpSpinner = spinner(`Configuring MCP for ${MCP_CLIENT_NAMES[mcpClient]}`).start();
-          try {
-            execSync(
-              `npx -y install-mcp '${mcpCommand}' --client ${mcpClient} --yes`,
-              { stdio: "ignore", cwd },
-            );
-            mcpSpinner.succeed(`MCP configured for ${MCP_CLIENT_NAMES[mcpClient]}`);
-          } catch {
-            mcpSpinner.fail(`Failed to configure MCP for ${MCP_CLIENT_NAMES[mcpClient]}`);
-            logger.dim(`Try manually: npx install-mcp '${mcpCommand}' --client ${mcpClient}`);
-          }
-          logger.break();
-          process.exit(0);
-        }
-
         if (projectInfo.installedAgents.length > 0) {
           const installedNames = projectInfo.installedAgents
             .map((innerAgent) => AGENT_NAMES[innerAgent as Agent] || innerAgent)

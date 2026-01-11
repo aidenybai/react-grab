@@ -45,7 +45,7 @@ const VERSION = process.env.VERSION ?? "0.0.1";
 const REPORT_URL = "https://react-grab.com/api/report-cli";
 const DOCS_URL = "https://github.com/aidenybai/react-grab";
 
-const promptMcpInstall = async (cwd: string): Promise<void> => {
+const promptMcpInstall = async (cwd: string, customPkg?: string): Promise<void> => {
   const { wantMcp } = await prompts({
     type: "confirm",
     name: "wantMcp",
@@ -67,10 +67,14 @@ const promptMcpInstall = async (cwd: string): Promise<void> => {
 
   if (!mcpClient) return;
 
+  const mcpCommand = customPkg
+    ? `npx ${customPkg} browser mcp`
+    : `npx @react-grab/cli browser mcp`;
+
   logger.break();
   try {
     execSync(
-      `npx -y install-mcp 'npx @react-grab/cli browser mcp' --client ${mcpClient} --yes`,
+      `npx -y install-mcp '${mcpCommand}' --client ${mcpClient} --yes`,
       { stdio: "inherit", cwd },
     );
     logger.break();
@@ -78,7 +82,7 @@ const promptMcpInstall = async (cwd: string): Promise<void> => {
   } catch {
     logger.break();
     logger.warn("Failed to configure MCP server. You can try again later with:");
-    logger.log(`  npx install-mcp 'npx @react-grab/cli browser mcp' --client ${mcpClient}`);
+    logger.log(`  npx install-mcp '${mcpCommand}' --client ${mcpClient}`);
   }
   logger.break();
 };
@@ -177,6 +181,10 @@ export const init = new Command()
   )
   .option("--skip-install", "skip package installation", false)
   .option(
+    "--pkg <pkg>",
+    "custom package URL for CLI (e.g., @react-grab/cli)",
+  )
+  .option(
     "-c, --cwd <cwd>",
     "working directory (defaults to current directory)",
     process.cwd(),
@@ -256,7 +264,7 @@ export const init = new Command()
           logger.break();
         }
 
-        await promptMcpInstall(projectInfo.projectRoot);
+        await promptMcpInstall(projectInfo.projectRoot, opts.pkg);
 
         const { wantCustomizeOptions } = await prompts({
           type: "confirm",
@@ -963,7 +971,7 @@ export const init = new Command()
       logger.break();
 
       if (!isNonInteractive) {
-        await promptMcpInstall(projectInfo.projectRoot);
+        await promptMcpInstall(projectInfo.projectRoot, opts.pkg);
       }
 
       await reportToCli("completed", {
