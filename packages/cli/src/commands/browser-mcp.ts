@@ -70,13 +70,26 @@ export const startMcpServer = async (): Promise<void> => {
   server.registerTool(
     "browser_snapshot",
     {
-      description: "Get accessibility tree with element refs (e1, e2...). ALWAYS use the a11y tree for finding and interacting with elements - it is more reliable and structured than screenshots. Use refs with browser_execute: ref('e1').click(). Use interactableOnly:true for smaller output. DO NOT use screenshot:true unless the user explicitly asks about visual appearance, layout, or styling.",
+      description: `Get ARIA accessibility tree with element refs (e1, e2...).
+
+IMPORTANT: ALWAYS use the a11y tree for finding and interacting with elements - it is the source of truth. DO NOT use screenshot unless the user explicitly asks about visual appearance, layout, or styling.
+
+PERFORMANCE TIPS:
+- Use interactableOnly:true for much smaller output (recommended)
+- Use format:'compact' for minimal ref:role:name output
+- Use maxDepth to limit tree depth
+
+OUTPUT FORMATS:
+- yaml (default): Full hierarchical tree, can be large
+- compact: Minimal "ref:role:name|ref:role:name" format, fastest
+
+After getting refs, use browser_execute with: ref('e1').click()`,
       inputSchema: {
         page: z.string().optional().default("default").describe("Named page context for multi-turn sessions"),
-        maxDepth: z.number().optional().describe("Limit tree depth (e.g., 5)"),
-        interactableOnly: z.boolean().optional().describe("Only show elements with refs"),
-        format: z.enum(["yaml", "compact"]).optional().default("yaml").describe("Output format: 'yaml' (default) or 'compact' (ref:role:name|...)"),
-        screenshot: z.boolean().optional().default(false).describe("Only use when user asks about visuals/layout/styling - not for element discovery"),
+        maxDepth: z.number().optional().describe("Limit tree depth (e.g., 5) for faster output"),
+        interactableOnly: z.boolean().optional().describe("Only show clickable/input elements with refs (recommended - much smaller!)"),
+        format: z.enum(["yaml", "compact"]).optional().default("yaml").describe("'yaml' (hierarchical) or 'compact' (ref:role:name|...)"),
+        screenshot: z.boolean().optional().default(false).describe("ONLY use when user explicitly asks about visuals/layout/styling"),
       },
     },
     async ({ page: pageName, maxDepth, interactableOnly, format, screenshot }) => {
@@ -150,12 +163,32 @@ export const startMcpServer = async (): Promise<void> => {
   server.registerTool(
     "browser_execute",
     {
-      description: "Execute Playwright code. IMPORTANT: Always call snapshot() first to get element refs from the a11y tree (e1, e2...), then use ref('e1').click() to interact. The a11y tree is the source of truth for element discovery. ref() is chainable: .click(), .fill(), .source() (React file). Avoid page.locator() - use refs instead.",
+      description: `Execute Playwright code with helpers for element interaction.
+
+IMPORTANT: Always call snapshot() first to get element refs from the a11y tree (e1, e2...), then use ref('e1') to interact.
+
+AVAILABLE HELPERS:
+- page: Playwright Page object (https://playwright.dev/docs/api/class-page)
+- snapshot(opts?): Get ARIA tree. opts: {maxDepth, interactableOnly, format}
+- ref(id): Get element by ref ID, chainable with all ElementHandle methods
+- fill(id, text): Clear and fill input (works with rich text editors)
+- drag({from, to, dataTransfer?}): Drag with custom MIME types
+- dispatch({target, event, dataTransfer?, detail?}): Dispatch custom events
+
+COMMON PATTERNS:
+- Click: await ref('e1').click()
+- Fill input: await fill('e1', 'hello')
+- Get attribute: return await ref('e1').getAttribute('href')
+- Get React source: return await ref('e1').source()
+- Navigate: await page.goto('https://example.com')
+- Screenshot: await page.screenshot({path: '/tmp/shot.png'})
+
+PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.`,
       inputSchema: {
-        code: z.string().describe("JavaScript code to execute (use 'page' for Playwright Page, 'return' for output)"),
+        code: z.string().describe("JavaScript code. Use 'page' for Playwright, 'ref(id)' for elements, 'return' for output"),
         page: z.string().optional().default("default").describe("Named page context for multi-turn sessions"),
-        url: z.string().optional().describe("Navigate to URL before executing"),
-        timeout: z.number().optional().default(DEFAULT_NAVIGATION_TIMEOUT_MS).describe("Navigation timeout in milliseconds"),
+        url: z.string().optional().describe("Navigate to URL before executing code"),
+        timeout: z.number().optional().default(DEFAULT_NAVIGATION_TIMEOUT_MS).describe("Navigation timeout in ms"),
       },
     },
     async ({ code, page: pageName, url, timeout }) => {
