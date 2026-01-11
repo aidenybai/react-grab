@@ -376,16 +376,38 @@ export const spawnServer = async (
   if (options.browser) args.push("-b", options.browser);
   if (options.domain) args.push("-d", options.domain);
 
+  let stderrOutput = "";
+  let exitCode: number | null = null;
+  let exitSignal: string | null = null;
+
   const child = spawn(options.cliPath, args, {
     detached: true,
-    stdio: "ignore",
+    stdio: ["ignore", "ignore", "pipe"],
     shell: true,
+  });
+
+  child.stderr?.on("data", (data) => {
+    stderrOutput += data.toString();
+  });
+
+  child.on("exit", (code, signal) => {
+    exitCode = code;
+    exitSignal = signal?.toString() ?? null;
   });
 
   child.unref();
 
   for (let i = 0; i < MAX_SERVER_SPAWN_ATTEMPTS; i++) {
     await new Promise((r) => setTimeout(r, SERVER_SPAWN_DELAY_MS));
+
+    if (exitCode !== null && exitCode !== 0) {
+      const details = stderrOutput.trim() || `exit code ${exitCode}`;
+      throw new Error(`Server process exited: ${details}`);
+    }
+
+    if (exitSignal) {
+      throw new Error(`Server process killed by signal: ${exitSignal}`);
+    }
 
     const info = getServerInfo();
     if (info) {
@@ -409,5 +431,14 @@ export const spawnServer = async (
     }
   }
 
-  throw new Error("Failed to start server in background");
+  const errorDetails: string[] = [];
+  if (stderrOutput.trim()) {
+    errorDetails.push(stderrOutput.trim());
+  }
+  if (exitCode !== null) {
+    errorDetails.push(`exit code: ${exitCode}`);
+  }
+
+  const details = errorDetails.length > 0 ? `: ${errorDetails.join(", ")}` : "";
+  throw new Error(`Failed to start server in background${details}`);
 };
