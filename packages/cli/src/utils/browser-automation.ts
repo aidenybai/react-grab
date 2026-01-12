@@ -9,6 +9,8 @@ import {
 } from "@react-grab/browser";
 import { COMPONENT_STACK_MAX_DEPTH } from "./constants.js";
 
+const LOAD_STATES = new Set(["load", "domcontentloaded", "networkidle"]);
+
 export interface PageInfo {
   name: string;
   targetId: string;
@@ -538,35 +540,27 @@ export const createGrabHelper = (
   ref: RefFunction,
   getActivePage: () => Page,
 ): GrabApi => {
+  const evaluateGrabMethod = async <T>(
+    methodName: string,
+    defaultValue: T,
+  ): Promise<T> => {
+    const currentPage = getActivePage();
+    return currentPage.evaluate(
+      ({ method, fallback }) => {
+        type GrabMethods = Record<string, () => unknown>;
+        const grab = (globalThis as { __REACT_GRAB__?: GrabMethods }).__REACT_GRAB__;
+        return (grab?.[method]?.() ?? fallback) as T;
+      },
+      { method: methodName, fallback: defaultValue },
+    );
+  };
+
   return {
-    activate: async (): Promise<void> => {
-      const currentPage = getActivePage();
-      await currentPage.evaluate(() => {
-        const g = globalThis as { __REACT_GRAB__?: { activate: () => void } };
-        g.__REACT_GRAB__?.activate();
-      });
-    },
-    deactivate: async (): Promise<void> => {
-      const currentPage = getActivePage();
-      await currentPage.evaluate(() => {
-        const g = globalThis as { __REACT_GRAB__?: { deactivate: () => void } };
-        g.__REACT_GRAB__?.deactivate();
-      });
-    },
-    toggle: async (): Promise<void> => {
-      const currentPage = getActivePage();
-      await currentPage.evaluate(() => {
-        const g = globalThis as { __REACT_GRAB__?: { toggle: () => void } };
-        g.__REACT_GRAB__?.toggle();
-      });
-    },
-    isActive: async (): Promise<boolean> => {
-      const currentPage = getActivePage();
-      return currentPage.evaluate(() => {
-        const g = globalThis as { __REACT_GRAB__?: { isActive: () => boolean } };
-        return g.__REACT_GRAB__?.isActive() ?? false;
-      });
-    },
+    activate: () => evaluateGrabMethod<void>("activate", undefined),
+    deactivate: () => evaluateGrabMethod<void>("deactivate", undefined),
+    toggle: () => evaluateGrabMethod<void>("toggle", undefined),
+    isActive: () => evaluateGrabMethod<boolean>("isActive", false),
+    getState: () => evaluateGrabMethod<unknown>("getState", null),
     copyElement: async (refId: string): Promise<boolean> => {
       const element = await ref(refId);
       if (!element) return false;
@@ -575,13 +569,6 @@ export const createGrabHelper = (
         const g = globalThis as { __REACT_GRAB__?: { copyElement: (e: Element[]) => Promise<boolean> } };
         return g.__REACT_GRAB__?.copyElement([el as Element]) ?? false;
       }, element);
-    },
-    getState: async (): Promise<unknown> => {
-      const currentPage = getActivePage();
-      return currentPage.evaluate(() => {
-        const g = globalThis as { __REACT_GRAB__?: { getState: () => unknown } };
-        return g.__REACT_GRAB__?.getState() ?? null;
-      });
     },
   };
 };
@@ -614,8 +601,8 @@ export const createWaitForHelper = (
     const currentPage = getActivePage();
     const timeout = options?.timeout;
 
-    if (selectorOrState === "load" || selectorOrState === "domcontentloaded" || selectorOrState === "networkidle") {
-      await currentPage.waitForLoadState(selectorOrState, { timeout });
+    if (LOAD_STATES.has(selectorOrState)) {
+      await currentPage.waitForLoadState(selectorOrState as "load" | "domcontentloaded" | "networkidle", { timeout });
       return;
     }
 
