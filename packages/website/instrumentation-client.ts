@@ -30,9 +30,15 @@ if (typeof window !== "undefined" && !window.__REACT_GRAB__) {
 
   // Subscribe to IDE info changes from the relay client
   const relayClient = getDefaultRelayClient();
-  relayClient.onIDEInfoChange((ideInfo) => {
-    setGlobalIDEInfo(ideInfo);
-  });
+  if (relayClient) {
+    relayClient.onIDEInfoChange((ideInfo) => {
+      setGlobalIDEInfo(ideInfo);
+    });
+    // Connect to relay server to receive IDE info
+    relayClient.connect().catch(() => {
+      // Silently fail if relay server is not running
+    });
+  }
 
   api.registerPlugin({
     name: "website-events",
