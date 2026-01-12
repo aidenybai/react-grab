@@ -360,27 +360,6 @@ export const serve = async (
     server.close();
   };
 
-  const signalHandler = async (): Promise<void> => {
-    await cleanup();
-    process.exit(0);
-  };
-
-  process.on("SIGINT", signalHandler);
-  process.on("SIGTERM", signalHandler);
-  process.on("SIGHUP", signalHandler);
-
-  process.on("uncaughtException", (error) => {
-    console.error("Uncaught exception:", error);
-    deleteServerInfo();
-    process.exit(1);
-  });
-
-  process.on("unhandledRejection", (reason) => {
-    console.error("Unhandled rejection:", reason);
-    deleteServerInfo();
-    process.exit(1);
-  });
-
   process.on("exit", () => {
     deleteServerInfo();
   });

@@ -230,6 +230,14 @@ const start = new Command()
       }
       spinner("Server ready. Press Ctrl+C to stop.").succeed();
 
+      const shutdownHandler = async (): Promise<void> => {
+        await browserServer.stop();
+        process.exit(0);
+      };
+      process.on("SIGINT", shutdownHandler);
+      process.on("SIGTERM", shutdownHandler);
+      process.on("SIGHUP", shutdownHandler);
+
       await new Promise(() => {});
     } catch (error) {
       serverSpinner.fail();
