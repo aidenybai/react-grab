@@ -181,3 +181,30 @@ if (process.env.NODE_ENV === "development") {
   import("react-grab");
 }
 ```
+
+## MCP Server
+
+React Grab includes an MCP server for browser automation. Agents can navigate, click, fill forms, and take screenshots.
+
+### Setup
+
+```bash
+npx -y grab@latest add mcp --client cursor
+```
+
+Supported clients: cursor, claude-code, vscode, opencode, codex, gemini-cli, windsurf, zed, droid
+
+### Supported tools
+
+- `browser_snapshot` - Get ARIA accessibility tree with element refs (e1, e2...)
+- `browser_execute` - Run Playwright code: `ref('e1').click()`, `fill('e1', 'text')`, `snapshot()`
+
+## Skill (react-grab-browser)
+
+For agents that support skills, install the browser automation skill:
+
+```bash
+npx -y grab@latest add skill
+# or
+npx -y openskills install aidenybai/react-grab -y
+```

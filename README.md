@@ -136,6 +136,46 @@ if (process.env.NODE_ENV === "development") {
 }
 ```
 
+## MCP Server
+
+React Grab includes an MCP (Model Context Protocol) server that gives AI coding agents direct access to your browser. This enables agents to navigate, click, fill forms, and take screenshots.
+
+### Setup
+
+Run during project init:
+
+```bash
+npx -y grab@latest init
+# When prompted, choose to add the MCP server
+```
+
+Or add it separately:
+
+```bash
+npx -y grab@latest add mcp --client cursor
+```
+
+Supported clients: `cursor`, `claude-code`, `vscode`, `opencode`, `codex`, `gemini-cli`, `windsurf`, `zed`, `droid`
+
+### MCP Tools
+
+Once configured, your agent has access to:
+
+- `browser_snapshot` - Get ARIA accessibility tree with element refs (e1, e2...)
+- `browser_execute` - Run Playwright code with helpers like `ref('e1').click()`
+
+## Skill
+
+For agents that support skills (like Codex), install the `react-grab-browser` skill:
+
+```bash
+npx -y grab@latest add skill
+# or
+npx -y openskills install aidenybai/react-grab -y
+```
+
+The skill provides browser automation with Playwright using your real browser cookies. See the [skill documentation](https://github.com/aidenybai/react-grab/blob/main/skills/react-grab-browser/SKILL.md) for full details.
+
 ## Extending React Grab
 
 React Grab uses a plugin system to extend functionality. Check out the [type definitions](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) to see all available options.

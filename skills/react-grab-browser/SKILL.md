@@ -7,6 +7,8 @@ description: Browser automation with Playwright and real cookies. Use 'npx -y @r
 
 Playwright automation with your real browser cookies. Pages persist across executions. Output is always JSON: `{ok, result, error, url, title, page}`
 
+**Note:** If MCP is available in your environment, prefer using the `browser_snapshot` and `browser_execute` MCP tools instead of this skill for better performance.
+
 ## Usage
 
 ```bash

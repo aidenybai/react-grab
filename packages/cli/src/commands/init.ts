@@ -45,45 +45,70 @@ const VERSION = process.env.VERSION ?? "0.0.1";
 const REPORT_URL = "https://react-grab.com/api/report-cli";
 const DOCS_URL = "https://github.com/aidenybai/react-grab";
 
-const promptMcpInstall = async (cwd: string, customPkg?: string): Promise<void> => {
-  const { wantMcp } = await prompts({
-    type: "confirm",
-    name: "wantMcp",
-    message: `Would you like to add the ${highlighter.info("MCP server")}? (gives your agent access to your browser)`,
-    initial: true,
-  });
-
-  if (!wantMcp) return;
-
-  const { mcpClient } = await prompts({
+const promptAgentIntegration = async (cwd: string, customPkg?: string): Promise<void> => {
+  const { integrationType } = await prompts({
     type: "select",
-    name: "mcpClient",
-    message: `Which ${highlighter.info("client")} would you like to configure?`,
-    choices: MCP_CLIENTS.map((client) => ({
-      title: MCP_CLIENT_NAMES[client],
-      value: client,
-    })),
+    name: "integrationType",
+    message: `Would you like to add ${highlighter.info("agent integration")}?`,
+    choices: [
+      { title: "MCP Server (browser automation for your agent)", value: "mcp" },
+      { title: "Skill (for agents like Codex)", value: "skill" },
+      { title: "Both", value: "both" },
+      { title: "Neither", value: "none" },
+    ],
   });
 
-  if (!mcpClient) return;
+  if (!integrationType || integrationType === "none") return;
 
-  const mcpCommand = customPkg
-    ? `npx -y ${customPkg} browser mcp`
-    : `npx -y @react-grab/cli browser mcp`;
+  if (integrationType === "mcp" || integrationType === "both") {
+    const { mcpClient } = await prompts({
+      type: "select",
+      name: "mcpClient",
+      message: `Which ${highlighter.info("MCP client")} would you like to configure?`,
+      choices: MCP_CLIENTS.map((client) => ({
+        title: MCP_CLIENT_NAMES[client],
+        value: client,
+      })),
+    });
 
-  logger.break();
-  try {
-    execSync(
-      `npx -y install-mcp '${mcpCommand}' --client ${mcpClient} --yes`,
-      { stdio: "inherit", cwd },
-    );
-    logger.break();
-    logger.success("MCP server has been configured.");
-  } catch {
-    logger.break();
-    logger.warn("Failed to configure MCP server. You can try again later with:");
-    logger.log(`  npx -y install-mcp '${mcpCommand}' --client ${mcpClient}`);
+    if (mcpClient) {
+      const mcpCommand = customPkg
+        ? `npx -y ${customPkg} browser mcp`
+        : `npx -y @react-grab/cli browser mcp`;
+
+      logger.break();
+      try {
+        execSync(
+          `npx -y install-mcp '${mcpCommand}' --client ${mcpClient} --yes`,
+          { stdio: "inherit", cwd },
+        );
+        logger.break();
+        logger.success("MCP server has been configured.");
+      } catch {
+        logger.break();
+        logger.warn("Failed to configure MCP server. You can try again later with:");
+        logger.log(`  npx -y install-mcp '${mcpCommand}' --client ${mcpClient}`);
+      }
+    }
   }
+
+  if (integrationType === "skill" || integrationType === "both") {
+    logger.break();
+    const skillSpinner = spinner("Installing browser automation skill").start();
+    try {
+      execSync(`npx -y openskills install aidenybai/react-grab -y`, {
+        stdio: "inherit",
+        cwd,
+      });
+      logger.break();
+      skillSpinner.succeed("Skill installed to .claude/skills/");
+    } catch {
+      logger.break();
+      skillSpinner.fail("Failed to install skill");
+      logger.dim("Try manually: npx -y openskills install aidenybai/react-grab");
+    }
+  }
+
   logger.break();
 };
 
@@ -264,7 +289,7 @@ export const init = new Command()
           logger.break();
         }
 
-        await promptMcpInstall(projectInfo.projectRoot, opts.pkg);
+        await promptAgentIntegration(projectInfo.projectRoot, opts.pkg);
 
         const { wantCustomizeOptions } = await prompts({
           type: "confirm",
@@ -907,7 +932,7 @@ export const init = new Command()
       logger.break();
 
       if (!isNonInteractive) {
-        await promptMcpInstall(projectInfo.projectRoot, opts.pkg);
+        await promptAgentIntegration(projectInfo.projectRoot, opts.pkg);
       }
 
       await reportToCli("completed", {

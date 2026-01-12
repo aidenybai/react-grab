@@ -29,6 +29,18 @@ const copyDistFiles = () => {
   console.log(`Copied ${files.length} items from react-grab/dist to grab/dist`);
 };
 
+const copyReactGrabReadme = () => {
+  const sourceReadme = path.join(repoRoot, "README.md");
+  const destReadme = path.join(reactGrabRoot, "README.md");
+
+  if (!fs.existsSync(sourceReadme)) {
+    throw new Error(`README.md not found at ${sourceReadme}`);
+  }
+
+  fs.copyFileSync(sourceReadme, destReadme);
+  console.log("Copied README.md to react-grab/README.md");
+};
+
 const transformReadme = () => {
   const sourceReadme = path.join(repoRoot, "README.md");
   const destReadme = path.join(grabRoot, "README.md");
@@ -106,6 +118,7 @@ const main = () => {
   console.log("Building grab package...\n");
 
   copyDistFiles();
+  copyReactGrabReadme();
   transformReadme();
   syncPackageJson();
   copyLicense();
