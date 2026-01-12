@@ -198,6 +198,7 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
     async ({ code, page: pageName, url, timeout }) => {
       let activePage: Page | null = null;
       let browser: Awaited<ReturnType<typeof chromium.connectOverCDP>> | null = null;
+      let pageOpenHandler: ((newPage: Page) => void) | null = null;
       const outputJson = createOutputJson(() => activePage, pageName);
 
       try {
@@ -219,9 +220,10 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
         }
 
         const context = activePage.context();
-        context.on("page", (newPage) => {
+        pageOpenHandler = (newPage: Page) => {
           activePage = newPage;
-        });
+        };
+        context.on("page", pageOpenHandler);
 
         const getActivePage = createActivePageGetter(context, () => activePage);
 
@@ -289,6 +291,9 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
           isError: true,
         };
       } finally {
+        if (activePage && pageOpenHandler) {
+          activePage.context().off("page", pageOpenHandler);
+        }
         await browser?.close();
       }
     },
