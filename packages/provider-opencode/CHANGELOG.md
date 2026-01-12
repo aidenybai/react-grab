@@ -1,5 +1,14 @@
 # @react-grab/opencode
 
+## 0.1.0-beta.1
+
+### Patch Changes
+
+- fix: shell script
+- Updated dependencies
+  - react-grab@0.1.0-beta.1
+  - @react-grab/relay@0.1.0-beta.1
+
 ## 0.1.0-beta.0
 
 ### Minor Changes

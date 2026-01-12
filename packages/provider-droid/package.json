@@ -1,6 +1,6 @@
 {
   "name": "@react-grab/droid",
-  "version": "0.1.0-beta.0",
+  "version": "0.1.0-beta.1",
   "type": "module",
   "bin": {
     "react-grab-droid": "./dist/cli.cjs"
