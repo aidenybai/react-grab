@@ -127,12 +127,14 @@ export const add = new Command()
             { stdio: "ignore", cwd },
           );
           mcpSpinner.succeed(`MCP configured for ${MCP_CLIENT_NAMES[mcpClient]}`);
+          logger.break();
+          process.exit(0);
         } catch {
           mcpSpinner.fail(`Failed to configure MCP for ${MCP_CLIENT_NAMES[mcpClient]}`);
           logger.dim(`Try manually: npx -y install-mcp '${mcpCommand}' --client ${mcpClient}`);
+          logger.break();
+          process.exit(1);
         }
-        logger.break();
-        process.exit(0);
       }
 
       if (agentArg === "skill") {
@@ -255,12 +257,14 @@ export const add = new Command()
               { stdio: "ignore", cwd },
             );
             mcpSpinner.succeed(`MCP configured for ${MCP_CLIENT_NAMES[mcpClient]}`);
+            logger.break();
+            process.exit(0);
           } catch {
             mcpSpinner.fail(`Failed to configure MCP for ${MCP_CLIENT_NAMES[mcpClient]}`);
             logger.dim(`Try manually: npx install-mcp '${mcpCommand}' --client ${mcpClient}`);
+            logger.break();
+            process.exit(1);
           }
-          logger.break();
-          process.exit(0);
         }
 
         if (addType === "skill") {
