@@ -1,9 +1,8 @@
-import { spawn } from "node:child_process";
+import { spawnSync } from "node:child_process";
 
-const child = spawn("npx", ["-y", "@react-grab/cli", ...process.argv.slice(2)], {
+const result = spawnSync("npx", ["-y", "@react-grab/cli", ...process.argv.slice(2)], {
   stdio: "inherit",
+  shell: process.platform === "win32",
 });
 
-child.on("close", (code) => {
-  process.exit(code ?? 0);
-});
+process.exit(result.status ?? 0);
