@@ -72,6 +72,10 @@ const rebuildNativeModuleAndRestart = async (browserPkgDir: string): Promise<voi
     stdio: "inherit",
     detached: false,
   });
+  child.on("error", (error) => {
+    console.error(`Failed to restart: ${error.message}`);
+    process.exit(1);
+  });
   child.on("exit", (code) => process.exit(code ?? 0));
 };
 
@@ -203,8 +207,10 @@ const start = new Command()
 
         const browser = await chromium.connectOverCDP(browserServer.wsEndpoint);
         const contexts = browser.contexts();
-        if (contexts.length > 0 && playwrightCookies.length > 0) {
-          await contexts[0].addCookies(playwrightCookies);
+        if (contexts.length > 0) {
+          if (playwrightCookies.length > 0) {
+            await contexts[0].addCookies(playwrightCookies);
+          }
           await applyStealthScripts(contexts[0]);
         }
         await browser.close();

@@ -440,6 +440,7 @@ export const spawnServer = async (
   let combinedOutput = "";
   let exitCode: number | null = null;
   let exitSignal: string | null = null;
+  let spawnErrorMessage: string | null = null;
 
   const child = spawn(options.cliPath, args, {
     detached: true,
@@ -455,6 +456,10 @@ export const spawnServer = async (
     combinedOutput += data.toString();
   });
 
+  child.on("error", (error) => {
+    spawnErrorMessage = error.message;
+  });
+
   child.on("exit", (code, signal) => {
     exitCode = code;
     exitSignal = signal?.toString() ?? null;
@@ -464,6 +469,10 @@ export const spawnServer = async (
 
   for (let attemptIndex = 0; attemptIndex < MAX_SERVER_SPAWN_ATTEMPTS; attemptIndex++) {
     await new Promise((r) => setTimeout(r, SERVER_SPAWN_DELAY_MS));
+
+    if (spawnErrorMessage) {
+      throw new Error(`Failed to spawn server: ${spawnErrorMessage}`);
+    }
 
     if (exitCode !== null && exitCode !== 0) {
       const filtered = filterErrorOutput(combinedOutput);
