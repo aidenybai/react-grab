@@ -239,27 +239,31 @@ export const dumpCookies = (
   const safeStorageKey = getSafeStorageKey(browser);
   const database = new Database(dbPath, { readonly: true });
 
-  let query = `
-    SELECT creation_utc, host_key, name, value, path, expires_utc, is_secure, is_httponly,
-           last_access_utc, has_expires, is_persistent, priority, encrypted_value, samesite, source_scheme
-    FROM cookies
-  `;
+  let rows: RawCookieRow[];
+  try {
+    let query = `
+      SELECT creation_utc, host_key, name, value, path, expires_utc, is_secure, is_httponly,
+             last_access_utc, has_expires, is_persistent, priority, encrypted_value, samesite, source_scheme
+      FROM cookies
+    `;
 
-  const params: (string | number)[] = [];
+    const params: (string | number)[] = [];
 
-  if (options?.domain) {
-    query += ` WHERE host_key LIKE ?`;
-    params.push(`%${options.domain}%`);
+    if (options?.domain) {
+      query += ` WHERE host_key LIKE ?`;
+      params.push(`%${options.domain}%`);
+    }
+
+    if (options?.limit) {
+      query += ` LIMIT ?`;
+      params.push(options.limit);
+    }
+
+    const statement = database.prepare(query);
+    rows = statement.all(...params) as RawCookieRow[];
+  } finally {
+    database.close();
   }
-
-  if (options?.limit) {
-    query += ` LIMIT ?`;
-    params.push(options.limit);
-  }
-
-  const statement = database.prepare(query);
-  const rows = statement.all(...params) as RawCookieRow[];
-  database.close();
 
   const cookies: DecryptedCookie[] = [];
 
