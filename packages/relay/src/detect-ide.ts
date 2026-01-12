@@ -23,6 +23,12 @@ interface EditorConfig {
 
 const EDITOR_CONFIGS: EditorConfig[] = [
   {
+    id: "antigravity",
+    name: "Antigravity",
+    urlScheme: "antigravity",
+    processPatterns: ["antigravity", "Antigravity"],
+  },
+  {
     id: "cursor",
     name: "Cursor",
     urlScheme: "cursor",
@@ -32,13 +38,7 @@ const EDITOR_CONFIGS: EditorConfig[] = [
     id: "vscode",
     name: "VS Code",
     urlScheme: "vscode",
-    processPatterns: ["code", "Code", "Visual Studio Code"],
-  },
-  {
-    id: "antigravity",
-    name: "Antigravity",
-    urlScheme: "antigravity",
-    processPatterns: ["antigravity", "Antigravity"],
+    processPatterns: ["Visual Studio Code", "Code.app", "code-server"],
   },
   {
     id: "zed",
@@ -131,7 +131,7 @@ const matchEditorFromProcessName = (
   return null;
 };
 
-export const detectParentIDE = (maxDepth = 5): IDEInfo => {
+export const detectParentIDE = (maxDepth = 10): IDEInfo => {
   const noIDEResult: IDEInfo = {
     editorId: null,
     editorName: null,
