@@ -1,0 +1,29 @@
+{
+  "mode": "exit",
+  "tag": "beta",
+  "initialVersions": {
+    "@react-grab/benchmarks": "0.1.0",
+    "@react-grab/browser": "0.0.1",
+    "@react-grab/cli": "0.0.98",
+    "grab": "0.0.98",
+    "@react-grab/gym": "0.1.0",
+    "@react-grab/next-playground": "0.1.0",
+    "@react-grab/ami": "0.0.98",
+    "@react-grab/amp": "0.0.98",
+    "@react-grab/claude-code": "0.0.98",
+    "@react-grab/codex": "0.0.98",
+    "@react-grab/cursor": "0.0.98",
+    "@react-grab/droid": "0.0.98",
+    "@react-grab/gemini": "0.0.98",
+    "@react-grab/opencode": "0.0.98",
+    "@react-grab/visual-edit": "0.0.98",
+    "react-grab": "0.0.98",
+    "@react-grab/relay": "0.0.98",
+    "@react-grab/utils": "0.0.98",
+    "@react-grab/web-extension": "0.1.0",
+    "@react-grab/website": "0.1.0"
+  },
+  "changesets": [
+    "shiny-streets-fold"
+  ]
+}

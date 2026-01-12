@@ -1,5 +1,16 @@
 # @react-grab/visual-edit
 
+## 0.1.0-beta.0
+
+### Minor Changes
+
+- feat: browser
+
+### Patch Changes
+
+- Updated dependencies
+  - react-grab@0.1.0-beta.0
+
 ## 0.0.98
 
 ### Patch Changes

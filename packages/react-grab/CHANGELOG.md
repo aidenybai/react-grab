@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.1.0-beta.0
+
+### Minor Changes
+
+- feat: browser
+
 ## 0.0.98
 
 ### Patch Changes
