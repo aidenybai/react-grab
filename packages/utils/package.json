@@ -2,6 +2,7 @@
   "name": "@react-grab/utils",
   "version": "0.1.0-beta.3",
   "type": "module",
+  "private": true,
   "exports": {
     "./client": {
       "types": "./dist/client.d.ts",
