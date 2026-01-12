@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import pc from "picocolors";
-import { chromium, type Page } from "playwright";
+import { chromium, type Page } from "playwright-core";
 import {
   SUPPORTED_BROWSERS,
   BROWSER_DISPLAY_NAMES,
@@ -19,6 +19,8 @@ import {
   getServerInfo,
   isServerRunning,
   deleteServerInfo,
+  installLinuxDeps,
+  isLinux,
 } from "@react-grab/browser";
 import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
@@ -31,7 +33,9 @@ import {
   createDragHelper,
   createDispatchHelper,
   createGrabHelper,
+  createWaitForHelper,
   createOutputJson,
+  createActivePageGetter,
 } from "../utils/browser-automation.js";
 import { startMcpServer } from "./browser-mcp.js";
 
@@ -47,6 +51,25 @@ const printHeader = (): void => {
 const exitWithError = (error: unknown): never => {
   logger.error(error instanceof Error ? error.message : "Failed");
   process.exit(1);
+};
+
+const rebuildNativeModuleAndRestart = async (browserPkgDir: string): Promise<void> => {
+  const { execSync, spawn } = await import("child_process");
+
+  execSync("npm rebuild better-sqlite3", {
+    stdio: "ignore",
+    cwd: browserPkgDir,
+  });
+
+  const rebuildSpinner = spinner("Restarting server").start();
+  rebuildSpinner.succeed("Restarting server");
+
+  const args = process.argv.slice(2);
+  const child = spawn(process.argv[0], [process.argv[1], ...args], {
+    stdio: "inherit",
+    detached: false,
+  });
+  child.on("exit", (code) => process.exit(code ?? 0));
 };
 
 const isSupportedBrowser = (value: string): value is SupportedBrowser => {
@@ -192,27 +215,13 @@ const start = new Command()
         } else {
           cookieSpinner.info("Native module mismatch. Rebuilding...");
           try {
-            const { execSync, spawn } = await import("child_process");
             const { dirname, join } = await import("path");
             const { fileURLToPath } = await import("url");
             const currentDir = dirname(fileURLToPath(import.meta.url));
             const browserPkgDir = join(currentDir, "..", "..");
-            execSync("npm rebuild better-sqlite3", {
-              stdio: "ignore",
-              cwd: browserPkgDir,
-            });
 
             await browserServer.stop();
-
-            const rebuildSpinner = spinner("Restarting server").start();
-            rebuildSpinner.succeed("Restarting server");
-
-            const args = process.argv.slice(2);
-            const child = spawn(process.argv[0], [process.argv[1], ...args], {
-              stdio: "inherit",
-              detached: false,
-            });
-            child.on("exit", (code) => process.exit(code ?? 0));
+            await rebuildNativeModuleAndRestart(browserPkgDir);
             return;
           } catch {
             cookieSpinner.fail("Auto-rebuild failed. Run: npm rebuild better-sqlite3");
@@ -336,11 +345,7 @@ const execute = new Command()
       const context = activePage.context();
       context.on("page", (newPage) => { activePage = newPage; });
 
-      const getActivePage = (): Page => {
-        const allPages = context.pages();
-        if (allPages.length === 0) throw new Error("No pages available");
-        return activePage && allPages.includes(activePage) ? activePage : allPages[allPages.length - 1];
-      };
+      const getActivePage = createActivePageGetter(context, () => activePage);
 
       const snapshot = createSnapshotHelper(getActivePage);
       const ref = createRefHelper(getActivePage);
@@ -348,6 +353,7 @@ const execute = new Command()
       const drag = createDragHelper(getActivePage);
       const dispatch = createDispatchHelper(getActivePage);
       const grab = createGrabHelper(ref, getActivePage);
+      const waitFor = createWaitForHelper(getActivePage);
 
       const executeFunction = new Function(
         "page",
@@ -358,10 +364,11 @@ const execute = new Command()
         "drag",
         "dispatch",
         "grab",
+        "waitFor",
         `return (async () => { ${code} })();`,
       );
 
-      const result = await executeFunction(getActivePage(), getActivePage, snapshot, ref, fill, drag, dispatch, grab);
+      const result = await executeFunction(getActivePage(), getActivePage, snapshot, ref, fill, drag, dispatch, grab, waitFor);
       console.log(JSON.stringify(await buildOutput(true, result)));
       process.exit(0);
     } catch (error) {
@@ -463,6 +470,11 @@ HELPERS
                       opts.event: event type name
                       opts.dataTransfer: for drag events
                       opts.detail: for CustomEvent
+  waitFor(target)   - Wait for selector, ref, or page state
+                      await waitFor('e1')           - wait for ref to appear
+                      await waitFor('.btn')         - wait for selector
+                      await waitFor('networkidle')  - wait for network idle
+                      await waitFor('load')         - wait for page load
   ref(id).source()  - Get React component source file info for element
                       Returns { filePath, lineNumber, componentName } or null
   grab              - React Grab client API (activate, copyElement, etc)
@@ -552,6 +564,56 @@ const mcp = new Command()
     await startMcpServer();
   });
 
+const install = new Command()
+  .name("install")
+  .description("install Chromium browser and optionally system dependencies")
+  .option("--with-deps", "install Linux system dependencies (requires sudo)")
+  .action(async (options) => {
+    printHeader();
+
+    if (options.withDeps) {
+      if (!isLinux()) {
+        logger.info("System dependencies only needed on Linux, skipping...");
+      } else {
+        const depsSpinner = spinner("Installing system dependencies").start();
+        const result = installLinuxDeps();
+        if (result.success) {
+          depsSpinner.succeed(result.message);
+        } else {
+          depsSpinner.fail(result.message);
+          if (!result.message.includes("only needed")) {
+            logger.warn("Continuing with browser installation anyway...");
+          }
+        }
+      }
+    } else if (isLinux()) {
+      logger.dim("Tip: If browser fails to launch, run with --with-deps");
+    }
+
+    const browserSpinner = spinner("Installing Chromium browser").start();
+
+    try {
+      const { execSync } = await import("child_process");
+      const { createRequire } = await import("module");
+      const { dirname, join } = await import("path");
+
+      const require = createRequire(import.meta.url);
+      const playwrightCorePath = require.resolve("playwright-core");
+      const playwrightCli = join(dirname(playwrightCorePath), "cli.js");
+
+      execSync(`${process.execPath} "${playwrightCli}" install chromium`, {
+        stdio: "inherit",
+      });
+
+      browserSpinner.succeed("Chromium installed successfully");
+    } catch {
+      browserSpinner.fail("Failed to install Chromium");
+      logger.error("Try running manually: npx playwright install chromium");
+      process.exit(1);
+    }
+  });
+
+browser.addCommand(install);
 browser.addCommand(list);
 browser.addCommand(dump);
 browser.addCommand(start);

@@ -1,4 +1,4 @@
-import type { Cookie as PlaywrightCookie } from "playwright";
+import type { Cookie as PlaywrightCookie } from "playwright-core";
 import type { DecryptedCookie } from "./cookies.js";
 import { CHROME_EPOCH_OFFSET_SECONDS } from "./constants.js";
 

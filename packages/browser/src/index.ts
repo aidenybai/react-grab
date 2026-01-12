@@ -27,6 +27,13 @@ export {
 export { applyStealthScripts } from "./utils/stealth.js";
 
 export {
+  installLinuxDeps,
+  detectPackageManager,
+  isLinux,
+  type InstallDepsResult,
+} from "./utils/linux-deps.js";
+
+export {
   serve,
   spawnServer,
   getServerInfo,
@@ -42,13 +49,10 @@ export {
 export {
   connect,
   findPageByTargetId,
-  waitForPageLoad,
   type BrowserClient,
   type PageOptions,
   type ServerInfo,
   type SnapshotOptions,
-  type WaitForPageLoadOptions,
-  type WaitForPageLoadResult,
 } from "./client.js";
 
 export { getSnapshotScript, clearSnapshotScriptCache } from "./snapshot/index.js";

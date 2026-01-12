@@ -3,27 +3,15 @@ import {
   type Browser,
   type Page,
   type ElementHandle,
-} from "playwright";
+} from "playwright-core";
 import type {
   GetPageRequest,
   GetPageResponse,
   ListPagesResponse,
   ServerInfoResponse,
   ViewportSize,
-  WaitForPageLoadOptions,
-  WaitForPageLoadResult,
 } from "./types.js";
 import { getSnapshotScript } from "./snapshot/index.js";
-import {
-  PAGE_LOAD_TIMEOUT_MS,
-  PAGE_LOAD_POLL_INTERVAL_MS,
-  PAGE_LOAD_MINIMUM_WAIT_MS,
-  NON_CRITICAL_RESOURCE_TIMEOUT_MS,
-  LONG_RUNNING_REQUEST_TIMEOUT_MS,
-  MAX_URL_LENGTH_FOR_LOGGING,
-} from "./utils/constants.js";
-
-export type { WaitForPageLoadOptions, WaitForPageLoadResult };
 
 export interface PageOptions {
   viewport?: ViewportSize;
@@ -50,156 +38,6 @@ export interface BrowserClient {
   ref: (name: string, refId: string) => Promise<ElementHandle | null>;
   getServerInfo: () => Promise<ServerInfo>;
 }
-
-interface PageLoadState {
-  documentReadyState: string;
-  documentLoading: boolean;
-  pendingRequests: Array<{
-    url: string;
-    loadingDurationMs: number;
-    resourceType: string;
-  }>;
-}
-
-const getPageLoadState = async (page: Page): Promise<PageLoadState> =>
-  page.evaluate(
-    ({ maxUrlLength, longRunningTimeout, nonCriticalTimeout }) => {
-      const globals = globalThis as {
-        document?: Document;
-        performance?: Performance;
-      };
-      const performance = globals.performance!;
-      const document = globals.document!;
-
-      const now = performance.now();
-      const resources = performance.getEntriesByType(
-        "resource",
-      ) as PerformanceResourceTiming[];
-      const pending: Array<{
-        url: string;
-        loadingDurationMs: number;
-        resourceType: string;
-      }> = [];
-
-      const adPatterns = [
-        "doubleclick.net",
-        "googlesyndication.com",
-        "googletagmanager.com",
-        "google-analytics.com",
-        "facebook.net",
-        "connect.facebook.net",
-        "analytics",
-        "ads",
-        "tracking",
-        "pixel",
-        "hotjar.com",
-        "clarity.ms",
-        "mixpanel.com",
-        "segment.com",
-        "newrelic.com",
-        "nr-data.net",
-        "/tracker/",
-        "/collector/",
-        "/beacon/",
-        "/telemetry/",
-        "/log/",
-        "/events/",
-        "/track.",
-        "/metrics/",
-      ];
-
-      const nonCriticalTypes = ["img", "image", "icon", "font"];
-
-      for (const entry of resources) {
-        if (entry.responseEnd === 0) {
-          const url = entry.name;
-          const isAd = adPatterns.some((pattern) => url.includes(pattern));
-          if (isAd) continue;
-          if (url.startsWith("data:") || url.length > maxUrlLength) continue;
-
-          const loadingDuration = now - entry.startTime;
-          if (loadingDuration > longRunningTimeout) continue;
-
-          const resourceType = entry.initiatorType || "unknown";
-          if (
-            nonCriticalTypes.includes(resourceType) &&
-            loadingDuration > nonCriticalTimeout
-          )
-            continue;
-
-          const isImageUrl = /\.(jpg|jpeg|png|gif|webp|svg|ico)(\?|$)/i.test(
-            url,
-          );
-          if (isImageUrl && loadingDuration > nonCriticalTimeout) continue;
-
-          pending.push({
-            url,
-            loadingDurationMs: Math.round(loadingDuration),
-            resourceType,
-          });
-        }
-      }
-
-      return {
-        documentReadyState: document.readyState,
-        documentLoading: document.readyState !== "complete",
-        pendingRequests: pending,
-      };
-    },
-    {
-      maxUrlLength: MAX_URL_LENGTH_FOR_LOGGING,
-      longRunningTimeout: LONG_RUNNING_REQUEST_TIMEOUT_MS,
-      nonCriticalTimeout: NON_CRITICAL_RESOURCE_TIMEOUT_MS,
-    },
-  );
-
-export const waitForPageLoad = async (
-  page: Page,
-  options: WaitForPageLoadOptions = {},
-): Promise<WaitForPageLoadResult> => {
-  const {
-    timeout = PAGE_LOAD_TIMEOUT_MS,
-    pollInterval = PAGE_LOAD_POLL_INTERVAL_MS,
-    minimumWait = PAGE_LOAD_MINIMUM_WAIT_MS,
-    waitForNetworkIdle = true,
-  } = options;
-
-  const startTime = Date.now();
-  let lastState: PageLoadState | null = null;
-
-  if (minimumWait > 0) {
-    await new Promise((resolve) => setTimeout(resolve, minimumWait));
-  }
-
-  while (Date.now() - startTime < timeout) {
-    try {
-      lastState = await getPageLoadState(page);
-      const documentReady = lastState.documentReadyState === "complete";
-      const networkIdle =
-        !waitForNetworkIdle || lastState.pendingRequests.length === 0;
-
-      if (documentReady && networkIdle) {
-        return {
-          success: true,
-          readyState: lastState.documentReadyState,
-          pendingRequests: lastState.pendingRequests.length,
-          waitTimeMs: Date.now() - startTime,
-          timedOut: false,
-        };
-      }
-    } catch {}
-
-    await new Promise((resolve) => setTimeout(resolve, pollInterval));
-  }
-
-  return {
-    success: false,
-    readyState: lastState?.documentReadyState ?? "unknown",
-    pendingRequests: lastState?.pendingRequests.length ?? 0,
-    waitTimeMs: Date.now() - startTime,
-    timedOut: true,
-  };
-};
 
 export const findPageByTargetId = async (
   browserInstance: Browser,

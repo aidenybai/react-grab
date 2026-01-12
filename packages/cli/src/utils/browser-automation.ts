@@ -1,4 +1,4 @@
-import type { Page, ElementHandle } from "playwright";
+import type { Page, ElementHandle, BrowserContext } from "playwright-core";
 import {
   getSnapshotScript,
   getServerInfo,
@@ -161,12 +161,13 @@ export const createRefHelper = (getActivePage: () => Page): RefFunction => {
     const element = await getElement(refId);
     const currentPage = getActivePage();
     return currentPage.evaluate((el) => {
-      const g = globalThis as { __REACT_GRAB__?: { getSource: (e: Element) => unknown } };
+      const g = globalThis as { __REACT_GRAB__?: { getSource: (e: Element) => SourceInfo | null } };
       if (!g.__REACT_GRAB__) return null;
       return g.__REACT_GRAB__.getSource(el as Element);
     }, element);
   };
 
+  // HACK: Use Proxy to make ref() chainable with ElementHandle methods without awaiting first
   return (refId: string) => {
     return new Proxy(
       {} as ElementHandle &
@@ -323,31 +324,25 @@ export const createDispatchHelper = (
         const element = document.querySelector(sel);
         if (!element) throw new Error(`Element not found: ${sel}`);
 
-        let evt: Event;
-        if (opts.dataTransfer) {
-          const dataTransferObject = new DataTransfer();
-          for (const [type, value] of Object.entries(opts.dataTransfer)) {
-            dataTransferObject.setData(type, value);
-          }
-          evt = new DragEvent(eventType, {
-            bubbles: opts.bubbles,
-            cancelable: opts.cancelable,
-            dataTransfer: dataTransferObject,
-          });
-        } else if (opts.detail !== undefined) {
-          evt = new CustomEvent(eventType, {
-            bubbles: opts.bubbles,
-            cancelable: opts.cancelable,
-            detail: opts.detail,
-          });
-        } else {
-          evt = new Event(eventType, {
-            bubbles: opts.bubbles,
-            cancelable: opts.cancelable,
-          });
-        }
+        const baseOpts = { bubbles: opts.bubbles, cancelable: opts.cancelable };
 
-        return element.dispatchEvent(evt);
+        const createEvent = (): Event => {
+          if (opts.dataTransfer) {
+            const dataTransferObject = new DataTransfer();
+            for (const [type, value] of Object.entries(opts.dataTransfer)) {
+              dataTransferObject.setData(type, value);
+            }
+            return new DragEvent(eventType, { ...baseOpts, dataTransfer: dataTransferObject });
+          }
+
+          if (opts.detail !== undefined) {
+            return new CustomEvent(eventType, { ...baseOpts, detail: opts.detail });
+          }
+
+          return new Event(eventType, baseOpts);
+        };
+
+        return element.dispatchEvent(createEvent());
       },
       { sel: selector, eventType: event, opts: { bubbles, cancelable, dataTransfer, detail } },
     );
@@ -412,5 +407,47 @@ export const createGrabHelper = (
         return g.__REACT_GRAB__?.getState() ?? null;
       });
     },
+  };
+};
+
+export interface WaitForOptions {
+  timeout?: number;
+}
+
+export const createActivePageGetter = (
+  context: BrowserContext,
+  getActivePage: () => Page | null,
+): (() => Page) => {
+  return (): Page => {
+    const allPages = context.pages();
+    if (allPages.length === 0) throw new Error("No pages available");
+    const activePage = getActivePage();
+    return activePage && allPages.includes(activePage) ? activePage : allPages[allPages.length - 1];
+  };
+};
+
+export type WaitForFunction = (
+  selectorOrState: string,
+  options?: WaitForOptions,
+) => Promise<void>;
+
+export const createWaitForHelper = (
+  getActivePage: () => Page,
+): WaitForFunction => {
+  return async (selectorOrState: string, options?: WaitForOptions): Promise<void> => {
+    const currentPage = getActivePage();
+    const timeout = options?.timeout;
+
+    if (selectorOrState === "load" || selectorOrState === "domcontentloaded" || selectorOrState === "networkidle") {
+      await currentPage.waitForLoadState(selectorOrState, { timeout });
+      return;
+    }
+
+    if (selectorOrState.startsWith("e") && /^e\d+$/.test(selectorOrState)) {
+      await currentPage.waitForSelector(`[aria-ref="${selectorOrState}"]`, { timeout });
+      return;
+    }
+
+    await currentPage.waitForSelector(selectorOrState, { timeout });
   };
 };

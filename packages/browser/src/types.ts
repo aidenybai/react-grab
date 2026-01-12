@@ -26,18 +26,3 @@ export interface ServerInfoResponse {
   mode?: "launch" | "extension";
   extensionConnected?: boolean;
 }
-
-export interface WaitForPageLoadOptions {
-  timeout?: number;
-  pollInterval?: number;
-  minimumWait?: number;
-  waitForNetworkIdle?: boolean;
-}
-
-export interface WaitForPageLoadResult {
-  success: boolean;
-  readyState: string;
-  pendingRequests: number;
-  waitTimeMs: number;
-  timedOut: boolean;
-}

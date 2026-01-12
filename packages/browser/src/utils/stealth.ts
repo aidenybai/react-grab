@@ -1,4 +1,4 @@
-import type { BrowserContext } from "playwright";
+import type { BrowserContext } from "playwright-core";
 
 const STEALTH_SCRIPTS = `
 Object.defineProperty(navigator, 'webdriver', { get: () => undefined });

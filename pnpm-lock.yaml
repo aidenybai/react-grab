@@ -45,7 +45,7 @@ importers:
       better-sqlite3:
         specifier: ^12.5.0
         version: 12.5.0
-      playwright:
+      playwright-core:
         specifier: ^1.50.0
         version: 1.57.0
     devDependencies:
@@ -85,7 +85,7 @@ importers:
       picocolors:
         specifier: ^1.1.1
         version: 1.1.1
-      playwright:
+      playwright-core:
         specifier: ^1.50.0
         version: 1.57.0
       prompts:
@@ -3027,8 +3027,8 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
-  '@sourcegraph/amp@0.0.1768047350-g16764b':
-    resolution: {integrity: sha512-lF8sma/PrTzmyjX24Qs51ndt1V75DODH3vuCJIJ8a3HuF5zAbCW8au6D5VR9HCuhw0GIIk8unF2GIspeWYhlmw==}
+  '@sourcegraph/amp@0.0.1768176116-ged0d88':
+    resolution: {integrity: sha512-1da3R2iecaeSw/Mgoaa1YzQzBAuIUjpdf8a7Dui1BpOi5i4dNrgzj3Co4OIShRpvPAmuQU/qHaCtvkTpYdbWWg==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -9449,14 +9449,14 @@ snapshots:
 
   '@sourcegraph/amp-sdk@0.1.0-20251210081226-g90e3892':
     dependencies:
-      '@sourcegraph/amp': 0.0.1768047350-g16764b
+      '@sourcegraph/amp': 0.0.1768176116-ged0d88
       zod: 3.25.76
 
   '@sourcegraph/amp@0.0.1767830505-ga62310':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
-  '@sourcegraph/amp@0.0.1768047350-g16764b':
+  '@sourcegraph/amp@0.0.1768176116-ged0d88':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 

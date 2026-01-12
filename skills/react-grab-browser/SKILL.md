@@ -39,12 +39,15 @@ execute "await page.goto('...'); await ref('e1').click(); return await snapshot(
 - `fill(id, text)` - Clear and fill input
 - `drag({from, to, dataTransfer?})` - Drag with custom MIME types
 - `dispatch({target, event, dataTransfer?, detail?})` - Dispatch custom events
+- `waitFor(target, opts?)` - Wait for selector/ref/state. E.g. `waitFor('e1')`, `waitFor('networkidle')`
 
 ## Common Patterns
 
 ```bash
 execute "await ref('e1').click()"
 execute "await fill('e1', 'hello')"
+execute "await waitFor('e1')"
+execute "await waitFor('networkidle')"
 execute "return await ref('e1').getAttribute('data-id')"
 execute "return await ref('e1').source()"
 execute "return await snapshot({interactableOnly: true})"

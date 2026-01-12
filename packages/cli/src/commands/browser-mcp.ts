@@ -3,7 +3,7 @@ import { join } from "path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { chromium, type Page } from "playwright";
+import { chromium, type Page } from "playwright-core";
 import {
   DEFAULT_NAVIGATION_TIMEOUT_MS,
   findPageByTargetId,
@@ -17,7 +17,9 @@ import {
   createDragHelper,
   createDispatchHelper,
   createGrabHelper,
+  createWaitForHelper,
   createOutputJson,
+  createActivePageGetter,
 } from "../utils/browser-automation.js";
 
 export const startMcpServer = async (): Promise<void> => {
@@ -156,6 +158,7 @@ AVAILABLE HELPERS:
 - fill(id, text): Clear and fill input (works with rich text editors)
 - drag({from, to, dataTransfer?}): Drag with custom MIME types
 - dispatch({target, event, dataTransfer?, detail?}): Dispatch custom events
+- waitFor(target): Wait for selector/ref/state. e.g. waitFor('e1'), waitFor('networkidle')
 - grab: React Grab client API (activate, deactivate, toggle, isActive, copyElement, getState)
 
 ELEMENT SCREENSHOTS (PREFERRED for visual issues):
@@ -221,13 +224,7 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
           activePage = newPage;
         });
 
-        const getActivePage = (): Page => {
-          const allPages = context.pages();
-          if (allPages.length === 0) throw new Error("No pages available");
-          return activePage && allPages.includes(activePage)
-            ? activePage
-            : allPages[allPages.length - 1];
-        };
+        const getActivePage = createActivePageGetter(context, () => activePage);
 
         const snapshot = createSnapshotHelper(getActivePage);
         const ref = createRefHelper(getActivePage);
@@ -235,6 +232,7 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
         const drag = createDragHelper(getActivePage);
         const dispatch = createDispatchHelper(getActivePage);
         const grab = createGrabHelper(ref, getActivePage);
+        const waitFor = createWaitForHelper(getActivePage);
 
         const executeFunction = new Function(
           "page",
@@ -245,6 +243,7 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
           "drag",
           "dispatch",
           "grab",
+          "waitFor",
           `return (async () => { ${code} })();`,
         );
 
@@ -257,6 +256,7 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
           drag,
           dispatch,
           grab,
+          waitFor,
         );
         const output = await outputJson(true, result);
 

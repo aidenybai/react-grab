@@ -14,7 +14,7 @@ import {
 } from "node:http";
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
-import { chromium, type BrowserContext, type Page } from "playwright";
+import { chromium, type BrowserContext, type Page } from "playwright-core";
 import { getSnapshotScript } from "./snapshot/index.js";
 import {
   DEFAULT_SERVER_PORT,
@@ -218,7 +218,7 @@ export const serve = async (
     maxAttempts = MAX_CDP_READY_ATTEMPTS,
     delayMs = CDP_READY_DELAY_MS,
   ): Promise<Response> => {
-    for (let i = 0; i < maxAttempts; i++) {
+    for (let attemptIndex = 0; attemptIndex < maxAttempts; attemptIndex++) {
       try {
         const res = await fetch(url);
         if (res.ok) return res;
@@ -358,6 +358,23 @@ export const serve = async (
 
   process.on("SIGINT", signalHandler);
   process.on("SIGTERM", signalHandler);
+  process.on("SIGHUP", signalHandler);
+
+  process.on("uncaughtException", (error) => {
+    console.error("Uncaught exception:", error);
+    deleteServerInfo();
+    process.exit(1);
+  });
+
+  process.on("unhandledRejection", (reason) => {
+    console.error("Unhandled rejection:", reason);
+    deleteServerInfo();
+    process.exit(1);
+  });
+
+  process.on("exit", () => {
+    deleteServerInfo();
+  });
 
   return {
     port,
@@ -388,28 +405,40 @@ const filterErrorOutput = (output: string): string => {
   return errorLines.join("\n").trim();
 };
 
-const ensurePlaywrightBrowsers = async (): Promise<void> => {
-  const require = createRequire(import.meta.url);
-  const playwrightPath = require.resolve("playwright");
-  const playwrightCli = join(dirname(playwrightPath), "cli.js");
+const isChromiumInstalled = (): boolean => {
+  try {
+    const require = createRequire(import.meta.url);
+    const playwrightCorePath = require.resolve("playwright-core");
+    const browserRegistryPath = join(
+      dirname(playwrightCorePath),
+      "lib",
+      "server",
+      "registry",
+      "index.js",
+    );
+    const { Registry } = require(browserRegistryPath) as {
+      Registry: new () => { findExecutable: (name: string) => { executablePath: () => string | undefined } };
+    };
+    const registry = new Registry();
+    const chromiumExecutable = registry.findExecutable("chromium");
+    const executablePath = chromiumExecutable?.executablePath();
+    return Boolean(executablePath && existsSync(executablePath));
+  } catch {
+    return false;
+  }
+};
 
-  return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [playwrightCli, "install", "chromium"], {
-      stdio: "inherit",
-    });
+const ensurePlaywrightBrowsers = (): void => {
+  if (isChromiumInstalled()) return;
 
-    child.on("exit", (code) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        reject(new Error("Failed to install Playwright browsers. Run: npx playwright install chromium"));
-      }
-    });
+  const isLinux = process.platform === "linux";
+  const installCommand = isLinux
+    ? "npx react-grab browser install --with-deps"
+    : "npx react-grab browser install";
 
-    child.on("error", (err) => {
-      reject(new Error(`Failed to install Playwright browsers: ${err.message}`));
-    });
-  });
+  throw new Error(
+    `Chromium browser not installed.\n\nRun: ${installCommand}`,
+  );
 };
 
 export const spawnServer = async (
@@ -418,7 +447,7 @@ export const spawnServer = async (
   const port = options.port ?? DEFAULT_SERVER_PORT;
   const headless = options.headless ?? false;
 
-  await ensurePlaywrightBrowsers();
+  ensurePlaywrightBrowsers();
 
   const args = ["browser", "start", "--foreground", "-p", String(port)];
   if (!headless) args.push("--headed");
@@ -450,7 +479,7 @@ export const spawnServer = async (
 
   child.unref();
 
-  for (let i = 0; i < MAX_SERVER_SPAWN_ATTEMPTS; i++) {
+  for (let attemptIndex = 0; attemptIndex < MAX_SERVER_SPAWN_ATTEMPTS; attemptIndex++) {
     await new Promise((r) => setTimeout(r, SERVER_SPAWN_DELAY_MS));
 
     if (exitCode !== null && exitCode !== 0) {
