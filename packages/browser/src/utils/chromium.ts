@@ -21,10 +21,20 @@ export const checkChromiumInstalled = (): boolean => {
   }
 };
 
-export const installChromium = (): void => {
+export const installChromium = (withDeps = false): void => {
   const require = createRequire(import.meta.url);
   const playwrightCorePath = require.resolve("playwright-core");
   const playwrightCli = join(dirname(playwrightCorePath), "cli.js");
+
+  if (withDeps && process.platform === "linux") {
+    try {
+      execSync(`"${process.execPath}" "${playwrightCli}" install-deps chromium`, {
+        stdio: "inherit",
+      });
+    } catch {
+      console.log("Warning: Could not install system dependencies (may need sudo)");
+    }
+  }
 
   execSync(`"${process.execPath}" "${playwrightCli}" install chromium`, {
     stdio: "inherit",
@@ -37,7 +47,8 @@ export const ensureChromiumInstalled = (): void => {
   if (!checkChromiumInstalled()) {
     console.log("");
     console.log("Chromium not found. Installing...");
-    installChromium();
+    const isLinux = process.platform === "linux";
+    installChromium(isLinux);
     console.log("✓ Chromium installed successfully");
     console.log("");
   }

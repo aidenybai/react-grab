@@ -5,7 +5,7 @@ import {
   unlinkSync,
   readFileSync,
 } from "node:fs";
-import { join, dirname } from "node:path";
+import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
   createServer,
@@ -13,7 +13,6 @@ import {
   type ServerResponse,
 } from "node:http";
 import { spawn } from "node:child_process";
-import { createRequire } from "node:module";
 import { chromium, type BrowserContext, type Page } from "playwright-core";
 import { getSnapshotScript } from "./snapshot/index.js";
 import { ensureChromiumInstalled } from "./utils/chromium.js";
@@ -399,41 +398,6 @@ const filterErrorOutput = (output: string): string => {
   return errorLines.join("\n").trim();
 };
 
-const isChromiumInstalled = (): boolean => {
-  try {
-    const require = createRequire(import.meta.url);
-    const playwrightCorePath = require.resolve("playwright-core");
-    const browserRegistryPath = join(
-      dirname(playwrightCorePath),
-      "lib",
-      "server",
-      "registry",
-      "index.js",
-    );
-    const { Registry } = require(browserRegistryPath) as {
-      Registry: new () => { findExecutable: (name: string) => { executablePath: () => string | undefined } };
-    };
-    const registry = new Registry();
-    const chromiumExecutable = registry.findExecutable("chromium");
-    const executablePath = chromiumExecutable?.executablePath();
-    return Boolean(executablePath && existsSync(executablePath));
-  } catch {
-    return false;
-  }
-};
-
-const ensurePlaywrightBrowsers = (): void => {
-  if (isChromiumInstalled()) return;
-
-  const isLinux = process.platform === "linux";
-  const installCommand = isLinux
-    ? "npx react-grab browser install --with-deps"
-    : "npx react-grab browser install";
-
-  throw new Error(
-    `Chromium browser not installed.\n\nRun: ${installCommand}`,
-  );
-};
 
 export const spawnServer = async (
   options: SpawnServerOptions,
@@ -441,7 +405,7 @@ export const spawnServer = async (
   const port = options.port ?? DEFAULT_SERVER_PORT;
   const headless = options.headless ?? false;
 
-  ensurePlaywrightBrowsers();
+  ensureChromiumInstalled();
 
   const args = ["browser", "start", "--foreground", "-p", String(port)];
   if (!headless) args.push("--headed");
