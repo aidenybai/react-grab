@@ -32,6 +32,13 @@ import {
   type AgentIntegration,
 } from "../utils/templates.js";
 import { execSync } from "child_process";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import {
+  fetchSkillFile,
+  AGENT_TARGETS,
+  SUPPORTED_TARGETS,
+} from "../utils/skill-files.js";
 import {
   previewAgentRemoval,
   previewOptionsTransform,
@@ -93,19 +100,32 @@ const promptAgentIntegration = async (cwd: string, customPkg?: string): Promise<
   }
 
   if (integrationType === "skill" || integrationType === "both") {
-    logger.break();
-    const skillSpinner = spinner("Installing browser automation skill").start();
-    try {
-      execSync(`npx -y openskills install aidenybai/react-grab -y`, {
-        stdio: "inherit",
-        cwd,
-      });
+    const { skillTarget } = await prompts({
+      type: "select",
+      name: "skillTarget",
+      message: `Which ${highlighter.info("agent")} would you like to install the skill for?`,
+      choices: SUPPORTED_TARGETS.map((target) => ({
+        title: target,
+        value: target,
+      })),
+    });
+
+    if (skillTarget) {
       logger.break();
-      skillSpinner.succeed("Skill installed to .claude/skills/");
-    } catch {
-      logger.break();
-      skillSpinner.fail("Failed to install skill");
-      logger.dim("Try manually: npx -y openskills install aidenybai/react-grab");
+      const skillSpinner = spinner("Installing browser automation skill").start();
+      try {
+        const skill = await fetchSkillFile();
+        const skillDir = join(cwd, AGENT_TARGETS[skillTarget]);
+
+        rmSync(skillDir, { recursive: true, force: true });
+        mkdirSync(skillDir, { recursive: true });
+        writeFileSync(join(skillDir, "SKILL.md"), skill);
+
+        skillSpinner.succeed(`Skill installed to ${AGENT_TARGETS[skillTarget]}/`);
+      } catch {
+        skillSpinner.fail("Failed to install skill");
+        logger.dim("Try manually: npx -y openskills install aidenybai/react-grab");
+      }
     }
   }
 

@@ -212,34 +212,48 @@ export const serve = async (
     ],
   });
 
-  const reactGrabScript = await fetchReactGrabScript();
-  if (reactGrabScript) {
-    await context.addInitScript(reactGrabScript);
-  }
-  await context.addInitScript(getSnapshotScript());
+  const closeContextSafely = async (): Promise<void> => {
+    try {
+      await context.close();
+    } catch {}
+  };
 
-  const fetchUntilReady = async (
-    url: string,
-    maxAttempts = MAX_CDP_READY_ATTEMPTS,
-    delayMs = CDP_READY_DELAY_MS,
-  ): Promise<Response> => {
-    for (let attemptIndex = 0; attemptIndex < maxAttempts; attemptIndex++) {
-      try {
-        const res = await fetch(url);
-        if (res.ok) return res;
-      } catch {}
-      await new Promise((r) => setTimeout(r, delayMs));
+  let wsEndpoint: string;
+  let server: ReturnType<typeof createServer>;
+
+  try {
+    const reactGrabScript = await fetchReactGrabScript();
+    if (reactGrabScript) {
+      await context.addInitScript(reactGrabScript);
     }
-    throw new Error(`Failed to fetch ${url} after ${maxAttempts} retries`);
-  };
+    await context.addInitScript(getSnapshotScript());
 
-  const cdpResponse = await fetchUntilReady(
-    `http://127.0.0.1:${cdpPort}/json/version`,
-  );
-  const cdpInfo = (await cdpResponse.json()) as {
-    webSocketDebuggerUrl: string;
-  };
-  const wsEndpoint = cdpInfo.webSocketDebuggerUrl;
+    const fetchUntilReady = async (
+      url: string,
+      maxAttempts = MAX_CDP_READY_ATTEMPTS,
+      delayMs = CDP_READY_DELAY_MS,
+    ): Promise<Response> => {
+      for (let attemptIndex = 0; attemptIndex < maxAttempts; attemptIndex++) {
+        try {
+          const res = await fetch(url);
+          if (res.ok) return res;
+        } catch {}
+        await new Promise((r) => setTimeout(r, delayMs));
+      }
+      throw new Error(`Failed to fetch ${url} after ${maxAttempts} retries`);
+    };
+
+    const cdpResponse = await fetchUntilReady(
+      `http://127.0.0.1:${cdpPort}/json/version`,
+    );
+    const cdpInfo = (await cdpResponse.json()) as {
+      webSocketDebuggerUrl: string;
+    };
+    wsEndpoint = cdpInfo.webSocketDebuggerUrl;
+  } catch (error) {
+    await closeContextSafely();
+    throw error;
+  }
 
   const registry = new Map<string, PageEntry>();
 
@@ -334,19 +348,24 @@ export const serve = async (
     sendJson(res, 404, { error: "not found" });
   };
 
-  const server = createServer((req, res) => {
-    handleRequest(req, res).catch((err) => {
-      sendJson(res, 500, {
-        error: err instanceof Error ? err.message : "Internal error",
+  try {
+    server = createServer((req, res) => {
+      handleRequest(req, res).catch((err) => {
+        sendJson(res, 500, {
+          error: err instanceof Error ? err.message : "Internal error",
+        });
       });
     });
-  });
 
-  await new Promise<void>((resolve) => {
-    server.listen(port, "127.0.0.1", resolve);
-  });
+    await new Promise<void>((resolve) => {
+      server.listen(port, "127.0.0.1", resolve);
+    });
 
-  saveServerInfo({ port, cdpPort, wsEndpoint, pid: process.pid });
+    saveServerInfo({ port, cdpPort, wsEndpoint, pid: process.pid });
+  } catch (error) {
+    await closeContextSafely();
+    throw error;
+  }
 
   const cleanup = async (): Promise<void> => {
     deleteServerInfo();
