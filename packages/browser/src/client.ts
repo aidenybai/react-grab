@@ -35,12 +35,18 @@ export interface ServerInfo {
   extensionConnected?: boolean;
 }
 
+export interface SnapshotOptions {
+  maxDepth?: number;
+  interactableOnly?: boolean;
+  format?: "yaml" | "compact";
+}
+
 export interface BrowserClient {
   page: (name: string, options?: PageOptions) => Promise<Page>;
   list: () => Promise<string[]>;
   close: (name: string) => Promise<void>;
   disconnect: () => Promise<void>;
-  snapshot: (name: string) => Promise<string>;
+  snapshot: (name: string, options?: SnapshotOptions) => Promise<string>;
   ref: (name: string, refId: string) => Promise<ElementHandle | null>;
   getServerInfo: () => Promise<ServerInfo>;
 }
@@ -356,7 +362,6 @@ export const connect = async (
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const windowGlobal = globalThis as any;
           if (!windowGlobal.__REACT_GRAB_SNAPSHOT__) {
-            // eslint-disable-next-line no-eval
             eval(script);
           }
           return windowGlobal.__REACT_GRAB_SNAPSHOT__(opts);

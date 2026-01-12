@@ -56,7 +56,7 @@ interface PageEntry {
   targetId: string;
 }
 
-interface ServerInfo {
+interface ServerStateInfo {
   port: number;
   cdpPort: number;
   wsEndpoint: string;
@@ -70,19 +70,19 @@ export interface BrowserServer {
   stop: () => Promise<void>;
 }
 
-export const getServerInfo = (): ServerInfo | null => {
+export const getServerInfo = (): ServerStateInfo | null => {
   if (!existsSync(SERVER_INFO_PATH)) {
     return null;
   }
   try {
     const content = readFileSync(SERVER_INFO_PATH, "utf-8");
-    return JSON.parse(content) as ServerInfo;
+    return JSON.parse(content) as ServerStateInfo;
   } catch {
     return null;
   }
 };
 
-export const saveServerInfo = (info: ServerInfo): void => {
+export const saveServerInfo = (info: ServerStateInfo): void => {
   writeFileSync(SERVER_INFO_PATH, JSON.stringify(info));
 };
 

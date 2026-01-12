@@ -68,8 +68,8 @@ const promptMcpInstall = async (cwd: string, customPkg?: string): Promise<void> 
   if (!mcpClient) return;
 
   const mcpCommand = customPkg
-    ? `npx ${customPkg} browser mcp`
-    : `npx @react-grab/cli browser mcp`;
+    ? `npx -y ${customPkg} browser mcp`
+    : `npx -y @react-grab/cli browser mcp`;
 
   logger.break();
   try {
@@ -82,7 +82,7 @@ const promptMcpInstall = async (cwd: string, customPkg?: string): Promise<void> 
   } catch {
     logger.break();
     logger.warn("Failed to configure MCP server. You can try again later with:");
-    logger.log(`  npx install-mcp '${mcpCommand}' --client ${mcpClient}`);
+    logger.log(`  npx -y install-mcp '${mcpCommand}' --client ${mcpClient}`);
   }
   logger.break();
 };

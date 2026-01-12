@@ -46,6 +46,7 @@ export {
   type BrowserClient,
   type PageOptions,
   type ServerInfo,
+  type SnapshotOptions,
   type WaitForPageLoadOptions,
   type WaitForPageLoadResult,
 } from "./client.js";

@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import pc from "picocolors";
-import { chromium, type Browser, type Page } from "playwright";
+import { chromium, type Page } from "playwright";
 import {
   SUPPORTED_BROWSERS,
   BROWSER_DISPLAY_NAMES,
@@ -18,15 +18,21 @@ import {
   spawnServer,
   getServerInfo,
   isServerRunning,
-  isServerHealthy,
-  stopServer,
   deleteServerInfo,
-  getSnapshotScript,
 } from "@react-grab/browser";
-import type { ElementHandle } from "playwright";
-import { highlighter } from "../utils/highlighter.js";
 import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
+import {
+  getOrCreatePage,
+  ensureHealthyServer,
+  createSnapshotHelper,
+  createRefHelper,
+  createFillHelper,
+  createDragHelper,
+  createDispatchHelper,
+  createGrabHelper,
+  createOutputJson,
+} from "../utils/browser-automation.js";
 import { startMcpServer } from "./browser-mcp.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
@@ -38,7 +44,7 @@ const printHeader = (): void => {
   console.log();
 };
 
-const handleError = (error: unknown): never => {
+const exitWithError = (error: unknown): never => {
   logger.error(error instanceof Error ? error.message : "Failed");
   process.exit(1);
 };
@@ -65,23 +71,6 @@ const resolveSourceBrowser = (browserOption?: string): SupportedBrowser => {
     process.exit(1);
   }
   return browserOption;
-};
-
-interface PageInfo {
-  name: string;
-  targetId: string;
-  url: string;
-  wsEndpoint: string;
-}
-
-const getOrCreatePage = async (serverUrl: string, name: string): Promise<PageInfo> => {
-  const response = await fetch(`${serverUrl}/pages`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name }),
-  });
-  if (!response.ok) throw new Error(`Failed to get page: ${await response.text()}`);
-  return response.json() as Promise<PageInfo>;
 };
 
 const list = new Command()
@@ -128,7 +117,7 @@ const dump = new Command()
         logger.dim(`  ... and ${cookies.length - COOKIE_PREVIEW_LIMIT} more`);
       }
     } catch (error) {
-      handleError(error);
+      exitWithError(error);
     }
   });
 
@@ -166,7 +155,7 @@ const start = new Command()
         logger.dim(`CDP: ${browserServer.wsEndpoint}`);
       } catch (error) {
         serverSpinner.fail();
-        handleError(error);
+        exitWithError(error);
       }
       return;
     }
@@ -198,7 +187,9 @@ const start = new Command()
         const errorMessage = cookieError instanceof Error ? cookieError.message : "Unknown error";
         const isModuleVersionError = errorMessage.includes("NODE_MODULE_VERSION");
 
-        if (isModuleVersionError) {
+        if (!isModuleVersionError) {
+          cookieSpinner.fail(`Failed to load cookies from ${sourceBrowser}`);
+        } else {
           cookieSpinner.info("Native module mismatch. Rebuilding...");
           try {
             const { execSync, spawn } = await import("child_process");
@@ -226,8 +217,6 @@ const start = new Command()
           } catch {
             cookieSpinner.fail("Auto-rebuild failed. Run: npm rebuild better-sqlite3");
           }
-        } else {
-          cookieSpinner.fail(`Failed to load cookies from ${sourceBrowser}`);
         }
       }
       spinner("Server ready. Press Ctrl+C to stop.").succeed();
@@ -235,7 +224,7 @@ const start = new Command()
       await new Promise(() => {});
     } catch (error) {
       serverSpinner.fail();
-      handleError(error);
+      exitWithError(error);
     }
   });
 
@@ -307,15 +296,6 @@ const status = new Command()
     }
   });
 
-interface ExecuteResult {
-  ok: boolean;
-  result?: unknown;
-  error?: string;
-  url: string;
-  title: string;
-  page?: string;
-}
-
 const execute = new Command()
   .name("execute")
   .description("run Playwright code with 'page' variable available")
@@ -329,48 +309,17 @@ const execute = new Command()
     const pageName = options.page as string;
     const navigationTimeout = parseInt(options.timeout as string, 10);
 
-    let browser: Browser | null = null;
     let activePage: Page | null = null;
+    const buildOutput = createOutputJson(() => activePage, pageName);
 
-    const outputJson = async (ok: boolean, result?: unknown, error?: string) => {
-      const output: ExecuteResult = {
-        ok,
-        url: activePage ? activePage.url() : "",
-        title: activePage ? await activePage.title().catch(() => "") : "",
-        page: pageName,
-        ...(result !== undefined && { result }),
-        ...(error && { error }),
-      };
-      console.log(JSON.stringify(output));
-    };
-
-    const ensureHealthyServer = async (): Promise<{ serverUrl: string }> => {
-      const cliPath = process.argv[1];
-
-      const serverRunning = await isServerRunning();
-      if (serverRunning) {
-        const healthy = await isServerHealthy();
-        if (healthy) {
-          const info = getServerInfo()!;
-          return { serverUrl: `http://127.0.0.1:${info.port}` };
-        }
-        await stopServer();
-      }
-
-      const browserServer = await spawnServer({
-        headless: true,
-        cliPath,
+    try {
+      const { serverUrl } = await ensureHealthyServer({
         browser: options.browser,
         domain: options.domain,
       });
-      return { serverUrl: `http://127.0.0.1:${browserServer.port}` };
-    };
-
-    try {
-      const { serverUrl } = await ensureHealthyServer();
       const pageInfo = await getOrCreatePage(serverUrl, pageName);
 
-      browser = await chromium.connectOverCDP(pageInfo.wsEndpoint);
+      const browser = await chromium.connectOverCDP(pageInfo.wsEndpoint);
       activePage = await findPageByTargetId(browser, pageInfo.targetId);
 
       if (!activePage) {
@@ -393,232 +342,12 @@ const execute = new Command()
         return activePage && allPages.includes(activePage) ? activePage : allPages[allPages.length - 1];
       };
 
-      const snapshotScript = getSnapshotScript();
-
-      interface SnapshotOptions {
-        maxDepth?: number;
-        interactableOnly?: boolean;
-        format?: "yaml" | "compact";
-      }
-
-      const snapshot = async (options?: SnapshotOptions): Promise<string> => {
-        const currentPage = getActivePage();
-        return currentPage.evaluate(({ script, opts }: { script: string; opts?: SnapshotOptions }) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const windowGlobal = globalThis as any;
-          if (!windowGlobal.__REACT_GRAB_SNAPSHOT__) {
-            eval(script);
-          }
-          return windowGlobal.__REACT_GRAB_SNAPSHOT__(opts);
-        }, { script: snapshotScript, opts: options });
-      };
-
-      const resolveSelector = (target: string): string => {
-        if (/^e\d+$/.test(target)) {
-          return `[aria-ref="${target}"]`;
-        }
-        return target;
-      };
-
-      interface SourceInfo {
-        filePath: string;
-        lineNumber: number | null;
-        componentName: string | null;
-      }
-
-      const ref = (refId: string): ElementHandle & PromiseLike<ElementHandle> & { source: () => Promise<SourceInfo | null> } => {
-        const getElement = async (): Promise<ElementHandle> => {
-          const currentPage = getActivePage();
-          const elementHandle = await currentPage.evaluateHandle((id: string) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const windowGlobal = globalThis as any;
-            const refs = windowGlobal.__REACT_GRAB_REFS__;
-            if (!refs) {
-              throw new Error("No refs found. Call snapshot() first.");
-            }
-            const element = refs[id];
-            if (!element) {
-              throw new Error(`Ref "${id}" not found. Available refs: ${Object.keys(refs).join(", ")}`);
-            }
-            return element;
-          }, refId);
-
-          const element = elementHandle.asElement();
-          if (!element) {
-            await elementHandle.dispose();
-            throw new Error(`Ref "${refId}" is not an element`);
-          }
-          return element;
-        };
-
-        const getSource = async (): Promise<SourceInfo | null> => {
-          const element = await getElement();
-          const currentPage = getActivePage();
-          return currentPage.evaluate((el) => {
-            const api = (globalThis as { __REACT_GRAB__?: { getSource: (element: Element) => Promise<SourceInfo | null> } }).__REACT_GRAB__;
-            if (!api) return null;
-            return api.getSource(el as Element);
-          }, element);
-        };
-
-        return new Proxy({} as ElementHandle & PromiseLike<ElementHandle> & { source: () => Promise<SourceInfo | null> }, {
-          get(_, prop: string) {
-            if (prop === "then") {
-              return (
-                resolve: (value: ElementHandle) => void,
-                reject: (error: Error) => void
-              ) => getElement().then(resolve, reject);
-            }
-            if (prop === "source") {
-              return getSource;
-            }
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            return (...args: unknown[]) => getElement().then((element) => (element as any)[prop](...args));
-          },
-        });
-      };
-
-      const fill = async (refId: string, text: string): Promise<void> => {
-        const element = await ref(refId);
-        await element.click();
-        const currentPage = getActivePage();
-        const isMac = process.platform === "darwin";
-        const modifier = isMac ? "Meta" : "Control";
-        await currentPage.keyboard.press(`${modifier}+a`);
-        await currentPage.keyboard.type(text);
-      };
-
-      interface DragOptions {
-        from: string;
-        to: string;
-        dataTransfer?: Record<string, string>;
-      }
-
-      const drag = async (options: DragOptions): Promise<void> => {
-        const currentPage = getActivePage();
-        const { from, to, dataTransfer = {} } = options;
-        const fromSelector = resolveSelector(from);
-        const toSelector = resolveSelector(to);
-
-        await currentPage.evaluate(
-          ({ fromSel, toSel, data }: { fromSel: string; toSel: string; data: Record<string, string> }) => {
-            const fromElement = document.querySelector(fromSel);
-            const toElement = document.querySelector(toSel);
-            if (!fromElement) throw new Error(`Source element not found: ${fromSel}`);
-            if (!toElement) throw new Error(`Target element not found: ${toSel}`);
-
-            const dataTransferObject = new DataTransfer();
-            for (const [type, value] of Object.entries(data)) {
-              dataTransferObject.setData(type, value);
-            }
-
-            const dragStartEvent = new DragEvent("dragstart", { bubbles: true, cancelable: true, dataTransfer: dataTransferObject });
-            const dragOverEvent = new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: dataTransferObject });
-            const dropEvent = new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: dataTransferObject });
-            const dragEndEvent = new DragEvent("dragend", { bubbles: true, cancelable: true, dataTransfer: dataTransferObject });
-
-            fromElement.dispatchEvent(dragStartEvent);
-            toElement.dispatchEvent(dragOverEvent);
-            toElement.dispatchEvent(dropEvent);
-            fromElement.dispatchEvent(dragEndEvent);
-          },
-          { fromSel: fromSelector, toSel: toSelector, data: dataTransfer }
-        );
-      };
-
-      interface DispatchOptions {
-        target: string;
-        event: string;
-        bubbles?: boolean;
-        cancelable?: boolean;
-        dataTransfer?: Record<string, string>;
-        detail?: unknown;
-      }
-
-      const dispatch = async (options: DispatchOptions): Promise<boolean> => {
-        const currentPage = getActivePage();
-        const { target, event, bubbles = true, cancelable = true, dataTransfer, detail } = options;
-        const selector = resolveSelector(target);
-
-        return currentPage.evaluate(
-          ({ sel, eventType, opts }: { sel: string; eventType: string; opts: { bubbles: boolean; cancelable: boolean; dataTransfer?: Record<string, string>; detail?: unknown } }) => {
-            const element = document.querySelector(sel);
-            if (!element) throw new Error(`Element not found: ${sel}`);
-
-            let evt: Event;
-            if (opts.dataTransfer) {
-              const dataTransferObject = new DataTransfer();
-              for (const [type, value] of Object.entries(opts.dataTransfer)) {
-                dataTransferObject.setData(type, value);
-              }
-              evt = new DragEvent(eventType, {
-                bubbles: opts.bubbles,
-                cancelable: opts.cancelable,
-                dataTransfer: dataTransferObject,
-              });
-            } else if (opts.detail !== undefined) {
-              evt = new CustomEvent(eventType, {
-                bubbles: opts.bubbles,
-                cancelable: opts.cancelable,
-                detail: opts.detail,
-              });
-            } else {
-              evt = new Event(eventType, { bubbles: opts.bubbles, cancelable: opts.cancelable });
-            }
-
-            return element.dispatchEvent(evt);
-          },
-          { sel: selector, eventType: event, opts: { bubbles, cancelable, dataTransfer, detail } }
-        );
-      };
-
-      const grab = {
-        activate: async (): Promise<void> => {
-          const currentPage = getActivePage();
-          await currentPage.evaluate(() => {
-            const api = (globalThis as { __REACT_GRAB__?: { activate: () => void } }).__REACT_GRAB__;
-            if (api) api.activate();
-          });
-        },
-        deactivate: async (): Promise<void> => {
-          const currentPage = getActivePage();
-          await currentPage.evaluate(() => {
-            const api = (globalThis as { __REACT_GRAB__?: { deactivate: () => void } }).__REACT_GRAB__;
-            if (api) api.deactivate();
-          });
-        },
-        toggle: async (): Promise<void> => {
-          const currentPage = getActivePage();
-          await currentPage.evaluate(() => {
-            const api = (globalThis as { __REACT_GRAB__?: { toggle: () => void } }).__REACT_GRAB__;
-            if (api) api.toggle();
-          });
-        },
-        isActive: async (): Promise<boolean> => {
-          const currentPage = getActivePage();
-          return currentPage.evaluate(() => {
-            const api = (globalThis as { __REACT_GRAB__?: { isActive: () => boolean } }).__REACT_GRAB__;
-            return api ? api.isActive() : false;
-          });
-        },
-        copyElement: async (refId: string): Promise<boolean> => {
-          const element = await ref(refId);
-          if (!element) return false;
-          const currentPage = getActivePage();
-          return currentPage.evaluate((el) => {
-            const api = (globalThis as { __REACT_GRAB__?: { copyElement: (elements: Element[]) => Promise<boolean> } }).__REACT_GRAB__;
-            if (!api) return false;
-            return api.copyElement([el as Element]);
-          }, element);
-        },
-        getState: async (): Promise<unknown> => {
-          const currentPage = getActivePage();
-          return currentPage.evaluate(() => {
-            const api = (globalThis as { __REACT_GRAB__?: { getState: () => unknown } }).__REACT_GRAB__;
-            return api ? api.getState() : null;
-          });
-        },
-      };
+      const snapshot = createSnapshotHelper(getActivePage);
+      const ref = createRefHelper(getActivePage);
+      const fill = createFillHelper(ref, getActivePage);
+      const drag = createDragHelper(getActivePage);
+      const dispatch = createDispatchHelper(getActivePage);
+      const grab = createGrabHelper(ref, getActivePage);
 
       const executeFunction = new Function(
         "page",
@@ -633,10 +362,10 @@ const execute = new Command()
       );
 
       const result = await executeFunction(getActivePage(), getActivePage, snapshot, ref, fill, drag, dispatch, grab);
-      await outputJson(true, result);
+      console.log(JSON.stringify(await buildOutput(true, result)));
       process.exit(0);
     } catch (error) {
-      await outputJson(false, undefined, error instanceof Error ? error.message : "Failed");
+      console.log(JSON.stringify(await buildOutput(false, undefined, error instanceof Error ? error.message : "Failed")));
       process.exit(1);
     }
   });

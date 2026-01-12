@@ -1,69 +1,24 @@
+import { tmpdir } from "os";
+import { join } from "path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { chromium, type Browser, type Page } from "playwright";
+import { chromium, type Page } from "playwright";
 import {
-  getServerInfo,
-  isServerRunning,
-  isServerHealthy,
-  stopServer,
-  spawnServer,
+  DEFAULT_NAVIGATION_TIMEOUT_MS,
   findPageByTargetId,
-  getSnapshotScript,
 } from "@react-grab/browser";
-import type { ElementHandle } from "playwright";
-
-interface PageInfo {
-  name: string;
-  targetId: string;
-  url: string;
-  wsEndpoint: string;
-}
-
-interface ExecuteResult {
-  ok: boolean;
-  result?: unknown;
-  error?: string;
-  url: string;
-  title: string;
-  page?: string;
-}
-
-const DEFAULT_NAVIGATION_TIMEOUT_MS = 30000;
-
-const getOrCreatePage = async (
-  serverUrl: string,
-  name: string,
-): Promise<PageInfo> => {
-  const response = await fetch(`${serverUrl}/pages`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name }),
-  });
-  if (!response.ok)
-    throw new Error(`Failed to get page: ${await response.text()}`);
-  return response.json() as Promise<PageInfo>;
-};
-
-const ensureHealthyServer = async (): Promise<{ serverUrl: string }> => {
-  const cliPath = process.argv[1];
-
-  const serverRunning = await isServerRunning();
-  if (serverRunning) {
-    const healthy = await isServerHealthy();
-    if (healthy) {
-      const info = getServerInfo()!;
-      return { serverUrl: `http://127.0.0.1:${info.port}` };
-    }
-    await stopServer();
-  }
-
-  const browserServer = await spawnServer({
-    headless: true,
-    cliPath,
-  });
-  return { serverUrl: `http://127.0.0.1:${browserServer.port}` };
-};
+import {
+  getOrCreatePage,
+  ensureHealthyServer,
+  createSnapshotHelper,
+  createRefHelper,
+  createFillHelper,
+  createDragHelper,
+  createDispatchHelper,
+  createGrabHelper,
+  createOutputJson,
+} from "../utils/browser-automation.js";
 
 export const startMcpServer = async (): Promise<void> => {
   const server = new McpServer({
@@ -128,46 +83,25 @@ After getting refs, use browser_execute with: ref('e1').click()`,
       format,
       screenshot,
     }) => {
-      let browser: Browser | null = null;
       let activePage: Page | null = null;
 
       try {
         const { serverUrl } = await ensureHealthyServer();
         const pageInfo = await getOrCreatePage(serverUrl, pageName);
 
-        browser = await chromium.connectOverCDP(pageInfo.wsEndpoint);
+        const browser = await chromium.connectOverCDP(pageInfo.wsEndpoint);
         activePage = await findPageByTargetId(browser, pageInfo.targetId);
 
         if (!activePage) {
           throw new Error(`Page "${pageName}" not found`);
         }
 
-        const snapshotScript = getSnapshotScript();
+        const getActivePage = (): Page => activePage!;
+        const snapshot = createSnapshotHelper(getActivePage);
 
-        interface SnapshotOptions {
-          maxDepth?: number;
-          interactableOnly?: boolean;
-          format?: string;
-        }
-
-        const snapshotResult = await activePage.evaluate(
-          ({ script, opts }: { script: string; opts?: SnapshotOptions }) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const windowGlobal = globalThis as any;
-            if (!windowGlobal.__REACT_GRAB_SNAPSHOT__) {
-              eval(script);
-            }
-            return windowGlobal.__REACT_GRAB_SNAPSHOT__(opts);
-          },
-          {
-            script: snapshotScript,
-            opts: { maxDepth, interactableOnly, format },
-          },
-        );
+        const snapshotResult = await snapshot({ maxDepth, interactableOnly, format });
 
         if (screenshot) {
-          const { tmpdir } = await import("os");
-          const { join } = await import("path");
           const screenshotPath = join(
             tmpdir(),
             `react-grab-screenshot-${Date.now()}.png`,
@@ -221,6 +155,7 @@ AVAILABLE HELPERS:
 - fill(id, text): Clear and fill input (works with rich text editors)
 - drag({from, to, dataTransfer?}): Drag with custom MIME types
 - dispatch({target, event, dataTransfer?, detail?}): Dispatch custom events
+- grab: React Grab client API (activate, deactivate, toggle, isActive, copyElement, getState)
 
 ELEMENT SCREENSHOTS (PREFERRED for visual issues):
 - await ref('e1').screenshot({path: '/tmp/button.png'})
@@ -259,29 +194,14 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
       },
     },
     async ({ code, page: pageName, url, timeout }) => {
-      let browser: Browser | null = null;
       let activePage: Page | null = null;
-
-      const outputJson = async (
-        ok: boolean,
-        result?: unknown,
-        error?: string,
-      ): Promise<ExecuteResult> => {
-        return {
-          ok,
-          url: activePage ? activePage.url() : "",
-          title: activePage ? await activePage.title().catch(() => "") : "",
-          page: pageName,
-          ...(result !== undefined && { result }),
-          ...(error && { error }),
-        };
-      };
+      const outputJson = createOutputJson(() => activePage, pageName);
 
       try {
         const { serverUrl } = await ensureHealthyServer();
         const pageInfo = await getOrCreatePage(serverUrl, pageName);
 
-        browser = await chromium.connectOverCDP(pageInfo.wsEndpoint);
+        const browser = await chromium.connectOverCDP(pageInfo.wsEndpoint);
         activePage = await findPageByTargetId(browser, pageInfo.targetId);
 
         if (!activePage) {
@@ -308,264 +228,12 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
             : allPages[allPages.length - 1];
         };
 
-        const snapshotScript = getSnapshotScript();
-
-        interface SnapshotOptions {
-          maxDepth?: number;
-          interactableOnly?: boolean;
-        }
-
-        const snapshot = async (options?: SnapshotOptions): Promise<string> => {
-          const currentPage = getActivePage();
-          return currentPage.evaluate(
-            ({ script, opts }: { script: string; opts?: SnapshotOptions }) => {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const windowGlobal = globalThis as any;
-              if (!windowGlobal.__REACT_GRAB_SNAPSHOT__) {
-                eval(script);
-              }
-              return windowGlobal.__REACT_GRAB_SNAPSHOT__(opts);
-            },
-            { script: snapshotScript, opts: options },
-          );
-        };
-
-        const resolveSelector = (target: string): string => {
-          if (/^e\d+$/.test(target)) {
-            return `[aria-ref="${target}"]`;
-          }
-          return target;
-        };
-
-        interface SourceInfo {
-          filePath: string;
-          lineNumber: number | null;
-          componentName: string | null;
-        }
-
-        const ref = (
-          refId: string,
-        ): ElementHandle &
-          PromiseLike<ElementHandle> & {
-            source: () => Promise<SourceInfo | null>;
-          } => {
-          const getElement = async (): Promise<ElementHandle> => {
-            const currentPage = getActivePage();
-            const elementHandle = await currentPage.evaluateHandle(
-              (id: string) => {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const windowGlobal = globalThis as any;
-                const refs = windowGlobal.__REACT_GRAB_REFS__;
-                if (!refs) {
-                  throw new Error("No refs found. Call snapshot() first.");
-                }
-                const element = refs[id];
-                if (!element) {
-                  throw new Error(
-                    `Ref "${id}" not found. Available refs: ${Object.keys(refs).join(", ")}`,
-                  );
-                }
-                return element;
-              },
-              refId,
-            );
-
-            const element = elementHandle.asElement();
-            if (!element) {
-              await elementHandle.dispose();
-              throw new Error(`Ref "${refId}" is not an element`);
-            }
-            return element;
-          };
-
-          const getSource = async (): Promise<SourceInfo | null> => {
-            const element = await getElement();
-            const currentPage = getActivePage();
-            return currentPage.evaluate((el) => {
-              const api = (
-                globalThis as {
-                  __REACT_GRAB__?: {
-                    getSource: (element: Element) => Promise<SourceInfo | null>;
-                  };
-                }
-              ).__REACT_GRAB__;
-              if (!api) return null;
-              return api.getSource(el as Element);
-            }, element);
-          };
-
-          return new Proxy(
-            {} as ElementHandle &
-              PromiseLike<ElementHandle> & {
-                source: () => Promise<SourceInfo | null>;
-              },
-            {
-              get(_, prop: string) {
-                if (prop === "then") {
-                  return (
-                    resolve: (value: ElementHandle) => void,
-                    reject: (error: Error) => void,
-                  ) => getElement().then(resolve, reject);
-                }
-                if (prop === "source") {
-                  return getSource;
-                }
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                return (...args: unknown[]) =>
-                  getElement().then((element) =>
-                    (element as any)[prop](...args),
-                  );
-              },
-            },
-          );
-        };
-
-        const fill = async (refId: string, text: string): Promise<void> => {
-          const element = await ref(refId);
-          await element.click();
-          const currentPage = getActivePage();
-          const isMac = process.platform === "darwin";
-          const modifier = isMac ? "Meta" : "Control";
-          await currentPage.keyboard.press(`${modifier}+a`);
-          await currentPage.keyboard.type(text);
-        };
-
-        interface DragOptions {
-          from: string;
-          to: string;
-          dataTransfer?: Record<string, string>;
-        }
-
-        const drag = async (options: DragOptions): Promise<void> => {
-          const currentPage = getActivePage();
-          const { from, to, dataTransfer = {} } = options;
-          const fromSelector = resolveSelector(from);
-          const toSelector = resolveSelector(to);
-
-          await currentPage.evaluate(
-            ({
-              fromSel,
-              toSel,
-              data,
-            }: {
-              fromSel: string;
-              toSel: string;
-              data: Record<string, string>;
-            }) => {
-              const fromElement = document.querySelector(fromSel);
-              const toElement = document.querySelector(toSel);
-              if (!fromElement)
-                throw new Error(`Source element not found: ${fromSel}`);
-              if (!toElement)
-                throw new Error(`Target element not found: ${toSel}`);
-
-              const dataTransferObject = new DataTransfer();
-              for (const [type, value] of Object.entries(data)) {
-                dataTransferObject.setData(type, value);
-              }
-
-              const dragStartEvent = new DragEvent("dragstart", {
-                bubbles: true,
-                cancelable: true,
-                dataTransfer: dataTransferObject,
-              });
-              const dragOverEvent = new DragEvent("dragover", {
-                bubbles: true,
-                cancelable: true,
-                dataTransfer: dataTransferObject,
-              });
-              const dropEvent = new DragEvent("drop", {
-                bubbles: true,
-                cancelable: true,
-                dataTransfer: dataTransferObject,
-              });
-              const dragEndEvent = new DragEvent("dragend", {
-                bubbles: true,
-                cancelable: true,
-                dataTransfer: dataTransferObject,
-              });
-
-              fromElement.dispatchEvent(dragStartEvent);
-              toElement.dispatchEvent(dragOverEvent);
-              toElement.dispatchEvent(dropEvent);
-              fromElement.dispatchEvent(dragEndEvent);
-            },
-            { fromSel: fromSelector, toSel: toSelector, data: dataTransfer },
-          );
-        };
-
-        interface DispatchOptions {
-          target: string;
-          event: string;
-          bubbles?: boolean;
-          cancelable?: boolean;
-          dataTransfer?: Record<string, string>;
-          detail?: unknown;
-        }
-
-        const dispatch = async (options: DispatchOptions): Promise<boolean> => {
-          const currentPage = getActivePage();
-          const {
-            target,
-            event,
-            bubbles = true,
-            cancelable = true,
-            dataTransfer,
-            detail,
-          } = options;
-          const selector = resolveSelector(target);
-
-          return currentPage.evaluate(
-            ({
-              sel,
-              eventType,
-              opts,
-            }: {
-              sel: string;
-              eventType: string;
-              opts: {
-                bubbles: boolean;
-                cancelable: boolean;
-                dataTransfer?: Record<string, string>;
-                detail?: unknown;
-              };
-            }) => {
-              const element = document.querySelector(sel);
-              if (!element) throw new Error(`Element not found: ${sel}`);
-
-              let evt: Event;
-              if (opts.dataTransfer) {
-                const dataTransferObject = new DataTransfer();
-                for (const [type, value] of Object.entries(opts.dataTransfer)) {
-                  dataTransferObject.setData(type, value);
-                }
-                evt = new DragEvent(eventType, {
-                  bubbles: opts.bubbles,
-                  cancelable: opts.cancelable,
-                  dataTransfer: dataTransferObject,
-                });
-              } else if (opts.detail !== undefined) {
-                evt = new CustomEvent(eventType, {
-                  bubbles: opts.bubbles,
-                  cancelable: opts.cancelable,
-                  detail: opts.detail,
-                });
-              } else {
-                evt = new Event(eventType, {
-                  bubbles: opts.bubbles,
-                  cancelable: opts.cancelable,
-                });
-              }
-
-              return element.dispatchEvent(evt);
-            },
-            {
-              sel: selector,
-              eventType: event,
-              opts: { bubbles, cancelable, dataTransfer, detail },
-            },
-          );
-        };
+        const snapshot = createSnapshotHelper(getActivePage);
+        const ref = createRefHelper(getActivePage);
+        const fill = createFillHelper(ref, getActivePage);
+        const drag = createDragHelper(getActivePage);
+        const dispatch = createDispatchHelper(getActivePage);
+        const grab = createGrabHelper(ref, getActivePage);
 
         const executeFunction = new Function(
           "page",
@@ -575,6 +243,7 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
           "fill",
           "drag",
           "dispatch",
+          "grab",
           `return (async () => { ${code} })();`,
         );
 
@@ -586,6 +255,7 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
           fill,
           drag,
           dispatch,
+          grab,
         );
         const output = await outputJson(true, result);
 

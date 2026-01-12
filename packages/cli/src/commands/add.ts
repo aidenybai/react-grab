@@ -111,8 +111,8 @@ export const add = new Command()
 
         const customPkg = opts.pkg as string | undefined;
         const mcpCommand = customPkg
-          ? `npx ${customPkg} browser mcp`
-          : `npx @react-grab/cli browser mcp`;
+          ? `npx -y ${customPkg} browser mcp`
+          : `npx -y @react-grab/cli browser mcp`;
         const mcpSpinner = spinner(`Configuring MCP for ${MCP_CLIENT_NAMES[mcpClient]}`).start();
         try {
           execSync(
@@ -122,7 +122,7 @@ export const add = new Command()
           mcpSpinner.succeed(`MCP configured for ${MCP_CLIENT_NAMES[mcpClient]}`);
         } catch {
           mcpSpinner.fail(`Failed to configure MCP for ${MCP_CLIENT_NAMES[mcpClient]}`);
-          logger.dim(`Try manually: npx install-mcp '${mcpCommand}' --client ${mcpClient}`);
+          logger.dim(`Try manually: npx -y install-mcp '${mcpCommand}' --client ${mcpClient}`);
         }
         logger.break();
         process.exit(0);
@@ -139,7 +139,7 @@ export const add = new Command()
           installSpinner.succeed("Skill installed to .claude/skills/");
         } catch {
           installSpinner.fail("Failed to install skill");
-          logger.dim("Try manually: npx openskills install aidenybai/react-grab");
+          logger.dim("Try manually: npx -y openskills install aidenybai/react-grab");
           logger.break();
           process.exit(1);
         }
@@ -153,7 +153,7 @@ export const add = new Command()
           syncSpinner.succeed("Skills synced to AGENTS.md");
         } catch {
           syncSpinner.fail("Failed to sync skills");
-          logger.dim("Try manually: npx openskills sync");
+          logger.dim("Try manually: npx -y openskills sync");
         }
 
         logger.break();
@@ -213,8 +213,8 @@ export const add = new Command()
           const mcpClient = client as McpClient;
           const customPkg = opts.pkg as string | undefined;
           const mcpCommand = customPkg
-            ? `npx ${customPkg} browser mcp`
-            : `npx @react-grab/cli browser mcp`;
+            ? `npx -y ${customPkg} browser mcp`
+            : `npx -y @react-grab/cli browser mcp`;
           const mcpSpinner = spinner(`Configuring MCP for ${MCP_CLIENT_NAMES[mcpClient]}`).start();
           try {
             execSync(
