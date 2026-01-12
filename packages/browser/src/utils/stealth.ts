@@ -26,14 +26,18 @@ window.chrome = {
   app: {},
 };
 
-const originalQuery = window.navigator.permissions.query;
-window.navigator.permissions.query = (parameters) => (
-  parameters.name === 'notifications'
-    ? Promise.resolve({ state: Notification.permission })
-    : originalQuery.call(window.navigator.permissions, parameters)
-);
+if (navigator.permissions?.query) {
+  const originalQuery = navigator.permissions.query.bind(navigator.permissions);
+  navigator.permissions.query = (parameters) => (
+    parameters.name === 'notifications'
+      ? Promise.resolve({ state: Notification.permission })
+      : originalQuery(parameters)
+  );
+}
 
-Object.defineProperty(navigator.connection, 'rtt', { get: () => 50 });
+if (navigator.connection) {
+  Object.defineProperty(navigator.connection, 'rtt', { get: () => 50 });
+}
 
 const getParameter = WebGLRenderingContext.prototype.getParameter;
 WebGLRenderingContext.prototype.getParameter = function(parameter) {

@@ -250,32 +250,44 @@ export const createRefHelper = (getActivePage: () => Page): RefFunction => {
 
   const getSource = async (refId: string): Promise<SourceInfo | null> => {
     const element = await getElement(refId);
-    const currentPage = getActivePage();
-    return currentPage.evaluate((el) => {
-      const g = globalThis as { __REACT_GRAB__?: { getSource: (e: Element) => SourceInfo | null } };
-      if (!g.__REACT_GRAB__) return null;
-      return g.__REACT_GRAB__.getSource(el as Element);
-    }, element);
+    try {
+      const currentPage = getActivePage();
+      return await currentPage.evaluate((el) => {
+        const g = globalThis as { __REACT_GRAB__?: { getSource: (e: Element) => SourceInfo | null } };
+        if (!g.__REACT_GRAB__) return null;
+        return g.__REACT_GRAB__.getSource(el as Element);
+      }, element);
+    } finally {
+      await element.dispose();
+    }
   };
 
   const getProps = async (refId: string): Promise<Record<string, unknown> | null> => {
     const element = await getElement(refId);
-    const currentPage = getActivePage();
-    return currentPage.evaluate((el) => {
-      const g = globalThis as { __REACT_GRAB_GET_PROPS__?: (e: Element) => Record<string, unknown> | null };
-      if (!g.__REACT_GRAB_GET_PROPS__) return null;
-      return g.__REACT_GRAB_GET_PROPS__(el as Element);
-    }, element);
+    try {
+      const currentPage = getActivePage();
+      return await currentPage.evaluate((el) => {
+        const g = globalThis as { __REACT_GRAB_GET_PROPS__?: (e: Element) => Record<string, unknown> | null };
+        if (!g.__REACT_GRAB_GET_PROPS__) return null;
+        return g.__REACT_GRAB_GET_PROPS__(el as Element);
+      }, element);
+    } finally {
+      await element.dispose();
+    }
   };
 
   const getState = async (refId: string): Promise<unknown[] | null> => {
     const element = await getElement(refId);
-    const currentPage = getActivePage();
-    return currentPage.evaluate((el) => {
-      const g = globalThis as { __REACT_GRAB_GET_STATE__?: (e: Element) => unknown[] | null };
-      if (!g.__REACT_GRAB_GET_STATE__) return null;
-      return g.__REACT_GRAB_GET_STATE__(el as Element);
-    }, element);
+    try {
+      const currentPage = getActivePage();
+      return await currentPage.evaluate((el) => {
+        const g = globalThis as { __REACT_GRAB_GET_STATE__?: (e: Element) => unknown[] | null };
+        if (!g.__REACT_GRAB_GET_STATE__) return null;
+        return g.__REACT_GRAB_GET_STATE__(el as Element);
+      }, element);
+    } finally {
+      await element.dispose();
+    }
   };
 
   // HACK: Use Proxy to make ref() chainable with ElementHandle methods without awaiting first
@@ -305,15 +317,23 @@ export const createRefHelper = (getActivePage: () => Page): RefFunction => {
             return () => getState(refId);
           }
           if (prop === "screenshot") {
-            return (options?: Record<string, unknown>) =>
-              getElement(refId).then((el) =>
-                el.screenshot({ scale: "css", ...options }),
-              );
+            return async (options?: Record<string, unknown>) => {
+              const el = await getElement(refId);
+              try {
+                return await el.screenshot({ scale: "css", ...options });
+              } finally {
+                await el.dispose();
+              }
+            };
           }
-          return (...args: unknown[]) =>
-            getElement(refId).then((el) =>
-              (el as unknown as Record<string, (...a: unknown[]) => unknown>)[prop](...args),
-            );
+          return async (...args: unknown[]) => {
+            const el = await getElement(refId);
+            try {
+              return await (el as unknown as Record<string, (...a: unknown[]) => unknown>)[prop](...args);
+            } finally {
+              await el.dispose();
+            }
+          };
         },
       },
     );
@@ -564,11 +584,15 @@ export const createGrabHelper = (
     copyElement: async (refId: string): Promise<boolean> => {
       const element = await ref(refId);
       if (!element) return false;
-      const currentPage = getActivePage();
-      return currentPage.evaluate((el) => {
-        const g = globalThis as { __REACT_GRAB__?: { copyElement: (e: Element[]) => Promise<boolean> } };
-        return g.__REACT_GRAB__?.copyElement([el as Element]) ?? false;
-      }, element);
+      try {
+        const currentPage = getActivePage();
+        return await currentPage.evaluate((el) => {
+          const g = globalThis as { __REACT_GRAB__?: { copyElement: (e: Element[]) => Promise<boolean> } };
+          return g.__REACT_GRAB__?.copyElement([el as Element]) ?? false;
+        }, element);
+      } finally {
+        await element.dispose();
+      }
     },
   };
 };
