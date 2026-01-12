@@ -41,8 +41,8 @@ USE ELEMENT SCREENSHOTS (ref('eX').screenshot()) FOR:
 - UI verification: "is it visible", "check the layout", "verify the design"
 - Any visual concern about a SPECIFIC component
 
-USE FULL PAGE screenshot=true ONLY FOR:
-- "screenshot the whole page", "full page", "entire screen"
+USE VIEWPORT screenshot=true ONLY FOR:
+- "screenshot the page", "what's on screen"
 - No specific element mentioned AND need visual context
 
 PERFORMANCE:
@@ -72,7 +72,7 @@ After getting refs, use browser_execute with: ref('e1').click()`,
           .optional()
           .default(false)
           .describe(
-            "Full page only. For element screenshots (PREFERRED), use browser_execute: ref('eX').screenshot()",
+            "Viewport screenshot. For element screenshots (PREFERRED), use browser_execute: ref('eX').screenshot()",
           ),
       },
     },
