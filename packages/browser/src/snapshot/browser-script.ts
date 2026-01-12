@@ -756,26 +756,26 @@ async function getComponentTree(options) {
   const includeProps = options.includeProps || false;
   const componentNodes = [];
   const processedFibers = new Set();
-  
+
   const getFiberFromElement = (element) => {
     if (!element) return null;
     return element._reactFiber || element[Object.keys(element).find(key => key.startsWith("__reactFiber$") || key.startsWith("__reactInternalInstance$"))];
   };
-  
+
   const isComponentFiber = (fiber) => {
     return fiber && (fiber.tag === 0 || fiber.tag === 1 || fiber.tag === 11 || fiber.tag === 14 || fiber.tag === 15);
   };
-  
+
   const getComponentName = (fiber) => {
     if (!fiber || !fiber.type) return null;
     if (typeof fiber.type === "string") return null;
     return fiber.type.displayName || fiber.type.name || null;
   };
-  
+
   const traverseFiber = async (fiber, depth, parentPath) => {
     if (!fiber || depth > maxDepth || processedFibers.has(fiber)) return;
     processedFibers.add(fiber);
-    
+
     if (isComponentFiber(fiber)) {
       const name = getComponentName(fiber);
       if (name && !name.startsWith("_")) {
@@ -802,18 +802,18 @@ async function getComponentTree(options) {
         parentPath = node.path;
       }
     }
-    
+
     if (fiber.child) await traverseFiber(fiber.child, depth + 1, parentPath);
     if (fiber.sibling) await traverseFiber(fiber.sibling, depth, parentPath);
   };
-  
+
   const rootFiber = getFiberFromElement(document.getElementById("root") || document.getElementById("__next") || document.body.firstElementChild);
   if (rootFiber) {
     let current = rootFiber;
     while (current.return) current = current.return;
     await traverseFiber(current, 0, "");
   }
-  
+
   return componentNodes;
 }
 
@@ -1093,7 +1093,7 @@ async function populateReactInfo(snapshot) {
     };
     const startNodes = snapshot.root.role === "fragment" ? snapshot.root.children : [snapshot.root];
     for (const node of startNodes) collectNodes(node);
-    
+
     await Promise.all(nodesWithRefs.map(async (node) => {
       try {
         const rawSource = await getReactSource(node.element);
@@ -1117,9 +1117,9 @@ async function getSnapshot(options) {
   for (const [ref, element] of snapshot.elements) refsObject[ref] = element;
   window.__REACT_GRAB_REFS__ = refsObject;
   window.__REACT_GRAB_SNAPSHOT_TIME__ = Date.now();
-  
+
   await populateReactInfo(snapshot);
-  
+
   if (format === "compact") {
     return renderCompact(snapshot, { maxDepth, interactableOnly });
   }
