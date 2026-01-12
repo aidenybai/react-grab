@@ -184,6 +184,12 @@ export const createRefHelper = (getActivePage: () => Page): RefFunction => {
           if (prop === "source") {
             return () => getSource(refId);
           }
+          if (prop === "screenshot") {
+            return (options?: Record<string, unknown>) =>
+              getElement(refId).then((el) =>
+                el.screenshot({ scale: "css", ...options }),
+              );
+          }
           return (...args: unknown[]) =>
             getElement(refId).then((el) =>
               (el as unknown as Record<string, (...a: unknown[]) => unknown>)[prop](...args),

@@ -109,6 +109,7 @@ After getting refs, use browser_execute with: ref('e1').click()`,
           await activePage.screenshot({
             path: screenshotPath,
             fullPage: false,
+            scale: "css",
           });
           return {
             content: [
