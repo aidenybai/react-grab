@@ -157,6 +157,19 @@ npx -y grab@latest add mcp --client cursor
 
 Supported clients: `cursor`, `claude-code`, `vscode`, `opencode`, `codex`, `gemini-cli`, `windsurf`, `zed`, `droid`
 
+Or add it manually to your `mcp.json` file:
+
+```json
+{
+  "mcpServers": {
+    "react-grab-browser": {
+      "command": "npx",
+      "args": ["-y", "@react-grab/cli", "browser", "mcp"]
+    }
+  }
+}
+```
+
 ### MCP Tools
 
 Once configured, your agent has access to:
