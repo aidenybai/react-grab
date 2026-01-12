@@ -308,11 +308,11 @@ export const serve = async (
       let entry = registry.get(name);
       if (!entry) {
         const page = await context.newPage();
-        if (viewport) {
-          await page.setViewportSize(viewport);
-        }
         let targetId: string;
         try {
+          if (viewport) {
+            await page.setViewportSize(viewport);
+          }
           targetId = await getTargetId(context, page);
         } catch (error) {
           await page.close();
