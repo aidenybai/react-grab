@@ -1,7 +1,5 @@
 import { execSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
 import { chromium } from "playwright-core";
 
 let isChromiumInstalled: boolean | null = null;
@@ -22,13 +20,9 @@ export const checkChromiumInstalled = (): boolean => {
 };
 
 export const installChromium = (withDeps = false): void => {
-  const require = createRequire(import.meta.url);
-  const playwrightCorePath = require.resolve("playwright-core");
-  const playwrightCli = join(dirname(playwrightCorePath), "cli.js");
-
   if (withDeps && process.platform === "linux") {
     try {
-      execSync(`"${process.execPath}" "${playwrightCli}" install-deps chromium`, {
+      execSync("npx -y playwright install-deps chromium", {
         stdio: "inherit",
       });
     } catch {
@@ -36,7 +30,7 @@ export const installChromium = (withDeps = false): void => {
     }
   }
 
-  execSync(`"${process.execPath}" "${playwrightCli}" install chromium`, {
+  execSync("npx -y playwright install chromium", {
     stdio: "inherit",
   });
 

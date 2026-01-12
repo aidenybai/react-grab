@@ -1,14 +1,11 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { chromium, type Page } from "playwright-core";
+import type { Page } from "playwright-core";
+import { DEFAULT_NAVIGATION_TIMEOUT_MS } from "@react-grab/browser";
 import {
-  DEFAULT_NAVIGATION_TIMEOUT_MS,
-  findPageByTargetId,
-} from "@react-grab/browser";
-import {
-  getOrCreatePage,
-  ensureHealthyServer,
+  connectToBrowserPage,
+  createMcpErrorResponse,
   createSnapshotHelper,
   createRefHelper,
   createFillHelper,
@@ -18,6 +15,7 @@ import {
   createWaitForHelper,
   createOutputJson,
   createActivePageGetter,
+  createComponentHelper,
 } from "../utils/browser-automation.js";
 
 export const startMcpServer = async (): Promise<void> => {
@@ -29,7 +27,13 @@ export const startMcpServer = async (): Promise<void> => {
   server.registerTool(
     "browser_snapshot",
     {
-      description: `Get ARIA accessibility tree with element refs (e1, e2...).
+      description: `Get ARIA accessibility tree with element refs (e1, e2...) and React component info.
+
+OUTPUT INCLUDES:
+- ARIA roles and accessible names
+- Element refs (e1, e2...) for interaction
+- [component=ComponentName] for React components
+- [source=file.tsx:line] for source location
 
 SCREENSHOT STRATEGY - ALWAYS prefer element screenshots over full page:
 1. First: Get refs with snapshot (this tool)
@@ -47,7 +51,7 @@ USE VIEWPORT screenshot=true ONLY FOR:
 
 PERFORMANCE:
 - interactableOnly:true = much smaller output (recommended)
-- format:'compact' = minimal ref:role:name output
+- format:'compact' = minimal ref:role:name@Component output
 - maxDepth = limit tree depth
 
 After getting refs, use browser_execute with: ref('e1').click()`,
@@ -83,21 +87,14 @@ After getting refs, use browser_execute with: ref('e1').click()`,
       format,
       screenshot,
     }) => {
-      let activePage: Page | null = null;
-      let browser: Awaited<ReturnType<typeof chromium.connectOverCDP>> | null = null;
+      let browser: Awaited<ReturnType<typeof import("playwright-core").chromium.connectOverCDP>> | null = null;
 
       try {
-        const { serverUrl } = await ensureHealthyServer();
-        const pageInfo = await getOrCreatePage(serverUrl, pageName);
+        const connection = await connectToBrowserPage(pageName);
+        browser = connection.browser;
+        const activePage = connection.page;
 
-        browser = await chromium.connectOverCDP(pageInfo.wsEndpoint);
-        activePage = await findPageByTargetId(browser, pageInfo.targetId);
-
-        if (!activePage) {
-          throw new Error(`Page "${pageName}" not found`);
-        }
-
-        const getActivePage = (): Page => activePage!;
+        const getActivePage = (): Page => activePage;
         const snapshot = createSnapshotHelper(getActivePage);
 
         const snapshotResult = await snapshot({ maxDepth, interactableOnly, format });
@@ -123,18 +120,7 @@ After getting refs, use browser_execute with: ref('e1').click()`,
           content: [{ type: "text" as const, text: snapshotResult }],
         };
       } catch (error) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify({
-                ok: false,
-                error: error instanceof Error ? error.message : "Failed",
-              }),
-            },
-          ],
-          isError: true,
-        };
+        return createMcpErrorResponse(error);
       } finally {
         await browser?.close();
       }
@@ -150,25 +136,32 @@ IMPORTANT: Always call snapshot() first to get element refs from the a11y tree (
 
 AVAILABLE HELPERS:
 - page: Playwright Page object (https://playwright.dev/docs/api/class-page)
-- snapshot(opts?): Get ARIA tree. opts: {maxDepth, interactableOnly, format}
+- snapshot(opts?): Get ARIA tree with React component info. opts: {maxDepth, interactableOnly, format}
 - ref(id): Get element by ref ID, chainable with all ElementHandle methods
+- ref(id).source(): Get React component source {filePath, lineNumber, componentName}
+- ref(id).props(): Get React component props (serialized)
+- ref(id).state(): Get React component state/hooks (serialized)
+- component(name, opts?): Find elements by React component name. opts: {nth: number}
 - fill(id, text): Clear and fill input (works with rich text editors)
 - drag({from, to, dataTransfer?}): Drag with custom MIME types
 - dispatch({target, event, dataTransfer?, detail?}): Dispatch custom events
 - waitFor(target): Wait for selector/ref/state. e.g. waitFor('e1'), waitFor('networkidle')
 - grab: React Grab client API (activate, deactivate, toggle, isActive, copyElement, getState)
 
+REACT-SPECIFIC PATTERNS:
+- Get React source: return await ref('e1').source()
+- Get component props: return await ref('e1').props()
+- Get component state: return await ref('e1').state()
+- Find by component: const btn = await component('Button', {nth: 0})
+
 ELEMENT SCREENSHOTS (PREFERRED for visual issues):
 - return await ref('e1').screenshot()
-- return await ref('e2').screenshot()
 Use for: wrong color, broken styling, visual bugs, "how does X look", UI verification
-Returns image directly - no file path needed.
 
 COMMON PATTERNS:
 - Click: await ref('e1').click()
 - Fill input: await fill('e1', 'hello')
 - Get attribute: return await ref('e1').getAttribute('href')
-- Get React source: return await ref('e1').source()
 - Navigate: await page.goto('https://example.com')
 - Full page screenshot (rare): return await page.screenshot()
 
@@ -197,20 +190,14 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
     },
     async ({ code, page: pageName, url, timeout }) => {
       let activePage: Page | null = null;
-      let browser: Awaited<ReturnType<typeof chromium.connectOverCDP>> | null = null;
+      let browser: Awaited<ReturnType<typeof import("playwright-core").chromium.connectOverCDP>> | null = null;
       let pageOpenHandler: ((newPage: Page) => void) | null = null;
       const outputJson = createOutputJson(() => activePage, pageName);
 
       try {
-        const { serverUrl } = await ensureHealthyServer();
-        const pageInfo = await getOrCreatePage(serverUrl, pageName);
-
-        browser = await chromium.connectOverCDP(pageInfo.wsEndpoint);
-        activePage = await findPageByTargetId(browser, pageInfo.targetId);
-
-        if (!activePage) {
-          throw new Error(`Page "${pageName}" not found`);
-        }
+        const connection = await connectToBrowserPage(pageName);
+        browser = connection.browser;
+        activePage = connection.page;
 
         if (url) {
           await activePage.goto(url, {
@@ -234,6 +221,7 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
         const dispatch = createDispatchHelper(getActivePage);
         const grab = createGrabHelper(ref, getActivePage);
         const waitFor = createWaitForHelper(getActivePage);
+        const component = createComponentHelper(getActivePage);
 
         const executeFunction = new Function(
           "page",
@@ -245,6 +233,7 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
           "dispatch",
           "grab",
           "waitFor",
+          "component",
           `return (async () => { ${code} })();`,
         );
 
@@ -258,6 +247,7 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
           dispatch,
           grab,
           waitFor,
+          component,
         );
 
         if (Buffer.isBuffer(result)) {
@@ -294,6 +284,104 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
         if (activePage && pageOpenHandler) {
           activePage.context().off("page", pageOpenHandler);
         }
+        await browser?.close();
+      }
+    },
+  );
+
+  server.registerTool(
+    "browser_react_tree",
+    {
+      description: `Get React component tree hierarchy (separate from ARIA tree).
+
+Shows the React component structure with:
+- Component names and nesting
+- Source file locations
+- Element refs where available
+- Optional props (serialized)
+
+Use this when you need to understand React component architecture rather than accessibility tree.
+For interacting with elements, use browser_snapshot to get refs first.`,
+      inputSchema: {
+        page: z
+          .string()
+          .optional()
+          .default("default")
+          .describe("Named page context"),
+        maxDepth: z.number().optional().default(50).describe("Maximum tree depth"),
+        includeProps: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe("Include component props (increases output size)"),
+      },
+    },
+    async ({ page: pageName, maxDepth, includeProps }) => {
+      let browser: Awaited<ReturnType<typeof import("playwright-core").chromium.connectOverCDP>> | null = null;
+
+      try {
+        const connection = await connectToBrowserPage(pageName);
+        browser = connection.browser;
+        const activePage = connection.page;
+
+        interface ComponentNode {
+          name: string;
+          depth: number;
+          path: string;
+          ref?: string;
+          source?: string;
+          props?: Record<string, unknown>;
+        }
+
+        const componentTree = await activePage.evaluate(
+          async (opts: { maxDepth: number; includeProps: boolean }) => {
+            type GetComponentTreeFn = (o: {
+              maxDepth: number;
+              includeProps: boolean;
+            }) => Promise<ComponentNode[]>;
+
+            const g = globalThis as { __REACT_GRAB_GET_COMPONENT_TREE__?: GetComponentTreeFn };
+            if (!g.__REACT_GRAB_GET_COMPONENT_TREE__) {
+              return [];
+            }
+            return g.__REACT_GRAB_GET_COMPONENT_TREE__(opts);
+          },
+          { maxDepth: maxDepth ?? 50, includeProps: includeProps ?? false },
+        );
+
+        const renderTree = (nodes: ComponentNode[]): string => {
+          const lines: string[] = [];
+          for (const node of nodes) {
+            const indent = "  ".repeat(node.depth);
+            let line = `${indent}- ${node.name}`;
+            if (node.ref) line += ` [ref=${node.ref}]`;
+            if (node.source) line += ` [source=${node.source}]`;
+            if (node.props && Object.keys(node.props).length > 0) {
+              const propsStr = JSON.stringify(node.props);
+              if (propsStr.length < 100) {
+                line += ` [props=${propsStr}]`;
+              } else {
+                line += ` [props=...]`;
+              }
+            }
+            lines.push(line);
+          }
+          return lines.join("\n");
+        };
+
+        const treeOutput = renderTree(componentTree);
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: treeOutput || "No React components found. Make sure react-grab is installed and the page uses React.",
+            },
+          ],
+        };
+      } catch (error) {
+        return createMcpErrorResponse(error);
+      } finally {
         await browser?.close();
       }
     },

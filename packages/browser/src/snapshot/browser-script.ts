@@ -1,5 +1,16 @@
 let cachedScript: string | null = null;
 
+const getBrowserConstantsCode = (): string => `
+var MAX_STRING_LENGTH = 500;
+var MAX_ARRAY_ITEMS = 10;
+var MAX_OBJECT_KEYS = 20;
+var MAX_HOOKS_ITERATION = 20;
+var DEFAULT_COMPONENT_TREE_DEPTH = 50;
+var MAX_NAME_LENGTH = 900;
+var COMPACT_NAME_SLICE_LENGTH = 50;
+var SNAPSHOT_AGE_WARNING_MS = 5000;
+`;
+
 export const getSnapshotScript = (): string => {
   if (cachedScript) return cachedScript;
 
@@ -7,9 +18,11 @@ export const getSnapshotScript = (): string => {
 (function() {
   if (window.__REACT_GRAB_SNAPSHOT__) return;
 
+  ${getBrowserConstantsCode()}
   ${getDomUtilsCode()}
   ${getYamlCode()}
   ${getRoleUtilsCode()}
+  ${getReactUtilsCode()}
   ${getAriaSnapshotCode()}
 
   window.__REACT_GRAB_SNAPSHOT__ = getSnapshot;
@@ -586,6 +599,230 @@ function getCSSContent(element, pseudo) {
 }
 `;
 
+const getReactUtilsCode = (): string => `
+async function getReactSource(element) {
+  if (!element || typeof element !== "object") return null;
+  const cached = element._reactSource;
+  if (cached !== undefined) return cached;
+  if (element._reactSourcePromise) {
+    try {
+      return await element._reactSourcePromise;
+    } catch {
+      return null;
+    }
+  }
+  const reactGrab = window.__REACT_GRAB__;
+  if (!reactGrab || typeof reactGrab.getSource !== "function") return null;
+  try {
+    const promise = reactGrab.getSource(element);
+    if (!promise || typeof promise.then !== "function") {
+      element._reactSource = promise || null;
+      return element._reactSource;
+    }
+    element._reactSourcePromise = promise;
+    const source = await promise;
+    element._reactSource = source || null;
+    return element._reactSource;
+  } catch {
+    element._reactSource = null;
+    return null;
+  }
+}
+
+function findElementsByComponent(componentName, options) {
+  options = options || {};
+  const matchingElements = [];
+  const walkDOM = async (node) => {
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+    const source = await getReactSource(node);
+    if (source && source.componentName === componentName) {
+      matchingElements.push({ element: node, source });
+    }
+    for (let child = node.firstChild; child; child = child.nextSibling) {
+      await walkDOM(child);
+    }
+  };
+  return walkDOM(document.body).then(() => {
+    if (options.nth !== undefined) {
+      return matchingElements[options.nth] || null;
+    }
+    return matchingElements;
+  });
+}
+
+function safeSerialize(value, depth, maxDepth, seen) {
+  if (depth > maxDepth) return "[max depth]";
+  if (value === null) return null;
+  if (value === undefined) return undefined;
+  const valueType = typeof value;
+  if (valueType === "string") return value.length > MAX_STRING_LENGTH ? value.slice(0, MAX_STRING_LENGTH) + "..." : value;
+  if (valueType === "number" || valueType === "boolean") return value;
+  if (valueType === "bigint") return "[bigint: " + value.toString() + "]";
+  if (valueType === "function") return "[function]";
+  if (valueType === "symbol") return "[symbol]";
+  if (value instanceof Date) return "[Date: " + value.toISOString() + "]";
+  if (value instanceof RegExp) return "[RegExp: " + value.toString() + "]";
+  if (value instanceof Error) return "[Error: " + value.message + "]";
+  if (value instanceof Map) return "[Map(" + value.size + ")]";
+  if (value instanceof Set) return "[Set(" + value.size + ")]";
+  if (value instanceof WeakMap) return "[WeakMap]";
+  if (value instanceof WeakSet) return "[WeakSet]";
+  if (value instanceof Promise) return "[Promise]";
+  if (typeof ArrayBuffer !== "undefined" && value instanceof ArrayBuffer) return "[ArrayBuffer(" + value.byteLength + ")]";
+  if (typeof SharedArrayBuffer !== "undefined" && value instanceof SharedArrayBuffer) return "[SharedArrayBuffer]";
+  if (ArrayBuffer.isView(value)) return "[TypedArray(" + value.byteLength + ")]";
+  if (typeof Element !== "undefined" && value instanceof Element) return "[Element: " + value.tagName.toLowerCase() + "]";
+  if (typeof Node !== "undefined" && value instanceof Node) return "[Node: " + value.nodeName + "]";
+  if (typeof Window !== "undefined" && value instanceof Window) return "[Window]";
+  if (typeof Document !== "undefined" && value instanceof Document) return "[Document]";
+  if (seen.has(value)) return "[circular]";
+  seen.add(value);
+  if (Array.isArray(value)) {
+    if (value.length > MAX_ARRAY_ITEMS) return "[Array(" + value.length + ")]";
+    return value.slice(0, MAX_ARRAY_ITEMS).map(item => safeSerialize(item, depth + 1, maxDepth, seen));
+  }
+  if (valueType === "object") {
+    try {
+      const proto = Object.getPrototypeOf(value);
+      if (proto !== null && proto !== Object.prototype) {
+        const constructorName = value.constructor?.name;
+        if (constructorName && constructorName !== "Object") {
+          return "[" + constructorName + "]";
+        }
+      }
+      const keys = Object.keys(value);
+      if (keys.length > MAX_OBJECT_KEYS) return "[Object(" + keys.length + " keys)]";
+      const result = {};
+      for (const key of keys.slice(0, MAX_OBJECT_KEYS)) {
+        if (key.startsWith("_") || key.startsWith("$$") || key.startsWith("__")) continue;
+        try {
+          result[key] = safeSerialize(value[key], depth + 1, maxDepth, seen);
+        } catch {
+          result[key] = "[error reading property]";
+        }
+      }
+      return result;
+    } catch {
+      return "[Object]";
+    }
+  }
+  return "[unknown]";
+}
+
+function getElementProps(element) {
+  const reactGrab = window.__REACT_GRAB__;
+  if (!reactGrab) return null;
+  try {
+    const fiber = element._reactFiber || element[Object.keys(element).find(key => key.startsWith("__reactFiber$") || key.startsWith("__reactInternalInstance$"))];
+    if (!fiber) return null;
+    const props = fiber.memoizedProps;
+    if (!props) return null;
+    return safeSerialize(props, 0, 3, new Set());
+  } catch {
+    return null;
+  }
+}
+
+function getElementState(element) {
+  const reactGrab = window.__REACT_GRAB__;
+  if (!reactGrab) return null;
+  try {
+    const fiber = element._reactFiber || element[Object.keys(element).find(key => key.startsWith("__reactFiber$") || key.startsWith("__reactInternalInstance$"))];
+    if (!fiber) return null;
+    let currentFiber = fiber;
+    while (currentFiber && currentFiber.tag !== 0 && currentFiber.tag !== 1) {
+      currentFiber = currentFiber.return;
+    }
+    if (!currentFiber || !currentFiber.memoizedState) return null;
+    const states = [];
+    let stateNode = currentFiber.memoizedState;
+    let hookIndex = 0;
+    while (stateNode && hookIndex < MAX_HOOKS_ITERATION) {
+      if (stateNode.memoizedState !== undefined) {
+        states.push(safeSerialize(stateNode.memoizedState, 0, 2, new Set()));
+      }
+      stateNode = stateNode.next;
+      hookIndex++;
+    }
+    return states.length > 0 ? states : null;
+  } catch {
+    return null;
+  }
+}
+
+async function getComponentTree(options) {
+  options = options || {};
+  const maxDepth = options.maxDepth || DEFAULT_COMPONENT_TREE_DEPTH;
+  const includeProps = options.includeProps || false;
+  const componentNodes = [];
+  const processedFibers = new Set();
+  
+  const getFiberFromElement = (element) => {
+    if (!element) return null;
+    return element._reactFiber || element[Object.keys(element).find(key => key.startsWith("__reactFiber$") || key.startsWith("__reactInternalInstance$"))];
+  };
+  
+  const isComponentFiber = (fiber) => {
+    return fiber && (fiber.tag === 0 || fiber.tag === 1 || fiber.tag === 11 || fiber.tag === 14 || fiber.tag === 15);
+  };
+  
+  const getComponentName = (fiber) => {
+    if (!fiber || !fiber.type) return null;
+    if (typeof fiber.type === "string") return null;
+    return fiber.type.displayName || fiber.type.name || null;
+  };
+  
+  const traverseFiber = async (fiber, depth, parentPath) => {
+    if (!fiber || depth > maxDepth || processedFibers.has(fiber)) return;
+    processedFibers.add(fiber);
+    
+    if (isComponentFiber(fiber)) {
+      const name = getComponentName(fiber);
+      if (name && !name.startsWith("_")) {
+        const node = { name, depth, path: parentPath + "/" + name };
+        if (fiber.stateNode instanceof Element) {
+          const refs = window.__REACT_GRAB_REFS__;
+          if (refs) {
+            for (const [refId, el] of Object.entries(refs)) {
+              if (el === fiber.stateNode) {
+                node.ref = refId;
+                break;
+              }
+            }
+          }
+          const source = await getReactSource(fiber.stateNode);
+          if (source) {
+            node.source = source.filePath + (source.lineNumber ? ":" + source.lineNumber : "");
+          }
+        }
+        if (includeProps && fiber.memoizedProps) {
+          node.props = safeSerialize(fiber.memoizedProps, 0, 2, new Set());
+        }
+        componentNodes.push(node);
+        parentPath = node.path;
+      }
+    }
+    
+    if (fiber.child) await traverseFiber(fiber.child, depth + 1, parentPath);
+    if (fiber.sibling) await traverseFiber(fiber.sibling, depth, parentPath);
+  };
+  
+  const rootFiber = getFiberFromElement(document.getElementById("root") || document.getElementById("__next") || document.body.firstElementChild);
+  if (rootFiber) {
+    let current = rootFiber;
+    while (current.return) current = current.return;
+    await traverseFiber(current, 0, "");
+  }
+  
+  return componentNodes;
+}
+
+window.__REACT_GRAB_FIND_BY_COMPONENT__ = findElementsByComponent;
+window.__REACT_GRAB_GET_PROPS__ = getElementProps;
+window.__REACT_GRAB_GET_STATE__ = getElementState;
+window.__REACT_GRAB_GET_COMPONENT_TREE__ = getComponentTree;
+`;
+
 const getAriaSnapshotCode = (): string => `
 let lastRef = 0;
 
@@ -758,7 +995,7 @@ function renderAriaTree(ariaSnapshot) {
 
   const createKey = (ariaNode, renderCursorPointer) => {
     let key = ariaNode.role;
-    if (ariaNode.name && ariaNode.name.length <= 900) {
+    if (ariaNode.name && ariaNode.name.length <= MAX_NAME_LENGTH) {
       const name = ariaNode.name;
       if (name) {
         const stringifiedName = name.startsWith("/") && name.endsWith("/") ? name : JSON.stringify(name);
@@ -778,6 +1015,8 @@ function renderAriaTree(ariaSnapshot) {
       key += " [ref=" + ariaNode.ref + "]";
       if (renderCursorPointer && hasPointerCursor(ariaNode)) key += " [cursor=pointer]";
     }
+    if (ariaNode.component) key += " [component=" + ariaNode.component + "]";
+    if (ariaNode.source) key += " [source=" + ariaNode.source + "]";
     return key;
   };
 
@@ -811,7 +1050,64 @@ function renderAriaTree(ariaSnapshot) {
   return lines.join("\\n");
 }
 
-function getSnapshot(options) {
+function serializeReactSource(source) {
+  try {
+    if (!source || typeof source !== "object") return null;
+    let filePath = null;
+    let lineNumber = null;
+    let componentName = null;
+    try {
+      filePath = typeof source.filePath === "string" ? source.filePath : null;
+      if (filePath) {
+        const lastSlash = Math.max(filePath.lastIndexOf("/"), filePath.lastIndexOf("\\\\"));
+        if (lastSlash !== -1) {
+          filePath = filePath.slice(lastSlash + 1);
+        }
+      }
+    } catch {}
+    try {
+      lineNumber = typeof source.lineNumber === "number" ? source.lineNumber : null;
+    } catch {}
+    try {
+      componentName = typeof source.componentName === "string" ? source.componentName : null;
+    } catch {}
+    return { filePath, lineNumber, componentName };
+  } catch {
+    return null;
+  }
+}
+
+async function populateReactInfo(snapshot) {
+  try {
+    const nodesWithRefs = [];
+    const collectNodes = (node) => {
+      try {
+        if (typeof node === "string") return;
+        if (node.ref && node.element) {
+          nodesWithRefs.push(node);
+        }
+        for (const child of node.children || []) {
+          collectNodes(child);
+        }
+      } catch {}
+    };
+    const startNodes = snapshot.root.role === "fragment" ? snapshot.root.children : [snapshot.root];
+    for (const node of startNodes) collectNodes(node);
+    
+    await Promise.all(nodesWithRefs.map(async (node) => {
+      try {
+        const rawSource = await getReactSource(node.element);
+        const source = serializeReactSource(rawSource);
+        if (source) {
+          node.component = source.componentName;
+          node.source = source.filePath ? (source.filePath + (source.lineNumber ? ":" + source.lineNumber : "")) : null;
+        }
+      } catch {}
+    }));
+  } catch {}
+}
+
+async function getSnapshot(options) {
   options = options || {};
   const maxDepth = options.maxDepth || 0;
   const interactableOnly = options.interactableOnly || false;
@@ -821,6 +1117,9 @@ function getSnapshot(options) {
   for (const [ref, element] of snapshot.elements) refsObject[ref] = element;
   window.__REACT_GRAB_REFS__ = refsObject;
   window.__REACT_GRAB_SNAPSHOT_TIME__ = Date.now();
+  
+  await populateReactInfo(snapshot);
+  
   if (format === "compact") {
     return renderCompact(snapshot, { maxDepth, interactableOnly });
   }
@@ -837,8 +1136,9 @@ function renderCompact(snapshot, options) {
     if (node.ref) {
       const shouldInclude = !interactableOnly || node.role !== "generic" || hasPointerCursor(node);
       if (shouldInclude) {
-        const name = node.name ? ":" + node.name.slice(0, 50) : "";
-        items.push(node.ref + ":" + node.role + name);
+        const name = node.name ? ":" + node.name.slice(0, COMPACT_NAME_SLICE_LENGTH) : "";
+        const component = node.component ? "@" + node.component : "";
+        items.push(node.ref + ":" + node.role + name + component);
       }
     }
     for (const child of node.children || []) {
@@ -864,7 +1164,7 @@ function renderAriaTreeFiltered(ariaSnapshot, filterOptions) {
 
   const createKey = (ariaNode, renderCursorPointer) => {
     let key = ariaNode.role;
-    if (ariaNode.name && ariaNode.name.length <= 900) {
+    if (ariaNode.name && ariaNode.name.length <= MAX_NAME_LENGTH) {
       const name = ariaNode.name;
       if (name) {
         const stringifiedName = name.startsWith("/") && name.endsWith("/") ? name : JSON.stringify(name);
@@ -884,6 +1184,8 @@ function renderAriaTreeFiltered(ariaSnapshot, filterOptions) {
       key += " [ref=" + ariaNode.ref + "]";
       if (renderCursorPointer && hasPointerCursor(ariaNode)) key += " [cursor=pointer]";
     }
+    if (ariaNode.component) key += " [component=" + ariaNode.component + "]";
+    if (ariaNode.source) key += " [source=" + ariaNode.source + "]";
     return key;
   };
 
@@ -939,7 +1241,7 @@ function getRef(ref) {
   const snapshotTime = window.__REACT_GRAB_SNAPSHOT_TIME__;
   if (snapshotTime) {
     const ageMs = Date.now() - snapshotTime;
-    if (ageMs > 5000) console.warn("[react-grab] Snapshot is " + Math.round(ageMs / 1000) + "s old. Consider re-snapshotting.");
+    if (ageMs > SNAPSHOT_AGE_WARNING_MS) console.warn("[react-grab] Snapshot is " + Math.round(ageMs / 1000) + "s old. Consider re-snapshotting.");
   }
   return element;
 }

@@ -7,12 +7,20 @@ import {
   stopServer,
   spawnServer,
 } from "@react-grab/browser";
+import { COMPONENT_STACK_MAX_DEPTH } from "./constants.js";
 
 export interface PageInfo {
   name: string;
   targetId: string;
   url: string;
   wsEndpoint: string;
+}
+
+export interface ReactContextInfo {
+  element?: string;
+  component?: string;
+  source?: string;
+  componentStack?: string[];
 }
 
 export interface ExecuteResult {
@@ -22,6 +30,7 @@ export interface ExecuteResult {
   url: string;
   title: string;
   page?: string;
+  reactContext?: ReactContextInfo;
 }
 
 export interface SourceInfo {
@@ -80,12 +89,75 @@ export const getOrCreatePage = async (
   return response.json() as Promise<PageInfo>;
 };
 
+export const getReactContextForActiveElement = async (
+  page: Page,
+): Promise<ReactContextInfo | null> => {
+  try {
+    return page.evaluate(async (maxDepth: number) => {
+      const activeElement = document.activeElement;
+      if (!activeElement || activeElement === document.body) return null;
+
+      const reactGrab = (globalThis as { __REACT_GRAB__?: { getSource: (e: Element) => Promise<{ filePath: string; lineNumber: number | null; componentName: string | null } | null> } }).__REACT_GRAB__;
+      if (!reactGrab?.getSource) return null;
+
+      const source = await reactGrab.getSource(activeElement);
+      if (!source) return null;
+
+      const componentStack: string[] = [];
+      if (source.componentName) {
+        componentStack.push(source.componentName);
+      }
+
+      const fiberKey = Object.keys(activeElement).find(
+        (key) => key.startsWith("__reactFiber$") || key.startsWith("__reactInternalInstance$"),
+      );
+      if (fiberKey) {
+        type Fiber = { return?: Fiber; type?: { displayName?: string; name?: string } | string; tag?: number };
+        let fiber = (activeElement as unknown as Record<string, Fiber>)[fiberKey];
+        let depth = 0;
+        while (fiber?.return && depth < maxDepth) {
+          fiber = fiber.return;
+          if (fiber.tag === 0 || fiber.tag === 1 || fiber.tag === 11) {
+            const name = typeof fiber.type === "object"
+              ? fiber.type?.displayName || fiber.type?.name
+              : null;
+            if (name && !name.startsWith("_") && !componentStack.includes(name)) {
+              componentStack.push(name);
+            }
+          }
+          depth++;
+        }
+      }
+
+      return {
+        element: activeElement.tagName.toLowerCase(),
+        component: source.componentName || undefined,
+        source: source.filePath
+          ? `${source.filePath}${source.lineNumber ? `:${source.lineNumber}` : ""}`
+          : undefined,
+        componentStack: componentStack.length > 0 ? componentStack : undefined,
+      };
+    }, COMPONENT_STACK_MAX_DEPTH);
+  } catch {
+    return null;
+  }
+};
+
 export const createOutputJson = (
   getPage: () => Page | null,
   pageName: string,
 ): ((ok: boolean, result?: unknown, error?: string) => Promise<ExecuteResult>) => {
   return async (ok, result, error) => {
     const page = getPage();
+    let reactContext: ReactContextInfo | undefined;
+
+    if (page && ok) {
+      const context = await getReactContextForActiveElement(page);
+      if (context) {
+        reactContext = context;
+      }
+    }
+
     return {
       ok,
       url: page?.url() ?? "",
@@ -93,6 +165,7 @@ export const createOutputJson = (
       page: pageName,
       ...(result !== undefined && { result }),
       ...(error && { error }),
+      ...(reactContext && { reactContext }),
     };
   };
 };
@@ -124,11 +197,27 @@ export const createSnapshotHelper = (
   };
 };
 
+export interface ComponentMatch {
+  element: Element;
+  source: SourceInfo;
+}
+
+export interface ComponentOptions {
+  nth?: number;
+}
+
+export type ComponentFunction = (
+  componentName: string,
+  options?: ComponentOptions,
+) => Promise<ElementHandle | ElementHandle[] | null>;
+
 export type RefFunction = (
   refId: string,
 ) => ElementHandle &
   PromiseLike<ElementHandle> & {
     source: () => Promise<SourceInfo | null>;
+    props: () => Promise<Record<string, unknown> | null>;
+    state: () => Promise<unknown[] | null>;
   };
 
 export const createRefHelper = (getActivePage: () => Page): RefFunction => {
@@ -167,12 +256,34 @@ export const createRefHelper = (getActivePage: () => Page): RefFunction => {
     }, element);
   };
 
+  const getProps = async (refId: string): Promise<Record<string, unknown> | null> => {
+    const element = await getElement(refId);
+    const currentPage = getActivePage();
+    return currentPage.evaluate((el) => {
+      const g = globalThis as { __REACT_GRAB_GET_PROPS__?: (e: Element) => Record<string, unknown> | null };
+      if (!g.__REACT_GRAB_GET_PROPS__) return null;
+      return g.__REACT_GRAB_GET_PROPS__(el as Element);
+    }, element);
+  };
+
+  const getState = async (refId: string): Promise<unknown[] | null> => {
+    const element = await getElement(refId);
+    const currentPage = getActivePage();
+    return currentPage.evaluate((el) => {
+      const g = globalThis as { __REACT_GRAB_GET_STATE__?: (e: Element) => unknown[] | null };
+      if (!g.__REACT_GRAB_GET_STATE__) return null;
+      return g.__REACT_GRAB_GET_STATE__(el as Element);
+    }, element);
+  };
+
   // HACK: Use Proxy to make ref() chainable with ElementHandle methods without awaiting first
   return (refId: string) => {
     return new Proxy(
       {} as ElementHandle &
         PromiseLike<ElementHandle> & {
           source: () => Promise<SourceInfo | null>;
+          props: () => Promise<Record<string, unknown> | null>;
+          state: () => Promise<unknown[] | null>;
         },
       {
         get(_, prop: string) {
@@ -184,6 +295,12 @@ export const createRefHelper = (getActivePage: () => Page): RefFunction => {
           }
           if (prop === "source") {
             return () => getSource(refId);
+          }
+          if (prop === "props") {
+            return () => getProps(refId);
+          }
+          if (prop === "state") {
+            return () => getState(refId);
           }
           if (prop === "screenshot") {
             return (options?: Record<string, unknown>) =>
@@ -198,6 +315,65 @@ export const createRefHelper = (getActivePage: () => Page): RefFunction => {
         },
       },
     );
+  };
+};
+
+export const createComponentHelper = (
+  getActivePage: () => Page,
+): ComponentFunction => {
+  return async (
+    componentName: string,
+    options?: ComponentOptions,
+  ): Promise<ElementHandle | ElementHandle[] | null> => {
+    const currentPage = getActivePage();
+    const nth = options?.nth;
+
+    const elementHandles = await currentPage.evaluateHandle(
+      async (args: { name: string; nth: number | undefined }) => {
+        type FindByComponentFn = (
+          n: string,
+          o?: { nth?: number },
+        ) => Promise<Array<{ element: Element }> | { element: Element } | null>;
+
+        const g = globalThis as { __REACT_GRAB_FIND_BY_COMPONENT__?: FindByComponentFn };
+        if (!g.__REACT_GRAB_FIND_BY_COMPONENT__) {
+          throw new Error("React introspection not available. Make sure react-grab is installed.");
+        }
+        const result = await g.__REACT_GRAB_FIND_BY_COMPONENT__(args.name, args.nth !== undefined ? { nth: args.nth } : undefined);
+        if (!result) return null;
+        if (args.nth !== undefined) {
+          const single = result as { element: Element };
+          return single?.element || null;
+        }
+        const arr = result as Array<{ element: Element }>;
+        return arr.map((m) => m.element);
+      },
+      { name: componentName, nth },
+    );
+
+    const value = await elementHandles.jsonValue().catch(() => null);
+    if (value === null) {
+      await elementHandles.dispose();
+      return null;
+    }
+
+    if (nth !== undefined) {
+      const element = elementHandles.asElement();
+      if (!element) {
+        await elementHandles.dispose();
+        return null;
+      }
+      return element;
+    }
+
+    const jsHandles = await elementHandles.getProperties();
+    const handles: ElementHandle[] = [];
+    for (const [, handle] of jsHandles) {
+      const element = handle.asElement();
+      if (element) handles.push(element);
+    }
+    await elementHandles.dispose();
+    return handles;
   };
 };
 
@@ -449,5 +625,57 @@ export const createWaitForHelper = (
     }
 
     await currentPage.waitForSelector(selectorOrState, { timeout });
+  };
+};
+
+export interface BrowserConnection {
+  browser: Awaited<ReturnType<typeof import("playwright-core").chromium.connectOverCDP>>;
+  page: Page;
+  serverUrl: string;
+}
+
+export const connectToBrowserPage = async (
+  pageName: string,
+): Promise<BrowserConnection> => {
+  const { chromium } = await import("playwright-core");
+  const { findPageByTargetId } = await import("@react-grab/browser");
+
+  const { serverUrl } = await ensureHealthyServer();
+  const pageInfo = await getOrCreatePage(serverUrl, pageName);
+
+  const browser = await chromium.connectOverCDP(pageInfo.wsEndpoint);
+  const page = await findPageByTargetId(browser, pageInfo.targetId);
+
+  if (!page) {
+    await browser.close();
+    throw new Error(`Page "${pageName}" not found`);
+  }
+
+  return { browser, page, serverUrl };
+};
+
+export interface McpTextContent {
+  type: "text";
+  text: string;
+}
+
+export interface McpToolResponse {
+  [key: string]: unknown;
+  content: McpTextContent[];
+  isError?: boolean;
+}
+
+export const createMcpErrorResponse = (error: unknown): McpToolResponse => {
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify({
+          ok: false,
+          error: error instanceof Error ? error.message : "Failed",
+        }),
+      },
+    ],
+    isError: true,
   };
 };

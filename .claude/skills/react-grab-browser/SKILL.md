@@ -6,7 +6,7 @@ allowed-tools: Bash
 
 # React Grab Browser
 
-Playwright automation with your real browser cookies. Pages persist across executions. Output is always JSON: `{ok, result, error, url, title, page}`
+Playwright automation with your real browser cookies. Pages persist across executions. Output is always JSON: `{ok, result, error, url, title, page, reactContext?}`
 
 ## Overview
 
@@ -67,9 +67,12 @@ execute "await page.goto('...'); await ref('e1').click(); return await snapshot(
 ## Helpers
 
 - `page` - Playwright Page object
-- `snapshot(opts?)` - Get ARIA tree with refs (e1, e2...). Options: `maxDepth`, `interactableOnly`, `format`
+- `snapshot(opts?)` - Get ARIA tree with refs (e1, e2...) and React component info. Options: `maxDepth`, `interactableOnly`, `format`
 - `ref(id)` - Get element by ref ID (chainable). E.g. `await ref('e1').click()`
 - `ref(id).source()` - Get React component source: `{ filePath, lineNumber, componentName }`
+- `ref(id).props()` - Get React component props (serialized)
+- `ref(id).state()` - Get React component state/hooks (serialized)
+- `component(name, opts?)` - Find elements by React component name. E.g. `await component('Button', {nth: 0})`
 - `fill(id, text)` - Clear and fill input
 - `drag({from, to, dataTransfer?})` - Drag with custom MIME types
 - `dispatch({target, event, dataTransfer?, detail?})` - Dispatch custom events
@@ -111,6 +114,17 @@ npx -y @react-grab/cli browser execute "return await snapshot({interactableOnly:
 
 ## React-Specific Features
 
+### Snapshots Include React Info
+
+Snapshots now include React component information:
+- `[component=ComponentName]` - The React component that rendered this element
+- `[source=file.tsx:42]` - Source file and line number
+
+Example output:
+```yaml
+- button "Submit" [ref=e1] [component=LoginForm] [source=login.tsx:42]
+```
+
 ### Get Component Source Location
 
 ```bash
@@ -118,7 +132,47 @@ npx -y @react-grab/cli browser execute "return await snapshot({interactableOnly:
 npx -y @react-grab/cli browser execute "return await ref('e1').source()"
 ```
 
-This is unique to React Grab - it tells you exactly which React component rendered an element and where in the codebase it's defined.
+### Get Component Props
+
+```bash
+# Returns serialized props object
+npx -y @react-grab/cli browser execute "return await ref('e1').props()"
+```
+
+### Get Component State
+
+```bash
+# Returns array of hook states
+npx -y @react-grab/cli browser execute "return await ref('e1').state()"
+```
+
+### Find Elements by Component Name
+
+```bash
+# Find all Button components
+npx -y @react-grab/cli browser execute "const buttons = await component('Button'); return buttons.length"
+
+# Get the first Button
+npx -y @react-grab/cli browser execute "const btn = await component('Button', {nth: 0}); await btn.click()"
+```
+
+### Auto React Context in Output
+
+Execute responses include `reactContext` for the focused element:
+```json
+{
+  "ok": true,
+  "url": "...",
+  "reactContext": {
+    "element": "button",
+    "component": "LoginForm",
+    "source": "login.tsx:42",
+    "componentStack": ["LoginForm", "AuthPage", "App"]
+  }
+}
+```
+
+This helps you understand which React component you just interacted with.
 
 ## Best Practices
 
