@@ -34,6 +34,12 @@ export {
 } from "./utils/linux-deps.js";
 
 export {
+  checkChromiumInstalled,
+  installChromium,
+  ensureChromiumInstalled,
+} from "./utils/chromium.js";
+
+export {
   serve,
   spawnServer,
   getServerInfo,

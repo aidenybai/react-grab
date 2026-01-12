@@ -157,6 +157,19 @@ npx -y grab@latest add mcp --client cursor
 
 Supported clients: `cursor`, `claude-code`, `vscode`, `opencode`, `codex`, `gemini-cli`, `windsurf`, `zed`, `droid`
 
+Or add it manually to your `mcp.json` file:
+
+```json
+{
+  "mcpServers": {
+    "react-grab-browser": {
+      "command": "npx",
+      "args": ["-y", "@react-grab/cli", "browser", "mcp"]
+    }
+  }
+}
+```
+
 ### MCP Tools
 
 Once configured, your agent has access to:
@@ -175,6 +188,16 @@ npx -y openskills install aidenybai/react-grab -y
 ```
 
 The skill provides browser automation with Playwright using your real browser cookies. See the [skill documentation](https://github.com/aidenybai/react-grab/blob/main/skills/react-grab-browser/SKILL.md) for full details.
+
+## Claude Plugin
+
+React Grab includes a Claude plugin for Claude Code/Desktop. The plugin is located in `.claude-plugin/` and provides browser automation capabilities.
+
+To use it, ensure the plugin files are present:
+- `.claude-plugin/marketplace.json` - Plugin manifest
+- `.claude/skills/react-grab-browser/` - Skill files (SKILL.md, EXAMPLES.md, REFERENCE.md)
+
+The plugin triggers on browser-related requests like "browse", "navigate to", "screenshot", "click on", "fill form", etc.
 
 ## Extending React Grab
 

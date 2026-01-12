@@ -16,6 +16,7 @@ import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { chromium, type BrowserContext, type Page } from "playwright-core";
 import { getSnapshotScript } from "./snapshot/index.js";
+import { ensureChromiumInstalled } from "./utils/chromium.js";
 import {
   DEFAULT_SERVER_PORT,
   DEFAULT_CDP_PORT,
@@ -183,6 +184,8 @@ export const serve = async (
     : join(tmpdir(), "react-grab-browser-data");
 
   mkdirSync(userDataDir, { recursive: true });
+
+  ensureChromiumInstalled();
 
   const context = await chromium.launchPersistentContext(userDataDir, {
     headless,

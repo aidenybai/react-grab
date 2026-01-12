@@ -68,8 +68,5 @@
   },
   "publishConfig": {
     "access": "public"
-  },
-  "dependencies": {
-    "@react-grab/cli": "workspace:*"
   }
 }
