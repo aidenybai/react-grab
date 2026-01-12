@@ -291,7 +291,10 @@ export const serve = async (
         registry.set(name, entry);
 
         page.on("close", () => {
-          registry.delete(name);
+          const currentEntry = registry.get(name);
+          if (currentEntry && currentEntry.page === page) {
+            registry.delete(name);
+          }
         });
       }
 
@@ -497,7 +500,12 @@ export const spawnServer = async (
       try {
         const res = await fetch(`http://127.0.0.1:${info.port}/`);
         if (res.ok) {
-          process.exit(0);
+          return {
+            port: info.port,
+            cdpPort: info.cdpPort,
+            wsEndpoint: info.wsEndpoint,
+            stop: stopServer,
+          };
         }
       } catch {}
     }
