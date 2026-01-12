@@ -1,5 +1,11 @@
 # grab
 
+## 0.1.0-beta.3
+
+### Patch Changes
+
+- fix: use matching CLI version for prerelease builds
+
 ## 0.1.0-beta.2
 
 ### Patch Changes

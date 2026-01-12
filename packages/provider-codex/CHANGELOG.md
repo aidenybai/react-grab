@@ -1,5 +1,12 @@
 # @react-grab/codex
 
+## 0.1.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies
+  - react-grab@0.1.0-beta.3
+
 ## 0.1.0-beta.2
 
 ### Patch Changes

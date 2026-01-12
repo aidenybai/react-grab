@@ -25,6 +25,7 @@
   },
   "changesets": [
     "big-hornets-sneeze",
+    "fix-cli-version",
     "shiny-streets-fold",
     "solid-nails-act"
   ]
