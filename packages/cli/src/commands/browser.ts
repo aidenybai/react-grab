@@ -1,3 +1,7 @@
+import { execSync, spawn } from "node:child_process";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import pc from "picocolors";
 import { chromium, type Page } from "playwright-core";
@@ -54,8 +58,6 @@ const exitWithError = (error: unknown): never => {
 };
 
 const rebuildNativeModuleAndRestart = async (browserPkgDir: string): Promise<void> => {
-  const { execSync, spawn } = await import("child_process");
-
   execSync("npm rebuild better-sqlite3", {
     stdio: "ignore",
     cwd: browserPkgDir,
@@ -215,8 +217,6 @@ const start = new Command()
         } else {
           cookieSpinner.info("Native module mismatch. Rebuilding...");
           try {
-            const { dirname, join } = await import("path");
-            const { fileURLToPath } = await import("url");
             const currentDir = dirname(fileURLToPath(import.meta.url));
             const browserPkgDir = join(currentDir, "..", "..");
 
@@ -593,10 +593,6 @@ const install = new Command()
     const browserSpinner = spinner("Installing Chromium browser").start();
 
     try {
-      const { execSync } = await import("child_process");
-      const { createRequire } = await import("module");
-      const { dirname, join } = await import("path");
-
       const require = createRequire(import.meta.url);
       const playwrightCorePath = require.resolve("playwright-core");
       const playwrightCli = join(dirname(playwrightCorePath), "cli.js");

@@ -1,17 +1,20 @@
 import { execSync } from "node:child_process";
 import { createDecipheriv, pbkdf2Sync } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { join } from "node:path";
 import Database from "better-sqlite3";
 import {
   AES_BLOCK_SIZE,
+  AES_GCM_NONCE_LENGTH,
+  AES_GCM_TAG_LENGTH,
   AES_KEY_LENGTH,
   COOKIE_DB_PATHS,
   DARWIN_DIGEST_SIZE,
   ENCRYPTED_COOKIE_PREFIX,
   KEYCHAIN_SERVICE_NAMES,
   LINUX_SECRET_LABELS,
+  LOCAL_STATE_PATHS,
   PBKDF2_ITERATIONS_DARWIN,
   PBKDF2_ITERATIONS_LINUX,
   SUPPORTED_BROWSERS,
@@ -99,36 +102,77 @@ const getSafeStorageKeyLinux = (browser: SupportedBrowser): string => {
   return "peanuts";
 };
 
-const getSafeStorageKey = (browser: SupportedBrowser): string => {
+const getLocalStatePath = (browser: SupportedBrowser): string => {
+  return join(homedir(), LOCAL_STATE_PATHS[browser]);
+};
+
+const getSafeStorageKeyWindows = (browser: SupportedBrowser): Buffer => {
+  const localStatePath = getLocalStatePath(browser);
+  const localState = JSON.parse(readFileSync(localStatePath, "utf-8"));
+  const encryptedKey = Buffer.from(
+    localState.os_crypt.encrypted_key,
+    "base64",
+  );
+
+  const keyWithoutPrefix = encryptedKey.subarray(5);
+  const base64Key = keyWithoutPrefix.toString("base64");
+  const psCommand = `Add-Type -AssemblyName System.Security; $encrypted = [Convert]::FromBase64String('${base64Key}'); $decrypted = [System.Security.Cryptography.ProtectedData]::Unprotect($encrypted, $null, 'CurrentUser'); [Convert]::ToBase64String($decrypted)`;
+  const result = execSync(`powershell -Command "${psCommand}"`, {
+    encoding: "utf-8",
+  });
+  return Buffer.from(result.trim(), "base64");
+};
+
+const getSafeStorageKey = (browser: SupportedBrowser): string | Buffer => {
+  if (platform() === "win32") {
+    return getSafeStorageKeyWindows(browser);
+  }
   if (platform() === "linux") {
     return getSafeStorageKeyLinux(browser);
   }
   return getSafeStorageKeyDarwin(browser);
 };
 
-const decryptCookieValue = (
+const decryptCookieValueWindows = (
+  encryptedData: Buffer,
+  key: Buffer,
+): string => {
+  const nonce = encryptedData.subarray(3, 3 + AES_GCM_NONCE_LENGTH);
+  const ciphertextWithTag = encryptedData.subarray(3 + AES_GCM_NONCE_LENGTH);
+  const tag = ciphertextWithTag.subarray(
+    ciphertextWithTag.length - AES_GCM_TAG_LENGTH,
+  );
+  const ciphertext = ciphertextWithTag.subarray(
+    0,
+    ciphertextWithTag.length - AES_GCM_TAG_LENGTH,
+  );
+
+  const decipher = createDecipheriv("aes-256-gcm", key, nonce);
+  decipher.setAuthTag(tag);
+
+  const decrypted = Buffer.concat([
+    decipher.update(ciphertext),
+    decipher.final(),
+  ]);
+  return decrypted.toString("utf-8");
+};
+
+const decryptCookieValueUnix = (
   encryptedData: Buffer,
   safeStorageKey: string,
 ): string => {
-  if (encryptedData.length === 0) {
-    return "";
-  }
-
-  const hasEncryptedPrefix =
-    encryptedData[0] === ENCRYPTED_COOKIE_PREFIX[0] &&
-    encryptedData[1] === ENCRYPTED_COOKIE_PREFIX[1] &&
-    encryptedData[2] === ENCRYPTED_COOKIE_PREFIX[2];
-
-  if (!hasEncryptedPrefix) {
-    return "";
-  }
-
   const iv = Buffer.alloc(AES_BLOCK_SIZE, " ");
   const salt = Buffer.from("saltysalt");
   const iterations =
     platform() === "linux" ? PBKDF2_ITERATIONS_LINUX : PBKDF2_ITERATIONS_DARWIN;
 
-  const key = pbkdf2Sync(safeStorageKey, salt, iterations, AES_KEY_LENGTH, "sha1");
+  const key = pbkdf2Sync(
+    safeStorageKey,
+    salt,
+    iterations,
+    AES_KEY_LENGTH,
+    "sha1",
+  );
   const encryptedPayload = encryptedData.subarray(3);
 
   const decipher = createDecipheriv("aes-128-cbc", key, iv);
@@ -151,9 +195,35 @@ const decryptCookieValue = (
 
   const unpaddedData = decrypted.subarray(0, decrypted.length - paddingLength);
   const valueWithoutDigest =
-    platform() === "linux" ? unpaddedData : unpaddedData.subarray(DARWIN_DIGEST_SIZE);
+    platform() === "linux"
+      ? unpaddedData
+      : unpaddedData.subarray(DARWIN_DIGEST_SIZE);
 
   return valueWithoutDigest.toString("utf-8");
+};
+
+const decryptCookieValue = (
+  encryptedData: Buffer,
+  safeStorageKey: string | Buffer,
+): string => {
+  if (encryptedData.length === 0) {
+    return "";
+  }
+
+  const hasEncryptedPrefix =
+    encryptedData[0] === ENCRYPTED_COOKIE_PREFIX[0] &&
+    encryptedData[1] === ENCRYPTED_COOKIE_PREFIX[1] &&
+    encryptedData[2] === ENCRYPTED_COOKIE_PREFIX[2];
+
+  if (!hasEncryptedPrefix) {
+    return "";
+  }
+
+  if (platform() === "win32") {
+    return decryptCookieValueWindows(encryptedData, safeStorageKey as Buffer);
+  }
+
+  return decryptCookieValueUnix(encryptedData, safeStorageKey as string);
 };
 
 export const dumpCookies = (

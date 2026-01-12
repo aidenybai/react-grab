@@ -80,6 +80,15 @@ export const LINUX_SECRET_LABELS: Record<SupportedBrowser, string> = {
   helium: "helium",
 };
 
+export const LOCAL_STATE_PATHS: Record<SupportedBrowser, string> = {
+  chrome: "AppData\\Local\\Google\\Chrome\\User Data\\Local State",
+  edge: "AppData\\Local\\Microsoft\\Edge\\User Data\\Local State",
+  brave: "AppData\\Local\\BraveSoftware\\Brave-Browser\\User Data\\Local State",
+  arc: "AppData\\Local\\Arc\\User Data\\Local State",
+  dia: "AppData\\Local\\Dia\\User Data\\Local State",
+  helium: "AppData\\Local\\Helium\\User Data\\Local State",
+};
+
 export const PBKDF2_ITERATIONS_DARWIN = 1003;
 export const PBKDF2_ITERATIONS_LINUX = 1;
 
@@ -90,6 +99,8 @@ export const ENCRYPTED_COOKIE_PREFIX = Buffer.from("v10");
 export const AES_BLOCK_SIZE = 16;
 export const AES_KEY_LENGTH = 16;
 export const DARWIN_DIGEST_SIZE = 32;
+export const AES_GCM_NONCE_LENGTH = 12;
+export const AES_GCM_TAG_LENGTH = 16;
 
 export const DEFAULT_SERVER_PORT = 9222;
 export const DEFAULT_CDP_PORT = 9223;

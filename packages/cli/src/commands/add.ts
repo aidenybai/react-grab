@@ -22,6 +22,13 @@ import {
   type McpClient,
 } from "../utils/templates.js";
 import { execSync } from "child_process";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import {
+  fetchSkillFile,
+  AGENT_TARGETS,
+  SUPPORTED_TARGETS,
+} from "../utils/skill-files.js";
 import {
   applyPackageJsonTransform,
   applyTransform,
@@ -129,36 +136,62 @@ export const add = new Command()
       }
 
       if (agentArg === "skill") {
-        logger.break();
-        const installSpinner = spinner("Installing browser automation skill").start();
-        try {
-          execSync(
-            `npx -y openskills install aidenybai/react-grab -y`,
-            { stdio: "ignore", cwd },
-          );
-          installSpinner.succeed("Skill installed to .claude/skills/");
-        } catch {
-          installSpinner.fail("Failed to install skill");
-          logger.dim("Try manually: npx -y openskills install aidenybai/react-grab");
+        let skillTarget = opts.client as string | undefined;
+
+        if (skillTarget && !AGENT_TARGETS[skillTarget]) {
+          logger.break();
+          logger.error(`Invalid skill target: ${skillTarget}`);
+          logger.error(`Available targets: ${SUPPORTED_TARGETS.join(", ")}`);
           logger.break();
           process.exit(1);
         }
 
-        const syncSpinner = spinner("Syncing skills to AGENTS.md").start();
-        try {
-          execSync(
-            `npx -y openskills sync -y`,
-            { stdio: "ignore", cwd },
-          );
-          syncSpinner.succeed("Skills synced to AGENTS.md");
-        } catch {
-          syncSpinner.fail("Failed to sync skills");
-          logger.dim("Try manually: npx -y openskills sync");
+        if (!skillTarget && !isNonInteractive) {
+          logger.break();
+          const { target } = await prompts({
+            type: "select",
+            name: "target",
+            message: `Which ${highlighter.info("agent")} would you like to install the skill for?`,
+            choices: SUPPORTED_TARGETS.map((innerTarget) => ({
+              title: innerTarget,
+              value: innerTarget,
+            })),
+          });
+
+          if (!target) {
+            logger.break();
+            process.exit(1);
+          }
+
+          skillTarget = target;
+        }
+
+        if (!skillTarget) {
+          logger.break();
+          logger.error("Please specify a target with --client");
+          logger.error(`Available targets: ${SUPPORTED_TARGETS.join(", ")}`);
+          logger.break();
+          process.exit(1);
         }
 
         logger.break();
-        logger.success("Browser automation skill installed!");
-        logger.dim("Agents can now use: openskills read react-grab-browser");
+        const installSpinner = spinner("Fetching skill file").start();
+        try {
+          const skill = await fetchSkillFile();
+          const skillDir = join(cwd, AGENT_TARGETS[skillTarget]);
+
+          rmSync(skillDir, { recursive: true, force: true });
+          mkdirSync(skillDir, { recursive: true });
+          writeFileSync(join(skillDir, "SKILL.md"), skill);
+
+          installSpinner.succeed(`Skill installed to ${AGENT_TARGETS[skillTarget]}/`);
+        } catch (error) {
+          installSpinner.fail("Failed to install skill");
+          logger.error(error instanceof Error ? error.message : "Unknown error");
+          logger.break();
+          process.exit(1);
+        }
+
         logger.break();
         process.exit(0);
       }
@@ -231,35 +264,38 @@ export const add = new Command()
         }
 
         if (addType === "skill") {
-          const installSpinner = spinner("Installing browser automation skill").start();
-          try {
-            execSync(
-              `npx -y openskills install aidenybai/react-grab -y`,
-              { stdio: "ignore", cwd },
-            );
-            installSpinner.succeed("Skill installed to .claude/skills/");
-          } catch {
-            installSpinner.fail("Failed to install skill");
-            logger.dim("Try manually: npx openskills install aidenybai/react-grab");
+          const { target } = await prompts({
+            type: "select",
+            name: "target",
+            message: `Which ${highlighter.info("agent")} would you like to install the skill for?`,
+            choices: SUPPORTED_TARGETS.map((innerTarget) => ({
+              title: innerTarget,
+              value: innerTarget,
+            })),
+          });
+
+          if (!target) {
             logger.break();
             process.exit(1);
           }
 
-          const syncSpinner = spinner("Syncing skills to AGENTS.md").start();
+          const installSpinner = spinner("Fetching skill file").start();
           try {
-            execSync(
-              `npx -y openskills sync -y`,
-              { stdio: "ignore", cwd },
-            );
-            syncSpinner.succeed("Skills synced to AGENTS.md");
-          } catch {
-            syncSpinner.fail("Failed to sync skills");
-            logger.dim("Try manually: npx openskills sync");
+            const skill = await fetchSkillFile();
+            const skillDir = join(cwd, AGENT_TARGETS[target]);
+
+            rmSync(skillDir, { recursive: true, force: true });
+            mkdirSync(skillDir, { recursive: true });
+            writeFileSync(join(skillDir, "SKILL.md"), skill);
+
+            installSpinner.succeed(`Skill installed to ${AGENT_TARGETS[target]}/`);
+          } catch (error) {
+            installSpinner.fail("Failed to install skill");
+            logger.error(error instanceof Error ? error.message : "Unknown error");
+            logger.break();
+            process.exit(1);
           }
 
-          logger.break();
-          logger.success("Browser automation skill installed!");
-          logger.dim("Agents can now use: openskills read react-grab-browser");
           logger.break();
           process.exit(0);
         }
