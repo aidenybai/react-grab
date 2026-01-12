@@ -51,8 +51,8 @@ execute "await waitFor('networkidle')"
 execute "return await ref('e1').getAttribute('data-id')"
 execute "return await ref('e1').source()"
 execute "return await snapshot({interactableOnly: true})"
-execute "await ref('e1').screenshot({path: '/tmp/el.png'})"
-execute "await page.screenshot({path: '/tmp/full.png'})"
+execute "return await ref('e1').screenshot()"
+execute "return await page.screenshot()"
 ```
 
 ## Multi-Page Sessions

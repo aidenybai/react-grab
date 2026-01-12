@@ -1,5 +1,3 @@
-import { tmpdir } from "os";
-import { join } from "path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -35,7 +33,7 @@ export const startMcpServer = async (): Promise<void> => {
 
 SCREENSHOT STRATEGY - ALWAYS prefer element screenshots over full page:
 1. First: Get refs with snapshot (this tool)
-2. Then: Screenshot specific element via browser_execute: await ref('e1').screenshot({path: '/tmp/element.png'})
+2. Then: Screenshot specific element via browser_execute: return await ref('e1').screenshot()
 
 USE ELEMENT SCREENSHOTS (ref('eX').screenshot()) FOR:
 - Visual bugs: "wrong color", "broken", "misaligned", "styling issue", "CSS bug"
@@ -104,12 +102,7 @@ After getting refs, use browser_execute with: ref('e1').click()`,
         const snapshotResult = await snapshot({ maxDepth, interactableOnly, format });
 
         if (screenshot) {
-          const screenshotPath = join(
-            tmpdir(),
-            `react-grab-screenshot-${Date.now()}.png`,
-          );
-          await activePage.screenshot({
-            path: screenshotPath,
+          const screenshotBuffer = await activePage.screenshot({
             fullPage: false,
             scale: "css",
           });
@@ -117,8 +110,9 @@ After getting refs, use browser_execute with: ref('e1').click()`,
             content: [
               { type: "text" as const, text: snapshotResult },
               {
-                type: "text" as const,
-                text: `\n\nScreenshot saved: ${screenshotPath}`,
+                type: "image" as const,
+                data: screenshotBuffer.toString("base64"),
+                mimeType: "image/png",
               },
             ],
           };
@@ -162,9 +156,10 @@ AVAILABLE HELPERS:
 - grab: React Grab client API (activate, deactivate, toggle, isActive, copyElement, getState)
 
 ELEMENT SCREENSHOTS (PREFERRED for visual issues):
-- await ref('e1').screenshot({path: '/tmp/button.png'})
-- await ref('e2').screenshot({path: '/tmp/card.png'})
+- return await ref('e1').screenshot()
+- return await ref('e2').screenshot()
 Use for: wrong color, broken styling, visual bugs, "how does X look", UI verification
+Returns image directly - no file path needed.
 
 COMMON PATTERNS:
 - Click: await ref('e1').click()
@@ -172,7 +167,7 @@ COMMON PATTERNS:
 - Get attribute: return await ref('e1').getAttribute('href')
 - Get React source: return await ref('e1').source()
 - Navigate: await page.goto('https://example.com')
-- Full page screenshot (rare): await page.screenshot({path: '/tmp/full.png'})
+- Full page screenshot (rare): return await page.screenshot()
 
 PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.`,
       inputSchema: {
@@ -258,6 +253,21 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
           grab,
           waitFor,
         );
+
+        if (Buffer.isBuffer(result)) {
+          const output = await outputJson(true, undefined);
+          return {
+            content: [
+              { type: "text" as const, text: JSON.stringify(output) },
+              {
+                type: "image" as const,
+                data: result.toString("base64"),
+                mimeType: "image/png",
+              },
+            ],
+          };
+        }
+
         const output = await outputJson(true, result);
 
         return {
