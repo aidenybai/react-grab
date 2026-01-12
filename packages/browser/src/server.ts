@@ -292,7 +292,13 @@ export const serve = async (
       let entry = registry.get(name);
       if (!entry) {
         const page = await context.newPage();
-        const targetId = await getTargetId(context, page);
+        let targetId: string;
+        try {
+          targetId = await getTargetId(context, page);
+        } catch (error) {
+          await page.close();
+          throw error;
+        }
         entry = { page, targetId };
         registry.set(name, entry);
 
