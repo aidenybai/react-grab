@@ -184,7 +184,7 @@ export const connect = async (
 
     async snapshot(
       name: string,
-      options?: { maxDepth?: number; interactableOnly?: boolean },
+      options?: SnapshotOptions,
     ): Promise<string> {
       const page = await getPage(name);
       const snapshotScript = getSnapshotScript();
@@ -195,7 +195,7 @@ export const connect = async (
           opts,
         }: {
           script: string;
-          opts?: { maxDepth?: number; interactableOnly?: boolean };
+          opts?: SnapshotOptions;
         }) => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const windowGlobal = globalThis as any;

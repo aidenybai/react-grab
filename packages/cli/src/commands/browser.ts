@@ -40,6 +40,7 @@ import {
   createWaitForHelper,
   createOutputJson,
   createActivePageGetter,
+  createComponentHelper,
 } from "../utils/browser-automation.js";
 import { startMcpServer } from "./browser-mcp.js";
 
@@ -367,6 +368,7 @@ const execute = new Command()
       const dispatch = createDispatchHelper(getActivePage);
       const grab = createGrabHelper(ref, getActivePage);
       const waitFor = createWaitForHelper(getActivePage);
+      const component = createComponentHelper(getActivePage);
 
       const executeFunction = new Function(
         "page",
@@ -378,10 +380,11 @@ const execute = new Command()
         "dispatch",
         "grab",
         "waitFor",
+        "component",
         `return (async () => { ${code} })();`,
       );
 
-      const result = await executeFunction(getActivePage(), getActivePage, snapshot, ref, fill, drag, dispatch, grab, waitFor);
+      const result = await executeFunction(getActivePage(), getActivePage, snapshot, ref, fill, drag, dispatch, grab, waitFor, component);
       console.log(JSON.stringify(await buildOutput(true, result)));
     } catch (error) {
       console.log(JSON.stringify(await buildOutput(false, undefined, error instanceof Error ? error.message : "Failed")));
@@ -478,6 +481,13 @@ HELPERS
   ref(id)           - Get element by ref ID (chainable - supports all ElementHandle methods)
                       Example: await ref('e1').click()
                       Example: await ref('e1').getAttribute('data-foo')
+  ref(id).source()  - Get React component source file info for element
+                      Returns { filePath, lineNumber, componentName } or null
+  ref(id).props()   - Get React component props (serialized)
+  ref(id).state()   - Get React component state/hooks (serialized)
+  component(name, opts?) - Find elements by React component name
+                      opts.nth: get the nth matching element (0-indexed)
+                      Example: await component('Button', {nth: 0})
   fill(id, text)    - Clear and fill input (works with rich text editors)
   drag(opts)        - Drag with custom MIME types
                       opts.from: source selector or ref ID (e.g., "e1" or "text=src")
@@ -493,8 +503,6 @@ HELPERS
                       await waitFor('.btn')         - wait for selector
                       await waitFor('networkidle')  - wait for network idle
                       await waitFor('load')         - wait for page load
-  ref(id).source()  - Get React component source file info for element
-                      Returns { filePath, lineNumber, componentName } or null
   grab              - React Grab client API (activate, copyElement, etc)
 
 SNAPSHOT FORMATS
@@ -551,14 +559,27 @@ COMMON PATTERNS
     dataTransfer: { 'application/x-custom': 'data' }
   })"
 
-  # Get React component source file
-  execute "return await ref('e1').source()"
-
   # Get page info
   execute "return {url: page.url(), title: await page.title()}"
 
   # CSS selector fallback (refs are now in DOM as aria-ref)
   execute "await page.click('[aria-ref=\"e1\"]')"
+
+REACT-SPECIFIC PATTERNS
+  # Get React component source file
+  execute "return await ref('e1').source()"
+
+  # Get component props
+  execute "return await ref('e1').props()"
+
+  # Get component state
+  execute "return await ref('e1').state()"
+
+  # Find elements by React component name
+  execute "const buttons = await component('Button'); return buttons.length"
+
+  # Get the first Button component and click it
+  execute "const btn = await component('Button', {nth: 0}); await btn.click()"
 
 MULTI-PAGE SESSIONS
   execute "await page.goto('https://github.com')" --page github

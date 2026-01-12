@@ -353,8 +353,8 @@ export const createComponentHelper = (
       { name: componentName, nth },
     );
 
-    const value = await elementHandles.jsonValue().catch(() => null);
-    if (value === null) {
+    const isNull = await currentPage.evaluate((value) => value === null, elementHandles);
+    if (isNull) {
       await elementHandles.dispose();
       return null;
     }

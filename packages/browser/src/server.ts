@@ -296,6 +296,9 @@ export const serve = async (
     if (method === "POST" && url.pathname === "/pages") {
       const body = await parseBody(req);
       const name = body.name as string;
+      const viewport = body.viewport as
+        | { width: number; height: number }
+        | undefined;
 
       if (!name || typeof name !== "string") {
         sendJson(res, 400, { error: "name is required" });
@@ -305,6 +308,9 @@ export const serve = async (
       let entry = registry.get(name);
       if (!entry) {
         const page = await context.newPage();
+        if (viewport) {
+          await page.setViewportSize(viewport);
+        }
         let targetId: string;
         try {
           targetId = await getTargetId(context, page);
