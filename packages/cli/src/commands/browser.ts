@@ -230,9 +230,8 @@ const start = new Command()
       }
       spinner("Server ready. Press Ctrl+C to stop.").succeed();
 
-      const shutdownHandler = async (): Promise<void> => {
-        await browserServer.stop();
-        process.exit(0);
+      const shutdownHandler = (): void => {
+        browserServer.stop().catch(() => {}).finally(() => process.exit(0));
       };
       process.on("SIGINT", shutdownHandler);
       process.on("SIGTERM", shutdownHandler);
@@ -327,7 +326,10 @@ const execute = new Command()
     const navigationTimeout = parseInt(options.timeout as string, 10);
 
     let activePage: Page | null = null;
+    let browser: Awaited<ReturnType<typeof chromium.connectOverCDP>> | null = null;
+    let pageOpenHandler: ((newPage: Page) => void) | null = null;
     const buildOutput = createOutputJson(() => activePage, pageName);
+    let exitCode = 0;
 
     try {
       const { serverUrl } = await ensureHealthyServer({
@@ -336,7 +338,7 @@ const execute = new Command()
       });
       const pageInfo = await getOrCreatePage(serverUrl, pageName);
 
-      const browser = await chromium.connectOverCDP(pageInfo.wsEndpoint);
+      browser = await chromium.connectOverCDP(pageInfo.wsEndpoint);
       activePage = await findPageByTargetId(browser, pageInfo.targetId);
 
       if (!activePage) {
@@ -351,7 +353,10 @@ const execute = new Command()
       }
 
       const context = activePage.context();
-      context.on("page", (newPage) => { activePage = newPage; });
+      pageOpenHandler = (newPage: Page) => {
+        activePage = newPage;
+      };
+      context.on("page", pageOpenHandler);
 
       const getActivePage = createActivePageGetter(context, () => activePage);
 
@@ -378,11 +383,16 @@ const execute = new Command()
 
       const result = await executeFunction(getActivePage(), getActivePage, snapshot, ref, fill, drag, dispatch, grab, waitFor);
       console.log(JSON.stringify(await buildOutput(true, result)));
-      process.exit(0);
     } catch (error) {
       console.log(JSON.stringify(await buildOutput(false, undefined, error instanceof Error ? error.message : "Failed")));
-      process.exit(1);
+      exitCode = 1;
+    } finally {
+      if (activePage && pageOpenHandler) {
+        activePage.context().off("page", pageOpenHandler);
+      }
+      await browser?.close();
     }
+    process.exit(exitCode);
   });
 
 const pages = new Command()

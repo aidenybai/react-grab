@@ -202,6 +202,11 @@ const decryptCookieValueUnix = (
   return valueWithoutDigest.toString("utf-8");
 };
 
+const ENCRYPTED_PREFIX_LENGTH = 3;
+const MIN_ENCRYPTED_LENGTH_WINDOWS =
+  ENCRYPTED_PREFIX_LENGTH + AES_GCM_NONCE_LENGTH + AES_GCM_TAG_LENGTH;
+const MIN_ENCRYPTED_LENGTH_UNIX = ENCRYPTED_PREFIX_LENGTH + AES_BLOCK_SIZE;
+
 const decryptCookieValue = (
   encryptedData: Buffer,
   safeStorageKey: string | Buffer,
@@ -220,9 +225,15 @@ const decryptCookieValue = (
   }
 
   if (platform() === "win32") {
+    if (encryptedData.length < MIN_ENCRYPTED_LENGTH_WINDOWS) {
+      return "";
+    }
     return decryptCookieValueWindows(encryptedData, safeStorageKey as Buffer);
   }
 
+  if (encryptedData.length < MIN_ENCRYPTED_LENGTH_UNIX) {
+    return "";
+  }
   return decryptCookieValueUnix(encryptedData, safeStorageKey as string);
 };
 
@@ -271,7 +282,11 @@ export const dumpCookies = (
     let cookieValue = row.value;
 
     if (row.encrypted_value && row.encrypted_value.length > 0) {
-      cookieValue = decryptCookieValue(row.encrypted_value, safeStorageKey);
+      try {
+        cookieValue = decryptCookieValue(row.encrypted_value, safeStorageKey);
+      } catch {
+        cookieValue = "";
+      }
     }
 
     cookies.push({

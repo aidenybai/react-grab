@@ -46,7 +46,7 @@ export const add = new Command()
   .description("add an agent integration or MCP server")
   .argument(
     "[agent]",
-    "agent to add (claude-code, cursor, opencode, codex, gemini, amp, visual-edit, mcp, skill)",
+    `agent to add (${AGENTS.join(", ")}, mcp, skill)`,
   )
   .option("-y, --yes", "skip confirmation prompts", false)
   .option(
@@ -339,9 +339,7 @@ export const add = new Command()
         if (!AGENTS.includes(agentArg as (typeof AGENTS)[number])) {
           logger.break();
           logger.error(`Invalid agent: ${agentArg}`);
-          logger.error(
-            "Available agents: claude-code, cursor, opencode, codex, gemini, amp, visual-edit",
-          );
+          logger.error(`Available agents: ${AGENTS.join(", ")}`);
           logger.break();
           process.exit(1);
         }
