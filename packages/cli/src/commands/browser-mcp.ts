@@ -84,12 +84,13 @@ After getting refs, use browser_execute with: ref('e1').click()`,
       screenshot,
     }) => {
       let activePage: Page | null = null;
+      let browser: Awaited<ReturnType<typeof chromium.connectOverCDP>> | null = null;
 
       try {
         const { serverUrl } = await ensureHealthyServer();
         const pageInfo = await getOrCreatePage(serverUrl, pageName);
 
-        const browser = await chromium.connectOverCDP(pageInfo.wsEndpoint);
+        browser = await chromium.connectOverCDP(pageInfo.wsEndpoint);
         activePage = await findPageByTargetId(browser, pageInfo.targetId);
 
         if (!activePage) {
@@ -134,6 +135,8 @@ After getting refs, use browser_execute with: ref('e1').click()`,
           ],
           isError: true,
         };
+      } finally {
+        await browser?.close();
       }
     },
   );
@@ -194,13 +197,14 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
     },
     async ({ code, page: pageName, url, timeout }) => {
       let activePage: Page | null = null;
+      let browser: Awaited<ReturnType<typeof chromium.connectOverCDP>> | null = null;
       const outputJson = createOutputJson(() => activePage, pageName);
 
       try {
         const { serverUrl } = await ensureHealthyServer();
         const pageInfo = await getOrCreatePage(serverUrl, pageName);
 
-        const browser = await chromium.connectOverCDP(pageInfo.wsEndpoint);
+        browser = await chromium.connectOverCDP(pageInfo.wsEndpoint);
         activePage = await findPageByTargetId(browser, pageInfo.targetId);
 
         if (!activePage) {
@@ -284,6 +288,8 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
           content: [{ type: "text" as const, text: JSON.stringify(output) }],
           isError: true,
         };
+      } finally {
+        await browser?.close();
       }
     },
   );
