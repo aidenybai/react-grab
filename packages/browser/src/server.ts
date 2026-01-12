@@ -35,7 +35,10 @@ let cachedReactGrabScript: string | null = null;
 const fetchReactGrabScript = async (): Promise<string> => {
   if (cachedReactGrabScript) return cachedReactGrabScript;
 
-  if (__REACT_GRAB_SCRIPT__) {
+  if (
+    typeof __REACT_GRAB_SCRIPT__ !== "undefined" &&
+    __REACT_GRAB_SCRIPT__
+  ) {
     cachedReactGrabScript = __REACT_GRAB_SCRIPT__;
     return cachedReactGrabScript;
   }
