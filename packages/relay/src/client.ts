@@ -172,14 +172,13 @@ export const createRelayClient = (
       pendingConnectionReject = null;
     }
     pendingConnectionPromise = null;
+    // Note: webSocketConnection.close() triggers onclose handler
+    // which handles state reset and callback notifications
     webSocketConnection?.close();
     webSocketConnection = null;
     isConnectedState = false;
     availableHandlers = [];
     currentIDEInfo = null;
-    for (const callback of ideInfoChangeCallbacks) {
-      callback(currentIDEInfo);
-    }
   };
 
   const isConnected = () => isConnectedState;
