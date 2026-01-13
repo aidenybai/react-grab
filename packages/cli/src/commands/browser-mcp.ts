@@ -51,7 +51,6 @@ USE VIEWPORT screenshot=true ONLY FOR:
 
 PERFORMANCE:
 - interactableOnly:true = much smaller output (recommended)
-- format:'compact' = minimal ref:role:name@Component output
 - maxDepth = limit tree depth
 
 After getting refs, use browser_execute with: ref('e1').click()`,
@@ -66,11 +65,6 @@ After getting refs, use browser_execute with: ref('e1').click()`,
           .boolean()
           .optional()
           .describe("Only clickable/input elements (recommended)"),
-        format: z
-          .enum(["yaml", "compact"])
-          .optional()
-          .default("yaml")
-          .describe("'yaml' or 'compact'"),
         screenshot: z
           .boolean()
           .optional()
@@ -84,7 +78,6 @@ After getting refs, use browser_execute with: ref('e1').click()`,
       page: pageName,
       maxDepth,
       interactableOnly,
-      format,
       screenshot,
     }) => {
       let browser: Awaited<ReturnType<typeof import("playwright-core").chromium.connectOverCDP>> | null = null;
@@ -97,7 +90,7 @@ After getting refs, use browser_execute with: ref('e1').click()`,
         const getActivePage = (): Page => activePage;
         const snapshot = createSnapshotHelper(getActivePage);
 
-        const snapshotResult = await snapshot({ maxDepth, interactableOnly, format });
+        const snapshotResult = await snapshot({ maxDepth, interactableOnly });
 
         if (screenshot) {
           const screenshotBuffer = await activePage.screenshot({
@@ -136,7 +129,7 @@ IMPORTANT: Always call snapshot() first to get element refs from the a11y tree (
 
 AVAILABLE HELPERS:
 - page: Playwright Page object (https://playwright.dev/docs/api/class-page)
-- snapshot(opts?): Get ARIA tree with React component info. opts: {maxDepth, interactableOnly, format}
+- snapshot(opts?): Get ARIA tree with React component info. opts: {maxDepth, interactableOnly}
 - ref(id): Get element by ref ID, chainable with all ElementHandle methods
 - ref(id).source(): Get React component source {filePath, lineNumber, componentName}
 - ref(id).props(): Get React component props (serialized)

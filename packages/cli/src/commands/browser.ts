@@ -461,8 +461,7 @@ PERFORMANCE TIPS
   1. Batch multiple actions in a single execute call to minimize round-trips.
      Each execute spawns a new connection, so combining actions is 3-5x faster.
 
-  2. Use compact format or limit depth for smaller snapshots (faster, fewer tokens).
-     - snapshot({format: 'compact'})      -> minimal ref:role:name output
+  2. Use interactableOnly or limit depth for smaller snapshots (faster, fewer tokens).
      - snapshot({interactableOnly: true}) -> only clickable/input elements
      - snapshot({maxDepth: 5})            -> limit tree depth
 
@@ -471,19 +470,18 @@ PERFORMANCE TIPS
   execute "await ref('e1').click()"
   execute "return await snapshot()"
 
-  # FAST: 1 round-trip, compact output
+  # FAST: 1 round-trip, interactable only
   execute "
     await page.goto('https://example.com');
     await ref('e1').click();
-    return await snapshot({format: 'compact'});
+    return await snapshot({interactableOnly: true});
   "
 
 HELPERS
   page              - Playwright Page object
   snapshot(opts?)   - Get ARIA accessibility tree with refs
                       opts.maxDepth: limit tree depth (e.g., 5)
-                      opts.interactableOnly: only show elements with refs
-                      opts.format: "yaml" (default) or "compact"
+                      opts.interactableOnly: only clickable/input elements
   ref(id)           - Get element by ref ID (chainable - supports all ElementHandle methods)
                       Example: await ref('e1').click()
                       Example: await ref('e1').getAttribute('data-foo')
@@ -511,17 +509,14 @@ HELPERS
                       await waitFor('load')         - wait for page load
   grab              - React Grab client API (activate, copyElement, etc)
 
-SNAPSHOT FORMATS
+SNAPSHOT OPTIONS
   # Full YAML tree (default, can be large)
   execute "return await snapshot()"
 
   # Interactable only (recommended - much smaller!)
   execute "return await snapshot({interactableOnly: true})"
 
-  # Compact format (minimal output: ref:role:name|ref:role:name)
-  execute "return await snapshot({format: 'compact'})"
-
-  # Combined options
+  # With depth limit
   execute "return await snapshot({interactableOnly: true, maxDepth: 6})"
 
 SCREENSHOTS - PREFER ELEMENT OVER FULL PAGE

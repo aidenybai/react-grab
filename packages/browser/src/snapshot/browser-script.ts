@@ -7,8 +7,14 @@ var MAX_OBJECT_KEYS = 20;
 var MAX_HOOKS_ITERATION = 20;
 var DEFAULT_COMPONENT_TREE_DEPTH = 50;
 var MAX_NAME_LENGTH = 900;
-var COMPACT_NAME_SLICE_LENGTH = 50;
 var SNAPSHOT_AGE_WARNING_MS = 5000;
+var INTERACTABLE_ROLES = new Set([
+  'button', 'checkbox', 'combobox', 'gridcell', 'link', 'listbox',
+  'menu', 'menubar', 'menuitem', 'menuitemcheckbox', 'menuitemradio',
+  'option', 'radio', 'radiogroup', 'scrollbar', 'searchbox', 'slider',
+  'spinbutton', 'switch', 'tab', 'tablist', 'textbox', 'tree',
+  'treegrid', 'treeitem'
+]);
 `;
 
 export const getSnapshotScript = (): string => {
@@ -1077,7 +1083,6 @@ async function getSnapshot(options) {
   options = options || {};
   const maxDepth = options.maxDepth || 0;
   const interactableOnly = options.interactableOnly || false;
-  const format = options.format || "yaml";
   const snapshot = generateAriaTree(document.body);
   const refsObject = {};
   for (const [ref, element] of snapshot.elements) refsObject[ref] = element;
@@ -1086,34 +1091,7 @@ async function getSnapshot(options) {
 
   await populateReactInfo(snapshot);
 
-  if (format === "compact") {
-    return renderCompact(snapshot, { maxDepth, interactableOnly });
-  }
   return renderAriaTreeFiltered(snapshot, { maxDepth, interactableOnly });
-}
-
-function renderCompact(snapshot, options) {
-  const items = [];
-  const maxDepth = options.maxDepth || 0;
-  const interactableOnly = options.interactableOnly || false;
-  const collectRefs = (node, depth) => {
-    if (maxDepth > 0 && depth >= maxDepth) return;
-    if (typeof node === "string") return;
-    if (node.ref) {
-      const shouldInclude = !interactableOnly || node.role !== "generic" || hasPointerCursor(node);
-      if (shouldInclude) {
-        const name = node.name ? ":" + node.name.slice(0, COMPACT_NAME_SLICE_LENGTH) : "";
-        const component = node.component ? "@" + node.component : "";
-        items.push(node.ref + ":" + node.role + name + component);
-      }
-    }
-    for (const child of node.children || []) {
-      collectRefs(child, depth + 1);
-    }
-  };
-  const startNodes = snapshot.root.role === "fragment" ? snapshot.root.children : [snapshot.root];
-  for (const node of startNodes) collectRefs(node, 0);
-  return items.join("|");
 }
 
 function renderAriaTreeFiltered(ariaSnapshot, filterOptions) {
@@ -1129,7 +1107,7 @@ function renderAriaTreeFiltered(ariaSnapshot, filterOptions) {
 
   const visit = (ariaNode, indent, renderCursorPointer, depth) => {
     if (maxDepth > 0 && depth >= maxDepth) return;
-    const shouldRenderNode = !interactableOnly || (ariaNode.ref && (ariaNode.role !== "generic" || hasPointerCursor(ariaNode)));
+    const shouldRenderNode = !interactableOnly || (ariaNode.ref && (INTERACTABLE_ROLES.has(ariaNode.role) || hasPointerCursor(ariaNode)));
     if (shouldRenderNode) {
       const escapedKey = (interactableOnly ? "" : indent) + "- " + yamlEscapeKeyIfNeeded(createAriaKey(ariaNode, renderCursorPointer, DEFAULT_RENDER_OPTIONS.renderActive));
       const singleInlinedTextChild = getSingleInlinedTextChild(ariaNode);

@@ -26,7 +26,6 @@ export interface ServerInfo {
 export interface SnapshotOptions {
   maxDepth?: number;
   interactableOnly?: boolean;
-  format?: "yaml" | "compact";
 }
 
 export interface BrowserClient {
