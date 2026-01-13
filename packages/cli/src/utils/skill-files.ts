@@ -12,6 +12,7 @@ export const fetchSkillFile = async (): Promise<string> => {
 };
 
 export const AGENT_TARGETS: Record<string, string> = {
+  cursor: ".cursor/skills/react-grab-browser",
   claude: ".claude/skills/react-grab-browser",
   codex: ".codex/skills/react-grab-browser",
   amp: ".agents/skills/react-grab-browser",
