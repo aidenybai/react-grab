@@ -12,11 +12,6 @@ export interface IDEInfo {
   urlScheme: string | null;
 }
 
-const BASE_URL =
-  process.env.NODE_ENV === "production"
-    ? "https://react-grab.com"
-    : "http://localhost:3000";
-
 // Build editor-specific URL scheme
 const buildEditorUrl = (
   editorId: EditorId,
@@ -65,7 +60,7 @@ export const buildOpenFileUrl = (
     }
   }
 
-  // Fall back to open-file page
-  const lineParam = lineNumber ? `&line=${lineNumber}` : "";
-  return `${BASE_URL}/open-file?url=${encodeURIComponent(filePath)}${lineParam}`;
+  // Fall back to antigravity (default editor)
+  const lineParam = lineNumber ? `:${lineNumber}` : "";
+  return `antigravity://file${filePath}${lineParam}`;
 };
