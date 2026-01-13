@@ -39,7 +39,7 @@ const getEditorUrl = (
   }
 
   const lineParam = lineNumber ? `:${lineNumber}` : "";
-  return `${editor}://file/${filePath}${lineParam}`;
+  return `${editor}://file${filePath}${lineParam}`;
 };
 
 const OpenFileContent = () => {
