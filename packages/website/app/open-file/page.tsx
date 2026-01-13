@@ -28,6 +28,17 @@ const EDITORS: EditorOption[] = [
 
 const STORAGE_KEY = "react-grab-preferred-editor";
 
+// Encode file path for custom URI schemes while preserving path delimiters
+const encodePathForCustomScheme = (filePath: string): string => {
+  // Ensure path starts with /
+  const normalizedPath = filePath.startsWith("/") ? filePath : `/${filePath}`;
+  // Split by "/" to preserve path structure, then encode each segment
+  return normalizedPath
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+};
+
 const getEditorUrl = (
   editor: Editor,
   filePath: string,
@@ -35,11 +46,12 @@ const getEditorUrl = (
 ): string => {
   if (editor === "webstorm") {
     const lineParam = lineNumber ? `&line=${lineNumber}` : "";
-    return `webstorm://open?file=${filePath}${lineParam}`;
+    return `webstorm://open?file=${encodeURIComponent(filePath)}${lineParam}`;
   }
 
+  const encodedPath = encodePathForCustomScheme(filePath);
   const lineParam = lineNumber ? `:${lineNumber}` : "";
-  return `${editor}://file${filePath}${lineParam}`;
+  return `${editor}://file${encodedPath}${lineParam}`;
 };
 
 const OpenFileContent = () => {

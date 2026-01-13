@@ -80,7 +80,11 @@ export const createRelayClient = (
         // Handle IDE info update
         const newIDEInfo = message.ideInfo ?? null;
         const ideChanged =
-          newIDEInfo?.editorId !== currentIDEInfo?.editorId;
+          (newIDEInfo === null) !== (currentIDEInfo === null) ||
+          (newIDEInfo !== null &&
+            (newIDEInfo.editorId !== currentIDEInfo?.editorId ||
+              newIDEInfo.editorName !== currentIDEInfo?.editorName ||
+              newIDEInfo.urlScheme !== currentIDEInfo?.urlScheme));
         if (ideChanged) {
           currentIDEInfo = newIDEInfo;
           for (const callback of ideInfoChangeCallbacks) {
@@ -133,8 +137,12 @@ export const createRelayClient = (
         pendingConnectionPromise = null;
         isConnectedState = false;
         availableHandlers = [];
+        currentIDEInfo = null;
         for (const callback of handlersChangeCallbacks) {
           callback(availableHandlers);
+        }
+        for (const callback of ideInfoChangeCallbacks) {
+          callback(currentIDEInfo);
         }
         for (const callback of connectionChangeCallbacks) {
           callback(false);
@@ -169,6 +177,9 @@ export const createRelayClient = (
     isConnectedState = false;
     availableHandlers = [];
     currentIDEInfo = null;
+    for (const callback of ideInfoChangeCallbacks) {
+      callback(currentIDEInfo);
+    }
   };
 
   const isConnected = () => isConnectedState;

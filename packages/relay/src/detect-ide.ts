@@ -172,6 +172,17 @@ export const detectParentIDE = (maxDepth = 10): IDEInfo => {
   return noIDEResult;
 };
 
+// Encode file path for custom URI schemes while preserving path delimiters
+const encodePathForCustomScheme = (filePath: string): string => {
+  // Ensure path starts with /
+  const normalizedPath = filePath.startsWith("/") ? filePath : `/${filePath}`;
+  // Split by "/" to preserve path structure, then encode each segment
+  return normalizedPath
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+};
+
 export const buildEditorUrl = (
   editorId: EditorId,
   filePath: string,
@@ -187,6 +198,7 @@ export const buildEditorUrl = (
     return `${config.urlScheme}://open?file=${encodeURIComponent(filePath)}${lineParam}`;
   }
 
+  const encodedPath = encodePathForCustomScheme(filePath);
   const lineParam = lineNumber ? `:${lineNumber}` : "";
-  return `${config.urlScheme}://file${filePath}${lineParam}`;
+  return `${config.urlScheme}://file${encodedPath}${lineParam}`;
 };

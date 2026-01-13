@@ -12,6 +12,22 @@ export interface IDEInfo {
   urlScheme: string | null;
 }
 
+const BASE_URL =
+  process.env.NODE_ENV === "production"
+    ? "https://react-grab.com"
+    : "http://localhost:3000";
+
+// Encode file path for custom URI schemes while preserving path delimiters
+const encodePathForCustomScheme = (filePath: string): string => {
+  // Ensure path starts with /
+  const normalizedPath = filePath.startsWith("/") ? filePath : `/${filePath}`;
+  // Split by "/" to preserve path structure, then encode each segment
+  return normalizedPath
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+};
+
 // Build editor-specific URL scheme
 const buildEditorUrl = (
   editorId: EditorId,
@@ -25,8 +41,9 @@ const buildEditorUrl = (
     return `webstorm://open?file=${encodeURIComponent(filePath)}${lineParam}`;
   }
 
+  const encodedPath = encodePathForCustomScheme(filePath);
   const lineParam = lineNumber ? `:${lineNumber}` : "";
-  return `${editorId}://file${filePath}${lineParam}`;
+  return `${editorId}://file${encodedPath}${lineParam}`;
 };
 
 // Global IDE info storage - set by relay client or manually
@@ -60,7 +77,7 @@ export const buildOpenFileUrl = (
     }
   }
 
-  // Fall back to antigravity (default editor)
-  const lineParam = lineNumber ? `:${lineNumber}` : "";
-  return `antigravity://file${filePath}${lineParam}`;
+  // Fall back to open-file page for manual IDE selection
+  const lineParam = lineNumber ? `&line=${lineNumber}` : "";
+  return `${BASE_URL}/open-file?url=${encodeURIComponent(filePath)}${lineParam}`;
 };
