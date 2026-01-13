@@ -119,15 +119,15 @@ After getting refs, use browser_execute with: getRef('e1').click()`,
                 includeProps: boolean;
               }) => Promise<ComponentNode[]>;
 
-              const g = globalThis as { 
+              const g = globalThis as {
                 __REACT_GRAB_SNAPSHOT__?: GetSnapshotFn;
                 __REACT_GRAB_GET_COMPONENT_TREE__?: GetComponentTreeFn;
               };
-              
+
               if (g.__REACT_GRAB_SNAPSHOT__) {
                 await g.__REACT_GRAB_SNAPSHOT__();
               }
-              
+
               if (!g.__REACT_GRAB_GET_COMPONENT_TREE__) {
                 return [];
               }
