@@ -1,5 +1,11 @@
 # grab
 
+## 0.1.0-beta.4
+
+### Patch Changes
+
+- feat: react support
+
 ## 0.1.0-beta.3
 
 ### Patch Changes

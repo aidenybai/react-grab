@@ -1,5 +1,14 @@
 # @react-grab/gemini
 
+## 0.1.0-beta.4
+
+### Patch Changes
+
+- feat: react support
+- Updated dependencies
+  - react-grab@0.1.0-beta.4
+  - @react-grab/relay@0.1.0-beta.4
+
 ## 0.1.0-beta.3
 
 ### Patch Changes

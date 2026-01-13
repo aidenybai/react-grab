@@ -1,5 +1,13 @@
 # @react-grab/cli
 
+## 0.1.0-beta.4
+
+### Patch Changes
+
+- feat: react support
+- Updated dependencies
+  - @react-grab/browser@0.1.0-beta.4
+
 ## 0.1.0-beta.2
 
 ### Patch Changes
