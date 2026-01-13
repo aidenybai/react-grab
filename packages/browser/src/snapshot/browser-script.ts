@@ -1068,11 +1068,14 @@ async function populateReactInfo(snapshot) {
 
     await Promise.all(nodesWithRefs.map(async (node) => {
       try {
+        const reactGrab = window.__REACT_GRAB__;
+        if (reactGrab?.getDisplayName) {
+          node.component = reactGrab.getDisplayName(node.element);
+        }
         const rawSource = await getReactSource(node.element);
         const source = serializeReactSource(rawSource);
-        if (source) {
-          node.component = source.componentName;
-          node.source = source.filePath ? (source.filePath + (source.lineNumber ? ":" + source.lineNumber : "")) : null;
+        if (source?.filePath) {
+          node.source = source.filePath + (source.lineNumber ? ":" + source.lineNumber : "");
         }
       } catch {}
     }));
@@ -1100,6 +1103,27 @@ function renderAriaTreeFiltered(ariaSnapshot, filterOptions) {
   const lines = [];
   const nodesToRender = ariaSnapshot.root.role === "fragment" ? ariaSnapshot.root.children : [ariaSnapshot.root];
 
+  if (interactableOnly) {
+    const collectInteractable = (node) => {
+      if (typeof node === "string") return;
+      const isInteractable = node.ref && (INTERACTABLE_ROLES.has(node.role) || hasPointerCursor(node));
+      if (isInteractable) {
+        const key = createAriaKey(node, true, DEFAULT_RENDER_OPTIONS.renderActive);
+        const singleText = getSingleInlinedTextChild(node);
+        if (singleText !== undefined) {
+          lines.push("- " + yamlEscapeKeyIfNeeded(key) + ": " + yamlEscapeValueIfNeeded(singleText));
+        } else {
+          lines.push("- " + yamlEscapeKeyIfNeeded(key));
+        }
+      }
+      for (const child of node.children || []) {
+        collectInteractable(child);
+      }
+    };
+    for (const node of nodesToRender) collectInteractable(node);
+    return lines.join("\\n");
+  }
+
   const visitText = (text, indent) => {
     const escaped = yamlEscapeValueIfNeeded(text);
     if (escaped) lines.push(indent + "- text: " + escaped);
@@ -1107,28 +1131,21 @@ function renderAriaTreeFiltered(ariaSnapshot, filterOptions) {
 
   const visit = (ariaNode, indent, renderCursorPointer, depth) => {
     if (maxDepth > 0 && depth >= maxDepth) return;
-    const shouldRenderNode = !interactableOnly || (ariaNode.ref && (INTERACTABLE_ROLES.has(ariaNode.role) || hasPointerCursor(ariaNode)));
-    if (shouldRenderNode) {
-      const escapedKey = (interactableOnly ? "" : indent) + "- " + yamlEscapeKeyIfNeeded(createAriaKey(ariaNode, renderCursorPointer, DEFAULT_RENDER_OPTIONS.renderActive));
-      const singleInlinedTextChild = getSingleInlinedTextChild(ariaNode);
-      if (!ariaNode.children.length && !Object.keys(ariaNode.props).length) {
-        lines.push(escapedKey);
-      } else if (singleInlinedTextChild !== undefined) {
-        lines.push(escapedKey + ": " + yamlEscapeValueIfNeeded(singleInlinedTextChild));
-      } else {
-        if (interactableOnly) {
-          lines.push(escapedKey);
-        } else {
-          lines.push(escapedKey + ":");
-          for (const [name, value] of Object.entries(ariaNode.props)) lines.push(indent + "  - /" + name + ": " + yamlEscapeValueIfNeeded(value));
-        }
-      }
+    const escapedKey = indent + "- " + yamlEscapeKeyIfNeeded(createAriaKey(ariaNode, renderCursorPointer, DEFAULT_RENDER_OPTIONS.renderActive));
+    const singleInlinedTextChild = getSingleInlinedTextChild(ariaNode);
+    if (!ariaNode.children.length && !Object.keys(ariaNode.props).length) {
+      lines.push(escapedKey);
+    } else if (singleInlinedTextChild !== undefined) {
+      lines.push(escapedKey + ": " + yamlEscapeValueIfNeeded(singleInlinedTextChild));
+    } else {
+      lines.push(escapedKey + ":");
+      for (const [name, value] of Object.entries(ariaNode.props)) lines.push(indent + "  - /" + name + ": " + yamlEscapeValueIfNeeded(value));
     }
     const childIndent = indent + "  ";
     const inCursorPointer = !!ariaNode.ref && renderCursorPointer && hasPointerCursor(ariaNode);
     for (const child of ariaNode.children) {
       if (typeof child === "string") {
-        if (!interactableOnly) visitText(child, childIndent);
+        visitText(child, childIndent);
       } else {
         visit(child, childIndent, renderCursorPointer && !inCursorPointer, depth + 1);
       }
@@ -1137,7 +1154,7 @@ function renderAriaTreeFiltered(ariaSnapshot, filterOptions) {
 
   for (const nodeToRender of nodesToRender) {
     if (typeof nodeToRender === "string") {
-      if (!interactableOnly) visitText(nodeToRender, "");
+      visitText(nodeToRender, "");
     } else {
       visit(nodeToRender, "", !!DEFAULT_RENDER_OPTIONS.renderCursorPointer, 0);
     }

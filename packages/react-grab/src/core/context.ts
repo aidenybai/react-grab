@@ -5,7 +5,7 @@ import {
   StackFrame,
 } from "bippy/source";
 import { isCapitalized } from "../utils/is-capitalized.js";
-import { getFiberFromHostInstance, isInstrumentationActive } from "bippy";
+import { getFiberFromHostInstance, isInstrumentationActive, getDisplayName } from "bippy";
 
 const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
   "InnerLayoutRouter",
@@ -95,6 +95,12 @@ export const getNearestComponentName = async (
   }
 
   return null;
+};
+
+export const getComponentDisplayName = (element: Element): string | null => {
+  const fiber = getFiberFromHostInstance(element);
+  if (!fiber) return null;
+  return getDisplayName(fiber.type);
 };
 
 interface GetElementContextOptions {

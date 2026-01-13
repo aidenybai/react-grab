@@ -228,7 +228,7 @@ export const createRefHelper = (getActivePage: () => Page): RefFunction => {
       const g = globalThis as { __REACT_GRAB_REFS__?: Record<string, Element> };
       const refs = g.__REACT_GRAB_REFS__;
       if (!refs) {
-        throw new Error("No refs found. Call snapshot() first.");
+        throw new Error("No refs found. Call getSnapshot() first.");
       }
       const element = refs[id];
       if (!element) {

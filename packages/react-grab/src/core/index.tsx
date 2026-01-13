@@ -13,7 +13,7 @@ import { createGrabStore } from "./store.js";
 import { isKeyboardEventTriggeredByInput } from "../utils/is-keyboard-event-triggered-by-input.js";
 import { mountRoot } from "../utils/mount-root.js";
 import { ReactGrabRenderer } from "../components/renderer.js";
-import { getStack, getNearestComponentName, checkIsSourceComponentName } from "./context.js";
+import { getStack, getNearestComponentName, checkIsSourceComponentName, getComponentDisplayName } from "./context.js";
 import { isSourceFile, normalizeFileName } from "bippy/source";
 import { createNoopApi } from "./noop-api.js";
 import { createEventListenerManager } from "./events.js";
@@ -2557,6 +2557,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         syncAgentFromRegistry();
       },
       getPlugins: () => pluginRegistry.getPluginNames(),
+      getDisplayName: getComponentDisplayName,
     };
 
     return api;

@@ -307,6 +307,7 @@ export interface ReactGrabAPI {
   registerPlugin: (plugin: Plugin) => void;
   unregisterPlugin: (name: string) => void;
   getPlugins: () => string[];
+  getDisplayName: (element: Element) => string | null;
 }
 
 export interface OverlayBounds {

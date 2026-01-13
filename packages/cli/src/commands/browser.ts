@@ -367,20 +367,20 @@ const execute = new Command()
 
       const getActivePage = createActivePageGetter(context, () => activePage);
 
-      const snapshot = createSnapshotHelper(getActivePage);
-      const ref = createRefHelper(getActivePage);
-      const fill = createFillHelper(ref, getActivePage);
+      const getSnapshot = createSnapshotHelper(getActivePage);
+      const getRef = createRefHelper(getActivePage);
+      const fill = createFillHelper(getRef, getActivePage);
       const drag = createDragHelper(getActivePage);
       const dispatch = createDispatchHelper(getActivePage);
-      const grab = createGrabHelper(ref, getActivePage);
+      const grab = createGrabHelper(getRef, getActivePage);
       const waitFor = createWaitForHelper(getActivePage);
       const component = createComponentHelper(getActivePage);
 
       const executeFunction = new Function(
         "page",
         "getActivePage",
-        "snapshot",
-        "ref",
+        "getSnapshot",
+        "getRef",
         "fill",
         "drag",
         "dispatch",
@@ -390,7 +390,7 @@ const execute = new Command()
         `return (async () => { ${code} })();`,
       );
 
-      const result = await executeFunction(getActivePage(), getActivePage, snapshot, ref, fill, drag, dispatch, grab, waitFor, component);
+      const result = await executeFunction(getActivePage(), getActivePage, getSnapshot, getRef, fill, drag, dispatch, grab, waitFor, component);
       console.log(JSON.stringify(await buildOutput(true, result)));
     } catch (error) {
       console.log(JSON.stringify(await buildOutput(false, undefined, error instanceof Error ? error.message : "Failed")));
@@ -462,33 +462,33 @@ PERFORMANCE TIPS
      Each execute spawns a new connection, so combining actions is 3-5x faster.
 
   2. Use interactableOnly or limit depth for smaller snapshots (faster, fewer tokens).
-     - snapshot({interactableOnly: true}) -> only clickable/input elements
-     - snapshot({maxDepth: 5})            -> limit tree depth
+     - getSnapshot({interactableOnly: true}) -> only clickable/input elements
+     - getSnapshot({maxDepth: 5})            -> limit tree depth
 
   # SLOW: 3 separate round-trips, full snapshot
   execute "await page.goto('https://example.com')"
-  execute "await ref('e1').click()"
-  execute "return await snapshot()"
+  execute "await getRef('e1').click()"
+  execute "return await getSnapshot()"
 
   # FAST: 1 round-trip, interactable only
   execute "
     await page.goto('https://example.com');
-    await ref('e1').click();
-    return await snapshot({interactableOnly: true});
+    await getRef('e1').click();
+    return await getSnapshot({interactableOnly: true});
   "
 
 HELPERS
   page              - Playwright Page object
-  snapshot(opts?)   - Get ARIA accessibility tree with refs
+  getSnapshot(opts?)- Get ARIA accessibility tree with refs
                       opts.maxDepth: limit tree depth (e.g., 5)
                       opts.interactableOnly: only clickable/input elements
-  ref(id)           - Get element by ref ID (chainable - supports all ElementHandle methods)
-                      Example: await ref('e1').click()
-                      Example: await ref('e1').getAttribute('data-foo')
-  ref(id).source()  - Get React component source file info for element
+  getRef(id)        - Get element by ref ID (chainable - supports all ElementHandle methods)
+                      Example: await getRef('e1').click()
+                      Example: await getRef('e1').getAttribute('data-foo')
+  getRef(id).source()  - Get React component source file info for element
                       Returns { filePath, lineNumber, componentName } or null
-  ref(id).props()   - Get React component props (serialized)
-  ref(id).state()   - Get React component state/hooks (serialized)
+  getRef(id).props()   - Get React component props (serialized)
+  getRef(id).state()   - Get React component state/hooks (serialized)
   component(name, opts?) - Find elements by React component name
                       opts.nth: get the nth matching element (0-indexed)
                       Example: await component('Button', {nth: 0})
@@ -511,13 +511,13 @@ HELPERS
 
 SNAPSHOT OPTIONS
   # Full YAML tree (default, can be large)
-  execute "return await snapshot()"
+  execute "return await getSnapshot()"
 
   # Interactable only (recommended - much smaller!)
-  execute "return await snapshot({interactableOnly: true})"
+  execute "return await getSnapshot({interactableOnly: true})"
 
   # With depth limit
-  execute "return await snapshot({interactableOnly: true, maxDepth: 6})"
+  execute "return await getSnapshot({interactableOnly: true, maxDepth: 6})"
 
 SCREENSHOTS - PREFER ELEMENT OVER FULL PAGE
   For visual issues (wrong color, broken styling, misalignment), ALWAYS screenshot
@@ -527,8 +527,8 @@ SCREENSHOTS - PREFER ELEMENT OVER FULL PAGE
   - Easier to compare
 
   # Element screenshot (PREFERRED)
-  execute "await ref('e1').screenshot({path: '/tmp/button.png'})"
-  execute "await ref('e5').screenshot({path: '/tmp/card.png'})"
+  execute "await getRef('e1').screenshot({path: '/tmp/button.png'})"
+  execute "await getRef('e5').screenshot({path: '/tmp/card.png'})"
 
   # Full page (only when needed)
   execute "await page.screenshot({path: '/tmp/full.png'})"
@@ -538,10 +538,10 @@ SCREENSHOTS - PREFER ELEMENT OVER FULL PAGE
 
 COMMON PATTERNS
   # Click by ref (chainable - no double await needed!)
-  execute "await ref('e1').click()"
+  execute "await getRef('e1').click()"
 
   # Get element attribute
-  execute "return await ref('e1').getAttribute('data-id')"
+  execute "return await getRef('e1').getAttribute('data-id')"
 
   # Fill input (clears existing content)
   execute "await fill('e1', 'text')"
@@ -568,13 +568,13 @@ COMMON PATTERNS
 
 REACT-SPECIFIC PATTERNS
   # Get React component source file
-  execute "return await ref('e1').source()"
+  execute "return await getRef('e1').source()"
 
   # Get component props
-  execute "return await ref('e1').props()"
+  execute "return await getRef('e1').props()"
 
   # Get component state
-  execute "return await ref('e1').state()"
+  execute "return await getRef('e1').state()"
 
   # Find elements by React component name
   execute "const buttons = await component('Button'); return buttons.length"
@@ -584,7 +584,7 @@ REACT-SPECIFIC PATTERNS
 
 MULTI-PAGE SESSIONS
   execute "await page.goto('https://github.com')" --page github
-  execute "return await snapshot({interactableOnly: true})" --page github
+  execute "return await getSnapshot({interactableOnly: true})" --page github
 
 PLAYWRIGHT DOCS: https://playwright.dev/docs/api/class-page
 `;
