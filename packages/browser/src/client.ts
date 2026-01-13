@@ -25,7 +25,6 @@ export interface ServerInfo {
 
 export interface SnapshotOptions {
   maxDepth?: number;
-  interactableOnly?: boolean;
 }
 
 export interface BrowserClient {
@@ -132,16 +131,7 @@ export const connect = async (
         throw new Error(`No pages available in browser`);
       }
 
-      if (pageInfo.url) {
-        const matchingPage = allPages.find(
-          (currentPage) => currentPage.url() === pageInfo.url,
-        );
-        if (matchingPage) {
-          return matchingPage;
-        }
-      }
-
-      return allPages[0];
+      return allPages.find((p) => p.url() === pageInfo.url) ?? allPages[0];
     }
 
     const foundPage = await findPageByTargetId(browserInstance, targetId);
@@ -194,14 +184,15 @@ export const connect = async (
           opts,
         }: {
           script: string;
-          opts?: SnapshotOptions;
+          opts?: { maxDepth?: number };
         }) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const windowGlobal = globalThis as any;
+          const windowGlobal = globalThis as {
+            __REACT_GRAB_SNAPSHOT__?: (o?: { maxDepth?: number }) => string;
+          };
           if (!windowGlobal.__REACT_GRAB_SNAPSHOT__) {
             eval(script);
           }
-          return windowGlobal.__REACT_GRAB_SNAPSHOT__(opts);
+          return windowGlobal.__REACT_GRAB_SNAPSHOT__!(opts);
         },
         { script: snapshotScript, opts: options },
       );
@@ -211,8 +202,9 @@ export const connect = async (
       const page = await getPage(name);
 
       const elementHandle = await page.evaluateHandle((id: string) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const windowGlobal = globalThis as any;
+        const windowGlobal = globalThis as {
+          __REACT_GRAB_REFS__?: Record<string, Element>;
+        };
         const refs = windowGlobal.__REACT_GRAB_REFS__;
         if (!refs) {
           throw new Error("No refs found. Call snapshot() first.");
@@ -245,7 +237,7 @@ export const connect = async (
       const info = (await response.json()) as ServerInfoResponse;
       return {
         wsEndpoint: info.wsEndpoint,
-        mode: (info.mode as "launch" | "extension") ?? "launch",
+        mode: info.mode ?? "launch",
         extensionConnected: info.extensionConnected,
       };
     },

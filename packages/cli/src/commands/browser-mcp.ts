@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import type { Page } from "playwright-core";
+import type { Browser, Page } from "playwright-core";
 import { DEFAULT_NAVIGATION_TIMEOUT_MS } from "@react-grab/browser";
 import {
   connectToBrowserPage,
@@ -17,6 +17,18 @@ import {
   createActivePageGetter,
   createComponentHelper,
 } from "../utils/browser-automation.js";
+import {
+  DEFAULT_COMPONENT_TREE_MAX_DEPTH,
+  MAX_PROPS_DISPLAY_LENGTH,
+} from "../utils/constants.js";
+
+interface ComponentNode {
+  name: string;
+  depth: number;
+  ref?: string;
+  source?: string;
+  props?: Record<string, unknown>;
+}
 
 export const startMcpServer = async (): Promise<void> => {
   const server = new McpServer({
@@ -27,38 +39,33 @@ export const startMcpServer = async (): Promise<void> => {
   server.registerTool(
     "browser_snapshot",
     {
-      description: `Get ARIA accessibility tree with element refs (e1, e2...) and React component info.
+      description: `Get ARIA accessibility tree with element refs and React component info.
 
-OUTPUT INCLUDES:
-- ARIA roles and accessible names
-- Element refs (e1, e2...) for interaction
-- [component=ComponentName] for React components
-- [source=file.tsx:line] for source location
+OUTPUT FORMAT:
+- button "Submit" [ref=e1] [component=Button] [source=form.tsx:42]
+- ComponentName [ref=e2] [source=file.tsx:10]: text content
 
-REACT TREE MODE (reactTree=true):
-- Shows React component hierarchy instead of ARIA tree
-- Component names and nesting structure
-- Source file locations
-- Element refs where available
-- Use includeProps=true to include component props
+REACT INFO IS ALREADY INCLUDED (no extra calls needed):
+- [component=X] — React component name (replaces "generic" when available)
+- [source=file.tsx:line] — Source file location
+Just parse these from the snapshot string.
 
-SCREENSHOT STRATEGY - ALWAYS prefer element screenshots over full page:
+FOR MORE REACT DETAILS on a specific element:
+Use browser_execute: return await getRef('e1').source()
+Returns: { filePath, lineNumber, componentName }
+
+SCREENSHOT STRATEGY - prefer element screenshots:
 1. First: Get refs with snapshot (this tool)
 2. Then: Screenshot specific element via browser_execute: return await getRef('e1').screenshot()
 
 USE ELEMENT SCREENSHOTS (getRef('eX').screenshot()) FOR:
-- Visual bugs: "wrong color", "broken", "misaligned", "styling issue", "CSS bug"
-- Appearance checks: "how does X look", "show me the button", "what does Y display"
-- UI verification: "is it visible", "check the layout", "verify the design"
-- Any visual concern about a SPECIFIC component
+- Visual bugs: "wrong color", "broken", "misaligned", "styling issue"
+- Appearance checks: "how does X look", "show me the button"
+- UI verification: "is it visible", "check the layout"
 
 USE VIEWPORT screenshot=true ONLY FOR:
 - "screenshot the page", "what's on screen"
-- No specific element mentioned AND need visual context
-
-PERFORMANCE:
-- interactableOnly:true = much smaller output (recommended)
-- maxDepth = limit tree depth
+- No specific element mentioned
 
 After getting refs, use browser_execute with: getRef('e1').click()`,
       inputSchema: {
@@ -68,10 +75,6 @@ After getting refs, use browser_execute with: getRef('e1').click()`,
           .default("default")
           .describe("Named page context"),
         maxDepth: z.number().optional().describe("Limit tree depth"),
-        interactableOnly: z
-          .boolean()
-          .optional()
-          .describe("Only clickable/input elements as flat list (recommended)"),
         screenshot: z
           .boolean()
           .optional()
@@ -83,57 +86,54 @@ After getting refs, use browser_execute with: getRef('e1').click()`,
           .boolean()
           .optional()
           .default(false)
-          .describe("Get React component tree instead of ARIA tree"),
+          .describe("(Experimental) React tree view. Note: Regular snapshot already includes [component=X] and [source=X] - prefer that."),
         includeProps: z
           .boolean()
           .optional()
           .default(false)
-          .describe("Include component props when reactTree=true"),
+          .describe("Include props when reactTree=true"),
       },
     },
     async ({
       page: pageName,
       maxDepth,
-      interactableOnly,
       screenshot,
       reactTree,
       includeProps,
     }) => {
-      let browser: Awaited<ReturnType<typeof import("playwright-core").chromium.connectOverCDP>> | null = null;
+      let browser: Browser | null = null;
 
       try {
         const connection = await connectToBrowserPage(pageName);
         browser = connection.browser;
         const activePage = connection.page;
 
-        const getActivePage = (): Page => activePage;
-
         let textResult: string;
 
         if (reactTree) {
-          interface ComponentNode {
-            name: string;
-            depth: number;
-            path: string;
-            ref?: string;
-            source?: string;
-            props?: Record<string, unknown>;
-          }
-
           const componentTree = await activePage.evaluate(
             async (opts: { maxDepth: number; includeProps: boolean }) => {
+              type GetSnapshotFn = () => Promise<unknown>;
               type GetComponentTreeFn = (o: {
                 maxDepth: number;
                 includeProps: boolean;
               }) => Promise<ComponentNode[]>;
 
-              const g = globalThis as { __REACT_GRAB_GET_COMPONENT_TREE__?: GetComponentTreeFn };
+              const g = globalThis as { 
+                __REACT_GRAB_SNAPSHOT__?: GetSnapshotFn;
+                __REACT_GRAB_GET_COMPONENT_TREE__?: GetComponentTreeFn;
+              };
+              
+              if (g.__REACT_GRAB_SNAPSHOT__) {
+                await g.__REACT_GRAB_SNAPSHOT__();
+              }
+              
               if (!g.__REACT_GRAB_GET_COMPONENT_TREE__) {
                 return [];
               }
               return g.__REACT_GRAB_GET_COMPONENT_TREE__(opts);
             },
-            { maxDepth: maxDepth ?? 50, includeProps: includeProps ?? false },
+            { maxDepth: maxDepth ?? DEFAULT_COMPONENT_TREE_MAX_DEPTH, includeProps: includeProps ?? false },
           );
 
           const renderTree = (nodes: ComponentNode[]): string => {
@@ -145,10 +145,8 @@ After getting refs, use browser_execute with: getRef('e1').click()`,
               if (node.source) line += ` [source=${node.source}]`;
               if (node.props && Object.keys(node.props).length > 0) {
                 const propsStr = JSON.stringify(node.props);
-                if (propsStr.length < 100) {
+                if (propsStr.length < MAX_PROPS_DISPLAY_LENGTH) {
                   line += ` [props=${propsStr}]`;
-                } else {
-                  line += ` [props=...]`;
                 }
               }
               lines.push(line);
@@ -158,8 +156,7 @@ After getting refs, use browser_execute with: getRef('e1').click()`,
 
           textResult = renderTree(componentTree) || "No React components found. Make sure react-grab is installed and the page uses React.";
         } else {
-          const snapshot = createSnapshotHelper(getActivePage);
-          textResult = await snapshot({ maxDepth, interactableOnly });
+          textResult = await createSnapshotHelper(() => activePage)({ maxDepth });
         }
 
         if (screenshot) {
@@ -169,9 +166,9 @@ After getting refs, use browser_execute with: getRef('e1').click()`,
           });
           return {
             content: [
-              { type: "text" as const, text: textResult },
+              { type: "text", text: textResult },
               {
-                type: "image" as const,
+                type: "image",
                 data: screenshotBuffer.toString("base64"),
                 mimeType: "image/png",
               },
@@ -180,7 +177,7 @@ After getting refs, use browser_execute with: getRef('e1').click()`,
         }
 
         return {
-          content: [{ type: "text" as const, text: textResult }],
+          content: [{ type: "text", text: textResult }],
         };
       } catch (error) {
         return createMcpErrorResponse(error);
@@ -195,40 +192,38 @@ After getting refs, use browser_execute with: getRef('e1').click()`,
     {
       description: `Execute Playwright code with helpers for element interaction.
 
-IMPORTANT: Always call getSnapshot() first to get element refs from the a11y tree (e1, e2...), then use getRef('e1') to interact.
+IMPORTANT: Always call getSnapshot() first to get element refs (e1, e2...), then use getRef('e1') to interact.
 
 AVAILABLE HELPERS:
-- page: Playwright Page object (https://playwright.dev/docs/api/class-page)
-- getSnapshot(opts?): Get ARIA tree with React component info. opts: {maxDepth, interactableOnly}
-- getRef(id): Get element by ref ID, chainable with all ElementHandle methods
-- getRef(id).source(): Get React component source {filePath, lineNumber, componentName}
-- getRef(id).props(): Get React component props (serialized)
-- getRef(id).state(): Get React component state/hooks (serialized)
-- component(name, opts?): Find elements by React component name. opts: {nth: number}
-- fill(id, text): Clear and fill input (works with rich text editors)
+- page: Playwright Page object
+- getSnapshot(opts?): Get ARIA tree with React info. opts: {maxDepth}
+- getRef(id): Get element by ref ID, chainable with ElementHandle methods
+- getRef(id).source(): Get React source {filePath, lineNumber, componentName}
+- getRef(id).props(): Get React component props
+- getRef(id).state(): Get React component state/hooks
+- fill(id, text): Clear and fill input
 - drag({from, to, dataTransfer?}): Drag with custom MIME types
 - dispatch({target, event, dataTransfer?, detail?}): Dispatch custom events
 - waitFor(target): Wait for selector/ref/state. e.g. waitFor('e1'), waitFor('networkidle')
 - grab: React Grab client API (activate, deactivate, toggle, isActive, copyElement, getState)
 
-REACT-SPECIFIC PATTERNS:
-- Get React source: return await getRef('e1').source()
-- Get component props: return await getRef('e1').props()
-- Get component state: return await getRef('e1').state()
-- Find by component: const btn = await component('Button', {nth: 0})
+GETTING REACT INFO (ranked by preference):
+1. Parse snapshot — [component=X] and [source=file:line] are already in the output
+2. getRef('eX').source() — for detailed info on a specific element
 
-ELEMENT SCREENSHOTS (PREFERRED for visual issues):
+ELEMENT SCREENSHOTS (for visual issues):
 - return await getRef('e1').screenshot()
-Use for: wrong color, broken styling, visual bugs, "how does X look", UI verification
+Use for: wrong color, broken styling, visual bugs, UI verification
 
 COMMON PATTERNS:
 - Click: await getRef('e1').click()
 - Fill input: await fill('e1', 'hello')
 - Get attribute: return await getRef('e1').getAttribute('href')
 - Navigate: await page.goto('https://example.com')
-- Full page screenshot (rare): return await page.screenshot()
 
-PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.`,
+DON'T manually traverse __reactFiber$ — use getRef('eX').source() instead.
+
+PERFORMANCE: Batch multiple actions in one execute call.`,
       inputSchema: {
         code: z
           .string()
@@ -253,7 +248,7 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
     },
     async ({ code, page: pageName, url, timeout }) => {
       let activePage: Page | null = null;
-      let browser: Awaited<ReturnType<typeof import("playwright-core").chromium.connectOverCDP>> | null = null;
+      let browser: Browser | null = null;
       let pageOpenHandler: ((newPage: Page) => void) | null = null;
       const outputJson = createOutputJson(() => activePage, pageName);
 
@@ -317,9 +312,9 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
           const output = await outputJson(true, undefined);
           return {
             content: [
-              { type: "text" as const, text: JSON.stringify(output) },
+              { type: "text", text: JSON.stringify(output) },
               {
-                type: "image" as const,
+                type: "image",
                 data: result.toString("base64"),
                 mimeType: "image/png",
               },
@@ -330,7 +325,7 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
         const output = await outputJson(true, result);
 
         return {
-          content: [{ type: "text" as const, text: JSON.stringify(output) }],
+          content: [{ type: "text", text: JSON.stringify(output) }],
         };
       } catch (error) {
         const output = await outputJson(
@@ -340,7 +335,7 @@ PERFORMANCE: Batch multiple actions in one execute call to minimize round-trips.
         );
 
         return {
-          content: [{ type: "text" as const, text: JSON.stringify(output) }],
+          content: [{ type: "text", text: JSON.stringify(output) }],
           isError: true,
         };
       } finally {

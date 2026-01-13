@@ -7,9 +7,7 @@ import {
   stopServer,
   spawnServer,
 } from "@react-grab/browser";
-import { COMPONENT_STACK_MAX_DEPTH } from "./constants.js";
-
-const LOAD_STATES = new Set(["load", "domcontentloaded", "networkidle"]);
+import { COMPONENT_STACK_MAX_DEPTH, LOAD_STATES } from "./constants.js";
 
 export interface PageInfo {
   name: string;
@@ -43,7 +41,6 @@ export interface SourceInfo {
 
 export interface SnapshotOptions {
   maxDepth?: number;
-  interactableOnly?: boolean;
 }
 
 export interface EnsureServerOptions {
@@ -118,6 +115,7 @@ export const getReactContextForActiveElement = async (
         let depth = 0;
         while (fiber?.return && depth < maxDepth) {
           fiber = fiber.return;
+          // HACK: React fiber tags - 0=FunctionComponent, 1=ClassComponent, 11=ForwardRef
           if (fiber.tag === 0 || fiber.tag === 1 || fiber.tag === 11) {
             const name = typeof fiber.type === "object"
               ? fiber.type?.displayName || fiber.type?.name
@@ -150,14 +148,9 @@ export const createOutputJson = (
 ): ((ok: boolean, result?: unknown, error?: string) => Promise<ExecuteResult>) => {
   return async (ok, result, error) => {
     const page = getPage();
-    let reactContext: ReactContextInfo | undefined;
-
-    if (page && ok) {
-      const context = await getReactContextForActiveElement(page);
-      if (context) {
-        reactContext = context;
-      }
-    }
+    const reactContext = page && ok
+      ? (await getReactContextForActiveElement(page)) ?? undefined
+      : undefined;
 
     return {
       ok,
@@ -291,6 +284,24 @@ export const createRefHelper = (getActivePage: () => Page): RefFunction => {
 
   // HACK: Use Proxy to make ref() chainable with ElementHandle methods without awaiting first
   return (refId: string) => {
+    const customMethods: Record<string, () => unknown> = {
+      then: () => (
+        resolve: (value: ElementHandle) => void,
+        reject: (error: Error) => void,
+      ) => getElement(refId).then(resolve, reject),
+      source: () => () => getSource(refId),
+      props: () => () => getProps(refId),
+      state: () => () => getState(refId),
+      screenshot: () => async (options?: Record<string, unknown>) => {
+        const element = await getElement(refId);
+        try {
+          return await element.screenshot({ scale: "css", ...options });
+        } finally {
+          await element.dispose();
+        }
+      },
+    };
+
     return new Proxy(
       {} as ElementHandle &
         PromiseLike<ElementHandle> & {
@@ -300,37 +311,15 @@ export const createRefHelper = (getActivePage: () => Page): RefFunction => {
         },
       {
         get(_, prop: string) {
-          if (prop === "then") {
-            return (
-              resolve: (value: ElementHandle) => void,
-              reject: (error: Error) => void,
-            ) => getElement(refId).then(resolve, reject);
-          }
-          if (prop === "source") {
-            return () => getSource(refId);
-          }
-          if (prop === "props") {
-            return () => getProps(refId);
-          }
-          if (prop === "state") {
-            return () => getState(refId);
-          }
-          if (prop === "screenshot") {
-            return async (options?: Record<string, unknown>) => {
-              const el = await getElement(refId);
-              try {
-                return await el.screenshot({ scale: "css", ...options });
-              } finally {
-                await el.dispose();
-              }
-            };
+          if (prop in customMethods) {
+            return customMethods[prop]();
           }
           return async (...args: unknown[]) => {
-            const el = await getElement(refId);
+            const element = await getElement(refId);
             try {
-              return await (el as unknown as Record<string, (...a: unknown[]) => unknown>)[prop](...args);
+              return await (element as unknown as Record<string, (...a: unknown[]) => unknown>)[prop](...args);
             } finally {
-              await el.dispose();
+              await element.dispose();
             }
           };
         },
@@ -399,11 +388,11 @@ export const createComponentHelper = (
 };
 
 export const createFillHelper = (
-  ref: RefFunction,
+  getRef: RefFunction,
   getActivePage: () => Page,
 ): ((refId: string, text: string) => Promise<void>) => {
   return async (refId: string, text: string): Promise<void> => {
-    const element = await ref(refId);
+    const element = await getRef(refId);
     await element.click();
     const currentPage = getActivePage();
     const isMac = process.platform === "darwin";
@@ -629,7 +618,7 @@ export const createWaitForHelper = (
       return;
     }
 
-    if (selectorOrState.startsWith("e") && /^e\d+$/.test(selectorOrState)) {
+    if (/^e\d+$/.test(selectorOrState)) {
       await currentPage.waitForSelector(`[aria-ref="${selectorOrState}"]`, { timeout });
       return;
     }
@@ -679,7 +668,7 @@ export const createMcpErrorResponse = (error: unknown): McpToolResponse => {
   return {
     content: [
       {
-        type: "text" as const,
+        type: "text",
         text: JSON.stringify({
           ok: false,
           error: error instanceof Error ? error.message : "Failed",

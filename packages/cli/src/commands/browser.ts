@@ -1,4 +1,4 @@
-import { execSync, spawn } from "node:child_process";
+import { execSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { Command } from "commander";
@@ -55,27 +55,6 @@ const printHeader = (): void => {
 const exitWithError = (error: unknown): never => {
   logger.error(error instanceof Error ? error.message : "Failed");
   process.exit(1);
-};
-
-const rebuildNativeModuleAndRestart = async (browserPkgDir: string): Promise<void> => {
-  execSync("npm rebuild better-sqlite3", {
-    stdio: "ignore",
-    cwd: browserPkgDir,
-  });
-
-  const rebuildSpinner = spinner("Restarting server").start();
-  rebuildSpinner.succeed("Restarting server");
-
-  const args = process.argv.slice(2);
-  const child = spawn(process.argv[0], [process.argv[1], ...args], {
-    stdio: "inherit",
-    detached: false,
-  });
-  child.on("error", (error) => {
-    console.error(`Failed to restart: ${error.message}`);
-    process.exit(1);
-  });
-  child.on("exit", (code) => process.exit(code ?? 0));
 };
 
 const isSupportedBrowser = (value: string): value is SupportedBrowser => {
@@ -159,18 +138,26 @@ const start = new Command()
   .option("-d, --domain <domain>", "only load cookies matching this domain")
   .option("--foreground", "run in foreground instead of detaching")
   .action(async (options) => {
-    printHeader();
+    const isForeground = options.foreground as boolean;
+
+    if (!isForeground) {
+      printHeader();
+    }
 
     if (await isServerRunning()) {
       const info = getServerInfo();
-      logger.error(`Server already running on port ${info?.port}`);
+      if (isForeground) {
+        console.error(`Server already running on port ${info?.port}`);
+      } else {
+        logger.error(`Server already running on port ${info?.port}`);
+      }
       process.exit(1);
     }
 
     const sourceBrowser = resolveSourceBrowser(options.browser);
     const port = parseInt(options.port, 10);
 
-    if (!options.foreground) {
+    if (!isForeground) {
       const serverSpinner = spinner("Starting server").start();
       try {
         const browserServer = await spawnServer({
@@ -189,53 +176,24 @@ const start = new Command()
       return;
     }
 
-    const serverSpinner = spinner("Starting server").start();
-
     try {
       const browserServer = await serve({
         port,
         headless: !options.headed,
       });
 
-      serverSpinner.succeed(`Server running on port ${browserServer.port}`);
-      logger.dim(`CDP: ${browserServer.wsEndpoint}`);
-      const cookieSpinner = spinner("Loading cookies").start();
-      try {
-        const cookies = dumpCookies(sourceBrowser, { domain: options.domain });
-        const playwrightCookies = toPlaywrightCookies(cookies);
+      const cookies = dumpCookies(sourceBrowser, { domain: options.domain });
+      const playwrightCookies = toPlaywrightCookies(cookies);
 
-        const browser = await chromium.connectOverCDP(browserServer.wsEndpoint);
-        const contexts = browser.contexts();
-        if (contexts.length > 0) {
-          if (playwrightCookies.length > 0) {
-            await contexts[0].addCookies(playwrightCookies);
-          }
-          await applyStealthScripts(contexts[0]);
+      const browser = await chromium.connectOverCDP(browserServer.wsEndpoint);
+      const contexts = browser.contexts();
+      if (contexts.length > 0) {
+        if (playwrightCookies.length > 0) {
+          await contexts[0].addCookies(playwrightCookies);
         }
-        await browser.close();
-        cookieSpinner.succeed(`Loaded ${playwrightCookies.length} cookies from ${sourceBrowser}`);
-      } catch (cookieError) {
-        const errorMessage = cookieError instanceof Error ? cookieError.message : "Unknown error";
-        const isModuleVersionError = errorMessage.includes("NODE_MODULE_VERSION");
-
-        if (!isModuleVersionError) {
-          cookieSpinner.fail(`Failed to load cookies from ${sourceBrowser}`);
-        } else {
-          cookieSpinner.info("Native module mismatch. Rebuilding...");
-          try {
-            const require = createRequire(import.meta.url);
-            const browserPkgPath = require.resolve("@react-grab/browser");
-            const browserPkgDir = join(dirname(browserPkgPath), "..");
-
-            await browserServer.stop();
-            await rebuildNativeModuleAndRestart(browserPkgDir);
-            return;
-          } catch {
-            cookieSpinner.fail("Auto-rebuild failed. Run: npm rebuild better-sqlite3");
-          }
-        }
+        await applyStealthScripts(contexts[0]);
       }
-      spinner("Server ready. Press Ctrl+C to stop.").succeed();
+      await browser.close();
 
       const shutdownHandler = (): void => {
         browserServer.stop().catch(() => {}).finally(() => process.exit(0));
@@ -246,8 +204,8 @@ const start = new Command()
 
       await new Promise(() => {});
     } catch (error) {
-      serverSpinner.fail();
-      exitWithError(error);
+      console.error(error instanceof Error ? error.message : "Failed to start server");
+      process.exit(1);
     }
   });
 
@@ -335,7 +293,7 @@ const execute = new Command()
     let activePage: Page | null = null;
     let browser: Awaited<ReturnType<typeof chromium.connectOverCDP>> | null = null;
     let pageOpenHandler: ((newPage: Page) => void) | null = null;
-    const buildOutput = createOutputJson(() => activePage, pageName);
+    const outputJson = createOutputJson(() => activePage, pageName);
     let exitCode = 0;
 
     try {
@@ -390,10 +348,21 @@ const execute = new Command()
         `return (async () => { ${code} })();`,
       );
 
-      const result = await executeFunction(getActivePage(), getActivePage, getSnapshot, getRef, fill, drag, dispatch, grab, waitFor, component);
-      console.log(JSON.stringify(await buildOutput(true, result)));
+      const result = await executeFunction(
+        getActivePage(),
+        getActivePage,
+        getSnapshot,
+        getRef,
+        fill,
+        drag,
+        dispatch,
+        grab,
+        waitFor,
+        component,
+      );
+      console.log(JSON.stringify(await outputJson(true, result)));
     } catch (error) {
-      console.log(JSON.stringify(await buildOutput(false, undefined, error instanceof Error ? error.message : "Failed")));
+      console.log(JSON.stringify(await outputJson(false, undefined, error instanceof Error ? error.message : "Failed")));
       exitCode = 1;
     } finally {
       if (activePage && pageOpenHandler) {
@@ -461,9 +430,8 @@ PERFORMANCE TIPS
   1. Batch multiple actions in a single execute call to minimize round-trips.
      Each execute spawns a new connection, so combining actions is 3-5x faster.
 
-  2. Use interactableOnly or limit depth for smaller snapshots (faster, fewer tokens).
-     - getSnapshot({interactableOnly: true}) -> only clickable/input elements
-     - getSnapshot({maxDepth: 5})            -> limit tree depth
+  2. Use maxDepth to limit tree depth for smaller snapshots (faster, fewer tokens).
+     - getSnapshot({maxDepth: 5}) -> limit tree depth
 
   # SLOW: 3 separate round-trips, full snapshot
   execute "await page.goto('https://example.com')"
@@ -474,14 +442,13 @@ PERFORMANCE TIPS
   execute "
     await page.goto('https://example.com');
     await getRef('e1').click();
-    return await getSnapshot({interactableOnly: true});
+    return await getSnapshot();
   "
 
 HELPERS
   page              - Playwright Page object
   getSnapshot(opts?)- Get ARIA accessibility tree with refs
                       opts.maxDepth: limit tree depth (e.g., 5)
-                      opts.interactableOnly: only clickable/input elements
   getRef(id)        - Get element by ref ID (chainable - supports all ElementHandle methods)
                       Example: await getRef('e1').click()
                       Example: await getRef('e1').getAttribute('data-foo')
@@ -489,9 +456,6 @@ HELPERS
                       Returns { filePath, lineNumber, componentName } or null
   getRef(id).props()   - Get React component props (serialized)
   getRef(id).state()   - Get React component state/hooks (serialized)
-  component(name, opts?) - Find elements by React component name
-                      opts.nth: get the nth matching element (0-indexed)
-                      Example: await component('Button', {nth: 0})
   fill(id, text)    - Clear and fill input (works with rich text editors)
   drag(opts)        - Drag with custom MIME types
                       opts.from: source selector or ref ID (e.g., "e1" or "text=src")
@@ -510,14 +474,11 @@ HELPERS
   grab              - React Grab client API (activate, copyElement, etc)
 
 SNAPSHOT OPTIONS
-  # Full YAML tree (default, can be large)
+  # Full YAML tree (default)
   execute "return await getSnapshot()"
 
-  # Interactable only (recommended - much smaller!)
-  execute "return await getSnapshot({interactableOnly: true})"
-
-  # With depth limit
-  execute "return await getSnapshot({interactableOnly: true, maxDepth: 6})"
+  # With depth limit (smaller output)
+  execute "return await getSnapshot({maxDepth: 6})"
 
 SCREENSHOTS - PREFER ELEMENT OVER FULL PAGE
   For visual issues (wrong color, broken styling, misalignment), ALWAYS screenshot
@@ -576,15 +537,9 @@ REACT-SPECIFIC PATTERNS
   # Get component state
   execute "return await getRef('e1').state()"
 
-  # Find elements by React component name
-  execute "const buttons = await component('Button'); return buttons.length"
-
-  # Get the first Button component and click it
-  execute "const btn = await component('Button', {nth: 0}); await btn.click()"
-
 MULTI-PAGE SESSIONS
   execute "await page.goto('https://github.com')" --page github
-  execute "return await getSnapshot({interactableOnly: true})" --page github
+  execute "return await getSnapshot()" --page github
 
 PLAYWRIGHT DOCS: https://playwright.dev/docs/api/class-page
 `;

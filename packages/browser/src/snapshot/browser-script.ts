@@ -761,65 +761,66 @@ async function getComponentTree(options) {
   const maxDepth = options.maxDepth || DEFAULT_COMPONENT_TREE_DEPTH;
   const includeProps = options.includeProps || false;
   const componentNodes = [];
-  const processedFibers = new Set();
+  const seenComponents = new Set();
 
-  const getFiberFromElement = (element) => {
-    if (!element) return null;
-    return element._reactFiber || element[Object.keys(element).find(key => key.startsWith("__reactFiber$") || key.startsWith("__reactInternalInstance$"))];
-  };
-
-  const isComponentFiber = (fiber) => {
-    return fiber && (fiber.tag === 0 || fiber.tag === 1 || fiber.tag === 11 || fiber.tag === 14 || fiber.tag === 15);
-  };
-
-  const getComponentName = (fiber) => {
-    if (!fiber || !fiber.type) return null;
-    if (typeof fiber.type === "string") return null;
-    return fiber.type.displayName || fiber.type.name || null;
-  };
-
-  const traverseFiber = async (fiber, depth, parentPath) => {
-    if (!fiber || depth > maxDepth || processedFibers.has(fiber)) return;
-    processedFibers.add(fiber);
-
-    if (isComponentFiber(fiber)) {
-      const name = getComponentName(fiber);
-      if (name && !name.startsWith("_")) {
-        const node = { name, depth, path: parentPath + "/" + name };
-        if (fiber.stateNode instanceof Element) {
-          const refs = window.__REACT_GRAB_REFS__;
-          if (refs) {
-            for (const [refId, el] of Object.entries(refs)) {
-              if (el === fiber.stateNode) {
-                node.ref = refId;
-                break;
-              }
-            }
-          }
-          const source = await getReactSource(fiber.stateNode);
-          if (source) {
-            node.source = source.filePath + (source.lineNumber ? ":" + source.lineNumber : "");
-          }
-        }
-        if (includeProps && fiber.memoizedProps) {
-          node.props = safeSerialize(fiber.memoizedProps, 0, 2, new Set());
-        }
-        componentNodes.push(node);
-        parentPath = node.path;
-      }
-    }
-
-    if (fiber.child) await traverseFiber(fiber.child, depth + 1, parentPath);
-    if (fiber.sibling) await traverseFiber(fiber.sibling, depth, parentPath);
-  };
-
-  const rootFiber = getFiberFromElement(document.getElementById("root") || document.getElementById("__next") || document.body.firstElementChild);
-  if (rootFiber) {
-    let current = rootFiber;
-    while (current.return) current = current.return;
-    await traverseFiber(current, 0, "");
+  const reactGrab = window.__REACT_GRAB__;
+  if (!reactGrab?.getDisplayName) {
+    return componentNodes;
   }
 
+  const isSkippedComponent = (name) => {
+    if (!name) return true;
+    if (name.startsWith("motion.")) return true;
+    return false;
+  };
+
+  const traverse = async (element, depth, parentRef) => {
+    if (!element || depth > maxDepth) return;
+    if (!(element instanceof Element)) return;
+
+    const componentName = reactGrab.getDisplayName(element);
+    const nodeKey = componentName + ":" + depth + ":" + element.tagName;
+
+    let currentRef = parentRef;
+
+    if (componentName && !seenComponents.has(nodeKey) && !isSkippedComponent(componentName)) {
+      seenComponents.add(nodeKey);
+      const node = { name: componentName, depth };
+
+      let ref = element.getAttribute("aria-ref");
+      if (!ref) {
+        const firstWithRef = element.querySelector("[aria-ref]");
+        if (firstWithRef) ref = firstWithRef.getAttribute("aria-ref");
+      }
+      if (ref && ref !== parentRef) {
+        node.ref = ref;
+        currentRef = ref;
+      }
+
+      const source = await getReactSource(element);
+      if (source?.filePath) {
+        let filePath = source.filePath;
+        const lastSlash = Math.max(filePath.lastIndexOf("/"), filePath.lastIndexOf(String.fromCharCode(92)));
+        if (lastSlash !== -1) filePath = filePath.slice(lastSlash + 1);
+        node.source = filePath + (source.lineNumber ? ":" + source.lineNumber : "");
+      }
+
+      if (includeProps) {
+        const props = await getElementProps(element);
+        if (props && Object.keys(props).length > 0) {
+          node.props = props;
+        }
+      }
+
+      componentNodes.push(node);
+    }
+
+    for (const child of element.children) {
+      await traverse(child, depth + 1, currentRef);
+    }
+  };
+
+  await traverse(document.body, 0, null);
   return componentNodes;
 }
 
@@ -912,7 +913,9 @@ function generateAriaTree(rootElement) {
 
 function computeAriaRef(ariaNode, options) {
   if (options.refs === "none") return;
-  if (options.refs === "interactable" && (!ariaNode.box.visible || !ariaNode.receivesPointerEvents)) return;
+  const hasCursorPointer = ariaNode.box.cursor === "pointer";
+  if (options.refs === "interactable" && !ariaNode.box.visible) return;
+  if (options.refs === "interactable" && !ariaNode.receivesPointerEvents && !hasCursorPointer) return;
   let ariaRef = ariaNode.element._ariaRef;
   if (!ariaRef || ariaRef.role !== ariaNode.role || ariaRef.name !== ariaNode.name) {
     ariaRef = { role: ariaNode.role, name: ariaNode.name, ref: (options.refPrefix || "") + "e" + (++lastRef) };
@@ -991,8 +994,16 @@ function hasPointerCursor(ariaNode) { return ariaNode.box.cursor === "pointer"; 
 
 var DEFAULT_RENDER_OPTIONS = { visibility: "ariaOrVisible", refs: "interactable", refPrefix: "", includeGenericRole: true, renderActive: true, renderCursorPointer: true };
 
+function isUsefulComponentName(name) {
+  if (!name || typeof name !== "string") return false;
+  if (name.startsWith("Primitive.")) return false;
+  if (name === "SlotClone" || name === "Slot") return false;
+  return true;
+}
+
 function createAriaKey(ariaNode, renderCursorPointer, renderActive) {
-  let key = ariaNode.role;
+  const hasUsefulComponent = isUsefulComponentName(ariaNode.component);
+  let key = (ariaNode.role === "generic" && hasUsefulComponent) ? ariaNode.component : ariaNode.role;
   if (ariaNode.name && ariaNode.name.length <= MAX_NAME_LENGTH) {
     const name = ariaNode.name;
     if (name) {
@@ -1013,7 +1024,8 @@ function createAriaKey(ariaNode, renderCursorPointer, renderActive) {
     key += " [ref=" + ariaNode.ref + "]";
     if (renderCursorPointer && hasPointerCursor(ariaNode)) key += " [cursor=pointer]";
   }
-  if (ariaNode.component) key += " [component=" + ariaNode.component + "]";
+  const showComponentAttr = hasUsefulComponent && ariaNode.role !== "generic";
+  if (showComponentAttr) key += " [component=" + ariaNode.component + "]";
   if (ariaNode.source) key += " [source=" + ariaNode.source + "]";
   return key;
 }
@@ -1085,7 +1097,6 @@ async function populateReactInfo(snapshot) {
 async function getSnapshot(options) {
   options = options || {};
   const maxDepth = options.maxDepth || 0;
-  const interactableOnly = options.interactableOnly || false;
   const snapshot = generateAriaTree(document.body);
   const refsObject = {};
   for (const [ref, element] of snapshot.elements) refsObject[ref] = element;
@@ -1094,35 +1105,13 @@ async function getSnapshot(options) {
 
   await populateReactInfo(snapshot);
 
-  return renderAriaTreeFiltered(snapshot, { maxDepth, interactableOnly });
+  return renderAriaTreeFiltered(snapshot, { maxDepth });
 }
 
 function renderAriaTreeFiltered(ariaSnapshot, filterOptions) {
   const maxDepth = filterOptions.maxDepth || 0;
-  const interactableOnly = filterOptions.interactableOnly || false;
   const lines = [];
   const nodesToRender = ariaSnapshot.root.role === "fragment" ? ariaSnapshot.root.children : [ariaSnapshot.root];
-
-  if (interactableOnly) {
-    const collectInteractable = (node) => {
-      if (typeof node === "string") return;
-      const isInteractable = node.ref && (INTERACTABLE_ROLES.has(node.role) || hasPointerCursor(node));
-      if (isInteractable) {
-        const key = createAriaKey(node, true, DEFAULT_RENDER_OPTIONS.renderActive);
-        const singleText = getSingleInlinedTextChild(node);
-        if (singleText !== undefined) {
-          lines.push("- " + yamlEscapeKeyIfNeeded(key) + ": " + yamlEscapeValueIfNeeded(singleText));
-        } else {
-          lines.push("- " + yamlEscapeKeyIfNeeded(key));
-        }
-      }
-      for (const child of node.children || []) {
-        collectInteractable(child);
-      }
-    };
-    for (const node of nodesToRender) collectInteractable(node);
-    return lines.join("\\n");
-  }
 
   const visitText = (text, indent) => {
     const escaped = yamlEscapeValueIfNeeded(text);

@@ -25,33 +25,12 @@ import {
   SERVER_SPAWN_DELAY_MS,
 } from "./utils/constants.js";
 
-declare const __REACT_GRAB_SCRIPT__: string;
+import REACT_GRAB_SCRIPT from "__REACT_GRAB_SCRIPT__";
 
 const SERVER_INFO_PATH = join(tmpdir(), "react-grab-browser-server.json");
 
-let cachedReactGrabScript: string | null = null;
-
-const fetchReactGrabScript = async (): Promise<string> => {
-  if (cachedReactGrabScript) return cachedReactGrabScript;
-
-  if (
-    typeof __REACT_GRAB_SCRIPT__ !== "undefined" &&
-    __REACT_GRAB_SCRIPT__
-  ) {
-    cachedReactGrabScript = __REACT_GRAB_SCRIPT__;
-    return cachedReactGrabScript;
-  }
-
-  try {
-    const response = await fetch(
-      "https://unpkg.com/react-grab/dist/index.global.js",
-    );
-    if (response.ok) {
-      cachedReactGrabScript = await response.text();
-      return cachedReactGrabScript;
-    }
-  } catch {}
-  return "";
+const getReactGrabScript = (): string => {
+  return REACT_GRAB_SCRIPT || "";
 };
 
 interface PageEntry {
@@ -222,9 +201,25 @@ export const serve = async (
   let server: ReturnType<typeof createServer>;
 
   try {
-    const reactGrabScript = await fetchReactGrabScript();
+    const reactGrabScript = getReactGrabScript();
     if (reactGrabScript) {
-      await context.addInitScript(reactGrabScript);
+      const wrappedScript = `
+        (function() {
+          var initReactGrab = function() {
+            try {
+              ${reactGrabScript}
+            } catch (e) {
+              console.error('[react-grab] Init error:', e.message);
+            }
+          };
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initReactGrab);
+          } else {
+            initReactGrab();
+          }
+        })();
+      `;
+      await context.addInitScript(wrappedScript);
     }
     await context.addInitScript(getSnapshotScript());
 
@@ -411,19 +406,6 @@ export interface SpawnServerOptions {
   domain?: string;
 }
 
-const filterErrorOutput = (output: string): string => {
-  const lines = output.split("\n");
-  const errorLines = lines.filter((line) => {
-    const trimmed = line.trim();
-    if (!trimmed) return false;
-    if (trimmed.startsWith("-") || trimmed.startsWith("✖") || trimmed.startsWith("✔") || trimmed.startsWith("✿")) return false;
-    if (trimmed.includes("Starting server") || trimmed.includes("Loading cookies")) return false;
-    return true;
-  });
-  return errorLines.join("\n").trim();
-};
-
-
 export const spawnServer = async (
   options: SpawnServerOptions,
 ): Promise<BrowserServer> => {
@@ -475,8 +457,8 @@ export const spawnServer = async (
     }
 
     if (exitCode !== null && exitCode !== 0) {
-      const filtered = filterErrorOutput(combinedOutput);
-      const details = filtered || `exit code ${exitCode}`;
+      const errorOutput = combinedOutput.trim();
+      const details = errorOutput || `exit code ${exitCode}`;
       throw new Error(`Server failed: ${details}`);
     }
 
@@ -500,11 +482,8 @@ export const spawnServer = async (
     }
   }
 
-  const filtered = filterErrorOutput(combinedOutput);
-  const errorParts: string[] = [];
-  if (filtered) errorParts.push(filtered);
-  if (exitCode !== null) errorParts.push(`exit code: ${exitCode}`);
-
+  const errorOutput = combinedOutput.trim();
+  const errorParts = [errorOutput, exitCode !== null && `exit code: ${exitCode}`].filter(Boolean);
   const details = errorParts.length > 0 ? `: ${errorParts.join(", ")}` : "";
   throw new Error(`Failed to start server${details}`);
 };

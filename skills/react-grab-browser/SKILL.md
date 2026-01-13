@@ -18,24 +18,24 @@ npx -y @react-grab/cli browser execute "<code>"
 ## Performance Tips
 
 1. Batch multiple actions in a single execute call (3-5x faster)
-2. Use interactableOnly: `snapshot({interactableOnly: true})`
+2. Use maxDepth to limit tree depth: `getSnapshot({maxDepth: 5})`
 
 ```bash
 # SLOW: 3 separate round-trips
 execute "await page.goto('https://example.com')"
-execute "await ref('e1').click()"
-execute "return await snapshot()"
+execute "await getRef('e1').click()"
+execute "return await getSnapshot()"
 
-# FAST: 1 round-trip, interactable only
-execute "await page.goto('...'); await ref('e1').click(); return await snapshot({interactableOnly: true});"
+# FAST: 1 round-trip
+execute "await page.goto('...'); await getRef('e1').click(); return await getSnapshot();"
 ```
 
 ## Helpers
 
 - `page` - Playwright Page object
-- `snapshot(opts?)` - Get ARIA tree with refs (e1, e2...). Options: `maxDepth`, `interactableOnly`
-- `ref(id)` - Get element by ref ID (chainable). E.g. `await ref('e1').click()`
-- `ref(id).source()` - Get React component source: `{ filePath, lineNumber, componentName }`
+- `getSnapshot(opts?)` - Get ARIA tree with refs (e1, e2...). Options: `maxDepth`
+- `getRef(id)` - Get element by ref ID (chainable). E.g. `await getRef('e1').click()`
+- `getRef(id).source()` - Get React component source: `{ filePath, lineNumber, componentName }`
 - `fill(id, text)` - Clear and fill input
 - `drag({from, to, dataTransfer?})` - Drag with custom MIME types
 - `dispatch({target, event, dataTransfer?, detail?})` - Dispatch custom events
@@ -44,14 +44,14 @@ execute "await page.goto('...'); await ref('e1').click(); return await snapshot(
 ## Common Patterns
 
 ```bash
-execute "await ref('e1').click()"
+execute "await getRef('e1').click()"
 execute "await fill('e1', 'hello')"
 execute "await waitFor('e1')"
 execute "await waitFor('networkidle')"
-execute "return await ref('e1').getAttribute('data-id')"
-execute "return await ref('e1').source()"
-execute "return await snapshot({interactableOnly: true})"
-execute "return await ref('e1').screenshot()"
+execute "return await getRef('e1').getAttribute('data-id')"
+execute "return await getRef('e1').source()"
+execute "return await getSnapshot()"
+execute "return await getRef('e1').screenshot()"
 execute "return await page.screenshot()"
 ```
 
@@ -59,7 +59,7 @@ execute "return await page.screenshot()"
 
 ```bash
 execute "await page.goto('https://github.com')" --page github
-execute "return await snapshot({interactableOnly: true})" --page github
+execute "return await getSnapshot()" --page github
 ```
 
 ## Docs
