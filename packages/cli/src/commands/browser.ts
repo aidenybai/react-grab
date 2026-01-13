@@ -1,7 +1,6 @@
 import { execSync, spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import pc from "picocolors";
 import { chromium, type Page } from "playwright-core";
@@ -224,8 +223,9 @@ const start = new Command()
         } else {
           cookieSpinner.info("Native module mismatch. Rebuilding...");
           try {
-            const currentDir = dirname(fileURLToPath(import.meta.url));
-            const browserPkgDir = join(currentDir, "..", "..");
+            const require = createRequire(import.meta.url);
+            const browserPkgPath = require.resolve("@react-grab/browser");
+            const browserPkgDir = join(dirname(browserPkgPath), "..");
 
             await browserServer.stop();
             await rebuildNativeModuleAndRestart(browserPkgDir);
