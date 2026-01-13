@@ -1,6 +1,6 @@
 {
   "name": "@react-grab/browser",
-  "version": "0.1.0-beta.4",
+  "version": "0.1.0-beta.5",
   "type": "module",
   "exports": {
     ".": {

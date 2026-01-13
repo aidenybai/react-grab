@@ -1,5 +1,14 @@
 # @react-grab/gemini
 
+## 0.1.0-beta.5
+
+### Patch Changes
+
+- fix: a11y
+- Updated dependencies
+  - react-grab@0.1.0-beta.5
+  - @react-grab/relay@0.1.0-beta.5
+
 ## 0.1.0-beta.4
 
 ### Patch Changes
