@@ -38,7 +38,7 @@ const EDITOR_CONFIGS: EditorConfig[] = [
     id: "vscode",
     name: "VS Code",
     urlScheme: "vscode",
-    processPatterns: ["Visual Studio Code", "Code.app", "code-server"],
+    processPatterns: ["Visual Studio Code", "Code.app", "code-server", "Code.exe"],
   },
   {
     id: "zed",
