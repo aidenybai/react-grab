@@ -1,6 +1,7 @@
 import { Command } from "commander";
 import pc from "picocolors";
 import prompts from "prompts";
+import { detectSkillAgents, findSkillAgent } from "../utils/cli-helpers.js";
 import { detectProject } from "../utils/detect.js";
 import { printDiff } from "../utils/diff.js";
 import { handleError } from "../utils/handle-error.js";
@@ -18,12 +19,12 @@ import {
   AGENT_NAMES,
   MCP_CLIENTS,
   MCP_CLIENT_NAMES,
+  SKILL_AGENTS,
   type Agent,
   type McpClient,
+  type SkillAgent,
 } from "../utils/templates.js";
 import { execSync } from "child_process";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import {
   applyPackageJsonTransform,
   applyTransform,
@@ -34,22 +35,6 @@ import {
 } from "../utils/transform.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
-
-const SKILL_AGENTS = [
-  { id: "opencode", name: "OpenCode", folder: ".opencode" },
-  { id: "claude-code", name: "Claude Code", folder: ".claude" },
-  { id: "codex", name: "Codex", folder: ".codex" },
-  { id: "cursor", name: "Cursor", folder: ".cursor" },
-  { id: "vscode", name: "VSCode", folder: ".github" },
-];
-
-const detectSkillAgents = (cwd: string) => {
-  return SKILL_AGENTS.filter((agent) => existsSync(join(cwd, agent.folder)));
-};
-
-const findSkillAgent = (id: string) => {
-  return SKILL_AGENTS.find((agent) => agent.id === id);
-};
 
 const configureMcp = (
   mcpClient: McpClient,
@@ -72,6 +57,25 @@ const configureMcp = (
   } catch {
     mcpSpinner.fail(`Failed to configure MCP for ${MCP_CLIENT_NAMES[mcpClient]}`);
     logger.dim(`Try manually: npx -y install-mcp '${mcpCommand}' --client ${mcpClient}`);
+    logger.break();
+    process.exit(1);
+  }
+};
+
+const installSkill = (agent: SkillAgent, cwd: string): void => {
+  logger.break();
+  const skillSpinner = spinner(`Installing skill for ${agent.name}`).start();
+  try {
+    execSync(`npx -y add-skill aidenybai/react-grab -y --agent ${agent.id}`, {
+      stdio: "ignore",
+      cwd,
+    });
+    skillSpinner.succeed(`Skill installed for ${agent.name}`);
+    logger.break();
+    process.exit(0);
+  } catch {
+    skillSpinner.fail(`Failed to install skill for ${agent.name}`);
+    logger.warn(`Try manually: npx -y add-skill aidenybai/react-grab --agent ${agent.id}`);
     logger.break();
     process.exit(1);
   }
@@ -208,22 +212,7 @@ export const add = new Command()
           process.exit(1);
         }
 
-        logger.break();
-        const skillSpinner = spinner(`Installing skill for ${selectedAgent.name}`).start();
-        try {
-          execSync(`npx -y add-skill aidenybai/react-grab -y --agent ${selectedAgent.id}`, {
-            stdio: "ignore",
-            cwd,
-          });
-          skillSpinner.succeed(`Skill installed for ${selectedAgent.name}`);
-          logger.break();
-          process.exit(0);
-        } catch {
-          skillSpinner.fail(`Failed to install skill for ${selectedAgent.name}`);
-          logger.warn(`Try manually: npx -y add-skill aidenybai/react-grab --agent ${selectedAgent.id}`);
-          logger.break();
-          process.exit(1);
-        }
+        installSkill(selectedAgent, cwd);
       }
 
       if (!agentArg && !isNonInteractive) {
@@ -305,21 +294,7 @@ export const add = new Command()
             process.exit(0);
           }
 
-          const skillSpinner = spinner(`Installing skill for ${selectedAgent.name}`).start();
-          try {
-            execSync(`npx -y add-skill aidenybai/react-grab -y --agent ${selectedAgent.id}`, {
-              stdio: "ignore",
-              cwd,
-            });
-            skillSpinner.succeed(`Skill installed for ${selectedAgent.name}`);
-            logger.break();
-            process.exit(0);
-          } catch {
-            skillSpinner.fail(`Failed to install skill for ${selectedAgent.name}`);
-            logger.warn(`Try manually: npx -y add-skill aidenybai/react-grab --agent ${selectedAgent.id}`);
-            logger.break();
-            process.exit(1);
-          }
+          installSkill(selectedAgent, cwd);
         }
       }
 

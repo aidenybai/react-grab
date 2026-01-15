@@ -30,8 +30,7 @@ import {
   type AgentIntegration,
 } from "../utils/templates.js";
 import { execSync } from "child_process";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { detectSkillAgents } from "../utils/cli-helpers.js";
 import {
   previewAgentRemoval,
   previewOptionsTransform,
@@ -44,18 +43,6 @@ import {
 const VERSION = process.env.VERSION ?? "0.0.1";
 const REPORT_URL = "https://react-grab.com/api/report-cli";
 const DOCS_URL = "https://github.com/aidenybai/react-grab";
-
-const SKILL_AGENTS = [
-  { id: "opencode", name: "OpenCode", folder: ".opencode" },
-  { id: "claude-code", name: "Claude Code", folder: ".claude" },
-  { id: "codex", name: "Codex", folder: ".codex" },
-  { id: "cursor", name: "Cursor", folder: ".cursor" },
-  { id: "vscode", name: "VSCode", folder: ".github" },
-];
-
-const detectSkillAgents = (cwd: string) => {
-  return SKILL_AGENTS.filter((agent) => existsSync(join(cwd, agent.folder)));
-};
 
 const promptSkillInstall = async (cwd: string): Promise<void> => {
   const detectedAgents = detectSkillAgents(cwd);

@@ -5,7 +5,17 @@ import { handleError } from "./handle-error.js";
 import { installPackages, uninstallPackages } from "./install.js";
 import { logger } from "./logger.js";
 import { spinner } from "./spinner.js";
-import { AGENT_NAMES } from "./templates.js";
+import { AGENT_NAMES, SKILL_AGENTS, type SkillAgent } from "./templates.js";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+
+export const detectSkillAgents = (cwd: string): SkillAgent[] => {
+  return SKILL_AGENTS.filter((agent) => existsSync(join(cwd, agent.folder)));
+};
+
+export const findSkillAgent = (id: string): SkillAgent | undefined => {
+  return SKILL_AGENTS.find((agent) => agent.id === id);
+};
 
 export const formatInstalledAgentNames = (agents: string[]): string =>
   agents.map((agent) => AGENT_NAMES[agent as keyof typeof AGENT_NAMES] ?? agent).join(", ");

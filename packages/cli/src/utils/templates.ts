@@ -149,3 +149,17 @@ export const MCP_CLIENT_NAMES: Record<McpClient, string> = {
   "droid": "Droid",
   // "claude": "Claude Desktop",
 };
+
+export interface SkillAgent {
+  id: string;
+  name: string;
+  folder: string;
+}
+
+export const SKILL_AGENTS: SkillAgent[] = [
+  { id: "opencode", name: "OpenCode", folder: ".opencode" },
+  { id: "claude-code", name: "Claude Code", folder: ".claude" },
+  { id: "codex", name: "Codex", folder: ".codex" },
+  { id: "cursor", name: "Cursor", folder: ".cursor" },
+  { id: "vscode", name: "VSCode", folder: ".github" },
+];
