@@ -177,28 +177,6 @@ Once configured, your agent has access to:
 - `browser_snapshot` - Get ARIA accessibility tree with element refs (e1, e2...)
 - `browser_execute` - Run Playwright code with helpers like `ref('e1').click()`
 
-## Skill
-
-For agents that support skills (like Codex), install the `react-grab-browser` skill:
-
-```bash
-npx -y grab@latest add skill
-# or
-npx -y openskills install aidenybai/react-grab -y
-```
-
-The skill provides browser automation with Playwright using your real browser cookies. See the [skill documentation](https://github.com/aidenybai/react-grab/blob/main/skills/react-grab-browser/SKILL.md) for full details.
-
-## Claude Plugin
-
-React Grab includes a Claude plugin for Claude Code/Desktop. The plugin is located in `.claude-plugin/` and provides browser automation capabilities.
-
-To use it, ensure the plugin files are present:
-- `.claude-plugin/marketplace.json` - Plugin manifest
-- `.claude/skills/react-grab-browser/` - Skill files (SKILL.md, EXAMPLES.md, REFERENCE.md)
-
-The plugin triggers on browser-related requests like "browse", "navigate to", "screenshot", "click on", "fill form", etc.
-
 ## Extending React Grab
 
 React Grab uses a plugin system to extend functionality. Check out the [type definitions](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) to see all available options.

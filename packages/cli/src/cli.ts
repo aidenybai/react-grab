@@ -54,7 +54,6 @@ const addAgentArg = addCommand?.arguments.get("agent");
 if (addAgentArg) {
   addAgentArg.handler = (complete) => {
     complete("mcp", "MCP server for browser automation");
-    complete("skill", "Browser automation skill for AI agents");
     for (const agent of AGENTS) {
       complete(agent, "");
     }

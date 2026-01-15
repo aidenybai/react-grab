@@ -32,13 +32,6 @@ import {
   type AgentIntegration,
 } from "../utils/templates.js";
 import { execSync } from "child_process";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
-import {
-  fetchSkillFile,
-  AGENT_TARGETS,
-  SUPPORTED_TARGETS,
-} from "../utils/skill-files.js";
 import {
   previewAgentRemoval,
   previewOptionsTransform,
@@ -53,79 +46,42 @@ const REPORT_URL = "https://react-grab.com/api/report-cli";
 const DOCS_URL = "https://github.com/aidenybai/react-grab";
 
 const promptAgentIntegration = async (cwd: string, customPkg?: string): Promise<void> => {
-  const { integrationType } = await prompts({
-    type: "select",
-    name: "integrationType",
-    message: `Would you like to add ${highlighter.info("agent integration")}?`,
-    choices: [
-      { title: "MCP Server (browser automation for your agent)", value: "mcp" },
-      { title: "Skill (for agents like Codex)", value: "skill" },
-      { title: "Both", value: "both" },
-      { title: "Neither", value: "none" },
-    ],
+  const { wantMcp } = await prompts({
+    type: "confirm",
+    name: "wantMcp",
+    message: `Would you like to add ${highlighter.info("MCP server")} for browser automation?`,
+    initial: false,
   });
 
-  if (!integrationType || integrationType === "none") return;
+  if (!wantMcp) return;
 
-  if (integrationType === "mcp" || integrationType === "both") {
-    const { mcpClient } = await prompts({
-      type: "select",
-      name: "mcpClient",
-      message: `Which ${highlighter.info("MCP client")} would you like to configure?`,
-      choices: MCP_CLIENTS.map((client) => ({
-        title: MCP_CLIENT_NAMES[client],
-        value: client,
-      })),
-    });
+  const { mcpClient } = await prompts({
+    type: "select",
+    name: "mcpClient",
+    message: `Which ${highlighter.info("MCP client")} would you like to configure?`,
+    choices: MCP_CLIENTS.map((client) => ({
+      title: MCP_CLIENT_NAMES[client],
+      value: client,
+    })),
+  });
 
-    if (mcpClient) {
-      const mcpCommand = customPkg
-        ? `npx -y ${customPkg} browser mcp`
-        : `npx -y @react-grab/cli browser mcp`;
+  if (mcpClient) {
+    const mcpCommand = customPkg
+      ? `npx -y ${customPkg} browser mcp`
+      : `npx -y @react-grab/cli browser mcp`;
 
+    logger.break();
+    try {
+      execSync(
+        `npx -y install-mcp '${mcpCommand}' --client ${mcpClient} --yes`,
+        { stdio: "inherit", cwd },
+      );
       logger.break();
-      try {
-        execSync(
-          `npx -y install-mcp '${mcpCommand}' --client ${mcpClient} --yes`,
-          { stdio: "inherit", cwd },
-        );
-        logger.break();
-        logger.success("MCP server has been configured.");
-      } catch {
-        logger.break();
-        logger.warn("Failed to configure MCP server. You can try again later with:");
-        logger.log(`  npx -y install-mcp '${mcpCommand}' --client ${mcpClient}`);
-      }
-    }
-  }
-
-  if (integrationType === "skill" || integrationType === "both") {
-    const { skillTarget } = await prompts({
-      type: "select",
-      name: "skillTarget",
-      message: `Which ${highlighter.info("agent")} would you like to install the skill for?`,
-      choices: SUPPORTED_TARGETS.map((target) => ({
-        title: target,
-        value: target,
-      })),
-    });
-
-    if (skillTarget) {
+      logger.success("MCP server has been configured.");
+    } catch {
       logger.break();
-      const skillSpinner = spinner("Installing browser automation skill").start();
-      try {
-        const skill = await fetchSkillFile();
-        const skillDir = join(cwd, AGENT_TARGETS[skillTarget]);
-
-        rmSync(skillDir, { recursive: true, force: true });
-        mkdirSync(skillDir, { recursive: true });
-        writeFileSync(join(skillDir, "SKILL.md"), skill);
-
-        skillSpinner.succeed(`Skill installed to ${AGENT_TARGETS[skillTarget]}/`);
-      } catch {
-        skillSpinner.fail("Failed to install skill");
-        logger.dim("Try manually: npx -y openskills install aidenybai/react-grab");
-      }
+      logger.warn("Failed to configure MCP server. You can try again later with:");
+      logger.log(`  npx -y install-mcp '${mcpCommand}' --client ${mcpClient}`);
     }
   }
 
