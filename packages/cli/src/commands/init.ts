@@ -78,7 +78,7 @@ const promptSkillInstall = async (cwd: string): Promise<void> => {
   const { wantSkill } = await prompts({
     type: "confirm",
     name: "wantSkill",
-    message: `Would you like to install the ${highlighter.info("browser automation skill")}?`,
+    message: `Would you like to install the ${highlighter.info("React Grab skill")}? (gives your agent access to the browser)`,
     initial: true,
   });
 
@@ -88,13 +88,16 @@ const promptSkillInstall = async (cwd: string): Promise<void> => {
     type: "select",
     name: "skillAgent",
     message: `Which ${highlighter.info("agent")} would you like to install the skill for?`,
-    choices: detectedAgents.map((agent) => ({
-      title: SKILL_AGENT_NAMES[agent],
-      value: agent,
-    })),
+    choices: [
+      ...detectedAgents.map((agent) => ({
+        title: SKILL_AGENT_NAMES[agent],
+        value: agent,
+      })),
+      { title: "Skip", value: "skip" },
+    ],
   });
 
-  if (skillAgent) {
+  if (skillAgent && skillAgent !== "skip") {
     logger.break();
     const skillSpinner = spinner(`Installing skill for ${SKILL_AGENT_NAMES[skillAgent]}`).start();
     try {
@@ -289,7 +292,7 @@ export const init = new Command()
           logger.break();
         }
 
-        await promptSkillInstall(projectInfo.projectRoot);
+        await promptSkillInstall(cwd);
 
         const { wantCustomizeOptions } = await prompts({
           type: "confirm",
@@ -492,15 +495,18 @@ export const init = new Command()
               type: "select",
               name: "agent",
               message: `Which ${highlighter.info("agent integration")} would you like to add?`,
-              choices: availableAgents.map((innerAgent) => ({
-                title: getAgentName(innerAgent),
-                value: innerAgent,
-              })),
+              choices: [
+                ...availableAgents.map((innerAgent) => ({
+                  title: getAgentName(innerAgent),
+                  value: innerAgent,
+                })),
+                { title: "Skip", value: "skip" },
+              ],
             });
 
-            if (agent === undefined) {
+            if (agent === undefined || agent === "skip") {
               logger.break();
-              process.exit(1);
+              process.exit(0);
             }
 
             const agentIntegration = agent as AgentIntegration;
@@ -705,21 +711,25 @@ export const init = new Command()
               type: "select",
               name: "selectedProject",
               message: "Select a project to install React Grab:",
-              choices: sortedProjects.map((project) => {
-                const frameworkLabel =
-                  project.framework !== "unknown"
-                    ? ` ${highlighter.dim(`(${FRAMEWORK_NAMES[project.framework]})`)}`
-                    : "";
-                return {
-                  title: `${project.name}${frameworkLabel}`,
-                  value: project.path,
-                };
-              }),
+              choices: [
+                ...sortedProjects.map((project) => {
+                  const frameworkLabel =
+                    project.framework !== "unknown"
+                      ? ` ${highlighter.dim(`(${FRAMEWORK_NAMES[project.framework]})`)}`
+                      : "";
+                  return {
+                    title: `${project.name}${frameworkLabel}`,
+                    value: project.path,
+                  };
+                }),
+                { title: "Skip", value: "skip" },
+              ],
             });
 
-            if (!selectedProject) {
+            if (!selectedProject || selectedProject === "skip") {
               logger.break();
-              process.exit(1);
+              await promptSkillInstall(cwd);
+              process.exit(0);
             }
 
             process.chdir(selectedProject);
@@ -891,7 +901,7 @@ export const init = new Command()
       logger.break();
 
       if (!isNonInteractive) {
-        await promptSkillInstall(projectInfo.projectRoot);
+        await promptSkillInstall(cwd);
       }
 
       await reportToCli("completed", {

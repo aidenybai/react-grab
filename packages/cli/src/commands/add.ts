@@ -189,15 +189,18 @@ export const add = new Command()
             type: "select",
             name: "agent",
             message: `Which ${highlighter.info("agent")} would you like to install the skill for?`,
-            choices: detectedAgents.map((innerAgent) => ({
-              title: SKILL_AGENT_NAMES[innerAgent],
-              value: innerAgent,
-            })),
+            choices: [
+              ...detectedAgents.map((innerAgent) => ({
+                title: SKILL_AGENT_NAMES[innerAgent],
+                value: innerAgent,
+              })),
+              { title: "Skip", value: "skip" },
+            ],
           });
 
-          if (!agent) {
+          if (!agent || agent === "skip") {
             logger.break();
-            process.exit(1);
+            process.exit(0);
           }
 
           skillAgent = agent;
@@ -294,15 +297,18 @@ export const add = new Command()
             type: "select",
             name: "agent",
             message: `Which ${highlighter.info("agent")} would you like to install the skill for?`,
-            choices: detectedAgents.map((innerAgent) => ({
-              title: SKILL_AGENT_NAMES[innerAgent],
-              value: innerAgent,
-            })),
+            choices: [
+              ...detectedAgents.map((innerAgent) => ({
+                title: SKILL_AGENT_NAMES[innerAgent],
+                value: innerAgent,
+              })),
+              { title: "Skip", value: "skip" },
+            ],
           });
 
-          if (!agent) {
+          if (!agent || agent === "skip") {
             logger.break();
-            process.exit(1);
+            process.exit(0);
           }
 
           const skillSpinner = spinner(`Installing skill for ${SKILL_AGENT_NAMES[agent]}`).start();
