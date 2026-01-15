@@ -177,6 +177,16 @@ Once configured, your agent has access to:
 - `browser_snapshot` - Get ARIA accessibility tree with element refs (e1, e2...)
 - `browser_execute` - Run Playwright code with helpers like `ref('e1').click()`
 
+## Skill
+
+For agents that support skills (like Codex), install the `react-grab-browser` skill:
+
+```bash
+npx -y grab@latest add skill
+# or
+npx -y add-skill aidenybai/react-grab
+```
+
 ## Extending React Grab
 
 React Grab uses a plugin system to extend functionality. Check out the [type definitions](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) to see all available options.

@@ -33,13 +33,39 @@ import {
 
 const VERSION = process.env.VERSION ?? "0.0.1";
 
+const configureMcp = (
+  mcpClient: McpClient,
+  cwd: string,
+  customPkg?: string,
+): void => {
+  const mcpCommand = customPkg
+    ? `npx -y ${customPkg} browser mcp`
+    : `npx -y @react-grab/cli browser mcp`;
+  const mcpSpinner = spinner(`Installing MCP server for ${MCP_CLIENT_NAMES[mcpClient]}`).start();
+
+  try {
+    execSync(
+      `npx -y install-mcp '${mcpCommand}' --client ${mcpClient} --yes`,
+      { stdio: "ignore", cwd },
+    );
+    mcpSpinner.succeed(`MCP server installed for ${MCP_CLIENT_NAMES[mcpClient]}`);
+    logger.break();
+    process.exit(0);
+  } catch {
+    mcpSpinner.fail(`Failed to configure MCP for ${MCP_CLIENT_NAMES[mcpClient]}`);
+    logger.dim(`Try manually: npx -y install-mcp '${mcpCommand}' --client ${mcpClient}`);
+    logger.break();
+    process.exit(1);
+  }
+};
+
 export const add = new Command()
   .name("add")
   .alias("install")
-  .description("add an agent integration or MCP server")
+  .description("add browser automation for your AI agent")
   .argument(
     "[agent]",
-    `agent to add (${AGENTS.join(", ")}, mcp)`,
+    `agent to add (${AGENTS.join(", ")}, mcp, skill)`,
   )
   .option("-y, --yes", "skip confirmation prompts", false)
   .option(
@@ -109,22 +135,23 @@ export const add = new Command()
           process.exit(1);
         }
 
-        const customPkg = opts.pkg as string | undefined;
-        const mcpCommand = customPkg
-          ? `npx -y ${customPkg} browser mcp`
-          : `npx -y @react-grab/cli browser mcp`;
-        const mcpSpinner = spinner(`Configuring MCP for ${MCP_CLIENT_NAMES[mcpClient]}`).start();
+        configureMcp(mcpClient, cwd, opts.pkg as string | undefined);
+      }
+
+      if (agentArg === "skill") {
+        logger.break();
+        const skillSpinner = spinner("Installing skill").start();
         try {
-          execSync(
-            `npx -y install-mcp '${mcpCommand}' --client ${mcpClient} --yes`,
-            { stdio: "ignore", cwd },
-          );
-          mcpSpinner.succeed(`MCP configured for ${MCP_CLIENT_NAMES[mcpClient]}`);
+          execSync("npx -y add-skill aidenybai/react-grab -y", {
+            stdio: "ignore",
+            cwd,
+          });
+          skillSpinner.succeed("Skill installed");
           logger.break();
           process.exit(0);
         } catch {
-          mcpSpinner.fail(`Failed to configure MCP for ${MCP_CLIENT_NAMES[mcpClient]}`);
-          logger.dim(`Try manually: npx -y install-mcp '${mcpCommand}' --client ${mcpClient}`);
+          skillSpinner.fail("Failed to install skill");
+          logger.warn("Try manually: npx -y add-skill aidenybai/react-grab");
           logger.break();
           process.exit(1);
         }
@@ -140,12 +167,17 @@ export const add = new Command()
           choices: [
             {
               title: "MCP Server",
-              description: "Give your agent access to your browser",
+              description: "For Cursor, Claude Code, VS Code, Windsurf, etc.",
               value: "mcp",
             },
             {
+              title: "Skill",
+              description: "For Codex and other skill-based agents",
+              value: "skill",
+            },
+            {
               title: "Agent Integration",
-              description: "Run agents through the React Grab interface",
+              description: "Add Claude Code, Cursor, etc. to the React Grab UI",
               value: "agent",
             },
           ],
@@ -172,28 +204,26 @@ export const add = new Command()
             process.exit(1);
           }
 
-          const mcpClient = client as McpClient;
-          const customPkg = opts.pkg as string | undefined;
-          const mcpCommand = customPkg
-            ? `npx -y ${customPkg} browser mcp`
-            : `npx -y @react-grab/cli browser mcp`;
-          const mcpSpinner = spinner(`Configuring MCP for ${MCP_CLIENT_NAMES[mcpClient]}`).start();
+          configureMcp(client as McpClient, cwd, opts.pkg as string | undefined);
+        }
+
+        if (addType === "skill") {
+          const skillSpinner = spinner("Installing skill").start();
           try {
-            execSync(
-              `npx -y install-mcp '${mcpCommand}' --client ${mcpClient} --yes`,
-              { stdio: "ignore", cwd },
-            );
-            mcpSpinner.succeed(`MCP configured for ${MCP_CLIENT_NAMES[mcpClient]}`);
+            execSync("npx -y add-skill aidenybai/react-grab -y", {
+              stdio: "ignore",
+              cwd,
+            });
+            skillSpinner.succeed("Skill installed");
             logger.break();
             process.exit(0);
           } catch {
-            mcpSpinner.fail(`Failed to configure MCP for ${MCP_CLIENT_NAMES[mcpClient]}`);
-            logger.dim(`Try manually: npx install-mcp '${mcpCommand}' --client ${mcpClient}`);
+            skillSpinner.fail("Failed to install skill");
+            logger.warn("Try manually: npx -y add-skill aidenybai/react-grab");
             logger.break();
             process.exit(1);
           }
         }
-
       }
 
       const preflightSpinner = spinner("Preflight checks.").start();

@@ -53,7 +53,8 @@ const addCommand = completion.commands.get("add");
 const addAgentArg = addCommand?.arguments.get("agent");
 if (addAgentArg) {
   addAgentArg.handler = (complete) => {
-    complete("mcp", "MCP server for browser automation");
+    complete("mcp", "For Cursor, Claude Code, VS Code, etc.");
+    complete("skill", "For Codex and other skill-based agents");
     for (const agent of AGENTS) {
       complete(agent, "");
     }

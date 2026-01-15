@@ -46,42 +46,64 @@ const REPORT_URL = "https://react-grab.com/api/report-cli";
 const DOCS_URL = "https://github.com/aidenybai/react-grab";
 
 const promptAgentIntegration = async (cwd: string, customPkg?: string): Promise<void> => {
-  const { wantMcp } = await prompts({
-    type: "confirm",
-    name: "wantMcp",
-    message: `Would you like to add ${highlighter.info("MCP server")} for browser automation?`,
-    initial: false,
-  });
-
-  if (!wantMcp) return;
-
-  const { mcpClient } = await prompts({
+  const { integrationType } = await prompts({
     type: "select",
-    name: "mcpClient",
-    message: `Which ${highlighter.info("MCP client")} would you like to configure?`,
-    choices: MCP_CLIENTS.map((client) => ({
-      title: MCP_CLIENT_NAMES[client],
-      value: client,
-    })),
+    name: "integrationType",
+    message: `Would you like to add ${highlighter.info("browser automation")}?`,
+    choices: [
+      { title: "MCP Server", description: "For Cursor, Claude Code, VS Code, etc.", value: "mcp" },
+      { title: "Skill", description: "For Codex and other skill-based agents", value: "skill" },
+      { title: "Both", value: "both" },
+      { title: "Skip", value: "none" },
+    ],
   });
 
-  if (mcpClient) {
-    const mcpCommand = customPkg
-      ? `npx -y ${customPkg} browser mcp`
-      : `npx -y @react-grab/cli browser mcp`;
+  if (!integrationType || integrationType === "none") return;
 
-    logger.break();
-    try {
-      execSync(
-        `npx -y install-mcp '${mcpCommand}' --client ${mcpClient} --yes`,
-        { stdio: "inherit", cwd },
-      );
+  if (integrationType === "mcp" || integrationType === "both") {
+    const { mcpClient } = await prompts({
+      type: "select",
+      name: "mcpClient",
+      message: `Which ${highlighter.info("MCP client")} would you like to configure?`,
+      choices: MCP_CLIENTS.map((client) => ({
+        title: MCP_CLIENT_NAMES[client],
+        value: client,
+      })),
+    });
+
+    if (mcpClient) {
+      const mcpCommand = customPkg
+        ? `npx -y ${customPkg} browser mcp`
+        : `npx -y @react-grab/cli browser mcp`;
+
       logger.break();
-      logger.success("MCP server has been configured.");
+      try {
+        execSync(
+          `npx -y install-mcp '${mcpCommand}' --client ${mcpClient} --yes`,
+          { stdio: "inherit", cwd },
+        );
+      logger.break();
+      logger.success("MCP server installed.");
     } catch {
       logger.break();
-      logger.warn("Failed to configure MCP server. You can try again later with:");
-      logger.log(`  npx -y install-mcp '${mcpCommand}' --client ${mcpClient}`);
+      logger.warn("Failed to install MCP server. You can try again later with:");
+        logger.log(`  npx -y install-mcp '${mcpCommand}' --client ${mcpClient}`);
+      }
+    }
+  }
+
+  if (integrationType === "skill" || integrationType === "both") {
+    logger.break();
+    const skillSpinner = spinner("Installing skill").start();
+    try {
+      execSync("npx -y add-skill aidenybai/react-grab -y", {
+        stdio: "ignore",
+        cwd,
+      });
+      skillSpinner.succeed("Skill installed.");
+    } catch {
+      skillSpinner.fail("Failed to install skill.");
+      logger.warn("Try manually: npx -y add-skill aidenybai/react-grab");
     }
   }
 
@@ -749,47 +771,6 @@ export const init = new Command()
       const agentIntegration: AgentIntegration =
         (opts.agent as AgentIntegration) || "none";
       const agentsToRemove: string[] = [];
-
-      // if (
-      //   opts.agent &&
-      //   opts.force &&
-      //   projectInfo.installedAgents.length > 0 &&
-      //   !projectInfo.installedAgents.includes(opts.agent) &&
-      //   !isNonInteractive
-      // ) {
-      //   const installedNames = formatInstalledAgentNames(projectInfo.installedAgents);
-
-      //   logger.break();
-      //   logger.warn(`Currently installed: ${installedNames}`);
-
-      //   const { action } = await prompts({
-      //     type: "select",
-      //     name: "action",
-      //     message: "How would you like to proceed?",
-      //     choices: [
-      //       {
-      //         title: `Replace ${installedNames} with ${getAgentName(agentIntegration)}`,
-      //         value: "replace",
-      //       },
-      //       {
-      //         title: `Add ${getAgentName(agentIntegration)} alongside existing`,
-      //         value: "add",
-      //       },
-      //       { title: "Cancel", value: "cancel" },
-      //     ],
-      //   });
-
-      //   if (!action || action === "cancel") {
-      //     logger.break();
-      //     logger.log("Changes cancelled.");
-      //     logger.break();
-      //     process.exit(0);
-      //   }
-
-      //   if (action === "replace") {
-      //     agentsToRemove = [...projectInfo.installedAgents];
-      //   }
-      // }
 
       const result = previewTransform(
         projectInfo.projectRoot,

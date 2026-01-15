@@ -199,3 +199,12 @@ Supported clients: cursor, claude-code, vscode, opencode, codex, gemini-cli, win
 - `browser_snapshot` - Get ARIA accessibility tree with element refs (e1, e2...)
 - `browser_execute` - Run Playwright code: `ref('e1').click()`, `fill('e1', 'text')`, `snapshot()`
 
+## Skill
+
+For agents that support skills, install the browser automation skill:
+
+```bash
+npx -y grab@latest add skill
+# or
+npx -y add-skill aidenybai/react-grab
+```
