@@ -51,7 +51,7 @@ const SKILL_AGENT_NAMES: Record<string, string> = {
   "claude-code": "Claude Code",
   codex: "Codex",
   cursor: "Cursor",
-  vscode: "VS Code",
+  vscode: "VSCode",
 };
 const SKILL_AGENT_FOLDERS: Record<string, string> = {
   opencode: ".opencode",
@@ -75,10 +75,14 @@ const promptSkillInstall = async (cwd: string): Promise<void> => {
     return;
   }
 
+  logger.log(`The ${highlighter.info("React Grab skill")} gives your agent access to the browser.`);
+  logger.log(`Learn more at ${highlighter.info("https://skill.md")}`);
+  logger.break();
+
   const { wantSkill } = await prompts({
     type: "confirm",
     name: "wantSkill",
-    message: `Would you like to install the ${highlighter.info("React Grab skill")}? (gives your agent access to the browser)`,
+    message: `Would you like to install the skill?`,
     initial: true,
   });
 

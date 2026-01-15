@@ -41,7 +41,7 @@ const SKILL_AGENT_NAMES: Record<string, string> = {
   "claude-code": "Claude Code",
   codex: "Codex",
   cursor: "Cursor",
-  vscode: "VS Code",
+  vscode: "VSCode",
 };
 const SKILL_AGENT_FOLDERS: Record<string, string> = {
   opencode: ".opencode",
@@ -242,12 +242,12 @@ export const add = new Command()
           choices: [
             {
               title: "Skill (recommended)",
-              description: "For Codex, Cursor, Claude Code, VS Code, etc.",
+              description: "Instructions for your agent to use the browser",
               value: "skill",
             },
             {
               title: "MCP Server",
-              description: "For Cursor, Claude Code, VS Code, Windsurf, etc.",
+              description: "A server that provides browser tools to your agent",
               value: "mcp",
             },
             {
