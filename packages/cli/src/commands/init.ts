@@ -27,8 +27,18 @@ import { spinner } from "../utils/spinner.js";
 import {
   AGENTS,
   AGENT_NAMES,
+  MCP_CLIENTS,
+  MCP_CLIENT_NAMES,
   type AgentIntegration,
 } from "../utils/templates.js";
+import { execSync } from "child_process";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import {
+  fetchSkillFile,
+  AGENT_TARGETS,
+  SUPPORTED_TARGETS,
+} from "../utils/skill-files.js";
 import {
   previewAgentRemoval,
   previewOptionsTransform,
@@ -41,6 +51,86 @@ import {
 const VERSION = process.env.VERSION ?? "0.0.1";
 const REPORT_URL = "https://react-grab.com/api/report-cli";
 const DOCS_URL = "https://github.com/aidenybai/react-grab";
+
+const promptAgentIntegration = async (cwd: string, customPkg?: string): Promise<void> => {
+  const { integrationType } = await prompts({
+    type: "select",
+    name: "integrationType",
+    message: `Would you like to add ${highlighter.info("agent integration")}?`,
+    choices: [
+      { title: "MCP Server (browser automation for your agent)", value: "mcp" },
+      { title: "Skill (for agents like Codex)", value: "skill" },
+      { title: "Both", value: "both" },
+      { title: "Neither", value: "none" },
+    ],
+  });
+
+  if (!integrationType || integrationType === "none") return;
+
+  if (integrationType === "mcp" || integrationType === "both") {
+    const { mcpClient } = await prompts({
+      type: "select",
+      name: "mcpClient",
+      message: `Which ${highlighter.info("MCP client")} would you like to configure?`,
+      choices: MCP_CLIENTS.map((client) => ({
+        title: MCP_CLIENT_NAMES[client],
+        value: client,
+      })),
+    });
+
+    if (mcpClient) {
+      const mcpCommand = customPkg
+        ? `npx -y ${customPkg} browser mcp`
+        : `npx -y @react-grab/cli browser mcp`;
+
+      logger.break();
+      try {
+        execSync(
+          `npx -y install-mcp '${mcpCommand}' --client ${mcpClient} --yes`,
+          { stdio: "inherit", cwd },
+        );
+        logger.break();
+        logger.success("MCP server has been configured.");
+      } catch {
+        logger.break();
+        logger.warn("Failed to configure MCP server. You can try again later with:");
+        logger.log(`  npx -y install-mcp '${mcpCommand}' --client ${mcpClient}`);
+      }
+    }
+  }
+
+  if (integrationType === "skill" || integrationType === "both") {
+    const { skillTarget } = await prompts({
+      type: "select",
+      name: "skillTarget",
+      message: `Which ${highlighter.info("agent")} would you like to install the skill for?`,
+      choices: SUPPORTED_TARGETS.map((target) => ({
+        title: target,
+        value: target,
+      })),
+    });
+
+    if (skillTarget) {
+      logger.break();
+      const skillSpinner = spinner("Installing browser automation skill").start();
+      try {
+        const skill = await fetchSkillFile();
+        const skillDir = join(cwd, AGENT_TARGETS[skillTarget]);
+
+        rmSync(skillDir, { recursive: true, force: true });
+        mkdirSync(skillDir, { recursive: true });
+        writeFileSync(join(skillDir, "SKILL.md"), skill);
+
+        skillSpinner.succeed(`Skill installed to ${AGENT_TARGETS[skillTarget]}/`);
+      } catch {
+        skillSpinner.fail("Failed to install skill");
+        logger.dim("Try manually: npx -y openskills install aidenybai/react-grab");
+      }
+    }
+  }
+
+  logger.break();
+};
 
 interface ReportConfig {
   framework: string;
@@ -136,6 +226,10 @@ export const init = new Command()
   )
   .option("--skip-install", "skip package installation", false)
   .option(
+    "--pkg <pkg>",
+    "custom package URL for CLI (e.g., @react-grab/cli)",
+  )
+  .option(
     "-c, --cwd <cwd>",
     "working directory (defaults to current directory)",
     process.cwd(),
@@ -208,12 +302,6 @@ export const init = new Command()
         logger.success("React Grab is already installed.");
         logger.break();
 
-        const allAgents = AGENTS;
-
-        const availableAgents = allAgents.filter(
-          (agent) => !projectInfo.installedAgents.includes(agent),
-        );
-
         if (projectInfo.installedAgents.length > 0) {
           logger.log(
             `Currently installed agents: ${highlighter.info(formatInstalledAgentNames(projectInfo.installedAgents))}`,
@@ -221,193 +309,7 @@ export const init = new Command()
           logger.break();
         }
 
-        let didAddAgent = false;
-
-        if (availableAgents.length > 0) {
-          const { wantAddAgent } = await prompts({
-            type: "confirm",
-            name: "wantAddAgent",
-            message: `Would you like to add an ${highlighter.info("agent integration")}?`,
-            initial: false,
-          });
-
-          if (wantAddAgent === undefined) {
-            logger.break();
-            process.exit(1);
-          }
-
-          if (wantAddAgent) {
-            const { agent } = await prompts({
-              type: "select",
-              name: "agent",
-              message: `Which ${highlighter.info("agent integration")} would you like to add?`,
-              choices: availableAgents.map((innerAgent) => ({
-                title: getAgentName(innerAgent),
-                value: innerAgent,
-              })),
-            });
-
-            if (agent === undefined) {
-              logger.break();
-              process.exit(1);
-            }
-
-            const agentIntegration = agent as AgentIntegration;
-            let agentsToRemove: string[] = [];
-
-            if (projectInfo.installedAgents.length > 0) {
-              const installedNames = formatInstalledAgentNames(projectInfo.installedAgents);
-
-              const { action } = await prompts({
-                type: "select",
-                name: "action",
-                message: "How would you like to proceed?",
-                choices: [
-                  {
-                    title: `Replace ${installedNames} with ${getAgentName(agentIntegration)}`,
-                    value: "replace",
-                  },
-                  {
-                    title: `Add ${getAgentName(agentIntegration)} alongside existing`,
-                    value: "add",
-                  },
-                  { title: "Cancel", value: "cancel" },
-                ],
-              });
-
-              if (!action || action === "cancel") {
-                logger.break();
-                logger.log("Agent addition cancelled.");
-              } else {
-                if (action === "replace") {
-                  agentsToRemove = [...projectInfo.installedAgents];
-                }
-
-                if (agentsToRemove.length > 0) {
-                  await removeAgents(agentsToRemove);
-                  projectInfo.installedAgents =
-                    projectInfo.installedAgents.filter(
-                      (agent) => !agentsToRemove.includes(agent),
-                    );
-                }
-
-                const result = previewTransform(
-                  projectInfo.projectRoot,
-                  projectInfo.framework,
-                  projectInfo.nextRouterType,
-                  agentIntegration,
-                  true,
-                );
-
-                const packageJsonResult = previewPackageJsonTransform(
-                  projectInfo.projectRoot,
-                  agentIntegration,
-                  projectInfo.installedAgents,
-                  projectInfo.packageManager,
-                );
-
-                if (!result.success) {
-                  logger.break();
-                  logger.error(result.message);
-                  logger.break();
-                  process.exit(1);
-                }
-
-                const hasLayoutChanges =
-                  !result.noChanges &&
-                  result.originalContent &&
-                  result.newContent;
-                const hasPackageJsonChanges =
-                  packageJsonResult.success &&
-                  !packageJsonResult.noChanges &&
-                  packageJsonResult.originalContent &&
-                  packageJsonResult.newContent;
-
-                if (hasLayoutChanges || hasPackageJsonChanges) {
-                  logger.break();
-
-                  if (hasLayoutChanges) {
-                    printDiff(
-                      result.filePath,
-                      result.originalContent!,
-                      result.newContent!,
-                    );
-                  }
-
-                  if (hasPackageJsonChanges) {
-                    if (hasLayoutChanges) {
-                      logger.break();
-                    }
-                    printDiff(
-                      packageJsonResult.filePath,
-                      packageJsonResult.originalContent!,
-                      packageJsonResult.newContent!,
-                    );
-                  }
-
-                  if (agentsToRemove.length === 0) {
-                    logger.break();
-                    const { proceed } = await prompts({
-                      type: "confirm",
-                      name: "proceed",
-                      message: "Apply these changes?",
-                      initial: true,
-                    });
-
-                    if (!proceed) {
-                      logger.break();
-                      logger.log("Agent addition cancelled.");
-                    } else {
-                      installPackagesWithFeedback(
-                        getPackagesToInstall(agentIntegration, false),
-                        projectInfo.packageManager,
-                        projectInfo.projectRoot,
-                      );
-
-                      if (hasLayoutChanges) {
-                        applyTransformWithFeedback(result);
-                      }
-
-                      if (hasPackageJsonChanges) {
-                        applyPackageJsonWithFeedback(packageJsonResult);
-                      }
-
-                      didAddAgent = true;
-                      logger.break();
-                      logger.success(
-                        `${getAgentName(agentIntegration)} has been added.`,
-                      );
-                    }
-                  } else {
-                    installPackagesWithFeedback(
-                      getPackagesToInstall(agentIntegration, false),
-                      projectInfo.packageManager,
-                      projectInfo.projectRoot,
-                    );
-
-                    if (hasLayoutChanges) {
-                      applyTransformWithFeedback(result);
-                    }
-
-                    if (hasPackageJsonChanges) {
-                      applyPackageJsonWithFeedback(packageJsonResult);
-                    }
-
-                    didAddAgent = true;
-                    logger.break();
-                    logger.success(
-                      `${getAgentName(agentIntegration)} has been added.`,
-                    );
-                  }
-                }
-              }
-            }
-          }
-        } else {
-          logger.log("All agent integrations are already installed.");
-        }
-
-        logger.break();
+        await promptAgentIntegration(projectInfo.projectRoot, opts.pkg);
 
         const { wantCustomizeOptions } = await prompts({
           type: "confirm",
@@ -587,9 +489,189 @@ export const init = new Command()
           }
         }
 
-        if (!didAddAgent && !wantCustomizeOptions) {
+        const availableAgents = AGENTS.filter(
+          (agent) => !projectInfo.installedAgents.includes(agent),
+        );
+
+        if (availableAgents.length > 0) {
           logger.break();
-          logger.log("No changes made.");
+          const { wantAddAgent } = await prompts({
+            type: "confirm",
+            name: "wantAddAgent",
+            message: `Would you like to add an ${highlighter.info("agent integration")}?`,
+            initial: false,
+          });
+
+          if (wantAddAgent === undefined) {
+            logger.break();
+            process.exit(1);
+          }
+
+          if (wantAddAgent) {
+            const { agent } = await prompts({
+              type: "select",
+              name: "agent",
+              message: `Which ${highlighter.info("agent integration")} would you like to add?`,
+              choices: availableAgents.map((innerAgent) => ({
+                title: getAgentName(innerAgent),
+                value: innerAgent,
+              })),
+            });
+
+            if (agent === undefined) {
+              logger.break();
+              process.exit(1);
+            }
+
+            const agentIntegration = agent as AgentIntegration;
+            let agentsToRemove: string[] = [];
+
+            if (projectInfo.installedAgents.length > 0) {
+              const installedNames = formatInstalledAgentNames(projectInfo.installedAgents);
+
+              const { action } = await prompts({
+                type: "select",
+                name: "action",
+                message: "How would you like to proceed?",
+                choices: [
+                  {
+                    title: `Replace ${installedNames} with ${getAgentName(agentIntegration)}`,
+                    value: "replace",
+                  },
+                  {
+                    title: `Add ${getAgentName(agentIntegration)} alongside existing`,
+                    value: "add",
+                  },
+                  { title: "Cancel", value: "cancel" },
+                ],
+              });
+
+              if (!action || action === "cancel") {
+                logger.break();
+                logger.log("Agent addition cancelled.");
+              } else {
+                if (action === "replace") {
+                  agentsToRemove = [...projectInfo.installedAgents];
+                }
+
+                if (agentsToRemove.length > 0) {
+                  await removeAgents(agentsToRemove);
+                  projectInfo.installedAgents =
+                    projectInfo.installedAgents.filter(
+                      (innerAgent) => !agentsToRemove.includes(innerAgent),
+                    );
+                }
+
+                const result = previewTransform(
+                  projectInfo.projectRoot,
+                  projectInfo.framework,
+                  projectInfo.nextRouterType,
+                  agentIntegration,
+                  true,
+                );
+
+                const packageJsonResult = previewPackageJsonTransform(
+                  projectInfo.projectRoot,
+                  agentIntegration,
+                  projectInfo.installedAgents,
+                  projectInfo.packageManager,
+                );
+
+                if (!result.success) {
+                  logger.break();
+                  logger.error(result.message);
+                  logger.break();
+                  process.exit(1);
+                }
+
+                const hasLayoutChanges =
+                  !result.noChanges &&
+                  result.originalContent &&
+                  result.newContent;
+                const hasPackageJsonChanges =
+                  packageJsonResult.success &&
+                  !packageJsonResult.noChanges &&
+                  packageJsonResult.originalContent &&
+                  packageJsonResult.newContent;
+
+                if (hasLayoutChanges || hasPackageJsonChanges) {
+                  logger.break();
+
+                  if (hasLayoutChanges) {
+                    printDiff(
+                      result.filePath,
+                      result.originalContent!,
+                      result.newContent!,
+                    );
+                  }
+
+                  if (hasPackageJsonChanges) {
+                    if (hasLayoutChanges) {
+                      logger.break();
+                    }
+                    printDiff(
+                      packageJsonResult.filePath,
+                      packageJsonResult.originalContent!,
+                      packageJsonResult.newContent!,
+                    );
+                  }
+
+                  if (agentsToRemove.length === 0) {
+                    logger.break();
+                    const { proceed } = await prompts({
+                      type: "confirm",
+                      name: "proceed",
+                      message: "Apply these changes?",
+                      initial: true,
+                    });
+
+                    if (!proceed) {
+                      logger.break();
+                      logger.log("Agent addition cancelled.");
+                    } else {
+                      installPackagesWithFeedback(
+                        getPackagesToInstall(agentIntegration, false),
+                        projectInfo.packageManager,
+                        projectInfo.projectRoot,
+                      );
+
+                      if (hasLayoutChanges) {
+                        applyTransformWithFeedback(result);
+                      }
+
+                      if (hasPackageJsonChanges) {
+                        applyPackageJsonWithFeedback(packageJsonResult);
+                      }
+
+                      logger.break();
+                      logger.success(
+                        `${getAgentName(agentIntegration)} has been added.`,
+                      );
+                    }
+                  } else {
+                    installPackagesWithFeedback(
+                      getPackagesToInstall(agentIntegration, false),
+                      projectInfo.packageManager,
+                      projectInfo.projectRoot,
+                    );
+
+                    if (hasLayoutChanges) {
+                      applyTransformWithFeedback(result);
+                    }
+
+                    if (hasPackageJsonChanges) {
+                      applyPackageJsonWithFeedback(packageJsonResult);
+                    }
+
+                    logger.break();
+                    logger.success(
+                      `${getAgentName(agentIntegration)} has been added.`,
+                    );
+                  }
+                }
+              }
+            }
+          }
         }
 
         logger.break();
@@ -708,114 +790,50 @@ export const init = new Command()
       const finalFramework = projectInfo.framework;
       const finalPackageManager = projectInfo.packageManager;
       const finalNextRouterType = projectInfo.nextRouterType;
-      let agentIntegration: AgentIntegration =
+      const agentIntegration: AgentIntegration =
         (opts.agent as AgentIntegration) || "none";
-      let agentsToRemove: string[] = [];
+      const agentsToRemove: string[] = [];
 
-      if (!isNonInteractive && !opts.agent) {
-        logger.break();
+      // if (
+      //   opts.agent &&
+      //   opts.force &&
+      //   projectInfo.installedAgents.length > 0 &&
+      //   !projectInfo.installedAgents.includes(opts.agent) &&
+      //   !isNonInteractive
+      // ) {
+      //   const installedNames = formatInstalledAgentNames(projectInfo.installedAgents);
 
-        if (opts.force && projectInfo.installedAgents.length > 0) {
-          logger.warn(`Currently installed: ${formatInstalledAgentNames(projectInfo.installedAgents)}`);
-          logger.break();
-        }
+      //   logger.break();
+      //   logger.warn(`Currently installed: ${installedNames}`);
 
-        const { agent } = await prompts({
-          type: "select",
-          name: "agent",
-          message: `Would you like to add an ${highlighter.info("agent integration")}?`,
-          choices: [
-            { title: "None", value: "none" },
-            ...AGENTS.map((innerAgent) => ({
-              title: getAgentName(innerAgent),
-              value: innerAgent,
-            })),
-          ],
-        });
+      //   const { action } = await prompts({
+      //     type: "select",
+      //     name: "action",
+      //     message: "How would you like to proceed?",
+      //     choices: [
+      //       {
+      //         title: `Replace ${installedNames} with ${getAgentName(agentIntegration)}`,
+      //         value: "replace",
+      //       },
+      //       {
+      //         title: `Add ${getAgentName(agentIntegration)} alongside existing`,
+      //         value: "add",
+      //       },
+      //       { title: "Cancel", value: "cancel" },
+      //     ],
+      //   });
 
-        if (agent === undefined) {
-          logger.break();
-          process.exit(1);
-        }
+      //   if (!action || action === "cancel") {
+      //     logger.break();
+      //     logger.log("Changes cancelled.");
+      //     logger.break();
+      //     process.exit(0);
+      //   }
 
-        agentIntegration = agent;
-
-        if (
-          opts.force &&
-          projectInfo.installedAgents.length > 0 &&
-          agentIntegration !== "none" &&
-          !projectInfo.installedAgents.includes(agentIntegration)
-        ) {
-          const installedNames = formatInstalledAgentNames(projectInfo.installedAgents);
-
-          const { action } = await prompts({
-            type: "select",
-            name: "action",
-            message: "How would you like to proceed?",
-            choices: [
-              {
-                title: `Replace ${installedNames} with ${getAgentName(agentIntegration)}`,
-                value: "replace",
-              },
-              {
-                title: `Add ${getAgentName(agentIntegration)} alongside existing`,
-                value: "add",
-              },
-              { title: "Cancel", value: "cancel" },
-            ],
-          });
-
-          if (!action || action === "cancel") {
-            logger.break();
-            logger.log("Changes cancelled.");
-            logger.break();
-            process.exit(0);
-          }
-
-          if (action === "replace") {
-            agentsToRemove = [...projectInfo.installedAgents];
-          }
-        }
-      } else if (
-        opts.agent &&
-        opts.force &&
-        projectInfo.installedAgents.length > 0 &&
-        !projectInfo.installedAgents.includes(opts.agent) &&
-        !isNonInteractive
-      ) {
-        const installedNames = formatInstalledAgentNames(projectInfo.installedAgents);
-
-        logger.break();
-        logger.warn(`Currently installed: ${installedNames}`);
-
-        const { action } = await prompts({
-          type: "select",
-          name: "action",
-          message: "How would you like to proceed?",
-          choices: [
-            {
-              title: `Replace ${installedNames} with ${getAgentName(agentIntegration)}`,
-              value: "replace",
-            },
-            {
-              title: `Add ${getAgentName(agentIntegration)} alongside existing`,
-              value: "add",
-            },
-            { title: "Cancel", value: "cancel" },
-          ],
-        });
-
-        if (!action || action === "cancel") {
-          logger.break();
-          logger.log("Changes cancelled.");
-          logger.break();
-          process.exit(0);
-        }
-
-        if (action === "replace") {
-          agentsToRemove = [...projectInfo.installedAgents];
-        }
-      }
+      //   if (action === "replace") {
+      //     agentsToRemove = [...projectInfo.installedAgents];
+      //   }
+      // }
 
       const result = previewTransform(
         projectInfo.projectRoot,
@@ -932,6 +950,10 @@ export const init = new Command()
         logger.log("You may now start your development server.");
       }
       logger.break();
+
+      if (!isNonInteractive) {
+        await promptAgentIntegration(projectInfo.projectRoot, opts.pkg);
+      }
 
       await reportToCli("completed", {
         framework: finalFramework,

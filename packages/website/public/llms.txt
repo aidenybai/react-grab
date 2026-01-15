@@ -25,7 +25,7 @@ in LoginForm at components/login-form.tsx:46:19
 Run this command at your project root. Use the `-y` flag to skip interactive prompts (required for non-interactive environments):
 
 ```bash
-npx grab@latest init -y
+npx -y grab@latest init -y
 ```
 
 Init Options:
@@ -34,16 +34,14 @@ Options:
   -f, --framework        Override detected framework [choices: "next", "vite", "webpack"]
   -p, --package-manager  Override detected package manager [choices: "npm", "yarn", "pnpm", "bun"]
   -r, --router           Next.js router type [choices: "app", "pages"]
-  -a, --agent            Agent integration [choices: "claude-code", "cursor", "opencode", "codex", "gemini", "amp", "none"]
   -k, --key              Activation key (e.g., "Meta+K", "Ctrl+Shift+G", "Space")
   -y, --yes              Skip all prompts and use auto-detected/default values
       --skip-install     Only modify config files, skip package install
 
 Examples:
-  npx grab@latest init -y                         # Auto-detect and install without prompts
-  npx grab@latest init -f next -r app -y          # Configure for Next.js App Router
-  npx grab@latest init -a cursor -y               # Add Cursor agent integration
-  npx grab@latest init -k "Meta+K" -y             # Set activation key to Cmd+K / Win+K
+  npx -y grab@latest init -y                         # Auto-detect and install without prompts
+  npx -y grab@latest init -f next -r app -y          # Configure for Next.js App Router
+  npx -y grab@latest init -k "Meta+K" -y             # Set activation key to Cmd+K / Win+K
 ```
 
 The CLI will detect your framework and add the necessary scripts automatically.
@@ -53,7 +51,7 @@ The CLI will detect your framework and add the necessary scripts automatically.
 Configure React Grab options (activation key, mode, etc.):
 
 ```bash
-npx grab@latest config
+npx -y grab@latest config
 ```
 
 Config Options:
@@ -66,18 +64,18 @@ Options:
       --context-lines <n>   Max context lines to include
 
 Examples:
-  npx grab@latest config -k "Meta+K"              # Set activation key to Cmd+K / Win+K
-  npx grab@latest config -k "Ctrl+Shift+G"        # Set activation key to Ctrl+Shift+G
-  npx grab@latest config -m hold --hold-duration 150   # Use hold mode with 150ms delay
-  npx grab@latest config --context-lines 5        # Include 5 lines of context
+  npx -y grab@latest config -k "Meta+K"              # Set activation key to Cmd+K / Win+K
+  npx -y grab@latest config -k "Ctrl+Shift+G"        # Set activation key to Ctrl+Shift+G
+  npx -y grab@latest config -m hold --hold-duration 150   # Use hold mode with 150ms delay
+  npx -y grab@latest config --context-lines 5        # Include 5 lines of context
 ```
 
 To discover all available commands and flags:
 
 ```bash
-npx grab@latest --help
-npx grab@latest init --help
-npx grab@latest config --help
+npx -y grab@latest --help
+npx -y grab@latest init --help
+npx -y grab@latest config --help
 ```
 
 ### Manual Installation
@@ -182,4 +180,31 @@ Then add this at the top of your main entry file (e.g., `src/index.tsx` or `src/
 if (process.env.NODE_ENV === "development") {
   import("react-grab");
 }
+```
+
+## MCP Server
+
+React Grab includes an MCP server for browser automation. Agents can navigate, click, fill forms, and take screenshots.
+
+### Setup
+
+```bash
+npx -y grab@latest add mcp --client cursor
+```
+
+Supported clients: cursor, claude-code, vscode, opencode, codex, gemini-cli, windsurf, zed, droid
+
+### Supported tools
+
+- `browser_snapshot` - Get ARIA accessibility tree with element refs (e1, e2...)
+- `browser_execute` - Run Playwright code: `ref('e1').click()`, `fill('e1', 'text')`, `snapshot()`
+
+## Skill (react-grab-browser)
+
+For agents that support skills, install the browser automation skill:
+
+```bash
+npx -y grab@latest add skill
+# or
+npx -y openskills install aidenybai/react-grab -y
 ```

@@ -19,7 +19,7 @@ It makes tools like Cursor, Claude Code, Copilot run up to [**3× faster**](http
 Run this command to install React Grab into your project. Ensure you are running at project root (e.g. where the `next.config.ts` or `vite.config.ts` file is located).
 
 ```html
-npx grab@latest init
+npx -y grab@latest init
 ```
 
 ## Usage
@@ -136,396 +136,68 @@ if (process.env.NODE_ENV === "development") {
 }
 ```
 
-## Coding agent integration
+## MCP Server
 
-React Grab can send selected element context directly to your coding agent. This enables a workflow where you select a UI element and an agent automatically makes changes to your codebase.
+React Grab includes an MCP (Model Context Protocol) server that gives AI coding agents direct access to your browser. This enables agents to navigate, click, fill forms, and take screenshots.
 
-This means **no copying and pasting** - just select the element and let the agent do the rest. [Read more about coding agent integration →](https://react-grab.com/blog/agent)
+### Setup
 
-> **Click to expand** setup instructions for your coding agent:
+Run during project init:
 
-<details>
-<summary><strong>Claude Code</strong></summary>
+```bash
+npx -y grab@latest init
+# When prompted, choose to add the MCP server
+```
 
-#### Server Setup
+Or add it separately:
 
-The server runs on port `4567` and interfaces with the Claude Agent SDK. Add to your `package.json`:
+```bash
+npx -y grab@latest add mcp --client cursor
+```
+
+Supported clients: `cursor`, `claude-code`, `vscode`, `opencode`, `codex`, `gemini-cli`, `windsurf`, `zed`, `droid`
+
+Or add it manually to your `mcp.json` file:
 
 ```json
 {
-  "scripts": {
-    "dev": "npx @react-grab/claude-code@latest && next dev"
+  "mcpServers": {
+    "react-grab-browser": {
+      "command": "npx",
+      "args": ["-y", "@react-grab/cli", "browser", "mcp"]
+    }
   }
 }
 ```
 
-#### Client Setup
+### MCP Tools
 
-```html
-<script src="//unpkg.com/grab/dist/index.global.js"></script>
-<!-- add this in the <head> -->
-<script src="//unpkg.com/@react-grab/claude-code/dist/client.global.js"></script>
+Once configured, your agent has access to:
+
+- `browser_snapshot` - Get ARIA accessibility tree with element refs (e1, e2...)
+- `browser_execute` - Run Playwright code with helpers like `ref('e1').click()`
+
+## Skill
+
+For agents that support skills (like Codex), install the `react-grab-browser` skill:
+
+```bash
+npx -y grab@latest add skill
+# or
+npx -y openskills install aidenybai/react-grab -y
 ```
 
-Or using Next.js `Script` component in your `app/layout.tsx`:
+The skill provides browser automation with Playwright using your real browser cookies. See the [skill documentation](https://github.com/aidenybai/react-grab/blob/main/skills/react-grab-browser/SKILL.md) for full details.
 
-```jsx
-import Script from "next/script";
+## Claude Plugin
 
-export default function RootLayout({ children }) {
-  return (
-    <html>
-      <head>
-        {process.env.NODE_ENV === "development" && (
-          <>
-            <Script
-              src="//unpkg.com/grab/dist/index.global.js"
-              strategy="beforeInteractive"
-            />
-            <Script
-              src="//unpkg.com/@react-grab/claude-code/dist/client.global.js"
-              strategy="lazyOnload"
-            />
-          </>
-        )}
-      </head>
-      <body>{children}</body>
-    </html>
-  );
-}
-```
+React Grab includes a Claude plugin for Claude Code/Desktop. The plugin is located in `.claude-plugin/` and provides browser automation capabilities.
 
-</details>
+To use it, ensure the plugin files are present:
+- `.claude-plugin/marketplace.json` - Plugin manifest
+- `.claude/skills/react-grab-browser/` - Skill files (SKILL.md, EXAMPLES.md, REFERENCE.md)
 
-<details>
-<summary><strong>Cursor CLI</strong></summary>
-
-You must have the [`cursor-agent` CLI](https://cursor.com/docs/cli/overview) installed.
-
-#### Server Setup
-
-The server runs on port `5567` and interfaces with the `cursor-agent` CLI. Add to your `package.json`:
-
-```json
-{
-  "scripts": {
-    "dev": "npx @react-grab/cursor@latest && next dev"
-  }
-}
-```
-
-#### Client Setup
-
-```html
-<script src="//unpkg.com/grab/dist/index.global.js"></script>
-<!-- add this in the <head> -->
-<script src="//unpkg.com/@react-grab/cursor/dist/client.global.js"></script>
-```
-
-Or using Next.js `Script` component in your `app/layout.tsx`:
-
-```jsx
-import Script from "next/script";
-
-export default function RootLayout({ children }) {
-  return (
-    <html>
-      <head>
-        {process.env.NODE_ENV === "development" && (
-          <>
-            <Script
-              src="//unpkg.com/grab/dist/index.global.js"
-              strategy="beforeInteractive"
-            />
-            <Script
-              src="//unpkg.com/@react-grab/cursor/dist/client.global.js"
-              strategy="lazyOnload"
-            />
-          </>
-        )}
-      </head>
-      <body>{children}</body>
-    </html>
-  );
-}
-```
-
-</details>
-
-<details>
-<summary><strong>OpenCode</strong></summary>
-
-#### Server Setup
-
-The server runs on port `6567` and interfaces with the OpenCode CLI. Add to your `package.json`:
-
-```json
-{
-  "scripts": {
-    "dev": "npx @react-grab/opencode@latest && next dev"
-  }
-}
-```
-
-> **Note:** You must have [OpenCode](https://opencode.ai) installed (`npm i -g opencode-ai@latest`).
-
-#### Client Setup
-
-```html
-<script src="//unpkg.com/grab/dist/index.global.js"></script>
-<!-- add this in the <head> -->
-<script src="//unpkg.com/@react-grab/opencode/dist/client.global.js"></script>
-```
-
-Or using Next.js `Script` component in your `app/layout.tsx`:
-
-```jsx
-import Script from "next/script";
-
-export default function RootLayout({ children }) {
-  return (
-    <html>
-      <head>
-        {process.env.NODE_ENV === "development" && (
-          <>
-            <Script
-              src="//unpkg.com/grab/dist/index.global.js"
-              strategy="beforeInteractive"
-            />
-            <Script
-              src="//unpkg.com/@react-grab/opencode/dist/client.global.js"
-              strategy="lazyOnload"
-            />
-          </>
-        )}
-      </head>
-      <body>{children}</body>
-    </html>
-  );
-}
-```
-
-</details>
-
-<details>
-<summary><strong>Codex</strong></summary>
-
-#### Server Setup
-
-The server runs on port `7567` and interfaces with the OpenAI Codex SDK. Add to your `package.json`:
-
-```json
-{
-  "scripts": {
-    "dev": "npx @react-grab/codex@latest && next dev"
-  }
-}
-```
-
-> **Note:** You must have [Codex](https://github.com/openai/codex) installed (`npm i -g @openai/codex`).
-
-#### Client Setup
-
-```html
-<script src="//unpkg.com/grab/dist/index.global.js"></script>
-<!-- add this in the <head> -->
-<script src="//unpkg.com/@react-grab/codex/dist/client.global.js"></script>
-```
-
-Or using Next.js `Script` component in your `app/layout.tsx`:
-
-```jsx
-import Script from "next/script";
-
-export default function RootLayout({ children }) {
-  return (
-    <html>
-      <head>
-        {process.env.NODE_ENV === "development" && (
-          <>
-            <Script
-              src="//unpkg.com/grab/dist/index.global.js"
-              strategy="beforeInteractive"
-            />
-            <Script
-              src="//unpkg.com/@react-grab/codex/dist/client.global.js"
-              strategy="lazyOnload"
-            />
-          </>
-        )}
-      </head>
-      <body>{children}</body>
-    </html>
-  );
-}
-```
-
-</details>
-
-<details>
-<summary><strong>Gemini</strong></summary>
-
-#### Server Setup
-
-The server runs on port `8567` and interfaces with the Gemini CLI. Add to your `package.json`:
-
-```json
-{
-  "scripts": {
-    "dev": "npx @react-grab/gemini@latest && next dev"
-  }
-}
-```
-
-> **Note:** You must have [Gemini CLI](https://github.com/google-gemini/gemini-cli) installed.
-
-#### Client Setup
-
-```html
-<script src="//unpkg.com/grab/dist/index.global.js"></script>
-<!-- add this in the <head> -->
-<script src="//unpkg.com/@react-grab/gemini/dist/client.global.js"></script>
-```
-
-Or using Next.js `Script` component in your `app/layout.tsx`:
-
-```jsx
-import Script from "next/script";
-
-export default function RootLayout({ children }) {
-  return (
-    <html>
-      <head>
-        {process.env.NODE_ENV === "development" && (
-          <>
-            <Script
-              src="//unpkg.com/grab/dist/index.global.js"
-              strategy="beforeInteractive"
-            />
-            <Script
-              src="//unpkg.com/@react-grab/gemini/dist/client.global.js"
-              strategy="lazyOnload"
-            />
-          </>
-        )}
-      </head>
-      <body>{children}</body>
-    </html>
-  );
-}
-```
-
-</details>
-
-<details>
-<summary><strong>Amp</strong></summary>
-
-#### Server Setup
-
-The server runs on port `9567` and interfaces with the [Amp SDK](https://ampcode.com/manual/sdk). Add to your `package.json`:
-
-```json
-{
-  "scripts": {
-    "dev": "npx @react-grab/amp@latest && next dev"
-  }
-}
-```
-
-> **Note:** You must have an [Amp API key](https://ampcode.com/settings) set via `AMP_API_KEY` environment variable.
-
-#### Client Setup
-
-```html
-<script src="//unpkg.com/grab/dist/index.global.js"></script>
-<!-- add this in the <head> -->
-<script src="//unpkg.com/@react-grab/amp/dist/client.global.js"></script>
-```
-
-Or using Next.js `Script` component in your `app/layout.tsx`:
-
-```jsx
-import Script from "next/script";
-
-export default function RootLayout({ children }) {
-  return (
-    <html>
-      <head>
-        {process.env.NODE_ENV === "development" && (
-          <>
-            <Script
-              src="//unpkg.com/grab/dist/index.global.js"
-              strategy="beforeInteractive"
-            />
-            <Script
-              src="//unpkg.com/@react-grab/amp/dist/client.global.js"
-              strategy="lazyOnload"
-            />
-          </>
-        )}
-      </head>
-      <body>{children}</body>
-    </html>
-  );
-}
-```
-
-</details>
-
-<details>
-<summary><strong>Factory Droid</strong></summary>
-
-#### Server Setup
-
-The server runs on port `10567` and interfaces with the [Factory CLI](https://docs.factory.ai/cli/droid-exec/overview). Add to your `package.json`:
-
-```json
-{
-  "scripts": {
-    "dev": "npx @react-grab/droid@latest && next dev"
-  }
-}
-```
-
-> **Note:** You must have [Factory CLI](https://app.factory.ai) installed (`curl -fsSL https://app.factory.ai/cli | sh`) and `FACTORY_API_KEY` environment variable set.
-
-#### Client Setup
-
-```html
-<script src="//unpkg.com/grab/dist/index.global.js"></script>
-<!-- add this in the <head> -->
-<script src="//unpkg.com/@react-grab/droid/dist/client.global.js"></script>
-```
-
-Or using Next.js `Script` component in your `app/layout.tsx`:
-
-```jsx
-import Script from "next/script";
-
-export default function RootLayout({ children }) {
-  return (
-    <html>
-      <head>
-        {process.env.NODE_ENV === "development" && (
-          <>
-            <Script
-              src="//unpkg.com/grab/dist/index.global.js"
-              strategy="beforeInteractive"
-            />
-            <Script
-              src="//unpkg.com/@react-grab/droid/dist/client.global.js"
-              strategy="lazyOnload"
-            />
-          </>
-        )}
-      </head>
-      <body>{children}</body>
-    </html>
-  );
-}
-```
-
-</details>
+The plugin triggers on browser-related requests like "browse", "navigate to", "screenshot", "click on", "fill form", etc.
 
 ## Extending React Grab
 

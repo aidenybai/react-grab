@@ -115,3 +115,37 @@ export const WEBPACK_IMPORT_WITH_AGENT = (agent: AgentIntegration): string => {
 };
 
 export const SCRIPT_IMPORT = 'import Script from "next/script";';
+
+export const MCP_CLIENTS = [
+  "cursor",
+  "claude-code",
+  "vscode",
+  "opencode",
+  "codex",
+  "gemini-cli",
+  // "cline",
+  // "roo-cline",
+  "windsurf",
+  "zed",
+  // "warp",
+  "droid",
+  // "claude",
+] as const;
+
+export type McpClient = (typeof MCP_CLIENTS)[number];
+
+export const MCP_CLIENT_NAMES: Record<McpClient, string> = {
+  "cursor": "Cursor",
+  "claude-code": "Claude Code",
+  "vscode": "VSCode",
+  "opencode": "OpenCode",
+  "codex": "Codex",
+  "gemini-cli": "Gemini CLI",
+  // "cline": "Cline",
+  // "roo-cline": "Roo Cline",
+  "windsurf": "Windsurf",
+  "zed": "Zed",
+  // "warp": "Warp",
+  "droid": "Droid",
+  // "claude": "Claude Desktop",
+};

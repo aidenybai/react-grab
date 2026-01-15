@@ -288,6 +288,12 @@ export interface Options {
 
 export type SettableOptions = Omit<Options, "enabled">;
 
+export interface SourceInfo {
+  filePath: string;
+  lineNumber: number | null;
+  componentName: string | null;
+}
+
 export interface ReactGrabAPI {
   activate: () => void;
   deactivate: () => void;
@@ -295,11 +301,13 @@ export interface ReactGrabAPI {
   isActive: () => boolean;
   dispose: () => void;
   copyElement: (elements: Element | Element[]) => Promise<boolean>;
+  getSource: (element: Element) => Promise<SourceInfo | null>;
   getState: () => ReactGrabState;
   setOptions: (options: SettableOptions) => void;
   registerPlugin: (plugin: Plugin) => void;
   unregisterPlugin: (name: string) => void;
   getPlugins: () => string[];
+  getDisplayName: (element: Element) => string | null;
 }
 
 export interface OverlayBounds {

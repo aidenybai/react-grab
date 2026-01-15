@@ -13,6 +13,9 @@ export const logger = {
   success(...args: unknown[]) {
     console.log(highlighter.success(args.join(" ")));
   },
+  dim(...args: unknown[]) {
+    console.log(highlighter.dim(args.join(" ")));
+  },
   log(...args: unknown[]) {
     console.log(args.join(" "));
   },
