@@ -1,0 +1,34 @@
+{
+  "mode": "exit",
+  "tag": "beta",
+  "initialVersions": {
+    "@react-grab/benchmarks": "0.1.0",
+    "@react-grab/browser": "0.1.0-beta.4",
+    "@react-grab/cli": "0.1.0-beta.4",
+    "grab": "0.1.0-beta.4",
+    "@react-grab/gym": "0.1.0",
+    "@react-grab/next-playground": "0.1.0",
+    "@react-grab/ami": "0.1.0-beta.4",
+    "@react-grab/amp": "0.1.0-beta.4",
+    "@react-grab/claude-code": "0.1.0-beta.4",
+    "@react-grab/codex": "0.1.0-beta.4",
+    "@react-grab/cursor": "0.1.0-beta.4",
+    "@react-grab/droid": "0.1.0-beta.4",
+    "@react-grab/gemini": "0.1.0-beta.4",
+    "@react-grab/opencode": "0.1.0-beta.4",
+    "@react-grab/visual-edit": "0.1.0-beta.4",
+    "react-grab": "0.1.0-beta.4",
+    "@react-grab/relay": "0.1.0-beta.4",
+    "@react-grab/utils": "0.1.0-beta.4",
+    "@react-grab/web-extension": "0.1.0",
+    "@react-grab/website": "0.1.0"
+  },
+  "changesets": [
+    "big-hornets-sneeze",
+    "few-trains-chew",
+    "fix-cli-version",
+    "loud-goats-dance",
+    "shiny-streets-fold",
+    "solid-nails-act"
+  ]
+}

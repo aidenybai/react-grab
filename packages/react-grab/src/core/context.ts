@@ -5,7 +5,7 @@ import {
   StackFrame,
 } from "bippy/source";
 import { isCapitalized } from "../utils/is-capitalized.js";
-import { getFiberFromHostInstance, isInstrumentationActive } from "bippy";
+import { getFiberFromHostInstance, isInstrumentationActive, getDisplayName, isCompositeFiber } from "bippy";
 
 const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
   "InnerLayoutRouter",
@@ -92,6 +92,33 @@ export const getNearestComponentName = async (
     if (frame.functionName && checkIsSourceComponentName(frame.functionName)) {
       return frame.functionName;
     }
+  }
+
+  return null;
+};
+
+const isUsefulComponentName = (name: string): boolean => {
+  if (!name) return false;
+  if (checkIsInternalComponentName(name)) return false;
+  if (name.startsWith("Primitive.")) return false;
+  if (name === "SlotClone" || name === "Slot") return false;
+  return true;
+};
+
+export const getComponentDisplayName = (element: Element): string | null => {
+  if (!isInstrumentationActive()) return null;
+  const fiber = getFiberFromHostInstance(element);
+  if (!fiber) return null;
+
+  let currentFiber = fiber.return;
+  while (currentFiber) {
+    if (isCompositeFiber(currentFiber)) {
+      const name = getDisplayName(currentFiber.type);
+      if (name && isUsefulComponentName(name)) {
+        return name;
+      }
+    }
+    currentFiber = currentFiber.return;
   }
 
   return null;

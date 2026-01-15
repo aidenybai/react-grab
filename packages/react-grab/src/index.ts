@@ -22,6 +22,7 @@ export type { EditorId, IDEInfo } from "./utils/build-open-file-url.js";
 export type {
   Options,
   ReactGrabAPI,
+  SourceInfo,
   Theme,
   ReactGrabState,
   OverlayBounds,

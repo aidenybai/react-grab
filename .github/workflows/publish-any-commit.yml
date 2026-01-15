@@ -1,0 +1,42 @@
+name: Publish Any Commit
+on: [push, pull_request]
+
+permissions: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build
+        run: pnpm build
+
+      - run: |
+          pnpm dlx pkg-pr-new publish \
+            ./packages/react-grab \
+            ./packages/cli \
+            ./packages/browser \
+            ./packages/grab \
+            ./packages/relay \
+            ./packages/utils \
+            ./packages/provider-ami \
+            ./packages/provider-amp \
+            ./packages/provider-claude-code \
+            ./packages/provider-codex \
+            ./packages/provider-cursor \
+            ./packages/provider-droid \
+            ./packages/provider-gemini \
+            ./packages/provider-opencode \
+            ./packages/provider-visual-edit

@@ -24,10 +24,12 @@ export const createNoopApi = (): ReactGrabAPI => {
     isActive: () => false,
     dispose: () => {},
     copyElement: () => Promise.resolve(false),
+    getSource: () => Promise.resolve(null),
     getState,
     setOptions: () => {},
     registerPlugin: () => {},
     unregisterPlugin: () => {},
     getPlugins: () => [],
+    getDisplayName: () => null,
   };
 };

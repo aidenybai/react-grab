@@ -16,8 +16,14 @@ import { spinner } from "../utils/spinner.js";
 import {
   AGENTS,
   AGENT_NAMES,
-  type AgentIntegration,
+  MCP_CLIENTS,
+  MCP_CLIENT_NAMES,
+  type Agent,
+  type McpClient,
 } from "../utils/templates.js";
+import { execSync } from "child_process";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import {
   applyPackageJsonTransform,
   applyTransform,
@@ -29,14 +35,65 @@ import {
 
 const VERSION = process.env.VERSION ?? "0.0.1";
 
+const SKILL_AGENTS = [
+  { id: "opencode", name: "OpenCode", folder: ".opencode" },
+  { id: "claude-code", name: "Claude Code", folder: ".claude" },
+  { id: "codex", name: "Codex", folder: ".codex" },
+  { id: "cursor", name: "Cursor", folder: ".cursor" },
+  { id: "vscode", name: "VSCode", folder: ".github" },
+];
+
+const detectSkillAgents = (cwd: string) => {
+  return SKILL_AGENTS.filter((agent) => existsSync(join(cwd, agent.folder)));
+};
+
+const findSkillAgent = (id: string) => {
+  return SKILL_AGENTS.find((agent) => agent.id === id);
+};
+
+const configureMcp = (
+  mcpClient: McpClient,
+  cwd: string,
+  customPkg?: string,
+): void => {
+  const mcpCommand = customPkg
+    ? `npx -y ${customPkg} browser mcp`
+    : `npx -y @react-grab/cli browser mcp`;
+  const mcpSpinner = spinner(`Installing MCP server for ${MCP_CLIENT_NAMES[mcpClient]}`).start();
+
+  try {
+    execSync(
+      `npx -y install-mcp '${mcpCommand}' --client ${mcpClient} --yes`,
+      { stdio: "ignore", cwd },
+    );
+    mcpSpinner.succeed(`MCP server installed for ${MCP_CLIENT_NAMES[mcpClient]}`);
+    logger.break();
+    process.exit(0);
+  } catch {
+    mcpSpinner.fail(`Failed to configure MCP for ${MCP_CLIENT_NAMES[mcpClient]}`);
+    logger.dim(`Try manually: npx -y install-mcp '${mcpCommand}' --client ${mcpClient}`);
+    logger.break();
+    process.exit(1);
+  }
+};
+
 export const add = new Command()
   .name("add")
-  .description("add an agent integration")
+  .alias("install")
+  .description("add browser automation for your AI agent")
   .argument(
     "[agent]",
-    "agent to add (claude-code, cursor, opencode, codex, gemini, amp, visual-edit)",
+    `agent to add (${AGENTS.join(", ")}, mcp, skill)`,
   )
   .option("-y, --yes", "skip confirmation prompts", false)
+  .option(
+    "--client <client>",
+    "MCP client to configure (cursor, claude-code, vscode, etc.)",
+  )
+  .option(
+    "--pkg <pkg>",
+    "custom package URL for CLI (e.g., @react-grab/cli)",
+  )
   .option(
     "-c, --cwd <cwd>",
     "working directory (defaults to current directory)",
@@ -51,6 +108,220 @@ export const add = new Command()
     try {
       const cwd = opts.cwd;
       const isNonInteractive = opts.yes;
+
+      if (agentArg === "mcp") {
+        let mcpClient: McpClient | undefined = opts.client as McpClient;
+
+        // HACK: rename claude to claude-code because we only care about coding tools
+        if (mcpClient === ("claude" as McpClient)) {
+          mcpClient = "claude-code";
+        }
+
+        if (mcpClient && !MCP_CLIENTS.includes(mcpClient)) {
+          logger.break();
+          logger.error(`Invalid MCP client: ${mcpClient}`);
+          logger.error(`Available clients: ${MCP_CLIENTS.join(", ")}`);
+          logger.break();
+          process.exit(1);
+        }
+
+        if (!mcpClient && !isNonInteractive) {
+          logger.break();
+          const { client } = await prompts({
+            type: "select",
+            name: "client",
+            message: `Which ${highlighter.info("client")} would you like to configure?`,
+            choices: MCP_CLIENTS.map((innerClient) => ({
+              title: MCP_CLIENT_NAMES[innerClient],
+              value: innerClient,
+            })),
+          });
+
+          if (!client) {
+            logger.break();
+            process.exit(1);
+          }
+
+          mcpClient = client;
+        }
+
+        if (!mcpClient) {
+          logger.break();
+          logger.error("Please specify an MCP client with --client");
+          logger.error(`Available clients: ${MCP_CLIENTS.join(", ")}`);
+          logger.break();
+          process.exit(1);
+        }
+
+        configureMcp(mcpClient, cwd, opts.pkg as string | undefined);
+      }
+
+      if (agentArg === "skill") {
+        const clientArg = opts.client as string | undefined;
+        let selectedAgent = clientArg ? findSkillAgent(clientArg) : undefined;
+        const detectedAgents = detectSkillAgents(cwd);
+
+        if (clientArg && !selectedAgent) {
+          logger.break();
+          logger.error(`Invalid skill agent: ${clientArg}`);
+          logger.error(`Available agents: ${SKILL_AGENTS.map((a) => a.id).join(", ")}`);
+          logger.break();
+          process.exit(1);
+        }
+
+        if (!selectedAgent && !isNonInteractive) {
+          if (detectedAgents.length === 0) {
+            logger.break();
+            logger.warn("No supported agent folders detected.");
+            logger.log("Supported agents: " + SKILL_AGENTS.map((a) => a.id).join(", "));
+            logger.break();
+            process.exit(0);
+          }
+
+          logger.break();
+          const { agent } = await prompts({
+            type: "select",
+            name: "agent",
+            message: `Which ${highlighter.info("agent")} would you like to install the skill for?`,
+            choices: [
+              ...detectedAgents.map((innerAgent) => ({
+                title: innerAgent.name,
+                value: innerAgent,
+              })),
+              { title: "Skip", value: null },
+            ],
+          });
+
+          if (!agent) {
+            logger.break();
+            process.exit(0);
+          }
+
+          selectedAgent = agent;
+        }
+
+        if (!selectedAgent) {
+          logger.break();
+          logger.error("Please specify an agent with --client");
+          logger.error(`Available agents: ${SKILL_AGENTS.map((a) => a.id).join(", ")}`);
+          logger.break();
+          process.exit(1);
+        }
+
+        logger.break();
+        const skillSpinner = spinner(`Installing skill for ${selectedAgent.name}`).start();
+        try {
+          execSync(`npx -y add-skill aidenybai/react-grab -y --agent ${selectedAgent.id}`, {
+            stdio: "ignore",
+            cwd,
+          });
+          skillSpinner.succeed(`Skill installed for ${selectedAgent.name}`);
+          logger.break();
+          process.exit(0);
+        } catch {
+          skillSpinner.fail(`Failed to install skill for ${selectedAgent.name}`);
+          logger.warn(`Try manually: npx -y add-skill aidenybai/react-grab --agent ${selectedAgent.id}`);
+          logger.break();
+          process.exit(1);
+        }
+      }
+
+      if (!agentArg && !isNonInteractive) {
+        logger.break();
+
+        const { addType } = await prompts({
+          type: "select",
+          name: "addType",
+          message: "What would you like to add?",
+          choices: [
+            {
+              title: "Skill (recommended)",
+              description: "Instructions for your agent to use the browser",
+              value: "skill",
+            },
+            {
+              title: "MCP Server",
+              description: "A server that provides browser tools to your agent",
+              value: "mcp",
+            },
+            {
+              title: "Agent Integration",
+              description: "Add Claude Code, Cursor, etc. to the React Grab UI",
+              value: "agent",
+            },
+          ],
+        });
+
+        if (!addType) {
+          logger.break();
+          process.exit(1);
+        }
+
+        if (addType === "mcp") {
+          const { client } = await prompts({
+            type: "select",
+            name: "client",
+            message: `Which ${highlighter.info("client")} would you like to configure?`,
+            choices: MCP_CLIENTS.map((innerClient) => ({
+              title: MCP_CLIENT_NAMES[innerClient],
+              value: innerClient,
+            })),
+          });
+
+          if (!client) {
+            logger.break();
+            process.exit(1);
+          }
+
+          configureMcp(client as McpClient, cwd, opts.pkg as string | undefined);
+        }
+
+        if (addType === "skill") {
+          const detectedAgents = detectSkillAgents(cwd);
+
+          if (detectedAgents.length === 0) {
+            logger.break();
+            logger.warn("No supported agent folders detected.");
+            logger.log("Supported agents: " + SKILL_AGENTS.map((a) => a.id).join(", "));
+            logger.break();
+            process.exit(0);
+          }
+
+          const { selectedAgent } = await prompts({
+            type: "select",
+            name: "selectedAgent",
+            message: `Which ${highlighter.info("agent")} would you like to install the skill for?`,
+            choices: [
+              ...detectedAgents.map((innerAgent) => ({
+                title: innerAgent.name,
+                value: innerAgent,
+              })),
+              { title: "Skip", value: null },
+            ],
+          });
+
+          if (!selectedAgent) {
+            logger.break();
+            process.exit(0);
+          }
+
+          const skillSpinner = spinner(`Installing skill for ${selectedAgent.name}`).start();
+          try {
+            execSync(`npx -y add-skill aidenybai/react-grab -y --agent ${selectedAgent.id}`, {
+              stdio: "ignore",
+              cwd,
+            });
+            skillSpinner.succeed(`Skill installed for ${selectedAgent.name}`);
+            logger.break();
+            process.exit(0);
+          } catch {
+            skillSpinner.fail(`Failed to install skill for ${selectedAgent.name}`);
+            logger.warn(`Try manually: npx -y add-skill aidenybai/react-grab --agent ${selectedAgent.id}`);
+            logger.break();
+            process.exit(1);
+          }
+        }
+      }
 
       const preflightSpinner = spinner("Preflight checks.").start();
 
@@ -79,32 +350,32 @@ export const add = new Command()
         process.exit(0);
       }
 
-      let agentIntegration: AgentIntegration;
-      let agentsToRemove: string[] = [];
+      let agentIntegration: Agent;
+      let agentsToRemove: Agent[] = [];
 
       if (agentArg) {
         if (!AGENTS.includes(agentArg as (typeof AGENTS)[number])) {
           logger.break();
           logger.error(`Invalid agent: ${agentArg}`);
-          logger.error(
-            "Available agents: claude-code, cursor, opencode, codex, gemini, amp, visual-edit",
-          );
+          logger.error(`Available agents: ${AGENTS.join(", ")}`);
           logger.break();
           process.exit(1);
         }
 
-        if (projectInfo.installedAgents.includes(agentArg)) {
+        const validAgent = agentArg as Agent;
+
+        if (projectInfo.installedAgents.includes(validAgent)) {
           logger.break();
-          logger.warn(`${AGENT_NAMES[agentArg]} is already installed.`);
+          logger.warn(`${AGENT_NAMES[validAgent]} is already installed.`);
           logger.break();
           process.exit(0);
         }
 
-        agentIntegration = agentArg as AgentIntegration;
+        agentIntegration = validAgent;
 
         if (projectInfo.installedAgents.length > 0 && !isNonInteractive) {
           const installedNames = projectInfo.installedAgents
-            .map((innerAgent) => AGENT_NAMES[innerAgent] || innerAgent)
+            .map((innerAgent) => AGENT_NAMES[innerAgent as Agent] || innerAgent)
             .join(", ");
 
           logger.break();
@@ -135,15 +406,13 @@ export const add = new Command()
           }
 
           if (action === "replace") {
-            agentsToRemove = [...projectInfo.installedAgents];
+            agentsToRemove = [...projectInfo.installedAgents] as Agent[];
           }
         }
       } else if (!isNonInteractive) {
-        logger.break();
-
         if (projectInfo.installedAgents.length > 0) {
           const installedNames = projectInfo.installedAgents
-            .map((innerAgent) => AGENT_NAMES[innerAgent] || innerAgent)
+            .map((innerAgent) => AGENT_NAMES[innerAgent as Agent] || innerAgent)
             .join(", ");
           logger.warn(`Currently installed: ${installedNames}`);
           logger.break();
@@ -168,7 +437,7 @@ export const add = new Command()
 
         if (projectInfo.installedAgents.length > 0) {
           const installedNames = projectInfo.installedAgents
-            .map((innerAgent) => AGENT_NAMES[innerAgent] || innerAgent)
+            .map((innerAgent) => AGENT_NAMES[innerAgent as Agent] || innerAgent)
             .join(", ");
 
           const { action } = await prompts({
@@ -196,7 +465,7 @@ export const add = new Command()
           }
 
           if (action === "replace") {
-            agentsToRemove = [...projectInfo.installedAgents];
+            agentsToRemove = [...projectInfo.installedAgents] as Agent[];
           }
         }
       } else {
@@ -247,7 +516,7 @@ export const add = new Command()
             removalResult.newContent
           ) {
             const removeWriteSpinner = spinner(
-              `Removing ${AGENT_NAMES[agentToRemove] || agentToRemove} from ${removalResult.filePath}.`,
+              `Removing ${AGENT_NAMES[agentToRemove]} from ${removalResult.filePath}.`,
             ).start();
             const writeResult = applyTransform(removalResult);
             if (!writeResult.success) {
@@ -266,7 +535,7 @@ export const add = new Command()
             removalPackageJsonResult.newContent
           ) {
             const removePackageJsonSpinner = spinner(
-              `Removing ${AGENT_NAMES[agentToRemove] || agentToRemove} from ${removalPackageJsonResult.filePath}.`,
+              `Removing ${AGENT_NAMES[agentToRemove]} from ${removalPackageJsonResult.filePath}.`,
             ).start();
             const packageJsonWriteResult = applyPackageJsonTransform(
               removalPackageJsonResult,
@@ -285,7 +554,7 @@ export const add = new Command()
         }
 
         projectInfo.installedAgents = projectInfo.installedAgents.filter(
-          (innerAgent) => !agentsToRemove.includes(innerAgent),
+          (innerAgent) => !agentsToRemove.includes(innerAgent as Agent),
         );
       }
 
