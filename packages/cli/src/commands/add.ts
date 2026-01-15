@@ -22,6 +22,8 @@ import {
   type McpClient,
 } from "../utils/templates.js";
 import { execSync } from "child_process";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import {
   applyPackageJsonTransform,
   applyTransform,
@@ -40,6 +42,20 @@ const SKILL_AGENT_NAMES: Record<string, string> = {
   codex: "Codex",
   cursor: "Cursor",
   vscode: "VS Code",
+};
+const SKILL_AGENT_FOLDERS: Record<string, string> = {
+  opencode: ".opencode",
+  "claude-code": ".claude",
+  codex: ".codex",
+  cursor: ".cursor",
+  vscode: ".github",
+};
+
+const detectSkillAgents = (cwd: string): string[] => {
+  return SKILL_AGENTS.filter((agent) => {
+    const folderPath = join(cwd, SKILL_AGENT_FOLDERS[agent]);
+    return existsSync(folderPath);
+  });
 };
 
 const configureMcp = (
@@ -149,6 +165,7 @@ export const add = new Command()
 
       if (agentArg === "skill") {
         let skillAgent = opts.client as string | undefined;
+        const detectedAgents = detectSkillAgents(cwd);
 
         if (skillAgent && !SKILL_AGENTS.includes(skillAgent as typeof SKILL_AGENTS[number])) {
           logger.break();
@@ -159,12 +176,20 @@ export const add = new Command()
         }
 
         if (!skillAgent && !isNonInteractive) {
+          if (detectedAgents.length === 0) {
+            logger.break();
+            logger.warn("No supported agent folders detected.");
+            logger.log("Supported agents: " + SKILL_AGENTS.join(", "));
+            logger.break();
+            process.exit(0);
+          }
+
           logger.break();
           const { agent } = await prompts({
             type: "select",
             name: "agent",
             message: `Which ${highlighter.info("agent")} would you like to install the skill for?`,
-            choices: SKILL_AGENTS.map((innerAgent) => ({
+            choices: detectedAgents.map((innerAgent) => ({
               title: SKILL_AGENT_NAMES[innerAgent],
               value: innerAgent,
             })),
@@ -213,14 +238,14 @@ export const add = new Command()
           message: "What would you like to add?",
           choices: [
             {
+              title: "Skill (recommended)",
+              description: "For Codex, Cursor, Claude Code, VS Code, etc.",
+              value: "skill",
+            },
+            {
               title: "MCP Server",
               description: "For Cursor, Claude Code, VS Code, Windsurf, etc.",
               value: "mcp",
-            },
-            {
-              title: "Skill",
-              description: "For Codex and other skill-based agents",
-              value: "skill",
             },
             {
               title: "Agent Integration",
@@ -255,11 +280,21 @@ export const add = new Command()
         }
 
         if (addType === "skill") {
+          const detectedAgents = detectSkillAgents(cwd);
+
+          if (detectedAgents.length === 0) {
+            logger.break();
+            logger.warn("No supported agent folders detected.");
+            logger.log("Supported agents: " + SKILL_AGENTS.join(", "));
+            logger.break();
+            process.exit(0);
+          }
+
           const { agent } = await prompts({
             type: "select",
             name: "agent",
             message: `Which ${highlighter.info("agent")} would you like to install the skill for?`,
-            choices: SKILL_AGENTS.map((innerAgent) => ({
+            choices: detectedAgents.map((innerAgent) => ({
               title: SKILL_AGENT_NAMES[innerAgent],
               value: innerAgent,
             })),

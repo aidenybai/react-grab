@@ -32,6 +32,8 @@ import {
   type AgentIntegration,
 } from "../utils/templates.js";
 import { execSync } from "child_process";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import {
   previewAgentRemoval,
   previewOptionsTransform,
@@ -53,6 +55,20 @@ const SKILL_AGENT_NAMES: Record<string, string> = {
   cursor: "Cursor",
   vscode: "VS Code",
 };
+const SKILL_AGENT_FOLDERS: Record<string, string> = {
+  opencode: ".opencode",
+  "claude-code": ".claude",
+  codex: ".codex",
+  cursor: ".cursor",
+  vscode: ".github",
+};
+
+const detectSkillAgents = (cwd: string): string[] => {
+  return SKILL_AGENTS.filter((agent) => {
+    const folderPath = join(cwd, SKILL_AGENT_FOLDERS[agent]);
+    return existsSync(folderPath);
+  });
+};
 
 const promptAgentIntegration = async (cwd: string, customPkg?: string): Promise<void> => {
   const { integrationType } = await prompts({
@@ -60,14 +76,49 @@ const promptAgentIntegration = async (cwd: string, customPkg?: string): Promise<
     name: "integrationType",
     message: `Would you like to add ${highlighter.info("browser automation")}?`,
     choices: [
-      { title: "MCP Server", description: "For Cursor, Claude Code, VS Code, etc.", value: "mcp" },
-      { title: "Skill", description: "For Codex and other skill-based agents", value: "skill" },
+      { title: "Skill (recommended)", description: "For Codex, Cursor, Claude Code, VS Code, etc.", value: "skill" },
+      { title: "MCP Server", description: "For Cursor, Claude Code, VS Code, Windsurf, etc.", value: "mcp" },
       { title: "Both", value: "both" },
       { title: "Skip", value: "none" },
     ],
   });
 
   if (!integrationType || integrationType === "none") return;
+
+  if (integrationType === "skill" || integrationType === "both") {
+    const detectedAgents = detectSkillAgents(cwd);
+
+    if (detectedAgents.length === 0) {
+      logger.break();
+      logger.warn("No supported agent folders detected.");
+      logger.log("Supported agents: " + SKILL_AGENTS.join(", "));
+    } else {
+      const { skillAgent } = await prompts({
+        type: "select",
+        name: "skillAgent",
+        message: `Which ${highlighter.info("agent")} would you like to install the skill for?`,
+        choices: detectedAgents.map((agent) => ({
+          title: SKILL_AGENT_NAMES[agent],
+          value: agent,
+        })),
+      });
+
+      if (skillAgent) {
+        logger.break();
+        const skillSpinner = spinner(`Installing skill for ${SKILL_AGENT_NAMES[skillAgent]}`).start();
+        try {
+          execSync(`npx -y add-skill aidenybai/react-grab -y --agent ${skillAgent}`, {
+            stdio: "ignore",
+            cwd,
+          });
+          skillSpinner.succeed(`Skill installed for ${SKILL_AGENT_NAMES[skillAgent]}.`);
+        } catch {
+          skillSpinner.fail(`Failed to install skill for ${SKILL_AGENT_NAMES[skillAgent]}.`);
+          logger.warn(`Try manually: npx -y add-skill aidenybai/react-grab --agent ${skillAgent}`);
+        }
+      }
+    }
+  }
 
   if (integrationType === "mcp" || integrationType === "both") {
     const { mcpClient } = await prompts({
@@ -97,33 +148,6 @@ const promptAgentIntegration = async (cwd: string, customPkg?: string): Promise<
       logger.break();
       logger.warn("Failed to install MCP server. You can try again later with:");
         logger.log(`  npx -y install-mcp '${mcpCommand}' --client ${mcpClient}`);
-      }
-    }
-  }
-
-  if (integrationType === "skill" || integrationType === "both") {
-    const { skillAgent } = await prompts({
-      type: "select",
-      name: "skillAgent",
-      message: `Which ${highlighter.info("agent")} would you like to install the skill for?`,
-      choices: SKILL_AGENTS.map((agent) => ({
-        title: SKILL_AGENT_NAMES[agent],
-        value: agent,
-      })),
-    });
-
-    if (skillAgent) {
-      logger.break();
-      const skillSpinner = spinner(`Installing skill for ${SKILL_AGENT_NAMES[skillAgent]}`).start();
-      try {
-        execSync(`npx -y add-skill aidenybai/react-grab -y --agent ${skillAgent}`, {
-          stdio: "ignore",
-          cwd,
-        });
-        skillSpinner.succeed(`Skill installed for ${SKILL_AGENT_NAMES[skillAgent]}.`);
-      } catch {
-        skillSpinner.fail(`Failed to install skill for ${SKILL_AGENT_NAMES[skillAgent]}.`);
-        logger.warn(`Try manually: npx -y add-skill aidenybai/react-grab --agent ${skillAgent}`);
       }
     }
   }
