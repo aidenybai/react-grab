@@ -45,27 +45,16 @@ const VERSION = process.env.VERSION ?? "0.0.1";
 const REPORT_URL = "https://react-grab.com/api/report-cli";
 const DOCS_URL = "https://github.com/aidenybai/react-grab";
 
-const SKILL_AGENTS = ["opencode", "claude-code", "codex", "cursor", "vscode"] as const;
-const SKILL_AGENT_NAMES: Record<string, string> = {
-  opencode: "OpenCode",
-  "claude-code": "Claude Code",
-  codex: "Codex",
-  cursor: "Cursor",
-  vscode: "VSCode",
-};
-const SKILL_AGENT_FOLDERS: Record<string, string> = {
-  opencode: ".opencode",
-  "claude-code": ".claude",
-  codex: ".codex",
-  cursor: ".cursor",
-  vscode: ".github",
-};
+const SKILL_AGENTS = [
+  { id: "opencode", name: "OpenCode", folder: ".opencode" },
+  { id: "claude-code", name: "Claude Code", folder: ".claude" },
+  { id: "codex", name: "Codex", folder: ".codex" },
+  { id: "cursor", name: "Cursor", folder: ".cursor" },
+  { id: "vscode", name: "VSCode", folder: ".github" },
+];
 
-const detectSkillAgents = (cwd: string): string[] => {
-  return SKILL_AGENTS.filter((agent) => {
-    const folderPath = join(cwd, SKILL_AGENT_FOLDERS[agent]);
-    return existsSync(folderPath);
-  });
+const detectSkillAgents = (cwd: string) => {
+  return SKILL_AGENTS.filter((agent) => existsSync(join(cwd, agent.folder)));
 };
 
 const promptSkillInstall = async (cwd: string): Promise<void> => {
@@ -88,31 +77,31 @@ const promptSkillInstall = async (cwd: string): Promise<void> => {
 
   if (!wantSkill) return;
 
-  const { skillAgent } = await prompts({
+  const { selectedAgent } = await prompts({
     type: "select",
-    name: "skillAgent",
+    name: "selectedAgent",
     message: `Which ${highlighter.info("agent")} would you like to install the skill for?`,
     choices: [
       ...detectedAgents.map((agent) => ({
-        title: SKILL_AGENT_NAMES[agent],
+        title: agent.name,
         value: agent,
       })),
-      { title: "Skip", value: "skip" },
+      { title: "Skip", value: null },
     ],
   });
 
-  if (skillAgent && skillAgent !== "skip") {
+  if (selectedAgent) {
     logger.break();
-    const skillSpinner = spinner(`Installing skill for ${SKILL_AGENT_NAMES[skillAgent]}`).start();
+    const skillSpinner = spinner(`Installing skill for ${selectedAgent.name}`).start();
     try {
-      execSync(`npx -y add-skill aidenybai/react-grab -y --agent ${skillAgent}`, {
+      execSync(`npx -y add-skill aidenybai/react-grab -y --agent ${selectedAgent.id}`, {
         stdio: "ignore",
         cwd,
       });
-      skillSpinner.succeed(`Skill installed for ${SKILL_AGENT_NAMES[skillAgent]}.`);
+      skillSpinner.succeed(`Skill installed for ${selectedAgent.name}.`);
     } catch {
-      skillSpinner.fail(`Failed to install skill for ${SKILL_AGENT_NAMES[skillAgent]}.`);
-      logger.warn(`Try manually: npx -y add-skill aidenybai/react-grab --agent ${skillAgent}`);
+      skillSpinner.fail(`Failed to install skill for ${selectedAgent.name}.`);
+      logger.warn(`Try manually: npx -y add-skill aidenybai/react-grab --agent ${selectedAgent.id}`);
     }
   }
 

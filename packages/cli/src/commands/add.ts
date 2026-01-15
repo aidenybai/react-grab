@@ -35,27 +35,20 @@ import {
 
 const VERSION = process.env.VERSION ?? "0.0.1";
 
-const SKILL_AGENTS = ["opencode", "claude-code", "codex", "cursor", "vscode"] as const;
-const SKILL_AGENT_NAMES: Record<string, string> = {
-  opencode: "OpenCode",
-  "claude-code": "Claude Code",
-  codex: "Codex",
-  cursor: "Cursor",
-  vscode: "VSCode",
-};
-const SKILL_AGENT_FOLDERS: Record<string, string> = {
-  opencode: ".opencode",
-  "claude-code": ".claude",
-  codex: ".codex",
-  cursor: ".cursor",
-  vscode: ".github",
+const SKILL_AGENTS = [
+  { id: "opencode", name: "OpenCode", folder: ".opencode" },
+  { id: "claude-code", name: "Claude Code", folder: ".claude" },
+  { id: "codex", name: "Codex", folder: ".codex" },
+  { id: "cursor", name: "Cursor", folder: ".cursor" },
+  { id: "vscode", name: "VSCode", folder: ".github" },
+];
+
+const detectSkillAgents = (cwd: string) => {
+  return SKILL_AGENTS.filter((agent) => existsSync(join(cwd, agent.folder)));
 };
 
-const detectSkillAgents = (cwd: string): string[] => {
-  return SKILL_AGENTS.filter((agent) => {
-    const folderPath = join(cwd, SKILL_AGENT_FOLDERS[agent]);
-    return existsSync(folderPath);
-  });
+const findSkillAgent = (id: string) => {
+  return SKILL_AGENTS.find((agent) => agent.id === id);
 };
 
 const configureMcp = (
@@ -164,22 +157,23 @@ export const add = new Command()
       }
 
       if (agentArg === "skill") {
-        let skillAgent = opts.client as string | undefined;
+        const clientArg = opts.client as string | undefined;
+        let selectedAgent = clientArg ? findSkillAgent(clientArg) : undefined;
         const detectedAgents = detectSkillAgents(cwd);
 
-        if (skillAgent && !SKILL_AGENTS.includes(skillAgent as typeof SKILL_AGENTS[number])) {
+        if (clientArg && !selectedAgent) {
           logger.break();
-          logger.error(`Invalid skill agent: ${skillAgent}`);
-          logger.error(`Available agents: ${SKILL_AGENTS.join(", ")}`);
+          logger.error(`Invalid skill agent: ${clientArg}`);
+          logger.error(`Available agents: ${SKILL_AGENTS.map((a) => a.id).join(", ")}`);
           logger.break();
           process.exit(1);
         }
 
-        if (!skillAgent && !isNonInteractive) {
+        if (!selectedAgent && !isNonInteractive) {
           if (detectedAgents.length === 0) {
             logger.break();
             logger.warn("No supported agent folders detected.");
-            logger.log("Supported agents: " + SKILL_AGENTS.join(", "));
+            logger.log("Supported agents: " + SKILL_AGENTS.map((a) => a.id).join(", "));
             logger.break();
             process.exit(0);
           }
@@ -191,42 +185,42 @@ export const add = new Command()
             message: `Which ${highlighter.info("agent")} would you like to install the skill for?`,
             choices: [
               ...detectedAgents.map((innerAgent) => ({
-                title: SKILL_AGENT_NAMES[innerAgent],
+                title: innerAgent.name,
                 value: innerAgent,
               })),
-              { title: "Skip", value: "skip" },
+              { title: "Skip", value: null },
             ],
           });
 
-          if (!agent || agent === "skip") {
+          if (!agent) {
             logger.break();
             process.exit(0);
           }
 
-          skillAgent = agent;
+          selectedAgent = agent;
         }
 
-        if (!skillAgent) {
+        if (!selectedAgent) {
           logger.break();
           logger.error("Please specify an agent with --client");
-          logger.error(`Available agents: ${SKILL_AGENTS.join(", ")}`);
+          logger.error(`Available agents: ${SKILL_AGENTS.map((a) => a.id).join(", ")}`);
           logger.break();
           process.exit(1);
         }
 
         logger.break();
-        const skillSpinner = spinner(`Installing skill for ${SKILL_AGENT_NAMES[skillAgent]}`).start();
+        const skillSpinner = spinner(`Installing skill for ${selectedAgent.name}`).start();
         try {
-          execSync(`npx -y add-skill aidenybai/react-grab -y --agent ${skillAgent}`, {
+          execSync(`npx -y add-skill aidenybai/react-grab -y --agent ${selectedAgent.id}`, {
             stdio: "ignore",
             cwd,
           });
-          skillSpinner.succeed(`Skill installed for ${SKILL_AGENT_NAMES[skillAgent]}`);
+          skillSpinner.succeed(`Skill installed for ${selectedAgent.name}`);
           logger.break();
           process.exit(0);
         } catch {
-          skillSpinner.fail(`Failed to install skill for ${SKILL_AGENT_NAMES[skillAgent]}`);
-          logger.warn(`Try manually: npx -y add-skill aidenybai/react-grab --agent ${skillAgent}`);
+          skillSpinner.fail(`Failed to install skill for ${selectedAgent.name}`);
+          logger.warn(`Try manually: npx -y add-skill aidenybai/react-grab --agent ${selectedAgent.id}`);
           logger.break();
           process.exit(1);
         }
@@ -288,41 +282,41 @@ export const add = new Command()
           if (detectedAgents.length === 0) {
             logger.break();
             logger.warn("No supported agent folders detected.");
-            logger.log("Supported agents: " + SKILL_AGENTS.join(", "));
+            logger.log("Supported agents: " + SKILL_AGENTS.map((a) => a.id).join(", "));
             logger.break();
             process.exit(0);
           }
 
-          const { agent } = await prompts({
+          const { selectedAgent } = await prompts({
             type: "select",
-            name: "agent",
+            name: "selectedAgent",
             message: `Which ${highlighter.info("agent")} would you like to install the skill for?`,
             choices: [
               ...detectedAgents.map((innerAgent) => ({
-                title: SKILL_AGENT_NAMES[innerAgent],
+                title: innerAgent.name,
                 value: innerAgent,
               })),
-              { title: "Skip", value: "skip" },
+              { title: "Skip", value: null },
             ],
           });
 
-          if (!agent || agent === "skip") {
+          if (!selectedAgent) {
             logger.break();
             process.exit(0);
           }
 
-          const skillSpinner = spinner(`Installing skill for ${SKILL_AGENT_NAMES[agent]}`).start();
+          const skillSpinner = spinner(`Installing skill for ${selectedAgent.name}`).start();
           try {
-            execSync(`npx -y add-skill aidenybai/react-grab -y --agent ${agent}`, {
+            execSync(`npx -y add-skill aidenybai/react-grab -y --agent ${selectedAgent.id}`, {
               stdio: "ignore",
               cwd,
             });
-            skillSpinner.succeed(`Skill installed for ${SKILL_AGENT_NAMES[agent]}`);
+            skillSpinner.succeed(`Skill installed for ${selectedAgent.name}`);
             logger.break();
             process.exit(0);
           } catch {
-            skillSpinner.fail(`Failed to install skill for ${SKILL_AGENT_NAMES[agent]}`);
-            logger.warn(`Try manually: npx -y add-skill aidenybai/react-grab --agent ${agent}`);
+            skillSpinner.fail(`Failed to install skill for ${selectedAgent.name}`);
+            logger.warn(`Try manually: npx -y add-skill aidenybai/react-grab --agent ${selectedAgent.id}`);
             logger.break();
             process.exit(1);
           }
