@@ -33,6 +33,15 @@ import {
 
 const VERSION = process.env.VERSION ?? "0.0.1";
 
+const SKILL_AGENTS = ["opencode", "claude-code", "codex", "cursor", "vscode"] as const;
+const SKILL_AGENT_NAMES: Record<string, string> = {
+  opencode: "OpenCode",
+  "claude-code": "Claude Code",
+  codex: "Codex",
+  cursor: "Cursor",
+  vscode: "VS Code",
+};
+
 const configureMcp = (
   mcpClient: McpClient,
   cwd: string,
@@ -139,19 +148,57 @@ export const add = new Command()
       }
 
       if (agentArg === "skill") {
+        let skillAgent = opts.client as string | undefined;
+
+        if (skillAgent && !SKILL_AGENTS.includes(skillAgent as typeof SKILL_AGENTS[number])) {
+          logger.break();
+          logger.error(`Invalid skill agent: ${skillAgent}`);
+          logger.error(`Available agents: ${SKILL_AGENTS.join(", ")}`);
+          logger.break();
+          process.exit(1);
+        }
+
+        if (!skillAgent && !isNonInteractive) {
+          logger.break();
+          const { agent } = await prompts({
+            type: "select",
+            name: "agent",
+            message: `Which ${highlighter.info("agent")} would you like to install the skill for?`,
+            choices: SKILL_AGENTS.map((innerAgent) => ({
+              title: SKILL_AGENT_NAMES[innerAgent],
+              value: innerAgent,
+            })),
+          });
+
+          if (!agent) {
+            logger.break();
+            process.exit(1);
+          }
+
+          skillAgent = agent;
+        }
+
+        if (!skillAgent) {
+          logger.break();
+          logger.error("Please specify an agent with --client");
+          logger.error(`Available agents: ${SKILL_AGENTS.join(", ")}`);
+          logger.break();
+          process.exit(1);
+        }
+
         logger.break();
-        const skillSpinner = spinner("Installing skill").start();
+        const skillSpinner = spinner(`Installing skill for ${SKILL_AGENT_NAMES[skillAgent]}`).start();
         try {
-          execSync("npx -y add-skill aidenybai/react-grab -y", {
+          execSync(`npx -y add-skill aidenybai/react-grab -y --agent ${skillAgent}`, {
             stdio: "ignore",
             cwd,
           });
-          skillSpinner.succeed("Skill installed");
+          skillSpinner.succeed(`Skill installed for ${SKILL_AGENT_NAMES[skillAgent]}`);
           logger.break();
           process.exit(0);
         } catch {
-          skillSpinner.fail("Failed to install skill");
-          logger.warn("Try manually: npx -y add-skill aidenybai/react-grab");
+          skillSpinner.fail(`Failed to install skill for ${SKILL_AGENT_NAMES[skillAgent]}`);
+          logger.warn(`Try manually: npx -y add-skill aidenybai/react-grab --agent ${skillAgent}`);
           logger.break();
           process.exit(1);
         }
@@ -208,18 +255,33 @@ export const add = new Command()
         }
 
         if (addType === "skill") {
-          const skillSpinner = spinner("Installing skill").start();
+          const { agent } = await prompts({
+            type: "select",
+            name: "agent",
+            message: `Which ${highlighter.info("agent")} would you like to install the skill for?`,
+            choices: SKILL_AGENTS.map((innerAgent) => ({
+              title: SKILL_AGENT_NAMES[innerAgent],
+              value: innerAgent,
+            })),
+          });
+
+          if (!agent) {
+            logger.break();
+            process.exit(1);
+          }
+
+          const skillSpinner = spinner(`Installing skill for ${SKILL_AGENT_NAMES[agent]}`).start();
           try {
-            execSync("npx -y add-skill aidenybai/react-grab -y", {
+            execSync(`npx -y add-skill aidenybai/react-grab -y --agent ${agent}`, {
               stdio: "ignore",
               cwd,
             });
-            skillSpinner.succeed("Skill installed");
+            skillSpinner.succeed(`Skill installed for ${SKILL_AGENT_NAMES[agent]}`);
             logger.break();
             process.exit(0);
           } catch {
-            skillSpinner.fail("Failed to install skill");
-            logger.warn("Try manually: npx -y add-skill aidenybai/react-grab");
+            skillSpinner.fail(`Failed to install skill for ${SKILL_AGENT_NAMES[agent]}`);
+            logger.warn(`Try manually: npx -y add-skill aidenybai/react-grab --agent ${agent}`);
             logger.break();
             process.exit(1);
           }
