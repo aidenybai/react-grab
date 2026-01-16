@@ -13,22 +13,17 @@ const isGrabInstalled = (): boolean => {
 };
 
 const detectPackageManager = (): string => {
-  try {
-    execSync("pnpm --version", { stdio: "ignore" });
-    return "pnpm";
-  } catch {
+  const managers = ["pnpm", "yarn", "bun"] as const;
+
+  for (const manager of managers) {
     try {
-      execSync("yarn --version", { stdio: "ignore" });
-      return "yarn";
+      execSync(`${manager} --version`, { stdio: "ignore" });
+      return manager;
     } catch {
-      try {
-        execSync("bun --version", { stdio: "ignore" });
-        return "bun";
-      } catch {
-        return "npm";
-      }
+      continue;
     }
   }
+  return "npm";
 };
 
 const installGrab = (): void => {
