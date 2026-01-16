@@ -17,8 +17,8 @@ const MOBILE_BREAKPOINT = 768;
 const FADE_IN_DELAY_MS = 500;
 const DRAG_THRESHOLD = 5;
 const VELOCITY_MULTIPLIER = 150;
-const COLLAPSED_WIDTH = 18;
-const COLLAPSED_HEIGHT = 24;
+const COLLAPSED_WIDTH = 14;
+const COLLAPSED_HEIGHT = 14;
 
 export const Toolbar: Component<ToolbarProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
@@ -516,7 +516,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           <button
             data-react-grab-ignore-events
             data-react-grab-toolbar-enabled
-            class="contain-layout shrink-0 flex items-center justify-center cursor-pointer transition-all hover:scale-105 outline-none"
+            class="contain-layout shrink-0 flex items-center justify-center cursor-pointer transition-all hover:scale-105 outline-none mx-0.5"
             onClick={handleToggleEnabled}
           >
             <div
