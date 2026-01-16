@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.1.0-beta.8
+
+### Patch Changes
+
+- fix: cli
+
 ## 0.1.0-beta.7
 
 ### Patch Changes

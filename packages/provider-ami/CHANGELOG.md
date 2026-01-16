@@ -1,5 +1,13 @@
 # @react-grab/ami
 
+## 0.1.0-beta.8
+
+### Patch Changes
+
+- fix: cli
+- Updated dependencies
+  - react-grab@0.1.0-beta.8
+
 ## 0.1.0-beta.7
 
 ### Patch Changes
