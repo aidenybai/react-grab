@@ -1,5 +1,13 @@
 # @react-grab/relay
 
+## 0.1.0-beta.9
+
+### Patch Changes
+
+- fix: cli
+- Updated dependencies
+  - @react-grab/utils@0.1.0-beta.9
+
 ## 0.1.0-beta.8
 
 ### Patch Changes
