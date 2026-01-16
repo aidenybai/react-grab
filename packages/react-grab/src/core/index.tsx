@@ -1113,6 +1113,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (isActivated()) {
           deactivateRenderer();
         }
+        // Clear toggle feedback state to prevent stale state from affecting re-enable
+        if (toggleFeedbackTimerId !== null) {
+          window.clearTimeout(toggleFeedbackTimerId);
+          toggleFeedbackTimerId = null;
+        }
+        inToggleFeedbackPeriod = false;
       }
     };
 
