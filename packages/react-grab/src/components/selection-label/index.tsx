@@ -44,10 +44,13 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     props.status !== "copying" &&
     props.status !== "copied" &&
     props.status !== "fading" &&
-    props.status !== "error";
+    props.status !== "error" &&
+    props.status !== "comment";
 
   const isCompletedStatus = () =>
     props.status === "copied" || props.status === "fading";
+
+  const isCommentStatus = () => props.status === "comment";
 
   const shouldEnablePointerEvents = (): boolean =>
     props.isPromptMode ||
@@ -55,7 +58,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       Boolean(props.onDismiss || props.onShowContextMenu)) ||
     (props.status === "copying" && Boolean(props.onAbort)) ||
     (props.status === "error" &&
-      Boolean(props.onAcknowledgeError || props.onRetry));
+      Boolean(props.onAcknowledgeError || props.onRetry)) ||
+    isCommentStatus();
 
   const showOpenIndicator = () => props.isContextMenuOpen === true;
 
@@ -343,10 +347,59 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           />
         </Show>
 
+        <Show when={isCommentStatus() && props.commentText}>
+          <div class="[font-synthesis:none] contain-layout flex flex-col gap-0.5 rounded-sm bg-white antialiased w-fit h-fit max-w-[200px]">
+            <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5 pr-1">
+              <TagBadge
+                tagName={tagDisplay()}
+                componentName={componentNameDisplay()}
+                isClickable={false}
+                onClick={() => {}}
+                shrink
+              />
+            </div>
+            <BottomSection>
+              <div class="shrink-0 flex justify-between items-end w-full gap-2">
+                <p class="text-[12px] text-black leading-tight break-words whitespace-pre-wrap flex-1">
+                  {props.commentText}
+                </p>
+                <Show when={isContainerHovered()}>
+                  <div class="flex items-center gap-[5px] shrink-0">
+                    <Show when={props.onEditComment}>
+                      <button
+                        data-react-grab-ignore-events
+                        class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          props.onEditComment?.();
+                        }}
+                      >
+                        <span class="text-black text-[11px] leading-3.5 font-sans font-medium">Edit</span>
+                      </button>
+                    </Show>
+                    <Show when={props.onRemoveComment}>
+                      <button
+                        data-react-grab-ignore-events
+                        class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#7e0002] cursor-pointer transition-all hover:bg-[#FEF2F2] h-[17px]"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          props.onRemoveComment?.();
+                        }}
+                      >
+                        <span class="text-[#B91C1C] text-[11px] leading-3.5 font-sans font-medium">Remove</span>
+                      </button>
+                    </Show>
+                  </div>
+                </Show>
+              </div>
+            </BottomSection>
+          </div>
+        </Show>
+
         <div
           class="[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-sm bg-white antialiased w-fit h-fit p-0"
           style={{
-            display: isCompletedStatus() && !props.error ? "none" : undefined,
+            display: (isCompletedStatus() && !props.error) || isCommentStatus() ? "none" : undefined,
           }}
         >
           <Show when={props.status === "copying" && !props.isPendingAbort}>
@@ -482,7 +535,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     value={props.inputValue ?? ""}
                     onInput={handleInput}
                     onKeyDown={handleKeyDown}
-                    placeholder="type prompt"
+                    placeholder={props.placeholder ?? "type prompt"}
                     rows={1}
                   />
                   <button

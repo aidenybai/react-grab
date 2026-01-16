@@ -322,7 +322,8 @@ export type SelectionLabelStatus =
   | "copying"
   | "copied"
   | "fading"
-  | "error";
+  | "error"
+  | "comment";
 
 export interface SelectionLabelInstance {
   id: string;
@@ -394,6 +395,25 @@ export interface ReactGrabRendererProps {
   onToggleActive?: () => void;
   enabled?: boolean;
   onToggleEnabled?: () => void;
+  commentCount?: number;
+  onCopyComments?: () => void;
+  commentInputVisible?: boolean;
+  commentInputBounds?: OverlayBounds;
+  commentInputTagName?: string;
+  commentInputComponentName?: string;
+  commentInputValue?: string;
+  onCommentInputChange?: (value: string) => void;
+  onCommentSubmit?: () => void;
+  onCommentCancel?: () => void;
+  comments?: Array<{
+    id: string;
+    comment: string;
+    bounds: OverlayBounds;
+    tagName: string;
+    componentName?: string;
+  }>;
+  onRemoveComment?: (commentId: string) => void;
+  onEditComment?: (commentId: string) => void;
   contextMenuPosition?: { x: number; y: number } | null;
   contextMenuBounds?: OverlayBounds | null;
   contextMenuTagName?: string;
@@ -404,6 +424,7 @@ export interface ReactGrabRendererProps {
   onContextMenuCopy?: () => void;
   onContextMenuCopyScreenshot?: () => void;
   onContextMenuCopyHtml?: () => void;
+  onContextMenuComment?: () => void;
   onContextMenuOpen?: () => void;
   onContextMenuDismiss?: () => void;
   onContextMenuHide?: () => void;
@@ -527,4 +548,8 @@ export interface SelectionLabelProps {
   onRetry?: () => void;
   isContextMenuOpen?: boolean;
   onShowContextMenu?: () => void;
+  commentText?: string;
+  onRemoveComment?: () => void;
+  onEditComment?: () => void;
+  placeholder?: string;
 }

@@ -1,15 +1,18 @@
-import { createSignal, onMount, onCleanup } from "solid-js";
+import { createSignal, onMount, onCleanup, Show } from "solid-js";
 import type { Component } from "solid-js";
 import { cn } from "../../utils/cn.js";
 import { loadToolbarState, saveToolbarState, type SnapEdge } from "./state.js";
 import { IconSelect } from "../icons/icon-select.jsx";
 import { IconChevron } from "../icons/icon-chevron.jsx";
+import { IconCopy } from "../icons/icon-copy.jsx";
 
 interface ToolbarProps {
   isActive?: boolean;
   onToggle?: () => void;
   enabled?: boolean;
   onToggleEnabled?: () => void;
+  commentCount?: number;
+  onCopyComments?: () => void;
 }
 
 const SNAP_MARGIN = 16;
@@ -155,6 +158,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const handleToggleEnabled = createDragAwareHandler(() =>
     props.onToggleEnabled?.(),
+  );
+
+  const handleCopyComments = createDragAwareHandler(() =>
+    props.onCopyComments?.(),
   );
 
   const getSnapPosition = (
@@ -533,6 +540,19 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               />
             </div>
           </button>
+          <Show when={(props.commentCount ?? 0) > 0}>
+            <button
+              data-react-grab-ignore-events
+              data-react-grab-toolbar-copy
+              class="contain-layout shrink-0 flex items-center justify-center gap-0.5 cursor-pointer transition-all hover:scale-105 outline-none ml-1 px-1.5 py-0.5 rounded bg-black/10 hover:bg-black/20"
+              onClick={handleCopyComments}
+            >
+              <IconCopy size={12} class="text-black/70" />
+              <span class="text-[11px] font-medium text-black/70 tabular-nums">
+                {props.commentCount}
+              </span>
+            </button>
+          </Show>
         </div>
         <button
           data-react-grab-ignore-events

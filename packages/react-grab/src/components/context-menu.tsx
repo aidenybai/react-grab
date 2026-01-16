@@ -35,6 +35,7 @@ interface ContextMenuProps {
   onCopy: () => void;
   onCopyScreenshot: () => void;
   onCopyHtml: () => void;
+  onComment: () => void;
   onOpen: () => void;
   onDismiss: () => void;
   onHide: () => void;
@@ -154,6 +155,12 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       enabled: true,
     });
     items.push({
+      label: "Comment",
+      action: props.onComment,
+      enabled: true,
+      shortcut: "M",
+    });
+    items.push({
       label: "Open",
       action: props.onOpen,
       enabled: props.hasFilePath,
@@ -253,6 +260,11 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         event.preventDefault();
         event.stopPropagation();
         props.onCopy();
+        props.onHide();
+      } else if (keyLower === "m") {
+        event.preventDefault();
+        event.stopPropagation();
+        props.onComment();
         props.onHide();
       } else if (keyLower === "o" && props.hasFilePath) {
         event.preventDefault();

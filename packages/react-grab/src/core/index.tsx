@@ -88,6 +88,15 @@ import {
   loadToolbarState,
   saveToolbarState,
 } from "../components/toolbar/state.js";
+import {
+  loadComments,
+  addComment,
+  removeComment,
+  clearAllComments,
+  getCommentsWithElements,
+  generateCommentedContent,
+} from "./comments.js";
+import { copyContent } from "../utils/copy-content.js";
 
 let hasInited = false;
 
@@ -174,6 +183,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [isEnabled, setIsEnabled] = createSignal(
       savedToolbarState?.enabled ?? true,
     );
+
+    const [commentInputVisible, setCommentInputVisible] = createSignal(false);
+    const [commentInputElement, setCommentInputElement] = createSignal<Element | null>(null);
+    const [commentInputValue, setCommentInputValue] = createSignal("");
+    const [commentsVersion, setCommentsVersion] = createSignal(0);
 
     const pendingAbortSessionId = createMemo(() => store.pendingAbortSessionId);
 
@@ -288,6 +302,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         !store.isTouchMode &&
         !isToggleFrozen() &&
         !isPromptMode() &&
+        !commentInputVisible() &&
         store.contextMenuPosition === null,
     );
 
@@ -1131,7 +1146,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         !isEnabled() ||
         isPromptMode() ||
         isToggleFrozen() ||
-        store.contextMenuPosition !== null
+        store.contextMenuPosition !== null ||
+        commentInputVisible()
       )
         return;
 
@@ -1163,7 +1179,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handlePointerDown = (clientX: number, clientY: number) => {
-      if (!isRendererActive() || isCopying()) return false;
+      if (!isRendererActive() || isCopying() || commentInputVisible()) return false;
 
       actions.startDrag({ x: clientX, y: clientY });
       document.body.style.userSelect = "none";
@@ -1844,7 +1860,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     eventListenerManager.addWindowListener(
       "contextmenu",
       (event: MouseEvent) => {
-        if (!isRendererActive() || isCopying() || isPromptMode()) return;
+        if (!isRendererActive() || isCopying() || isPromptMode() || commentInputVisible()) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) {
           event.preventDefault();
@@ -1894,6 +1910,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
+        if (commentInputVisible()) {
+          handleCommentCancel();
+          return;
+        }
+
         const didHandle = handlePointerDown(
           event.touches[0].clientX,
           event.touches[0].clientY,
@@ -1919,6 +1940,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: MouseEvent) => {
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
+        if (commentInputVisible()) return;
 
         if (isRendererActive() || isCopying() || didJustDrag()) {
           event.preventDefault();
@@ -2054,6 +2076,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!pluginRegistry.store.theme.enabled) return false;
         if (!pluginRegistry.store.theme[themeKey].enabled) return false;
         if (didJustCopy()) return false;
+        if (commentInputVisible()) return false;
         return (
           isRendererActive() && !isDragging() && Boolean(effectiveElement())
         );
@@ -2239,6 +2262,117 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         };
       },
     );
+
+    const commentInputBounds = createMemo((): OverlayBounds | null => {
+      void store.viewportVersion;
+      const element = commentInputElement();
+      if (!element) return null;
+      return createElementBounds(element);
+    });
+
+    const [commentInputComponentName] = createResource(
+      () => commentInputElement(),
+      async (element) => {
+        if (!element) return undefined;
+        const name = await getNearestComponentName(element);
+        return name ?? undefined;
+      },
+    );
+
+    const commentInputTagName = createMemo(() => {
+      const element = commentInputElement();
+      if (!element) return undefined;
+      return getTagName(element) || undefined;
+    });
+
+    const commentCount = createMemo(() => {
+      void commentsVersion();
+      return loadComments().length;
+    });
+
+    const commentsWithBounds = createMemo(() => {
+      void commentsVersion();
+      void store.viewportVersion;
+      const commentsData = getCommentsWithElements();
+      return commentsData
+        .filter((c) => c.element !== null && c.bounds !== null)
+        .map((c) => ({
+          id: c.id,
+          comment: c.comment,
+          bounds: c.bounds!,
+          tagName: c.tagName,
+          componentName: c.componentName,
+        }));
+    });
+
+    const handleContextMenuComment = () => {
+      const element = store.contextMenuElement;
+      if (!element) return;
+
+      setCommentInputElement(element);
+      setCommentInputValue("");
+      setCommentInputVisible(true);
+
+      // HACK: Defer hiding context menu until after click event propagates fully
+      setTimeout(() => {
+        actions.hideContextMenu();
+      }, 0);
+    };
+
+    const handleCommentInputChange = (value: string) => {
+      setCommentInputValue(value);
+    };
+
+    const handleCommentSubmit = () => {
+      const element = commentInputElement();
+      const comment = commentInputValue().trim();
+      if (!element || !comment) return;
+
+      const tagName = commentInputTagName() || "element";
+      const componentName = commentInputComponentName();
+
+      addComment(element, comment, tagName, componentName);
+      setCommentsVersion((v) => v + 1);
+
+      setCommentInputVisible(false);
+      setCommentInputElement(null);
+      setCommentInputValue("");
+      deactivateRenderer();
+    };
+
+    const handleCommentCancel = () => {
+      setCommentInputVisible(false);
+      setCommentInputElement(null);
+      setCommentInputValue("");
+    };
+
+    const handleRemoveComment = (commentId: string) => {
+      removeComment(commentId);
+      setCommentsVersion((v) => v + 1);
+    };
+
+    const handleEditComment = (commentId: string) => {
+      const comments = loadComments();
+      const comment = comments.find((c) => c.id === commentId);
+      if (!comment) return;
+
+      const commentsData = getCommentsWithElements();
+      const commentData = commentsData.find((c) => c.id === commentId);
+      if (!commentData?.element) return;
+
+      setCommentInputElement(commentData.element);
+      setCommentInputValue(comment.comment);
+      setCommentInputVisible(true);
+    };
+
+    const handleCopyComments = () => {
+      const content = generateCommentedContent();
+      if (content) {
+        copyContent(content);
+        clearAllComments();
+        setCommentsVersion((v) => v + 1);
+      }
+    };
 
     const handleContextMenuCopy = () => {
       const element = store.contextMenuElement;
@@ -2585,9 +2719,23 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               void handleContextMenuCopyScreenshot()
             }
             onContextMenuCopyHtml={() => void handleContextMenuCopyHtml()}
+            onContextMenuComment={handleContextMenuComment}
             onContextMenuOpen={handleContextMenuOpen}
             onContextMenuDismiss={handleContextMenuDismiss}
             onContextMenuHide={handleContextMenuHide}
+            commentCount={commentCount()}
+            onCopyComments={handleCopyComments}
+            commentInputVisible={commentInputVisible()}
+            commentInputBounds={commentInputBounds() ?? undefined}
+            commentInputTagName={commentInputTagName()}
+            commentInputComponentName={commentInputComponentName()}
+            commentInputValue={commentInputValue()}
+            onCommentInputChange={handleCommentInputChange}
+            onCommentSubmit={handleCommentSubmit}
+            onCommentCancel={handleCommentCancel}
+            comments={commentsWithBounds()}
+            onRemoveComment={handleRemoveComment}
+            onEditComment={handleEditComment}
           />
         ),
         rendererRoot,

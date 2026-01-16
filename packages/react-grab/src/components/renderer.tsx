@@ -1,4 +1,4 @@
-import { Show, Index } from "solid-js";
+import { Show, Index, For } from "solid-js";
 import type { Component } from "solid-js";
 import type { ReactGrabRendererProps } from "../types.js";
 import { buildOpenFileUrl } from "../utils/build-open-file-url.js";
@@ -93,7 +93,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         )}
       </Index>
 
-      <Show when={props.selectionLabelVisible && props.selectionBounds}>
+      <Show when={props.selectionLabelVisible && props.selectionBounds && !props.commentInputVisible}>
         <SelectionLabel
           tagName={props.selectionTagName}
           componentName={props.selectionComponentName}
@@ -153,12 +153,57 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         )}
       </Index>
 
+      <For each={props.comments ?? []}>
+        {(comment) => (
+          <SelectionLabel
+            tagName={comment.tagName}
+            componentName={comment.componentName}
+            selectionBounds={comment.bounds}
+            mouseX={comment.bounds ? comment.bounds.x + comment.bounds.width / 2 : undefined}
+            visible={true}
+            status="comment"
+            commentText={comment.comment}
+            onRemoveComment={() => props.onRemoveComment?.(comment.id)}
+            onEditComment={() => props.onEditComment?.(comment.id)}
+          />
+        )}
+      </For>
+
+      <Show
+        when={
+          props.commentInputVisible &&
+          props.commentInputBounds &&
+          props.commentInputTagName
+        }
+      >
+        <SelectionLabel
+          tagName={props.commentInputTagName}
+          componentName={props.commentInputComponentName}
+          selectionBounds={props.commentInputBounds}
+          mouseX={
+            props.commentInputBounds
+              ? props.commentInputBounds.x + props.commentInputBounds.width / 2
+              : undefined
+          }
+          visible={true}
+          isPromptMode={true}
+          inputValue={props.commentInputValue ?? ""}
+          placeholder="add comment..."
+          onInputChange={props.onCommentInputChange}
+          onSubmit={props.onCommentSubmit}
+          onCancel={props.onCommentCancel}
+          onConfirmDismiss={props.onCommentCancel}
+        />
+      </Show>
+
       <Show when={props.toolbarVisible !== false}>
         <Toolbar
           isActive={props.isActive}
           onToggle={props.onToggleActive}
           enabled={props.enabled}
           onToggleEnabled={props.onToggleEnabled}
+          commentCount={props.commentCount}
+          onCopyComments={props.onCopyComments}
         />
       </Show>
 
@@ -173,6 +218,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         onCopy={props.onContextMenuCopy ?? (() => {})}
         onCopyScreenshot={props.onContextMenuCopyScreenshot ?? (() => {})}
         onCopyHtml={props.onContextMenuCopyHtml ?? (() => {})}
+        onComment={props.onContextMenuComment ?? (() => {})}
         onOpen={props.onContextMenuOpen ?? (() => {})}
         onDismiss={props.onContextMenuDismiss ?? (() => {})}
         onHide={props.onContextMenuHide ?? (() => {})}
