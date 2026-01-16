@@ -103,26 +103,24 @@ interface ReportConfig {
   isMonorepo: boolean;
 }
 
-const reportToCli = async (
+const reportToCli = (
   type: "error" | "completed",
   config?: ReportConfig,
   error?: Error,
-): Promise<void> => {
-  try {
-    await fetch(REPORT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type,
-        version: VERSION,
-        config,
-        error: error
-          ? { message: error.message, stack: error.stack }
-          : undefined,
-        timestamp: new Date().toISOString(),
-      }),
-    }).catch(() => {});
-  } catch {}
+): void => {
+  fetch(REPORT_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      type,
+      version: VERSION,
+      config,
+      error: error
+        ? { message: error.message, stack: error.stack }
+        : undefined,
+      timestamp: new Date().toISOString(),
+    }),
+  }).catch(() => {});
 };
 
 const FRAMEWORK_NAMES: Record<Framework, string> = {
@@ -884,7 +882,7 @@ export const init = new Command()
         await promptSkillInstall(cwd);
       }
 
-      await reportToCli("completed", {
+      reportToCli("completed", {
         framework: finalFramework,
         packageManager: finalPackageManager,
         router: finalNextRouterType,
@@ -893,6 +891,6 @@ export const init = new Command()
       });
     } catch (error) {
       handleError(error);
-      await reportToCli("error", undefined, error as Error);
+      reportToCli("error", undefined, error as Error);
     }
   });
