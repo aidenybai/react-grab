@@ -179,7 +179,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const hasAgentProvider = createMemo(() => store.hasAgentProvider);
 
-    // Timer effect: holding -> active after key hold duration
     createEffect(() => {
       if (store.current.state !== "holding") return;
       const timerId = setTimeout(() => {
@@ -188,7 +187,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       onCleanup(() => clearTimeout(timerId));
     });
 
-    // Timer effect: justDragged -> hovering after success label duration
     createEffect(() => {
       if (
         store.current.state !== "active" ||
@@ -201,7 +199,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       onCleanup(() => clearTimeout(timerId));
     });
 
-    // Timer effect: justCopied -> idle after copied label duration
     createEffect(() => {
       if (store.current.state !== "justCopied") return;
       const timerId = setTimeout(() => {
