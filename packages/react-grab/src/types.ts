@@ -405,6 +405,7 @@ export interface ReactGrabRendererProps {
   actionContext?: ActionContext;
   onContextMenuCopy?: () => void;
   onContextMenuCopyScreenshot?: () => void;
+  onContextMenuCopyHtml?: () => void;
   onContextMenuOpen?: () => void;
   onContextMenuDismiss?: () => void;
   onContextMenuHide?: () => void;

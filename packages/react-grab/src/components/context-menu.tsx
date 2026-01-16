@@ -34,6 +34,7 @@ interface ContextMenuProps {
   actionContext?: ActionContext;
   onCopy: () => void;
   onCopyScreenshot: () => void;
+  onCopyHtml: () => void;
   onOpen: () => void;
   onDismiss: () => void;
   onHide: () => void;
@@ -147,6 +148,11 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         shortcut: "S",
       });
     }
+    items.push({
+      label: "Copy HTML",
+      action: props.onCopyHtml,
+      enabled: true,
+    });
     items.push({
       label: "Open",
       action: props.onOpen,

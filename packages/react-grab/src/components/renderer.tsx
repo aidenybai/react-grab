@@ -168,6 +168,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         actionContext={props.actionContext}
         onCopy={props.onContextMenuCopy ?? (() => {})}
         onCopyScreenshot={props.onContextMenuCopyScreenshot ?? (() => {})}
+        onCopyHtml={props.onContextMenuCopyHtml ?? (() => {})}
         onOpen={props.onContextMenuOpen ?? (() => {})}
         onDismiss={props.onContextMenuDismiss ?? (() => {})}
         onHide={props.onContextMenuHide ?? (() => {})}

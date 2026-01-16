@@ -1,6 +1,6 @@
 ---
 name: react-grab-browser
-description: Browser automation with Playwright and real cookies. Use 'npx -y @react-grab/cli browser execute "<code>"' to run Playwright code.
+description: Browser automation with Playwright and real cookies. Use 'grab browser execute "<code>"' to run Playwright code.
 ---
 
 # React Grab Browser
@@ -12,7 +12,7 @@ Playwright automation with your real browser cookies. Pages persist across execu
 ## Usage
 
 ```bash
-npx -y @react-grab/cli browser execute "<code>"
+grab browser execute "<code>"
 ```
 
 ## Performance Tips

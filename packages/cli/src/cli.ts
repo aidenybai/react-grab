@@ -18,7 +18,7 @@ try {
 } catch {}
 
 const program = new Command()
-  .name("react-grab")
+  .name("grab")
   .description("add React Grab to your project")
   .version(VERSION, "-v, --version", "display the version number");
 

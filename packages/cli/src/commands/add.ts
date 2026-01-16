@@ -43,7 +43,7 @@ const configureMcp = (
 ): void => {
   const mcpCommand = customPkg
     ? `npx -y ${customPkg} browser mcp`
-    : `npx -y @react-grab/cli browser mcp`;
+    : `grab browser mcp`;
   const mcpSpinner = spinner(`Installing MCP server for ${MCP_CLIENT_NAMES[mcpClient]}`).start();
 
   try {

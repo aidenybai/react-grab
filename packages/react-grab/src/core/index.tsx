@@ -1087,13 +1087,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         collapsed: currentState?.collapsed ?? false,
         enabled: newEnabled,
       });
-      if (!newEnabled && isActivated()) {
-        deactivateRenderer();
+      if (!newEnabled) {
+        if (isHoldingKeys()) {
+          actions.release();
+        }
+        if (isActivated()) {
+          deactivateRenderer();
+        }
       }
     };
 
     const handlePointerMove = (clientX: number, clientY: number) => {
       if (
+        !isEnabled() ||
         isPromptMode() ||
         isToggleFrozen() ||
         store.contextMenuPosition !== null
@@ -2257,6 +2263,59 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
+    const handleContextMenuCopyHtml = () => {
+      const element = store.contextMenuElement;
+      if (!element) return;
+
+      const frozenElements = [...store.frozenElements];
+      const elementsToUse =
+        frozenElements.length > 0 ? frozenElements : [element];
+
+      const html = elementsToUse
+        .map((el) => (el as HTMLElement).outerHTML)
+        .join("\n\n");
+
+      const position = store.contextMenuPosition ?? store.pointer;
+      const bounds = contextMenuBounds();
+      const tagName = getTagName(element) || "element";
+      const componentName = contextMenuComponentName();
+      const shouldDeactivate = store.wasActivatedByToggle;
+
+      actions.hideContextMenu();
+
+      if (bounds) {
+        const instanceId = createLabelInstance(
+          bounds,
+          tagName,
+          componentName,
+          "copying",
+          element,
+          position.x,
+          frozenElements.length > 1 ? frozenElements : undefined,
+        );
+
+        void navigator.clipboard.writeText(html).then(
+          () => updateLabelInstance(instanceId, "copied"),
+          () => updateLabelInstance(instanceId, "error", "Failed to copy"),
+        );
+
+        setTimeout(() => {
+          updateLabelInstance(instanceId, "fading");
+          setTimeout(() => {
+            removeLabelInstance(instanceId);
+          }, 150);
+        }, FEEDBACK_DURATION_MS);
+      } else {
+        void navigator.clipboard.writeText(html);
+      }
+
+      if (shouldDeactivate) {
+        deactivateRenderer();
+      } else {
+        actions.unfreeze();
+      }
+    };
+
     const handleContextMenuOpen = () => {
       const fileInfo = contextMenuFilePath();
       if (fileInfo) {
@@ -2449,6 +2508,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onContextMenuCopyScreenshot={() =>
               void handleContextMenuCopyScreenshot()
             }
+            onContextMenuCopyHtml={handleContextMenuCopyHtml}
             onContextMenuOpen={handleContextMenuOpen}
             onContextMenuDismiss={handleContextMenuDismiss}
             onContextMenuHide={handleContextMenuHide}
