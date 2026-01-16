@@ -10,71 +10,6 @@ const VERSION = process.env.VERSION ?? "0.0.1";
 
 type PackageManager = "npm" | "yarn" | "pnpm" | "bun";
 
-const getInstalledVersion = (): string | null => {
-  try {
-    const output = execSync("grab --version", {
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    const match = output.match(/(\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?)/);
-    return match ? match[1] : null;
-  } catch {
-    return null;
-  }
-};
-
-const getLatestVersion = (): string | null => {
-  try {
-    const output = execSync("npm view grab version", {
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    return output.trim();
-  } catch {
-    return null;
-  }
-};
-
-const detectGlobalPackageManager = (): PackageManager => {
-  // Check pnpm first since it's commonly used
-  try {
-    const pnpmGlobalDir = execSync("pnpm root -g", {
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-    }).trim();
-    execSync(`ls "${pnpmGlobalDir}/grab" 2>/dev/null || ls "${pnpmGlobalDir}/../grab" 2>/dev/null`, {
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    return "pnpm";
-  } catch {}
-
-  // Check yarn
-  try {
-    const yarnGlobalDir = execSync("yarn global dir", {
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-    }).trim();
-    execSync(`ls "${yarnGlobalDir}/node_modules/grab" 2>/dev/null`, {
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    return "yarn";
-  } catch {}
-
-  // Check bun
-  try {
-    execSync("bun pm ls -g 2>/dev/null | grep grab", {
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    return "bun";
-  } catch {}
-
-  // Default to npm
-  return "npm";
-};
-
 const UPDATE_COMMANDS: Record<PackageManager, string> = {
   npm: "npm install -g grab@latest",
   yarn: "yarn global add grab@latest",
@@ -87,6 +22,41 @@ const MANAGER_NAMES: Record<PackageManager, string> = {
   yarn: "Yarn",
   pnpm: "pnpm",
   bun: "Bun",
+};
+
+const execSilent = (command: string): string | null => {
+  try {
+    return execSync(command, {
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+    }).trim();
+  } catch {
+    return null;
+  }
+};
+
+const getInstalledVersion = (): string | null => {
+  const output = execSilent("grab --version");
+  if (!output) return null;
+  const match = output.match(/(\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?)/);
+  return match ? match[1] : null;
+};
+
+const getLatestVersion = (): string | null => execSilent("npm view grab version");
+
+const isPackageManagerInstalled = (manager: string): boolean =>
+  execSilent(`${manager} --version`) !== null;
+
+const detectGlobalPackageManager = (): PackageManager => {
+  const managers: PackageManager[] = ["pnpm", "yarn", "bun"];
+
+  for (const manager of managers) {
+    if (isPackageManagerInstalled(manager)) {
+      return manager;
+    }
+  }
+
+  return "npm";
 };
 
 export const update = new Command()
@@ -144,14 +114,14 @@ export const update = new Command()
     const packageManager = detectGlobalPackageManager();
 
     if (!opts.yes) {
-      const { proceed } = await prompts({
+      const { shouldProceed } = await prompts({
         type: "confirm",
-        name: "proceed",
+        name: "shouldProceed",
         message: `Update grab from ${installedVersion} to ${latestVersion} using ${MANAGER_NAMES[packageManager]}?`,
         initial: true,
       });
 
-      if (!proceed) {
+      if (!shouldProceed) {
         logger.break();
         logger.log("Update cancelled.");
         logger.break();
