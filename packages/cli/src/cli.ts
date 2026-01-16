@@ -5,6 +5,7 @@ import { browser } from "./commands/browser.js";
 import { configure } from "./commands/configure.js";
 import { init } from "./commands/init.js";
 import { remove } from "./commands/remove.js";
+import { update } from "./commands/update.js";
 import { AGENTS, MCP_CLIENTS } from "./utils/templates.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
@@ -27,6 +28,7 @@ program.addCommand(add);
 program.addCommand(remove);
 program.addCommand(configure);
 program.addCommand(browser);
+program.addCommand(update);
 
 const completion = tab(program);
 
