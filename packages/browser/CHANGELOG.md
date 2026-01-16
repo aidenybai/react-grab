@@ -1,5 +1,11 @@
 # @react-grab/browser
 
+## 0.1.0-beta.7
+
+### Patch Changes
+
+- fix: CLI hanging
+
 ## 0.1.0-beta.6
 
 ### Patch Changes

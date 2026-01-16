@@ -1,5 +1,13 @@
 # @react-grab/visual-edit
 
+## 0.1.0-beta.7
+
+### Patch Changes
+
+- fix: CLI hanging
+- Updated dependencies
+  - react-grab@0.1.0-beta.7
+
 ## 0.1.0-beta.6
 
 ### Patch Changes
