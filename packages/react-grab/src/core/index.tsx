@@ -11,7 +11,10 @@ import {
 } from "solid-js";
 import { render } from "solid-js/web";
 import { createGrabStore } from "./store.js";
-import { isKeyboardEventTriggeredByInput } from "../utils/is-keyboard-event-triggered-by-input.js";
+import {
+  isKeyboardEventTriggeredByInput,
+  hasTextSelectionInInput,
+} from "../utils/is-keyboard-event-triggered-by-input.js";
 import { mountRoot } from "../utils/mount-root.js";
 import { ReactGrabRenderer } from "../components/renderer.js";
 import {
@@ -38,6 +41,7 @@ import {
   BLUR_DEACTIVATION_THRESHOLD_MS,
   BOUNDS_RECALC_INTERVAL_MS,
   INPUT_FOCUS_ACTIVATION_DELAY_MS,
+  INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS,
   DEFAULT_KEY_HOLD_DURATION_MS,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
@@ -1593,9 +1597,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const keyHoldDuration =
           pluginRegistry.store.options.keyHoldDuration ??
           DEFAULT_KEY_HOLD_DURATION_MS;
-        const activationDuration = isKeyboardEventTriggeredByInput(event)
-          ? keyHoldDuration + INPUT_FOCUS_ACTIVATION_DELAY_MS
-          : keyHoldDuration;
+
+        let activationDuration = keyHoldDuration;
+        if (isKeyboardEventTriggeredByInput(event)) {
+          if (hasTextSelectionInInput(event)) {
+            activationDuration += INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS;
+          } else {
+            activationDuration += INPUT_FOCUS_ACTIVATION_DELAY_MS;
+          }
+        }
         actions.startHold(activationDuration);
       }
     };

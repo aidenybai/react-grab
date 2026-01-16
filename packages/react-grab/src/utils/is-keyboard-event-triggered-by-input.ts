@@ -77,3 +77,16 @@ export const isKeyboardEventTriggeredByInput = (
 ): boolean => {
   return isHotkeyEnabledOnTagName(event, FORM_TAGS_AND_ROLES);
 };
+
+export const hasTextSelectionInInput = (event: KeyboardEvent): boolean => {
+  const target = event.target;
+  if (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement
+  ) {
+    const selectionStart = target.selectionStart ?? 0;
+    const selectionEnd = target.selectionEnd ?? 0;
+    return selectionEnd - selectionStart > 0;
+  }
+  return false;
+};
