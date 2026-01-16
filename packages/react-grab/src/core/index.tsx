@@ -2172,13 +2172,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const contextMenuTagName = createMemo(() => {
       const element = store.contextMenuElement;
       if (!element) return undefined;
+      const frozenCount = store.frozenElements.length;
+      if (frozenCount > 1) {
+        return `${frozenCount} elements`;
+      }
       return getTagName(element) || undefined;
     });
 
     const [contextMenuComponentName] = createResource(
-      () => store.contextMenuElement,
-      async (element) => {
+      () => ({ element: store.contextMenuElement, frozenCount: store.frozenElements.length }),
+      async ({ element, frozenCount }) => {
         if (!element) return undefined;
+        if (frozenCount > 1) return undefined;
         const name = await getNearestComponentName(element);
         return name ?? undefined;
       },
