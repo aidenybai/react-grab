@@ -92,12 +92,12 @@ test.describe("Copy Feedback Behavior", () => {
 
       const boundsAfter = await reactGrab.getSelectionBoxBounds();
 
-      if (boundsBefore && boundsAfter) {
-        expect(
-          boundsBefore.width !== boundsAfter.width ||
-            boundsBefore.height !== boundsAfter.height,
-        ).toBe(true);
-      }
+      expect(boundsBefore).not.toBeNull();
+      expect(boundsAfter).not.toBeNull();
+      expect(
+        boundsBefore!.width !== boundsAfter!.width ||
+          boundsBefore!.height !== boundsAfter!.height,
+      ).toBe(true);
 
       await reactGrab.page.keyboard.up("c");
       await reactGrab.page.keyboard.up("Meta");
@@ -336,10 +336,9 @@ test.describe("Copy Feedback Behavior", () => {
       await reactGrab.waitForSelectionBox();
       await reactGrab.clickElement("li:first-child");
 
-      await reactGrab.page.waitForTimeout(200);
-
-      const statusText = await reactGrab.getLabelStatusText();
-      expect(statusText === "Copied" || statusText === null).toBe(true);
+      await expect
+        .poll(() => reactGrab.getLabelStatusText(), { timeout: 2000 })
+        .toBe("Copied");
     });
 
     test("should show grabbed box animation during feedback", async ({
