@@ -254,8 +254,10 @@ test.describe("Visual Feedback", () => {
 
       await reactGrab.clickElement("li:first-child");
 
-      const statusText = await reactGrab.getLabelStatusText();
-      expect(typeof statusText === "string" || statusText === null).toBe(true);
+      // During/after copy, a status label should appear (e.g., "Copying..." or "Copied")
+      await expect
+        .poll(() => reactGrab.getLabelStatusText(), { timeout: 2000 })
+        .toBeTruthy();
     });
 
     test("should transition to copied status after copy", async ({
@@ -266,10 +268,10 @@ test.describe("Visual Feedback", () => {
       await reactGrab.waitForSelectionBox();
 
       await reactGrab.clickElement("li:first-child");
-      await reactGrab.page.waitForTimeout(500);
 
-      const statusText = await reactGrab.getLabelStatusText();
-      expect(typeof statusText === "string" || statusText === null).toBe(true);
+      await expect
+        .poll(() => reactGrab.getLabelStatusText(), { timeout: 2000 })
+        .toBe("Copied");
     });
   });
 

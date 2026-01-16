@@ -8,6 +8,8 @@ import { IconChevron } from "../icons/icon-chevron.jsx";
 interface ToolbarProps {
   isActive?: boolean;
   onToggle?: () => void;
+  enabled?: boolean;
+  onToggleEnabled?: () => void;
 }
 
 const SNAP_MARGIN = 16;
@@ -15,7 +17,8 @@ const MOBILE_BREAKPOINT = 768;
 const FADE_IN_DELAY_MS = 500;
 const DRAG_THRESHOLD = 5;
 const VELOCITY_MULTIPLIER = 150;
-const COLLAPSED_SIZE = 14;
+const COLLAPSED_WIDTH = 18;
+const COLLAPSED_HEIGHT = 24;
 
 export const Toolbar: Component<ToolbarProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
@@ -124,33 +127,35 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   let didDragOccur = false;
 
-  const handleToggle = (event: MouseEvent) => {
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-    if (didDragOccur) {
-      didDragOccur = false;
-      return;
-    }
-    props.onToggle?.();
-  };
+  const createDragAwareHandler =
+    (callback: () => void) => (event: MouseEvent) => {
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      if (didDragOccur) {
+        didDragOccur = false;
+        return;
+      }
+      callback();
+    };
 
-  const handleToggleCollapse = (event: MouseEvent) => {
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-    if (didDragOccur) {
-      didDragOccur = false;
-      return;
-    }
+  const handleToggle = createDragAwareHandler(() => props.onToggle?.());
+
+  const handleToggleCollapse = createDragAwareHandler(() => {
     setIsCollapsed((prev) => {
       const newCollapsed = !prev;
       saveToolbarState({
         edge: snapEdge(),
         ratio: positionRatio(),
         collapsed: newCollapsed,
+        enabled: props.enabled ?? true,
       });
       return newCollapsed;
     });
-  };
+  });
+
+  const handleToggleEnabled = createDragAwareHandler(
+    () => props.onToggleEnabled?.(),
+  );
 
   const getSnapPosition = (
     currentX: number,
@@ -312,7 +317,12 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         setPosition({ x: snap.x, y: snap.y });
-        saveToolbarState({ edge: snap.edge, ratio, collapsed: isCollapsed() });
+        saveToolbarState({
+          edge: snap.edge,
+          ratio,
+          collapsed: isCollapsed(),
+          enabled: props.enabled ?? true,
+        });
 
         setTimeout(() => {
           setIsSnapping(false);
@@ -325,30 +335,36 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     const edge = snapEdge();
     const pos = position();
 
-    if (edge === "top") {
-      return { x: pos.x, y: 0 };
+    switch (edge) {
+      case "top":
+        return { x: pos.x, y: 0 };
+      case "bottom":
+        return { x: pos.x, y: window.innerHeight - COLLAPSED_HEIGHT };
+      case "left":
+        return { x: 0, y: pos.y };
+      case "right":
+        return { x: window.innerWidth - COLLAPSED_WIDTH, y: pos.y };
+      default:
+        return pos;
     }
-    if (edge === "bottom") {
-      return { x: pos.x, y: window.innerHeight - COLLAPSED_SIZE };
-    }
-    if (edge === "left") {
-      return { x: 0, y: pos.y };
-    }
-    if (edge === "right") {
-      return { x: window.innerWidth - COLLAPSED_SIZE, y: pos.y };
-    }
-    return pos;
   };
 
   const chevronRotation = () => {
     const edge = snapEdge();
     const collapsed = isCollapsed();
 
-    if (edge === "top") return collapsed ? "rotate-180" : "rotate-0";
-    if (edge === "bottom") return collapsed ? "rotate-0" : "rotate-180";
-    if (edge === "left") return collapsed ? "rotate-90" : "-rotate-90";
-    if (edge === "right") return collapsed ? "-rotate-90" : "rotate-90";
-    return "rotate-0";
+    switch (edge) {
+      case "top":
+        return collapsed ? "rotate-180" : "rotate-0";
+      case "bottom":
+        return collapsed ? "rotate-0" : "rotate-180";
+      case "left":
+        return collapsed ? "rotate-90" : "-rotate-90";
+      case "right":
+        return collapsed ? "-rotate-90" : "rotate-90";
+      default:
+        return "rotate-0";
+    }
   };
 
   let resizeTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -472,6 +488,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               edge: snapEdge(),
               ratio: positionRatio(),
               collapsed: false,
+              enabled: props.enabled ?? true,
             });
           }
         }}
@@ -495,6 +512,26 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                 props.isActive ? "text-black" : "text-black/70",
               )}
             />
+          </button>
+          <button
+            data-react-grab-ignore-events
+            data-react-grab-toolbar-enabled
+            class="contain-layout shrink-0 flex items-center justify-center cursor-pointer transition-all hover:scale-105 outline-none"
+            onClick={handleToggleEnabled}
+          >
+            <div
+              class={cn(
+                "relative w-5 h-3 rounded-full transition-colors",
+                props.enabled ? "bg-black" : "bg-black/25",
+              )}
+            >
+              <div
+                class={cn(
+                  "absolute top-0.5 w-2 h-2 rounded-full bg-white transition-transform",
+                  props.enabled ? "left-2.5" : "left-0.5",
+                )}
+              />
+            </div>
           </button>
         </div>
         <button
