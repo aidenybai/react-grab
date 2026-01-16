@@ -261,6 +261,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let keydownSpamTimerId: number | null = null;
     let isScreenshotInProgress = false;
     let inToggleFeedbackPeriod = false;
+    let toggleFeedbackTimerId: number | null = null;
 
     const arrowNavigator = createArrowNavigator(
       isValidGrabbableElement,
@@ -406,8 +407,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         } else {
           actions.activate();
           inToggleFeedbackPeriod = true;
-          setTimeout(() => {
+          if (toggleFeedbackTimerId !== null) {
+            window.clearTimeout(toggleFeedbackTimerId);
+          }
+          toggleFeedbackTimerId = window.setTimeout(() => {
             inToggleFeedbackPeriod = false;
+            toggleFeedbackTimerId = null;
           }, FEEDBACK_DURATION_MS);
         }
       });
@@ -2017,6 +2022,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     onCleanup(() => {
       eventListenerManager.abort();
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
+      if (toggleFeedbackTimerId) window.clearTimeout(toggleFeedbackTimerId);
       autoScroller.stop();
       document.body.style.userSelect = "";
       setCursorOverride(null);
@@ -2628,7 +2634,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const api: ReactGrabAPI = {
       activate: () => {
-        if (!isActivated()) {
+        if (!isActivated() && isEnabled()) {
           toggleActivate();
         }
       },
@@ -2640,7 +2646,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       toggle: () => {
         if (isActivated()) {
           deactivateRenderer();
-        } else {
+        } else if (isEnabled()) {
           toggleActivate();
         }
       },
