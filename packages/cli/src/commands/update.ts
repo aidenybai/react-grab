@@ -11,7 +11,7 @@ const UPDATE_COMMAND = "npm install -g grab@latest";
 
 const getLatestVersion = (): string | null => {
   try {
-    return execSync("npm view @react-grab/cli version", {
+    return execSync("npm view grab version", {
       encoding: "utf-8",
       stdio: ["pipe", "pipe", "pipe"],
     }).trim();
