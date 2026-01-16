@@ -433,12 +433,12 @@ PERFORMANCE TIPS
   2. Use maxDepth to limit tree depth for smaller snapshots (faster, fewer tokens).
      - getSnapshot({maxDepth: 5}) -> limit tree depth
 
-  # SLOW: 3 separate round-trips, full snapshot
+  # SLOW: 3 separate round-trips
   execute "await page.goto('https://example.com')"
   execute "await getRef('e1').click()"
   execute "return await getSnapshot()"
 
-  # FAST: 1 round-trip, interactable only
+  # FAST: 1 round-trip (same result, 3x faster)
   execute "
     await page.goto('https://example.com');
     await getRef('e1').click();

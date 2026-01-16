@@ -127,23 +127,20 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   let didDragOccur = false;
 
-  const handleToggle = (event: MouseEvent) => {
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-    if (didDragOccur) {
-      didDragOccur = false;
-      return;
-    }
-    props.onToggle?.();
-  };
+  const createDragAwareHandler =
+    (callback: () => void) => (event: MouseEvent) => {
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      if (didDragOccur) {
+        didDragOccur = false;
+        return;
+      }
+      callback();
+    };
 
-  const handleToggleCollapse = (event: MouseEvent) => {
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-    if (didDragOccur) {
-      didDragOccur = false;
-      return;
-    }
+  const handleToggle = createDragAwareHandler(() => props.onToggle?.());
+
+  const handleToggleCollapse = createDragAwareHandler(() => {
     setIsCollapsed((prev) => {
       const newCollapsed = !prev;
       saveToolbarState({
@@ -154,17 +151,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       });
       return newCollapsed;
     });
-  };
+  });
 
-  const handleToggleEnabled = (event: MouseEvent) => {
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-    if (didDragOccur) {
-      didDragOccur = false;
-      return;
-    }
-    props.onToggleEnabled?.();
-  };
+  const handleToggleEnabled = createDragAwareHandler(
+    () => props.onToggleEnabled?.(),
+  );
 
   const getSnapPosition = (
     currentX: number,
@@ -344,30 +335,36 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     const edge = snapEdge();
     const pos = position();
 
-    if (edge === "top") {
-      return { x: pos.x, y: 0 };
+    switch (edge) {
+      case "top":
+        return { x: pos.x, y: 0 };
+      case "bottom":
+        return { x: pos.x, y: window.innerHeight - COLLAPSED_HEIGHT };
+      case "left":
+        return { x: 0, y: pos.y };
+      case "right":
+        return { x: window.innerWidth - COLLAPSED_WIDTH, y: pos.y };
+      default:
+        return pos;
     }
-    if (edge === "bottom") {
-      return { x: pos.x, y: window.innerHeight - COLLAPSED_HEIGHT };
-    }
-    if (edge === "left") {
-      return { x: 0, y: pos.y };
-    }
-    if (edge === "right") {
-      return { x: window.innerWidth - COLLAPSED_WIDTH, y: pos.y };
-    }
-    return pos;
   };
 
   const chevronRotation = () => {
     const edge = snapEdge();
     const collapsed = isCollapsed();
 
-    if (edge === "top") return collapsed ? "rotate-180" : "rotate-0";
-    if (edge === "bottom") return collapsed ? "rotate-0" : "rotate-180";
-    if (edge === "left") return collapsed ? "rotate-90" : "-rotate-90";
-    if (edge === "right") return collapsed ? "-rotate-90" : "rotate-90";
-    return "rotate-0";
+    switch (edge) {
+      case "top":
+        return collapsed ? "rotate-180" : "rotate-0";
+      case "bottom":
+        return collapsed ? "rotate-0" : "rotate-180";
+      case "left":
+        return collapsed ? "rotate-90" : "-rotate-90";
+      case "right":
+        return collapsed ? "-rotate-90" : "rotate-90";
+      default:
+        return "rotate-0";
+    }
   };
 
   let resizeTimeout: ReturnType<typeof setTimeout> | undefined;
