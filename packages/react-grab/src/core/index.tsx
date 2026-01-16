@@ -187,13 +187,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [commentInputVisible, setCommentInputVisible] = createSignal(false);
     const [commentInputElement, setCommentInputElement] = createSignal<Element | null>(null);
     const [commentInputValue, setCommentInputValue] = createSignal("");
+    const [editingCommentId, setEditingCommentId] = createSignal<string | null>(null);
     const [commentsVersion, setCommentsVersion] = createSignal(0);
 
     const pendingAbortSessionId = createMemo(() => store.pendingAbortSessionId);
 
     const hasAgentProvider = createMemo(() => store.hasAgentProvider);
 
-    // Timer effect: holding -> active after key hold duration
     createEffect(() => {
       if (store.current.state !== "holding") return;
       const timerId = setTimeout(() => {
@@ -202,7 +202,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       onCleanup(() => clearTimeout(timerId));
     });
 
-    // Timer effect: justDragged -> hovering after success label duration
     createEffect(() => {
       if (
         store.current.state !== "active" ||
@@ -215,7 +214,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       onCleanup(() => clearTimeout(timerId));
     });
 
-    // Timer effect: justCopied -> idle after copied label duration
     createEffect(() => {
       if (store.current.state !== "justCopied") return;
       const timerId = setTimeout(() => {
@@ -2293,9 +2291,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const commentsWithBounds = createMemo(() => {
       void commentsVersion();
       void store.viewportVersion;
+      const currentlyEditingId = editingCommentId();
       const commentsData = getCommentsWithElements();
       return commentsData
-        .filter((c) => c.element !== null && c.bounds !== null)
+        .filter((c) => c.element !== null && c.bounds !== null && c.id !== currentlyEditingId)
         .map((c) => ({
           id: c.id,
           comment: c.comment,
@@ -2337,6 +2336,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setCommentInputVisible(false);
       setCommentInputElement(null);
       setCommentInputValue("");
+      setEditingCommentId(null);
       deactivateRenderer();
     };
 
@@ -2344,6 +2344,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setCommentInputVisible(false);
       setCommentInputElement(null);
       setCommentInputValue("");
+      setEditingCommentId(null);
     };
 
     const handleRemoveComment = (commentId: string) => {
@@ -2360,6 +2361,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const commentData = commentsData.find((c) => c.id === commentId);
       if (!commentData?.element) return;
 
+      setEditingCommentId(commentId);
       setCommentInputElement(commentData.element);
       setCommentInputValue(comment.comment);
       setCommentInputVisible(true);
