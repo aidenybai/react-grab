@@ -94,7 +94,7 @@ const installSkill = (agent: SkillAgent, cwd: string): void => {
 export const add = new Command()
   .name("add")
   .alias("install")
-  .description("add browser automation for your AI agent")
+  .description("add an agent integration or MCP server")
   .argument("[agent]", `agent to add (${AGENTS.join(", ")}, mcp, skill)`)
   .option("-y, --yes", "skip confirmation prompts", false)
   .option(

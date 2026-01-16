@@ -6,6 +6,7 @@ import { init } from "./commands/init.js";
 import { remove } from "./commands/remove.js";
 import { uninstall } from "./commands/uninstall.js";
 import { update } from "./commands/update.js";
+import { installGloballyInBackground } from "./utils/background-install.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
 const VERSION_API_URL = "https://www.react-grab.com/api/version";
@@ -16,6 +17,8 @@ process.on("SIGTERM", () => process.exit(0));
 try {
   fetch(`${VERSION_API_URL}?source=cli&t=${Date.now()}`).catch(() => {});
 } catch {}
+
+installGloballyInBackground(VERSION);
 
 const program = new Command()
   .name("grab")
