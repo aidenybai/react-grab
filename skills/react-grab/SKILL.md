@@ -1,9 +1,9 @@
 ---
-name: react-grab-browser
+name: react-grab
 description: Browser automation with Playwright and real cookies. Use 'grab browser execute "<code>"' to run Playwright code.
 ---
 
-# React Grab Browser
+# React Grab
 
 Playwright automation with your real browser cookies. Pages persist across executions. Output is always JSON: `{ok, result, error, url, title, page}`
 

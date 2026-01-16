@@ -179,7 +179,7 @@ Once configured, your agent has access to:
 
 ## Skill
 
-For agents that support skills (like Codex), install the `react-grab-browser` skill:
+For agents that support skills (like Codex), install the `react-grab` skill:
 
 ```bash
 npx -y grab@latest add skill
