@@ -58,7 +58,7 @@ const installGrab = (): void => {
   const globalCommand = globalCommands[packageManager];
   const localCommand = localCommands[packageManager];
 
-  console.log(`Installing ${packageSpec}...`);
+  console.log(`Installing ${packageSpec}…`);
   execSync(`${globalCommand} ${packageSpec}`, { stdio: "inherit" });
   try {
     execSync(`${localCommand} ${packageSpec}`, { stdio: "pipe" });
