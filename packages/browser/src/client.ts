@@ -171,10 +171,7 @@ export const connect = async (
       }
     },
 
-    async snapshot(
-      name: string,
-      options?: SnapshotOptions,
-    ): Promise<string> {
+    async snapshot(name: string, options?: SnapshotOptions): Promise<string> {
       const page = await getPage(name);
       const snapshotScript = getSnapshotScript();
 

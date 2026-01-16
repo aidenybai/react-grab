@@ -89,8 +89,13 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
   const setOptions = (optionUpdates: SettableOptions) => {
     for (const [optionKey, optionValue] of Object.entries(optionUpdates)) {
       if (optionValue === undefined) continue;
-      (directOptionOverrides as Record<string, unknown>)[optionKey] = optionValue;
-      setStore("options", optionKey as keyof OptionsState, optionValue as OptionsState[keyof OptionsState]);
+      (directOptionOverrides as Record<string, unknown>)[optionKey] =
+        optionValue;
+      setStore(
+        "options",
+        optionKey as keyof OptionsState,
+        optionValue as OptionsState[keyof OptionsState],
+      );
     }
   };
 
@@ -102,7 +107,9 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     let config: PluginConfig;
 
     if (plugin.setup) {
-      const setupResult = plugin.setup(api as Parameters<NonNullable<Plugin["setup"]>>[0]);
+      const setupResult = plugin.setup(
+        api as Parameters<NonNullable<Plugin["setup"]>>[0],
+      );
       config = setupResult ?? {};
     } else {
       config = {};
@@ -118,10 +125,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     }
 
     if (plugin.actions) {
-      config.actions = [
-        ...plugin.actions,
-        ...(config.actions ?? []),
-      ];
+      config.actions = [...plugin.actions, ...(config.actions ?? [])];
     }
 
     if (plugin.hooks) {
@@ -178,7 +182,9 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     let handled = false;
     for (const { config } of plugins.values()) {
       const hook = config.hooks?.[hookName] as
-        | ((...hookArgs: Parameters<NonNullable<PluginHooks[K]>>) => boolean | void)
+        | ((
+            ...hookArgs: Parameters<NonNullable<PluginHooks[K]>>
+          ) => boolean | void)
         | undefined;
       if (hook) {
         const result = hook(...args);
@@ -196,7 +202,9 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
   ): Promise<void> => {
     for (const { config } of plugins.values()) {
       const hook = config.hooks?.[hookName] as
-        | ((...hookArgs: Parameters<NonNullable<PluginHooks[K]>>) => ReturnType<NonNullable<PluginHooks[K]>>)
+        | ((
+            ...hookArgs: Parameters<NonNullable<PluginHooks[K]>>
+          ) => ReturnType<NonNullable<PluginHooks[K]>>)
         | undefined;
       if (hook) {
         await hook(...args);
@@ -209,25 +217,40 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     onDeactivate: () => callHook("onDeactivate"),
     onElementHover: (element: Element) => callHook("onElementHover", element),
     onElementSelect: (element: Element) => callHook("onElementSelect", element),
-    onDragStart: (startX: number, startY: number) => callHook("onDragStart", startX, startY),
-    onDragEnd: (elements: Element[], bounds: DragRect) => callHook("onDragEnd", elements, bounds),
-    onBeforeCopy: async (elements: Element[]) => callHookAsync("onBeforeCopy", elements),
-    onAfterCopy: (elements: Element[], success: boolean) => callHook("onAfterCopy", elements, success),
-    onCopySuccess: (elements: Element[], content: string) => callHook("onCopySuccess", elements, content),
+    onDragStart: (startX: number, startY: number) =>
+      callHook("onDragStart", startX, startY),
+    onDragEnd: (elements: Element[], bounds: DragRect) =>
+      callHook("onDragEnd", elements, bounds),
+    onBeforeCopy: async (elements: Element[]) =>
+      callHookAsync("onBeforeCopy", elements),
+    onAfterCopy: (elements: Element[], success: boolean) =>
+      callHook("onAfterCopy", elements, success),
+    onCopySuccess: (elements: Element[], content: string) =>
+      callHook("onCopySuccess", elements, content),
     onCopyError: (error: Error) => callHook("onCopyError", error),
     onStateChange: (state: ReactGrabState) => callHook("onStateChange", state),
     onPromptModeChange: (isPromptMode: boolean, context: PromptModeContext) =>
       callHook("onPromptModeChange", isPromptMode, context),
-    onSelectionBox: (visible: boolean, bounds: OverlayBounds | null, element: Element | null) =>
-      callHook("onSelectionBox", visible, bounds, element),
-    onDragBox: (visible: boolean, bounds: OverlayBounds | null) => callHook("onDragBox", visible, bounds),
-    onGrabbedBox: (bounds: OverlayBounds, element: Element) => callHook("onGrabbedBox", bounds, element),
-    onElementLabel: (visible: boolean, variant: ElementLabelVariant, context: ElementLabelContext) =>
-      callHook("onElementLabel", visible, variant, context),
-    onCrosshair: (visible: boolean, context: CrosshairContext) => callHook("onCrosshair", visible, context),
+    onSelectionBox: (
+      visible: boolean,
+      bounds: OverlayBounds | null,
+      element: Element | null,
+    ) => callHook("onSelectionBox", visible, bounds, element),
+    onDragBox: (visible: boolean, bounds: OverlayBounds | null) =>
+      callHook("onDragBox", visible, bounds),
+    onGrabbedBox: (bounds: OverlayBounds, element: Element) =>
+      callHook("onGrabbedBox", bounds, element),
+    onElementLabel: (
+      visible: boolean,
+      variant: ElementLabelVariant,
+      context: ElementLabelContext,
+    ) => callHook("onElementLabel", visible, variant, context),
+    onCrosshair: (visible: boolean, context: CrosshairContext) =>
+      callHook("onCrosshair", visible, context),
     onContextMenu: (element: Element, position: { x: number; y: number }) =>
       callHook("onContextMenu", element, position),
-    onOpenFile: (filePath: string, lineNumber?: number) => callHookWithHandled("onOpenFile", filePath, lineNumber),
+    onOpenFile: (filePath: string, lineNumber?: number) =>
+      callHookWithHandled("onOpenFile", filePath, lineNumber),
   };
 
   return {

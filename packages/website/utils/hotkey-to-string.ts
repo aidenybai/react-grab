@@ -7,8 +7,7 @@ export const hotkeyToString = (hotkey: RecordedHotkey): string => {
   if (hotkey.shiftKey) parts.push("Shift");
   if (hotkey.altKey) parts.push("Alt");
   if (hotkey.key) {
-    const keyDisplay =
-      hotkey.key === " " ? "Space" : hotkey.key.toLowerCase();
+    const keyDisplay = hotkey.key === " " ? "Space" : hotkey.key.toLowerCase();
     parts.push(keyDisplay);
   }
   return parts.join("+");

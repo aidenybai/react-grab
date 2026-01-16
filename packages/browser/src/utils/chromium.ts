@@ -26,7 +26,9 @@ export const installChromium = (withDeps = false): void => {
         stdio: "inherit",
       });
     } catch {
-      console.log("Warning: Could not install system dependencies (may need sudo)");
+      console.log(
+        "Warning: Could not install system dependencies (may need sudo)",
+      );
     }
   }
 

@@ -20,7 +20,9 @@ test.describe("Activation Key Configuration", () => {
       expect(typeof state.isActive).toBe("boolean");
     });
 
-    test("should accept activationMode toggle option", async ({ reactGrab }) => {
+    test("should accept activationMode toggle option", async ({
+      reactGrab,
+    }) => {
       await reactGrab.reinitialize({
         activationKey: "g",
         activationMode: "toggle",

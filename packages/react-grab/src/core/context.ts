@@ -5,7 +5,12 @@ import {
   StackFrame,
 } from "bippy/source";
 import { isCapitalized } from "../utils/is-capitalized.js";
-import { getFiberFromHostInstance, isInstrumentationActive, getDisplayName, isCompositeFiber } from "bippy";
+import {
+  getFiberFromHostInstance,
+  isInstrumentationActive,
+  getDisplayName,
+  isCompositeFiber,
+} from "bippy";
 
 const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
   "InnerLayoutRouter",

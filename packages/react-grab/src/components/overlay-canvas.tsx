@@ -210,8 +210,9 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     }
   };
 
-  const resolveBoundsArray = (instance: SelectionLabelInstance): OverlayBounds[] =>
-    instance.boundsMultiple ?? [instance.bounds];
+  const resolveBoundsArray = (
+    instance: SelectionLabelInstance,
+  ): OverlayBounds[] => instance.boundsMultiple ?? [instance.bounds];
 
   const drawRoundedRectangle = (
     context: OffscreenCanvasRenderingContext2D,
@@ -490,9 +491,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
     for (const animation of selectionAnimations) {
       if (animation.isInitialized) {
-        if (
-          interpolateBounds(animation, LAYER_STYLES.selection.lerpFactor)
-        ) {
+        if (interpolateBounds(animation, LAYER_STYLES.selection.lerpFactor)) {
           shouldContinueAnimating = true;
         }
       }
@@ -515,8 +514,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
       if (animation.createdAt) {
         const elapsed = currentTimestamp - animation.createdAt;
-        const fadeOutDeadline =
-          FEEDBACK_DURATION_MS + FADE_OUT_BUFFER_MS;
+        const fadeOutDeadline = FEEDBACK_DURATION_MS + FADE_OUT_BUFFER_MS;
 
         if (elapsed >= fadeOutDeadline) {
           return false;
@@ -546,9 +544,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
     for (const animation of processingAnimations) {
       if (animation.isInitialized) {
-        if (
-          interpolateBounds(animation, LAYER_STYLES.processing.lerpFactor)
-        ) {
+        if (interpolateBounds(animation, LAYER_STYLES.processing.lerpFactor)) {
           shouldContinueAnimating = true;
         }
       }
@@ -621,8 +617,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
       ([isVisible, singleBounds, multipleBounds]) => {
         if (
           !isVisible ||
-          (!singleBounds &&
-            (!multipleBounds || multipleBounds.length === 0))
+          (!singleBounds && (!multipleBounds || multipleBounds.length === 0))
         ) {
           selectionAnimations = [];
           scheduleAnimationFrame();
@@ -689,7 +684,9 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
         for (const box of boxesToProcess) {
           if (!existingAnimationIds.has(box.id)) {
             grabbedAnimations.push(
-              createAnimatedBounds(box.id, box.bounds, { createdAt: box.createdAt }),
+              createAnimatedBounds(box.id, box.bounds, {
+                createdAt: box.createdAt,
+              }),
             );
           }
         }

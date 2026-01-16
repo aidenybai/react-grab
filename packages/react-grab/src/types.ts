@@ -125,9 +125,7 @@ export interface ElementLabelContext {
   lineNumber?: number;
 }
 
-export type ActivationKey =
-  | string
-  | ((event: KeyboardEvent) => boolean);
+export type ActivationKey = string | ((event: KeyboardEvent) => boolean);
 
 export interface AgentContext<T = unknown> {
   content: string[];

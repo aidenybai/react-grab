@@ -134,7 +134,10 @@ const start = new Command()
   .description("start browser server manually (auto-starts on first execute)")
   .option("-p, --port <port>", "HTTP API port", String(DEFAULT_SERVER_PORT))
   .option("--headed", "show browser window (default is headless)")
-  .option("-b, --browser <browser>", "source browser for cookies (chrome, edge, brave, arc)")
+  .option(
+    "-b, --browser <browser>",
+    "source browser for cookies (chrome, edge, brave, arc)",
+  )
   .option("-d, --domain <domain>", "only load cookies matching this domain")
   .option("--foreground", "run in foreground instead of detaching")
   .action(async (options) => {
@@ -196,7 +199,10 @@ const start = new Command()
       await browser.close();
 
       const shutdownHandler = (): void => {
-        browserServer.stop().catch(() => {}).finally(() => process.exit(0));
+        browserServer
+          .stop()
+          .catch(() => {})
+          .finally(() => process.exit(0));
       };
       process.on("SIGINT", shutdownHandler);
       process.on("SIGTERM", shutdownHandler);
@@ -204,7 +210,9 @@ const start = new Command()
 
       await new Promise(() => {});
     } catch (error) {
-      console.error(error instanceof Error ? error.message : "Failed to start server");
+      console.error(
+        error instanceof Error ? error.message : "Failed to start server",
+      );
       process.exit(1);
     }
   });
@@ -243,17 +251,23 @@ const status = new Command()
 
       let pagesData: Array<{ name: string; url: string }> = [];
       try {
-        const pagesResponse = await fetch(`http://127.0.0.1:${info?.port}/pages`);
-        const pagesResult = await pagesResponse.json() as { pages: Array<{ name: string; url: string }> };
+        const pagesResponse = await fetch(
+          `http://127.0.0.1:${info?.port}/pages`,
+        );
+        const pagesResult = (await pagesResponse.json()) as {
+          pages: Array<{ name: string; url: string }>;
+        };
         pagesData = pagesResult.pages;
       } catch {}
 
       if (jsonMode) {
-        console.log(JSON.stringify({
-          running: true,
-          port: info?.port,
-          pages: pagesData,
-        }));
+        console.log(
+          JSON.stringify({
+            running: true,
+            port: info?.port,
+            pages: pagesData,
+          }),
+        );
       } else {
         logger.success(`Server running on port ${info?.port}`);
         if (pagesData.length > 0) {
@@ -266,11 +280,13 @@ const status = new Command()
       }
     } else {
       if (jsonMode) {
-        console.log(JSON.stringify({
-          running: false,
-          port: null,
-          pages: [],
-        }));
+        console.log(
+          JSON.stringify({
+            running: false,
+            port: null,
+            pages: [],
+          }),
+        );
       } else {
         logger.log("Server not running");
       }
@@ -280,18 +296,30 @@ const status = new Command()
 const execute = new Command()
   .name("execute")
   .description("run Playwright code with 'page' variable available")
-  .argument("<code>", "JavaScript code to execute (use 'page' for Playwright Page, 'return' for output)")
+  .argument(
+    "<code>",
+    "JavaScript code to execute (use 'page' for Playwright Page, 'return' for output)",
+  )
   .option("-b, --browser <browser>", "source browser for cookies")
   .option("-d, --domain <domain>", "filter cookies by domain")
   .option("-u, --url <url>", "navigate to URL before executing")
-  .option("-p, --page <name>", "named page context for multi-turn sessions", "default")
-  .option("-t, --timeout <ms>", `navigation timeout in milliseconds (default: ${DEFAULT_NAVIGATION_TIMEOUT_MS})`, String(DEFAULT_NAVIGATION_TIMEOUT_MS))
+  .option(
+    "-p, --page <name>",
+    "named page context for multi-turn sessions",
+    "default",
+  )
+  .option(
+    "-t, --timeout <ms>",
+    `navigation timeout in milliseconds (default: ${DEFAULT_NAVIGATION_TIMEOUT_MS})`,
+    String(DEFAULT_NAVIGATION_TIMEOUT_MS),
+  )
   .action(async (code: string, options) => {
     const pageName = options.page as string;
     const navigationTimeout = parseInt(options.timeout as string, 10);
 
     let activePage: Page | null = null;
-    let browser: Awaited<ReturnType<typeof chromium.connectOverCDP>> | null = null;
+    let browser: Awaited<ReturnType<typeof chromium.connectOverCDP>> | null =
+      null;
     let pageOpenHandler: ((newPage: Page) => void) | null = null;
     const outputJson = createOutputJson(() => activePage, pageName);
     let exitCode = 0;
@@ -362,7 +390,15 @@ const execute = new Command()
       );
       console.log(JSON.stringify(await outputJson(true, result)));
     } catch (error) {
-      console.log(JSON.stringify(await outputJson(false, undefined, error instanceof Error ? error.message : "Failed")));
+      console.log(
+        JSON.stringify(
+          await outputJson(
+            false,
+            undefined,
+            error instanceof Error ? error.message : "Failed",
+          ),
+        ),
+      );
       exitCode = 1;
     } finally {
       if (activePage && pageOpenHandler) {
@@ -390,16 +426,24 @@ const pages = new Command()
 
     if (options.killAll) {
       const pagesResponse = await fetch(`${serverUrl}/pages`);
-      const pagesResult = await pagesResponse.json() as { pages: Array<{ name: string }> };
+      const pagesResult = (await pagesResponse.json()) as {
+        pages: Array<{ name: string }>;
+      };
       for (const pageEntry of pagesResult.pages) {
-        await fetch(`${serverUrl}/pages/${encodeURIComponent(pageEntry.name)}`, { method: "DELETE" });
+        await fetch(
+          `${serverUrl}/pages/${encodeURIComponent(pageEntry.name)}`,
+          { method: "DELETE" },
+        );
         logger.success(`Unregistered ${pageEntry.name}`);
       }
       return;
     }
 
     if (options.kill) {
-      const deleteResponse = await fetch(`${serverUrl}/pages/${encodeURIComponent(options.kill)}`, { method: "DELETE" });
+      const deleteResponse = await fetch(
+        `${serverUrl}/pages/${encodeURIComponent(options.kill)}`,
+        { method: "DELETE" },
+      );
       if (deleteResponse.ok) {
         logger.success(`Unregistered ${options.kill}`);
       } else {
@@ -409,7 +453,9 @@ const pages = new Command()
     }
 
     const pagesResponse = await fetch(`${serverUrl}/pages`);
-    const pagesResult = await pagesResponse.json() as { pages: Array<{ name: string; url: string }> };
+    const pagesResult = (await pagesResponse.json()) as {
+      pages: Array<{ name: string; url: string }>;
+    };
 
     if (pagesResult.pages.length === 0) {
       logger.info("No pages");
@@ -546,7 +592,9 @@ PLAYWRIGHT DOCS: https://playwright.dev/docs/api/class-page
 
 export const browser = new Command()
   .name("browser")
-  .description("browser automation with persistent page state and real cookie injection")
+  .description(
+    "browser automation with persistent page state and real cookie injection",
+  )
   .addHelpText("after", BROWSER_HELP)
   .action(() => {
     browser.help();

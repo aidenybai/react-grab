@@ -1,7 +1,12 @@
 import pc from "picocolors";
 import fkill from "fkill";
 import type { AgentHandler } from "./protocol.js";
-import { DEFAULT_RELAY_PORT, HEALTH_CHECK_TIMEOUT_MS, POST_KILL_DELAY_MS, RELAY_TOKEN_PARAM } from "./protocol.js";
+import {
+  DEFAULT_RELAY_PORT,
+  HEALTH_CHECK_TIMEOUT_MS,
+  POST_KILL_DELAY_MS,
+  RELAY_TOKEN_PARAM,
+} from "./protocol.js";
 import { createRelayServer, type RelayServer } from "./server.js";
 import { sleep } from "@react-grab/utils/server";
 
@@ -17,7 +22,10 @@ interface RelayConnection {
   disconnect: () => Promise<void>;
 }
 
-const checkIfRelayServerIsRunning = async (port: number, token?: string): Promise<boolean> => {
+const checkIfRelayServerIsRunning = async (
+  port: number,
+  token?: string,
+): Promise<boolean> => {
   try {
     const healthUrl = token
       ? `http://localhost:${port}/health?${RELAY_TOKEN_PARAM}=${encodeURIComponent(token)}`
@@ -41,7 +49,10 @@ export const connectRelay = async (
   let relayServer: RelayServer | null = null;
   let isRelayHost = false;
 
-  const isRelayServerRunning = await checkIfRelayServerIsRunning(relayPort, token);
+  const isRelayServerRunning = await checkIfRelayServerIsRunning(
+    relayPort,
+    token,
+  );
 
   if (isRelayServerRunning) {
     relayServer = await connectToExistingRelay(relayPort, handler, token);
@@ -177,7 +188,10 @@ const connectToExistingRelay = async (
                       content: agentMessage.content,
                     }),
                   );
-                  if (agentMessage.type === "done" || agentMessage.type === "error") {
+                  if (
+                    agentMessage.type === "done" ||
+                    agentMessage.type === "error"
+                  ) {
                     didComplete = true;
                   }
                 }

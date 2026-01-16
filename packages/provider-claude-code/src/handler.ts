@@ -4,11 +4,17 @@ import {
   type Options,
   type SDKAssistantMessage,
 } from "@anthropic-ai/claude-agent-sdk";
-import type { AgentHandler, AgentMessage, AgentRunOptions } from "@react-grab/relay";
+import type {
+  AgentHandler,
+  AgentMessage,
+  AgentRunOptions,
+} from "@react-grab/relay";
 import { COMPLETED_STATUS } from "@react-grab/relay";
 import { formatSpawnError } from "@react-grab/utils/server";
 
-export interface ClaudeAgentOptions extends AgentRunOptions, Omit<Options, "cwd"> {}
+export interface ClaudeAgentOptions
+  extends AgentRunOptions,
+    Omit<Options, "cwd"> {}
 
 type ContentBlock = SDKAssistantMessage["message"]["content"][number];
 type TextContentBlock = Extract<ContentBlock, { type: "text" }>;
@@ -154,7 +160,8 @@ const undoClaudeAgent = async (): Promise<void> => {
     });
 
     // HACK: consume all messages to complete the undo
-    for await (const _message of queryResult) {}
+    for await (const _message of queryResult) {
+    }
   } catch (error) {
     const errorMessage =
       error instanceof Error

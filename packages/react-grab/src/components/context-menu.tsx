@@ -168,7 +168,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
           ? context
             ? customAction.enabled(context)
             : false
-          : customAction.enabled ?? true;
+          : (customAction.enabled ?? true);
 
       items.push({
         label: customAction.label,
@@ -228,7 +228,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
                 ? context
                   ? customAction.enabled(context)
                   : false
-                : customAction.enabled ?? true;
+                : (customAction.enabled ?? true);
 
             if (isEnabled && context) {
               event.preventDefault();
@@ -271,7 +271,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
                 ? context
                   ? customAction.enabled(context)
                   : false
-                : customAction.enabled ?? true;
+                : (customAction.enabled ?? true);
 
             if (isEnabled && context) {
               event.preventDefault();

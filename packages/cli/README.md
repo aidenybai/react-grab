@@ -33,15 +33,15 @@ npx grab -p pnpm -y
 
 ## Options
 
-| Option              | Alias | Description                                   | Choices                                                               |
-| ------------------- | ----- | --------------------------------------------- | --------------------------------------------------------------------- |
-| `--framework`       | `-f`  | Framework to configure                        | `next`, `vite`, `webpack`                                             |
-| `--package-manager` | `-p`  | Package manager to use                        | `npm`, `yarn`, `pnpm`, `bun`                                          |
-| `--router`          | `-r`  | Next.js router type                           | `app`, `pages`                                                        |
-| `--yes`             | `-y`  | Skip all confirmation prompts                 | -                                                                     |
-| `--skip-install`    | -     | Skip package installation (only modify files) | -                                                                     |
-| `--help`            | `-h`  | Show help                                     | -                                                                     |
-| `--version`         | `-v`  | Show version                                  | -                                                                     |
+| Option              | Alias | Description                                   | Choices                      |
+| ------------------- | ----- | --------------------------------------------- | ---------------------------- |
+| `--framework`       | `-f`  | Framework to configure                        | `next`, `vite`, `webpack`    |
+| `--package-manager` | `-p`  | Package manager to use                        | `npm`, `yarn`, `pnpm`, `bun` |
+| `--router`          | `-r`  | Next.js router type                           | `app`, `pages`               |
+| `--yes`             | `-y`  | Skip all confirmation prompts                 | -                            |
+| `--skip-install`    | -     | Skip package installation (only modify files) | -                            |
+| `--help`            | `-h`  | Show help                                     | -                            |
+| `--version`         | `-v`  | Show version                                  | -                            |
 
 ## Examples
 

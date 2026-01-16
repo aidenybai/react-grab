@@ -124,10 +124,7 @@ export const createRelayServer = (
     }
   };
 
-  const sendToBrowser = (
-    socket: WebSocket,
-    message: RelayToBrowserMessage,
-  ) => {
+  const sendToBrowser = (socket: WebSocket, message: RelayToBrowserMessage) => {
     if (socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify(message));
     }
@@ -156,7 +153,8 @@ export const createRelayServer = (
     }
 
     const effectiveSessionId =
-      sessionId ?? `session-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      sessionId ??
+      `session-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
     if (type === "agent-request") {
       if (
@@ -528,7 +526,12 @@ export const createRelayServer = (
             }
           }
           res.writeHead(200, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ status: "ok", handlers: getRegisteredHandlerIds() }));
+          res.end(
+            JSON.stringify({
+              status: "ok",
+              handlers: getRegisteredHandlerIds(),
+            }),
+          );
           return;
         }
         res.writeHead(404);
@@ -547,7 +550,10 @@ export const createRelayServer = (
 
       webSocketServer.on("connection", (socket, request) => {
         if (token) {
-          const connectionUrl = new URL(request.url ?? "", `http://localhost:${port}`);
+          const connectionUrl = new URL(
+            request.url ?? "",
+            `http://localhost:${port}`,
+          );
           const clientToken = connectionUrl.searchParams.get(RELAY_TOKEN_PARAM);
           if (clientToken !== token) {
             socket.close(4001, "Unauthorized");
@@ -555,7 +561,8 @@ export const createRelayServer = (
           }
         }
 
-        const isHandlerConnection = request.headers["x-relay-handler"] === "true";
+        const isHandlerConnection =
+          request.headers["x-relay-handler"] === "true";
 
         if (isHandlerConnection) {
           socket.on("message", (data) => {
@@ -596,7 +603,9 @@ export const createRelayServer = (
 
           socket.on("message", (data) => {
             try {
-              const message = JSON.parse(data.toString()) as BrowserToRelayMessage;
+              const message = JSON.parse(
+                data.toString(),
+              ) as BrowserToRelayMessage;
               handleBrowserMessage(socket, message);
             } catch {}
           });
@@ -649,7 +658,10 @@ export const createRelayServer = (
   };
 
   const registerHandler = (handler: AgentHandler) => {
-    registeredHandlers.set(handler.agentId, { agentId: handler.agentId, handler });
+    registeredHandlers.set(handler.agentId, {
+      agentId: handler.agentId,
+      handler,
+    });
     broadcastHandlerList();
   };
 

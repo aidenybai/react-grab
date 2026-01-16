@@ -109,10 +109,7 @@ const getLocalStatePath = (browser: SupportedBrowser): string => {
 const getSafeStorageKeyWindows = (browser: SupportedBrowser): Buffer => {
   const localStatePath = getLocalStatePath(browser);
   const localState = JSON.parse(readFileSync(localStatePath, "utf-8"));
-  const encryptedKey = Buffer.from(
-    localState.os_crypt.encrypted_key,
-    "base64",
-  );
+  const encryptedKey = Buffer.from(localState.os_crypt.encrypted_key, "base64");
 
   const keyWithoutPrefix = encryptedKey.subarray(5);
   const base64Key = keyWithoutPrefix.toString("base64");

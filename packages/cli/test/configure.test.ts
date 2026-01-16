@@ -262,12 +262,7 @@ describe("previewOptionsTransform - Vite", () => {
       activationKey: "Space",
     };
 
-    const result = previewOptionsTransform(
-      "/test",
-      "vite",
-      "unknown",
-      options,
-    );
+    const result = previewOptionsTransform("/test", "vite", "unknown", options);
 
     expect(result.success).toBe(true);
     expect(result.newContent).toContain("init(");
@@ -286,12 +281,7 @@ describe("previewOptionsTransform - Vite", () => {
       maxContextLines: 10,
     };
 
-    const result = previewOptionsTransform(
-      "/test",
-      "vite",
-      "unknown",
-      options,
-    );
+    const result = previewOptionsTransform("/test", "vite", "unknown", options);
 
     expect(result.success).toBe(true);
     expect(result.newContent).toContain(".then((m) => m.init(");
@@ -318,12 +308,7 @@ describe("previewOptionsTransform - Vite", () => {
       activationKey: "Space",
     };
 
-    const result = previewOptionsTransform(
-      "/test",
-      "vite",
-      "unknown",
-      options,
-    );
+    const result = previewOptionsTransform("/test", "vite", "unknown", options);
 
     expect(result.success).toBe(false);
   });

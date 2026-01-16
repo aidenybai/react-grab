@@ -89,7 +89,8 @@ body {
 }
 
 .react-grab-logo:hover .react-grab-arrow {
-  animation: arrow-bounce var(--arrow-animation-duration, 400ms) ease-in-out infinite;
+  animation: arrow-bounce var(--arrow-animation-duration, 400ms) ease-in-out
+    infinite;
 }
 
 ::selection {

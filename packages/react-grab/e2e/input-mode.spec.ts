@@ -220,10 +220,12 @@ test.describe("Input Mode", () => {
 
       await reactGrab.clickContextMenuItem("Edit");
 
-      await expect.poll(async () => {
-        const labelInfo = await reactGrab.getSelectionLabelInfo();
-        return labelInfo.isVisible && (labelInfo.elementsCount ?? 0) > 1;
-      }).toBe(true);
+      await expect
+        .poll(async () => {
+          const labelInfo = await reactGrab.getSelectionLabelInfo();
+          return labelInfo.isVisible && (labelInfo.elementsCount ?? 0) > 1;
+        })
+        .toBe(true);
     });
   });
 

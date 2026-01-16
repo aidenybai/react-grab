@@ -1,7 +1,7 @@
-import * as React from "react"
+import * as React from "react";
 
-import { SearchForm } from "@/components/search-form"
-import { VersionSwitcher } from "@/components/version-switcher"
+import { SearchForm } from "@/components/search-form";
+import { VersionSwitcher } from "@/components/version-switcher";
 import {
   Sidebar,
   SidebarContent,
@@ -13,7 +13,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 const data = {
   versions: ["react-grab", "v0.1.0"],
@@ -93,7 +93,7 @@ const data = {
       ],
     },
   ],
-}
+};
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
@@ -116,7 +116,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   const isDisabled = navItem.url === "#";
                   return (
                     <SidebarMenuItem key={navItem.title}>
-                      <SidebarMenuButton asChild className={isDisabled ? "opacity-50 cursor-not-allowed" : ""}>
+                      <SidebarMenuButton
+                        asChild
+                        className={
+                          isDisabled ? "opacity-50 cursor-not-allowed" : ""
+                        }
+                      >
                         <a href={navItem.url}>{navItem.title}</a>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -129,5 +134,5 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
       <SidebarRail />
     </Sidebar>
-  )
+  );
 }

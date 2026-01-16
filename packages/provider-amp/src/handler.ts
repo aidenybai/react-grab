@@ -1,5 +1,9 @@
 import { execute } from "@sourcegraph/amp-sdk";
-import type { AgentHandler, AgentMessage, AgentRunOptions } from "@react-grab/relay";
+import type {
+  AgentHandler,
+  AgentMessage,
+  AgentRunOptions,
+} from "@react-grab/relay";
 import { COMPLETED_STATUS } from "@react-grab/relay";
 
 export interface AmpAgentOptions extends AgentRunOptions {}
@@ -152,7 +156,8 @@ const undoAmpAgent = async (): Promise<void> => {
       cwd: process.env.REACT_GRAB_CWD ?? process.cwd(),
       continue: lastThreadId,
     },
-  })) {}
+  })) {
+  }
 };
 
 export const ampAgentHandler: AgentHandler = {
