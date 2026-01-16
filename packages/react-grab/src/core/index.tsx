@@ -1072,7 +1072,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handleToggleActive = () => {
       if (isActivated()) {
         deactivateRenderer();
-      } else {
+      } else if (isEnabled()) {
         toggleActivate();
       }
     };
