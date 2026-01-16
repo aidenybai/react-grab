@@ -255,6 +255,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let lastElementDetectionTime = 0;
     let keydownSpamTimerId: number | null = null;
     let isScreenshotInProgress = false;
+    let inToggleFeedbackPeriod = false;
 
     const arrowNavigator = createArrowNavigator(
       isValidGrabbableElement,
@@ -363,6 +364,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       shouldDeactivateAfter?: boolean,
       elements?: Element[],
     ) => {
+      inToggleFeedbackPeriod = false;
       actions.startCopy();
 
       const instanceId =
@@ -393,8 +395,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           }, FEEDBACK_DURATION_MS);
         }
 
-        if (store.wasActivatedByToggle || shouldDeactivateAfter) {
+        if (shouldDeactivateAfter) {
           deactivateRenderer();
+        } else {
+          actions.activate();
+          inToggleFeedbackPeriod = true;
+          setTimeout(() => {
+            inToggleFeedbackPeriod = false;
+          }, FEEDBACK_DURATION_MS);
         }
       });
     };
@@ -1188,19 +1196,31 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    const handleSingleClick = (clientX: number, clientY: number) => {
+    const handleSingleClick = (
+      clientX: number,
+      clientY: number,
+      hasModifierKeyHeld: boolean,
+    ) => {
       const element = getElementAtPosition(clientX, clientY);
       if (!element) return;
+
+      const shouldDeactivateAfter =
+        store.wasActivatedByToggle && !hasModifierKeyHeld;
 
       actions.setLastGrabbed(element);
       performCopyWithLabel({
         element,
         positionX: clientX,
         positionY: clientY,
+        shouldDeactivateAfter,
       });
     };
 
-    const handlePointerUp = (clientX: number, clientY: number) => {
+    const handlePointerUp = (
+      clientX: number,
+      clientY: number,
+      hasModifierKeyHeld = false,
+    ) => {
       if (!isDragging()) return;
 
       const dragDistance = calculateDragDistance(clientX, clientY);
@@ -1224,7 +1244,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (dragSelectionRect) {
         handleDragSelection(dragSelectionRect);
       } else {
-        handleSingleClick(clientX, clientY);
+        handleSingleClick(clientX, clientY, hasModifierKeyHeld);
       }
     };
 
@@ -1550,6 +1570,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (isHoldingKeys() && event.repeat) return;
 
+      if (isCopying() || didJustCopy()) return;
+
       if (!isHoldingKeys()) {
         const keyHoldDuration =
           pluginRegistry.store.options.keyHoldDuration ??
@@ -1634,13 +1656,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: KeyboardEvent) => {
         if (blockEnterIfNeeded(event)) return;
 
-        if (!isHoldingKeys() && !isActivated()) return;
-        if (isPromptMode()) return;
-
-        const hasCustomShortcut = Boolean(
-          pluginRegistry.store.options.activationKey,
-        );
-
         const requiredModifiers = getRequiredModifiers(
           pluginRegistry.store.options,
         );
@@ -1658,6 +1673,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 event,
               )
           : isCLikeKey(event.key, event.code);
+
+        if (didJustCopy() || inToggleFeedbackPeriod) {
+          if (isReleasingActivationKey || isReleasingModifier) {
+            inToggleFeedbackPeriod = false;
+            deactivateRenderer();
+          }
+          return;
+        }
+
+        if (!isHoldingKeys() && !isActivated()) return;
+        if (isPromptMode()) return;
+
+        const hasCustomShortcut = Boolean(
+          pluginRegistry.store.options.activationKey,
+        );
 
         const isHoldMode =
           pluginRegistry.store.options.activationMode === "hold";
@@ -1760,7 +1790,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (event.button !== 0) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
-        handlePointerUp(event.clientX, event.clientY);
+        handlePointerUp(
+          event.clientX,
+          event.clientY,
+          event.metaKey || event.ctrlKey,
+        );
       },
       { capture: true },
     );
@@ -1771,7 +1805,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (event.button !== 0) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
-        handlePointerUp(event.clientX, event.clientY);
+        handlePointerUp(
+          event.clientX,
+          event.clientY,
+          event.metaKey || event.ctrlKey,
+        );
       },
       { capture: true },
     );
@@ -2269,7 +2307,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const frozenElements = [...store.frozenElements];
       const elementsToUse =
-        frozenElements.length > 1 ? frozenElements : [element];
+        frozenElements.length > 0 ? frozenElements : [element];
 
       const html = elementsToUse
         .map((el) => (el as HTMLElement).outerHTML)

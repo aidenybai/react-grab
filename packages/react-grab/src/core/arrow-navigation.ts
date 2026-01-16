@@ -1,4 +1,8 @@
 import type { OverlayBounds } from "../types.js";
+import {
+  enablePointerEventsOverride,
+  disablePointerEventsOverride,
+} from "../utils/get-element-at-position.js";
 
 type ElementValidator = (element: Element) => boolean;
 type BoundsCalculator = (element: Element) => OverlayBounds;
@@ -19,12 +23,18 @@ export const createArrowNavigator = (
     direction: 1 | -1,
   ): Element | null => {
     const bounds = createElementBounds(currentElement);
-    const elementsAtPoint = document
-      .elementsFromPoint(
-        bounds.x + bounds.width / 2,
-        bounds.y + bounds.height / 2,
-      )
-      .filter(isValidGrabbableElement);
+    enablePointerEventsOverride();
+    let elementsAtPoint: Element[];
+    try {
+      elementsAtPoint = document
+        .elementsFromPoint(
+          bounds.x + bounds.width / 2,
+          bounds.y + bounds.height / 2,
+        )
+        .filter(isValidGrabbableElement);
+    } finally {
+      disablePointerEventsOverride();
+    }
     const currentIndex = elementsAtPoint.indexOf(currentElement);
     if (currentIndex === -1) return null;
     return elementsAtPoint[currentIndex + direction] ?? null;

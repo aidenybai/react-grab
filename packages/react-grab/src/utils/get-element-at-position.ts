@@ -20,8 +20,12 @@ export const getElementAtPosition = (
   clientY: number,
 ): Element | null => {
   enablePointerEventsOverride();
-  const elementsAtPoint = document.elementsFromPoint(clientX, clientY);
-  disablePointerEventsOverride();
+  let elementsAtPoint: Element[];
+  try {
+    elementsAtPoint = document.elementsFromPoint(clientX, clientY);
+  } finally {
+    disablePointerEventsOverride();
+  }
 
   for (const candidateElement of elementsAtPoint) {
     if (isValidGrabbableElement(candidateElement)) {
