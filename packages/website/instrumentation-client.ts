@@ -1,5 +1,6 @@
 import { createVisualEditAgentProvider } from "@react-grab/visual-edit/client";
-import { init } from "react-grab/core";
+import { init, setGlobalIDEInfo } from "react-grab/core";
+import { getDefaultRelayClient } from "@react-grab/relay/client";
 
 declare global {
   interface Window {
@@ -26,6 +27,18 @@ if (typeof window !== "undefined" && !window.__REACT_GRAB__) {
     // allowActivationInsideInput: false,
     // maxContextLines: 3,
   });
+
+  // Subscribe to IDE info changes from the relay client
+  const relayClient = getDefaultRelayClient();
+  if (relayClient) {
+    relayClient.onIDEInfoChange((ideInfo) => {
+      setGlobalIDEInfo(ideInfo);
+    });
+    // Connect to relay server to receive IDE info
+    relayClient.connect().catch(() => {
+      // Silently fail if relay server is not running
+    });
+  }
 
   api.registerPlugin({
     name: "website-events",

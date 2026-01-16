@@ -8,6 +8,7 @@ import type {
   RelayToHandlerMessage,
   RelayToBrowserMessage,
   AgentContext,
+  IDEInfo,
 } from "./protocol.js";
 import { DEFAULT_RELAY_PORT, RELAY_TOKEN_PARAM } from "./protocol.js";
 
@@ -15,6 +16,7 @@ interface RegisteredHandler {
   agentId: string;
   handler: AgentHandler;
   socket?: WebSocket;
+  ideInfo?: IDEInfo;
 }
 
 interface SessionMessageQueue {
@@ -83,6 +85,7 @@ interface ActiveSession {
 interface RelayServerOptions {
   port?: number;
   token?: string;
+  ideInfo?: IDEInfo;
 }
 
 export interface RelayServer {
@@ -98,6 +101,7 @@ export const createRelayServer = (
 ): RelayServer => {
   const port = options.port ?? DEFAULT_RELAY_PORT;
   const token = options.token;
+  let serverIDEInfo: IDEInfo | undefined = options.ideInfo;
 
   const registeredHandlers = new Map<string, RegisteredHandler>();
   const activeSessions = new Map<string, ActiveSession>();
@@ -109,11 +113,24 @@ export const createRelayServer = (
   let httpServer: ReturnType<typeof createHttpServer> | null = null;
   let webSocketServer: WebSocketServer | null = null;
 
+  const getEffectiveIDEInfo = (): IDEInfo | undefined => {
+    // First check if any registered handler has IDE info
+    for (const handler of registeredHandlers.values()) {
+      if (handler.ideInfo?.editorId) {
+        return handler.ideInfo;
+      }
+    }
+    // Fall back to server's own IDE info
+    return serverIDEInfo;
+  };
+
   const broadcastHandlerList = () => {
     const handlerIds = Array.from(registeredHandlers.keys());
+    const ideInfo = getEffectiveIDEInfo();
     const message: RelayToBrowserMessage = {
       type: "handlers",
       handlers: handlerIds,
+      ideInfo,
     };
     const serializedMessage = JSON.stringify(message);
 
@@ -470,6 +487,7 @@ export const createRelayServer = (
         agentId: message.agentId,
         handler: remoteHandler,
         socket,
+        ideInfo: message.ideInfo,
       });
       handlerSockets.set(socket, message.agentId);
       broadcastHandlerList();
@@ -592,6 +610,7 @@ export const createRelayServer = (
           sendToBrowser(socket, {
             type: "handlers",
             handlers: getRegisteredHandlerIds(),
+            ideInfo: getEffectiveIDEInfo(),
           });
 
           socket.on("message", (data) => {

@@ -5,11 +5,11 @@ import { useState, useEffect, useCallback, Suspense, useRef } from "react";
 import { ReactGrabLogo } from "@/components/react-grab-logo";
 import { cn } from "@/utils/classnames";
 import { IconCursor } from "@/components/icon-cursor";
-import { IconVSCode, IconZed, IconWebStorm } from "@/components/icons";
+import { IconVSCode, IconZed, IconWebStorm, IconAntigravity } from "@/components/icons";
 import { ChevronDown, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 
-const EDITOR_OPTIONS = ["cursor", "vscode", "zed", "webstorm"] as const;
+const EDITOR_OPTIONS = ["cursor", "vscode", "antigravity", "zed", "webstorm"] as const;
 type Editor = (typeof EDITOR_OPTIONS)[number];
 
 interface EditorOption {
@@ -21,11 +21,23 @@ interface EditorOption {
 const EDITORS: EditorOption[] = [
   { id: "cursor", name: "Cursor", icon: <IconCursor width={16} height={16} /> },
   { id: "vscode", name: "VS Code", icon: <IconVSCode /> },
+  { id: "antigravity", name: "Antigravity", icon: <IconAntigravity /> },
   { id: "zed", name: "Zed", icon: <IconZed /> },
   { id: "webstorm", name: "WebStorm", icon: <IconWebStorm /> },
 ];
 
 const STORAGE_KEY = "react-grab-preferred-editor";
+
+// Encode file path for custom URI schemes while preserving path delimiters
+const encodePathForCustomScheme = (filePath: string): string => {
+  // Ensure path starts with /
+  const normalizedPath = filePath.startsWith("/") ? filePath : `/${filePath}`;
+  // Split by "/" to preserve path structure, then encode each segment
+  return normalizedPath
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+};
 
 const getEditorUrl = (
   editor: Editor,
@@ -34,11 +46,12 @@ const getEditorUrl = (
 ): string => {
   if (editor === "webstorm") {
     const lineParam = lineNumber ? `&line=${lineNumber}` : "";
-    return `webstorm://open?file=${filePath}${lineParam}`;
+    return `webstorm://open?file=${encodeURIComponent(filePath)}${lineParam}`;
   }
 
+  const encodedPath = encodePathForCustomScheme(filePath);
   const lineParam = lineNumber ? `:${lineNumber}` : "";
-  return `${editor}://file/${filePath}${lineParam}`;
+  return `${editor}://file${encodedPath}${lineParam}`;
 };
 
 const OpenFileContent = () => {

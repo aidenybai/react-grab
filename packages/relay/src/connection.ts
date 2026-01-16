@@ -1,9 +1,10 @@
 import pc from "picocolors";
 import fkill from "fkill";
-import type { AgentHandler } from "./protocol.js";
+import type { AgentHandler, IDEInfo } from "./protocol.js";
 import { DEFAULT_RELAY_PORT, HEALTH_CHECK_TIMEOUT_MS, POST_KILL_DELAY_MS, RELAY_TOKEN_PARAM } from "./protocol.js";
 import { createRelayServer, type RelayServer } from "./server.js";
 import { sleep } from "@react-grab/utils/server";
+import { detectParentIDE } from "./detect-ide.js";
 
 const VERSION = process.env.VERSION ?? "0.0.0";
 
@@ -38,18 +39,21 @@ export const connectRelay = async (
   const relayPort = options.port ?? DEFAULT_RELAY_PORT;
   const { handler, token } = options;
 
+  // Detect parent IDE
+  const ideInfo = detectParentIDE();
+
   let relayServer: RelayServer | null = null;
   let isRelayHost = false;
 
   const isRelayServerRunning = await checkIfRelayServerIsRunning(relayPort, token);
 
   if (isRelayServerRunning) {
-    relayServer = await connectToExistingRelay(relayPort, handler, token);
+    relayServer = await connectToExistingRelay(relayPort, handler, token, ideInfo);
   } else {
     await fkill(`:${relayPort}`, { force: true, silent: true }).catch(() => {});
     await sleep(POST_KILL_DELAY_MS);
 
-    relayServer = createRelayServer({ port: relayPort, token });
+    relayServer = createRelayServer({ port: relayPort, token, ideInfo });
     relayServer.registerHandler(handler);
 
     try {
@@ -68,11 +72,11 @@ export const connectRelay = async (
 
       if (!isNowRunning) throw error;
 
-      relayServer = await connectToExistingRelay(relayPort, handler, token);
+      relayServer = await connectToExistingRelay(relayPort, handler, token, ideInfo);
     }
   }
 
-  printStartupMessage(handler.agentId, relayPort);
+  printStartupMessage(handler.agentId, relayPort, ideInfo);
 
   const handleShutdown = async () => {
     if (isRelayHost) {
@@ -103,6 +107,7 @@ const connectToExistingRelay = async (
   port: number,
   handler: AgentHandler,
   token?: string,
+  ideInfo?: IDEInfo,
 ): Promise<RelayServer> => {
   const { WebSocket } = await import("ws");
 
@@ -144,6 +149,7 @@ const connectToExistingRelay = async (
         JSON.stringify({
           type: "register-handler",
           agentId: handler.agentId,
+          ideInfo,
         }),
       );
 
@@ -282,9 +288,12 @@ const connectToExistingRelay = async (
   });
 };
 
-const printStartupMessage = (agentId: string, port: number) => {
+const printStartupMessage = (agentId: string, port: number, ideInfo?: IDEInfo) => {
   console.log(
     `${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim(`(${agentId})`)}`,
   );
   console.log(`- Local:    ${pc.cyan(`ws://localhost:${port}`)}`);
+  if (ideInfo?.editorName) {
+    console.log(`- IDE:      ${pc.green(ideInfo.editorName)}`);
+  }
 };
