@@ -258,7 +258,9 @@ test.describe("Open File", () => {
           hooks: {
             onOpenFile: (info: Record<string, unknown>) => {
               (
-                window as { __OPEN_FILE_INFO__?: Record<string, unknown> | null }
+                window as {
+                  __OPEN_FILE_INFO__?: Record<string, unknown> | null;
+                }
               ).__OPEN_FILE_INFO__ = info;
             },
           },

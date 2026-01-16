@@ -86,7 +86,9 @@ After getting refs, use browser_execute with: getRef('e1').click()`,
           .boolean()
           .optional()
           .default(false)
-          .describe("(Experimental) React tree view. Note: Regular snapshot already includes [component=X] and [source=X] - prefer that."),
+          .describe(
+            "(Experimental) React tree view. Note: Regular snapshot already includes [component=X] and [source=X] - prefer that.",
+          ),
         includeProps: z
           .boolean()
           .optional()
@@ -133,7 +135,10 @@ After getting refs, use browser_execute with: getRef('e1').click()`,
               }
               return g.__REACT_GRAB_GET_COMPONENT_TREE__(opts);
             },
-            { maxDepth: maxDepth ?? DEFAULT_COMPONENT_TREE_MAX_DEPTH, includeProps: includeProps ?? false },
+            {
+              maxDepth: maxDepth ?? DEFAULT_COMPONENT_TREE_MAX_DEPTH,
+              includeProps: includeProps ?? false,
+            },
           );
 
           const renderTree = (nodes: ComponentNode[]): string => {
@@ -154,9 +159,13 @@ After getting refs, use browser_execute with: getRef('e1').click()`,
             return lines.join("\n");
           };
 
-          textResult = renderTree(componentTree) || "No React components found. Make sure react-grab is installed and the page uses React.";
+          textResult =
+            renderTree(componentTree) ||
+            "No React components found. Make sure react-grab is installed and the page uses React.";
         } else {
-          textResult = await createSnapshotHelper(() => activePage)({ maxDepth });
+          textResult = await createSnapshotHelper(() => activePage)({
+            maxDepth,
+          });
         }
 
         if (screenshot) {

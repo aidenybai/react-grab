@@ -7,11 +7,11 @@ import { spinner } from "../utils/spinner.js";
 import { highlighter } from "../utils/highlighter.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
-const UPDATE_COMMAND = "npm install -g @react-grab/cli@latest";
+const UPDATE_COMMAND = "npm install -g grab@latest";
 
 const getLatestVersion = (): string | null => {
   try {
-    return execSync("npm view @react-grab/cli version", {
+    return execSync("npm view grab version", {
       encoding: "utf-8",
       stdio: ["pipe", "pipe", "pipe"],
     }).trim();
@@ -38,7 +38,9 @@ export const update = new Command()
     if (!latestVersion) {
       checkSpinner.fail("Failed to fetch latest version");
       logger.break();
-      logger.error("Could not reach npm registry. Check your network connection.");
+      logger.error(
+        "Could not reach npm registry. Check your network connection.",
+      );
       logger.break();
       process.exit(1);
     }
@@ -57,7 +59,9 @@ export const update = new Command()
 
     if (opts.check) {
       logger.log(`Update available: ${VERSION} → ${latestVersion}`);
-      logger.log(`Run ${highlighter.info("grab update")} to install the update.`);
+      logger.log(
+        `Run ${highlighter.info("grab update")} to install the update.`,
+      );
       logger.break();
       process.exit(0);
     }
@@ -90,7 +94,9 @@ export const update = new Command()
     } catch (error) {
       updateSpinner.fail("Failed to update");
       logger.break();
-      logger.error(`Update failed. Try manually: ${highlighter.info(UPDATE_COMMAND)}`);
+      logger.error(
+        `Update failed. Try manually: ${highlighter.info(UPDATE_COMMAND)}`,
+      );
       if (error instanceof Error && error.message) {
         logger.dim(error.message);
       }

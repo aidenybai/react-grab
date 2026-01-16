@@ -500,9 +500,7 @@ const AgentPage = () => {
                 with the agents that exist. If your tool has a CLI or an API,
                 you can add a provider.
               </p>
-              <p>
-                If your tool has a CLI or an API, you can add a provider.
-              </p>
+              <p>If your tool has a CLI or an API, you can add a provider.</p>
             </div>
 
             <div className="flex flex-col gap-4 mt-8">

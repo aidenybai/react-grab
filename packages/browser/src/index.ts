@@ -61,7 +61,10 @@ export {
   type SnapshotOptions,
 } from "./client.js";
 
-export { getSnapshotScript, clearSnapshotScriptCache } from "./snapshot/index.js";
+export {
+  getSnapshotScript,
+  clearSnapshotScriptCache,
+} from "./snapshot/index.js";
 
 export type {
   ViewportSize,

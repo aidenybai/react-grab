@@ -100,10 +100,7 @@ export const AgentPlaygroundContent = ({
 
   const addLog = useCallback((type: string, message: string) => {
     setLogs((previousLogs) => {
-      const newLogs = [
-        ...previousLogs,
-        { type, message, time: new Date() },
-      ];
+      const newLogs = [...previousLogs, { type, message, time: new Date() }];
       if (newLogs.length > MAX_LOG_ENTRIES) {
         return newLogs.slice(-MAX_LOG_ENTRIES);
       }
@@ -151,10 +148,15 @@ export const AgentPlaygroundContent = ({
       setRelayConnected(isConnected);
       setRelayHandlers(relayClient.getAvailableHandlers());
 
-      const unsubscribeConnection = relayClient.onConnectionChange((connected) => {
-        setRelayConnected(connected);
-        addLog(connected ? "connect" : "disconnect", connected ? "Relay connected" : "Relay disconnected");
-      });
+      const unsubscribeConnection = relayClient.onConnectionChange(
+        (connected) => {
+          setRelayConnected(connected);
+          addLog(
+            connected ? "connect" : "disconnect",
+            connected ? "Relay connected" : "Relay disconnected",
+          );
+        },
+      );
 
       const unsubscribeHandlers = relayClient.onHandlersChange((handlers) => {
         setRelayHandlers(handlers);
@@ -164,10 +166,15 @@ export const AgentPlaygroundContent = ({
       });
 
       const unsubscribeMessage = relayClient.onMessage((message) => {
-        if (message.type === "agent-status" && message.content && message.agentId) {
-          const truncatedContent = message.content.length > STATUS_TRUNCATE_LENGTH
-            ? `${message.content.slice(0, STATUS_TRUNCATE_LENGTH)}…`
-            : message.content;
+        if (
+          message.type === "agent-status" &&
+          message.content &&
+          message.agentId
+        ) {
+          const truncatedContent =
+            message.content.length > STATUS_TRUNCATE_LENGTH
+              ? `${message.content.slice(0, STATUS_TRUNCATE_LENGTH)}…`
+              : message.content;
           addLog("status", `[${message.agentId}] ${truncatedContent}`);
         } else if (message.type === "agent-done" && message.agentId) {
           addLog("done", `[${message.agentId}] Completed`);
@@ -280,7 +287,9 @@ export const AgentPlaygroundContent = ({
           <Card>
             <CardContent className="p-4">
               <div className="text-sm font-medium">User Card</div>
-              <div className="text-muted-foreground text-xs mt-1">john@example.com</div>
+              <div className="text-muted-foreground text-xs mt-1">
+                john@example.com
+              </div>
             </CardContent>
           </Card>
           <Input type="text" placeholder="Search…" />
@@ -293,7 +302,8 @@ export const AgentPlaygroundContent = ({
             <CardTitle className="text-sm font-medium">Providers</CardTitle>
             {relayHandlers.length > 0 && (
               <span className="text-xs text-muted-foreground">
-                ({relayHandlers.length} handler{relayHandlers.length !== 1 ? "s" : ""} ready)
+                ({relayHandlers.length} handler
+                {relayHandlers.length !== 1 ? "s" : ""} ready)
               </span>
             )}
           </div>
@@ -303,7 +313,9 @@ export const AgentPlaygroundContent = ({
             {loadedProviders.length === 0 &&
             failedProviders.length === 0 &&
             inactiveProviders.length === 0 ? (
-              <span className="text-muted-foreground text-sm">None available</span>
+              <span className="text-muted-foreground text-sm">
+                None available
+              </span>
             ) : (
               <>
                 {loadedProviders.map((provider) => (
@@ -343,11 +355,7 @@ export const AgentPlaygroundContent = ({
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-medium">Activity</CardTitle>
             {logs.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setLogs([])}
-              >
+              <Button variant="ghost" size="sm" onClick={() => setLogs([])}>
                 Clear
               </Button>
             )}
@@ -356,17 +364,22 @@ export const AgentPlaygroundContent = ({
         <CardContent>
           <div className="bg-muted/50 rounded-lg p-1 min-h-[180px] max-h-[300px] overflow-y-auto">
             {logs.length === 0 ? (
-              <div className="px-3 py-2 text-muted-foreground text-sm">Waiting…</div>
+              <div className="px-3 py-2 text-muted-foreground text-sm">
+                Waiting…
+              </div>
             ) : (
               <div className="flex flex-col">
                 {logs.map((log, logIndex) => {
-                  const style = LOG_TYPE_STYLES[log.type] ?? LOG_TYPE_STYLES.info;
+                  const style =
+                    LOG_TYPE_STYLES[log.type] ?? LOG_TYPE_STYLES.info;
                   return (
                     <div
                       key={logIndex}
                       className="flex items-start gap-3 px-3 py-1.5 rounded-md hover:bg-muted/50 transition-colors"
                     >
-                      <span className={`${style.color} text-xs w-3 mt-0.5 shrink-0`}>
+                      <span
+                        className={`${style.color} text-xs w-3 mt-0.5 shrink-0`}
+                      >
                         {style.icon}
                       </span>
                       <span className="text-foreground/70 text-sm flex-1 break-all font-mono">
@@ -414,7 +427,9 @@ export const AgentPlayground = () => {
 
   useEffect(() => {
     const loadAllProviders = async () => {
-      const urlProviders = new URLSearchParams(window.location.search).get("provider");
+      const urlProviders = new URLSearchParams(window.location.search).get(
+        "provider",
+      );
       const envProviders = process.env.NEXT_PUBLIC_PROVIDER;
 
       const providerString = urlProviders ?? envProviders;
@@ -445,7 +460,10 @@ export const AgentPlayground = () => {
         if (result.status === "fulfilled") {
           loaded.push(result.value);
         } else {
-          console.error(`Failed to load provider "${provider}":`, result.reason);
+          console.error(
+            `Failed to load provider "${provider}":`,
+            result.reason,
+          );
           failed.push(provider);
         }
       });

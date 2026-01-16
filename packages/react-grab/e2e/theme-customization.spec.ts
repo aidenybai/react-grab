@@ -59,7 +59,9 @@ test.describe("Theme Customization", () => {
     });
 
     test("should hide selection box when disabled", async ({ reactGrab }) => {
-      await reactGrab.updateOptions({ theme: { selectionBox: { enabled: false } } });
+      await reactGrab.updateOptions({
+        theme: { selectionBox: { enabled: false } },
+      });
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
@@ -120,7 +122,9 @@ test.describe("Theme Customization", () => {
     });
 
     test("should hide grabbed boxes when disabled", async ({ reactGrab }) => {
-      await reactGrab.updateOptions({ theme: { grabbedBoxes: { enabled: false } } });
+      await reactGrab.updateOptions({
+        theme: { grabbedBoxes: { enabled: false } },
+      });
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
@@ -144,7 +148,9 @@ test.describe("Theme Customization", () => {
     });
 
     test("should hide element label when disabled", async ({ reactGrab }) => {
-      await reactGrab.updateOptions({ theme: { elementLabel: { enabled: false } } });
+      await reactGrab.updateOptions({
+        theme: { elementLabel: { enabled: false } },
+      });
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
@@ -165,7 +171,9 @@ test.describe("Theme Customization", () => {
     });
 
     test("should hide crosshair when disabled", async ({ reactGrab }) => {
-      await reactGrab.updateOptions({ theme: { crosshair: { enabled: false } } });
+      await reactGrab.updateOptions({
+        theme: { crosshair: { enabled: false } },
+      });
       await reactGrab.activate();
       await reactGrab.page.mouse.move(400, 400);
       await reactGrab.page.waitForTimeout(100);
@@ -238,13 +246,17 @@ test.describe("Theme Customization", () => {
     test("should allow re-enabling disabled features", async ({
       reactGrab,
     }) => {
-      await reactGrab.updateOptions({ theme: { crosshair: { enabled: false } } });
+      await reactGrab.updateOptions({
+        theme: { crosshair: { enabled: false } },
+      });
       await reactGrab.activate();
 
       const isDisabled = await reactGrab.isCrosshairVisible();
       expect(isDisabled).toBe(false);
 
-      await reactGrab.updateOptions({ theme: { crosshair: { enabled: true } } });
+      await reactGrab.updateOptions({
+        theme: { crosshair: { enabled: true } },
+      });
       await reactGrab.page.mouse.move(400, 400);
       await reactGrab.page.waitForTimeout(100);
 
@@ -282,7 +294,9 @@ test.describe("Theme Customization", () => {
       const isVisibleBefore = await reactGrab.isCrosshairVisible();
       expect(isVisibleBefore).toBe(true);
 
-      await reactGrab.updateOptions({ theme: { crosshair: { enabled: false } } });
+      await reactGrab.updateOptions({
+        theme: { crosshair: { enabled: false } },
+      });
 
       const isVisibleAfter = await reactGrab.isCrosshairVisible();
       expect(isVisibleAfter).toBe(false);

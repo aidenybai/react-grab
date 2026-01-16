@@ -47,6 +47,8 @@ WebGLRenderingContext.prototype.getParameter = function(parameter) {
 };
 `;
 
-export const applyStealthScripts = async (context: BrowserContext): Promise<void> => {
+export const applyStealthScripts = async (
+  context: BrowserContext,
+): Promise<void> => {
   await context.addInitScript(STEALTH_SCRIPTS);
 };

@@ -449,7 +449,11 @@ export const spawnServer = async (
 
   child.unref();
 
-  for (let attemptIndex = 0; attemptIndex < MAX_SERVER_SPAWN_ATTEMPTS; attemptIndex++) {
+  for (
+    let attemptIndex = 0;
+    attemptIndex < MAX_SERVER_SPAWN_ATTEMPTS;
+    attemptIndex++
+  ) {
     await new Promise((r) => setTimeout(r, SERVER_SPAWN_DELAY_MS));
 
     if (spawnErrorMessage) {
@@ -483,7 +487,10 @@ export const spawnServer = async (
   }
 
   const errorOutput = combinedOutput.trim();
-  const errorParts = [errorOutput, exitCode !== null && `exit code: ${exitCode}`].filter(Boolean);
+  const errorParts = [
+    errorOutput,
+    exitCode !== null && `exit code: ${exitCode}`,
+  ].filter(Boolean);
   const details = errorParts.length > 0 ? `: ${errorParts.join(", ")}` : "";
   throw new Error(`Failed to start server${details}`);
 };

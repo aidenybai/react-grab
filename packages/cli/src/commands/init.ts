@@ -51,7 +51,9 @@ const promptSkillInstall = async (cwd: string): Promise<void> => {
     return;
   }
 
-  logger.log(`The ${highlighter.info("React Grab skill")} gives your agent access to the browser.`);
+  logger.log(
+    `The ${highlighter.info("React Grab skill")} gives your agent access to the browser.`,
+  );
   logger.log(`Learn more at ${highlighter.info("https://skill.md")}`);
   logger.break();
 
@@ -79,16 +81,23 @@ const promptSkillInstall = async (cwd: string): Promise<void> => {
 
   if (selectedAgent) {
     logger.break();
-    const skillSpinner = spinner(`Installing skill for ${selectedAgent.name}`).start();
+    const skillSpinner = spinner(
+      `Installing skill for ${selectedAgent.name}`,
+    ).start();
     try {
-      execSync(`npx -y add-skill aidenybai/react-grab -y --agent ${selectedAgent.id}`, {
-        stdio: "ignore",
-        cwd,
-      });
+      execSync(
+        `npx -y add-skill aidenybai/react-grab -y --agent ${selectedAgent.id}`,
+        {
+          stdio: "ignore",
+          cwd,
+        },
+      );
       skillSpinner.succeed(`Skill installed for ${selectedAgent.name}.`);
     } catch {
       skillSpinner.fail(`Failed to install skill for ${selectedAgent.name}.`);
-      logger.warn(`Try manually: npx -y add-skill aidenybai/react-grab --agent ${selectedAgent.id}`);
+      logger.warn(
+        `Try manually: npx -y add-skill aidenybai/react-grab --agent ${selectedAgent.id}`,
+      );
     }
   }
 
@@ -115,9 +124,7 @@ const reportToCli = (
       type,
       version: VERSION,
       config,
-      error: error
-        ? { message: error.message, stack: error.stack }
-        : undefined,
+      error: error ? { message: error.message, stack: error.stack } : undefined,
       timestamp: new Date().toISOString(),
     }),
   }).catch(() => {});
@@ -186,10 +193,7 @@ export const init = new Command()
     "activation key (e.g., Meta+K, Ctrl+Shift+G, Space)",
   )
   .option("--skip-install", "skip package installation", false)
-  .option(
-    "--pkg <pkg>",
-    "custom package URL for CLI (e.g., @react-grab/cli)",
-  )
+  .option("--pkg <pkg>", "custom package URL for CLI (e.g., grab)")
   .option(
     "-c, --cwd <cwd>",
     "working directory (defaults to current directory)",
@@ -209,7 +213,10 @@ export const init = new Command()
 
       const projectInfo = await detectProject(cwd);
 
-      const removeAgents = async (agentsToRemove: string[], skipInstall: boolean = false) => {
+      const removeAgents = async (
+        agentsToRemove: string[],
+        skipInstall: boolean = false,
+      ) => {
         for (const agentToRemove of agentsToRemove) {
           const removalResult = previewAgentRemoval(
             projectInfo.projectRoot,
@@ -230,14 +237,22 @@ export const init = new Command()
             );
           }
 
-          if (removalResult.success && !removalResult.noChanges && removalResult.newContent) {
+          if (
+            removalResult.success &&
+            !removalResult.noChanges &&
+            removalResult.newContent
+          ) {
             applyTransformWithFeedback(
               removalResult,
               `Removing ${getAgentName(agentToRemove)} from ${removalResult.filePath}.`,
             );
           }
 
-          if (removalPackageJsonResult.success && !removalPackageJsonResult.noChanges && removalPackageJsonResult.newContent) {
+          if (
+            removalPackageJsonResult.success &&
+            !removalPackageJsonResult.noChanges &&
+            removalPackageJsonResult.newContent
+          ) {
             applyPackageJsonWithFeedback(
               removalPackageJsonResult,
               `Removing ${getAgentName(agentToRemove)} from ${removalPackageJsonResult.filePath}.`,
@@ -322,7 +337,9 @@ export const init = new Command()
                 process.exit(1);
               }
 
-              collectedOptions.activationKey = key ? key.toLowerCase() : undefined;
+              collectedOptions.activationKey = key
+                ? key.toLowerCase()
+                : undefined;
 
               logger.log(
                 `  Activation key: ${highlighter.info(formatActivationKeyDisplay(collectedOptions.activationKey))}`,
@@ -491,7 +508,9 @@ export const init = new Command()
             let agentsToRemove: string[] = [];
 
             if (projectInfo.installedAgents.length > 0) {
-              const installedNames = formatInstalledAgentNames(projectInfo.installedAgents);
+              const installedNames = formatInstalledAgentNames(
+                projectInfo.installedAgents,
+              );
 
               const { action } = await prompts({
                 type: "select",

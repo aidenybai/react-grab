@@ -25,7 +25,11 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         labelInstances={props.labelInstances}
       />
 
-      <Index each={props.agentSessions ? Array.from(props.agentSessions.values()) : []}>
+      <Index
+        each={
+          props.agentSessions ? Array.from(props.agentSessions.values()) : []
+        }
+      >
         {(session) => (
           <>
             <Show when={session().selectionBounds.length > 0}>

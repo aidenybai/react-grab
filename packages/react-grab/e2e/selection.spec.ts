@@ -39,7 +39,9 @@ test.describe("Element Selection", () => {
     await reactGrab.waitForSelectionBox();
 
     await reactGrab.clickElement("[data-testid='todo-list'] h1");
-    await expect.poll(() => reactGrab.getClipboardContent()).toContain("Todo List");
+    await expect
+      .poll(() => reactGrab.getClipboardContent())
+      .toContain("Todo List");
   });
 
   test("should highlight different elements when hovering", async ({
@@ -67,7 +69,9 @@ test.describe("Element Selection", () => {
     await reactGrab.hoverElement("li");
     await reactGrab.clickElement("li");
 
-    await expect.poll(() => reactGrab.isOverlayVisible(), { timeout: 3000 }).toBe(false);
+    await expect
+      .poll(() => reactGrab.isOverlayVisible(), { timeout: 3000 })
+      .toBe(false);
   });
 
   test("should not show selection when inactive", async ({ reactGrab }) => {
@@ -134,10 +138,12 @@ test.describe("Selection Bounds and Mutations", () => {
       }
     });
 
-    await expect.poll(async () => {
-      const bounds = await reactGrab.getSelectionBoxBounds();
-      return bounds?.height ?? 0;
-    }).toBeGreaterThan(initialBounds?.height ?? 0);
+    await expect
+      .poll(async () => {
+        const bounds = await reactGrab.getSelectionBoxBounds();
+        return bounds?.height ?? 0;
+      })
+      .toBeGreaterThan(initialBounds?.height ?? 0);
   });
 
   test("selection should handle element being hidden", async ({
@@ -166,10 +172,12 @@ test.describe("Selection Bounds and Mutations", () => {
     await reactGrab.scrollPage(50);
 
     if (boundsBefore) {
-      await expect.poll(async () => {
-        const bounds = await reactGrab.getSelectionBoxBounds();
-        return bounds?.y;
-      }).not.toBe(boundsBefore.y);
+      await expect
+        .poll(async () => {
+          const bounds = await reactGrab.getSelectionBoxBounds();
+          return bounds?.y;
+        })
+        .not.toBe(boundsBefore.y);
     }
   });
 
@@ -179,10 +187,12 @@ test.describe("Selection Bounds and Mutations", () => {
     await reactGrab.activate();
     await reactGrab.dragSelect("li:first-child", "li:nth-child(3)");
 
-    await expect.poll(async () => {
-      const info = await reactGrab.getGrabbedBoxInfo();
-      return info.count;
-    }).toBeGreaterThan(1);
+    await expect
+      .poll(async () => {
+        const info = await reactGrab.getGrabbedBoxInfo();
+        return info.count;
+      })
+      .toBeGreaterThan(1);
   });
 
   test("selection should work on deeply nested elements", async ({
@@ -194,6 +204,8 @@ test.describe("Selection Bounds and Mutations", () => {
 
     await reactGrab.clickElement("[data-testid='deeply-nested-text']");
 
-    await expect.poll(() => reactGrab.getClipboardContent()).toContain("deeply nested");
+    await expect
+      .poll(() => reactGrab.getClipboardContent())
+      .toContain("deeply nested");
   });
 });

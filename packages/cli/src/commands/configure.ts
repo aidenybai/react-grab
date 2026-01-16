@@ -106,12 +106,19 @@ const formatCombo = (combo: KeyCombo): string => {
   if (combo.ctrlKey) parts.push("Ctrl");
   if (combo.shiftKey) parts.push("Shift");
   if (combo.altKey) parts.push(ALT_LABEL);
-  const keyDisplay = combo.key === " " ? "Space" : combo.key.length === 1 ? combo.key.toUpperCase() : combo.key;
+  const keyDisplay =
+    combo.key === " "
+      ? "Space"
+      : combo.key.length === 1
+        ? combo.key.toUpperCase()
+        : combo.key;
   parts.push(keyDisplay);
   return parts.join("+");
 };
 
-const parseInput = (input: string): { modifiers: Set<string>; partial: string } => {
+const parseInput = (
+  input: string,
+): { modifiers: Set<string>; partial: string } => {
   const normalized = input.toLowerCase().replace(/\s+/g, "");
   const parts = normalized.split(/[+\-]/);
   const modifiers = new Set<string>();
@@ -138,9 +145,19 @@ const generateSuggestions = (input: string): KeyChoice[] => {
 
   if (!partial && modifiers.size === 0 && !input) {
     for (const mod of MODIFIERS) {
-      const label = mod === "meta" ? META_LABEL : mod === "alt" ? ALT_LABEL : mod.charAt(0).toUpperCase() + mod.slice(1);
+      const label =
+        mod === "meta"
+          ? META_LABEL
+          : mod === "alt"
+            ? ALT_LABEL
+            : mod.charAt(0).toUpperCase() + mod.slice(1);
       for (const popularKey of POPULAR_KEYS) {
-        const keyDisplay = popularKey === " " ? "Space" : popularKey.length === 1 ? popularKey.toUpperCase() : popularKey;
+        const keyDisplay =
+          popularKey === " "
+            ? "Space"
+            : popularKey.length === 1
+              ? popularKey.toUpperCase()
+              : popularKey;
         suggestions.push({
           title: `${label}+${keyDisplay}`,
           value: {
@@ -155,14 +172,23 @@ const generateSuggestions = (input: string): KeyChoice[] => {
     }
     for (const baseKey of BASE_KEYS) {
       suggestions.push({
-        title: baseKey.key === " " ? "Space" : baseKey.key.length === 1 ? baseKey.key.toUpperCase() : baseKey.key,
+        title:
+          baseKey.key === " "
+            ? "Space"
+            : baseKey.key.length === 1
+              ? baseKey.key.toUpperCase()
+              : baseKey.key,
         value: { key: baseKey.key },
       });
     }
     return suggestions;
   }
 
-  const buildCombo = (key: string, mods: Set<string>, extraMod?: string): KeyCombo => ({
+  const buildCombo = (
+    key: string,
+    mods: Set<string>,
+    extraMod?: string,
+  ): KeyCombo => ({
     key,
     ...(mods.has("meta") || extraMod === "meta" ? { metaKey: true } : {}),
     ...(mods.has("ctrl") || extraMod === "ctrl" ? { ctrlKey: true } : {}),
@@ -171,7 +197,9 @@ const generateSuggestions = (input: string): KeyChoice[] => {
   });
 
   for (const baseKey of BASE_KEYS) {
-    const matches = partial ? baseKey.aliases.some((alias) => alias.startsWith(partial)) : true;
+    const matches = partial
+      ? baseKey.aliases.some((alias) => alias.startsWith(partial))
+      : true;
     if (matches) {
       const combo = buildCombo(baseKey.key, modifiers);
       suggestions.push({
@@ -265,10 +293,7 @@ export const configure = new Command()
     "-k, --key <key>",
     "activation key (e.g., Meta+K, Ctrl+Shift+G, Space)",
   )
-  .option(
-    "-m, --mode <mode>",
-    "activation mode (toggle, hold)",
-  )
+  .option("-m, --mode <mode>", "activation mode (toggle, hold)")
   .option(
     "--hold-duration <ms>",
     "key hold duration in milliseconds (for hold mode)",
@@ -277,10 +302,7 @@ export const configure = new Command()
     "--allow-input <boolean>",
     "allow activation inside input fields (true/false)",
   )
-  .option(
-    "--context-lines <lines>",
-    "max context lines to include",
-  )
+  .option("--context-lines <lines>", "max context lines to include")
   .option(
     "-c, --cwd <cwd>",
     "working directory (defaults to current directory)",
@@ -311,7 +333,12 @@ export const configure = new Command()
 
       preflightSpinner.succeed();
 
-      const hasFlags = opts.key || opts.mode || opts.holdDuration || opts.allowInput || opts.contextLines;
+      const hasFlags =
+        opts.key ||
+        opts.mode ||
+        opts.holdDuration ||
+        opts.allowInput ||
+        opts.contextLines;
 
       logger.break();
       logger.log(`Configure ${highlighter.info("React Grab")} options:`);
@@ -339,25 +366,38 @@ export const configure = new Command()
 
         if (opts.holdDuration) {
           const duration = parseInt(opts.holdDuration, 10);
-          if (isNaN(duration) || duration < 0 || duration > MAX_KEY_HOLD_DURATION_MS) {
-            logger.error(`Invalid hold duration. Must be 0-${MAX_KEY_HOLD_DURATION_MS}ms.`);
+          if (
+            isNaN(duration) ||
+            duration < 0 ||
+            duration > MAX_KEY_HOLD_DURATION_MS
+          ) {
+            logger.error(
+              `Invalid hold duration. Must be 0-${MAX_KEY_HOLD_DURATION_MS}ms.`,
+            );
             logger.break();
             process.exit(1);
           }
           collectedOptions.keyHoldDuration = duration;
-          logger.log(`  Key hold duration: ${highlighter.info(`${duration}ms`)}`);
+          logger.log(
+            `  Key hold duration: ${highlighter.info(`${duration}ms`)}`,
+          );
         }
 
         if (opts.allowInput !== undefined) {
-          const allowInput = opts.allowInput === "true" || opts.allowInput === true;
+          const allowInput =
+            opts.allowInput === "true" || opts.allowInput === true;
           collectedOptions.allowActivationInsideInput = allowInput;
-          logger.log(`  Allow activation inside input: ${highlighter.info(String(allowInput))}`);
+          logger.log(
+            `  Allow activation inside input: ${highlighter.info(String(allowInput))}`,
+          );
         }
 
         if (opts.contextLines) {
           const lines = parseInt(opts.contextLines, 10);
           if (isNaN(lines) || lines < 0 || lines > MAX_CONTEXT_LINES) {
-            logger.error(`Invalid context lines. Must be 0-${MAX_CONTEXT_LINES}.`);
+            logger.error(
+              `Invalid context lines. Must be 0-${MAX_CONTEXT_LINES}.`,
+            );
             logger.break();
             process.exit(1);
           }
@@ -379,7 +419,10 @@ export const configure = new Command()
               choices.filter(
                 (choice) =>
                   choice.title.toLowerCase().includes(input.toLowerCase()) ||
-                  (choice.description?.toLowerCase().includes(input.toLowerCase()) ?? false),
+                  (choice.description
+                    ?.toLowerCase()
+                    .includes(input.toLowerCase()) ??
+                    false),
               ),
             ),
         });
@@ -405,81 +448,85 @@ export const configure = new Command()
 
           collectedOptions.activationKey = comboToString(selectedCombo);
 
-        logger.log(
+          logger.log(
             `  Activation key: ${highlighter.info(formatActivationKeyDisplay(collectedOptions.activationKey))}`,
-        );
-      }
+          );
+        }
 
         if (selectedOption === "activationMode") {
-      const { activationMode } = await prompts({
-        type: "select",
-        name: "activationMode",
-        message: `Select ${highlighter.info("activation mode")}:`,
-        choices: [
-          { title: "Toggle (press to activate/deactivate)", value: "toggle" },
-          { title: "Hold (hold key to keep active)", value: "hold" },
-        ],
-        initial: 0,
-      });
+          const { activationMode } = await prompts({
+            type: "select",
+            name: "activationMode",
+            message: `Select ${highlighter.info("activation mode")}:`,
+            choices: [
+              {
+                title: "Toggle (press to activate/deactivate)",
+                value: "toggle",
+              },
+              { title: "Hold (hold key to keep active)", value: "hold" },
+            ],
+            initial: 0,
+          });
 
-      if (activationMode === undefined) {
-        logger.break();
-        process.exit(1);
-      }
+          if (activationMode === undefined) {
+            logger.break();
+            process.exit(1);
+          }
 
-      collectedOptions.activationMode = activationMode;
+          collectedOptions.activationMode = activationMode;
         }
 
         if (selectedOption === "keyHoldDuration") {
-        const { keyHoldDuration } = await prompts({
-          type: "number",
-          name: "keyHoldDuration",
-          message: `Enter ${highlighter.info("key hold duration")} in milliseconds:`,
-          initial: 150,
-          min: 0,
-          max: 2000,
-        });
+          const { keyHoldDuration } = await prompts({
+            type: "number",
+            name: "keyHoldDuration",
+            message: `Enter ${highlighter.info("key hold duration")} in milliseconds:`,
+            initial: 150,
+            min: 0,
+            max: 2000,
+          });
 
-        if (keyHoldDuration === undefined) {
-          logger.break();
-          process.exit(1);
+          if (keyHoldDuration === undefined) {
+            logger.break();
+            process.exit(1);
+          }
+
+          collectedOptions.keyHoldDuration = keyHoldDuration;
         }
 
-        collectedOptions.keyHoldDuration = keyHoldDuration;
-      }
-
         if (selectedOption === "allowActivationInsideInput") {
-      const { allowActivationInsideInput } = await prompts({
-        type: "confirm",
-        name: "allowActivationInsideInput",
-        message: `Allow activation ${highlighter.info("inside input fields")}?`,
-        initial: true,
-      });
+          const { allowActivationInsideInput } = await prompts({
+            type: "confirm",
+            name: "allowActivationInsideInput",
+            message: `Allow activation ${highlighter.info("inside input fields")}?`,
+            initial: true,
+          });
 
-      if (allowActivationInsideInput === undefined) {
-        logger.break();
-        process.exit(1);
-      }
+          if (allowActivationInsideInput === undefined) {
+            logger.break();
+            process.exit(1);
+          }
 
-      collectedOptions.allowActivationInsideInput = allowActivationInsideInput;
+          collectedOptions.allowActivationInsideInput =
+            allowActivationInsideInput;
         }
 
         if (selectedOption === "maxContextLines") {
-      const { maxContextLines } = await prompts({
-        type: "number",
-        name: "maxContextLines",
-        message: `Enter ${highlighter.info("max context lines")} to include:`,
-        initial: 3,
-        min: 0,
-        max: 50,
-      });
+          const { maxContextLines } = await prompts({
+            type: "number",
+            name: "maxContextLines",
+            message: `Enter ${highlighter.info("max context lines")} to include:`,
+            initial: 3,
+            min: 0,
+            max: 50,
+          });
 
-      if (maxContextLines === undefined) {
-        logger.break();
-        process.exit(1);
-      }
+          if (maxContextLines === undefined) {
+            logger.break();
+            process.exit(1);
+          }
 
-      collectedOptions.maxContextLines = maxContextLines;
+          collectedOptions.maxContextLines = maxContextLines;
         }
       }
 
@@ -496,7 +543,9 @@ export const configure = new Command()
         logger.break();
 
         const configJson = JSON.stringify(collectedOptions);
-        logger.log(`Add this to your ${highlighter.info("init()")} call or ${highlighter.info("data-options")} attribute:`);
+        logger.log(
+          `Add this to your ${highlighter.info("init()")} call or ${highlighter.info("data-options")} attribute:`,
+        );
         logger.break();
         console.log(`  ${pc.cyan(configJson)}`);
         logger.break();

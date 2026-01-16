@@ -41,7 +41,8 @@ nr dev
 ```
 packages/
 ├── react-grab/          # Core library
-├── cli/                 # CLI installer (@react-grab/cli)
+├── grab/                # Bundled package (library + CLI, published as `grab`)
+├── cli/                 # CLI implementation (@react-grab/cli)
 ├── provider-cursor/     # Cursor agent integration
 ├── provider-claude-code/  # Claude Code integration
 ├── provider-opencode/   # OpenCode integration

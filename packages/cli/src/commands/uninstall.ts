@@ -7,10 +7,10 @@ export const uninstall = new Command()
   .action(() => {
     console.log("Uninstalling React Grab CLI...");
     try {
-      execSync("npm uninstall -g @react-grab/cli", { stdio: "inherit" });
+      execSync("npm uninstall -g grab", { stdio: "inherit" });
       console.log("React Grab CLI has been uninstalled.");
     } catch {
-      console.error("Failed to uninstall. Please try: npm uninstall -g @react-grab/cli");
+      console.error("Failed to uninstall. Please try: npm uninstall -g grab");
       process.exit(1);
     }
   });

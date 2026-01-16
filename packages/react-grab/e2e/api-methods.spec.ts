@@ -211,7 +211,9 @@ test.describe("API Methods", () => {
       reactGrab,
     }) => {
       await reactGrab.updateOptions({ theme: { hue: 45 } });
-      await reactGrab.updateOptions({ theme: { crosshair: { enabled: false } } });
+      await reactGrab.updateOptions({
+        theme: { crosshair: { enabled: false } },
+      });
       await reactGrab.activate();
 
       const hasFilter = await reactGrab.page.evaluate(() => {
@@ -309,7 +311,9 @@ test.describe("API Methods", () => {
       expect(callbackCalled).toBe(true);
     });
 
-    test("should allow registering plugin with multiple hooks", async ({ reactGrab }) => {
+    test("should allow registering plugin with multiple hooks", async ({
+      reactGrab,
+    }) => {
       await reactGrab.page.evaluate(() => {
         (window as { __CALLBACKS__?: string[] }).__CALLBACKS__ = [];
         const api = (

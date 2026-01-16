@@ -51,9 +51,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   const shouldEnablePointerEvents = (): boolean =>
     props.isPromptMode ||
-    (isCompletedStatus() && Boolean(props.onDismiss || props.onShowContextMenu)) ||
+    (isCompletedStatus() &&
+      Boolean(props.onDismiss || props.onShowContextMenu)) ||
     (props.status === "copying" && Boolean(props.onAbort)) ||
-    (props.status === "error" && Boolean(props.onAcknowledgeError || props.onRetry));
+    (props.status === "error" &&
+      Boolean(props.onAcknowledgeError || props.onRetry));
 
   const showOpenIndicator = () => props.isContextMenuOpen === true;
 

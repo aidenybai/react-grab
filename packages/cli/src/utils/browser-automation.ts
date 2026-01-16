@@ -95,7 +95,19 @@ export const getReactContextForActiveElement = async (
       const activeElement = document.activeElement;
       if (!activeElement || activeElement === document.body) return null;
 
-      const reactGrab = (globalThis as { __REACT_GRAB__?: { getSource: (e: Element) => Promise<{ filePath: string; lineNumber: number | null; componentName: string | null } | null> } }).__REACT_GRAB__;
+      const reactGrab = (
+        globalThis as {
+          __REACT_GRAB__?: {
+            getSource: (
+              e: Element,
+            ) => Promise<{
+              filePath: string;
+              lineNumber: number | null;
+              componentName: string | null;
+            } | null>;
+          };
+        }
+      ).__REACT_GRAB__;
       if (!reactGrab?.getSource) return null;
 
       const source = await reactGrab.getSource(activeElement);
@@ -107,20 +119,33 @@ export const getReactContextForActiveElement = async (
       }
 
       const fiberKey = Object.keys(activeElement).find(
-        (key) => key.startsWith("__reactFiber$") || key.startsWith("__reactInternalInstance$"),
+        (key) =>
+          key.startsWith("__reactFiber$") ||
+          key.startsWith("__reactInternalInstance$"),
       );
       if (fiberKey) {
-        type Fiber = { return?: Fiber; type?: { displayName?: string; name?: string } | string; tag?: number };
-        let fiber = (activeElement as unknown as Record<string, Fiber>)[fiberKey];
+        type Fiber = {
+          return?: Fiber;
+          type?: { displayName?: string; name?: string } | string;
+          tag?: number;
+        };
+        let fiber = (activeElement as unknown as Record<string, Fiber>)[
+          fiberKey
+        ];
         let depth = 0;
         while (fiber?.return && depth < maxDepth) {
           fiber = fiber.return;
           // HACK: React fiber tags - 0=FunctionComponent, 1=ClassComponent, 11=ForwardRef
           if (fiber.tag === 0 || fiber.tag === 1 || fiber.tag === 11) {
-            const name = typeof fiber.type === "object"
-              ? fiber.type?.displayName || fiber.type?.name
-              : null;
-            if (name && !name.startsWith("_") && !componentStack.includes(name)) {
+            const name =
+              typeof fiber.type === "object"
+                ? fiber.type?.displayName || fiber.type?.name
+                : null;
+            if (
+              name &&
+              !name.startsWith("_") &&
+              !componentStack.includes(name)
+            ) {
               componentStack.push(name);
             }
           }
@@ -145,12 +170,17 @@ export const getReactContextForActiveElement = async (
 export const createOutputJson = (
   getPage: () => Page | null,
   pageName: string,
-): ((ok: boolean, result?: unknown, error?: string) => Promise<ExecuteResult>) => {
+): ((
+  ok: boolean,
+  result?: unknown,
+  error?: string,
+) => Promise<ExecuteResult>) => {
   return async (ok, result, error) => {
     const page = getPage();
-    const reactContext = page && ok
-      ? (await getReactContextForActiveElement(page)) ?? undefined
-      : undefined;
+    const reactContext =
+      page && ok
+        ? ((await getReactContextForActiveElement(page)) ?? undefined)
+        : undefined;
 
     return {
       ok,
@@ -180,7 +210,9 @@ export const createSnapshotHelper = (
     const currentPage = getActivePage();
     return currentPage.evaluate(
       ({ script, opts }: { script: string; opts?: SnapshotOptions }) => {
-        const g = globalThis as { __REACT_GRAB_SNAPSHOT__?: (o?: unknown) => string };
+        const g = globalThis as {
+          __REACT_GRAB_SNAPSHOT__?: (o?: unknown) => string;
+        };
         if (!g.__REACT_GRAB_SNAPSHOT__) {
           eval(script);
         }
@@ -205,9 +237,7 @@ export type ComponentFunction = (
   options?: ComponentOptions,
 ) => Promise<ElementHandle | ElementHandle[] | null>;
 
-export type RefFunction = (
-  refId: string,
-) => ElementHandle &
+export type RefFunction = (refId: string) => ElementHandle &
   PromiseLike<ElementHandle> & {
     source: () => Promise<SourceInfo | null>;
     props: () => Promise<Record<string, unknown> | null>;
@@ -245,7 +275,9 @@ export const createRefHelper = (getActivePage: () => Page): RefFunction => {
     try {
       const currentPage = getActivePage();
       return await currentPage.evaluate((el) => {
-        const g = globalThis as { __REACT_GRAB__?: { getSource: (e: Element) => SourceInfo | null } };
+        const g = globalThis as {
+          __REACT_GRAB__?: { getSource: (e: Element) => SourceInfo | null };
+        };
         if (!g.__REACT_GRAB__) return null;
         return g.__REACT_GRAB__.getSource(el as Element);
       }, element);
@@ -254,12 +286,18 @@ export const createRefHelper = (getActivePage: () => Page): RefFunction => {
     }
   };
 
-  const getProps = async (refId: string): Promise<Record<string, unknown> | null> => {
+  const getProps = async (
+    refId: string,
+  ): Promise<Record<string, unknown> | null> => {
     const element = await getElement(refId);
     try {
       const currentPage = getActivePage();
       return await currentPage.evaluate((el) => {
-        const g = globalThis as { __REACT_GRAB_GET_PROPS__?: (e: Element) => Record<string, unknown> | null };
+        const g = globalThis as {
+          __REACT_GRAB_GET_PROPS__?: (
+            e: Element,
+          ) => Record<string, unknown> | null;
+        };
         if (!g.__REACT_GRAB_GET_PROPS__) return null;
         return g.__REACT_GRAB_GET_PROPS__(el as Element);
       }, element);
@@ -273,7 +311,9 @@ export const createRefHelper = (getActivePage: () => Page): RefFunction => {
     try {
       const currentPage = getActivePage();
       return await currentPage.evaluate((el) => {
-        const g = globalThis as { __REACT_GRAB_GET_STATE__?: (e: Element) => unknown[] | null };
+        const g = globalThis as {
+          __REACT_GRAB_GET_STATE__?: (e: Element) => unknown[] | null;
+        };
         if (!g.__REACT_GRAB_GET_STATE__) return null;
         return g.__REACT_GRAB_GET_STATE__(el as Element);
       }, element);
@@ -285,10 +325,13 @@ export const createRefHelper = (getActivePage: () => Page): RefFunction => {
   // HACK: Use Proxy to make ref() chainable with ElementHandle methods without awaiting first
   return (refId: string) => {
     const customMethods: Record<string, () => unknown> = {
-      then: () => (
-        resolve: (value: ElementHandle) => void,
-        reject: (error: Error) => void,
-      ) => getElement(refId).then(resolve, reject),
+      then:
+        () =>
+        (
+          resolve: (value: ElementHandle) => void,
+          reject: (error: Error) => void,
+        ) =>
+          getElement(refId).then(resolve, reject),
       source: () => () => getSource(refId),
       props: () => () => getProps(refId),
       state: () => () => getState(refId),
@@ -317,7 +360,12 @@ export const createRefHelper = (getActivePage: () => Page): RefFunction => {
           return async (...args: unknown[]) => {
             const element = await getElement(refId);
             try {
-              return await (element as unknown as Record<string, (...a: unknown[]) => unknown>)[prop](...args);
+              return await (
+                element as unknown as Record<
+                  string,
+                  (...a: unknown[]) => unknown
+                >
+              )[prop](...args);
             } finally {
               await element.dispose();
             }
@@ -345,11 +393,18 @@ export const createComponentHelper = (
           o?: { nth?: number },
         ) => Promise<Array<{ element: Element }> | { element: Element } | null>;
 
-        const g = globalThis as { __REACT_GRAB_FIND_BY_COMPONENT__?: FindByComponentFn };
+        const g = globalThis as {
+          __REACT_GRAB_FIND_BY_COMPONENT__?: FindByComponentFn;
+        };
         if (!g.__REACT_GRAB_FIND_BY_COMPONENT__) {
-          throw new Error("React introspection not available. Make sure react-grab is installed.");
+          throw new Error(
+            "React introspection not available. Make sure react-grab is installed.",
+          );
         }
-        const result = await g.__REACT_GRAB_FIND_BY_COMPONENT__(args.name, args.nth !== undefined ? { nth: args.nth } : undefined);
+        const result = await g.__REACT_GRAB_FIND_BY_COMPONENT__(
+          args.name,
+          args.nth !== undefined ? { nth: args.nth } : undefined,
+        );
         if (!result) return null;
         if (args.nth !== undefined) {
           const single = result as { element: Element };
@@ -361,7 +416,10 @@ export const createComponentHelper = (
       { name: componentName, nth },
     );
 
-    const isNull = await currentPage.evaluate((value) => value === null, elementHandles);
+    const isNull = await currentPage.evaluate(
+      (value) => value === null,
+      elementHandles,
+    );
     if (isNull) {
       await elementHandles.dispose();
       return null;
@@ -429,7 +487,8 @@ export const createDragHelper = (
       }) => {
         const fromElement = document.querySelector(fromSel);
         const toElement = document.querySelector(toSel);
-        if (!fromElement) throw new Error(`Source element not found: ${fromSel}`);
+        if (!fromElement)
+          throw new Error(`Source element not found: ${fromSel}`);
         if (!toElement) throw new Error(`Target element not found: ${toSel}`);
 
         const dataTransferObject = new DataTransfer();
@@ -518,11 +577,17 @@ export const createDispatchHelper = (
             for (const [type, value] of Object.entries(opts.dataTransfer)) {
               dataTransferObject.setData(type, value);
             }
-            return new DragEvent(eventType, { ...baseOpts, dataTransfer: dataTransferObject });
+            return new DragEvent(eventType, {
+              ...baseOpts,
+              dataTransfer: dataTransferObject,
+            });
           }
 
           if (opts.detail !== undefined) {
-            return new CustomEvent(eventType, { ...baseOpts, detail: opts.detail });
+            return new CustomEvent(eventType, {
+              ...baseOpts,
+              detail: opts.detail,
+            });
           }
 
           return new Event(eventType, baseOpts);
@@ -530,7 +595,11 @@ export const createDispatchHelper = (
 
         return element.dispatchEvent(createEvent());
       },
-      { sel: selector, eventType: event, opts: { bubbles, cancelable, dataTransfer, detail } },
+      {
+        sel: selector,
+        eventType: event,
+        opts: { bubbles, cancelable, dataTransfer, detail },
+      },
     );
   };
 };
@@ -556,7 +625,8 @@ export const createGrabHelper = (
     return currentPage.evaluate(
       ({ method, fallback }) => {
         type GrabMethods = Record<string, () => unknown>;
-        const grab = (globalThis as { __REACT_GRAB__?: GrabMethods }).__REACT_GRAB__;
+        const grab = (globalThis as { __REACT_GRAB__?: GrabMethods })
+          .__REACT_GRAB__;
         return (grab?.[method]?.() ?? fallback) as T;
       },
       { method: methodName, fallback: defaultValue },
@@ -575,7 +645,11 @@ export const createGrabHelper = (
       try {
         const currentPage = getActivePage();
         return await currentPage.evaluate((el) => {
-          const g = globalThis as { __REACT_GRAB__?: { copyElement: (e: Element[]) => Promise<boolean> } };
+          const g = globalThis as {
+            __REACT_GRAB__?: {
+              copyElement: (e: Element[]) => Promise<boolean>;
+            };
+          };
           return g.__REACT_GRAB__?.copyElement([el as Element]) ?? false;
         }, element);
       } finally {
@@ -597,7 +671,9 @@ export const createActivePageGetter = (
     const allPages = context.pages();
     if (allPages.length === 0) throw new Error("No pages available");
     const activePage = getActivePage();
-    return activePage && allPages.includes(activePage) ? activePage : allPages[allPages.length - 1];
+    return activePage && allPages.includes(activePage)
+      ? activePage
+      : allPages[allPages.length - 1];
   };
 };
 
@@ -609,17 +685,25 @@ export type WaitForFunction = (
 export const createWaitForHelper = (
   getActivePage: () => Page,
 ): WaitForFunction => {
-  return async (selectorOrState: string, options?: WaitForOptions): Promise<void> => {
+  return async (
+    selectorOrState: string,
+    options?: WaitForOptions,
+  ): Promise<void> => {
     const currentPage = getActivePage();
     const timeout = options?.timeout;
 
     if (LOAD_STATES.has(selectorOrState)) {
-      await currentPage.waitForLoadState(selectorOrState as "load" | "domcontentloaded" | "networkidle", { timeout });
+      await currentPage.waitForLoadState(
+        selectorOrState as "load" | "domcontentloaded" | "networkidle",
+        { timeout },
+      );
       return;
     }
 
     if (/^e\d+$/.test(selectorOrState)) {
-      await currentPage.waitForSelector(`[aria-ref="${selectorOrState}"]`, { timeout });
+      await currentPage.waitForSelector(`[aria-ref="${selectorOrState}"]`, {
+        timeout,
+      });
       return;
     }
 
@@ -628,7 +712,9 @@ export const createWaitForHelper = (
 };
 
 export interface BrowserConnection {
-  browser: Awaited<ReturnType<typeof import("playwright-core").chromium.connectOverCDP>>;
+  browser: Awaited<
+    ReturnType<typeof import("playwright-core").chromium.connectOverCDP>
+  >;
   page: Page;
   serverUrl: string;
 }

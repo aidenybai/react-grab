@@ -207,11 +207,12 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   const waitForActive = async (expectedState: boolean) => {
     await page.waitForFunction(
       (expected) => {
-        const api = (window as { __REACT_GRAB__?: { isActive: () => boolean } }).__REACT_GRAB__;
+        const api = (window as { __REACT_GRAB__?: { isActive: () => boolean } })
+          .__REACT_GRAB__;
         return api?.isActive() === expected;
       },
       expectedState,
-      { timeout: 2000 }
+      { timeout: 2000 },
     );
   };
 
@@ -283,21 +284,36 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   const waitForSelectionBox = async () => {
     await page.waitForFunction(
       () => {
-        const api = (window as { __REACT_GRAB__?: { getState: () => { isSelectionBoxVisible: boolean; targetElement: unknown } } }).__REACT_GRAB__;
+        const api = (
+          window as {
+            __REACT_GRAB__?: {
+              getState: () => {
+                isSelectionBoxVisible: boolean;
+                targetElement: unknown;
+              };
+            };
+          }
+        ).__REACT_GRAB__;
         const state = api?.getState();
         return state?.isSelectionBoxVisible || state?.targetElement !== null;
       },
-      { timeout: 2000 }
+      { timeout: 2000 },
     );
   };
 
   const waitForSelectionSource = async () => {
     await page.waitForFunction(
       () => {
-        const api = (window as { __REACT_GRAB__?: { getState: () => { selectionFilePath: string | null } } }).__REACT_GRAB__;
+        const api = (
+          window as {
+            __REACT_GRAB__?: {
+              getState: () => { selectionFilePath: string | null };
+            };
+          }
+        ).__REACT_GRAB__;
         return api?.getState()?.selectionFilePath !== null;
       },
-      { timeout: 5000 }
+      { timeout: 5000 },
     );
   };
 
@@ -358,7 +374,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         return expectedVisible ? menuItem !== null : menuItem === null;
       },
       { attrName: ATTRIBUTE_NAME, expectedVisible: visible },
-      { timeout: 2000 }
+      { timeout: 2000 },
     );
   };
 
@@ -485,7 +501,13 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const isSelectionBoxVisible = async (): Promise<boolean> => {
     return page.evaluate(() => {
-      const api = (window as { __REACT_GRAB__?: { getState: () => { isSelectionBoxVisible: boolean } } }).__REACT_GRAB__;
+      const api = (
+        window as {
+          __REACT_GRAB__?: {
+            getState: () => { isSelectionBoxVisible: boolean };
+          };
+        }
+      ).__REACT_GRAB__;
       return api?.getState()?.isSelectionBoxVisible ?? false;
     });
   };
@@ -493,23 +515,29 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   const scrollPage = async (deltaY: number) => {
     const scrollBefore = await page.evaluate(() => window.scrollY);
     await page.mouse.wheel(0, deltaY);
-    await page.waitForFunction(
-      (prevScroll) => window.scrollY !== prevScroll,
-      scrollBefore,
-      { timeout: 2000 }
-    ).catch(() => {
-      // Scroll may not change if at edge of page, that's okay
-    });
+    await page
+      .waitForFunction(
+        (prevScroll) => window.scrollY !== prevScroll,
+        scrollBefore,
+        { timeout: 2000 },
+      )
+      .catch(() => {
+        // Scroll may not change if at edge of page, that's okay
+      });
   };
 
   const waitForPromptMode = async (active: boolean) => {
     await page.waitForFunction(
       (expected) => {
-        const api = (window as { __REACT_GRAB__?: { getState: () => { isPromptMode: boolean } } }).__REACT_GRAB__;
+        const api = (
+          window as {
+            __REACT_GRAB__?: { getState: () => { isPromptMode: boolean } };
+          }
+        ).__REACT_GRAB__;
         return api?.getState()?.isPromptMode === expected;
       },
       active,
-      { timeout: 2000 }
+      { timeout: 2000 },
     );
   };
 
@@ -829,7 +857,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         return label !== null;
       },
       ATTRIBUTE_NAME,
-      { timeout: 2000 }
+      { timeout: 2000 },
     );
   };
 
@@ -897,13 +925,15 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const isCrosshairVisible = async (): Promise<boolean> => {
     return page.evaluate(() => {
-      const api = (window as {
-        __REACT_GRAB__?: {
-          getState: () => {
-            isCrosshairVisible: boolean;
+      const api = (
+        window as {
+          __REACT_GRAB__?: {
+            getState: () => {
+              isCrosshairVisible: boolean;
+            };
           };
-        };
-      }).__REACT_GRAB__;
+        }
+      ).__REACT_GRAB__;
 
       return api?.getState()?.isCrosshairVisible ?? false;
     });
@@ -911,17 +941,19 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const getGrabbedBoxInfo = async (): Promise<GrabbedBoxInfo> => {
     return page.evaluate(() => {
-      const api = (window as {
-        __REACT_GRAB__?: {
-          getState: () => {
-            grabbedBoxes: Array<{
-              id: string;
-              bounds: { x: number; y: number; width: number; height: number };
-              createdAt: number;
-            }>;
+      const api = (
+        window as {
+          __REACT_GRAB__?: {
+            getState: () => {
+              grabbedBoxes: Array<{
+                id: string;
+                bounds: { x: number; y: number; width: number; height: number };
+                createdAt: number;
+              }>;
+            };
           };
-        };
-      }).__REACT_GRAB__;
+        }
+      ).__REACT_GRAB__;
 
       const state = api?.getState();
       const grabbedBoxes = state?.grabbedBoxes ?? [];
@@ -938,13 +970,15 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const isGrabbedBoxVisible = async (): Promise<boolean> => {
     return page.evaluate(() => {
-      const api = (window as {
-        __REACT_GRAB__?: {
-          getState: () => {
-            grabbedBoxes: Array<{ id: string }>;
+      const api = (
+        window as {
+          __REACT_GRAB__?: {
+            getState: () => {
+              grabbedBoxes: Array<{ id: string }>;
+            };
           };
-        };
-      }).__REACT_GRAB__;
+        }
+      ).__REACT_GRAB__;
 
       const state = api?.getState();
       return (state?.grabbedBoxes?.length ?? 0) > 0;
@@ -958,7 +992,21 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     height: number;
   } | null> => {
     return page.evaluate(() => {
-      const api = (window as { __REACT_GRAB__?: { getState: () => { isDragBoxVisible: boolean; dragBounds: { x: number; y: number; width: number; height: number } | null } } }).__REACT_GRAB__;
+      const api = (
+        window as {
+          __REACT_GRAB__?: {
+            getState: () => {
+              isDragBoxVisible: boolean;
+              dragBounds: {
+                x: number;
+                y: number;
+                width: number;
+                height: number;
+              } | null;
+            };
+          };
+        }
+      ).__REACT_GRAB__;
       const state = api?.getState();
       if (!state?.isDragBoxVisible || !state?.dragBounds) return null;
       return state.dragBounds;
@@ -972,7 +1020,16 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     height: number;
   } | null> => {
     return page.evaluate(() => {
-      const api = (window as { __REACT_GRAB__?: { getState: () => { isSelectionBoxVisible: boolean; targetElement: Element | null } } }).__REACT_GRAB__;
+      const api = (
+        window as {
+          __REACT_GRAB__?: {
+            getState: () => {
+              isSelectionBoxVisible: boolean;
+              targetElement: Element | null;
+            };
+          };
+        }
+      ).__REACT_GRAB__;
       const state = api?.getState();
       if (!state?.isSelectionBoxVisible || !state?.targetElement) return null;
       const rect = state.targetElement.getBoundingClientRect();
@@ -1040,7 +1097,10 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         window as {
           __REACT_GRAB__?: {
             unregisterPlugin: (name: string) => void;
-            registerPlugin: (plugin: { name: string; actions: Array<Record<string, unknown>> }) => void;
+            registerPlugin: (plugin: {
+              name: string;
+              actions: Array<Record<string, unknown>>;
+            }) => void;
           };
         }
       ).__REACT_GRAB__;
@@ -1079,11 +1139,25 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
       const pluginKeys = ["theme", "actions"];
       const hookKeys = [
-        "onActivate", "onDeactivate", "onElementHover", "onElementSelect",
-        "onDragStart", "onDragEnd", "onBeforeCopy", "onAfterCopy",
-        "onCopySuccess", "onCopyError", "onStateChange", "onPromptModeChange",
-        "onSelectionBox", "onDragBox", "onCrosshair", "onGrabbedBox",
-        "onContextMenu", "onOpenFile", "onElementLabel",
+        "onActivate",
+        "onDeactivate",
+        "onElementHover",
+        "onElementSelect",
+        "onDragStart",
+        "onDragEnd",
+        "onBeforeCopy",
+        "onAfterCopy",
+        "onCopySuccess",
+        "onCopyError",
+        "onStateChange",
+        "onPromptModeChange",
+        "onSelectionBox",
+        "onDragBox",
+        "onCrosshair",
+        "onGrabbedBox",
+        "onContextMenu",
+        "onOpenFile",
+        "onElementLabel",
       ];
 
       const pluginOpts: Record<string, unknown> = {};
@@ -1127,10 +1201,13 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       ).initReactGrab;
       initFn?.(opts);
     }, options);
-    await page.waitForFunction(() => {
-      const api = (window as { __REACT_GRAB__?: unknown }).__REACT_GRAB__;
-      return api !== undefined;
-    }, { timeout: 2000 });
+    await page.waitForFunction(
+      () => {
+        const api = (window as { __REACT_GRAB__?: unknown }).__REACT_GRAB__;
+        return api !== undefined;
+      },
+      { timeout: 2000 },
+    );
   };
 
   const setupMockAgent = async (options?: {
@@ -1170,7 +1247,10 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         window as {
           __REACT_GRAB__?: {
             unregisterPlugin: (name: string) => void;
-            registerPlugin: (plugin: { name: string; actions: Array<Record<string, unknown>> }) => void;
+            registerPlugin: (plugin: {
+              name: string;
+              actions: Array<Record<string, unknown>>;
+            }) => void;
           };
         }
       ).__REACT_GRAB__;
@@ -1247,17 +1327,24 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         if (!shadowRoot) return false;
         const root = shadowRoot.querySelector(`[${attrName}]`);
         if (!root) return false;
-        const sessionElements = Array.from(root.querySelectorAll("[data-react-grab-ignore-events]"));
+        const sessionElements = Array.from(
+          root.querySelectorAll("[data-react-grab-ignore-events]"),
+        );
         for (let i = 0; i < sessionElements.length; i++) {
           const text = sessionElements[i].textContent ?? "";
-          if (text.includes("Processing") || text.includes("Completed") || text.includes("Error") || text.includes("Grabbing")) {
+          if (
+            text.includes("Processing") ||
+            text.includes("Completed") ||
+            text.includes("Error") ||
+            text.includes("Grabbing")
+          ) {
             return true;
           }
         }
         return false;
       },
       ATTRIBUTE_NAME,
-      { timeout }
+      { timeout },
     );
   };
 
@@ -1269,12 +1356,19 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         if (!shadowRoot) return false;
         const root = shadowRoot.querySelector(`[${attrName}]`);
         if (!root) return false;
-        const sessionElements = Array.from(root.querySelectorAll("[data-react-grab-ignore-events]"));
+        const sessionElements = Array.from(
+          root.querySelectorAll("[data-react-grab-ignore-events]"),
+        );
         let hasSession = false;
         let isStreaming = false;
         for (let i = 0; i < sessionElements.length; i++) {
           const text = sessionElements[i].textContent ?? "";
-          if (text.includes("Processing") || text.includes("Completed") || text.includes("Error") || text.includes("Grabbing")) {
+          if (
+            text.includes("Processing") ||
+            text.includes("Completed") ||
+            text.includes("Error") ||
+            text.includes("Grabbing")
+          ) {
             hasSession = true;
             if (text.includes("Processing") || text.includes("Grabbing")) {
               isStreaming = true;
@@ -1284,7 +1378,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         return hasSession && !isStreaming;
       },
       ATTRIBUTE_NAME,
-      { timeout }
+      { timeout },
     );
   };
 
@@ -1466,9 +1560,10 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     await page.setViewportSize({ width, height });
     await page.waitForFunction(
       ({ expectedWidth, expectedHeight }) =>
-        window.innerWidth === expectedWidth && window.innerHeight === expectedHeight,
+        window.innerWidth === expectedWidth &&
+        window.innerHeight === expectedHeight,
       { expectedWidth: width, expectedHeight: height },
-      { timeout: 2000 }
+      { timeout: 2000 },
     );
   };
 
@@ -1490,7 +1585,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     await page.waitForFunction(
       (sel) => document.querySelector(sel) === null,
       selector,
-      { timeout: 2000 }
+      { timeout: 2000 },
     );
   };
 
@@ -1553,7 +1648,10 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         window as {
           __REACT_GRAB__?: {
             unregisterPlugin: (name: string) => void;
-            registerPlugin: (plugin: { name: string; hooks: Record<string, unknown> }) => void;
+            registerPlugin: (plugin: {
+              name: string;
+              hooks: Record<string, unknown>;
+            }) => void;
           };
         }
       ).__REACT_GRAB__;
@@ -1622,11 +1720,13 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   ): Promise<unknown[]> => {
     await page.waitForFunction(
       (callbackName) => {
-        const history = (window as { __CALLBACK_HISTORY__?: Array<{ name: string }> }).__CALLBACK_HISTORY__ ?? [];
+        const history =
+          (window as { __CALLBACK_HISTORY__?: Array<{ name: string }> })
+            .__CALLBACK_HISTORY__ ?? [];
         return history.some((c) => c.name === callbackName);
       },
       name,
-      { timeout }
+      { timeout },
     );
     const history = await getCallbackHistory();
     const callback = history.find((c) => c.name === name);
@@ -1739,10 +1839,13 @@ export const test = base.extend<{ reactGrab: ReactGrabPageObject }>({
   reactGrab: async ({ page }, use) => {
     await page.goto("/");
     await page.waitForLoadState("domcontentloaded");
-    await page.waitForFunction(() => {
-      const api = (window as { __REACT_GRAB__?: unknown }).__REACT_GRAB__;
-      return api !== undefined;
-    }, { timeout: 5000 });
+    await page.waitForFunction(
+      () => {
+        const api = (window as { __REACT_GRAB__?: unknown }).__REACT_GRAB__;
+        return api !== undefined;
+      },
+      { timeout: 5000 },
+    );
     const reactGrab = createReactGrabPageObject(page);
     await use(reactGrab);
   },

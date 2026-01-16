@@ -43,20 +43,28 @@ const configureMcp = (
 ): void => {
   const mcpCommand = customPkg
     ? `npx -y ${customPkg} browser mcp`
-    : `npx -y @react-grab/cli browser mcp`;
-  const mcpSpinner = spinner(`Installing MCP server for ${MCP_CLIENT_NAMES[mcpClient]}`).start();
+    : `npx -y grab browser mcp`;
+  const mcpSpinner = spinner(
+    `Installing MCP server for ${MCP_CLIENT_NAMES[mcpClient]}`,
+  ).start();
 
   try {
-    execSync(
-      `npx -y install-mcp '${mcpCommand}' --client ${mcpClient} --yes`,
-      { stdio: "ignore", cwd },
+    execSync(`npx -y install-mcp '${mcpCommand}' --client ${mcpClient} --yes`, {
+      stdio: "ignore",
+      cwd,
+    });
+    mcpSpinner.succeed(
+      `MCP server installed for ${MCP_CLIENT_NAMES[mcpClient]}`,
     );
-    mcpSpinner.succeed(`MCP server installed for ${MCP_CLIENT_NAMES[mcpClient]}`);
     logger.break();
     process.exit(0);
   } catch {
-    mcpSpinner.fail(`Failed to configure MCP for ${MCP_CLIENT_NAMES[mcpClient]}`);
-    logger.dim(`Try manually: npx -y install-mcp '${mcpCommand}' --client ${mcpClient}`);
+    mcpSpinner.fail(
+      `Failed to configure MCP for ${MCP_CLIENT_NAMES[mcpClient]}`,
+    );
+    logger.dim(
+      `Try manually: npx -y install-mcp '${mcpCommand}' --client ${mcpClient}`,
+    );
     logger.break();
     process.exit(1);
   }
@@ -75,7 +83,9 @@ const installSkill = (agent: SkillAgent, cwd: string): void => {
     process.exit(0);
   } catch {
     skillSpinner.fail(`Failed to install skill for ${agent.name}`);
-    logger.warn(`Try manually: npx -y add-skill aidenybai/react-grab --agent ${agent.id}`);
+    logger.warn(
+      `Try manually: npx -y add-skill aidenybai/react-grab --agent ${agent.id}`,
+    );
     logger.break();
     process.exit(1);
   }
@@ -85,19 +95,13 @@ export const add = new Command()
   .name("add")
   .alias("install")
   .description("add browser automation for your AI agent")
-  .argument(
-    "[agent]",
-    `agent to add (${AGENTS.join(", ")}, mcp, skill)`,
-  )
+  .argument("[agent]", `agent to add (${AGENTS.join(", ")}, mcp, skill)`)
   .option("-y, --yes", "skip confirmation prompts", false)
   .option(
     "--client <client>",
     "MCP client to configure (cursor, claude-code, vscode, etc.)",
   )
-  .option(
-    "--pkg <pkg>",
-    "custom package URL for CLI (e.g., @react-grab/cli)",
-  )
+  .option("--pkg <pkg>", "custom package URL for CLI (e.g., grab)")
   .option(
     "-c, --cwd <cwd>",
     "working directory (defaults to current directory)",
@@ -168,7 +172,9 @@ export const add = new Command()
         if (clientArg && !selectedAgent) {
           logger.break();
           logger.error(`Invalid skill agent: ${clientArg}`);
-          logger.error(`Available agents: ${SKILL_AGENTS.map((a) => a.id).join(", ")}`);
+          logger.error(
+            `Available agents: ${SKILL_AGENTS.map((a) => a.id).join(", ")}`,
+          );
           logger.break();
           process.exit(1);
         }
@@ -177,7 +183,9 @@ export const add = new Command()
           if (detectedAgents.length === 0) {
             logger.break();
             logger.warn("No supported agent folders detected.");
-            logger.log("Supported agents: " + SKILL_AGENTS.map((a) => a.id).join(", "));
+            logger.log(
+              "Supported agents: " + SKILL_AGENTS.map((a) => a.id).join(", "),
+            );
             logger.break();
             process.exit(0);
           }
@@ -207,7 +215,9 @@ export const add = new Command()
         if (!selectedAgent) {
           logger.break();
           logger.error("Please specify an agent with --client");
-          logger.error(`Available agents: ${SKILL_AGENTS.map((a) => a.id).join(", ")}`);
+          logger.error(
+            `Available agents: ${SKILL_AGENTS.map((a) => a.id).join(", ")}`,
+          );
           logger.break();
           process.exit(1);
         }
@@ -262,7 +272,11 @@ export const add = new Command()
             process.exit(1);
           }
 
-          configureMcp(client as McpClient, cwd, opts.pkg as string | undefined);
+          configureMcp(
+            client as McpClient,
+            cwd,
+            opts.pkg as string | undefined,
+          );
         }
 
         if (addType === "skill") {
@@ -271,7 +285,9 @@ export const add = new Command()
           if (detectedAgents.length === 0) {
             logger.break();
             logger.warn("No supported agent folders detected.");
-            logger.log("Supported agents: " + SKILL_AGENTS.map((a) => a.id).join(", "));
+            logger.log(
+              "Supported agents: " + SKILL_AGENTS.map((a) => a.id).join(", "),
+            );
             logger.break();
             process.exit(0);
           }

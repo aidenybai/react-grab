@@ -1,6 +1,10 @@
 import { createOpencode } from "@opencode-ai/sdk";
 import fkill from "fkill";
-import type { AgentHandler, AgentMessage, AgentRunOptions } from "@react-grab/relay";
+import type {
+  AgentHandler,
+  AgentMessage,
+  AgentRunOptions,
+} from "@react-grab/relay";
 import { COMPLETED_STATUS, POST_KILL_DELAY_MS } from "@react-grab/relay";
 import { sleep } from "@react-grab/utils/server";
 import { OPENCODE_SDK_PORT, STATUS_TEXT_TRUNCATE_LENGTH } from "./constants.js";

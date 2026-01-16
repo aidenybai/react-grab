@@ -37,12 +37,12 @@
     },
     "./core": {
       "import": {
-        "types": "./dist/core.d.ts",
-        "default": "./dist/core.js"
+        "types": "./dist/core/index.d.ts",
+        "default": "./dist/core/index.js"
       },
       "require": {
-        "types": "./dist/core.d.cts",
-        "default": "./dist/core.cjs"
+        "types": "./dist/core/index.d.cts",
+        "default": "./dist/core/index.cjs"
       }
     },
     "./dist/*": "./dist/*.js",
@@ -51,13 +51,14 @@
     "./dist/*.mjs": "./dist/*.mjs"
   },
   "bin": {
-    "grab": "./dist/cli.cjs"
+    "grab": "./bin/cli.js"
   },
   "main": "dist/index.js",
   "module": "dist/index.js",
   "browser": "dist/index.global.js",
   "types": "dist/index.d.ts",
   "files": [
+    "bin",
     "dist",
     "package.json",
     "README.md",
@@ -65,6 +66,9 @@
   ],
   "scripts": {
     "build": "node scripts/build.js"
+  },
+  "dependencies": {
+    "@react-grab/cli": "workspace:*"
   },
   "publishConfig": {
     "access": "public"

@@ -153,8 +153,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     });
   });
 
-  const handleToggleEnabled = createDragAwareHandler(
-    () => props.onToggleEnabled?.(),
+  const handleToggleEnabled = createDragAwareHandler(() =>
+    props.onToggleEnabled?.(),
   );
 
   const getSnapPosition = (
