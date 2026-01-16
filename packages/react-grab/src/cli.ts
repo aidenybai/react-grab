@@ -3,13 +3,25 @@ import { execSync, spawnSync } from "node:child_process";
 const version = process.env.VERSION ?? "latest";
 const packageSpec = `grab@${version}`;
 
-const isGrabInstalled = (): boolean => {
+const getInstalledGrabVersion = (): string | null => {
   try {
-    execSync("grab --version", { stdio: "ignore" });
-    return true;
+    const output = execSync("grab --version", { encoding: "utf-8" });
+    const match = output.match(/(\d+\.\d+\.\d+)/);
+    return match ? match[1] : null;
   } catch {
-    return false;
+    return null;
   }
+};
+
+const needsInstall = (): boolean => {
+  const installedVersion = getInstalledGrabVersion();
+  if (!installedVersion) {
+    return true;
+  }
+  if (version !== "latest" && /^\d+\.\d+\.\d+$/.test(version)) {
+    return installedVersion !== version;
+  }
+  return true;
 };
 
 const detectPackageManager = (): string => {
@@ -48,10 +60,20 @@ const installGrab = (): void => {
 
   console.log(`Installing ${packageSpec}...`);
   execSync(`${globalCommand} ${packageSpec}`, { stdio: "inherit" });
-  execSync(`${localCommand} ${packageSpec}`, { stdio: "ignore" });
+  try {
+    execSync(`${localCommand} ${packageSpec}`, { stdio: "pipe" });
+  } catch (error) {
+    const err = error as { stderr?: Buffer };
+    const stderr = err.stderr?.toString().trim();
+    if (stderr) {
+      console.error(`Failed to install ${packageSpec} locally:\n${stderr}`);
+    } else {
+      console.error(`Failed to install ${packageSpec} locally`);
+    }
+  }
 };
 
-if (!isGrabInstalled()) {
+if (needsInstall()) {
   installGrab();
 }
 

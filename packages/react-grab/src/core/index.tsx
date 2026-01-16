@@ -2263,7 +2263,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    const handleContextMenuCopyHtml = () => {
+    const handleContextMenuCopyHtml = async () => {
       const element = store.contextMenuElement;
       if (!element) return;
 
@@ -2294,10 +2294,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           frozenElements.length > 1 ? frozenElements : undefined,
         );
 
-        void navigator.clipboard.writeText(html).then(
-          () => updateLabelInstance(instanceId, "copied"),
-          () => updateLabelInstance(instanceId, "error", "Failed to copy"),
-        );
+        try {
+          await navigator.clipboard.writeText(html);
+          updateLabelInstance(instanceId, "copied");
+        } catch {
+          updateLabelInstance(instanceId, "error", "Failed to copy");
+        }
 
         setTimeout(() => {
           updateLabelInstance(instanceId, "fading");
@@ -2508,7 +2510,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onContextMenuCopyScreenshot={() =>
               void handleContextMenuCopyScreenshot()
             }
-            onContextMenuCopyHtml={handleContextMenuCopyHtml}
+            onContextMenuCopyHtml={() => void handleContextMenuCopyHtml()}
             onContextMenuOpen={handleContextMenuOpen}
             onContextMenuDismiss={handleContextMenuDismiss}
             onContextMenuHide={handleContextMenuHide}
