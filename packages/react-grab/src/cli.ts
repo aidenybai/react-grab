@@ -1,90 +1,113 @@
-import { execSync, spawnSync } from "node:child_process";
+import { exec, execSync, spawn, spawnSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
 
 const version = process.env.VERSION ?? "latest";
-const packageSpec = `grab@${version}`;
+const cliPackage =
+  version === "latest" || version === "[DEV]"
+    ? "@react-grab/cli"
+    : `@react-grab/cli@${version}`;
 
-const getInstalledGrabVersion = (): string | null => {
+const withLoader = <T>(fn: () => Promise<T>): Promise<T> => {
+  const frames = ["|", "/", "-", "\\"];
+  let i = 0;
+
+  process.stdout.write(frames[0]);
+  const interval = setInterval(() => {
+    i = (i + 1) % frames.length;
+    process.stdout.write(`\r${frames[i]}`);
+  }, 80);
+
+  return fn().finally(() => {
+    clearInterval(interval);
+    process.stdout.write("\r \r");
+  });
+};
+
+const getGlobalRoot = (): string | null => {
   try {
-    const output = execSync("grab --version", { encoding: "utf-8" });
-    const match = output.match(/(\d+\.\d+\.\d+)/);
-    return match ? match[1] : null;
+    return execSync("npm root -g", { encoding: "utf-8" }).trim();
   } catch {
     return null;
   }
 };
 
-const needsInstall = (): boolean => {
-  const installedVersion = getInstalledGrabVersion();
-  if (!installedVersion) {
-    return true;
-  }
-  if (version !== "latest" && /^\d+\.\d+\.\d+$/.test(version)) {
-    return installedVersion !== version;
-  }
-  return false;
+const getGlobalCliPath = (globalRoot: string | null): string | null => {
+  if (!globalRoot) return null;
+  const cliPath = `${globalRoot}/@react-grab/cli/dist/cli.js`;
+  return existsSync(cliPath) ? cliPath : null;
 };
 
-const detectPackageManager = (): string => {
-  const managers = ["pnpm", "yarn", "bun"] as const;
-
-  for (const manager of managers) {
-    try {
-      execSync(`${manager} --version`, { stdio: "ignore" });
-      return manager;
-    } catch {
-      continue;
-    }
-  }
-  return "npm";
-};
-
-const installGrab = (): void => {
-  const packageManager = detectPackageManager();
-
-  const globalCommands: Record<string, string> = {
-    npm: "npm install -g",
-    yarn: "yarn global add",
-    pnpm: "pnpm add -g",
-    bun: "bun add -g",
-  };
-
-  const localCommands: Record<string, string> = {
-    npm: "npm install -D",
-    yarn: "yarn add -D",
-    pnpm: "pnpm add -D",
-    bun: "bun add -D",
-  };
-
-  const globalCommand = globalCommands[packageManager];
-  const localCommand = localCommands[packageManager];
-
-  console.log(`Installing ${packageSpec}…`);
-  execSync(`${globalCommand} ${packageSpec}`, { stdio: "inherit" });
+const getInstalledVersion = (globalRoot: string | null): string | null => {
+  if (!globalRoot) return null;
+  const pkgPath = `${globalRoot}/@react-grab/cli/package.json`;
+  if (!existsSync(pkgPath)) return null;
   try {
-    execSync(`${localCommand} ${packageSpec}`, { stdio: "pipe" });
-  } catch (error) {
-    const err = error as { stderr?: Buffer };
-    const stderr = err.stderr?.toString().trim();
-    if (stderr) {
-      console.error(`Failed to install ${packageSpec} locally:\n${stderr}`);
-    } else {
-      console.error(`Failed to install ${packageSpec} locally`);
-    }
+    const pkg = JSON.parse(readFileSync(pkgPath, "utf-8")) as {
+      version: string;
+    };
+    return pkg.version;
+  } catch {
+    return null;
   }
 };
 
-if (needsInstall()) {
-  installGrab();
-}
+const installCli = (): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const child = spawn("npm", ["install", "-g", cliPackage], {
+      stdio: "pipe",
+    });
+    child.on("close", (code) =>
+      code === 0 ? resolve() : reject(new Error("Install failed")),
+    );
+    child.on("error", (err) => reject(err));
+  });
+};
 
-const result = spawnSync("grab", process.argv.slice(2), {
-  stdio: "inherit",
-  shell: process.platform === "win32",
-});
+const updateCliInBackground = (): void => {
+  exec(`npm install -g ${cliPackage}`);
+};
 
-if (result.error) {
-  console.error(`Failed to execute grab: ${result.error.message}`);
-  process.exit(1);
-}
+const main = async (): Promise<void> => {
+  const globalRoot = getGlobalRoot();
+  let cliPath = getGlobalCliPath(globalRoot);
 
-process.exit(result.status ?? 0);
+  if (!cliPath) {
+    try {
+      await withLoader(installCli);
+    } catch {
+      console.error("Setup failed. Please try again.");
+      process.exit(1);
+    }
+    cliPath = getGlobalCliPath(getGlobalRoot());
+  } else {
+    const installedVersion = getInstalledVersion(globalRoot);
+    const targetVersion =
+      version === "latest" || version === "[DEV]" ? null : version;
+
+    if (targetVersion && installedVersion !== targetVersion) {
+      updateCliInBackground();
+    }
+  }
+
+  if (!cliPath) {
+    console.error("Setup failed. Please try again.");
+    process.exit(1);
+  }
+
+  const result = spawnSync(
+    process.execPath,
+    [cliPath, ...process.argv.slice(2)],
+    {
+      stdio: "inherit",
+    },
+  );
+
+  if (result.error) {
+    console.error("Setup failed. Please try again.");
+    process.exit(1);
+  }
+
+  process.exit(result.status ?? 0);
+};
+
+void main();

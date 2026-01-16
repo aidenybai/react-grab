@@ -92,9 +92,6 @@ importers:
         specifier: ^4.3.5
         version: 4.3.5
     devDependencies:
-      '@bomb.sh/tab':
-        specifier: ^0.0.11
-        version: 0.0.11(cac@6.7.14)(citty@0.1.6)(commander@14.0.2)
       '@types/prompts':
         specifier: ^2.4.9
         version: 2.4.9
@@ -526,6 +523,9 @@ importers:
 
   packages/react-grab:
     dependencies:
+      '@react-grab/cli':
+        specifier: workspace:*
+        version: link:../cli
       bippy:
         specifier: ^0.5.28
         version: 0.5.28(@types/react@19.2.7)(react@19.2.1)
@@ -1023,21 +1023,6 @@ packages:
   '@babel/types@7.28.5':
     resolution: {integrity: sha512-qQ5m48eI/MFLQ5PxQj4PFaprjyCTLI37ElWMmNs0K8Lk3dVeOdNpB3ks8jc7yM5CDmVC73eMVk/trk3fgmrUpA==}
     engines: {node: '>=6.9.0'}
-
-  '@bomb.sh/tab@0.0.11':
-    resolution: {integrity: sha512-RSqyreeicYBALcMaNxIUJTBknftXsyW45VRq5gKDNwKroh0Re5SDoWwXZaphb+OTEzVdpm/BA8Uq6y0P+AtVYw==}
-    hasBin: true
-    peerDependencies:
-      cac: ^6.7.14
-      citty: ^0.1.6
-      commander: ^13.1.0
-    peerDependenciesMeta:
-      cac:
-        optional: true
-      citty:
-        optional: true
-      commander:
-        optional: true
 
   '@changesets/apply-release-plan@7.0.13':
     resolution: {integrity: sha512-BIW7bofD2yAWoE8H4V40FikC+1nNFEKBisMECccS16W1rt6qqhNTBDmIw5HaqmMgtLNz9e7oiALiEUuKrQ4oHg==}
@@ -2883,8 +2868,8 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
-  '@sourcegraph/amp@0.0.1768464102-g380bef':
-    resolution: {integrity: sha512-frK27Nz/kO7BlGDl/80BxSNxGfnaUV10XjTWVzfeoJ8/WuFRuD0IRZHR4BWGNH3yKOLXM0BUc5PB+nfhwALCwg==}
+  '@sourcegraph/amp@0.0.1768554974-g72fa5b':
+    resolution: {integrity: sha512-GuPdNvBaMdvmmyCy0/mSeFSLoOVYAGIGI9LdhFPV/OnGYa309zPdbXHx7ZvShgifRPtz7VPYxgtU59yvI0aipA==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -7588,12 +7573,6 @@ snapshots:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.28.5
 
-  '@bomb.sh/tab@0.0.11(cac@6.7.14)(citty@0.1.6)(commander@14.0.2)':
-    optionalDependencies:
-      cac: 6.7.14
-      citty: 0.1.6
-      commander: 14.0.2
-
   '@changesets/apply-release-plan@7.0.13':
     dependencies:
       '@changesets/config': 3.1.1
@@ -9132,14 +9111,14 @@ snapshots:
 
   '@sourcegraph/amp-sdk@0.1.0-20251210081226-g90e3892':
     dependencies:
-      '@sourcegraph/amp': 0.0.1768464102-g380bef
+      '@sourcegraph/amp': 0.0.1768554974-g72fa5b
       zod: 3.25.76
 
   '@sourcegraph/amp@0.0.1767830505-ga62310':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
-  '@sourcegraph/amp@0.0.1768464102-g380bef':
+  '@sourcegraph/amp@0.0.1768554974-g72fa5b':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
