@@ -188,7 +188,7 @@ export const init = new Command()
   .option("--skip-install", "skip package installation", false)
   .option(
     "--pkg <pkg>",
-    "custom package URL for CLI (e.g., @react-grab/cli)",
+    "custom package URL for CLI (e.g., grab)",
   )
   .option(
     "-c, --cwd <cwd>",

@@ -16,11 +16,9 @@ const getPackageVersion = (): string =>
   (JSON.parse(fs.readFileSync("package.json", "utf8")) as { version: string })
     .version;
 
-const isVercel = Boolean(process.env.VERCEL);
-
 const version =
   process.env.VERSION ??
-  (isVercel
+  (process.env.VERCEL
     ? getCommitHash()
     : process.env.NODE_ENV === "production"
       ? getPackageVersion()
@@ -114,27 +112,4 @@ const libraryBuildConfig: Options = {
   ],
 };
 
-const cliBuildConfig: Options = {
-  ...DEFAULT_OPTIONS,
-  banner: undefined,
-  clean: false,
-  dts: false,
-  entry: { cli: "./src/cli.ts" },
-  format: ["cjs"],
-  noExternal: [],
-  outDir: "./dist",
-  platform: "node",
-  splitting: false,
-  esbuildOptions(options) {
-    options.banner = {
-      js: "#!/usr/bin/env node",
-    };
-  },
-};
-
-// note: we skip CLI build on Vercel - it's not needed for the website and causes build to fail
-export default defineConfig(
-  isVercel
-    ? [browserBuildConfig, libraryBuildConfig]
-    : [browserBuildConfig, libraryBuildConfig, cliBuildConfig],
-);
+export default defineConfig([browserBuildConfig, libraryBuildConfig]);

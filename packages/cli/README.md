@@ -5,7 +5,7 @@ Interactive CLI to install React Grab in your project.
 ## Usage
 
 ```bash
-npx @react-grab/cli
+npx grab
 ```
 
 ### Interactive Mode (default)
@@ -13,7 +13,7 @@ npx @react-grab/cli
 Running without options starts the interactive wizard:
 
 ```bash
-npx @react-grab/cli
+npx grab
 ```
 
 ### Non-Interactive Mode
@@ -22,13 +22,13 @@ Pass options to skip prompts:
 
 ```bash
 # Auto-detect everything and install without prompts
-npx @react-grab/cli -y
+npx grab -y
 
 # Specify framework
-npx @react-grab/cli -f next -r app -y
+npx grab -f next -r app -y
 
 # Use specific package manager
-npx @react-grab/cli -p pnpm -y
+npx grab -p pnpm -y
 ```
 
 ## Options
@@ -47,19 +47,19 @@ npx @react-grab/cli -p pnpm -y
 
 ```bash
 # Interactive setup
-npx @react-grab/cli
+npx grab
 
 # Quick install with auto-detection
-npx @react-grab/cli -y
+npx grab -y
 
 # Next.js App Router
-npx @react-grab/cli -f next -r app -y
+npx grab -f next -r app -y
 
 # Vite with pnpm
-npx @react-grab/cli -f vite -p pnpm -y
+npx grab -f vite -p pnpm -y
 
 # Only modify files (skip npm install)
-npx @react-grab/cli --skip-install -y
+npx grab --skip-install -y
 ```
 
 ## Supported Frameworks

@@ -52,9 +52,6 @@
     "./dist/*.cjs": "./dist/*.cjs",
     "./dist/*.mjs": "./dist/*.mjs"
   },
-  "bin": {
-    "react-grab": "./dist/cli.cjs"
-  },
   "main": "dist/index.js",
   "module": "dist/index.js",
   "browser": "dist/index.global.js",

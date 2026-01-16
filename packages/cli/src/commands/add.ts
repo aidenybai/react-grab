@@ -43,7 +43,7 @@ const configureMcp = (
 ): void => {
   const mcpCommand = customPkg
     ? `npx -y ${customPkg} browser mcp`
-    : `npx -y @react-grab/cli browser mcp`;
+    : `npx -y grab browser mcp`;
   const mcpSpinner = spinner(`Installing MCP server for ${MCP_CLIENT_NAMES[mcpClient]}`).start();
 
   try {
@@ -96,7 +96,7 @@ export const add = new Command()
   )
   .option(
     "--pkg <pkg>",
-    "custom package URL for CLI (e.g., @react-grab/cli)",
+    "custom package URL for CLI (e.g., grab)",
   )
   .option(
     "-c, --cwd <cwd>",

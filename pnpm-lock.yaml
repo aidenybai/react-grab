@@ -142,7 +142,11 @@ importers:
         specifier: ^6.0.2
         version: 6.4.1(@types/node@24.10.2)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.37.0)(tsx@4.20.6)(yaml@2.8.1)
 
-  packages/grab: {}
+  packages/grab:
+    dependencies:
+      '@react-grab/cli':
+        specifier: workspace:*
+        version: link:../cli
 
   packages/gym:
     dependencies:
@@ -523,9 +527,6 @@ importers:
 
   packages/react-grab:
     dependencies:
-      '@react-grab/cli':
-        specifier: workspace:*
-        version: link:../cli
       bippy:
         specifier: ^0.5.28
         version: 0.5.28(@types/react@19.2.7)(react@19.2.1)
@@ -2868,8 +2869,8 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
-  '@sourcegraph/amp@0.0.1768554974-g72fa5b':
-    resolution: {integrity: sha512-GuPdNvBaMdvmmyCy0/mSeFSLoOVYAGIGI9LdhFPV/OnGYa309zPdbXHx7ZvShgifRPtz7VPYxgtU59yvI0aipA==}
+  '@sourcegraph/amp@0.0.1768579311-g11fa57':
+    resolution: {integrity: sha512-hpElyrXiA/IS0yzCa5X7dpW0Cl/LNaITAHRVuFJ6CK53R77oMRPWq5ntktuQulS4e+UQVWzWVzCVXBsH4UeMKA==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -9111,14 +9112,14 @@ snapshots:
 
   '@sourcegraph/amp-sdk@0.1.0-20251210081226-g90e3892':
     dependencies:
-      '@sourcegraph/amp': 0.0.1768554974-g72fa5b
+      '@sourcegraph/amp': 0.0.1768579311-g11fa57
       zod: 3.25.76
 
   '@sourcegraph/amp@0.0.1767830505-ga62310':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
-  '@sourcegraph/amp@0.0.1768554974-g72fa5b':
+  '@sourcegraph/amp@0.0.1768579311-g11fa57':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 

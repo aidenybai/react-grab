@@ -164,7 +164,7 @@ Or add it manually to your `mcp.json` file:
   "mcpServers": {
     "react-grab-browser": {
       "command": "npx",
-      "args": ["-y", "@react-grab/cli", "browser", "mcp"]
+      "args": ["-y", "grab", "browser", "mcp"]
     }
   }
 }

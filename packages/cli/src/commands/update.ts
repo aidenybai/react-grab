@@ -7,7 +7,7 @@ import { spinner } from "../utils/spinner.js";
 import { highlighter } from "../utils/highlighter.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
-const UPDATE_COMMAND = "npm install -g @react-grab/cli@latest";
+const UPDATE_COMMAND = "npm install -g grab@latest";
 
 const getLatestVersion = (): string | null => {
   try {
