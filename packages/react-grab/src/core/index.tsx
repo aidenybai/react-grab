@@ -2269,7 +2269,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const frozenElements = [...store.frozenElements];
       const elementsToUse =
-        frozenElements.length > 0 ? frozenElements : [element];
+        frozenElements.length > 1 ? frozenElements : [element];
 
       const html = elementsToUse
         .map((el) => (el as HTMLElement).outerHTML)

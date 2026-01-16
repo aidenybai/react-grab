@@ -1,10 +1,27 @@
 import { isValidGrabbableElement } from "./is-valid-grabbable-element.js";
 
+let overrideStyle: HTMLStyleElement | null = null;
+
+export const enablePointerEventsOverride = (): void => {
+  if (overrideStyle) return;
+  overrideStyle = document.createElement("style");
+  overrideStyle.textContent = "* { pointer-events: auto !important; }";
+  document.head.appendChild(overrideStyle);
+};
+
+export const disablePointerEventsOverride = (): void => {
+  if (!overrideStyle) return;
+  overrideStyle.remove();
+  overrideStyle = null;
+};
+
 export const getElementAtPosition = (
   clientX: number,
   clientY: number,
 ): Element | null => {
+  enablePointerEventsOverride();
   const elementsAtPoint = document.elementsFromPoint(clientX, clientY);
+  disablePointerEventsOverride();
 
   for (const candidateElement of elementsAtPoint) {
     if (isValidGrabbableElement(candidateElement)) {

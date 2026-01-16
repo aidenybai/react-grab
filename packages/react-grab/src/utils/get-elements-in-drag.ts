@@ -1,4 +1,8 @@
 import type { DragRect, Rect } from "../types.js";
+import {
+  enablePointerEventsOverride,
+  disablePointerEventsOverride,
+} from "./get-element-at-position.js";
 
 const DRAG_COVERAGE_THRESHOLD = 0.75;
 const SAMPLE_SPACING_PX = 24;
@@ -135,12 +139,14 @@ const filterElementsInDrag = (
   const candidates = new Set<Element>();
   const samplePoints = createSamplePoints(dragRect);
 
+  enablePointerEventsOverride();
   for (const point of samplePoints) {
     const elementsAtPoint = document.elementsFromPoint(point.x, point.y);
     for (const candidateElement of elementsAtPoint) {
       candidates.add(candidateElement);
     }
   }
+  disablePointerEventsOverride();
 
   const matchingElements: Element[] = [];
 
