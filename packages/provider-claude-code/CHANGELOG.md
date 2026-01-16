@@ -1,5 +1,14 @@
 # @react-grab/claude-code
 
+## 0.1.0-beta.6
+
+### Patch Changes
+
+- fix: optimize loading speed of cli
+- Updated dependencies
+  - react-grab@0.1.0-beta.6
+  - @react-grab/relay@0.1.0-beta.6
+
 ## 0.1.0-beta.5
 
 ### Patch Changes
