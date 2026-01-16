@@ -140,13 +140,16 @@ const filterElementsInDrag = (
   const samplePoints = createSamplePoints(dragRect);
 
   enablePointerEventsOverride();
-  for (const point of samplePoints) {
-    const elementsAtPoint = document.elementsFromPoint(point.x, point.y);
-    for (const candidateElement of elementsAtPoint) {
-      candidates.add(candidateElement);
+  try {
+    for (const point of samplePoints) {
+      const elementsAtPoint = document.elementsFromPoint(point.x, point.y);
+      for (const candidateElement of elementsAtPoint) {
+        candidates.add(candidateElement);
+      }
     }
+  } finally {
+    disablePointerEventsOverride();
   }
-  disablePointerEventsOverride();
 
   const matchingElements: Element[] = [];
 

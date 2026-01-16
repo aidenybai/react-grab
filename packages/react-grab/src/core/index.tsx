@@ -14,7 +14,12 @@ import { createGrabStore } from "./store.js";
 import { isKeyboardEventTriggeredByInput } from "../utils/is-keyboard-event-triggered-by-input.js";
 import { mountRoot } from "../utils/mount-root.js";
 import { ReactGrabRenderer } from "../components/renderer.js";
-import { getStack, getNearestComponentName, checkIsSourceComponentName, getComponentDisplayName } from "./context.js";
+import {
+  getStack,
+  getNearestComponentName,
+  checkIsSourceComponentName,
+  getComponentDisplayName,
+} from "./context.js";
 import { isSourceFile, normalizeFileName } from "bippy/source";
 import { createNoopApi } from "./noop-api.js";
 import { createEventListenerManager } from "./events.js";
@@ -335,7 +340,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         element,
         elements,
         mouseX,
-        mouseXOffsetFromCenter: mouseX !== undefined ? mouseX - boundsCenterX : undefined,
+        mouseXOffsetFromCenter:
+          mouseX !== undefined ? mouseX - boundsCenterX : undefined,
       };
       actions.addLabelInstance(instance);
       return instanceId;
@@ -2087,9 +2093,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return previousInstance;
         }
         const newBoundsCenterX = newBounds.x + newBounds.width / 2;
-        const newMouseX = instance.mouseXOffsetFromCenter !== undefined
-          ? newBoundsCenterX + instance.mouseXOffsetFromCenter
-          : instance.mouseX;
+        const newMouseX =
+          instance.mouseXOffsetFromCenter !== undefined
+            ? newBoundsCenterX + instance.mouseXOffsetFromCenter
+            : instance.mouseX;
         const newCached = { ...instance, bounds: newBounds, mouseX: newMouseX };
         labelInstanceCache.set(instance.id, newCached);
         return newCached;
@@ -2346,7 +2353,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           }, 150);
         }, FEEDBACK_DURATION_MS);
       } else {
-        void navigator.clipboard.writeText(html);
+        try {
+          await navigator.clipboard.writeText(html);
+        } catch {}
       }
 
       if (shouldDeactivate) {
@@ -2649,9 +2658,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             return {
               filePath: normalizeFileName(frame.fileName),
               lineNumber: frame.lineNumber ?? null,
-              componentName: frame.functionName && checkIsSourceComponentName(frame.functionName)
-                ? frame.functionName
-                : null,
+              componentName:
+                frame.functionName &&
+                checkIsSourceComponentName(frame.functionName)
+                  ? frame.functionName
+                  : null,
             };
           }
         }
