@@ -8,6 +8,8 @@ import { IconChevron } from "../icons/icon-chevron.jsx";
 interface ToolbarProps {
   isActive?: boolean;
   onToggle?: () => void;
+  enabled?: boolean;
+  onToggleEnabled?: () => void;
 }
 
 const SNAP_MARGIN = 16;
@@ -15,7 +17,8 @@ const MOBILE_BREAKPOINT = 768;
 const FADE_IN_DELAY_MS = 500;
 const DRAG_THRESHOLD = 5;
 const VELOCITY_MULTIPLIER = 150;
-const COLLAPSED_SIZE = 14;
+const COLLAPSED_WIDTH = 18;
+const COLLAPSED_HEIGHT = 24;
 
 export const Toolbar: Component<ToolbarProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
@@ -147,9 +150,20 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         edge: snapEdge(),
         ratio: positionRatio(),
         collapsed: newCollapsed,
+        enabled: props.enabled ?? true,
       });
       return newCollapsed;
     });
+  };
+
+  const handleToggleEnabled = (event: MouseEvent) => {
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    if (didDragOccur) {
+      didDragOccur = false;
+      return;
+    }
+    props.onToggleEnabled?.();
   };
 
   const getSnapPosition = (
@@ -312,7 +326,12 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         setPosition({ x: snap.x, y: snap.y });
-        saveToolbarState({ edge: snap.edge, ratio, collapsed: isCollapsed() });
+        saveToolbarState({
+          edge: snap.edge,
+          ratio,
+          collapsed: isCollapsed(),
+          enabled: props.enabled ?? true,
+        });
 
         setTimeout(() => {
           setIsSnapping(false);
@@ -329,13 +348,13 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       return { x: pos.x, y: 0 };
     }
     if (edge === "bottom") {
-      return { x: pos.x, y: window.innerHeight - COLLAPSED_SIZE };
+      return { x: pos.x, y: window.innerHeight - COLLAPSED_HEIGHT };
     }
     if (edge === "left") {
       return { x: 0, y: pos.y };
     }
     if (edge === "right") {
-      return { x: window.innerWidth - COLLAPSED_SIZE, y: pos.y };
+      return { x: window.innerWidth - COLLAPSED_WIDTH, y: pos.y };
     }
     return pos;
   };
@@ -472,6 +491,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               edge: snapEdge(),
               ratio: positionRatio(),
               collapsed: false,
+              enabled: props.enabled ?? true,
             });
           }
         }}
@@ -495,6 +515,26 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                 props.isActive ? "text-black" : "text-black/70",
               )}
             />
+          </button>
+          <button
+            data-react-grab-ignore-events
+            data-react-grab-toolbar-enabled
+            class="contain-layout shrink-0 flex items-center justify-center cursor-pointer transition-all hover:scale-105 outline-none"
+            onClick={handleToggleEnabled}
+          >
+            <div
+              class={cn(
+                "relative w-5 h-3 rounded-full transition-colors",
+                props.enabled ? "bg-black" : "bg-black/25",
+              )}
+            >
+              <div
+                class={cn(
+                  "absolute top-0.5 w-2 h-2 rounded-full bg-white transition-transform",
+                  props.enabled ? "left-2.5" : "left-0.5",
+                )}
+              />
+            </div>
           </button>
         </div>
         <button

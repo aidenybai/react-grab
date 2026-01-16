@@ -3,6 +3,7 @@ import cssText from "../../dist/styles.css";
 import {
   createMemo,
   createRoot,
+  createSignal,
   onCleanup,
   createEffect,
   createResource,
@@ -74,6 +75,10 @@ import { logIntro } from "./log-intro.js";
 import { onIdle } from "../utils/on-idle.js";
 import { getScriptOptions } from "../utils/get-script-options.js";
 import { isEnterCode } from "../utils/is-enter-code.js";
+import {
+  loadToolbarState,
+  saveToolbarState,
+} from "../components/toolbar/state.js";
 
 let hasInited = false;
 
@@ -154,6 +159,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         store.current.state === "active" &&
         store.current.isPromptMode &&
         store.current.isPendingDismiss,
+    );
+
+    const savedToolbarState = loadToolbarState();
+    const [isEnabled, setIsEnabled] = createSignal(
+      savedToolbarState?.enabled ?? true,
     );
 
     const pendingAbortSessionId = createMemo(() => store.pendingAbortSessionId);
@@ -1067,6 +1077,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
+    const handleToggleEnabled = () => {
+      const newEnabled = !isEnabled();
+      setIsEnabled(newEnabled);
+      const currentState = loadToolbarState();
+      saveToolbarState({
+        edge: currentState?.edge ?? "bottom",
+        ratio: currentState?.ratio ?? 0.5,
+        collapsed: currentState?.collapsed ?? false,
+        enabled: newEnabled,
+      });
+      if (!newEnabled && isActivated()) {
+        deactivateRenderer();
+      }
+    };
+
     const handlePointerMove = (clientX: number, clientY: number) => {
       if (
         isPromptMode() ||
@@ -1534,6 +1559,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "keydown",
       (event: KeyboardEvent) => {
         blockEnterIfNeeded(event);
+
+        if (!isEnabled()) return;
 
         if (handleUndoRedoKeys(event)) return;
 
@@ -2409,6 +2436,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             toolbarVisible={pluginRegistry.store.theme.toolbar.enabled}
             isActive={isActivated()}
             onToggleActive={handleToggleActive}
+            enabled={isEnabled()}
+            onToggleEnabled={handleToggleEnabled}
             contextMenuPosition={contextMenuPosition()}
             contextMenuBounds={contextMenuBounds()}
             contextMenuTagName={contextMenuTagName()}
