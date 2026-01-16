@@ -21,7 +21,7 @@ const needsInstall = (): boolean => {
   if (version !== "latest" && /^\d+\.\d+\.\d+$/.test(version)) {
     return installedVersion !== version;
   }
-  return true;
+  return false;
 };
 
 const detectPackageManager = (): string => {
@@ -81,5 +81,10 @@ const result = spawnSync("grab", process.argv.slice(2), {
   stdio: "inherit",
   shell: process.platform === "win32",
 });
+
+if (result.error) {
+  console.error(`Failed to execute grab: ${result.error.message}`);
+  process.exit(1);
+}
 
 process.exit(result.status ?? 0);
