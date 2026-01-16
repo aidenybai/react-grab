@@ -25,6 +25,7 @@
   },
   "changesets": [
     "big-hornets-sneeze",
+    "cold-ads-press",
     "few-trains-chew",
     "fix-cli-version",
     "loud-goats-dance",
