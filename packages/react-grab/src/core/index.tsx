@@ -88,6 +88,7 @@ import {
   loadToolbarState,
   saveToolbarState,
 } from "../components/toolbar/state.js";
+import { freezeAnimations } from "../utils/freeze-animations.js";
 
 let hasInited = false;
 
@@ -512,6 +513,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, 100);
 
       onCleanup(() => clearInterval(intervalId));
+    });
+
+    createEffect(() => {
+      const elements = store.frozenElements;
+      const cleanup = freezeAnimations(elements);
+      onCleanup(cleanup);
     });
 
     const selectionBounds = createMemo((): OverlayBounds | undefined => {
