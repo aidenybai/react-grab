@@ -2,7 +2,7 @@ import type { DragRect, Rect } from "../types.js";
 import {
   enablePointerEventsOverride,
   disablePointerEventsOverride,
-} from "./get-element-at-position.js";
+} from "./pointer-events-override.js";
 
 const DRAG_COVERAGE_THRESHOLD = 0.75;
 const SAMPLE_SPACING_PX = 24;
