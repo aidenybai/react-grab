@@ -94,6 +94,7 @@ import {
   freezeAnimations,
   freezeAllAnimations,
 } from "../utils/freeze-animations.js";
+import { freezeUpdates } from "../utils/freeze-updates.js";
 
 let hasInited = false;
 
@@ -547,6 +548,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const elements = store.frozenElements;
       const cleanup = freezeAnimations(elements);
       onCleanup(cleanup);
+    });
+
+    createEffect(() => {
+      const elements = store.frozenElements;
+      if (elements.length === 0) return;
+      const unfreezeUpdates = freezeUpdates();
+      onCleanup(unfreezeUpdates);
     });
 
     const selectionBounds = createMemo((): OverlayBounds | undefined => {
