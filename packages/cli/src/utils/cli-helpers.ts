@@ -16,6 +16,22 @@ export const detectSkillAgents = (cwd: string): SkillAgent[] => {
   return SKILL_AGENTS.filter((agent) => existsSync(join(cwd, agent.folder)));
 };
 
+export interface RankedSkillAgent extends SkillAgent {
+  detected: boolean;
+}
+
+export const getRankedSkillAgents = (cwd: string): RankedSkillAgent[] => {
+  const rankedAgents = SKILL_AGENTS.map((agent) => ({
+    ...agent,
+    detected: existsSync(join(cwd, agent.folder)),
+  }));
+  return rankedAgents.sort((first, second) => {
+    if (first.detected && !second.detected) return -1;
+    if (!first.detected && second.detected) return 1;
+    return 0;
+  });
+};
+
 export const findSkillAgent = (id: string): SkillAgent | undefined => {
   return SKILL_AGENTS.find((agent) => agent.id === id);
 };

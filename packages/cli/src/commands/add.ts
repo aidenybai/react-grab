@@ -1,7 +1,11 @@
 import { Command } from "commander";
 import pc from "picocolors";
 import prompts from "prompts";
-import { detectSkillAgents, findSkillAgent } from "../utils/cli-helpers.js";
+import {
+  findSkillAgent,
+  getRankedSkillAgents,
+  type RankedSkillAgent,
+} from "../utils/cli-helpers.js";
 import { detectProject } from "../utils/detect.js";
 import { printDiff } from "../utils/diff.js";
 import { handleError } from "../utils/handle-error.js";
@@ -167,7 +171,6 @@ export const add = new Command()
       if (agentArg === "skill") {
         const clientArg = opts.client as string | undefined;
         let selectedAgent = clientArg ? findSkillAgent(clientArg) : undefined;
-        const detectedAgents = detectSkillAgents(cwd);
 
         if (clientArg && !selectedAgent) {
           logger.break();
@@ -180,15 +183,10 @@ export const add = new Command()
         }
 
         if (!selectedAgent && !isNonInteractive) {
-          if (detectedAgents.length === 0) {
-            logger.break();
-            logger.warn("No supported agent folders detected.");
-            logger.log(
-              "Supported agents: " + SKILL_AGENTS.map((a) => a.id).join(", "),
-            );
-            logger.break();
-            process.exit(0);
-          }
+          const rankedAgents = getRankedSkillAgents(cwd);
+          const hasDetectedAgents = rankedAgents.some(
+            (innerAgent: RankedSkillAgent) => innerAgent.detected,
+          );
 
           logger.break();
           const { agent } = await prompts({
@@ -196,8 +194,10 @@ export const add = new Command()
             name: "agent",
             message: `Which ${highlighter.info("agent")} would you like to install the skill for?`,
             choices: [
-              ...detectedAgents.map((innerAgent) => ({
-                title: innerAgent.name,
+              ...rankedAgents.map((innerAgent: RankedSkillAgent) => ({
+                title: hasDetectedAgents
+                  ? `${innerAgent.name}${innerAgent.detected ? pc.green(" (detected)") : pc.dim(" (not detected)")}`
+                  : innerAgent.name,
                 value: innerAgent,
               })),
               { title: "Skip", value: null },
@@ -280,25 +280,20 @@ export const add = new Command()
         }
 
         if (addType === "skill") {
-          const detectedAgents = detectSkillAgents(cwd);
-
-          if (detectedAgents.length === 0) {
-            logger.break();
-            logger.warn("No supported agent folders detected.");
-            logger.log(
-              "Supported agents: " + SKILL_AGENTS.map((a) => a.id).join(", "),
-            );
-            logger.break();
-            process.exit(0);
-          }
+          const rankedAgents = getRankedSkillAgents(cwd);
+          const hasDetectedAgents = rankedAgents.some(
+            (innerAgent: RankedSkillAgent) => innerAgent.detected,
+          );
 
           const { selectedAgent } = await prompts({
             type: "select",
             name: "selectedAgent",
             message: `Which ${highlighter.info("agent")} would you like to install the skill for?`,
             choices: [
-              ...detectedAgents.map((innerAgent) => ({
-                title: innerAgent.name,
+              ...rankedAgents.map((innerAgent: RankedSkillAgent) => ({
+                title: hasDetectedAgents
+                  ? `${innerAgent.name}${innerAgent.detected ? pc.green(" (detected)") : pc.dim(" (not detected)")}`
+                  : innerAgent.name,
                 value: innerAgent,
               })),
               { title: "Skip", value: null },
