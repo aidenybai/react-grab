@@ -18,8 +18,9 @@ let frozenElements: Element[] = [];
 let pausedAnimations = new Set<Animation>();
 let pausedVideos: HTMLVideoElement[] = [];
 
-// eslint-disable-next-line @typescript-eslint/unbound-method
-const originalAnimationPlay = Animation.prototype.play;
+const originalAnimationPlay =
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  typeof Animation !== "undefined" ? Animation.prototype.play : undefined;
 
 const ensureStylesInjected = (): void => {
   if (styleElement) return;
@@ -45,6 +46,7 @@ const isAnimationInFrozenScope = (animation: Animation): boolean => {
 export const freezeAllAnimations = (elements: Element[]): void => {
   if (elements.length === 0) return;
 
+  unfreezeAllAnimations();
   ensureStylesInjected();
 
   const allElementsToFreeze = new Set<Element>();
@@ -85,7 +87,7 @@ export const freezeAllAnimations = (elements: Element[]): void => {
       pausedAnimations.add(this);
       this.pause();
     } else {
-      originalAnimationPlay.call(this);
+      originalAnimationPlay?.call(this);
     }
   };
 };
@@ -93,7 +95,9 @@ export const freezeAllAnimations = (elements: Element[]): void => {
 export const unfreezeAllAnimations = (): void => {
   if (frozenElements.length === 0) return;
 
-  Animation.prototype.play = originalAnimationPlay;
+  if (originalAnimationPlay) {
+    Animation.prototype.play = originalAnimationPlay;
+  }
 
   for (const element of frozenElements) {
     element.removeAttribute(FROZEN_ELEMENT_ATTRIBUTE);
@@ -119,5 +123,5 @@ export const freezeAnimations = (elements: Element[]): (() => void) => {
   }
 
   freezeAllAnimations(elements);
-  return () => {};
+  return unfreezeAllAnimations;
 };
