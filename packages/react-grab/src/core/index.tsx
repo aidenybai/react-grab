@@ -88,7 +88,10 @@ import {
   loadToolbarState,
   saveToolbarState,
 } from "../components/toolbar/state.js";
-import { freezeAnimations } from "../utils/freeze-animations.js";
+import {
+  freezeAnimations,
+  freezeAllAnimations,
+} from "../utils/freeze-animations.js";
 
 let hasInited = false;
 
@@ -1198,6 +1201,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (selectedElements.length === 0) return;
 
+      freezeAllAnimations(selectedElements);
+
       pluginRegistry.hooks.onDragEnd(selectedElements, dragSelectionRect);
       const firstElement = selectedElements[0];
       const center = getBoundsCenter(createElementBounds(firstElement));
@@ -1860,6 +1865,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         const element = getElementAtPosition(event.clientX, event.clientY);
         if (!element) return;
+
+        freezeAllAnimations([element]);
 
         const position = { x: event.clientX, y: event.clientY };
         actions.setPointer(position);
