@@ -360,36 +360,27 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             </div>
             <BottomSection>
               <div class="shrink-0 flex justify-between items-end w-full gap-2">
-                <p class="text-[12px] text-black leading-tight break-words whitespace-pre-wrap flex-1">
+                <p
+                  data-react-grab-ignore-events
+                  class="text-[12px] text-black leading-tight break-words whitespace-pre-wrap flex-1 cursor-pointer hover:bg-black/5 rounded-sm transition-colors"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    props.onEditComment?.();
+                  }}
+                >
                   {props.commentText}
                 </p>
-                <Show when={isContainerHovered()}>
-                  <div class="flex items-center gap-[5px] shrink-0">
-                    <Show when={props.onEditComment}>
-                      <button
-                        data-react-grab-ignore-events
-                        class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          props.onEditComment?.();
-                        }}
-                      >
-                        <span class="text-black text-[11px] leading-3.5 font-sans font-medium">Edit</span>
-                      </button>
-                    </Show>
-                    <Show when={props.onRemoveComment}>
-                      <button
-                        data-react-grab-ignore-events
-                        class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#7e0002] cursor-pointer transition-all hover:bg-[#FEF2F2] h-[17px]"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          props.onRemoveComment?.();
-                        }}
-                      >
-                        <span class="text-[#B91C1C] text-[11px] leading-3.5 font-sans font-medium">Remove</span>
-                      </button>
-                    </Show>
-                  </div>
+                <Show when={isContainerHovered() && props.onRemoveComment}>
+                  <button
+                    data-react-grab-ignore-events
+                    class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#7e0002] cursor-pointer transition-all hover:bg-[#FEF2F2] h-[17px]"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      props.onRemoveComment?.();
+                    }}
+                  >
+                    <span class="text-[#B91C1C] text-[11px] leading-3.5 font-sans font-medium">Remove</span>
+                  </button>
                 </Show>
               </div>
             </BottomSection>
