@@ -183,12 +183,32 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const hasAgentProvider = createMemo(() => store.hasAgentProvider);
 
+    const clearHoldTimer = () => {
+      if (holdTimerId !== null) {
+        clearTimeout(holdTimerId);
+        holdTimerId = null;
+      }
+    };
+
+    const resetCopyConfirmation = () => {
+      copyWaitingForConfirmation = false;
+      holdTimerFiredWaitingForConfirmation = false;
+    };
+
     createEffect(() => {
-      if (store.current.state !== "holding") return;
-      const timerId = setTimeout(() => {
+      if (store.current.state !== "holding") {
+        clearHoldTimer();
+        return;
+      }
+      holdTimerId = window.setTimeout(() => {
+        holdTimerId = null;
+        if (copyWaitingForConfirmation) {
+          holdTimerFiredWaitingForConfirmation = true;
+          return;
+        }
         actions.activate();
       }, store.keyHoldDuration);
-      onCleanup(() => clearTimeout(timerId));
+      onCleanup(clearHoldTimer);
     });
 
     createEffect(() => {
@@ -264,6 +284,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     let lastElementDetectionTime = 0;
     let keydownSpamTimerId: number | null = null;
+    let holdTimerId: number | null = null;
+    let copyWaitingForConfirmation = false;
+    let holdTimerFiredWaitingForConfirmation = false;
     let isScreenshotInProgress = false;
     let inToggleFeedbackPeriod = false;
     let toggleFeedbackTimerId: number | null = null;
@@ -1598,7 +1621,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return;
       }
 
-      if (isHoldingKeys() && event.repeat) return;
+      if (isHoldingKeys() && event.repeat) {
+        if (copyWaitingForConfirmation) {
+          const shouldActivate = holdTimerFiredWaitingForConfirmation;
+          resetCopyConfirmation();
+          if (shouldActivate) {
+            actions.activate();
+          }
+        }
+        return;
+      }
 
       if (isCopying() || didJustCopy()) return;
 
@@ -1615,6 +1647,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             activationDuration += INPUT_FOCUS_ACTIVATION_DELAY_MS;
           }
         }
+        resetCopyConfirmation();
         actions.startHold(activationDuration);
       }
     };
@@ -1762,7 +1795,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             pluginRegistry.store.options.activationMode !== "hold"
           )
             return;
-          if (isHoldingKeys()) {
+
+          const shouldRelease =
+            isHoldingKeys() ||
+            (holdTimerFiredWaitingForConfirmation && isReleasingModifier);
+
+          if (shouldRelease) {
+            clearHoldTimer();
+            resetCopyConfirmation();
             actions.release();
           } else {
             deactivateRenderer();
@@ -1771,6 +1811,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
       { capture: true },
     );
+
+    eventListenerManager.addDocumentListener("copy", () => {
+      if (isHoldingKeys()) {
+        copyWaitingForConfirmation = true;
+      }
+    });
 
     eventListenerManager.addWindowListener("keypress", blockEnterIfNeeded, {
       capture: true,
