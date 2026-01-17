@@ -179,5 +179,5 @@ Supported clients: cursor, claude-code, vscode, opencode, codex, gemini-cli, win
 
 ## RESOURCES
 
-- Documentation: https://reactgrab.com/llms.txt
+- Documentation: https://react-grab.com/llms.txt
 - GitHub: https://github.com/aidenybai/react-grab
