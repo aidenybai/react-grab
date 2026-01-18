@@ -55,8 +55,8 @@ export const freezeAllAnimations = (elements: Element[]): void => {
     allElementsToFreeze.add(element);
 
     const elementsAbove = getElementsAbove(element);
-    for (const above of elementsAbove) {
-      allElementsToFreeze.add(above);
+    for (const elementAbove of elementsAbove) {
+      allElementsToFreeze.add(elementAbove);
     }
   }
 

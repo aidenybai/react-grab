@@ -13,7 +13,7 @@ export const createArrowNavigator = (
   isValidGrabbableElement: ElementValidator,
   createElementBounds: BoundsCalculator,
 ): ArrowNavigator => {
-  let history: Element[] = [];
+  let navigationHistory: Element[] = [];
 
   const findVerticalNext = (
     currentElement: Element,
@@ -33,14 +33,14 @@ export const createArrowNavigator = (
   const findUp = (currentElement: Element): Element | null => {
     const nextElement = findVerticalNext(currentElement, 1);
     if (nextElement) {
-      history.push(currentElement);
+      navigationHistory.push(currentElement);
     }
     return nextElement;
   };
 
   const findDown = (currentElement: Element): Element | null => {
-    if (history.length > 0) {
-      const previousElement = history.pop()!;
+    if (navigationHistory.length > 0) {
+      const previousElement = navigationHistory.pop()!
       if (document.contains(previousElement)) {
         return previousElement;
       }
@@ -52,25 +52,25 @@ export const createArrowNavigator = (
     currentElement: Element,
     isForward: boolean,
   ): Element | null => {
-    const findEdgeDescendant = (el: Element): Element | null => {
-      const children = Array.from(el.children);
+    const findEdgeDescendant = (parentElement: Element): Element | null => {
+      const children = Array.from(parentElement.children);
       const ordered = isForward ? children : children.reverse();
-      for (const child of ordered) {
+      for (const childElement of ordered) {
         if (isForward) {
-          if (isValidGrabbableElement(child)) return child;
-          const descendant = findEdgeDescendant(child);
+          if (isValidGrabbableElement(childElement)) return childElement;
+          const descendant = findEdgeDescendant(childElement);
           if (descendant) return descendant;
         } else {
-          const descendant = findEdgeDescendant(child);
+          const descendant = findEdgeDescendant(childElement);
           if (descendant) return descendant;
-          if (isValidGrabbableElement(child)) return child;
+          if (isValidGrabbableElement(childElement)) return childElement;
         }
       }
       return null;
     };
 
-    const getSibling = (el: Element) =>
-      isForward ? el.nextElementSibling : el.previousElementSibling;
+    const getSibling = (element: Element) =>
+      isForward ? element.nextElementSibling : element.previousElementSibling;
 
     let nextElement: Element | null = null;
 
@@ -127,7 +127,7 @@ export const createArrowNavigator = (
   };
 
   const clearHistory = () => {
-    history = [];
+    navigationHistory = [];
   };
 
   return {

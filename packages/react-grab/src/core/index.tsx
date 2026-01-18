@@ -34,6 +34,8 @@ import { createElementBounds } from "../utils/create-element-bounds.js";
 import { getTagName } from "../utils/get-tag-name.js";
 import {
   FEEDBACK_DURATION_MS,
+  FADE_COMPLETE_BUFFER_MS,
+  KEYDOWN_SPAM_TIMEOUT_MS,
   DRAG_THRESHOLD_PX,
   ELEMENT_DETECTION_THROTTLE_MS,
   Z_INDEX_LABEL,
@@ -426,7 +428,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             // HACK: Wait slightly longer than CSS transition (100ms) to ensure fade completes before unmount
             setTimeout(() => {
               removeLabelInstance(instanceId);
-            }, 150);
+            }, FADE_COMPLETE_BUFFER_MS);
           }, FEEDBACK_DURATION_MS);
         }
 
@@ -536,7 +538,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!document.contains(element)) {
           actions.setDetectedElement(null);
         }
-      }, 100);
+      }, BOUNDS_RECALC_INTERVAL_MS);
 
       onCleanup(() => clearInterval(intervalId));
     });
@@ -1560,7 +1562,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           updateLabelInstance(instanceId, "fading");
           setTimeout(() => {
             removeLabelInstance(instanceId);
-          }, 150);
+          }, FADE_COMPLETE_BUFFER_MS);
         }, FEEDBACK_DURATION_MS);
 
         if (shouldDeactivate) {
@@ -1617,7 +1619,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
         keydownSpamTimerId = window.setTimeout(() => {
           deactivateRenderer();
-        }, 200);
+        }, KEYDOWN_SPAM_TIMEOUT_MS);
         return;
       }
 
@@ -2382,7 +2384,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         updateLabelInstance(instanceId, "fading");
         setTimeout(() => {
           removeLabelInstance(instanceId);
-        }, 150);
+        }, FADE_COMPLETE_BUFFER_MS);
       }, FEEDBACK_DURATION_MS);
 
       if (shouldDeactivate) {
@@ -2434,7 +2436,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           updateLabelInstance(instanceId, "fading");
           setTimeout(() => {
             removeLabelInstance(instanceId);
-          }, 150);
+          }, FADE_COMPLETE_BUFFER_MS);
         }, FEEDBACK_DURATION_MS);
       } else {
         try {

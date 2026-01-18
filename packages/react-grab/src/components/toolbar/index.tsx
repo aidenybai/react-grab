@@ -1,9 +1,19 @@
-import { createSignal, onMount, onCleanup } from "solid-js";
+import { createSignal, onMount, onCleanup, Show } from "solid-js";
 import type { Component } from "solid-js";
 import { cn } from "../../utils/cn.js";
 import { loadToolbarState, saveToolbarState, type SnapEdge } from "./state.js";
 import { IconSelect } from "../icons/icon-select.jsx";
 import { IconChevron } from "../icons/icon-chevron.jsx";
+import {
+  TOOLBAR_SNAP_MARGIN_PX,
+  TOOLBAR_MOBILE_BREAKPOINT_PX,
+  TOOLBAR_FADE_IN_DELAY_MS,
+  TOOLBAR_SNAP_ANIMATION_DURATION_MS,
+  TOOLBAR_DRAG_THRESHOLD_PX,
+  TOOLBAR_VELOCITY_MULTIPLIER_MS,
+  TOOLBAR_COLLAPSED_WIDTH_PX,
+  TOOLBAR_COLLAPSED_HEIGHT_PX,
+} from "../../constants.js";
 
 interface ToolbarProps {
   isActive?: boolean;
@@ -12,19 +22,11 @@ interface ToolbarProps {
   onToggleEnabled?: () => void;
 }
 
-const SNAP_MARGIN = 16;
-const MOBILE_BREAKPOINT = 768;
-const FADE_IN_DELAY_MS = 500;
-const DRAG_THRESHOLD = 5;
-const VELOCITY_MULTIPLIER = 150;
-const COLLAPSED_WIDTH = 14;
-const COLLAPSED_HEIGHT = 14;
-
 export const Toolbar: Component<ToolbarProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
 
   const [isMobile, setIsMobile] = createSignal(
-    window.innerWidth < MOBILE_BREAKPOINT,
+    window.innerWidth < TOOLBAR_MOBILE_BREAKPOINT_PX,
   );
   const [isVisible, setIsVisible] = createSignal(false);
   const [isCollapsed, setIsCollapsed] = createSignal(false);
@@ -50,25 +52,25 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
-    const minX = SNAP_MARGIN;
+    const minX = TOOLBAR_SNAP_MARGIN_PX;
     const maxX = Math.max(
-      SNAP_MARGIN,
-      viewportWidth - elementWidth - SNAP_MARGIN,
+      TOOLBAR_SNAP_MARGIN_PX,
+      viewportWidth - elementWidth - TOOLBAR_SNAP_MARGIN_PX,
     );
-    const minY = SNAP_MARGIN;
+    const minY = TOOLBAR_SNAP_MARGIN_PX;
     const maxY = Math.max(
-      SNAP_MARGIN,
-      viewportHeight - elementHeight - SNAP_MARGIN,
+      TOOLBAR_SNAP_MARGIN_PX,
+      viewportHeight - elementHeight - TOOLBAR_SNAP_MARGIN_PX,
     );
 
     if (edge === "top" || edge === "bottom") {
       const availableWidth = Math.max(
         0,
-        viewportWidth - elementWidth - SNAP_MARGIN * 2,
+        viewportWidth - elementWidth - TOOLBAR_SNAP_MARGIN_PX * 2,
       );
       const positionX = Math.min(
         maxX,
-        Math.max(minX, SNAP_MARGIN + availableWidth * ratio),
+        Math.max(minX, TOOLBAR_SNAP_MARGIN_PX + availableWidth * ratio),
       );
       const positionY = edge === "top" ? minY : maxY;
       return { x: positionX, y: positionY };
@@ -76,11 +78,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
     const availableHeight = Math.max(
       0,
-      viewportHeight - elementHeight - SNAP_MARGIN * 2,
+      viewportHeight - elementHeight - TOOLBAR_SNAP_MARGIN_PX * 2,
     );
     const positionY = Math.min(
       maxY,
-      Math.max(minY, SNAP_MARGIN + availableHeight * ratio),
+      Math.max(minY, TOOLBAR_SNAP_MARGIN_PX + availableHeight * ratio),
     );
     const positionX = edge === "left" ? minX : maxX;
     return { x: positionX, y: positionY };
@@ -97,18 +99,18 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     const viewportHeight = window.innerHeight;
 
     if (edge === "top" || edge === "bottom") {
-      const availableWidth = viewportWidth - elementWidth - SNAP_MARGIN * 2;
+      const availableWidth = viewportWidth - elementWidth - TOOLBAR_SNAP_MARGIN_PX * 2;
       if (availableWidth <= 0) return 0.5;
       return Math.max(
         0,
-        Math.min(1, (positionX - SNAP_MARGIN) / availableWidth),
+        Math.min(1, (positionX - TOOLBAR_SNAP_MARGIN_PX) / availableWidth),
       );
     }
-    const availableHeight = viewportHeight - elementHeight - SNAP_MARGIN * 2;
+    const availableHeight = viewportHeight - elementHeight - TOOLBAR_SNAP_MARGIN_PX * 2;
     if (availableHeight <= 0) return 0.5;
     return Math.max(
       0,
-      Math.min(1, (positionY - SNAP_MARGIN) / availableHeight),
+      Math.min(1, (positionY - TOOLBAR_SNAP_MARGIN_PX) / availableHeight),
     );
   };
 
@@ -168,8 +170,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
-    const projectedX = currentX + velocityX * VELOCITY_MULTIPLIER;
-    const projectedY = currentY + velocityY * VELOCITY_MULTIPLIER;
+    const projectedX = currentX + velocityX * TOOLBAR_VELOCITY_MULTIPLIER_MS;
+    const projectedY = currentY + velocityY * TOOLBAR_VELOCITY_MULTIPLIER_MS;
 
     const distanceToTop = projectedY + elementHeight / 2;
     const distanceToBottom = viewportHeight - projectedY - elementHeight / 2;
@@ -187,39 +189,39 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       return {
         edge: "top",
         x: Math.max(
-          SNAP_MARGIN,
-          Math.min(projectedX, viewportWidth - elementWidth - SNAP_MARGIN),
+          TOOLBAR_SNAP_MARGIN_PX,
+          Math.min(projectedX, viewportWidth - elementWidth - TOOLBAR_SNAP_MARGIN_PX),
         ),
-        y: SNAP_MARGIN,
+        y: TOOLBAR_SNAP_MARGIN_PX,
       };
     }
     if (minDistance === distanceToLeft) {
       return {
         edge: "left",
-        x: SNAP_MARGIN,
+        x: TOOLBAR_SNAP_MARGIN_PX,
         y: Math.max(
-          SNAP_MARGIN,
-          Math.min(projectedY, viewportHeight - elementHeight - SNAP_MARGIN),
+          TOOLBAR_SNAP_MARGIN_PX,
+          Math.min(projectedY, viewportHeight - elementHeight - TOOLBAR_SNAP_MARGIN_PX),
         ),
       };
     }
     if (minDistance === distanceToRight) {
       return {
         edge: "right",
-        x: viewportWidth - elementWidth - SNAP_MARGIN,
+        x: viewportWidth - elementWidth - TOOLBAR_SNAP_MARGIN_PX,
         y: Math.max(
-          SNAP_MARGIN,
-          Math.min(projectedY, viewportHeight - elementHeight - SNAP_MARGIN),
+          TOOLBAR_SNAP_MARGIN_PX,
+          Math.min(projectedY, viewportHeight - elementHeight - TOOLBAR_SNAP_MARGIN_PX),
         ),
       };
     }
     return {
       edge: "bottom",
       x: Math.max(
-        SNAP_MARGIN,
-        Math.min(projectedX, viewportWidth - elementWidth - SNAP_MARGIN),
+        TOOLBAR_SNAP_MARGIN_PX,
+        Math.min(projectedX, viewportWidth - elementWidth - TOOLBAR_SNAP_MARGIN_PX),
       ),
-      y: viewportHeight - elementHeight - SNAP_MARGIN,
+      y: viewportHeight - elementHeight - TOOLBAR_SNAP_MARGIN_PX,
     };
   };
 
@@ -255,7 +257,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         Math.pow(event.clientY - pointerStartPosition.y, 2),
     );
 
-    if (distanceMoved > DRAG_THRESHOLD) {
+    if (distanceMoved > TOOLBAR_DRAG_THRESHOLD_PX) {
       setHasDragMoved(true);
     }
 
@@ -326,7 +328,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
         setTimeout(() => {
           setIsSnapping(false);
-        }, 300);
+        }, TOOLBAR_SNAP_ANIMATION_DURATION_MS);
       });
     });
   };
@@ -339,11 +341,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       case "top":
         return { x: pos.x, y: 0 };
       case "bottom":
-        return { x: pos.x, y: window.innerHeight - COLLAPSED_HEIGHT };
+        return { x: pos.x, y: window.innerHeight - TOOLBAR_COLLAPSED_HEIGHT_PX };
       case "left":
         return { x: 0, y: pos.y };
       case "right":
-        return { x: window.innerWidth - COLLAPSED_WIDTH, y: pos.y };
+        return { x: window.innerWidth - TOOLBAR_COLLAPSED_WIDTH_PX, y: pos.y };
       default:
         return pos;
     }
@@ -370,7 +372,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   let resizeTimeout: ReturnType<typeof setTimeout> | undefined;
 
   const handleResize = () => {
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    setIsMobile(window.innerWidth < TOOLBAR_MOBILE_BREAKPOINT_PX);
 
     if (isDragging()) return;
 
@@ -385,7 +387,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     resizeTimeout = setTimeout(() => {
       setIsVisible(true);
       setIsResizing(false);
-    }, FADE_IN_DELAY_MS);
+    }, TOOLBAR_FADE_IN_DELAY_MS);
   };
 
   onMount(() => {
@@ -406,7 +408,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     } else if (rect) {
       setPosition({
         x: (window.innerWidth - rect.width) / 2,
-        y: window.innerHeight - rect.height - SNAP_MARGIN,
+        y: window.innerHeight - rect.height - TOOLBAR_SNAP_MARGIN_PX,
       });
       setPositionRatio(0.5);
     }
@@ -416,7 +418,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
     const fadeInTimeout = setTimeout(() => {
       setIsVisible(true);
-    }, FADE_IN_DELAY_MS);
+    }, TOOLBAR_FADE_IN_DELAY_MS);
 
     onCleanup(() => {
       clearTimeout(fadeInTimeout);
@@ -434,27 +436,28 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const currentPosition = () =>
     isCollapsed() ? getCollapsedPosition() : position();
 
-  if (isMobile()) {
-    return null;
-  }
+  const getCursorClass = (): string => {
+    if (isCollapsed()) return "cursor-pointer";
+    if (isDragging()) return "cursor-grabbing";
+    return "cursor-grab";
+  };
+
+  const getTransitionClass = (): string => {
+    if (isResizing()) return "";
+    if (isSnapping()) return "transition-[transform,opacity] duration-300 ease-out";
+    return "transition-opacity duration-300 ease-out";
+  };
 
   return (
-    <div
+    <Show when={!isMobile()}>
+      <div
       ref={containerRef}
       data-react-grab-ignore-events
       data-react-grab-toolbar
       class={cn(
         "fixed left-0 top-0 font-sans text-[13px] antialiased filter-[drop-shadow(0px_0px_4px_#51515180)] select-none",
-        isCollapsed()
-          ? "cursor-pointer"
-          : isDragging()
-            ? "cursor-grabbing"
-            : "cursor-grab",
-        isResizing()
-          ? ""
-          : isSnapping()
-            ? "transition-[transform,opacity] duration-300 ease-out"
-            : "transition-opacity duration-300 ease-out",
+        getCursorClass(),
+        getTransitionClass(),
         isVisible() ? "opacity-100" : "opacity-0 pointer-events-none",
       )}
       style={{
@@ -549,5 +552,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         </button>
       </div>
     </div>
+    </Show>
   );
 };

@@ -40,6 +40,11 @@ import {
 
 const VERSION = process.env.VERSION ?? "0.0.1";
 
+const formatInstalledAgentNames = (agents: string[]): string =>
+  agents
+    .map((agent) => AGENT_NAMES[agent as Agent] || agent)
+    .join(", ");
+
 const configureMcp = (
   mcpClient: McpClient,
   cwd: string,
@@ -143,9 +148,9 @@ export const add = new Command()
             type: "select",
             name: "client",
             message: `Which ${highlighter.info("client")} would you like to configure?`,
-            choices: MCP_CLIENTS.map((innerClient) => ({
-              title: MCP_CLIENT_NAMES[innerClient],
-              value: innerClient,
+            choices: MCP_CLIENTS.map((mcpClientOption) => ({
+              title: MCP_CLIENT_NAMES[mcpClientOption],
+              value: mcpClientOption,
             })),
           });
 
@@ -176,7 +181,7 @@ export const add = new Command()
           logger.break();
           logger.error(`Invalid skill agent: ${clientArg}`);
           logger.error(
-            `Available agents: ${SKILL_AGENTS.map((a) => a.id).join(", ")}`,
+            `Available agents: ${SKILL_AGENTS.map((skillAgent) => skillAgent.id).join(", ")}`,
           );
           logger.break();
           process.exit(1);
@@ -185,7 +190,7 @@ export const add = new Command()
         if (!selectedAgent && !isNonInteractive) {
           const rankedAgents = getRankedSkillAgents(cwd);
           const hasDetectedAgents = rankedAgents.some(
-            (innerAgent: RankedSkillAgent) => innerAgent.detected,
+            (rankedAgent: RankedSkillAgent) => rankedAgent.detected,
           );
 
           logger.break();
@@ -194,11 +199,11 @@ export const add = new Command()
             name: "agent",
             message: `Which ${highlighter.info("agent")} would you like to install the skill for?`,
             choices: [
-              ...rankedAgents.map((innerAgent: RankedSkillAgent) => ({
+              ...rankedAgents.map((rankedAgent: RankedSkillAgent) => ({
                 title: hasDetectedAgents
-                  ? `${innerAgent.name}${innerAgent.detected ? pc.green(" (detected)") : pc.dim(" (not detected)")}`
-                  : innerAgent.name,
-                value: innerAgent,
+                  ? `${rankedAgent.name}${rankedAgent.detected ? pc.green(" (detected)") : pc.dim(" (not detected)")}`
+                  : rankedAgent.name,
+                value: rankedAgent,
               })),
               { title: "Skip", value: null },
             ],
@@ -216,7 +221,7 @@ export const add = new Command()
           logger.break();
           logger.error("Please specify an agent with --client");
           logger.error(
-            `Available agents: ${SKILL_AGENTS.map((a) => a.id).join(", ")}`,
+            `Available agents: ${SKILL_AGENTS.map((skillAgent) => skillAgent.id).join(", ")}`,
           );
           logger.break();
           process.exit(1);
@@ -261,9 +266,9 @@ export const add = new Command()
             type: "select",
             name: "client",
             message: `Which ${highlighter.info("client")} would you like to configure?`,
-            choices: MCP_CLIENTS.map((innerClient) => ({
-              title: MCP_CLIENT_NAMES[innerClient],
-              value: innerClient,
+            choices: MCP_CLIENTS.map((mcpClientOption) => ({
+              title: MCP_CLIENT_NAMES[mcpClientOption],
+              value: mcpClientOption,
             })),
           });
 
@@ -282,7 +287,7 @@ export const add = new Command()
         if (addType === "skill") {
           const rankedAgents = getRankedSkillAgents(cwd);
           const hasDetectedAgents = rankedAgents.some(
-            (innerAgent: RankedSkillAgent) => innerAgent.detected,
+            (rankedAgent: RankedSkillAgent) => rankedAgent.detected,
           );
 
           const { selectedAgent } = await prompts({
@@ -290,11 +295,11 @@ export const add = new Command()
             name: "selectedAgent",
             message: `Which ${highlighter.info("agent")} would you like to install the skill for?`,
             choices: [
-              ...rankedAgents.map((innerAgent: RankedSkillAgent) => ({
+              ...rankedAgents.map((rankedAgent: RankedSkillAgent) => ({
                 title: hasDetectedAgents
-                  ? `${innerAgent.name}${innerAgent.detected ? pc.green(" (detected)") : pc.dim(" (not detected)")}`
-                  : innerAgent.name,
-                value: innerAgent,
+                  ? `${rankedAgent.name}${rankedAgent.detected ? pc.green(" (detected)") : pc.dim(" (not detected)")}`
+                  : rankedAgent.name,
+                value: rankedAgent,
               })),
               { title: "Skip", value: null },
             ],
@@ -360,9 +365,7 @@ export const add = new Command()
         agentIntegration = validAgent;
 
         if (projectInfo.installedAgents.length > 0 && !isNonInteractive) {
-          const installedNames = projectInfo.installedAgents
-            .map((innerAgent) => AGENT_NAMES[innerAgent as Agent] || innerAgent)
-            .join(", ");
+          const installedNames = formatInstalledAgentNames(projectInfo.installedAgents);
 
           logger.break();
           logger.warn(`${installedNames} is already installed.`);
@@ -397,9 +400,7 @@ export const add = new Command()
         }
       } else if (!isNonInteractive) {
         if (projectInfo.installedAgents.length > 0) {
-          const installedNames = projectInfo.installedAgents
-            .map((innerAgent) => AGENT_NAMES[innerAgent as Agent] || innerAgent)
-            .join(", ");
+          const installedNames = formatInstalledAgentNames(projectInfo.installedAgents);
           logger.warn(`Currently installed: ${installedNames}`);
           logger.break();
         }
@@ -408,9 +409,9 @@ export const add = new Command()
           type: "select",
           name: "agent",
           message: `Which ${highlighter.info("agent integration")} would you like to add?`,
-          choices: availableAgents.map((innerAgent) => ({
-            title: AGENT_NAMES[innerAgent],
-            value: innerAgent,
+          choices: availableAgents.map((availableAgent) => ({
+            title: AGENT_NAMES[availableAgent],
+            value: availableAgent,
           })),
         });
 
@@ -422,9 +423,7 @@ export const add = new Command()
         agentIntegration = agent;
 
         if (projectInfo.installedAgents.length > 0) {
-          const installedNames = projectInfo.installedAgents
-            .map((innerAgent) => AGENT_NAMES[innerAgent as Agent] || innerAgent)
-            .join(", ");
+          const installedNames = formatInstalledAgentNames(projectInfo.installedAgents);
 
           const { action } = await prompts({
             type: "select",
@@ -540,7 +539,7 @@ export const add = new Command()
         }
 
         projectInfo.installedAgents = projectInfo.installedAgents.filter(
-          (innerAgent) => !agentsToRemove.includes(innerAgent as Agent),
+          (installedAgent) => !agentsToRemove.includes(installedAgent as Agent),
         );
       }
 

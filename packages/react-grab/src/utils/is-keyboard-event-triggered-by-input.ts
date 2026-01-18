@@ -1,21 +1,4 @@
-type FormTags =
-  | "input"
-  | "INPUT"
-  | "menuitem"
-  | "menuitemcheckbox"
-  | "menuitemradio"
-  | "option"
-  | "radio"
-  | "searchbox"
-  | "select"
-  | "SELECT"
-  | "slider"
-  | "spinbutton"
-  | "textarea"
-  | "TEXTAREA"
-  | "textbox";
-
-const FORM_TAGS_AND_ROLES: readonly FormTags[] = [
+const FORM_TAGS_AND_ROLES: readonly string[] = [
   "input",
   "textarea",
   "select",
@@ -30,52 +13,38 @@ const FORM_TAGS_AND_ROLES: readonly FormTags[] = [
   "textbox",
 ];
 
-const isReadonlyArray = (value: unknown): value is readonly unknown[] => {
-  return Array.isArray(value);
-};
-
-const isHotkeyEnabledOnTagName = (
-  event: KeyboardEvent,
-  enabledOnTags: boolean | readonly FormTags[] = false,
-): boolean => {
+const isEventFromFormElement = (event: KeyboardEvent): boolean => {
   const { composed, target } = event;
 
-  let targetTagName: EventTarget | null | string | undefined;
-  let targetRole: null | string | undefined;
+  let targetTagName: string | undefined;
+  let targetRole: string | null | undefined;
 
   if (composed) {
     const composedPath = event.composedPath();
-    const targetElement = composedPath[0];
+    const firstElement = composedPath[0];
 
-    if (targetElement instanceof HTMLElement) {
-      targetTagName = targetElement.tagName;
-      targetRole = targetElement.role;
+    if (firstElement instanceof HTMLElement) {
+      targetTagName = firstElement.tagName;
+      targetRole = firstElement.role;
     }
   } else if (target instanceof HTMLElement) {
     targetTagName = target.tagName;
     targetRole = target.role;
   }
 
-  if (isReadonlyArray(enabledOnTags)) {
-    return Boolean(
-      targetTagName &&
-        enabledOnTags &&
-        enabledOnTags.some(
-          (tag) =>
-            (typeof targetTagName === "string" &&
-              tag.toLowerCase() === targetTagName.toLowerCase()) ||
-            tag === targetRole,
-        ),
-    );
-  }
+  if (!targetTagName) return false;
 
-  return Boolean(targetTagName && enabledOnTags && enabledOnTags);
+  const normalizedTagName = targetTagName.toLowerCase();
+  return FORM_TAGS_AND_ROLES.some(
+    (tagOrRole) =>
+      tagOrRole === normalizedTagName || tagOrRole === targetRole,
+  );
 };
 
 export const isKeyboardEventTriggeredByInput = (
   event: KeyboardEvent,
 ): boolean => {
-  return isHotkeyEnabledOnTagName(event, FORM_TAGS_AND_ROLES);
+  return isEventFromFormElement(event);
 };
 
 export const hasTextSelectionInInput = (event: KeyboardEvent): boolean => {
