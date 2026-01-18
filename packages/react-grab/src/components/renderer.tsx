@@ -41,13 +41,11 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
                 visible={true}
                 hasAgent={true}
                 isAgentConnected={true}
-                status={
-                  session().isFading
-                    ? "fading"
-                    : session().isStreaming
-                      ? "copying"
-                      : "copied"
-                }
+                status={(() => {
+                  if (session().isFading) return "fading";
+                  if (session().isStreaming) return "copying";
+                  return "copied";
+                })()}
                 statusText={session().lastStatus || "Thinking…"}
                 inputValue={session().context.prompt}
                 previousPrompt={session().context.prompt}

@@ -251,13 +251,16 @@ export const createRelayServer = (
       })) {
         if (signal.aborted) break;
 
+        const getBrowserMessageType = (
+          messageType: string,
+        ): "agent-status" | "agent-error" | "agent-done" => {
+          if (messageType === "status") return "agent-status";
+          if (messageType === "error") return "agent-error";
+          return "agent-done";
+        };
+
         sendToBrowser(browserSocket, {
-          type:
-            message.type === "status"
-              ? "agent-status"
-              : message.type === "error"
-                ? "agent-error"
-                : "agent-done",
+          type: getBrowserMessageType(message.type),
           agentId: handler.agentId,
           sessionId,
           content: message.content,
@@ -492,15 +495,16 @@ export const createRelayServer = (
     ) {
       const messageQueue = sessionMessageQueues.get(message.sessionId);
       if (messageQueue) {
-        const mappedType =
-          message.type === "agent-status"
-            ? "status"
-            : message.type === "agent-done"
-              ? "done"
-              : "error";
+        const getQueueMessageType = (
+          handlerMessageType: string,
+        ): "status" | "done" | "error" => {
+          if (handlerMessageType === "agent-status") return "status";
+          if (handlerMessageType === "agent-done") return "done";
+          return "error";
+        };
 
         messageQueue.push({
-          type: mappedType,
+          type: getQueueMessageType(message.type),
           content: message.content ?? "",
         });
 

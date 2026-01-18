@@ -45,6 +45,7 @@ import {
   INPUT_FOCUS_ACTIVATION_DELAY_MS,
   INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS,
   DEFAULT_KEY_HOLD_DURATION_MS,
+  SCREENSHOT_CAPTURE_DELAY_MS,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
@@ -1531,7 +1532,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       rendererRoot.style.visibility = "hidden";
 
       void (async () => {
-        await delay(50);
+        await delay(SCREENSHOT_CAPTURE_DELAY_MS);
 
         let didSucceed = false;
         let errorMessage: string | undefined;
@@ -2353,7 +2354,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       isScreenshotInProgress = true;
       rendererRoot.style.visibility = "hidden";
-      await delay(50);
+      await delay(SCREENSHOT_CAPTURE_DELAY_MS);
 
       let didSucceed = false;
       let errorMessage: string | undefined;

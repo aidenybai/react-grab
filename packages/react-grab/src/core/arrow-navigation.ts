@@ -1,8 +1,13 @@
 import type { OverlayBounds } from "../types.js";
 import { getElementsAtPoint } from "../utils/get-element-at-position.js";
 
-type ElementValidator = (element: Element) => boolean;
-type BoundsCalculator = (element: Element) => OverlayBounds;
+interface ElementValidator {
+  (element: Element): boolean;
+}
+
+interface BoundsCalculator {
+  (element: Element): OverlayBounds;
+}
 
 export interface ArrowNavigator {
   findNext: (key: string, currentElement: Element) => Element | null;

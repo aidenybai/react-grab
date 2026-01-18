@@ -4,6 +4,7 @@ import type { ArrowPosition, SelectionLabelProps } from "../../types.js";
 import {
   VIEWPORT_MARGIN_PX,
   ARROW_HEIGHT_PX,
+  ARROW_MIN_OFFSET_PX,
   LABEL_GAP_PX,
   IDLE_TIMEOUT_MS,
 } from "../../constants.js";
@@ -221,8 +222,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     }
 
     const arrowLeft = Math.max(
-      12,
-      Math.min(cursorX - positionLeft, labelWidth - 12),
+      ARROW_MIN_OFFSET_PX,
+      Math.min(cursorX - positionLeft, labelWidth - ARROW_MIN_OFFSET_PX),
     );
 
     const position = { left: positionLeft, top: positionTop, arrowLeft };

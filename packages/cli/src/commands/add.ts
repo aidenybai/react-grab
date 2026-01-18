@@ -127,12 +127,9 @@ export const add = new Command()
       const isNonInteractive = opts.yes;
 
       if (agentArg === "mcp") {
-        let mcpClient: McpClient | undefined = opts.client as McpClient;
-
-        // HACK: rename claude to claude-code because we only care about coding tools
-        if (mcpClient === ("claude" as McpClient)) {
-          mcpClient = "claude-code";
-        }
+        // HACK: Handle "claude" alias - rename to claude-code because we only care about coding tools
+        const rawClient = opts.client === "claude" ? "claude-code" : opts.client;
+        let mcpClient: McpClient | undefined = rawClient as McpClient;
 
         if (mcpClient && !MCP_CLIENTS.includes(mcpClient)) {
           logger.break();
