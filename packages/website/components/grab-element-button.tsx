@@ -249,7 +249,7 @@ export const GrabElementButton = ({
   }, [isMobile, onSelect, hasAdvanced]);
 
   useEffect(() => {
-    if (hasAdvanced || typeof window === "undefined") return;
+    if (typeof window === "undefined") return;
 
     const handleActivated = () => setIsActivated(true);
     const handleDeactivated = () => setIsActivated(false);
@@ -261,7 +261,7 @@ export const GrabElementButton = ({
       window.removeEventListener("react-grab:activated", handleActivated);
       window.removeEventListener("react-grab:deactivated", handleDeactivated);
     };
-  }, [hasAdvanced]);
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined" || hasAdvanced) return;
