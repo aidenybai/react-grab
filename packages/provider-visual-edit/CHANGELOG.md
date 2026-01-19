@@ -1,5 +1,13 @@
 # @react-grab/visual-edit
 
+## 0.1.0-beta.11
+
+### Patch Changes
+
+- fix: cli global install
+- Updated dependencies
+  - react-grab@0.1.0-beta.11
+
 ## 0.1.0-beta.10
 
 ### Patch Changes
