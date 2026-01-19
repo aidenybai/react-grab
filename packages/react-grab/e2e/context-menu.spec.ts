@@ -38,6 +38,28 @@ test.describe("Context Menu", () => {
       expect(isContextMenuVisible).toBe(true);
     });
 
+    test("should show context menu when right-clicking while holding activation keys", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+      await reactGrab.hoverElement("li");
+      await reactGrab.waitForSelectionBox();
+
+      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down("c");
+      await reactGrab.page.waitForTimeout(100);
+
+      const element = reactGrab.page.locator("li").first();
+      await element.click({ button: "right", force: true });
+
+      await expect
+        .poll(() => reactGrab.isContextMenuVisible(), { timeout: 2000 })
+        .toBe(true);
+
+      await reactGrab.page.keyboard.up("c");
+      await reactGrab.page.keyboard.up("Meta");
+    });
+
     test("should show context menu with Copy and Open items", async ({
       reactGrab,
     }) => {
@@ -518,7 +540,7 @@ test.describe("Context Menu", () => {
         ).__REACT_GRAB__;
 
         const mockProvider = {
-          async *send() {
+          *send() {
             yield "Processing...";
             yield "Completed";
           },
@@ -571,7 +593,7 @@ test.describe("Context Menu", () => {
         ).__REACT_GRAB__;
 
         const mockProvider = {
-          async *send() {
+          *send() {
             yield "Processing...";
             yield "Completed";
           },

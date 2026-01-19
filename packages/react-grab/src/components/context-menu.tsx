@@ -243,6 +243,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       }
 
       if (!hasModifierKey) return;
+      if (event.repeat) return;
 
       if (keyLower === "s" && isScreenshotSupported()) {
         event.preventDefault();
