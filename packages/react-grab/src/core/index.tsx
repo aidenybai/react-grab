@@ -361,6 +361,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.clearLabelInstances();
       const instanceId = `label-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const boundsCenterX = bounds.x + bounds.width / 2;
+
       const instance: SelectionLabelInstance = {
         id: instanceId,
         bounds,
@@ -1915,11 +1916,20 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const element = getElementAtPosition(event.clientX, event.clientY);
         if (!element) return;
 
-        freezeAllAnimations([element]);
+        const existingFrozenElements = store.frozenElements;
+        const isClickedElementAlreadyFrozen =
+          existingFrozenElements.length > 1 &&
+          existingFrozenElements.includes(element);
+
+        if (isClickedElementAlreadyFrozen) {
+          freezeAllAnimations(existingFrozenElements);
+        } else {
+          freezeAllAnimations([element]);
+          actions.setFrozenElement(element);
+        }
 
         const position = { x: event.clientX, y: event.clientY };
         actions.setPointer(position);
-        actions.setFrozenElement(element);
         actions.freeze();
         actions.showContextMenu(position, element);
         pluginRegistry.hooks.onContextMenu(element, position);
@@ -2408,22 +2418,33 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         .join("\n\n");
 
       const position = store.contextMenuPosition ?? store.pointer;
-      const bounds = contextMenuBounds();
+      const allBounds = frozenElementsBounds();
+      const singleBounds = contextMenuBounds();
+      const combinedBounds =
+        allBounds.length > 1 ? combineBounds(allBounds) : null;
+      const bounds = combinedBounds
+        ? { ...combinedBounds, borderRadius: "0px", transform: "" }
+        : singleBounds;
       const tagName = getTagName(element) || "element";
       const componentName = contextMenuComponentName();
       const shouldDeactivate = store.wasActivatedByToggle;
+      const selectionBoundsArray =
+        allBounds.length > 1 ? allBounds : singleBounds ? [singleBounds] : [];
 
       actions.hideContextMenu();
 
       if (bounds) {
+        const labelPositionX =
+          allBounds.length > 1 ? bounds.x + bounds.width / 2 : position.x;
         const instanceId = createLabelInstance(
           bounds,
           tagName,
           componentName,
           "copying",
           element,
-          position.x,
+          labelPositionX,
           frozenElements.length > 1 ? frozenElements : undefined,
+          selectionBoundsArray,
         );
 
         try {

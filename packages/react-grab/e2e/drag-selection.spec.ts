@@ -52,6 +52,41 @@ test.describe("Drag Selection", () => {
     expect(clipboardContent).toContain("Buy groceries");
   });
 
+  test("should copy HTML for all selected elements via context menu", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.setupMockAgent();
+    await reactGrab.activate();
+
+    const firstItem = reactGrab.page.locator("li").first();
+    const thirdItem = reactGrab.page.locator("li").nth(2);
+
+    const startBox = await firstItem.boundingBox();
+    const endBox = await thirdItem.boundingBox();
+    if (!startBox || !endBox) throw new Error("Could not get bounding boxes");
+
+    await reactGrab.page.mouse.move(startBox.x - 10, startBox.y - 10);
+    await reactGrab.page.mouse.down();
+    await reactGrab.page.mouse.move(
+      endBox.x + endBox.width + 10,
+      endBox.y + endBox.height + 10,
+      { steps: 10 },
+    );
+    await reactGrab.page.mouse.up();
+    await reactGrab.page.waitForTimeout(300);
+
+    const isContextMenuVisible = await reactGrab.isContextMenuVisible();
+    expect(isContextMenuVisible).toBe(true);
+
+    await reactGrab.clickContextMenuItem("Copy html");
+    await reactGrab.page.waitForTimeout(500);
+
+    const clipboardContent = await reactGrab.getClipboardContent();
+    expect(clipboardContent).toContain("<li");
+    expect(clipboardContent).toContain("Buy groceries");
+    expect(clipboardContent).toContain("Walk the dog");
+  });
+
   test("should cancel drag selection on Escape", async ({ reactGrab }) => {
     await reactGrab.activate();
 
