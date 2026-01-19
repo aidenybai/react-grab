@@ -81,3 +81,9 @@
 - SHOULD: Type refs as `let el: HTMLElement | undefined` with guard.
 - SHOULD: Use `use:directiveName={accessor}` for reusable DOM behaviors.
 - NEVER: Mix reactive `class={x()}` with `classList`.
+
+## Testing CLI
+
+```bash
+npm_command=exec node packages/cli/dist/cli.js
+```
