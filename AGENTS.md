@@ -90,10 +90,11 @@ Run dev `packages/cli` with:
 npm_command=exec node packages/cli/dist/cli.js
 ```
 
-Run tests with:
+Run checks always before committing with:
 
 ```bash
-pnpm test
+pnpm test # runs e2e tests
 pnpm lint
+pnpm typecheck # runs type checking
 pnpm format
 ```
