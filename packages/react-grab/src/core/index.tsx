@@ -1808,7 +1808,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             clearHoldTimer();
             const shouldActivateAfterCopy =
               holdTimerFiredWaitingForConfirmation &&
-              !isKeyboardEventTriggeredByInput(event);
+              (pluginRegistry.store.options.allowActivationInsideInput ||
+                !isKeyboardEventTriggeredByInput(event));
             resetCopyConfirmation();
             if (shouldActivateAfterCopy) {
               actions.activate();

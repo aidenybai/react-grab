@@ -28,15 +28,14 @@ test.describe("Copy Feedback Behavior", () => {
     test("should stay active when key held through entire feedback period", async ({
       reactGrab,
     }) => {
-      await reactGrab.page.click("body");
-      await reactGrab.page.keyboard.down("Meta");
-      await reactGrab.page.keyboard.down("c");
-      await reactGrab.page.waitForTimeout(300);
-
+      await reactGrab.activateViaKeyboard();
       expect(await reactGrab.isOverlayVisible()).toBe(true);
 
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
+
+      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down("c");
       await reactGrab.clickElement("li:first-child");
 
       await reactGrab.page.waitForTimeout(FEEDBACK_DURATION_MS + 200);
@@ -50,22 +49,20 @@ test.describe("Copy Feedback Behavior", () => {
     test("should allow hovering different elements during feedback period", async ({
       reactGrab,
     }) => {
-      await reactGrab.page.click("body");
-      await reactGrab.page.keyboard.down("Meta");
-      await reactGrab.page.keyboard.down("c");
-      await reactGrab.page.waitForTimeout(300);
+      await reactGrab.activateViaKeyboard();
+      expect(await reactGrab.isOverlayVisible()).toBe(true);
 
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
+
+      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down("c");
       await reactGrab.clickElement("li:first-child");
 
-      await reactGrab.page.waitForTimeout(100);
-
       await reactGrab.hoverElement("h1");
-      await reactGrab.page.waitForTimeout(100);
-
-      const isSelectionVisible = await reactGrab.isSelectionBoxVisible();
-      expect(isSelectionVisible).toBe(true);
+      await expect
+        .poll(() => reactGrab.isSelectionBoxVisible(), { timeout: FEEDBACK_DURATION_MS })
+        .toBe(true);
 
       await reactGrab.page.keyboard.up("c");
       await reactGrab.page.keyboard.up("Meta");
@@ -74,30 +71,31 @@ test.describe("Copy Feedback Behavior", () => {
     test("should show selection box following hover during feedback", async ({
       reactGrab,
     }) => {
-      await reactGrab.page.click("body");
-      await reactGrab.page.keyboard.down("Meta");
-      await reactGrab.page.keyboard.down("c");
-      await reactGrab.page.waitForTimeout(300);
+      await reactGrab.activateViaKeyboard();
+      expect(await reactGrab.isOverlayVisible()).toBe(true);
 
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
 
       const boundsBefore = await reactGrab.getSelectionBoxBounds();
 
+      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down("c");
       await reactGrab.clickElement("li:first-child");
-      await reactGrab.page.waitForTimeout(100);
-
       await reactGrab.hoverElement("h1");
-      await reactGrab.page.waitForTimeout(150);
-
-      const boundsAfter = await reactGrab.getSelectionBoxBounds();
+      await expect
+        .poll(
+          async () => {
+            const bounds = await reactGrab.getSelectionBoxBounds();
+            return bounds ? `${bounds.width}x${bounds.height}` : null;
+          },
+          { timeout: FEEDBACK_DURATION_MS },
+        )
+        .not.toBe(boundsBefore ? `${boundsBefore.width}x${boundsBefore.height}` : null);
 
       expect(boundsBefore).not.toBeNull();
+      const boundsAfter = await reactGrab.getSelectionBoxBounds();
       expect(boundsAfter).not.toBeNull();
-      expect(
-        boundsBefore!.width !== boundsAfter!.width ||
-          boundsBefore!.height !== boundsAfter!.height,
-      ).toBe(true);
 
       await reactGrab.page.keyboard.up("c");
       await reactGrab.page.keyboard.up("Meta");
@@ -106,13 +104,14 @@ test.describe("Copy Feedback Behavior", () => {
     test("should deactivate at end of feedback if key released mid-feedback", async ({
       reactGrab,
     }) => {
-      await reactGrab.page.click("body");
-      await reactGrab.page.keyboard.down("Meta");
-      await reactGrab.page.keyboard.down("c");
-      await reactGrab.page.waitForTimeout(300);
+      await reactGrab.activateViaKeyboard();
+      expect(await reactGrab.isOverlayVisible()).toBe(true);
 
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
+
+      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down("c");
       await reactGrab.clickElement("li:first-child");
 
       await reactGrab.page.waitForTimeout(500);
@@ -131,15 +130,14 @@ test.describe("Copy Feedback Behavior", () => {
     }) => {
       await reactGrab.updateOptions({ activationMode: "hold" });
 
-      await reactGrab.page.click("body");
-      await reactGrab.page.keyboard.down("Meta");
-      await reactGrab.page.keyboard.down("c");
-      await reactGrab.page.waitForTimeout(300);
-
+      await reactGrab.activate();
       expect(await reactGrab.isOverlayVisible()).toBe(true);
 
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
+
+      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down("c");
       await reactGrab.clickElement("li:first-child");
 
       await reactGrab.page.waitForTimeout(200);
@@ -156,17 +154,21 @@ test.describe("Copy Feedback Behavior", () => {
     }) => {
       await reactGrab.updateOptions({ activationMode: "hold" });
 
-      await reactGrab.page.click("body");
-      await reactGrab.page.keyboard.down("Meta");
-      await reactGrab.page.keyboard.down("c");
-      await reactGrab.page.waitForTimeout(300);
+      await reactGrab.activate();
+      expect(await reactGrab.isOverlayVisible()).toBe(true);
 
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
+
+      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down("c");
       await reactGrab.clickElement("li:first-child");
 
-      await reactGrab.page.waitForTimeout(500);
-      expect(await reactGrab.isOverlayVisible()).toBe(true);
+      await expect
+        .poll(() => reactGrab.isOverlayVisible(), {
+          timeout: FEEDBACK_DURATION_MS + 800,
+        })
+        .toBe(false);
 
       await reactGrab.page.keyboard.up("c");
       await reactGrab.page.keyboard.up("Meta");
@@ -214,13 +216,14 @@ test.describe("Copy Feedback Behavior", () => {
     test("should handle rapid key tap during feedback", async ({
       reactGrab,
     }) => {
-      await reactGrab.page.click("body");
-      await reactGrab.page.keyboard.down("Meta");
-      await reactGrab.page.keyboard.down("c");
-      await reactGrab.page.waitForTimeout(300);
+      await reactGrab.activateViaKeyboard();
+      expect(await reactGrab.isOverlayVisible()).toBe(true);
 
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
+
+      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down("c");
       await reactGrab.clickElement("li:first-child");
 
       await reactGrab.page.waitForTimeout(100);
@@ -238,13 +241,14 @@ test.describe("Copy Feedback Behavior", () => {
     test("should handle modifier key release during feedback", async ({
       reactGrab,
     }) => {
-      await reactGrab.page.click("body");
-      await reactGrab.page.keyboard.down("Meta");
-      await reactGrab.page.keyboard.down("c");
-      await reactGrab.page.waitForTimeout(300);
+      await reactGrab.activateViaKeyboard();
+      expect(await reactGrab.isOverlayVisible()).toBe(true);
 
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
+
+      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down("c");
       await reactGrab.clickElement("li:first-child");
 
       await reactGrab.page.waitForTimeout(100);
@@ -260,34 +264,35 @@ test.describe("Copy Feedback Behavior", () => {
     test("should copy to clipboard before deactivating", async ({
       reactGrab,
     }) => {
-      await reactGrab.page.click("body");
-      await reactGrab.page.keyboard.down("Meta");
-      await reactGrab.page.keyboard.down("c");
-      await reactGrab.page.waitForTimeout(300);
+      await reactGrab.activateViaKeyboard();
+      expect(await reactGrab.isOverlayVisible()).toBe(true);
 
       await reactGrab.hoverElement("[data-testid='main-title']");
       await reactGrab.waitForSelectionBox();
+
+      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down("c");
       await reactGrab.clickElement("[data-testid='main-title']");
 
-      await reactGrab.page.waitForTimeout(200);
+      await expect
+        .poll(() => reactGrab.getClipboardContent(), { timeout: FEEDBACK_DURATION_MS })
+        .toContain("React Grab");
 
       await reactGrab.page.keyboard.up("c");
       await reactGrab.page.keyboard.up("Meta");
-
-      const clipboardContent = await reactGrab.getClipboardContent();
-      expect(clipboardContent).toContain("React Grab");
     });
 
     test("should handle multiple sequential copies while holding", async ({
       reactGrab,
     }) => {
-      await reactGrab.page.click("body");
-      await reactGrab.page.keyboard.down("Meta");
-      await reactGrab.page.keyboard.down("c");
-      await reactGrab.page.waitForTimeout(300);
+      await reactGrab.activateViaKeyboard();
+      expect(await reactGrab.isOverlayVisible()).toBe(true);
 
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
+
+      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down("c");
       await reactGrab.clickElement("li:first-child");
       await reactGrab.page.waitForTimeout(200);
 
@@ -305,13 +310,14 @@ test.describe("Copy Feedback Behavior", () => {
     test("should deactivate when escape pressed during feedback", async ({
       reactGrab,
     }) => {
-      await reactGrab.page.click("body");
-      await reactGrab.page.keyboard.down("Meta");
-      await reactGrab.page.keyboard.down("c");
-      await reactGrab.page.waitForTimeout(300);
+      await reactGrab.activateViaKeyboard();
+      expect(await reactGrab.isOverlayVisible()).toBe(true);
 
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
+
+      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down("c");
       await reactGrab.clickElement("li:first-child");
 
       await reactGrab.page.waitForTimeout(100);

@@ -108,36 +108,34 @@ test.describe("Activation Mode Configuration", () => {
     expect(await reactGrab.isOverlayVisible()).toBe(false);
   });
 
-  test("should not activate when focused on input element", async ({
+  test("should activate when focused on input element", async ({
     reactGrab,
   }) => {
     await reactGrab.page.click("[data-testid='test-input']");
 
     await reactGrab.page.keyboard.down("Meta");
     await reactGrab.page.keyboard.down("c");
-    // HACK: Need actual delay for hold-to-activate feature
-    await reactGrab.page.waitForTimeout(300);
+    await reactGrab.page.waitForTimeout(350);
     await reactGrab.page.keyboard.up("c");
     await reactGrab.page.keyboard.up("Meta");
 
-    const isVisible = await reactGrab.isOverlayVisible();
-    expect(isVisible).toBe(false);
+    await expect
+      .poll(() => reactGrab.isOverlayVisible(), { timeout: 1000 })
+      .toBe(true);
   });
 
-  test("should not activate when focused on textarea", async ({
-    reactGrab,
-  }) => {
+  test("should activate when focused on textarea", async ({ reactGrab }) => {
     await reactGrab.page.click("[data-testid='test-textarea']");
 
     await reactGrab.page.keyboard.down("Meta");
     await reactGrab.page.keyboard.down("c");
-    // HACK: Need actual delay for hold-to-activate feature
-    await reactGrab.page.waitForTimeout(300);
+    await reactGrab.page.waitForTimeout(350);
     await reactGrab.page.keyboard.up("c");
     await reactGrab.page.keyboard.up("Meta");
 
-    const isVisible = await reactGrab.isOverlayVisible();
-    expect(isVisible).toBe(false);
+    await expect
+      .poll(() => reactGrab.isOverlayVisible(), { timeout: 1000 })
+      .toBe(true);
   });
 
   test("activation should work after clicking outside input", async ({

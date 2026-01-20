@@ -67,6 +67,20 @@ test.describe("Prompt Mode", () => {
     });
   });
 
+  test.describe("Prompt Mode Control", () => {
+    test("API toggle should exit prompt mode", async ({ reactGrab }) => {
+      await reactGrab.setupMockAgent();
+      await reactGrab.enterPromptMode("li:first-child");
+
+      await reactGrab.toggle();
+
+      await expect
+        .poll(() => reactGrab.isOverlayVisible(), { timeout: 2000 })
+        .toBe(false);
+      expect(await reactGrab.isPromptModeActive()).toBe(false);
+    });
+  });
+
   test.describe("Text Input and Editing", () => {
     test("should accept text input", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent();

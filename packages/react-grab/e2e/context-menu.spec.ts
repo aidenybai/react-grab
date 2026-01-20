@@ -460,6 +460,31 @@ test.describe("Context Menu", () => {
       const isPromptMode = await reactGrab.isPromptModeActive();
       expect(isPromptMode).toBe(true);
     });
+
+    test("Edit with agent keeps overlay active", async ({ reactGrab }) => {
+      await reactGrab.setupMockAgent();
+      await reactGrab.activate();
+      await reactGrab.hoverElement("li:first-child");
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.rightClickElement("li:first-child");
+      await reactGrab.clickContextMenuItem("Edit");
+
+      await expect
+        .poll(() => reactGrab.isOverlayVisible(), { timeout: 2000 })
+        .toBe(true);
+    });
+
+    test("Copy without agent deactivates after action", async ({ reactGrab }) => {
+      await reactGrab.activate();
+      await reactGrab.hoverElement("li:first-child");
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.rightClickElement("li:first-child");
+      await reactGrab.clickContextMenuItem("Copy");
+
+      await expect
+        .poll(() => reactGrab.isOverlayVisible(), { timeout: 3000 })
+        .toBe(false);
+    });
   });
 
   test.describe("Context Menu Positioning", () => {
