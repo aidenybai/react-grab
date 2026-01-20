@@ -240,7 +240,7 @@ test.describe("Open File", () => {
     test("callback should include source info when available", async ({
       reactGrab,
     }) => {
-      let receivedInfo: Record<string, unknown> | null = null;
+      let receivedInfo: Record<string, unknown> | null | undefined = null;
 
       await reactGrab.page.evaluate(() => {
         (

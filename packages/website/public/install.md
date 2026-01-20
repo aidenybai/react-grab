@@ -144,6 +144,7 @@ if (process.env.NODE_ENV === "development") {
 4. The element's context should be copied to your clipboard
 
 Expected clipboard output format:
+
 ```
 <a class="ml-auto inline-block text-sm" href="#">
   Forgot your password?

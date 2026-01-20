@@ -2267,7 +2267,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const [contextMenuComponentName] = createResource(
-      () => ({ element: store.contextMenuElement, frozenCount: store.frozenElements.length }),
+      () => ({
+        element: store.contextMenuElement,
+        frozenCount: store.frozenElements.length,
+      }),
       async ({ element, frozenCount }) => {
         if (!element) return undefined;
         if (frozenCount > 1) return undefined;

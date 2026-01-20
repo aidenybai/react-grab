@@ -41,9 +41,7 @@ import {
 const VERSION = process.env.VERSION ?? "0.0.1";
 
 const formatInstalledAgentNames = (agents: string[]): string =>
-  agents
-    .map((agent) => AGENT_NAMES[agent as Agent] || agent)
-    .join(", ");
+  agents.map((agent) => AGENT_NAMES[agent as Agent] || agent).join(", ");
 
 const configureMcp = (
   mcpClient: McpClient,
@@ -128,7 +126,8 @@ export const add = new Command()
 
       if (agentArg === "mcp") {
         // HACK: Handle "claude" alias - rename to claude-code because we only care about coding tools
-        const rawClient = opts.client === "claude" ? "claude-code" : opts.client;
+        const rawClient =
+          opts.client === "claude" ? "claude-code" : opts.client;
         let mcpClient: McpClient | undefined = rawClient as McpClient;
 
         if (mcpClient && !MCP_CLIENTS.includes(mcpClient)) {
@@ -362,7 +361,9 @@ export const add = new Command()
         agentIntegration = validAgent;
 
         if (projectInfo.installedAgents.length > 0 && !isNonInteractive) {
-          const installedNames = formatInstalledAgentNames(projectInfo.installedAgents);
+          const installedNames = formatInstalledAgentNames(
+            projectInfo.installedAgents,
+          );
 
           logger.break();
           logger.warn(`${installedNames} is already installed.`);
@@ -397,7 +398,9 @@ export const add = new Command()
         }
       } else if (!isNonInteractive) {
         if (projectInfo.installedAgents.length > 0) {
-          const installedNames = formatInstalledAgentNames(projectInfo.installedAgents);
+          const installedNames = formatInstalledAgentNames(
+            projectInfo.installedAgents,
+          );
           logger.warn(`Currently installed: ${installedNames}`);
           logger.break();
         }
@@ -420,7 +423,9 @@ export const add = new Command()
         agentIntegration = agent;
 
         if (projectInfo.installedAgents.length > 0) {
-          const installedNames = formatInstalledAgentNames(projectInfo.installedAgents);
+          const installedNames = formatInstalledAgentNames(
+            projectInfo.installedAgents,
+          );
 
           const { action } = await prompts({
             type: "select",

@@ -99,14 +99,16 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     const viewportHeight = window.innerHeight;
 
     if (edge === "top" || edge === "bottom") {
-      const availableWidth = viewportWidth - elementWidth - TOOLBAR_SNAP_MARGIN_PX * 2;
+      const availableWidth =
+        viewportWidth - elementWidth - TOOLBAR_SNAP_MARGIN_PX * 2;
       if (availableWidth <= 0) return 0.5;
       return Math.max(
         0,
         Math.min(1, (positionX - TOOLBAR_SNAP_MARGIN_PX) / availableWidth),
       );
     }
-    const availableHeight = viewportHeight - elementHeight - TOOLBAR_SNAP_MARGIN_PX * 2;
+    const availableHeight =
+      viewportHeight - elementHeight - TOOLBAR_SNAP_MARGIN_PX * 2;
     if (availableHeight <= 0) return 0.5;
     return Math.max(
       0,
@@ -190,7 +192,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         edge: "top",
         x: Math.max(
           TOOLBAR_SNAP_MARGIN_PX,
-          Math.min(projectedX, viewportWidth - elementWidth - TOOLBAR_SNAP_MARGIN_PX),
+          Math.min(
+            projectedX,
+            viewportWidth - elementWidth - TOOLBAR_SNAP_MARGIN_PX,
+          ),
         ),
         y: TOOLBAR_SNAP_MARGIN_PX,
       };
@@ -201,7 +206,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         x: TOOLBAR_SNAP_MARGIN_PX,
         y: Math.max(
           TOOLBAR_SNAP_MARGIN_PX,
-          Math.min(projectedY, viewportHeight - elementHeight - TOOLBAR_SNAP_MARGIN_PX),
+          Math.min(
+            projectedY,
+            viewportHeight - elementHeight - TOOLBAR_SNAP_MARGIN_PX,
+          ),
         ),
       };
     }
@@ -211,7 +219,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         x: viewportWidth - elementWidth - TOOLBAR_SNAP_MARGIN_PX,
         y: Math.max(
           TOOLBAR_SNAP_MARGIN_PX,
-          Math.min(projectedY, viewportHeight - elementHeight - TOOLBAR_SNAP_MARGIN_PX),
+          Math.min(
+            projectedY,
+            viewportHeight - elementHeight - TOOLBAR_SNAP_MARGIN_PX,
+          ),
         ),
       };
     }
@@ -219,7 +230,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       edge: "bottom",
       x: Math.max(
         TOOLBAR_SNAP_MARGIN_PX,
-        Math.min(projectedX, viewportWidth - elementWidth - TOOLBAR_SNAP_MARGIN_PX),
+        Math.min(
+          projectedX,
+          viewportWidth - elementWidth - TOOLBAR_SNAP_MARGIN_PX,
+        ),
       ),
       y: viewportHeight - elementHeight - TOOLBAR_SNAP_MARGIN_PX,
     };
@@ -341,7 +355,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       case "top":
         return { x: pos.x, y: 0 };
       case "bottom":
-        return { x: pos.x, y: window.innerHeight - TOOLBAR_COLLAPSED_HEIGHT_PX };
+        return {
+          x: pos.x,
+          y: window.innerHeight - TOOLBAR_COLLAPSED_HEIGHT_PX,
+        };
       case "left":
         return { x: 0, y: pos.y };
       case "right":
@@ -444,114 +461,115 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const getTransitionClass = (): string => {
     if (isResizing()) return "";
-    if (isSnapping()) return "transition-[transform,opacity] duration-300 ease-out";
+    if (isSnapping())
+      return "transition-[transform,opacity] duration-300 ease-out";
     return "transition-opacity duration-300 ease-out";
   };
 
   return (
     <Show when={!isMobile()}>
       <div
-      ref={containerRef}
-      data-react-grab-ignore-events
-      data-react-grab-toolbar
-      class={cn(
-        "fixed left-0 top-0 font-sans text-[13px] antialiased filter-[drop-shadow(0px_0px_4px_#51515180)] select-none",
-        getCursorClass(),
-        getTransitionClass(),
-        isVisible() ? "opacity-100" : "opacity-0 pointer-events-none",
-      )}
-      style={{
-        "z-index": "2147483647",
-        transform: `translate(${currentPosition().x}px, ${currentPosition().y}px)`,
-      }}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-    >
-      <div
+        ref={containerRef}
+        data-react-grab-ignore-events
+        data-react-grab-toolbar
         class={cn(
-          "[font-synthesis:none] contain-layout flex items-center justify-center rounded-sm bg-white antialiased transition-all duration-100 ease-out",
-          isCollapsed() ? "" : "gap-1.5 px-2 py-1.5",
-          isCollapsed() && snapEdge() === "top" && "rounded-t-none",
-          isCollapsed() && snapEdge() === "bottom" && "rounded-b-none",
-          isCollapsed() && snapEdge() === "left" && "rounded-l-none",
-          isCollapsed() && snapEdge() === "right" && "rounded-r-none",
-          isCollapsed() &&
-            (snapEdge() === "top" || snapEdge() === "bottom") &&
-            "px-2 py-0.25",
-          isCollapsed() &&
-            (snapEdge() === "left" || snapEdge() === "right") &&
-            "px-0.25 py-2",
+          "fixed left-0 top-0 font-sans text-[13px] antialiased filter-[drop-shadow(0px_0px_4px_#51515180)] select-none",
+          getCursorClass(),
+          getTransitionClass(),
+          isVisible() ? "opacity-100" : "opacity-0 pointer-events-none",
         )}
-        onClick={(event) => {
-          if (isCollapsed()) {
-            event.stopPropagation();
-            setIsCollapsed(false);
-            saveToolbarState({
-              edge: snapEdge(),
-              ratio: positionRatio(),
-              collapsed: false,
-              enabled: props.enabled ?? true,
-            });
-          }
+        style={{
+          "z-index": "2147483647",
+          transform: `translate(${currentPosition().x}px, ${currentPosition().y}px)`,
         }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
       >
         <div
           class={cn(
-            "flex items-center gap-1.5 transition-all duration-100 ease-out overflow-hidden",
-            isCollapsed() ? "max-w-0 opacity-0" : "max-w-[200px] opacity-100",
+            "[font-synthesis:none] contain-layout flex items-center justify-center rounded-sm bg-white antialiased transition-all duration-100 ease-out",
+            isCollapsed() ? "" : "gap-1.5 px-2 py-1.5",
+            isCollapsed() && snapEdge() === "top" && "rounded-t-none",
+            isCollapsed() && snapEdge() === "bottom" && "rounded-b-none",
+            isCollapsed() && snapEdge() === "left" && "rounded-l-none",
+            isCollapsed() && snapEdge() === "right" && "rounded-r-none",
+            isCollapsed() &&
+              (snapEdge() === "top" || snapEdge() === "bottom") &&
+              "px-2 py-0.25",
+            isCollapsed() &&
+              (snapEdge() === "left" || snapEdge() === "right") &&
+              "px-0.25 py-2",
           )}
+          onClick={(event) => {
+            if (isCollapsed()) {
+              event.stopPropagation();
+              setIsCollapsed(false);
+              saveToolbarState({
+                edge: snapEdge(),
+                ratio: positionRatio(),
+                collapsed: false,
+                enabled: props.enabled ?? true,
+              });
+            }
+          }}
         >
-          <button
-            data-react-grab-ignore-events
-            data-react-grab-toolbar-toggle
-            class="contain-layout shrink-0 flex items-center justify-center cursor-pointer transition-all hover:scale-105"
-            onClick={handleToggle}
+          <div
+            class={cn(
+              "flex items-center gap-1.5 transition-all duration-100 ease-out overflow-hidden",
+              isCollapsed() ? "max-w-0 opacity-0" : "max-w-[200px] opacity-100",
+            )}
           >
-            <IconSelect
-              size={14}
-              class={cn(
-                "transition-colors",
-                props.isActive ? "text-black" : "text-black/70",
-              )}
-            />
-          </button>
-          <button
-            data-react-grab-ignore-events
-            data-react-grab-toolbar-enabled
-            class="contain-layout shrink-0 flex items-center justify-center cursor-pointer transition-all hover:scale-105 outline-none mx-0.5"
-            onClick={handleToggleEnabled}
-          >
-            <div
-              class={cn(
-                "relative w-5 h-3 rounded-full transition-colors",
-                props.enabled ? "bg-black" : "bg-black/25",
-              )}
+            <button
+              data-react-grab-ignore-events
+              data-react-grab-toolbar-toggle
+              class="contain-layout shrink-0 flex items-center justify-center cursor-pointer transition-all hover:scale-105"
+              onClick={handleToggle}
+            >
+              <IconSelect
+                size={14}
+                class={cn(
+                  "transition-colors",
+                  props.isActive ? "text-black" : "text-black/70",
+                )}
+              />
+            </button>
+            <button
+              data-react-grab-ignore-events
+              data-react-grab-toolbar-enabled
+              class="contain-layout shrink-0 flex items-center justify-center cursor-pointer transition-all hover:scale-105 outline-none mx-0.5"
+              onClick={handleToggleEnabled}
             >
               <div
                 class={cn(
-                  "absolute top-0.5 w-2 h-2 rounded-full bg-white transition-transform",
-                  props.enabled ? "left-2.5" : "left-0.5",
+                  "relative w-5 h-3 rounded-full transition-colors",
+                  props.enabled ? "bg-black" : "bg-black/25",
                 )}
-              />
-            </div>
+              >
+                <div
+                  class={cn(
+                    "absolute top-0.5 w-2 h-2 rounded-full bg-white transition-transform",
+                    props.enabled ? "left-2.5" : "left-0.5",
+                  )}
+                />
+              </div>
+            </button>
+          </div>
+          <button
+            data-react-grab-ignore-events
+            data-react-grab-toolbar-collapse
+            class="contain-layout shrink-0 flex items-center justify-center cursor-pointer transition-all hover:scale-105"
+            onClick={handleToggleCollapse}
+          >
+            <IconChevron
+              class={cn(
+                "text-[#B3B3B3] transition-transform duration-100",
+                chevronRotation(),
+              )}
+            />
           </button>
         </div>
-        <button
-          data-react-grab-ignore-events
-          data-react-grab-toolbar-collapse
-          class="contain-layout shrink-0 flex items-center justify-center cursor-pointer transition-all hover:scale-105"
-          onClick={handleToggleCollapse}
-        >
-          <IconChevron
-            class={cn(
-              "text-[#B3B3B3] transition-transform duration-100",
-              chevronRotation(),
-            )}
-          />
-        </button>
       </div>
-    </div>
     </Show>
   );
 };

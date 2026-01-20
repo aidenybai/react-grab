@@ -98,9 +98,7 @@ export const getReactContextForActiveElement = async (
       const reactGrab = (
         globalThis as {
           __REACT_GRAB__?: {
-            getSource: (
-              e: Element,
-            ) => Promise<{
+            getSource: (e: Element) => Promise<{
               filePath: string;
               lineNumber: number | null;
               componentName: string | null;

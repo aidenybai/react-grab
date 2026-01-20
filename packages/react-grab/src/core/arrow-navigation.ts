@@ -45,7 +45,7 @@ export const createArrowNavigator = (
 
   const findDown = (currentElement: Element): Element | null => {
     if (navigationHistory.length > 0) {
-      const previousElement = navigationHistory.pop()!
+      const previousElement = navigationHistory.pop()!;
       if (document.contains(previousElement)) {
         return previousElement;
       }

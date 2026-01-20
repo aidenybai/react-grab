@@ -58,7 +58,9 @@ export const promptGlobalInstall = async (version: string): Promise<void> => {
 
   const packageSpec = `grab@${version}`;
   const actionText = isOutdated ? "Updating" : "Installing";
-  const installSpinner = spinner(`${actionText} ${packageSpec} globally`).start();
+  const installSpinner = spinner(
+    `${actionText} ${packageSpec} globally`,
+  ).start();
 
   try {
     execSync(`npm install -g ${packageSpec}`, {
@@ -72,9 +74,7 @@ export const promptGlobalInstall = async (version: string): Promise<void> => {
     const failText = isOutdated ? "Update" : "Install";
     installSpinner.fail(`Global ${failText.toLowerCase()} failed`);
     logger.break();
-    logger.dim(
-      `Try running: ${highlighter.info("sudo npm install -g grab")}`,
-    );
+    logger.dim(`Try running: ${highlighter.info("sudo npm install -g grab")}`);
     logger.dim(
       `Or see: ${highlighter.info("https://docs.npmjs.com/resolving-eacces-permissions-errors")}`,
     );

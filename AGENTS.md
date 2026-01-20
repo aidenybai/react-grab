@@ -82,8 +82,18 @@
 - SHOULD: Use `use:directiveName={accessor}` for reusable DOM behaviors.
 - NEVER: Mix reactive `class={x()}` with `classList`.
 
-## Testing CLI
+## Testing
+
+Run dev `packages/cli` with:
 
 ```bash
 npm_command=exec node packages/cli/dist/cli.js
+```
+
+Run tests with:
+
+```bash
+pnpm test
+pnpm lint
+pnpm format
 ```

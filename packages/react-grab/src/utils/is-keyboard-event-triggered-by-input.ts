@@ -36,8 +36,7 @@ const isEventFromFormElement = (event: KeyboardEvent): boolean => {
 
   const normalizedTagName = targetTagName.toLowerCase();
   return FORM_TAGS_AND_ROLES.some(
-    (tagOrRole) =>
-      tagOrRole === normalizedTagName || tagOrRole === targetRole,
+    (tagOrRole) => tagOrRole === normalizedTagName || tagOrRole === targetRole,
   );
 };
 

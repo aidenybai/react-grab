@@ -104,10 +104,22 @@ const createSamplePoints = (dragRect: DragRect): SamplePoint[] => {
     points.push({ x: clampedX, y: clampedY });
   };
 
-  addPoint(left + DRAG_SELECTION_EDGE_INSET_PX, top + DRAG_SELECTION_EDGE_INSET_PX);
-  addPoint(right - DRAG_SELECTION_EDGE_INSET_PX, top + DRAG_SELECTION_EDGE_INSET_PX);
-  addPoint(left + DRAG_SELECTION_EDGE_INSET_PX, bottom - DRAG_SELECTION_EDGE_INSET_PX);
-  addPoint(right - DRAG_SELECTION_EDGE_INSET_PX, bottom - DRAG_SELECTION_EDGE_INSET_PX);
+  addPoint(
+    left + DRAG_SELECTION_EDGE_INSET_PX,
+    top + DRAG_SELECTION_EDGE_INSET_PX,
+  );
+  addPoint(
+    right - DRAG_SELECTION_EDGE_INSET_PX,
+    top + DRAG_SELECTION_EDGE_INSET_PX,
+  );
+  addPoint(
+    left + DRAG_SELECTION_EDGE_INSET_PX,
+    bottom - DRAG_SELECTION_EDGE_INSET_PX,
+  );
+  addPoint(
+    right - DRAG_SELECTION_EDGE_INSET_PX,
+    bottom - DRAG_SELECTION_EDGE_INSET_PX,
+  );
   addPoint(centerX, top + DRAG_SELECTION_EDGE_INSET_PX);
   addPoint(centerX, bottom - DRAG_SELECTION_EDGE_INSET_PX);
   addPoint(left + DRAG_SELECTION_EDGE_INSET_PX, centerY);
