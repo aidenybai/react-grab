@@ -1,7 +1,7 @@
-import { StreamDemo } from "@/components/stream-demo";
+import { HomepageDemo } from "@/components/homepage-demo";
 
 const Home = () => {
-  return <StreamDemo />;
+  return <HomepageDemo />;
 };
 
 Home.displayName = "Home";

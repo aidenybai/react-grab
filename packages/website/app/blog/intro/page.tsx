@@ -9,7 +9,7 @@ import ReactGrabLogo from "@/public/logo.svg";
 import { BenchmarkResult, TestCase } from "@/components/benchmarks/types";
 import { GithubButton } from "@/components/github-button";
 import { CursorInstallButton } from "@/components/cursor-install-button";
-import { Collapsible } from "@/components/collapsible";
+import { Collapsible } from "@/components/ui/collapsible";
 import resultsData from "@/public/results.json";
 import testCasesData from "@/public/test-cases.json";
 import {

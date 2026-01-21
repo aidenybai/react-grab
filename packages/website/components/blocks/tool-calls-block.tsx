@@ -1,6 +1,6 @@
 "use client";
 
-import { Collapsible } from "../collapsible";
+import { Collapsible } from "../ui/collapsible";
 import { GrepToolCallBlock } from "./grep-tool-call-block";
 import { ReadToolCallBlock } from "./read-tool-call-block";
 import { StreamRenderedBlock } from "@/hooks/use-stream";

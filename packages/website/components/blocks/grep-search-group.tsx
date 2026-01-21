@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactElement } from "react";
 import { GREP_SEARCH_DELAY_MS } from "@/constants";
-import { Collapsible } from "../collapsible";
+import { Collapsible } from "../ui/collapsible";
 import { GrepToolCallBlock } from "./grep-tool-call-block";
 
 interface GrepSearchGroupProps {

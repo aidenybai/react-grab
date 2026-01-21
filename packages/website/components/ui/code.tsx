@@ -1,4 +1,4 @@
-import { highlightCode } from "../lib/shiki";
+import { highlightCode } from "../../lib/shiki";
 
 interface CodeProps {
   code: string;

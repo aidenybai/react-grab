@@ -1,7 +1,7 @@
 "use client";
 
-import { Collapsible } from "../collapsible";
-import { Scrollable } from "../scrollable";
+import { Collapsible } from "../ui/collapsible";
+import { Scrollable } from "../ui/scrollable";
 import { StreamingText } from "./streaming-text";
 import { StreamRenderedBlock } from "@/hooks/use-stream";
 

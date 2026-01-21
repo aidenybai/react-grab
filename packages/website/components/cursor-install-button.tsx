@@ -1,4 +1,4 @@
-import { IconCursor } from "./icon-cursor";
+import { IconCursor } from "./icons/icon-cursor";
 
 export const CursorInstallButton = () => {
   return (

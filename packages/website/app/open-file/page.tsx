@@ -4,8 +4,10 @@ import { useQueryState, parseAsStringLiteral } from "nuqs";
 import { useState, useEffect, useCallback, Suspense, useRef } from "react";
 import { ReactGrabLogo } from "@/components/react-grab-logo";
 import { cn } from "@/utils/classnames";
-import { IconCursor } from "@/components/icon-cursor";
-import { IconVSCode, IconZed, IconWebStorm } from "@/components/icons";
+import { IconCursor } from "@/components/icons/icon-cursor";
+import { IconVSCode } from "@/components/icons/icon-vscode";
+import { IconZed } from "@/components/icons/icon-zed";
+import { IconWebStorm } from "@/components/icons/icon-webstorm";
 import { ChevronDown, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 

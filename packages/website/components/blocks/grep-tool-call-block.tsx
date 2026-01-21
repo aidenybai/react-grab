@@ -1,4 +1,4 @@
-import { Collapsible } from "../collapsible";
+import { Collapsible } from "../ui/collapsible";
 
 interface GrepToolCallBlockProps {
   parameter: string;

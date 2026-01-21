@@ -1,4 +1,4 @@
-import { IconGithub } from "./icon-github";
+import { IconGithub } from "./icons/icon-github";
 
 export const GithubButton = () => {
   return (

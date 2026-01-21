@@ -36,9 +36,9 @@ import {
   type SelectedElementInfo,
 } from "./grab-element-button";
 import { HotkeyProvider } from "./hotkey-context";
-import { IconClaude } from "./icon-claude";
-import { IconCopilot } from "./icon-copilot";
-import { IconCursor } from "./icon-cursor";
+import { IconClaude } from "./icons/icon-claude";
+import { IconCopilot } from "./icons/icon-copilot";
+import { IconCursor } from "./icons/icon-cursor";
 import { InstallTabs } from "./install-tabs";
 import { ReactGrabLogo } from "./react-grab-logo";
 import { UserMessage } from "./user-message";
@@ -431,7 +431,7 @@ const formatElementSelector = (element: SelectedElementInfo): string => {
   return selector;
 };
 
-export const StreamDemo = (): ReactElement => {
+export const HomepageDemo = (): ReactElement => {
   const [blockConfigs, setBlockConfigs] = useState(BLOCK_CONFIGS);
   const streamBlocks = useMemo(
     () => toStreamBlocks(blockConfigs),
@@ -610,4 +610,4 @@ export const StreamDemo = (): ReactElement => {
   );
 };
 
-StreamDemo.displayName = "StreamDemo";
+HomepageDemo.displayName = "HomepageDemo";
