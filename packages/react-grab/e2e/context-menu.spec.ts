@@ -474,7 +474,9 @@ test.describe("Context Menu", () => {
         .toBe(true);
     });
 
-    test("Copy without agent deactivates after action", async ({ reactGrab }) => {
+    test("Copy without agent deactivates after action", async ({
+      reactGrab,
+    }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();

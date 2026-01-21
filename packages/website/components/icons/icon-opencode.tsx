@@ -1,11 +1,20 @@
-import { SVGProps } from "react";
+interface IconOpenCodeProps {
+  width?: number;
+  height?: number;
+  className?: string;
+}
 
-export const IconOpenCode = (props: SVGProps<SVGSVGElement>) => (
+export const IconOpenCode = ({
+  width = 16,
+  height = 20,
+  className = "",
+}: IconOpenCodeProps) => (
   <svg
+    width={width}
+    height={height}
     viewBox="0 0 32 40"
     fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    {...props}
+    className={className}
   >
     <g clipPath="url(#clip0_1311_94973)">
       <path d="M24 32H8V16H24V32Z" fill="#4B4646" />

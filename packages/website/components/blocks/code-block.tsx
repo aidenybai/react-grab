@@ -5,6 +5,10 @@ import { StreamRenderedBlock } from "@/hooks/use-stream";
 import { useState, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
 import { highlightCode } from "@/lib/shiki";
+import {
+  CODE_BLOCK_COLLAPSE_LINE_THRESHOLD,
+  CODE_BLOCK_MAX_HEIGHT_PX,
+} from "@/constants";
 
 interface CodeBlockProps {
   block: StreamRenderedBlock;
@@ -33,18 +37,22 @@ export const CodeBlock = ({ block }: CodeBlockProps) => {
         setHighlightedCode(html);
 
         const lineCount = code.split("\n").length;
-        setShouldShowExpandButton(lineCount > 15);
+        setShouldShowExpandButton(
+          lineCount > CODE_BLOCK_COLLAPSE_LINE_THRESHOLD,
+        );
       }
     };
 
     highlightAsync();
   }, [block.content, block.metadata]);
 
-  const maxHeight = !isExpanded ? "max-h-[400px]" : "";
+  const maxHeightStyle = !isExpanded
+    ? { maxHeight: `${CODE_BLOCK_MAX_HEIGHT_PX}px` }
+    : {};
 
   return (
     <div className="relative bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
-      <div className={`${maxHeight} overflow-hidden`}>
+      <div className="overflow-hidden" style={maxHeightStyle}>
         <div className="p-4 font-mono text-sm text-white overflow-x-auto">
           {highlightedCode ? (
             <div

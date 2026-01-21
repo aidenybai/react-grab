@@ -61,7 +61,9 @@ test.describe("Copy Feedback Behavior", () => {
 
       await reactGrab.hoverElement("h1");
       await expect
-        .poll(() => reactGrab.isSelectionBoxVisible(), { timeout: FEEDBACK_DURATION_MS })
+        .poll(() => reactGrab.isSelectionBoxVisible(), {
+          timeout: FEEDBACK_DURATION_MS,
+        })
         .toBe(true);
 
       await reactGrab.page.keyboard.up("c");
@@ -91,7 +93,9 @@ test.describe("Copy Feedback Behavior", () => {
           },
           { timeout: FEEDBACK_DURATION_MS },
         )
-        .not.toBe(boundsBefore ? `${boundsBefore.width}x${boundsBefore.height}` : null);
+        .not.toBe(
+          boundsBefore ? `${boundsBefore.width}x${boundsBefore.height}` : null,
+        );
 
       expect(boundsBefore).not.toBeNull();
       const boundsAfter = await reactGrab.getSelectionBoxBounds();
@@ -275,7 +279,9 @@ test.describe("Copy Feedback Behavior", () => {
       await reactGrab.clickElement("[data-testid='main-title']");
 
       await expect
-        .poll(() => reactGrab.getClipboardContent(), { timeout: FEEDBACK_DURATION_MS })
+        .poll(() => reactGrab.getClipboardContent(), {
+          timeout: FEEDBACK_DURATION_MS,
+        })
         .toContain("React Grab");
 
       await reactGrab.page.keyboard.up("c");

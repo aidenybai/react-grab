@@ -1,8 +1,4 @@
-const headers = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "*",
-};
+import { getCorsHeaders, createOptionsResponse } from "@/lib/api-helpers";
 
 interface ReportPayload {
   type: "error" | "completed";
@@ -21,13 +17,21 @@ interface ReportPayload {
   timestamp: string;
 }
 
-export async function POST(request: Request) {
+const corsOptions = {
+  methods: ["POST", "OPTIONS"] as const,
+  headers: "*" as const,
+};
+
+export const POST = async (request: Request): Promise<Response> => {
   let payload: ReportPayload;
 
   try {
     payload = await request.json();
   } catch {
-    return new Response("Invalid JSON", { status: 400, headers });
+    return new Response("Invalid JSON", {
+      status: 400,
+      headers: getCorsHeaders(corsOptions),
+    });
   }
 
   console.log(
@@ -35,9 +39,7 @@ export async function POST(request: Request) {
     JSON.stringify(payload, null, 2),
   );
 
-  return new Response("OK", { headers });
-}
+  return new Response("OK", { headers: getCorsHeaders(corsOptions) });
+};
 
-export function OPTIONS() {
-  return new Response(null, { headers });
-}
+export const OPTIONS = (): Response => createOptionsResponse(corsOptions);

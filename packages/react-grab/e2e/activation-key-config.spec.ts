@@ -194,7 +194,9 @@ test.describe("Activation Key Configuration", () => {
         .toBe(true);
     });
 
-    test("should not activate in input when disabled", async ({ reactGrab }) => {
+    test("should not activate in input when disabled", async ({
+      reactGrab,
+    }) => {
       await reactGrab.reinitialize({ allowActivationInsideInput: false });
       await reactGrab.page.click("[data-testid='test-input']");
 

@@ -7,7 +7,7 @@ interface IconVSCodeProps {
 export const IconVSCode = ({
   width = 16,
   height = 16,
-  className,
+  className = "",
 }: IconVSCodeProps) => (
   <svg
     width={width}

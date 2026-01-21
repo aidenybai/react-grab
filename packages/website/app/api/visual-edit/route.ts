@@ -1,5 +1,10 @@
 import { generateText } from "ai";
 import type { ModelMessage } from "ai";
+import {
+  getCorsHeaders,
+  createOptionsResponse,
+  createErrorResponse,
+} from "@/lib/api-helpers";
 
 interface ConversationMessage {
   role: "user" | "assistant";
@@ -42,104 +47,28 @@ $el.classList.add("highlighted")
 
 Your response must be raw JavaScript that can be directly eval'd.`;
 
-const parseHostnameFromOrigin = (origin: string): string | null => {
-  try {
-    return new URL(origin).hostname;
-  } catch {
-    return null;
-  }
-};
+const corsOptions = { methods: ["POST", "OPTIONS", "GET"] as const };
 
-const isReactGrabHostname = (hostname: string): boolean => {
-  return (
-    hostname === "react-grab.com" ||
-    hostname === "www.react-grab.com" ||
-    hostname === "www.aidenybai.com"
-  );
-};
-
-const isReactGrabOrigin = (origin: string | null): boolean => {
-  if (!origin) return false;
-
-  const hostname = parseHostnameFromOrigin(origin);
-  if (!hostname) return false;
-
-  if (isReactGrabHostname(hostname)) return true;
-
-  return false;
-};
-
-const getCorsHeaders = () => {
-  return {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS, GET",
-    "Access-Control-Allow-Headers": "Content-Type",
-  };
-};
-
-// interface OpenCodeZenResponse {
-//   choices: Array<{
-//     message: {
-//       content: string;
-//     };
-//   }>;
-// }
-
-// const generateTextWithOpenCodeZen = async (
-//   systemPrompt: string,
-//   messages: ModelMessage[],
-// ): Promise<string> => {
-//   const apiKey = process.env.OPENCODE_ZEN_API_KEY;
-//   if (!apiKey) {
-//     throw new Error("OPENCODE_ZEN_API_KEY not configured");
-//   }
-
-//   const response = await fetch("https://opencode.ai/zen/v1/chat/completions", {
-//     method: "POST",
-//     headers: {
-//       Authorization: `Bearer ${apiKey}`,
-//       "Content-Type": "application/json",
-//     },
-//     body: JSON.stringify({
-//       model: "grok-code",
-//       messages: [{ role: "system", content: systemPrompt }, ...messages],
-//     }),
-//   });
-
-//   if (!response.ok) {
-//     const errorText = await response.text();
-//     throw new Error(`OpenCode Zen API error: ${response.status} ${errorText}`);
-//   }
-
-//   const data: OpenCodeZenResponse = await response.json();
-//   return data.choices[0]?.message?.content ?? "";
-// };
-
-export const POST = async (request: Request) => {
-  const origin = request.headers.get("origin");
-  const corsHeaders = getCorsHeaders();
-  const shouldUsePrimaryModel = isReactGrabOrigin(origin);
+export const POST = async (request: Request): Promise<Response> => {
+  const corsHeaders = getCorsHeaders(corsOptions);
 
   let body: { messages: ConversationMessage[] };
   try {
     body = await request.json();
   } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON" }), {
+    return createErrorResponse(new Error("Invalid JSON"), {
       status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      corsOptions,
     });
   }
 
   const { messages: rawMessages } = body;
 
   if (!rawMessages || rawMessages.length === 0) {
-    return new Response(
-      JSON.stringify({ error: "messages array is required" }),
-      {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
-    );
+    return createErrorResponse(new Error("messages array is required"), {
+      status: 400,
+      corsOptions,
+    });
   }
 
   const MAX_INPUT_CHARACTERS = 15_000;
@@ -154,23 +83,12 @@ export const POST = async (request: Request) => {
   }));
 
   try {
-    let generatedCode: string;
-
-    console.log("shouldUsePrimaryModel", shouldUsePrimaryModel);
-    // if (shouldUsePrimaryModel) {
     const result = await generateText({
       model: "cerebras/glm-4.6",
       system: SYSTEM_PROMPT,
       messages,
     });
-    // eslint-disable-next-line prefer-const
-    generatedCode = result.text;
-    // } else {
-    //   generatedCode = await generateTextWithOpenCodeZen(
-    //     SYSTEM_PROMPT,
-    //     messages,
-    //   );
-    // }
+    const generatedCode = result.text;
 
     return new Response(generatedCode, {
       headers: {
@@ -180,16 +98,8 @@ export const POST = async (request: Request) => {
       },
     });
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return createErrorResponse(error, { status: 500, corsOptions });
   }
 };
 
-export const OPTIONS = () => {
-  const corsHeaders = getCorsHeaders();
-  return new Response(null, { status: 204, headers: corsHeaders });
-};
+export const OPTIONS = (): Response => createOptionsResponse(corsOptions);

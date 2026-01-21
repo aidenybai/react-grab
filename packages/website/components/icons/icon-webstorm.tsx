@@ -7,7 +7,7 @@ interface IconWebStormProps {
 export const IconWebStorm = ({
   width = 16,
   height = 16,
-  className,
+  className = "",
 }: IconWebStormProps) => (
   <svg
     width={width}

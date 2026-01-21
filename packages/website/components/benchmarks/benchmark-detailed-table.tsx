@@ -4,6 +4,7 @@ import { calculateChange } from "./utils";
 import { useState, useMemo } from "react";
 import { ChevronDown, ChevronUp, Search, ArrowUpDown } from "lucide-react";
 import Image from "next/image";
+import { BENCHMARK_TREATMENT_COLOR } from "@/constants";
 
 interface BenchmarkDetailedTableProps {
   results: BenchmarkResult[];
@@ -253,7 +254,9 @@ export const BenchmarkDetailedTable = ({
                     height={10}
                     className="w-2.5 h-2.5"
                   />
-                  <span style={{ color: "#ff4fff" }}>React Grab</span>
+                  <span style={{ color: BENCHMARK_TREATMENT_COLOR }}>
+                    React Grab
+                  </span>
                 </div>
               </th>
               <th className="text-left py-1.5 px-3 text-[10px] font-normal text-neutral-600 uppercase tracking-wide">
@@ -268,7 +271,9 @@ export const BenchmarkDetailedTable = ({
                     height={10}
                     className="w-2.5 h-2.5"
                   />
-                  <span style={{ color: "#ff4fff" }}>React Grab</span>
+                  <span style={{ color: BENCHMARK_TREATMENT_COLOR }}>
+                    React Grab
+                  </span>
                 </div>
               </th>
               <th className="text-left py-1.5 px-3 text-[10px] font-normal text-neutral-600 uppercase tracking-wide">
@@ -283,7 +288,9 @@ export const BenchmarkDetailedTable = ({
                     height={10}
                     className="w-2.5 h-2.5"
                   />
-                  <span style={{ color: "#ff4fff" }}>React Grab</span>
+                  <span style={{ color: BENCHMARK_TREATMENT_COLOR }}>
+                    React Grab
+                  </span>
                 </div>
               </th>
               <th className="text-left py-1.5 px-3 text-[10px] font-normal text-neutral-600 uppercase tracking-wide">
@@ -298,7 +305,9 @@ export const BenchmarkDetailedTable = ({
                     height={10}
                     className="w-2.5 h-2.5"
                   />
-                  <span style={{ color: "#ff4fff" }}>React Grab</span>
+                  <span style={{ color: BENCHMARK_TREATMENT_COLOR }}>
+                    React Grab
+                  </span>
                 </div>
               </th>
               <th className="text-left py-1.5 px-3 text-[10px] font-normal text-neutral-600 uppercase tracking-wide">
@@ -313,7 +322,9 @@ export const BenchmarkDetailedTable = ({
                     height={10}
                     className="w-2.5 h-2.5"
                   />
-                  <span style={{ color: "#ff4fff" }}>React Grab</span>
+                  <span style={{ color: BENCHMARK_TREATMENT_COLOR }}>
+                    React Grab
+                  </span>
                 </div>
               </th>
             </tr>

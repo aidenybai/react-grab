@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { TIMER_UPDATE_INTERVAL_MS } from "@/constants";
 
 interface TimerProps {
   isRunning: boolean;
@@ -56,7 +57,7 @@ export const Timer = ({
 
       intervalRef.current = setInterval(() => {
         setElapsed(Date.now() - startTime);
-      }, 100);
+      }, TIMER_UPDATE_INTERVAL_MS);
     }
 
     return () => {

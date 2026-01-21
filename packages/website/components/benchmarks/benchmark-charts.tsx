@@ -15,6 +15,26 @@ import { BenchmarkResult, Metric } from "./types";
 import { calculateStats } from "./utils";
 import prettyMs from "pretty-ms";
 import Image from "next/image";
+import {
+  BENCHMARK_GRID_INTERVAL_SECONDS,
+  BENCHMARK_CHART_HEIGHT_PX,
+  BENCHMARK_BAR_SIZE_PX,
+  BENCHMARK_BAR_GAP_PX,
+  BENCHMARK_ANIMATION_DURATION_MS,
+  BENCHMARK_CONTROL_COLOR,
+  BENCHMARK_TREATMENT_COLOR,
+  BENCHMARK_LIVE_COUNTER_INTERVAL_MS,
+} from "@/constants";
+
+const formatMetricValue = (
+  value: number,
+  unit: string,
+  decimals: number = 2,
+): string => {
+  if (unit === "$") return `$${value.toFixed(decimals)}`;
+  if (unit === "ms") return `${(value / 1000).toFixed(decimals)}s`;
+  return value.toFixed(decimals);
+};
 
 interface BenchmarkChartsProps {
   results: BenchmarkResult[];
@@ -45,14 +65,10 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
           const isControl = entry.name === "Control";
           const rawValue = isControl ? data.ControlRaw : data.TreatmentRaw;
           const unit = data.unit;
-
-          let formattedValue: number | string = rawValue;
-          if (typeof rawValue === "number") {
-            if (unit === "$") formattedValue = `$${rawValue.toFixed(2)}`;
-            else if (unit === "ms")
-              formattedValue = `${(rawValue / 1000).toFixed(2)}s`;
-            else formattedValue = rawValue.toFixed(2);
-          }
+          const formattedValue =
+            typeof rawValue === "number"
+              ? formatMetricValue(rawValue, unit)
+              : rawValue;
 
           return (
             <div key={index} className="flex items-center gap-2 text-xs">
@@ -112,7 +128,7 @@ const AnimatedBar = ({
         className="absolute top-1/2 -translate-y-1/2 text-xs font-semibold ml-2 tabular-nums"
         style={{
           left: `${targetWidth}%`,
-          color: color === "#525252" ? "#737373" : color,
+          color: color === BENCHMARK_CONTROL_COLOR ? "#737373" : color,
         }}
       >
         {label}
@@ -145,8 +161,13 @@ export const BenchmarkChartsTweet = ({ results }: BenchmarkChartsProps) => {
 
   const controlDurationSec = controlStats.avgDuration / 1000;
   const treatmentDurationSec = treatmentStats.avgDuration / 1000;
-  const maxSeconds = Math.ceil(controlDurationSec / 5) * 5;
-  const gridLines = Array.from({ length: maxSeconds / 5 + 1 }, (_, i) => i * 5);
+  const maxSeconds =
+    Math.ceil(controlDurationSec / BENCHMARK_GRID_INTERVAL_SECONDS) *
+    BENCHMARK_GRID_INTERVAL_SECONDS;
+  const gridLines = Array.from(
+    { length: maxSeconds / BENCHMARK_GRID_INTERVAL_SECONDS + 1 },
+    (_, i) => i * BENCHMARK_GRID_INTERVAL_SECONDS,
+  );
 
   const durationSpeedup = (
     controlStats.avgDuration / treatmentStats.avgDuration
@@ -177,14 +198,17 @@ export const BenchmarkChartsTweet = ({ results }: BenchmarkChartsProps) => {
 
         <div className="space-y-2 relative">
           <div className="flex items-center gap-3">
-            <div className="w-20 text-right text-xs font-medium text-[#ff4fff] shrink-0">
+            <div
+              className="w-20 text-right text-xs font-medium shrink-0"
+              style={{ color: BENCHMARK_TREATMENT_COLOR }}
+            >
               Claude Code + React Grab
             </div>
             <div className="relative h-5 flex-1">
               <AnimatedBarTreatment
                 targetSeconds={treatmentDurationSec}
                 maxSeconds={maxSeconds}
-                color="#ff4fff"
+                color={BENCHMARK_TREATMENT_COLOR}
                 durationLabel={`${treatmentDurationSec.toFixed(1)}s`}
                 durationSpeedup={durationSpeedup}
                 costLabel={`$${treatmentTotalCost.toFixed(2)}`}
@@ -200,7 +224,7 @@ export const BenchmarkChartsTweet = ({ results }: BenchmarkChartsProps) => {
             <AnimatedBar
               targetSeconds={controlDurationSec}
               maxSeconds={maxSeconds}
-              color="#525252"
+              color={BENCHMARK_CONTROL_COLOR}
               label={`${controlDurationSec.toFixed(1)}s`}
             />
           </div>
@@ -297,7 +321,10 @@ const AnimatedBarTreatment = ({
         className="absolute top-1/2 -translate-y-1/2 flex items-center gap-2 ml-2"
         style={{ left: `${targetWidth}%` }}
       >
-        <span className="text-xs font-semibold text-[#ff4fff]">
+        <span
+          className="text-xs font-semibold"
+          style={{ color: BENCHMARK_TREATMENT_COLOR }}
+        >
           {durationLabel}
         </span>
         <span className="text-sm font-bold text-emerald-400">
@@ -331,7 +358,7 @@ const LiveCounter = ({ targetSeconds, maxSeconds }: LiveCounterProps) => {
       } else {
         setElapsedSeconds(elapsed);
       }
-    }, 50);
+    }, BENCHMARK_LIVE_COUNTER_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [targetSeconds]);
 
@@ -426,24 +453,14 @@ export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
     ControlRaw: metric.Control,
     TreatmentRaw: metric.Treatment,
     unit: metric.unit,
-    controlDisplay:
-      metric.unit === "$"
-        ? `$${metric.Control.toFixed(2)}`
-        : metric.unit === "ms"
-          ? `${(metric.Control / 1000).toFixed(1)}s`
-          : metric.Control.toFixed(1),
-    treatmentDisplay:
-      metric.unit === "$"
-        ? `$${metric.Treatment.toFixed(2)}`
-        : metric.unit === "ms"
-          ? `${(metric.Treatment / 1000).toFixed(1)}s`
-          : metric.Treatment.toFixed(1),
+    controlDisplay: formatMetricValue(metric.Control, metric.unit),
+    treatmentDisplay: formatMetricValue(metric.Treatment, metric.unit),
   }));
 
   return (
     <div>
       <div className="space-y-8">
-        <div className="h-[320px] w-full">
+        <div style={{ height: BENCHMARK_CHART_HEIGHT_PX }} className="w-full">
           <div className="mb-4 text-sm text-neutral-500 text-center">
             Normalized to Control = 100%
           </div>
@@ -451,7 +468,7 @@ export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
             <BarChart
               data={chartData}
               margin={{ top: 5, right: 20, left: 20, bottom: 20 }}
-              barGap={12}
+              barGap={BENCHMARK_BAR_GAP_PX}
             >
               <CartesianGrid
                 strokeDasharray="3 3"
@@ -499,7 +516,7 @@ export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
                             />
                             <span
                               className="text-xs"
-                              style={{ color: "#ff4fff" }}
+                              style={{ color: BENCHMARK_TREATMENT_COLOR }}
                             >
                               {entry.value}
                             </span>
@@ -515,10 +532,10 @@ export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
               <Bar
                 dataKey="Control"
                 name="Control"
-                fill="#525252"
+                fill={BENCHMARK_CONTROL_COLOR}
                 radius={[4, 4, 0, 0]}
-                barSize={40}
-                animationDuration={1000}
+                barSize={BENCHMARK_BAR_SIZE_PX}
+                animationDuration={BENCHMARK_ANIMATION_DURATION_MS}
               >
                 <LabelList
                   dataKey="controlDisplay"
@@ -531,15 +548,15 @@ export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
               <Bar
                 dataKey="Treatment"
                 name="React Grab"
-                fill="#ff4fff"
+                fill={BENCHMARK_TREATMENT_COLOR}
                 radius={[4, 4, 0, 0]}
-                barSize={40}
-                animationDuration={1000}
+                barSize={BENCHMARK_BAR_SIZE_PX}
+                animationDuration={BENCHMARK_ANIMATION_DURATION_MS}
               >
                 <LabelList
                   dataKey="treatmentDisplay"
                   position="top"
-                  fill="#ff4fff"
+                  fill={BENCHMARK_TREATMENT_COLOR}
                   fontSize={14}
                   fontWeight={500}
                 />
@@ -567,7 +584,9 @@ export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
                       height={12}
                       className="w-3 h-3"
                     />
-                    <span style={{ color: "#ff4fff" }}>React Grab</span>
+                    <span style={{ color: BENCHMARK_TREATMENT_COLOR }}>
+                      React Grab
+                    </span>
                   </div>
                 </th>
               </tr>

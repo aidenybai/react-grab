@@ -7,6 +7,7 @@ import { cn } from "@/utils/classnames";
 import { useHotkey } from "./hotkey-context";
 import { getKeyFromCode } from "@/utils/get-key-from-code";
 import { hotkeyToString } from "@/utils/hotkey-to-string";
+import { HOTKEY_KEYUP_DELAY_MS } from "@/constants";
 
 export interface RecordedHotkey {
   key: string | null;
@@ -209,7 +210,7 @@ export const GrabElementButton = ({
           altKey: false,
         };
         keyUpTimeoutRef.current = null;
-      }, 150);
+      }, HOTKEY_KEYUP_DELAY_MS);
     },
     [handleHotkeyChange],
   );

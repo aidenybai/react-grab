@@ -9,10 +9,11 @@ import { highlightCode } from "@/lib/shiki";
 import { IconClaude } from "@/components/icon-claude";
 import { IconCursor } from "@/components/icon-cursor";
 import { IconCopilot } from "@/components/icon-copilot";
-import { IconOpenCode } from "@/components/icon-opencode";
+import { IconOpenCode } from "@/components/icons";
 import { IconDroid } from "@/components/icon-droid";
 import { GithubButton } from "@/components/github-button";
 import { CursorInstallButton } from "@/components/cursor-install-button";
+import { COPY_FEEDBACK_DURATION_MS } from "@/constants";
 
 interface HighlightedCodeBlockProps {
   code: string;
@@ -37,7 +38,7 @@ const HighlightedCodeBlock = ({ code, lang }: HighlightedCodeBlockProps) => {
       .writeText(code)
       .then(() => {
         setDidCopy(true);
-        setTimeout(() => setDidCopy(false), 1200);
+        setTimeout(() => setDidCopy(false), COPY_FEEDBACK_DURATION_MS);
       })
       .catch(() => {});
   };

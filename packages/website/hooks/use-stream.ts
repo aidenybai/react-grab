@@ -1,6 +1,24 @@
 "use client";
 
 import { useState, useEffect, useRef, ReactNode } from "react";
+import {
+  INITIAL_STREAM_DELAY_MS,
+  BLOCK_TRANSITION_DELAY_MS,
+  DEFAULT_CHUNK_SIZE,
+  IMMEDIATE_TIMEOUT_MS,
+} from "../constants";
+
+type BlockContent = string | ReactNode | Array<string | ReactNode>;
+
+const getTextContent = (content: BlockContent): string => {
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    return content
+      .filter((item): item is string => typeof item === "string")
+      .join("");
+  }
+  return "";
+};
 
 export type StreamStatus = "pending" | "streaming" | "complete";
 
@@ -66,6 +84,18 @@ const hasRawParam = (): boolean => {
   return params.has("raw");
 };
 
+const saveCompletionToStorage = (key: string): void => {
+  if (typeof window !== "undefined" && !hasRawParam()) {
+    localStorage.setItem(key, "true");
+  }
+};
+
+const hasCompletedStream = (key: string): boolean => {
+  if (typeof window === "undefined") return false;
+  if (hasRawParam()) return false;
+  return localStorage.getItem(key) === "true";
+};
+
 export const useStream = ({
   blocks,
   chunkSize,
@@ -98,14 +128,11 @@ export const useStream = ({
     if (hasCheckedStorage) return;
 
     if (typeof window !== "undefined") {
-      const shouldSkipStorage = hasRawParam();
-      const hasCompleted =
-        skipAnimation ||
-        (!shouldSkipStorage && localStorage.getItem(storageKey) === "true");
+      const hasCompleted = skipAnimation || hasCompletedStream(storageKey);
 
       if (hasCompleted) {
-        if (skipAnimation && !shouldSkipStorage) {
-          localStorage.setItem(storageKey, "true");
+        if (skipAnimation) {
+          saveCompletionToStorage(storageKey);
         }
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setState({
@@ -145,12 +172,7 @@ export const useStream = ({
     if (streamingRef.current || blocks.length === 0 || !hasCheckedStorage)
       return;
 
-    const shouldSkipStorage = hasRawParam();
-    const hasCompleted =
-      typeof window !== "undefined" &&
-      !shouldSkipStorage &&
-      localStorage.getItem(storageKey) === "true";
-    if (hasCompleted) return;
+    if (hasCompletedStream(storageKey)) return;
 
     streamingRef.current = true;
     currentBlockIdxRef.current = 0;
@@ -166,9 +188,7 @@ export const useStream = ({
           ...prev,
           status: "complete",
         }));
-        if (typeof window !== "undefined" && !hasRawParam()) {
-          localStorage.setItem(storageKey, "true");
-        }
+        saveCompletionToStorage(storageKey);
         return;
       }
 
@@ -176,13 +196,7 @@ export const useStream = ({
       const blockContent = currentBlock.content;
       const isToolCall = currentBlock.type === "tool_call";
       const isArray = Array.isArray(blockContent);
-      const textContent = isArray
-        ? blockContent
-            .filter((item): item is string => typeof item === "string")
-            .join("")
-        : typeof blockContent === "string"
-          ? blockContent
-          : "";
+      const textContent = getTextContent(blockContent);
       const isReactNode = typeof blockContent !== "string" && !isArray;
       const isInstantBlock =
         currentBlock.type === "user_message" || isReactNode;
@@ -240,22 +254,25 @@ export const useStream = ({
                   ...prev,
                   isPaused: false,
                 }));
-                timeoutRef.current = setTimeout(streamNextChunk, 0);
+                timeoutRef.current = setTimeout(
+                  streamNextChunk,
+                  IMMEDIATE_TIMEOUT_MS,
+                );
               };
               return;
             }
 
             if (currentBlockIdxRef.current < currentBlocks.length) {
-              // Move on to the next block immediately after completion
-              timeoutRef.current = setTimeout(streamNextChunk, 0);
+              timeoutRef.current = setTimeout(
+                streamNextChunk,
+                IMMEDIATE_TIMEOUT_MS,
+              );
             } else {
               setState((prev) => ({
                 ...prev,
                 status: "complete",
               }));
-              if (typeof window !== "undefined" && !hasRawParam()) {
-                localStorage.setItem(storageKey, "true");
-              }
+              saveCompletionToStorage(storageKey);
             }
           }, blockDelayMs);
         }
@@ -297,21 +314,25 @@ export const useStream = ({
               ...prev,
               isPaused: false,
             }));
-            timeoutRef.current = setTimeout(streamNextChunk, 0);
+            timeoutRef.current = setTimeout(
+              streamNextChunk,
+              IMMEDIATE_TIMEOUT_MS,
+            );
           };
           return;
         }
 
         if (currentBlockIdxRef.current < currentBlocks.length) {
-          timeoutRef.current = setTimeout(streamNextChunk, 0);
+          timeoutRef.current = setTimeout(
+            streamNextChunk,
+            IMMEDIATE_TIMEOUT_MS,
+          );
         } else {
           setState((prev) => ({
             ...prev,
             status: "complete",
           }));
-          if (typeof window !== "undefined" && !hasRawParam()) {
-            localStorage.setItem(storageKey, "true");
-          }
+          saveCompletionToStorage(storageKey);
         }
 
         return;
@@ -320,7 +341,7 @@ export const useStream = ({
       if (typeof blockContent !== "string" && !isArray) return;
 
       const endIdx = Math.min(
-        currentCharIdx + (chunkSize || 4),
+        currentCharIdx + (chunkSize || DEFAULT_CHUNK_SIZE),
         textContent.length,
       );
       const chunk = textContent.slice(currentCharIdx, endIdx);
@@ -331,16 +352,7 @@ export const useStream = ({
         if (!existingBlock) return prev;
 
         const nextChunkId = `${existingBlock.id}-${existingBlock.chunks.length}`;
-
-        const existingTextContent =
-          typeof existingBlock.content === "string"
-            ? existingBlock.content
-            : Array.isArray(existingBlock.content)
-              ? existingBlock.content
-                  .filter((item): item is string => typeof item === "string")
-                  .join("")
-              : "";
-
+        const existingTextContent = getTextContent(existingBlock.content);
         const newTextContent = existingTextContent + chunk;
 
         const newContent = isArray
@@ -397,29 +409,32 @@ export const useStream = ({
               ...prev,
               isPaused: false,
             }));
-            timeoutRef.current = setTimeout(streamNextChunk, 50);
+            timeoutRef.current = setTimeout(
+              streamNextChunk,
+              BLOCK_TRANSITION_DELAY_MS,
+            );
           };
           return;
         }
 
         if (currentBlockIdxRef.current < currentBlocks.length) {
-          // Proceed to next block without extra delay (keep the flow snappy)
-          timeoutRef.current = setTimeout(streamNextChunk, 50);
+          timeoutRef.current = setTimeout(
+            streamNextChunk,
+            BLOCK_TRANSITION_DELAY_MS,
+          );
         } else {
           setState((prev) => ({
             ...prev,
             status: "complete",
           }));
-          if (typeof window !== "undefined" && !hasRawParam()) {
-            localStorage.setItem(storageKey, "true");
-          }
+          saveCompletionToStorage(storageKey);
         }
       } else {
         timeoutRef.current = setTimeout(streamNextChunk, chunkDelayMs);
       }
     };
 
-    timeoutRef.current = setTimeout(streamNextChunk, 100);
+    timeoutRef.current = setTimeout(streamNextChunk, INITIAL_STREAM_DELAY_MS);
 
     return () => {
       if (timeoutRef.current) {

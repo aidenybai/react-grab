@@ -3,6 +3,11 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import Link from "next/link";
+import {
+  BENCHMARK_CONTROL_COLOR,
+  BENCHMARK_TREATMENT_COLOR,
+  TOOLTIP_HOVER_DELAY_MS,
+} from "@/constants";
 
 interface BenchmarkTooltipProps {
   href: string;
@@ -49,7 +54,7 @@ const MiniBar = ({
         className="absolute top-1/2 -translate-y-1/2 text-[11px] font-semibold ml-2 tabular-nums whitespace-nowrap"
         style={{
           left: `${targetWidth}%`,
-          color: color === "#525252" ? "#737373" : color,
+          color: color === BENCHMARK_CONTROL_COLOR ? "#737373" : color,
         }}
       >
         {label}
@@ -95,21 +100,24 @@ const MiniChart = ({ isVisible }: MiniChartProps) => {
             <MiniBar
               targetSeconds={CONTROL_SECONDS}
               maxSeconds={MAX_SECONDS}
-              color="#525252"
+              color={BENCHMARK_CONTROL_COLOR}
               label={`${CONTROL_SECONDS}s`}
               isAnimating={isVisible}
             />
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="w-16 text-right text-[10px] font-medium text-[#ff4fff] shrink-0 leading-tight">
+            <div
+              className="w-16 text-right text-[10px] font-medium shrink-0 leading-tight"
+              style={{ color: BENCHMARK_TREATMENT_COLOR }}
+            >
               + React Grab
             </div>
             <div className="relative h-4 flex-1">
               <MiniBar
                 targetSeconds={TREATMENT_SECONDS}
                 maxSeconds={MAX_SECONDS}
-                color="#ff4fff"
+                color={BENCHMARK_TREATMENT_COLOR}
                 label=""
                 isAnimating={isVisible}
               />
@@ -120,7 +128,10 @@ const MiniChart = ({ isVisible }: MiniChartProps) => {
                 animate={{ opacity: isVisible ? 1 : 0 }}
                 transition={{ delay: 0.8, duration: 0.3 }}
               >
-                <span className="text-[11px] font-semibold text-[#ff4fff] tabular-nums">
+                <span
+                  className="text-[11px] font-semibold tabular-nums"
+                  style={{ color: BENCHMARK_TREATMENT_COLOR }}
+                >
                   {TREATMENT_SECONDS}s
                 </span>
                 <span className="text-[10px] font-bold text-emerald-400">
@@ -165,7 +176,7 @@ export const BenchmarkTooltip = ({
     timeoutRef.current = setTimeout(() => {
       setIsHovered(true);
       setIsVisible(true);
-    }, 150);
+    }, TOOLTIP_HOVER_DELAY_MS);
   };
 
   const handleMouseLeave = () => {

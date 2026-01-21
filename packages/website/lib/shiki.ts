@@ -4,8 +4,18 @@ import {
   type Highlighter,
 } from "shiki";
 
+const SHIKI_COLOR_OVERRIDES: Record<string, string> = {
+  "#99FFE4": "#9f9f9f",
+  "#FFC799": "#ffa0f3",
+};
+
+const LINE_SPAN_REGEX = /<span class=("|')line\1>/g;
+
 const applyColorOverrides = (html: string): string => {
-  return html.replace(/#99FFE4/gi, "#9f9f9f").replace(/#FFC799/gi, "#ffa0f3");
+  return Object.entries(SHIKI_COLOR_OVERRIDES).reduce(
+    (result, [from, to]) => result.replace(new RegExp(from, "gi"), to),
+    html,
+  );
 };
 
 const removeBackground = (html: string): string => {
@@ -18,7 +28,7 @@ const removeBackground = (html: string): string => {
 
 const injectLineNumbers = (html: string): string => {
   let lineNumber = 1;
-  return html.replace(/<span class=("|')line\1>/g, () => {
+  return html.replace(LINE_SPAN_REGEX, () => {
     const current = lineNumber;
     lineNumber += 1;
     return `<span class="line"><span class="line-number" data-line="${current}"></span>`;
@@ -54,15 +64,15 @@ const highlightChangedLines = (
   html: string,
   changedLines?: number[],
 ): string => {
-  if (!changedLines || changedLines.length === 0) return html;
+  if (!changedLines?.length) return html;
 
+  const changedLinesSet = new Set(changedLines);
   let lineNumber = 0;
-  return html.replace(/<span class=("|')line\1>/g, (match) => {
+  return html.replace(LINE_SPAN_REGEX, (match) => {
     lineNumber += 1;
-    if (changedLines.includes(lineNumber)) {
-      return `<span class="line line-changed">`;
-    }
-    return match;
+    return changedLinesSet.has(lineNumber)
+      ? `<span class="line line-changed">`
+      : match;
   });
 };
 

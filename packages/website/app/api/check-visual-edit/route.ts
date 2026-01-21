@@ -1,22 +1,8 @@
-const IS_HEALTHY = true;
+import { createOptionsResponse, createJsonResponse } from "@/lib/api-helpers";
 
-const getCorsHeaders = () => {
-  return {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-  };
-};
+const corsOptions = { methods: ["GET", "OPTIONS"] as const };
 
-export const OPTIONS = () => {
-  const corsHeaders = getCorsHeaders();
-  return new Response(null, { status: 204, headers: corsHeaders });
-};
+export const OPTIONS = (): Response => createOptionsResponse(corsOptions);
 
-export const GET = () => {
-  const corsHeaders = getCorsHeaders();
-  return Response.json(
-    { healthy: IS_HEALTHY },
-    { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-  );
-};
+export const GET = (): Response =>
+  createJsonResponse({ healthy: true }, { corsOptions });

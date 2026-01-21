@@ -14,7 +14,7 @@ interface ReactGrabLogoProps {
 export const ReactGrabLogo = ({
   width = 44,
   height = 44,
-  className,
+  className = "",
 }: ReactGrabLogoProps) => {
   const [clickCount, setClickCount] = useState(0);
 
@@ -38,7 +38,7 @@ export const ReactGrabLogo = ({
       viewBox="0 0 330 330"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className={`react-grab-logo ${className ?? ""}`}
+      className={`react-grab-logo ${className}`}
       onClick={handleClick}
       onMouseLeave={handleMouseLeave}
       style={{

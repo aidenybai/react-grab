@@ -8,6 +8,7 @@ import { cn } from "@/utils/classnames";
 import { useHotkey } from "./hotkey-context";
 import type { RecordedHotkey } from "./grab-element-button";
 import { hotkeyToString } from "@/utils/hotkey-to-string";
+import { COPY_FEEDBACK_DURATION_MS } from "@/constants";
 
 interface InlineCodeProps {
   children: React.ReactNode;
@@ -290,7 +291,7 @@ export const InstallTabs = ({
       .writeText(textToCopy)
       .then(() => {
         setDidCopy(true);
-        setTimeout(() => setDidCopy(false), 1200);
+        setTimeout(() => setDidCopy(false), COPY_FEEDBACK_DURATION_MS);
       })
       .catch(() => {});
   };

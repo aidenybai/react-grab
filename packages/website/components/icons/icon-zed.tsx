@@ -7,7 +7,7 @@ interface IconZedProps {
 export const IconZed = ({
   width = 16,
   height = 16,
-  className,
+  className = "",
 }: IconZedProps) => (
   <svg
     width={width}

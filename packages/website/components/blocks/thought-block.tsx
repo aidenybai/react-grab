@@ -16,8 +16,12 @@ export const ThoughtBlock = ({ block }: ThoughtBlockProps) => {
       header={
         <span className="text-[#818181]">
           {block.status === "streaming" ? "Thinking " : "Thought for "}
-          {block.status !== "streaming" && (
-            <span className="text-[#5b5b5b]">1s</span>
+          {block.status !== "streaming" && block.duration && (
+            <span className="text-[#5b5b5b]">
+              {block.duration >= 1000
+                ? `${Math.round(block.duration / 1000)}s`
+                : `${block.duration}ms`}
+            </span>
           )}
         </span>
       }
