@@ -1,13 +1,20 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactElement,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
 import { motion } from "motion/react";
-import { detectMobile } from "@/utils/detect-mobile";
+import { HOTKEY_KEYUP_DELAY_MS } from "@/constants";
 import { cn } from "@/utils/classnames";
-import { useHotkey } from "./hotkey-context";
+import { detectMobile } from "@/utils/detect-mobile";
 import { getKeyFromCode } from "@/utils/get-key-from-code";
 import { hotkeyToString } from "@/utils/hotkey-to-string";
-import { HOTKEY_KEYUP_DELAY_MS } from "@/constants";
+import { useHotkey } from "./hotkey-context";
 
 export interface RecordedHotkey {
   key: string | null;
@@ -17,13 +24,24 @@ export interface RecordedHotkey {
   altKey: boolean;
 }
 
+export interface SelectedElementInfo {
+  tagName: string;
+  id?: string;
+  className?: string;
+  textContent?: string;
+  componentName?: string;
+  filePath?: string;
+  lineNumber?: number;
+  columnNumber?: number;
+}
+
 interface GrabElementButtonProps {
-  onSelect: (elementTag: string) => void;
+  onSelect: (element: SelectedElementInfo) => void;
   showSkip?: boolean;
   animationDelay?: number;
 }
 
-const toggleReactGrab = () => {
+const toggleReactGrab = (): void => {
   if (typeof window === "undefined") return;
   import("react-grab")
     .then((reactGrab) => {
@@ -37,7 +55,7 @@ const toggleReactGrab = () => {
     });
 };
 
-const deactivateReactGrab = () => {
+const deactivateReactGrab = (): void => {
   if (typeof window === "undefined") return;
   import("react-grab")
     .then((reactGrab) => {
@@ -51,7 +69,7 @@ const deactivateReactGrab = () => {
     });
 };
 
-const updateReactGrabHotkey = (hotkey: RecordedHotkey | null) => {
+const updateReactGrabHotkey = (hotkey: RecordedHotkey | null): void => {
   if (typeof window === "undefined") return;
   import("react-grab")
     .then((reactGrab) => {
@@ -85,7 +103,7 @@ export const GrabElementButton = ({
   onSelect,
   showSkip = true,
   animationDelay = 0,
-}: GrabElementButtonProps) => {
+}: GrabElementButtonProps): ReactElement | null => {
   const { customHotkey, setCustomHotkey } = useHotkey();
   const [isActivated, setIsActivated] = useState(false);
   const [isMac, setIsMac] = useState(true);
@@ -226,7 +244,7 @@ export const GrabElementButton = ({
     }
   }, [isRecordingHotkey, handleHotkeyKeyDown, handleHotkeyKeyUp]);
 
-  const handleHotkeyClick = (event: React.MouseEvent) => {
+  const handleHotkeyClick = (event: ReactMouseEvent) => {
     event.stopPropagation();
     setIsRecordingHotkey(true);
   };
@@ -241,7 +259,7 @@ export const GrabElementButton = ({
   useEffect(() => {
     if (isMobile && !hasAdvanced) {
       setHasAdvanced(true);
-      onSelect("button");
+      onSelect({ tagName: "button" });
     } else if (typeof window !== "undefined") {
       import("react-grab").catch((error) => {
         console.error("Failed to preload react-grab:", error);
@@ -269,15 +287,15 @@ export const GrabElementButton = ({
 
     const handleElementSelected = (event: Event) => {
       const customEvent = event as CustomEvent<{
-        elements?: Array<{ tagName?: string }>;
+        elements?: Array<SelectedElementInfo>;
       }>;
 
-      const tagName = customEvent.detail?.elements?.[0]?.tagName || "element";
+      const element = customEvent.detail?.elements?.[0] || { tagName: "element" };
 
       setIsActivated(false);
       setHasAdvanced(true);
       setHideSkip(true);
-      onSelect(tagName);
+      onSelect(element);
     };
 
     window.addEventListener(
@@ -293,12 +311,93 @@ export const GrabElementButton = ({
     };
   }, [onSelect, hasAdvanced]);
 
+  const renderHotkeyDisplay = (): ReactElement => {
+    if (isRecordingHotkey) {
+      return (
+        <span className="text-sm text-white/60 animate-pulse px-2 py-1">
+          Press keys
+        </span>
+      );
+    }
+
+    if (customHotkey) {
+      return (
+        <>
+          {customHotkey.metaKey && (
+            <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-sm">
+              ⌘
+            </kbd>
+          )}
+          {customHotkey.ctrlKey && (
+            <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-xs">
+              Ctrl
+            </kbd>
+          )}
+          {customHotkey.shiftKey && (
+            <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-sm">
+              ⇧
+            </kbd>
+          )}
+          {customHotkey.altKey && (
+            <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-sm">
+              ⌥
+            </kbd>
+          )}
+          {customHotkey.key && (
+            <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-sm uppercase">
+              {customHotkey.key}
+            </kbd>
+          )}
+        </>
+      );
+    }
+
+    if (isMac) {
+      return (
+        <>
+          <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-sm">
+            ⌘
+          </kbd>
+          <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-sm">
+            C
+          </kbd>
+        </>
+      );
+    }
+
+    return (
+      <>
+        <kbd className="inline-flex items-center justify-center h-7 px-1.5 rounded bg-white/10 hover:bg-white/20 text-xs">
+          Ctrl
+        </kbd>
+        <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-sm">
+          C
+        </kbd>
+      </>
+    );
+  };
+
+  const renderActivationPrompt = (): ReactElement => (
+    <span className="flex items-center gap-1.5 text-white">
+      <span>Hold</span>
+      <span
+        onClick={handleHotkeyClick}
+        className={cn(
+          "inline-flex cursor-pointer items-center gap-1 transition-all outline-none",
+          isRecordingHotkey && "ring-2 ring-white/50 rounded",
+        )}
+      >
+        {renderHotkeyDisplay()}
+      </span>
+    </span>
+  );
+
   const handleSkip = () => {
     setHasAdvanced(true);
     setHideSkip(true);
     setIsActivated(false);
     deactivateReactGrab();
-    onSelect("div");
+    onSelect({ tagName: "div" });
   };
 
   if (isMobile) {
@@ -323,70 +422,7 @@ export const GrabElementButton = ({
         type="button"
       >
         {!isActivated ? (
-          <>
-            <span className="flex items-center gap-1.5 text-white">
-              <span>Hold</span>
-              <span
-                onClick={handleHotkeyClick}
-                className={cn(
-                  "inline-flex cursor-pointer items-center gap-1 transition-all outline-none",
-                  isRecordingHotkey && "ring-2 ring-white/50 rounded",
-                )}
-              >
-                {isRecordingHotkey ? (
-                  <span className="text-sm text-white/60 animate-pulse px-2 py-1">
-                    Press keys
-                  </span>
-                ) : customHotkey ? (
-                  <>
-                    {customHotkey.metaKey && (
-                      <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-sm">
-                        ⌘
-                      </kbd>
-                    )}
-                    {customHotkey.ctrlKey && (
-                      <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-xs">
-                        Ctrl
-                      </kbd>
-                    )}
-                    {customHotkey.shiftKey && (
-                      <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-sm">
-                        ⇧
-                      </kbd>
-                    )}
-                    {customHotkey.altKey && (
-                      <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-sm">
-                        ⌥
-                      </kbd>
-                    )}
-                    {customHotkey.key && (
-                      <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-sm uppercase">
-                        {customHotkey.key}
-                      </kbd>
-                    )}
-                  </>
-                ) : isMac ? (
-                  <>
-                    <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-sm">
-                      ⌘
-                    </kbd>
-                    <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-sm">
-                      C
-                    </kbd>
-                  </>
-                ) : (
-                  <>
-                    <kbd className="inline-flex items-center justify-center h-7 px-1.5 rounded bg-white/10 hover:bg-white/20 text-xs">
-                      Ctrl
-                    </kbd>
-                    <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-sm">
-                      C
-                    </kbd>
-                  </>
-                )}
-              </span>
-            </span>
-          </>
+          renderActivationPrompt()
         ) : (
           <span className="animate-pulse flex items-center gap-1.5">
             Click anywhere to select or press

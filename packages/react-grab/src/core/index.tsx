@@ -334,10 +334,60 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, FEEDBACK_DURATION_MS);
     };
 
-    const notifyElementsSelected = (elements: Element[]) => {
-      const elementsPayload = elements.map((element) => ({
-        tagName: getTagName(element),
-      }));
+    const notifyElementsSelected = async (
+      elements: Element[],
+    ): Promise<void> => {
+      const elementsPayload = await Promise.all(
+        elements.map(async (element) => {
+          const stack = await getStack(element);
+
+          let componentName: string | null = null;
+          let filePath: string | undefined;
+          let lineNumber: number | undefined;
+          let columnNumber: number | undefined;
+
+          if (stack && stack.length > 0) {
+            for (const frame of stack) {
+              const hasSourceComponentName =
+                frame.functionName &&
+                checkIsSourceComponentName(frame.functionName);
+              const hasSourceFile = frame.fileName && isSourceFile(frame.fileName);
+
+              if (hasSourceComponentName && !componentName) {
+                componentName = frame.functionName!;
+              }
+
+              if (hasSourceFile && !filePath) {
+                filePath = normalizeFileName(frame.fileName!);
+                lineNumber = frame.lineNumber || undefined;
+                columnNumber = frame.columnNumber || undefined;
+              }
+
+              if (componentName && filePath) break;
+            }
+          }
+
+          if (!componentName) {
+            componentName = getComponentDisplayName(element);
+          }
+
+          const textContent =
+            element instanceof HTMLElement
+              ? element.innerText?.slice(0, 100)
+              : undefined;
+
+          return {
+            tagName: getTagName(element),
+            id: element.id || undefined,
+            className: element.className || undefined,
+            textContent,
+            componentName: componentName ?? undefined,
+            filePath,
+            lineNumber,
+            columnNumber,
+          };
+        }),
+      );
 
       window.dispatchEvent(
         new CustomEvent("react-grab:element-selected", {
@@ -480,7 +530,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       await new Promise((resolve) => requestAnimationFrame(resolve));
       await copyWithFallback(targetElements, extraPrompt);
-      notifyElementsSelected(targetElements);
+      void notifyElementsSelected(targetElements);
     };
 
     interface CopyWithLabelOptions {
