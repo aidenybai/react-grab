@@ -1,14 +1,18 @@
 "use client";
 
+import { type ReactElement } from "react";
+import { type StreamRenderedBlock } from "@/hooks/use-stream";
 import { StreamingText } from "./streaming-text";
-import { StreamRenderedBlock } from "@/hooks/use-stream";
 
 interface MessageBlockProps {
   block: StreamRenderedBlock;
   animationDelay?: number;
 }
 
-export const MessageBlock = ({ block, animationDelay }: MessageBlockProps) => {
+export const MessageBlock = ({
+  block,
+  animationDelay,
+}: MessageBlockProps): ReactElement => {
   return (
     <div className="text-white">
       <StreamingText

@@ -1,8 +1,9 @@
 "use client";
 
+import { type ReactElement } from "react";
 import { RotateCcw } from "lucide-react";
 
-export const DemoFooter = () => {
+export const DemoFooter = (): ReactElement => {
   const handleRestartClick = () => {
     if (typeof window === "undefined") return;
 

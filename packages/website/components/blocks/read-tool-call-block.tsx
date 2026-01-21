@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type ReactElement } from "react";
 import { CLICK_FEEDBACK_DURATION_MS } from "@/constants";
 
 interface ReadToolCallBlockProps {
@@ -11,7 +11,7 @@ interface ReadToolCallBlockProps {
 export const ReadToolCallBlock = ({
   parameter,
   isStreaming = false,
-}: ReadToolCallBlockProps) => {
+}: ReadToolCallBlockProps): ReactElement => {
   const [isClicked, setIsClicked] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const displayName = isStreaming ? "Reading" : "Read";

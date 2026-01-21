@@ -1,16 +1,21 @@
 "use client";
 
+import { type ReactElement } from "react";
+import { type StreamRenderedBlock } from "@/hooks/use-stream";
 import { Collapsible } from "../ui/collapsible";
+import { ExploredHeader } from "./grep-search-group";
 import { GrepToolCallBlock } from "./grep-tool-call-block";
 import { ReadToolCallBlock } from "./read-tool-call-block";
-import { StreamRenderedBlock } from "@/hooks/use-stream";
 
 interface ToolCallsBlockProps {
   block: StreamRenderedBlock;
   allBlocks: StreamRenderedBlock[];
 }
 
-export const ToolCallsBlock = ({ block, allBlocks }: ToolCallsBlockProps) => {
+export const ToolCallsBlock = ({
+  block,
+  allBlocks,
+}: ToolCallsBlockProps): ReactElement | null => {
   const metadata = block.metadata || {};
   const toolCallType = metadata.toolCallType as string | undefined;
 
@@ -25,30 +30,16 @@ export const ToolCallsBlock = ({ block, allBlocks }: ToolCallsBlockProps) => {
       (innerBlock) => innerBlock.status === "complete",
     ).length;
 
-    const hasAnyCompleted = completedSearches > 0;
-    const searchesLabel = `${completedSearches} search${completedSearches === 1 ? "" : "es"}`;
-
-    const header = (
-      <div className="text-[#818181]">
-        {!hasAnyCompleted && <>Exploring</>}
-        {hasAnyCompleted && (
-          <>
-            Explored <span className="text-[#5b5b5b]">{searchesLabel}</span>
-          </>
-        )}
-      </div>
-    );
-
     return (
       <Collapsible
-        header={header}
+        header={<ExploredHeader completedCount={completedSearches} />}
         defaultExpanded
         isStreaming={grepBlocks.some(
           (innerBlock) => innerBlock.status === "streaming",
         )}
       >
         <div className="flex flex-col gap-2 mt-2">
-          {grepBlocks.map((grepBlock, index) => {
+          {grepBlocks.map((grepBlock) => {
             const result =
               typeof grepBlock.content === "string" && grepBlock.content
                 ? grepBlock.content

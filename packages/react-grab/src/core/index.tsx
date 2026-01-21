@@ -351,7 +351,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               const hasSourceComponentName =
                 frame.functionName &&
                 checkIsSourceComponentName(frame.functionName);
-              const hasSourceFile = frame.fileName && isSourceFile(frame.fileName);
+              const hasSourceFile =
+                frame.fileName && isSourceFile(frame.fileName);
 
               if (hasSourceComponentName && !componentName) {
                 componentName = frame.functionName!;

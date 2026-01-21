@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, ReactNode, useMemo } from "react";
+import { useState, useMemo, type ReactElement, type ReactNode } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
@@ -18,7 +18,7 @@ export const Collapsible = ({
   defaultExpanded = true,
   isStreaming = false,
   autoExpandOnStreaming = true,
-}: CollapsibleProps) => {
+}: CollapsibleProps): ReactElement => {
   const [manualExpanded, setManualExpanded] = useState<boolean | null>(null);
 
   const isExpanded = useMemo(() => {

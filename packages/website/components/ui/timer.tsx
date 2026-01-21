@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type ReactElement } from "react";
 import { TIMER_UPDATE_INTERVAL_MS } from "@/constants";
 
 interface TimerProps {
@@ -27,7 +27,7 @@ export const Timer = ({
   startTime,
   endTime,
   maxDurationMs,
-}: TimerProps) => {
+}: TimerProps): ReactElement | null => {
   const [elapsed, setElapsed] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
@@ -36,25 +36,16 @@ export const Timer = ({
       clearInterval(intervalRef.current);
     }
 
-    if (!startTime) {
-      return;
-    }
+    if (!startTime) return;
 
     if (endTime) {
-      const finalElapsed = endTime - startTime;
-      if (finalElapsed !== elapsed) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setElapsed(finalElapsed);
-      }
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setElapsed(endTime - startTime);
       return;
     }
 
     if (isRunning) {
-      const initialElapsed = Date.now() - startTime;
-      if (initialElapsed !== elapsed) {
-        setElapsed(initialElapsed);
-      }
-
+      setElapsed(Date.now() - startTime);
       intervalRef.current = setInterval(() => {
         setElapsed(Date.now() - startTime);
       }, TIMER_UPDATE_INTERVAL_MS);
@@ -65,7 +56,7 @@ export const Timer = ({
         clearInterval(intervalRef.current);
       }
     };
-  }, [isRunning, startTime, endTime, elapsed]);
+  }, [isRunning, startTime, endTime]);
 
   if (!startTime) return null;
 

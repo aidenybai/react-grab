@@ -1,20 +1,20 @@
 "use client";
 
-import { StreamingText } from "./streaming-text";
-import { StreamRenderedBlock } from "@/hooks/use-stream";
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactElement } from "react";
 import { ChevronDown } from "lucide-react";
-import { highlightCode } from "@/lib/shiki";
 import {
   CODE_BLOCK_COLLAPSE_LINE_THRESHOLD,
   CODE_BLOCK_MAX_HEIGHT_PX,
 } from "@/constants";
+import { type StreamRenderedBlock } from "@/hooks/use-stream";
+import { highlightCode } from "@/lib/shiki";
+import { StreamingText } from "./streaming-text";
 
 interface CodeBlockProps {
   block: StreamRenderedBlock;
 }
 
-export const CodeBlock = ({ block }: CodeBlockProps) => {
+export const CodeBlock = ({ block }: CodeBlockProps): ReactElement => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [highlightedCode, setHighlightedCode] = useState<string>("");
   const [shouldShowExpandButton, setShouldShowExpandButton] = useState(false);

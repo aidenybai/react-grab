@@ -1,7 +1,8 @@
 "use client";
 
+import { type ReactElement } from "react";
 import { motion } from "motion/react";
-import { StreamRenderedBlock } from "@/hooks/use-stream";
+import { type StreamRenderedBlock } from "@/hooks/use-stream";
 
 interface UserMessageProps {
   block: StreamRenderedBlock;
@@ -11,7 +12,7 @@ interface UserMessageProps {
 export const UserMessage = ({
   block,
   skipAnimation = false,
-}: UserMessageProps) => {
+}: UserMessageProps): ReactElement => {
   return (
     <motion.div
       initial={skipAnimation ? { opacity: 1, y: 0 } : { opacity: 0, y: 5 }}

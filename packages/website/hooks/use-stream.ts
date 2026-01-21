@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import {
   INITIAL_STREAM_DELAY_MS,
   BLOCK_TRANSITION_DELAY_MS,
@@ -78,6 +78,10 @@ interface StreamState {
   isPaused: boolean;
 }
 
+interface UseStreamReturn extends StreamState {
+  resume: () => void;
+}
+
 const hasRawParam = (): boolean => {
   if (typeof window === "undefined") return false;
   const params = new URLSearchParams(window.location.search);
@@ -104,7 +108,7 @@ export const useStream = ({
   storageKey = "stream-completed",
   pauseAtBlockId,
   skipAnimation = false,
-}: UseStreamOptions) => {
+}: UseStreamOptions): UseStreamReturn => {
   const [state, setState] = useState<StreamState>(() => ({
     currentBlockIndex: 0,
     currentContent: "",
@@ -178,16 +182,36 @@ export const useStream = ({
     currentBlockIdxRef.current = 0;
     currentCharIdxRef.current = 0;
 
-    const streamNextChunk = () => {
+    const advanceToNextBlock = (delayMs: number): boolean => {
+      const previousBlockIdx = currentBlockIdxRef.current - 1;
+      const currentBlocks = blocksRef.current;
+      const justCompletedBlock = currentBlocks[previousBlockIdx];
+
+      if (pauseAtBlockId && justCompletedBlock?.id === pauseAtBlockId) {
+        setState((prev) => ({ ...prev, isPaused: true }));
+        resumeCallbackRef.current = () => {
+          setState((prev) => ({ ...prev, isPaused: false }));
+          timeoutRef.current = setTimeout(streamNextChunk, delayMs);
+        };
+        return true;
+      }
+
+      if (currentBlockIdxRef.current < currentBlocks.length) {
+        timeoutRef.current = setTimeout(streamNextChunk, delayMs);
+      } else {
+        setState((prev) => ({ ...prev, status: "complete" }));
+        saveCompletionToStorage(storageKey);
+      }
+      return false;
+    };
+
+    const streamNextChunk = (): void => {
       const currentBlockIdx = currentBlockIdxRef.current;
       const currentCharIdx = currentCharIdxRef.current;
       const currentBlocks = blocksRef.current;
 
       if (currentBlockIdx >= currentBlocks.length) {
-        setState((prev) => ({
-          ...prev,
-          status: "complete",
-        }));
+        setState((prev) => ({ ...prev, status: "complete" }));
         saveCompletionToStorage(storageKey);
         return;
       }
@@ -219,7 +243,6 @@ export const useStream = ({
       }
 
       if (isToolCall) {
-        // Keep tool calls in "streaming" state for blockDelayMs, then mark complete
         if (currentCharIdx === 0) {
           timeoutRef.current = setTimeout(() => {
             setState((prev) => {
@@ -239,41 +262,7 @@ export const useStream = ({
 
             currentBlockIdxRef.current++;
             currentCharIdxRef.current = 0;
-
-            const justCompletedToolBlock = currentBlocks[currentBlockIdx];
-            if (
-              pauseAtBlockId &&
-              justCompletedToolBlock.id === pauseAtBlockId
-            ) {
-              setState((prev) => ({
-                ...prev,
-                isPaused: true,
-              }));
-              resumeCallbackRef.current = () => {
-                setState((prev) => ({
-                  ...prev,
-                  isPaused: false,
-                }));
-                timeoutRef.current = setTimeout(
-                  streamNextChunk,
-                  IMMEDIATE_TIMEOUT_MS,
-                );
-              };
-              return;
-            }
-
-            if (currentBlockIdxRef.current < currentBlocks.length) {
-              timeoutRef.current = setTimeout(
-                streamNextChunk,
-                IMMEDIATE_TIMEOUT_MS,
-              );
-            } else {
-              setState((prev) => ({
-                ...prev,
-                status: "complete",
-              }));
-              saveCompletionToStorage(storageKey);
-            }
+            advanceToNextBlock(IMMEDIATE_TIMEOUT_MS);
           }, blockDelayMs);
         }
         return;
@@ -303,38 +292,7 @@ export const useStream = ({
         currentBlockIdxRef.current++;
         currentCharIdxRef.current = 0;
 
-        const justCompletedInstantBlock = currentBlocks[currentBlockIdx];
-        if (pauseAtBlockId && justCompletedInstantBlock.id === pauseAtBlockId) {
-          setState((prev) => ({
-            ...prev,
-            isPaused: true,
-          }));
-          resumeCallbackRef.current = () => {
-            setState((prev) => ({
-              ...prev,
-              isPaused: false,
-            }));
-            timeoutRef.current = setTimeout(
-              streamNextChunk,
-              IMMEDIATE_TIMEOUT_MS,
-            );
-          };
-          return;
-        }
-
-        if (currentBlockIdxRef.current < currentBlocks.length) {
-          timeoutRef.current = setTimeout(
-            streamNextChunk,
-            IMMEDIATE_TIMEOUT_MS,
-          );
-        } else {
-          setState((prev) => ({
-            ...prev,
-            status: "complete",
-          }));
-          saveCompletionToStorage(storageKey);
-        }
-
+        if (advanceToNextBlock(IMMEDIATE_TIMEOUT_MS)) return;
         return;
       }
 
@@ -397,38 +355,7 @@ export const useStream = ({
 
         currentBlockIdxRef.current++;
         currentCharIdxRef.current = 0;
-
-        const justCompletedBlock = currentBlocks[currentBlockIdx];
-        if (pauseAtBlockId && justCompletedBlock.id === pauseAtBlockId) {
-          setState((prev) => ({
-            ...prev,
-            isPaused: true,
-          }));
-          resumeCallbackRef.current = () => {
-            setState((prev) => ({
-              ...prev,
-              isPaused: false,
-            }));
-            timeoutRef.current = setTimeout(
-              streamNextChunk,
-              BLOCK_TRANSITION_DELAY_MS,
-            );
-          };
-          return;
-        }
-
-        if (currentBlockIdxRef.current < currentBlocks.length) {
-          timeoutRef.current = setTimeout(
-            streamNextChunk,
-            BLOCK_TRANSITION_DELAY_MS,
-          );
-        } else {
-          setState((prev) => ({
-            ...prev,
-            status: "complete",
-          }));
-          saveCompletionToStorage(storageKey);
-        }
+        advanceToNextBlock(BLOCK_TRANSITION_DELAY_MS);
       } else {
         timeoutRef.current = setTimeout(streamNextChunk, chunkDelayMs);
       }
@@ -451,7 +378,7 @@ export const useStream = ({
     hasCheckedStorage,
   ]);
 
-  const resume = () => {
+  const resume = (): void => {
     if (resumeCallbackRef.current) {
       resumeCallbackRef.current();
       resumeCallbackRef.current = null;

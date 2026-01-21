@@ -1,15 +1,16 @@
 "use client";
 
+import { type ReactElement } from "react";
+import { type StreamRenderedBlock } from "@/hooks/use-stream";
 import { Collapsible } from "../ui/collapsible";
 import { Scrollable } from "../ui/scrollable";
 import { StreamingText } from "./streaming-text";
-import { StreamRenderedBlock } from "@/hooks/use-stream";
 
 interface ThoughtBlockProps {
   block: StreamRenderedBlock;
 }
 
-export const ThoughtBlock = ({ block }: ThoughtBlockProps) => {
+export const ThoughtBlock = ({ block }: ThoughtBlockProps): ReactElement => {
   return (
     <Collapsible
       key={`${block.id}-${block.status}`}

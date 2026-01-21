@@ -1,6 +1,7 @@
+import { type ReactElement } from "react";
 import { IconGithub } from "./icons/icon-github";
 
-export const GithubButton = () => {
+export const GithubButton = (): ReactElement => {
   return (
     <a
       href="https://github.com/aidenybai/react-grab"

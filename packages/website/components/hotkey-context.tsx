@@ -4,7 +4,7 @@ import {
   createContext,
   useContext,
   useState,
-  useCallback,
+  type ReactElement,
   type ReactNode,
 } from "react";
 import type { RecordedHotkey } from "./grab-element-button";
@@ -20,14 +20,10 @@ interface HotkeyProviderProps {
   children: ReactNode;
 }
 
-export const HotkeyProvider = ({ children }: HotkeyProviderProps) => {
-  const [customHotkey, setCustomHotkeyState] = useState<RecordedHotkey | null>(
-    null,
-  );
-
-  const setCustomHotkey = useCallback((hotkey: RecordedHotkey | null) => {
-    setCustomHotkeyState(hotkey);
-  }, []);
+export const HotkeyProvider = ({
+  children,
+}: HotkeyProviderProps): ReactElement => {
+  const [customHotkey, setCustomHotkey] = useState<RecordedHotkey | null>(null);
 
   return (
     <HotkeyContext.Provider value={{ customHotkey, setCustomHotkey }}>

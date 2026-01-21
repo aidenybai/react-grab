@@ -1,11 +1,15 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type ReactElement } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import Link from "next/link";
 import {
   BENCHMARK_CONTROL_COLOR,
   BENCHMARK_TREATMENT_COLOR,
+  BENCHMARK_TOOLTIP_CONTROL_SECONDS,
+  BENCHMARK_TOOLTIP_TREATMENT_SECONDS,
+  BENCHMARK_TOOLTIP_MAX_SECONDS,
+  BENCHMARK_TOOLTIP_SPEEDUP_FACTOR,
   TOOLTIP_HOVER_DELAY_MS,
 } from "@/constants";
 
@@ -14,11 +18,6 @@ interface BenchmarkTooltipProps {
   children: React.ReactNode;
   className?: string;
 }
-
-const CONTROL_SECONDS = 16.8;
-const TREATMENT_SECONDS = 5.8;
-const MAX_SECONDS = 20;
-const DURATION_CHANGE = "3";
 
 interface MiniBarProps {
   targetSeconds: number;
@@ -34,7 +33,7 @@ const MiniBar = ({
   color,
   label,
   isAnimating,
-}: MiniBarProps) => {
+}: MiniBarProps): ReactElement => {
   const targetWidth = (targetSeconds / maxSeconds) * 100;
 
   return (
@@ -69,7 +68,7 @@ interface MiniChartProps {
   isVisible: boolean;
 }
 
-const MiniChart = ({ isVisible }: MiniChartProps) => {
+const MiniChart = ({ isVisible }: MiniChartProps): ReactElement => {
   const gridLines = [0, 5, 10, 15, 20];
 
   return (
@@ -83,7 +82,7 @@ const MiniChart = ({ isVisible }: MiniChartProps) => {
                 key={seconds}
                 className="absolute top-0 border-l border-neutral-800"
                 style={{
-                  left: `${(seconds / MAX_SECONDS) * 100}%`,
+                  left: `${(seconds / BENCHMARK_TOOLTIP_MAX_SECONDS) * 100}%`,
                   height: "calc(100% + 48px)",
                   marginTop: "-2px",
                 }}
@@ -98,10 +97,10 @@ const MiniChart = ({ isVisible }: MiniChartProps) => {
               Claude Code
             </div>
             <MiniBar
-              targetSeconds={CONTROL_SECONDS}
-              maxSeconds={MAX_SECONDS}
+              targetSeconds={BENCHMARK_TOOLTIP_CONTROL_SECONDS}
+              maxSeconds={BENCHMARK_TOOLTIP_MAX_SECONDS}
               color={BENCHMARK_CONTROL_COLOR}
-              label={`${CONTROL_SECONDS}s`}
+              label={`${BENCHMARK_TOOLTIP_CONTROL_SECONDS}s`}
               isAnimating={isVisible}
             />
           </div>
@@ -115,15 +114,17 @@ const MiniChart = ({ isVisible }: MiniChartProps) => {
             </div>
             <div className="relative h-4 flex-1">
               <MiniBar
-                targetSeconds={TREATMENT_SECONDS}
-                maxSeconds={MAX_SECONDS}
+                targetSeconds={BENCHMARK_TOOLTIP_TREATMENT_SECONDS}
+                maxSeconds={BENCHMARK_TOOLTIP_MAX_SECONDS}
                 color={BENCHMARK_TREATMENT_COLOR}
                 label=""
                 isAnimating={isVisible}
               />
               <motion.span
                 className="absolute top-1/2 -translate-y-1/2 flex items-center gap-1.5 ml-1.5"
-                style={{ left: `${(TREATMENT_SECONDS / MAX_SECONDS) * 100}%` }}
+                style={{
+                  left: `${(BENCHMARK_TOOLTIP_TREATMENT_SECONDS / BENCHMARK_TOOLTIP_MAX_SECONDS) * 100}%`,
+                }}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: isVisible ? 1 : 0 }}
                 transition={{ delay: 0.8, duration: 0.3 }}
@@ -132,10 +133,10 @@ const MiniChart = ({ isVisible }: MiniChartProps) => {
                   className="text-[11px] font-semibold tabular-nums"
                   style={{ color: BENCHMARK_TREATMENT_COLOR }}
                 >
-                  {TREATMENT_SECONDS}s
+                  {BENCHMARK_TOOLTIP_TREATMENT_SECONDS}s
                 </span>
                 <span className="text-[10px] font-bold text-emerald-400">
-                  {DURATION_CHANGE}× faster
+                  {BENCHMARK_TOOLTIP_SPEEDUP_FACTOR}× faster
                 </span>
               </motion.span>
             </div>
@@ -149,7 +150,9 @@ const MiniChart = ({ isVisible }: MiniChartProps) => {
               <span
                 key={seconds}
                 className="absolute text-[9px] text-neutral-600 -translate-x-1/2"
-                style={{ left: `${(seconds / MAX_SECONDS) * 100}%` }}
+                style={{
+                  left: `${(seconds / BENCHMARK_TOOLTIP_MAX_SECONDS) * 100}%`,
+                }}
               >
                 {seconds}s
               </span>
@@ -167,7 +170,7 @@ export const BenchmarkTooltip = ({
   href,
   children,
   className,
-}: BenchmarkTooltipProps) => {
+}: BenchmarkTooltipProps): ReactElement => {
   const [isHovered, setIsHovered] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);

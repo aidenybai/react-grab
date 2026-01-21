@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type ReactElement,
+  type ReactNode,
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import { motion } from "motion/react";
@@ -41,63 +42,63 @@ interface GrabElementButtonProps {
   animationDelay?: number;
 }
 
-const toggleReactGrab = (): void => {
+const EMPTY_MODIFIERS: Readonly<Omit<RecordedHotkey, "key">> = {
+  metaKey: false,
+  ctrlKey: false,
+  shiftKey: false,
+  altKey: false,
+};
+
+type ReactGrabModule = typeof import("react-grab");
+
+const withReactGrab = (action: (module: ReactGrabModule) => void): void => {
   if (typeof window === "undefined") return;
-  import("react-grab")
-    .then((reactGrab) => {
-      const api = reactGrab.getGlobalApi();
-      if (api) {
-        api.toggle();
-      }
-    })
-    .catch((error) => {
-      console.error("Failed to toggle react-grab:", error);
-    });
+  import("react-grab").then(action).catch(console.error);
+};
+
+const toggleReactGrab = (): void => {
+  withReactGrab((m) => m.getGlobalApi()?.toggle());
 };
 
 const deactivateReactGrab = (): void => {
-  if (typeof window === "undefined") return;
-  import("react-grab")
-    .then((reactGrab) => {
-      const api = reactGrab.getGlobalApi();
-      if (api) {
-        api.deactivate();
-      }
-    })
-    .catch((error) => {
-      console.error("Failed to deactivate react-grab:", error);
-    });
+  withReactGrab((m) => m.getGlobalApi()?.deactivate());
 };
 
 const updateReactGrabHotkey = (hotkey: RecordedHotkey | null): void => {
-  if (typeof window === "undefined") return;
-  import("react-grab")
-    .then((reactGrab) => {
-      const api = reactGrab.getGlobalApi();
-      if (api) {
-        api.dispose();
-      }
-      const activationKey = hotkey ? hotkeyToString(hotkey) : undefined;
-      const newApi = reactGrab.init({
-        activationKey,
-      });
-      newApi.registerPlugin({
-        name: "website-events",
-        hooks: {
-          onActivate: () => {
-            window.dispatchEvent(new CustomEvent("react-grab:activated"));
-          },
-          onDeactivate: () => {
-            window.dispatchEvent(new CustomEvent("react-grab:deactivated"));
-          },
+  withReactGrab((reactGrab) => {
+    reactGrab.getGlobalApi()?.dispose();
+    const activationKey = hotkey ? hotkeyToString(hotkey) : undefined;
+    const newApi = reactGrab.init({ activationKey });
+    newApi.registerPlugin({
+      name: "website-events",
+      hooks: {
+        onActivate: () => {
+          window.dispatchEvent(new CustomEvent("react-grab:activated"));
         },
-      });
-      reactGrab.setGlobalApi(newApi);
-    })
-    .catch((error) => {
-      console.error("Failed to update react-grab hotkey:", error);
+        onDeactivate: () => {
+          window.dispatchEvent(new CustomEvent("react-grab:deactivated"));
+        },
+      },
     });
+    reactGrab.setGlobalApi(newApi);
+  });
 };
+
+interface KbdProps {
+  children: ReactNode;
+  wide?: boolean;
+}
+
+const Kbd = ({ children, wide = false }: KbdProps): ReactElement => (
+  <kbd
+    className={cn(
+      "inline-flex items-center justify-center rounded bg-white/10 hover:bg-white/20",
+      wide ? "h-7 px-1.5 text-xs" : "size-7 text-sm",
+    )}
+  >
+    {children}
+  </kbd>
+);
 
 export const GrabElementButton = ({
   onSelect,
@@ -111,12 +112,7 @@ export const GrabElementButton = ({
   const [hideSkip, setHideSkip] = useState(false);
   const [hasAdvanced, setHasAdvanced] = useState(false);
   const [isRecordingHotkey, setIsRecordingHotkey] = useState(false);
-  const pressedModifiersRef = useRef({
-    metaKey: false,
-    ctrlKey: false,
-    shiftKey: false,
-    altKey: false,
-  });
+  const pressedModifiersRef = useRef({ ...EMPTY_MODIFIERS });
   const keyUpTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleHotkeyChange = useCallback(
@@ -139,12 +135,7 @@ export const GrabElementButton = ({
 
       if (event.key === "Escape") {
         setIsRecordingHotkey(false);
-        pressedModifiersRef.current = {
-          metaKey: false,
-          ctrlKey: false,
-          shiftKey: false,
-          altKey: false,
-        };
+        pressedModifiersRef.current = { ...EMPTY_MODIFIERS };
         return;
       }
 
@@ -172,12 +163,7 @@ export const GrabElementButton = ({
         altKey: event.altKey,
       });
       setIsRecordingHotkey(false);
-      pressedModifiersRef.current = {
-        metaKey: false,
-        ctrlKey: false,
-        shiftKey: false,
-        altKey: false,
-      };
+      pressedModifiersRef.current = { ...EMPTY_MODIFIERS };
     },
     [handleHotkeyChange],
   );
@@ -221,12 +207,7 @@ export const GrabElementButton = ({
           ...modifiersAtRelease,
         });
         setIsRecordingHotkey(false);
-        pressedModifiersRef.current = {
-          metaKey: false,
-          ctrlKey: false,
-          shiftKey: false,
-          altKey: false,
-        };
+        pressedModifiersRef.current = { ...EMPTY_MODIFIERS };
         keyUpTimeoutRef.current = null;
       }, HOTKEY_KEYUP_DELAY_MS);
     },
@@ -244,7 +225,7 @@ export const GrabElementButton = ({
     }
   }, [isRecordingHotkey, handleHotkeyKeyDown, handleHotkeyKeyUp]);
 
-  const handleHotkeyClick = (event: ReactMouseEvent) => {
+  const handleHotkeyClick = (event: ReactMouseEvent): void => {
     event.stopPropagation();
     setIsRecordingHotkey(true);
   };
@@ -261,17 +242,15 @@ export const GrabElementButton = ({
       setHasAdvanced(true);
       onSelect({ tagName: "button" });
     } else if (typeof window !== "undefined") {
-      import("react-grab").catch((error) => {
-        console.error("Failed to preload react-grab:", error);
-      });
+      import("react-grab").catch(console.error);
     }
   }, [isMobile, onSelect, hasAdvanced]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const handleActivated = () => setIsActivated(true);
-    const handleDeactivated = () => setIsActivated(false);
+    const handleActivated = (): void => setIsActivated(true);
+    const handleDeactivated = (): void => setIsActivated(false);
 
     window.addEventListener("react-grab:activated", handleActivated);
     window.addEventListener("react-grab:deactivated", handleDeactivated);
@@ -285,12 +264,14 @@ export const GrabElementButton = ({
   useEffect(() => {
     if (typeof window === "undefined" || hasAdvanced) return;
 
-    const handleElementSelected = (event: Event) => {
+    const handleElementSelected = (event: Event): void => {
       const customEvent = event as CustomEvent<{
         elements?: Array<SelectedElementInfo>;
       }>;
 
-      const element = customEvent.detail?.elements?.[0] || { tagName: "element" };
+      const element = customEvent.detail?.elements?.[0] || {
+        tagName: "element",
+      };
 
       setIsActivated(false);
       setHasAdvanced(true);
@@ -323,30 +304,14 @@ export const GrabElementButton = ({
     if (customHotkey) {
       return (
         <>
-          {customHotkey.metaKey && (
-            <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-sm">
-              ⌘
-            </kbd>
-          )}
-          {customHotkey.ctrlKey && (
-            <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-xs">
-              Ctrl
-            </kbd>
-          )}
-          {customHotkey.shiftKey && (
-            <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-sm">
-              ⇧
-            </kbd>
-          )}
-          {customHotkey.altKey && (
-            <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-sm">
-              ⌥
-            </kbd>
-          )}
+          {customHotkey.metaKey && <Kbd>⌘</Kbd>}
+          {customHotkey.ctrlKey && <Kbd wide>Ctrl</Kbd>}
+          {customHotkey.shiftKey && <Kbd>⇧</Kbd>}
+          {customHotkey.altKey && <Kbd>⌥</Kbd>}
           {customHotkey.key && (
-            <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-sm uppercase">
-              {customHotkey.key}
-            </kbd>
+            <Kbd>
+              <span className="uppercase">{customHotkey.key}</span>
+            </Kbd>
           )}
         </>
       );
@@ -355,24 +320,16 @@ export const GrabElementButton = ({
     if (isMac) {
       return (
         <>
-          <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-sm">
-            ⌘
-          </kbd>
-          <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-sm">
-            C
-          </kbd>
+          <Kbd>⌘</Kbd>
+          <Kbd>C</Kbd>
         </>
       );
     }
 
     return (
       <>
-        <kbd className="inline-flex items-center justify-center h-7 px-1.5 rounded bg-white/10 hover:bg-white/20 text-xs">
-          Ctrl
-        </kbd>
-        <kbd className="inline-flex items-center justify-center size-7 rounded bg-white/10 hover:bg-white/20 text-sm">
-          C
-        </kbd>
+        <Kbd wide>Ctrl</Kbd>
+        <Kbd>C</Kbd>
       </>
     );
   };
@@ -392,7 +349,7 @@ export const GrabElementButton = ({
     </span>
   );
 
-  const handleSkip = () => {
+  const handleSkip = (): void => {
     setHasAdvanced(true);
     setHideSkip(true);
     setIsActivated(false);
@@ -426,9 +383,7 @@ export const GrabElementButton = ({
         ) : (
           <span className="animate-pulse flex items-center gap-1.5">
             Click anywhere to select or press
-            <kbd className="inline-flex items-center justify-center h-7 px-1.5 rounded bg-white/10 text-xs">
-              Esc
-            </kbd>
+            <Kbd wide>Esc</Kbd>
             to cancel
           </span>
         )}

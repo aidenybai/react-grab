@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, type ReactElement } from "react";
 
 interface ScrollableProps {
   children: React.ReactNode;
@@ -12,7 +12,7 @@ export const Scrollable = ({
   children,
   className = "",
   maxHeight = "200px",
-}: ScrollableProps) => {
+}: ScrollableProps): ReactElement => {
   const contentRef = useRef<HTMLDivElement>(null);
   const scrollbarRef = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false);

@@ -5,6 +5,29 @@ import { GREP_SEARCH_DELAY_MS } from "@/constants";
 import { Collapsible } from "../ui/collapsible";
 import { GrepToolCallBlock } from "./grep-tool-call-block";
 
+interface ExploredHeaderProps {
+  completedCount: number;
+}
+
+export const ExploredHeader = ({
+  completedCount,
+}: ExploredHeaderProps): ReactElement => {
+  const isExploring = completedCount === 0;
+  const label = `${completedCount} search${completedCount === 1 ? "" : "es"}`;
+
+  return (
+    <div className="text-[#818181]">
+      {isExploring ? (
+        "Exploring"
+      ) : (
+        <>
+          Explored <span className="text-[#5b5b5b]">{label}</span>
+        </>
+      )}
+    </div>
+  );
+};
+
 interface GrepSearchGroupProps {
   searches: string[];
   onComplete?: () => void;
@@ -34,23 +57,12 @@ export const GrepSearchGroup = ({
   const streamingIndex = phase <= searches.length ? phase - 1 : null;
   const isStreaming = streamingIndex !== null && streamingIndex >= 0;
 
-  const searchesLabel = `${visibleCount} search${visibleCount === 1 ? "" : "es"}`;
-  const isExploring = phase === 0;
-
-  const header = (
-    <div className="text-[#818181]">
-      {isExploring ? (
-        <>Exploring</>
-      ) : (
-        <>
-          Explored <span className="text-[#5b5b5b]">{searchesLabel}</span>
-        </>
-      )}
-    </div>
-  );
-
   return (
-    <Collapsible header={header} defaultExpanded isStreaming={isStreaming}>
+    <Collapsible
+      header={<ExploredHeader completedCount={visibleCount} />}
+      defaultExpanded
+      isStreaming={isStreaming}
+    >
       <div className="flex flex-col gap-2 mt-2">
         {searches.slice(0, visibleCount).map((search, index) => (
           <GrepToolCallBlock

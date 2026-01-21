@@ -1,3 +1,4 @@
+import { type ReactElement } from "react";
 import { Collapsible } from "../ui/collapsible";
 
 interface GrepToolCallBlockProps {
@@ -10,7 +11,7 @@ export const GrepToolCallBlock = ({
   parameter,
   result = "0 matches",
   isStreaming = false,
-}: GrepToolCallBlockProps) => {
+}: GrepToolCallBlockProps): ReactElement => {
   const displayName = isStreaming ? "Grepping" : "Grepped";
   const hasNoMatches = result === "0 matches";
   const displayResult = hasNoMatches ? "Could not find any matches" : result;

@@ -1,20 +1,20 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, type ReactElement } from "react";
 import { Copy, Check } from "lucide-react";
-import { highlightCode } from "../lib/shiki";
-import { detectMobile } from "@/utils/detect-mobile";
-import { cn } from "@/utils/classnames";
-import { useHotkey } from "./hotkey-context";
-import type { RecordedHotkey } from "./grab-element-button";
-import { hotkeyToString } from "@/utils/hotkey-to-string";
 import { COPY_FEEDBACK_DURATION_MS } from "@/constants";
+import { cn } from "@/utils/classnames";
+import { detectMobile } from "@/utils/detect-mobile";
+import { hotkeyToString } from "@/utils/hotkey-to-string";
+import type { RecordedHotkey } from "./grab-element-button";
+import { useHotkey } from "./hotkey-context";
+import { highlightCode } from "../lib/shiki";
 
 interface InlineCodeProps {
   children: React.ReactNode;
 }
 
-const InlineCode = ({ children }: InlineCodeProps) => (
+const InlineCode = ({ children }: InlineCodeProps): ReactElement => (
   <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-xs text-white/70">
     {children}
   </code>
@@ -229,7 +229,7 @@ interface InstallTabsProps {
 export const InstallTabs = ({
   showHeading = false,
   showAgentNote = false,
-}: InstallTabsProps) => {
+}: InstallTabsProps): ReactElement | null => {
   const { customHotkey } = useHotkey();
   const [activeTabId, setActiveTabId] = useState<string>(
     installTabsData[0]?.id,

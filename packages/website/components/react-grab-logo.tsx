@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactElement } from "react";
 
 const BASE_ANIMATION_DURATION_MS = 400;
 const SPEED_INCREMENT = 0.5;
@@ -15,7 +15,7 @@ export const ReactGrabLogo = ({
   width = 44,
   height = 44,
   className = "",
-}: ReactGrabLogoProps) => {
+}: ReactGrabLogoProps): ReactElement => {
   const [clickCount, setClickCount] = useState(0);
 
   const speedMultiplier = 1 + clickCount * SPEED_INCREMENT;
