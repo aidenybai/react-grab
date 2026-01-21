@@ -412,6 +412,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.clearLabelInstances();
       const instanceId = `label-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const boundsCenterX = bounds.x + bounds.width / 2;
+      const boundsHalfWidth = bounds.width / 2;
+      const mouseXOffset =
+        mouseX !== undefined ? mouseX - boundsCenterX : undefined;
 
       const instance: SelectionLabelInstance = {
         id: instanceId,
@@ -424,8 +427,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         element,
         elements,
         mouseX,
-        mouseXOffsetFromCenter:
-          mouseX !== undefined ? mouseX - boundsCenterX : undefined,
+        mouseXOffsetFromCenter: mouseXOffset,
+        mouseXOffsetRatio:
+          mouseXOffset !== undefined && boundsHalfWidth > 0
+            ? mouseXOffset / boundsHalfWidth
+            : undefined,
       };
       actions.addLabelInstance(instance);
       return instanceId;
@@ -2244,10 +2250,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return previousInstance;
         }
         const newBoundsCenterX = newBounds.x + newBounds.width / 2;
+        const newBoundsHalfWidth = newBounds.width / 2;
         const newMouseX =
-          instance.mouseXOffsetFromCenter !== undefined
-            ? newBoundsCenterX + instance.mouseXOffsetFromCenter
-            : instance.mouseX;
+          instance.mouseXOffsetRatio !== undefined && newBoundsHalfWidth > 0
+            ? newBoundsCenterX + instance.mouseXOffsetRatio * newBoundsHalfWidth
+            : instance.mouseXOffsetFromCenter !== undefined
+              ? newBoundsCenterX + instance.mouseXOffsetFromCenter
+              : instance.mouseX;
         const newCached = { ...instance, bounds: newBounds, mouseX: newMouseX };
         labelInstanceCache.set(instance.id, newCached);
         return newCached;

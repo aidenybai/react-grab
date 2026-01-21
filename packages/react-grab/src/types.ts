@@ -336,6 +336,7 @@ export interface SelectionLabelInstance {
   elements?: Element[];
   mouseX?: number;
   mouseXOffsetFromCenter?: number;
+  mouseXOffsetRatio?: number;
   errorMessage?: string;
 }
 

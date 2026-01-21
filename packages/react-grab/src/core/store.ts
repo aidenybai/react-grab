@@ -666,9 +666,15 @@ const createGrabStore = (input: GrabStoreInput) => {
 
           if (oldFirstBounds) {
             const oldCenterX = oldFirstBounds.x + oldFirstBounds.width / 2;
+            const oldHalfWidth = oldFirstBounds.width / 2;
             const offsetX = session.position.x - oldCenterX;
+            const offsetRatio = oldHalfWidth > 0 ? offsetX / oldHalfWidth : 0;
             const newCenterX = newBounds.x + newBounds.width / 2;
-            updatedPosition = { ...session.position, x: newCenterX + offsetX };
+            const newHalfWidth = newBounds.width / 2;
+            updatedPosition = {
+              ...session.position,
+              x: newCenterX + offsetRatio * newHalfWidth,
+            };
           }
 
           updatedSessions.set(sessionId, {
