@@ -8,33 +8,7 @@ import { handleError } from "./handle-error.js";
 import { installPackages, uninstallPackages } from "./install.js";
 import { logger } from "./logger.js";
 import { spinner } from "./spinner.js";
-import { AGENT_NAMES, SKILL_AGENTS, type SkillAgent } from "./templates.js";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
-
-export const detectSkillAgents = (cwd: string): SkillAgent[] => {
-  return SKILL_AGENTS.filter((agent) => existsSync(join(cwd, agent.folder)));
-};
-
-export interface RankedSkillAgent extends SkillAgent {
-  detected: boolean;
-}
-
-export const getRankedSkillAgents = (cwd: string): RankedSkillAgent[] => {
-  const rankedAgents = SKILL_AGENTS.map((agent) => ({
-    ...agent,
-    detected: existsSync(join(cwd, agent.folder)),
-  }));
-  return rankedAgents.sort((first, second) => {
-    if (first.detected && !second.detected) return -1;
-    if (!first.detected && second.detected) return 1;
-    return 0;
-  });
-};
-
-export const findSkillAgent = (id: string): SkillAgent | undefined => {
-  return SKILL_AGENTS.find((agent) => agent.id === id);
-};
+import { AGENT_NAMES } from "./templates.js";
 
 export const formatInstalledAgentNames = (agents: string[]): string =>
   agents

@@ -1,6 +1,5 @@
 ---
 "react-grab": minor
-"@react-grab/browser": minor
 "grab": minor
 "@react-grab/cli": minor
 "@react-grab/ami": minor

@@ -1,11 +1,6 @@
 import { Command } from "commander";
 import pc from "picocolors";
 import prompts from "prompts";
-import {
-  findSkillAgent,
-  getRankedSkillAgents,
-  type RankedSkillAgent,
-} from "../utils/cli-helpers.js";
 import { detectProject } from "../utils/detect.js";
 import { printDiff } from "../utils/diff.js";
 import { handleError } from "../utils/handle-error.js";
@@ -18,17 +13,7 @@ import {
 } from "../utils/install.js";
 import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
-import {
-  AGENTS,
-  AGENT_NAMES,
-  MCP_CLIENTS,
-  MCP_CLIENT_NAMES,
-  SKILL_AGENTS,
-  type Agent,
-  type McpClient,
-  type SkillAgent,
-} from "../utils/templates.js";
-import { execSync } from "child_process";
+import { AGENTS, AGENT_NAMES, type Agent } from "../utils/templates.js";
 import {
   applyPackageJsonTransform,
   applyTransform,
@@ -43,72 +28,12 @@ const VERSION = process.env.VERSION ?? "0.0.1";
 const formatInstalledAgentNames = (agents: string[]): string =>
   agents.map((agent) => AGENT_NAMES[agent as Agent] || agent).join(", ");
 
-const configureMcp = (
-  mcpClient: McpClient,
-  cwd: string,
-  customPkg?: string,
-): void => {
-  const mcpCommand = customPkg
-    ? `npx -y ${customPkg} browser mcp`
-    : `npx -y grab browser mcp`;
-  const mcpSpinner = spinner(
-    `Installing MCP server for ${MCP_CLIENT_NAMES[mcpClient]}`,
-  ).start();
-
-  try {
-    execSync(`npx -y install-mcp '${mcpCommand}' --client ${mcpClient} --yes`, {
-      stdio: "ignore",
-      cwd,
-    });
-    mcpSpinner.succeed(
-      `MCP server installed for ${MCP_CLIENT_NAMES[mcpClient]}`,
-    );
-    logger.break();
-    process.exit(0);
-  } catch {
-    mcpSpinner.fail(
-      `Failed to configure MCP for ${MCP_CLIENT_NAMES[mcpClient]}`,
-    );
-    logger.dim(
-      `Try manually: npx -y install-mcp '${mcpCommand}' --client ${mcpClient}`,
-    );
-    logger.break();
-    process.exit(1);
-  }
-};
-
-const installSkill = (agent: SkillAgent, cwd: string): void => {
-  logger.break();
-  const skillSpinner = spinner(`Installing skill for ${agent.name}`).start();
-  try {
-    execSync(`npx -y add-skill aidenybai/react-grab -y --agent ${agent.id}`, {
-      stdio: "ignore",
-      cwd,
-    });
-    skillSpinner.succeed(`Skill installed for ${agent.name}`);
-    logger.break();
-    process.exit(0);
-  } catch {
-    skillSpinner.fail(`Failed to install skill for ${agent.name}`);
-    logger.warn(
-      `Try manually: npx -y add-skill aidenybai/react-grab --agent ${agent.id}`,
-    );
-    logger.break();
-    process.exit(1);
-  }
-};
-
 export const add = new Command()
   .name("add")
   .alias("install")
-  .description("add an agent integration or MCP server")
-  .argument("[agent]", `agent to add (${AGENTS.join(", ")}, mcp, skill)`)
+  .description("add an agent integration")
+  .argument("[agent]", `agent to add (${AGENTS.join(", ")})`)
   .option("-y, --yes", "skip confirmation prompts", false)
-  .option(
-    "--client <client>",
-    "MCP client to configure (cursor, claude-code, vscode, etc.)",
-  )
-  .option("--pkg <pkg>", "custom package URL for CLI (e.g., grab)")
   .option(
     "-c, --cwd <cwd>",
     "working directory (defaults to current directory)",
@@ -123,192 +48,6 @@ export const add = new Command()
     try {
       const cwd = opts.cwd;
       const isNonInteractive = opts.yes;
-
-      if (agentArg === "mcp") {
-        // HACK: Handle "claude" alias - rename to claude-code because we only care about coding tools
-        const rawClient =
-          opts.client === "claude" ? "claude-code" : opts.client;
-        let mcpClient: McpClient | undefined = rawClient as McpClient;
-
-        if (mcpClient && !MCP_CLIENTS.includes(mcpClient)) {
-          logger.break();
-          logger.error(`Invalid MCP client: ${mcpClient}`);
-          logger.error(`Available clients: ${MCP_CLIENTS.join(", ")}`);
-          logger.break();
-          process.exit(1);
-        }
-
-        if (!mcpClient && !isNonInteractive) {
-          logger.break();
-          const { client } = await prompts({
-            type: "select",
-            name: "client",
-            message: `Which ${highlighter.info("client")} would you like to configure?`,
-            choices: MCP_CLIENTS.map((mcpClientOption) => ({
-              title: MCP_CLIENT_NAMES[mcpClientOption],
-              value: mcpClientOption,
-            })),
-          });
-
-          if (!client) {
-            logger.break();
-            process.exit(1);
-          }
-
-          mcpClient = client;
-        }
-
-        if (!mcpClient) {
-          logger.break();
-          logger.error("Please specify an MCP client with --client");
-          logger.error(`Available clients: ${MCP_CLIENTS.join(", ")}`);
-          logger.break();
-          process.exit(1);
-        }
-
-        configureMcp(mcpClient, cwd, opts.pkg as string | undefined);
-      }
-
-      if (agentArg === "skill") {
-        const clientArg = opts.client as string | undefined;
-        let selectedAgent = clientArg ? findSkillAgent(clientArg) : undefined;
-
-        if (clientArg && !selectedAgent) {
-          logger.break();
-          logger.error(`Invalid skill agent: ${clientArg}`);
-          logger.error(
-            `Available agents: ${SKILL_AGENTS.map((skillAgent) => skillAgent.id).join(", ")}`,
-          );
-          logger.break();
-          process.exit(1);
-        }
-
-        if (!selectedAgent && !isNonInteractive) {
-          const rankedAgents = getRankedSkillAgents(cwd);
-          const hasDetectedAgents = rankedAgents.some(
-            (rankedAgent: RankedSkillAgent) => rankedAgent.detected,
-          );
-
-          logger.break();
-          const { agent } = await prompts({
-            type: "select",
-            name: "agent",
-            message: `Which ${highlighter.info("agent")} would you like to install the skill for?`,
-            choices: [
-              ...rankedAgents.map((rankedAgent: RankedSkillAgent) => ({
-                title: hasDetectedAgents
-                  ? `${rankedAgent.name}${rankedAgent.detected ? pc.green(" (detected)") : pc.dim(" (not detected)")}`
-                  : rankedAgent.name,
-                value: rankedAgent,
-              })),
-              { title: "Skip", value: null },
-            ],
-          });
-
-          if (!agent) {
-            logger.break();
-            process.exit(0);
-          }
-
-          selectedAgent = agent;
-        }
-
-        if (!selectedAgent) {
-          logger.break();
-          logger.error("Please specify an agent with --client");
-          logger.error(
-            `Available agents: ${SKILL_AGENTS.map((skillAgent) => skillAgent.id).join(", ")}`,
-          );
-          logger.break();
-          process.exit(1);
-        }
-
-        installSkill(selectedAgent, cwd);
-      }
-
-      if (!agentArg && !isNonInteractive) {
-        logger.break();
-
-        const { addType } = await prompts({
-          type: "select",
-          name: "addType",
-          message: "What would you like to add?",
-          choices: [
-            {
-              title: "Skill (recommended)",
-              description: "Instructions for your agent to use the browser",
-              value: "skill",
-            },
-            {
-              title: "MCP Server",
-              description: "A server that provides browser tools to your agent",
-              value: "mcp",
-            },
-            {
-              title: "Agent Integration",
-              description: "Add Claude Code, Cursor, etc. to the React Grab UI",
-              value: "agent",
-            },
-          ],
-        });
-
-        if (!addType) {
-          logger.break();
-          process.exit(1);
-        }
-
-        if (addType === "mcp") {
-          const { client } = await prompts({
-            type: "select",
-            name: "client",
-            message: `Which ${highlighter.info("client")} would you like to configure?`,
-            choices: MCP_CLIENTS.map((mcpClientOption) => ({
-              title: MCP_CLIENT_NAMES[mcpClientOption],
-              value: mcpClientOption,
-            })),
-          });
-
-          if (!client) {
-            logger.break();
-            process.exit(1);
-          }
-
-          configureMcp(
-            client as McpClient,
-            cwd,
-            opts.pkg as string | undefined,
-          );
-        }
-
-        if (addType === "skill") {
-          const rankedAgents = getRankedSkillAgents(cwd);
-          const hasDetectedAgents = rankedAgents.some(
-            (rankedAgent: RankedSkillAgent) => rankedAgent.detected,
-          );
-
-          const { selectedAgent } = await prompts({
-            type: "select",
-            name: "selectedAgent",
-            message: `Which ${highlighter.info("agent")} would you like to install the skill for?`,
-            choices: [
-              ...rankedAgents.map((rankedAgent: RankedSkillAgent) => ({
-                title: hasDetectedAgents
-                  ? `${rankedAgent.name}${rankedAgent.detected ? pc.green(" (detected)") : pc.dim(" (not detected)")}`
-                  : rankedAgent.name,
-                value: rankedAgent,
-              })),
-              { title: "Skip", value: null },
-            ],
-          });
-
-          if (!selectedAgent) {
-            logger.break();
-            process.exit(0);
-          }
-
-          installSkill(selectedAgent, cwd);
-        }
-      }
 
       const preflightSpinner = spinner("Preflight checks.").start();
 

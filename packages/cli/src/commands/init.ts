@@ -29,8 +29,6 @@ import {
   AGENT_NAMES,
   type AgentIntegration,
 } from "../utils/templates.js";
-import { execSync } from "child_process";
-import { detectSkillAgents } from "../utils/cli-helpers.js";
 import {
   previewAgentRemoval,
   previewOptionsTransform,
@@ -43,66 +41,6 @@ import {
 const VERSION = process.env.VERSION ?? "0.0.1";
 const REPORT_URL = "https://react-grab.com/api/report-cli";
 const DOCS_URL = "https://github.com/aidenybai/react-grab";
-
-const promptSkillInstall = async (cwd: string): Promise<void> => {
-  const detectedAgents = detectSkillAgents(cwd);
-
-  if (detectedAgents.length === 0) {
-    return;
-  }
-
-  logger.log(
-    `The ${highlighter.info("React Grab skill")} gives your agent access to the browser.`,
-  );
-  logger.log(`Learn more at ${highlighter.info("https://skill.md")}`);
-  logger.break();
-
-  const { wantSkill } = await prompts({
-    type: "confirm",
-    name: "wantSkill",
-    message: `Would you like to install the skill?`,
-    initial: true,
-  });
-
-  if (!wantSkill) return;
-
-  const { selectedAgent } = await prompts({
-    type: "select",
-    name: "selectedAgent",
-    message: `Which ${highlighter.info("agent")} would you like to install the skill for?`,
-    choices: [
-      ...detectedAgents.map((agent) => ({
-        title: agent.name,
-        value: agent,
-      })),
-      { title: "Skip", value: null },
-    ],
-  });
-
-  if (selectedAgent) {
-    logger.break();
-    const skillSpinner = spinner(
-      `Installing skill for ${selectedAgent.name}`,
-    ).start();
-    try {
-      execSync(
-        `npx -y add-skill aidenybai/react-grab -y --agent ${selectedAgent.id}`,
-        {
-          stdio: "ignore",
-          cwd,
-        },
-      );
-      skillSpinner.succeed(`Skill installed for ${selectedAgent.name}.`);
-    } catch {
-      skillSpinner.fail(`Failed to install skill for ${selectedAgent.name}.`);
-      logger.warn(
-        `Try manually: npx -y add-skill aidenybai/react-grab --agent ${selectedAgent.id}`,
-      );
-    }
-  }
-
-  logger.break();
-};
 
 interface ReportConfig {
   framework: string;
@@ -284,8 +222,6 @@ export const init = new Command()
           );
           logger.break();
         }
-
-        await promptSkillInstall(cwd);
 
         const { wantCustomizeOptions } = await prompts({
           type: "confirm",
@@ -725,7 +661,6 @@ export const init = new Command()
 
             if (!selectedProject || selectedProject === "skip") {
               logger.break();
-              await promptSkillInstall(cwd);
               process.exit(0);
             }
 
@@ -896,10 +831,6 @@ export const init = new Command()
         logger.log("You may now start your development server.");
       }
       logger.break();
-
-      if (!isNonInteractive) {
-        await promptSkillInstall(cwd);
-      }
 
       reportToCli("completed", {
         framework: finalFramework,

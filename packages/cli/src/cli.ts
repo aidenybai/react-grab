@@ -1,12 +1,8 @@
 import { Command } from "commander";
 import { add } from "./commands/add.js";
-import { browser } from "./commands/browser.js";
 import { configure } from "./commands/configure.js";
 import { init } from "./commands/init.js";
 import { remove } from "./commands/remove.js";
-import { uninstall } from "./commands/uninstall.js";
-import { update } from "./commands/update.js";
-import { promptGlobalInstall } from "./utils/background-install.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
 const VERSION_API_URL = "https://www.react-grab.com/api/version";
@@ -27,12 +23,8 @@ program.addCommand(init);
 program.addCommand(add);
 program.addCommand(remove);
 program.addCommand(configure);
-program.addCommand(browser);
-program.addCommand(update);
-program.addCommand(uninstall);
 
 const main = async () => {
-  await promptGlobalInstall(VERSION);
   await program.parseAsync();
 };
 

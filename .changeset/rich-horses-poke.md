@@ -1,5 +1,4 @@
 ---
-"@react-grab/browser": patch
 "@react-grab/cli": patch
 "grab": patch
 "@react-grab/ami": patch

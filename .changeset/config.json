@@ -18,8 +18,7 @@
       "@react-grab/droid",
       "@react-grab/cli",
       "@react-grab/utils",
-      "@react-grab/relay",
-      "@react-grab/browser"
+      "@react-grab/relay"
     ]
   ],
   "access": "public",

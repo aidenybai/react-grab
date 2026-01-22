@@ -162,16 +162,6 @@ npx -y grab@latest config -m hold --hold-duration 150   # Use hold mode with 150
 npx -y grab@latest config --context-lines 5        # Include 5 lines of context
 ```
 
-## MCP SERVER (OPTIONAL)
-
-Add browser automation for AI agents:
-
-```bash
-npx -y grab@latest add mcp --client cursor
-```
-
-Supported clients: cursor, claude-code, vscode, opencode, codex, gemini-cli, windsurf, zed, droid
-
 ## TROUBLESHOOTING
 
 - **Overlay not showing**: Ensure you're in development mode (`NODE_ENV=development`)
