@@ -44,7 +44,7 @@ const HOVER_STYLE_PROPERTIES = [
   "filter",
   "scale",
   "visibility",
-];
+] as const;
 
 let styleElement: HTMLStyleElement | null = null;
 let frozenElements: Element[] = [];
@@ -118,6 +118,12 @@ export const freezeAnimations = (elements: Element[]): (() => void) => {
   return unfreezeAllAnimations;
 };
 
+interface FrozenHoverState {
+  element: HTMLElement;
+  originalCssText: string;
+  frozenStyles: string;
+}
+
 export const freezePseudoStates = (): void => {
   if (pointerEventsStyle) return;
 
@@ -125,12 +131,12 @@ export const freezePseudoStates = (): void => {
     document.addEventListener(eventType, stopMouseEvent, true);
   }
 
+  const elementsToFreeze: FrozenHoverState[] = [];
+
   for (const element of document.querySelectorAll(":hover")) {
     if (!(element instanceof HTMLElement)) continue;
 
     const originalCssText = element.style.cssText;
-    frozenHoverElements.set(element, originalCssText);
-
     const computed = getComputedStyle(element);
     let frozenStyles = originalCssText;
 
@@ -141,6 +147,11 @@ export const freezePseudoStates = (): void => {
       }
     }
 
+    elementsToFreeze.push({ element, originalCssText, frozenStyles });
+  }
+
+  for (const { element, originalCssText, frozenStyles } of elementsToFreeze) {
+    frozenHoverElements.set(element, originalCssText);
     element.style.cssText = frozenStyles;
   }
 
@@ -176,12 +187,9 @@ export const freezeGlobalAnimations = (): void => {
     GLOBAL_FREEZE_STYLES,
   );
 
-  for (const animation of document.getAnimations()) {
-    if (animation.playState === "running") {
-      animation.pause();
-      globalPausedAnimations.push(animation);
-    }
-  }
+  globalPausedAnimations = document
+    .getAnimations()
+    .filter((animation) => animation.playState === "running");
 };
 
 export const unfreezeGlobalAnimations = (): void => {
