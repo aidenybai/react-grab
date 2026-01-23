@@ -307,7 +307,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let holdTimerId: number | null = null;
     let copyWaitingForConfirmation = false;
     let holdTimerFiredWaitingForConfirmation = false;
-    let isInNativeDrag = false;
     let isScreenshotInProgress = false;
     let inToggleFeedbackPeriod = false;
     let toggleFeedbackTimerId: number | null = null;
@@ -1904,24 +1903,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     eventListenerManager.addDocumentListener("copy", () => {
       if (isHoldingKeys()) {
         copyWaitingForConfirmation = true;
-      } else if (
-        isInNativeDrag &&
-        isEnabled() &&
-        !isActivated() &&
-        !isCopying() &&
-        !didJustCopy() &&
-        !isPromptMode()
-      ) {
-        activateRenderer();
       }
-    });
-
-    eventListenerManager.addWindowListener("dragstart", () => {
-      isInNativeDrag = true;
-    });
-
-    eventListenerManager.addWindowListener("dragend", () => {
-      isInNativeDrag = false;
     });
 
     eventListenerManager.addWindowListener("keypress", blockEnterIfNeeded, {
