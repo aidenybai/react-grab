@@ -1,4 +1,5 @@
 import { FROZEN_ELEMENT_ATTRIBUTE } from "../constants.js";
+import { enablePointerEventsOverride, disablePointerEventsOverride } from "./pointer-events-override.js";
 
 const FROZEN_STYLES = `
 [${FROZEN_ELEMENT_ATTRIBUTE}],
@@ -134,9 +135,12 @@ export const freezePseudoStates = (): void => {
   }
 
   pointerEventsStyle = createStyleElement("data-react-grab-frozen-pseudo", POINTER_EVENTS_STYLES);
+  enablePointerEventsOverride();
 };
 
 export const unfreezePseudoStates = (): void => {
+  disablePointerEventsOverride();
+
   for (const eventType of MOUSE_EVENTS_TO_BLOCK) {
     document.removeEventListener(eventType, stopMouseEvent, true);
   }

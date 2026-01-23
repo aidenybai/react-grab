@@ -1,20 +1,9 @@
 import { isValidGrabbableElement } from "./is-valid-grabbable-element.js";
-import {
-  enablePointerEventsOverride,
-  disablePointerEventsOverride,
-} from "./pointer-events-override.js";
 
 export const getElementsAtPoint = (
   clientX: number,
   clientY: number,
-): Element[] => {
-  enablePointerEventsOverride();
-  try {
-    return document.elementsFromPoint(clientX, clientY);
-  } finally {
-    disablePointerEventsOverride();
-  }
-};
+): Element[] => document.elementsFromPoint(clientX, clientY);
 
 export const getElementsAbove = (element: Element): Element[] => {
   const rect = element.getBoundingClientRect();
