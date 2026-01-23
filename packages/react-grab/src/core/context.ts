@@ -10,7 +10,9 @@ import {
   isInstrumentationActive,
   getDisplayName,
   isCompositeFiber,
+  traverseFiber,
 } from "bippy";
+import { MAX_HTML_FALLBACK_LENGTH } from "../constants.js";
 
 const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
   "InnerLayoutRouter",
@@ -133,55 +135,112 @@ interface GetElementContextOptions {
   maxLines?: number;
 }
 
+const hasSourceFiles = (stack: StackFrame[] | null): boolean => {
+  if (!stack) return false;
+  return stack.some(
+    (frame) =>
+      frame.isServer || (frame.fileName && isSourceFile(frame.fileName)),
+  );
+};
+
+const getComponentNamesFromFiber = (
+  element: Element,
+  maxCount: number,
+): string[] => {
+  if (!isInstrumentationActive()) return [];
+  const fiber = getFiberFromHostInstance(element);
+  if (!fiber) return [];
+
+  const componentNames: string[] = [];
+  traverseFiber(
+    fiber,
+    (currentFiber) => {
+      if (componentNames.length >= maxCount) return true;
+      if (isCompositeFiber(currentFiber)) {
+        const name = getDisplayName(currentFiber.type);
+        if (name && isUsefulComponentName(name)) {
+          componentNames.push(name);
+        }
+      }
+      return false;
+    },
+    true,
+  );
+  return componentNames;
+};
+
+const getTruncatedOuterHTML = (element: Element): string => {
+  const outerHTML = element.outerHTML;
+  if (outerHTML.length <= MAX_HTML_FALLBACK_LENGTH) {
+    return outerHTML;
+  }
+  return `${outerHTML.slice(0, MAX_HTML_FALLBACK_LENGTH)}...`;
+};
+
 export const getElementContext = async (
   element: Element,
   options: GetElementContextOptions = {},
 ): Promise<string> => {
   const { maxLines = 3 } = options;
-  const html = getHTMLPreview(element);
   const stack = await getStack(element);
-  const isNextProject = checkIsNextProject();
+  const html = getHTMLPreview(element);
 
-  const stackContext: string[] = [];
-  if (stack) {
-    for (const frame of stack) {
-      if (stackContext.length >= maxLines) break;
+  if (hasSourceFiles(stack)) {
+    const isNextProject = checkIsNextProject();
+    const stackContext: string[] = [];
 
-      if (
-        frame.isServer &&
-        (!frame.functionName || checkIsSourceComponentName(frame.functionName))
-      ) {
-        stackContext.push(
-          `\n  in ${frame.functionName || "<anonymous>"} (at Server)`,
-        );
-        continue;
-      }
-      if (frame.fileName && isSourceFile(frame.fileName)) {
-        let line = "\n  in ";
-        const hasComponentName =
-          frame.functionName && checkIsSourceComponentName(frame.functionName);
+    if (stack) {
+      for (const frame of stack) {
+        if (stackContext.length >= maxLines) break;
 
-        if (hasComponentName) {
-          line += `${frame.functionName} (at `;
+        if (
+          frame.isServer &&
+          (!frame.functionName ||
+            checkIsSourceComponentName(frame.functionName))
+        ) {
+          stackContext.push(
+            `\n  in ${frame.functionName || "<anonymous>"} (at Server)`,
+          );
+          continue;
         }
+        if (frame.fileName && isSourceFile(frame.fileName)) {
+          let line = "\n  in ";
+          const hasComponentName =
+            frame.functionName &&
+            checkIsSourceComponentName(frame.functionName);
 
-        line += normalizeFileName(frame.fileName);
+          if (hasComponentName) {
+            line += `${frame.functionName} (at `;
+          }
 
-        // HACK: bundlers like vite mess up the line number and column number
-        if (isNextProject && frame.lineNumber && frame.columnNumber) {
-          line += `:${frame.lineNumber}:${frame.columnNumber}`;
+          line += normalizeFileName(frame.fileName);
+
+          // HACK: bundlers like vite mess up the line number and column number
+          if (isNextProject && frame.lineNumber && frame.columnNumber) {
+            line += `:${frame.lineNumber}:${frame.columnNumber}`;
+          }
+
+          if (hasComponentName) {
+            line += `)`;
+          }
+
+          stackContext.push(line);
         }
-
-        if (hasComponentName) {
-          line += `)`;
-        }
-
-        stackContext.push(line);
       }
     }
+
+    return `${html}${stackContext.join("")}`;
   }
 
-  return `${html}${stackContext.join("")}`;
+  const componentNames = getComponentNamesFromFiber(element, maxLines);
+  if (componentNames.length > 0) {
+    const componentContext = componentNames
+      .map((name) => `\n  in ${name}`)
+      .join("");
+    return `${html}${componentContext}`;
+  }
+
+  return getTruncatedOuterHTML(element);
 };
 
 export const getHTMLPreview = (element: Element): string => {
