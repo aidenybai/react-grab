@@ -1,6 +1,9 @@
 import { FROZEN_ELEMENT_ATTRIBUTE } from "../constants.js";
 import { clearElementPositionCache } from "./get-element-at-position.js";
-import { enablePointerEventsOverride, disablePointerEventsOverride } from "./pointer-events-override.js";
+import {
+  enablePointerEventsOverride,
+  disablePointerEventsOverride,
+} from "./pointer-events-override.js";
 
 const FROZEN_STYLES = `
 [${FROZEN_ELEMENT_ATTRIBUTE}],
@@ -58,7 +61,10 @@ const stopMouseEvent = (event: Event): void => {
   event.stopImmediatePropagation();
 };
 
-const createStyleElement = (attribute: string, content: string): HTMLStyleElement => {
+const createStyleElement = (
+  attribute: string,
+  content: string,
+): HTMLStyleElement => {
   const element = document.createElement("style");
   element.setAttribute(attribute, "");
   element.textContent = content;
@@ -68,7 +74,10 @@ const createStyleElement = (attribute: string, content: string): HTMLStyleElemen
 
 const ensureStylesInjected = (): void => {
   if (styleElement) return;
-  styleElement = createStyleElement("data-react-grab-frozen-styles", FROZEN_STYLES);
+  styleElement = createStyleElement(
+    "data-react-grab-frozen-styles",
+    FROZEN_STYLES,
+  );
 };
 
 const areElementsSame = (a: Element[], b: Element[]): boolean =>
@@ -135,7 +144,10 @@ export const freezePseudoStates = (): void => {
     element.style.cssText = frozenStyles;
   }
 
-  pointerEventsStyle = createStyleElement("data-react-grab-frozen-pseudo", POINTER_EVENTS_STYLES);
+  pointerEventsStyle = createStyleElement(
+    "data-react-grab-frozen-pseudo",
+    POINTER_EVENTS_STYLES,
+  );
   enablePointerEventsOverride();
 };
 
@@ -159,7 +171,10 @@ export const unfreezePseudoStates = (): void => {
 export const freezeGlobalAnimations = (): void => {
   if (globalAnimationStyleElement) return;
 
-  globalAnimationStyleElement = createStyleElement("data-react-grab-global-freeze", GLOBAL_FREEZE_STYLES);
+  globalAnimationStyleElement = createStyleElement(
+    "data-react-grab-global-freeze",
+    GLOBAL_FREEZE_STYLES,
+  );
 
   for (const animation of document.getAnimations()) {
     if (animation.playState === "running") {

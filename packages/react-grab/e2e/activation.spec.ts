@@ -202,4 +202,51 @@ test.describe("Activation Mode Configuration", () => {
     const state = await reactGrab.getState();
     expect(typeof state.isActive).toBe("boolean");
   });
+
+  test("should activate via Cmd+C during native browser drag", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.page.evaluate(() => {
+      const draggable = document.createElement("div");
+      draggable.id = "native-draggable";
+      draggable.draggable = true;
+      draggable.textContent = "Drag me";
+      draggable.style.cssText =
+        "width: 100px; height: 50px; background: #ccc; padding: 10px;";
+      document.body.appendChild(draggable);
+    });
+
+    const draggable = reactGrab.page.locator("#native-draggable");
+    const box = await draggable.boundingBox();
+    if (!box) throw new Error("Could not get draggable bounds");
+
+    const startX = box.x + box.width / 2;
+    const startY = box.y + box.height / 2;
+
+    await reactGrab.page.mouse.move(startX, startY);
+
+    await reactGrab.page.evaluate(() => {
+      const element = document.getElementById("native-draggable");
+      if (!element) return;
+      element.dispatchEvent(
+        new DragEvent("dragstart", { bubbles: true, cancelable: true }),
+      );
+    });
+
+    await reactGrab.page.evaluate(() => {
+      document.dispatchEvent(new ClipboardEvent("copy", { bubbles: true }));
+    });
+
+    await expect
+      .poll(() => reactGrab.isOverlayVisible(), { timeout: 1000 })
+      .toBe(true);
+
+    await reactGrab.page.evaluate(() => {
+      const element = document.getElementById("native-draggable");
+      if (!element) return;
+      element.dispatchEvent(
+        new DragEvent("dragend", { bubbles: true, cancelable: true }),
+      );
+    });
+  });
 });

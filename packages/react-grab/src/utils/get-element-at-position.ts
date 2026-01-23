@@ -12,10 +12,18 @@ interface PositionCache {
 
 let cache: PositionCache | null = null;
 
-const isWithinThreshold = (x1: number, y1: number, x2: number, y2: number): boolean => {
+const isWithinThreshold = (
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+): boolean => {
   const deltaX = Math.abs(x1 - x2);
   const deltaY = Math.abs(y1 - y2);
-  return deltaX <= CACHE_DISTANCE_THRESHOLD_PX && deltaY <= CACHE_DISTANCE_THRESHOLD_PX;
+  return (
+    deltaX <= CACHE_DISTANCE_THRESHOLD_PX &&
+    deltaY <= CACHE_DISTANCE_THRESHOLD_PX
+  );
 };
 
 export const getElementsAtPoint = (
@@ -43,7 +51,12 @@ export const getElementAtPosition = (
   const now = performance.now();
 
   if (cache) {
-    const isPositionClose = isWithinThreshold(clientX, clientY, cache.clientX, cache.clientY);
+    const isPositionClose = isWithinThreshold(
+      clientX,
+      clientY,
+      cache.clientX,
+      cache.clientY,
+    );
     const isWithinThrottle = now - cache.timestamp < THROTTLE_INTERVAL_MS;
 
     if (isPositionClose || isWithinThrottle) {
