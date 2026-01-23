@@ -959,7 +959,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           } else if (activated && dragging) {
             setCursorOverride("crosshair");
           } else if (activated && target) {
-            setCursorOverride("default");
+            setCursorOverride("crosshair");
           } else if (activated) {
             setCursorOverride("crosshair");
           } else {
