@@ -14,6 +14,7 @@ import { createGrabStore } from "./store.js";
 import {
   isKeyboardEventTriggeredByInput,
   hasTextSelectionInInput,
+  hasTextSelectionOnPage,
 } from "../utils/is-keyboard-event-triggered-by-input.js";
 import { mountRoot } from "../utils/mount-root.js";
 import { ReactGrabRenderer } from "../components/renderer.js";
@@ -1723,6 +1724,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           } else {
             activationDuration += INPUT_FOCUS_ACTIVATION_DELAY_MS;
           }
+        } else if (hasTextSelectionOnPage()) {
+          activationDuration += INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS;
         }
         resetCopyConfirmation();
         actions.startHold(activationDuration);

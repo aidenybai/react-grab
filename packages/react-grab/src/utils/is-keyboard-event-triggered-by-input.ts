@@ -58,3 +58,9 @@ export const hasTextSelectionInInput = (event: KeyboardEvent): boolean => {
   }
   return false;
 };
+
+export const hasTextSelectionOnPage = (): boolean => {
+  const selection = window.getSelection();
+  if (!selection) return false;
+  return selection.toString().length > 0;
+};
