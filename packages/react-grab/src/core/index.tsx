@@ -94,6 +94,10 @@ import {
 import {
   freezeAnimations,
   freezeAllAnimations,
+  freezePseudoStates,
+  unfreezePseudoStates,
+  freezeGlobalAnimations,
+  unfreezeGlobalAnimations,
 } from "../utils/freeze-animations.js";
 
 let hasInited = false;
@@ -145,6 +149,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const isHoldingKeys = createMemo(() => store.current.state === "holding");
 
     const isActivated = createMemo(() => store.current.state === "active");
+
+    createEffect(
+      on(isActivated, (activated, previousActivated) => {
+        if (activated && !previousActivated) {
+          freezePseudoStates();
+          freezeGlobalAnimations();
+        } else if (!activated && previousActivated) {
+          unfreezePseudoStates();
+          unfreezeGlobalAnimations();
+        }
+      }),
+    );
 
     const isToggleFrozen = createMemo(
       () =>
@@ -380,7 +396,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return {
             tagName: getTagName(element),
             id: element.id || undefined,
-            className: element.className || undefined,
+            className: element.getAttribute("class") || undefined,
             textContent,
             componentName: componentName ?? undefined,
             filePath,
@@ -1918,6 +1934,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (didHandle) {
           event.preventDefault();
           event.stopPropagation();
+          event.stopImmediatePropagation();
         }
       },
       { capture: true },
@@ -1931,6 +1948,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (store.contextMenuPosition !== null) return;
         if (!isRendererActive() || isCopying() || isPromptMode()) return;
         event.stopPropagation();
+        event.stopImmediatePropagation();
       },
       { capture: true },
     );
@@ -2036,6 +2054,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (didHandle) {
           event.preventDefault();
           event.stopPropagation();
+          event.stopImmediatePropagation();
         }
       },
       { passive: false },
@@ -2058,6 +2077,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (isRendererActive() || isCopying() || didJustDrag()) {
           event.preventDefault();
           event.stopPropagation();
+          event.stopImmediatePropagation();
 
           if (store.wasActivatedByToggle && !isCopying() && !isPromptMode()) {
             if (!isHoldingKeys()) {

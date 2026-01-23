@@ -13,10 +13,65 @@ const FROZEN_STYLES = `
 }
 `;
 
+const HOVER_STYLE_PROPERTIES = [
+  "background-color",
+  "color",
+  "border-color",
+  "box-shadow",
+  "transform",
+  "opacity",
+  "outline",
+  "text-decoration",
+  "filter",
+  "backdrop-filter",
+  "scale",
+  "translate",
+  "rotate",
+  "text-shadow",
+  "border-width",
+  "fill",
+  "stroke",
+  "stroke-width",
+  "background-image",
+  "visibility",
+  "display",
+  "clip-path",
+  "height",
+  "max-height",
+  "overflow",
+];
+
+const MOUSE_EVENTS_TO_BLOCK = [
+  "mouseenter",
+  "mouseleave",
+  "mouseover",
+  "mouseout",
+  "pointerenter",
+  "pointerleave",
+  "pointerover",
+  "pointerout",
+] as const;
+
 let styleElement: HTMLStyleElement | null = null;
 let frozenElements: Element[] = [];
 let pausedAnimations = new Set<Animation>();
 let pausedVideos: HTMLVideoElement[] = [];
+let styleObserver: MutationObserver | null = null;
+const frozenInlineStyles = new WeakMap<Element, string>();
+let isRestoringStyles = false;
+let pendingStyleRestores: HTMLElement[] = [];
+let restoreFrameId: number | null = null;
+
+const frozenHoverElements = new Map<HTMLElement, Map<string, string>>();
+let pointerEventsStyle: HTMLStyleElement | null = null;
+
+let globalPausedAnimations = new Set<Animation>();
+let globalAnimationStyleElement: HTMLStyleElement | null = null;
+
+const stopMouseEvent = (event: Event): void => {
+  event.stopPropagation();
+  event.stopImmediatePropagation();
+};
 
 const originalAnimationPlay =
   // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -90,10 +145,74 @@ export const freezeAllAnimations = (elements: Element[]): void => {
       originalAnimationPlay?.call(this);
     }
   };
+
+  for (const element of frozenElements) {
+    if (element instanceof HTMLElement && element.hasAttribute("style")) {
+      frozenInlineStyles.set(element, element.getAttribute("style") || "");
+    }
+    const styledElements = element.querySelectorAll<HTMLElement>("[style]");
+    for (const styledElement of styledElements) {
+      frozenInlineStyles.set(
+        styledElement,
+        styledElement.getAttribute("style") || "",
+      );
+    }
+  }
+
+  const scheduleStyleRestore = (target: HTMLElement): void => {
+    if (!pendingStyleRestores.includes(target)) {
+      pendingStyleRestores.push(target);
+    }
+    if (restoreFrameId === null) {
+      restoreFrameId = requestAnimationFrame(() => {
+        restoreFrameId = null;
+        isRestoringStyles = true;
+        for (const element of pendingStyleRestores) {
+          const originalStyle = frozenInlineStyles.get(element);
+          if (originalStyle !== undefined) {
+            element.setAttribute("style", originalStyle);
+          }
+        }
+        pendingStyleRestores = [];
+        isRestoringStyles = false;
+      });
+    }
+  };
+
+  styleObserver = new MutationObserver((mutations) => {
+    if (isRestoringStyles) return;
+    for (const mutation of mutations) {
+      if (
+        mutation.type === "attributes" &&
+        mutation.attributeName === "style" &&
+        mutation.target instanceof HTMLElement &&
+        frozenInlineStyles.has(mutation.target)
+      ) {
+        scheduleStyleRestore(mutation.target);
+      }
+    }
+  });
+
+  for (const element of frozenElements) {
+    styleObserver.observe(element, {
+      attributes: true,
+      attributeFilter: ["style"],
+      subtree: true,
+    });
+  }
 };
 
 export const unfreezeAllAnimations = (): void => {
   if (frozenElements.length === 0) return;
+
+  styleObserver?.disconnect();
+  styleObserver = null;
+  if (restoreFrameId !== null) {
+    cancelAnimationFrame(restoreFrameId);
+    restoreFrameId = null;
+  }
+  pendingStyleRestores = [];
+  isRestoringStyles = false;
 
   if (originalAnimationPlay) {
     Animation.prototype.play = originalAnimationPlay;
@@ -124,4 +243,88 @@ export const freezeAnimations = (elements: Element[]): (() => void) => {
 
   freezeAllAnimations(elements);
   return unfreezeAllAnimations;
+};
+
+export const freezePseudoStates = (): void => {
+  if (pointerEventsStyle) return;
+
+  for (const eventType of MOUSE_EVENTS_TO_BLOCK) {
+    document.addEventListener(eventType, stopMouseEvent, true);
+  }
+
+  const hoveredElements = document.querySelectorAll(":hover");
+
+  for (const element of hoveredElements) {
+    if (!(element instanceof HTMLElement)) continue;
+
+    const computed = getComputedStyle(element);
+    const originalInlineStyles = new Map<string, string>();
+
+    for (const prop of HOVER_STYLE_PROPERTIES) {
+      const currentInline = element.style.getPropertyValue(prop);
+      originalInlineStyles.set(prop, currentInline);
+
+      const computedValue = computed.getPropertyValue(prop);
+      element.style.setProperty(prop, computedValue, "important");
+    }
+
+    frozenHoverElements.set(element, originalInlineStyles);
+  }
+
+  pointerEventsStyle = document.createElement("style");
+  pointerEventsStyle.setAttribute("data-react-grab-frozen-pseudo", "");
+  pointerEventsStyle.textContent = "* { pointer-events: none !important; }";
+  document.head.appendChild(pointerEventsStyle);
+};
+
+export const unfreezePseudoStates = (): void => {
+  for (const eventType of MOUSE_EVENTS_TO_BLOCK) {
+    document.removeEventListener(eventType, stopMouseEvent, true);
+  }
+
+  for (const [element, originalStyles] of frozenHoverElements) {
+    for (const [prop, value] of originalStyles) {
+      if (value) {
+        element.style.setProperty(prop, value);
+      } else {
+        element.style.removeProperty(prop);
+      }
+    }
+  }
+  frozenHoverElements.clear();
+
+  pointerEventsStyle?.remove();
+  pointerEventsStyle = null;
+};
+
+export const freezeGlobalAnimations = (): void => {
+  if (globalAnimationStyleElement) return;
+
+  globalAnimationStyleElement = document.createElement("style");
+  globalAnimationStyleElement.setAttribute("data-react-grab-global-freeze", "");
+  globalAnimationStyleElement.textContent = `
+    *, *::before, *::after {
+      animation-play-state: paused !important;
+      transition: none !important;
+    }
+  `;
+  document.head.appendChild(globalAnimationStyleElement);
+
+  const allAnimations = document.getAnimations();
+  for (const animation of allAnimations) {
+    if (animation.playState === "running") {
+      animation.pause();
+      globalPausedAnimations.add(animation);
+    }
+  }
+};
+
+export const unfreezeGlobalAnimations = (): void => {
+  globalAnimationStyleElement?.remove();
+  globalAnimationStyleElement = null;
+
+  for (const animation of globalPausedAnimations) {
+    animation.play();
+  }
+  globalPausedAnimations = new Set<Animation>();
 };
