@@ -1,4 +1,5 @@
 import { FROZEN_ELEMENT_ATTRIBUTE } from "../constants.js";
+import { clearElementPositionCache } from "./get-element-at-position.js";
 import { enablePointerEventsOverride, disablePointerEventsOverride } from "./pointer-events-override.js";
 
 const FROZEN_STYLES = `
@@ -140,6 +141,7 @@ export const freezePseudoStates = (): void => {
 
 export const unfreezePseudoStates = (): void => {
   disablePointerEventsOverride();
+  clearElementPositionCache();
 
   for (const eventType of MOUSE_EVENTS_TO_BLOCK) {
     document.removeEventListener(eventType, stopMouseEvent, true);
