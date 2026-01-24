@@ -6,7 +6,6 @@ export const AGENTS = [
   "gemini",
   "amp",
   "ami",
-  "visual-edit",
 ] as const;
 
 export type Agent = (typeof AGENTS)[number];
@@ -21,7 +20,6 @@ export const AGENT_NAMES: Record<Agent, string> = {
   gemini: "Gemini",
   amp: "Amp",
   ami: "Ami",
-  "visual-edit": "Visual Edit",
 };
 
 export const PROVIDERS = AGENTS.filter((agent) => agent !== "ami").map(

@@ -10,7 +10,6 @@
 "@react-grab/droid": minor
 "@react-grab/gemini": minor
 "@react-grab/opencode": minor
-"@react-grab/visual-edit": minor
 "@react-grab/relay": minor
 "@react-grab/utils": minor
 ---

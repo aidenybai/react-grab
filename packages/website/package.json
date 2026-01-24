@@ -15,7 +15,6 @@
     "edge >= 91"
   ],
   "dependencies": {
-    "@react-grab/visual-edit": "workspace:*",
     "@vercel/analytics": "^1.5.0",
     "@vercel/firewall": "^1.1.1",
     "ai": "^5.0.36",

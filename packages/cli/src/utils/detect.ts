@@ -309,7 +309,6 @@ const AGENT_PACKAGES = [
   "@react-grab/gemini",
   "@react-grab/amp",
   "@react-grab/ami",
-  "@react-grab/visual-edit",
 ];
 
 export const detectUnsupportedFramework = (

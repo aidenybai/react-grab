@@ -732,14 +732,11 @@ export const previewPackageJsonTransform = (
   installedAgents: string[],
   packageManager: PackageManager = "npm",
 ): PackageJsonTransformResult => {
-  if (agent === "none" || agent === "visual-edit") {
+  if (agent === "none") {
     return {
       success: true,
       filePath: "",
-      message:
-        agent === "visual-edit"
-          ? "Visual Edit does not require package.json modification"
-          : "No agent selected, skipping package.json modification",
+      message: "No agent selected, skipping package.json modification",
       noChanges: true,
     };
   }

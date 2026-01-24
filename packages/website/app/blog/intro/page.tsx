@@ -109,7 +109,7 @@ const generateDistributionData = () => {
 
   return treatmentDensity.map((point, index) => ({
     time: point.x.toFixed(1),
-    visualEdit: point.density,
+    reactGrab: point.density,
     traditional: controlDensity[index].density,
   }));
 };
@@ -195,7 +195,7 @@ const TimeComparisonChart = () => {
             />
             <Area
               type="monotone"
-              dataKey="visualEdit"
+              dataKey="reactGrab"
               stroke="#ff4fff"
               fill="#ff4fff"
               fillOpacity={0.4}

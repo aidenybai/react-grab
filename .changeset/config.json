@@ -11,7 +11,6 @@
       "@react-grab/ami",
       "@react-grab/cursor",
       "@react-grab/opencode",
-      "@react-grab/visual-edit",
       "@react-grab/codex",
       "@react-grab/gemini",
       "@react-grab/amp",

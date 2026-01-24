@@ -14,7 +14,6 @@ const PROVIDERS_WITH_SERVERS = [
   "provider-gemini",
   "provider-amp",
   "provider-droid",
-  "provider-visual-edit",
 ];
 
 const startServer = (provider) => {

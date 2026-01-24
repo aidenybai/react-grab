@@ -37,5 +37,4 @@ jobs:
             ./packages/provider-cursor \
             ./packages/provider-droid \
             ./packages/provider-gemini \
-            ./packages/provider-opencode \
-            ./packages/provider-visual-edit
+            ./packages/provider-opencode

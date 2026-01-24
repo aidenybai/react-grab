@@ -1,6 +1,5 @@
 ---
 "@react-grab/claude-code": patch
-"@react-grab/visual-edit": patch
 "@react-grab/opencode": patch
 "@react-grab/cursor": patch
 "@react-grab/gemini": patch

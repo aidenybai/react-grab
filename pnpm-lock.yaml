@@ -475,22 +475,6 @@ importers:
         specifier: ^8.4.0
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
 
-  packages/provider-visual-edit:
-    dependencies:
-      '@types/node':
-        specifier: ^24.10.2
-        version: 24.10.2
-      picocolors:
-        specifier: ^1.1.1
-        version: 1.1.1
-      react-grab:
-        specifier: workspace:*
-        version: link:../react-grab
-    devDependencies:
-      tsup:
-        specifier: ^8.4.0
-        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
-
   packages/react-grab:
     dependencies:
       bippy:
@@ -671,9 +655,6 @@ importers:
 
   packages/website:
     dependencies:
-      '@react-grab/visual-edit':
-        specifier: workspace:*
-        version: link:../provider-visual-edit
       '@vercel/analytics':
         specifier: ^1.5.0
         version: 1.5.0(next@16.0.10(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.1(react@19.2.1))(react@19.2.1))(react@19.2.1)
@@ -2816,8 +2797,8 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
-  '@sourcegraph/amp@0.0.1769112095-g419d05':
-    resolution: {integrity: sha512-Uy/nZL2fdeKwK0D8nYyGQGEdpxp5hHj5GjrjhAtza5ZO1lM+uqrZWuoIcZNceLcS9XkdL1+JXz+k4F6kwG8Eww==}
+  '@sourcegraph/amp@0.0.1769212917-g26f1e8':
+    resolution: {integrity: sha512-Aw9rrqaILksiCxWuxXcoQNvTctX5CONk75fG01/3fnoEaQPNybXAKaRdONOztX1uPqWoO9gjXL1+H9JJoXB9Kg==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -8693,14 +8674,14 @@ snapshots:
 
   '@sourcegraph/amp-sdk@0.1.0-20251210081226-g90e3892':
     dependencies:
-      '@sourcegraph/amp': 0.0.1769112095-g419d05
+      '@sourcegraph/amp': 0.0.1769212917-g26f1e8
       zod: 3.25.76
 
   '@sourcegraph/amp@0.0.1767830505-ga62310':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
-  '@sourcegraph/amp@0.0.1769112095-g419d05':
+  '@sourcegraph/amp@0.0.1769212917-g26f1e8':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
@@ -9029,6 +9010,7 @@ snapshots:
   '@types/node@24.10.2':
     dependencies:
       undici-types: 7.16.0
+    optional: true
 
   '@types/prompts@2.4.9':
     dependencies:
@@ -12683,7 +12665,8 @@ snapshots:
 
   undici-types@6.21.0: {}
 
-  undici-types@7.16.0: {}
+  undici-types@7.16.0:
+    optional: true
 
   unicorn-magic@0.3.0: {}
 

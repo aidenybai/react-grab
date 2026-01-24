@@ -124,7 +124,7 @@ export const init = new Command()
   .option("-f, --force", "force overwrite existing config", false)
   .option(
     "-a, --agent <agent>",
-    "agent integration (claude-code, cursor, opencode, codex, gemini, amp, visual-edit)",
+    "agent integration (claude-code, cursor, opencode, codex, gemini, amp)",
   )
   .option(
     "-k, --key <key>",

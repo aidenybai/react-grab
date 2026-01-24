@@ -23,7 +23,7 @@ export const remove = new Command()
   .description("remove an agent integration")
   .argument(
     "[agent]",
-    "agent to remove (claude-code, cursor, opencode, codex, gemini, amp, ami, visual-edit)",
+    "agent to remove (claude-code, cursor, opencode, codex, gemini, amp, ami)",
   )
   .option("-y, --yes", "skip confirmation prompts", false)
   .option(

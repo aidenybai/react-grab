@@ -1,4 +1,3 @@
-import { createVisualEditAgentProvider } from "@react-grab/visual-edit/client";
 import { init } from "react-grab/core";
 
 declare global {
@@ -6,17 +5,6 @@ declare global {
     __REACT_GRAB__?: ReturnType<typeof init>;
   }
 }
-
-const ABUSIVE_REGION_TIMEZONES = ["Asia/Kolkata", "Asia/Calcutta"];
-
-const isUserInAbusiveRegion = (): boolean => {
-  try {
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    return ABUSIVE_REGION_TIMEZONES.includes(timezone);
-  } catch {
-    return false;
-  }
-};
 
 if (typeof window !== "undefined" && !window.__REACT_GRAB__) {
   const api = init({
@@ -38,35 +26,6 @@ if (typeof window !== "undefined" && !window.__REACT_GRAB__) {
       },
     },
   });
-
-  // HACK: Temporarily disable visual edit for abusive regions
-  if (!isUserInAbusiveRegion()) {
-    const { provider, getOptions, onStart, onComplete, onUndo } =
-      createVisualEditAgentProvider({ apiEndpoint: "/api/visual-edit" });
-
-    const agent = {
-      provider,
-      getOptions,
-      storage: sessionStorage,
-      onStart,
-      onComplete,
-      onUndo,
-    };
-    api.registerPlugin({
-      name: "visual-edit-agent",
-      actions: [
-        {
-          id: "edit-with-visual-edit",
-          label: "Visual Edit",
-          shortcut: "Enter",
-          onAction: (context) => {
-            context.enterPromptMode?.(agent);
-          },
-          agent,
-        },
-      ],
-    });
-  }
 
   window.__REACT_GRAB__ = api;
 }
