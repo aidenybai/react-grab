@@ -938,8 +938,9 @@ const DesignSystemGrid = () => {
     containerRef?.removeEventListener("scroll", handleScroll, true);
   });
 
-  const labelStates = () => DESIGN_SYSTEM_STATES.filter((s) => s.component === "label");
-  const contextMenuStates = () => DESIGN_SYSTEM_STATES.filter((s) => s.component === "context-menu");
+  const labelStates = () => DESIGN_SYSTEM_STATES.filter((state) => state.component === "label" && !state.props.hasAgent);
+  const agentLabelStates = () => DESIGN_SYSTEM_STATES.filter((state) => state.component === "label" && state.props.hasAgent);
+  const contextMenuStates = () => DESIGN_SYSTEM_STATES.filter((state) => state.component === "context-menu");
 
   const createRefreshHandler = (id: string) => () => {
     setCellRefs((prev) => {
@@ -998,6 +999,25 @@ const DesignSystemGrid = () => {
           <span style={sectionTitleStyle()}>Selection Label</span>
           <div style={gridStyle()}>
             <For each={labelStates()}>
+              {(state) => (
+                <StateCard
+                  state={state}
+                  theme={theme()}
+                  getBounds={() => getBoundsForCell(state.id)}
+                  registerCell={(element) => registerCell(state.id, element)}
+                  onRefresh={createRefreshHandler(state.id)}
+                  getTargetDisplayText={() => getTargetDisplayText(state.props)}
+                />
+              )}
+            </For>
+          </div>
+        </div>
+
+        {/* Agent States Section */}
+        <div style={{ padding: `${GAP_PX}px 24px` }}>
+          <span style={sectionTitleStyle()}>Agent States</span>
+          <div style={gridStyle()}>
+            <For each={agentLabelStates()}>
               {(state) => (
                 <StateCard
                   state={state}

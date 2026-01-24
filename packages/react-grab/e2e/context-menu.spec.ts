@@ -316,6 +316,7 @@ test.describe("Context Menu", () => {
       await reactGrab.waitForSelectionBox();
 
       await reactGrab.pressArrowDown();
+      await reactGrab.page.waitForTimeout(100);
       await reactGrab.waitForSelectionBox();
 
       await reactGrab.rightClickElement("li:nth-child(2)");
