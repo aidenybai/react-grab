@@ -20,6 +20,13 @@ interface PendingClickData {
   element: Element;
 }
 
+interface FrozenDragRect {
+  pageX: number;
+  pageY: number;
+  width: number;
+  height: number;
+}
+
 type GrabPhase = "hovering" | "frozen" | "dragging" | "justDragged";
 
 type GrabState =
@@ -49,6 +56,7 @@ interface GrabStore {
   detectedElement: Element | null;
   frozenElement: Element | null;
   frozenElements: Element[];
+  frozenDragRect: FrozenDragRect | null;
   lastGrabbedElement: Element | null;
   lastCopiedElement: Element | null;
 
@@ -109,6 +117,7 @@ const createInitialStore = (input: GrabStoreInput): GrabStore => ({
   detectedElement: null,
   frozenElement: null,
   frozenElements: [],
+  frozenDragRect: null,
   lastGrabbedElement: null,
   lastCopiedElement: null,
 
@@ -172,6 +181,7 @@ interface GrabActions {
   setDetectedElement: (element: Element | null) => void;
   setFrozenElement: (element: Element) => void;
   setFrozenElements: (elements: Element[]) => void;
+  setFrozenDragRect: (rect: FrozenDragRect | null) => void;
   clearFrozenElement: () => void;
   setCopyStart: (position: Position, element: Element) => void;
   setLastGrabbed: (element: Element | null) => void;
@@ -264,6 +274,7 @@ const createGrabStore = (input: GrabStoreInput) => {
       setStore("inputText", "");
       setStore("frozenElement", null);
       setStore("frozenElements", []);
+      setStore("frozenDragRect", null);
       setStore("pendingClickData", null);
       setStore("replySessionId", null);
       setStore("pendingAbortSessionId", null);
@@ -305,6 +316,7 @@ const createGrabStore = (input: GrabStoreInput) => {
       if (store.current.state === "active") {
         setStore("frozenElement", null);
         setStore("frozenElements", []);
+        setStore("frozenDragRect", null);
         setStore(
           "current",
           produce((current) => {
@@ -502,16 +514,23 @@ const createGrabStore = (input: GrabStoreInput) => {
     setFrozenElement: (element: Element) => {
       setStore("frozenElement", element);
       setStore("frozenElements", [element]);
+      setStore("frozenDragRect", null);
     },
 
     setFrozenElements: (elements: Element[]) => {
       setStore("frozenElements", elements);
       setStore("frozenElement", elements.length > 0 ? elements[0] : null);
+      setStore("frozenDragRect", null);
+    },
+
+    setFrozenDragRect: (rect: FrozenDragRect | null) => {
+      setStore("frozenDragRect", rect);
     },
 
     clearFrozenElement: () => {
       setStore("frozenElement", null);
       setStore("frozenElements", []);
+      setStore("frozenDragRect", null);
     },
 
     setCopyStart: (position: Position, element: Element) => {

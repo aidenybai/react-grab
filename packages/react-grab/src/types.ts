@@ -344,6 +344,7 @@ export interface ReactGrabRendererProps {
   selectionVisible?: boolean;
   selectionBounds?: OverlayBounds;
   selectionBoundsMultiple?: OverlayBounds[];
+  selectionShouldSnap?: boolean;
   selectionElementsCount?: number;
   selectionFilePath?: string;
   selectionLineNumber?: number;

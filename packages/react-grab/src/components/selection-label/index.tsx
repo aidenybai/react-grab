@@ -135,6 +135,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     const elementIdentity = `${props.tagName ?? ""}:${props.componentName ?? ""}`;
     if (elementIdentity !== lastElementIdentity) {
       lastElementIdentity = elementIdentity;
+      lastValidPosition = null;
       resetIdleTimer();
     }
   });
@@ -190,6 +191,16 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
+
+    const isSelectionVisibleInViewport =
+      bounds.x + bounds.width > 0 &&
+      bounds.x < viewportWidth &&
+      bounds.y + bounds.height > 0 &&
+      bounds.y < viewportHeight;
+
+    if (!isSelectionVisibleInViewport && lastValidPosition) {
+      return lastValidPosition;
+    }
 
     const selectionCenterX = bounds.x + bounds.width / 2;
     const cursorX = props.mouseX ?? selectionCenterX;
