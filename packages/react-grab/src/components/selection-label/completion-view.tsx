@@ -157,15 +157,13 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
     >
       <Show when={!didCopy() && (props.onDismiss || props.onUndo)}>
         <div class="contain-layout shrink-0 flex items-center justify-between gap-2 pt-1.5 pb-1 px-1.5 w-full h-fit">
-          <div class="contain-layout shrink-0 flex items-center gap-1 h-fit">
-            <span class="text-black text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit tabular-nums">
-              {displayStatusText()}
-            </span>
-            <Show when={props.onShowContextMenu}>
+          <span class="text-black text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit tabular-nums">
+            {displayStatusText()}
+          </span>
+          <div class="contain-layout shrink-0 flex items-center gap-[5px] h-fit">
+            <Show when={props.onShowContextMenu && !props.supportsFollowUp}>
               <MoreOptionsButton onClick={() => props.onShowContextMenu?.()} />
             </Show>
-          </div>
-          <div class="contain-layout shrink-0 flex items-center gap-[5px] h-fit">
             <Show when={props.supportsUndo && props.onUndo}>
               <button
                 data-react-grab-undo
@@ -201,7 +199,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
           <span class="text-black text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit tabular-nums">
             {displayStatusText()}
           </span>
-          <Show when={props.onShowContextMenu}>
+          <Show when={props.onShowContextMenu && !props.supportsFollowUp}>
             <MoreOptionsButton onClick={() => props.onShowContextMenu?.()} />
           </Show>
         </div>

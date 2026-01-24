@@ -254,7 +254,13 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     const arrowLeftPercent = ARROW_CENTER_PERCENT;
     const arrowLeftOffset = -edgeOffsetX; // px offset to keep arrow pointing at cursor
 
-    const position = { left: anchorX, top: positionTop, arrowLeftPercent, arrowLeftOffset, edgeOffsetX };
+    const position = {
+      left: anchorX,
+      top: positionTop,
+      arrowLeftPercent,
+      arrowLeftOffset,
+      edgeOffsetX,
+    };
     lastValidPosition = position;
     setHadValidBounds(true);
 
@@ -368,8 +374,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             onUndo={props.onUndo}
             onFollowUpSubmit={props.onFollowUpSubmit}
             onCopyStateChange={() => {
-                queueMicrotask(measureContainer);
-              }}
+              queueMicrotask(measureContainer);
+            }}
             onFadingChange={setIsInternalFading}
             onShowContextMenu={props.onShowContextMenu}
           />

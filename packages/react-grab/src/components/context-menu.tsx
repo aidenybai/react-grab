@@ -12,12 +12,7 @@ import type {
   ContextMenuAction,
   ActionContext,
 } from "../types.js";
-import {
-  VIEWPORT_MARGIN_PX,
-  ARROW_HEIGHT_PX,
-  ARROW_MIN_OFFSET_PX,
-  LABEL_GAP_PX,
-} from "../constants.js";
+import { ARROW_HEIGHT_PX, LABEL_GAP_PX } from "../constants.js";
 import { Arrow } from "./selection-label/arrow.js";
 import { TagBadge } from "./selection-label/tag-badge.js";
 import { BottomSection } from "./selection-label/bottom-section.js";
@@ -62,7 +57,6 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
 
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
-  const [viewportVersion, setViewportVersion] = createSignal(0);
 
   const isVisible = () => props.position !== null;
 
@@ -80,10 +74,6 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     }
   };
 
-  const handleViewportChange = () => {
-    setViewportVersion((version) => version + 1);
-  };
-
   createEffect(() => {
     if (isVisible()) {
       requestAnimationFrame(measureContainer);
@@ -91,7 +81,6 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
   });
 
   const computedPosition = () => {
-    viewportVersion();
     const bounds = props.selectionBounds;
     const clickPosition = props.position;
     const labelWidth = measuredWidth();
@@ -106,33 +95,21 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       };
     }
 
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
     const cursorX = clickPosition.x ?? bounds.x + bounds.width / 2;
+    const positionLeft = cursorX - labelWidth / 2;
+    const arrowLeft = labelWidth / 2;
 
-    let positionLeft = cursorX - labelWidth / 2;
-    let positionTop = bounds.y + bounds.height + ARROW_HEIGHT_PX + LABEL_GAP_PX;
+    const positionBelow =
+      bounds.y + bounds.height + ARROW_HEIGHT_PX + LABEL_GAP_PX;
+    const positionAbove =
+      bounds.y - labelHeight - ARROW_HEIGHT_PX - LABEL_GAP_PX;
+    const wouldOverflowBottom =
+      positionBelow + labelHeight > window.innerHeight;
+    const hasSpaceAbove = positionAbove >= 0;
 
-    positionLeft = Math.max(
-      VIEWPORT_MARGIN_PX,
-      Math.min(positionLeft, viewportWidth - labelWidth - VIEWPORT_MARGIN_PX),
-    );
-
-    const totalHeightNeeded = labelHeight + ARROW_HEIGHT_PX + LABEL_GAP_PX;
-    const fitsBelow =
-      positionTop + labelHeight <= viewportHeight - VIEWPORT_MARGIN_PX;
-
-    const arrowPosition: "bottom" | "top" = fitsBelow ? "bottom" : "top";
-    if (!fitsBelow) {
-      positionTop = bounds.y - totalHeightNeeded;
-    }
-
-    positionTop = Math.max(VIEWPORT_MARGIN_PX, positionTop);
-
-    const arrowLeft = Math.max(
-      ARROW_MIN_OFFSET_PX,
-      Math.min(cursorX - positionLeft, labelWidth - ARROW_MIN_OFFSET_PX),
-    );
+    const shouldFlipAbove = wouldOverflowBottom && hasSpaceAbove;
+    const positionTop = shouldFlipAbove ? positionAbove : positionBelow;
+    const arrowPosition: "top" | "bottom" = shouldFlipAbove ? "top" : "bottom";
 
     return { left: positionLeft, top: positionTop, arrowLeft, arrowPosition };
   };
@@ -297,8 +274,6 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       });
     });
     window.addEventListener("keydown", handleKeyDown, { capture: true });
-    window.addEventListener("scroll", handleViewportChange, true);
-    window.addEventListener("resize", handleViewportChange);
 
     onCleanup(() => {
       cancelAnimationFrame(frameId);
@@ -309,8 +284,6 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         capture: true,
       });
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
-      window.removeEventListener("scroll", handleViewportChange, true);
-      window.removeEventListener("resize", handleViewportChange);
     });
   });
 

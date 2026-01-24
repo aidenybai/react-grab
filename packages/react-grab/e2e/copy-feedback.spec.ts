@@ -152,7 +152,6 @@ test.describe("Copy Feedback Behavior", () => {
       await reactGrab.page.waitForTimeout(100);
       expect(await reactGrab.isOverlayVisible()).toBe(false);
     });
-
   });
 
   test.describe("API Activation - Toggle Mode Behavior", () => {
