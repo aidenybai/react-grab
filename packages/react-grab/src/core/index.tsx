@@ -569,6 +569,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       extraPrompt?: string;
       shouldDeactivateAfter?: boolean;
       onComplete?: () => void;
+      dragRect?: { pageX: number; pageY: number; width: number; height: number };
     }
 
     const performCopyWithLabel = ({
@@ -579,9 +580,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       extraPrompt,
       shouldDeactivateAfter,
       onComplete,
+      dragRect: passedDragRect,
     }: CopyWithLabelOptions) => {
       const allElements = elements ?? [element];
-      const dragRect = store.frozenDragRect;
+      const dragRect = passedDragRect ?? store.frozenDragRect;
       let overlayBounds: OverlayBounds;
 
       if (dragRect && allElements.length > 1) {
@@ -1390,6 +1392,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           positionY: center.y,
           elements: selectedElements,
           shouldDeactivateAfter: true,
+          dragRect: {
+            pageX: dragSelectionRect.x + window.scrollX,
+            pageY: dragSelectionRect.y + window.scrollY,
+            width: dragSelectionRect.width,
+            height: dragSelectionRect.height,
+          },
         });
       }
     };
