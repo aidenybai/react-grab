@@ -7,9 +7,9 @@ test.describe("Element Context Fallback", () => {
     }) => {
       await reactGrab.activate();
 
-      await reactGrab.hoverElement("[data-testid='todo-list']");
+      await reactGrab.hoverElement("[data-testid='todo-list'] h1");
       await reactGrab.waitForSelectionBox();
-      await reactGrab.clickElement("[data-testid='todo-list']");
+      await reactGrab.clickElement("[data-testid='todo-list'] h1");
 
       const clipboard = await reactGrab.getClipboardContent();
       expect(clipboard).toContain("TodoList");

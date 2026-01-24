@@ -77,6 +77,7 @@ export interface OverlayCanvasProps {
   selectionBounds?: OverlayBounds;
   selectionBoundsMultiple?: OverlayBounds[];
   selectionIsFading?: boolean;
+  selectionShouldSnap?: boolean;
 
   dragVisible?: boolean;
   dragBounds?: OverlayBounds;
@@ -613,8 +614,9 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
           props.selectionBounds,
           props.selectionBoundsMultiple,
           props.selectionIsFading,
+          props.selectionShouldSnap,
         ] as const,
-      ([isVisible, singleBounds, multipleBounds]) => {
+      ([isVisible, singleBounds, multipleBounds, , shouldSnap]) => {
         if (
           !isVisible ||
           (!singleBounds && (!multipleBounds || multipleBounds.length === 0))
@@ -639,6 +641,9 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
           if (existingAnimation) {
             updateAnimationTarget(existingAnimation, bounds);
+            if (shouldSnap) {
+              existingAnimation.current = { ...existingAnimation.target };
+            }
             return existingAnimation;
           }
 

@@ -32,6 +32,10 @@ import { getElementAtPosition } from "../utils/get-element-at-position.js";
 import { isValidGrabbableElement } from "../utils/is-valid-grabbable-element.js";
 import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
+import {
+  createBoundsFromDragRect,
+  createFlatOverlayBounds,
+} from "../utils/create-bounds-from-drag-rect.js";
 import { getTagName } from "../utils/get-tag-name.js";
 import {
   FEEDBACK_DURATION_MS,
@@ -576,14 +580,23 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       shouldDeactivateAfter,
       onComplete,
     }: CopyWithLabelOptions) => {
-      const bounds = createElementBounds(element);
+      const allElements = elements ?? [element];
+      const dragRect = store.frozenDragRect;
+      let overlayBounds: OverlayBounds;
+
+      if (dragRect && allElements.length > 1) {
+        overlayBounds = createBoundsFromDragRect(dragRect);
+      } else {
+        overlayBounds = createFlatOverlayBounds(createElementBounds(element));
+      }
+
       const tagName = getTagName(element);
       void getNearestComponentName(element).then((componentName) => {
         void executeCopyOperation(
           positionX,
           positionY,
-          () => copyElementsToClipboard(elements ?? [element], extraPrompt),
-          bounds,
+          () => copyElementsToClipboard(allElements, extraPrompt),
+          overlayBounds,
           tagName,
           componentName ?? undefined,
           element,
@@ -627,6 +640,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const selectionBounds = createMemo((): OverlayBounds | undefined => {
       void store.viewportVersion;
+
+      const frozenElements = store.frozenElements;
+      if (frozenElements.length > 0) {
+        if (frozenElements.length === 1) {
+          return createElementBounds(frozenElements[0]);
+        }
+        const dragRect = store.frozenDragRect;
+        if (dragRect) {
+          return createBoundsFromDragRect(dragRect);
+        }
+        const elementBounds = frozenElements.map((element) =>
+          createElementBounds(element),
+        );
+        return createFlatOverlayBounds(combineBounds(elementBounds));
+      }
+
       const element = effectiveElement();
       if (!element) return undefined;
       return createElementBounds(element);
@@ -634,9 +663,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const frozenElementsBounds = createMemo((): OverlayBounds[] => {
       void store.viewportVersion;
-      const elements = store.frozenElements;
-      if (elements.length === 0) return [];
-      return elements.map((element) => createElementBounds(element));
+
+      const frozenElements = store.frozenElements;
+      if (frozenElements.length === 0) return [];
+
+      const dragRect = store.frozenDragRect;
+      if (dragRect && frozenElements.length > 1) {
+        return [createBoundsFromDragRect(dragRect)];
+      }
+
+      return frozenElements.map((element) => createElementBounds(element));
     });
 
     const frozenElementsCount = createMemo(() => store.frozenElements.length);
@@ -682,6 +718,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const dragBounds = createMemo((): OverlayBounds | undefined => {
+      void store.viewportVersion;
+
       if (!isDraggingBeyondThreshold()) return undefined;
 
       const drag = calculateDragRectangle(store.pointer.x, store.pointer.y);
@@ -694,6 +732,29 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         x: drag.x,
         y: drag.y,
       };
+    });
+
+    const dragPreviewBounds = createMemo((): OverlayBounds[] => {
+      void store.viewportVersion;
+
+      if (!isDraggingBeyondThreshold()) return [];
+
+      const drag = calculateDragRectangle(store.pointer.x, store.pointer.y);
+      const elements = getElementsInDrag(drag, isValidGrabbableElement);
+      const previewElements =
+        elements.length > 0
+          ? elements
+          : getElementsInDrag(drag, isValidGrabbableElement, false);
+
+      return previewElements.map((element) => createElementBounds(element));
+    });
+
+    const selectionBoundsMultiple = createMemo((): OverlayBounds[] => {
+      const previewBounds = dragPreviewBounds();
+      if (previewBounds.length > 0) {
+        return previewBounds;
+      }
+      return frozenElementsBounds();
     });
 
     const cursorPosition = createMemo(() => {
@@ -1311,6 +1372,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (hasAgentProvider()) {
         actions.setPointer(center);
         actions.setFrozenElements(selectedElements);
+        actions.setFrozenDragRect({
+          pageX: dragSelectionRect.x + window.scrollX,
+          pageY: dragSelectionRect.y + window.scrollY,
+          width: dragSelectionRect.width,
+          height: dragSelectionRect.height,
+        });
         actions.freeze();
         actions.showContextMenu(center, firstElement);
         if (!isActivated()) {
@@ -1584,11 +1651,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const tagName = element ? getTagName(element) || "element" : "element";
       const shouldDeactivate = store.wasActivatedByToggle;
-      const overlayBounds: OverlayBounds = {
-        ...bounds,
-        borderRadius: "0px",
-        transform: "",
-      };
+      const overlayBounds = createFlatOverlayBounds(bounds);
       const selectionBoundsArray =
         allBounds.length > 1 ? allBounds : singleBounds ? [singleBounds] : [];
 
@@ -2205,19 +2268,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const rendererRoot = mountRoot(cssText as string);
 
-    const createElementVisibilityMemo = (
-      themeKey: "selectionBox" | "elementLabel",
-    ) =>
-      createMemo(() => {
-        if (!pluginRegistry.store.theme.enabled) return false;
-        if (!pluginRegistry.store.theme[themeKey].enabled) return false;
-        if (didJustCopy()) return false;
-        return (
-          isRendererActive() && !isDragging() && Boolean(effectiveElement())
-        );
-      });
+    const selectionVisible = createMemo(() => {
+      if (!pluginRegistry.store.theme.enabled) return false;
+      if (!pluginRegistry.store.theme.selectionBox.enabled) return false;
+      if (didJustCopy()) return false;
 
-    const selectionVisible = createElementVisibilityMemo("selectionBox");
+      const hasDragPreview = dragPreviewBounds().length > 0;
+      if (hasDragPreview) return true;
+
+      return isRendererActive() && !isDragging() && Boolean(effectiveElement());
+    });
 
     const selectionTagName = createMemo(() => {
       const element = effectiveElement();
@@ -2253,10 +2313,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
       }
       return store.labelInstances.map((instance) => {
-        const newBounds =
-          instance.element && document.body.contains(instance.element)
-            ? createElementBounds(instance.element)
-            : instance.bounds;
+        const hasMultipleElements =
+          instance.elements && instance.elements.length > 1;
+        const instanceElement = instance.element;
+        const canRecalculateBounds =
+          !hasMultipleElements &&
+          instanceElement &&
+          document.body.contains(instanceElement);
+        const newBounds = canRecalculateBounds
+          ? createElementBounds(instanceElement)
+          : instance.bounds;
+
         const previousInstance = labelInstanceCache.get(instance.id);
         const boundsUnchanged =
           previousInstance &&
@@ -2435,11 +2502,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const tagName = element ? getTagName(element) || "element" : "element";
       const shouldDeactivate = store.wasActivatedByToggle;
-      const overlayBounds: OverlayBounds = {
-        ...bounds,
-        borderRadius: "0px",
-        transform: "",
-      };
+      const overlayBounds = createFlatOverlayBounds(bounds);
       const selectionBoundsArray =
         allBounds.length > 1 ? allBounds : singleBounds ? [singleBounds] : [];
 
@@ -2517,7 +2580,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const combinedBounds =
         allBounds.length > 1 ? combineBounds(allBounds) : null;
       const bounds = combinedBounds
-        ? { ...combinedBounds, borderRadius: "0px", transform: "" }
+        ? createFlatOverlayBounds(combinedBounds)
         : singleBounds;
       const tagName = getTagName(element) || "element";
       const componentName = contextMenuComponentName();
@@ -2694,12 +2757,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     if (pluginRegistry.store.theme.enabled) {
-      render(
-        () => (
+      render(() => {
+        const hasDragPreview = dragPreviewBounds().length > 0;
+
+        return (
           <ReactGrabRenderer
             selectionVisible={selectionVisible()}
             selectionBounds={selectionBounds()}
-            selectionBoundsMultiple={frozenElementsBounds()}
+            selectionBoundsMultiple={selectionBoundsMultiple()}
+            selectionShouldSnap={
+              store.frozenElements.length > 0 || hasDragPreview
+            }
             selectionElementsCount={frozenElementsCount()}
             selectionFilePath={store.selectionFilePath ?? undefined}
             selectionLineNumber={store.selectionLineNumber ?? undefined}
@@ -2712,7 +2780,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             dragBounds={dragBounds()}
             grabbedBoxes={computedGrabbedBoxes()}
             labelZIndex={Z_INDEX_LABEL}
-            mouseX={cursorPosition().x}
+            mouseX={
+              store.frozenElements.length > 0 ? undefined : cursorPosition().x
+            }
             mouseY={cursorPosition().y}
             crosshairVisible={crosshairVisible()}
             inputValue={store.inputText}
@@ -2764,9 +2834,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onContextMenuDismiss={handleContextMenuDismiss}
             onContextMenuHide={handleContextMenuHide}
           />
-        ),
-        rendererRoot,
-      );
+        );
+      }, rendererRoot);
     }
 
     if (hasAgentProvider()) {

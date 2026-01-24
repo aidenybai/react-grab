@@ -100,6 +100,9 @@ test.describe("Touch Mode", () => {
     test("touch should select element", async ({ reactGrab }) => {
       await reactGrab.activate();
 
+      await reactGrab.hoverElement("[data-testid='todo-list'] h1");
+      await reactGrab.waitForSelectionBox();
+
       const element = reactGrab.page.locator("[data-testid='todo-list'] h1");
       const box = await element.boundingBox();
       if (!box) throw new Error("Could not get bounding box");
@@ -108,10 +111,10 @@ test.describe("Touch Mode", () => {
         box.x + box.width / 2,
         box.y + box.height / 2,
       );
-      await reactGrab.page.waitForTimeout(500);
 
-      const clipboard = await reactGrab.getClipboardContent();
-      expect(clipboard).toContain("Todo List");
+      await expect
+        .poll(() => reactGrab.getClipboardContent(), { timeout: 5000 })
+        .toContain("Todo List");
     });
 
     test("touch on different elements should work", async ({ reactGrab }) => {
