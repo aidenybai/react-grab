@@ -1,5 +1,13 @@
 # grab
 
+## 0.1.0-beta.12
+
+### Patch Changes
+
+- fix: decouple browser out from react-grab
+- Updated dependencies
+  - @react-grab/cli@0.1.0-beta.12
+
 ## 0.1.0-beta.11
 
 ### Patch Changes
