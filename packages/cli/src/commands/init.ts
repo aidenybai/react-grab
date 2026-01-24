@@ -712,9 +712,48 @@ export const init = new Command()
       const finalFramework = projectInfo.framework;
       const finalPackageManager = projectInfo.packageManager;
       const finalNextRouterType = projectInfo.nextRouterType;
-      const agentIntegration: AgentIntegration =
+      let agentIntegration: AgentIntegration =
         (opts.agent as AgentIntegration) || "none";
       const agentsToRemove: string[] = [];
+
+      if (!isNonInteractive && !opts.agent) {
+        logger.break();
+        const { wantAddAgent } = await prompts({
+          type: "confirm",
+          name: "wantAddAgent",
+          message: `Would you like to add an ${highlighter.info("agent integration")}?`,
+          initial: false,
+        });
+
+        if (wantAddAgent === undefined) {
+          logger.break();
+          process.exit(1);
+        }
+
+        if (wantAddAgent) {
+          const { agent } = await prompts({
+            type: "select",
+            name: "agent",
+            message: `Which ${highlighter.info("agent integration")} would you like to add?`,
+            choices: [
+              ...AGENTS.map((innerAgent) => ({
+                title: getAgentName(innerAgent),
+                value: innerAgent,
+              })),
+              { title: "Skip", value: "skip" },
+            ],
+          });
+
+          if (agent === undefined) {
+            logger.break();
+            process.exit(1);
+          }
+
+          if (agent !== "skip") {
+            agentIntegration = agent as AgentIntegration;
+          }
+        }
+      }
 
       const result = previewTransform(
         projectInfo.projectRoot,
