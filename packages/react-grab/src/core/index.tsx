@@ -133,8 +133,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
   logIntro();
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- need to omit enabled from settableOptions to avoid circular dependency
+  const { enabled: _enabled, ...settableOptions } = initialOptions;
+
   return createRoot((dispose) => {
-    const pluginRegistry = createPluginRegistry(initialOptions);
+    const pluginRegistry = createPluginRegistry(settableOptions);
 
     const getAgentFromActions = () => {
       for (const action of pluginRegistry.store.actions) {
