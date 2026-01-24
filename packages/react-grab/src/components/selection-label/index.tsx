@@ -135,6 +135,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     const elementIdentity = `${props.tagName ?? ""}:${props.componentName ?? ""}`;
     if (elementIdentity !== lastElementIdentity) {
       lastElementIdentity = elementIdentity;
+      lastValidPosition = null;
       resetIdleTimer();
     }
   });

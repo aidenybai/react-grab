@@ -2768,15 +2768,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     if (pluginRegistry.store.theme.enabled) {
       render(() => {
-        const hasDragPreview = dragPreviewBounds().length > 0;
-
         return (
           <ReactGrabRenderer
             selectionVisible={selectionVisible()}
             selectionBounds={selectionBounds()}
             selectionBoundsMultiple={selectionBoundsMultiple()}
             selectionShouldSnap={
-              store.frozenElements.length > 0 || hasDragPreview
+              store.frozenElements.length > 0 || dragPreviewBounds().length > 0
             }
             selectionElementsCount={frozenElementsCount()}
             selectionFilePath={store.selectionFilePath ?? undefined}
