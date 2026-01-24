@@ -2497,14 +2497,20 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const singleBounds = contextMenuBounds();
       const element = store.contextMenuElement;
       const bounds =
-        allBounds.length > 1 ? combineBounds(allBounds) : singleBounds;
+        store.frozenElements.length > 1
+          ? combineBounds(allBounds)
+          : singleBounds;
       if (!bounds) return;
 
       const tagName = element ? getTagName(element) || "element" : "element";
       const shouldDeactivate = store.wasActivatedByToggle;
       const overlayBounds = createFlatOverlayBounds(bounds);
       const selectionBoundsArray =
-        allBounds.length > 1 ? allBounds : singleBounds ? [singleBounds] : [];
+        store.frozenElements.length > 1
+          ? allBounds
+          : singleBounds
+            ? [singleBounds]
+            : [];
 
       actions.hideContextMenu();
 
@@ -2578,7 +2584,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const allBounds = frozenElementsBounds();
       const singleBounds = contextMenuBounds();
       const combinedBounds =
-        allBounds.length > 1 ? combineBounds(allBounds) : null;
+        store.frozenElements.length > 1 ? combineBounds(allBounds) : null;
       const bounds = combinedBounds
         ? createFlatOverlayBounds(combinedBounds)
         : singleBounds;
@@ -2586,7 +2592,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const componentName = contextMenuComponentName();
       const shouldDeactivate = store.wasActivatedByToggle;
       const selectionBoundsArray =
-        allBounds.length > 1 ? allBounds : singleBounds ? [singleBounds] : [];
+        store.frozenElements.length > 1
+          ? allBounds
+          : singleBounds
+            ? [singleBounds]
+            : [];
 
       actions.hideContextMenu();
 
