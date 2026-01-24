@@ -436,7 +436,8 @@ export type ArrowPosition = "bottom" | "top";
 
 export interface ArrowProps {
   position: ArrowPosition;
-  leftPx: number;
+  leftPercent: number;
+  leftOffsetPx: number;
   color?: string;
 }
 
@@ -486,6 +487,7 @@ export interface CompletionViewProps {
   onUndo?: () => void;
   onFollowUpSubmit?: (prompt: string) => void;
   onCopyStateChange?: () => void;
+  onFadingChange?: (isFading: boolean) => void;
   onShowContextMenu?: () => void;
 }
 

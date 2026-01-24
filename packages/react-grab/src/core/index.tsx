@@ -569,7 +569,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       extraPrompt?: string;
       shouldDeactivateAfter?: boolean;
       onComplete?: () => void;
-      dragRect?: { pageX: number; pageY: number; width: number; height: number };
+      dragRect?: {
+        pageX: number;
+        pageY: number;
+        width: number;
+        height: number;
+      };
     }
 
     const performCopyWithLabel = ({

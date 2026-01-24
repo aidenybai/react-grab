@@ -54,6 +54,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
     props.onCopyStateChange?.();
     setTimeout(() => {
       setIsFading(true);
+      props.onFadingChange?.(true);
       setTimeout(() => {
         props.onDismiss?.();
       }, FADE_DURATION_MS);

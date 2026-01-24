@@ -4,7 +4,7 @@ import type { ArrowPosition, SelectionLabelProps } from "../../types.js";
 import {
   VIEWPORT_MARGIN_PX,
   ARROW_HEIGHT_PX,
-  ARROW_MIN_OFFSET_PX,
+  ARROW_CENTER_PERCENT,
   LABEL_GAP_PX,
   IDLE_TIMEOUT_MS,
 } from "../../constants.js";
@@ -21,6 +21,14 @@ import { DiscardPrompt } from "./discard-prompt.js";
 import { ErrorView } from "./error-view.js";
 import { CompletionView } from "./completion-view.js";
 
+const DEFAULT_OFFSCREEN_POSITION = {
+  left: -9999,
+  top: -9999,
+  arrowLeftPercent: ARROW_CENTER_PERCENT,
+  arrowLeftOffset: 0,
+  edgeOffsetX: 0,
+};
+
 export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
   let inputRef: HTMLTextAreaElement | undefined;
@@ -28,7 +36,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   let lastValidPosition: {
     left: number;
     top: number;
-    arrowLeft: number;
+    arrowLeftPercent: number;
+    arrowLeftOffset: number;
+    edgeOffsetX: number;
   } | null = null;
   let lastElementIdentity: string | null = null;
 
@@ -39,7 +49,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const [viewportVersion, setViewportVersion] = createSignal(0);
   const [isIdle, setIsIdle] = createSignal(false);
   const [hadValidBounds, setHadValidBounds] = createSignal(false);
-  const [isContainerHovered, setIsContainerHovered] = createSignal(false);
+  const [isInternalFading, setIsInternalFading] = createSignal(false);
 
   const canInteract = () =>
     props.status !== "copying" &&
@@ -161,7 +171,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     void props.visible;
     void props.status;
     void isIdle();
-    requestAnimationFrame(measureContainer);
+    // HACK: use queueMicrotask instead of RAF to measure sooner after content changes
+    // This prevents the flicker when transitioning between states (e.g., clicking "Keep")
+    queueMicrotask(measureContainer);
   });
 
   createEffect(() => {
@@ -175,10 +187,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const computedPosition = () => {
     viewportVersion();
 
-    if (isContainerHovered() && lastValidPosition) {
-      return lastValidPosition;
-    }
-
     const bounds = props.selectionBounds;
     const labelWidth = measuredWidth();
     const labelHeight = measuredHeight();
@@ -186,7 +194,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     const hasValidBounds = bounds && bounds.width > 0 && bounds.height > 0;
 
     if (!hasMeasurements || !hasValidBounds) {
-      return lastValidPosition ?? { left: -9999, top: -9999, arrowLeft: 0 };
+      return lastValidPosition ?? DEFAULT_OFFSCREEN_POSITION;
     }
 
     const viewportWidth = window.innerWidth;
@@ -198,8 +206,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       bounds.y + bounds.height > 0 &&
       bounds.y < viewportHeight;
 
-    if (!isSelectionVisibleInViewport && lastValidPosition) {
-      return lastValidPosition;
+    if (!isSelectionVisibleInViewport) {
+      return DEFAULT_OFFSCREEN_POSITION;
     }
 
     const selectionCenterX = bounds.x + bounds.width / 2;
@@ -207,14 +215,23 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     const selectionBottom = bounds.y + bounds.height;
     const selectionTop = bounds.y;
 
-    let positionLeft = cursorX - labelWidth / 2;
+    // HACK: Use cursorX as anchor point, CSS transform handles centering via translateX(-50%)
+    // This avoids the flicker when content changes because centering doesn't depend on JS measurement
+    const anchorX = cursorX;
+    let edgeOffsetX = 0;
     let positionTop = selectionBottom + ARROW_HEIGHT_PX + LABEL_GAP_PX;
 
-    if (positionLeft + labelWidth > viewportWidth - VIEWPORT_MARGIN_PX) {
-      positionLeft = viewportWidth - labelWidth - VIEWPORT_MARGIN_PX;
-    }
-    if (positionLeft < VIEWPORT_MARGIN_PX) {
-      positionLeft = VIEWPORT_MARGIN_PX;
+    // Calculate edge clamping offset (only applied when we have valid measurements)
+    if (labelWidth > 0) {
+      const labelLeft = anchorX - labelWidth / 2;
+      const labelRight = anchorX + labelWidth / 2;
+
+      if (labelRight > viewportWidth - VIEWPORT_MARGIN_PX) {
+        edgeOffsetX = viewportWidth - VIEWPORT_MARGIN_PX - labelRight;
+      }
+      if (labelLeft + edgeOffsetX < VIEWPORT_MARGIN_PX) {
+        edgeOffsetX = VIEWPORT_MARGIN_PX - labelLeft;
+      }
     }
 
     const totalHeightNeeded = labelHeight + ARROW_HEIGHT_PX + LABEL_GAP_PX;
@@ -232,12 +249,12 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       positionTop = VIEWPORT_MARGIN_PX;
     }
 
-    const arrowLeft = Math.max(
-      ARROW_MIN_OFFSET_PX,
-      Math.min(cursorX - positionLeft, labelWidth - ARROW_MIN_OFFSET_PX),
-    );
+    // Arrow is centered by default, offset by edge clamping
+    // When edgeOffsetX is 0, arrow is at center. When label shifts, arrow compensates.
+    const arrowLeftPercent = ARROW_CENTER_PERCENT;
+    const arrowLeftOffset = -edgeOffsetX; // px offset to keep arrow pointing at cursor
 
-    const position = { left: positionLeft, top: positionTop, arrowLeft };
+    const position = { left: anchorX, top: positionTop, arrowLeftPercent, arrowLeftOffset, edgeOffsetX };
     lastValidPosition = position;
     setHadValidBounds(true);
 
@@ -317,9 +334,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         style={{
           top: `${computedPosition().top}px`,
           left: `${computedPosition().left}px`,
+          transform: `translateX(calc(-50% + ${computedPosition().edgeOffsetX}px))`,
           "z-index": "2147483647",
           "pointer-events": shouldEnablePointerEvents() ? "auto" : "none",
-          opacity: props.status === "fading" ? 0 : 1,
+          opacity: props.status === "fading" || isInternalFading() ? 0 : 1,
         }}
         onPointerDown={handleContainerPointerDown}
         onMouseDown={(event) => {
@@ -330,12 +348,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           event.stopPropagation();
           event.stopImmediatePropagation();
         }}
-        onMouseEnter={() => setIsContainerHovered(true)}
-        onMouseLeave={() => setIsContainerHovered(false)}
       >
         <Arrow
           position={arrowPosition()}
-          leftPx={computedPosition().arrowLeft}
+          leftPercent={computedPosition().arrowLeftPercent}
+          leftOffsetPx={computedPosition().arrowLeftOffset}
         />
 
         <Show when={isCompletedStatus() && !props.error}>
@@ -350,7 +367,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             onDismiss={props.onDismiss}
             onUndo={props.onUndo}
             onFollowUpSubmit={props.onFollowUpSubmit}
-            onCopyStateChange={() => requestAnimationFrame(measureContainer)}
+            onCopyStateChange={() => {
+                queueMicrotask(measureContainer);
+              }}
+            onFadingChange={setIsInternalFading}
             onShowContextMenu={props.onShowContextMenu}
           />
         </Show>

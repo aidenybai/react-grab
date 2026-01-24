@@ -15,6 +15,7 @@ import type {
 import {
   VIEWPORT_MARGIN_PX,
   ARROW_HEIGHT_PX,
+  ARROW_MIN_OFFSET_PX,
   LABEL_GAP_PX,
 } from "../constants.js";
 import { Arrow } from "./selection-label/arrow.js";
@@ -129,8 +130,8 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     positionTop = Math.max(VIEWPORT_MARGIN_PX, positionTop);
 
     const arrowLeft = Math.max(
-      12,
-      Math.min(cursorX - positionLeft, labelWidth - 12),
+      ARROW_MIN_OFFSET_PX,
+      Math.min(cursorX - positionLeft, labelWidth - ARROW_MIN_OFFSET_PX),
     );
 
     return { left: positionLeft, top: positionTop, arrowLeft, arrowPosition };
@@ -334,9 +335,12 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
           event.stopImmediatePropagation();
         }}
       >
+        {/* Arrow positioned from left edge (leftPercent=0) using computed pixel offset,
+            unlike SelectionLabel which centers (leftPercent=50) then applies offset */}
         <Arrow
           position={computedPosition().arrowPosition}
-          leftPx={computedPosition().arrowLeft}
+          leftPercent={0}
+          leftOffsetPx={computedPosition().arrowLeft}
         />
 
         <div class="[font-synthesis:none] contain-layout flex flex-col justify-center items-start gap-1 rounded-sm bg-white antialiased w-fit h-fit min-w-[100px]">

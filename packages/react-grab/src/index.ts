@@ -6,6 +6,7 @@ export {
   DEFAULT_THEME,
 } from "./core/index.js";
 export { generateSnippet } from "./utils/generate-snippet.js";
+export { renderDesignSystemPreview } from "./design-system.js";
 export {
   captureElementScreenshot,
   copyImageToClipboard,
