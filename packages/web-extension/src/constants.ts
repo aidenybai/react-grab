@@ -1,0 +1,2 @@
+export const LOCALHOST_INIT_DELAY_MS = 500;
+export const STATE_QUERY_TIMEOUT_MS = 500;

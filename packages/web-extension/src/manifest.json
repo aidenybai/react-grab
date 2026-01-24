@@ -27,10 +27,16 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
+      "js": ["src/content/bridge.ts"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["<all_urls>"],
       "js": ["src/content/react-grab.ts"],
       "run_at": "document_start",
       "world": "MAIN"
     }
   ],
-  "host_permissions": ["<all_urls>"]
+  "host_permissions": ["<all_urls>"],
+  "permissions": ["storage"]
 }

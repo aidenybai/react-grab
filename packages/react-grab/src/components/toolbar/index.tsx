@@ -1,7 +1,12 @@
 import { createSignal, onMount, onCleanup, Show } from "solid-js";
 import type { Component } from "solid-js";
 import { cn } from "../../utils/cn.js";
-import { loadToolbarState, saveToolbarState, type SnapEdge } from "./state.js";
+import {
+  loadToolbarState,
+  saveToolbarState,
+  type SnapEdge,
+  type ToolbarState,
+} from "./state.js";
 import { IconSelect } from "../icons/icon-select.jsx";
 import { IconChevron } from "../icons/icon-chevron.jsx";
 import {
@@ -260,7 +265,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       time: performance.now(),
     };
 
-    (event.target as HTMLElement).setPointerCapture(event.pointerId);
+    const targetElement = event.target;
+    if (targetElement instanceof HTMLElement) {
+      targetElement.setPointerCapture(event.pointerId);
+    }
   };
 
   const handlePointerMove = (event: PointerEvent) => {
@@ -407,21 +415,39 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     }, TOOLBAR_FADE_IN_DELAY_MS);
   };
 
+  let isApplyingExternalState = false;
+
+  const applyToolbarState = (state: ReturnType<typeof loadToolbarState>) => {
+    if (!state) return;
+    const rect = containerRef?.getBoundingClientRect();
+    if (!rect) return;
+
+    setSnapEdge(state.edge);
+    setPositionRatio(state.ratio);
+    setIsCollapsed(state.collapsed);
+    const newPosition = getPositionFromEdgeAndRatio(
+      state.edge,
+      state.ratio,
+      rect.width,
+      rect.height,
+    );
+    setPosition(newPosition);
+  };
+
+  const handleExternalStateChange = (event: CustomEvent<ToolbarState>) => {
+    if (isApplyingExternalState) return;
+    if (!event.detail) return;
+    isApplyingExternalState = true;
+    applyToolbarState(event.detail);
+    isApplyingExternalState = false;
+  };
+
   onMount(() => {
     const savedState = loadToolbarState();
     const rect = containerRef?.getBoundingClientRect();
 
     if (savedState && rect) {
-      setSnapEdge(savedState.edge);
-      setPositionRatio(savedState.ratio);
-      setIsCollapsed(savedState.collapsed);
-      const newPosition = getPositionFromEdgeAndRatio(
-        savedState.edge,
-        savedState.ratio,
-        rect.width,
-        rect.height,
-      );
-      setPosition(newPosition);
+      applyToolbarState(savedState);
     } else if (rect) {
       setPosition({
         x: (window.innerWidth - rect.width) / 2,
@@ -432,6 +458,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
     window.addEventListener("resize", handleResize);
     window.visualViewport?.addEventListener("resize", handleResize);
+    window.addEventListener(
+      "react-grab:toolbar-state-change",
+      handleExternalStateChange,
+    );
 
     const fadeInTimeout = setTimeout(() => {
       setIsVisible(true);
@@ -439,6 +469,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
     onCleanup(() => {
       clearTimeout(fadeInTimeout);
+      window.removeEventListener(
+        "react-grab:toolbar-state-change",
+        handleExternalStateChange,
+      );
     });
   });
 

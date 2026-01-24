@@ -12,3 +12,4 @@ packages/website/public/react-grab.global.js
 test-results
 playwright-report
 .cursor/debug.log
+.cursor

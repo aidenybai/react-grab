@@ -78,6 +78,7 @@ import type {
   SettableOptions,
   SourceInfo,
   Plugin,
+  ToolbarState,
 } from "../types.js";
 import { DEFAULT_THEME } from "./theme.js";
 import { createPluginRegistry } from "./plugin-registry.js";
@@ -106,6 +107,7 @@ import {
 } from "../utils/freeze-animations.js";
 
 let hasInited = false;
+const toolbarStateChangeCallbacks = new Set<(state: ToolbarState) => void>();
 
 export const init = (rawOptions?: Options): ReactGrabAPI => {
   if (typeof window === "undefined") {
@@ -2937,8 +2939,48 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
       },
       isActive: () => isActivated(),
+      isEnabled: () => isEnabled(),
+      setEnabled: (enabled: boolean) => {
+        if (enabled === isEnabled()) return;
+        setIsEnabled(enabled);
+        if (!enabled) {
+          if (isHoldingKeys()) {
+            actions.release();
+          }
+          if (isActivated()) {
+            deactivateRenderer();
+          }
+          if (toggleFeedbackTimerId !== null) {
+            window.clearTimeout(toggleFeedbackTimerId);
+            toggleFeedbackTimerId = null;
+          }
+          inToggleFeedbackPeriod = false;
+        }
+      },
+      getToolbarState: () => loadToolbarState(),
+      setToolbarState: (state: Partial<ToolbarState>) => {
+        const currentState = loadToolbarState();
+        const newState = {
+          edge: state.edge ?? currentState?.edge ?? "bottom",
+          ratio: state.ratio ?? currentState?.ratio ?? 0.5,
+          collapsed: state.collapsed ?? currentState?.collapsed ?? false,
+          enabled: state.enabled ?? currentState?.enabled ?? true,
+        };
+        saveToolbarState(newState);
+        if (state.enabled !== undefined && state.enabled !== isEnabled()) {
+          setIsEnabled(state.enabled);
+        }
+        toolbarStateChangeCallbacks.forEach((cb) => cb(newState));
+      },
+      onToolbarStateChange: (callback: (state: ToolbarState) => void) => {
+        toolbarStateChangeCallbacks.add(callback);
+        return () => {
+          toolbarStateChangeCallbacks.delete(callback);
+        };
+      },
       dispose: () => {
         hasInited = false;
+        toolbarStateChangeCallbacks.clear();
         dispose();
       },
       copyElement: copyElementAPI,

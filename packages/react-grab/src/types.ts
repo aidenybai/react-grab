@@ -284,7 +284,9 @@ export interface Options {
   getContent?: (elements: Element[]) => Promise<string> | string;
 }
 
-export type SettableOptions = Omit<Options, "enabled">;
+export interface SettableOptions extends Options {
+  enabled?: never;
+}
 
 export interface SourceInfo {
   filePath: string;
@@ -292,11 +294,23 @@ export interface SourceInfo {
   componentName: string | null;
 }
 
+export interface ToolbarState {
+  edge: "top" | "bottom" | "left" | "right";
+  ratio: number;
+  collapsed: boolean;
+  enabled: boolean;
+}
+
 export interface ReactGrabAPI {
   activate: () => void;
   deactivate: () => void;
   toggle: () => void;
   isActive: () => boolean;
+  isEnabled: () => boolean;
+  setEnabled: (enabled: boolean) => void;
+  getToolbarState: () => ToolbarState | null;
+  setToolbarState: (state: Partial<ToolbarState>) => void;
+  onToolbarStateChange: (callback: (state: ToolbarState) => void) => () => void;
   dispose: () => void;
   copyElement: (elements: Element | Element[]) => Promise<boolean>;
   getSource: (element: Element) => Promise<SourceInfo | null>;

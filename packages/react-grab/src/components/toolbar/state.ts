@@ -14,9 +14,9 @@ export const loadToolbarState = (): ToolbarState | null => {
     const serializedToolbarState = localStorage.getItem(STORAGE_KEY);
     if (!serializedToolbarState) return null;
 
-    const partialToolbarState = JSON.parse(
+    const partialToolbarState: Partial<ToolbarState> = JSON.parse(
       serializedToolbarState,
-    ) as Partial<ToolbarState>;
+    );
     return {
       edge: partialToolbarState.edge ?? "bottom",
       ratio: partialToolbarState.ratio ?? 0.5,
@@ -30,5 +30,8 @@ export const loadToolbarState = (): ToolbarState | null => {
 export const saveToolbarState = (state: ToolbarState): void => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    window.dispatchEvent(
+      new CustomEvent("react-grab:toolbar-state-change", { detail: state }),
+    );
   } catch {}
 };

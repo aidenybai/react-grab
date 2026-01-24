@@ -1,17 +1,19 @@
-interface TabState {
-  enabled: boolean;
-}
+const STORAGE_KEY = "react_grab_enabled";
 
-const tabStates = new Map<number, TabState>();
-
-const getTabState = (tabId: number): TabState => {
-  if (!tabStates.has(tabId)) {
-    tabStates.set(tabId, { enabled: true });
-  }
-  return tabStates.get(tabId)!;
+const getGlobalEnabled = async (): Promise<boolean> => {
+  const result = await chrome.storage.local.get(STORAGE_KEY);
+  const enabled = result[STORAGE_KEY] ?? true;
+  return enabled;
 };
 
-const updateActionIcon = async (tabId: number, enabled: boolean) => {
+const setGlobalEnabled = async (enabled: boolean): Promise<void> => {
+  await chrome.storage.local.set({ [STORAGE_KEY]: enabled });
+};
+
+const updateActionIcon = async (
+  tabId: number,
+  enabled: boolean,
+): Promise<void> => {
   const title = enabled ? "React Grab (Active)" : "React Grab (Inactive)";
   const badgeText = enabled ? "" : "OFF";
   const badgeColor = "#FF40E0";
@@ -23,27 +25,53 @@ const updateActionIcon = async (tabId: number, enabled: boolean) => {
   }
 };
 
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message.type === "GET_STATE") {
+    getGlobalEnabled().then((enabled) => {
+      sendResponse({ enabled });
+    });
+    return true;
+  }
+  return false;
+});
+
 chrome.action.onClicked.addListener(async (tab) => {
   if (!tab.id) return;
 
-  const state = getTabState(tab.id);
-  state.enabled = !state.enabled;
+  const currentEnabled = await getGlobalEnabled();
+  const newEnabled = !currentEnabled;
+  await setGlobalEnabled(newEnabled);
 
-  await updateActionIcon(tab.id, state.enabled);
+  await updateActionIcon(tab.id, newEnabled);
 
-  await chrome.tabs.sendMessage(tab.id, {
-    type: "REACT_GRAB_TOGGLE",
-    enabled: state.enabled,
-  });
+  try {
+    await chrome.tabs.sendMessage(tab.id, {
+      type: "REACT_GRAB_TOGGLE",
+      enabled: newEnabled,
+    });
+  } catch {
+    // HACK: Content script may not be ready yet
+  }
+
+  const allTabs = await chrome.tabs.query({});
+  for (const otherTab of allTabs) {
+    if (otherTab.id && otherTab.id !== tab.id) {
+      await updateActionIcon(otherTab.id, newEnabled);
+      try {
+        await chrome.tabs.sendMessage(otherTab.id, {
+          type: "REACT_GRAB_TOGGLE",
+          enabled: newEnabled,
+        });
+      } catch {
+        // Tab may not have content script loaded
+      }
+    }
+  }
 });
 
-chrome.tabs.onRemoved.addListener((tabId) => {
-  tabStates.delete(tabId);
-});
-
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
   if (changeInfo.status === "loading") {
-    const state = getTabState(tabId);
-    await updateActionIcon(tabId, state.enabled);
+    const enabled = await getGlobalEnabled();
+    await updateActionIcon(tabId, enabled);
   }
 });
