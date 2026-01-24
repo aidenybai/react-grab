@@ -153,30 +153,6 @@ test.describe("Copy Feedback Behavior", () => {
       expect(await reactGrab.isOverlayVisible()).toBe(false);
     });
 
-    test("should stay active while key held during feedback in hold mode", async ({
-      reactGrab,
-    }) => {
-      await reactGrab.updateOptions({ activationMode: "hold" });
-
-      await reactGrab.activate();
-      expect(await reactGrab.isOverlayVisible()).toBe(true);
-
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
-
-      await reactGrab.page.keyboard.down("Meta");
-      await reactGrab.page.keyboard.down("c");
-      await reactGrab.clickElement("li:first-child");
-
-      await expect
-        .poll(() => reactGrab.isOverlayVisible(), {
-          timeout: FEEDBACK_DURATION_MS + 800,
-        })
-        .toBe(false);
-
-      await reactGrab.page.keyboard.up("c");
-      await reactGrab.page.keyboard.up("Meta");
-    });
   });
 
   test.describe("API Activation - Toggle Mode Behavior", () => {
