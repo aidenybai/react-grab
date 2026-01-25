@@ -45,7 +45,6 @@ export const ARROW_HEIGHT_PX = 8;
 export const ARROW_CENTER_PERCENT = 50;
 export const LABEL_GAP_PX = 4;
 export const IDLE_TIMEOUT_MS = 800;
-export const MAX_ERROR_LENGTH = 50;
 export const MAX_HTML_FALLBACK_LENGTH = 500;
 
 export const SCREENSHOT_CAPTURE_DELAY_MS = 50;

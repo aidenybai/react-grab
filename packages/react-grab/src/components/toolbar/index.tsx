@@ -108,6 +108,20 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     ),
   );
 
+  createEffect(
+    on(
+      () => props.enabled,
+      (enabled) => {
+        if (enabled && isShakeTooltipVisible()) {
+          setIsShakeTooltipVisible(false);
+          if (shakeTooltipTimeout) {
+            clearTimeout(shakeTooltipTimeout);
+          }
+        }
+      },
+    ),
+  );
+
   let lastPointerPosition = { x: 0, y: 0, time: 0 };
   let pointerStartPosition = { x: 0, y: 0 };
   let expandedDimensions = {
