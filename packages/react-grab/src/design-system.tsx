@@ -1897,6 +1897,37 @@ const TRANSITION_DURATION = "0.15s ease";
 const STORAGE_KEY_THEME = "react-grab-design-system-theme";
 const STORAGE_KEY_STARRED = "react-grab-design-system-starred";
 
+const generateRandomSuffix = (length: number): string => {
+  const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
+
+const elongateProps = (
+  props: DesignSystemStateProps,
+): DesignSystemStateProps => {
+  const elongateString = (value: string | undefined): string | undefined => {
+    if (!value) return value;
+    return value + generateRandomSuffix(20 + Math.floor(Math.random() * 30));
+  };
+
+  return {
+    ...props,
+    tagName: elongateString(props.tagName),
+    componentName: elongateString(props.componentName),
+    filePath: elongateString(props.filePath),
+    statusText: elongateString(props.statusText),
+    error: elongateString(props.error),
+    inputValue: elongateString(props.inputValue),
+    replyToPrompt: elongateString(props.replyToPrompt),
+    previousPrompt: elongateString(props.previousPrompt),
+    dismissButtonText: elongateString(props.dismissButtonText),
+  };
+};
+
 const loadTheme = (): boolean => {
   try {
     const saved = localStorage.getItem(STORAGE_KEY_THEME);
@@ -2055,6 +2086,7 @@ interface StateCardProps {
   getTargetDisplayText: () => string;
   isStarred: boolean;
   onToggleStar: () => void;
+  isScrambled: boolean;
 }
 
 const StateCard = (props: StateCardProps) => {
@@ -2068,10 +2100,13 @@ const StateCard = (props: StateCardProps) => {
   const frameCount = () => props.state.animationSequence?.length ?? 0;
 
   const currentProps = (): DesignSystemStateProps => {
+    let baseProps: DesignSystemStateProps;
     if (hasAnimation() && props.state.animationSequence) {
-      return props.state.animationSequence[frameIndex()].props;
+      baseProps = props.state.animationSequence[frameIndex()].props;
+    } else {
+      baseProps = props.state.props;
     }
-    return props.state.props;
+    return props.isScrambled ? elongateProps(baseProps) : baseProps;
   };
 
   const scheduleNextFrame = () => {
@@ -2626,6 +2661,7 @@ const DesignSystemGrid = () => {
   const [isRefreshing, setIsRefreshing] = createSignal(false);
   const [starredIds, setStarredIds] = createSignal<Set<string>>(loadStarred());
   const [searchQuery, setSearchQuery] = createSignal("");
+  const [isScrambled, setIsScrambled] = createSignal(false);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -2924,6 +2960,20 @@ const DesignSystemGrid = () => {
           }}
         >
           <button
+            onClick={() => setIsScrambled((prev) => !prev)}
+            style={{
+              ...createToggleButtonStyle(theme()),
+              "background-color": isScrambled()
+                ? "rgba(215, 95, 203, 0.2)"
+                : theme().toggleBackground,
+              "border-color": isScrambled()
+                ? "rgba(215, 95, 203, 0.5)"
+                : theme().toggleBorder,
+            }}
+          >
+            {isScrambled() ? "✓ Scramble" : "Scramble"}
+          </button>
+          <button
             onClick={handleRefresh}
             style={createToggleButtonStyle(theme())}
           >
@@ -2962,6 +3012,7 @@ const DesignSystemGrid = () => {
                     getTargetDisplayText={() => getTargetDisplayText(state)}
                     isStarred={isStarred(state.id)}
                     onToggleStar={() => handleToggleStar(state.id)}
+                    isScrambled={isScrambled()}
                   />
                 )}
               </For>
@@ -2985,6 +3036,7 @@ const DesignSystemGrid = () => {
                     getTargetDisplayText={() => getTargetDisplayText(state)}
                     isStarred={isStarred(state.id)}
                     onToggleStar={() => handleToggleStar(state.id)}
+                    isScrambled={isScrambled()}
                   />
                 )}
               </For>
@@ -3008,6 +3060,7 @@ const DesignSystemGrid = () => {
                     getTargetDisplayText={() => getTargetDisplayText(state)}
                     isStarred={isStarred(state.id)}
                     onToggleStar={() => handleToggleStar(state.id)}
+                    isScrambled={isScrambled()}
                   />
                 )}
               </For>
@@ -3031,6 +3084,7 @@ const DesignSystemGrid = () => {
                     getTargetDisplayText={() => getTargetDisplayText(state)}
                     isStarred={isStarred(state.id)}
                     onToggleStar={() => handleToggleStar(state.id)}
+                    isScrambled={isScrambled()}
                   />
                 )}
               </For>
@@ -3054,6 +3108,7 @@ const DesignSystemGrid = () => {
                     getTargetDisplayText={() => getTargetDisplayText(state)}
                     isStarred={isStarred(state.id)}
                     onToggleStar={() => handleToggleStar(state.id)}
+                    isScrambled={isScrambled()}
                   />
                 )}
               </For>
@@ -3077,6 +3132,7 @@ const DesignSystemGrid = () => {
                     getTargetDisplayText={() => getTargetDisplayText(state)}
                     isStarred={isStarred(state.id)}
                     onToggleStar={() => handleToggleStar(state.id)}
+                    isScrambled={isScrambled()}
                   />
                 )}
               </For>

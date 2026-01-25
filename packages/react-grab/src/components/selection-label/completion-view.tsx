@@ -157,7 +157,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
     >
       <Show when={!didCopy() && (props.onDismiss || props.onUndo)}>
         <div class="contain-layout shrink-0 flex items-center justify-between gap-2 pt-1.5 pb-1 px-1.5 w-full h-fit">
-          <span class="text-black text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit tabular-nums">
+          <span class="text-black text-[13px] leading-4 font-sans font-medium h-fit tabular-nums overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
             {displayStatusText()}
           </span>
           <div class="contain-layout shrink-0 flex items-center gap-[5px] h-fit">
@@ -199,7 +199,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
             size={14}
             class="text-black/85 shrink-0 animate-success-pop"
           />
-          <span class="text-black text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit tabular-nums">
+          <span class="text-black text-[13px] leading-4 font-sans font-medium h-fit tabular-nums overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
             {displayStatusText()}
           </span>
           <Show when={props.onShowContextMenu && !props.supportsFollowUp}>

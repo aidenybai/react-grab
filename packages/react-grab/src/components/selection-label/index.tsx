@@ -392,9 +392,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         >
           <Show when={props.status === "copying" && !props.isPendingAbort}>
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit max-w-[280px]">
-              <div class="contain-layout shrink-0 flex items-center gap-1 py-1 px-1.5 w-auto h-fit">
-                <IconLoader size={13} class="text-[#71717a]" />
-                <span class="text-[13px] leading-4 font-sans font-medium w-auto h-fit whitespace-normal text-[#71717a] tabular-nums">
+              <div class="contain-layout shrink-0 flex items-center gap-1 py-1 px-1.5 w-full h-fit">
+                <IconLoader size={13} class="text-[#71717a] shrink-0" />
+                <span class="text-[13px] leading-4 font-sans font-medium h-fit text-[#71717a] tabular-nums overflow-hidden text-ellipsis whitespace-nowrap">
                   {props.statusText ?? "Grabbing…"}
                 </span>
               </div>
@@ -479,7 +479,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             }
           >
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit max-w-[280px]">
-              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5 pr-1">
+              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5 pr-1 max-w-full">
                 <ActionPill
                   onClick={handleSubmit}
                   dimmed
@@ -494,7 +494,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   isClickable={isTagClickable()}
                   onClick={handleTagClick}
                   onHoverChange={handleTagHoverChange}
-                  shrink
                   forceShowIcon
                 />
               </div>
