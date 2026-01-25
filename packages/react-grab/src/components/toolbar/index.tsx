@@ -25,6 +25,9 @@ import {
   TOOLBAR_VELOCITY_MULTIPLIER_MS,
   TOOLBAR_COLLAPSED_WIDTH_PX,
   TOOLBAR_COLLAPSED_HEIGHT_PX,
+  TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS,
+  TOOLBAR_DEFAULT_WIDTH_PX,
+  TOOLBAR_DEFAULT_HEIGHT_PX,
 } from "../../constants.js";
 
 interface ToolbarProps {
@@ -57,12 +60,13 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [velocity, setVelocity] = createSignal({ x: 0, y: 0 });
   const [hasDragMoved, setHasDragMoved] = createSignal(false);
   const [isShaking, setIsShaking] = createSignal(false);
+  const [isCollapseAnimating, setIsCollapseAnimating] = createSignal(false);
 
   createEffect(
     on(
       () => props.shakeCount,
       (count) => {
-        if (count && count > 0) {
+        if (Boolean(count)) {
           setIsShaking(true);
         }
       },
@@ -71,6 +75,65 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   let lastPointerPosition = { x: 0, y: 0, time: 0 };
   let pointerStartPosition = { x: 0, y: 0 };
+  let expandedDimensions = {
+    width: TOOLBAR_DEFAULT_WIDTH_PX,
+    height: TOOLBAR_DEFAULT_HEIGHT_PX,
+  };
+
+  const clampToViewport = (value: number, min: number, max: number): number =>
+    Math.max(min, Math.min(value, max));
+
+  const calculateExpandedPositionFromCollapsed = (
+    collapsedPosition: { x: number; y: number },
+    edge: SnapEdge,
+  ): { position: { x: number; y: number }; ratio: number } => {
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const { width: expandedWidth, height: expandedHeight } = expandedDimensions;
+
+    let newPosition: { x: number; y: number };
+
+    if (edge === "top" || edge === "bottom") {
+      const xOffset = (expandedWidth - TOOLBAR_COLLAPSED_WIDTH_PX) / 2;
+      const newExpandedX = collapsedPosition.x - xOffset;
+      const clampedX = clampToViewport(
+        newExpandedX,
+        TOOLBAR_SNAP_MARGIN_PX,
+        viewportWidth - expandedWidth - TOOLBAR_SNAP_MARGIN_PX,
+      );
+      const newExpandedY =
+        edge === "top"
+          ? TOOLBAR_SNAP_MARGIN_PX
+          : viewportHeight - expandedHeight - TOOLBAR_SNAP_MARGIN_PX;
+      newPosition = { x: clampedX, y: newExpandedY };
+    } else {
+      const actualCollapsedHeight =
+        containerRef?.getBoundingClientRect()?.height ??
+        TOOLBAR_COLLAPSED_HEIGHT_PX;
+      const yOffset = (expandedHeight - actualCollapsedHeight) / 2;
+      const newExpandedY = collapsedPosition.y - yOffset;
+      const clampedY = clampToViewport(
+        newExpandedY,
+        TOOLBAR_SNAP_MARGIN_PX,
+        viewportHeight - expandedHeight - TOOLBAR_SNAP_MARGIN_PX,
+      );
+      const newExpandedX =
+        edge === "left"
+          ? TOOLBAR_SNAP_MARGIN_PX
+          : viewportWidth - expandedWidth - TOOLBAR_SNAP_MARGIN_PX;
+      newPosition = { x: newExpandedX, y: clampedY };
+    }
+
+    const ratio = getRatioFromPosition(
+      edge,
+      newPosition.x,
+      newPosition.y,
+      expandedWidth,
+      expandedHeight,
+    );
+
+    return { position: newPosition, ratio };
+  };
 
   const getPositionFromEdgeAndRatio = (
     edge: SnapEdge,
@@ -174,16 +237,32 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const handleToggle = createDragAwareHandler(() => props.onToggle?.());
 
   const handleToggleCollapse = createDragAwareHandler(() => {
-    setIsCollapsed((prev) => {
-      const newCollapsed = !prev;
-      saveAndNotify({
-        edge: snapEdge(),
-        ratio: positionRatio(),
-        collapsed: newCollapsed,
-        enabled: props.enabled ?? true,
-      });
-      return newCollapsed;
+    const rect = containerRef?.getBoundingClientRect();
+    const wasCollapsed = isCollapsed();
+    let newRatio = positionRatio();
+
+    if (wasCollapsed) {
+      const { position: newPos, ratio } =
+        calculateExpandedPositionFromCollapsed(currentPosition(), snapEdge());
+      newRatio = ratio;
+      setPosition(newPos);
+      setPositionRatio(newRatio);
+    } else if (rect) {
+      expandedDimensions = { width: rect.width, height: rect.height };
+    }
+
+    setIsCollapseAnimating(true);
+    setIsCollapsed((prev) => !prev);
+    saveAndNotify({
+      edge: snapEdge(),
+      ratio: newRatio,
+      collapsed: isCollapsed(),
+      enabled: props.enabled ?? true,
     });
+
+    setTimeout(() => {
+      setIsCollapseAnimating(false);
+    }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
   });
 
   const handleToggleEnabled = createDragAwareHandler(() =>
@@ -383,19 +462,40 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const getCollapsedPosition = () => {
     const edge = snapEdge();
     const pos = position();
+    const { width: expandedWidth, height: expandedHeight } = expandedDimensions;
+    const actualRect = containerRef?.getBoundingClientRect();
+    const collapsedWidth = actualRect?.width ?? TOOLBAR_COLLAPSED_WIDTH_PX;
+    const collapsedHeight = actualRect?.height ?? TOOLBAR_COLLAPSED_HEIGHT_PX;
 
     switch (edge) {
       case "top":
-        return { x: pos.x, y: 0 };
-      case "bottom":
+      case "bottom": {
+        const xOffset = (expandedWidth - collapsedWidth) / 2;
+        const centeredX = pos.x + xOffset;
+        const clampedX = clampToViewport(
+          centeredX,
+          0,
+          window.innerWidth - collapsedWidth,
+        );
         return {
-          x: pos.x,
-          y: window.innerHeight - TOOLBAR_COLLAPSED_HEIGHT_PX,
+          x: clampedX,
+          y: edge === "top" ? 0 : window.innerHeight - collapsedHeight,
         };
+      }
       case "left":
-        return { x: 0, y: pos.y };
-      case "right":
-        return { x: window.innerWidth - TOOLBAR_COLLAPSED_WIDTH_PX, y: pos.y };
+      case "right": {
+        const yOffset = (expandedHeight - collapsedHeight) / 2;
+        const centeredY = pos.y + yOffset;
+        const clampedY = clampToViewport(
+          centeredY,
+          0,
+          window.innerHeight - collapsedHeight,
+        );
+        return {
+          x: edge === "left" ? 0 : window.innerWidth - collapsedWidth,
+          y: clampedY,
+        };
+      }
       default:
         return pos;
     }
@@ -453,6 +553,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       setSnapEdge(savedState.edge);
       setPositionRatio(savedState.ratio);
       setIsCollapsed(savedState.collapsed);
+      if (!savedState.collapsed) {
+        expandedDimensions = { width: rect.width, height: rect.height };
+      }
       const newPosition = getPositionFromEdgeAndRatio(
         savedState.edge,
         savedState.ratio,
@@ -461,6 +564,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       );
       setPosition(newPosition);
     } else if (rect) {
+      expandedDimensions = { width: rect.width, height: rect.height };
       setPosition({
         x: (window.innerWidth - rect.width) / 2,
         y: window.innerHeight - rect.height - TOOLBAR_SNAP_MARGIN_PX,
@@ -471,12 +575,25 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     if (props.onSubscribeToStateChanges) {
       const unsubscribe = props.onSubscribeToStateChanges(
         (state: ToolbarState) => {
+          if (isCollapseAnimating()) return;
+
           const rect = containerRef?.getBoundingClientRect();
           if (!rect) return;
 
+          const didCollapsedChange = isCollapsed() !== state.collapsed;
+
           setSnapEdge(state.edge);
           setPositionRatio(state.ratio);
-          setIsCollapsed(state.collapsed);
+
+          if (didCollapsedChange) {
+            setIsCollapseAnimating(true);
+            setIsCollapsed(state.collapsed);
+            setTimeout(() => {
+              setIsCollapseAnimating(false);
+            }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
+          } else {
+            setIsCollapsed(state.collapsed);
+          }
 
           const newPosition = getPositionFromEdgeAndRatio(
             state.edge,
@@ -513,8 +630,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     }
   });
 
-  const currentPosition = () =>
-    isCollapsed() ? getCollapsedPosition() : position();
+  const currentPosition = () => {
+    const collapsed = isCollapsed();
+    return collapsed ? getCollapsedPosition() : position();
+  };
 
   const getCursorClass = (): string => {
     if (isCollapsed()) return "cursor-pointer";
@@ -526,7 +645,25 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     if (isResizing()) return "";
     if (isSnapping())
       return "transition-[transform,opacity] duration-300 ease-out";
+    if (isCollapseAnimating())
+      return "transition-[transform,opacity] duration-150 ease-out";
     return "transition-opacity duration-300 ease-out";
+  };
+
+  const getTransformOrigin = (): string => {
+    const edge = snapEdge();
+    switch (edge) {
+      case "top":
+        return "center top";
+      case "bottom":
+        return "center bottom";
+      case "left":
+        return "left center";
+      case "right":
+        return "right center";
+      default:
+        return "center center";
+    }
   };
 
   return (
@@ -544,12 +681,13 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         style={{
           "z-index": "2147483647",
           transform: `translate(${currentPosition().x}px, ${currentPosition().y}px)`,
+          "transform-origin": getTransformOrigin(),
         }}
         onPointerDown={handlePointerDown}
       >
         <div
           class={cn(
-            "[font-synthesis:none] contain-layout flex items-center justify-center rounded-sm bg-white antialiased transition-all duration-100 ease-out",
+            "[font-synthesis:none] contain-layout flex items-center justify-center rounded-sm bg-white antialiased transition-all duration-150 ease-out",
             isCollapsed() ? "" : "h-7 gap-1.5 px-2",
             isCollapsed() && snapEdge() === "top" && "rounded-t-none",
             isCollapsed() && snapEdge() === "bottom" && "rounded-b-none",
@@ -563,60 +701,76 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               "px-0.25 py-2",
             isShaking() && "animate-shake",
           )}
+          style={{ "transform-origin": getTransformOrigin() }}
           onAnimationEnd={() => setIsShaking(false)}
           onClick={(event) => {
             if (isCollapsed()) {
               event.stopPropagation();
+              const { position: newPos, ratio: newRatio } =
+                calculateExpandedPositionFromCollapsed(
+                  currentPosition(),
+                  snapEdge(),
+                );
+              setPosition(newPos);
+              setPositionRatio(newRatio);
+              setIsCollapseAnimating(true);
               setIsCollapsed(false);
               saveAndNotify({
                 edge: snapEdge(),
-                ratio: positionRatio(),
+                ratio: newRatio,
                 collapsed: false,
                 enabled: props.enabled ?? true,
               });
+              setTimeout(() => {
+                setIsCollapseAnimating(false);
+              }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
             }
           }}
         >
           <div
             class={cn(
-              "flex items-center gap-1.5 transition-all duration-100 ease-out overflow-hidden",
-              isCollapsed() ? "max-w-0 opacity-0" : "max-w-[200px] opacity-100",
+              "grid transition-all duration-150 ease-out overflow-hidden",
+              isCollapsed()
+                ? "grid-cols-[0fr] opacity-0"
+                : "grid-cols-[1fr] opacity-100",
             )}
           >
-            <button
-              data-react-grab-ignore-events
-              data-react-grab-toolbar-toggle
-              class="contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale"
-              onClick={handleToggle}
-            >
-              <IconSelect
-                size={14}
-                class={cn(
-                  "transition-colors",
-                  props.isActive ? "text-black" : "text-black/70",
-                )}
-              />
-            </button>
-            <button
-              data-react-grab-ignore-events
-              data-react-grab-toolbar-enabled
-              class="contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale outline-none mx-0.5"
-              onClick={handleToggleEnabled}
-            >
-              <div
-                class={cn(
-                  "relative w-5 h-3 rounded-full transition-colors",
-                  props.enabled ? "bg-black" : "bg-black/25",
-                )}
+            <div class="flex items-center gap-1.5 overflow-hidden min-w-0">
+              <button
+                data-react-grab-ignore-events
+                data-react-grab-toolbar-toggle
+                class="contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale"
+                onClick={handleToggle}
+              >
+                <IconSelect
+                  size={14}
+                  class={cn(
+                    "transition-colors",
+                    props.isActive ? "text-black" : "text-black/70",
+                  )}
+                />
+              </button>
+              <button
+                data-react-grab-ignore-events
+                data-react-grab-toolbar-enabled
+                class="contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale outline-none mx-0.5"
+                onClick={handleToggleEnabled}
               >
                 <div
                   class={cn(
-                    "absolute top-0.5 w-2 h-2 rounded-full bg-white transition-transform",
-                    props.enabled ? "left-2.5" : "left-0.5",
+                    "relative w-5 h-3 rounded-full transition-colors",
+                    props.enabled ? "bg-black" : "bg-black/25",
                   )}
-                />
-              </div>
-            </button>
+                >
+                  <div
+                    class={cn(
+                      "absolute top-0.5 w-2 h-2 rounded-full bg-white transition-transform",
+                      props.enabled ? "left-2.5" : "left-0.5",
+                    )}
+                  />
+                </div>
+              </button>
+            </div>
           </div>
           <button
             data-react-grab-ignore-events
@@ -626,7 +780,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           >
             <IconChevron
               class={cn(
-                "text-[#B3B3B3] transition-transform duration-100",
+                "text-[#B3B3B3] transition-transform duration-150",
                 chevronRotation(),
               )}
             />

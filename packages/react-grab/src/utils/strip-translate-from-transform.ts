@@ -127,33 +127,3 @@ export const stripTranslateFromMatrix = (matrix: DOMMatrix): string => {
 
   return `matrix3d(${matrix.m11}, ${matrix.m12}, ${matrix.m13}, ${matrix.m14}, ${matrix.m21}, ${matrix.m22}, ${matrix.m23}, ${matrix.m24}, ${matrix.m31}, ${matrix.m32}, ${matrix.m33}, ${matrix.m34}, 0, 0, 0, ${matrix.m44})`;
 };
-
-/**
- * Strips translation components from a CSS transform while preserving other transformations.
- *
- * This is critical for virtualized lists where elements are positioned using transforms like
- * `translateY(500px)`. Since `getBoundingClientRect()` already returns the final position
- * after all transforms, we need to remove translations to avoid applying them twice.
- *
- * Preserves:
- * - rotation (rotate, rotateX, rotateY, rotateZ, rotate3d)
- * - scale (scale, scaleX, scaleY, scaleZ, scale3d)
- * - skew (skew, skewX, skewY)
- * - perspective
- *
- * Removes:
- * - translate (translate, translateX, translateY, translateZ, translate3d)
- *
- * @example
- * // Element has: transform: translateY(100px) rotate(45deg)
- * stripTranslateFromTransform(element) // Returns: "matrix(...) with rotation but no translation"
- *
- * @example
- * // Element has: transform: translateY(100px)
- * stripTranslateFromTransform(element) // Returns: "none" (only translation, nothing to preserve)
- */
-export const stripTranslateFromTransform = (element: Element): string => {
-  if (!(element instanceof Element)) return "none";
-  const computedStyle = window.getComputedStyle(element);
-  return stripTranslateFromTransformString(computedStyle.transform);
-};

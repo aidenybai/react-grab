@@ -14,6 +14,7 @@ export const createNoopApi = (): ReactGrabAPI => {
       dragBounds: null,
       grabbedBoxes: [],
       selectionFilePath: null,
+      toolbarState: null,
     };
   };
 

@@ -31,19 +31,6 @@ export const getElementsAtPoint = (
   clientY: number,
 ): Element[] => document.elementsFromPoint(clientX, clientY);
 
-export const getElementsAbove = (element: Element): Element[] => {
-  const rect = element.getBoundingClientRect();
-  const centerX = rect.left + rect.width / 2;
-  const centerY = rect.top + rect.height / 2;
-
-  const elementsAtPoint = getElementsAtPoint(centerX, centerY);
-  const elementIndex = elementsAtPoint.indexOf(element);
-
-  if (elementIndex === -1) return [];
-
-  return elementsAtPoint.slice(0, elementIndex);
-};
-
 export const getElementAtPosition = (
   clientX: number,
   clientY: number,
