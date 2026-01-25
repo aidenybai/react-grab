@@ -50,6 +50,7 @@ import {
   INPUT_FOCUS_ACTIVATION_DELAY_MS,
   INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS,
   DEFAULT_KEY_HOLD_DURATION_MS,
+  MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS,
   SCREENSHOT_CAPTURE_DELAY_MS,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
@@ -225,6 +226,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const resetCopyConfirmation = () => {
       copyWaitingForConfirmation = false;
       holdTimerFiredWaitingForConfirmation = false;
+      holdStartTimestamp = null;
     };
 
     createEffect(() => {
@@ -232,6 +234,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         clearHoldTimer();
         return;
       }
+      holdStartTimestamp = Date.now();
       holdTimerId = window.setTimeout(() => {
         holdTimerId = null;
         if (copyWaitingForConfirmation) {
@@ -317,6 +320,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let lastElementDetectionTime = 0;
     let keydownSpamTimerId: number | null = null;
     let holdTimerId: number | null = null;
+    let holdStartTimestamp: number | null = null;
     let copyWaitingForConfirmation = false;
     let holdTimerFiredWaitingForConfirmation = false;
     let isScreenshotInProgress = false;
@@ -1980,8 +1984,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
           if (shouldRelease) {
             clearHoldTimer();
+            const elapsedSinceHoldStart = holdStartTimestamp
+              ? Date.now() - holdStartTimestamp
+              : 0;
+            const heldLongEnoughForActivation =
+              elapsedSinceHoldStart >= MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS;
             const shouldActivateAfterCopy =
               holdTimerFiredWaitingForConfirmation &&
+              heldLongEnoughForActivation &&
               (pluginRegistry.store.options.allowActivationInsideInput ||
                 !isKeyboardEventTriggeredByInput(event));
             resetCopyConfirmation();
