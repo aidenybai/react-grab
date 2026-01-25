@@ -28,6 +28,7 @@ import {
   TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS,
   TOOLBAR_DEFAULT_WIDTH_PX,
   TOOLBAR_DEFAULT_HEIGHT_PX,
+  TOOLBAR_SHAKE_TOOLTIP_DURATION_MS,
 } from "../../constants.js";
 import { formatShortcut } from "../../utils/format-shortcut.js";
 import { Tooltip } from "../tooltip.jsx";
@@ -68,6 +69,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     createSignal(false);
   const [isToggleTooltipVisible, setIsToggleTooltipVisible] =
     createSignal(false);
+  const [isShakeTooltipVisible, setIsShakeTooltipVisible] = createSignal(false);
 
   const tooltipPosition = () => (snapEdge() === "top" ? "bottom" : "top");
 
@@ -85,12 +87,22 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     return `${roundedClass} ${paddingClass}`;
   };
 
+  let shakeTooltipTimeout: ReturnType<typeof setTimeout> | undefined;
+
   createEffect(
     on(
       () => props.shakeCount,
       (count) => {
-        if (count) {
+        if (count && !props.enabled) {
           setIsShaking(true);
+          setIsShakeTooltipVisible(true);
+
+          if (shakeTooltipTimeout) {
+            clearTimeout(shakeTooltipTimeout);
+          }
+          shakeTooltipTimeout = setTimeout(() => {
+            setIsShakeTooltipVisible(false);
+          }, TOOLBAR_SHAKE_TOOLTIP_DURATION_MS);
         }
       },
     ),
@@ -699,11 +711,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       setPositionRatio(savedState.ratio);
       setIsCollapsed(savedState.collapsed);
       if (rect) {
-        if (savedState.collapsed) {
-          collapsedDimensions = { width: rect.width, height: rect.height };
-        } else {
-          expandedDimensions = { width: rect.width, height: rect.height };
-        }
+        // HACK: On initial mount, the element is always rendered expanded (isCollapsed defaults to false).
+        // So rect always measures expanded dimensions, regardless of savedState.collapsed.
+        expandedDimensions = { width: rect.width, height: rect.height };
       }
       const newPosition = getPositionFromEdgeAndRatio(
         savedState.edge,
@@ -712,6 +722,19 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         expandedDimensions.height,
       );
       setPosition(newPosition);
+
+      // HACK: If loading collapsed state, measure actual collapsed dimensions after re-render
+      if (savedState.collapsed) {
+        requestAnimationFrame(() => {
+          const collapsedRect = containerRef?.getBoundingClientRect();
+          if (collapsedRect) {
+            collapsedDimensions = {
+              width: collapsedRect.width,
+              height: collapsedRect.height,
+            };
+          }
+        });
+      }
     } else if (rect) {
       expandedDimensions = { width: rect.width, height: rect.height };
       setPosition({
@@ -809,6 +832,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     }
     if (collapseAnimationTimeout) {
       clearTimeout(collapseAnimationTimeout);
+    }
+    if (shakeTooltipTimeout) {
+      clearTimeout(shakeTooltipTimeout);
     }
   });
 
@@ -989,6 +1015,19 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               )}
             />
           </button>
+          <Show when={isShakeTooltipVisible()}>
+            <div
+              class={cn(
+                "absolute left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 rounded text-[10px] text-black/60 bg-white shadow-sm pointer-events-none animate-tooltip-fade-in",
+                tooltipPosition() === "top"
+                  ? "bottom-full mb-0.5"
+                  : "top-full mt-0.5",
+              )}
+              style={{ "z-index": "2147483647" }}
+            >
+              Enable to continue
+            </div>
+          </Show>
         </div>
       </div>
     </Show>

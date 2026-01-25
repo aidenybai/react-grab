@@ -1,4 +1,5 @@
 import type { ActivationKey } from "../types.js";
+import { isMac } from "./is-mac.js";
 import { keyMatchesCode } from "./key-matches-code.js";
 
 interface ParsedModifiers {
@@ -116,8 +117,8 @@ export const getModifiersFromActivationKey = (
 ): ParsedModifiers => {
   if (!activationKey || typeof activationKey === "function") {
     return {
-      metaKey: true,
-      ctrlKey: true,
+      metaKey: isMac(),
+      ctrlKey: !isMac(),
       shiftKey: false,
       altKey: false,
       key: null,

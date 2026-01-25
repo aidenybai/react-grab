@@ -94,6 +94,7 @@ import { logIntro } from "./log-intro.js";
 import { onIdle } from "../utils/on-idle.js";
 import { getScriptOptions } from "../utils/get-script-options.js";
 import { isEnterCode } from "../utils/is-enter-code.js";
+import { isMac } from "../utils/is-mac.js";
 import {
   loadToolbarState,
   saveToolbarState,
@@ -1912,7 +1913,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         );
         const isReleasingModifier =
           requiredModifiers.metaKey || requiredModifiers.ctrlKey
-            ? !event.metaKey && !event.ctrlKey
+            ? isMac()
+              ? !event.metaKey
+              : !event.ctrlKey
             : (requiredModifiers.shiftKey && !event.shiftKey) ||
               (requiredModifiers.altKey && !event.altKey);
 

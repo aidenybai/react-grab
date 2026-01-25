@@ -1,4 +1,5 @@
 import { isCLikeKey } from "./is-c-like-key.js";
+import { isMac } from "./is-mac.js";
 import { parseActivationKey } from "./parse-activation-key.js";
 import type { ActivationKey } from "../types.js";
 
@@ -15,9 +16,10 @@ export const isTargetKeyCombination = (
     return matcher(event);
   }
 
-  const hasOnlyMetaOrCtrl =
-    (event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey;
+  const hasPlatformModifier = isMac() ? event.metaKey : event.ctrlKey;
+  const hasOnlyPlatformModifier =
+    hasPlatformModifier && !event.shiftKey && !event.altKey;
   return Boolean(
-    event.key && hasOnlyMetaOrCtrl && isCLikeKey(event.key, event.code),
+    event.key && hasOnlyPlatformModifier && isCLikeKey(event.key, event.code),
   );
 };
