@@ -15,11 +15,6 @@ interface CachedBounds {
 
 const boundsCache = new WeakMap<Element, CachedBounds>();
 
-export const clearElementBoundsCache = (): void => {
-  // WeakMap doesn't have a clear method, but since we use TTL-based invalidation,
-  // stale entries will be ignored automatically
-};
-
 const getAccumulatedTransform = (
   element: Element,
   selfTransform: string,
