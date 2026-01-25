@@ -112,6 +112,19 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           setIsShaking(true);
         }
       },
+      { defer: true },
+    ),
+  );
+
+  createEffect(
+    on(
+      () => props.enabled,
+      (enabled) => {
+        if (!enabled) {
+          setIsSelectTooltipVisible(false);
+          setIsToggleTooltipVisible(false);
+        }
+      },
     ),
   );
 
