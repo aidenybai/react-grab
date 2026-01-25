@@ -169,11 +169,11 @@ test.describe("Activation Key Configuration", () => {
       reactGrab,
     }) => {
       await reactGrab.page.click("body");
-      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.down("c");
       await reactGrab.page.waitForTimeout(50);
       await reactGrab.page.keyboard.up("c");
-      await reactGrab.page.keyboard.up("Meta");
+      await reactGrab.page.keyboard.up(reactGrab.modifierKey);
 
       expect(await reactGrab.isOverlayVisible()).toBe(false);
     });
@@ -183,11 +183,11 @@ test.describe("Activation Key Configuration", () => {
     test("should activate in input by default", async ({ reactGrab }) => {
       await reactGrab.page.click("[data-testid='test-input']");
 
-      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.down("c");
       await reactGrab.page.waitForTimeout(350);
       await reactGrab.page.keyboard.up("c");
-      await reactGrab.page.keyboard.up("Meta");
+      await reactGrab.page.keyboard.up(reactGrab.modifierKey);
 
       await expect
         .poll(() => reactGrab.isOverlayVisible(), { timeout: 1000 })
@@ -200,13 +200,13 @@ test.describe("Activation Key Configuration", () => {
       await reactGrab.reinitialize({ allowActivationInsideInput: false });
       await reactGrab.page.click("[data-testid='test-input']");
 
-      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.down("c");
       await expect
         .poll(() => reactGrab.isOverlayVisible(), { timeout: 2000 })
         .toBe(false);
       await reactGrab.page.keyboard.up("c");
-      await reactGrab.page.keyboard.up("Meta");
+      await reactGrab.page.keyboard.up(reactGrab.modifierKey);
     });
 
     test("should activate outside input after clicking away", async ({

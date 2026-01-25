@@ -35,7 +35,7 @@ test.describe("Open File", () => {
       await expect
         .poll(
           async () => {
-            await reactGrab.pressKeyCombo(["Meta"], "o");
+            await reactGrab.pressKeyCombo([reactGrab.modifierKey], "o");
             return reactGrab.page.evaluate(
               () =>
                 (window as { __OPEN_FILE_CALLED__?: boolean })
@@ -54,9 +54,9 @@ test.describe("Open File", () => {
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
 
-      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.press("o");
-      await reactGrab.page.keyboard.up("Meta");
+      await reactGrab.page.keyboard.up(reactGrab.modifierKey);
       await reactGrab.page.waitForTimeout(200);
 
       const isActive = await reactGrab.isOverlayVisible();
@@ -90,9 +90,9 @@ test.describe("Open File", () => {
 
       await reactGrab.activate();
 
-      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.press("o");
-      await reactGrab.page.keyboard.up("Meta");
+      await reactGrab.page.keyboard.up(reactGrab.modifierKey);
       await reactGrab.page.waitForTimeout(200);
 
       openFileCalled = await reactGrab.page.evaluate(() => {
@@ -225,9 +225,9 @@ test.describe("Open File", () => {
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
 
-      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.press("o");
-      await reactGrab.page.keyboard.up("Meta");
+      await reactGrab.page.keyboard.up(reactGrab.modifierKey);
       await reactGrab.page.waitForTimeout(200);
 
       receivedInfo = await reactGrab.page.evaluate(() => {
@@ -271,9 +271,9 @@ test.describe("Open File", () => {
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
 
-      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.press("o");
-      await reactGrab.page.keyboard.up("Meta");
+      await reactGrab.page.keyboard.up(reactGrab.modifierKey);
       await reactGrab.page.waitForTimeout(200);
 
       receivedInfo = await reactGrab.page.evaluate(() => {
@@ -386,7 +386,7 @@ test.describe("Open File", () => {
       await expect
         .poll(
           async () => {
-            await reactGrab.pressKeyCombo(["Meta"], "o");
+            await reactGrab.pressKeyCombo([reactGrab.modifierKey], "o");
             return reactGrab.page.evaluate(
               () =>
                 (window as { __OPEN_FILE_COUNT__?: number })
@@ -404,7 +404,7 @@ test.describe("Open File", () => {
       await expect
         .poll(
           async () => {
-            await reactGrab.pressKeyCombo(["Meta"], "o");
+            await reactGrab.pressKeyCombo([reactGrab.modifierKey], "o");
             return reactGrab.page.evaluate(
               () =>
                 (window as { __OPEN_FILE_COUNT__?: number })
@@ -447,9 +447,9 @@ test.describe("Open File", () => {
       await reactGrab.dragSelect("li:first-child", "li:nth-child(2)");
       await reactGrab.page.waitForTimeout(200);
 
-      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.press("o");
-      await reactGrab.page.keyboard.up("Meta");
+      await reactGrab.page.keyboard.up(reactGrab.modifierKey);
       await reactGrab.page.waitForTimeout(200);
 
       openFileCalled = await reactGrab.page.evaluate(() => {

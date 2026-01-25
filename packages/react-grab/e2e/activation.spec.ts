@@ -113,11 +113,11 @@ test.describe("Activation Mode Configuration", () => {
   }) => {
     await reactGrab.page.click("[data-testid='test-input']");
 
-    await reactGrab.page.keyboard.down("Meta");
+    await reactGrab.page.keyboard.down(reactGrab.modifierKey);
     await reactGrab.page.keyboard.down("c");
     await reactGrab.page.waitForTimeout(350);
     await reactGrab.page.keyboard.up("c");
-    await reactGrab.page.keyboard.up("Meta");
+    await reactGrab.page.keyboard.up(reactGrab.modifierKey);
 
     await expect
       .poll(() => reactGrab.isOverlayVisible(), { timeout: 1000 })
@@ -127,11 +127,11 @@ test.describe("Activation Mode Configuration", () => {
   test("should activate when focused on textarea", async ({ reactGrab }) => {
     await reactGrab.page.click("[data-testid='test-textarea']");
 
-    await reactGrab.page.keyboard.down("Meta");
+    await reactGrab.page.keyboard.down(reactGrab.modifierKey);
     await reactGrab.page.keyboard.down("c");
     await reactGrab.page.waitForTimeout(350);
     await reactGrab.page.keyboard.up("c");
-    await reactGrab.page.keyboard.up("Meta");
+    await reactGrab.page.keyboard.up(reactGrab.modifierKey);
 
     await expect
       .poll(() => reactGrab.isOverlayVisible(), { timeout: 1000 })

@@ -268,9 +268,9 @@ test.describe("Agent Integration", () => {
       await reactGrab.waitForAgentComplete(3000);
       await reactGrab.clickAgentDismiss();
 
-      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.press("z");
-      await reactGrab.page.keyboard.up("Meta");
+      await reactGrab.page.keyboard.up(reactGrab.modifierKey);
 
       const state = await reactGrab.getState();
       expect(state).toBeDefined();
