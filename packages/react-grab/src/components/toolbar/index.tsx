@@ -358,7 +358,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     saveAndNotify({
       edge: snapEdge(),
       ratio: newRatio,
-      collapsed: isCollapsed(),
+      collapsed: !wasCollapsed,
       enabled: props.enabled ?? true,
     });
 
