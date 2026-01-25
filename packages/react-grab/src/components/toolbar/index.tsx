@@ -687,7 +687,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           const didCollapsedChange = isCollapsed() !== state.collapsed;
 
           setSnapEdge(state.edge);
-          setPositionRatio(state.ratio);
 
           if (didCollapsedChange) {
             setIsCollapseAnimating(true);
@@ -699,13 +698,30 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             setIsCollapsed(state.collapsed);
           }
 
-          const newPosition = getPositionFromEdgeAndRatio(
-            state.edge,
-            state.ratio,
-            rect.width,
-            rect.height,
-          );
-          setPosition(newPosition);
+          if (didCollapsedChange && !state.collapsed) {
+            const { position: newPos, ratio: newRatio } =
+              calculateExpandedPositionFromCollapsed(
+                currentPosition(),
+                state.edge,
+              );
+            setPosition(newPos);
+            setPositionRatio(newRatio);
+          } else {
+            const targetWidth = state.collapsed
+              ? collapsedDimensions.width
+              : expandedDimensions.width;
+            const targetHeight = state.collapsed
+              ? collapsedDimensions.height
+              : expandedDimensions.height;
+            const newPosition = getPositionFromEdgeAndRatio(
+              state.edge,
+              state.ratio,
+              targetWidth,
+              targetHeight,
+            );
+            setPosition(newPosition);
+            setPositionRatio(state.ratio);
+          }
         },
       );
 
