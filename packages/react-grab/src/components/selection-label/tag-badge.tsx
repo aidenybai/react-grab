@@ -32,6 +32,9 @@ export const TagBadge: Component<TagBadgeProps> = (props) => {
         <span class="text-white text-[13px] leading-3.5 h-fit font-medium overflow-hidden text-ellipsis whitespace-nowrap">
           {props.componentName}
         </span>
+        <span class="text-white/70 text-[13px] leading-3.5 h-fit font-medium shrink-0">
+          .{props.tagName}
+        </span>
       </Show>
       <Show when={!props.componentName}>
         <span class="text-white text-[13px] leading-3.5 h-fit font-medium overflow-hidden text-ellipsis whitespace-nowrap">
