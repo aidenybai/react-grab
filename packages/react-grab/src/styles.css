@@ -134,6 +134,22 @@
   }
 }
 
+@keyframes icon-loader-spin {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0.2;
+  }
+}
+
+.icon-loader-bar {
+  animation: icon-loader-spin 0.75s linear infinite;
+}
+
 .animate-shake {
   animation: shake 0.15s ease-out;
   will-change: transform;
