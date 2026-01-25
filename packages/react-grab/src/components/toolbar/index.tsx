@@ -265,34 +265,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     };
   };
 
-  const handlePointerDown = (event: PointerEvent) => {
-    if (isCollapsed()) return;
-
-    const rect = containerRef?.getBoundingClientRect();
-    if (!rect) return;
-
-    pointerStartPosition = { x: event.clientX, y: event.clientY };
-
-    setDragOffset({
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
-    });
-    setIsDragging(true);
-    setHasDragMoved(false);
-    setVelocity({ x: 0, y: 0 });
-    lastPointerPosition = {
-      x: event.clientX,
-      y: event.clientY,
-      time: performance.now(),
-    };
-
-    const targetElement = event.target;
-    if (targetElement instanceof HTMLElement) {
-      targetElement.setPointerCapture(event.pointerId);
-    }
-  };
-
-  const handlePointerMove = (event: PointerEvent) => {
+  const handleWindowPointerMove = (event: PointerEvent) => {
     if (!isDragging()) return;
 
     const distanceMoved = Math.sqrt(
@@ -323,8 +296,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     setPosition({ x: newX, y: newY });
   };
 
-  const handlePointerUp = () => {
+  const handleWindowPointerUp = () => {
     if (!isDragging()) return;
+
+    window.removeEventListener("pointermove", handleWindowPointerMove);
+    window.removeEventListener("pointerup", handleWindowPointerUp);
 
     const didMove = hasDragMoved();
     setIsDragging(false);
@@ -374,6 +350,31 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         }, TOOLBAR_SNAP_ANIMATION_DURATION_MS);
       });
     });
+  };
+
+  const handlePointerDown = (event: PointerEvent) => {
+    if (isCollapsed()) return;
+
+    const rect = containerRef?.getBoundingClientRect();
+    if (!rect) return;
+
+    pointerStartPosition = { x: event.clientX, y: event.clientY };
+
+    setDragOffset({
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    });
+    setIsDragging(true);
+    setHasDragMoved(false);
+    setVelocity({ x: 0, y: 0 });
+    lastPointerPosition = {
+      x: event.clientX,
+      y: event.clientY,
+      time: performance.now(),
+    };
+
+    window.addEventListener("pointermove", handleWindowPointerMove);
+    window.addEventListener("pointerup", handleWindowPointerUp);
   };
 
   const getCollapsedPosition = () => {
@@ -479,6 +480,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   onCleanup(() => {
     window.removeEventListener("resize", handleResize);
     window.visualViewport?.removeEventListener("resize", handleResize);
+    window.removeEventListener("pointermove", handleWindowPointerMove);
+    window.removeEventListener("pointerup", handleWindowPointerUp);
     if (resizeTimeout) {
       clearTimeout(resizeTimeout);
     }
@@ -517,8 +520,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           transform: `translate(${currentPosition().x}px, ${currentPosition().y}px)`,
         }}
         onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
       >
         <div
           class={cn(
