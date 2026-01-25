@@ -742,36 +742,30 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
           setSnapEdge(state.edge);
 
-          if (didCollapsedChange) {
+          if (didCollapsedChange && !state.collapsed) {
+            const collapsedPos = currentPosition();
             setIsCollapseAnimating(true);
             setIsCollapsed(state.collapsed);
+            const { position: newPos, ratio: newRatio } =
+              calculateExpandedPositionFromCollapsed(collapsedPos, state.edge);
+            setPosition(newPos);
+            setPositionRatio(newRatio);
             setTimeout(() => {
               setIsCollapseAnimating(false);
             }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
           } else {
+            if (didCollapsedChange) {
+              setIsCollapseAnimating(true);
+              setTimeout(() => {
+                setIsCollapseAnimating(false);
+              }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
+            }
             setIsCollapsed(state.collapsed);
-          }
-
-          if (didCollapsedChange && !state.collapsed) {
-            const { position: newPos, ratio: newRatio } =
-              calculateExpandedPositionFromCollapsed(
-                currentPosition(),
-                state.edge,
-              );
-            setPosition(newPos);
-            setPositionRatio(newRatio);
-          } else {
-            const targetWidth = state.collapsed
-              ? collapsedDimensions.width
-              : expandedDimensions.width;
-            const targetHeight = state.collapsed
-              ? collapsedDimensions.height
-              : expandedDimensions.height;
             const newPosition = getPositionFromEdgeAndRatio(
               state.edge,
               state.ratio,
-              targetWidth,
-              targetHeight,
+              expandedDimensions.width,
+              expandedDimensions.height,
             );
             setPosition(newPosition);
             setPositionRatio(state.ratio);
