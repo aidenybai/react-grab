@@ -583,22 +583,20 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               isCollapsed() ? "max-w-0 opacity-0" : "max-w-[200px] opacity-100",
             )}
           >
-            <Show when={props.enabled}>
-              <button
-                data-react-grab-ignore-events
-                data-react-grab-toolbar-toggle
-                class="contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale"
-                onClick={handleToggle}
-              >
-                <IconSelect
-                  size={14}
-                  class={cn(
-                    "transition-colors",
-                    props.isActive ? "text-black" : "text-black/70",
-                  )}
-                />
-              </button>
-            </Show>
+            <button
+              data-react-grab-ignore-events
+              data-react-grab-toolbar-toggle
+              class="contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale"
+              onClick={handleToggle}
+            >
+              <IconSelect
+                size={14}
+                class={cn(
+                  "transition-colors",
+                  props.isActive ? "text-black" : "text-black/70",
+                )}
+              />
+            </button>
             <button
               data-react-grab-ignore-events
               data-react-grab-toolbar-enabled
