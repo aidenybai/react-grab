@@ -362,7 +362,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       enabled: props.enabled ?? true,
     });
 
-    setTimeout(() => {
+    if (collapseAnimationTimeout) {
+      clearTimeout(collapseAnimationTimeout);
+    }
+    collapseAnimationTimeout = setTimeout(() => {
       setIsCollapseAnimating(false);
       if (isCollapsed()) {
         const collapsedRect = containerRef?.getBoundingClientRect();
@@ -660,6 +663,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   };
 
   let resizeTimeout: ReturnType<typeof setTimeout> | undefined;
+  let collapseAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
 
   const handleResize = () => {
     const viewport = getVisualViewport();
@@ -768,13 +772,19 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               calculateExpandedPositionFromCollapsed(collapsedPos, state.edge);
             setPosition(newPos);
             setPositionRatio(newRatio);
-            setTimeout(() => {
+            if (collapseAnimationTimeout) {
+              clearTimeout(collapseAnimationTimeout);
+            }
+            collapseAnimationTimeout = setTimeout(() => {
               setIsCollapseAnimating(false);
             }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
           } else {
             if (didCollapsedChange) {
               setIsCollapseAnimating(true);
-              setTimeout(() => {
+              if (collapseAnimationTimeout) {
+                clearTimeout(collapseAnimationTimeout);
+              }
+              collapseAnimationTimeout = setTimeout(() => {
                 setIsCollapseAnimating(false);
               }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
             }
@@ -815,6 +825,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     window.removeEventListener("pointerup", handleWindowPointerUp);
     if (resizeTimeout) {
       clearTimeout(resizeTimeout);
+    }
+    if (collapseAnimationTimeout) {
+      clearTimeout(collapseAnimationTimeout);
     }
   });
 
@@ -900,7 +913,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                 collapsed: false,
                 enabled: props.enabled ?? true,
               });
-              setTimeout(() => {
+              if (collapseAnimationTimeout) {
+                clearTimeout(collapseAnimationTimeout);
+              }
+              collapseAnimationTimeout = setTimeout(() => {
                 setIsCollapseAnimating(false);
               }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
             }
