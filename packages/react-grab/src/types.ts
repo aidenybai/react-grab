@@ -413,6 +413,9 @@ export interface ReactGrabRendererProps {
   onToggleEnabled?: () => void;
   shakeCount?: number;
   onToolbarStateChange?: (state: ToolbarState) => void;
+  onSubscribeToToolbarStateChanges?: (
+    callback: (state: ToolbarState) => void,
+  ) => () => void;
   contextMenuPosition?: { x: number; y: number } | null;
   contextMenuBounds?: OverlayBounds | null;
   contextMenuTagName?: string;

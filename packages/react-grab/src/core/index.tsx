@@ -1291,12 +1291,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const newEnabled = !isEnabled();
       setIsEnabled(newEnabled);
       const currentState = loadToolbarState();
-      saveToolbarState({
+      const newState = {
         edge: currentState?.edge ?? "bottom",
         ratio: currentState?.ratio ?? 0.5,
         collapsed: currentState?.collapsed ?? false,
         enabled: newEnabled,
-      });
+      };
+      saveToolbarState(newState);
+      setCurrentToolbarState(newState);
+      toolbarStateChangeCallbacks.forEach((cb) => cb(newState));
       if (!newEnabled) {
         if (isHoldingKeys()) {
           actions.release();
@@ -2862,6 +2865,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onToolbarStateChange={(state) => {
               setCurrentToolbarState(state);
               toolbarStateChangeCallbacks.forEach((cb) => cb(state));
+            }}
+            onSubscribeToToolbarStateChanges={(callback) => {
+              toolbarStateChangeCallbacks.add(callback);
+              return () => {
+                toolbarStateChangeCallbacks.delete(callback);
+              };
             }}
             contextMenuPosition={contextMenuPosition()}
             contextMenuBounds={contextMenuBounds()}

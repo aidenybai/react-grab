@@ -1,5 +1,6 @@
 import type { ToolbarState } from "../../types.js";
 
+export type { ToolbarState };
 export type SnapEdge = "top" | "bottom" | "left" | "right";
 
 const STORAGE_KEY = "react-grab-toolbar-state";
@@ -9,9 +10,9 @@ export const loadToolbarState = (): ToolbarState | null => {
     const serializedToolbarState = localStorage.getItem(STORAGE_KEY);
     if (!serializedToolbarState) return null;
 
-    const partialToolbarState: Partial<ToolbarState> = JSON.parse(
+    const partialToolbarState = JSON.parse(
       serializedToolbarState,
-    );
+    ) as Partial<ToolbarState>;
     return {
       edge: partialToolbarState.edge ?? "bottom",
       ratio: partialToolbarState.ratio ?? 0.5,

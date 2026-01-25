@@ -34,6 +34,9 @@ interface ToolbarProps {
   onToggleEnabled?: () => void;
   shakeCount?: number;
   onStateChange?: (state: ToolbarState) => void;
+  onSubscribeToStateChanges?: (
+    callback: (state: ToolbarState) => void,
+  ) => () => void;
 }
 
 export const Toolbar: Component<ToolbarProps> = (props) => {
@@ -463,6 +466,29 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         y: window.innerHeight - rect.height - TOOLBAR_SNAP_MARGIN_PX,
       });
       setPositionRatio(0.5);
+    }
+
+    if (props.onSubscribeToStateChanges) {
+      const unsubscribe = props.onSubscribeToStateChanges(
+        (state: ToolbarState) => {
+          const rect = containerRef?.getBoundingClientRect();
+          if (!rect) return;
+
+          setSnapEdge(state.edge);
+          setPositionRatio(state.ratio);
+          setIsCollapsed(state.collapsed);
+
+          const newPosition = getPositionFromEdgeAndRatio(
+            state.edge,
+            state.ratio,
+            rect.width,
+            rect.height,
+          );
+          setPosition(newPosition);
+        },
+      );
+
+      onCleanup(unsubscribe);
     }
 
     window.addEventListener("resize", handleResize);
