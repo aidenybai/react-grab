@@ -20,6 +20,7 @@ export type {
   SourceInfo,
   Theme,
   ReactGrabState,
+  ToolbarState,
   OverlayBounds,
   GrabbedBox,
   DragRect,
