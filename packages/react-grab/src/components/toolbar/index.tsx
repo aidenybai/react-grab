@@ -1,4 +1,11 @@
-import { createSignal, onMount, onCleanup, Show } from "solid-js";
+import {
+  createSignal,
+  createEffect,
+  on,
+  onMount,
+  onCleanup,
+  Show,
+} from "solid-js";
 import type { Component } from "solid-js";
 import { cn } from "../../utils/cn.js";
 import {
@@ -25,6 +32,8 @@ interface ToolbarProps {
   onToggle?: () => void;
   enabled?: boolean;
   onToggleEnabled?: () => void;
+  shakeCount?: number;
+  onStateChange?: (state: ToolbarState) => void;
 }
 
 export const Toolbar: Component<ToolbarProps> = (props) => {
@@ -44,6 +53,18 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [dragOffset, setDragOffset] = createSignal({ x: 0, y: 0 });
   const [velocity, setVelocity] = createSignal({ x: 0, y: 0 });
   const [hasDragMoved, setHasDragMoved] = createSignal(false);
+  const [isShaking, setIsShaking] = createSignal(false);
+
+  createEffect(
+    on(
+      () => props.shakeCount,
+      (count) => {
+        if (count && count > 0) {
+          setIsShaking(true);
+        }
+      },
+    ),
+  );
 
   let lastPointerPosition = { x: 0, y: 0, time: 0 };
   let pointerStartPosition = { x: 0, y: 0 };
@@ -152,7 +173,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const handleToggleCollapse = createDragAwareHandler(() => {
     setIsCollapsed((prev) => {
       const newCollapsed = !prev;
-      saveToolbarState({
+      saveAndNotify({
         edge: snapEdge(),
         ratio: positionRatio(),
         collapsed: newCollapsed,
@@ -341,7 +362,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         setPosition({ x: snap.x, y: snap.y });
-        saveToolbarState({
+        saveAndNotify({
           edge: snap.edge,
           ratio,
           collapsed: isCollapsed(),
@@ -415,31 +436,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     }, TOOLBAR_FADE_IN_DELAY_MS);
   };
 
-  let isApplyingExternalState = false;
-
-  const applyToolbarState = (state: ReturnType<typeof loadToolbarState>) => {
-    if (!state) return;
-    const rect = containerRef?.getBoundingClientRect();
-    if (!rect) return;
-
-    setSnapEdge(state.edge);
-    setPositionRatio(state.ratio);
-    setIsCollapsed(state.collapsed);
-    const newPosition = getPositionFromEdgeAndRatio(
-      state.edge,
-      state.ratio,
-      rect.width,
-      rect.height,
-    );
-    setPosition(newPosition);
-  };
-
-  const handleExternalStateChange = (event: CustomEvent<ToolbarState>) => {
-    if (isApplyingExternalState) return;
-    if (!event.detail) return;
-    isApplyingExternalState = true;
-    applyToolbarState(event.detail);
-    isApplyingExternalState = false;
+  const saveAndNotify = (state: ToolbarState) => {
+    saveToolbarState(state);
+    props.onStateChange?.(state);
   };
 
   onMount(() => {
@@ -447,7 +446,16 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     const rect = containerRef?.getBoundingClientRect();
 
     if (savedState && rect) {
-      applyToolbarState(savedState);
+      setSnapEdge(savedState.edge);
+      setPositionRatio(savedState.ratio);
+      setIsCollapsed(savedState.collapsed);
+      const newPosition = getPositionFromEdgeAndRatio(
+        savedState.edge,
+        savedState.ratio,
+        rect.width,
+        rect.height,
+      );
+      setPosition(newPosition);
     } else if (rect) {
       setPosition({
         x: (window.innerWidth - rect.width) / 2,
@@ -458,10 +466,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
     window.addEventListener("resize", handleResize);
     window.visualViewport?.addEventListener("resize", handleResize);
-    window.addEventListener(
-      "react-grab:toolbar-state-change",
-      handleExternalStateChange,
-    );
 
     const fadeInTimeout = setTimeout(() => {
       setIsVisible(true);
@@ -469,10 +473,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
     onCleanup(() => {
       clearTimeout(fadeInTimeout);
-      window.removeEventListener(
-        "react-grab:toolbar-state-change",
-        handleExternalStateChange,
-      );
     });
   });
 
@@ -523,7 +523,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         <div
           class={cn(
             "[font-synthesis:none] contain-layout flex items-center justify-center rounded-sm bg-white antialiased transition-all duration-100 ease-out",
-            isCollapsed() ? "" : "gap-1.5 px-2 py-1.5",
+            isCollapsed() ? "" : "h-7 gap-1.5 px-2",
             isCollapsed() && snapEdge() === "top" && "rounded-t-none",
             isCollapsed() && snapEdge() === "bottom" && "rounded-b-none",
             isCollapsed() && snapEdge() === "left" && "rounded-l-none",
@@ -534,12 +534,14 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             isCollapsed() &&
               (snapEdge() === "left" || snapEdge() === "right") &&
               "px-0.25 py-2",
+            isShaking() && "animate-shake",
           )}
+          onAnimationEnd={() => setIsShaking(false)}
           onClick={(event) => {
             if (isCollapsed()) {
               event.stopPropagation();
               setIsCollapsed(false);
-              saveToolbarState({
+              saveAndNotify({
                 edge: snapEdge(),
                 ratio: positionRatio(),
                 collapsed: false,
@@ -554,24 +556,26 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               isCollapsed() ? "max-w-0 opacity-0" : "max-w-[200px] opacity-100",
             )}
           >
-            <button
-              data-react-grab-ignore-events
-              data-react-grab-toolbar-toggle
-              class="contain-layout shrink-0 flex items-center justify-center cursor-pointer transition-all hover:scale-105"
-              onClick={handleToggle}
-            >
-              <IconSelect
-                size={14}
-                class={cn(
-                  "transition-colors",
-                  props.isActive ? "text-black" : "text-black/70",
-                )}
-              />
-            </button>
+            <Show when={props.enabled}>
+              <button
+                data-react-grab-ignore-events
+                data-react-grab-toolbar-toggle
+                class="contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale"
+                onClick={handleToggle}
+              >
+                <IconSelect
+                  size={14}
+                  class={cn(
+                    "transition-colors",
+                    props.isActive ? "text-black" : "text-black/70",
+                  )}
+                />
+              </button>
+            </Show>
             <button
               data-react-grab-ignore-events
               data-react-grab-toolbar-enabled
-              class="contain-layout shrink-0 flex items-center justify-center cursor-pointer transition-all hover:scale-105 outline-none mx-0.5"
+              class="contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale outline-none mx-0.5"
               onClick={handleToggleEnabled}
             >
               <div
@@ -592,7 +596,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           <button
             data-react-grab-ignore-events
             data-react-grab-toolbar-collapse
-            class="contain-layout shrink-0 flex items-center justify-center cursor-pointer transition-all hover:scale-105"
+            class="contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale"
             onClick={handleToggleCollapse}
           >
             <IconChevron

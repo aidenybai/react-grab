@@ -20,7 +20,7 @@ const MoreOptionsButton: Component<MoreOptionsButtonProps> = (props) => {
     <button
       data-react-grab-ignore-events
       data-react-grab-more-options
-      class="flex items-center justify-center size-[18px] rounded-sm cursor-pointer bg-transparent hover:bg-black/10 text-black/30 hover:text-black border-none outline-none p-0 shrink-0"
+      class="flex items-center justify-center size-[18px] rounded-sm cursor-pointer bg-transparent hover:bg-black/10 text-black/30 hover:text-black border-none outline-none p-0 shrink-0 press-scale"
       // HACK: Native events with stopImmediatePropagation needed to block document-level handlers in the overlay system
       on:pointerdown={(event) => {
         event.stopPropagation();
@@ -167,7 +167,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
             <Show when={props.supportsUndo && props.onUndo}>
               <button
                 data-react-grab-undo
-                class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#7e0002] cursor-pointer transition-all hover:bg-[#FEF2F2] h-[17px]"
+                class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#7e0002] cursor-pointer transition-all hover:bg-[#FEF2F2] press-scale h-[17px]"
                 onClick={() => props.onUndo?.()}
               >
                 <span class="text-[#B91C1C] text-[13px] leading-3.5 font-sans font-medium">
@@ -178,7 +178,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
             <Show when={props.onDismiss}>
               <button
                 data-react-grab-dismiss
-                class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] h-[17px]"
+                class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] press-scale h-[17px]"
                 onClick={handleAccept}
                 disabled={didCopy()}
               >
@@ -195,7 +195,10 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
       </Show>
       <Show when={didCopy() || (!props.onDismiss && !props.onUndo)}>
         <div class="contain-layout shrink-0 flex items-center gap-0.5 pt-1.5 pb-1 px-1.5 w-full h-fit">
-          <IconCheck size={14} class="text-black/85 shrink-0" />
+          <IconCheck
+            size={14}
+            class="text-black/85 shrink-0 animate-success-pop"
+          />
           <span class="text-black text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit tabular-nums">
             {displayStatusText()}
           </span>
@@ -229,7 +232,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
             <button
               data-react-grab-followup-submit
               class={cn(
-                "contain-layout shrink-0 size-fit cursor-pointer transition-all hover:scale-105 ml-1",
+                "contain-layout shrink-0 size-fit cursor-pointer interactive-scale ml-1",
                 !followUpInput().trim() && "opacity-35",
               )}
               onClick={handleFollowUpSubmit}

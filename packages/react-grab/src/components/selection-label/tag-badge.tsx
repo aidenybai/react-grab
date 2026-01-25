@@ -22,7 +22,7 @@ export const TagBadge: Component<TagBadgeProps> = (props) => {
       class={cn(
         "contain-layout font-mono flex items-center px-[3px] py-0 h-4 rounded-sm gap-0.5 [border-width:0.5px] border-solid border-black bg-black text-sm max-w-[280px]",
         props.shrink && "shrink-0",
-        props.isClickable && "cursor-pointer",
+        props.isClickable && "cursor-pointer press-scale",
       )}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}

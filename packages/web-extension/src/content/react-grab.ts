@@ -19,7 +19,45 @@ const isLocalhost =
 
 const turndownService = new TurndownService();
 
+interface ToolbarState {
+  edge: "top" | "bottom" | "left" | "right";
+  ratio: number;
+  collapsed: boolean;
+  enabled: boolean;
+}
+
 let extensionApi: ReactGrabAPI | null = null;
+let lastToolbarState: ToolbarState | null = null;
+let isApplyingExternalState = false;
+let stateChangeUnsubscribe: (() => void) | null = null;
+
+const handleToolbarStateFromApi = (toolbarState: ToolbarState | null): void => {
+  if (isApplyingExternalState) return;
+  if (!toolbarState) return;
+  if (
+    lastToolbarState &&
+    lastToolbarState.edge === toolbarState.edge &&
+    lastToolbarState.ratio === toolbarState.ratio &&
+    lastToolbarState.collapsed === toolbarState.collapsed &&
+    lastToolbarState.enabled === toolbarState.enabled
+  ) {
+    return;
+  }
+  lastToolbarState = toolbarState;
+  window.postMessage(
+    { type: "__REACT_GRAB_TOOLBAR_STATE_SAVE__", state: toolbarState },
+    "*",
+  );
+};
+
+const subscribeToStateChanges = (api: ReactGrabAPI): void => {
+  if (stateChangeUnsubscribe) {
+    stateChangeUnsubscribe();
+  }
+  stateChangeUnsubscribe = api.onToolbarStateChange((state) => {
+    handleToolbarStateFromApi(state);
+  });
+};
 
 const createExtensionApi = (): ReactGrabAPI => {
   const options: Options = { enabled: true };
@@ -36,6 +74,7 @@ const createExtensionApi = (): ReactGrabAPI => {
   const api = init(options);
   extensionApi = api;
   window.__REACT_GRAB__ = api;
+  subscribeToStateChanges(api);
   return api;
 };
 
@@ -77,6 +116,7 @@ window.addEventListener("react-grab:init", (event) => {
   }
   extensionApi = pageApi;
   window.__REACT_GRAB__ = pageApi;
+  subscribeToStateChanges(pageApi);
 });
 
 const handleToggle = async (enabled: boolean): Promise<void> => {
@@ -87,15 +127,6 @@ const handleToggle = async (enabled: boolean): Promise<void> => {
     api.setEnabled(enabled);
   }
 };
-
-interface ToolbarState {
-  edge: "top" | "bottom" | "left" | "right";
-  ratio: number;
-  collapsed: boolean;
-  enabled: boolean;
-}
-
-let isApplyingExternalState = false;
 
 const handleToolbarStateChange = async (state: ToolbarState): Promise<void> => {
   if (isApplyingExternalState) return;
@@ -118,18 +149,6 @@ window.addEventListener("message", (event: MessageEvent) => {
     void handleToolbarStateChange(event.data.state);
   }
 });
-
-window.addEventListener(
-  "react-grab:toolbar-state-change",
-  (event) => {
-    if (!(event instanceof CustomEvent)) return;
-    if (isApplyingExternalState) return;
-
-    const state = event.detail;
-    if (!state) return;
-    window.postMessage({ type: "__REACT_GRAB_TOOLBAR_STATE_SAVE__", state }, "*");
-  },
-);
 
 interface InitialState {
   enabled: boolean;

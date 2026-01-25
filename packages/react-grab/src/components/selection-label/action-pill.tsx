@@ -9,7 +9,7 @@ export const ActionPill: Component<ActionPillProps> = (props) => {
       <div
         class={cn(
           "contain-layout shrink-0 flex items-center px-0 py-px w-fit h-[18px] rounded-sm gap-[3px]",
-          props.asButton && "cursor-pointer",
+          props.asButton && "cursor-pointer press-scale",
           props.dimmed && "opacity-50 hover:opacity-100 transition-opacity",
         )}
         role="button"

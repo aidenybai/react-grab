@@ -30,8 +30,5 @@ export const loadToolbarState = (): ToolbarState | null => {
 export const saveToolbarState = (state: ToolbarState): void => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    window.dispatchEvent(
-      new CustomEvent("react-grab:toolbar-state-change", { detail: state }),
-    );
   } catch {}
 };

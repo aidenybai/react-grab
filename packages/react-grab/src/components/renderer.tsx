@@ -158,6 +158,8 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           onToggle={props.onToggleActive}
           enabled={props.enabled}
           onToggleEnabled={props.onToggleEnabled}
+          shakeCount={props.shakeCount}
+          onStateChange={props.onToolbarStateChange}
         />
       </Show>
 
