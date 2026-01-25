@@ -1,7 +1,6 @@
 import { onMount, onCleanup, Show } from "solid-js";
 import type { Component } from "solid-js";
 import type { ErrorViewProps } from "../../types.js";
-import { MAX_ERROR_LENGTH } from "../../constants.js";
 import { confirmationFocusManager } from "../../utils/confirmation-focus-manager.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
 import { IconRetry } from "../icons/icon-retry.jsx";
@@ -32,12 +31,6 @@ export const ErrorView: Component<ErrorViewProps> = (props) => {
     confirmationFocusManager.claim(instanceId);
   };
 
-  const truncatedError = () => {
-    const error = props.error;
-    if (error.length <= MAX_ERROR_LENGTH) return error;
-    return `${error.slice(0, MAX_ERROR_LENGTH)}…`;
-  };
-
   onMount(() => {
     confirmationFocusManager.claim(instanceId);
     window.addEventListener("keydown", handleKeyDown, { capture: true });
@@ -58,14 +51,14 @@ export const ErrorView: Component<ErrorViewProps> = (props) => {
       onClick={handleFocus}
     >
       <div
-        class="contain-layout shrink-0 flex items-center gap-1 px-1.5 w-full h-fit"
+        class="contain-layout shrink-0 flex items-start gap-1 px-1.5 w-full h-fit"
         classList={{ "pt-1": hasActions(), "py-1": !hasActions() }}
       >
         <span
-          class="text-[#B91C1C] text-[13px] leading-4 font-sans font-medium"
+          class="text-[#B91C1C] text-[13px] leading-4 font-sans font-medium overflow-hidden line-clamp-5"
           title={props.error}
         >
-          {truncatedError()}
+          {props.error}
         </span>
       </div>
       <Show when={hasActions()}>

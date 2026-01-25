@@ -6,7 +6,7 @@ import {
   onCleanup,
   Show,
 } from "solid-js";
-import type { Component, JSX } from "solid-js";
+import type { Component } from "solid-js";
 import { cn } from "../../utils/cn.js";
 import {
   loadToolbarState,
@@ -28,28 +28,10 @@ import {
   TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS,
   TOOLBAR_DEFAULT_WIDTH_PX,
   TOOLBAR_DEFAULT_HEIGHT_PX,
+  TOOLBAR_SHAKE_TOOLTIP_DURATION_MS,
 } from "../../constants.js";
 import { formatShortcut } from "../../utils/format-shortcut.js";
-
-interface TooltipProps {
-  visible: boolean;
-  position: "top" | "bottom";
-  children: JSX.Element;
-}
-
-const Tooltip: Component<TooltipProps> = (props) => (
-  <Show when={props.visible}>
-    <div
-      class={cn(
-        "absolute left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 rounded text-[10px] text-black/60 bg-white shadow-sm animate-tooltip-fade-in pointer-events-none",
-        props.position === "top" ? "bottom-full mb-2.5" : "top-full mt-2.5",
-      )}
-      style={{ "z-index": "2147483647" }}
-    >
-      {props.children}
-    </div>
-  </Show>
-);
+import { Tooltip } from "../tooltip.jsx";
 
 interface ToolbarProps {
   isActive?: boolean;
@@ -87,6 +69,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     createSignal(false);
   const [isToggleTooltipVisible, setIsToggleTooltipVisible] =
     createSignal(false);
+  const [isShakeTooltipVisible, setIsShakeTooltipVisible] = createSignal(false);
 
   const tooltipPosition = () => (snapEdge() === "top" ? "bottom" : "top");
 
@@ -104,12 +87,36 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     return `${roundedClass} ${paddingClass}`;
   };
 
+  let shakeTooltipTimeout: ReturnType<typeof setTimeout> | undefined;
+
   createEffect(
     on(
       () => props.shakeCount,
       (count) => {
-        if (count) {
+        if (count && !props.enabled) {
           setIsShaking(true);
+          setIsShakeTooltipVisible(true);
+
+          if (shakeTooltipTimeout) {
+            clearTimeout(shakeTooltipTimeout);
+          }
+          shakeTooltipTimeout = setTimeout(() => {
+            setIsShakeTooltipVisible(false);
+          }, TOOLBAR_SHAKE_TOOLTIP_DURATION_MS);
+        }
+      },
+    ),
+  );
+
+  createEffect(
+    on(
+      () => props.enabled,
+      (enabled) => {
+        if (enabled && isShakeTooltipVisible()) {
+          setIsShakeTooltipVisible(false);
+          if (shakeTooltipTimeout) {
+            clearTimeout(shakeTooltipTimeout);
+          }
         }
       },
     ),
@@ -718,11 +725,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       setPositionRatio(savedState.ratio);
       setIsCollapsed(savedState.collapsed);
       if (rect) {
-        if (savedState.collapsed) {
-          collapsedDimensions = { width: rect.width, height: rect.height };
-        } else {
-          expandedDimensions = { width: rect.width, height: rect.height };
-        }
+        // HACK: On initial mount, the element is always rendered expanded (isCollapsed defaults to false).
+        // So rect always measures expanded dimensions, regardless of savedState.collapsed.
+        expandedDimensions = { width: rect.width, height: rect.height };
       }
       const newPosition = getPositionFromEdgeAndRatio(
         savedState.edge,
@@ -731,6 +736,19 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         expandedDimensions.height,
       );
       setPosition(newPosition);
+
+      // HACK: If loading collapsed state, measure actual collapsed dimensions after re-render
+      if (savedState.collapsed) {
+        requestAnimationFrame(() => {
+          const collapsedRect = containerRef?.getBoundingClientRect();
+          if (collapsedRect) {
+            collapsedDimensions = {
+              width: collapsedRect.width,
+              height: collapsedRect.height,
+            };
+          }
+        });
+      }
     } else if (rect) {
       expandedDimensions = { width: rect.width, height: rect.height };
       setPosition({
@@ -828,6 +846,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     }
     if (collapseAnimationTimeout) {
       clearTimeout(collapseAnimationTimeout);
+    }
+    if (shakeTooltipTimeout) {
+      clearTimeout(shakeTooltipTimeout);
     }
   });
 
@@ -937,7 +958,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     data-react-grab-ignore-events
                     data-react-grab-toolbar-toggle
                     class="contain-layout flex items-center justify-center cursor-pointer interactive-scale"
-                    onClick={handleToggle}
+                    onClick={(event) => {
+                      setIsSelectTooltipVisible(false);
+                      handleToggle(event);
+                    }}
                     onMouseEnter={() => setIsSelectTooltipVisible(true)}
                     onMouseLeave={() => setIsSelectTooltipVisible(false)}
                   >
@@ -962,7 +986,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                   data-react-grab-ignore-events
                   data-react-grab-toolbar-enabled
                   class="contain-layout flex items-center justify-center cursor-pointer interactive-scale outline-none mx-0.5"
-                  onClick={handleToggleEnabled}
+                  onClick={(event) => {
+                    setIsToggleTooltipVisible(false);
+                    handleToggleEnabled(event);
+                  }}
                   onMouseEnter={() => setIsToggleTooltipVisible(true)}
                   onMouseLeave={() => setIsToggleTooltipVisible(false)}
                 >
@@ -1002,6 +1029,19 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               )}
             />
           </button>
+          <Show when={isShakeTooltipVisible()}>
+            <div
+              class={cn(
+                "absolute left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 rounded text-[10px] text-black/60 bg-white shadow-sm pointer-events-none animate-tooltip-fade-in",
+                tooltipPosition() === "top"
+                  ? "bottom-full mb-0.5"
+                  : "top-full mt-0.5",
+              )}
+              style={{ "z-index": "2147483647" }}
+            >
+              Enable to continue
+            </div>
+          </Show>
         </div>
       </div>
     </Show>

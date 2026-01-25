@@ -3,7 +3,7 @@ import type { Component } from "solid-js";
 import type { ReactGrabRendererProps } from "../types.js";
 import { buildOpenFileUrl } from "../utils/build-open-file-url.js";
 import { OverlayCanvas } from "./overlay-canvas.js";
-import { SelectionLabel } from "./selection-label.js";
+import { SelectionLabel } from "./selection-label/index.js";
 import { Toolbar } from "./toolbar/index.js";
 import { ContextMenu } from "./context-menu.js";
 

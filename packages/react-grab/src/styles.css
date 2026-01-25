@@ -27,10 +27,22 @@
   100% {
     transform: translateX(0);
   }
-  25% {
-    transform: translateX(-2px);
+  15% {
+    transform: translateX(-3px);
+  }
+  30% {
+    transform: translateX(3px);
+  }
+  45% {
+    transform: translateX(-3px);
+  }
+  60% {
+    transform: translateX(3px);
   }
   75% {
+    transform: translateX(-2px);
+  }
+  90% {
     transform: translateX(2px);
   }
 }
@@ -126,16 +138,32 @@
 @keyframes tooltip-fade-in {
   from {
     opacity: 0;
-    transform: translateY(2px);
+    transform: scale(0.97);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: scale(1);
   }
 }
 
+@keyframes icon-loader-spin {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0.2;
+  }
+}
+
+.icon-loader-bar {
+  animation: icon-loader-spin 0.5s linear infinite;
+}
+
 .animate-shake {
-  animation: shake 0.15s ease-out;
+  animation: shake 0.3s ease-out;
   will-change: transform;
 }
 

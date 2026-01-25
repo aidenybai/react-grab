@@ -20,7 +20,7 @@ export const TagBadge: Component<TagBadgeProps> = (props) => {
   return (
     <div
       class={cn(
-        "contain-layout font-mono flex items-center px-[3px] py-0 h-4 rounded-sm gap-0.5 [border-width:0.5px] border-solid border-black bg-black text-sm max-w-[280px]",
+        "contain-layout font-mono flex items-center px-[3px] py-0 h-4 rounded-sm gap-0.5 [border-width:0.5px] border-solid border-black bg-black text-sm max-w-[280px] overflow-hidden",
         props.shrink && "shrink-0",
         props.isClickable && "cursor-pointer press-scale",
       )}
@@ -29,7 +29,7 @@ export const TagBadge: Component<TagBadgeProps> = (props) => {
       onClick={props.onClick}
     >
       <Show when={props.componentName}>
-        <span class="text-white text-[13px] leading-3.5 h-fit font-medium overflow-hidden text-ellipsis whitespace-nowrap">
+        <span class="text-white text-[13px] leading-3.5 h-fit font-medium overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
           {props.componentName}
         </span>
         <span class="text-white/70 text-[13px] leading-3.5 h-fit font-medium shrink-0">
@@ -37,7 +37,7 @@ export const TagBadge: Component<TagBadgeProps> = (props) => {
         </span>
       </Show>
       <Show when={!props.componentName}>
-        <span class="text-white text-[13px] leading-3.5 h-fit font-medium overflow-hidden text-ellipsis whitespace-nowrap">
+        <span class="text-white text-[13px] leading-3.5 h-fit font-medium overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
           {props.tagName}
         </span>
       </Show>

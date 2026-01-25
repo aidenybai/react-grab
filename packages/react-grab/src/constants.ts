@@ -45,7 +45,6 @@ export const ARROW_HEIGHT_PX = 8;
 export const ARROW_CENTER_PERCENT = 50;
 export const LABEL_GAP_PX = 4;
 export const IDLE_TIMEOUT_MS = 800;
-export const MAX_ERROR_LENGTH = 50;
 export const MAX_HTML_FALLBACK_LENGTH = 500;
 
 export const SCREENSHOT_CAPTURE_DELAY_MS = 50;
@@ -67,6 +66,9 @@ export const MODIFIER_KEYS: readonly string[] = [
 export const FROZEN_ELEMENT_ATTRIBUTE = "data-react-grab-frozen";
 export const IGNORE_EVENTS_ATTRIBUTE = "data-react-grab-ignore-events";
 
+export const TOOLTIP_DELAY_MS = 400;
+export const TOOLTIP_GRACE_PERIOD_MS = 100;
+
 export const TOOLBAR_SNAP_MARGIN_PX = 16;
 export const TOOLBAR_MOBILE_BREAKPOINT_PX = 768;
 export const TOOLBAR_FADE_IN_DELAY_MS = 500;
@@ -78,6 +80,7 @@ export const TOOLBAR_COLLAPSED_HEIGHT_PX = 14;
 export const TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS = 150;
 export const TOOLBAR_DEFAULT_WIDTH_PX = 78;
 export const TOOLBAR_DEFAULT_HEIGHT_PX = 28;
+export const TOOLBAR_SHAKE_TOOLTIP_DURATION_MS = 1500;
 
 export const DRAG_SELECTION_COVERAGE_THRESHOLD = 0.75;
 export const DRAG_SELECTION_SAMPLE_SPACING_PX = 24;

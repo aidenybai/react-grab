@@ -13,13 +13,13 @@ test.describe("Copy Feedback Behavior", () => {
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
 
-      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.down("c");
       await reactGrab.clickElement("li:first-child");
       await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.page.keyboard.up("c");
-      await reactGrab.page.keyboard.up("Meta");
+      await reactGrab.page.keyboard.up(reactGrab.modifierKey);
 
       await reactGrab.page.waitForTimeout(100);
       expect(await reactGrab.isOverlayVisible()).toBe(false);
@@ -34,7 +34,7 @@ test.describe("Copy Feedback Behavior", () => {
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
 
-      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.down("c");
       await reactGrab.clickElement("li:first-child");
 
@@ -43,7 +43,7 @@ test.describe("Copy Feedback Behavior", () => {
       expect(await reactGrab.isOverlayVisible()).toBe(true);
 
       await reactGrab.page.keyboard.up("c");
-      await reactGrab.page.keyboard.up("Meta");
+      await reactGrab.page.keyboard.up(reactGrab.modifierKey);
     });
 
     test("should allow hovering different elements during feedback period", async ({
@@ -55,7 +55,7 @@ test.describe("Copy Feedback Behavior", () => {
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
 
-      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.down("c");
       await reactGrab.clickElement("li:first-child");
 
@@ -67,7 +67,7 @@ test.describe("Copy Feedback Behavior", () => {
         .toBe(true);
 
       await reactGrab.page.keyboard.up("c");
-      await reactGrab.page.keyboard.up("Meta");
+      await reactGrab.page.keyboard.up(reactGrab.modifierKey);
     });
 
     test("should show selection box following hover during feedback", async ({
@@ -81,7 +81,7 @@ test.describe("Copy Feedback Behavior", () => {
 
       const boundsBefore = await reactGrab.getSelectionBoxBounds();
 
-      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.down("c");
       await reactGrab.clickElement("li:first-child");
       await reactGrab.hoverElement("h1");
@@ -102,7 +102,7 @@ test.describe("Copy Feedback Behavior", () => {
       expect(boundsAfter).not.toBeNull();
 
       await reactGrab.page.keyboard.up("c");
-      await reactGrab.page.keyboard.up("Meta");
+      await reactGrab.page.keyboard.up(reactGrab.modifierKey);
     });
 
     test("should deactivate at end of feedback if key released mid-feedback", async ({
@@ -114,14 +114,14 @@ test.describe("Copy Feedback Behavior", () => {
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
 
-      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.down("c");
       await reactGrab.clickElement("li:first-child");
 
       await reactGrab.page.waitForTimeout(500);
 
       await reactGrab.page.keyboard.up("c");
-      await reactGrab.page.keyboard.up("Meta");
+      await reactGrab.page.keyboard.up(reactGrab.modifierKey);
 
       await reactGrab.page.waitForTimeout(100);
       expect(await reactGrab.isOverlayVisible()).toBe(false);
@@ -140,14 +140,14 @@ test.describe("Copy Feedback Behavior", () => {
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
 
-      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.down("c");
       await reactGrab.clickElement("li:first-child");
 
       await reactGrab.page.waitForTimeout(200);
 
       await reactGrab.page.keyboard.up("c");
-      await reactGrab.page.keyboard.up("Meta");
+      await reactGrab.page.keyboard.up(reactGrab.modifierKey);
 
       await reactGrab.page.waitForTimeout(100);
       expect(await reactGrab.isOverlayVisible()).toBe(false);
@@ -201,7 +201,7 @@ test.describe("Copy Feedback Behavior", () => {
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
 
-      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.down("c");
       await reactGrab.clickElement("li:first-child");
 
@@ -211,7 +211,7 @@ test.describe("Copy Feedback Behavior", () => {
       await reactGrab.page.keyboard.down("c");
       await reactGrab.page.waitForTimeout(50);
       await reactGrab.page.keyboard.up("c");
-      await reactGrab.page.keyboard.up("Meta");
+      await reactGrab.page.keyboard.up(reactGrab.modifierKey);
 
       await reactGrab.page.waitForTimeout(100);
       expect(await reactGrab.isOverlayVisible()).toBe(false);
@@ -226,13 +226,13 @@ test.describe("Copy Feedback Behavior", () => {
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
 
-      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.down("c");
       await reactGrab.clickElement("li:first-child");
 
       await reactGrab.page.waitForTimeout(100);
 
-      await reactGrab.page.keyboard.up("Meta");
+      await reactGrab.page.keyboard.up(reactGrab.modifierKey);
 
       await reactGrab.page.waitForTimeout(100);
       expect(await reactGrab.isOverlayVisible()).toBe(false);
@@ -249,7 +249,7 @@ test.describe("Copy Feedback Behavior", () => {
       await reactGrab.hoverElement("[data-testid='main-title']");
       await reactGrab.waitForSelectionBox();
 
-      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.down("c");
       await reactGrab.clickElement("[data-testid='main-title']");
 
@@ -260,7 +260,7 @@ test.describe("Copy Feedback Behavior", () => {
         .toContain("React Grab");
 
       await reactGrab.page.keyboard.up("c");
-      await reactGrab.page.keyboard.up("Meta");
+      await reactGrab.page.keyboard.up(reactGrab.modifierKey);
     });
 
     test("should handle multiple sequential copies while holding", async ({
@@ -272,7 +272,7 @@ test.describe("Copy Feedback Behavior", () => {
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
 
-      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.down("c");
       await reactGrab.clickElement("li:first-child");
       await reactGrab.page.waitForTimeout(200);
@@ -285,7 +285,7 @@ test.describe("Copy Feedback Behavior", () => {
       expect(await reactGrab.isOverlayVisible()).toBe(true);
 
       await reactGrab.page.keyboard.up("c");
-      await reactGrab.page.keyboard.up("Meta");
+      await reactGrab.page.keyboard.up(reactGrab.modifierKey);
     });
 
     test("should deactivate when escape pressed during feedback", async ({
@@ -297,7 +297,7 @@ test.describe("Copy Feedback Behavior", () => {
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
 
-      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.down("c");
       await reactGrab.clickElement("li:first-child");
 
@@ -309,7 +309,7 @@ test.describe("Copy Feedback Behavior", () => {
       expect(await reactGrab.isOverlayVisible()).toBe(false);
 
       await reactGrab.page.keyboard.up("c");
-      await reactGrab.page.keyboard.up("Meta");
+      await reactGrab.page.keyboard.up(reactGrab.modifierKey);
     });
   });
 

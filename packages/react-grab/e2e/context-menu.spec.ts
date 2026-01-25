@@ -45,7 +45,7 @@ test.describe("Context Menu", () => {
       await reactGrab.hoverElement("li");
       await reactGrab.waitForSelectionBox();
 
-      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.down("c");
       await reactGrab.page.waitForTimeout(100);
 
@@ -57,7 +57,7 @@ test.describe("Context Menu", () => {
         .toBe(true);
 
       await reactGrab.page.keyboard.up("c");
-      await reactGrab.page.keyboard.up("Meta");
+      await reactGrab.page.keyboard.up(reactGrab.modifierKey);
     });
 
     test("should show context menu with Copy and Open items", async ({

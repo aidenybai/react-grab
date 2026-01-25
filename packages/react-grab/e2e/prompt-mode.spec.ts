@@ -264,9 +264,9 @@ test.describe("Prompt Mode", () => {
       await reactGrab.setupMockAgent();
       await reactGrab.enterPromptMode("li:first-child");
 
-      await reactGrab.page.keyboard.down("Meta");
+      await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.press("c");
-      await reactGrab.page.keyboard.up("Meta");
+      await reactGrab.page.keyboard.up(reactGrab.modifierKey);
 
       await expect.poll(() => reactGrab.isOverlayVisible()).toBe(false);
     });

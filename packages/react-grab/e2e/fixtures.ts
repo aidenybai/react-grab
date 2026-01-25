@@ -3,6 +3,7 @@ import { test as base, expect, Page, Locator } from "@playwright/test";
 const ATTRIBUTE_NAME = "data-react-grab";
 const DEFAULT_KEY_HOLD_DURATION_MS = 200;
 const ACTIVATION_BUFFER_MS = 100;
+const MODIFIER_KEY = process.platform === "darwin" ? "Meta" : "Control";
 
 interface ContextMenuInfo {
   isVisible: boolean;
@@ -64,6 +65,7 @@ interface GrabbedBoxInfo {
 
 interface ReactGrabPageObject {
   page: Page;
+  modifierKey: "Meta" | "Control";
   activate: () => Promise<void>;
   activateViaKeyboard: () => Promise<void>;
   deactivate: () => Promise<void>;
@@ -218,7 +220,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const holdToActivate = async (durationMs = DEFAULT_KEY_HOLD_DURATION_MS) => {
     await page.click("body");
-    await page.keyboard.down("Meta");
+    await page.keyboard.down(MODIFIER_KEY);
     await page.keyboard.down("c");
     await page.waitForTimeout(durationMs + ACTIVATION_BUFFER_MS);
   };
@@ -235,7 +237,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   const activateViaKeyboard = async () => {
     await holdToActivate();
     await page.keyboard.up("c");
-    await page.keyboard.up("Meta");
+    await page.keyboard.up(MODIFIER_KEY);
     await waitForActive(true);
   };
 
@@ -356,10 +358,9 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   };
 
   const pressModifierKeyCombo = async (key: string) => {
-    const modifier = process.platform === "darwin" ? "Meta" : "Control";
-    await page.keyboard.down(modifier);
+    await page.keyboard.down(MODIFIER_KEY);
     await page.keyboard.press(key);
-    await page.keyboard.up(modifier);
+    await page.keyboard.up(MODIFIER_KEY);
   };
 
   const waitForContextMenu = async (visible: boolean) => {
@@ -1735,6 +1736,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   return {
     page,
+    modifierKey: MODIFIER_KEY,
     activate,
     activateViaKeyboard,
     deactivate,
