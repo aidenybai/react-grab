@@ -173,18 +173,6 @@
   }
 }
 
-@utility hover-scale {
-  transition-property: transform;
-  transition-duration: var(--transition-fast);
-  transition-timing-function: ease-out;
-
-  @media (hover: hover) and (pointer: fine) {
-    &:hover {
-      transform: scale(1.05);
-    }
-  }
-}
-
 @utility interactive-scale {
   transition-property: transform;
   transition-duration: var(--transition-fast);
