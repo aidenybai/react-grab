@@ -37,7 +37,7 @@ export const TagBadge: Component<TagBadgeProps> = (props) => {
         </span>
       </Show>
       <Show when={!props.componentName}>
-        <span class="text-white text-[13px] leading-3.5 h-fit font-medium overflow-hidden text-ellipsis whitespace-nowrap">
+        <span class="text-white text-[13px] leading-3.5 h-fit font-medium overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
           {props.tagName}
         </span>
       </Show>

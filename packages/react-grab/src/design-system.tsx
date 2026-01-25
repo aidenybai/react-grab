@@ -1898,7 +1898,8 @@ const STORAGE_KEY_THEME = "react-grab-design-system-theme";
 const STORAGE_KEY_STARRED = "react-grab-design-system-starred";
 
 const generateRandomSuffix = (length: number): string => {
-  const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  const chars =
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let result = "";
   for (let i = 0; i < length; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
