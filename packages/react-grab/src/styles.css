@@ -159,7 +159,7 @@
 }
 
 .animate-success-pop {
-  animation: success-pop 300ms ease-out;
+  animation: success-pop 250ms ease-out;
   will-change: transform, opacity;
 }
 
@@ -175,8 +175,8 @@
 
 @utility interactive-scale {
   transition-property: transform;
-  transition-duration: var(--transition-fast);
-  transition-timing-function: ease-out;
+  transition-duration: var(--transition-normal);
+  transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   @media (hover: hover) and (pointer: fine) {
     &:hover {
