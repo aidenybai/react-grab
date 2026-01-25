@@ -678,6 +678,24 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     resizeTimeout = setTimeout(() => {
       setIsVisible(true);
       setIsResizing(false);
+
+      const rect = containerRef?.getBoundingClientRect();
+      if (rect) {
+        const newRatio = getRatioFromPosition(
+          snapEdge(),
+          position().x,
+          position().y,
+          rect.width,
+          rect.height,
+        );
+        setPositionRatio(newRatio);
+        saveAndNotify({
+          edge: snapEdge(),
+          ratio: newRatio,
+          collapsed: isCollapsed(),
+          enabled: props.enabled ?? true,
+        });
+      }
     }, TOOLBAR_FADE_IN_DELAY_MS);
   };
 

@@ -19,12 +19,22 @@ export const loadToolbarState = (): ToolbarState | null => {
       collapsed: partialToolbarState.collapsed ?? false,
       enabled: partialToolbarState.enabled ?? true,
     };
-  } catch {}
+  } catch (error) {
+    console.warn(
+      "[react-grab] Failed to load toolbar state from localStorage:",
+      error,
+    );
+  }
   return null;
 };
 
 export const saveToolbarState = (state: ToolbarState): void => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch {}
+  } catch (error) {
+    console.warn(
+      "[react-grab] Failed to save toolbar state to localStorage:",
+      error,
+    );
+  }
 };
