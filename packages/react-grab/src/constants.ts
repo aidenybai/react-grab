@@ -67,6 +67,9 @@ export const MODIFIER_KEYS: readonly string[] = [
 export const FROZEN_ELEMENT_ATTRIBUTE = "data-react-grab-frozen";
 export const IGNORE_EVENTS_ATTRIBUTE = "data-react-grab-ignore-events";
 
+export const TOOLTIP_DELAY_MS = 400;
+export const TOOLTIP_GRACE_PERIOD_MS = 100;
+
 export const TOOLBAR_SNAP_MARGIN_PX = 16;
 export const TOOLBAR_MOBILE_BREAKPOINT_PX = 768;
 export const TOOLBAR_FADE_IN_DELAY_MS = 500;
