@@ -164,7 +164,9 @@
 }
 
 @utility press-scale {
-  transition: transform var(--transition-fast) ease-out;
+  transition-property: transform;
+  transition-duration: var(--transition-fast);
+  transition-timing-function: ease-out;
 
   &:active {
     transform: scale(0.97);
@@ -172,7 +174,9 @@
 }
 
 @utility hover-scale {
-  transition: transform var(--transition-fast) ease-out;
+  transition-property: transform;
+  transition-duration: var(--transition-fast);
+  transition-timing-function: ease-out;
 
   @media (hover: hover) and (pointer: fine) {
     &:hover {
@@ -182,7 +186,9 @@
 }
 
 @utility interactive-scale {
-  transition: transform var(--transition-fast) ease-out;
+  transition-property: transform;
+  transition-duration: var(--transition-fast);
+  transition-timing-function: ease-out;
 
   @media (hover: hover) and (pointer: fine) {
     &:hover {

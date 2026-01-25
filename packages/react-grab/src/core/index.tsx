@@ -2998,6 +2998,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           enabled: state.enabled ?? currentState?.enabled ?? true,
         };
         saveToolbarState(newState);
+        setCurrentToolbarState(newState);
         if (state.enabled !== undefined && state.enabled !== isEnabled()) {
           setIsEnabled(state.enabled);
         }
