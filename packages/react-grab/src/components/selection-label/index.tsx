@@ -336,7 +336,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         ref={containerRef}
         data-react-grab-ignore-events
         data-react-grab-selection-label
-        class="fixed font-sans text-[13px] antialiased transition-opacity duration-100 ease-out filter-[drop-shadow(0px_0px_4px_#51515180)] select-none"
+        class={cn(
+          "fixed font-sans text-[13px] antialiased filter-[drop-shadow(0px_0px_4px_#51515180)] select-none transition-opacity duration-100 ease-out",
+        )}
         style={{
           top: `${computedPosition().top}px`,
           left: `${computedPosition().left}px`,
@@ -416,7 +418,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                       <button
                         data-react-grab-ignore-events
                         data-react-grab-abort
-                        class="contain-layout shrink-0 size-fit cursor-pointer ml-1 hover:scale-105"
+                        class="contain-layout shrink-0 size-fit cursor-pointer ml-1 interactive-scale"
                         onPointerDown={(event) => event.stopPropagation()}
                         onMouseDown={(event) => event.stopPropagation()}
                         onPointerUp={(event) => {
@@ -526,7 +528,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   <button
                     data-react-grab-submit
                     class={cn(
-                      "contain-layout shrink-0 size-fit cursor-pointer transition-all hover:scale-105 ml-1",
+                      "contain-layout shrink-0 size-fit cursor-pointer interactive-scale ml-1",
                       !props.inputValue?.trim() && "opacity-35",
                     )}
                     onClick={handleSubmit}

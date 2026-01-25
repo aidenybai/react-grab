@@ -52,7 +52,4 @@ const mergeThemeWithBase = (
   },
 });
 
-export const mergeTheme = (userTheme?: Theme): Required<Theme> =>
-  userTheme ? mergeThemeWithBase(DEFAULT_THEME, userTheme) : DEFAULT_THEME;
-
 export const deepMergeTheme = mergeThemeWithBase;

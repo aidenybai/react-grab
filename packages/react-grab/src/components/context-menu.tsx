@@ -293,7 +293,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         ref={containerRef}
         data-react-grab-ignore-events
         data-react-grab-context-menu
-        class="fixed font-sans text-[13px] antialiased transition-opacity duration-150 ease-out filter-[drop-shadow(0px_0px_4px_#51515180)] select-none"
+        class="fixed font-sans text-[13px] antialiased filter-[drop-shadow(0px_0px_4px_#51515180)] select-none transition-opacity duration-150 ease-out"
         style={{
           top: `${computedPosition().top}px`,
           left: `${computedPosition().left}px`,

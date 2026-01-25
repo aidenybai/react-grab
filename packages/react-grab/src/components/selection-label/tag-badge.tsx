@@ -22,7 +22,7 @@ export const TagBadge: Component<TagBadgeProps> = (props) => {
       class={cn(
         "contain-layout font-mono flex items-center px-[3px] py-0 h-4 rounded-sm gap-0.5 [border-width:0.5px] border-solid border-black bg-black text-sm max-w-[280px]",
         props.shrink && "shrink-0",
-        props.isClickable && "cursor-pointer",
+        props.isClickable && "cursor-pointer press-scale",
       )}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -31,6 +31,9 @@ export const TagBadge: Component<TagBadgeProps> = (props) => {
       <Show when={props.componentName}>
         <span class="text-white text-[13px] leading-3.5 h-fit font-medium overflow-hidden text-ellipsis whitespace-nowrap">
           {props.componentName}
+        </span>
+        <span class="text-white/70 text-[13px] leading-3.5 h-fit font-medium shrink-0">
+          .{props.tagName}
         </span>
       </Show>
       <Show when={!props.componentName}>

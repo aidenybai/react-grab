@@ -207,6 +207,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [isEnabled, setIsEnabled] = createSignal(
       savedToolbarState?.enabled ?? true,
     );
+    const [toolbarShakeCount, setToolbarShakeCount] = createSignal(0);
+    const [currentToolbarState, setCurrentToolbarState] =
+      createSignal<ToolbarState | null>(savedToolbarState);
 
     const pendingAbortSessionId = createMemo(() => store.pendingAbortSessionId);
 
@@ -862,6 +865,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             isDraggingBeyondThreshold(),
             effectiveElement(),
             didJustCopy(),
+            currentToolbarState(),
           ] as const,
         ([
           active,
@@ -878,6 +882,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           draggingBeyondThreshold,
           effectiveTarget,
           justCopied,
+          toolbarState,
         ]) => {
           const isSelectionBoxVisible = Boolean(
             themeEnabled &&
@@ -918,6 +923,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               createdAt: box.createdAt,
             })),
             selectionFilePath: store.selectionFilePath,
+            toolbarState,
           });
         },
       ),
@@ -1285,12 +1291,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const newEnabled = !isEnabled();
       setIsEnabled(newEnabled);
       const currentState = loadToolbarState();
-      saveToolbarState({
+      const newState = {
         edge: currentState?.edge ?? "bottom",
         ratio: currentState?.ratio ?? 0.5,
         collapsed: currentState?.collapsed ?? false,
         enabled: newEnabled,
-      });
+      };
+      saveToolbarState(newState);
+      setCurrentToolbarState(newState);
+      toolbarStateChangeCallbacks.forEach((cb) => cb(newState));
       if (!newEnabled) {
         if (isHoldingKeys()) {
           actions.release();
@@ -1818,7 +1827,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: KeyboardEvent) => {
         blockEnterIfNeeded(event);
 
-        if (!isEnabled()) return;
+        if (!isEnabled()) {
+          if (
+            isTargetKeyCombination(event, pluginRegistry.store.options) &&
+            !event.repeat
+          ) {
+            setToolbarShakeCount((count) => count + 1);
+          }
+          return;
+        }
 
         if (handleUndoRedoKeys(event)) return;
 
@@ -2844,6 +2861,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onToggleActive={handleToggleActive}
             enabled={isEnabled()}
             onToggleEnabled={handleToggleEnabled}
+            shakeCount={toolbarShakeCount()}
+            onToolbarStateChange={(state) => {
+              setCurrentToolbarState(state);
+              toolbarStateChangeCallbacks.forEach((cb) => cb(state));
+            }}
+            onSubscribeToToolbarStateChanges={(callback) => {
+              toolbarStateChangeCallbacks.add(callback);
+              return () => {
+                toolbarStateChangeCallbacks.delete(callback);
+              };
+            }}
             contextMenuPosition={contextMenuPosition()}
             contextMenuBounds={contextMenuBounds()}
             contextMenuTagName={contextMenuTagName()}
@@ -2970,6 +2998,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           enabled: state.enabled ?? currentState?.enabled ?? true,
         };
         saveToolbarState(newState);
+        setCurrentToolbarState(newState);
         if (state.enabled !== undefined && state.enabled !== isEnabled()) {
           setIsEnabled(state.enabled);
         }
@@ -3021,6 +3050,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           createdAt: box.createdAt,
         })),
         selectionFilePath: store.selectionFilePath,
+        toolbarState: currentToolbarState(),
       }),
       setOptions: (newOptions: SettableOptions) => {
         pluginRegistry.setOptions(newOptions);

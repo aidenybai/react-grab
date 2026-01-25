@@ -264,4 +264,3 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
 };
 
 export { createPluginRegistry };
-export type { OptionsState };

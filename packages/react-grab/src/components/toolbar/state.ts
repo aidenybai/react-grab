@@ -1,11 +1,7 @@
-export type SnapEdge = "top" | "bottom" | "left" | "right";
+import type { ToolbarState } from "../../types.js";
 
-export interface ToolbarState {
-  edge: SnapEdge;
-  ratio: number;
-  collapsed: boolean;
-  enabled: boolean;
-}
+export type { ToolbarState };
+export type SnapEdge = "top" | "bottom" | "left" | "right";
 
 const STORAGE_KEY = "react-grab-toolbar-state";
 
@@ -14,24 +10,31 @@ export const loadToolbarState = (): ToolbarState | null => {
     const serializedToolbarState = localStorage.getItem(STORAGE_KEY);
     if (!serializedToolbarState) return null;
 
-    const partialToolbarState: Partial<ToolbarState> = JSON.parse(
+    const partialToolbarState = JSON.parse(
       serializedToolbarState,
-    );
+    ) as Partial<ToolbarState>;
     return {
       edge: partialToolbarState.edge ?? "bottom",
       ratio: partialToolbarState.ratio ?? 0.5,
       collapsed: partialToolbarState.collapsed ?? false,
       enabled: partialToolbarState.enabled ?? true,
     };
-  } catch {}
+  } catch (error) {
+    console.warn(
+      "[react-grab] Failed to load toolbar state from localStorage:",
+      error,
+    );
+  }
   return null;
 };
 
 export const saveToolbarState = (state: ToolbarState): void => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    window.dispatchEvent(
-      new CustomEvent("react-grab:toolbar-state-change", { detail: state }),
+  } catch (error) {
+    console.warn(
+      "[react-grab] Failed to save toolbar state to localStorage:",
+      error,
     );
-  } catch {}
+  }
 };
