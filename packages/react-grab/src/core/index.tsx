@@ -43,6 +43,7 @@ import {
   KEYDOWN_SPAM_TIMEOUT_MS,
   DRAG_THRESHOLD_PX,
   ELEMENT_DETECTION_THROTTLE_MS,
+  DRAG_PREVIEW_THROTTLE_MS,
   Z_INDEX_LABEL,
   MODIFIER_KEYS,
   BLUR_DEACTIVATION_THRESHOLD_MS,
@@ -319,6 +320,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     let lastElementDetectionTime = 0;
+    let lastDragPreviewUpdate = 0;
+    const [throttledDragPointer, setThrottledDragPointer] = createSignal({
+      x: 0,
+      y: 0,
+    });
     let keydownSpamTimerId: number | null = null;
     let holdTimerId: number | null = null;
     let holdStartTimestamp: number | null = null;
@@ -759,7 +765,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (!isDraggingBeyondThreshold()) return [];
 
-      const drag = calculateDragRectangle(store.pointer.x, store.pointer.y);
+      const pointer = throttledDragPointer();
+      const drag = calculateDragRectangle(pointer.x, pointer.y);
       const elements = getElementsInDrag(drag, isValidGrabbableElement);
       const previewElements =
         elements.length > 0
@@ -1342,6 +1349,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       if (isDragging()) {
+        if (now - lastDragPreviewUpdate >= DRAG_PREVIEW_THROTTLE_MS) {
+          lastDragPreviewUpdate = now;
+          setThrottledDragPointer({ x: clientX, y: clientY });
+        }
+
         const direction = getAutoScrollDirection(clientX, clientY);
         const isNearEdge =
           direction.top ||
@@ -1361,6 +1373,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!isRendererActive() || isCopying()) return false;
 
       actions.startDrag({ x: clientX, y: clientY });
+      setThrottledDragPointer({ x: clientX, y: clientY });
+      lastDragPreviewUpdate = performance.now();
       document.body.style.userSelect = "none";
 
       pluginRegistry.hooks.onDragStart(
