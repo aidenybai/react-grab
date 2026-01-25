@@ -123,6 +123,17 @@
   }
 }
 
+@keyframes tooltip-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .animate-shake {
   animation: shake 0.15s ease-out;
   will-change: transform;
@@ -160,6 +171,11 @@
 
 .animate-success-pop {
   animation: success-pop 250ms ease-out;
+  will-change: transform, opacity;
+}
+
+.animate-tooltip-fade-in {
+  animation: tooltip-fade-in var(--transition-fast) ease-out;
   will-change: transform, opacity;
 }
 

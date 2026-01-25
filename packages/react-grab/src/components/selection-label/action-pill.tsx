@@ -15,7 +15,7 @@ export const ActionPill: Component<ActionPillProps> = (props) => {
         role="button"
         onClick={props.onClick}
       >
-        <div class="text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
+        <div class="text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit whitespace-nowrap">
           <Show
             when={props.isIdle}
             fallback={

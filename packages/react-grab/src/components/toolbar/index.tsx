@@ -6,7 +6,7 @@ import {
   onCleanup,
   Show,
 } from "solid-js";
-import type { Component } from "solid-js";
+import type { Component, JSX } from "solid-js";
 import { cn } from "../../utils/cn.js";
 import {
   loadToolbarState,
@@ -29,6 +29,27 @@ import {
   TOOLBAR_DEFAULT_WIDTH_PX,
   TOOLBAR_DEFAULT_HEIGHT_PX,
 } from "../../constants.js";
+import { formatShortcut } from "../../utils/format-shortcut.js";
+
+interface TooltipProps {
+  visible: boolean;
+  position: "top" | "bottom";
+  children: JSX.Element;
+}
+
+const Tooltip: Component<TooltipProps> = (props) => (
+  <Show when={props.visible}>
+    <div
+      class={cn(
+        "absolute left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 rounded text-[10px] text-black/60 bg-white shadow-sm animate-tooltip-fade-in pointer-events-none",
+        props.position === "top" ? "bottom-full mb-2.5" : "top-full mt-2.5",
+      )}
+      style={{ "z-index": "2147483647" }}
+    >
+      {props.children}
+    </div>
+  </Show>
+);
 
 interface ToolbarProps {
   isActive?: boolean;
@@ -62,6 +83,26 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [hasDragMoved, setHasDragMoved] = createSignal(false);
   const [isShaking, setIsShaking] = createSignal(false);
   const [isCollapseAnimating, setIsCollapseAnimating] = createSignal(false);
+  const [isSelectTooltipVisible, setIsSelectTooltipVisible] =
+    createSignal(false);
+  const [isToggleTooltipVisible, setIsToggleTooltipVisible] =
+    createSignal(false);
+
+  const tooltipPosition = () => (snapEdge() === "top" ? "bottom" : "top");
+
+  const collapsedEdgeClasses = () => {
+    if (!isCollapsed()) return "";
+    const edge = snapEdge();
+    const roundedClass = {
+      top: "rounded-t-none",
+      bottom: "rounded-b-none",
+      left: "rounded-l-none",
+      right: "rounded-r-none",
+    }[edge];
+    const paddingClass =
+      edge === "top" || edge === "bottom" ? "px-2 py-0.25" : "px-0.25 py-2";
+    return `${roundedClass} ${paddingClass}`;
+  };
 
   createEffect(
     on(
@@ -324,9 +365,12 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     setTimeout(() => {
       setIsCollapseAnimating(false);
       if (isCollapsed()) {
-        const rect = containerRef?.getBoundingClientRect();
-        if (rect) {
-          collapsedDimensions = { width: rect.width, height: rect.height };
+        const collapsedRect = containerRef?.getBoundingClientRect();
+        if (collapsedRect) {
+          collapsedDimensions = {
+            width: collapsedRect.width,
+            height: collapsedRect.height,
+          };
         }
       }
     }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
@@ -645,25 +689,27 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   onMount(() => {
     const savedState = loadToolbarState();
     const rect = containerRef?.getBoundingClientRect();
+    const viewport = getVisualViewport();
 
-    if (savedState && rect) {
+    if (savedState) {
       setSnapEdge(savedState.edge);
       setPositionRatio(savedState.ratio);
       setIsCollapsed(savedState.collapsed);
-      if (savedState.collapsed) {
-        collapsedDimensions = { width: rect.width, height: rect.height };
-      } else {
-        expandedDimensions = { width: rect.width, height: rect.height };
+      if (rect) {
+        if (savedState.collapsed) {
+          collapsedDimensions = { width: rect.width, height: rect.height };
+        } else {
+          expandedDimensions = { width: rect.width, height: rect.height };
+        }
       }
       const newPosition = getPositionFromEdgeAndRatio(
         savedState.edge,
         savedState.ratio,
-        rect.width,
-        rect.height,
+        expandedDimensions.width,
+        expandedDimensions.height,
       );
       setPosition(newPosition);
     } else if (rect) {
-      const viewport = getVisualViewport();
       expandedDimensions = { width: rect.width, height: rect.height };
       setPosition({
         x: viewport.offsetLeft + (viewport.width - rect.width) / 2,
@@ -674,6 +720,14 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           TOOLBAR_SNAP_MARGIN_PX,
       });
       setPositionRatio(0.5);
+    } else {
+      const defaultPosition = getPositionFromEdgeAndRatio(
+        "bottom",
+        0.5,
+        expandedDimensions.width,
+        expandedDimensions.height,
+      );
+      setPosition(defaultPosition);
     }
 
     if (props.onSubscribeToStateChanges) {
@@ -809,18 +863,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       >
         <div
           class={cn(
-            "[font-synthesis:none] contain-layout flex items-center justify-center rounded-sm bg-white antialiased transition-all duration-150 ease-out",
+            "[font-synthesis:none] flex items-center justify-center rounded-sm bg-white antialiased transition-all duration-150 ease-out relative overflow-visible",
             isCollapsed() ? "" : "h-7 gap-1.5 px-2",
-            isCollapsed() && snapEdge() === "top" && "rounded-t-none",
-            isCollapsed() && snapEdge() === "bottom" && "rounded-b-none",
-            isCollapsed() && snapEdge() === "left" && "rounded-l-none",
-            isCollapsed() && snapEdge() === "right" && "rounded-r-none",
-            isCollapsed() &&
-              (snapEdge() === "top" || snapEdge() === "bottom") &&
-              "px-2 py-0.25",
-            isCollapsed() &&
-              (snapEdge() === "left" || snapEdge() === "right") &&
-              "px-0.25 py-2",
+            collapsedEdgeClasses(),
             isShaking() && "animate-shake",
           )}
           style={{ "transform-origin": getTransformOrigin() }}
@@ -851,49 +896,69 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         >
           <div
             class={cn(
-              "grid transition-all duration-150 ease-out overflow-hidden",
+              "grid transition-all duration-150 ease-out",
               isCollapsed()
                 ? "grid-cols-[0fr] opacity-0"
                 : "grid-cols-[1fr] opacity-100",
             )}
           >
-            <div class="flex items-center gap-1.5 overflow-hidden min-w-0">
+            <div class="flex items-center gap-1.5 min-w-0">
               <Show when={props.enabled}>
+                <div class="relative shrink-0 overflow-visible">
+                  <button
+                    data-react-grab-ignore-events
+                    data-react-grab-toolbar-toggle
+                    class="contain-layout flex items-center justify-center cursor-pointer interactive-scale"
+                    onClick={handleToggle}
+                    onMouseEnter={() => setIsSelectTooltipVisible(true)}
+                    onMouseLeave={() => setIsSelectTooltipVisible(false)}
+                  >
+                    <IconSelect
+                      size={14}
+                      class={cn(
+                        "transition-colors",
+                        props.isActive ? "text-black" : "text-black/70",
+                      )}
+                    />
+                  </button>
+                  <Tooltip
+                    visible={isSelectTooltipVisible() && !isCollapsed()}
+                    position={tooltipPosition()}
+                  >
+                    Select element ({formatShortcut("C")})
+                  </Tooltip>
+                </div>
+              </Show>
+              <div class="relative shrink-0 overflow-visible">
                 <button
                   data-react-grab-ignore-events
-                  data-react-grab-toolbar-toggle
-                  class="contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale"
-                  onClick={handleToggle}
-                >
-                  <IconSelect
-                    size={14}
-                    class={cn(
-                      "transition-colors",
-                      props.isActive ? "text-black" : "text-black/70",
-                    )}
-                  />
-                </button>
-              </Show>
-              <button
-                data-react-grab-ignore-events
-                data-react-grab-toolbar-enabled
-                class="contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale outline-none mx-0.5"
-                onClick={handleToggleEnabled}
-              >
-                <div
-                  class={cn(
-                    "relative w-5 h-3 rounded-full transition-colors",
-                    props.enabled ? "bg-black" : "bg-black/25",
-                  )}
+                  data-react-grab-toolbar-enabled
+                  class="contain-layout flex items-center justify-center cursor-pointer interactive-scale outline-none mx-0.5"
+                  onClick={handleToggleEnabled}
+                  onMouseEnter={() => setIsToggleTooltipVisible(true)}
+                  onMouseLeave={() => setIsToggleTooltipVisible(false)}
                 >
                   <div
                     class={cn(
-                      "absolute top-0.5 w-2 h-2 rounded-full bg-white transition-transform",
-                      props.enabled ? "left-2.5" : "left-0.5",
+                      "relative w-5 h-3 rounded-full transition-colors",
+                      props.enabled ? "bg-black" : "bg-black/25",
                     )}
-                  />
-                </div>
-              </button>
+                  >
+                    <div
+                      class={cn(
+                        "absolute top-0.5 w-2 h-2 rounded-full bg-white transition-transform",
+                        props.enabled ? "left-2.5" : "left-0.5",
+                      )}
+                    />
+                  </div>
+                </button>
+                <Tooltip
+                  visible={isToggleTooltipVisible() && !isCollapsed()}
+                  position={tooltipPosition()}
+                >
+                  {props.enabled ? "Disable" : "Enable"}
+                </Tooltip>
+              </div>
             </div>
           </div>
           <button
