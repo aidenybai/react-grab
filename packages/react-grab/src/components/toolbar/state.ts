@@ -1,11 +1,6 @@
-export type SnapEdge = "top" | "bottom" | "left" | "right";
+import type { ToolbarState } from "../../types.js";
 
-export interface ToolbarState {
-  edge: SnapEdge;
-  ratio: number;
-  collapsed: boolean;
-  enabled: boolean;
-}
+export type SnapEdge = "top" | "bottom" | "left" | "right";
 
 const STORAGE_KEY = "react-grab-toolbar-state";
 
