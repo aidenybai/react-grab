@@ -31,6 +31,7 @@ import {
   TOOLBAR_SHAKE_TOOLTIP_DURATION_MS,
 } from "../../constants.js";
 import { formatShortcut } from "../../utils/format-shortcut.js";
+import { freezeUpdates } from "../../utils/freeze-updates.js";
 import { Tooltip } from "../tooltip.jsx";
 
 interface ToolbarProps {
@@ -47,6 +48,7 @@ interface ToolbarProps {
 
 export const Toolbar: Component<ToolbarProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
+  let unfreezeUpdatesCallback: (() => void) | null = null;
 
   const [isMobile, setIsMobile] = createSignal(
     (window.visualViewport?.width ?? window.innerWidth) <
@@ -850,6 +852,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     if (shakeTooltipTimeout) {
       clearTimeout(shakeTooltipTimeout);
     }
+    unfreezeUpdatesCallback?.();
   });
 
   const currentPosition = () => {
@@ -986,8 +989,15 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                       setIsSelectTooltipVisible(false);
                       handleToggle(event);
                     }}
-                    onMouseEnter={() => setIsSelectTooltipVisible(true)}
-                    onMouseLeave={() => setIsSelectTooltipVisible(false)}
+                    onMouseEnter={() => {
+                      setIsSelectTooltipVisible(true);
+                      unfreezeUpdatesCallback = freezeUpdates();
+                    }}
+                    onMouseLeave={() => {
+                      setIsSelectTooltipVisible(false);
+                      unfreezeUpdatesCallback?.();
+                      unfreezeUpdatesCallback = null;
+                    }}
                   >
                     <IconSelect
                       size={14}
