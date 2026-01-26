@@ -36,6 +36,7 @@ import { Tooltip } from "../tooltip.jsx";
 
 interface ToolbarProps {
   isActive?: boolean;
+  isContextMenuOpen?: boolean;
   onToggle?: () => void;
   enabled?: boolean;
   onToggleEnabled?: () => void;
@@ -126,9 +127,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   createEffect(
     on(
-      () => props.isActive,
-      (isActive) => {
-        if (!isActive && unfreezeUpdatesCallback) {
+      () => [props.isActive, props.isContextMenuOpen] as const,
+      ([isActive, isContextMenuOpen]) => {
+        if (!isActive && !isContextMenuOpen && unfreezeUpdatesCallback) {
           unfreezeUpdatesCallback();
           unfreezeUpdatesCallback = null;
         }
@@ -1009,7 +1010,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     }}
                     onMouseLeave={() => {
                       setIsSelectTooltipVisible(false);
-                      if (!props.isActive) {
+                      if (!props.isActive && !props.isContextMenuOpen) {
                         unfreezeUpdatesCallback?.();
                         unfreezeUpdatesCallback = null;
                       }
