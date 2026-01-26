@@ -858,17 +858,25 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   };
 
   const getCursorClass = (): string => {
-    if (isCollapsed()) return "cursor-pointer";
-    if (isDragging()) return "cursor-grabbing";
+    if (isCollapsed()) {
+      return "cursor-pointer";
+    }
+    if (isDragging()) {
+      return "cursor-grabbing";
+    }
     return "cursor-grab";
   };
 
   const getTransitionClass = (): string => {
-    if (isResizing()) return "";
-    if (isSnapping())
+    if (isResizing()) {
+      return "";
+    }
+    if (isSnapping()) {
       return "transition-[transform,opacity] duration-300 ease-out";
-    if (isCollapseAnimating())
+    }
+    if (isCollapseAnimating()) {
       return "transition-[transform,opacity] duration-150 ease-out";
+    }
     return "transition-opacity duration-300 ease-out";
   };
 
@@ -951,13 +959,20 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                 : "grid-cols-[1fr] opacity-100",
             )}
           >
-            <div class="flex items-center gap-1.5 min-w-0">
-              <Show when={props.enabled}>
-                <div class="relative shrink-0 overflow-visible">
+            <div class="flex items-center min-w-0">
+              <div
+                class={cn(
+                  "grid transition-all duration-150 ease-out overflow-hidden",
+                  props.enabled
+                    ? "grid-cols-[1fr] opacity-100"
+                    : "grid-cols-[0fr] opacity-0",
+                )}
+              >
+                <div class="relative overflow-hidden min-w-0">
                   <button
                     data-react-grab-ignore-events
                     data-react-grab-toolbar-toggle
-                    class="contain-layout flex items-center justify-center cursor-pointer interactive-scale"
+                    class="contain-layout flex items-center justify-center cursor-pointer interactive-scale mr-1.5"
                     onClick={(event) => {
                       setIsSelectTooltipVisible(false);
                       handleToggle(event);
@@ -980,7 +995,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     Select element ({formatShortcut("C")})
                   </Tooltip>
                 </div>
-              </Show>
+              </div>
               <div class="relative shrink-0 overflow-visible">
                 <button
                   data-react-grab-ignore-events
