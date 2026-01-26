@@ -410,6 +410,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       componentName: "Navigation",
       status: "copied",
       hasAgent: false,
+      hasOnDismiss: false,
     },
   },
   {
