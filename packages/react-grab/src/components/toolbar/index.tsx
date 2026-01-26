@@ -969,10 +969,19 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                 )}
               >
                 <div class="relative overflow-hidden min-w-0">
+                  {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
                   <button
                     data-react-grab-ignore-events
                     data-react-grab-toolbar-toggle
                     class="contain-layout flex items-center justify-center cursor-pointer interactive-scale mr-1.5"
+                    on:pointerdown={(event) => {
+                      event.stopPropagation();
+                      event.stopImmediatePropagation();
+                    }}
+                    on:mousedown={(event) => {
+                      event.stopPropagation();
+                      event.stopImmediatePropagation();
+                    }}
                     onClick={(event) => {
                       setIsSelectTooltipVisible(false);
                       handleToggle(event);
