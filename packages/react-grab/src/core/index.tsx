@@ -46,6 +46,7 @@ import {
   KEYDOWN_SPAM_TIMEOUT_MS,
   DRAG_THRESHOLD_PX,
   ELEMENT_DETECTION_THROTTLE_MS,
+  DRAG_PREVIEW_DEBOUNCE_MS,
   Z_INDEX_LABEL,
   MODIFIER_KEYS,
   BLUR_DEACTIVATION_THRESHOLD_MS,
@@ -322,6 +323,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     let lastElementDetectionTime = 0;
+    let dragPreviewDebounceTimerId: number | null = null;
+    const [debouncedDragPointer, setDebouncedDragPointer] = createSignal<{
+      x: number;
+      y: number;
+    } | null>(null);
     let keydownSpamTimerId: number | null = null;
     let holdTimerId: number | null = null;
     let holdStartTimestamp: number | null = null;
@@ -758,9 +764,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const dragPreviewBounds = createMemo((): OverlayBounds[] => {
-      // HACK: Skip computing element previews during drag to avoid expensive
-      // elementsFromPoint calls. Elements are computed only on drag end.
-      return [];
+      void store.viewportVersion;
+
+      if (!isDraggingBeyondThreshold()) return [];
+
+      const pointer = debouncedDragPointer();
+      if (!pointer) return [];
+
+      const drag = calculateDragRectangle(pointer.x, pointer.y);
+      const elements = getElementsInDrag(drag, isValidGrabbableElement);
+      const previewElements =
+        elements.length > 0
+          ? elements
+          : getElementsInDrag(drag, isValidGrabbableElement, false);
+
+      return previewElements.map((element) => createElementBounds(element));
     });
 
     const selectionBoundsMultiple = createMemo((): OverlayBounds[] => {
@@ -1336,6 +1354,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       if (isDragging()) {
+        if (dragPreviewDebounceTimerId !== null) {
+          clearTimeout(dragPreviewDebounceTimerId);
+        }
+        setDebouncedDragPointer(null);
+        dragPreviewDebounceTimerId = window.setTimeout(() => {
+          setDebouncedDragPointer({ x: clientX, y: clientY });
+          dragPreviewDebounceTimerId = null;
+        }, DRAG_PREVIEW_DEBOUNCE_MS);
+
         const direction = getAutoScrollDirection(clientX, clientY);
         const isNearEdge =
           direction.top ||
@@ -1446,6 +1473,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       hasModifierKeyHeld = false,
     ) => {
       if (!isDragging()) return;
+
+      if (dragPreviewDebounceTimerId !== null) {
+        clearTimeout(dragPreviewDebounceTimerId);
+        dragPreviewDebounceTimerId = null;
+      }
+      setDebouncedDragPointer(null);
 
       const dragDistance = calculateDragDistance(clientX, clientY);
       const wasDragGesture =
