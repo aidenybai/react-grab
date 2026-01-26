@@ -619,10 +619,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         overlayBounds = createFlatOverlayBounds(createElementBounds(element));
       }
 
+      const labelPositionX =
+        allElements.length > 1
+          ? overlayBounds.x + overlayBounds.width / 2
+          : positionX;
+
       const tagName = getTagName(element);
       void getNearestComponentName(element).then((componentName) => {
         void executeCopyOperation(
-          positionX,
+          labelPositionX,
           positionY,
           () => copyElementsToClipboard(allElements, extraPrompt),
           overlayBounds,
