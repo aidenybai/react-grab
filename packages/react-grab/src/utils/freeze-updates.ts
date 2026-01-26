@@ -203,6 +203,12 @@ const pauseContextDependency = (contextDep: ContextDependency): void => {
     },
   });
 
+  // HACK: initialize backing field for non-getter properties to avoid undefined during cleanup race
+  if (!originalDescriptor?.get) {
+    (contextDep as unknown as { _memoizedValue: unknown })._memoizedValue =
+      frozenValue;
+  }
+
   pausedContextStates.set(contextDep, pauseState);
 };
 
@@ -414,7 +420,7 @@ export const freezeUpdates = (): (() => void) => {
       traverseFibers(fiberRoot.current, resumeFiber);
     }
 
-    for (const renderer of rdtHook.renderers.values()) {
+    for (const renderer of pausedDispatcherStates.keys()) {
       uninstallDispatcherProxy(renderer);
     }
   };
