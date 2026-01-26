@@ -31,7 +31,10 @@ import { tryCopyWithFallback } from "./copy.js";
 import { getElementAtPosition } from "../utils/get-element-at-position.js";
 import { isValidGrabbableElement } from "../utils/is-valid-grabbable-element.js";
 import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
-import { createElementBounds } from "../utils/create-element-bounds.js";
+import {
+  createElementBounds,
+  invalidateBoundsCache,
+} from "../utils/create-element-bounds.js";
 import {
   createBoundsFromDragRect,
   createFlatOverlayBounds,
@@ -1374,7 +1377,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       actions.startDrag({ x: clientX, y: clientY });
       setThrottledDragPointer({ x: clientX, y: clientY });
-      lastDragPreviewUpdate = performance.now();
+      lastDragPreviewUpdate = 0;
       document.body.style.userSelect = "none";
 
       pluginRegistry.hooks.onDragStart(
@@ -2238,6 +2241,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     eventListenerManager.addWindowListener(
       "scroll",
       () => {
+        invalidateBoundsCache();
         actions.incrementViewportVersion();
         actions.updateSessionBounds();
         actions.updateContextMenuPosition();
@@ -2246,6 +2250,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     eventListenerManager.addWindowListener("resize", () => {
+      invalidateBoundsCache();
       actions.incrementViewportVersion();
       actions.updateSessionBounds();
       actions.updateContextMenuPosition();

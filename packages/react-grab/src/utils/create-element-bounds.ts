@@ -13,7 +13,11 @@ interface CachedBounds {
   timestamp: number;
 }
 
-const boundsCache = new WeakMap<Element, CachedBounds>();
+let boundsCache = new WeakMap<Element, CachedBounds>();
+
+export const invalidateBoundsCache = () => {
+  boundsCache = new WeakMap<Element, CachedBounds>();
+};
 
 const getAccumulatedTransform = (
   element: Element,
