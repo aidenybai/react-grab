@@ -22,7 +22,7 @@ export const DRAG_THRESHOLD_PX = 2;
 export const ELEMENT_DETECTION_THROTTLE_MS = 32;
 export const DRAG_PREVIEW_DEBOUNCE_MS = 32;
 export const DRAG_PREVIEW_THROTTLE_MS = 250;
-export const BOUNDS_CACHE_TTL_MS = 32;
+export const BOUNDS_CACHE_TTL_MS = 16;
 export const BOUNDS_RECALC_INTERVAL_MS = 100;
 
 export const AUTO_SCROLL_EDGE_THRESHOLD_PX = 25;
