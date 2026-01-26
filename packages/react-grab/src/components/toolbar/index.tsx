@@ -124,6 +124,18 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     ),
   );
 
+  createEffect(
+    on(
+      () => props.isActive,
+      (isActive) => {
+        if (!isActive && unfreezeUpdatesCallback) {
+          unfreezeUpdatesCallback();
+          unfreezeUpdatesCallback = null;
+        }
+      },
+    ),
+  );
+
   let lastPointerPosition = { x: 0, y: 0, time: 0 };
   let pointerStartPosition = { x: 0, y: 0 };
   let expandedDimensions = {
@@ -991,12 +1003,16 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     }}
                     onMouseEnter={() => {
                       setIsSelectTooltipVisible(true);
-                      unfreezeUpdatesCallback = freezeUpdates();
+                      if (!unfreezeUpdatesCallback) {
+                        unfreezeUpdatesCallback = freezeUpdates();
+                      }
                     }}
                     onMouseLeave={() => {
                       setIsSelectTooltipVisible(false);
-                      unfreezeUpdatesCallback?.();
-                      unfreezeUpdatesCallback = null;
+                      if (!props.isActive) {
+                        unfreezeUpdatesCallback?.();
+                        unfreezeUpdatesCallback = null;
+                      }
                     }}
                   >
                     <IconSelect
