@@ -31,7 +31,10 @@ import { tryCopyWithFallback } from "./copy.js";
 import { getElementAtPosition } from "../utils/get-element-at-position.js";
 import { isValidGrabbableElement } from "../utils/is-valid-grabbable-element.js";
 import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
-import { createElementBounds } from "../utils/create-element-bounds.js";
+import {
+  createElementBounds,
+  invalidateBoundsCache,
+} from "../utils/create-element-bounds.js";
 import {
   createBoundsFromDragRect,
   createFlatOverlayBounds,
@@ -43,6 +46,7 @@ import {
   KEYDOWN_SPAM_TIMEOUT_MS,
   DRAG_THRESHOLD_PX,
   ELEMENT_DETECTION_THROTTLE_MS,
+  DRAG_PREVIEW_THROTTLE_MS,
   Z_INDEX_LABEL,
   MODIFIER_KEYS,
   BLUR_DEACTIVATION_THRESHOLD_MS,
@@ -319,6 +323,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     let lastElementDetectionTime = 0;
+    let lastDragPreviewUpdate = 0;
+    const [throttledDragPointer, setThrottledDragPointer] = createSignal({
+      x: 0,
+      y: 0,
+    });
     let keydownSpamTimerId: number | null = null;
     let holdTimerId: number | null = null;
     let holdStartTimestamp: number | null = null;
@@ -759,7 +768,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (!isDraggingBeyondThreshold()) return [];
 
-      const drag = calculateDragRectangle(store.pointer.x, store.pointer.y);
+      const pointer = throttledDragPointer();
+      const drag = calculateDragRectangle(pointer.x, pointer.y);
       const elements = getElementsInDrag(drag, isValidGrabbableElement);
       const previewElements =
         elements.length > 0
@@ -1342,6 +1352,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       if (isDragging()) {
+        if (now - lastDragPreviewUpdate >= DRAG_PREVIEW_THROTTLE_MS) {
+          lastDragPreviewUpdate = now;
+          setThrottledDragPointer({ x: clientX, y: clientY });
+        }
+
         const direction = getAutoScrollDirection(clientX, clientY);
         const isNearEdge =
           direction.top ||
@@ -1361,6 +1376,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!isRendererActive() || isCopying()) return false;
 
       actions.startDrag({ x: clientX, y: clientY });
+      setThrottledDragPointer({ x: clientX, y: clientY });
+      lastDragPreviewUpdate = 0;
       document.body.style.userSelect = "none";
 
       pluginRegistry.hooks.onDragStart(
@@ -2224,6 +2241,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     eventListenerManager.addWindowListener(
       "scroll",
       () => {
+        invalidateBoundsCache();
         actions.incrementViewportVersion();
         actions.updateSessionBounds();
         actions.updateContextMenuPosition();
@@ -2232,6 +2250,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     eventListenerManager.addWindowListener("resize", () => {
+      invalidateBoundsCache();
       actions.incrementViewportVersion();
       actions.updateSessionBounds();
       actions.updateContextMenuPosition();

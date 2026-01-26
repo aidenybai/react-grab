@@ -3,9 +3,21 @@ import {
   stripTranslateFromMatrix,
   stripTranslateFromTransformString,
 } from "./strip-translate-from-transform.js";
+import { BOUNDS_CACHE_TTL_MS } from "../constants.js";
 
 const MAX_ANCESTOR_DEPTH = 6;
 const EARLY_BAIL_DEPTH = 3;
+
+interface CachedBounds {
+  bounds: OverlayBounds;
+  timestamp: number;
+}
+
+let boundsCache = new WeakMap<Element, CachedBounds>();
+
+export const invalidateBoundsCache = () => {
+  boundsCache = new WeakMap<Element, CachedBounds>();
+};
 
 const getAccumulatedTransform = (
   element: Element,
@@ -48,9 +60,18 @@ const getAccumulatedTransform = (
 };
 
 export const createElementBounds = (element: Element): OverlayBounds => {
+  const now = performance.now();
+  const cached = boundsCache.get(element);
+
+  if (cached && now - cached.timestamp < BOUNDS_CACHE_TTL_MS) {
+    return cached.bounds;
+  }
+
   const rect = element.getBoundingClientRect();
   const style = window.getComputedStyle(element);
   const transform = getAccumulatedTransform(element, style.transform);
+
+  let bounds: OverlayBounds;
 
   if (transform !== "none" && element instanceof HTMLElement) {
     const ow = element.offsetWidth;
@@ -60,7 +81,7 @@ export const createElementBounds = (element: Element): OverlayBounds => {
       const cx = rect.left + rect.width * 0.5;
       const cy = rect.top + rect.height * 0.5;
 
-      return {
+      bounds = {
         borderRadius: style.borderRadius || "0px",
         height: oh,
         transform,
@@ -68,15 +89,27 @@ export const createElementBounds = (element: Element): OverlayBounds => {
         x: cx - ow * 0.5,
         y: cy - oh * 0.5,
       };
+    } else {
+      bounds = {
+        borderRadius: style.borderRadius || "0px",
+        height: rect.height,
+        transform,
+        width: rect.width,
+        x: rect.left,
+        y: rect.top,
+      };
     }
+  } else {
+    bounds = {
+      borderRadius: style.borderRadius || "0px",
+      height: rect.height,
+      transform,
+      width: rect.width,
+      x: rect.left,
+      y: rect.top,
+    };
   }
 
-  return {
-    borderRadius: style.borderRadius || "0px",
-    height: rect.height,
-    transform,
-    width: rect.width,
-    x: rect.left,
-    y: rect.top,
-  };
+  boundsCache.set(element, { bounds, timestamp: now });
+  return bounds;
 };
