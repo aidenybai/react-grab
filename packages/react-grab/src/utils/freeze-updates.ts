@@ -60,7 +60,10 @@ interface PausedContextState {
 let isUpdatesPaused = false;
 const pausedDispatcherStates = new Map<ReactRenderer, PausedDispatcherState>();
 const pausedQueueStates = new WeakMap<HookQueue, PausedQueueState>();
-const pausedContextStates = new WeakMap<ContextDependency, PausedContextState>();
+const pausedContextStates = new WeakMap<
+  ContextDependency,
+  PausedContextState
+>();
 const typedFiberRoots = _fiberRoots as Set<FiberRootLike>;
 
 const getFiberRootFromFiber = (fiber: Fiber): FiberRootLike | null => {
@@ -142,7 +145,11 @@ const resumeHookQueue = (queue: HookQueue): void => {
 
   if (pauseState.originalPendingDescriptor) {
     const currentPendingValue = queue.pending;
-    Object.defineProperty(queue, "pending", pauseState.originalPendingDescriptor);
+    Object.defineProperty(
+      queue,
+      "pending",
+      pauseState.originalPendingDescriptor,
+    );
     if (
       !pauseState.originalPendingDescriptor.get &&
       !pauseState.originalPendingDescriptor.set
@@ -190,7 +197,8 @@ const pauseContextDependency = (contextDep: ContextDependency): void => {
       if (originalDescriptor?.set) {
         originalDescriptor.set.call(this, newValue);
       } else {
-        (this as unknown as { _memoizedValue: unknown })._memoizedValue = newValue;
+        (this as unknown as { _memoizedValue: unknown })._memoizedValue =
+          newValue;
       }
     },
   });
@@ -203,7 +211,11 @@ const resumeContextDependency = (contextDep: ContextDependency): void => {
   if (!pauseState) return;
 
   if (pauseState.originalDescriptor) {
-    Object.defineProperty(contextDep, "memoizedValue", pauseState.originalDescriptor);
+    Object.defineProperty(
+      contextDep,
+      "memoizedValue",
+      pauseState.originalDescriptor,
+    );
   } else {
     delete (contextDep as unknown as Record<string, unknown>).memoizedValue;
   }
@@ -231,7 +243,11 @@ const forEachContextDependency = (
   if (!fiber.dependencies) return;
 
   let contextDep = fiber.dependencies.firstContext as ContextDependency | null;
-  while (contextDep && typeof contextDep === "object" && "memoizedValue" in contextDep) {
+  while (
+    contextDep &&
+    typeof contextDep === "object" &&
+    "memoizedValue" in contextDep
+  ) {
     callback(contextDep);
     contextDep = contextDep.next;
   }
@@ -289,7 +305,9 @@ const createPausedDispatcher = (originalDispatcher: Dispatcher): Dispatcher => {
 
       if (prop === "useTransition" && typeof originalMethod === "function") {
         return (...args: unknown[]): unknown => {
-          const result = (originalMethod as (...args: unknown[]) => unknown)(...args);
+          const result = (originalMethod as (...args: unknown[]) => unknown)(
+            ...args,
+          );
 
           if (!Array.isArray(result) || result.length !== 2) {
             return result;
@@ -326,7 +344,10 @@ const installDispatcherProxy = (renderer: ReactRenderer): void => {
   if (pausedDispatcherStates.has(renderer)) return;
 
   const dispatcherKey: "H" | "current" = "H" in dispatcherRef ? "H" : "current";
-  const originalDescriptor = Object.getOwnPropertyDescriptor(dispatcherRef, dispatcherKey);
+  const originalDescriptor = Object.getOwnPropertyDescriptor(
+    dispatcherRef,
+    dispatcherKey,
+  );
   pausedDispatcherStates.set(renderer, { dispatcherKey, originalDescriptor });
 
   let currentDispatcherValue = dispatcherRef[dispatcherKey];
@@ -353,7 +374,11 @@ const uninstallDispatcherProxy = (renderer: ReactRenderer): void => {
   if (!dispatcherRef) return;
 
   if (pauseState.originalDescriptor) {
-    Object.defineProperty(dispatcherRef, pauseState.dispatcherKey, pauseState.originalDescriptor);
+    Object.defineProperty(
+      dispatcherRef,
+      pauseState.dispatcherKey,
+      pauseState.originalDescriptor,
+    );
   } else {
     delete (dispatcherRef as Record<string, unknown>)[pauseState.dispatcherKey];
   }

@@ -31,6 +31,7 @@ interface OptionsState {
   maxContextLines: number;
   activationKey: ActivationKey | undefined;
   getContent: ((elements: Element[]) => Promise<string> | string) | undefined;
+  freezeReactUpdates: boolean;
 }
 
 const DEFAULT_OPTIONS: OptionsState = {
@@ -40,6 +41,7 @@ const DEFAULT_OPTIONS: OptionsState = {
   maxContextLines: 3,
   activationKey: undefined,
   getContent: undefined,
+  freezeReactUpdates: true,
 };
 
 interface PluginStoreState {

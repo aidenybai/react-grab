@@ -707,12 +707,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       onCleanup(cleanup);
     });
 
-    createEffect(() => {
-      const elements = store.frozenElements;
-      if (elements.length === 0) return;
-      const unfreezeUpdates = freezeUpdates();
-      onCleanup(unfreezeUpdates);
-    });
+    createEffect(
+      on(isActivated, (activated) => {
+        if (!activated) return;
+        if (!pluginRegistry.store.options.freezeReactUpdates) return;
+        const unfreezeUpdates = freezeUpdates();
+        onCleanup(unfreezeUpdates);
+      }),
+    );
 
     const selectionBounds = createMemo((): OverlayBounds | undefined => {
       void store.viewportVersion;

@@ -283,6 +283,12 @@ export interface Options {
   maxContextLines?: number;
   activationKey?: ActivationKey;
   getContent?: (elements: Element[]) => Promise<string> | string;
+  /**
+   * Whether to freeze React state updates while React Grab is active.
+   * This prevents UI changes from interfering with element selection.
+   * @default true
+   */
+  freezeReactUpdates?: boolean;
 }
 
 export interface SettableOptions extends Options {

@@ -67,7 +67,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       return true;
     }
     if (props.status === "copying" && props.onAbort) return true;
-    if (props.status === "error" && (props.onAcknowledgeError || props.onRetry)) {
+    if (
+      props.status === "error" &&
+      (props.onAcknowledgeError || props.onRetry)
+    ) {
       return true;
     }
     return false;
