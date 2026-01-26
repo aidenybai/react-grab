@@ -275,6 +275,10 @@ export interface Plugin {
   setup?: (api: ReactGrabAPI) => PluginConfig | void;
 }
 
+export type IgnoreComponentsOption =
+  | Array<string | RegExp>
+  | ((name: string) => boolean);
+
 export interface Options {
   enabled?: boolean;
   activationMode?: ActivationMode;
@@ -283,6 +287,10 @@ export interface Options {
   maxContextLines?: number;
   activationKey?: ActivationKey;
   getContent?: (elements: Element[]) => Promise<string> | string;
+  /**
+   * Component names to ignore when searching for the nearest component.
+   */
+  ignoreComponents?: IgnoreComponentsOption;
   /**
    * Whether to freeze React state updates while React Grab is active.
    * This prevents UI changes from interfering with element selection.

@@ -1,7 +1,9 @@
 import { getElementContext } from "../core/context.js";
+import { IgnoreComponentsOption } from "../types.js";
 
 interface GenerateSnippetOptions {
   maxLines?: number;
+  ignoreComponents?: IgnoreComponentsOption;
 }
 
 export const generateSnippet = async (

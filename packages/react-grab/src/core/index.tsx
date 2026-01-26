@@ -146,6 +146,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   return createRoot((dispose) => {
     const pluginRegistry = createPluginRegistry(settableOptions);
 
+    // Helper to get ignoreComponents option - reduces repetitive access
+    const getIgnoreComponents = () =>
+      pluginRegistry.store.options.ignoreComponents;
+
     const getAgentFromActions = () => {
       for (const action of pluginRegistry.store.actions) {
         if (action.agent?.provider) {
@@ -394,7 +398,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             for (const frame of stack) {
               const hasSourceComponentName =
                 frame.functionName &&
-                checkIsSourceComponentName(frame.functionName);
+                checkIsSourceComponentName(
+                  frame.functionName,
+                  getIgnoreComponents(),
+                );
               const hasSourceFile =
                 frame.fileName && isSourceFile(frame.fileName);
 
@@ -413,7 +420,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           }
 
           if (!componentName) {
-            componentName = getComponentDisplayName(element);
+            componentName = getComponentDisplayName(
+              element,
+              getIgnoreComponents(),
+            );
           }
 
           const textContent =
@@ -551,14 +561,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const instanceId =
         bounds && tagName
           ? createLabelInstance(
-              bounds,
-              tagName,
-              componentName,
-              "copying",
-              element,
-              positionX,
-              elements,
-            )
+            bounds,
+            tagName,
+            componentName,
+            "copying",
+            element,
+            positionX,
+            elements,
+          )
           : null;
 
       await operation().finally(() => {
@@ -590,6 +600,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         {
           maxContextLines: pluginRegistry.store.options.maxContextLines,
           getContent: pluginRegistry.store.options.getContent,
+          ignoreComponents: getIgnoreComponents(),
         },
         {
           onBeforeCopy: pluginRegistry.hooks.onBeforeCopy,
@@ -660,7 +671,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           : positionX;
 
       const tagName = getTagName(element);
-      void getNearestComponentName(element).then((componentName) => {
+      void getNearestComponentName(
+        element,
+        getIgnoreComponents(),
+      ).then((componentName) => {
         void executeCopyOperation(
           labelPositionX,
           positionY,
@@ -952,19 +966,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         ]) => {
           const isSelectionBoxVisible = Boolean(
             themeEnabled &&
-              selectionBoxEnabled &&
-              active &&
-              !copying &&
-              !justCopied &&
-              !dragging &&
-              effectiveTarget != null,
+            selectionBoxEnabled &&
+            active &&
+            !copying &&
+            !justCopied &&
+            !dragging &&
+            effectiveTarget != null,
           );
           const isDragBoxVisible = Boolean(
             themeEnabled &&
-              dragBoxEnabled &&
-              active &&
-              !copying &&
-              draggingBeyondThreshold,
+            dragBoxEnabled &&
+            active &&
+            !copying &&
+            draggingBeyondThreshold,
           );
           pluginRegistry.hooks.onStateChange({
             isActive: active,
@@ -977,11 +991,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             targetElement: target,
             dragBounds: drag
               ? {
-                  x: drag.x,
-                  y: drag.y,
-                  width: drag.width,
-                  height: drag.height,
-                }
+                x: drag.x,
+                y: drag.y,
+                width: drag.width,
+                height: drag.height,
+              }
               : null,
             grabbedBoxes: grabbedBoxes.map((box) => ({
               id: box.id,
@@ -1194,7 +1208,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return wrapAgentWithCallbacks(agent);
     };
 
-    const agentManager = createAgentManager(getAgentOptionsWithCallbacks());
+    const agentManager = createAgentManager(
+      getAgentOptionsWithCallbacks(),
+      () => pluginRegistry.store.options,
+    );
 
     const handleInputChange = (value: string) => {
       actions.setInputText(value);
@@ -1462,10 +1479,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         elements.length > 0
           ? elements
           : getElementsInDrag(
-              dragSelectionRect,
-              isValidGrabbableElement,
-              false,
-            );
+            dragSelectionRect,
+            isValidGrabbableElement,
+            false,
+          );
 
       if (selectedElements.length === 0) return;
 
@@ -1998,15 +2015,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               ? !event.metaKey
               : !event.ctrlKey
             : (requiredModifiers.shiftKey && !event.shiftKey) ||
-              (requiredModifiers.altKey && !event.altKey);
+            (requiredModifiers.altKey && !event.altKey);
 
         const isReleasingActivationKey = pluginRegistry.store.options
           .activationKey
           ? typeof pluginRegistry.store.options.activationKey === "function"
             ? pluginRegistry.store.options.activationKey(event)
             : parseActivationKey(pluginRegistry.store.options.activationKey)(
-                event,
-              )
+              event,
+            )
           : isCLikeKey(event.key, event.code);
 
         if (didJustCopy() || inToggleFeedbackPeriod) {
@@ -2751,7 +2768,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       } else {
         try {
           await navigator.clipboard.writeText(html);
-        } catch {}
+        } catch { }
       }
 
       if (shouldDeactivate) {
@@ -3113,7 +3130,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               lineNumber: frame.lineNumber ?? null,
               componentName:
                 frame.functionName &&
-                checkIsSourceComponentName(frame.functionName)
+                  checkIsSourceComponentName(frame.functionName)
                   ? frame.functionName
                   : null,
             };
@@ -3151,7 +3168,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         syncAgentFromRegistry();
       },
       getPlugins: () => pluginRegistry.getPluginNames(),
-      getDisplayName: getComponentDisplayName,
+      getDisplayName: (element: Element) =>
+        getComponentDisplayName(element, getIgnoreComponents()),
     };
 
     return api;

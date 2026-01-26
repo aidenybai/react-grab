@@ -13,6 +13,7 @@ import {
   traverseFiber,
 } from "bippy";
 import { MAX_HTML_FALLBACK_LENGTH } from "../constants.js";
+import { IgnoreComponentsOption } from "../types.js";
 
 const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
   "InnerLayoutRouter",
@@ -65,12 +66,36 @@ export const checkIsInternalComponentName = (name: string): boolean => {
   return false;
 };
 
-export const checkIsSourceComponentName = (name: string): boolean => {
+const checkIsIgnored = (
+  name: string,
+  ignoreComponents?: IgnoreComponentsOption,
+): boolean => {
+  if (!ignoreComponents) return false;
+  if (typeof ignoreComponents === "function") {
+    return ignoreComponents(name);
+  }
+  for (const pattern of ignoreComponents) {
+    if (typeof pattern === "string") {
+      if (name === pattern) return true;
+    } else if (pattern.test(name)) {
+      return true;
+    }
+  }
+  return false;
+};
+
+export const checkIsSourceComponentName = (
+  name: string,
+  ignoreComponents?: IgnoreComponentsOption,
+): boolean => {
   if (name.length <= 1) return false;
   if (checkIsInternalComponentName(name)) return false;
   if (!isCapitalized(name)) return false;
   if (name.startsWith("Primitive.")) return false;
-  if (name.includes("Provider") && name.includes("Context")) return false;
+
+  if (checkIsIgnored(name, ignoreComponents)) return false;
+
+  if (name.includes("Provider") || name.includes("Context")) return false;
   return true;
 };
 
@@ -90,13 +115,17 @@ export const getStack = async (
 
 export const getNearestComponentName = async (
   element: Element,
+  ignoreComponents?: IgnoreComponentsOption,
 ): Promise<string | null> => {
   if (!isInstrumentationActive()) return null;
   const stack = await getStack(element);
   if (!stack) return null;
 
   for (const frame of stack) {
-    if (frame.functionName && checkIsSourceComponentName(frame.functionName)) {
+    if (
+      frame.functionName &&
+      checkIsSourceComponentName(frame.functionName, ignoreComponents)
+    ) {
       return frame.functionName;
     }
   }
@@ -104,15 +133,22 @@ export const getNearestComponentName = async (
   return null;
 };
 
-const isUsefulComponentName = (name: string): boolean => {
+const isUsefulComponentName = (
+  name: string,
+  ignoreComponents?: IgnoreComponentsOption,
+): boolean => {
   if (!name) return false;
   if (checkIsInternalComponentName(name)) return false;
   if (name.startsWith("Primitive.")) return false;
   if (name === "SlotClone" || name === "Slot") return false;
+  if (checkIsIgnored(name, ignoreComponents)) return false;
   return true;
 };
 
-export const getComponentDisplayName = (element: Element): string | null => {
+export const getComponentDisplayName = (
+  element: Element,
+  ignoreComponents?: IgnoreComponentsOption,
+): string | null => {
   if (!isInstrumentationActive()) return null;
   const fiber = getFiberFromHostInstance(element);
   if (!fiber) return null;
@@ -121,7 +157,7 @@ export const getComponentDisplayName = (element: Element): string | null => {
   while (currentFiber) {
     if (isCompositeFiber(currentFiber)) {
       const name = getDisplayName(currentFiber.type);
-      if (name && isUsefulComponentName(name)) {
+      if (name && isUsefulComponentName(name, ignoreComponents)) {
         return name;
       }
     }
@@ -133,6 +169,7 @@ export const getComponentDisplayName = (element: Element): string | null => {
 
 interface GetElementContextOptions {
   maxLines?: number;
+  ignoreComponents?: IgnoreComponentsOption;
 }
 
 const hasSourceFiles = (stack: StackFrame[] | null): boolean => {
@@ -146,6 +183,7 @@ const hasSourceFiles = (stack: StackFrame[] | null): boolean => {
 const getComponentNamesFromFiber = (
   element: Element,
   maxCount: number,
+  ignoreComponents?: IgnoreComponentsOption,
 ): string[] => {
   if (!isInstrumentationActive()) return [];
   const fiber = getFiberFromHostInstance(element);
@@ -158,7 +196,7 @@ const getComponentNamesFromFiber = (
       if (componentNames.length >= maxCount) return true;
       if (isCompositeFiber(currentFiber)) {
         const name = getDisplayName(currentFiber.type);
-        if (name && isUsefulComponentName(name)) {
+        if (name && isUsefulComponentName(name, ignoreComponents)) {
           componentNames.push(name);
         }
       }
@@ -196,7 +234,10 @@ export const getElementContext = async (
         if (
           frame.isServer &&
           (!frame.functionName ||
-            checkIsSourceComponentName(frame.functionName))
+            checkIsSourceComponentName(
+              frame.functionName,
+              options.ignoreComponents,
+            ))
         ) {
           stackContext.push(
             `\n  in ${frame.functionName || "<anonymous>"} (at Server)`,
@@ -207,7 +248,10 @@ export const getElementContext = async (
           let line = "\n  in ";
           const hasComponentName =
             frame.functionName &&
-            checkIsSourceComponentName(frame.functionName);
+            checkIsSourceComponentName(
+              frame.functionName,
+              options.ignoreComponents,
+            );
 
           if (hasComponentName) {
             line += `${frame.functionName} (at `;
@@ -232,7 +276,11 @@ export const getElementContext = async (
     return `${html}${stackContext.join("")}`;
   }
 
-  const componentNames = getComponentNamesFromFiber(element, maxLines);
+  const componentNames = getComponentNamesFromFiber(
+    element,
+    maxLines,
+    options.ignoreComponents,
+  );
   if (componentNames.length > 0) {
     const componentContext = componentNames
       .map((name) => `\n  in ${name}`)

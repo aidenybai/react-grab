@@ -15,6 +15,7 @@ import type {
   ActivationMode,
   ActivationKey,
   SettableOptions,
+  IgnoreComponentsOption,
 } from "../types.js";
 import { DEFAULT_THEME, deepMergeTheme } from "./theme.js";
 import { DEFAULT_KEY_HOLD_DURATION_MS } from "../constants.js";
@@ -31,6 +32,7 @@ interface OptionsState {
   maxContextLines: number;
   activationKey: ActivationKey | undefined;
   getContent: ((elements: Element[]) => Promise<string> | string) | undefined;
+  ignoreComponents: IgnoreComponentsOption | undefined;
   freezeReactUpdates: boolean;
 }
 
@@ -41,6 +43,7 @@ const DEFAULT_OPTIONS: OptionsState = {
   maxContextLines: 3,
   activationKey: undefined,
   getContent: undefined,
+  ignoreComponents: undefined,
   freezeReactUpdates: true,
 };
 

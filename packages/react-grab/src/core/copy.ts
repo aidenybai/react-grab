@@ -1,9 +1,11 @@
 import { copyContent } from "../utils/copy-content.js";
 import { generateSnippet } from "../utils/generate-snippet.js";
+import { IgnoreComponentsOption } from "../types.js";
 
 interface CopyOptions {
   maxContextLines?: number;
   getContent?: (elements: Element[]) => Promise<string> | string;
+  ignoreComponents?: IgnoreComponentsOption;
 }
 
 interface CopyHooks {
@@ -37,6 +39,7 @@ export const tryCopyWithFallback = async (
     } else {
       const snippets = await generateSnippet(elements, {
         maxLines: options.maxContextLines,
+        ignoreComponents: options.ignoreComponents,
       });
       const combinedSnippets = snippets.join("\n\n");
 
