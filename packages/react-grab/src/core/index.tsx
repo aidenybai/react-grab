@@ -1382,7 +1382,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!isRendererActive() || isCopying()) return false;
 
       actions.startDrag({ x: clientX, y: clientY });
+      actions.setPointer({ x: clientX, y: clientY });
       document.body.style.userSelect = "none";
+
+      if (dragPreviewDebounceTimerId !== null) {
+        clearTimeout(dragPreviewDebounceTimerId);
+      }
+      setDebouncedDragPointer(null);
+      dragPreviewDebounceTimerId = window.setTimeout(() => {
+        setDebouncedDragPointer({ x: clientX, y: clientY });
+        dragPreviewDebounceTimerId = null;
+      }, DRAG_PREVIEW_DEBOUNCE_MS);
 
       pluginRegistry.hooks.onDragStart(
         clientX + window.scrollX,
