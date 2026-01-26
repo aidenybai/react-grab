@@ -148,6 +148,9 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
                 ? () => props.onShowContextMenuInstance?.(instance().id)
                 : undefined
             }
+            onHoverChange={(isHovered) =>
+              props.onLabelInstanceHoverChange?.(instance().id, isHovered)
+            }
           />
         )}
       </Index>

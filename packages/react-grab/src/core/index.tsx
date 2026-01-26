@@ -489,7 +489,48 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const removeLabelInstance = (instanceId: string) => {
+      labelFadeTimeouts.delete(instanceId);
       actions.removeLabelInstance(instanceId);
+    };
+
+    const labelFadeTimeouts = new Map<string, number>();
+
+    const cancelLabelFade = (instanceId: string) => {
+      const existingTimeout = labelFadeTimeouts.get(instanceId);
+      if (existingTimeout !== undefined) {
+        window.clearTimeout(existingTimeout);
+        labelFadeTimeouts.delete(instanceId);
+      }
+    };
+
+    const scheduleLabelFade = (instanceId: string) => {
+      cancelLabelFade(instanceId);
+
+      const timeoutId = window.setTimeout(() => {
+        labelFadeTimeouts.delete(instanceId);
+        updateLabelInstance(instanceId, "fading");
+        setTimeout(() => {
+          removeLabelInstance(instanceId);
+        }, FADE_COMPLETE_BUFFER_MS);
+      }, FEEDBACK_DURATION_MS);
+
+      labelFadeTimeouts.set(instanceId, timeoutId);
+    };
+
+    const handleLabelInstanceHoverChange = (
+      instanceId: string,
+      isHovered: boolean,
+    ) => {
+      if (isHovered) {
+        cancelLabelFade(instanceId);
+      } else {
+        const instance = store.labelInstances.find(
+          (labelInstance) => labelInstance.id === instanceId,
+        );
+        if (instance && instance.status === "copied") {
+          scheduleLabelFade(instanceId);
+        }
+      }
     };
 
     const executeCopyOperation = async (
@@ -524,14 +565,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         if (instanceId) {
           updateLabelInstance(instanceId, "copied");
-
-          setTimeout(() => {
-            updateLabelInstance(instanceId, "fading");
-            // HACK: Wait slightly longer than CSS transition (100ms) to ensure fade completes before unmount
-            setTimeout(() => {
-              removeLabelInstance(instanceId);
-            }, FADE_COMPLETE_BUFFER_MS);
-          }, FEEDBACK_DURATION_MS);
+          scheduleLabelFade(instanceId);
         }
 
         if (shouldDeactivateAfter) {
@@ -1771,12 +1805,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           didSucceed ? undefined : errorMessage || "Unknown error",
         );
 
-        setTimeout(() => {
-          updateLabelInstance(instanceId, "fading");
-          setTimeout(() => {
-            removeLabelInstance(instanceId);
-          }, FADE_COMPLETE_BUFFER_MS);
-        }, FEEDBACK_DURATION_MS);
+        scheduleLabelFade(instanceId);
 
         if (shouldDeactivate) {
           deactivateRenderer();
@@ -2646,12 +2675,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         didSucceed ? undefined : errorMessage || "Unknown error",
       );
 
-      setTimeout(() => {
-        updateLabelInstance(instanceId, "fading");
-        setTimeout(() => {
-          removeLabelInstance(instanceId);
-        }, FADE_COMPLETE_BUFFER_MS);
-      }, FEEDBACK_DURATION_MS);
+      scheduleLabelFade(instanceId);
 
       if (shouldDeactivate) {
         deactivateRenderer();
@@ -2713,12 +2737,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           updateLabelInstance(instanceId, "error", "Failed to copy");
         }
 
-        setTimeout(() => {
-          updateLabelInstance(instanceId, "fading");
-          setTimeout(() => {
-            removeLabelInstance(instanceId);
-          }, FADE_COMPLETE_BUFFER_MS);
-        }, FEEDBACK_DURATION_MS);
+        scheduleLabelFade(instanceId);
       } else {
         try {
           await navigator.clipboard.writeText(html);
@@ -2900,6 +2919,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onRetrySession={agentManager.session.retry}
             onShowContextMenuSession={handleShowContextMenuSession}
             onShowContextMenuInstance={handleShowContextMenuInstance}
+            onLabelInstanceHoverChange={handleLabelInstanceHoverChange}
             onInputChange={handleInputChange}
             onInputSubmit={() => void handleInputSubmit()}
             onInputCancel={handleInputCancel}

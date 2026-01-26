@@ -397,6 +397,7 @@ export interface ReactGrabRendererProps {
   onRetrySession?: (sessionId: string) => void;
   onShowContextMenuSession?: (sessionId: string) => void;
   onShowContextMenuInstance?: (instanceId: string) => void;
+  onLabelInstanceHoverChange?: (instanceId: string, isHovered: boolean) => void;
   onInputChange?: (value: string) => void;
   onInputSubmit?: () => void;
   onInputCancel?: () => void;
@@ -551,4 +552,5 @@ export interface SelectionLabelProps {
   onRetry?: () => void;
   isContextMenuOpen?: boolean;
   onShowContextMenu?: () => void;
+  onHoverChange?: (isHovered: boolean) => void;
 }

@@ -61,15 +61,19 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const isCompletedStatus = () =>
     props.status === "copied" || props.status === "fading";
 
-  const shouldEnablePointerEvents = (): boolean =>
-    props.isPromptMode ||
-    (isCompletedStatus() &&
-      Boolean(props.onDismiss || props.onShowContextMenu)) ||
-    (props.status === "copying" && Boolean(props.onAbort)) ||
-    (props.status === "error" &&
-      Boolean(props.onAcknowledgeError || props.onRetry));
+  const shouldEnablePointerEvents = (): boolean => {
+    if (props.isPromptMode) return true;
+    if (isCompletedStatus() && (props.onDismiss || props.onShowContextMenu)) {
+      return true;
+    }
+    if (props.status === "copying" && props.onAbort) return true;
+    if (props.status === "error" && (props.onAcknowledgeError || props.onRetry)) {
+      return true;
+    }
+    return false;
+  };
 
-  const showOpenIndicator = () => props.isContextMenuOpen === true;
+  const showOpenIndicator = () => Boolean(props.isContextMenuOpen);
 
   const measureContainer = () => {
     if (containerRef && !isTagCurrentlyHovered) {
@@ -357,6 +361,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           event.stopPropagation();
           event.stopImmediatePropagation();
         }}
+        onMouseEnter={() => props.onHoverChange?.(true)}
+        onMouseLeave={() => props.onHoverChange?.(false)}
       >
         <Arrow
           position={arrowPosition()}
