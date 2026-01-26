@@ -55,17 +55,31 @@ interface PluginHooks {
 
   // State changes
   onStateChange?: (state: ReactGrabState) => void;
-  onPromptModeChange?: (isPromptMode: boolean, context: PromptModeContext) => void;
+  onPromptModeChange?: (
+    isPromptMode: boolean,
+    context: PromptModeContext,
+  ) => void;
 
   // Visual overlays
-  onSelectionBox?: (visible: boolean, bounds: OverlayBounds | null, element: Element | null) => void;
+  onSelectionBox?: (
+    visible: boolean,
+    bounds: OverlayBounds | null,
+    element: Element | null,
+  ) => void;
   onDragBox?: (visible: boolean, bounds: OverlayBounds | null) => void;
   onGrabbedBox?: (bounds: OverlayBounds, element: Element) => void;
-  onElementLabel?: (visible: boolean, variant: ElementLabelVariant, context: ElementLabelContext) => void;
+  onElementLabel?: (
+    visible: boolean,
+    variant: ElementLabelVariant,
+    context: ElementLabelContext,
+  ) => void;
   onCrosshair?: (visible: boolean, context: CrosshairContext) => void;
 
   // Context menu
-  onContextMenu?: (element: Element, position: { x: number; y: number }) => void;
+  onContextMenu?: (
+    element: Element,
+    position: { x: number; y: number },
+  ) => void;
 
   // File operations (return true to handle)
   onOpenFile?: (filePath: string, lineNumber?: number) => boolean | void;
@@ -120,12 +134,12 @@ Structure for adding context menu items:
 
 ```typescript
 interface ContextMenuAction {
-  id: string;                      // Unique identifier
-  label: string;                   // Display text
-  shortcut?: string;               // Keyboard shortcut hint
+  id: string; // Unique identifier
+  label: string; // Display text
+  shortcut?: string; // Keyboard shortcut hint
   enabled?: boolean | ((context: ActionContext) => boolean);
   onAction: (context: ActionContext) => void;
-  agent?: AgentOptions;            // Optional agent configuration
+  agent?: AgentOptions; // Optional agent configuration
 }
 ```
 
@@ -135,12 +149,12 @@ Context provided to action handlers:
 
 ```typescript
 interface ActionContext {
-  element: Element;                // Primary selected element
-  elements: Element[];             // All selected elements
-  filePath?: string;               // Source file path
-  lineNumber?: number;             // Source line number
-  componentName?: string;          // React component name
-  tagName?: string;                // HTML tag name
+  element: Element; // Primary selected element
+  elements: Element[]; // All selected elements
+  filePath?: string; // Source file path
+  lineNumber?: number; // Source line number
+  componentName?: string; // React component name
+  tagName?: string; // HTML tag name
   enterPromptMode?: (agent?: AgentOptions) => void;
 }
 ```
@@ -151,8 +165,8 @@ Theme customization options:
 
 ```typescript
 interface Theme {
-  enabled?: boolean;               // Global toggle (default: true)
-  hue?: number;                    // Base color 0-360 (default: 0)
+  enabled?: boolean; // Global toggle (default: true)
+  hue?: number; // Base color 0-360 (default: 0)
   selectionBox?: { enabled?: boolean };
   dragBox?: { enabled?: boolean };
   grabbedBoxes?: { enabled?: boolean };
@@ -169,7 +183,7 @@ Configuration options that can be set via plugins:
 ```typescript
 interface SettableOptions {
   activationMode?: "toggle" | "hold";
-  keyHoldDuration?: number;        // ms for hold mode
+  keyHoldDuration?: number; // ms for hold mode
   allowActivationInsideInput?: boolean;
   maxContextLines?: number;
   activationKey?: string | ((event: KeyboardEvent) => boolean);

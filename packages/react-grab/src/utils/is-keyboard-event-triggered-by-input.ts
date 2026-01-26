@@ -1,4 +1,4 @@
-const FORM_TAGS_AND_ROLES: readonly string[] = [
+const EDITABLE_TAGS_AND_ROLES: readonly string[] = [
   "input",
   "textarea",
   "select",
@@ -11,39 +11,35 @@ const FORM_TAGS_AND_ROLES: readonly string[] = [
   "option",
   "radio",
   "textbox",
+  "combobox",
 ];
 
-const isEventFromFormElement = (event: KeyboardEvent): boolean => {
-  const { composed, target } = event;
-
-  let targetTagName: string | undefined;
-  let targetRole: string | null | undefined;
-
-  if (composed) {
-    const composedPath = event.composedPath();
-    const firstElement = composedPath[0];
-
+const getTargetElement = (event: KeyboardEvent): HTMLElement | undefined => {
+  if (event.composed) {
+    const firstElement = event.composedPath()[0];
     if (firstElement instanceof HTMLElement) {
-      targetTagName = firstElement.tagName;
-      targetRole = firstElement.role;
+      return firstElement;
     }
-  } else if (target instanceof HTMLElement) {
-    targetTagName = target.tagName;
-    targetRole = target.role;
+  } else if (event.target instanceof HTMLElement) {
+    return event.target;
   }
-
-  if (!targetTagName) return false;
-
-  const normalizedTagName = targetTagName.toLowerCase();
-  return FORM_TAGS_AND_ROLES.some(
-    (tagOrRole) => tagOrRole === normalizedTagName || tagOrRole === targetRole,
-  );
+  return undefined;
 };
 
 export const isKeyboardEventTriggeredByInput = (
   event: KeyboardEvent,
 ): boolean => {
-  return isEventFromFormElement(event);
+  if (document.designMode === "on") return true;
+
+  const targetElement = getTargetElement(event);
+  if (!targetElement) return false;
+
+  if (targetElement.isContentEditable) return true;
+
+  const tagName = targetElement.tagName.toLowerCase();
+  return EDITABLE_TAGS_AND_ROLES.some(
+    (tagOrRole) => tagOrRole === tagName || tagOrRole === targetElement.role,
+  );
 };
 
 export const hasTextSelectionInInput = (event: KeyboardEvent): boolean => {

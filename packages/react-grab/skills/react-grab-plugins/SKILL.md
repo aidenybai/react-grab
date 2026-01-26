@@ -29,11 +29,11 @@ api.registerPlugin(myPlugin);
 
 ```typescript
 interface Plugin {
-  name: string;                    // Unique identifier (required)
-  theme?: DeepPartial<Theme>;      // Theme customizations
-  options?: SettableOptions;       // Configuration overrides
-  actions?: ContextMenuAction[];   // Context menu actions
-  hooks?: PluginHooks;             // Lifecycle hooks
+  name: string; // Unique identifier (required)
+  theme?: DeepPartial<Theme>; // Theme customizations
+  options?: SettableOptions; // Configuration overrides
+  actions?: ContextMenuAction[]; // Context menu actions
+  hooks?: PluginHooks; // Lifecycle hooks
   setup?: (api: ReactGrabAPI) => PluginConfig | void;
 }
 ```
@@ -51,16 +51,16 @@ See [references/plugin-interface.md](references/plugin-interface.md) for full in
 
 Hooks let you react to user interactions and state changes:
 
-| Hook | Trigger |
-|------|---------|
-| `onActivate` / `onDeactivate` | Activation state changes |
-| `onElementHover` / `onElementSelect` | Mouse interactions |
-| `onDragStart` / `onDragEnd` | Drag selection |
-| `onBeforeCopy` / `onAfterCopy` / `onCopySuccess` / `onCopyError` | Copy operations |
-| `onStateChange` | Any ReactGrabState change |
-| `onPromptModeChange` | Agent prompt mode toggle |
-| `onContextMenu` | Right-click menu opened |
-| `onOpenFile` | File link clicked (return `true` to handle) |
+| Hook                                                             | Trigger                                     |
+| ---------------------------------------------------------------- | ------------------------------------------- |
+| `onActivate` / `onDeactivate`                                    | Activation state changes                    |
+| `onElementHover` / `onElementSelect`                             | Mouse interactions                          |
+| `onDragStart` / `onDragEnd`                                      | Drag selection                              |
+| `onBeforeCopy` / `onAfterCopy` / `onCopySuccess` / `onCopyError` | Copy operations                             |
+| `onStateChange`                                                  | Any ReactGrabState change                   |
+| `onPromptModeChange`                                             | Agent prompt mode toggle                    |
+| `onContextMenu`                                                  | Right-click menu opened                     |
+| `onOpenFile`                                                     | File link clicked (return `true` to handle) |
 
 ## Context Menu Actions
 
@@ -84,6 +84,7 @@ api.registerPlugin({
 ```
 
 **ActionContext** provided to `onAction`:
+
 - `element` / `elements` - Selected DOM element(s)
 - `filePath` / `lineNumber` - Source location (if available)
 - `componentName` / `tagName` - Component info
@@ -97,12 +98,12 @@ Customize the visual appearance:
 api.registerPlugin({
   name: "dark-theme",
   theme: {
-    hue: 220,                        // Base color (0-360)
+    hue: 220, // Base color (0-360)
     selectionBox: { enabled: true },
     dragBox: { enabled: true },
     grabbedBoxes: { enabled: true },
     elementLabel: { enabled: false }, // Hide the label
-    crosshair: { enabled: false },    // Hide crosshair
+    crosshair: { enabled: false }, // Hide crosshair
     toolbar: { enabled: true },
   },
 });
@@ -116,11 +117,11 @@ Configure behavior via plugins:
 api.registerPlugin({
   name: "hold-mode",
   options: {
-    activationMode: "hold",           // "toggle" | "hold"
-    keyHoldDuration: 500,             // ms to hold before activating
+    activationMode: "hold", // "toggle" | "hold"
+    keyHoldDuration: 500, // ms to hold before activating
     allowActivationInsideInput: false,
     maxContextLines: 5,
-    activationKey: "Alt",             // Key or predicate function
+    activationKey: "Alt", // Key or predicate function
     freezeReactUpdates: true,
   },
 });

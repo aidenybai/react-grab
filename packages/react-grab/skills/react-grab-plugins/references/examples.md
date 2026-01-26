@@ -70,7 +70,9 @@ const customActionsPlugin: Plugin = {
       label: "Highlight Similar",
       enabled: ({ element }) => element.className.length > 0,
       onAction: ({ element }) => {
-        const similar = document.querySelectorAll(`.${element.className.split(" ")[0]}`);
+        const similar = document.querySelectorAll(
+          `.${element.className.split(" ")[0]}`,
+        );
         similar.forEach((el) => (el.style.outline = "2px solid red"));
       },
     },
@@ -90,12 +92,12 @@ import type { Plugin } from "react-grab/core";
 const darkThemePlugin: Plugin = {
   name: "dark-theme",
   theme: {
-    hue: 220,                        // Blue-ish base color
+    hue: 220, // Blue-ish base color
     selectionBox: { enabled: true },
     dragBox: { enabled: true },
     grabbedBoxes: { enabled: true },
     elementLabel: { enabled: true },
-    crosshair: { enabled: false },   // Disable crosshair
+    crosshair: { enabled: false }, // Disable crosshair
     toolbar: { enabled: true },
   },
 };
@@ -155,7 +157,7 @@ const createMyAgentProvider = (): AgentProvider => ({
     const session = storage.getItem(`session-${sessionId}`);
     if (!session) return;
 
-    yield* this.send(JSON.parse(session), signal);
+    yield * this.send(JSON.parse(session), signal);
   },
 
   async abort(sessionId) {
@@ -308,7 +310,11 @@ const debugPlugin: Plugin = {
       });
     },
     onSelectionBox: (visible, bounds, element) => {
-      console.log("[Selection Box]", { visible, bounds, element: element?.tagName });
+      console.log("[Selection Box]", {
+        visible,
+        bounds,
+        element: element?.tagName,
+      });
     },
     onContextMenu: (element, position) => {
       console.log("[Context Menu]", { element: element.tagName, position });
@@ -337,8 +343,10 @@ const conditionalPlugin: Plugin = {
   hooks: {
     onElementHover: (element) => {
       // Skip non-React elements
-      if (!element.hasAttribute("data-reactroot") && 
-          !element.closest("[data-reactroot]")) {
+      if (
+        !element.hasAttribute("data-reactroot") &&
+        !element.closest("[data-reactroot]")
+      ) {
         return;
       }
     },
@@ -366,7 +374,7 @@ const customContentPlugin: Plugin = {
           const innerHTML = element.innerHTML.slice(0, 100);
 
           return `<${tagName} class="${className}">\n  ${innerHTML}...\n</${tagName}>`;
-        })
+        }),
       );
       return contents.join("\n\n");
     },
@@ -401,7 +409,7 @@ const attachPlugin = (plugin: Plugin) => {
         event.detail.registerPlugin(plugin);
       }
     },
-    { once: true }
+    { once: true },
   );
 };
 

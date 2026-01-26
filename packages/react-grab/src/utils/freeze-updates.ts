@@ -65,7 +65,10 @@ interface PausedContextState {
 
 const pausedDispatcherStates = new Map<ReactRenderer, PausedDispatcherState>();
 const pausedQueueStates = new WeakMap<HookQueue, PausedQueueState>();
-const pausedContextStates = new WeakMap<ContextDependency, PausedContextState>();
+const pausedContextStates = new WeakMap<
+  ContextDependency,
+  PausedContextState
+>();
 const typedFiberRoots = _fiberRoots as Set<FiberRootLike>;
 
 const getFiberRootFromFiber = (fiber: Fiber): FiberRootLike | null => {
@@ -113,7 +116,9 @@ const pauseHookQueue = (queue: HookQueue): void => {
     pauseState.snapshotValueAtPause = queue.getSnapshot();
 
     queue.getSnapshot = () =>
-      isUpdatesPaused ? pauseState.snapshotValueAtPause : pauseState.originalGetSnapshot!();
+      isUpdatesPaused
+        ? pauseState.snapshotValueAtPause
+        : pauseState.originalGetSnapshot!();
   }
 
   pausedQueueStates.set(queue, pauseState);
@@ -134,7 +139,10 @@ const pauseContextDependency = (contextDep: ContextDependency): void => {
   if (pausedContextStates.has(contextDep)) return;
 
   const frozenValue = contextDep.memoizedValue;
-  const originalDescriptor = Object.getOwnPropertyDescriptor(contextDep, "memoizedValue");
+  const originalDescriptor = Object.getOwnPropertyDescriptor(
+    contextDep,
+    "memoizedValue",
+  );
 
   let valueDuringPause: unknown = null;
   let didReceiveValueDuringPause = false;
@@ -169,14 +177,16 @@ const pauseContextDependency = (contextDep: ContextDependency): void => {
       if (originalDescriptor?.set) {
         originalDescriptor.set.call(this, newValue);
       } else {
-        (this as unknown as { _memoizedValue: unknown })._memoizedValue = newValue;
+        (this as unknown as { _memoizedValue: unknown })._memoizedValue =
+          newValue;
       }
     },
   });
 
   // HACK: Initialize backing field for non-getter properties to avoid undefined during cleanup race
   if (!originalDescriptor?.get) {
-    (contextDep as unknown as { _memoizedValue: unknown })._memoizedValue = frozenValue;
+    (contextDep as unknown as { _memoizedValue: unknown })._memoizedValue =
+      frozenValue;
   }
 
   pausedContextStates.set(contextDep, pauseState);
@@ -189,7 +199,11 @@ const resumeContextDependency = (contextDep: ContextDependency): void => {
   const valueDuringPause = pauseState.getValueDuringPause?.();
 
   if (pauseState.originalDescriptor) {
-    Object.defineProperty(contextDep, "memoizedValue", pauseState.originalDescriptor);
+    Object.defineProperty(
+      contextDep,
+      "memoizedValue",
+      pauseState.originalDescriptor,
+    );
   } else {
     delete (contextDep as unknown as Record<string, unknown>).memoizedValue;
   }
@@ -201,7 +215,10 @@ const resumeContextDependency = (contextDep: ContextDependency): void => {
   pausedContextStates.delete(contextDep);
 };
 
-const forEachHookQueue = (fiber: Fiber, callback: (queue: HookQueue) => void): void => {
+const forEachHookQueue = (
+  fiber: Fiber,
+  callback: (queue: HookQueue) => void,
+): void => {
   let hookState = fiber.memoizedState as unknown as HookState | null;
   while (hookState) {
     if (hookState.queue && typeof hookState.queue === "object") {
@@ -218,13 +235,20 @@ const forEachContextDependency = (
   if (!fiber.dependencies) return;
 
   let contextDep = fiber.dependencies.firstContext as ContextDependency | null;
-  while (contextDep && typeof contextDep === "object" && "memoizedValue" in contextDep) {
+  while (
+    contextDep &&
+    typeof contextDep === "object" &&
+    "memoizedValue" in contextDep
+  ) {
     callback(contextDep);
     contextDep = contextDep.next;
   }
 };
 
-const traverseFibers = (fiber: Fiber | null, onCompositeFiber: (fiber: Fiber) => void): void => {
+const traverseFibers = (
+  fiber: Fiber | null,
+  onCompositeFiber: (fiber: Fiber) => void,
+): void => {
   if (!fiber) return;
 
   if (isCompositeFiber(fiber)) {
@@ -253,9 +277,13 @@ const createPausedDispatcher = (originalDispatcher: Dispatcher): Dispatcher => {
       const originalMethod: unknown = Reflect.get(target, prop, receiver);
 
       if (prop === "useState" && typeof originalMethod === "function") {
-        return <T>(initialState: T | (() => T)): [T, (value: T | ((prev: T) => T)) => void] => {
+        return <T>(
+          initialState: T | (() => T),
+        ): [T, (value: T | ((prev: T) => T)) => void] => {
           const [state, setState] = (
-            originalMethod as <S>(init: S | (() => S)) => [S, (v: S | ((p: S) => S)) => void]
+            originalMethod as <S>(
+              init: S | (() => S),
+            ) => [S, (v: S | ((p: S) => S)) => void]
           )(initialState);
 
           const wrappedSetState = (value: T | ((prev: T) => T)) => {
@@ -321,13 +349,18 @@ const createPausedDispatcher = (originalDispatcher: Dispatcher): Dispatcher => {
 
       if (prop === "useTransition" && typeof originalMethod === "function") {
         return (...args: unknown[]): unknown => {
-          const result = (originalMethod as (...args: unknown[]) => unknown)(...args);
+          const result = (originalMethod as (...args: unknown[]) => unknown)(
+            ...args,
+          );
 
           if (!Array.isArray(result) || result.length !== 2) {
             return result;
           }
 
-          const [isPending, startTransition] = result as [boolean, (callback: () => void) => void];
+          const [isPending, startTransition] = result as [
+            boolean,
+            (callback: () => void) => void,
+          ];
 
           if (typeof startTransition !== "function") {
             return result;
@@ -337,7 +370,9 @@ const createPausedDispatcher = (originalDispatcher: Dispatcher): Dispatcher => {
             isPending,
             (callback: () => void) => {
               if (isUpdatesPaused) {
-                pendingTransitionCallbacks.push(() => startTransition(callback));
+                pendingTransitionCallbacks.push(() =>
+                  startTransition(callback),
+                );
               } else {
                 startTransition(callback);
               }
@@ -357,7 +392,10 @@ const installDispatcherProxy = (renderer: ReactRenderer): void => {
   if (pausedDispatcherStates.has(renderer)) return;
 
   const dispatcherKey: "H" | "current" = "H" in dispatcherRef ? "H" : "current";
-  const originalDescriptor = Object.getOwnPropertyDescriptor(dispatcherRef, dispatcherKey);
+  const originalDescriptor = Object.getOwnPropertyDescriptor(
+    dispatcherRef,
+    dispatcherKey,
+  );
   pausedDispatcherStates.set(renderer, { dispatcherKey, originalDescriptor });
 
   let currentDispatcherValue = dispatcherRef[dispatcherKey];
@@ -384,7 +422,11 @@ const uninstallDispatcherProxy = (renderer: ReactRenderer): void => {
   if (!dispatcherRef) return;
 
   if (pauseState.originalDescriptor) {
-    Object.defineProperty(dispatcherRef, pauseState.dispatcherKey, pauseState.originalDescriptor);
+    Object.defineProperty(
+      dispatcherRef,
+      pauseState.dispatcherKey,
+      pauseState.originalDescriptor,
+    );
   } else {
     delete (dispatcherRef as Record<string, unknown>)[pauseState.dispatcherKey];
   }

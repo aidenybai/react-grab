@@ -152,6 +152,7 @@ if (source) {
 ```
 
 Returns:
+
 ```typescript
 interface SourceInfo {
   filePath: string;
@@ -250,7 +251,7 @@ window.addEventListener("react-grab:init", (event) => {
 ```typescript
 interface ToolbarState {
   edge: "top" | "bottom" | "left" | "right";
-  ratio: number;      // 0-1 position along edge
+  ratio: number; // 0-1 position along edge
   collapsed: boolean;
   enabled: boolean;
 }
