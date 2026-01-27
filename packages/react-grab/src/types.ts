@@ -385,7 +385,6 @@ export interface ReactGrabRendererProps {
   mouseX?: number;
   mouseY?: number;
   crosshairVisible?: boolean;
-  isFrozen?: boolean;
   inputValue?: string;
   isPromptMode?: boolean;
   replyToPrompt?: string;
@@ -424,7 +423,6 @@ export interface ReactGrabRendererProps {
   onSubscribeToToolbarStateChanges?: (
     callback: (state: ToolbarState) => void,
   ) => () => void;
-  onToolbarSelectHoverChange?: (isHovered: boolean) => void;
   contextMenuPosition?: { x: number; y: number } | null;
   contextMenuBounds?: OverlayBounds | null;
   contextMenuTagName?: string;
