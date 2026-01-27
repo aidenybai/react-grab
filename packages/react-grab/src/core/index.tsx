@@ -1561,7 +1561,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       clientY: number,
       hasModifierKeyHeld: boolean,
     ) => {
-      const element = getElementAtPosition(clientX, clientY);
+      const element =
+        getElementAtPosition(clientX, clientY) ?? store.detectedElement;
       if (!element) return;
 
       const shouldDeactivateAfter =
