@@ -30,22 +30,20 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         labelInstances={props.labelInstances}
       />
 
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          right: 0,
-          bottom: 0,
-          left: 0,
-          "pointer-events": "none",
-          "box-shadow": `inset 0 0 40px 8px ${FROZEN_GLOW_COLOR}`,
-          "z-index": Z_INDEX_OVERLAY_CANVAS,
-          opacity: props.isFrozen ? 1 : 0,
-          transition: "opacity 100ms ease-out",
-          transform: "translateZ(0)",
-          "will-change": "opacity",
-        }}
-      />
+      <Show when={props.isFrozen}>
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+            "pointer-events": "none",
+            background: `linear-gradient(to right, ${FROZEN_GLOW_COLOR}, transparent 50px), linear-gradient(to left, ${FROZEN_GLOW_COLOR}, transparent 50px), linear-gradient(to bottom, ${FROZEN_GLOW_COLOR}, transparent 50px), linear-gradient(to top, ${FROZEN_GLOW_COLOR}, transparent 50px)`,
+            "z-index": Z_INDEX_OVERLAY_CANVAS,
+          }}
+        />
+      </Show>
 
       <Index
         each={
