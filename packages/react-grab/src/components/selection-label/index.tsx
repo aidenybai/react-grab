@@ -7,6 +7,7 @@ import {
   ARROW_CENTER_PERCENT,
   LABEL_GAP_PX,
   IDLE_TIMEOUT_MS,
+  PANEL_STYLES,
 } from "../../constants.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
 import { cn } from "../../utils/cn.js";
@@ -394,7 +395,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         </Show>
 
         <div
-          class="[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-[7px] antialiased w-fit h-fit p-0 bg-[linear-gradient(in_oklab_180deg,oklab(100%_0_0)_0%,oklab(98.6%_0_0)_100%)] bg-origin-border border border-solid border-[color(display-p3_1_1_1)] [box-shadow:color(display-p3_0.913_0.913_0.913/34%)_0.4px_0.8px_1px] [outline:0.5px_solid_color(display-p3_0_0_0/10%)]"
+          class={`[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-[7px] antialiased w-fit h-fit p-0 ${PANEL_STYLES}`}
           style={{
             display: isCompletedStatus() && !props.error ? "none" : undefined,
           }}

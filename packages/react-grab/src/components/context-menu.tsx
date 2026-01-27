@@ -12,7 +12,7 @@ import type {
   ContextMenuAction,
   ActionContext,
 } from "../types.js";
-import { ARROW_HEIGHT_PX, LABEL_GAP_PX } from "../constants.js";
+import { ARROW_HEIGHT_PX, LABEL_GAP_PX, PANEL_STYLES } from "../constants.js";
 import { Arrow } from "./selection-label/arrow.js";
 import { TagBadge } from "./selection-label/tag-badge.js";
 import { BottomSection } from "./selection-label/bottom-section.js";
@@ -316,7 +316,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
           leftOffsetPx={computedPosition().arrowLeft}
         />
 
-        <div class="[font-synthesis:none] contain-layout flex flex-col justify-center items-start gap-1 rounded-[7px] antialiased w-fit h-fit min-w-[100px] bg-[linear-gradient(in_oklab_180deg,oklab(100%_0_0)_0%,oklab(98.6%_0_0)_100%)] bg-origin-border border border-solid border-[color(display-p3_1_1_1)] [box-shadow:color(display-p3_0.913_0.913_0.913/34%)_0.4px_0.8px_1px] [outline:0.5px_solid_color(display-p3_0_0_0/10%)]">
+        <div class={`[font-synthesis:none] contain-layout flex flex-col justify-center items-start gap-1 rounded-[7px] antialiased w-fit h-fit min-w-[100px] ${PANEL_STYLES}`}>
           <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5 pr-1">
             <TagBadge
               tagName={tagDisplayResult().tagName}
