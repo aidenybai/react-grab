@@ -7,6 +7,8 @@ export {
 } from "./core/index.js";
 export { generateSnippet } from "./utils/generate-snippet.js";
 export { renderDesignSystemPreview } from "./design-system.js";
+export { createCommentPlugin } from "./plugins/comment.js";
+export type { CommentPluginOptions } from "./plugins/comment.js";
 export {
   captureElementScreenshot,
   copyImageToClipboard,
@@ -39,6 +41,7 @@ export type {
   SettableOptions,
   ActivationMode,
   ContextMenuAction,
+  ToolbarAction,
   ActionContext,
   Plugin,
   PluginConfig,

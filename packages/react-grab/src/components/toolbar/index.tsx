@@ -5,8 +5,10 @@ import {
   onMount,
   onCleanup,
   Show,
+  For,
 } from "solid-js";
 import type { Component } from "solid-js";
+import type { ToolbarAction } from "../../types.js";
 import { cn } from "../../utils/cn.js";
 import {
   loadToolbarState,
@@ -46,7 +48,71 @@ interface ToolbarProps {
     callback: (state: ToolbarState) => void,
   ) => () => void;
   onSelectHoverChange?: (isHovered: boolean) => void;
+  toolbarActions?: ToolbarAction[];
 }
+
+interface ToolbarActionButtonProps {
+  action: ToolbarAction;
+  isCollapsed: boolean;
+  tooltipPosition: "top" | "bottom";
+}
+
+const ToolbarActionButton: Component<ToolbarActionButtonProps> = (props) => {
+  const [isTooltipVisible, setIsTooltipVisible] = createSignal(false);
+
+  const isEnabled = () => {
+    const enabled = props.action.enabled;
+    if (typeof enabled === "function") return enabled();
+    return enabled !== false;
+  };
+
+  const badge = () => {
+    const badgeFn = props.action.badge;
+    if (!badgeFn) return null;
+    return badgeFn();
+  };
+
+  const tooltip = () => {
+    const tooltipValue = props.action.tooltip;
+    if (!tooltipValue) return null;
+    if (typeof tooltipValue === "function") return tooltipValue();
+    return tooltipValue;
+  };
+
+  return (
+    <div class="relative shrink-0 overflow-visible ml-1">
+      <button
+        data-react-grab-ignore-events
+        data-react-grab-toolbar-action={props.action.id}
+        class={cn(
+          "contain-layout flex items-center justify-center cursor-pointer interactive-scale outline-none relative",
+          !isEnabled() && "opacity-40 cursor-default",
+        )}
+        disabled={!isEnabled()}
+        onClick={() => {
+          if (isEnabled()) {
+            setIsTooltipVisible(false);
+            props.action.onClick();
+          }
+        }}
+        onMouseEnter={() => setIsTooltipVisible(true)}
+        onMouseLeave={() => setIsTooltipVisible(false)}
+      >
+        {props.action.icon()}
+        <Show when={badge() !== null}>
+          <span class="absolute -top-1 -right-1 min-w-[14px] h-[14px] flex items-center justify-center text-[9px] font-bold text-white bg-amber-400 rounded-full px-0.5">
+            {badge()}
+          </span>
+        </Show>
+      </button>
+      <Show when={tooltip() && isTooltipVisible() && !props.isCollapsed}>
+        <Tooltip visible={true} position={props.tooltipPosition}>
+          {tooltip()}
+        </Tooltip>
+      </Show>
+    </div>
+  );
+};
 
 export const Toolbar: Component<ToolbarProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
@@ -1068,6 +1134,15 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                   {props.enabled ? "Disable" : "Enable"}
                 </Tooltip>
               </div>
+              <For each={props.toolbarActions ?? []}>
+                {(action) => (
+                  <ToolbarActionButton
+                    action={action}
+                    isCollapsed={isCollapsed()}
+                    tooltipPosition={tooltipPosition()}
+                  />
+                )}
+              </For>
             </div>
           </div>
           <button

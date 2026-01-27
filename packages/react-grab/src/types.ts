@@ -222,6 +222,15 @@ export interface ContextMenuAction {
   agent?: AgentOptions;
 }
 
+export interface ToolbarAction {
+  id: string;
+  icon: () => unknown;
+  tooltip?: string | (() => string);
+  badge?: () => string | number | null;
+  onClick: () => void;
+  enabled?: boolean | (() => boolean);
+}
+
 export interface PluginHooks {
   onActivate?: () => void;
   onDeactivate?: () => void;
@@ -262,6 +271,7 @@ export interface PluginConfig {
   theme?: DeepPartial<Theme>;
   options?: SettableOptions;
   actions?: ContextMenuAction[];
+  toolbarActions?: ToolbarAction[];
   hooks?: PluginHooks;
   cleanup?: () => void;
 }
@@ -271,6 +281,7 @@ export interface Plugin {
   theme?: DeepPartial<Theme>;
   options?: SettableOptions;
   actions?: ContextMenuAction[];
+  toolbarActions?: ToolbarAction[];
   hooks?: PluginHooks;
   setup?: (api: ReactGrabAPI) => PluginConfig | void;
 }
@@ -425,6 +436,7 @@ export interface ReactGrabRendererProps {
     callback: (state: ToolbarState) => void,
   ) => () => void;
   onToolbarSelectHoverChange?: (isHovered: boolean) => void;
+  toolbarActions?: ToolbarAction[];
   contextMenuPosition?: { x: number; y: number } | null;
   contextMenuBounds?: OverlayBounds | null;
   contextMenuTagName?: string;

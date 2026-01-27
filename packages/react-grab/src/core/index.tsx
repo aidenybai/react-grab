@@ -113,6 +113,7 @@ import {
   unfreezeGlobalAnimations,
 } from "../utils/freeze-animations.js";
 import { freezeUpdates } from "../utils/freeze-updates.js";
+import { createCommentPlugin } from "../plugins/comment.js";
 
 let hasInited = false;
 const toolbarStateChangeCallbacks = new Set<(state: ToolbarState) => void>();
@@ -3030,6 +3031,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               };
             }}
             onToolbarSelectHoverChange={setIsToolbarSelectHovered}
+            toolbarActions={pluginRegistry.store.toolbarActions}
             contextMenuPosition={contextMenuPosition()}
             contextMenuBounds={contextMenuBounds()}
             contextMenuTagName={contextMenuTagName()}
@@ -3224,6 +3226,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       getPlugins: () => pluginRegistry.getPluginNames(),
       getDisplayName: getComponentDisplayName,
     };
+
+    api.registerPlugin(createCommentPlugin());
 
     return api;
   });
