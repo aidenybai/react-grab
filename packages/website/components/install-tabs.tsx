@@ -316,7 +316,7 @@ export const InstallTabs = ({
             <button
               type="button"
               onClick={() => setActiveTabId("next-app")}
-              className="ml-3 text-xs italic text-white/40 hover:text-white/60 hover:underline transition-all active:scale-[0.97] sm:text-sm"
+              className="ml-3 text-xs italic text-white/40 hover:text-white/60 hover:underline transition-colors sm:text-sm"
             >
               Prefer manual install?
             </button>
@@ -333,7 +333,7 @@ export const InstallTabs = ({
                 key={tab.id}
                 type="button"
                 className={cn(
-                  "shrink-0 whitespace-nowrap border-b pb-2 font-sans text-sm transition-all active:scale-[0.97] sm:text-base",
+                  "shrink-0 whitespace-nowrap border-b pb-2 font-sans text-sm transition-colors sm:text-base",
                   isActive
                     ? "border-white text-white"
                     : "border-transparent text-white/60 hover:text-white",
@@ -351,7 +351,7 @@ export const InstallTabs = ({
               <button
                 type="button"
                 onClick={handleCopyClick}
-                className="group flex w-full items-center justify-between gap-4 px-4 py-6 transition-all hover:bg-white/5 active:scale-[0.99]"
+                className="group flex w-full items-center justify-between gap-4 px-4 py-6 transition-colors hover:bg-white/5"
               >
                 {highlightedCode ? (
                   <div
@@ -372,7 +372,7 @@ export const InstallTabs = ({
                 <button
                   type="button"
                   onClick={handleCopyClick}
-                  className="touch-hitbox absolute right-4 top-3 text-white/50 opacity-0 transition-all hover:text-white group-hover:opacity-100 active:scale-[0.9] z-10"
+                  className="touch-hitbox absolute right-4 top-3 text-white/50 opacity-0 transition-opacity hover:text-white group-hover:opacity-100 z-10"
                 >
                   {didCopy ? <Check size={16} /> : <Copy size={16} />}
                 </button>

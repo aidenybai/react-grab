@@ -376,7 +376,7 @@ export const GrabElementButton = ({
       <button
         onClick={toggleReactGrab}
         className={cn(
-          "flex h-12 w-full items-center justify-center gap-2 rounded-lg px-3 text-sm text-white transition-all active:scale-[0.97] sm:w-auto sm:text-base",
+          "flex h-12 w-full items-center justify-center gap-2 rounded-lg px-3 text-sm text-white transition-all active:scale-[0.98] sm:w-auto sm:text-base",
           hasAdvanced
             ? "border border-white/20 bg-white/5 hover:bg-white/10"
             : "border border-[#d75fcb] bg-[#330039] hover:bg-[#4a0052] shadow-[0_0_12px_rgba(215,95,203,0.4)]",
@@ -396,7 +396,7 @@ export const GrabElementButton = ({
       {!hideSkip && showSkip && (
         <button
           onClick={handleSkip}
-          className="px-3 py-2 text-white/50 hover:text-white/90 text-sm transition-all active:scale-[0.97]"
+          className="px-3 py-2 text-white/50 hover:text-white/90 text-sm transition-colors"
           type="button"
         >
           Skip
