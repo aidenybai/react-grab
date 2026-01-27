@@ -9,7 +9,7 @@ import {
   type ReactNode,
   type MouseEvent as ReactMouseEvent,
 } from "react";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { HOTKEY_KEYUP_DELAY_MS } from "@/constants";
 import { cn } from "@/utils/classnames";
 import { detectMobile } from "@/utils/detect-mobile";
@@ -92,7 +92,7 @@ interface KbdProps {
 const Kbd = ({ children, wide = false }: KbdProps): ReactElement => (
   <kbd
     className={cn(
-      "inline-flex items-center justify-center rounded bg-white/10 hover:bg-white/20",
+      "touch-hitbox inline-flex items-center justify-center rounded bg-white/10 hover:bg-white/20",
       wide ? "h-7 px-1.5 text-xs" : "size-7 text-sm",
     )}
   >
@@ -105,6 +105,7 @@ export const GrabElementButton = ({
   showSkip = true,
   animationDelay = 0,
 }: GrabElementButtonProps): ReactElement | null => {
+  const shouldReduceMotion = Boolean(useReducedMotion());
   const { customHotkey, setCustomHotkey } = useHotkey();
   const [isActivated, setIsActivated] = useState(false);
   const [isMac, setIsMac] = useState(true);
@@ -363,15 +364,19 @@ export const GrabElementButton = ({
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
+      initial={shouldReduceMotion ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.4, ease: "easeOut", delay: animationDelay }}
+      transition={
+        shouldReduceMotion
+          ? { duration: 0 }
+          : { duration: 0.4, ease: "easeOut", delay: animationDelay }
+      }
       className="hidden flex-col gap-2 py-4 sm:flex sm:flex-row sm:items-center sm:gap-3"
     >
       <button
         onClick={toggleReactGrab}
         className={cn(
-          "flex h-12 w-full items-center justify-center gap-2 rounded-lg px-3 text-sm text-white transition-colors sm:w-auto sm:text-base",
+          "flex h-12 w-full items-center justify-center gap-2 rounded-lg px-3 text-sm text-white transition-all active:scale-[0.97] sm:w-auto sm:text-base",
           hasAdvanced
             ? "border border-white/20 bg-white/5 hover:bg-white/10"
             : "border border-[#d75fcb] bg-[#330039] hover:bg-[#4a0052] shadow-[0_0_12px_rgba(215,95,203,0.4)]",
@@ -391,7 +396,7 @@ export const GrabElementButton = ({
       {!hideSkip && showSkip && (
         <button
           onClick={handleSkip}
-          className="px-3 py-2 text-white/50 hover:text-white/90 text-sm transition-colors"
+          className="px-3 py-2 text-white/50 hover:text-white/90 text-sm transition-all active:scale-[0.97]"
           type="button"
         >
           Skip

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, type ReactElement } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import {
   BENCHMARK_CONTROL_COLOR,
@@ -25,6 +25,7 @@ interface MiniBarProps {
   color: string;
   label: string;
   isAnimating: boolean;
+  shouldReduceMotion?: boolean;
 }
 
 const MiniBar = ({
@@ -33,6 +34,7 @@ const MiniBar = ({
   color,
   label,
   isAnimating,
+  shouldReduceMotion = false,
 }: MiniBarProps): ReactElement => {
   const targetWidth = (targetSeconds / maxSeconds) * 100;
 
@@ -45,9 +47,15 @@ const MiniBar = ({
       <motion.div
         className="absolute top-0 left-0 h-full rounded-r-sm"
         style={{ backgroundColor: color }}
-        initial={{ width: 0 }}
-        animate={{ width: isAnimating ? `${targetWidth}%` : 0 }}
-        transition={{ duration: targetSeconds / 10, ease: "linear" }}
+        initial={shouldReduceMotion ? false : { width: 0 }}
+        animate={{
+          width: isAnimating || shouldReduceMotion ? `${targetWidth}%` : 0,
+        }}
+        transition={
+          shouldReduceMotion
+            ? { duration: 0 }
+            : { duration: targetSeconds / 10, ease: "linear" }
+        }
       />
       <span
         className="absolute top-1/2 -translate-y-1/2 text-[11px] font-semibold ml-2 tabular-nums whitespace-nowrap"
@@ -66,9 +74,13 @@ MiniBar.displayName = "MiniBar";
 
 interface MiniChartProps {
   isVisible: boolean;
+  shouldReduceMotion?: boolean;
 }
 
-const MiniChart = ({ isVisible }: MiniChartProps): ReactElement => {
+const MiniChart = ({
+  isVisible,
+  shouldReduceMotion = false,
+}: MiniChartProps): ReactElement => {
   const gridLines = [0, 5, 10, 15, 20];
 
   return (
@@ -102,6 +114,7 @@ const MiniChart = ({ isVisible }: MiniChartProps): ReactElement => {
               color={BENCHMARK_CONTROL_COLOR}
               label={`${BENCHMARK_TOOLTIP_CONTROL_SECONDS}s`}
               isAnimating={isVisible}
+              shouldReduceMotion={shouldReduceMotion}
             />
           </div>
 
@@ -119,15 +132,20 @@ const MiniChart = ({ isVisible }: MiniChartProps): ReactElement => {
                 color={BENCHMARK_TREATMENT_COLOR}
                 label=""
                 isAnimating={isVisible}
+                shouldReduceMotion={shouldReduceMotion}
               />
               <motion.span
                 className="absolute top-1/2 -translate-y-1/2 flex items-center gap-1.5 ml-1.5"
                 style={{
                   left: `${(BENCHMARK_TOOLTIP_TREATMENT_SECONDS / BENCHMARK_TOOLTIP_MAX_SECONDS) * 100}%`,
                 }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: isVisible ? 1 : 0 }}
-                transition={{ delay: 0.8, duration: 0.3 }}
+                initial={shouldReduceMotion ? false : { opacity: 0 }}
+                animate={{ opacity: isVisible || shouldReduceMotion ? 1 : 0 }}
+                transition={
+                  shouldReduceMotion
+                    ? { duration: 0 }
+                    : { delay: 0.8, duration: 0.3 }
+                }
               >
                 <span
                   className="text-[11px] font-semibold tabular-nums"
@@ -171,6 +189,7 @@ export const BenchmarkTooltip = ({
   children,
   className,
 }: BenchmarkTooltipProps): ReactElement => {
+  const shouldReduceMotion = Boolean(useReducedMotion());
   const [isHovered, setIsHovered] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -210,15 +229,27 @@ export const BenchmarkTooltip = ({
       <AnimatePresence>
         {isHovered && (
           <motion.div
-            initial={{ opacity: 0, y: 8, scale: 0.96 }}
+            initial={
+              shouldReduceMotion ? false : { opacity: 0, y: 8, scale: 0.96 }
+            }
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 4, scale: 0.98 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
+            exit={
+              shouldReduceMotion ? undefined : { opacity: 0, y: 4, scale: 0.98 }
+            }
+            transition={
+              shouldReduceMotion
+                ? { duration: 0 }
+                : { duration: 0.15, ease: "easeOut" }
+            }
+            style={{ transformOrigin: "top center" }}
             className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-50 pointer-events-none"
           >
             <div className="absolute left-1/2 -translate-x-1/2 -top-1.5 w-3 h-3 bg-[#0a0a0a] border-l border-t border-neutral-800 rotate-45" />
             <div className="bg-[#0a0a0a] border border-neutral-800 rounded-lg shadow-2xl overflow-hidden">
-              <MiniChart isVisible={isVisible} />
+              <MiniChart
+                isVisible={isVisible}
+                shouldReduceMotion={shouldReduceMotion}
+              />
             </div>
           </motion.div>
         )}

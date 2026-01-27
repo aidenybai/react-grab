@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { type ReactElement, type ReactNode } from "react";
 
 interface StreamChunk {
@@ -12,19 +12,25 @@ interface FadeInProps {
   children: ReactNode;
   delay?: number;
   as?: "span" | "div";
+  shouldReduceMotion?: boolean;
 }
 
 const FadeIn = ({
   children,
   delay = 0,
   as = "span",
+  shouldReduceMotion = false,
 }: FadeInProps): ReactElement => {
   const Component = motion[as];
   return (
     <Component
-      initial={{ opacity: 0 }}
+      initial={shouldReduceMotion ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.4, ease: "easeOut", delay }}
+      transition={
+        shouldReduceMotion
+          ? { duration: 0 }
+          : { duration: 0.4, ease: "easeOut", delay }
+      }
     >
       {children}
     </Component>
@@ -33,16 +39,24 @@ const FadeIn = ({
 
 interface StreamingChunksProps {
   chunks: StreamChunk[];
+  shouldReduceMotion?: boolean;
 }
 
-const StreamingChunks = ({ chunks }: StreamingChunksProps): ReactElement => (
+const StreamingChunks = ({
+  chunks,
+  shouldReduceMotion = false,
+}: StreamingChunksProps): ReactElement => (
   <>
     {chunks.map((chunk) => (
       <motion.span
         key={chunk.id}
-        initial={{ opacity: 0.2 }}
+        initial={shouldReduceMotion ? false : { opacity: 0.2 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.25, ease: "easeOut" }}
+        transition={
+          shouldReduceMotion
+            ? { duration: 0 }
+            : { duration: 0.25, ease: "easeOut" }
+        }
       >
         {chunk.text}
       </motion.span>
@@ -61,6 +75,7 @@ export const StreamingText = ({
   chunks,
   animationDelay = 0,
 }: StreamingTextProps): ReactElement => {
+  const shouldReduceMotion = Boolean(useReducedMotion());
   const isInstantContent = chunks.length === 0;
 
   if (Array.isArray(content)) {
@@ -70,14 +85,21 @@ export const StreamingText = ({
           if (typeof item === "string") {
             if (isInstantContent) {
               return (
-                <FadeIn key={`text-${index}`} delay={animationDelay}>
+                <FadeIn
+                  key={`text-${index}`}
+                  delay={animationDelay}
+                  shouldReduceMotion={shouldReduceMotion}
+                >
                   {item}
                 </FadeIn>
               );
             }
             return (
               <span key={`text-${index}`}>
-                <StreamingChunks chunks={chunks} />
+                <StreamingChunks
+                  chunks={chunks}
+                  shouldReduceMotion={shouldReduceMotion}
+                />
               </span>
             );
           }
@@ -90,7 +112,11 @@ export const StreamingText = ({
   if (typeof content !== "string") {
     if (isInstantContent) {
       return (
-        <FadeIn delay={animationDelay} as="div">
+        <FadeIn
+          delay={animationDelay}
+          as="div"
+          shouldReduceMotion={shouldReduceMotion}
+        >
           {content}
         </FadeIn>
       );
@@ -99,10 +125,16 @@ export const StreamingText = ({
   }
 
   if (isInstantContent) {
-    return <FadeIn delay={animationDelay}>{content}</FadeIn>;
+    return (
+      <FadeIn delay={animationDelay} shouldReduceMotion={shouldReduceMotion}>
+        {content}
+      </FadeIn>
+    );
   }
 
-  return <StreamingChunks chunks={chunks} />;
+  return (
+    <StreamingChunks chunks={chunks} shouldReduceMotion={shouldReduceMotion} />
+  );
 };
 
 StreamingText.displayName = "StreamingText";

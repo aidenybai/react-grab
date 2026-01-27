@@ -74,10 +74,6 @@ body {
   transform: translateZ(0);
 }
 
-.logo-shimmer-once:hover {
-  animation: logo-shimmer 0.9s ease-out;
-}
-
 @keyframes arrow-bounce {
   0%,
   100% {
@@ -88,9 +84,15 @@ body {
   }
 }
 
-.react-grab-logo:hover .react-grab-arrow {
-  animation: arrow-bounce var(--arrow-animation-duration, 400ms) ease-in-out
-    infinite;
+@media (hover: hover) and (pointer: fine) {
+  .logo-shimmer-once:hover {
+    animation: logo-shimmer 0.9s ease-out;
+  }
+
+  .react-grab-logo:hover .react-grab-arrow {
+    animation: arrow-bounce var(--arrow-animation-duration, 400ms) ease-in-out
+      infinite;
+  }
 }
 
 ::selection {
@@ -231,6 +233,7 @@ body {
   border: 2px solid transparent;
   position: relative;
   overflow: hidden;
+  will-change: transform, box-shadow, background-position;
 }
 
 .rainbow-button::before {
@@ -259,9 +262,11 @@ body {
   opacity: 0.7;
 }
 
-.rainbow-button:hover {
-  animation-duration: 1.5s, 1s, 1.5s;
-  transform: scale(1.08);
+@media (hover: hover) and (pointer: fine) {
+  .rainbow-button:hover {
+    animation-duration: 1.5s, 1s, 1.5s;
+    transform: scale(1.08);
+  }
 }
 
 @theme inline {
@@ -369,6 +374,34 @@ body {
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.touch-hitbox {
+  position: relative;
+}
+
+.touch-hitbox::before {
+  content: "";
+  position: absolute;
+  display: block;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 100%;
+  min-height: 44px;
+  min-width: 44px;
 }
 
 @layer base {
