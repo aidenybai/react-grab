@@ -56,7 +56,6 @@ import {
   INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS,
   DEFAULT_KEY_HOLD_DURATION_MS,
   MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS,
-  POST_COPY_FREEZE_DURATION_MS,
   SCREENSHOT_CAPTURE_DELAY_MS,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
@@ -341,7 +340,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let isScreenshotInProgress = false;
     let inToggleFeedbackPeriod = false;
     let toggleFeedbackTimerId: number | null = null;
-    let postCopyFreezeTimerId: number | null = null;
     let selectionSourceRequestVersion = 0;
     let componentNameRequestVersion = 0;
     let componentNameDebounceTimerId: number | null = null;
@@ -588,16 +586,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           deactivateRenderer();
         } else {
           actions.activate();
-          actions.freeze();
-
-          if (postCopyFreezeTimerId !== null) {
-            window.clearTimeout(postCopyFreezeTimerId);
-          }
-          postCopyFreezeTimerId = window.setTimeout(() => {
-            actions.unfreeze();
-            postCopyFreezeTimerId = null;
-          }, POST_COPY_FREEZE_DURATION_MS);
-
           inToggleFeedbackPeriod = true;
           if (toggleFeedbackTimerId !== null) {
             window.clearTimeout(toggleFeedbackTimerId);
@@ -1196,10 +1184,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         document.body.style.userSelect = "";
       }
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
-      if (postCopyFreezeTimerId !== null) {
-        window.clearTimeout(postCopyFreezeTimerId);
-        postCopyFreezeTimerId = null;
-      }
       autoScroller.stop();
       if (
         previousFocused instanceof HTMLElement &&
@@ -1444,10 +1428,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           window.clearTimeout(toggleFeedbackTimerId);
           toggleFeedbackTimerId = null;
         }
-        if (postCopyFreezeTimerId !== null) {
-          window.clearTimeout(postCopyFreezeTimerId);
-          postCopyFreezeTimerId = null;
-        }
         inToggleFeedbackPeriod = false;
       }
     };
@@ -1498,7 +1478,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handlePointerDown = (clientX: number, clientY: number) => {
-      if (!isRendererActive() || isCopying() || isToggleFrozen()) return false;
+      if (!isRendererActive() || isCopying()) return false;
 
       actions.startDrag({ x: clientX, y: clientY });
       actions.setPointer({ x: clientX, y: clientY });
@@ -2195,13 +2175,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        if (isToggleFrozen() || isCopying()) {
-          event.preventDefault();
-          event.stopPropagation();
-          event.stopImmediatePropagation();
-          return;
-        }
-
         const didHandle = handlePointerDown(event.clientX, event.clientY);
         if (didHandle) {
           event.preventDefault();
@@ -2218,10 +2191,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (event.button !== 0) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
-        if (isRendererActive() || isCopying() || isToggleFrozen()) {
-          event.stopPropagation();
-          event.stopImmediatePropagation();
-        }
+        if (!isRendererActive() || isCopying() || isPromptMode()) return;
+        event.stopPropagation();
+        event.stopImmediatePropagation();
       },
       { capture: true },
     );
@@ -2232,12 +2204,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (event.button !== 0) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
-        if (isToggleFrozen() || isCopying()) {
-          event.preventDefault();
-          event.stopPropagation();
-          event.stopImmediatePropagation();
-          return;
-        }
         handlePointerUp(
           event.clientX,
           event.clientY,
@@ -2253,12 +2219,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (event.button !== 0) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
-        if (isToggleFrozen() || isCopying()) {
-          event.preventDefault();
-          event.stopPropagation();
-          event.stopImmediatePropagation();
-          return;
-        }
         handlePointerUp(
           event.clientX,
           event.clientY,
@@ -2359,12 +2319,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
 
-        if (isRendererActive() || isCopying() || didJustDrag() || isToggleFrozen()) {
+        if (isRendererActive() || isCopying() || didJustDrag()) {
           event.preventDefault();
           event.stopPropagation();
           event.stopImmediatePropagation();
 
-          if (store.wasActivatedByToggle && !isCopying() && !isPromptMode() && !isToggleFrozen()) {
+          if (store.wasActivatedByToggle && !isCopying() && !isPromptMode()) {
             if (!isHoldingKeys()) {
               deactivateRenderer();
             } else {
@@ -3182,10 +3142,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           if (toggleFeedbackTimerId !== null) {
             window.clearTimeout(toggleFeedbackTimerId);
             toggleFeedbackTimerId = null;
-          }
-          if (postCopyFreezeTimerId !== null) {
-            window.clearTimeout(postCopyFreezeTimerId);
-            postCopyFreezeTimerId = null;
           }
           inToggleFeedbackPeriod = false;
         }
