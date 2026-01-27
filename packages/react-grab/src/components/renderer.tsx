@@ -41,7 +41,9 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           "box-shadow": `inset 0 0 40px 8px ${FROZEN_GLOW_COLOR}`,
           "z-index": Z_INDEX_OVERLAY_CANVAS,
           opacity: props.isFrozen ? 1 : 0,
-          transition: "opacity 150ms ease-out",
+          transition: "opacity 100ms ease-out",
+          transform: "translateZ(0)",
+          "will-change": "opacity",
         }}
       />
 
