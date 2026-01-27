@@ -1,14 +1,7 @@
 import { Show, createSignal, createEffect, onMount, onCleanup } from "solid-js";
 import type { Component } from "solid-js";
 import type { CompletionViewProps } from "../../types.js";
-import {
-  FEEDBACK_DURATION_MS,
-  FADE_DURATION_MS,
-  PANEL_BACKGROUND_GRADIENT,
-  PANEL_BORDER_COLOR,
-  PANEL_BOX_SHADOW,
-  PANEL_OUTLINE,
-} from "../../constants.js";
+import { FEEDBACK_DURATION_MS, FADE_DURATION_MS } from "../../constants.js";
 import { confirmationFocusManager } from "../../utils/confirmation-focus-manager.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
 import { IconReturn } from "../icons/icon-return.jsx";
@@ -157,17 +150,8 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
   return (
     <div
       data-react-grab-completion
-      class="[font-synthesis:none] contain-layout shrink-0 flex flex-col justify-center items-end rounded-[7px] antialiased w-fit h-fit max-w-[280px] transition-opacity duration-100 ease-out"
-      style={{
-        opacity: isFading() ? 0 : 1,
-        "background-image": PANEL_BACKGROUND_GRADIENT,
-        "background-origin": "border-box",
-        "border-color": PANEL_BORDER_COLOR,
-        "border-style": "solid",
-        "border-width": "1px",
-        "box-shadow": PANEL_BOX_SHADOW,
-        outline: PANEL_OUTLINE,
-      }}
+      class="[font-synthesis:none] contain-layout shrink-0 flex flex-col justify-center items-end rounded-[7px] antialiased w-fit h-fit max-w-[280px] transition-opacity duration-100 ease-out bg-[linear-gradient(in_oklab_180deg,oklab(100%_0_0)_0%,oklab(98.6%_0_0)_100%)] bg-origin-border border border-solid border-[color(display-p3_1_1_1)] [box-shadow:color(display-p3_0.913_0.913_0.913/34%)_0.4px_0.8px_1px] [outline:0.5px_solid_color(display-p3_0_0_0/10%)]"
+      style={{ opacity: isFading() ? 0 : 1 }}
       onPointerDown={handleFocus}
       onClick={handleFocus}
     >

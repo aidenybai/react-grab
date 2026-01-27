@@ -1,7 +1,6 @@
 import { Show, createSignal } from "solid-js";
 import type { Component } from "solid-js";
 import type { TagBadgeProps } from "../../types.js";
-import { TAG_BADGE_GRADIENT } from "../../constants.js";
 import { cn } from "../../utils/cn.js";
 import { IconOpen } from "../icons/icon-open.jsx";
 
@@ -21,11 +20,10 @@ export const TagBadge: Component<TagBadgeProps> = (props) => {
   return (
     <div
       class={cn(
-        "contain-layout font-mono flex items-center px-[5px] py-px rounded gap-0.5 [border-width:0.5px] border-solid border-[color(display-p3_1_1_1/28%)] text-sm max-w-[280px] overflow-hidden",
+        "contain-layout font-mono flex items-center px-[5px] py-px rounded gap-0.5 [border-width:0.5px] border-solid border-[color(display-p3_1_1_1/28%)] text-sm max-w-[280px] overflow-hidden bg-[linear-gradient(in_oklab_180deg,oklab(36.4%_0_0)_0%,oklab(4%_0_0)_25.23%,oklab(48.8%_0_0)_100%)]",
         props.shrink && "shrink-0",
         props.isClickable && "cursor-pointer press-scale",
       )}
-      style={{ "background-image": TAG_BADGE_GRADIENT }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={props.onClick}

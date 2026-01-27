@@ -59,16 +59,6 @@ export const VIDEO_METADATA_TIMEOUT_MS = 5000;
 export const VIDEO_READY_POLL_INTERVAL_MS = 10;
 export const VIDEO_READY_TIMEOUT_MS = 2000;
 
-export const PANEL_BACKGROUND_GRADIENT =
-  "linear-gradient(in oklab 180deg, oklab(100% 0 0) 0%, oklab(98.6% 0 0) 100%)";
-export const PANEL_BORDER_COLOR = "color(display-p3 1 1 1)";
-export const PANEL_BOX_SHADOW =
-  "color(display-p3 0.913 0.913 0.913 / 34%) 0.4px 0.8px 1px";
-export const PANEL_OUTLINE = "0.5px solid color(display-p3 0 0 0 / 10%)";
-
-export const TAG_BADGE_GRADIENT =
-  "linear-gradient(in oklab 180deg, oklab(36.4% 0 0) 0%, oklab(4% 0 0) 25.23%, oklab(48.8% 0 0) 100%)";
-
 export const MODIFIER_KEYS: readonly string[] = [
   "Meta",
   "Control",

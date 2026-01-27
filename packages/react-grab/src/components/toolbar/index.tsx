@@ -28,10 +28,6 @@ import {
   TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS,
   TOOLBAR_DEFAULT_WIDTH_PX,
   TOOLBAR_DEFAULT_HEIGHT_PX,
-  PANEL_BACKGROUND_GRADIENT,
-  PANEL_BORDER_COLOR,
-  PANEL_BOX_SHADOW,
-  PANEL_OUTLINE,
   TOOLBAR_SHAKE_TOOLTIP_DURATION_MS,
 } from "../../constants.js";
 import { formatShortcut } from "../../utils/format-shortcut.js";
@@ -938,21 +934,12 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       >
         <div
           class={cn(
-            "[font-synthesis:none] flex items-center justify-center rounded-[7px] antialiased transition-all duration-150 ease-out relative overflow-visible",
+            "[font-synthesis:none] flex items-center justify-center rounded-[7px] antialiased transition-all duration-150 ease-out relative overflow-visible bg-[linear-gradient(in_oklab_180deg,oklab(100%_0_0)_0%,oklab(98.6%_0_0)_100%)] bg-origin-border border border-solid border-[color(display-p3_1_1_1)] [box-shadow:color(display-p3_0.913_0.913_0.913/34%)_0.4px_0.8px_1px] [outline:0.5px_solid_color(display-p3_0_0_0/10%)]",
             isCollapsed() ? "" : "h-7 gap-1.5 px-2",
             collapsedEdgeClasses(),
             isShaking() && "animate-shake",
           )}
-          style={{
-            "transform-origin": getTransformOrigin(),
-            "background-image": PANEL_BACKGROUND_GRADIENT,
-            "background-origin": "border-box",
-            "border-color": PANEL_BORDER_COLOR,
-            "border-style": "solid",
-            "border-width": "1px",
-            "box-shadow": PANEL_BOX_SHADOW,
-            outline: PANEL_OUTLINE,
-          }}
+          style={{ "transform-origin": getTransformOrigin() }}
           onAnimationEnd={() => setIsShaking(false)}
           onClick={(event) => {
             if (isCollapsed()) {
