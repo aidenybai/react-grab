@@ -7,6 +7,10 @@ import {
   ARROW_CENTER_PERCENT,
   LABEL_GAP_PX,
   IDLE_TIMEOUT_MS,
+  PANEL_BACKGROUND_GRADIENT,
+  PANEL_BORDER_COLOR,
+  PANEL_BOX_SHADOW,
+  PANEL_OUTLINE,
 } from "../../constants.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
 import { cn } from "../../utils/cn.js";
@@ -394,9 +398,16 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         </Show>
 
         <div
-          class="[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-sm bg-white antialiased w-fit h-fit p-0"
+          class="[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-[7px] antialiased w-fit h-fit p-0"
           style={{
             display: isCompletedStatus() && !props.error ? "none" : undefined,
+            "background-image": PANEL_BACKGROUND_GRADIENT,
+            "background-origin": "border-box",
+            "border-color": PANEL_BORDER_COLOR,
+            "border-style": "solid",
+            "border-width": "1px",
+            "box-shadow": PANEL_BOX_SHADOW,
+            outline: PANEL_OUTLINE,
           }}
         >
           <Show when={props.status === "copying" && !props.isPendingAbort}>

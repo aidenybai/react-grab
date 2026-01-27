@@ -10,8 +10,8 @@ export const Arrow: Component<ArrowProps> = (props) => {
       class="absolute w-0 h-0"
       style={{
         left: `calc(${props.leftPercent}% + ${props.leftOffsetPx}px)`,
-        top: isBottom() ? "0" : undefined,
-        bottom: isBottom() ? undefined : "0",
+        top: isBottom() ? "1px" : undefined,
+        bottom: isBottom() ? undefined : "1px",
         transform: isBottom()
           ? "translateX(-50%) translateY(-100%)"
           : "translateX(-50%) translateY(100%)",

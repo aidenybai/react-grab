@@ -28,6 +28,10 @@ import {
   TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS,
   TOOLBAR_DEFAULT_WIDTH_PX,
   TOOLBAR_DEFAULT_HEIGHT_PX,
+  PANEL_BACKGROUND_GRADIENT,
+  PANEL_BORDER_COLOR,
+  PANEL_BOX_SHADOW,
+  PANEL_OUTLINE,
   TOOLBAR_SHAKE_TOOLTIP_DURATION_MS,
 } from "../../constants.js";
 import { formatShortcut } from "../../utils/format-shortcut.js";
@@ -81,10 +85,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     if (!isCollapsed()) return "";
     const edge = snapEdge();
     const roundedClass = {
-      top: "rounded-t-none",
-      bottom: "rounded-b-none",
-      left: "rounded-l-none",
-      right: "rounded-r-none",
+      top: "rounded-t-none rounded-b-[7px]",
+      bottom: "rounded-b-none rounded-t-[7px]",
+      left: "rounded-l-none rounded-r-[7px]",
+      right: "rounded-r-none rounded-l-[7px]",
     }[edge];
     const paddingClass =
       edge === "top" || edge === "bottom" ? "px-2 py-0.25" : "px-0.25 py-2";
@@ -934,12 +938,21 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       >
         <div
           class={cn(
-            "[font-synthesis:none] flex items-center justify-center rounded-sm bg-white antialiased transition-all duration-150 ease-out relative overflow-visible",
+            "[font-synthesis:none] flex items-center justify-center rounded-[7px] antialiased transition-all duration-150 ease-out relative overflow-visible",
             isCollapsed() ? "" : "h-7 gap-1.5 px-2",
             collapsedEdgeClasses(),
             isShaking() && "animate-shake",
           )}
-          style={{ "transform-origin": getTransformOrigin() }}
+          style={{
+            "transform-origin": getTransformOrigin(),
+            "background-image": PANEL_BACKGROUND_GRADIENT,
+            "background-origin": "border-box",
+            "border-color": PANEL_BORDER_COLOR,
+            "border-style": "solid",
+            "border-width": "1px",
+            "box-shadow": PANEL_BOX_SHADOW,
+            outline: PANEL_OUTLINE,
+          }}
           onAnimationEnd={() => setIsShaking(false)}
           onClick={(event) => {
             if (isCollapsed()) {

@@ -1,7 +1,14 @@
 import { Show, createSignal, createEffect, onMount, onCleanup } from "solid-js";
 import type { Component } from "solid-js";
 import type { CompletionViewProps } from "../../types.js";
-import { FEEDBACK_DURATION_MS, FADE_DURATION_MS } from "../../constants.js";
+import {
+  FEEDBACK_DURATION_MS,
+  FADE_DURATION_MS,
+  PANEL_BACKGROUND_GRADIENT,
+  PANEL_BORDER_COLOR,
+  PANEL_BOX_SHADOW,
+  PANEL_OUTLINE,
+} from "../../constants.js";
 import { confirmationFocusManager } from "../../utils/confirmation-focus-manager.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
 import { IconReturn } from "../icons/icon-return.jsx";
@@ -150,8 +157,17 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
   return (
     <div
       data-react-grab-completion
-      class="[font-synthesis:none] contain-layout shrink-0 flex flex-col justify-center items-end rounded-sm bg-white antialiased w-fit h-fit max-w-[280px] transition-opacity duration-100 ease-out"
-      style={{ opacity: isFading() ? 0 : 1 }}
+      class="[font-synthesis:none] contain-layout shrink-0 flex flex-col justify-center items-end rounded-[7px] antialiased w-fit h-fit max-w-[280px] transition-opacity duration-100 ease-out"
+      style={{
+        opacity: isFading() ? 0 : 1,
+        "background-image": PANEL_BACKGROUND_GRADIENT,
+        "background-origin": "border-box",
+        "border-color": PANEL_BORDER_COLOR,
+        "border-style": "solid",
+        "border-width": "1px",
+        "box-shadow": PANEL_BOX_SHADOW,
+        outline: PANEL_OUTLINE,
+      }}
       onPointerDown={handleFocus}
       onClick={handleFocus}
     >
