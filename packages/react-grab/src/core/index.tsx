@@ -2339,12 +2339,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
 
-        if (isRendererActive() || isCopying() || didJustDrag()) {
+        if (isRendererActive() || isCopying() || didJustDrag() || isToggleFrozen()) {
           event.preventDefault();
           event.stopPropagation();
           event.stopImmediatePropagation();
 
-          if (store.wasActivatedByToggle && !isCopying() && !isPromptMode()) {
+          if (store.wasActivatedByToggle && !isCopying() && !isPromptMode() && !isToggleFrozen()) {
             if (!isHoldingKeys()) {
               deactivateRenderer();
             } else {
