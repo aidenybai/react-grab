@@ -2195,7 +2195,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        if (isToggleFrozen()) {
+        if (isToggleFrozen() || isCopying()) {
           event.preventDefault();
           event.stopPropagation();
           event.stopImmediatePropagation();
@@ -2218,9 +2218,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (event.button !== 0) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
-        if (!isRendererActive() || isCopying() || isPromptMode()) return;
-        event.stopPropagation();
-        event.stopImmediatePropagation();
+        if (isRendererActive() || isCopying() || isToggleFrozen()) {
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+        }
       },
       { capture: true },
     );
@@ -2231,7 +2232,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (event.button !== 0) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
-        if (isToggleFrozen()) {
+        if (isToggleFrozen() || isCopying()) {
           event.preventDefault();
           event.stopPropagation();
           event.stopImmediatePropagation();
@@ -2252,7 +2253,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (event.button !== 0) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
-        if (isToggleFrozen()) {
+        if (isToggleFrozen() || isCopying()) {
           event.preventDefault();
           event.stopPropagation();
           event.stopImmediatePropagation();
