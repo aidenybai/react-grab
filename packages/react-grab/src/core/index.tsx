@@ -2195,6 +2195,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
+        if (isToggleFrozen()) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          return;
+        }
+
         const didHandle = handlePointerDown(event.clientX, event.clientY);
         if (didHandle) {
           event.preventDefault();
@@ -2224,6 +2231,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (event.button !== 0) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
+        if (isToggleFrozen()) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          return;
+        }
         handlePointerUp(
           event.clientX,
           event.clientY,
@@ -2239,6 +2252,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (event.button !== 0) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
+        if (isToggleFrozen()) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          return;
+        }
         handlePointerUp(
           event.clientX,
           event.clientY,
