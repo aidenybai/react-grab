@@ -46,6 +46,7 @@ import {
   KEYDOWN_SPAM_TIMEOUT_MS,
   DRAG_THRESHOLD_PX,
   ELEMENT_DETECTION_THROTTLE_MS,
+  COMPONENT_NAME_DEBOUNCE_MS,
   DRAG_PREVIEW_DEBOUNCE_MS,
   Z_INDEX_LABEL,
   MODIFIER_KEYS,
@@ -217,6 +218,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [toolbarShakeCount, setToolbarShakeCount] = createSignal(0);
     const [currentToolbarState, setCurrentToolbarState] =
       createSignal<ToolbarState | null>(savedToolbarState);
+    const [isToolbarSelectHovered, setIsToolbarSelectHovered] =
+      createSignal(false);
 
     const pendingAbortSessionId = createMemo(() => store.pendingAbortSessionId);
 
@@ -337,6 +340,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let isScreenshotInProgress = false;
     let inToggleFeedbackPeriod = false;
     let toggleFeedbackTimerId: number | null = null;
+    let selectionSourceRequestVersion = 0;
+    let componentNameDebounceTimerId: number | null = null;
+    const [
+      debouncedElementForComponentName,
+      setDebouncedElementForComponentName,
+    ] = createSignal<Element | null>(null);
 
     const arrowNavigator = createArrowNavigator(
       isValidGrabbableElement,
@@ -701,6 +710,34 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       onCleanup(() => clearInterval(intervalId));
     });
 
+    createEffect(
+      on(
+        () => effectiveElement(),
+        (element) => {
+          if (componentNameDebounceTimerId !== null) {
+            clearTimeout(componentNameDebounceTimerId);
+          }
+
+          if (!element) {
+            setDebouncedElementForComponentName(null);
+            return;
+          }
+
+          componentNameDebounceTimerId = window.setTimeout(() => {
+            componentNameDebounceTimerId = null;
+            setDebouncedElementForComponentName(element);
+          }, COMPONENT_NAME_DEBOUNCE_MS);
+
+          onCleanup(() => {
+            if (componentNameDebounceTimerId !== null) {
+              clearTimeout(componentNameDebounceTimerId);
+              componentNameDebounceTimerId = null;
+            }
+          });
+        },
+      ),
+    );
+
     createEffect(() => {
       const elements = store.frozenElements;
       const cleanup = freezeAnimations(elements);
@@ -878,8 +915,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       on(
         () => targetElement(),
         (element) => {
+          const currentVersion = ++selectionSourceRequestVersion;
+
           const clearSource = () => {
-            actions.setSelectionSource(null, null);
+            if (selectionSourceRequestVersion === currentVersion) {
+              actions.setSelectionSource(null, null);
+            }
           };
 
           if (!element) {
@@ -889,6 +930,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
           getStack(element)
             .then((stack) => {
+              if (selectionSourceRequestVersion !== currentVersion) return;
               if (!stack) return;
               for (const frame of stack) {
                 if (frame.fileName && isSourceFile(frame.fileName)) {
@@ -901,7 +943,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               }
               clearSource();
             })
-            .catch(clearSource);
+            .catch(() => {
+              if (selectionSourceRequestVersion === currentVersion) {
+                actions.setSelectionSource(null, null);
+              }
+            });
         },
       ),
     );
@@ -2417,7 +2463,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const [selectionComponentName] = createResource(
-      () => effectiveElement(),
+      () => debouncedElementForComponentName(),
       async (element) => {
         if (!element) return undefined;
         const name = await getNearestComponentName(element);
@@ -2914,6 +2960,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             }
             mouseY={cursorPosition().y}
             crosshairVisible={crosshairVisible()}
+            isFrozen={
+              isToggleFrozen() || isActivated() || isToolbarSelectHovered()
+            }
             inputValue={store.inputText}
             isPromptMode={isPromptMode()}
             hasAgent={hasAgentProvider()}
@@ -2959,6 +3008,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 toolbarStateChangeCallbacks.delete(callback);
               };
             }}
+            onToolbarSelectHoverChange={setIsToolbarSelectHovered}
             contextMenuPosition={contextMenuPosition()}
             contextMenuBounds={contextMenuBounds()}
             contextMenuTagName={contextMenuTagName()}

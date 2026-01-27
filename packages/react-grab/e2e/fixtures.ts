@@ -694,7 +694,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       const computedStyle = window.getComputedStyle(toolbar);
       const transform = toolbar.style.transform;
       const translateMatch = transform.match(
-        /translate\(([^,]+)px,\s*([^)]+)px\)/,
+        /translate\((-?\d+(?:\.\d+)?)px,\s*(-?\d+(?:\.\d+)?)px\)/,
       );
       const position = translateMatch
         ? { x: parseFloat(translateMatch[1]), y: parseFloat(translateMatch[2]) }
@@ -757,20 +757,33 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   };
 
   const dragToolbar = async (deltaX: number, deltaY: number) => {
-    const toolbarInfo = await getToolbarInfo();
-    if (!toolbarInfo.position) return;
+    const toolbarRect = await page.evaluate((attrName) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      if (!shadowRoot) return null;
+      const root = shadowRoot.querySelector(`[${attrName}]`);
+      if (!root) return null;
+      const toolbar = root.querySelector<HTMLElement>(
+        "[data-react-grab-toolbar]",
+      );
+      if (!toolbar) return null;
+      const rect = toolbar.getBoundingClientRect();
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+    }, ATTRIBUTE_NAME);
 
-    const startX = toolbarInfo.position.x + 20;
-    const startY = toolbarInfo.position.y + 10;
-    const expectedX = startX + deltaX;
-    const expectedY = startY + deltaY;
+    if (!toolbarRect) return;
+
+    const startX = toolbarRect.x + toolbarRect.width / 2;
+    const startY = toolbarRect.y + toolbarRect.height / 2;
+    const endX = startX + deltaX;
+    const endY = startY + deltaY;
 
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(expectedX, expectedY, { steps: 10 });
+    await page.mouse.move(endX, endY, { steps: 10 });
     await page.mouse.up();
     // HACK: Wait for snap animation to complete
-    await page.waitForTimeout(150);
+    await page.waitForTimeout(300);
   };
 
   const getSelectionLabelInfo = async (): Promise<SelectionLabelInfo> => {

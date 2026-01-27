@@ -20,6 +20,7 @@ export const RECENT_THRESHOLD_MS = 10_000;
 export const DRAG_THRESHOLD_PX = 2;
 
 export const ELEMENT_DETECTION_THROTTLE_MS = 32;
+export const COMPONENT_NAME_DEBOUNCE_MS = 100;
 export const DRAG_PREVIEW_DEBOUNCE_MS = 32;
 export const DRAG_PREVIEW_THROTTLE_MS = 250;
 export const BOUNDS_CACHE_TTL_MS = 16;
@@ -43,6 +44,8 @@ export const OVERLAY_BORDER_COLOR_DRAG = `rgba(${GRAB_PURPLE_RGB}, 0.4)`;
 export const OVERLAY_FILL_COLOR_DRAG = `rgba(${GRAB_PURPLE_RGB}, 0.05)`;
 export const OVERLAY_BORDER_COLOR_DEFAULT = `rgba(${GRAB_PURPLE_RGB}, 0.5)`;
 export const OVERLAY_FILL_COLOR_DEFAULT = `rgba(${GRAB_PURPLE_RGB}, 0.08)`;
+export const FROZEN_GLOW_COLOR = `rgba(${GRAB_PURPLE_RGB}, 0.15)`;
+export const FROZEN_GLOW_EDGE_PX = 50;
 
 export const ARROW_HEIGHT_PX = 8;
 export const ARROW_CENTER_PERCENT = 50;
