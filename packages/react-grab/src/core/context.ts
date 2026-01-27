@@ -74,11 +74,11 @@ export const checkIsSourceComponentName = (name: string): boolean => {
   return true;
 };
 
-export const getStack = async (
+const stackCache = new WeakMap<Element, Promise<StackFrame[] | null>>();
+
+const fetchStackForElement = async (
   element: Element,
 ): Promise<StackFrame[] | null> => {
-  if (!isInstrumentationActive()) return [];
-
   try {
     const fiber = getFiberFromHostInstance(element);
     if (!fiber) return null;
@@ -86,6 +86,17 @@ export const getStack = async (
   } catch {
     return null;
   }
+};
+
+export const getStack = (element: Element): Promise<StackFrame[] | null> => {
+  if (!isInstrumentationActive()) return Promise.resolve([]);
+
+  const cached = stackCache.get(element);
+  if (cached) return cached;
+
+  const promise = fetchStackForElement(element);
+  stackCache.set(element, promise);
+  return promise;
 };
 
 export const getNearestComponentName = async (

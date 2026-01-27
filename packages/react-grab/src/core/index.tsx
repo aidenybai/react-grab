@@ -341,11 +341,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let inToggleFeedbackPeriod = false;
     let toggleFeedbackTimerId: number | null = null;
     let selectionSourceRequestVersion = 0;
+    let componentNameRequestVersion = 0;
     let componentNameDebounceTimerId: number | null = null;
     const [
       debouncedElementForComponentName,
       setDebouncedElementForComponentName,
     ] = createSignal<Element | null>(null);
+    const [resolvedComponentName, setResolvedComponentName] = createSignal<
+      string | undefined
+    >(undefined);
 
     const arrowNavigator = createArrowNavigator(
       isValidGrabbableElement,
@@ -2462,14 +2466,31 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return getTagName(element) || undefined;
     });
 
-    const [selectionComponentName] = createResource(
-      () => debouncedElementForComponentName(),
-      async (element) => {
-        if (!element) return undefined;
-        const name = await getNearestComponentName(element);
-        return name ?? undefined;
-      },
+    createEffect(
+      on(
+        () => debouncedElementForComponentName(),
+        (element) => {
+          const currentVersion = ++componentNameRequestVersion;
+
+          if (!element) {
+            setResolvedComponentName(undefined);
+            return;
+          }
+
+          getNearestComponentName(element)
+            .then((name) => {
+              if (componentNameRequestVersion !== currentVersion) return;
+              setResolvedComponentName(name ?? undefined);
+            })
+            .catch(() => {
+              if (componentNameRequestVersion !== currentVersion) return;
+              setResolvedComponentName(undefined);
+            });
+        },
+      ),
     );
+
+    const selectionComponentName = resolvedComponentName;
 
     const selectionLabelVisible = createMemo(() => {
       if (store.contextMenuPosition !== null) return false;
