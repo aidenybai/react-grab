@@ -56,6 +56,7 @@ import {
   INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS,
   DEFAULT_KEY_HOLD_DURATION_MS,
   MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS,
+  POST_COPY_FREEZE_DURATION_MS,
   SCREENSHOT_CAPTURE_DELAY_MS,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
@@ -340,6 +341,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let isScreenshotInProgress = false;
     let inToggleFeedbackPeriod = false;
     let toggleFeedbackTimerId: number | null = null;
+    let postCopyFreezeTimerId: number | null = null;
     let selectionSourceRequestVersion = 0;
     let componentNameRequestVersion = 0;
     let componentNameDebounceTimerId: number | null = null;
@@ -586,6 +588,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           deactivateRenderer();
         } else {
           actions.activate();
+          actions.freeze();
+
+          if (postCopyFreezeTimerId !== null) {
+            window.clearTimeout(postCopyFreezeTimerId);
+          }
+          postCopyFreezeTimerId = window.setTimeout(() => {
+            actions.unfreeze();
+            postCopyFreezeTimerId = null;
+          }, POST_COPY_FREEZE_DURATION_MS);
+
           inToggleFeedbackPeriod = true;
           if (toggleFeedbackTimerId !== null) {
             window.clearTimeout(toggleFeedbackTimerId);
@@ -1184,6 +1196,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         document.body.style.userSelect = "";
       }
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
+      if (postCopyFreezeTimerId !== null) {
+        window.clearTimeout(postCopyFreezeTimerId);
+        postCopyFreezeTimerId = null;
+      }
       autoScroller.stop();
       if (
         previousFocused instanceof HTMLElement &&
@@ -1427,6 +1443,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (toggleFeedbackTimerId !== null) {
           window.clearTimeout(toggleFeedbackTimerId);
           toggleFeedbackTimerId = null;
+        }
+        if (postCopyFreezeTimerId !== null) {
+          window.clearTimeout(postCopyFreezeTimerId);
+          postCopyFreezeTimerId = null;
         }
         inToggleFeedbackPeriod = false;
       }
@@ -3142,6 +3162,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           if (toggleFeedbackTimerId !== null) {
             window.clearTimeout(toggleFeedbackTimerId);
             toggleFeedbackTimerId = null;
+          }
+          if (postCopyFreezeTimerId !== null) {
+            window.clearTimeout(postCopyFreezeTimerId);
+            postCopyFreezeTimerId = null;
           }
           inToggleFeedbackPeriod = false;
         }
