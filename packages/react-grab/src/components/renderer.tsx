@@ -1,6 +1,10 @@
 import { Show, Index } from "solid-js";
 import type { Component } from "solid-js";
 import type { ReactGrabRendererProps } from "../types.js";
+import {
+  FROZEN_GLOW_COLOR,
+  Z_INDEX_OVERLAY_CANVAS,
+} from "../constants.js";
 import { buildOpenFileUrl } from "../utils/build-open-file-url.js";
 import { OverlayCanvas } from "./overlay-canvas.js";
 import { SelectionLabel } from "./selection-label/index.js";
@@ -24,6 +28,21 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         grabbedBoxes={props.grabbedBoxes}
         agentSessions={props.agentSessions}
         labelInstances={props.labelInstances}
+      />
+
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 0,
+          "pointer-events": "none",
+          "box-shadow": `inset 0 0 40px 8px ${FROZEN_GLOW_COLOR}`,
+          "z-index": Z_INDEX_OVERLAY_CANVAS,
+          opacity: props.isFrozen ? 1 : 0,
+          transition: "opacity 150ms ease-out",
+        }}
       />
 
       <Index
@@ -165,6 +184,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           shakeCount={props.shakeCount}
           onStateChange={props.onToolbarStateChange}
           onSubscribeToStateChanges={props.onSubscribeToToolbarStateChanges}
+          onSelectHoverChange={props.onToolbarSelectHoverChange}
         />
       </Show>
 

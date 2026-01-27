@@ -217,6 +217,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [toolbarShakeCount, setToolbarShakeCount] = createSignal(0);
     const [currentToolbarState, setCurrentToolbarState] =
       createSignal<ToolbarState | null>(savedToolbarState);
+    const [isToolbarSelectHovered, setIsToolbarSelectHovered] =
+      createSignal(false);
 
     const pendingAbortSessionId = createMemo(() => store.pendingAbortSessionId);
 
@@ -2914,6 +2916,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             }
             mouseY={cursorPosition().y}
             crosshairVisible={crosshairVisible()}
+            isFrozen={isToggleFrozen() || isActivated() || isToolbarSelectHovered()}
             inputValue={store.inputText}
             isPromptMode={isPromptMode()}
             hasAgent={hasAgentProvider()}
@@ -2959,6 +2962,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 toolbarStateChangeCallbacks.delete(callback);
               };
             }}
+            onToolbarSelectHoverChange={setIsToolbarSelectHovered}
             contextMenuPosition={contextMenuPosition()}
             contextMenuBounds={contextMenuBounds()}
             contextMenuTagName={contextMenuTagName()}

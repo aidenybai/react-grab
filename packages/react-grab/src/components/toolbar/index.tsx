@@ -45,6 +45,7 @@ interface ToolbarProps {
   onSubscribeToStateChanges?: (
     callback: (state: ToolbarState) => void,
   ) => () => void;
+  onSelectHoverChange?: (isHovered: boolean) => void;
 }
 
 export const Toolbar: Component<ToolbarProps> = (props) => {
@@ -1004,12 +1005,14 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     }}
                     onMouseEnter={() => {
                       setIsSelectTooltipVisible(true);
+                      props.onSelectHoverChange?.(true);
                       if (!unfreezeUpdatesCallback) {
                         unfreezeUpdatesCallback = freezeUpdates();
                       }
                     }}
                     onMouseLeave={() => {
                       setIsSelectTooltipVisible(false);
+                      props.onSelectHoverChange?.(false);
                       if (!props.isActive && !props.isContextMenuOpen) {
                         unfreezeUpdatesCallback?.();
                         unfreezeUpdatesCallback = null;
