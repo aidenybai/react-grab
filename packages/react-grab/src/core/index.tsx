@@ -1562,7 +1562,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       hasModifierKeyHeld: boolean,
     ) => {
       const element =
-        getElementAtPosition(clientX, clientY) ?? store.detectedElement;
+        getElementAtPosition(clientX, clientY) ??
+        (store.detectedElement && document.contains(store.detectedElement)
+          ? store.detectedElement
+          : null);
       if (!element) return;
 
       const shouldDeactivateAfter =
