@@ -5,6 +5,7 @@ import type {
   AgentSession,
   AgentOptions,
   OverlayBounds,
+  SettableOptions,
 } from "../../types.js";
 import {
   createSession,
@@ -68,6 +69,7 @@ export interface AgentManager {
 
 export const createAgentManager = (
   initialAgentOptions: AgentOptions | undefined,
+  getPluginOptions?: () => SettableOptions | undefined,
 ): AgentManager => {
   const [sessions, setSessions] = createSignal<Map<string, AgentSession>>(
     new Map(),
@@ -339,7 +341,10 @@ export const createAgentManager = (
 
     const content = existingSession
       ? existingSession.context.content
-      : await generateSnippet(elements, { maxLines: Infinity });
+      : await generateSnippet(elements, {
+        maxLines: Infinity,
+        ignoreComponents: getPluginOptions?.()?.ignoreComponents,
+      });
 
     const context: AgentContext = {
       content,
@@ -367,7 +372,10 @@ export const createAgentManager = (
       const componentName =
         elements.length > 1
           ? undefined
-          : (await getNearestComponentName(firstElement)) || undefined;
+          : (await getNearestComponentName(
+            firstElement,
+            getPluginOptions?.()?.ignoreComponents,
+          )) || undefined;
 
       session = createSession(
         context,
