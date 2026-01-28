@@ -1,8 +1,11 @@
 {
   "name": "@react-grab/utils",
   "version": "0.1.0-beta.12",
-  "type": "module",
   "private": true,
+  "files": [
+    "dist"
+  ],
+  "type": "module",
   "exports": {
     "./client": {
       "types": "./dist/client.d.ts",
@@ -15,9 +18,6 @@
       "require": "./dist/server.cjs"
     }
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "dev": "tsup --watch",
     "build": "rm -rf dist && NODE_ENV=production tsup"

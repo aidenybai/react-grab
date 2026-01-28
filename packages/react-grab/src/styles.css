@@ -3,7 +3,7 @@
 @theme {
   --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
   --font-mono:
-    "Geist Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
     "Liberation Mono", monospace;
   --color-grab-pink: #b21c8e;
   --color-grab-pink-light: #fde7f7;
@@ -160,6 +160,31 @@
 
 .icon-loader-bar {
   animation: icon-loader-spin 0.5s linear infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.shimmer-text {
+  background: linear-gradient(
+    90deg,
+    #71717a 0%,
+    #a1a1aa 25%,
+    #71717a 50%,
+    #a1a1aa 75%,
+    #71717a 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 2.5s linear infinite;
 }
 
 .animate-shake {

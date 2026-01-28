@@ -46,13 +46,13 @@ export const ErrorView: Component<ErrorViewProps> = (props) => {
   return (
     <div
       data-react-grab-error
-      class="contain-layout shrink-0 flex flex-col justify-center items-end gap-1 w-fit h-fit max-w-[280px]"
+      class="contain-layout shrink-0 flex flex-col justify-center items-end w-fit h-fit max-w-[280px]"
       onPointerDown={handleFocus}
       onClick={handleFocus}
     >
       <div
-        class="contain-layout shrink-0 flex items-start gap-1 px-1.5 w-full h-fit"
-        classList={{ "pt-1": hasActions(), "py-1": !hasActions() }}
+        class="contain-layout shrink-0 flex items-start gap-1 px-2 w-full h-fit"
+        classList={{ "pt-1.5 pb-1": hasActions(), "py-1.5": !hasActions() }}
       >
         <span
           class="text-[#B91C1C] text-[13px] leading-4 font-sans font-medium overflow-hidden line-clamp-5"

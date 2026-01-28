@@ -13,8 +13,7 @@ import { COMPLETED_STATUS } from "@react-grab/relay";
 import { formatSpawnError } from "@react-grab/utils/server";
 
 export interface ClaudeAgentOptions
-  extends AgentRunOptions,
-    Omit<Options, "cwd"> {}
+  extends AgentRunOptions, Omit<Options, "cwd"> {}
 
 type ContentBlock = SDKAssistantMessage["message"]["content"][number];
 type TextContentBlock = Extract<ContentBlock, { type: "text" }>;

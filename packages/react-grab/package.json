@@ -3,26 +3,36 @@
   "version": "0.1.0-beta.12",
   "description": "Select context for coding agents directly from your website",
   "keywords": [
-    "react",
-    "grab",
-    "react-grab",
     "agent",
-    "context"
+    "context",
+    "grab",
+    "react",
+    "react-grab"
   ],
   "homepage": "https://react-grab.com",
   "bugs": {
     "url": "https://github.com/aidenybai/react-grab/issues"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/aidenybai/react-grab.git"
   },
   "license": "MIT",
   "author": {
     "name": "Aiden Bai",
     "email": "aiden@million.dev"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aidenybai/react-grab.git"
+  },
+  "files": [
+    "dist",
+    "package.json",
+    "README.md",
+    "LICENSE"
+  ],
   "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "browser": "dist/index.global.js",
+  "types": "dist/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
@@ -52,16 +62,9 @@
     "./dist/*.cjs": "./dist/*.cjs",
     "./dist/*.mjs": "./dist/*.mjs"
   },
-  "main": "dist/index.js",
-  "module": "dist/index.js",
-  "browser": "dist/index.global.js",
-  "types": "dist/index.d.ts",
-  "files": [
-    "dist",
-    "package.json",
-    "README.md",
-    "LICENSE"
-  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "css:build": "tailwindcss -i ./src/styles.css -o ./dist/styles.css -m",
     "css:watch": "tailwindcss -i ./src/styles.css -o ./dist/styles.css -w",
@@ -77,6 +80,10 @@
     "prepublishOnly": "pnpm build",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
+  },
+  "dependencies": {
+    "bippy": "^0.5.28",
+    "solid-js": "^1.9.10"
   },
   "devDependencies": {
     "@babel/core": "^7.28.5",
@@ -94,12 +101,5 @@
     "tailwindcss": "^4.1.0",
     "tsup": "^8.2.4",
     "typescript-eslint": "^8.46.1"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
-  "dependencies": {
-    "bippy": "^0.5.28",
-    "solid-js": "^1.9.10"
   }
 }

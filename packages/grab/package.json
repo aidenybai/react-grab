@@ -3,26 +3,40 @@
   "version": "0.1.0-beta.12",
   "description": "Select context for coding agents directly from your website",
   "keywords": [
-    "react",
-    "grab",
-    "react-grab",
     "agent",
-    "context"
+    "context",
+    "grab",
+    "react",
+    "react-grab"
   ],
   "homepage": "https://react-grab.com",
   "bugs": {
     "url": "https://github.com/aidenybai/react-grab/issues"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/aidenybai/react-grab.git"
   },
   "license": "MIT",
   "author": {
     "name": "Aiden Bai",
     "email": "aiden@million.dev"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aidenybai/react-grab.git"
+  },
+  "bin": {
+    "grab": "./bin/cli.js"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "package.json",
+    "README.md",
+    "LICENSE"
+  ],
   "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "browser": "dist/index.global.js",
+  "types": "dist/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
@@ -50,27 +64,13 @@
     "./dist/*.cjs": "./dist/*.cjs",
     "./dist/*.mjs": "./dist/*.mjs"
   },
-  "bin": {
-    "grab": "./bin/cli.js"
+  "publishConfig": {
+    "access": "public"
   },
-  "main": "dist/index.js",
-  "module": "dist/index.js",
-  "browser": "dist/index.global.js",
-  "types": "dist/index.d.ts",
-  "files": [
-    "bin",
-    "dist",
-    "package.json",
-    "README.md",
-    "LICENSE"
-  ],
   "scripts": {
     "build": "node scripts/build.js"
   },
   "dependencies": {
     "@react-grab/cli": "workspace:*"
-  },
-  "publishConfig": {
-    "access": "public"
   }
 }

@@ -12,7 +12,8 @@ import type {
   ContextMenuAction,
   ActionContext,
 } from "../types.js";
-import { ARROW_HEIGHT_PX, LABEL_GAP_PX } from "../constants.js";
+import { ARROW_HEIGHT_PX, LABEL_GAP_PX, PANEL_STYLES } from "../constants.js";
+import { cn } from "../utils/cn.js";
 import { Arrow } from "./selection-label/arrow.js";
 import { TagBadge } from "./selection-label/tag-badge.js";
 import { BottomSection } from "./selection-label/bottom-section.js";
@@ -293,7 +294,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         ref={containerRef}
         data-react-grab-ignore-events
         data-react-grab-context-menu
-        class="fixed font-sans text-[13px] antialiased filter-[drop-shadow(0px_0px_4px_#51515180)] select-none transition-opacity duration-150 ease-out"
+        class="fixed font-sans text-[13px] antialiased filter-[drop-shadow(0px_1px_2px_#51515140)] select-none transition-opacity duration-150 ease-out"
         style={{
           top: `${computedPosition().top}px`,
           left: `${computedPosition().left}px`,
@@ -316,8 +317,13 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
           leftOffsetPx={computedPosition().arrowLeft}
         />
 
-        <div class="[font-synthesis:none] contain-layout flex flex-col justify-center items-start gap-1 rounded-sm bg-white antialiased w-fit h-fit min-w-[100px]">
-          <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5 pr-1">
+        <div
+          class={cn(
+            "contain-layout flex flex-col justify-center items-start rounded-[7px] antialiased w-fit h-fit min-w-[100px] [font-synthesis:none]",
+            PANEL_STYLES,
+          )}
+        >
+          <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 w-fit h-fit px-2">
             <TagBadge
               tagName={tagDisplayResult().tagName}
               componentName={tagDisplayResult().componentName}
@@ -333,7 +339,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
             />
           </div>
           <BottomSection>
-            <div class="flex flex-col w-[calc(100%+16px)] -mx-2 -my-[5px]">
+            <div class="flex flex-col w-[calc(100%+16px)] -mx-2 -my-1">
               <For each={menuItems()}>
                 {(item) => (
                   <button

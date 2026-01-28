@@ -10,9 +10,9 @@
     "package": "./scripts/package.sh"
   },
   "dependencies": {
-    "react-grab": "workspace:*",
     "react": "19.1.2",
     "react-dom": "19.1.2",
+    "react-grab": "workspace:*",
     "turndown": "^7.2.0",
     "webextension-polyfill": "^0.12.0"
   },

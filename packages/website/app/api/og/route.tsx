@@ -89,81 +89,79 @@ export const GET = async (request: Request) => {
   const geistRegular = await fetchFont("Geist", 400);
 
   return new ImageResponse(
-    (
+    <div
+      style={{
+        height: "100%",
+        width: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        justifyContent: "flex-end",
+        backgroundColor: BACKGROUND_DARK_PURPLE,
+        padding: "80px",
+      }}
+    >
       <div
         style={{
-          height: "100%",
-          width: "100%",
+          position: "absolute",
+          top: "80px",
+          left: "80px",
           display: "flex",
-          flexDirection: "column",
-          alignItems: "flex-start",
-          justifyContent: "flex-end",
-          backgroundColor: BACKGROUND_DARK_PURPLE,
-          padding: "80px",
+          alignItems: "center",
+          gap: "16px",
         }}
       >
-        <div
+        <ReactGrabLogo />
+        <span
           style={{
-            position: "absolute",
-            top: "80px",
-            left: "80px",
-            display: "flex",
-            alignItems: "center",
-            gap: "16px",
+            fontSize: 32,
+            fontFamily: "Geist",
+            fontWeight: 600,
+            color: "#ffffff",
+            letterSpacing: "-0.02em",
           }}
         >
-          <ReactGrabLogo />
-          <span
-            style={{
-              fontSize: 32,
-              fontFamily: "Geist",
-              fontWeight: 600,
-              color: "#ffffff",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            React Grab
-          </span>
-        </div>
+          React Grab
+        </span>
+      </div>
 
-        <div
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "16px",
+          maxWidth: "900px",
+        }}
+      >
+        <h1
           style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "16px",
-            maxWidth: "900px",
+            fontSize: title.length > 40 ? 56 : 72,
+            fontFamily: "Geist",
+            fontWeight: 600,
+            color: "#ffffff",
+            lineHeight: 1.1,
+            letterSpacing: "-0.03em",
+            margin: 0,
           }}
         >
-          <h1
+          {title}
+        </h1>
+        {subtitle && (
+          <p
             style={{
-              fontSize: title.length > 40 ? 56 : 72,
+              fontSize: 28,
               fontFamily: "Geist",
-              fontWeight: 600,
-              color: "#ffffff",
-              lineHeight: 1.1,
-              letterSpacing: "-0.03em",
+              fontWeight: 400,
+              color: "rgba(255, 255, 255, 0.5)",
+              lineHeight: 1.4,
               margin: 0,
             }}
           >
-            {title}
-          </h1>
-          {subtitle && (
-            <p
-              style={{
-                fontSize: 28,
-                fontFamily: "Geist",
-                fontWeight: 400,
-                color: "rgba(255, 255, 255, 0.5)",
-                lineHeight: 1.4,
-                margin: 0,
-              }}
-            >
-              {subtitle}
-            </p>
-          )}
-        </div>
+            {subtitle}
+          </p>
+        )}
       </div>
-    ),
+    </div>,
     {
       width: 1200,
       height: 630,

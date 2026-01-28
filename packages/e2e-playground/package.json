@@ -8,10 +8,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react-grab": "workspace:*",
     "clsx": "^2.1.1",
     "react": "19.1.2",
     "react-dom": "19.1.2",
+    "react-grab": "workspace:*",
     "tailwind-merge": "^2.6.0"
   },
   "devDependencies": {

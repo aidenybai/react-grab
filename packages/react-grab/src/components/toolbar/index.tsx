@@ -29,6 +29,7 @@ import {
   TOOLBAR_DEFAULT_WIDTH_PX,
   TOOLBAR_DEFAULT_HEIGHT_PX,
   TOOLBAR_SHAKE_TOOLTIP_DURATION_MS,
+  PANEL_STYLES,
 } from "../../constants.js";
 import { formatShortcut } from "../../utils/format-shortcut.js";
 import { freezeUpdates } from "../../utils/freeze-updates.js";
@@ -81,10 +82,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     if (!isCollapsed()) return "";
     const edge = snapEdge();
     const roundedClass = {
-      top: "rounded-t-none",
-      bottom: "rounded-b-none",
-      left: "rounded-l-none",
-      right: "rounded-r-none",
+      top: "rounded-t-none rounded-b-[7px]",
+      bottom: "rounded-b-none rounded-t-[7px]",
+      left: "rounded-l-none rounded-r-[7px]",
+      right: "rounded-r-none rounded-l-[7px]",
     }[edge];
     const paddingClass =
       edge === "top" || edge === "bottom" ? "px-2 py-0.25" : "px-0.25 py-2";
@@ -920,7 +921,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         data-react-grab-ignore-events
         data-react-grab-toolbar
         class={cn(
-          "fixed left-0 top-0 font-sans text-[13px] antialiased filter-[drop-shadow(0px_0px_4px_#51515180)] select-none",
+          "fixed left-0 top-0 font-sans text-[13px] antialiased filter-[drop-shadow(0px_1px_2px_#51515140)] select-none",
           getCursorClass(),
           getTransitionClass(),
           isVisible() ? "opacity-100" : "opacity-0 pointer-events-none",
@@ -934,8 +935,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       >
         <div
           class={cn(
-            "[font-synthesis:none] flex items-center justify-center rounded-sm bg-white antialiased transition-all duration-150 ease-out relative overflow-visible",
-            isCollapsed() ? "" : "h-7 gap-1.5 px-2",
+            "flex items-center justify-center rounded-[7px] antialiased transition-all duration-150 ease-out relative overflow-visible [font-synthesis:none]",
+            PANEL_STYLES,
+            !isCollapsed() && "py-1.5 gap-1.5 px-2",
             collapsedEdgeClasses(),
             isShaking() && "animate-shake",
           )}
@@ -1086,7 +1088,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           <Show when={isShakeTooltipVisible()}>
             <div
               class={cn(
-                "absolute left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 rounded text-[10px] text-black/60 bg-white shadow-sm pointer-events-none animate-tooltip-fade-in",
+                "absolute left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 rounded-[7px] text-[10px] text-black/60 pointer-events-none animate-tooltip-fade-in",
+                PANEL_STYLES,
                 tooltipPosition() === "top"
                   ? "bottom-full mb-0.5"
                   : "top-full mt-0.5",

@@ -4,8 +4,7 @@ import { render } from "solid-js/web";
 import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { SelectionLabel } from "./components/selection-label/index.js";
 import { ContextMenu } from "./components/context-menu.js";
-import { IconSelect } from "./components/icons/icon-select.js";
-import { IconChevron } from "./components/icons/icon-chevron.js";
+import { ToolbarContent } from "./components/toolbar/toolbar-content.js";
 import type { OverlayBounds, SelectionLabelStatus } from "./types.js";
 
 type ComponentType = "label" | "context-menu" | "toolbar";
@@ -411,6 +410,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       status: "copied",
       hasAgent: false,
       hasOnDismiss: false,
+      hasOnUndo: false,
     },
   },
   {
@@ -2076,7 +2076,7 @@ const createTargetStyle = (theme: ThemeColors): Record<string, string> => ({
   "justify-content": "center",
   color: theme.targetText,
   "font-size": `${TARGET_FONT_SIZE_PX}px`,
-  "font-family": "Geist Mono, monospace",
+  "font-family": "ui-monospace, SFMono-Regular, monospace",
 });
 
 interface StateCardProps {
@@ -2412,7 +2412,7 @@ const StateCard = (props: StateCardProps) => {
           </Show>
 
           <Show when={props.state.component === "toolbar"}>
-            <StaticToolbar
+            <ToolbarContent
               isActive={currentProps().isToolbarActive ?? false}
               enabled={currentProps().isToolbarEnabled ?? true}
               isCollapsed={currentProps().isToolbarCollapsed}
@@ -2421,179 +2421,6 @@ const StateCard = (props: StateCardProps) => {
           </Show>
         </Show>
       </div>
-    </div>
-  );
-};
-
-interface StaticToolbarProps {
-  isActive: boolean;
-  enabled: boolean;
-  isCollapsed?: boolean;
-  snapEdge?: "top" | "bottom" | "left" | "right";
-}
-
-const StaticToolbar = (props: StaticToolbarProps) => {
-  const edge = props.snapEdge ?? "bottom";
-  const isVerticalEdge = edge === "left" || edge === "right";
-
-  const getChevronRotation = (): string => {
-    if (props.isCollapsed) {
-      switch (edge) {
-        case "top":
-          return "rotate-180";
-        case "bottom":
-          return "rotate-0";
-        case "left":
-          return "rotate-90";
-        case "right":
-          return "-rotate-90";
-        default:
-          return "rotate-0";
-      }
-    }
-    switch (edge) {
-      case "top":
-        return "rotate-0";
-      case "bottom":
-        return "rotate-180";
-      case "left":
-        return "-rotate-90";
-      case "right":
-        return "rotate-90";
-      default:
-        return "rotate-180";
-    }
-  };
-
-  const getCollapsedBorderRadius = (): string => {
-    switch (edge) {
-      case "top":
-        return "0 0 4px 4px";
-      case "bottom":
-        return "4px 4px 0 0";
-      case "left":
-        return "0 4px 4px 0";
-      case "right":
-        return "4px 0 0 4px";
-      default:
-        return "4px";
-    }
-  };
-
-  if (props.isCollapsed) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          "align-items": "center",
-          "justify-content": "center",
-          padding: isVerticalEdge ? "8px 1px" : "1px 8px",
-          "background-color": "#ffffff",
-          "border-radius": getCollapsedBorderRadius(),
-          "box-shadow": "0 0 4px rgba(81, 81, 81, 0.5)",
-          "font-family": "sans-serif",
-          "font-size": "13px",
-        }}
-      >
-        <button
-          style={{
-            display: "flex",
-            "align-items": "center",
-            "justify-content": "center",
-            padding: "0",
-            background: "transparent",
-            border: "none",
-            cursor: "pointer",
-          }}
-        >
-          <IconChevron class={`text-[#B3B3B3] ${getChevronRotation()}`} />
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      style={{
-        display: "flex",
-        "align-items": "center",
-        "justify-content": "center",
-        gap: "6px",
-        padding: "6px 8px",
-        "background-color": "#ffffff",
-        "border-radius": "4px",
-        "box-shadow": "0 0 4px rgba(81, 81, 81, 0.5)",
-        "font-family": "sans-serif",
-        "font-size": "13px",
-      }}
-    >
-      <button
-        style={{
-          display: "flex",
-          "align-items": "center",
-          "justify-content": "center",
-          padding: "0",
-          background: "transparent",
-          border: "none",
-          cursor: "pointer",
-        }}
-      >
-        <IconSelect
-          size={14}
-          class={props.isActive ? "text-black" : "text-black/70"}
-        />
-      </button>
-      <button
-        style={{
-          display: "flex",
-          "align-items": "center",
-          "justify-content": "center",
-          padding: "0",
-          background: "transparent",
-          border: "none",
-          cursor: "pointer",
-          margin: "0 2px",
-        }}
-      >
-        <div
-          style={{
-            position: "relative",
-            width: "20px",
-            height: "12px",
-            "border-radius": "6px",
-            "background-color": props.enabled
-              ? "#000000"
-              : "rgba(0, 0, 0, 0.25)",
-            transition: "background-color 0.15s",
-          }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              top: "2px",
-              left: props.enabled ? "10px" : "2px",
-              width: "8px",
-              height: "8px",
-              "border-radius": "4px",
-              "background-color": "#ffffff",
-              transition: "left 0.15s",
-            }}
-          />
-        </div>
-      </button>
-      <button
-        style={{
-          display: "flex",
-          "align-items": "center",
-          "justify-content": "center",
-          padding: "0",
-          background: "transparent",
-          border: "none",
-          cursor: "pointer",
-        }}
-      >
-        <IconChevron class={`text-[#B3B3B3] ${getChevronRotation()}`} />
-      </button>
     </div>
   );
 };
@@ -2642,7 +2469,7 @@ const FpsMeter = (props: FpsMeterProps) => {
         "background-color": props.theme.cardBackground,
         border: `1px solid ${props.theme.cardBorder}`,
         "border-radius": `${FPS_METER_BORDER_RADIUS_PX}px`,
-        "font-family": "Geist Mono, monospace",
+        "font-family": "ui-monospace, SFMono-Regular, monospace",
         "font-size": `${FPS_METER_FONT_SIZE_PX}px`,
         color: props.theme.titleText,
         "z-index": "9999",
@@ -3196,7 +3023,7 @@ export const renderDesignSystemPreview = (
   const fontLink = document.createElement("link");
   fontLink.rel = "stylesheet";
   fontLink.href =
-    "https://fonts.googleapis.com/css2?family=Geist+Mono:wght@500&family=Geist:wght@500&display=swap";
+    "https://fonts.googleapis.com/css2?family=Geist:wght@500&display=swap";
   shadowRoot.appendChild(fontLink);
 
   const renderRoot = document.createElement("div");

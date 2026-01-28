@@ -2,7 +2,7 @@ export const ATTRIBUTE_NAME = "data-react-grab";
 
 const FONT_LINK_ID = "react-grab-fonts";
 const FONT_LINK_URL =
-  "https://fonts.googleapis.com/css2?family=Geist+Mono:wght@500&family=Geist:wght@500&display=swap";
+  "https://fonts.googleapis.com/css2?family=Geist:wght@500&display=swap";
 
 const loadFonts = () => {
   if (document.getElementById(FONT_LINK_ID)) return;

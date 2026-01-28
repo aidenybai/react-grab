@@ -1002,19 +1002,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         ]) => {
           const isSelectionBoxVisible = Boolean(
             themeEnabled &&
-              selectionBoxEnabled &&
-              active &&
-              !copying &&
-              !justCopied &&
-              !dragging &&
-              effectiveTarget != null,
+            selectionBoxEnabled &&
+            active &&
+            !copying &&
+            !justCopied &&
+            !dragging &&
+            effectiveTarget != null,
           );
           const isDragBoxVisible = Boolean(
             themeEnabled &&
-              dragBoxEnabled &&
-              active &&
-              !copying &&
-              draggingBeyondThreshold,
+            dragBoxEnabled &&
+            active &&
+            !copying &&
+            draggingBeyondThreshold,
           );
           pluginRegistry.hooks.onStateChange({
             isActive: active,
@@ -1561,7 +1561,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       clientY: number,
       hasModifierKeyHeld: boolean,
     ) => {
-      const element = getElementAtPosition(clientX, clientY);
+      const element =
+        getElementAtPosition(clientX, clientY) ??
+        (store.detectedElement && document.contains(store.detectedElement)
+          ? store.detectedElement
+          : null);
       if (!element) return;
 
       const shouldDeactivateAfter =

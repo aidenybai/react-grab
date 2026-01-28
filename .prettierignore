@@ -1,7 +1,0 @@
-.next
-node_modules
-dist
-build
-.turbo
-packages/benchmarks/shadcn-dashboard
-pnpm-lock.yaml

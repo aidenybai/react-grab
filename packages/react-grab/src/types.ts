@@ -480,17 +480,6 @@ export interface TagBadgeProps {
   forceShowIcon?: boolean;
 }
 
-export interface ActionPillProps {
-  onClick: () => void;
-  asButton?: boolean;
-  dimmed?: boolean;
-  shrink?: boolean;
-  hasAgent?: boolean;
-  isEditing?: boolean;
-  isIdle?: boolean;
-  showOpenIndicator?: boolean;
-}
-
 export interface BottomSectionProps {
   children: import("solid-js").JSX.Element;
 }
