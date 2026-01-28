@@ -2076,7 +2076,7 @@ const createTargetStyle = (theme: ThemeColors): Record<string, string> => ({
   "justify-content": "center",
   color: theme.targetText,
   "font-size": `${TARGET_FONT_SIZE_PX}px`,
-  "font-family": "Geist Mono, monospace",
+  "font-family": "ui-monospace, SFMono-Regular, monospace",
 });
 
 interface StateCardProps {
@@ -2469,7 +2469,7 @@ const FpsMeter = (props: FpsMeterProps) => {
         "background-color": props.theme.cardBackground,
         border: `1px solid ${props.theme.cardBorder}`,
         "border-radius": `${FPS_METER_BORDER_RADIUS_PX}px`,
-        "font-family": "Geist Mono, monospace",
+        "font-family": "ui-monospace, SFMono-Regular, monospace",
         "font-size": `${FPS_METER_FONT_SIZE_PX}px`,
         color: props.theme.titleText,
         "z-index": "9999",
@@ -3023,7 +3023,7 @@ export const renderDesignSystemPreview = (
   const fontLink = document.createElement("link");
   fontLink.rel = "stylesheet";
   fontLink.href =
-    "https://fonts.googleapis.com/css2?family=Geist+Mono:wght@500&family=Geist:wght@500&display=swap";
+    "https://fonts.googleapis.com/css2?family=Geist:wght@500&display=swap";
   shadowRoot.appendChild(fontLink);
 
   const renderRoot = document.createElement("div");
