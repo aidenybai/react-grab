@@ -246,7 +246,9 @@ const AgentPage = () => {
               </ol>
               <p>
                 I built the first version of React Grab
-                <sup className="text-neutral-500 text-[10px] ml-0.5">2</sup> to
+                <sup className="text-neutral-500 text-[10px] ml-0.5">
+                  2
+                </sup> to
                 solve this: press{" "}
                 <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
                   ⌘C
@@ -275,7 +277,9 @@ const AgentPage = () => {
                   3× faster
                 </Link>{" "}
                 on average for a set of UI tasks.
-                <sup className="text-neutral-500 text-[10px] ml-0.5">1</sup> The
+                <sup className="text-neutral-500 text-[10px] ml-0.5">
+                  1
+                </sup> The
                 agent did fewer tool calls, read fewer files, and got to the
                 edit sooner, because it no longer had to search.
               </p>

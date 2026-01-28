@@ -54,7 +54,7 @@ export const checkIsNextProject = (): boolean => {
   if (typeof document === "undefined") return false;
   return Boolean(
     document.getElementById("__NEXT_DATA__") ||
-      document.querySelector("nextjs-portal"),
+    document.querySelector("nextjs-portal"),
   );
 };
 

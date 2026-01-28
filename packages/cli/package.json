@@ -1,10 +1,13 @@
 {
   "name": "@react-grab/cli",
   "version": "0.1.0-beta.12",
-  "type": "module",
   "bin": {
     "react-grab": "./dist/cli.js"
   },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
   "exports": {
     ".": {
       "types": "./dist/cli.d.ts",
@@ -12,19 +15,11 @@
       "require": "./dist/cli.cjs"
     }
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "dev": "tsup --watch",
     "build": "rm -rf dist && NODE_ENV=production tsup",
     "test": "vitest run",
     "test:watch": "vitest"
-  },
-  "devDependencies": {
-    "@types/prompts": "^2.4.9",
-    "tsup": "^8.4.0",
-    "vitest": "^3.2.4"
   },
   "dependencies": {
     "@antfu/ni": "^0.23.0",
@@ -32,5 +27,10 @@
     "ora": "^8.2.0",
     "picocolors": "^1.1.1",
     "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/prompts": "^2.4.9",
+    "tsup": "^8.4.0",
+    "vitest": "^3.2.4"
   }
 }

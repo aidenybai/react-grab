@@ -387,7 +387,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           <Show when={props.status === "copying" && !props.isPendingAbort}>
             <div
               class="contain-layout shrink-0 flex flex-col justify-center items-start w-fit h-fit max-w-[280px]"
-              classList={{ "min-w-[150px]": Boolean(props.hasAgent && props.inputValue) }}
+              classList={{
+                "min-w-[150px]": Boolean(props.hasAgent && props.inputValue),
+              }}
             >
               <div class="contain-layout shrink-0 flex items-center gap-1 py-1.5 px-2 w-full h-fit">
                 <IconLoader size={13} class="text-[#71717a] shrink-0" />

@@ -1,0 +1,15 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "tabWidth": 2,
+  "singleQuote": false,
+  "printWidth": 80,
+  "ignorePatterns": [
+    ".next",
+    "node_modules",
+    "dist",
+    "build",
+    ".turbo",
+    "packages/benchmarks/shadcn-dashboard",
+    "pnpm-lock.yaml"
+  ]
+}

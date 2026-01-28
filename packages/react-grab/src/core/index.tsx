@@ -1002,19 +1002,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         ]) => {
           const isSelectionBoxVisible = Boolean(
             themeEnabled &&
-              selectionBoxEnabled &&
-              active &&
-              !copying &&
-              !justCopied &&
-              !dragging &&
-              effectiveTarget != null,
+            selectionBoxEnabled &&
+            active &&
+            !copying &&
+            !justCopied &&
+            !dragging &&
+            effectiveTarget != null,
           );
           const isDragBoxVisible = Boolean(
             themeEnabled &&
-              dragBoxEnabled &&
-              active &&
-              !copying &&
-              draggingBeyondThreshold,
+            dragBoxEnabled &&
+            active &&
+            !copying &&
+            draggingBeyondThreshold,
           );
           pluginRegistry.hooks.onStateChange({
             isActive: active,
