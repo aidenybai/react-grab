@@ -8,6 +8,7 @@ import {
 } from "../../constants.js";
 import { confirmationFocusManager } from "../../utils/confirmation-focus-manager.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
+import { IconReply } from "../icons/icon-reply.jsx";
 import { IconReturn } from "../icons/icon-return.jsx";
 import { IconSubmit } from "../icons/icon-submit.jsx";
 import { IconEllipsis } from "../icons/icon-ellipsis.jsx";
@@ -154,24 +155,27 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
   return (
     <div
       data-react-grab-completion
-      class={`[font-synthesis:none] contain-layout shrink-0 flex flex-col justify-center items-end rounded-[7px] antialiased w-fit h-fit max-w-[280px] transition-opacity duration-100 ease-out ${PANEL_STYLES}`}
+      class={cn(
+        "contain-layout shrink-0 flex flex-col justify-center items-end rounded-[7px] antialiased w-fit h-fit max-w-[280px] transition-opacity duration-100 ease-out [font-synthesis:none]",
+        PANEL_STYLES,
+      )}
       style={{ opacity: isFading() ? 0 : 1 }}
       onPointerDown={handleFocus}
       onClick={handleFocus}
     >
       <Show when={!didCopy() && (props.onDismiss || props.onUndo)}>
-        <div class="contain-layout shrink-0 flex items-center justify-between gap-2 pt-1.5 pb-1 px-1.5 w-full h-fit">
+        <div class="contain-layout shrink-0 flex items-center justify-between gap-2 pt-1.5 pb-1 px-2 w-full h-fit">
           <span class="text-black text-[13px] leading-4 font-sans font-medium h-fit tabular-nums overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
             {displayStatusText()}
           </span>
-          <div class="contain-layout shrink-0 flex items-center gap-[5px] h-fit">
+          <div class="contain-layout shrink-0 flex items-center gap-2 h-fit">
             <Show when={props.onShowContextMenu && !props.supportsFollowUp}>
               <MoreOptionsButton onClick={() => props.onShowContextMenu?.()} />
             </Show>
             <Show when={props.supportsUndo && props.onUndo}>
               <button
                 data-react-grab-undo
-                class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#7e0002] cursor-pointer transition-all hover:bg-[#FEF2F2] press-scale h-[17px]"
+                class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[#FEF2F2] cursor-pointer transition-all hover:bg-[#FEE2E2] press-scale h-[17px]"
                 onClick={() => props.onUndo?.()}
               >
                 <span class="text-[#B91C1C] text-[13px] leading-3.5 font-sans font-medium">
@@ -198,7 +202,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
         </div>
       </Show>
       <Show when={didCopy() || (!props.onDismiss && !props.onUndo)}>
-        <div class="contain-layout shrink-0 flex items-center gap-0.5 pt-1.5 pb-1 px-1.5 w-full h-fit">
+        <div class="contain-layout shrink-0 flex items-center gap-0.5 py-1.5 px-2 w-full h-fit">
           <IconCheck
             size={14}
             class="text-black/85 shrink-0 animate-success-pop"
@@ -215,7 +219,18 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
         when={!didCopy() && props.supportsFollowUp && props.onFollowUpSubmit}
       >
         <BottomSection>
-          <div class="shrink-0 flex justify-between items-end w-full min-h-4">
+          <Show when={props.previousPrompt}>
+            <div class="flex items-center gap-1 w-full mb-1 overflow-hidden">
+              <IconReply size={10} class="text-black/30 shrink-0" />
+              <span class="text-black/40 text-[11px] leading-3 font-medium truncate italic">
+                {props.previousPrompt}
+              </span>
+            </div>
+          </Show>
+          <div
+            class="shrink-0 flex justify-between items-end w-full min-h-4"
+            style={{ "padding-left": props.previousPrompt ? "14px" : "0" }}
+          >
             <textarea
               ref={inputRef}
               data-react-grab-ignore-events
@@ -230,18 +245,18 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
               value={followUpInput()}
               onInput={(event) => setFollowUpInput(event.target.value)}
               onKeyDown={handleInputKeyDown}
-              placeholder={props.previousPrompt ?? "type follow-up"}
+              placeholder="follow-up"
               rows={1}
             />
             <button
               data-react-grab-followup-submit
               class={cn(
-                "contain-layout shrink-0 size-fit cursor-pointer interactive-scale ml-1",
+                "contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-black cursor-pointer ml-1 interactive-scale",
                 !followUpInput().trim() && "opacity-35",
               )}
               onClick={handleFollowUpSubmit}
             >
-              <IconSubmit size={16} class="text-black" />
+              <IconSubmit size={10} class="text-white" />
             </button>
           </div>
         </BottomSection>

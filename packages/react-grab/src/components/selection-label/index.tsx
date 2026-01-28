@@ -6,18 +6,16 @@ import {
   ARROW_HEIGHT_PX,
   ARROW_CENTER_PERCENT,
   LABEL_GAP_PX,
-  IDLE_TIMEOUT_MS,
   PANEL_STYLES,
 } from "../../constants.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
 import { cn } from "../../utils/cn.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
+import { IconReply } from "../icons/icon-reply.jsx";
 import { IconSubmit } from "../icons/icon-submit.jsx";
-import { IconStop } from "../icons/icon-stop.jsx";
 import { IconLoader } from "../icons/icon-loader.jsx";
 import { Arrow } from "./arrow.js";
 import { TagBadge } from "./tag-badge.js";
-import { ActionPill } from "./action-pill.js";
 import { BottomSection } from "./bottom-section.js";
 import { DiscardPrompt } from "./discard-prompt.js";
 import { ErrorView } from "./error-view.js";
@@ -49,7 +47,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const [arrowPosition, setArrowPosition] =
     createSignal<ArrowPosition>("bottom");
   const [viewportVersion, setViewportVersion] = createSignal(0);
-  const [isIdle, setIsIdle] = createSignal(false);
   const [hadValidBounds, setHadValidBounds] = createSignal(false);
   const [isInternalFading, setIsInternalFading] = createSignal(false);
 
@@ -95,18 +92,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     setViewportVersion((version) => version + 1);
   };
 
-  let idleTimeout: ReturnType<typeof setTimeout> | undefined;
-
-  const resetIdleTimer = () => {
-    setIsIdle(false);
-    if (idleTimeout) {
-      clearTimeout(idleTimeout);
-    }
-    idleTimeout = setTimeout(() => {
-      setIsIdle(true);
-    }, IDLE_TIMEOUT_MS);
-  };
-
   const handleGlobalKeyDown = (event: KeyboardEvent) => {
     if (isKeyboardEventTriggeredByInput(event)) return;
 
@@ -136,7 +121,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     window.addEventListener("scroll", handleViewportChange, true);
     window.addEventListener("resize", handleViewportChange);
     window.addEventListener("keydown", handleGlobalKeyDown, { capture: true });
-    resetIdleTimer();
   });
 
   onCleanup(() => {
@@ -145,9 +129,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     window.removeEventListener("keydown", handleGlobalKeyDown, {
       capture: true,
     });
-    if (idleTimeout) {
-      clearTimeout(idleTimeout);
-    }
   });
 
   createEffect(() => {
@@ -155,7 +136,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     if (elementIdentity !== lastElementIdentity) {
       lastElementIdentity = elementIdentity;
       lastValidPosition = null;
-      resetIdleTimer();
     }
   });
 
@@ -179,7 +159,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     void props.isPendingAbort;
     void props.visible;
     void props.status;
-    void isIdle();
     // HACK: use queueMicrotask instead of RAF to measure sooner after content changes
     // This prevents the flicker when transitioning between states (e.g., clicking "Keep")
     queueMicrotask(measureContainer);
@@ -187,6 +166,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   createEffect(() => {
     if (props.isPromptMode && inputRef) {
+      // HACK: setTimeout(0) defers focus to the next event loop tick to ensure
+      // the textarea is fully mounted and ready to receive focus
       setTimeout(() => {
         inputRef?.focus();
       }, 0);
@@ -346,7 +327,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         data-react-grab-ignore-events
         data-react-grab-selection-label
         class={cn(
-          "fixed font-sans text-[13px] antialiased filter-[drop-shadow(0px_0px_4px_#51515180)] select-none transition-opacity duration-100 ease-out",
+          "fixed font-sans text-[13px] antialiased filter-[drop-shadow(0px_1px_2px_#51515140)] select-none transition-opacity duration-100 ease-out",
         )}
         style={{
           top: `${computedPosition().top}px`,
@@ -395,16 +376,22 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         </Show>
 
         <div
-          class={`[font-synthesis:none] contain-layout flex items-center gap-[5px] rounded-[7px] antialiased w-fit h-fit p-0 ${PANEL_STYLES}`}
+          class={cn(
+            "contain-layout flex items-center gap-[5px] rounded-[7px] antialiased w-fit h-fit p-0 [font-synthesis:none]",
+            PANEL_STYLES,
+          )}
           style={{
             display: isCompletedStatus() && !props.error ? "none" : undefined,
           }}
         >
           <Show when={props.status === "copying" && !props.isPendingAbort}>
-            <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit max-w-[280px]">
-              <div class="contain-layout shrink-0 flex items-center gap-1 py-1 px-1.5 w-full h-fit">
+            <div
+              class="contain-layout shrink-0 flex flex-col justify-center items-start w-fit h-fit max-w-[280px]"
+              classList={{ "min-w-[150px]": Boolean(props.hasAgent && props.inputValue) }}
+            >
+              <div class="contain-layout shrink-0 flex items-center gap-1 py-1.5 px-2 w-full h-fit">
                 <IconLoader size={13} class="text-[#71717a] shrink-0" />
-                <span class="text-[13px] leading-4 font-sans font-medium h-fit text-[#71717a] tabular-nums overflow-hidden text-ellipsis whitespace-nowrap">
+                <span class="shimmer-text text-[13px] leading-4 font-sans font-medium h-fit tabular-nums overflow-hidden text-ellipsis whitespace-nowrap">
                   {props.statusText ?? "Grabbing…"}
                 </span>
               </div>
@@ -430,7 +417,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                       <button
                         data-react-grab-ignore-events
                         data-react-grab-abort
-                        class="contain-layout shrink-0 size-fit cursor-pointer ml-1 interactive-scale"
+                        class="contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-black cursor-pointer ml-1 interactive-scale"
                         onPointerDown={(event) => event.stopPropagation()}
                         onMouseDown={(event) => event.stopPropagation()}
                         onPointerUp={(event) => {
@@ -442,7 +429,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                           props.onAbort?.();
                         }}
                       >
-                        <IconStop size={16} class="text-black" />
+                        <div class="size-1.5 bg-white rounded-[1px]" />
                       </button>
                     </Show>
                   </div>
@@ -459,27 +446,16 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           </Show>
 
           <Show when={canInteract() && !props.isPromptMode}>
-            <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit">
-              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5 pr-1">
-                <TagBadge
-                  tagName={tagDisplay()}
-                  componentName={componentNameDisplay()}
-                  isClickable={isTagClickable()}
-                  onClick={handleTagClick}
-                  onHoverChange={handleTagHoverChange}
-                  shrink
-                  forceShowIcon={showOpenIndicator()}
-                />
-              </div>
-              <BottomSection>
-                <ActionPill
-                  onClick={handleSubmit}
-                  shrink
-                  hasAgent={props.hasAgent}
-                  isIdle={isIdle()}
-                  showOpenIndicator={showOpenIndicator()}
-                />
-              </BottomSection>
+            <div class="contain-layout shrink-0 flex items-center gap-1 py-1.5 w-fit h-fit px-2">
+              <TagBadge
+                tagName={tagDisplay()}
+                componentName={componentNameDisplay()}
+                isClickable={isTagClickable()}
+                onClick={handleTagClick}
+                onHoverChange={handleTagHoverChange}
+                shrink
+                forceShowIcon={showOpenIndicator()}
+              />
             </div>
           </Show>
 
@@ -488,16 +464,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               canInteract() && props.isPromptMode && !props.isPendingDismiss
             }
           >
-            <div class="contain-layout shrink-0 flex flex-col justify-center items-start gap-1 w-fit h-fit max-w-[280px]">
-              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 w-fit h-fit pl-1.5 pr-1 max-w-full">
-                <ActionPill
-                  onClick={handleSubmit}
-                  dimmed
-                  shrink
-                  hasAgent={props.hasAgent}
-                  isEditing
-                  showOpenIndicator={showOpenIndicator()}
-                />
+            <div class="contain-layout shrink-0 flex flex-col justify-center items-start w-fit h-fit min-w-[150px] max-w-[280px]">
+              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 w-fit h-fit px-2 max-w-full">
                 <TagBadge
                   tagName={tagDisplay()}
                   componentName={componentNameDisplay()}
@@ -509,16 +477,17 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               </div>
               <BottomSection>
                 <Show when={props.replyToPrompt}>
-                  <div class="shrink-0 flex items-center gap-0.5 w-full mb-0.5 overflow-hidden">
-                    <span class="text-[#a1a1aa] text-[10px] leading-3 shrink-0">
-                      {">previously:"}
-                    </span>
-                    <span class="text-[#a1a1aa] text-[10px] leading-3 italic truncate whitespace-nowrap">
+                  <div class="flex items-center gap-1 w-full mb-1 overflow-hidden">
+                    <IconReply size={10} class="text-black/30 shrink-0" />
+                    <span class="text-black/40 text-[11px] leading-3 font-medium truncate italic">
                       {props.replyToPrompt}
                     </span>
                   </div>
                 </Show>
-                <div class="shrink-0 flex justify-between items-end w-full min-h-4">
+                <div
+                  class="shrink-0 flex justify-between items-end w-full min-h-4"
+                  style={{ "padding-left": props.replyToPrompt ? "14px" : "0" }}
+                >
                   <textarea
                     ref={inputRef}
                     data-react-grab-ignore-events
@@ -539,12 +508,12 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   <button
                     data-react-grab-submit
                     class={cn(
-                      "contain-layout shrink-0 size-fit cursor-pointer interactive-scale ml-1",
+                      "contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-black cursor-pointer ml-1 interactive-scale",
                       !props.inputValue?.trim() && "opacity-35",
                     )}
                     onClick={handleSubmit}
                   >
-                    <IconSubmit size={16} class="text-black" />
+                    <IconSubmit size={10} class="text-white" />
                   </button>
                 </div>
               </BottomSection>

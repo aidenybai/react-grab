@@ -38,11 +38,11 @@ export const DiscardPrompt: Component<DiscardPromptProps> = (props) => {
   return (
     <div
       data-react-grab-discard-prompt
-      class="contain-layout shrink-0 flex flex-col justify-center items-end gap-1 w-fit h-fit"
+      class="contain-layout shrink-0 flex flex-col justify-center items-end w-fit h-fit"
       onPointerDown={handleFocus}
       onClick={handleFocus}
     >
-      <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 px-1.5 w-full h-fit">
+      <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 px-2 w-full h-fit">
         <span class="text-black text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
           Discard?
         </span>

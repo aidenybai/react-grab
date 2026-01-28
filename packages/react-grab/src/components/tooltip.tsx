@@ -1,7 +1,11 @@
 import { createSignal, createEffect, on, onCleanup, Show } from "solid-js";
 import type { Component, JSX } from "solid-js";
 import { cn } from "../utils/cn.js";
-import { TOOLTIP_DELAY_MS, TOOLTIP_GRACE_PERIOD_MS } from "../constants.js";
+import {
+  TOOLTIP_DELAY_MS,
+  TOOLTIP_GRACE_PERIOD_MS,
+  PANEL_STYLES,
+} from "../constants.js";
 
 let tooltipCloseTimestamp = 0;
 
@@ -62,7 +66,8 @@ export const Tooltip: Component<TooltipProps> = (props) => {
     <Show when={delayedVisible()}>
       <div
         class={cn(
-          "absolute left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 rounded text-[10px] text-black/60 bg-white shadow-sm pointer-events-none",
+          "absolute left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 rounded-[7px] text-[10px] text-black/60 pointer-events-none",
+          PANEL_STYLES,
           props.position === "top" ? "bottom-full mb-2.5" : "top-full mt-2.5",
           shouldAnimate() && "animate-tooltip-fade-in",
         )}

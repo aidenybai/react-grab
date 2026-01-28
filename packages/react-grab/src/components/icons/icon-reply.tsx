@@ -1,11 +1,11 @@
 import type { Component } from "solid-js";
 
-interface IconSubmitProps {
+interface IconReplyProps {
   size?: number;
   class?: string;
 }
 
-export const IconSubmit: Component<IconSubmitProps> = (props) => {
+export const IconReply: Component<IconReplyProps> = (props) => {
   const size = () => props.size ?? 12;
 
   return (
@@ -16,13 +16,11 @@ export const IconSubmit: Component<IconSubmitProps> = (props) => {
       viewBox="0 0 12 12"
       fill="none"
       class={props.class}
+      style={{ transform: "rotate(180deg)" }}
     >
       <path
-        d="M6 1L6 11M6 1L2 5M6 1L10 5"
-        stroke="currentColor"
-        stroke-width="1.5"
-        stroke-linecap="round"
-        stroke-linejoin="round"
+        d="M5 3V1L1 4.5L5 8V6C8 6 10 7 11 10C11 7 9 4 5 3Z"
+        fill="currentColor"
       />
     </svg>
   );

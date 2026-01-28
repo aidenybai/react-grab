@@ -7,11 +7,11 @@ export const Arrow: Component<ArrowProps> = (props) => {
 
   return (
     <div
-      class="absolute w-0 h-0"
+      class="absolute w-0 h-0 z-10"
       style={{
         left: `calc(${props.leftPercent}% + ${props.leftOffsetPx}px)`,
-        top: isBottom() ? "1px" : undefined,
-        bottom: isBottom() ? undefined : "1px",
+        top: isBottom() ? "0" : undefined,
+        bottom: isBottom() ? undefined : "0",
         transform: isBottom()
           ? "translateX(-50%) translateY(-100%)"
           : "translateX(-50%) translateY(100%)",
@@ -19,6 +19,9 @@ export const Arrow: Component<ArrowProps> = (props) => {
         "border-right": "8px solid transparent",
         "border-bottom": isBottom() ? `8px solid ${arrowColor()}` : undefined,
         "border-top": isBottom() ? undefined : `8px solid ${arrowColor()}`,
+        filter: isBottom()
+          ? "drop-shadow(-1px -1px 0 rgba(0,0,0,0.06)) drop-shadow(1px -1px 0 rgba(0,0,0,0.06))"
+          : "drop-shadow(-1px 1px 0 rgba(0,0,0,0.06)) drop-shadow(1px 1px 0 rgba(0,0,0,0.06))",
       }}
     />
   );
