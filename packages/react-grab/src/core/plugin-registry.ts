@@ -41,7 +41,7 @@ const DEFAULT_OPTIONS: OptionsState = {
   maxContextLines: 3,
   activationKey: undefined,
   getContent: undefined,
-  freezeReactUpdates: false,
+  freezeReactUpdates: true,
 };
 
 interface PluginStoreState {
