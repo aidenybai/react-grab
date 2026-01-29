@@ -51,6 +51,8 @@ export const ARROW_HEIGHT_PX = 8;
 export const ARROW_CENTER_PERCENT = 50;
 export const LABEL_GAP_PX = 4;
 export const MAX_HTML_FALLBACK_LENGTH = 500;
+export const DEFAULT_STACK_CONTEXT_LINES = 3;
+export const SOURCE_CONTEXT_LINES = 3;
 
 export const PREVIEW_ATTR_VALUE_MAX_LENGTH = 15;
 export const PREVIEW_MAX_ATTRS = 3;
