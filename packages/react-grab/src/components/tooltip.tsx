@@ -66,7 +66,7 @@ export const Tooltip: Component<TooltipProps> = (props) => {
     <Show when={delayedVisible()}>
       <div
         class={cn(
-          "absolute left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none [corner-shape:superellipse(2)]",
+          "absolute left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none [corner-shape:superellipse(1.25)]",
           PANEL_STYLES,
           props.position === "top" ? "bottom-full mb-2.5" : "top-full mt-2.5",
           shouldAnimate() && "animate-tooltip-fade-in",

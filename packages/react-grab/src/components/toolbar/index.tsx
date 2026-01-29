@@ -932,7 +932,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     >
       <div
         class={cn(
-          "flex items-center justify-center rounded-[10px] antialiased transition-all duration-150 ease-out relative overflow-visible [font-synthesis:none] [corner-shape:superellipse(2)]",
+          "flex items-center justify-center rounded-[10px] antialiased transition-all duration-150 ease-out relative overflow-visible [font-synthesis:none] [corner-shape:superellipse(1.25)]",
           PANEL_STYLES,
           !isCollapsed() && "py-1.5 gap-1.5 px-2",
           collapsedEdgeClasses(),
@@ -1089,7 +1089,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         <Show when={isShakeTooltipVisible()}>
           <div
             class={cn(
-              "absolute left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none animate-tooltip-fade-in [corner-shape:superellipse(2)]",
+              "absolute left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none animate-tooltip-fade-in [corner-shape:superellipse(1.25)]",
               PANEL_STYLES,
               tooltipPosition() === "top"
                 ? "bottom-full mb-0.5"
