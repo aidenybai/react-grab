@@ -177,7 +177,7 @@ export const BenchmarkChartsTweet = ({ results }: BenchmarkChartsProps) => {
   ).toFixed(0);
 
   return (
-    <div className="border border-neutral-800 rounded-lg p-6 max-w-xl mx-auto">
+    <div className="border border-neutral-800 rounded-lg p-6">
       <div className="relative">
         <div className="flex items-center gap-3">
           <div className="w-20 shrink-0" />
