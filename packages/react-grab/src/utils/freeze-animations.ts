@@ -46,6 +46,14 @@ const HOVER_STYLE_PROPERTIES = [
   "visibility",
 ] as const;
 
+const ANIMATION_CONTROLLED_PROPERTIES = [
+  "opacity",
+  "transform",
+  "scale",
+  "translate",
+  "rotate",
+] as const;
+
 let styleElement: HTMLStyleElement | null = null;
 let frozenElements: Element[] = [];
 let lastInputElements: Element[] = [];
@@ -54,7 +62,6 @@ const frozenHoverElements = new Map<HTMLElement, string>();
 let pointerEventsStyle: HTMLStyleElement | null = null;
 
 let globalAnimationStyleElement: HTMLStyleElement | null = null;
-let globalPausedAnimations: Animation[] = [];
 
 const stopMouseEvent = (event: Event): void => {
   event.stopPropagation();
@@ -162,6 +169,13 @@ export const freezePseudoStates = (): void => {
   enablePointerEventsOverride();
 };
 
+const hasAnimationControlledProperty = (cssText: string): boolean => {
+  const lowerCssText = cssText.toLowerCase();
+  return ANIMATION_CONTROLLED_PROPERTIES.some((prop) =>
+    lowerCssText.includes(prop),
+  );
+};
+
 export const unfreezePseudoStates = (): void => {
   disablePointerEventsOverride();
   clearElementPositionCache();
@@ -171,7 +185,17 @@ export const unfreezePseudoStates = (): void => {
   }
 
   for (const [element, originalCssText] of frozenHoverElements) {
-    element.style.cssText = originalCssText;
+    // HACK: For elements with animation-controlled properties (opacity, transform, etc.),
+    // only remove the hover style properties we added, don't restore original cssText.
+    // Animation libraries (Framer Motion, etc.) use inline styles that change over time.
+    // Restoring old cssText would reset animation progress and cause visual flash.
+    if (hasAnimationControlledProperty(originalCssText)) {
+      for (const prop of HOVER_STYLE_PROPERTIES) {
+        element.style.removeProperty(prop);
+      }
+    } else {
+      element.style.cssText = originalCssText;
+    }
   }
   frozenHoverElements.clear();
 
@@ -186,18 +210,9 @@ export const freezeGlobalAnimations = (): void => {
     "data-react-grab-global-freeze",
     GLOBAL_FREEZE_STYLES,
   );
-
-  globalPausedAnimations = document
-    .getAnimations()
-    .filter((animation) => animation.playState === "running");
 };
 
 export const unfreezeGlobalAnimations = (): void => {
   globalAnimationStyleElement?.remove();
   globalAnimationStyleElement = null;
-
-  for (const animation of globalPausedAnimations) {
-    animation.play();
-  }
-  globalPausedAnimations = [];
 };
