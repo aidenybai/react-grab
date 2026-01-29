@@ -1,4 +1,5 @@
 import { VERSION } from "../constants.js";
+import { escapeHtml } from "./escape-html.js";
 
 const REACT_GRAB_MIME_TYPE = "application/x-react-grab";
 
@@ -18,9 +19,13 @@ export const copyContent = (
     ...(options?.prompt && { prompt: options.prompt }),
   });
 
+  const encodedMetadata = encodeURIComponent(metadata);
+  const htmlContent = `<div data-react-grab="${encodedMetadata}"><pre>${escapeHtml(content)}</pre></div>`;
+
   const copyHandler = (event: ClipboardEvent) => {
     event.preventDefault();
     event.clipboardData?.setData("text/plain", content);
+    event.clipboardData?.setData("text/html", htmlContent);
     event.clipboardData?.setData(REACT_GRAB_MIME_TYPE, metadata);
   };
 
