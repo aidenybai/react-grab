@@ -93,7 +93,7 @@ test.describe("Element Context Fallback", () => {
       expect(clipboard).toContain("<svg");
       expect(clipboard).toContain('id="test-svg-icon"');
       expect(clipboard).toContain('class="icon-class"');
-      expect(clipboard).toContain('aria-label="Close the modal...');
+      expect(clipboard).toContain('aria-label="Close the modal dialog"');
       expect(clipboard).not.toContain("viewBox");
     });
 
