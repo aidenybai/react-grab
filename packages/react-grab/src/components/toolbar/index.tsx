@@ -33,6 +33,12 @@ import {
 } from "../../constants.js";
 import { formatShortcut } from "../../utils/format-shortcut.js";
 import { freezeUpdates } from "../../utils/freeze-updates.js";
+import {
+  freezeGlobalAnimations,
+  unfreezeGlobalAnimations,
+  freezePseudoStates,
+  unfreezePseudoStates,
+} from "../../utils/freeze-animations.js";
 import { Tooltip } from "../tooltip.jsx";
 
 interface ToolbarProps {
@@ -974,7 +980,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             class={cn(
               "grid transition-all duration-150 ease-out",
               isCollapsed()
-                ? "grid-cols-[0fr] opacity-0"
+                ? "grid-cols-[0fr] opacity-0 pointer-events-none"
                 : "grid-cols-[1fr] opacity-100",
             )}
           >
@@ -1010,6 +1016,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                       props.onSelectHoverChange?.(true);
                       if (!unfreezeUpdatesCallback) {
                         unfreezeUpdatesCallback = freezeUpdates();
+                        freezeGlobalAnimations();
+                        freezePseudoStates();
                       }
                     }}
                     onMouseLeave={() => {
@@ -1018,6 +1026,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                       if (!props.isActive && !props.isContextMenuOpen) {
                         unfreezeUpdatesCallback?.();
                         unfreezeUpdatesCallback = null;
+                        unfreezeGlobalAnimations();
+                        unfreezePseudoStates();
                       }
                     }}
                   >
