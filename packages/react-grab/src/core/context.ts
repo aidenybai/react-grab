@@ -13,7 +13,6 @@ import {
   traverseFiber,
 } from "bippy";
 import {
-  MAX_HTML_FALLBACK_LENGTH,
   PREVIEW_ATTR_VALUE_MAX_LENGTH,
   PREVIEW_MAX_ATTRS,
   PREVIEW_PRIORITY_ATTRS,
@@ -185,14 +184,6 @@ const getComponentNamesFromFiber = (
   return componentNames;
 };
 
-const getTruncatedOuterHTML = (element: Element): string => {
-  const outerHTML = element.outerHTML;
-  if (outerHTML.length <= MAX_HTML_FALLBACK_LENGTH) {
-    return outerHTML;
-  }
-  return `${outerHTML.slice(0, MAX_HTML_FALLBACK_LENGTH)}...`;
-};
-
 export const getElementContext = async (
   element: Element,
   options: GetElementContextOptions = {},
@@ -256,7 +247,33 @@ export const getElementContext = async (
     return `${html}${componentContext}`;
   }
 
-  return getTruncatedOuterHTML(element);
+  return getFallbackContext(element);
+};
+
+const getFallbackContext = (element: Element): string => {
+  const tagName = element.tagName.toLowerCase();
+
+  if (!(element instanceof HTMLElement)) {
+    const attrsHint = formatPriorityAttrs(element, {
+      truncate: false,
+      maxAttrs: PREVIEW_PRIORITY_ATTRS.length,
+    });
+    return `<${tagName}${attrsHint} />`;
+  }
+
+  const text = element.innerText?.trim() ?? element.textContent?.trim() ?? "";
+
+  let attrsText = "";
+  for (const { name, value } of element.attributes) {
+    attrsText += ` ${name}="${value}"`;
+  }
+
+  const truncatedText = text.length > 100 ? `${text.slice(0, 100)}...` : text;
+
+  if (truncatedText.length > 0) {
+    return `<${tagName}${attrsText}>\n  ${truncatedText}\n</${tagName}>`;
+  }
+  return `<${tagName}${attrsText} />`;
 };
 
 const truncateAttrValue = (value: string): string =>
@@ -264,14 +281,24 @@ const truncateAttrValue = (value: string): string =>
     ? `${value.slice(0, PREVIEW_ATTR_VALUE_MAX_LENGTH)}...`
     : value;
 
-const formatPriorityAttrs = (element: Element): string => {
+interface FormatPriorityAttrsOptions {
+  truncate?: boolean;
+  maxAttrs?: number;
+}
+
+const formatPriorityAttrs = (
+  element: Element,
+  options: FormatPriorityAttrsOptions = {},
+): string => {
+  const { truncate = true, maxAttrs = PREVIEW_MAX_ATTRS } = options;
   const priorityAttrs: string[] = [];
 
   for (const name of PREVIEW_PRIORITY_ATTRS) {
-    if (priorityAttrs.length >= PREVIEW_MAX_ATTRS) break;
+    if (priorityAttrs.length >= maxAttrs) break;
     const value = element.getAttribute(name);
     if (value) {
-      priorityAttrs.push(`${name}="${truncateAttrValue(value)}"`);
+      const formattedValue = truncate ? truncateAttrValue(value) : value;
+      priorityAttrs.push(`${name}="${formattedValue}"`);
     }
   }
 
