@@ -369,7 +369,7 @@ export const getElementContext = async (
     const stackContext: string[] = [];
 
     if (stack) {
-      let hasAttachedSource = false;
+      let didAttachSourceSnippet = false;
       for (const frame of stack) {
         if (stackContext.length >= maxLines) break;
 
@@ -389,12 +389,12 @@ export const getElementContext = async (
           const fileContent = sourceMapData[filename];
 
           if (
-            !hasAttachedSource &&
+            !didAttachSourceSnippet &&
             isNextProject &&
             fileContent &&
             frame.lineNumber
           ) {
-            hasAttachedSource = true;
+            didAttachSourceSnippet = true;
             const extension = getFileExtension(filename);
             const sourceContext = getSourceContext(
               fileContent,
@@ -411,25 +411,19 @@ export const getElementContext = async (
             continue;
           }
 
-          let line = "\n  in ";
-          const hasComponentName =
+          const isValidSourceComponent =
             frame.functionName &&
             checkIsSourceComponentName(frame.functionName);
 
-          if (hasComponentName) {
-            line += `${frame.functionName} (at `;
-          }
-
-          line += filename;
-
           // HACK: bundlers like vite mess up the line number and column number
-          if (isNextProject && frame.lineNumber && frame.columnNumber) {
-            line += `:${frame.lineNumber}:${frame.columnNumber}`;
-          }
+          const locationSuffix =
+            isNextProject && frame.lineNumber && frame.columnNumber
+              ? `:${frame.lineNumber}:${frame.columnNumber}`
+              : "";
 
-          if (hasComponentName) {
-            line += `)`;
-          }
+          const line = isValidSourceComponent
+            ? `\n  in ${frame.functionName} (at ${filename}${locationSuffix})`
+            : `\n  in ${filename}${locationSuffix}`;
 
           stackContext.push(line);
         }
