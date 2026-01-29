@@ -6,6 +6,7 @@ import {
   applyTransformWithFeedback,
   formatInstalledAgentNames,
   installPackagesWithFeedback,
+  setupAgentHooksWithFeedback,
   uninstallPackagesWithFeedback,
 } from "../utils/cli-helpers.js";
 import {
@@ -562,6 +563,11 @@ export const init = new Command()
                         applyPackageJsonWithFeedback(packageJsonResult);
                       }
 
+                      setupAgentHooksWithFeedback(
+                        agentIntegration,
+                        projectInfo.projectRoot,
+                      );
+
                       logger.break();
                       logger.success(
                         `${getAgentName(agentIntegration)} has been added.`,
@@ -581,6 +587,11 @@ export const init = new Command()
                     if (hasPackageJsonChanges) {
                       applyPackageJsonWithFeedback(packageJsonResult);
                     }
+
+                    setupAgentHooksWithFeedback(
+                      agentIntegration,
+                      projectInfo.projectRoot,
+                    );
 
                     logger.break();
                     logger.success(
@@ -856,6 +867,10 @@ export const init = new Command()
 
       if (hasPackageJsonChanges) {
         applyPackageJsonWithFeedback(packageJsonResult);
+      }
+
+      if (agentIntegration !== "none") {
+        setupAgentHooksWithFeedback(agentIntegration, projectInfo.projectRoot);
       }
 
       logger.break();

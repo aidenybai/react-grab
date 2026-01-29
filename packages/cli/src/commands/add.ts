@@ -5,6 +5,7 @@ import { detectProject } from "../utils/detect.js";
 import { printDiff } from "../utils/diff.js";
 import { handleError } from "../utils/handle-error.js";
 import { highlighter } from "../utils/highlighter.js";
+import { setupAgentHooks, supportsHooks } from "../utils/hooks.js";
 import {
   getPackagesToInstall,
   getPackagesToUninstall,
@@ -408,6 +409,25 @@ export const add = new Command()
           process.exit(1);
         }
         packageJsonSpinner.succeed();
+      }
+
+      if (supportsHooks(agentIntegration)) {
+        const hooksSpinner = spinner(
+          `Setting up clipboard hooks for ${AGENT_NAMES[agentIntegration]}.`,
+        ).start();
+        const hooksResult = setupAgentHooks(
+          agentIntegration,
+          projectInfo.projectRoot,
+        );
+        if (hooksResult.success) {
+          hooksSpinner.succeed(
+            `Setting up clipboard hooks. Created ${hooksResult.configPath}.`,
+          );
+        } else {
+          hooksSpinner.warn(
+            "Could not set up clipboard hooks. Run `npx @react-grab/agent-hooks setup` manually.",
+          );
+        }
       }
 
       logger.break();

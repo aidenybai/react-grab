@@ -1,0 +1,35 @@
+{
+  "name": "@react-grab/agent-hooks",
+  "version": "0.1.0",
+  "description": "React Grab clipboard hooks for AI coding tools (Cursor, Claude Code, GitHub Copilot)",
+  "type": "module",
+  "bin": {
+    "@react-grab/agent-hooks": "./dist/cli.cjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": "./dist/cli.cjs"
+  },
+  "scripts": {
+    "dev": "tsup --watch",
+    "build": "rm -rf dist && tsup"
+  },
+  "dependencies": {
+    "@crosscopy/clipboard": "^0.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.7",
+    "tsup": "^8.4.0"
+  },
+  "keywords": [
+    "react-grab",
+    "cursor",
+    "claude-code",
+    "copilot",
+    "hooks",
+    "clipboard"
+  ],
+  "license": "MIT"
+}

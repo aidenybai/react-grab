@@ -21,6 +21,19 @@ importers:
         specifier: ^0.1.3
         version: 0.1.3
 
+  packages/agent-hooks:
+    dependencies:
+      '@crosscopy/clipboard':
+        specifier: ^0.2.8
+        version: 0.2.8
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.7
+        version: 22.19.2
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
+
   packages/benchmarks:
     dependencies:
       '@ai-sdk/anthropic':
@@ -1023,6 +1036,57 @@ packages:
 
   '@changesets/write@0.4.0':
     resolution: {integrity: sha512-CdTLvIOPiCNuH71pyDu3rA+Q0n65cmAbXnwWH84rKGiFumFzkmHNT8KHTMEchcxN+Kl8I54xGUhJ7l3E7X396Q==}
+
+  '@crosscopy/clipboard-darwin-arm64@0.2.8':
+    resolution: {integrity: sha512-Y36ST9k5JZgtDE6SBT45bDNkPKBHd4UEIZgWnC0iC4kAWwdjPmsZ8Mn8e5W0YUKowJ/BDcO+EGm2tVTPQOQKXg==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@crosscopy/clipboard-darwin-universal@0.2.8':
+    resolution: {integrity: sha512-btGV1tLpJWZ4iKa66niahvpZpVRJzgQnYUE+PUX3YYZzaWD0ESuHuVtKVC8sR+b4dsXIiWW5skXbcRmLsF4rtA==}
+    engines: {node: '>= 10'}
+    os: [darwin]
+
+  '@crosscopy/clipboard-darwin-x64@0.2.8':
+    resolution: {integrity: sha512-0QMKf0XrLZrprYYXU4lgaTuzbnYPh9wH6PvsfDB1FZvWf6rOi0syTaBZYnoghbQe700qwLPEfBRjgljJ3Tn6oA==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [darwin]
+
+  '@crosscopy/clipboard-linux-arm64-gnu@0.2.8':
+    resolution: {integrity: sha512-8YrU03MRsygymqEcHkNgqCqSCQbYRmJCnMXeS4i8FYeOkAxBEeRvPbHoNmI10uppXJZNZgfIKM7Qqk9tEHiwqQ==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [linux]
+
+  '@crosscopy/clipboard-linux-riscv64-gnu@0.2.8':
+    resolution: {integrity: sha512-/QWLhnb0QYVjEv5GOAC1q+1DaezYU8Th+IoDKUCsR5i43Cqm+g+N/I2K35yo3J+HHkK9XNbtIDZDXlFgK6tRUg==}
+    engines: {node: '>= 10'}
+    cpu: [riscv64]
+    os: [linux]
+
+  '@crosscopy/clipboard-linux-x64-gnu@0.2.8':
+    resolution: {integrity: sha512-j17eaF/onP/6VAGGKtxA1KmmkErmdjta9gMdMV/yUmgeBYzJ9fMpWUzbk2vmaOyXfhaSzR/sk1P6VLBmvCpqHg==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [linux]
+
+  '@crosscopy/clipboard-win32-arm64-msvc@0.2.8':
+    resolution: {integrity: sha512-MVkMyuYN3y5v0s4HrijM0iA8hZVmpUhHd8X4zKG30t4nE6MbOjOt/8EabMrVmGZlsLeOL2sa0o8Wo9bvhWU+vA==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [win32]
+
+  '@crosscopy/clipboard-win32-x64-msvc@0.2.8':
+    resolution: {integrity: sha512-/GpiB4B3lSgg7eCLDQw9NfFjtQFjo0S88IL+EK54Hx7ZgAP4Ad/ezP/8dw0cA+N/M6iPYy0reCIjW9st82/uxw==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [win32]
+
+  '@crosscopy/clipboard@0.2.8':
+    resolution: {integrity: sha512-0qRWscafAHzQ+DdfXX+YgPN2KDTIzWBNfN5Q6z1CgCWsRxtkwK8HfQUc00xIejfRWSGWPIxcCTg82hvg06bodg==}
+    engines: {node: '>= 10'}
 
   '@date-fns/tz@1.4.1':
     resolution: {integrity: sha512-P5LUNhtbj6YfI3iJjw5EL9eUAG6OitD0W3fWQcpQjDRc/QIsL0tRNuO1PcDvPccWL1fSTXXdE1ds+l95DV/OFA==}
@@ -2874,8 +2938,8 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
-  '@sourcegraph/amp@0.0.1769660927-ge90ba1':
-    resolution: {integrity: sha512-tRHqsy7ESjJST0lLA3o/3qxoZ8HknX4JTudoiQ5Q/1BGGrSaAR1zUpre3cXFMkNu+FY3sbf9v3KtQBy3sdOYBA==}
+  '@sourcegraph/amp@0.0.1769676032-ga2ec76':
+    resolution: {integrity: sha512-1h9ESCI4+ZowHMaxnaOKamyo17j1R0mKIMh5ayB/OddPJqj5QWVPnKlDa2Fv3tr+g5vfbLsG5cLW7izd/aaxYA==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -7399,6 +7463,41 @@ snapshots:
       human-id: 4.1.2
       prettier: 2.8.8
 
+  '@crosscopy/clipboard-darwin-arm64@0.2.8':
+    optional: true
+
+  '@crosscopy/clipboard-darwin-universal@0.2.8':
+    optional: true
+
+  '@crosscopy/clipboard-darwin-x64@0.2.8':
+    optional: true
+
+  '@crosscopy/clipboard-linux-arm64-gnu@0.2.8':
+    optional: true
+
+  '@crosscopy/clipboard-linux-riscv64-gnu@0.2.8':
+    optional: true
+
+  '@crosscopy/clipboard-linux-x64-gnu@0.2.8':
+    optional: true
+
+  '@crosscopy/clipboard-win32-arm64-msvc@0.2.8':
+    optional: true
+
+  '@crosscopy/clipboard-win32-x64-msvc@0.2.8':
+    optional: true
+
+  '@crosscopy/clipboard@0.2.8':
+    optionalDependencies:
+      '@crosscopy/clipboard-darwin-arm64': 0.2.8
+      '@crosscopy/clipboard-darwin-universal': 0.2.8
+      '@crosscopy/clipboard-darwin-x64': 0.2.8
+      '@crosscopy/clipboard-linux-arm64-gnu': 0.2.8
+      '@crosscopy/clipboard-linux-riscv64-gnu': 0.2.8
+      '@crosscopy/clipboard-linux-x64-gnu': 0.2.8
+      '@crosscopy/clipboard-win32-arm64-msvc': 0.2.8
+      '@crosscopy/clipboard-win32-x64-msvc': 0.2.8
+
   '@date-fns/tz@1.4.1': {}
 
   '@devicefarmer/adbkit-logcat@2.1.3': {}
@@ -8813,14 +8912,14 @@ snapshots:
 
   '@sourcegraph/amp-sdk@0.1.0-20251210081226-g90e3892':
     dependencies:
-      '@sourcegraph/amp': 0.0.1769660927-ge90ba1
+      '@sourcegraph/amp': 0.0.1769676032-ga2ec76
       zod: 3.25.76
 
   '@sourcegraph/amp@0.0.1767830505-ga62310':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
-  '@sourcegraph/amp@0.0.1769660927-ge90ba1':
+  '@sourcegraph/amp@0.0.1769676032-ga2ec76':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 

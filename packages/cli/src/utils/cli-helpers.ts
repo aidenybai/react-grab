@@ -1,4 +1,5 @@
 import type { PackageManager } from "./detect.js";
+import { setupAgentHooks, supportsHooks } from "./hooks.js";
 import type {
   PackageJsonTransformResult,
   TransformResult,
@@ -8,7 +9,7 @@ import { handleError } from "./handle-error.js";
 import { installPackages, uninstallPackages } from "./install.js";
 import { logger } from "./logger.js";
 import { spinner } from "./spinner.js";
-import { AGENT_NAMES } from "./templates.js";
+import { AGENT_NAMES, type AgentIntegration } from "./templates.js";
 
 export const formatInstalledAgentNames = (agents: string[]): string =>
   agents
@@ -80,5 +81,30 @@ export const uninstallPackagesWithFeedback = (
   } catch (error) {
     uninstallSpinner.fail();
     handleError(error);
+  }
+};
+
+export const setupAgentHooksWithFeedback = (
+  agent: AgentIntegration,
+  projectRoot: string,
+): void => {
+  if (!supportsHooks(agent)) return;
+
+  const agentName =
+    AGENT_NAMES[agent as keyof typeof AGENT_NAMES] ?? agent;
+  const hooksSpinner = spinner(
+    `Setting up clipboard hooks for ${agentName}.`,
+  ).start();
+
+  const result = setupAgentHooks(agent, projectRoot);
+
+  if (result.success) {
+    hooksSpinner.succeed(
+      `Setting up clipboard hooks. Created ${result.configPath}.`,
+    );
+  } else {
+    hooksSpinner.warn(
+      "Could not set up clipboard hooks. Run `npx @react-grab/agent-hooks setup` manually.",
+    );
   }
 };
