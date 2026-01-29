@@ -354,7 +354,6 @@ test.describe("Open File", () => {
     test("open file should work after element change", async ({
       reactGrab,
     }) => {
-
       await reactGrab.page.evaluate(() => {
         (window as { __OPEN_FILE_COUNT__?: number }).__OPEN_FILE_COUNT__ = 0;
         const api = (
