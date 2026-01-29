@@ -25,10 +25,10 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
   const collapsedEdgeClasses = () => {
     if (!props.isCollapsed) return "";
     const roundedClass = {
-      top: "rounded-t-none rounded-b-[7px]",
-      bottom: "rounded-b-none rounded-t-[7px]",
-      left: "rounded-l-none rounded-r-[7px]",
-      right: "rounded-r-none rounded-l-[7px]",
+      top: "rounded-t-none rounded-b-[10px]",
+      bottom: "rounded-b-none rounded-t-[10px]",
+      left: "rounded-l-none rounded-r-[10px]",
+      right: "rounded-r-none rounded-l-[10px]",
     }[edge()];
     const paddingClass =
       edge() === "top" || edge() === "bottom" ? "px-2 py-0.25" : "px-0.25 py-2";
@@ -95,7 +95,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
   return (
     <div
       class={cn(
-        "flex items-center justify-center rounded-[7px] antialiased transition-all duration-150 ease-out relative overflow-visible [font-synthesis:none] filter-[drop-shadow(0px_1px_2px_#51515140)]",
+        "flex items-center justify-center rounded-[10px] antialiased transition-all duration-150 ease-out relative overflow-visible [font-synthesis:none] filter-[drop-shadow(0px_1px_2px_#51515140)] [corner-shape:superellipse(2)]",
         PANEL_STYLES,
         !props.isCollapsed && "py-1.5 gap-1.5 px-2",
         collapsedEdgeClasses(),

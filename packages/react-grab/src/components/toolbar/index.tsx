@@ -18,7 +18,6 @@ import { IconSelect } from "../icons/icon-select.jsx";
 import { IconChevron } from "../icons/icon-chevron.jsx";
 import {
   TOOLBAR_SNAP_MARGIN_PX,
-  TOOLBAR_MOBILE_BREAKPOINT_PX,
   TOOLBAR_FADE_IN_DELAY_MS,
   TOOLBAR_SNAP_ANIMATION_DURATION_MS,
   TOOLBAR_DRAG_THRESHOLD_PX,
@@ -59,10 +58,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
   let unfreezeUpdatesCallback: (() => void) | null = null;
 
-  const [isMobile, setIsMobile] = createSignal(
-    (window.visualViewport?.width ?? window.innerWidth) <
-      TOOLBAR_MOBILE_BREAKPOINT_PX,
-  );
   const [isVisible, setIsVisible] = createSignal(false);
   const [isCollapsed, setIsCollapsed] = createSignal(false);
   const [isDragging, setIsDragging] = createSignal(false);
@@ -88,10 +83,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     if (!isCollapsed()) return "";
     const edge = snapEdge();
     const roundedClass = {
-      top: "rounded-t-none rounded-b-[7px]",
-      bottom: "rounded-b-none rounded-t-[7px]",
-      left: "rounded-l-none rounded-r-[7px]",
-      right: "rounded-r-none rounded-l-[7px]",
+      top: "rounded-t-none rounded-b-[10px]",
+      bottom: "rounded-b-none rounded-t-[10px]",
+      left: "rounded-l-none rounded-r-[10px]",
+      right: "rounded-r-none rounded-l-[10px]",
     }[edge];
     const paddingClass =
       edge === "top" || edge === "bottom" ? "px-2 py-0.25" : "px-0.25 py-2";
@@ -696,9 +691,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   let collapseAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
 
   const handleResize = () => {
-    const viewport = getVisualViewport();
-    setIsMobile(viewport.width < TOOLBAR_MOBILE_BREAKPOINT_PX);
-
     if (isDragging()) return;
 
     setIsResizing(true);
@@ -921,196 +913,194 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   };
 
   return (
-    <Show when={!isMobile()}>
+    <div
+      ref={containerRef}
+      data-react-grab-ignore-events
+      data-react-grab-toolbar
+      class={cn(
+        "fixed left-0 top-0 font-sans text-[13px] antialiased filter-[drop-shadow(0px_1px_2px_#51515140)] select-none",
+        getCursorClass(),
+        getTransitionClass(),
+        isVisible() ? "opacity-100" : "opacity-0 pointer-events-none",
+      )}
+      style={{
+        "z-index": "2147483647",
+        transform: `translate(${currentPosition().x}px, ${currentPosition().y}px)`,
+        "transform-origin": getTransformOrigin(),
+      }}
+      onPointerDown={handlePointerDown}
+    >
       <div
-        ref={containerRef}
-        data-react-grab-ignore-events
-        data-react-grab-toolbar
         class={cn(
-          "fixed left-0 top-0 font-sans text-[13px] antialiased filter-[drop-shadow(0px_1px_2px_#51515140)] select-none",
-          getCursorClass(),
-          getTransitionClass(),
-          isVisible() ? "opacity-100" : "opacity-0 pointer-events-none",
+          "flex items-center justify-center rounded-[10px] antialiased transition-all duration-150 ease-out relative overflow-visible [font-synthesis:none] [corner-shape:superellipse(2)]",
+          PANEL_STYLES,
+          !isCollapsed() && "py-1.5 gap-1.5 px-2",
+          collapsedEdgeClasses(),
+          isShaking() && "animate-shake",
         )}
-        style={{
-          "z-index": "2147483647",
-          transform: `translate(${currentPosition().x}px, ${currentPosition().y}px)`,
-          "transform-origin": getTransformOrigin(),
+        style={{ "transform-origin": getTransformOrigin() }}
+        onAnimationEnd={() => setIsShaking(false)}
+        onClick={(event) => {
+          if (isCollapsed()) {
+            event.stopPropagation();
+            const { position: newPos, ratio: newRatio } =
+              calculateExpandedPositionFromCollapsed(
+                currentPosition(),
+                snapEdge(),
+              );
+            setPosition(newPos);
+            setPositionRatio(newRatio);
+            setIsCollapseAnimating(true);
+            setIsCollapsed(false);
+            saveAndNotify({
+              edge: snapEdge(),
+              ratio: newRatio,
+              collapsed: false,
+              enabled: props.enabled ?? true,
+            });
+            if (collapseAnimationTimeout) {
+              clearTimeout(collapseAnimationTimeout);
+            }
+            collapseAnimationTimeout = setTimeout(() => {
+              setIsCollapseAnimating(false);
+            }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
+          }
         }}
-        onPointerDown={handlePointerDown}
       >
         <div
           class={cn(
-            "flex items-center justify-center rounded-[7px] antialiased transition-all duration-150 ease-out relative overflow-visible [font-synthesis:none]",
-            PANEL_STYLES,
-            !isCollapsed() && "py-1.5 gap-1.5 px-2",
-            collapsedEdgeClasses(),
-            isShaking() && "animate-shake",
+            "grid transition-all duration-150 ease-out",
+            isCollapsed()
+              ? "grid-cols-[0fr] opacity-0 pointer-events-none"
+              : "grid-cols-[1fr] opacity-100",
           )}
-          style={{ "transform-origin": getTransformOrigin() }}
-          onAnimationEnd={() => setIsShaking(false)}
-          onClick={(event) => {
-            if (isCollapsed()) {
-              event.stopPropagation();
-              const { position: newPos, ratio: newRatio } =
-                calculateExpandedPositionFromCollapsed(
-                  currentPosition(),
-                  snapEdge(),
-                );
-              setPosition(newPos);
-              setPositionRatio(newRatio);
-              setIsCollapseAnimating(true);
-              setIsCollapsed(false);
-              saveAndNotify({
-                edge: snapEdge(),
-                ratio: newRatio,
-                collapsed: false,
-                enabled: props.enabled ?? true,
-              });
-              if (collapseAnimationTimeout) {
-                clearTimeout(collapseAnimationTimeout);
-              }
-              collapseAnimationTimeout = setTimeout(() => {
-                setIsCollapseAnimating(false);
-              }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
-            }
-          }}
         >
-          <div
-            class={cn(
-              "grid transition-all duration-150 ease-out",
-              isCollapsed()
-                ? "grid-cols-[0fr] opacity-0 pointer-events-none"
-                : "grid-cols-[1fr] opacity-100",
-            )}
-          >
-            <div class="flex items-center min-w-0">
-              <div
-                class={cn(
-                  "grid transition-all duration-150 ease-out overflow-hidden",
-                  props.enabled
-                    ? "grid-cols-[1fr] opacity-100"
-                    : "grid-cols-[0fr] opacity-0",
-                )}
-              >
-                <div class="relative overflow-hidden min-w-0">
-                  {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
-                  <button
-                    data-react-grab-ignore-events
-                    data-react-grab-toolbar-toggle
-                    class="contain-layout flex items-center justify-center cursor-pointer interactive-scale mr-1.5"
-                    on:pointerdown={(event) => {
-                      event.stopPropagation();
-                      event.stopImmediatePropagation();
-                    }}
-                    on:mousedown={(event) => {
-                      event.stopPropagation();
-                      event.stopImmediatePropagation();
-                    }}
-                    onClick={(event) => {
-                      setIsSelectTooltipVisible(false);
-                      handleToggle(event);
-                    }}
-                    onMouseEnter={() => {
-                      setIsSelectTooltipVisible(true);
-                      props.onSelectHoverChange?.(true);
-                      if (!unfreezeUpdatesCallback) {
-                        unfreezeUpdatesCallback = freezeUpdates();
-                        freezeGlobalAnimations();
-                        freezePseudoStates();
-                      }
-                    }}
-                    onMouseLeave={() => {
-                      setIsSelectTooltipVisible(false);
-                      props.onSelectHoverChange?.(false);
-                      if (!props.isActive && !props.isContextMenuOpen) {
-                        unfreezeUpdatesCallback?.();
-                        unfreezeUpdatesCallback = null;
-                        unfreezeGlobalAnimations();
-                        unfreezePseudoStates();
-                      }
-                    }}
-                  >
-                    <IconSelect
-                      size={14}
-                      class={cn(
-                        "transition-colors",
-                        props.isActive ? "text-black" : "text-black/70",
-                      )}
-                    />
-                  </button>
-                  <Tooltip
-                    visible={isSelectTooltipVisible() && !isCollapsed()}
-                    position={tooltipPosition()}
-                  >
-                    Select element ({formatShortcut("C")})
-                  </Tooltip>
-                </div>
-              </div>
-              <div class="relative shrink-0 overflow-visible">
+          <div class="flex items-center min-w-0">
+            <div
+              class={cn(
+                "grid transition-all duration-150 ease-out overflow-hidden",
+                props.enabled
+                  ? "grid-cols-[1fr] opacity-100"
+                  : "grid-cols-[0fr] opacity-0",
+              )}
+            >
+              <div class="relative overflow-hidden min-w-0">
+                {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
                 <button
                   data-react-grab-ignore-events
-                  data-react-grab-toolbar-enabled
-                  class="contain-layout flex items-center justify-center cursor-pointer interactive-scale outline-none mx-0.5"
-                  onClick={(event) => {
-                    setIsToggleTooltipVisible(false);
-                    handleToggleEnabled(event);
+                  data-react-grab-toolbar-toggle
+                  class="contain-layout flex items-center justify-center cursor-pointer interactive-scale mr-1.5"
+                  on:pointerdown={(event) => {
+                    event.stopPropagation();
+                    event.stopImmediatePropagation();
                   }}
-                  onMouseEnter={() => setIsToggleTooltipVisible(true)}
-                  onMouseLeave={() => setIsToggleTooltipVisible(false)}
+                  on:mousedown={(event) => {
+                    event.stopPropagation();
+                    event.stopImmediatePropagation();
+                  }}
+                  onClick={(event) => {
+                    setIsSelectTooltipVisible(false);
+                    handleToggle(event);
+                  }}
+                  onMouseEnter={() => {
+                    setIsSelectTooltipVisible(true);
+                    props.onSelectHoverChange?.(true);
+                    if (!unfreezeUpdatesCallback) {
+                      unfreezeUpdatesCallback = freezeUpdates();
+                      freezeGlobalAnimations();
+                      freezePseudoStates();
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    setIsSelectTooltipVisible(false);
+                    props.onSelectHoverChange?.(false);
+                    if (!props.isActive && !props.isContextMenuOpen) {
+                      unfreezeUpdatesCallback?.();
+                      unfreezeUpdatesCallback = null;
+                      unfreezeGlobalAnimations();
+                      unfreezePseudoStates();
+                    }
+                  }}
                 >
-                  <div
+                  <IconSelect
+                    size={14}
                     class={cn(
-                      "relative w-5 h-3 rounded-full transition-colors",
-                      props.enabled ? "bg-black" : "bg-black/25",
+                      "transition-colors",
+                      props.isActive ? "text-black" : "text-black/70",
                     )}
-                  >
-                    <div
-                      class={cn(
-                        "absolute top-0.5 w-2 h-2 rounded-full bg-white transition-transform",
-                        props.enabled ? "left-2.5" : "left-0.5",
-                      )}
-                    />
-                  </div>
+                  />
                 </button>
                 <Tooltip
-                  visible={isToggleTooltipVisible() && !isCollapsed()}
+                  visible={isSelectTooltipVisible() && !isCollapsed()}
                   position={tooltipPosition()}
                 >
-                  {props.enabled ? "Disable" : "Enable"}
+                  Select element ({formatShortcut("C")})
                 </Tooltip>
               </div>
             </div>
-          </div>
-          <button
-            data-react-grab-ignore-events
-            data-react-grab-toolbar-collapse
-            class="contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale"
-            onClick={handleToggleCollapse}
-          >
-            <IconChevron
-              class={cn(
-                "text-[#B3B3B3] transition-transform duration-150",
-                chevronRotation(),
-              )}
-            />
-          </button>
-          <Show when={isShakeTooltipVisible()}>
-            <div
-              class={cn(
-                "absolute left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 rounded-[7px] text-[10px] text-black/60 pointer-events-none animate-tooltip-fade-in",
-                PANEL_STYLES,
-                tooltipPosition() === "top"
-                  ? "bottom-full mb-0.5"
-                  : "top-full mt-0.5",
-              )}
-              style={{ "z-index": "2147483647" }}
-            >
-              Enable to continue
+            <div class="relative shrink-0 overflow-visible">
+              <button
+                data-react-grab-ignore-events
+                data-react-grab-toolbar-enabled
+                class="contain-layout flex items-center justify-center cursor-pointer interactive-scale outline-none mx-0.5"
+                onClick={(event) => {
+                  setIsToggleTooltipVisible(false);
+                  handleToggleEnabled(event);
+                }}
+                onMouseEnter={() => setIsToggleTooltipVisible(true)}
+                onMouseLeave={() => setIsToggleTooltipVisible(false)}
+              >
+                <div
+                  class={cn(
+                    "relative w-5 h-3 rounded-full transition-colors",
+                    props.enabled ? "bg-black" : "bg-black/25",
+                  )}
+                >
+                  <div
+                    class={cn(
+                      "absolute top-0.5 w-2 h-2 rounded-full bg-white transition-transform",
+                      props.enabled ? "left-2.5" : "left-0.5",
+                    )}
+                  />
+                </div>
+              </button>
+              <Tooltip
+                visible={isToggleTooltipVisible() && !isCollapsed()}
+                position={tooltipPosition()}
+              >
+                {props.enabled ? "Disable" : "Enable"}
+              </Tooltip>
             </div>
-          </Show>
+          </div>
         </div>
+        <button
+          data-react-grab-ignore-events
+          data-react-grab-toolbar-collapse
+          class="contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale"
+          onClick={handleToggleCollapse}
+        >
+          <IconChevron
+            class={cn(
+              "text-[#B3B3B3] transition-transform duration-150",
+              chevronRotation(),
+            )}
+          />
+        </button>
+        <Show when={isShakeTooltipVisible()}>
+          <div
+            class={cn(
+              "absolute left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none animate-tooltip-fade-in [corner-shape:superellipse(2)]",
+              PANEL_STYLES,
+              tooltipPosition() === "top"
+                ? "bottom-full mb-0.5"
+                : "top-full mt-0.5",
+            )}
+            style={{ "z-index": "2147483647" }}
+          >
+            Enable to continue
+          </div>
+        </Show>
       </div>
-    </Show>
+    </div>
   );
 };

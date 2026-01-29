@@ -377,7 +377,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
         <div
           class={cn(
-            "contain-layout flex items-center gap-[5px] rounded-[7px] antialiased w-fit h-fit p-0 [font-synthesis:none]",
+            "contain-layout flex items-center gap-[5px] rounded-[10px] antialiased w-fit h-fit p-0 [font-synthesis:none] [corner-shape:superellipse(2)]",
             PANEL_STYLES,
           )}
           style={{

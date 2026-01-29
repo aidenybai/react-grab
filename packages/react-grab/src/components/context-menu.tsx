@@ -319,7 +319,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
 
         <div
           class={cn(
-            "contain-layout flex flex-col justify-center items-start rounded-[7px] antialiased w-fit h-fit min-w-[100px] [font-synthesis:none]",
+            "contain-layout flex flex-col justify-center items-start rounded-[10px] antialiased w-fit h-fit min-w-[100px] [font-synthesis:none] [corner-shape:superellipse(2)]",
             PANEL_STYLES,
           )}
         >
