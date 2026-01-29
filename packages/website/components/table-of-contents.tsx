@@ -63,7 +63,7 @@ export const TableOfContents = ({ headings }: TableOfContentsProps) => {
 
   return (
     <nav className="hidden lg:block w-48 shrink-0">
-      <div className="sticky top-24 bg-black py-4 -my-4 px-2 -mx-2 rounded-lg">
+      <div className="sticky top-24 bg-black py-4 -my-4 px-2 -mx-2 rounded-lg opacity-50 hover:opacity-100 transition-opacity">
         <div className="text-sm font-medium text-neutral-300 mb-4">
           On this page
         </div>
