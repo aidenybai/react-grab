@@ -13,6 +13,11 @@ interface BlogPost {
 
 const blogPosts: BlogPost[] = [
   {
+    slug: "1-0",
+    title: "React Grab Is Now 1.0",
+    year: "2026",
+  },
+  {
     slug: "agent",
     title: "React Grab for Agents",
     year: "2025",
