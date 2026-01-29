@@ -71,8 +71,8 @@
     "prebuild": "mkdir -p dist && tailwindcss -i ./src/styles.css -o ./dist/styles.css -m",
     "build": "NODE_ENV=production tsup",
     "dev": "concurrently \"pnpm:css:watch\" \"tsup --watch --ignore-watch dist\"",
-    "lint": "eslint src/**/*.{ts,tsx}",
-    "lint:fix": "eslint src/**/*.{ts,tsx} --fix",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
     "format": "prettier --write .",
     "test": "playwright test",
     "typecheck": "tsc --noEmit",
@@ -95,11 +95,10 @@
     "clsx": "^2.1.1",
     "concurrently": "^9.1.2",
     "esbuild-plugin-babel": "^0.2.3",
-    "eslint": "^9.37.0",
+    "oxlint": "^1.42.0",
     "publint": "^0.2.12",
     "tailwind-merge": "^2.5.5",
     "tailwindcss": "^4.1.0",
-    "tsup": "^8.2.4",
-    "typescript-eslint": "^8.46.1"
+    "tsup": "^8.2.4"
   }
 }

@@ -1,4 +1,3 @@
-import { Show } from "solid-js";
 import type { Component, JSX } from "solid-js";
 import { cn } from "../../utils/cn.js";
 import { PANEL_STYLES } from "../../constants.js";
