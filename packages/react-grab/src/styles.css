@@ -3,8 +3,8 @@
 @theme {
   --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
   --font-mono:
-    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
-    "Liberation Mono", monospace;
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
+    monospace;
   --color-grab-pink: #b21c8e;
   --color-grab-pink-light: #fde7f7;
   --color-grab-pink-border: #f7c5ec;

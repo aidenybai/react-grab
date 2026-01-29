@@ -1,19 +1,19 @@
-'use client';
+"use client";
 
-import type { ReactNode } from 'react';
-import { InstallTabs } from '@/components/install-tabs';
-import { BenchmarkTooltip } from '@/components/benchmark-tooltip';
-import { IconClaude } from '@/components/icons/icon-claude';
-import { IconCopilot } from '@/components/icons/icon-copilot';
-import { IconCursor } from '@/components/icons/icon-cursor';
-import { BlogArticleLayout } from '@/components/blog-article-layout';
+import type { ReactNode } from "react";
+import { InstallTabs } from "@/components/install-tabs";
+import { BenchmarkTooltip } from "@/components/benchmark-tooltip";
+import { IconClaude } from "@/components/icons/icon-claude";
+import { IconCopilot } from "@/components/icons/icon-copilot";
+import { IconCursor } from "@/components/icons/icon-cursor";
+import { BlogArticleLayout } from "@/components/blog-article-layout";
 
 const headings = [
-  { id: 'react-grab-is-now-1-0', text: 'React Grab 1.0', level: 3 },
-  { id: 'install-react-grab', text: 'Install React Grab', level: 3 },
+  { id: "react-grab-is-now-1-0", text: "React Grab 1.0", level: 3 },
+  { id: "install-react-grab", text: "Install React Grab", level: 3 },
 ];
 
-const authors = [{ name: 'Aiden Bai', url: 'https://x.com/aidenybai' }];
+const authors = [{ name: "Aiden Bai", url: "https://x.com/aidenybai" }];
 
 interface ToolWithIconProps {
   icon: ReactNode;
@@ -27,7 +27,7 @@ const ToolWithIcon = ({ icon, name }: ToolWithIconProps) => (
   </span>
 );
 
-ToolWithIcon.displayName = 'ToolWithIcon';
+ToolWithIcon.displayName = "ToolWithIcon";
 
 const BlogPostPage = () => {
   return (
@@ -45,7 +45,7 @@ const BlogPostPage = () => {
             your website.
           </p>
           <p>
-            It makes tools like{' '}
+            It makes tools like{" "}
             <ToolWithIcon
               icon={
                 <IconCursor
@@ -56,12 +56,18 @@ const BlogPostPage = () => {
               }
               name="Cursor"
             />
-            ,{' '}
+            ,{" "}
             <ToolWithIcon
-              icon={<IconClaude width={16} height={16} className="translate-y-[2px]" />}
+              icon={
+                <IconClaude
+                  width={16}
+                  height={16}
+                  className="translate-y-[2px]"
+                />
+              }
               name="Claude Code"
             />
-            ,{' '}
+            ,{" "}
             <ToolWithIcon
               icon={
                 <IconCopilot
@@ -71,8 +77,8 @@ const BlogPostPage = () => {
                 />
               }
               name="Copilot"
-            />{' '}
-            run up to{' '}
+            />{" "}
+            run up to{" "}
             <BenchmarkTooltip
               href="/blog/intro"
               className="shimmer-text-pink inline-block touch-manipulation py-1"
@@ -89,6 +95,6 @@ const BlogPostPage = () => {
   );
 };
 
-BlogPostPage.displayName = 'BlogPostPage';
+BlogPostPage.displayName = "BlogPostPage";
 
 export default BlogPostPage;

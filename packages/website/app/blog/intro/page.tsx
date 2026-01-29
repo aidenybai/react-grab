@@ -238,7 +238,11 @@ const TimeComparisonChart = () => {
 TimeComparisonChart.displayName = "TimeComparisonChart";
 
 const headings = [
-  { id: "digging-through-react-internals", text: "Digging through React internals", level: 3 },
+  {
+    id: "digging-through-react-internals",
+    text: "Digging through React internals",
+    level: 3,
+  },
   { id: "benchmarking-for-speed", text: "Benchmarking for speed", level: 3 },
   { id: "how-it-impacts-you", text: "How it impacts you", level: 3 },
   { id: "whats-next", text: "What's next", level: 3 },
@@ -293,16 +297,14 @@ const BlogPostPage = () => {
             Turns your prompt into a trajectory (e.g. &quot;let me grep/search
             for where this code might be&quot;)
           </li>
-          <li>
-            Tries to guess what you{"'"}re referencing and edits the code
-          </li>
+          <li>Tries to guess what you{"'"}re referencing and edits the code</li>
         </ol>
 
         <p>
           Search is a pretty random process since language models have
           non-deterministic outputs. Depending on the search strategy, these
-          trajectories range from instant (if lucky) to very long. Unfortunately,
-          this means added latency, cost, and performance.
+          trajectories range from instant (if lucky) to very long.
+          Unfortunately, this means added latency, cost, and performance.
         </p>
 
         <p>Today, there are two solutions to this problem:</p>
@@ -496,7 +498,9 @@ const BlogPostPage = () => {
                 </div>
                 <div className="text-sm text-[#818181]">
                   Read{" "}
-                  <span className="text-[#5b5b5b]">components/ui/field.tsx</span>
+                  <span className="text-[#5b5b5b]">
+                    components/ui/field.tsx
+                  </span>
                 </div>
                 <div className="text-sm text-[#818181]">
                   Grepped{" "}
@@ -551,7 +555,9 @@ const BlogPostPage = () => {
               </div>
               <div className="text-sm text-[#818181]">
                 Read{" "}
-                <span className="text-[#5b5b5b]">components/login-form.tsx</span>
+                <span className="text-[#5b5b5b]">
+                  components/login-form.tsx
+                </span>
               </div>
               <div className="text-xs text-neutral-600 font-mono">
                 ~6.9s, 1 tool call, 28.1K tokens

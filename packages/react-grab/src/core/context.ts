@@ -12,7 +12,12 @@ import {
   isCompositeFiber,
   traverseFiber,
 } from "bippy";
-import { MAX_HTML_FALLBACK_LENGTH } from "../constants.js";
+import {
+  MAX_HTML_FALLBACK_LENGTH,
+  PREVIEW_ATTR_VALUE_MAX_LENGTH,
+  PREVIEW_MAX_ATTRS,
+  PREVIEW_PRIORITY_ATTRS,
+} from "../constants.js";
 
 const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
   "InnerLayoutRouter",
@@ -254,22 +259,36 @@ export const getElementContext = async (
   return getTruncatedOuterHTML(element);
 };
 
+const truncateAttrValue = (value: string): string =>
+  value.length > PREVIEW_ATTR_VALUE_MAX_LENGTH
+    ? `${value.slice(0, PREVIEW_ATTR_VALUE_MAX_LENGTH)}...`
+    : value;
+
+const formatPriorityAttrs = (element: Element): string => {
+  const priorityAttrs: string[] = [];
+
+  for (const name of PREVIEW_PRIORITY_ATTRS) {
+    if (priorityAttrs.length >= PREVIEW_MAX_ATTRS) break;
+    const value = element.getAttribute(name);
+    if (value) {
+      priorityAttrs.push(`${name}="${truncateAttrValue(value)}"`);
+    }
+  }
+
+  return priorityAttrs.length > 0 ? ` ${priorityAttrs.join(" ")}` : "";
+};
+
 export const getHTMLPreview = (element: Element): string => {
   const tagName = element.tagName.toLowerCase();
   if (!(element instanceof HTMLElement)) {
-    return `<${tagName} />`;
+    const attrsHint = formatPriorityAttrs(element);
+    return `<${tagName}${attrsHint} />`;
   }
   const text = element.innerText?.trim() ?? element.textContent?.trim() ?? "";
 
   let attrsText = "";
-  const attributes = Array.from(element.attributes);
-  for (const attribute of attributes) {
-    const name = attribute.name;
-    let value = attribute.value;
-    if (value.length > 20) {
-      value = `${value.slice(0, 20)}...`;
-    }
-    attrsText += ` ${name}="${value}"`;
+  for (const { name, value } of element.attributes) {
+    attrsText += ` ${name}="${truncateAttrValue(value)}"`;
   }
 
   const topElements: Array<Element> = [];

@@ -66,6 +66,37 @@ test.describe("Element Context Fallback", () => {
       expect(clipboard).toContain("Plain DOM content");
     });
 
+    test("should include priority attrs for SVG elements", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.page.evaluate(() => {
+        const svgElement = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "svg",
+        );
+        svgElement.id = "test-svg-icon";
+        svgElement.setAttribute("class", "icon-class");
+        svgElement.setAttribute("aria-label", "Close the modal dialog");
+        svgElement.setAttribute("viewBox", "0 0 24 24");
+        svgElement.style.width = "50px";
+        svgElement.style.height = "50px";
+        document.body.appendChild(svgElement);
+      });
+
+      await reactGrab.activate();
+
+      await reactGrab.hoverElement("#test-svg-icon");
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.clickElement("#test-svg-icon");
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain("<svg");
+      expect(clipboard).toContain('id="test-svg-icon"');
+      expect(clipboard).toContain('class="icon-class"');
+      expect(clipboard).toContain('aria-label="Close the modal...');
+      expect(clipboard).not.toContain("viewBox");
+    });
+
     test("should truncate long outerHTML to max length", async ({
       reactGrab,
     }) => {
