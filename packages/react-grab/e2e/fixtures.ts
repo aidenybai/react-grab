@@ -640,7 +640,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       );
       if (!toolbar) return false;
       const computedStyle = window.getComputedStyle(toolbar);
-      return computedStyle.opacity !== "0";
+      return computedStyle.opacity !== "0" && computedStyle.display !== "none";
     }, ATTRIBUTE_NAME);
   };
 
@@ -1579,6 +1579,9 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       { expectedWidth: width, expectedHeight: height },
       { timeout: 2000 },
     );
+    await page.evaluate(() => {
+      window.dispatchEvent(new Event("resize"));
+    });
   };
 
   const getViewportSize = async (): Promise<{

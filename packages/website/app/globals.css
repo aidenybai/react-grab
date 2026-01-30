@@ -1,5 +1,5 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -237,7 +237,7 @@ body {
 }
 
 .rainbow-button::before {
-  content: "";
+  content: '';
   position: absolute;
   top: -2px;
   left: -2px;
@@ -392,7 +392,7 @@ body {
 }
 
 .touch-hitbox::before {
-  content: "";
+  content: '';
   position: absolute;
   display: block;
   top: 50%;
@@ -410,5 +410,11 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+[data-react-grab] {
+  @media (max-width: 767px) {
+    display: none !important;
   }
 }

@@ -696,7 +696,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     if (isDragging()) return;
 
     setIsResizing(true);
-    setIsVisible(false);
     recalculatePosition();
 
     if (resizeTimeout) {
@@ -704,7 +703,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     }
 
     resizeTimeout = setTimeout(() => {
-      setIsVisible(true);
       setIsResizing(false);
 
       const rect = containerRef?.getBoundingClientRect();
