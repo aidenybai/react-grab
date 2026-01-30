@@ -38,6 +38,7 @@ import {
 import {
   createBoundsFromDragRect,
   createFlatOverlayBounds,
+  createPageRectFromBounds,
 } from "../utils/create-bounds-from-drag-rect.js";
 import { getTagName } from "../utils/get-tag-name.js";
 import {
@@ -1531,12 +1532,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (hasAgentProvider()) {
         actions.setPointer(center);
         actions.setFrozenElements(selectedElements);
-        actions.setFrozenDragRect({
-          pageX: dragSelectionRect.x + window.scrollX,
-          pageY: dragSelectionRect.y + window.scrollY,
-          width: dragSelectionRect.width,
-          height: dragSelectionRect.height,
-        });
+        actions.setFrozenDragRect(createPageRectFromBounds(dragSelectionRect));
         actions.freeze();
         actions.showContextMenu(center, firstElement);
         if (!isActivated()) {
@@ -1549,12 +1545,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           positionY: center.y,
           elements: selectedElements,
           shouldDeactivateAfter: true,
-          dragRect: {
-            pageX: dragSelectionRect.x + window.scrollX,
-            pageY: dragSelectionRect.y + window.scrollY,
-            width: dragSelectionRect.width,
-            height: dragSelectionRect.height,
-          },
+          dragRect: createPageRectFromBounds(dragSelectionRect),
         });
       }
     };
@@ -2947,6 +2938,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
         actions.setPointer(position);
         actions.setFrozenElements(elementsToFreeze);
+        const hasMultipleElements = elementsToFreeze.length > 1;
+        if (hasMultipleElements && instance.bounds) {
+          actions.setFrozenDragRect(createPageRectFromBounds(instance.bounds));
+        }
         actions.freeze();
         actions.showContextMenu(position, instance.element!);
       }, 0);

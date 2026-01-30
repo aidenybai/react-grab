@@ -25,6 +25,15 @@ export const createBoundsFromDragRect = (
   transform: "none",
 });
 
+export const createPageRectFromBounds = (
+  bounds: BaseBounds,
+): DragRectWithPageCoords => ({
+  pageX: bounds.x + window.scrollX,
+  pageY: bounds.y + window.scrollY,
+  width: bounds.width,
+  height: bounds.height,
+});
+
 export const createFlatOverlayBounds = (bounds: BaseBounds): OverlayBounds => ({
   ...bounds,
   borderRadius: "0px",
