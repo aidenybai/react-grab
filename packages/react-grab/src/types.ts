@@ -230,6 +230,10 @@ export interface PluginHooks {
   onDragStart?: (startX: number, startY: number) => void;
   onDragEnd?: (elements: Element[], bounds: DragRect) => void;
   onBeforeCopy?: (elements: Element[]) => void | Promise<void>;
+  transformCopyContent?: (
+    content: string,
+    elements: Element[],
+  ) => string | Promise<string>;
   onAfterCopy?: (elements: Element[], success: boolean) => void;
   onCopySuccess?: (elements: Element[], content: string) => void;
   onCopyError?: (error: Error) => void;

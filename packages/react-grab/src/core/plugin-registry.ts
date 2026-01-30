@@ -214,6 +214,23 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     }
   };
 
+  const callHookReduce = async <T>(
+    hookName: HookName,
+    initialValue: T,
+    ...extraArgs: unknown[]
+  ): Promise<T> => {
+    let result = initialValue;
+    for (const { config } of plugins.values()) {
+      const hook = config.hooks?.[hookName] as
+        | ((value: T, ...hookArgs: unknown[]) => T | Promise<T>)
+        | undefined;
+      if (hook) {
+        result = await hook(result, ...extraArgs);
+      }
+    }
+    return result;
+  };
+
   const hooks = {
     onActivate: () => callHook("onActivate"),
     onDeactivate: () => callHook("onDeactivate"),
@@ -225,6 +242,8 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       callHook("onDragEnd", elements, bounds),
     onBeforeCopy: async (elements: Element[]) =>
       callHookAsync("onBeforeCopy", elements),
+    transformCopyContent: async (content: string, elements: Element[]) =>
+      callHookReduce("transformCopyContent", content, elements),
     onAfterCopy: (elements: Element[], success: boolean) =>
       callHook("onAfterCopy", elements, success),
     onCopySuccess: (elements: Element[], content: string) =>

@@ -8,6 +8,10 @@ interface CopyOptions {
 
 interface CopyHooks {
   onBeforeCopy: (elements: Element[]) => Promise<void>;
+  transformCopyContent: (
+    content: string,
+    elements: Element[],
+  ) => Promise<string>;
   onAfterCopy: (elements: Element[], success: boolean) => void;
   onCopySuccess: (elements: Element[], content: string) => void;
   onCopyError: (error: Error) => void;
@@ -25,29 +29,28 @@ export const tryCopyWithFallback = async (
   await hooks.onBeforeCopy(elements);
 
   try {
+    let generatedContent: string;
+
     if (options.getContent) {
-      const customContent = await options.getContent(elements);
-      if (customContent.trim()) {
-        const contentWithPrompt = extraPrompt
-          ? `${extraPrompt}\n\n${customContent}`
-          : customContent;
-        copiedContent = contentWithPrompt;
-        didCopy = copyContent(contentWithPrompt, { prompt: extraPrompt });
-      }
+      generatedContent = await options.getContent(elements);
     } else {
       const snippets = await generateSnippet(elements, {
         maxLines: options.maxContextLines,
       });
-      const combinedSnippets = snippets.join("\n\n");
+      generatedContent = snippets.join("\n\n");
+    }
 
-      if (combinedSnippets.trim()) {
-        const plainTextContent = extraPrompt
-          ? `${extraPrompt}\n\n${combinedSnippets}`
-          : combinedSnippets;
+    if (generatedContent.trim()) {
+      const transformedContent = await hooks.transformCopyContent(
+        generatedContent,
+        elements,
+      );
 
-        copiedContent = plainTextContent;
-        didCopy = copyContent(plainTextContent, { prompt: extraPrompt });
-      }
+      copiedContent = extraPrompt
+        ? `${extraPrompt}\n\n${transformedContent}`
+        : transformedContent;
+
+      didCopy = copyContent(copiedContent, { prompt: extraPrompt });
     }
   } catch (error) {
     const resolvedError =

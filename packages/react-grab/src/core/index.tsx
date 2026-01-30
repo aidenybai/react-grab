@@ -608,6 +608,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         },
         {
           onBeforeCopy: pluginRegistry.hooks.onBeforeCopy,
+          transformCopyContent: pluginRegistry.hooks.transformCopyContent,
           onAfterCopy: pluginRegistry.hooks.onAfterCopy,
           onCopySuccess: pluginRegistry.hooks.onCopySuccess,
           onCopyError: pluginRegistry.hooks.onCopyError,
