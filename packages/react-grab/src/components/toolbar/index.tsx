@@ -35,9 +35,11 @@ import { freezeUpdates } from "../../utils/freeze-updates.js";
 import {
   freezeGlobalAnimations,
   unfreezeGlobalAnimations,
+} from "../../utils/freeze-animations.js";
+import {
   freezePseudoStates,
   unfreezePseudoStates,
-} from "../../utils/freeze-animations.js";
+} from "../../utils/freeze-pseudo-states.js";
 import { Tooltip } from "../tooltip.jsx";
 
 interface ToolbarProps {
