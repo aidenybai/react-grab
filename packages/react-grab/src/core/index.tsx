@@ -107,11 +107,13 @@ import {
 import {
   freezeAnimations,
   freezeAllAnimations,
-  freezePseudoStates,
-  unfreezePseudoStates,
   freezeGlobalAnimations,
   unfreezeGlobalAnimations,
 } from "../utils/freeze-animations.js";
+import {
+  freezePseudoStates,
+  unfreezePseudoStates,
+} from "../utils/freeze-pseudo-states.js";
 import { freezeUpdates } from "../utils/freeze-updates.js";
 
 let hasInited = false;

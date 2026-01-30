@@ -1,10 +1,5 @@
 import { FROZEN_ELEMENT_ATTRIBUTE } from "../constants.js";
 
-export {
-  freezePseudoStates,
-  unfreezePseudoStates,
-} from "./freeze-pseudo-states.js";
-
 const FROZEN_STYLES = `
 [${FROZEN_ELEMENT_ATTRIBUTE}],
 [${FROZEN_ELEMENT_ATTRIBUTE}] * {
