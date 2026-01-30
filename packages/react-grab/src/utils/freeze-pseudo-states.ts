@@ -145,10 +145,17 @@ const collectFocusStates = (): FrozenPseudoState[] => {
 const applyFrozenStates = (
   states: FrozenPseudoState[],
   storageMap: Map<HTMLElement, string>,
+  otherStorageMap?: Map<HTMLElement, string>,
 ): void => {
   for (const { element, originalCssText, frozenStyles } of states) {
     storageMap.set(element, originalCssText);
-    element.style.cssText = frozenStyles;
+    
+    if (otherStorageMap?.has(element)) {
+      const additionalStyles = frozenStyles.substring(originalCssText.length);
+      element.style.cssText = element.style.cssText + additionalStyles;
+    } else {
+      element.style.cssText = frozenStyles;
+    }
   }
 };
 
@@ -187,7 +194,7 @@ export const freezePseudoStates = (): void => {
   const focusStates = collectFocusStates();
 
   applyFrozenStates(hoverStates, frozenHoverElements);
-  applyFrozenStates(focusStates, frozenFocusElements);
+  applyFrozenStates(focusStates, frozenFocusElements, frozenHoverElements);
 
   pointerEventsStyle = createStyleElement(
     "data-react-grab-frozen-pseudo",
