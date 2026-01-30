@@ -4,6 +4,7 @@ import { generateSnippet } from "../utils/generate-snippet.js";
 interface CopyOptions {
   maxContextLines?: number;
   getContent?: (elements: Element[]) => Promise<string> | string;
+  componentName?: string;
 }
 
 interface CopyHooks {
@@ -50,7 +51,7 @@ export const tryCopyWithFallback = async (
         ? `${extraPrompt}\n\n${transformedContent}`
         : transformedContent;
 
-      didCopy = copyContent(copiedContent, { prompt: extraPrompt });
+      didCopy = copyContent(copiedContent, { name: options.componentName });
     }
   } catch (error) {
     const resolvedError =

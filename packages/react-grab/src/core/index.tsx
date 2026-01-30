@@ -601,11 +601,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
     };
 
-    const copyWithFallback = (elements: Element[], extraPrompt?: string) =>
-      tryCopyWithFallback(
+    const copyWithFallback = (elements: Element[], extraPrompt?: string) => {
+      const firstElement = elements[0];
+      const componentName = firstElement
+        ? getComponentDisplayName(firstElement)
+        : null;
+      const tagName = firstElement ? getTagName(firstElement) : null;
+      const elementName = componentName ?? tagName ?? undefined;
+
+      return tryCopyWithFallback(
         {
           maxContextLines: pluginRegistry.store.options.maxContextLines,
           getContent: pluginRegistry.store.options.getContent,
+          componentName: elementName,
         },
         {
           onBeforeCopy: pluginRegistry.hooks.onBeforeCopy,
@@ -617,6 +625,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         elements,
         extraPrompt,
       );
+    };
 
     const copyElementsToClipboard = async (
       targetElements: Element[],
