@@ -1154,24 +1154,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     createEffect(
       on(
-        () =>
-          [
-            isActivated(),
-            isCopying(),
-            isDragging(),
-            isPromptMode(),
-            targetElement(),
-          ] as const,
-        ([activated, copying, dragging, inputMode, target]) => {
+        () => [isActivated(), isCopying(), isPromptMode()] as const,
+        ([activated, copying, inputMode]) => {
           if (copying) {
             setCursorOverride("progress");
-          } else if (inputMode) {
-            setCursorOverride(null);
-          } else if (activated && dragging) {
-            setCursorOverride("crosshair");
-          } else if (activated && target) {
-            setCursorOverride("crosshair");
-          } else if (activated) {
+          } else if (activated && !inputMode) {
             setCursorOverride("crosshair");
           } else {
             setCursorOverride(null);

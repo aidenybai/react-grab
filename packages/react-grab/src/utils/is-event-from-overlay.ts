@@ -1,4 +1,7 @@
-export const isEventFromOverlay = (event: Event, attribute: string) => {
+export const isEventFromOverlay = (
+  event: Event,
+  attribute: string,
+): boolean => {
   try {
     return event
       .composedPath()

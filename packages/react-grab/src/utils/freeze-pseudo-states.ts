@@ -3,6 +3,7 @@ import {
   enablePointerEventsOverride,
   disablePointerEventsOverride,
 } from "./pointer-events-override.js";
+import { createStyleElement } from "./create-style-element.js";
 
 const POINTER_EVENTS_STYLES = "* { pointer-events: none !important; }";
 
@@ -65,17 +66,6 @@ interface FrozenPseudoState {
 const frozenHoverElements = new Map<HTMLElement, string>();
 const frozenFocusElements = new Map<HTMLElement, string>();
 let pointerEventsStyle: HTMLStyleElement | null = null;
-
-const createStyleElement = (
-  attribute: string,
-  content: string,
-): HTMLStyleElement => {
-  const element = document.createElement("style");
-  element.setAttribute(attribute, "");
-  element.textContent = content;
-  document.head.appendChild(element);
-  return element;
-};
 
 const stopEvent = (event: Event): void => {
   event.stopPropagation();

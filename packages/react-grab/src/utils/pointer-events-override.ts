@@ -1,11 +1,13 @@
+import { createStyleElement } from "./create-style-element.js";
+
 let overrideStyle: HTMLStyleElement | null = null;
 
 export const enablePointerEventsOverride = (): void => {
   if (overrideStyle) return;
-  overrideStyle = document.createElement("style");
-  overrideStyle.setAttribute("data-react-grab-pointer-override", "");
-  overrideStyle.textContent = "* { pointer-events: auto !important; }";
-  document.head.appendChild(overrideStyle);
+  overrideStyle = createStyleElement(
+    "data-react-grab-pointer-override",
+    "* { pointer-events: auto !important; }",
+  );
 };
 
 export const disablePointerEventsOverride = (): void => {

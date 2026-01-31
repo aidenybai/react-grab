@@ -533,5 +533,3 @@ export const freezeUpdates = (): (() => void) => {
     scheduleReactUpdate(collectedFiberRoots);
   };
 };
-
-export const areUpdatesFrozen = (): boolean => isUpdatesPaused;

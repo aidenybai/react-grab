@@ -9,7 +9,7 @@ interface BoundsCalculator {
   (element: Element): OverlayBounds;
 }
 
-export interface ArrowNavigator {
+interface ArrowNavigator {
   findNext: (key: string, currentElement: Element) => Element | null;
   clearHistory: () => void;
 }

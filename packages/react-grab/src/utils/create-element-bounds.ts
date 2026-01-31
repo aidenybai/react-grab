@@ -3,10 +3,11 @@ import {
   stripTranslateFromMatrix,
   stripTranslateFromTransformString,
 } from "./strip-translate-from-transform.js";
-import { BOUNDS_CACHE_TTL_MS } from "../constants.js";
-
-const MAX_ANCESTOR_DEPTH = 6;
-const EARLY_BAIL_DEPTH = 3;
+import {
+  BOUNDS_CACHE_TTL_MS,
+  MAX_TRANSFORM_ANCESTOR_DEPTH,
+  TRANSFORM_EARLY_BAIL_DEPTH,
+} from "../constants.js";
 
 interface CachedBounds {
   bounds: OverlayBounds;
@@ -32,14 +33,18 @@ const getAccumulatedTransform = (
   while (
     current &&
     current !== document.documentElement &&
-    depth < MAX_ANCESTOR_DEPTH
+    depth < MAX_TRANSFORM_ANCESTOR_DEPTH
   ) {
-    const t = window.getComputedStyle(current).transform;
-    if (t && t !== "none") {
+    const transformValue = window.getComputedStyle(current).transform;
+    if (transformValue && transformValue !== "none") {
       accumulated = accumulated
-        ? new DOMMatrix(t).multiply(accumulated)
-        : new DOMMatrix(t);
-    } else if (!hasSelfTransform && !accumulated && depth >= EARLY_BAIL_DEPTH) {
+        ? new DOMMatrix(transformValue).multiply(accumulated)
+        : new DOMMatrix(transformValue);
+    } else if (
+      !hasSelfTransform &&
+      !accumulated &&
+      depth >= TRANSFORM_EARLY_BAIL_DEPTH
+    ) {
       return "none";
     }
     current = current.parentElement;

@@ -54,7 +54,7 @@ const REACT_INTERNAL_COMPONENT_NAMES = new Set([
   "SuspenseList",
 ]);
 
-export const checkIsNextProject = (): boolean => {
+const checkIsNextProject = (): boolean => {
   if (typeof document === "undefined") return false;
   return Boolean(
     document.getElementById("__NEXT_DATA__") ||
@@ -62,7 +62,7 @@ export const checkIsNextProject = (): boolean => {
   );
 };
 
-export const checkIsInternalComponentName = (name: string): boolean => {
+const checkIsInternalComponentName = (name: string): boolean => {
   if (name.startsWith("_")) return true;
   if (NEXT_INTERNAL_COMPONENT_NAMES.has(name)) return true;
   if (REACT_INTERNAL_COMPONENT_NAMES.has(name)) return true;
@@ -305,7 +305,7 @@ const formatPriorityAttrs = (
   return priorityAttrs.length > 0 ? ` ${priorityAttrs.join(" ")}` : "";
 };
 
-export const getHTMLPreview = (element: Element): string => {
+const getHTMLPreview = (element: Element): string => {
   const tagName = element.tagName.toLowerCase();
   if (!(element instanceof HTMLElement)) {
     const attrsHint = formatPriorityAttrs(element);

@@ -1,6 +1,6 @@
-export const onIdle = (callback: () => void) => {
+export const onIdle = (callback: () => void): void => {
   if ("scheduler" in globalThis) {
-    return (
+    (
       globalThis as unknown as {
         scheduler: {
           postTask: (cb: () => void, opts: { priority: string }) => void;
@@ -9,9 +9,11 @@ export const onIdle = (callback: () => void) => {
     ).scheduler.postTask(callback, {
       priority: "background",
     });
+    return;
   }
   if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-    return requestIdleCallback(callback);
+    requestIdleCallback(callback);
+    return;
   }
-  return setTimeout(callback, 0);
+  setTimeout(callback, 0);
 };

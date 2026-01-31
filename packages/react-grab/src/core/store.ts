@@ -813,12 +813,3 @@ const createGrabStore = (input: GrabStoreInput) => {
 };
 
 export { createGrabStore };
-export type {
-  GrabStore,
-  GrabState,
-  GrabPhase,
-  GrabActions,
-  GrabStoreInput,
-  PendingClickData,
-  Position,
-};

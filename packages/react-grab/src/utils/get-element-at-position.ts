@@ -1,7 +1,8 @@
 import { isValidGrabbableElement } from "./is-valid-grabbable-element.js";
-
-const CACHE_DISTANCE_THRESHOLD_PX = 2;
-const THROTTLE_INTERVAL_MS = 16;
+import {
+  ELEMENT_POSITION_CACHE_DISTANCE_THRESHOLD_PX,
+  ELEMENT_POSITION_THROTTLE_MS,
+} from "../constants.js";
 
 interface PositionCache {
   clientX: number;
@@ -21,8 +22,8 @@ const isWithinThreshold = (
   const deltaX = Math.abs(x1 - x2);
   const deltaY = Math.abs(y1 - y2);
   return (
-    deltaX <= CACHE_DISTANCE_THRESHOLD_PX &&
-    deltaY <= CACHE_DISTANCE_THRESHOLD_PX
+    deltaX <= ELEMENT_POSITION_CACHE_DISTANCE_THRESHOLD_PX &&
+    deltaY <= ELEMENT_POSITION_CACHE_DISTANCE_THRESHOLD_PX
   );
 };
 
@@ -44,7 +45,8 @@ export const getElementAtPosition = (
       cache.clientX,
       cache.clientY,
     );
-    const isWithinThrottle = now - cache.timestamp < THROTTLE_INTERVAL_MS;
+    const isWithinThrottle =
+      now - cache.timestamp < ELEMENT_POSITION_THROTTLE_MS;
 
     if (isPositionClose || isWithinThrottle) {
       return cache.element;

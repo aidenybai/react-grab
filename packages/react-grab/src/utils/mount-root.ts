@@ -1,3 +1,5 @@
+import { MOUNT_ROOT_RECHECK_DELAY_MS } from "../constants.js";
+
 export const ATTRIBUTE_NAME = "data-react-grab";
 
 const FONT_LINK_ID = "react-grab-fonts";
@@ -60,7 +62,7 @@ export const mountRoot = (cssText?: string) => {
     if (!doc.contains(host)) {
       doc.appendChild(host);
     }
-  }, 1_000);
+  }, MOUNT_ROOT_RECHECK_DELAY_MS);
 
   return root;
 };

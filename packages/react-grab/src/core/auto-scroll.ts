@@ -3,7 +3,7 @@ import {
   AUTO_SCROLL_SPEED_PX,
 } from "../constants.js";
 
-export interface AutoScrollDirection {
+interface AutoScrollDirection {
   top: boolean;
   bottom: boolean;
   left: boolean;
@@ -22,7 +22,7 @@ export const getAutoScrollDirection = (
   };
 };
 
-export interface AutoScroller {
+interface AutoScroller {
   start: () => void;
   stop: () => void;
   isActive: () => boolean;

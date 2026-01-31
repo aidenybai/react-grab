@@ -1,4 +1,5 @@
 import { FROZEN_ELEMENT_ATTRIBUTE } from "../constants.js";
+import { createStyleElement } from "./create-style-element.js";
 
 const FROZEN_STYLES = `
 [${FROZEN_ELEMENT_ATTRIBUTE}],
@@ -20,17 +21,6 @@ let frozenElements: Element[] = [];
 let lastInputElements: Element[] = [];
 
 let globalAnimationStyleElement: HTMLStyleElement | null = null;
-
-const createStyleElement = (
-  attribute: string,
-  content: string,
-): HTMLStyleElement => {
-  const element = document.createElement("style");
-  element.setAttribute(attribute, "");
-  element.textContent = content;
-  document.head.appendChild(element);
-  return element;
-};
 
 const ensureStylesInjected = (): void => {
   if (styleElement) return;
