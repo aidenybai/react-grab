@@ -2303,13 +2303,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       { capture: true },
     );
 
-    eventListenerManager.addWindowListener("pointercancel", () => {
-      if (isDragging()) {
-        actions.cancelDrag();
-        autoScroller.stop();
-        document.body.style.userSelect = "";
-      }
-    });
+    eventListenerManager.addWindowListener(
+      "pointercancel",
+      (event: PointerEvent) => {
+        if (!event.isPrimary) return;
+        if (isDragging()) {
+          actions.cancelDrag();
+          autoScroller.stop();
+          document.body.style.userSelect = "";
+        }
+      },
+    );
 
     eventListenerManager.addWindowListener(
       "click",
