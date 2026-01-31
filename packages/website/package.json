@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "pnpm --filter react-grab build && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "oxlint"
   },
   "dependencies": {
     "@vercel/analytics": "^1.5.0",
