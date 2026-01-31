@@ -795,7 +795,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!detected || isRootElement(detected)) return false;
         return isRendererActive() && isDragging();
       }
-      return isRendererActive() && !isDragging() && Boolean(effectiveElement());
+      const element = effectiveElement();
+      return isRendererActive() && !isDragging() && Boolean(element) && !isRootElement(element);
     };
 
     const selectionBounds = createMemo((): OverlayBounds | undefined => {
@@ -2436,6 +2437,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (toggleFeedbackTimerId) window.clearTimeout(toggleFeedbackTimerId);
       autoScroller.stop();
       document.body.style.userSelect = "";
+      document.body.style.touchAction = "";
       setCursorOverride(null);
       keyboardClaimer.restore();
     });
