@@ -2178,21 +2178,25 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       capture: true,
     });
 
-    eventListenerManager.addWindowListener("mousemove", (event: MouseEvent) => {
-      actions.setTouchMode(false);
-      if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-      if (store.contextMenuPosition !== null) return;
-      if (isActivated() && !isPromptMode() && isToggleFrozen()) {
-        actions.unfreeze();
-        arrowNavigator.clearHistory();
-      }
-      handlePointerMove(event.clientX, event.clientY);
-    });
+    eventListenerManager.addWindowListener(
+      "pointermove",
+      (event: PointerEvent) => {
+        actions.setTouchMode(event.pointerType === "touch");
+        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
+        if (store.contextMenuPosition !== null) return;
+        if (isActivated() && !isPromptMode() && isToggleFrozen()) {
+          actions.unfreeze();
+          arrowNavigator.clearHistory();
+        }
+        handlePointerMove(event.clientX, event.clientY);
+      },
+    );
 
     eventListenerManager.addWindowListener(
-      "mousedown",
-      (event: MouseEvent) => {
+      "pointerdown",
+      (event: PointerEvent) => {
         if (event.button !== 0) return;
+        actions.setTouchMode(event.pointerType === "touch");
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
 
@@ -2212,36 +2216,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     eventListenerManager.addWindowListener(
-      "pointerdown",
-      (event: PointerEvent) => {
-        if (event.button !== 0) return;
-        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        if (store.contextMenuPosition !== null) return;
-        if (!isRendererActive() || isCopying() || isPromptMode()) return;
-        event.stopPropagation();
-        event.stopImmediatePropagation();
-      },
-      { capture: true },
-    );
-
-    eventListenerManager.addWindowListener(
       "pointerup",
       (event: PointerEvent) => {
-        if (event.button !== 0) return;
-        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        if (store.contextMenuPosition !== null) return;
-        handlePointerUp(
-          event.clientX,
-          event.clientY,
-          event.metaKey || event.ctrlKey,
-        );
-      },
-      { capture: true },
-    );
-
-    eventListenerManager.addWindowListener(
-      "mouseup",
-      (event: MouseEvent) => {
         if (event.button !== 0) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
@@ -2291,52 +2267,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       { capture: true },
     );
 
-    eventListenerManager.addWindowListener(
-      "touchmove",
-      (event: TouchEvent) => {
-        if (event.touches.length === 0) return;
-        actions.setTouchMode(true);
-        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        if (isHoldingKeys() && !isPromptMode() && isToggleFrozen()) {
-          actions.unfreeze();
-        }
-        handlePointerMove(event.touches[0].clientX, event.touches[0].clientY);
-      },
-      { passive: true },
-    );
-
-    eventListenerManager.addWindowListener(
-      "touchstart",
-      (event: TouchEvent) => {
-        if (event.touches.length === 0) return;
-        actions.setTouchMode(true);
-
-        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-
-        if (isPromptMode()) {
-          handleInputCancel();
-          return;
-        }
-
-        const didHandle = handlePointerDown(
-          event.touches[0].clientX,
-          event.touches[0].clientY,
-        );
-        if (didHandle) {
-          event.preventDefault();
-          event.stopPropagation();
-          event.stopImmediatePropagation();
-        }
-      },
-      { passive: false },
-    );
-
-    eventListenerManager.addWindowListener("touchend", (event: TouchEvent) => {
-      if (event.changedTouches.length === 0) return;
-      handlePointerUp(
-        event.changedTouches[0].clientX,
-        event.changedTouches[0].clientY,
-      );
+    eventListenerManager.addWindowListener("pointercancel", () => {
+      if (isDragging()) {
+        actions.cancelDrag();
+        autoScroller.stop();
+        document.body.style.userSelect = "";
+      }
     });
 
     eventListenerManager.addWindowListener(

@@ -1486,49 +1486,44 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     }, ATTRIBUTE_NAME);
   };
 
-  const dispatchTouchEvent = async (
-    type: "touchstart" | "touchmove" | "touchend",
+  const dispatchPointerEvent = async (
+    type: "pointerdown" | "pointermove" | "pointerup",
     x: number,
     y: number,
-    identifier = 0,
+    pointerId = 1,
   ) => {
     await page.evaluate(
-      ({ type, x, y, identifier }) => {
+      ({ type, x, y, pointerId }) => {
         const target = document.elementFromPoint(x, y) || document.body;
-        const touch = new Touch({
-          identifier,
-          target,
-          clientX: x,
-          clientY: y,
-          pageX: x + window.scrollX,
-          pageY: y + window.scrollY,
-          screenX: x,
-          screenY: y,
-        });
-        const touches = type === "touchend" ? [] : [touch];
-        const touchEvent = new TouchEvent(type, {
+        const pointerEvent = new PointerEvent(type, {
           bubbles: true,
           cancelable: true,
-          touches,
-          targetTouches: touches,
-          changedTouches: [touch],
+          clientX: x,
+          clientY: y,
+          screenX: x,
+          screenY: y,
+          pointerId,
+          pointerType: "touch",
+          isPrimary: true,
+          button: type === "pointermove" ? -1 : 0,
+          buttons: type === "pointerup" ? 0 : 1,
         });
-        target.dispatchEvent(touchEvent);
+        target.dispatchEvent(pointerEvent);
       },
-      { type, x, y, identifier },
+      { type, x, y, pointerId },
     );
   };
 
   const touchStart = async (x: number, y: number) => {
-    await dispatchTouchEvent("touchstart", x, y);
+    await dispatchPointerEvent("pointerdown", x, y);
   };
 
   const touchMove = async (x: number, y: number) => {
-    await dispatchTouchEvent("touchmove", x, y);
+    await dispatchPointerEvent("pointermove", x, y);
   };
 
   const touchEnd = async (x: number, y: number) => {
-    await dispatchTouchEvent("touchend", x, y);
+    await dispatchPointerEvent("pointerup", x, y);
   };
 
   const touchTap = async (selector: string) => {
@@ -1545,16 +1540,16 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     endX: number,
     endY: number,
   ) => {
-    await dispatchTouchEvent("touchstart", startX, startY);
+    await dispatchPointerEvent("pointerdown", startX, startY);
 
     const steps = 10;
     for (let i = 1; i <= steps; i++) {
       const currentX = startX + ((endX - startX) * i) / steps;
       const currentY = startY + ((endY - startY) * i) / steps;
-      await dispatchTouchEvent("touchmove", currentX, currentY);
+      await dispatchPointerEvent("pointermove", currentX, currentY);
     }
 
-    await dispatchTouchEvent("touchend", endX, endY);
+    await dispatchPointerEvent("pointerup", endX, endY);
   };
 
   const isTouchMode = async (): Promise<boolean> => {
