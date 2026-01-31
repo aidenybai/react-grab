@@ -294,8 +294,6 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       callHook("onContextMenu", element, position),
     onOpenFile: (filePath: string, lineNumber?: number) =>
       callHookWithHandled("onOpenFile", filePath, lineNumber),
-
-    // Core transform hooks
     transformHtmlContent: async (html: string, elements: Element[]) =>
       callHookReduce("transformHtmlContent", html, elements),
     transformScreenshot: async (
@@ -312,8 +310,6 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       callHookReduce("transformAgentContext", context, elements),
     transformActionContext: (context: ActionContext) =>
       callHookReduceSync("transformActionContext", context),
-
-    // i18n/display transform hooks
     transformStatusText: (text: string, status: StatusTextType) =>
       callHookReduceSync("transformStatusText", text, status),
     transformErrorMessage: (message: string, error: Error) =>
@@ -324,8 +320,6 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       callHookReduceSync("transformButtonText", text, buttonId),
     transformPlaceholder: (text: string, inputId: string) =>
       callHookReduceSync("transformPlaceholder", text, inputId),
-
-    // File path transform hooks
     transformFilePath: (path: string, purpose: FilePathPurpose) =>
       callHookReduceSync("transformFilePath", path, purpose),
     transformOpenFileUrl: (
@@ -333,8 +327,6 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       filePath: string,
       lineNumber?: number,
     ) => callHookReduceSync("transformOpenFileUrl", url, filePath, lineNumber),
-
-    // Content generation transform hooks
     transformSnippet: async (snippet: string, element: Element) =>
       callHookReduce("transformSnippet", snippet, element),
     transformStackContext: (

@@ -276,8 +276,6 @@ export interface PluginHooks {
     position: { x: number; y: number },
   ) => void;
   onOpenFile?: (filePath: string, lineNumber?: number) => boolean | void;
-
-  // Core transform hooks
   transformHtmlContent?: (
     html: string,
     elements: Element[],
@@ -297,23 +295,17 @@ export interface PluginHooks {
     elements: Element[],
   ) => AgentContext | Promise<AgentContext>;
   transformActionContext?: (context: ActionContext) => ActionContext;
-
-  // i18n/display transform hooks
   transformStatusText?: (text: string, status: StatusTextType) => string;
   transformErrorMessage?: (message: string, error: Error) => string;
   transformMenuLabel?: (label: string, actionId: string) => string;
   transformButtonText?: (text: string, buttonId: string) => string;
   transformPlaceholder?: (text: string, inputId: string) => string;
-
-  // File path transform hooks
   transformFilePath?: (path: string, purpose: FilePathPurpose) => string;
   transformOpenFileUrl?: (
     url: string,
     filePath: string,
     lineNumber?: number,
   ) => string;
-
-  // Content generation transform hooks
   transformSnippet?: (
     snippet: string,
     element: Element,
