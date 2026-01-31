@@ -676,7 +676,6 @@ const transformTanStack = (
         "Could not find src/routes/__root.tsx or app/routes/__root.tsx.\n\n" +
         "To set up React Grab with TanStack Start, add this to your root route component:\n\n" +
         '  import { useEffect } from "react";\n\n' +
-        "  // Inside your component:\n" +
         "  useEffect(() => {\n" +
         "    if (import.meta.env.DEV) {\n" +
         '      void import("react-grab");\n' +
