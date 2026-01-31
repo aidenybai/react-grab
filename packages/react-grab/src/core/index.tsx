@@ -30,6 +30,7 @@ import { createEventListenerManager } from "./events.js";
 import { tryCopyWithFallback } from "./copy.js";
 import { getElementAtPosition } from "../utils/get-element-at-position.js";
 import { isValidGrabbableElement } from "../utils/is-valid-grabbable-element.js";
+import { isRootElement } from "../utils/is-root-element.js";
 import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
 import {
   createElementBounds,
@@ -176,9 +177,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (activated && !previousActivated) {
           freezePseudoStates();
           freezeGlobalAnimations();
+          // HACK: Prevent browser from taking over touch gestures
+          document.body.style.touchAction = "none";
         } else if (!activated && previousActivated) {
           unfreezePseudoStates();
           unfreezeGlobalAnimations();
+          document.body.style.touchAction = "";
         }
       }),
     );
@@ -773,25 +777,49 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }),
     );
 
+    // HACK: In touch mode during drag, effectiveElement() is null so we use detectedElement
+    const getSelectionElement = (): Element | undefined => {
+      if (store.isTouchMode && isDragging()) {
+        const detected = store.detectedElement;
+        if (!detected || isRootElement(detected)) return undefined;
+        return detected;
+      }
+      const element = effectiveElement();
+      if (!element || isRootElement(element)) return undefined;
+      return element;
+    };
+
+    const isSelectionElementVisible = (): boolean => {
+      if (store.isTouchMode && isDragging()) {
+        const detected = store.detectedElement;
+        if (!detected || isRootElement(detected)) return false;
+        return isRendererActive();
+      }
+      const element = effectiveElement();
+      if (!element || isRootElement(element)) return false;
+      return isRendererActive() && !isDragging();
+    };
+
     const selectionBounds = createMemo((): OverlayBounds | undefined => {
       void store.viewportVersion;
 
       const frozenElements = store.frozenElements;
       if (frozenElements.length > 0) {
-        if (frozenElements.length === 1) {
-          return createElementBounds(frozenElements[0]);
+        const firstElement = frozenElements[0];
+        if (frozenElements.length === 1 && firstElement) {
+          return createElementBounds(firstElement);
         }
         const dragRect = store.frozenDragRect;
         if (dragRect) {
           return createBoundsFromDragRect(dragRect);
         }
-        const elementBounds = frozenElements.map((element) =>
-          createElementBounds(element),
-        );
+        const elementBounds = frozenElements
+          .filter((element): element is Element => element !== null)
+          .map((element) => createElementBounds(element));
         return createFlatOverlayBounds(combineBounds(elementBounds));
       }
 
-      const element = effectiveElement();
+      const element = getSelectionElement();
       if (!element) return undefined;
       return createElementBounds(element);
     });
@@ -807,7 +835,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return [createBoundsFromDragRect(dragRect)];
       }
 
-      return frozenElements.map((element) => createElementBounds(element));
+      return frozenElements
+        .filter((element): element is Element => element !== null)
+        .map((element) => createElementBounds(element));
     });
 
     const frozenElementsCount = createMemo(() => store.frozenElements.length);
@@ -2178,21 +2208,30 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       capture: true,
     });
 
-    eventListenerManager.addWindowListener("mousemove", (event: MouseEvent) => {
-      actions.setTouchMode(false);
-      if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-      if (store.contextMenuPosition !== null) return;
-      if (isActivated() && !isPromptMode() && isToggleFrozen()) {
-        actions.unfreeze();
-        arrowNavigator.clearHistory();
-      }
-      handlePointerMove(event.clientX, event.clientY);
-    });
+    eventListenerManager.addWindowListener(
+      "pointermove",
+      (event: PointerEvent) => {
+        if (!event.isPrimary) return;
+        const isTouchPointer = event.pointerType === "touch";
+        actions.setTouchMode(isTouchPointer);
+        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
+        if (store.contextMenuPosition !== null) return;
+        const isActiveState = isTouchPointer ? isHoldingKeys() : isActivated();
+        if (isActiveState && !isPromptMode() && isToggleFrozen()) {
+          actions.unfreeze();
+          arrowNavigator.clearHistory();
+        }
+        handlePointerMove(event.clientX, event.clientY);
+      },
+      { passive: true },
+    );
 
     eventListenerManager.addWindowListener(
-      "mousedown",
-      (event: MouseEvent) => {
+      "pointerdown",
+      (event: PointerEvent) => {
         if (event.button !== 0) return;
+        if (!event.isPrimary) return;
+        actions.setTouchMode(event.pointerType === "touch");
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
 
@@ -2212,37 +2251,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     eventListenerManager.addWindowListener(
-      "pointerdown",
-      (event: PointerEvent) => {
-        if (event.button !== 0) return;
-        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        if (store.contextMenuPosition !== null) return;
-        if (!isRendererActive() || isCopying() || isPromptMode()) return;
-        event.stopPropagation();
-        event.stopImmediatePropagation();
-      },
-      { capture: true },
-    );
-
-    eventListenerManager.addWindowListener(
       "pointerup",
       (event: PointerEvent) => {
         if (event.button !== 0) return;
-        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        if (store.contextMenuPosition !== null) return;
-        handlePointerUp(
-          event.clientX,
-          event.clientY,
-          event.metaKey || event.ctrlKey,
-        );
-      },
-      { capture: true },
-    );
-
-    eventListenerManager.addWindowListener(
-      "mouseup",
-      (event: MouseEvent) => {
-        if (event.button !== 0) return;
+        if (!event.isPrimary) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
         handlePointerUp(
@@ -2292,52 +2304,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     eventListenerManager.addWindowListener(
-      "touchmove",
-      (event: TouchEvent) => {
-        if (event.touches.length === 0) return;
-        actions.setTouchMode(true);
-        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-        if (isHoldingKeys() && !isPromptMode() && isToggleFrozen()) {
-          actions.unfreeze();
-        }
-        handlePointerMove(event.touches[0].clientX, event.touches[0].clientY);
-      },
-      { passive: true },
-    );
-
-    eventListenerManager.addWindowListener(
-      "touchstart",
-      (event: TouchEvent) => {
-        if (event.touches.length === 0) return;
-        actions.setTouchMode(true);
-
-        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
-
-        if (isPromptMode()) {
-          handleInputCancel();
-          return;
-        }
-
-        const didHandle = handlePointerDown(
-          event.touches[0].clientX,
-          event.touches[0].clientY,
-        );
-        if (didHandle) {
-          event.preventDefault();
-          event.stopPropagation();
-          event.stopImmediatePropagation();
+      "pointercancel",
+      (event: PointerEvent) => {
+        if (!event.isPrimary) return;
+        if (isDragging()) {
+          actions.cancelDrag();
+          autoScroller.stop();
+          document.body.style.userSelect = "";
         }
       },
-      { passive: false },
     );
-
-    eventListenerManager.addWindowListener("touchend", (event: TouchEvent) => {
-      if (event.changedTouches.length === 0) return;
-      handlePointerUp(
-        event.changedTouches[0].clientX,
-        event.changedTouches[0].clientY,
-      );
-    });
 
     eventListenerManager.addWindowListener(
       "click",
@@ -2469,6 +2445,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (toggleFeedbackTimerId) window.clearTimeout(toggleFeedbackTimerId);
       autoScroller.stop();
       document.body.style.userSelect = "";
+      document.body.style.touchAction = "";
       setCursorOverride(null);
       keyboardClaimer.restore();
     });
@@ -2483,11 +2460,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const hasDragPreview = dragPreviewBounds().length > 0;
       if (hasDragPreview) return true;
 
-      return isRendererActive() && !isDragging() && Boolean(effectiveElement());
+      return isSelectionElementVisible();
     });
 
     const selectionTagName = createMemo(() => {
-      const element = effectiveElement();
+      const element = getSelectionElement();
       if (!element) return undefined;
       return getTagName(element) || undefined;
     });
@@ -2522,7 +2499,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (store.contextMenuPosition !== null) return false;
       if (!pluginRegistry.store.theme.elementLabel.enabled) return false;
       if (didJustCopy()) return false;
-      return isRendererActive() && !isDragging() && Boolean(effectiveElement());
+
+      return isSelectionElementVisible();
     });
 
     const labelInstanceCache = new Map<string, SelectionLabelInstance>();
@@ -2892,10 +2870,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
       }
 
+      const shouldDeactivate = store.wasActivatedByToggle;
+
       // HACK: Defer hiding context menu until after click event propagates fully
       setTimeout(() => {
         actions.hideContextMenu();
-        actions.unfreeze();
+        if (shouldDeactivate) {
+          deactivateRenderer();
+        } else {
+          actions.unfreeze();
+        }
       }, 0);
     };
 
