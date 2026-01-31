@@ -796,12 +796,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return isRendererActive();
       }
       const element = effectiveElement();
-      return (
-        isRendererActive() &&
-        !isDragging() &&
-        element !== null &&
-        !isRootElement(element)
-      );
+      if (!element || isRootElement(element)) return false;
+      return isRendererActive() && !isDragging();
     };
 
     const selectionBounds = createMemo((): OverlayBounds | undefined => {
@@ -2873,7 +2869,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // HACK: Defer hiding context menu until after click event propagates fully
       setTimeout(() => {
         actions.hideContextMenu();
-        actions.unfreeze();
+        deactivateRenderer();
       }, 0);
     };
 
