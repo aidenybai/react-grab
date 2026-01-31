@@ -9,6 +9,7 @@ interface CopyOptions {
 
 interface CopyHooks {
   onBeforeCopy: (elements: Element[]) => Promise<void>;
+  transformSnippet: (snippet: string, element: Element) => Promise<string>;
   transformCopyContent: (
     content: string,
     elements: Element[],
@@ -35,10 +36,15 @@ export const tryCopyWithFallback = async (
     if (options.getContent) {
       generatedContent = await options.getContent(elements);
     } else {
-      const snippets = await generateSnippet(elements, {
+      const rawSnippets = await generateSnippet(elements, {
         maxLines: options.maxContextLines,
       });
-      generatedContent = snippets.join("\n\n");
+      const transformedSnippets = await Promise.all(
+        rawSnippets.map((snippet, index) =>
+          hooks.transformSnippet(snippet, elements[index]),
+        ),
+      );
+      generatedContent = transformedSnippets.join("\n\n");
     }
 
     if (generatedContent.trim()) {

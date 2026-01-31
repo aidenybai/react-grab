@@ -222,6 +222,22 @@ export interface ContextMenuAction {
   agent?: AgentOptions;
 }
 
+export type StatusTextType =
+  | "thinking"
+  | "copied"
+  | "grabbing"
+  | "error"
+  | "streaming";
+
+export type FilePathPurpose = "display" | "open";
+
+export interface ScreenshotBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface PluginHooks {
   onActivate?: () => void;
   onDeactivate?: () => void;
@@ -260,6 +276,53 @@ export interface PluginHooks {
     position: { x: number; y: number },
   ) => void;
   onOpenFile?: (filePath: string, lineNumber?: number) => boolean | void;
+
+  // Core transform hooks
+  transformHtmlContent?: (
+    html: string,
+    elements: Element[],
+  ) => string | Promise<string>;
+  transformScreenshot?: (
+    blob: Blob,
+    elements: Element[],
+    bounds: ScreenshotBounds,
+  ) => Blob | Promise<Blob>;
+  transformElementLabel?: (
+    label: string,
+    element: Element,
+    variant: ElementLabelVariant,
+  ) => string;
+  transformAgentContext?: (
+    context: AgentContext,
+    elements: Element[],
+  ) => AgentContext | Promise<AgentContext>;
+  transformActionContext?: (context: ActionContext) => ActionContext;
+
+  // i18n/display transform hooks
+  transformStatusText?: (text: string, status: StatusTextType) => string;
+  transformErrorMessage?: (message: string, error: Error) => string;
+  transformMenuLabel?: (label: string, actionId: string) => string;
+  transformButtonText?: (text: string, buttonId: string) => string;
+  transformPlaceholder?: (text: string, inputId: string) => string;
+
+  // File path transform hooks
+  transformFilePath?: (path: string, purpose: FilePathPurpose) => string;
+  transformOpenFileUrl?: (
+    url: string,
+    filePath: string,
+    lineNumber?: number,
+  ) => string;
+
+  // Content generation transform hooks
+  transformSnippet?: (
+    snippet: string,
+    element: Element,
+  ) => string | Promise<string>;
+  transformStackContext?: (
+    context: string,
+    filePath: string,
+    lineNumber: number,
+  ) => string;
 }
 
 export interface PluginConfig {

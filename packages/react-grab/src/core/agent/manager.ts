@@ -33,6 +33,13 @@ interface StartSessionParams {
   agent?: AgentOptions;
 }
 
+interface AgentManagerHooks {
+  transformAgentContext?: (
+    context: AgentContext,
+    elements: Element[],
+  ) => AgentContext | Promise<AgentContext>;
+}
+
 interface SessionOperations {
   start: (params: StartSessionParams) => Promise<void>;
   abort: (sessionId?: string) => void;
@@ -68,6 +75,7 @@ export interface AgentManager {
 
 export const createAgentManager = (
   initialAgentOptions: AgentOptions | undefined,
+  hooks?: AgentManagerHooks,
 ): AgentManager => {
   const [sessions, setSessions] = createSignal<Map<string, AgentSession>>(
     new Map(),
@@ -392,8 +400,12 @@ export const createAgentManager = (
       sessionId: sessionId ?? session.id,
     };
 
+    const transformedContext = hooks?.transformAgentContext
+      ? await hooks.transformAgentContext(contextWithSessionId, elements)
+      : contextWithSessionId;
+
     const streamIterator = activeAgent.provider.send(
-      contextWithSessionId,
+      transformedContext,
       abortController.signal,
     );
     void executeSessionStream(session, streamIterator, activeAgent);

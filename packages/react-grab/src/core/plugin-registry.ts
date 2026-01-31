@@ -15,6 +15,11 @@ import type {
   ActivationMode,
   ActivationKey,
   SettableOptions,
+  AgentContext,
+  ActionContext,
+  StatusTextType,
+  FilePathPurpose,
+  ScreenshotBounds,
 } from "../types.js";
 import { DEFAULT_THEME, deepMergeTheme } from "./theme.js";
 import { DEFAULT_KEY_HOLD_DURATION_MS } from "../constants.js";
@@ -231,6 +236,23 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     return result;
   };
 
+  const callHookReduceSync = <T>(
+    hookName: HookName,
+    initialValue: T,
+    ...extraArgs: unknown[]
+  ): T => {
+    let result = initialValue;
+    for (const { config } of plugins.values()) {
+      const hook = config.hooks?.[hookName] as
+        | ((value: T, ...hookArgs: unknown[]) => T)
+        | undefined;
+      if (hook) {
+        result = hook(result, ...extraArgs);
+      }
+    }
+    return result;
+  };
+
   const hooks = {
     onActivate: () => callHook("onActivate"),
     onDeactivate: () => callHook("onDeactivate"),
@@ -272,6 +294,60 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       callHook("onContextMenu", element, position),
     onOpenFile: (filePath: string, lineNumber?: number) =>
       callHookWithHandled("onOpenFile", filePath, lineNumber),
+
+    // Core transform hooks
+    transformHtmlContent: async (html: string, elements: Element[]) =>
+      callHookReduce("transformHtmlContent", html, elements),
+    transformScreenshot: async (
+      blob: Blob,
+      elements: Element[],
+      bounds: ScreenshotBounds,
+    ) => callHookReduce("transformScreenshot", blob, elements, bounds),
+    transformElementLabel: (
+      label: string,
+      element: Element,
+      variant: ElementLabelVariant,
+    ) => callHookReduceSync("transformElementLabel", label, element, variant),
+    transformAgentContext: async (context: AgentContext, elements: Element[]) =>
+      callHookReduce("transformAgentContext", context, elements),
+    transformActionContext: (context: ActionContext) =>
+      callHookReduceSync("transformActionContext", context),
+
+    // i18n/display transform hooks
+    transformStatusText: (text: string, status: StatusTextType) =>
+      callHookReduceSync("transformStatusText", text, status),
+    transformErrorMessage: (message: string, error: Error) =>
+      callHookReduceSync("transformErrorMessage", message, error),
+    transformMenuLabel: (label: string, actionId: string) =>
+      callHookReduceSync("transformMenuLabel", label, actionId),
+    transformButtonText: (text: string, buttonId: string) =>
+      callHookReduceSync("transformButtonText", text, buttonId),
+    transformPlaceholder: (text: string, inputId: string) =>
+      callHookReduceSync("transformPlaceholder", text, inputId),
+
+    // File path transform hooks
+    transformFilePath: (path: string, purpose: FilePathPurpose) =>
+      callHookReduceSync("transformFilePath", path, purpose),
+    transformOpenFileUrl: (
+      url: string,
+      filePath: string,
+      lineNumber?: number,
+    ) => callHookReduceSync("transformOpenFileUrl", url, filePath, lineNumber),
+
+    // Content generation transform hooks
+    transformSnippet: async (snippet: string, element: Element) =>
+      callHookReduce("transformSnippet", snippet, element),
+    transformStackContext: (
+      context: string,
+      filePath: string,
+      lineNumber: number,
+    ) =>
+      callHookReduceSync(
+        "transformStackContext",
+        context,
+        filePath,
+        lineNumber,
+      ),
   };
 
   return {
