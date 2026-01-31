@@ -41,10 +41,12 @@ export const tryCopyWithFallback = async (
       });
       const transformedSnippets = await Promise.all(
         rawSnippets.map((snippet, index) =>
-          hooks.transformSnippet(snippet, elements[index]),
+          snippet.trim()
+            ? hooks.transformSnippet(snippet, elements[index])
+            : Promise.resolve(""),
         ),
       );
-      generatedContent = transformedSnippets.join("\n\n");
+      generatedContent = transformedSnippets.filter((s) => s.trim()).join("\n\n");
     }
 
     if (generatedContent.trim()) {

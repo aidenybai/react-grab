@@ -12,9 +12,9 @@ export const generateSnippet = async (
     elements.map((element) => getElementContext(element, options)),
   );
 
-  const elementSnippets = elementSnippetResults
-    .map((result) => (result.status === "fulfilled" ? result.value : ""))
-    .filter((snippet) => snippet.trim());
+  const elementSnippets = elementSnippetResults.map((result) =>
+    result.status === "fulfilled" ? result.value : "",
+  );
 
   return elementSnippets;
 };
