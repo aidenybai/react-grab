@@ -30,6 +30,7 @@ import { createEventListenerManager } from "./events.js";
 import { tryCopyWithFallback } from "./copy.js";
 import { getElementAtPosition } from "../utils/get-element-at-position.js";
 import { isValidGrabbableElement } from "../utils/is-valid-grabbable-element.js";
+import { isRootElement } from "../utils/is-root-element.js";
 import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
 import {
   createElementBounds,
@@ -176,9 +177,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (activated && !previousActivated) {
           freezePseudoStates();
           freezeGlobalAnimations();
+          // HACK: Prevent browser from taking over touch gestures
+          document.body.style.touchAction = "none";
         } else if (!activated && previousActivated) {
           unfreezePseudoStates();
           unfreezeGlobalAnimations();
+          document.body.style.touchAction = "";
         }
       }),
     );
@@ -773,6 +777,27 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }),
     );
 
+    // HACK: In touch mode during drag, effectiveElement() is null so we use detectedElement
+    const getSelectionElement = (): Element | undefined => {
+      if (store.isTouchMode && isDragging()) {
+        const detected = store.detectedElement;
+        if (!detected || isRootElement(detected)) return undefined;
+        return detected;
+      }
+      const element = effectiveElement();
+      if (!element || isRootElement(element)) return undefined;
+      return element;
+    };
+
+    const isSelectionElementVisible = (): boolean => {
+      if (store.isTouchMode) {
+        const detected = store.detectedElement;
+        if (!detected || isRootElement(detected)) return false;
+        return isRendererActive() && isDragging();
+      }
+      return isRendererActive() && !isDragging() && Boolean(effectiveElement());
+    };
+
     const selectionBounds = createMemo((): OverlayBounds | undefined => {
       void store.viewportVersion;
 
@@ -791,7 +816,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return createFlatOverlayBounds(combineBounds(elementBounds));
       }
 
-      const element = effectiveElement();
+      const element = getSelectionElement();
       if (!element) return undefined;
       return createElementBounds(element);
     });
@@ -2181,21 +2206,26 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     eventListenerManager.addWindowListener(
       "pointermove",
       (event: PointerEvent) => {
-        actions.setTouchMode(event.pointerType === "touch");
+        if (!event.isPrimary) return;
+        const isTouchPointer = event.pointerType === "touch";
+        actions.setTouchMode(isTouchPointer);
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
-        if (isActivated() && !isPromptMode() && isToggleFrozen()) {
+        const isActiveState = isTouchPointer ? isHoldingKeys() : isActivated();
+        if (isActiveState && !isPromptMode() && isToggleFrozen()) {
           actions.unfreeze();
           arrowNavigator.clearHistory();
         }
         handlePointerMove(event.clientX, event.clientY);
       },
+      { passive: true },
     );
 
     eventListenerManager.addWindowListener(
       "pointerdown",
       (event: PointerEvent) => {
         if (event.button !== 0) return;
+        if (!event.isPrimary) return;
         actions.setTouchMode(event.pointerType === "touch");
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
@@ -2219,6 +2249,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "pointerup",
       (event: PointerEvent) => {
         if (event.button !== 0) return;
+        if (!event.isPrimary) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
         handlePointerUp(
@@ -2419,11 +2450,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const hasDragPreview = dragPreviewBounds().length > 0;
       if (hasDragPreview) return true;
 
-      return isRendererActive() && !isDragging() && Boolean(effectiveElement());
+      return isSelectionElementVisible();
     });
 
     const selectionTagName = createMemo(() => {
-      const element = effectiveElement();
+      const element = getSelectionElement();
       if (!element) return undefined;
       return getTagName(element) || undefined;
     });
@@ -2458,7 +2489,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (store.contextMenuPosition !== null) return false;
       if (!pluginRegistry.store.theme.elementLabel.enabled) return false;
       if (didJustCopy()) return false;
-      return isRendererActive() && !isDragging() && Boolean(effectiveElement());
+
+      return isSelectionElementVisible();
     });
 
     const labelInstanceCache = new Map<string, SelectionLabelInstance>();

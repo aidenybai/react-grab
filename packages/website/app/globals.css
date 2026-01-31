@@ -413,8 +413,8 @@ body {
   }
 }
 
-[data-react-grab] {
+/* [data-react-grab] {
   @media (max-width: 767px) {
     display: none !important;
   }
-}
+} */
