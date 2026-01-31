@@ -804,16 +804,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const frozenElements = store.frozenElements;
       if (frozenElements.length > 0) {
-        if (frozenElements.length === 1) {
-          return createElementBounds(frozenElements[0]);
+        const firstElement = frozenElements[0];
+        if (frozenElements.length === 1 && firstElement) {
+          return createElementBounds(firstElement);
         }
         const dragRect = store.frozenDragRect;
         if (dragRect) {
           return createBoundsFromDragRect(dragRect);
         }
-        const elementBounds = frozenElements.map((element) =>
-          createElementBounds(element),
-        );
+        const elementBounds = frozenElements
+          .filter((element): element is Element => element !== null)
+          .map((element) => createElementBounds(element));
         return createFlatOverlayBounds(combineBounds(elementBounds));
       }
 
@@ -833,7 +834,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return [createBoundsFromDragRect(dragRect)];
       }
 
-      return frozenElements.map((element) => createElementBounds(element));
+      return frozenElements
+        .filter((element): element is Element => element !== null)
+        .map((element) => createElementBounds(element));
     });
 
     const frozenElementsCount = createMemo(() => store.frozenElements.length);
