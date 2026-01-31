@@ -339,7 +339,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
             />
           </div>
           <BottomSection>
-            <div class="flex flex-col w-[calc(100%+16px)] -mx-2 -my-1">
+            <div class="flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5">
               <For each={menuItems()}>
                 {(item) => (
                   <button
