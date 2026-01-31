@@ -790,13 +790,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const isSelectionElementVisible = (): boolean => {
-      if (store.isTouchMode) {
+      if (store.isTouchMode && isDragging()) {
         const detected = store.detectedElement;
         if (!detected || isRootElement(detected)) return false;
-        return isRendererActive() && isDragging();
+        return isRendererActive();
       }
       const element = effectiveElement();
-      return isRendererActive() && !isDragging() && Boolean(element) && !isRootElement(element);
+      return (
+        isRendererActive() &&
+        !isDragging() &&
+        element !== null &&
+        !isRootElement(element)
+      );
     };
 
     const selectionBounds = createMemo((): OverlayBounds | undefined => {
