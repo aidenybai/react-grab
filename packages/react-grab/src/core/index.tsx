@@ -1,5 +1,5 @@
 // @ts-expect-error - CSS imported as text via tsup loader
-import cssText from '../../dist/styles.css';
+import cssText from "../../dist/styles.css";
 import {
   createMemo,
   createRoot,
@@ -8,39 +8,39 @@ import {
   createEffect,
   createResource,
   on,
-} from 'solid-js';
-import { render } from 'solid-js/web';
-import { createGrabStore } from './store.js';
+} from "solid-js";
+import { render } from "solid-js/web";
+import { createGrabStore } from "./store.js";
 import {
   isKeyboardEventTriggeredByInput,
   hasTextSelectionInInput,
   hasTextSelectionOnPage,
-} from '../utils/is-keyboard-event-triggered-by-input.js';
-import { mountRoot } from '../utils/mount-root.js';
-import { ReactGrabRenderer } from '../components/renderer.js';
+} from "../utils/is-keyboard-event-triggered-by-input.js";
+import { mountRoot } from "../utils/mount-root.js";
+import { ReactGrabRenderer } from "../components/renderer.js";
 import {
   getStack,
   getNearestComponentName,
   checkIsSourceComponentName,
   getComponentDisplayName,
-} from './context.js';
-import { isSourceFile, normalizeFileName } from 'bippy/source';
-import { createNoopApi } from './noop-api.js';
-import { createEventListenerManager } from './events.js';
-import { tryCopyWithFallback } from './copy.js';
-import { getElementAtPosition } from '../utils/get-element-at-position.js';
-import { isValidGrabbableElement } from '../utils/is-valid-grabbable-element.js';
-import { getElementsInDrag } from '../utils/get-elements-in-drag.js';
+} from "./context.js";
+import { isSourceFile, normalizeFileName } from "bippy/source";
+import { createNoopApi } from "./noop-api.js";
+import { createEventListenerManager } from "./events.js";
+import { tryCopyWithFallback } from "./copy.js";
+import { getElementAtPosition } from "../utils/get-element-at-position.js";
+import { isValidGrabbableElement } from "../utils/is-valid-grabbable-element.js";
+import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
 import {
   createElementBounds,
   invalidateBoundsCache,
-} from '../utils/create-element-bounds.js';
+} from "../utils/create-element-bounds.js";
 import {
   createBoundsFromDragRect,
   createFlatOverlayBounds,
   createPageRectFromBounds,
-} from '../utils/create-bounds-from-drag-rect.js';
-import { getTagName } from '../utils/get-tag-name.js';
+} from "../utils/create-bounds-from-drag-rect.js";
+import { getTagName } from "../utils/get-tag-name.js";
 import {
   FEEDBACK_DURATION_MS,
   FADE_COMPLETE_BUFFER_MS,
@@ -58,20 +58,20 @@ import {
   DEFAULT_KEY_HOLD_DURATION_MS,
   MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS,
   SCREENSHOT_CAPTURE_DELAY_MS,
-} from '../constants.js';
-import { getBoundsCenter } from '../utils/get-bounds-center.js';
-import { isCLikeKey } from '../utils/is-c-like-key.js';
-import { isTargetKeyCombination } from '../utils/is-target-key-combination.js';
-import { parseActivationKey } from '../utils/parse-activation-key.js';
-import { isEventFromOverlay } from '../utils/is-event-from-overlay.js';
-import { buildOpenFileUrl } from '../utils/build-open-file-url.js';
+} from "../constants.js";
+import { getBoundsCenter } from "../utils/get-bounds-center.js";
+import { isCLikeKey } from "../utils/is-c-like-key.js";
+import { isTargetKeyCombination } from "../utils/is-target-key-combination.js";
+import { parseActivationKey } from "../utils/parse-activation-key.js";
+import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
+import { buildOpenFileUrl } from "../utils/build-open-file-url.js";
 import {
   captureElementScreenshot,
   copyImageToClipboard,
   combineBounds,
-} from '../utils/capture-screenshot.js';
-import { isScreenshotSupported } from '../utils/is-screenshot-supported.js';
-import { delay } from '../utils/delay.js';
+} from "../utils/capture-screenshot.js";
+import { isScreenshotSupported } from "../utils/is-screenshot-supported.js";
+import { delay } from "../utils/delay.js";
 import type {
   Options,
   OverlayBounds,
@@ -86,42 +86,42 @@ import type {
   SourceInfo,
   Plugin,
   ToolbarState,
-} from '../types.js';
-import { DEFAULT_THEME } from './theme.js';
-import { createPluginRegistry } from './plugin-registry.js';
-import { createAgentManager } from './agent/index.js';
-import { createArrowNavigator } from './arrow-navigation.js';
+} from "../types.js";
+import { DEFAULT_THEME } from "./theme.js";
+import { createPluginRegistry } from "./plugin-registry.js";
+import { createAgentManager } from "./agent/index.js";
+import { createArrowNavigator } from "./arrow-navigation.js";
 import {
   getRequiredModifiers,
   setupKeyboardEventClaimer,
-} from './keyboard-handlers.js';
-import { createAutoScroller, getAutoScrollDirection } from './auto-scroll.js';
-import { logIntro } from './log-intro.js';
-import { onIdle } from '../utils/on-idle.js';
-import { getScriptOptions } from '../utils/get-script-options.js';
-import { isEnterCode } from '../utils/is-enter-code.js';
-import { isMac } from '../utils/is-mac.js';
+} from "./keyboard-handlers.js";
+import { createAutoScroller, getAutoScrollDirection } from "./auto-scroll.js";
+import { logIntro } from "./log-intro.js";
+import { onIdle } from "../utils/on-idle.js";
+import { getScriptOptions } from "../utils/get-script-options.js";
+import { isEnterCode } from "../utils/is-enter-code.js";
+import { isMac } from "../utils/is-mac.js";
 import {
   loadToolbarState,
   saveToolbarState,
-} from '../components/toolbar/state.js';
+} from "../components/toolbar/state.js";
 import {
   freezeAnimations,
   freezeAllAnimations,
   freezeGlobalAnimations,
   unfreezeGlobalAnimations,
-} from '../utils/freeze-animations.js';
+} from "../utils/freeze-animations.js";
 import {
   freezePseudoStates,
   unfreezePseudoStates,
-} from '../utils/freeze-pseudo-states.js';
-import { freezeUpdates } from '../utils/freeze-updates.js';
+} from "../utils/freeze-pseudo-states.js";
+import { freezeUpdates } from "../utils/freeze-updates.js";
 
 let hasInited = false;
 const toolbarStateChangeCallbacks = new Set<(state: ToolbarState) => void>();
 
 export const init = (rawOptions?: Options): ReactGrabAPI => {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return createNoopApi();
   }
 
@@ -129,7 +129,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
   const initialOptions: Options = {
     enabled: true,
-    activationMode: 'toggle',
+    activationMode: "toggle",
     keyHoldDuration: DEFAULT_KEY_HOLD_DURATION_MS,
     allowActivationInsideInput: true,
     maxContextLines: 3,
@@ -167,9 +167,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         DEFAULT_KEY_HOLD_DURATION_MS,
     });
 
-    const isHoldingKeys = createMemo(() => store.current.state === 'holding');
+    const isHoldingKeys = createMemo(() => store.current.state === "holding");
 
-    const isActivated = createMemo(() => store.current.state === 'active');
+    const isActivated = createMemo(() => store.current.state === "active");
 
     createEffect(
       on(isActivated, (activated, previousActivated) => {
@@ -185,31 +185,31 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const isToggleFrozen = createMemo(
       () =>
-        store.current.state === 'active' && store.current.phase === 'frozen',
+        store.current.state === "active" && store.current.phase === "frozen",
     );
 
     const isDragging = createMemo(
       () =>
-        store.current.state === 'active' && store.current.phase === 'dragging',
+        store.current.state === "active" && store.current.phase === "dragging",
     );
 
     const didJustDrag = createMemo(
       () =>
-        store.current.state === 'active' &&
-        store.current.phase === 'justDragged',
+        store.current.state === "active" &&
+        store.current.phase === "justDragged",
     );
 
-    const isCopying = createMemo(() => store.current.state === 'copying');
+    const isCopying = createMemo(() => store.current.state === "copying");
 
-    const didJustCopy = createMemo(() => store.current.state === 'justCopied');
+    const didJustCopy = createMemo(() => store.current.state === "justCopied");
 
     const isPromptMode = createMemo(
-      () => store.current.state === 'active' && store.current.isPromptMode,
+      () => store.current.state === "active" && store.current.isPromptMode,
     );
 
     const isPendingDismiss = createMemo(
       () =>
-        store.current.state === 'active' &&
+        store.current.state === "active" &&
         store.current.isPromptMode &&
         store.current.isPendingDismiss,
     );
@@ -242,7 +242,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     createEffect(() => {
-      if (store.current.state !== 'holding') {
+      if (store.current.state !== "holding") {
         clearHoldTimer();
         return;
       }
@@ -260,8 +260,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     createEffect(() => {
       if (
-        store.current.state !== 'active' ||
-        store.current.phase !== 'justDragged'
+        store.current.state !== "active" ||
+        store.current.phase !== "justDragged"
       )
         return;
       const timerId = setTimeout(() => {
@@ -271,7 +271,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     createEffect(() => {
-      if (store.current.state !== 'justCopied') return;
+      if (store.current.state !== "justCopied") return;
       const timerId = setTimeout(() => {
         actions.finishJustCopied();
       }, FEEDBACK_DURATION_MS);
@@ -284,7 +284,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const currentlyActive = isActivated();
 
       if (previouslyHoldingKeys && !currentlyHolding && currentlyActive) {
-        if (pluginRegistry.store.options.activationMode !== 'hold') {
+        if (pluginRegistry.store.options.activationMode !== "hold") {
           actions.setWasActivatedByToggle(true);
         }
         pluginRegistry.hooks.onActivate();
@@ -440,7 +440,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return {
             tagName: getTagName(element),
             id: element.id || undefined,
-            className: element.getAttribute('class') || undefined,
+            className: element.getAttribute("class") || undefined,
             textContent,
             componentName: componentName ?? undefined,
             filePath,
@@ -451,7 +451,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       );
 
       window.dispatchEvent(
-        new CustomEvent('react-grab:element-selected', {
+        new CustomEvent("react-grab:element-selected", {
           detail: {
             elements: elementsPayload,
           },
@@ -463,7 +463,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       bounds: OverlayBounds,
       tagName: string,
       componentName: string | undefined,
-      status: SelectionLabelInstance['status'],
+      status: SelectionLabelInstance["status"],
       element?: Element,
       mouseX?: number,
       elements?: Element[],
@@ -501,7 +501,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const updateLabelInstance = (
       instanceId: string,
-      status: SelectionLabelInstance['status'],
+      status: SelectionLabelInstance["status"],
       errorMessage?: string,
     ) => {
       actions.updateLabelInstance(instanceId, status, errorMessage);
@@ -527,7 +527,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const timeoutId = window.setTimeout(() => {
         labelFadeTimeouts.delete(instanceId);
-        updateLabelInstance(instanceId, 'fading');
+        updateLabelInstance(instanceId, "fading");
         setTimeout(() => {
           removeLabelInstance(instanceId);
         }, FADE_COMPLETE_BUFFER_MS);
@@ -546,7 +546,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const instance = store.labelInstances.find(
           (labelInstance) => labelInstance.id === instanceId,
         );
-        if (instance && instance.status === 'copied') {
+        if (instance && instance.status === "copied") {
           scheduleLabelFade(instanceId);
         }
       }
@@ -572,7 +572,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               bounds,
               tagName,
               componentName,
-              'copying',
+              "copying",
               element,
               positionX,
               elements,
@@ -583,7 +583,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.completeCopy(element);
 
         if (instanceId) {
-          updateLabelInstance(instanceId, 'copied');
+          updateLabelInstance(instanceId, "copied");
           scheduleLabelFade(instanceId);
         }
 
@@ -860,9 +860,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const drag = calculateDragRectangle(store.pointer.x, store.pointer.y);
 
       return {
-        borderRadius: '0px',
+        borderRadius: "0px",
         height: drag.height,
-        transform: 'none',
+        transform: "none",
         width: drag.width,
         x: drag.x,
         y: drag.y,
@@ -1018,19 +1018,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         ]) => {
           const isSelectionBoxVisible = Boolean(
             themeEnabled &&
-              selectionBoxEnabled &&
-              active &&
-              !copying &&
-              !justCopied &&
-              !dragging &&
-              effectiveTarget != null,
+            selectionBoxEnabled &&
+            active &&
+            !copying &&
+            !justCopied &&
+            !dragging &&
+            effectiveTarget != null,
           );
           const isDragBoxVisible = Boolean(
             themeEnabled &&
-              dragBoxEnabled &&
-              active &&
-              !copying &&
-              draggingBeyondThreshold,
+            dragBoxEnabled &&
+            active &&
+            !copying &&
+            draggingBeyondThreshold,
           );
           pluginRegistry.hooks.onStateChange({
             isActive: active,
@@ -1126,7 +1126,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           pluginRegistry.hooks.onElementLabel(Boolean(visible), variant, {
             x: position.x,
             y: position.y,
-            content: '',
+            content: "",
             element: element ?? undefined,
             tagName: element ? getTagName(element) || undefined : undefined,
             filePath: filePath ?? undefined,
@@ -1141,8 +1141,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const setCursorOverride = (cursor: string | null) => {
       if (cursor) {
         if (!cursorStyleElement) {
-          cursorStyleElement = document.createElement('style');
-          cursorStyleElement.setAttribute('data-react-grab-cursor', '');
+          cursorStyleElement = document.createElement("style");
+          cursorStyleElement.setAttribute("data-react-grab-cursor", "");
           document.head.appendChild(cursorStyleElement);
         }
         cursorStyleElement.textContent = `* { cursor: ${cursor} !important; }`;
@@ -1164,15 +1164,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           ] as const,
         ([activated, copying, dragging, inputMode, target]) => {
           if (copying) {
-            setCursorOverride('progress');
+            setCursorOverride("progress");
           } else if (inputMode) {
             setCursorOverride(null);
           } else if (activated && dragging) {
-            setCursorOverride('crosshair');
+            setCursorOverride("crosshair");
           } else if (activated && target) {
-            setCursorOverride('crosshair');
+            setCursorOverride("crosshair");
           } else if (activated) {
-            setCursorOverride('crosshair');
+            setCursorOverride("crosshair");
           } else {
             setCursorOverride(null);
           }
@@ -1197,7 +1197,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.deactivate();
       arrowNavigator.clearHistory();
       if (wasDragging) {
-        document.body.style.userSelect = '';
+        document.body.style.userSelect = "";
       }
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
       autoScroller.stop();
@@ -1272,7 +1272,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.setLastCopied(null);
       const frozenElements = [...store.frozenElements];
       const element = store.frozenElement || targetElement();
-      const prompt = isPromptMode() ? store.inputText.trim() : '';
+      const prompt = isPromptMode() ? store.inputText.trim() : "";
 
       if (!element) {
         deactivateRenderer();
@@ -1426,7 +1426,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setIsEnabled(newEnabled);
       const currentState = loadToolbarState();
       const newState = {
-        edge: currentState?.edge ?? 'bottom',
+        edge: currentState?.edge ?? "bottom",
         ratio: currentState?.ratio ?? 0.5,
         collapsed: currentState?.collapsed ?? false,
         enabled: newEnabled,
@@ -1500,7 +1500,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       actions.startDrag({ x: clientX, y: clientY });
       actions.setPointer({ x: clientX, y: clientY });
-      document.body.style.userSelect = 'none';
+      document.body.style.userSelect = "none";
 
       if (dragPreviewDebounceTimerId !== null) {
         clearTimeout(dragPreviewDebounceTimerId);
@@ -1626,7 +1626,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.cancelDrag();
       }
       autoScroller.stop();
-      document.body.style.userSelect = '';
+      document.body.style.userSelect = "";
 
       if (dragSelectionRect) {
         handleDragSelection(dragSelectionRect);
@@ -1648,7 +1648,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       } catch {
         return false;
       }
-      const isEnterKey = originalKey === 'Enter' || isEnterCode(event.code);
+      const isEnterKey = originalKey === "Enter" || isEnterCode(event.code);
       const isOverlayActive = isActivated() || isHoldingKeys();
       const shouldBlockEnter =
         isEnterKey &&
@@ -1666,19 +1666,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return false;
     };
 
-    eventListenerManager.addDocumentListener('keydown', blockEnterIfNeeded, {
+    eventListenerManager.addDocumentListener("keydown", blockEnterIfNeeded, {
       capture: true,
     });
-    eventListenerManager.addDocumentListener('keyup', blockEnterIfNeeded, {
+    eventListenerManager.addDocumentListener("keyup", blockEnterIfNeeded, {
       capture: true,
     });
-    eventListenerManager.addDocumentListener('keypress', blockEnterIfNeeded, {
+    eventListenerManager.addDocumentListener("keypress", blockEnterIfNeeded, {
       capture: true,
     });
 
     const handleUndoRedoKeys = (event: KeyboardEvent): boolean => {
       const isUndoOrRedo =
-        event.code === 'KeyZ' && (event.metaKey || event.ctrlKey);
+        event.code === "KeyZ" && (event.metaKey || event.ctrlKey);
 
       if (!isUndoOrRedo) return false;
 
@@ -1742,7 +1742,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         hasAgentProvider() &&
         !store.labelInstances.some(
           (instance) =>
-            instance.status === 'copied' || instance.status === 'fading',
+            instance.status === "copied" || instance.status === "fading",
         );
 
       if (canActivateFromCopied && copiedElement) {
@@ -1801,7 +1801,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleOpenFileShortcut = (event: KeyboardEvent): boolean => {
-      if (event.key?.toLowerCase() !== 'o' || isPromptMode()) return false;
+      if (event.key?.toLowerCase() !== "o" || isPromptMode()) return false;
       if (!isActivated() || !(event.metaKey || event.ctrlKey)) return false;
 
       const filePath = store.selectionFilePath;
@@ -1822,7 +1822,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           filePath,
           lineNumber ?? undefined,
         );
-        window.open(url, '_blank', 'noopener,noreferrer');
+        window.open(url, "_blank", "noopener,noreferrer");
       }
       return true;
     };
@@ -1830,7 +1830,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handleScreenshotShortcut = (event: KeyboardEvent): boolean => {
       if (!isScreenshotSupported()) return false;
       if (store.contextMenuPosition !== null) return false;
-      if (event.key?.toLowerCase() !== 's' || isPromptMode()) return false;
+      if (event.key?.toLowerCase() !== "s" || isPromptMode()) return false;
       if (!isActivated() || !(event.metaKey || event.ctrlKey)) return false;
 
       const allBounds = frozenElementsBounds();
@@ -1843,7 +1843,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       event.preventDefault();
       event.stopPropagation();
 
-      const tagName = element ? getTagName(element) || 'element' : 'element';
+      const tagName = element ? getTagName(element) || "element" : "element";
       const shouldDeactivate = store.wasActivatedByToggle;
       const overlayBounds = createFlatOverlayBounds(bounds);
       const selectionBoundsArray =
@@ -1853,7 +1853,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         overlayBounds,
         tagName,
         undefined,
-        'copying',
+        "copying",
         element ?? undefined,
         bounds.x + bounds.width / 2,
         undefined,
@@ -1861,14 +1861,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       );
 
       isScreenshotInProgress = true;
-      rendererRoot.style.visibility = 'hidden';
+      rendererRoot.style.visibility = "hidden";
 
       const elementsForScreenshot =
         store.frozenElements.length > 0
           ? [...store.frozenElements]
           : element
-          ? [element]
-          : [];
+            ? [element]
+            : [];
 
       void (async () => {
         await delay(SCREENSHOT_CAPTURE_DELAY_MS);
@@ -1886,22 +1886,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             );
           didSucceed = await copyImageToClipboard(transformedBlob);
           if (!didSucceed) {
-            errorMessage = 'Failed to copy';
+            errorMessage = "Failed to copy";
           }
         } catch (error) {
           errorMessage =
             error instanceof Error && error.message
               ? error.message
-              : 'Screenshot failed';
+              : "Screenshot failed";
         }
 
         isScreenshotInProgress = false;
-        rendererRoot.style.visibility = '';
+        rendererRoot.style.visibility = "";
 
         updateLabelInstance(
           instanceId,
-          didSucceed ? 'copied' : 'error',
-          didSucceed ? undefined : errorMessage || 'Unknown error',
+          didSucceed ? "copied" : "error",
+          didSucceed ? undefined : errorMessage || "Unknown error",
         );
 
         scheduleLabelFade(instanceId);
@@ -1950,7 +1950,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isActivated()) {
         if (
           store.wasActivatedByToggle &&
-          pluginRegistry.store.options.activationMode !== 'hold'
+          pluginRegistry.store.options.activationMode !== "hold"
         )
           return;
         if (event.repeat) return;
@@ -1998,7 +1998,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     eventListenerManager.addWindowListener(
-      'keydown',
+      "keydown",
       (event: KeyboardEvent) => {
         blockEnterIfNeeded(event);
 
@@ -2030,10 +2030,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         if (
           isPromptMode() ||
-          (isEventFromOverlay(event, 'data-react-grab-ignore-events') &&
+          (isEventFromOverlay(event, "data-react-grab-ignore-events") &&
             !isEnterToActivateInput)
         ) {
-          if (event.key === 'Escape') {
+          if (event.key === "Escape") {
             if (pendingAbortSessionId()) {
               event.preventDefault();
               event.stopPropagation();
@@ -2045,7 +2045,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        if (event.key === 'Escape') {
+        if (event.key === "Escape") {
           if (pendingAbortSessionId()) {
             event.preventDefault();
             event.stopPropagation();
@@ -2074,7 +2074,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     eventListenerManager.addWindowListener(
-      'keyup',
+      "keyup",
       (event: KeyboardEvent) => {
         if (blockEnterIfNeeded(event)) return;
 
@@ -2091,7 +2091,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         const isReleasingActivationKey = pluginRegistry.store.options
           .activationKey
-          ? typeof pluginRegistry.store.options.activationKey === 'function'
+          ? typeof pluginRegistry.store.options.activationKey === "function"
             ? pluginRegistry.store.options.activationKey(event)
             : parseActivationKey(pluginRegistry.store.options.activationKey)(
                 event,
@@ -2114,14 +2114,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         );
 
         const isHoldMode =
-          pluginRegistry.store.options.activationMode === 'hold';
+          pluginRegistry.store.options.activationMode === "hold";
 
         if (isActivated()) {
           const hasContextMenu = store.contextMenuPosition !== null;
           if (isReleasingModifier) {
             if (
               store.wasActivatedByToggle &&
-              pluginRegistry.store.options.activationMode !== 'hold'
+              pluginRegistry.store.options.activationMode !== "hold"
             )
               return;
             if (hasContextMenu) return;
@@ -2147,7 +2147,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (isReleasingActivationKey || isReleasingModifier) {
           if (
             store.wasActivatedByToggle &&
-            pluginRegistry.store.options.activationMode !== 'hold'
+            pluginRegistry.store.options.activationMode !== "hold"
           )
             return;
 
@@ -2181,19 +2181,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       { capture: true },
     );
 
-    eventListenerManager.addDocumentListener('copy', () => {
+    eventListenerManager.addDocumentListener("copy", () => {
       if (isHoldingKeys()) {
         copyWaitingForConfirmation = true;
       }
     });
 
-    eventListenerManager.addWindowListener('keypress', blockEnterIfNeeded, {
+    eventListenerManager.addWindowListener("keypress", blockEnterIfNeeded, {
       capture: true,
     });
 
-    eventListenerManager.addWindowListener('mousemove', (event: MouseEvent) => {
+    eventListenerManager.addWindowListener("mousemove", (event: MouseEvent) => {
       actions.setTouchMode(false);
-      if (isEventFromOverlay(event, 'data-react-grab-ignore-events')) return;
+      if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
       if (store.contextMenuPosition !== null) return;
       if (isActivated() && !isPromptMode() && isToggleFrozen()) {
         actions.unfreeze();
@@ -2203,10 +2203,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     eventListenerManager.addWindowListener(
-      'mousedown',
+      "mousedown",
       (event: MouseEvent) => {
         if (event.button !== 0) return;
-        if (isEventFromOverlay(event, 'data-react-grab-ignore-events')) return;
+        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
 
         if (isPromptMode()) {
@@ -2225,10 +2225,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     eventListenerManager.addWindowListener(
-      'pointerdown',
+      "pointerdown",
       (event: PointerEvent) => {
         if (event.button !== 0) return;
-        if (isEventFromOverlay(event, 'data-react-grab-ignore-events')) return;
+        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
         if (!isRendererActive() || isCopying() || isPromptMode()) return;
         event.stopPropagation();
@@ -2238,10 +2238,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     eventListenerManager.addWindowListener(
-      'pointerup',
+      "pointerup",
       (event: PointerEvent) => {
         if (event.button !== 0) return;
-        if (isEventFromOverlay(event, 'data-react-grab-ignore-events')) return;
+        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
         handlePointerUp(
           event.clientX,
@@ -2253,10 +2253,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     eventListenerManager.addWindowListener(
-      'mouseup',
+      "mouseup",
       (event: MouseEvent) => {
         if (event.button !== 0) return;
-        if (isEventFromOverlay(event, 'data-react-grab-ignore-events')) return;
+        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
         handlePointerUp(
           event.clientX,
@@ -2268,10 +2268,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     eventListenerManager.addWindowListener(
-      'contextmenu',
+      "contextmenu",
       (event: MouseEvent) => {
         if (!isRendererActive() || isCopying() || isPromptMode()) return;
-        if (isEventFromOverlay(event, 'data-react-grab-ignore-events')) return;
+        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) {
           event.preventDefault();
           return;
@@ -2305,11 +2305,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     eventListenerManager.addWindowListener(
-      'touchmove',
+      "touchmove",
       (event: TouchEvent) => {
         if (event.touches.length === 0) return;
         actions.setTouchMode(true);
-        if (isEventFromOverlay(event, 'data-react-grab-ignore-events')) return;
+        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (isHoldingKeys() && !isPromptMode() && isToggleFrozen()) {
           actions.unfreeze();
         }
@@ -2319,12 +2319,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     eventListenerManager.addWindowListener(
-      'touchstart',
+      "touchstart",
       (event: TouchEvent) => {
         if (event.touches.length === 0) return;
         actions.setTouchMode(true);
 
-        if (isEventFromOverlay(event, 'data-react-grab-ignore-events')) return;
+        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
 
         if (isPromptMode()) {
           handleInputCancel();
@@ -2344,7 +2344,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       { passive: false },
     );
 
-    eventListenerManager.addWindowListener('touchend', (event: TouchEvent) => {
+    eventListenerManager.addWindowListener("touchend", (event: TouchEvent) => {
       if (event.changedTouches.length === 0) return;
       handlePointerUp(
         event.changedTouches[0].clientX,
@@ -2353,9 +2353,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     eventListenerManager.addWindowListener(
-      'click',
+      "click",
       (event: MouseEvent) => {
-        if (isEventFromOverlay(event, 'data-react-grab-ignore-events')) return;
+        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
 
         if (isRendererActive() || isCopying() || didJustDrag()) {
@@ -2375,7 +2375,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       { capture: true },
     );
 
-    eventListenerManager.addDocumentListener('visibilitychange', () => {
+    eventListenerManager.addDocumentListener("visibilitychange", () => {
       if (document.hidden) {
         actions.clearGrabbedBoxes();
         const storeActivationTimestamp = store.activationTimestamp;
@@ -2392,7 +2392,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     eventListenerManager.addWindowListener(
-      'scroll',
+      "scroll",
       () => {
         invalidateBoundsCache();
         actions.incrementViewportVersion();
@@ -2402,7 +2402,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       { capture: true },
     );
 
-    eventListenerManager.addWindowListener('resize', () => {
+    eventListenerManager.addWindowListener("resize", () => {
       invalidateBoundsCache();
       actions.incrementViewportVersion();
       actions.updateSessionBounds();
@@ -2461,11 +2461,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     eventListenerManager.addDocumentListener(
-      'copy',
+      "copy",
       (event: ClipboardEvent) => {
         if (
           isPromptMode() ||
-          isEventFromOverlay(event, 'data-react-grab-ignore-events')
+          isEventFromOverlay(event, "data-react-grab-ignore-events")
         ) {
           return;
         }
@@ -2481,7 +2481,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
       if (toggleFeedbackTimerId) window.clearTimeout(toggleFeedbackTimerId);
       autoScroller.stop();
-      document.body.style.userSelect = '';
+      document.body.style.userSelect = "";
       setCursorOverride(null);
       keyboardClaimer.restore();
     });
@@ -2582,8 +2582,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           instance.mouseXOffsetRatio !== undefined && newBoundsHalfWidth > 0
             ? newBoundsCenterX + instance.mouseXOffsetRatio * newBoundsHalfWidth
             : instance.mouseXOffsetFromCenter !== undefined
-            ? newBoundsCenterX + instance.mouseXOffsetFromCenter
-            : instance.mouseX;
+              ? newBoundsCenterX + instance.mouseXOffsetFromCenter
+              : instance.mouseX;
         const newCached = { ...instance, bounds: newBounds, mouseX: newMouseX };
         labelInstanceCache.set(instance.id, newCached);
         return newCached;
@@ -2614,7 +2614,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const labelVariant = createMemo(() =>
-      isCopying() ? 'processing' : 'hover',
+      isCopying() ? "processing" : "hover",
     );
 
     const labelVisible = createMemo(() => {
@@ -2740,21 +2740,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           : singleBounds;
       if (!bounds) return;
 
-      const tagName = element ? getTagName(element) || 'element' : 'element';
+      const tagName = element ? getTagName(element) || "element" : "element";
       const shouldDeactivate = store.wasActivatedByToggle;
       const overlayBounds = createFlatOverlayBounds(bounds);
       const selectionBoundsArray =
         store.frozenElements.length > 1
           ? allBounds
           : singleBounds
-          ? [singleBounds]
-          : [];
+            ? [singleBounds]
+            : [];
       const elementsForScreenshot =
         store.frozenElements.length > 0
           ? [...store.frozenElements]
           : element
-          ? [element]
-          : [];
+            ? [element]
+            : [];
 
       actions.hideContextMenu();
 
@@ -2762,7 +2762,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         overlayBounds,
         tagName,
         undefined,
-        'copying',
+        "copying",
         element ?? undefined,
         bounds.x + bounds.width / 2,
         undefined,
@@ -2770,7 +2770,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       );
 
       isScreenshotInProgress = true;
-      rendererRoot.style.visibility = 'hidden';
+      rendererRoot.style.visibility = "hidden";
       await delay(SCREENSHOT_CAPTURE_DELAY_MS);
 
       let didSucceed = false;
@@ -2785,22 +2785,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         );
         didSucceed = await copyImageToClipboard(transformedBlob);
         if (!didSucceed) {
-          errorMessage = 'Failed to copy';
+          errorMessage = "Failed to copy";
         }
       } catch (error) {
         errorMessage =
           error instanceof Error && error.message
             ? error.message
-            : 'Screenshot failed';
+            : "Screenshot failed";
       }
 
       isScreenshotInProgress = false;
-      rendererRoot.style.visibility = '';
+      rendererRoot.style.visibility = "";
 
       updateLabelInstance(
         instanceId,
-        didSucceed ? 'copied' : 'error',
-        didSucceed ? undefined : errorMessage || 'Unknown error',
+        didSucceed ? "copied" : "error",
+        didSucceed ? undefined : errorMessage || "Unknown error",
       );
 
       scheduleLabelFade(instanceId);
@@ -2823,7 +2823,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const rawHtml = elementsToUse
         .filter((innerElement) => innerElement instanceof HTMLElement)
         .map((innerElement) => innerElement.outerHTML)
-        .join('\n\n');
+        .join("\n\n");
       const html = await pluginRegistry.hooks.transformHtmlContent(
         rawHtml,
         elementsToUse,
@@ -2837,15 +2837,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const bounds = combinedBounds
         ? createFlatOverlayBounds(combinedBounds)
         : singleBounds;
-      const tagName = getTagName(element) || 'element';
+      const tagName = getTagName(element) || "element";
       const componentName = contextMenuComponentName();
       const shouldDeactivate = store.wasActivatedByToggle;
       const selectionBoundsArray =
         store.frozenElements.length > 1
           ? allBounds
           : singleBounds
-          ? [singleBounds]
-          : [];
+            ? [singleBounds]
+            : [];
 
       actions.hideContextMenu();
 
@@ -2856,7 +2856,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           bounds,
           tagName,
           componentName,
-          'copying',
+          "copying",
           element,
           labelPositionX,
           frozenElements.length > 1 ? frozenElements : undefined,
@@ -2865,9 +2865,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         try {
           await navigator.clipboard.writeText(html);
-          updateLabelInstance(instanceId, 'copied');
+          updateLabelInstance(instanceId, "copied");
         } catch {
-          updateLabelInstance(instanceId, 'error', 'Failed to copy');
+          updateLabelInstance(instanceId, "error", "Failed to copy");
         }
 
         scheduleLabelFade(instanceId);
@@ -2901,7 +2901,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             fileInfo.filePath,
             fileInfo.lineNumber ?? undefined,
           );
-          window.open(url, '_blank', 'noopener,noreferrer');
+          window.open(url, "_blank", "noopener,noreferrer");
         }
       }
 
@@ -3015,7 +3015,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (hue !== 0) {
         rendererRoot.style.filter = `hue-rotate(${hue}deg)`;
       } else {
-        rendererRoot.style.filter = '';
+        rendererRoot.style.filter = "";
       }
     });
 
@@ -3215,7 +3215,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setToolbarState: (state: Partial<ToolbarState>) => {
         const currentState = loadToolbarState();
         const newState = {
-          edge: state.edge ?? currentState?.edge ?? 'bottom',
+          edge: state.edge ?? currentState?.edge ?? "bottom",
           ratio: state.ratio ?? currentState?.ratio ?? 0.5,
           collapsed: state.collapsed ?? currentState?.collapsed ?? false,
           enabled: state.enabled ?? currentState?.enabled ?? true,
@@ -3294,9 +3294,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   });
 };
 
-export { getStack, getElementContext as formatElementInfo } from './context.js';
-export { isInstrumentationActive } from 'bippy';
-export { DEFAULT_THEME } from './theme.js';
+export { getStack, getElementContext as formatElementInfo } from "./context.js";
+export { isInstrumentationActive } from "bippy";
+export { DEFAULT_THEME } from "./theme.js";
 
 export type {
   Options,
@@ -3316,7 +3316,7 @@ export type {
   Plugin,
   PluginConfig,
   PluginHooks,
-} from '../types.js';
+} from "../types.js";
 
-export { generateSnippet } from '../utils/generate-snippet.js';
-export { copyContent } from '../utils/copy-content.js';
+export { generateSnippet } from "../utils/generate-snippet.js";
+export { copyContent } from "../utils/copy-content.js";

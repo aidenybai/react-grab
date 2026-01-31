@@ -222,15 +222,6 @@ export interface ContextMenuAction {
   agent?: AgentOptions;
 }
 
-export type StatusTextType =
-  | "thinking"
-  | "copied"
-  | "grabbing"
-  | "error"
-  | "streaming";
-
-export type FilePathPurpose = "display" | "open";
-
 export interface ScreenshotBounds {
   x: number;
   y: number;
@@ -285,22 +276,11 @@ export interface PluginHooks {
     elements: Element[],
     bounds: ScreenshotBounds,
   ) => Blob | Promise<Blob>;
-  transformElementLabel?: (
-    label: string,
-    element: Element,
-    variant: ElementLabelVariant,
-  ) => string;
   transformAgentContext?: (
     context: AgentContext,
     elements: Element[],
   ) => AgentContext | Promise<AgentContext>;
   transformActionContext?: (context: ActionContext) => ActionContext;
-  transformStatusText?: (text: string, status: StatusTextType) => string;
-  transformErrorMessage?: (message: string, error: Error) => string;
-  transformMenuLabel?: (label: string, actionId: string) => string;
-  transformButtonText?: (text: string, buttonId: string) => string;
-  transformPlaceholder?: (text: string, inputId: string) => string;
-  transformFilePath?: (path: string, purpose: FilePathPurpose) => string;
   transformOpenFileUrl?: (
     url: string,
     filePath: string,
@@ -310,11 +290,6 @@ export interface PluginHooks {
     snippet: string,
     element: Element,
   ) => string | Promise<string>;
-  transformStackContext?: (
-    context: string,
-    filePath: string,
-    lineNumber: number,
-  ) => string;
 }
 
 export interface PluginConfig {

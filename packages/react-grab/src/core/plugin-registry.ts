@@ -17,8 +17,6 @@ import type {
   SettableOptions,
   AgentContext,
   ActionContext,
-  StatusTextType,
-  FilePathPurpose,
   ScreenshotBounds,
 } from "../types.js";
 import { DEFAULT_THEME, deepMergeTheme } from "./theme.js";
@@ -301,27 +299,10 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       elements: Element[],
       bounds: ScreenshotBounds,
     ) => callHookReduce("transformScreenshot", blob, elements, bounds),
-    transformElementLabel: (
-      label: string,
-      element: Element,
-      variant: ElementLabelVariant,
-    ) => callHookReduceSync("transformElementLabel", label, element, variant),
     transformAgentContext: async (context: AgentContext, elements: Element[]) =>
       callHookReduce("transformAgentContext", context, elements),
     transformActionContext: (context: ActionContext) =>
       callHookReduceSync("transformActionContext", context),
-    transformStatusText: (text: string, status: StatusTextType) =>
-      callHookReduceSync("transformStatusText", text, status),
-    transformErrorMessage: (message: string, error: Error) =>
-      callHookReduceSync("transformErrorMessage", message, error),
-    transformMenuLabel: (label: string, actionId: string) =>
-      callHookReduceSync("transformMenuLabel", label, actionId),
-    transformButtonText: (text: string, buttonId: string) =>
-      callHookReduceSync("transformButtonText", text, buttonId),
-    transformPlaceholder: (text: string, inputId: string) =>
-      callHookReduceSync("transformPlaceholder", text, inputId),
-    transformFilePath: (path: string, purpose: FilePathPurpose) =>
-      callHookReduceSync("transformFilePath", path, purpose),
     transformOpenFileUrl: (
       url: string,
       filePath: string,
@@ -329,17 +310,6 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     ) => callHookReduceSync("transformOpenFileUrl", url, filePath, lineNumber),
     transformSnippet: async (snippet: string, element: Element) =>
       callHookReduce("transformSnippet", snippet, element),
-    transformStackContext: (
-      context: string,
-      filePath: string,
-      lineNumber: number,
-    ) =>
-      callHookReduceSync(
-        "transformStackContext",
-        context,
-        filePath,
-        lineNumber,
-      ),
   };
 
   return {

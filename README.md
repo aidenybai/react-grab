@@ -148,6 +148,7 @@ Or copy this into an agent to generate a plugin:
 Clone https://github.com/aidenybai/react-grab into /tmp
 
 Check these files for reference:
+
 - packages/react-grab/src/types.ts (Plugin and PluginHooks interfaces)
 - packages/react-grab/src/core/plugin-registry.ts (implementation)
 
