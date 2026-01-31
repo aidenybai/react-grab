@@ -40,6 +40,7 @@ import { IconClaude } from "./icons/icon-claude";
 import { IconCopilot } from "./icons/icon-copilot";
 import { IconCursor } from "./icons/icon-cursor";
 import { InstallTabs } from "./install-tabs";
+import { MobileDemoAnimation } from "./mobile-demo-animation";
 import { ReactGrabLogo } from "./react-grab-logo";
 import { UserMessage } from "./user-message";
 
@@ -151,23 +152,6 @@ const FooterActions = (): ReactElement => (
     </div>
     <DemoFooter />
   </div>
-);
-
-const MobileVideoFallback = (): ReactElement => (
-  <>
-    <video
-      src="/demo.webm"
-      autoPlay
-      loop
-      muted
-      playsInline
-      controls
-      className="mt-3 w-full rounded-lg border border-white/10"
-    />
-    <p className="mt-1 text-sm text-white/30">
-      This website is best viewed on desktop
-    </p>
-  </>
 );
 
 interface ElementAnalysisContentProps {
@@ -589,7 +573,7 @@ export const HomepageDemo = (): ReactElement => {
 
                 {config.role === "footer" && isComplete(index) && (
                   <>
-                    {isMobile && <MobileVideoFallback />}
+                    {isMobile && <MobileDemoAnimation />}
                     {stream.wasPreloaded && (
                       <GrabElementButton
                         onSelect={handleElementSelect}
