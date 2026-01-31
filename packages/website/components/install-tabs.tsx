@@ -219,6 +219,55 @@ root.render(
     },
     getChangedLines: (hotkey) => (hotkey ? [5, 6, 7, 8, 9] : [5, 6, 7]),
   },
+  {
+    id: "tanstack",
+    label: "TanStack Start",
+    description: (
+      <>
+        Add this inside your <InlineCode>src/routes/__root.tsx</InlineCode>
+      </>
+    ),
+    getCode: (hotkey) => {
+      if (hotkey) {
+        return `import { useEffect } from "react";
+import { Outlet, createRootRoute } from "@tanstack/react-router";
+
+export const Route = createRootRoute({
+  component: RootComponent,
+});
+
+function RootComponent() {
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      import("react-grab/core").then(({ init }) => {
+        init(${formatInitOptions(hotkey)});
+      });
+    }
+  }, []);
+
+  return <Outlet />;
+}`;
+      }
+      return `import { useEffect } from "react";
+import { Outlet, createRootRoute } from "@tanstack/react-router";
+
+export const Route = createRootRoute({
+  component: RootComponent,
+});
+
+function RootComponent() {
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      void import("react-grab");
+    }
+  }, []);
+
+  return <Outlet />;
+}`;
+    },
+    getChangedLines: (hotkey) =>
+      hotkey ? [9, 10, 11, 12, 13, 14, 15] : [9, 10, 11, 12, 13],
+  },
 ];
 
 interface InstallTabsProps {

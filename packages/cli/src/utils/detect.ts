@@ -4,7 +4,7 @@ import { basename, join } from "node:path";
 import { detect } from "@antfu/ni";
 
 export type PackageManager = "npm" | "yarn" | "pnpm" | "bun";
-export type Framework = "next" | "vite" | "webpack" | "unknown";
+export type Framework = "next" | "vite" | "tanstack" | "webpack" | "unknown";
 export type NextRouterType = "app" | "pages" | "unknown";
 export type UnsupportedFramework =
   | "remix"
@@ -50,6 +50,10 @@ export const detectFramework = (projectRoot: string): Framework => {
 
     if (allDependencies["next"]) {
       return "next";
+    }
+
+    if (allDependencies["@tanstack/react-start"]) {
+      return "tanstack";
     }
 
     if (allDependencies["vite"]) {
@@ -296,6 +300,10 @@ export const detectReactGrab = (projectRoot: string): boolean => {
     join(projectRoot, "src", "index.ts"),
     join(projectRoot, "src", "main.tsx"),
     join(projectRoot, "src", "main.ts"),
+    join(projectRoot, "src", "routes", "__root.tsx"),
+    join(projectRoot, "src", "routes", "__root.jsx"),
+    join(projectRoot, "app", "routes", "__root.tsx"),
+    join(projectRoot, "app", "routes", "__root.jsx"),
   ];
 
   return filesToCheck.some(hasReactGrabInFile);

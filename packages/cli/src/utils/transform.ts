@@ -11,6 +11,7 @@ import {
   NEXT_APP_ROUTER_SCRIPT_WITH_AGENT,
   NEXT_PAGES_ROUTER_SCRIPT_WITH_AGENT,
   SCRIPT_IMPORT,
+  TANSTACK_EFFECT_WITH_AGENT,
   VITE_SCRIPT_WITH_AGENT,
   WEBPACK_IMPORT_WITH_AGENT,
   type AgentIntegration,
@@ -141,6 +142,23 @@ const findEntryFile = (projectRoot: string): string | null => {
     join(projectRoot, "src", "main.jsx"),
     join(projectRoot, "src", "main.ts"),
     join(projectRoot, "src", "main.js"),
+  ];
+
+  for (const filePath of possiblePaths) {
+    if (existsSync(filePath)) {
+      return filePath;
+    }
+  }
+
+  return null;
+};
+
+const findTanStackRootFile = (projectRoot: string): string | null => {
+  const possiblePaths = [
+    join(projectRoot, "src", "routes", "__root.tsx"),
+    join(projectRoot, "src", "routes", "__root.jsx"),
+    join(projectRoot, "app", "routes", "__root.tsx"),
+    join(projectRoot, "app", "routes", "__root.jsx"),
   ];
 
   for (const filePath of possiblePaths) {
@@ -313,6 +331,58 @@ const addAgentToExistingWebpack = (
     const newContent = originalContent.replace(
       matchedText,
       `${hasSemicolon ? matchedText.slice(0, -1) : matchedText};\n  ${agentImport}`,
+    );
+    return {
+      success: true,
+      filePath,
+      message: `Add ${agent} agent`,
+      originalContent,
+      newContent,
+    };
+  }
+
+  return {
+    success: false,
+    filePath,
+    message: "Could not find React Grab import to add agent after",
+  };
+};
+
+const addAgentToExistingTanStack = (
+  originalContent: string,
+  agent: AgentIntegration,
+  filePath: string,
+): TransformResult => {
+  if (agent === "none") {
+    return {
+      success: true,
+      filePath,
+      message: "React Grab is already configured",
+      noChanges: true,
+    };
+  }
+
+  const agentPackage = `@react-grab/${agent}`;
+  if (originalContent.includes(agentPackage)) {
+    return {
+      success: true,
+      filePath,
+      message: `Agent ${agent} is already configured`,
+      noChanges: true,
+    };
+  }
+
+  const agentImport = `void import("${agentPackage}/client");`;
+  const reactGrabImportMatch = originalContent.match(
+    /void\s+import\s*\(\s*["']react-grab["']\s*\);?/,
+  );
+
+  if (reactGrabImportMatch) {
+    const matchedText = reactGrabImportMatch[0];
+    const hasSemicolon = matchedText.endsWith(";");
+    const newContent = originalContent.replace(
+      matchedText,
+      `${hasSemicolon ? matchedText.slice(0, -1) : matchedText};\n      ${agentImport}`,
     );
     return {
       success: true,
@@ -591,6 +661,102 @@ const transformWebpack = (
   };
 };
 
+const transformTanStack = (
+  projectRoot: string,
+  agent: AgentIntegration,
+  reactGrabAlreadyConfigured: boolean,
+): TransformResult => {
+  const rootPath = findTanStackRootFile(projectRoot);
+
+  if (!rootPath) {
+    return {
+      success: false,
+      filePath: "",
+      message:
+        "Could not find src/routes/__root.tsx or app/routes/__root.tsx.\n\n" +
+        "To set up React Grab with TanStack Start, add this to your root route component:\n\n" +
+        '  import { useEffect } from "react";\n\n' +
+        "  // Inside your component:\n" +
+        "  useEffect(() => {\n" +
+        "    if (import.meta.env.DEV) {\n" +
+        '      void import("react-grab");\n' +
+        "    }\n" +
+        "  }, []);",
+    };
+  }
+
+  const originalContent = readFileSync(rootPath, "utf-8");
+  let newContent = originalContent;
+  const hasReactGrabInFile = hasReactGrabCode(originalContent);
+
+  if (hasReactGrabInFile && reactGrabAlreadyConfigured) {
+    return addAgentToExistingTanStack(originalContent, agent, rootPath);
+  }
+
+  if (hasReactGrabInFile) {
+    return {
+      success: true,
+      filePath: rootPath,
+      message: "React Grab is already installed in this file",
+      noChanges: true,
+    };
+  }
+
+  const hasUseEffectImport =
+    /import\s+\{[^}]*useEffect[^}]*\}\s+from\s+["']react["']/.test(newContent);
+  if (!hasUseEffectImport) {
+    const reactImportMatch = newContent.match(
+      /import\s+\{([^}]*)\}\s+from\s+["']react["'];?/,
+    );
+    if (reactImportMatch) {
+      const existingImports = reactImportMatch[1];
+      newContent = newContent.replace(
+        reactImportMatch[0],
+        `import { ${existingImports.trim()}, useEffect } from "react";`,
+      );
+    } else {
+      const firstImportMatch = newContent.match(
+        /^import .+ from ['"].+['"];?\s*$/m,
+      );
+      if (firstImportMatch) {
+        newContent = newContent.replace(
+          firstImportMatch[0],
+          `import { useEffect } from "react";\n${firstImportMatch[0]}`,
+        );
+      } else {
+        newContent = `import { useEffect } from "react";\n\n${newContent}`;
+      }
+    }
+  }
+
+  const effectBlock = TANSTACK_EFFECT_WITH_AGENT(agent);
+
+  const componentMatch = newContent.match(/function\s+(\w+)\s*\([^)]*\)\s*\{/);
+
+  if (componentMatch) {
+    const insertPosition = componentMatch.index! + componentMatch[0].length;
+    newContent =
+      newContent.slice(0, insertPosition) +
+      `\n  ${effectBlock}\n` +
+      newContent.slice(insertPosition);
+  } else {
+    return {
+      success: false,
+      filePath: rootPath,
+      message: "Could not find a component function in the root file",
+    };
+  }
+
+  return {
+    success: true,
+    filePath: rootPath,
+    message:
+      "Add React Grab" + (agent !== "none" ? ` with ${agent} agent` : ""),
+    originalContent,
+    newContent,
+  };
+};
+
 export const previewTransform = (
   projectRoot: string,
   framework: Framework,
@@ -615,6 +781,9 @@ export const previewTransform = (
 
     case "vite":
       return transformVite(projectRoot, agent, reactGrabAlreadyConfigured);
+
+    case "tanstack":
+      return transformTanStack(projectRoot, agent, reactGrabAlreadyConfigured);
 
     case "webpack":
       return transformWebpack(projectRoot, agent, reactGrabAlreadyConfigured);
@@ -926,6 +1095,8 @@ const findReactGrabFile = (
       return findDocumentFile(projectRoot);
     case "vite":
       return findIndexHtml(projectRoot);
+    case "tanstack":
+      return findTanStackRootFile(projectRoot);
     case "webpack":
       return findEntryFile(projectRoot);
     default:
@@ -1049,6 +1220,40 @@ const addOptionsToWebpackImport = (
   };
 };
 
+const addOptionsToTanStackImport = (
+  originalContent: string,
+  options: ReactGrabOptions,
+  filePath: string,
+): TransformResult => {
+  const reactGrabImportMatch = originalContent.match(
+    /void\s+import\s*\(\s*["']react-grab["']\s*\)/,
+  );
+
+  if (!reactGrabImportMatch) {
+    return {
+      success: false,
+      filePath,
+      message: "Could not find React Grab import",
+    };
+  }
+
+  const optionsJson = formatOptionsAsJson(options);
+  const newImport = `import("react-grab/core").then(({ init }) => init(${optionsJson}))`;
+
+  const newContent = originalContent.replace(
+    reactGrabImportMatch[0],
+    newImport,
+  );
+
+  return {
+    success: true,
+    filePath,
+    message: "Update React Grab options",
+    originalContent,
+    newContent,
+  };
+};
+
 export const previewOptionsTransform = (
   projectRoot: string,
   framework: Framework,
@@ -1080,6 +1285,8 @@ export const previewOptionsTransform = (
       return addOptionsToNextScript(originalContent, options, filePath);
     case "vite":
       return addOptionsToViteScript(originalContent, options, filePath);
+    case "tanstack":
+      return addOptionsToTanStackImport(originalContent, options, filePath);
     case "webpack":
       return addOptionsToWebpackImport(originalContent, options, filePath);
     default:
@@ -1226,6 +1433,46 @@ const removeAgentFromWebpack = (
   };
 };
 
+const removeAgentFromTanStack = (
+  originalContent: string,
+  agent: string,
+  filePath: string,
+): TransformResult => {
+  const agentPackage = `@react-grab/${agent}`;
+
+  if (!originalContent.includes(agentPackage)) {
+    return {
+      success: true,
+      filePath,
+      message: `Agent ${agent} is not configured in this file`,
+      noChanges: true,
+    };
+  }
+
+  const agentImportPattern = new RegExp(
+    `\\s*void\\s+import\\s*\\(\\s*["']${agentPackage.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/client["']\\s*\\);?`,
+    "g",
+  );
+
+  const newContent = originalContent.replace(agentImportPattern, "");
+
+  if (newContent === originalContent) {
+    return {
+      success: false,
+      filePath,
+      message: `Could not find agent ${agent} import to remove`,
+    };
+  }
+
+  return {
+    success: true,
+    filePath,
+    message: `Remove ${agent} agent`,
+    originalContent,
+    newContent,
+  };
+};
+
 export const previewAgentRemoval = (
   projectRoot: string,
   framework: Framework,
@@ -1250,6 +1497,8 @@ export const previewAgentRemoval = (
       return removeAgentFromNextApp(originalContent, agent, filePath);
     case "vite":
       return removeAgentFromVite(originalContent, agent, filePath);
+    case "tanstack":
+      return removeAgentFromTanStack(originalContent, agent, filePath);
     case "webpack":
       return removeAgentFromWebpack(originalContent, agent, filePath);
     default:

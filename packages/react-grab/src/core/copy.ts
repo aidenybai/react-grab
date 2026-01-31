@@ -46,7 +46,9 @@ export const tryCopyWithFallback = async (
             : Promise.resolve(""),
         ),
       );
-      generatedContent = transformedSnippets.filter((s) => s.trim()).join("\n\n");
+      generatedContent = transformedSnippets
+        .filter((s) => s.trim())
+        .join("\n\n");
     }
 
     if (generatedContent.trim()) {

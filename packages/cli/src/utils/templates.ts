@@ -112,4 +112,21 @@ export const WEBPACK_IMPORT_WITH_AGENT = (agent: AgentIntegration): string => {
 }`;
 };
 
+export const TANSTACK_EFFECT = `useEffect(() => {
+    if (import.meta.env.DEV) {
+      void import("react-grab");
+    }
+  }, []);`;
+
+export const TANSTACK_EFFECT_WITH_AGENT = (agent: AgentIntegration): string => {
+  if (agent === "none") return TANSTACK_EFFECT;
+
+  return `useEffect(() => {
+    if (import.meta.env.DEV) {
+      void import("react-grab");
+      void import("@react-grab/${agent}/client");
+    }
+  }, []);`;
+};
+
 export const SCRIPT_IMPORT = 'import Script from "next/script";';

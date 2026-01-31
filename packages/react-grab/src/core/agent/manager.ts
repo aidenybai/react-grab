@@ -409,7 +409,9 @@ export const createAgentManager = (
         : contextWithSessionId;
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Context transformation failed";
+        error instanceof Error
+          ? error.message
+          : "Context transformation failed";
       const errorSession = updateSession(
         session,
         {
