@@ -372,17 +372,17 @@ export const InstallTabs = ({
                 <button
                   type="button"
                   onClick={handleCopyClick}
-                  className="touch-hitbox absolute right-4 top-3 text-white/50 opacity-0 transition-opacity hover:text-white group-hover:opacity-100 z-10"
+                  className="touch-hitbox !absolute right-4 top-2 text-white/50 opacity-0 transition-opacity hover:text-white group-hover:opacity-100 z-10"
                 >
                   {didCopy ? <Check size={16} /> : <Copy size={16} />}
                 </button>
                 {highlightedCode ? (
                   <div
-                    className="overflow-x-auto px-4 py-3 font-mono text-[13px] leading-relaxed highlighted-code"
+                    className="overflow-x-auto p-4 font-mono text-[13px] leading-relaxed highlighted-code"
                     dangerouslySetInnerHTML={{ __html: highlightedCode }}
                   />
                 ) : (
-                  <pre className="overflow-x-auto px-4 py-3 font-mono text-[13px] leading-relaxed text-white/80">
+                  <pre className="overflow-x-auto p-4 font-mono text-[13px] leading-relaxed text-white/80">
                     <code>{activeCode}</code>
                   </pre>
                 )}
