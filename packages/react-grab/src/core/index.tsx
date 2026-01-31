@@ -470,7 +470,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       boundsMultiple?: OverlayBounds[],
     ): string => {
       actions.clearLabelInstances();
-      const instanceId = `label-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const instanceId = `label-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}`;
       const boundsCenterX = bounds.x + bounds.width / 2;
       const boundsHalfWidth = bounds.width / 2;
       const mouseXOffset =
@@ -617,6 +619,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         },
         {
           onBeforeCopy: pluginRegistry.hooks.onBeforeCopy,
+          transformSnippet: pluginRegistry.hooks.transformSnippet,
           transformCopyContent: pluginRegistry.hooks.transformCopyContent,
           onAfterCopy: pluginRegistry.hooks.onAfterCopy,
           onCopySuccess: pluginRegistry.hooks.onCopySuccess,
@@ -1257,7 +1260,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return wrapAgentWithCallbacks(agent);
     };
 
-    const agentManager = createAgentManager(getAgentOptionsWithCallbacks());
+    const agentManager = createAgentManager(getAgentOptionsWithCallbacks(), {
+      transformAgentContext: pluginRegistry.hooks.transformAgentContext,
+    });
 
     const handleInputChange = (value: string) => {
       actions.setInputText(value);
@@ -1811,7 +1816,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         lineNumber ?? undefined,
       );
       if (!wasHandled) {
-        const url = buildOpenFileUrl(filePath, lineNumber ?? undefined);
+        const rawUrl = buildOpenFileUrl(filePath, lineNumber ?? undefined);
+        const url = pluginRegistry.hooks.transformOpenFileUrl(
+          rawUrl,
+          filePath,
+          lineNumber ?? undefined,
+        );
         window.open(url, "_blank", "noopener,noreferrer");
       }
       return true;
@@ -1853,6 +1863,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isScreenshotInProgress = true;
       rendererRoot.style.visibility = "hidden";
 
+      const elementsForScreenshot =
+        store.frozenElements.length > 0
+          ? [...store.frozenElements]
+          : element
+            ? [element]
+            : [];
+
       void (async () => {
         await delay(SCREENSHOT_CAPTURE_DELAY_MS);
 
@@ -1860,8 +1877,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         let errorMessage: string | undefined;
 
         try {
-          const blob = await captureElementScreenshot(bounds);
-          didSucceed = await copyImageToClipboard(blob);
+          const rawBlob = await captureElementScreenshot(bounds);
+          const transformedBlob =
+            await pluginRegistry.hooks.transformScreenshot(
+              rawBlob,
+              elementsForScreenshot,
+              bounds,
+            );
+          didSucceed = await copyImageToClipboard(transformedBlob);
           if (!didSucceed) {
             errorMessage = "Failed to copy";
           }
@@ -2672,7 +2695,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const element = store.contextMenuElement;
         if (!element) return undefined;
         const fileInfo = contextMenuFilePath();
-        return {
+        const rawContext: ActionContext = {
           element,
           elements:
             store.frozenElements.length > 0 ? store.frozenElements : [element],
@@ -2682,6 +2705,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           tagName: contextMenuTagName(),
           enterPromptMode: handleContextMenuPrompt,
         };
+        return pluginRegistry.hooks.transformActionContext(rawContext);
       },
     );
 
@@ -2725,6 +2749,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           : singleBounds
             ? [singleBounds]
             : [];
+      const elementsForScreenshot =
+        store.frozenElements.length > 0
+          ? [...store.frozenElements]
+          : element
+            ? [element]
+            : [];
 
       actions.hideContextMenu();
 
@@ -2747,8 +2777,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       let errorMessage: string | undefined;
 
       try {
-        const blob = await captureElementScreenshot(bounds);
-        didSucceed = await copyImageToClipboard(blob);
+        const rawBlob = await captureElementScreenshot(bounds);
+        const transformedBlob = await pluginRegistry.hooks.transformScreenshot(
+          rawBlob,
+          elementsForScreenshot,
+          bounds,
+        );
+        didSucceed = await copyImageToClipboard(transformedBlob);
         if (!didSucceed) {
           errorMessage = "Failed to copy";
         }
@@ -2785,9 +2820,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const elementsToUse =
         frozenElements.length > 0 ? frozenElements : [element];
 
-      const html = elementsToUse
-        .map((el) => (el as HTMLElement).outerHTML)
+      const rawHtml = elementsToUse
+        .filter((innerElement) => innerElement instanceof HTMLElement)
+        .map((innerElement) => innerElement.outerHTML)
         .join("\n\n");
+      const html = await pluginRegistry.hooks.transformHtmlContent(
+        rawHtml,
+        elementsToUse,
+      );
 
       const position = store.contextMenuPosition ?? store.pointer;
       const allBounds = frozenElementsBounds();
@@ -2852,11 +2892,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           fileInfo.lineNumber ?? undefined,
         );
         if (!wasHandled) {
-          const openFileUrl = buildOpenFileUrl(
+          const rawUrl = buildOpenFileUrl(
             fileInfo.filePath,
-            fileInfo.lineNumber,
+            fileInfo.lineNumber ?? undefined,
           );
-          window.open(openFileUrl, "_blank", "noopener,noreferrer");
+          const url = pluginRegistry.hooks.transformOpenFileUrl(
+            rawUrl,
+            fileInfo.filePath,
+            fileInfo.lineNumber ?? undefined,
+          );
+          window.open(url, "_blank", "noopener,noreferrer");
         }
       }
 

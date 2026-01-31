@@ -33,6 +33,13 @@ interface StartSessionParams {
   agent?: AgentOptions;
 }
 
+interface AgentManagerHooks {
+  transformAgentContext?: (
+    context: AgentContext,
+    elements: Element[],
+  ) => AgentContext | Promise<AgentContext>;
+}
+
 interface SessionOperations {
   start: (params: StartSessionParams) => Promise<void>;
   abort: (sessionId?: string) => void;
@@ -68,6 +75,7 @@ export interface AgentManager {
 
 export const createAgentManager = (
   initialAgentOptions: AgentOptions | undefined,
+  hooks?: AgentManagerHooks,
 ): AgentManager => {
   const [sessions, setSessions] = createSignal<Map<string, AgentSession>>(
     new Map(),
@@ -339,7 +347,9 @@ export const createAgentManager = (
 
     const content = existingSession
       ? existingSession.context.content
-      : await generateSnippet(elements, { maxLines: Infinity });
+      : (await generateSnippet(elements, { maxLines: Infinity })).filter(
+          (snippet) => snippet.trim(),
+        );
 
     const context: AgentContext = {
       content,
@@ -392,8 +402,32 @@ export const createAgentManager = (
       sessionId: sessionId ?? session.id,
     };
 
+    let transformedContext: AgentContext;
+    try {
+      transformedContext = hooks?.transformAgentContext
+        ? await hooks.transformAgentContext(contextWithSessionId, elements)
+        : contextWithSessionId;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Context transformation failed";
+      const errorSession = updateSession(
+        session,
+        {
+          error: errorMessage,
+          isStreaming: false,
+        },
+        storage,
+      );
+      setSessions((prev) => new Map(prev).set(session.id, errorSession));
+      abortControllers.delete(session.id);
+      if (error instanceof Error) {
+        activeAgent.onError?.(error, errorSession);
+      }
+      return;
+    }
+
     const streamIterator = activeAgent.provider.send(
-      contextWithSessionId,
+      transformedContext,
       abortController.signal,
     );
     void executeSessionStream(session, streamIterator, activeAgent);

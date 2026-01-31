@@ -15,6 +15,9 @@ import type {
   ActivationMode,
   ActivationKey,
   SettableOptions,
+  AgentContext,
+  ActionContext,
+  ScreenshotBounds,
 } from "../types.js";
 import { DEFAULT_THEME, deepMergeTheme } from "./theme.js";
 import { DEFAULT_KEY_HOLD_DURATION_MS } from "../constants.js";
@@ -231,6 +234,23 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     return result;
   };
 
+  const callHookReduceSync = <T>(
+    hookName: HookName,
+    initialValue: T,
+    ...extraArgs: unknown[]
+  ): T => {
+    let result = initialValue;
+    for (const { config } of plugins.values()) {
+      const hook = config.hooks?.[hookName] as
+        | ((value: T, ...hookArgs: unknown[]) => T)
+        | undefined;
+      if (hook) {
+        result = hook(result, ...extraArgs);
+      }
+    }
+    return result;
+  };
+
   const hooks = {
     onActivate: () => callHook("onActivate"),
     onDeactivate: () => callHook("onDeactivate"),
@@ -272,6 +292,24 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       callHook("onContextMenu", element, position),
     onOpenFile: (filePath: string, lineNumber?: number) =>
       callHookWithHandled("onOpenFile", filePath, lineNumber),
+    transformHtmlContent: async (html: string, elements: Element[]) =>
+      callHookReduce("transformHtmlContent", html, elements),
+    transformScreenshot: async (
+      blob: Blob,
+      elements: Element[],
+      bounds: ScreenshotBounds,
+    ) => callHookReduce("transformScreenshot", blob, elements, bounds),
+    transformAgentContext: async (context: AgentContext, elements: Element[]) =>
+      callHookReduce("transformAgentContext", context, elements),
+    transformActionContext: (context: ActionContext) =>
+      callHookReduceSync("transformActionContext", context),
+    transformOpenFileUrl: (
+      url: string,
+      filePath: string,
+      lineNumber?: number,
+    ) => callHookReduceSync("transformOpenFileUrl", url, filePath, lineNumber),
+    transformSnippet: async (snippet: string, element: Element) =>
+      callHookReduce("transformSnippet", snippet, element),
   };
 
   return {

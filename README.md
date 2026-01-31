@@ -138,107 +138,25 @@ if (process.env.NODE_ENV === "development") {
 
 ## Extending React Grab
 
-React Grab uses a plugin system to extend functionality. Check out the [type definitions](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) to see all available options.
+React Grab exposes the `__REACT_GRAB__` API for extending functionality with plugins, hooks, actions, themes, and custom agents.
 
-#### Basic Usage
+See [`packages/react-grab/src/types.ts`](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) and [`packages/react-grab/src/core/plugin-registry.ts`](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/core/plugin-registry.ts) for reference.
 
-```typescript
-import { init } from "react-grab/core";
+Or copy this into an agent to generate a plugin:
 
-const api = init();
+```md
+Clone https://github.com/aidenybai/react-grab into /tmp
 
-api.activate();
-api.copyElement(document.querySelector(".my-element"));
-console.log(api.getState());
-```
+Check these files for reference:
 
-#### Lifecycle Hooks Plugin
+- packages/react-grab/src/types.ts (Plugin and PluginHooks interfaces)
+- packages/react-grab/src/core/plugin-registry.ts (implementation)
 
-Track element selections with analytics:
+Plugins are registered via `__REACT_GRAB__.registerPlugin({ name, hooks, actions, theme })`.
 
-```typescript
-api.registerPlugin({
-  name: "analytics",
-  hooks: {
-    onElementSelect: (element) => {
-      analytics.track("element_selected", { tagName: element.tagName });
-    },
-    onDragEnd: (elements, bounds) => {
-      analytics.track("drag_end", { count: elements.length, bounds });
-    },
-    onCopySuccess: (elements, content) => {
-      analytics.track("copy", { count: elements.length });
-    },
-  },
-});
-```
+Add the code in client-side code (e.g., "use client" in Next.js) inside a useEffect after React Grab loads.
 
-#### Context Menu Plugin
-
-Add custom actions to the right-click menu:
-
-```typescript
-api.registerPlugin({
-  name: "custom-actions",
-  actions: [
-    {
-      id: "log-to-console",
-      label: "Log to Console",
-      onAction: ({ elements }) => console.dir(elements[0]),
-    },
-  ],
-});
-```
-
-#### Theme Plugin
-
-Customize the UI appearance:
-
-```typescript
-api.registerPlugin({
-  name: "theme",
-  theme: {
-    hue: 180, // shift colors (pink → cyan)
-    crosshair: { enabled: false },
-    elementLabel: { enabled: false },
-  },
-});
-```
-
-#### Agent Plugin
-
-Create a custom agent that processes selected elements:
-
-```typescript
-api.registerPlugin({
-  name: "my-custom-agent",
-  actions: [
-    {
-      id: "custom-agent",
-      label: "Ask AI",
-      onAction: ({ enterPromptMode }) => enterPromptMode?.(),
-      agent: {
-        provider: {
-          async *send({ prompt, content }, signal) {
-            yield "Analyzing element...";
-
-            const response = await fetch("/api/ai", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ prompt, content }),
-              signal,
-            });
-
-            yield "Processing response...";
-
-            const result = await response.json();
-            yield `Done: ${result.message}`;
-          },
-        },
-      },
-    },
-  ],
-});
+Generate an example plugin that logs when an element is selected.
 ```
 
 ## Resources & Contributing Back

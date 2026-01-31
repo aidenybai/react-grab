@@ -222,6 +222,13 @@ export interface ContextMenuAction {
   agent?: AgentOptions;
 }
 
+export interface ScreenshotBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface PluginHooks {
   onActivate?: () => void;
   onDeactivate?: () => void;
@@ -260,6 +267,29 @@ export interface PluginHooks {
     position: { x: number; y: number },
   ) => void;
   onOpenFile?: (filePath: string, lineNumber?: number) => boolean | void;
+  transformHtmlContent?: (
+    html: string,
+    elements: Element[],
+  ) => string | Promise<string>;
+  transformScreenshot?: (
+    blob: Blob,
+    elements: Element[],
+    bounds: ScreenshotBounds,
+  ) => Blob | Promise<Blob>;
+  transformAgentContext?: (
+    context: AgentContext,
+    elements: Element[],
+  ) => AgentContext | Promise<AgentContext>;
+  transformActionContext?: (context: ActionContext) => ActionContext;
+  transformOpenFileUrl?: (
+    url: string,
+    filePath: string,
+    lineNumber?: number,
+  ) => string;
+  transformSnippet?: (
+    snippet: string,
+    element: Element,
+  ) => string | Promise<string>;
 }
 
 export interface PluginConfig {
