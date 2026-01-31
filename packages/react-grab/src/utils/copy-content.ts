@@ -111,7 +111,12 @@ const createLexicalClipboardData = (
     lexicalData: JSON.stringify({
       namespace: `chat-input${namespaceUuid}-pane`,
       nodes: [
-        createMentionNode(displayName, mentionKey, typeaheadType, mentionMetadata),
+        createMentionNode(
+          displayName,
+          mentionKey,
+          typeaheadType,
+          mentionMetadata,
+        ),
         createTextNode(`\n\n${content}`),
       ],
     }),
@@ -138,7 +143,10 @@ export const copyContent = (
     event.clipboardData?.setData("text/plain", plainText);
     event.clipboardData?.setData("text/html", htmlContent);
     event.clipboardData?.setData(LEXICAL_EDITOR_MIME_TYPE, lexicalData);
-    event.clipboardData?.setData(REACT_GRAB_MIME_TYPE, JSON.stringify(reactGrabMetadata));
+    event.clipboardData?.setData(
+      REACT_GRAB_MIME_TYPE,
+      JSON.stringify(reactGrabMetadata),
+    );
   };
 
   document.addEventListener("copy", copyHandler);

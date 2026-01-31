@@ -1564,12 +1564,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       clientY: number,
       hasModifierKeyHeld: boolean,
     ) => {
+      const validFrozenElement =
+        store.frozenElement && document.contains(store.frozenElement)
+          ? store.frozenElement
+          : null;
+
       const element =
+        validFrozenElement ??
         getElementAtPosition(clientX, clientY) ??
         (store.detectedElement && document.contains(store.detectedElement)
           ? store.detectedElement
           : null);
       if (!element) return;
+
+      const positionX = validFrozenElement ? store.pointer.x : clientX;
+      const positionY = validFrozenElement ? store.pointer.y : clientY;
 
       const shouldDeactivateAfter =
         store.wasActivatedByToggle && !hasModifierKeyHeld;
@@ -1577,8 +1586,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.setLastGrabbed(element);
       performCopyWithLabel({
         element,
-        positionX: clientX,
-        positionY: clientY,
+        positionX,
+        positionY,
         shouldDeactivateAfter,
       });
     };

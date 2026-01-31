@@ -42,10 +42,10 @@ test.describe("Edge Cases", () => {
       reactGrab,
     }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("[data-testid='dynamic-element-2']");
+      await reactGrab.hoverElement("[data-testid='toggleable-element']");
       await reactGrab.waitForSelectionBox();
 
-      await reactGrab.removeElement("[data-testid='dynamic-element-2']");
+      await reactGrab.removeElement("[data-testid='toggleable-element']");
 
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();

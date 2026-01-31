@@ -1599,11 +1599,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       const element = document.querySelector(sel);
       element?.remove();
     }, selector);
-    await page.waitForFunction(
-      (sel) => document.querySelector(sel) === null,
-      selector,
-      { timeout: 2000 },
-    );
   };
 
   const hideElement = async (selector: string) => {
