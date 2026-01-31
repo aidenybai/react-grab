@@ -2870,10 +2870,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
       }
 
+      const shouldDeactivate = store.wasActivatedByToggle;
+
       // HACK: Defer hiding context menu until after click event propagates fully
       setTimeout(() => {
         actions.hideContextMenu();
-        deactivateRenderer();
+        if (shouldDeactivate) {
+          deactivateRenderer();
+        } else {
+          actions.unfreeze();
+        }
       }, 0);
     };
 
