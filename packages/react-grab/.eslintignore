@@ -1,0 +1,4 @@
+# Disable ESLint (React) for SolidJS files
+src/components/
+src/core/
+src/design-system.tsx

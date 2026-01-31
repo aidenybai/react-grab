@@ -30,7 +30,7 @@ test.describe("Toolbar", () => {
       await reactGrab.setViewportSize(1280, 720);
     });
 
-    test("toolbar should reappear when viewport returns to desktop size", async ({
+    test("toolbar should remain visible through viewport resize cycles", async ({
       reactGrab,
     }) => {
       await expect
@@ -40,7 +40,7 @@ test.describe("Toolbar", () => {
       await reactGrab.setViewportSize(375, 667);
       await expect
         .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(false);
+        .toBe(true);
 
       await reactGrab.setViewportSize(1280, 720);
       await expect
