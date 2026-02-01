@@ -258,6 +258,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   };
 
   const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.isComposing || event.keyCode === 229) {
+      return;
+    }
+
     event.stopPropagation();
     event.stopImmediatePropagation();
 
