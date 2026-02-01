@@ -3,7 +3,7 @@
 import { useQueryState, parseAsStringLiteral } from "nuqs";
 import { useState, useEffect, useCallback, Suspense, useRef } from "react";
 import { ReactGrabLogo } from "@/components/react-grab-logo";
-import { cn } from "@/utils/classnames";
+import { cn } from "@/utils/cn";
 import { IconCursor } from "@/components/icons/icon-cursor";
 import { IconVSCode } from "@/components/icons/icon-vscode";
 import { IconZed } from "@/components/icons/icon-zed";

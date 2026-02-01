@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, type ReactElement } from "react";
 import { Copy, Check } from "lucide-react";
 import { COPY_FEEDBACK_DURATION_MS } from "@/constants";
-import { cn } from "@/utils/classnames";
+import { cn } from "@/utils/cn";
 import { detectMobile } from "@/utils/detect-mobile";
 import { hotkeyToString } from "@/utils/hotkey-to-string";
 import type { RecordedHotkey } from "./grab-element-button";

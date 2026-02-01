@@ -11,7 +11,7 @@ import {
 } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { HOTKEY_KEYUP_DELAY_MS } from "@/constants";
-import { cn } from "@/utils/classnames";
+import { cn } from "@/utils/cn";
 import { detectMobile } from "@/utils/detect-mobile";
 import { getKeyFromCode } from "@/utils/get-key-from-code";
 import { hotkeyToString } from "@/utils/hotkey-to-string";

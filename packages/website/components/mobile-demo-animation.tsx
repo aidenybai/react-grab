@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, type ReactElement } from "react";
-import { cn } from "@/utils/classnames";
+import { cn } from "@/utils/cn";
 
 const ANIMATION_LOOP_INTERVAL_MS = 12000;
 const SELECTION_PADDING_PX = 4;
