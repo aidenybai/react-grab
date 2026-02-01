@@ -11,7 +11,7 @@ export const parseChangelog = (markdown: string): ChangelogEntry[] => {
   let currentEntry: ChangelogEntry | null = null;
 
   for (const line of lines) {
-    const versionMatch = line.match(/^## (\d+\.\d+\.\d+)/);
+    const versionMatch = line.match(/^## (\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?)/);
     if (versionMatch) {
       if (currentEntry) {
         entries.push(currentEntry);
