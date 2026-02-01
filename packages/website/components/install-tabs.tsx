@@ -421,7 +421,7 @@ export const InstallTabs = ({
                 <button
                   type="button"
                   onClick={handleCopyClick}
-                  className="touch-hitbox !absolute right-4 top-3 text-white/50 opacity-0 transition-opacity hover:text-white group-hover:opacity-100 z-10"
+                  className="touch-hitbox !absolute right-4 top-4 text-white/50 opacity-0 transition-opacity hover:text-white group-hover:opacity-100 z-10"
                 >
                   {didCopy ? <Check size={16} /> : <Copy size={16} />}
                 </button>
