@@ -59,6 +59,9 @@ export const PREVIEW_PRIORITY_ATTRS: readonly string[] = [
   "role",
   "name",
   "title",
+  "viewBox",
+  "fill",
+  "stroke",
 ];
 
 export const SCREENSHOT_CAPTURE_DELAY_MS = 50;
