@@ -28,6 +28,19 @@ test.describe("Prompt Mode", () => {
       await expect.poll(() => reactGrab.getClipboardContent()).toBeTruthy();
     });
 
+    test("single click should enter prompt mode when agent is configured", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.setupMockAgent();
+      await reactGrab.activate();
+      await reactGrab.hoverElement("li:first-child");
+      await reactGrab.waitForSelectionBox();
+
+      await reactGrab.clickElement("li:first-child");
+
+      await expect.poll(() => reactGrab.isPromptModeActive()).toBe(true);
+    });
+
     test("should focus input textarea when entering prompt mode", async ({
       reactGrab,
     }) => {
@@ -144,6 +157,15 @@ test.describe("Prompt Mode", () => {
       await reactGrab.submitInput();
 
       await expect.poll(() => reactGrab.isPromptModeActive()).toBe(false);
+    });
+
+    test("empty submit should copy to clipboard", async ({ reactGrab }) => {
+      await reactGrab.setupMockAgent();
+      await reactGrab.enterPromptMode("li:first-child");
+
+      await reactGrab.submitInput();
+
+      await expect.poll(() => reactGrab.getClipboardContent()).toBeTruthy();
     });
 
     test("Escape should cancel prompt mode", async ({ reactGrab }) => {
