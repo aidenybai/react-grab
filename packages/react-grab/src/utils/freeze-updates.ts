@@ -49,7 +49,6 @@ interface PausedContextState {
 }
 
 let isUpdatesPaused = false;
-let didInstallDispatcherProxy = false;
 
 const dispatcherProxyCache = new WeakMap<object, object>();
 const pendingStoreCallbacks = new Set<() => void>();
@@ -59,6 +58,7 @@ const pausedContextStates = new WeakMap<
   ContextDependency,
   PausedContextState
 >();
+const renderersWithDispatcherProxy = new WeakSet<ReactRenderer>();
 const typedFiberRoots = _fiberRoots as Set<FiberRootLike>;
 
 const getFiberRoot = (fiber: Fiber): FiberRootLike | null => {
@@ -438,11 +438,10 @@ const invokeCallbacks = (callbacks: Array<() => void>): void => {
 };
 
 export const initializeFreezeSupport = (): void => {
-  if (didInstallDispatcherProxy) return;
-  didInstallDispatcherProxy = true;
-
   for (const renderer of getRDTHook().renderers.values()) {
+    if (renderersWithDispatcherProxy.has(renderer)) continue;
     installDispatcherProxy(renderer);
+    renderersWithDispatcherProxy.add(renderer);
   }
 };
 
@@ -460,20 +459,22 @@ export const freezeUpdates = (): (() => void) => {
   return () => {
     if (!isUpdatesPaused) return;
 
-    const fiberRootsToResume = collectFiberRoots();
-    for (const fiberRoot of fiberRootsToResume) {
-      traverseFibers(fiberRoot.current, resumeFiber);
+    try {
+      const fiberRootsToResume = collectFiberRoots();
+      for (const fiberRoot of fiberRootsToResume) {
+        traverseFibers(fiberRoot.current, resumeFiber);
+      }
+
+      const storeCallbacksToInvoke = Array.from(pendingStoreCallbacks);
+      const transitionCallbacksToInvoke = pendingTransitionCallbacks.slice();
+
+      invokeCallbacks(storeCallbacksToInvoke);
+      invokeCallbacks(transitionCallbacksToInvoke);
+      scheduleReactUpdate(fiberRootsToResume);
+    } finally {
+      isUpdatesPaused = false;
+      pendingStoreCallbacks.clear();
+      pendingTransitionCallbacks.length = 0;
     }
-
-    isUpdatesPaused = false;
-
-    const storeCallbacksToInvoke = Array.from(pendingStoreCallbacks);
-    const transitionCallbacksToInvoke = pendingTransitionCallbacks.slice();
-    pendingStoreCallbacks.clear();
-    pendingTransitionCallbacks.length = 0;
-
-    invokeCallbacks(storeCallbacksToInvoke);
-    invokeCallbacks(transitionCallbacksToInvoke);
-    scheduleReactUpdate(fiberRootsToResume);
   };
 };
