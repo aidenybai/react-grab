@@ -1460,6 +1460,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
+    const handleComment = () => {
+      if (isActivated()) {
+        deactivateRenderer();
+      } else if (isEnabled()) {
+        actions.setPendingCommentMode(true);
+        toggleActivate();
+      }
+    };
+
     const handleToggleEnabled = () => {
       const newEnabled = !isEnabled();
       setIsEnabled(newEnabled);
@@ -1623,6 +1632,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const positionX = validFrozenElement ? store.pointer.x : clientX;
       const positionY = validFrozenElement ? store.pointer.y : clientY;
+
+      if (store.pendingCommentMode) {
+        actions.setPendingCommentMode(false);
+        loadCachedInput(element);
+        actions.enterPromptMode({ x: positionX, y: positionY }, element);
+        return;
+      }
 
       const shouldDeactivateAfter =
         store.wasActivatedByToggle && !hasModifierKeyHeld;
@@ -2393,7 +2409,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         store.contextMenuPosition === null &&
         store.frozenElements.length === 0
       ) {
-        const candidate = getElementAtPosition(store.pointer.x, store.pointer.y);
+        const candidate = getElementAtPosition(
+          store.pointer.x,
+          store.pointer.y,
+        );
         actions.setDetectedElement(candidate);
       }
     };
@@ -2424,8 +2443,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const scaleY = currentViewportHeight / previousViewportHeight;
         const isUniformScale =
           Math.abs(scaleX - scaleY) < ZOOM_DETECTION_THRESHOLD;
-        const hasScaleChanged =
-          Math.abs(scaleX - 1) > ZOOM_DETECTION_THRESHOLD;
+        const hasScaleChanged = Math.abs(scaleX - 1) > ZOOM_DETECTION_THRESHOLD;
 
         if (isUniformScale && hasScaleChanged) {
           actions.setPointer({
@@ -3043,7 +3061,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             theme={pluginRegistry.store.theme}
             toolbarVisible={pluginRegistry.store.theme.toolbar.enabled}
             isActive={isActivated()}
+            isCommentMode={store.pendingCommentMode || isPromptMode()}
             onToggleActive={handleToggleActive}
+            onComment={handleComment}
             enabled={isEnabled()}
             onToggleEnabled={handleToggleEnabled}
             shakeCount={toolbarShakeCount()}

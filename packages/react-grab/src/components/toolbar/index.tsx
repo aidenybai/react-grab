@@ -16,6 +16,7 @@ import {
 } from "./state.js";
 import { IconSelect } from "../icons/icon-select.jsx";
 import { IconChevron } from "../icons/icon-chevron.jsx";
+import { IconComment } from "../icons/icon-comment.jsx";
 import {
   TOOLBAR_SNAP_MARGIN_PX,
   TOOLBAR_FADE_IN_DELAY_MS,
@@ -30,7 +31,6 @@ import {
   TOOLBAR_SHAKE_TOOLTIP_DURATION_MS,
   PANEL_STYLES,
 } from "../../constants.js";
-import { formatShortcut } from "../../utils/format-shortcut.js";
 import { freezeUpdates } from "../../utils/freeze-updates.js";
 import {
   freezeGlobalAnimations,
@@ -44,8 +44,10 @@ import { Tooltip } from "../tooltip.jsx";
 
 interface ToolbarProps {
   isActive?: boolean;
+  isCommentMode?: boolean;
   isContextMenuOpen?: boolean;
   onToggle?: () => void;
+  onComment?: () => void;
   enabled?: boolean;
   onToggleEnabled?: () => void;
   shakeCount?: number;
@@ -75,11 +77,51 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [isCollapseAnimating, setIsCollapseAnimating] = createSignal(false);
   const [isSelectTooltipVisible, setIsSelectTooltipVisible] =
     createSignal(false);
+  const [isCommentTooltipVisible, setIsCommentTooltipVisible] =
+    createSignal(false);
   const [isToggleTooltipVisible, setIsToggleTooltipVisible] =
     createSignal(false);
   const [isShakeTooltipVisible, setIsShakeTooltipVisible] = createSignal(false);
 
   const tooltipPosition = () => (snapEdge() === "top" ? "bottom" : "top");
+
+  const getToolbarIconColor = (
+    isHighlighted: boolean,
+    isActive: boolean,
+  ): string => {
+    if (isHighlighted) return "text-black";
+    if (isActive) return "text-black/40";
+    return "text-black/70";
+  };
+
+  const stopEventPropagation = (event: Event) => {
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+  };
+
+  const createFreezeHandlers = (
+    setTooltipVisible: (visible: boolean) => void,
+  ) => ({
+    onMouseEnter: () => {
+      setTooltipVisible(true);
+      props.onSelectHoverChange?.(true);
+      if (!unfreezeUpdatesCallback) {
+        unfreezeUpdatesCallback = freezeUpdates();
+        freezeGlobalAnimations();
+        freezePseudoStates();
+      }
+    },
+    onMouseLeave: () => {
+      setTooltipVisible(false);
+      props.onSelectHoverChange?.(false);
+      if (!props.isActive && !props.isContextMenuOpen) {
+        unfreezeUpdatesCallback?.();
+        unfreezeUpdatesCallback = null;
+        unfreezeGlobalAnimations();
+        unfreezePseudoStates();
+      }
+    },
+  });
 
   const collapsedEdgeClasses = () => {
     if (!isCollapsed()) return "";
@@ -363,6 +405,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     };
 
   const handleToggle = createDragAwareHandler(() => props.onToggle?.());
+
+  const handleComment = createDragAwareHandler(() => props.onComment?.());
 
   const handleToggleCollapse = createDragAwareHandler(() => {
     const rect = containerRef?.getBoundingClientRect();
@@ -982,55 +1026,34 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           <div class="flex items-center min-w-0">
             <div
               class={cn(
-                "grid transition-all duration-150 ease-out overflow-hidden",
+                "grid transition-all duration-150 ease-out",
                 props.enabled
                   ? "grid-cols-[1fr] opacity-100"
                   : "grid-cols-[0fr] opacity-0",
               )}
             >
-              <div class="relative overflow-hidden min-w-0">
+              <div class="relative overflow-visible min-w-0">
                 {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
                 <button
                   data-react-grab-ignore-events
                   data-react-grab-toolbar-toggle
                   class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5"
-                  on:pointerdown={(event) => {
-                    event.stopPropagation();
-                    event.stopImmediatePropagation();
-                  }}
-                  on:mousedown={(event) => {
-                    event.stopPropagation();
-                    event.stopImmediatePropagation();
-                  }}
+                  on:pointerdown={stopEventPropagation}
+                  on:mousedown={stopEventPropagation}
                   onClick={(event) => {
                     setIsSelectTooltipVisible(false);
                     handleToggle(event);
                   }}
-                  onMouseEnter={() => {
-                    setIsSelectTooltipVisible(true);
-                    props.onSelectHoverChange?.(true);
-                    if (!unfreezeUpdatesCallback) {
-                      unfreezeUpdatesCallback = freezeUpdates();
-                      freezeGlobalAnimations();
-                      freezePseudoStates();
-                    }
-                  }}
-                  onMouseLeave={() => {
-                    setIsSelectTooltipVisible(false);
-                    props.onSelectHoverChange?.(false);
-                    if (!props.isActive && !props.isContextMenuOpen) {
-                      unfreezeUpdatesCallback?.();
-                      unfreezeUpdatesCallback = null;
-                      unfreezeGlobalAnimations();
-                      unfreezePseudoStates();
-                    }
-                  }}
+                  {...createFreezeHandlers(setIsSelectTooltipVisible)}
                 >
                   <IconSelect
                     size={14}
                     class={cn(
                       "transition-colors",
-                      props.isActive ? "text-black" : "text-black/70",
+                      getToolbarIconColor(
+                        Boolean(props.isActive) && !props.isCommentMode,
+                        Boolean(props.isCommentMode),
+                      ),
                     )}
                   />
                 </button>
@@ -1038,7 +1061,47 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                   visible={isSelectTooltipVisible() && !isCollapsed()}
                   position={tooltipPosition()}
                 >
-                  Select element ({formatShortcut("C")})
+                  Select
+                </Tooltip>
+              </div>
+            </div>
+            <div
+              class={cn(
+                "grid transition-all duration-150 ease-out",
+                props.enabled
+                  ? "grid-cols-[1fr] opacity-100"
+                  : "grid-cols-[0fr] opacity-0",
+              )}
+            >
+              <div class="relative overflow-visible min-w-0">
+                <button
+                  data-react-grab-ignore-events
+                  data-react-grab-toolbar-comment
+                  class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5"
+                  on:pointerdown={stopEventPropagation}
+                  on:mousedown={stopEventPropagation}
+                  onClick={(event) => {
+                    setIsCommentTooltipVisible(false);
+                    handleComment(event);
+                  }}
+                  {...createFreezeHandlers(setIsCommentTooltipVisible)}
+                >
+                  <IconComment
+                    size={14}
+                    class={cn(
+                      "transition-colors",
+                      getToolbarIconColor(
+                        Boolean(props.isCommentMode),
+                        Boolean(props.isActive) && !props.isCommentMode,
+                      ),
+                    )}
+                  />
+                </button>
+                <Tooltip
+                  visible={isCommentTooltipVisible() && !isCollapsed()}
+                  position={tooltipPosition()}
+                >
+                  Comment
                 </Tooltip>
               </div>
             </div>

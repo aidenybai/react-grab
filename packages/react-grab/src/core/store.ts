@@ -45,6 +45,7 @@ interface GrabStore {
   current: GrabState;
 
   wasActivatedByToggle: boolean;
+  pendingCommentMode: boolean;
   hasAgentProvider: boolean;
   keyHoldDuration: number;
 
@@ -106,6 +107,7 @@ const createInitialStore = (input: GrabStoreInput): GrabStore => ({
   current: { state: "idle" },
 
   wasActivatedByToggle: false,
+  pendingCommentMode: false,
   hasAgentProvider: input.hasAgentProvider,
   keyHoldDuration: input.keyHoldDuration,
 
@@ -188,6 +190,7 @@ interface GrabActions {
   setLastCopied: (element: Element | null) => void;
   clearLastCopied: () => void;
   setWasActivatedByToggle: (value: boolean) => void;
+  setPendingCommentMode: (value: boolean) => void;
   setTouchMode: (value: boolean) => void;
   setSelectionSource: (
     filePath: string | null,
@@ -271,6 +274,7 @@ const createGrabStore = (input: GrabStoreInput) => {
     deactivate: () => {
       setStore("current", { state: "idle" });
       setStore("wasActivatedByToggle", false);
+      setStore("pendingCommentMode", false);
       setStore("inputText", "");
       setStore("frozenElement", null);
       setStore("frozenElements", []);
@@ -554,6 +558,10 @@ const createGrabStore = (input: GrabStoreInput) => {
 
     setWasActivatedByToggle: (value: boolean) => {
       setStore("wasActivatedByToggle", value);
+    },
+
+    setPendingCommentMode: (value: boolean) => {
+      setStore("pendingCommentMode", value);
     },
 
     setTouchMode: (value: boolean) => {

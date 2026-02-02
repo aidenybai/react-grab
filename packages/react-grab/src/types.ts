@@ -475,7 +475,9 @@ export interface ReactGrabRendererProps {
   theme?: Required<Theme>;
   toolbarVisible?: boolean;
   isActive?: boolean;
+  isCommentMode?: boolean;
   onToggleActive?: () => void;
+  onComment?: () => void;
   enabled?: boolean;
   onToggleEnabled?: () => void;
   shakeCount?: number;
