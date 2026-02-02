@@ -1606,10 +1606,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const positionX = validFrozenElement ? store.pointer.x : clientX;
       const positionY = validFrozenElement ? store.pointer.y : clientY;
 
+      actions.setLastGrabbed(element);
+
+      if (hasAgentProvider()) {
+        preparePromptMode(element, positionX, positionY);
+        actions.setPointer({ x: positionX, y: positionY });
+        actions.setFrozenElement(element);
+        activatePromptMode();
+        return;
+      }
+
       const shouldDeactivateAfter =
         store.wasActivatedByToggle && !hasModifierKeyHeld;
 
-      actions.setLastGrabbed(element);
       performCopyWithLabel({
         element,
         positionX,
