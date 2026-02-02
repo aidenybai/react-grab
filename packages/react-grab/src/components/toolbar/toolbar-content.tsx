@@ -7,6 +7,7 @@ import { IconChevron } from "../icons/icon-chevron.jsx";
 
 export interface ToolbarContentProps {
   isActive?: boolean;
+  isCommentMode?: boolean;
   enabled?: boolean;
   isCollapsed?: boolean;
   snapEdge?: "top" | "bottom" | "left" | "right";
@@ -67,7 +68,13 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
 
   const defaultCommentButton = () => (
     <button class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5">
-      <IconComment size={14} class="transition-colors text-black/70" />
+      <IconComment
+        size={14}
+        class={cn(
+          "transition-colors",
+          props.isCommentMode ? "text-black" : "text-black/70",
+        )}
+      />
     </button>
   );
 
