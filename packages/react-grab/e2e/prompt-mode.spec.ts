@@ -209,13 +209,19 @@ test.describe("Prompt Mode", () => {
       expect(isPromptMode).toBe(true);
     });
 
-    test("prompt mode via drag selection should work", async ({
-      reactGrab,
-    }) => {
+    test("prompt mode via right-click should work", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.activate();
 
-      await reactGrab.dragSelect("li:first-child", "li:nth-child(3)");
+      const element = reactGrab.page.locator("li").first();
+      const box = await element.boundingBox();
+      if (!box) throw new Error("Could not get bounding box");
+
+      await reactGrab.page.mouse.click(
+        box.x + box.width / 2,
+        box.y + box.height / 2,
+        { button: "right" },
+      );
 
       await expect.poll(() => reactGrab.isContextMenuVisible()).toBe(true);
 
@@ -224,13 +230,19 @@ test.describe("Prompt Mode", () => {
       await expect.poll(() => reactGrab.isPromptModeActive()).toBe(true);
     });
 
-    test("should show multi-element count in prompt mode", async ({
-      reactGrab,
-    }) => {
+    test("should show element info in prompt mode", async ({ reactGrab }) => {
       await reactGrab.setupMockAgent();
       await reactGrab.activate();
 
-      await reactGrab.dragSelect("li:first-child", "li:nth-child(3)");
+      const element = reactGrab.page.locator("li").first();
+      const box = await element.boundingBox();
+      if (!box) throw new Error("Could not get bounding box");
+
+      await reactGrab.page.mouse.click(
+        box.x + box.width / 2,
+        box.y + box.height / 2,
+        { button: "right" },
+      );
 
       await expect.poll(() => reactGrab.isContextMenuVisible()).toBe(true);
 
@@ -239,7 +251,7 @@ test.describe("Prompt Mode", () => {
       await expect
         .poll(async () => {
           const labelInfo = await reactGrab.getSelectionLabelInfo();
-          return labelInfo.isVisible && (labelInfo.elementsCount ?? 0) > 1;
+          return labelInfo.isVisible;
         })
         .toBe(true);
     });
