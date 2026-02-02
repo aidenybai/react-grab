@@ -2358,6 +2358,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     });
 
+    const redetectElementUnderPointer = () => {
+      if (
+        isEnabled() &&
+        !isPromptMode() &&
+        !isToggleFrozen() &&
+        !isDragging() &&
+        store.contextMenuPosition === null
+      ) {
+        const candidate = getElementAtPosition(
+          store.pointer.x,
+          store.pointer.y,
+        );
+        actions.setDetectedElement(candidate);
+      }
+    };
+
     eventListenerManager.addWindowListener(
       "scroll",
       () => {
@@ -2365,6 +2381,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.incrementViewportVersion();
         actions.updateSessionBounds();
         actions.updateContextMenuPosition();
+        redetectElementUnderPointer();
       },
       { capture: true },
     );
@@ -2374,6 +2391,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.incrementViewportVersion();
       actions.updateSessionBounds();
       actions.updateContextMenuPosition();
+      redetectElementUnderPointer();
     });
 
     let boundsRecalcIntervalId: number | null = null;
