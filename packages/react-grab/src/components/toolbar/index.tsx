@@ -993,7 +993,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                 <button
                   data-react-grab-ignore-events
                   data-react-grab-toolbar-toggle
-                  class="contain-layout flex items-center justify-center cursor-pointer interactive-scale mr-1.5"
+                  class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5"
                   on:pointerdown={(event) => {
                     event.stopPropagation();
                     event.stopImmediatePropagation();

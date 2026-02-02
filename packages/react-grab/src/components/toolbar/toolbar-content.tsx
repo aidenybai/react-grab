@@ -52,7 +52,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
   };
 
   const defaultSelectButton = () => (
-    <button class="contain-layout flex items-center justify-center cursor-pointer interactive-scale mr-1.5">
+    <button class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5">
       <IconSelect
         size={14}
         class={cn(
