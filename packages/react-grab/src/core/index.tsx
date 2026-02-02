@@ -2239,19 +2239,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (store.contextMenuPosition !== null) return;
 
         if (isPromptMode()) {
-          const bounds = selectionBounds();
-          const isClickOnSelection =
-            bounds &&
-            event.clientX >= bounds.x &&
-            event.clientX <= bounds.x + bounds.width &&
-            event.clientY >= bounds.y &&
-            event.clientY <= bounds.y + bounds.height;
-
-          if (isClickOnSelection) {
-            void handleInputSubmit();
-          } else {
-            handleInputCancel();
-          }
+          handleInputCancel();
           return;
         }
 

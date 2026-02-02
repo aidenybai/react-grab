@@ -28,7 +28,10 @@ export const screenshotPlugin: Plugin = {
         });
 
         const captureBounds = combineBounds(elementBoundsList);
-        if (captureBounds.width === 0 || captureBounds.height === 0) return;
+        if (captureBounds.width === 0 || captureBounds.height === 0) {
+          context.cleanup();
+          return;
+        }
 
         await context.performWithFeedback(async () => {
           context.hideOverlay();
