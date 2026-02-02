@@ -65,7 +65,14 @@ const getOrCache = <K extends object, V>(
 type DispatchFunction = (...args: unknown[]) => void;
 type TransitionFunction = (callback: () => void) => void;
 
-const dispatcherProxyCache = new WeakMap<object, object>();
+interface OriginalHooks {
+  useState: DispatchFunction;
+  useReducer: DispatchFunction;
+  useTransition: DispatchFunction;
+  useSyncExternalStore: DispatchFunction;
+}
+
+const patchedDispatchers = new WeakMap<object, OriginalHooks>();
 const wrappedDispatchCache = new WeakMap<DispatchFunction, DispatchFunction>();
 const wrappedStartTransitionCache = new WeakMap<
   TransitionFunction,
@@ -79,7 +86,7 @@ const pausedContextStates = new WeakMap<
   ContextDependency,
   PausedContextState
 >();
-const renderersWithDispatcherProxy = new WeakSet<ReactRenderer>();
+const renderersWithPatchedDispatcher = new WeakSet<ReactRenderer>();
 const typedFiberRoots = _fiberRoots as Set<FiberRootLike>;
 
 const getFiberRoot = (fiber: Fiber): FiberRootLike | null => {
@@ -328,7 +335,123 @@ const resumeFiber = (fiber: Fiber): void => {
   forEachContextDependency(fiber, resumeContextDependency);
 };
 
-const installDispatcherProxy = (renderer: ReactRenderer): void => {
+const patchDispatcher = (dispatcher: object): void => {
+  if (patchedDispatchers.has(dispatcher)) return;
+
+  const typedDispatcher = dispatcher as Record<string, DispatchFunction>;
+  const originalHooks: OriginalHooks = {
+    useState: typedDispatcher.useState,
+    useReducer: typedDispatcher.useReducer,
+    useTransition: typedDispatcher.useTransition,
+    useSyncExternalStore: typedDispatcher.useSyncExternalStore,
+  };
+  patchedDispatchers.set(dispatcher, originalHooks);
+
+  typedDispatcher.useState = (...args: unknown[]) => {
+    const result = originalHooks.useState.apply(dispatcher, args) as unknown;
+    if (!isUpdatesPaused) return result;
+    if (!Array.isArray(result) || typeof result[1] !== "function")
+      return result;
+    const [state, dispatch] = result as [unknown, DispatchFunction];
+    const wrappedDispatch = getOrCache(
+      wrappedDispatchCache,
+      dispatch,
+      () =>
+        (...dispatchArgs: unknown[]) => {
+          if (isUpdatesPaused) {
+            pendingStateUpdates.push(() => dispatch(...dispatchArgs));
+          } else {
+            dispatch(...dispatchArgs);
+          }
+        },
+    );
+    return [state, wrappedDispatch];
+  };
+
+  typedDispatcher.useReducer = (...args: unknown[]) => {
+    const result = originalHooks.useReducer.apply(dispatcher, args) as unknown;
+    if (!isUpdatesPaused) return result;
+    if (!Array.isArray(result) || typeof result[1] !== "function")
+      return result;
+    const [state, dispatch] = result as [unknown, DispatchFunction];
+    const wrappedDispatch = getOrCache(
+      wrappedDispatchCache,
+      dispatch,
+      () =>
+        (...dispatchArgs: unknown[]) => {
+          if (isUpdatesPaused) {
+            pendingStateUpdates.push(() => dispatch(...dispatchArgs));
+          } else {
+            dispatch(...dispatchArgs);
+          }
+        },
+    );
+    return [state, wrappedDispatch];
+  };
+
+  typedDispatcher.useTransition = (...args: unknown[]) => {
+    const result = originalHooks.useTransition.apply(
+      dispatcher,
+      args,
+    ) as unknown;
+    if (!isUpdatesPaused) return result;
+    if (!Array.isArray(result) || typeof result[1] !== "function")
+      return result;
+    const [isPending, startTransition] = result as [
+      boolean,
+      TransitionFunction,
+    ];
+    const wrappedStartTransition = getOrCache(
+      wrappedStartTransitionCache,
+      startTransition,
+      () => (transitionCallback: () => void) => {
+        if (isUpdatesPaused) {
+          pendingTransitionCallbacks.push(() =>
+            startTransition(transitionCallback),
+          );
+        } else {
+          startTransition(transitionCallback);
+        }
+      },
+    );
+    return [isPending, wrappedStartTransition];
+  };
+
+  type UseSyncExternalStore = <T>(
+    subscribe: (onStoreChange: () => void) => () => void,
+    getSnapshot: () => T,
+    getServerSnapshot?: () => T,
+  ) => T;
+
+  typedDispatcher.useSyncExternalStore = (<T>(
+    subscribe: (onStoreChange: () => void) => () => void,
+    getSnapshot: () => T,
+    getServerSnapshot?: () => T,
+  ): T => {
+    if (!isUpdatesPaused) {
+      return (originalHooks.useSyncExternalStore as UseSyncExternalStore)(
+        subscribe,
+        getSnapshot,
+        getServerSnapshot,
+      );
+    }
+    const wrappedSubscribe = (onChange: () => void) =>
+      subscribe(() => {
+        if (isUpdatesPaused) {
+          pendingStoreCallbacks.add(onChange);
+        } else {
+          onChange();
+        }
+      });
+    return (originalHooks.useSyncExternalStore as UseSyncExternalStore)(
+      wrappedSubscribe,
+      getSnapshot,
+      getServerSnapshot,
+    );
+  }) as DispatchFunction;
+};
+
+const installDispatcherPatching = (renderer: ReactRenderer): void => {
   const dispatcherRef = renderer.currentDispatcherRef as {
     H?: unknown;
     current?: unknown;
@@ -338,118 +461,14 @@ const installDispatcherProxy = (renderer: ReactRenderer): void => {
   const dispatcherKey = "H" in dispatcherRef ? "H" : "current";
   let currentDispatcher = dispatcherRef[dispatcherKey];
 
-  const createDispatcherProxy = (dispatcher: object): object => {
-    return new Proxy(dispatcher, {
-      get(target, propertyName, receiver) {
-        const originalMethod = Reflect.get(target, propertyName, receiver);
-
-        if (propertyName === "useSyncExternalStore") {
-          type UseSyncExternalStore = <T>(
-            subscribe: (onStoreChange: () => void) => () => void,
-            getSnapshot: () => T,
-            getServerSnapshot?: () => T,
-          ) => T;
-
-          return <T>(
-            subscribe: (onStoreChange: () => void) => () => void,
-            getSnapshot: () => T,
-            getServerSnapshot?: () => T,
-          ): T => {
-            const wrappedSubscribe = (onChange: () => void) =>
-              subscribe(() => {
-                if (isUpdatesPaused) {
-                  pendingStoreCallbacks.add(onChange);
-                } else {
-                  onChange();
-                }
-              });
-            return (originalMethod as UseSyncExternalStore)(
-              wrappedSubscribe,
-              getSnapshot,
-              getServerSnapshot,
-            );
-          };
-        }
-
-        if (
-          propertyName === "useTransition" &&
-          typeof originalMethod === "function"
-        ) {
-          return (...hookArgs: unknown[]) => {
-            const result = (originalMethod as (...args: unknown[]) => unknown)(
-              ...hookArgs,
-            );
-            if (!Array.isArray(result) || typeof result[1] !== "function") {
-              return result;
-            }
-            const [isPending, startTransition] = result as [
-              boolean,
-              TransitionFunction,
-            ];
-            const wrappedStartTransition = getOrCache(
-              wrappedStartTransitionCache,
-              startTransition,
-              () => (transitionCallback: () => void) => {
-                if (isUpdatesPaused) {
-                  pendingTransitionCallbacks.push(() =>
-                    startTransition(transitionCallback),
-                  );
-                } else {
-                  startTransition(transitionCallback);
-                }
-              },
-            );
-            return [isPending, wrappedStartTransition];
-          };
-        }
-
-        if (
-          (propertyName === "useState" || propertyName === "useReducer") &&
-          typeof originalMethod === "function"
-        ) {
-          return (...hookArgs: unknown[]) => {
-            const result = (originalMethod as (...args: unknown[]) => unknown)(
-              ...hookArgs,
-            );
-            if (!Array.isArray(result) || typeof result[1] !== "function") {
-              return result;
-            }
-            const [state, dispatch] = result as [unknown, DispatchFunction];
-            const wrappedDispatch = getOrCache(
-              wrappedDispatchCache,
-              dispatch,
-              () =>
-                (...args: unknown[]) => {
-                  if (isUpdatesPaused) {
-                    pendingStateUpdates.push(() => dispatch(...args));
-                  } else {
-                    dispatch(...args);
-                  }
-                },
-            );
-            return [state, wrappedDispatch];
-          };
-        }
-
-        return originalMethod;
-      },
-    });
-  };
-
   Object.defineProperty(dispatcherRef, dispatcherKey, {
     configurable: true,
     enumerable: true,
     get: () => {
-      if (!currentDispatcher) return currentDispatcher;
-
-      if (!isUpdatesPaused) return currentDispatcher;
-
-      const cachedProxy = dispatcherProxyCache.get(currentDispatcher as object);
-      if (cachedProxy) return cachedProxy;
-
-      const proxy = createDispatcherProxy(currentDispatcher as object);
-      dispatcherProxyCache.set(currentDispatcher as object, proxy);
-      return proxy;
+      if (currentDispatcher && typeof currentDispatcher === "object") {
+        patchDispatcher(currentDispatcher);
+      }
+      return currentDispatcher;
     },
     set: (newDispatcher) => {
       currentDispatcher = newDispatcher;
@@ -490,9 +509,9 @@ const invokeCallbacks = (callbacks: Array<() => void>): void => {
 
 export const initializeFreezeSupport = (): void => {
   for (const renderer of getRDTHook().renderers.values()) {
-    if (renderersWithDispatcherProxy.has(renderer)) continue;
-    installDispatcherProxy(renderer);
-    renderersWithDispatcherProxy.add(renderer);
+    if (renderersWithPatchedDispatcher.has(renderer)) continue;
+    installDispatcherPatching(renderer);
+    renderersWithPatchedDispatcher.add(renderer);
   }
 };
 
