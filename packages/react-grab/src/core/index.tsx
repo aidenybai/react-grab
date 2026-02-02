@@ -83,6 +83,7 @@ import type {
   AgentSession,
   AgentOptions,
   ActionContext,
+  ContextMenuActionContext,
   SettableOptions,
   SourceInfo,
   Plugin,
@@ -106,6 +107,11 @@ import {
   loadToolbarState,
   saveToolbarState,
 } from "../components/toolbar/state.js";
+import { copyPlugin } from "./plugins/copy.js";
+import { screenshotPlugin } from "./plugins/screenshot.js";
+import { copyHtmlPlugin } from "./plugins/copy-html.js";
+import { openPlugin } from "./plugins/open.js";
+import { commentPlugin } from "./plugins/comment.js";
 import {
   freezeAnimations,
   freezeAllAnimations,
@@ -117,6 +123,14 @@ import {
   unfreezePseudoStates,
 } from "../utils/freeze-pseudo-states.js";
 import { freezeUpdates } from "../utils/freeze-updates.js";
+
+const builtInPlugins = [
+  copyPlugin,
+  commentPlugin,
+  screenshotPlugin,
+  copyHtmlPlugin,
+  openPlugin,
+];
 
 let hasInited = false;
 const toolbarStateChangeCallbacks = new Set<(state: ToolbarState) => void>();
@@ -300,9 +314,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const loadCachedInput = (element: Element) => {
       const cachedInput = elementInputCache.get(element);
-      if (cachedInput) {
-        actions.setInputText(cachedInput);
-      }
+      actions.setInputText(cachedInput ?? "");
     };
 
     const preparePromptMode = (
@@ -1307,9 +1319,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         createElementBounds(el),
       );
       const firstBounds = currentSelectionBounds[0];
-      const labelPositionX = store.pointer.x;
       const currentX = firstBounds.x + firstBounds.width / 2;
       const currentY = firstBounds.y + firstBounds.height / 2;
+      const labelPositionX = currentX + store.copyOffsetFromCenterX;
 
       if ((store.selectedAgent || hasAgentProvider()) && prompt) {
         elementInputCache.delete(element);
@@ -1349,7 +1361,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       performCopyWithLabel({
         element,
-        positionX: currentX,
+        positionX: labelPositionX,
         positionY: currentY,
         elements,
         extraPrompt: prompt || undefined,
@@ -1395,7 +1407,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleToggleExpand = () => {
-      if (!hasAgentProvider()) return;
       const element = store.frozenElement || targetElement();
       if (element) {
         preparePromptMode(element, store.pointer.x, store.pointer.y);
@@ -1564,24 +1575,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const firstElement = selectedElements[0];
       const center = getBoundsCenter(createElementBounds(firstElement));
 
-      if (hasAgentProvider()) {
-        actions.setPointer(center);
-        actions.setFrozenElements(selectedElements);
-        actions.setFrozenDragRect(createPageRectFromBounds(dragSelectionRect));
-        actions.freeze();
-        actions.showContextMenu(center, firstElement);
-        if (!isActivated()) {
-          activateRenderer();
-        }
-      } else {
-        performCopyWithLabel({
-          element: firstElement,
-          positionX: center.x,
-          positionY: center.y,
-          elements: selectedElements,
-          shouldDeactivateAfter: true,
-          dragRect: createPageRectFromBounds(dragSelectionRect),
-        });
+      actions.setPointer(center);
+      actions.setFrozenElements(selectedElements);
+      actions.setFrozenDragRect(createPageRectFromBounds(dragSelectionRect));
+      actions.freeze();
+      actions.showContextMenu(center, firstElement);
+      if (!isActivated()) {
+        activateRenderer();
       }
     };
 
@@ -1610,6 +1610,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         store.wasActivatedByToggle && !hasModifierKeyHeld;
 
       actions.setLastGrabbed(element);
+
       performCopyWithLabel({
         element,
         positionX,
@@ -1621,7 +1622,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handlePointerUp = (
       clientX: number,
       clientY: number,
-      hasModifierKeyHeld = false,
+      hasModifierKeyHeld: boolean,
     ) => {
       if (!isDragging()) return;
 
@@ -1760,7 +1761,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         !isActivated() &&
         copiedElement &&
         document.contains(copiedElement) &&
-        hasAgentProvider() &&
         !store.labelInstances.some(
           (instance) =>
             instance.status === "copied" || instance.status === "fading",
@@ -1785,8 +1785,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return true;
       }
 
-      const canActivateFromHolding =
-        isHoldingKeys() && !isPromptMode() && hasAgentProvider();
+      const canActivateFromHolding = isHoldingKeys() && !isPromptMode();
 
       if (canActivateFromHolding) {
         event.preventDefault();
@@ -2240,7 +2239,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (store.contextMenuPosition !== null) return;
 
         if (isPromptMode()) {
-          handleInputCancel();
+          const bounds = selectionBounds();
+          const isClickOnSelection =
+            bounds &&
+            event.clientX >= bounds.x &&
+            event.clientX <= bounds.x + bounds.width &&
+            event.clientY >= bounds.y &&
+            event.clientY <= bounds.y + bounds.height;
+
+          if (isClickOnSelection) {
+            void handleInputSubmit();
+          } else {
+            handleInputCancel();
+          }
           return;
         }
 
@@ -2261,11 +2272,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!event.isPrimary) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
-        handlePointerUp(
-          event.clientX,
-          event.clientY,
-          event.metaKey || event.ctrlKey,
-        );
+        const hasModifierKeyHeld = event.metaKey || event.ctrlKey;
+        handlePointerUp(event.clientX, event.clientY, hasModifierKeyHeld);
       },
       { capture: true },
     );
@@ -2661,24 +2669,142 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
     );
 
-    const contextMenuActionContext = createMemo(
-      (): ActionContext | undefined => {
-        const element = store.contextMenuElement;
-        if (!element) return undefined;
-        const fileInfo = contextMenuFilePath();
-        const rawContext: ActionContext = {
+    const createPerformWithFeedback = (
+      element: Element,
+      elements: Element[],
+      tagName: string | undefined,
+      componentName: string | undefined,
+    ) => {
+      return async (action: () => Promise<boolean>): Promise<void> => {
+        const position = store.contextMenuPosition ?? store.pointer;
+        const frozenBounds = frozenElementsBounds();
+        const singleElementBounds = contextMenuBounds();
+        const hasMultipleElements = elements.length > 1;
+
+        const labelBounds = hasMultipleElements
+          ? createFlatOverlayBounds(combineBounds(frozenBounds))
+          : singleElementBounds;
+
+        const shouldDeactivateAfter = store.wasActivatedByToggle;
+        const selectionBoundsForLabel = hasMultipleElements
+          ? frozenBounds
+          : singleElementBounds
+            ? [singleElementBounds]
+            : [];
+
+        actions.hideContextMenu();
+
+        if (labelBounds) {
+          const labelPositionX = hasMultipleElements
+            ? labelBounds.x + labelBounds.width / 2
+            : position.x;
+
+          const labelInstanceId = createLabelInstance(
+            labelBounds,
+            tagName || "element",
+            componentName,
+            "copying",
+            element,
+            labelPositionX,
+            hasMultipleElements ? elements : undefined,
+            selectionBoundsForLabel,
+          );
+
+          let didSucceed = false;
+          let errorMessage: string | undefined;
+
+          try {
+            didSucceed = await action();
+            if (!didSucceed) {
+              errorMessage = "Failed to copy";
+            }
+          } catch (error) {
+            errorMessage =
+              error instanceof Error && error.message
+                ? error.message
+                : "Action failed";
+          }
+
+          updateLabelInstance(
+            labelInstanceId,
+            didSucceed ? "copied" : "error",
+            didSucceed ? undefined : errorMessage || "Unknown error",
+          );
+
+          scheduleLabelFade(labelInstanceId);
+        } else {
+          try {
+            await action();
+          } catch {}
+        }
+
+        if (shouldDeactivateAfter) {
+          deactivateRenderer();
+        } else {
+          actions.unfreeze();
+        }
+      };
+    };
+
+    const contextMenuActionContext = createMemo(():
+      | ContextMenuActionContext
+      | undefined => {
+      const element = store.contextMenuElement;
+      if (!element) return undefined;
+      const fileInfo = contextMenuFilePath();
+      const elements =
+        store.frozenElements.length > 0 ? store.frozenElements : [element];
+      const tagName = contextMenuTagName();
+      const componentName = contextMenuComponentName();
+
+      const context: ContextMenuActionContext = {
+        element,
+        elements,
+        filePath: fileInfo?.filePath,
+        lineNumber: fileInfo?.lineNumber,
+        componentName,
+        tagName,
+        enterPromptMode: handleContextMenuPrompt,
+        copy: handleContextMenuCopy,
+        hooks: {
+          transformHtmlContent: pluginRegistry.hooks.transformHtmlContent,
+          transformScreenshot: pluginRegistry.hooks.transformScreenshot,
+          onOpenFile: pluginRegistry.hooks.onOpenFile,
+          transformOpenFileUrl: pluginRegistry.hooks.transformOpenFileUrl,
+        },
+        performWithFeedback: createPerformWithFeedback(
           element,
-          elements:
-            store.frozenElements.length > 0 ? store.frozenElements : [element],
-          filePath: fileInfo?.filePath,
-          lineNumber: fileInfo?.lineNumber,
-          componentName: contextMenuComponentName(),
-          tagName: contextMenuTagName(),
-          enterPromptMode: handleContextMenuPrompt,
-        };
-        return pluginRegistry.hooks.transformActionContext(rawContext);
-      },
-    );
+          elements,
+          tagName,
+          componentName,
+        ),
+        hideContextMenu: () => {
+          // HACK: Defer hiding context menu until after click event propagates fully
+          setTimeout(() => {
+            actions.hideContextMenu();
+          }, 0);
+        },
+        hideOverlay: () => {
+          isScreenshotInProgress = true;
+          rendererRoot.style.visibility = "hidden";
+        },
+        showOverlay: () => {
+          isScreenshotInProgress = false;
+          rendererRoot.style.visibility = "";
+        },
+        cleanup: () => {
+          if (store.wasActivatedByToggle) {
+            deactivateRenderer();
+          } else {
+            actions.unfreeze();
+          }
+        },
+      };
+
+      return pluginRegistry.hooks.transformActionContext(
+        context,
+      ) as ContextMenuActionContext;
+    });
 
     const handleContextMenuCopy = () => {
       const element = store.contextMenuElement;
@@ -2701,214 +2827,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, 0);
     };
 
-    const handleContextMenuCopyScreenshot = async () => {
-      const allBounds = frozenElementsBounds();
-      const singleBounds = contextMenuBounds();
-      const element = store.contextMenuElement;
-      const bounds =
-        store.frozenElements.length > 1
-          ? combineBounds(allBounds)
-          : singleBounds;
-      if (!bounds) return;
-
-      const tagName = element ? getTagName(element) || "element" : "element";
-      const shouldDeactivate = store.wasActivatedByToggle;
-      const overlayBounds = createFlatOverlayBounds(bounds);
-      const selectionBoundsArray =
-        store.frozenElements.length > 1
-          ? allBounds
-          : singleBounds
-            ? [singleBounds]
-            : [];
-      const elementsForScreenshot =
-        store.frozenElements.length > 0
-          ? [...store.frozenElements]
-          : element
-            ? [element]
-            : [];
-
-      actions.hideContextMenu();
-
-      const instanceId = createLabelInstance(
-        overlayBounds,
-        tagName,
-        undefined,
-        "copying",
-        element ?? undefined,
-        bounds.x + bounds.width / 2,
-        undefined,
-        selectionBoundsArray,
-      );
-
-      isScreenshotInProgress = true;
-      rendererRoot.style.visibility = "hidden";
-      await delay(SCREENSHOT_CAPTURE_DELAY_MS);
-
-      let didSucceed = false;
-      let errorMessage: string | undefined;
-
-      try {
-        const rawBlob = await captureElementScreenshot(bounds);
-        const transformedBlob = await pluginRegistry.hooks.transformScreenshot(
-          rawBlob,
-          elementsForScreenshot,
-          bounds,
-        );
-        didSucceed = await copyImageToClipboard(transformedBlob);
-        if (!didSucceed) {
-          errorMessage = "Failed to copy";
-        }
-      } catch (error) {
-        errorMessage =
-          error instanceof Error && error.message
-            ? error.message
-            : "Screenshot failed";
-      }
-
-      isScreenshotInProgress = false;
-      rendererRoot.style.visibility = "";
-
-      updateLabelInstance(
-        instanceId,
-        didSucceed ? "copied" : "error",
-        didSucceed ? undefined : errorMessage || "Unknown error",
-      );
-
-      scheduleLabelFade(instanceId);
-
-      if (shouldDeactivate) {
-        deactivateRenderer();
-      } else {
-        actions.unfreeze();
-      }
-    };
-
-    const handleContextMenuCopyHtml = async () => {
-      const element = store.contextMenuElement;
-      if (!element) return;
-
-      const frozenElements = [...store.frozenElements];
-      const elementsToUse =
-        frozenElements.length > 0 ? frozenElements : [element];
-
-      const rawHtml = elementsToUse
-        .filter((innerElement) => innerElement instanceof HTMLElement)
-        .map((innerElement) => innerElement.outerHTML)
-        .join("\n\n");
-      const html = await pluginRegistry.hooks.transformHtmlContent(
-        rawHtml,
-        elementsToUse,
-      );
-
-      const position = store.contextMenuPosition ?? store.pointer;
-      const allBounds = frozenElementsBounds();
-      const singleBounds = contextMenuBounds();
-      const combinedBounds =
-        store.frozenElements.length > 1 ? combineBounds(allBounds) : null;
-      const bounds = combinedBounds
-        ? createFlatOverlayBounds(combinedBounds)
-        : singleBounds;
-      const tagName = getTagName(element) || "element";
-      const componentName = contextMenuComponentName();
-      const shouldDeactivate = store.wasActivatedByToggle;
-      const selectionBoundsArray =
-        store.frozenElements.length > 1
-          ? allBounds
-          : singleBounds
-            ? [singleBounds]
-            : [];
-
-      actions.hideContextMenu();
-
-      if (bounds) {
-        const labelPositionX =
-          allBounds.length > 1 ? bounds.x + bounds.width / 2 : position.x;
-        const instanceId = createLabelInstance(
-          bounds,
-          tagName,
-          componentName,
-          "copying",
-          element,
-          labelPositionX,
-          frozenElements.length > 1 ? frozenElements : undefined,
-          selectionBoundsArray,
-        );
-
-        try {
-          await navigator.clipboard.writeText(html);
-          updateLabelInstance(instanceId, "copied");
-        } catch {
-          updateLabelInstance(instanceId, "error", "Failed to copy");
-        }
-
-        scheduleLabelFade(instanceId);
-      } else {
-        try {
-          await navigator.clipboard.writeText(html);
-        } catch {}
-      }
-
-      if (shouldDeactivate) {
-        deactivateRenderer();
-      } else {
-        actions.unfreeze();
-      }
-    };
-
-    const handleContextMenuOpen = () => {
-      const fileInfo = contextMenuFilePath();
-      if (fileInfo) {
-        const wasHandled = pluginRegistry.hooks.onOpenFile(
-          fileInfo.filePath,
-          fileInfo.lineNumber ?? undefined,
-        );
-        if (!wasHandled) {
-          const rawUrl = buildOpenFileUrl(
-            fileInfo.filePath,
-            fileInfo.lineNumber ?? undefined,
-          );
-          const url = pluginRegistry.hooks.transformOpenFileUrl(
-            rawUrl,
-            fileInfo.filePath,
-            fileInfo.lineNumber ?? undefined,
-          );
-          window.open(url, "_blank", "noopener,noreferrer");
-        }
-      }
-
-      const shouldDeactivate = store.wasActivatedByToggle;
-
-      // HACK: Defer hiding context menu until after click event propagates fully
-      setTimeout(() => {
-        actions.hideContextMenu();
-        if (shouldDeactivate) {
-          deactivateRenderer();
-        } else {
-          actions.unfreeze();
-        }
-      }, 0);
-    };
-
     const handleContextMenuPrompt = (agent?: AgentOptions) => {
       const element = store.contextMenuElement;
       const position = store.contextMenuPosition;
       if (!element || !position) return;
 
-      if (!hasAgentProvider() && !agent) {
-        handleContextMenuCopy();
-        return;
-      }
-
       if (agent) {
         actions.setSelectedAgent(agent);
       }
 
-      preparePromptMode(element, position.x, position.y);
-      actions.setPointer({ x: position.x, y: position.y });
-      if (store.frozenElements.length === 0) {
-        actions.setFrozenElement(element);
-      }
-      activatePromptMode();
+      loadCachedInput(element);
+      actions.enterPromptMode(position, element);
 
       // HACK: Defer hiding context menu until after click event propagates fully
       setTimeout(() => {
@@ -3019,7 +2948,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             grabbedBoxes={computedGrabbedBoxes()}
             labelZIndex={Z_INDEX_LABEL}
             mouseX={
-              store.frozenElements.length > 0 ? undefined : cursorPosition().x
+              store.frozenElements.length > 1 ? undefined : cursorPosition().x
             }
             mouseY={cursorPosition().y}
             crosshairVisible={crosshairVisible()}
@@ -3079,12 +3008,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             contextMenuHasFilePath={Boolean(contextMenuFilePath()?.filePath)}
             actions={pluginRegistry.store.actions}
             actionContext={contextMenuActionContext()}
-            onContextMenuCopy={handleContextMenuCopy}
-            onContextMenuCopyScreenshot={() =>
-              void handleContextMenuCopyScreenshot()
-            }
-            onContextMenuCopyHtml={() => void handleContextMenuCopyHtml()}
-            onContextMenuOpen={handleContextMenuOpen}
             onContextMenuDismiss={handleContextMenuDismiss}
             onContextMenuHide={handleContextMenuHide}
           />
@@ -3266,6 +3189,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       getPlugins: () => pluginRegistry.getPluginNames(),
       getDisplayName: getComponentDisplayName,
     };
+
+    for (const plugin of builtInPlugins) {
+      pluginRegistry.register(plugin, api);
+    }
 
     return api;
   });

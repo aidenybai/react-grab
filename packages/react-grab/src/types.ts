@@ -203,6 +203,24 @@ export interface AgentOptions<T = any> {
 
 export type ActivationMode = "toggle" | "hold";
 
+export interface ActionContextHooks {
+  transformHtmlContent: (
+    html: string,
+    elements: Element[],
+  ) => Promise<string>;
+  transformScreenshot: (
+    blob: Blob,
+    elements: Element[],
+    bounds: ScreenshotBounds,
+  ) => Promise<Blob>;
+  onOpenFile: (filePath: string, lineNumber?: number) => boolean | void;
+  transformOpenFileUrl: (
+    url: string,
+    filePath: string,
+    lineNumber?: number,
+  ) => string;
+}
+
 export interface ActionContext {
   element: Element;
   elements: Element[];
@@ -211,6 +229,16 @@ export interface ActionContext {
   componentName?: string;
   tagName?: string;
   enterPromptMode?: (agent?: AgentOptions) => void;
+  hooks: ActionContextHooks;
+  performWithFeedback: (action: () => Promise<boolean>) => Promise<void>;
+  hideContextMenu: () => void;
+  hideOverlay: () => void;
+  showOverlay: () => void;
+  cleanup: () => void;
+}
+
+export interface ContextMenuActionContext extends ActionContext {
+  copy?: () => void;
 }
 
 export interface ContextMenuAction {
@@ -218,7 +246,7 @@ export interface ContextMenuAction {
   label: string;
   shortcut?: string;
   enabled?: boolean | ((context: ActionContext) => boolean);
-  onAction: (context: ActionContext) => void;
+  onAction: (context: ContextMenuActionContext) => void | Promise<void>;
   agent?: AgentOptions;
 }
 
@@ -466,10 +494,6 @@ export interface ReactGrabRendererProps {
   contextMenuHasFilePath?: boolean;
   actions?: ContextMenuAction[];
   actionContext?: ActionContext;
-  onContextMenuCopy?: () => void;
-  onContextMenuCopyScreenshot?: () => void;
-  onContextMenuCopyHtml?: () => void;
-  onContextMenuOpen?: () => void;
   onContextMenuDismiss?: () => void;
   onContextMenuHide?: () => void;
 }

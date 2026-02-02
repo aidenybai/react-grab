@@ -2402,10 +2402,34 @@ const StateCard = (props: StateCardProps) => {
               tagName={currentProps().tagName}
               componentName={currentProps().componentName}
               hasFilePath={currentProps().hasFilePath ?? false}
-              onCopy={() => {}}
-              onCopyScreenshot={() => {}}
-              onCopyHtml={() => {}}
-              onOpen={() => {}}
+              actions={[
+                {
+                  id: "copy",
+                  label: "Copy",
+                  shortcut: "C",
+                  onAction: () => {},
+                },
+                {
+                  id: "screenshot",
+                  label: "Screenshot",
+                  shortcut: "S",
+                  onAction: () => {},
+                },
+                { id: "copy-html", label: "Copy HTML", onAction: () => {} },
+                {
+                  id: "open",
+                  label: "Open",
+                  shortcut: "O",
+                  enabled: currentProps().hasFilePath ?? false,
+                  onAction: () => {},
+                },
+                {
+                  id: "comment",
+                  label: "Comment",
+                  shortcut: "Enter",
+                  onAction: () => {},
+                },
+              ]}
               onDismiss={() => {}}
               onHide={() => {}}
             />
