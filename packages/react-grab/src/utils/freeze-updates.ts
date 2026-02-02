@@ -468,11 +468,12 @@ export const freezeUpdates = (): (() => void) => {
       const storeCallbacksToInvoke = Array.from(pendingStoreCallbacks);
       const transitionCallbacksToInvoke = pendingTransitionCallbacks.slice();
 
+      isUpdatesPaused = false;
+
       invokeCallbacks(storeCallbacksToInvoke);
       invokeCallbacks(transitionCallbacksToInvoke);
       scheduleReactUpdate(fiberRootsToResume);
     } finally {
-      isUpdatesPaused = false;
       pendingStoreCallbacks.clear();
       pendingTransitionCallbacks.length = 0;
     }
