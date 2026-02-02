@@ -1560,6 +1560,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleDragSelection = (
       dragSelectionRect: ReturnType<typeof calculateDragRectangle>,
+      hasModifierKeyHeld: boolean,
     ) => {
       const elements = getElementsInDrag(
         dragSelectionRect,
@@ -1584,12 +1585,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       actions.setPointer(center);
       actions.setFrozenElements(selectedElements);
-      actions.setFrozenDragRect(createPageRectFromBounds(dragSelectionRect));
+      const dragRect = createPageRectFromBounds(dragSelectionRect);
+      actions.setFrozenDragRect(dragRect);
       actions.freeze();
-      actions.showContextMenu(center, firstElement);
-      if (!isActivated()) {
-        activateRenderer();
-      }
+      actions.setLastGrabbed(firstElement);
+
+      const shouldDeactivateAfter =
+        store.wasActivatedByToggle && !hasModifierKeyHeld;
+
+      performCopyWithLabel({
+        element: firstElement,
+        positionX: center.x,
+        positionY: center.y,
+        elements: selectedElements,
+        shouldDeactivateAfter,
+        dragRect,
+      });
     };
 
     const handleSingleClick = (
@@ -1658,7 +1669,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       document.body.style.userSelect = "";
 
       if (dragSelectionRect) {
-        handleDragSelection(dragSelectionRect);
+        handleDragSelection(dragSelectionRect, hasModifierKeyHeld);
       } else {
         handleSingleClick(clientX, clientY, hasModifierKeyHeld);
       }
@@ -2792,65 +2803,65 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
     };
 
-    const contextMenuActionContext = createMemo(():
-      | ContextMenuActionContext
-      | undefined => {
-      const element = store.contextMenuElement;
-      if (!element) return undefined;
-      const fileInfo = contextMenuFilePath();
-      const elements =
-        store.frozenElements.length > 0 ? store.frozenElements : [element];
-      const tagName = contextMenuTagName();
-      const componentName = contextMenuComponentName();
+    const contextMenuActionContext = createMemo(
+      (): ContextMenuActionContext | undefined => {
+        const element = store.contextMenuElement;
+        if (!element) return undefined;
+        const fileInfo = contextMenuFilePath();
+        const elements =
+          store.frozenElements.length > 0 ? store.frozenElements : [element];
+        const tagName = contextMenuTagName();
+        const componentName = contextMenuComponentName();
 
-      const context: ContextMenuActionContext = {
-        element,
-        elements,
-        filePath: fileInfo?.filePath,
-        lineNumber: fileInfo?.lineNumber,
-        componentName,
-        tagName,
-        enterPromptMode: handleContextMenuPrompt,
-        copy: handleContextMenuCopy,
-        hooks: {
-          transformHtmlContent: pluginRegistry.hooks.transformHtmlContent,
-          transformScreenshot: pluginRegistry.hooks.transformScreenshot,
-          onOpenFile: pluginRegistry.hooks.onOpenFile,
-          transformOpenFileUrl: pluginRegistry.hooks.transformOpenFileUrl,
-        },
-        performWithFeedback: createPerformWithFeedback(
+        const context: ContextMenuActionContext = {
           element,
           elements,
-          tagName,
+          filePath: fileInfo?.filePath,
+          lineNumber: fileInfo?.lineNumber,
           componentName,
-        ),
-        hideContextMenu: () => {
-          // HACK: Defer hiding context menu until after click event propagates fully
-          setTimeout(() => {
-            actions.hideContextMenu();
-          }, 0);
-        },
-        hideOverlay: () => {
-          isScreenshotInProgress = true;
-          rendererRoot.style.visibility = "hidden";
-        },
-        showOverlay: () => {
-          isScreenshotInProgress = false;
-          rendererRoot.style.visibility = "";
-        },
-        cleanup: () => {
-          if (store.wasActivatedByToggle) {
-            deactivateRenderer();
-          } else {
-            actions.unfreeze();
-          }
-        },
-      };
+          tagName,
+          enterPromptMode: handleContextMenuPrompt,
+          copy: handleContextMenuCopy,
+          hooks: {
+            transformHtmlContent: pluginRegistry.hooks.transformHtmlContent,
+            transformScreenshot: pluginRegistry.hooks.transformScreenshot,
+            onOpenFile: pluginRegistry.hooks.onOpenFile,
+            transformOpenFileUrl: pluginRegistry.hooks.transformOpenFileUrl,
+          },
+          performWithFeedback: createPerformWithFeedback(
+            element,
+            elements,
+            tagName,
+            componentName,
+          ),
+          hideContextMenu: () => {
+            // HACK: Defer hiding context menu until after click event propagates fully
+            setTimeout(() => {
+              actions.hideContextMenu();
+            }, 0);
+          },
+          hideOverlay: () => {
+            isScreenshotInProgress = true;
+            rendererRoot.style.visibility = "hidden";
+          },
+          showOverlay: () => {
+            isScreenshotInProgress = false;
+            rendererRoot.style.visibility = "";
+          },
+          cleanup: () => {
+            if (store.wasActivatedByToggle) {
+              deactivateRenderer();
+            } else {
+              actions.unfreeze();
+            }
+          },
+        };
 
-      return pluginRegistry.hooks.transformActionContext(
-        context,
-      ) as ContextMenuActionContext;
-    });
+        return pluginRegistry.hooks.transformActionContext(
+          context,
+        ) as ContextMenuActionContext;
+      },
+    );
 
     const handleContextMenuCopy = () => {
       const element = store.contextMenuElement;

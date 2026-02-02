@@ -194,39 +194,6 @@ test.describe("Input Mode", () => {
       const isPromptMode = await reactGrab.isPromptModeActive();
       expect(isPromptMode).toBe(true);
     });
-
-    test("input mode via drag selection should work", async ({ reactGrab }) => {
-      await reactGrab.setupMockAgent();
-      await reactGrab.activate();
-
-      await reactGrab.dragSelect("li:first-child", "li:nth-child(3)");
-
-      await expect.poll(() => reactGrab.isContextMenuVisible()).toBe(true);
-
-      await reactGrab.clickContextMenuItem("Edit");
-
-      await expect.poll(() => reactGrab.isPromptModeActive()).toBe(true);
-    });
-
-    test("should show multi-element count in input mode", async ({
-      reactGrab,
-    }) => {
-      await reactGrab.setupMockAgent();
-      await reactGrab.activate();
-
-      await reactGrab.dragSelect("li:first-child", "li:nth-child(3)");
-
-      await expect.poll(() => reactGrab.isContextMenuVisible()).toBe(true);
-
-      await reactGrab.clickContextMenuItem("Edit");
-
-      await expect
-        .poll(async () => {
-          const labelInfo = await reactGrab.getSelectionLabelInfo();
-          return labelInfo.isVisible && (labelInfo.elementsCount ?? 0) > 1;
-        })
-        .toBe(true);
-    });
   });
 
   test.describe("Keyboard Shortcuts in Input Mode", () => {

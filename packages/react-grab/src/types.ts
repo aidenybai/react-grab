@@ -204,10 +204,7 @@ export interface AgentOptions<T = any> {
 export type ActivationMode = "toggle" | "hold";
 
 export interface ActionContextHooks {
-  transformHtmlContent: (
-    html: string,
-    elements: Element[],
-  ) => Promise<string>;
+  transformHtmlContent: (html: string, elements: Element[]) => Promise<string>;
   transformScreenshot: (
     blob: Blob,
     elements: Element[],

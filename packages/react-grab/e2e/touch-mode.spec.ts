@@ -48,9 +48,6 @@ test.describe("Touch Mode", () => {
         endBox.x + endBox.width + 10,
         endBox.y + endBox.height + 10,
       );
-      await reactGrab.page.waitForTimeout(300);
-
-      await reactGrab.clickContextMenuItem("Copy");
       await reactGrab.page.waitForTimeout(500);
 
       const clipboard = await reactGrab.getClipboardContent();
@@ -158,9 +155,6 @@ test.describe("Touch Mode", () => {
         endBox.x + endBox.width + 5,
         endBox.y + endBox.height + 5,
       );
-      await reactGrab.page.waitForTimeout(300);
-
-      await reactGrab.clickContextMenuItem("Copy");
       await reactGrab.page.waitForTimeout(500);
 
       const clipboard = await reactGrab.getClipboardContent();

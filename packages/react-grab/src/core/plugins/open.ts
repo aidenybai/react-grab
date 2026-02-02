@@ -18,10 +18,7 @@ export const openPlugin: Plugin = {
         );
 
         if (!wasHandled) {
-          const rawUrl = buildOpenFileUrl(
-            context.filePath,
-            context.lineNumber,
-          );
+          const rawUrl = buildOpenFileUrl(context.filePath, context.lineNumber);
           const url = context.hooks.transformOpenFileUrl(
             rawUrl,
             context.filePath,
