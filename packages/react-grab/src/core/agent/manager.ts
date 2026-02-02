@@ -83,6 +83,7 @@ export const createAgentManager = (
   const [canUndo, setCanUndo] = createSignal(false);
   const [canRedo, setCanRedo] = createSignal(false);
   const abortControllers = new Map<string, AbortController>();
+  const dismissTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
   const sessionMetadata = new Map<
     string,
     { elements: Element[]; agent: AgentOptions }
@@ -444,6 +445,8 @@ export const createAgentManager = (
     } else {
       abortControllers.forEach((controller) => controller.abort());
       abortControllers.clear();
+      dismissTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
+      dismissTimeouts.clear();
       sessionMetadata.clear();
       completedSessionsStack.length = 0;
       undoneSessionsStack.length = 0;
@@ -479,16 +482,20 @@ export const createAgentManager = (
     });
 
     // HACK: Wait for CSS opacity transition + buffer before removing
-    setTimeout(() => {
-      const storage = activeAgent?.storage;
+    const existingTimeout = dismissTimeouts.get(sessionId);
+    if (existingTimeout) clearTimeout(existingTimeout);
+
+    const timeoutId = setTimeout(() => {
+      dismissTimeouts.delete(sessionId);
       sessionMetadata.delete(sessionId);
-      clearSessionById(sessionId, storage);
+      clearSessionById(sessionId, activeAgent?.storage);
       setSessions((prev) => {
         const next = new Map(prev);
         next.delete(sessionId);
         return next;
       });
     }, FADE_DURATION_MS + DISMISS_ANIMATION_BUFFER_MS);
+    dismissTimeouts.set(sessionId, timeoutId);
   };
 
   const undoSession = (sessionId: string) => {

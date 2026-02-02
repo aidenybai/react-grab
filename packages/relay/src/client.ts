@@ -309,7 +309,7 @@ export const createRelayAgentProvider = (
       }
     };
 
-    signal.addEventListener("abort", handleAbort);
+    signal.addEventListener("abort", handleAbort, { once: true });
 
     const handleConnectionChange = (connected: boolean) => {
       if (!connected && !isDone) {

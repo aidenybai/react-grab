@@ -286,4 +286,83 @@ test.describe("Freeze Updates", () => {
       expect(countAfter).toBe(countBefore + 1);
     });
   });
+
+  test.describe("Button Click Buffering", () => {
+    test("should buffer multiple clicks during freeze and apply on unfreeze", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.setupMockAgent({ delay: 100 });
+
+      const getElementCount = async () => {
+        return reactGrab.page.evaluate(() => {
+          return document.querySelectorAll("[data-testid^='dynamic-element-']")
+            .length;
+        });
+      };
+
+      const countBefore = await getElementCount();
+
+      await reactGrab.enterPromptMode("[data-testid='dynamic-element-1']");
+
+      for (let clickIndex = 0; clickIndex < 3; clickIndex++) {
+        await reactGrab.page.evaluate(() => {
+          const addButton = document.querySelector(
+            "[data-testid='add-element-button']",
+          ) as HTMLButtonElement;
+          addButton?.click();
+        });
+        await reactGrab.page.waitForTimeout(50);
+      }
+
+      const countDuringFreeze = await getElementCount();
+      expect(countDuringFreeze).toBe(countBefore);
+
+      await reactGrab.pressEscape();
+      await reactGrab.page.waitForTimeout(300);
+
+      const countAfterUnfreeze = await getElementCount();
+      expect(countAfterUnfreeze).toBe(countBefore);
+    });
+
+    test("should not accumulate state incorrectly across freeze cycles", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.setupMockAgent({ delay: 100 });
+
+      const getElementCount = async () => {
+        return reactGrab.page.evaluate(() => {
+          return document.querySelectorAll("[data-testid^='dynamic-element-']")
+            .length;
+        });
+      };
+
+      const countBeforeFirstCycle = await getElementCount();
+
+      await reactGrab.enterPromptMode("[data-testid='dynamic-element-1']");
+      await reactGrab.page.evaluate(() => {
+        const addButton = document.querySelector(
+          "[data-testid='add-element-button']",
+        ) as HTMLButtonElement;
+        addButton?.click();
+      });
+      await reactGrab.pressEscape();
+      await reactGrab.page.waitForTimeout(300);
+
+      const countAfterFirstCycle = await getElementCount();
+      expect(countAfterFirstCycle).toBe(countBeforeFirstCycle);
+
+      await reactGrab.enterPromptMode("[data-testid='dynamic-element-1']");
+      await reactGrab.page.evaluate(() => {
+        const addButton = document.querySelector(
+          "[data-testid='add-element-button']",
+        ) as HTMLButtonElement;
+        addButton?.click();
+      });
+      await reactGrab.pressEscape();
+      await reactGrab.page.waitForTimeout(300);
+
+      const countAfterSecondCycle = await getElementCount();
+      expect(countAfterSecondCycle).toBe(countBeforeFirstCycle);
+    });
+  });
 });
