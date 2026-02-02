@@ -109,7 +109,6 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   };
 
   const crosshairCurrentPosition: Position = { x: 0, y: 0 };
-  const crosshairTargetPosition: Position = { x: 0, y: 0 };
 
   let selectionAnimations: AnimatedBounds[] = [];
   let dragAnimation: AnimatedBounds | null = null;
@@ -546,8 +545,6 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
         crosshairCurrentPosition.x = targetX;
         crosshairCurrentPosition.y = targetY;
-        crosshairTargetPosition.x = targetX;
-        crosshairTargetPosition.y = targetY;
         scheduleAnimationFrame();
       },
     ),
@@ -556,11 +553,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   createEffect(
     on(
       () => props.crosshairVisible,
-      (visible) => {
-        if (visible) {
-          crosshairCurrentPosition.x = crosshairTargetPosition.x;
-          crosshairCurrentPosition.y = crosshairTargetPosition.y;
-        }
+      () => {
         scheduleAnimationFrame();
       },
     ),
