@@ -41,6 +41,7 @@ import {
   unfreezePseudoStates,
 } from "../../utils/freeze-pseudo-states.js";
 import { Tooltip } from "../tooltip.jsx";
+import { getToolbarIconColor } from "../../utils/get-toolbar-icon-color.js";
 
 interface ToolbarProps {
   isActive?: boolean;
@@ -84,15 +85,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [isShakeTooltipVisible, setIsShakeTooltipVisible] = createSignal(false);
 
   const tooltipPosition = () => (snapEdge() === "top" ? "bottom" : "top");
-
-  const getToolbarIconColor = (
-    isHighlighted: boolean,
-    isActive: boolean,
-  ): string => {
-    if (isHighlighted) return "text-black";
-    if (isActive) return "text-black/40";
-    return "text-black/70";
-  };
 
   const stopEventPropagation = (event: Event) => {
     event.stopPropagation();

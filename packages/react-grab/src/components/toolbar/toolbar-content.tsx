@@ -4,6 +4,7 @@ import { PANEL_STYLES } from "../../constants.js";
 import { IconSelect } from "../icons/icon-select.jsx";
 import { IconComment } from "../icons/icon-comment.jsx";
 import { IconChevron } from "../icons/icon-chevron.jsx";
+import { getToolbarIconColor } from "../../utils/get-toolbar-icon-color.js";
 
 export interface ToolbarContentProps {
   isActive?: boolean;
@@ -54,19 +55,13 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
     }
   };
 
-  const getIconColor = (isActiveMode: boolean, isOtherModeActive: boolean) => {
-    if (isActiveMode) return "text-black";
-    if (isOtherModeActive) return "text-black/40";
-    return "text-black/70";
-  };
-
   const defaultSelectButton = () => (
     <button class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5">
       <IconSelect
         size={14}
         class={cn(
           "transition-colors",
-          getIconColor(
+          getToolbarIconColor(
             Boolean(props.isActive) && !props.isCommentMode,
             Boolean(props.isCommentMode),
           ),
@@ -81,7 +76,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
         size={14}
         class={cn(
           "transition-colors",
-          getIconColor(
+          getToolbarIconColor(
             Boolean(props.isCommentMode),
             Boolean(props.isActive) && !props.isCommentMode,
           ),

@@ -1477,7 +1477,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handleComment = () => {
       if (!isEnabled()) return;
 
-      const isAlreadyInCommentMode = isActivated() && store.pendingCommentMode;
+      const isAlreadyInCommentMode = isActivated() && isCommentMode();
       if (isAlreadyInCommentMode) {
         deactivateRenderer();
         return;
