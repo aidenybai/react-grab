@@ -7,6 +7,7 @@ import { IconChevron } from "../icons/icon-chevron.jsx";
 
 export interface ToolbarContentProps {
   isActive?: boolean;
+  isCommentMode?: boolean;
   enabled?: boolean;
   isCollapsed?: boolean;
   snapEdge?: "top" | "bottom" | "left" | "right";
@@ -53,13 +54,22 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
     }
   };
 
+  const getIconColor = (isActiveMode: boolean, isOtherModeActive: boolean) => {
+    if (isActiveMode) return "text-black";
+    if (isOtherModeActive) return "text-black/40";
+    return "text-black/70";
+  };
+
   const defaultSelectButton = () => (
     <button class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5">
       <IconSelect
         size={14}
         class={cn(
           "transition-colors",
-          props.isActive ? "text-black" : "text-black/70",
+          getIconColor(
+            Boolean(props.isActive) && !props.isCommentMode,
+            Boolean(props.isCommentMode),
+          ),
         )}
       />
     </button>
@@ -67,7 +77,16 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
 
   const defaultCommentButton = () => (
     <button class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5">
-      <IconComment size={14} class="transition-colors text-black/70" />
+      <IconComment
+        size={14}
+        class={cn(
+          "transition-colors",
+          getIconColor(
+            Boolean(props.isCommentMode),
+            Boolean(props.isActive) && !props.isCommentMode,
+          ),
+        )}
+      />
     </button>
   );
 
