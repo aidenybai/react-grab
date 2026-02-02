@@ -232,6 +232,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => store.current.state === "active" && store.current.isPromptMode,
     );
 
+    const isCommentMode = createMemo(
+      () => store.pendingCommentMode || isPromptMode(),
+    );
+
     const isPendingDismiss = createMemo(
       () =>
         store.current.state === "active" &&
@@ -1460,6 +1464,31 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
+    const enterCommentModeForElement = (
+      element: Element,
+      positionX: number,
+      positionY: number,
+    ) => {
+      actions.setPendingCommentMode(false);
+      loadCachedInput(element);
+      actions.enterPromptMode({ x: positionX, y: positionY }, element);
+    };
+
+    const handleComment = () => {
+      if (!isEnabled()) return;
+
+      const isAlreadyInCommentMode = isActivated() && isCommentMode();
+      if (isAlreadyInCommentMode) {
+        deactivateRenderer();
+        return;
+      }
+
+      actions.setPendingCommentMode(true);
+      if (!isActivated()) {
+        toggleActivate();
+      }
+    };
+
     const handleToggleEnabled = () => {
       const newEnabled = !isEnabled();
       setIsEnabled(newEnabled);
@@ -1590,6 +1619,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.freeze();
       actions.setLastGrabbed(firstElement);
 
+      if (store.pendingCommentMode) {
+        enterCommentModeForElement(firstElement, center.x, center.y);
+        return;
+      }
+
       const shouldDeactivateAfter =
         store.wasActivatedByToggle && !hasModifierKeyHeld;
 
@@ -1623,6 +1657,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const positionX = validFrozenElement ? store.pointer.x : clientX;
       const positionY = validFrozenElement ? store.pointer.y : clientY;
+
+      if (store.pendingCommentMode) {
+        enterCommentModeForElement(element, positionX, positionY);
+        return;
+      }
 
       const shouldDeactivateAfter =
         store.wasActivatedByToggle && !hasModifierKeyHeld;
@@ -2393,7 +2432,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         store.contextMenuPosition === null &&
         store.frozenElements.length === 0
       ) {
-        const candidate = getElementAtPosition(store.pointer.x, store.pointer.y);
+        const candidate = getElementAtPosition(
+          store.pointer.x,
+          store.pointer.y,
+        );
         actions.setDetectedElement(candidate);
       }
     };
@@ -2424,8 +2466,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const scaleY = currentViewportHeight / previousViewportHeight;
         const isUniformScale =
           Math.abs(scaleX - scaleY) < ZOOM_DETECTION_THRESHOLD;
-        const hasScaleChanged =
-          Math.abs(scaleX - 1) > ZOOM_DETECTION_THRESHOLD;
+        const hasScaleChanged = Math.abs(scaleX - 1) > ZOOM_DETECTION_THRESHOLD;
 
         if (isUniformScale && hasScaleChanged) {
           actions.setPointer({
@@ -3043,7 +3084,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             theme={pluginRegistry.store.theme}
             toolbarVisible={pluginRegistry.store.theme.toolbar.enabled}
             isActive={isActivated()}
+            isCommentMode={isCommentMode()}
             onToggleActive={handleToggleActive}
+            onComment={handleComment}
             enabled={isEnabled()}
             onToggleEnabled={handleToggleEnabled}
             shakeCount={toolbarShakeCount()}

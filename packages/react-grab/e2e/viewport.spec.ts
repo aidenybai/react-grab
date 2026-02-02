@@ -19,7 +19,9 @@ test.describe("Viewport and Scroll Handling", () => {
   }) => {
     await reactGrab.activate();
 
-    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").first();
+    const firstItem = reactGrab.page
+      .locator("[data-testid='todo-list'] li")
+      .first();
     const firstItemBox = await firstItem.boundingBox();
     expect(firstItemBox).not.toBeNull();
 
@@ -69,7 +71,8 @@ test.describe("Viewport and Scroll Handling", () => {
     const newBounds = await reactGrab.getSelectionBoxBounds();
     if (newBounds !== null && initialBounds !== null) {
       const boundsChanged =
-        newBounds.y !== initialBounds.y || newBounds.height !== initialBounds.height;
+        newBounds.y !== initialBounds.y ||
+        newBounds.height !== initialBounds.height;
       expect(boundsChanged).toBe(true);
     }
   });

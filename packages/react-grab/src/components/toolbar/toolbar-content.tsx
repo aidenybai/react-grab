@@ -2,10 +2,13 @@ import type { Component, JSX } from "solid-js";
 import { cn } from "../../utils/cn.js";
 import { PANEL_STYLES } from "../../constants.js";
 import { IconSelect } from "../icons/icon-select.jsx";
+import { IconComment } from "../icons/icon-comment.jsx";
 import { IconChevron } from "../icons/icon-chevron.jsx";
+import { getToolbarIconColor } from "../../utils/get-toolbar-icon-color.js";
 
 export interface ToolbarContentProps {
   isActive?: boolean;
+  isCommentMode?: boolean;
   enabled?: boolean;
   isCollapsed?: boolean;
   snapEdge?: "top" | "bottom" | "left" | "right";
@@ -13,6 +16,7 @@ export interface ToolbarContentProps {
   onAnimationEnd?: () => void;
   onPanelClick?: (event: MouseEvent) => void;
   selectButton?: JSX.Element;
+  commentButton?: JSX.Element;
   toggleButton?: JSX.Element;
   collapseButton?: JSX.Element;
   shakeTooltip?: JSX.Element;
@@ -57,7 +61,25 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
         size={14}
         class={cn(
           "transition-colors",
-          props.isActive ? "text-black" : "text-black/70",
+          getToolbarIconColor(
+            Boolean(props.isActive) && !props.isCommentMode,
+            Boolean(props.isCommentMode),
+          ),
+        )}
+      />
+    </button>
+  );
+
+  const defaultCommentButton = () => (
+    <button class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5">
+      <IconComment
+        size={14}
+        class={cn(
+          "transition-colors",
+          getToolbarIconColor(
+            Boolean(props.isCommentMode),
+            Boolean(props.isActive) && !props.isCommentMode,
+          ),
         )}
       />
     </button>
@@ -116,14 +138,26 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
         <div class="flex items-center min-w-0">
           <div
             class={cn(
-              "grid transition-all duration-150 ease-out overflow-hidden",
+              "grid transition-all duration-150 ease-out",
               props.enabled
                 ? "grid-cols-[1fr] opacity-100"
                 : "grid-cols-[0fr] opacity-0",
             )}
           >
-            <div class="relative overflow-hidden min-w-0">
+            <div class="relative overflow-visible min-w-0">
               {props.selectButton ?? defaultSelectButton()}
+            </div>
+          </div>
+          <div
+            class={cn(
+              "grid transition-all duration-150 ease-out",
+              props.enabled
+                ? "grid-cols-[1fr] opacity-100"
+                : "grid-cols-[0fr] opacity-0",
+            )}
+          >
+            <div class="relative overflow-visible min-w-0">
+              {props.commentButton ?? defaultCommentButton()}
             </div>
           </div>
           <div class="relative shrink-0 overflow-visible">
