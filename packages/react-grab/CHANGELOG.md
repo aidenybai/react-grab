@@ -1,5 +1,15 @@
 # react-grab
 
+## 0.1.0-beta.13
+
+### Patch Changes
+
+- 616d3e8: fix: prevent form submission during IME composition
+
+  When typing CJK (Chinese, Japanese, Korean) characters using IME, pressing Enter to confirm character selection no longer incorrectly submits the form. Added `event.isComposing` check to skip form submission during active IME composition.
+
+- ui improvements
+
 ## 0.1.0-beta.12
 
 ### Patch Changes
