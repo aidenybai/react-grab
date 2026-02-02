@@ -17,7 +17,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
     <>
       <OverlayCanvas
         crosshairVisible={props.crosshairVisible}
-        crosshairShouldSnap={props.crosshairShouldSnap}
         mouseX={props.mouseX}
         mouseY={props.mouseY}
         selectionVisible={props.selectionVisible}

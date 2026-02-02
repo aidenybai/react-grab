@@ -9,7 +9,6 @@ import { lerp } from "../utils/lerp.js";
 import {
   SELECTION_LERP_FACTOR,
   FEEDBACK_DURATION_MS,
-  CROSSHAIR_LERP_FACTOR,
   DRAG_LERP_FACTOR,
   LERP_CONVERGENCE_THRESHOLD_PX,
   FADE_OUT_BUFFER_MS,
@@ -70,7 +69,6 @@ interface Position {
 
 export interface OverlayCanvasProps {
   crosshairVisible?: boolean;
-  crosshairShouldSnap?: boolean;
   mouseX?: number;
   mouseY?: number;
 
@@ -454,36 +452,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   const runAnimationFrame = () => {
     let shouldContinueAnimating = false;
 
-    if (props.crosshairVisible) {
-      const lerpedX = lerp(
-        crosshairCurrentPosition.x,
-        crosshairTargetPosition.x,
-        CROSSHAIR_LERP_FACTOR,
-      );
-      const lerpedY = lerp(
-        crosshairCurrentPosition.y,
-        crosshairTargetPosition.y,
-        CROSSHAIR_LERP_FACTOR,
-      );
-
-      const hasXConverged =
-        Math.abs(lerpedX - crosshairTargetPosition.x) <
-        LERP_CONVERGENCE_THRESHOLD_PX;
-      const hasYConverged =
-        Math.abs(lerpedY - crosshairTargetPosition.y) <
-        LERP_CONVERGENCE_THRESHOLD_PX;
-
-      crosshairCurrentPosition.x = hasXConverged
-        ? crosshairTargetPosition.x
-        : lerpedX;
-      crosshairCurrentPosition.y = hasYConverged
-        ? crosshairTargetPosition.y
-        : lerpedY;
-
-      if (!hasXConverged || !hasYConverged) {
-        shouldContinueAnimating = true;
-      }
-    }
+    // Crosshair doesn't need lerping - it follows cursor position directly
 
     if (dragAnimation?.isInitialized) {
       if (interpolateBounds(dragAnimation, LAYER_STYLES.drag.lerpFactor)) {
@@ -573,19 +542,17 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
   createEffect(
     on(
-      () => [props.mouseX, props.mouseY, props.crosshairShouldSnap] as const,
-      ([mouseX, mouseY, shouldSnap]) => {
+      () => [props.mouseX, props.mouseY] as const,
+      ([mouseX, mouseY]) => {
         const targetX = mouseX ?? 0;
         const targetY = mouseY ?? 0;
 
-        if (!isCrosshairInitialized || shouldSnap) {
-          crosshairCurrentPosition.x = targetX;
-          crosshairCurrentPosition.y = targetY;
-          isCrosshairInitialized = true;
-        }
-
+        // No lerping for crosshair - it should follow cursor precisely
+        crosshairCurrentPosition.x = targetX;
+        crosshairCurrentPosition.y = targetY;
         crosshairTargetPosition.x = targetX;
         crosshairTargetPosition.y = targetY;
+        isCrosshairInitialized = true;
         scheduleAnimationFrame();
       },
     ),

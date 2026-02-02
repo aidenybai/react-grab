@@ -230,7 +230,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       createSignal<ToolbarState | null>(savedToolbarState);
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] =
       createSignal(false);
-    const [crosshairShouldSnap, setCrosshairShouldSnap] = createSignal(false);
 
     const pendingAbortSessionId = createMemo(() => store.pendingAbortSessionId);
 
@@ -2408,12 +2407,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           Math.abs(scaleX - scaleY) < 0.01 && Math.abs(scaleX - 1) > 0.01;
 
         if (isZoomChange) {
-          setCrosshairShouldSnap(true);
           actions.setPointer({
             x: store.pointer.x * scaleX,
             y: store.pointer.y * scaleY,
           });
-          queueMicrotask(() => setCrosshairShouldSnap(false));
         }
       }
 
@@ -3075,7 +3072,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             }
             mouseY={cursorPosition().y}
             crosshairVisible={crosshairVisible()}
-            crosshairShouldSnap={crosshairShouldSnap()}
             isFrozen={
               isToggleFrozen() || isActivated() || isToolbarSelectHovered()
             }
