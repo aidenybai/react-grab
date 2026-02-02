@@ -28,8 +28,14 @@ import { isSourceFile, normalizeFileName } from "bippy/source";
 import { createNoopApi } from "./noop-api.js";
 import { createEventListenerManager } from "./events.js";
 import { tryCopyWithFallback } from "./copy.js";
-import { getElementAtPosition } from "../utils/get-element-at-position.js";
-import { isValidGrabbableElement } from "../utils/is-valid-grabbable-element.js";
+import {
+  getElementAtPosition,
+  clearElementPositionCache,
+} from "../utils/get-element-at-position.js";
+import {
+  isValidGrabbableElement,
+  clearVisibilityCache,
+} from "../utils/is-valid-grabbable-element.js";
 import { isRootElement } from "../utils/is-root-element.js";
 import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
 import {
@@ -59,6 +65,7 @@ import {
   DEFAULT_KEY_HOLD_DURATION_MS,
   MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS,
   SCREENSHOT_CAPTURE_DELAY_MS,
+  ZOOM_DETECTION_THRESHOLD,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
@@ -2366,22 +2373,61 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     });
 
-    eventListenerManager.addWindowListener(
-      "scroll",
-      () => {
-        invalidateBoundsCache();
-        actions.incrementViewportVersion();
-        actions.updateSessionBounds();
-        actions.updateContextMenuPosition();
-      },
-      { capture: true },
-    );
+    const redetectElementUnderPointer = () => {
+      if (
+        isEnabled() &&
+        !isPromptMode() &&
+        !isToggleFrozen() &&
+        !isDragging() &&
+        store.contextMenuPosition === null &&
+        store.frozenElements.length === 0
+      ) {
+        const candidate = getElementAtPosition(store.pointer.x, store.pointer.y);
+        actions.setDetectedElement(candidate);
+      }
+    };
 
-    eventListenerManager.addWindowListener("resize", () => {
+    const handleViewportChange = () => {
       invalidateBoundsCache();
+      clearElementPositionCache();
+      clearVisibilityCache();
+      redetectElementUnderPointer();
       actions.incrementViewportVersion();
       actions.updateSessionBounds();
       actions.updateContextMenuPosition();
+    };
+
+    eventListenerManager.addWindowListener("scroll", handleViewportChange, {
+      capture: true,
+    });
+
+    let previousViewportWidth = window.innerWidth;
+    let previousViewportHeight = window.innerHeight;
+
+    eventListenerManager.addWindowListener("resize", () => {
+      const currentViewportWidth = window.innerWidth;
+      const currentViewportHeight = window.innerHeight;
+
+      if (previousViewportWidth > 0 && previousViewportHeight > 0) {
+        const scaleX = currentViewportWidth / previousViewportWidth;
+        const scaleY = currentViewportHeight / previousViewportHeight;
+        const isUniformScale =
+          Math.abs(scaleX - scaleY) < ZOOM_DETECTION_THRESHOLD;
+        const hasScaleChanged =
+          Math.abs(scaleX - 1) > ZOOM_DETECTION_THRESHOLD;
+
+        if (isUniformScale && hasScaleChanged) {
+          actions.setPointer({
+            x: store.pointer.x * scaleX,
+            y: store.pointer.y * scaleY,
+          });
+        }
+      }
+
+      previousViewportWidth = currentViewportWidth;
+      previousViewportHeight = currentViewportHeight;
+
+      handleViewportChange();
     });
 
     let boundsRecalcIntervalId: number | null = null;

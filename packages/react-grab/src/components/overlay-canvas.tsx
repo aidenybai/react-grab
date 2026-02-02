@@ -9,7 +9,6 @@ import { lerp } from "../utils/lerp.js";
 import {
   SELECTION_LERP_FACTOR,
   FEEDBACK_DURATION_MS,
-  CROSSHAIR_LERP_FACTOR,
   DRAG_LERP_FACTOR,
   LERP_CONVERGENCE_THRESHOLD_PX,
   FADE_OUT_BUFFER_MS,
@@ -110,8 +109,6 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   };
 
   const crosshairCurrentPosition: Position = { x: 0, y: 0 };
-  const crosshairTargetPosition: Position = { x: 0, y: 0 };
-  let isCrosshairInitialized = false;
 
   let selectionAnimations: AnimatedBounds[] = [];
   let dragAnimation: AnimatedBounds | null = null;
@@ -453,37 +450,6 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   const runAnimationFrame = () => {
     let shouldContinueAnimating = false;
 
-    if (props.crosshairVisible) {
-      const lerpedX = lerp(
-        crosshairCurrentPosition.x,
-        crosshairTargetPosition.x,
-        CROSSHAIR_LERP_FACTOR,
-      );
-      const lerpedY = lerp(
-        crosshairCurrentPosition.y,
-        crosshairTargetPosition.y,
-        CROSSHAIR_LERP_FACTOR,
-      );
-
-      const hasXConverged =
-        Math.abs(lerpedX - crosshairTargetPosition.x) <
-        LERP_CONVERGENCE_THRESHOLD_PX;
-      const hasYConverged =
-        Math.abs(lerpedY - crosshairTargetPosition.y) <
-        LERP_CONVERGENCE_THRESHOLD_PX;
-
-      crosshairCurrentPosition.x = hasXConverged
-        ? crosshairTargetPosition.x
-        : lerpedX;
-      crosshairCurrentPosition.y = hasYConverged
-        ? crosshairTargetPosition.y
-        : lerpedY;
-
-      if (!hasXConverged || !hasYConverged) {
-        shouldContinueAnimating = true;
-      }
-    }
-
     if (dragAnimation?.isInitialized) {
       if (interpolateBounds(dragAnimation, LAYER_STYLES.drag.lerpFactor)) {
         shouldContinueAnimating = true;
@@ -577,14 +543,8 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
         const targetX = mouseX ?? 0;
         const targetY = mouseY ?? 0;
 
-        if (!isCrosshairInitialized) {
-          crosshairCurrentPosition.x = targetX;
-          crosshairCurrentPosition.y = targetY;
-          isCrosshairInitialized = true;
-        }
-
-        crosshairTargetPosition.x = targetX;
-        crosshairTargetPosition.y = targetY;
+        crosshairCurrentPosition.x = targetX;
+        crosshairCurrentPosition.y = targetY;
         scheduleAnimationFrame();
       },
     ),
@@ -593,14 +553,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   createEffect(
     on(
       () => props.crosshairVisible,
-      (visible) => {
-        if (!visible) {
-          isCrosshairInitialized = false;
-        } else {
-          crosshairCurrentPosition.x = crosshairTargetPosition.x;
-          crosshairCurrentPosition.y = crosshairTargetPosition.y;
-          isCrosshairInitialized = true;
-        }
+      () => {
         scheduleAnimationFrame();
       },
     ),
