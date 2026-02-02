@@ -2408,7 +2408,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const hasScaleChanged =
           Math.abs(scaleX - 1) > ZOOM_DETECTION_THRESHOLD;
 
-        // Uniform scaling indicates browser zoom, not window resize
         if (isUniformScale && hasScaleChanged) {
           actions.setPointer({
             x: store.pointer.x * scaleX,

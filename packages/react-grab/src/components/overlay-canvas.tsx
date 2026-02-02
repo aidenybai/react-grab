@@ -452,8 +452,6 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   const runAnimationFrame = () => {
     let shouldContinueAnimating = false;
 
-    // Crosshair doesn't need lerping - it follows cursor position directly
-
     if (dragAnimation?.isInitialized) {
       if (interpolateBounds(dragAnimation, LAYER_STYLES.drag.lerpFactor)) {
         shouldContinueAnimating = true;
@@ -547,7 +545,6 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
         const targetX = mouseX ?? 0;
         const targetY = mouseY ?? 0;
 
-        // No lerping for crosshair - it should follow cursor precisely
         crosshairCurrentPosition.x = targetX;
         crosshairCurrentPosition.y = targetY;
         crosshairTargetPosition.x = targetX;
