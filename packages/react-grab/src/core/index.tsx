@@ -232,6 +232,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => store.current.state === "active" && store.current.isPromptMode,
     );
 
+    const isCommentMode = createMemo(
+      () => store.pendingCommentMode || isPromptMode(),
+    );
+
     const isPendingDismiss = createMemo(
       () =>
         store.current.state === "active" &&
@@ -1460,11 +1464,27 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
+    const enterCommentModeForElement = (
+      element: Element,
+      positionX: number,
+      positionY: number,
+    ) => {
+      actions.setPendingCommentMode(false);
+      loadCachedInput(element);
+      actions.enterPromptMode({ x: positionX, y: positionY }, element);
+    };
+
     const handleComment = () => {
-      if (isActivated()) {
+      if (!isEnabled()) return;
+
+      const isAlreadyInCommentMode = isActivated() && store.pendingCommentMode;
+      if (isAlreadyInCommentMode) {
         deactivateRenderer();
-      } else if (isEnabled()) {
-        actions.setPendingCommentMode(true);
+        return;
+      }
+
+      actions.setPendingCommentMode(true);
+      if (!isActivated()) {
         toggleActivate();
       }
     };
@@ -1600,6 +1620,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.freeze();
       actions.setLastGrabbed(firstElement);
 
+      if (store.pendingCommentMode) {
+        enterCommentModeForElement(firstElement, center.x, center.y);
+        return;
+      }
+
       const shouldDeactivateAfter =
         store.wasActivatedByToggle && !hasModifierKeyHeld;
 
@@ -1635,9 +1660,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const positionY = validFrozenElement ? store.pointer.y : clientY;
 
       if (store.pendingCommentMode) {
-        actions.setPendingCommentMode(false);
-        loadCachedInput(element);
-        actions.enterPromptMode({ x: positionX, y: positionY }, element);
+        enterCommentModeForElement(element, positionX, positionY);
         return;
       }
 
@@ -3062,7 +3085,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             theme={pluginRegistry.store.theme}
             toolbarVisible={pluginRegistry.store.theme.toolbar.enabled}
             isActive={isActivated()}
-            isCommentMode={store.pendingCommentMode || isPromptMode()}
+            isCommentMode={isCommentMode()}
             onToggleActive={handleToggleActive}
             onComment={handleComment}
             enabled={isEnabled()}
