@@ -1571,6 +1571,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       dragSelectionRect: ReturnType<typeof calculateDragRectangle>,
       hasModifierKeyHeld: boolean,
     ) => {
+      actions.setPendingCommentMode(false);
       const elements = getElementsInDrag(
         dragSelectionRect,
         isValidGrabbableElement,
