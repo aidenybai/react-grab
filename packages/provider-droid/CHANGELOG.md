@@ -1,5 +1,43 @@
 # @react-grab/droid
 
+## 0.1.0
+
+### Minor Changes
+
+- 81adb50: feat: browser
+
+### Patch Changes
+
+- 81adb50: fix: shell script
+- fb2b037: fix: cli
+- a3d5a94: fix: cli global install
+- 81adb50: feat: react support
+- 81adb50: fix: a11y
+- a5e7a6a: fix: optimize loading speed of cli
+- 90af3f6: fix: CLI hanging
+- 81adb50: fix: shell script
+- 78efee2: fix: cli
+- 074e593: fix: cli
+- 5cd3709: fix: decouple browser out from react-grab
+- 54c4867: ui improvements
+- Updated dependencies [81adb50]
+- Updated dependencies [fb2b037]
+- Updated dependencies [a3d5a94]
+- Updated dependencies [81adb50]
+- Updated dependencies [81adb50]
+- Updated dependencies [616d3e8]
+- Updated dependencies [81adb50]
+- Updated dependencies [a5e7a6a]
+- Updated dependencies [90af3f6]
+- Updated dependencies [81adb50]
+- Updated dependencies [81adb50]
+- Updated dependencies [78efee2]
+- Updated dependencies [074e593]
+- Updated dependencies [5cd3709]
+- Updated dependencies [54c4867]
+  - react-grab@0.1.0
+  - @react-grab/relay@0.1.0
+
 ## 0.1.0-beta.13
 
 ### Patch Changes

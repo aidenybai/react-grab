@@ -1,6 +1,6 @@
 {
   "name": "grab",
-  "version": "0.1.0-beta.13",
+  "version": "0.1.0",
   "description": "Select context for coding agents directly from your website",
   "keywords": [
     "agent",
