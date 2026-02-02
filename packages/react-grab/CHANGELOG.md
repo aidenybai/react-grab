@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.1.1
+
+### Patch Changes
+
+- fix: clicking element after keyboard navigation
+
 ## 0.1.0
 
 ### Minor Changes

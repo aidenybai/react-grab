@@ -1,5 +1,14 @@
 # @react-grab/amp
 
+## 0.1.1
+
+### Patch Changes
+
+- fix: clicking element after keyboard navigation
+- Updated dependencies
+  - react-grab@0.1.1
+  - @react-grab/relay@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes
