@@ -32,7 +32,10 @@ import {
   getElementAtPosition,
   clearElementPositionCache,
 } from "../utils/get-element-at-position.js";
-import { isValidGrabbableElement } from "../utils/is-valid-grabbable-element.js";
+import {
+  isValidGrabbableElement,
+  clearVisibilityCache,
+} from "../utils/is-valid-grabbable-element.js";
 import { isRootElement } from "../utils/is-root-element.js";
 import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
 import {
@@ -2380,6 +2383,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => {
         invalidateBoundsCache();
         clearElementPositionCache();
+        clearVisibilityCache();
         redetectElementUnderPointer();
         actions.incrementViewportVersion();
         actions.updateSessionBounds();
@@ -2419,6 +2423,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       invalidateBoundsCache();
       clearElementPositionCache();
+      clearVisibilityCache();
       redetectElementUnderPointer();
       actions.incrementViewportVersion();
       actions.updateSessionBounds();
