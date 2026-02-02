@@ -28,7 +28,10 @@ import { isSourceFile, normalizeFileName } from "bippy/source";
 import { createNoopApi } from "./noop-api.js";
 import { createEventListenerManager } from "./events.js";
 import { tryCopyWithFallback } from "./copy.js";
-import { getElementAtPosition } from "../utils/get-element-at-position.js";
+import {
+  getElementAtPosition,
+  clearElementPositionCache,
+} from "../utils/get-element-at-position.js";
 import { isValidGrabbableElement } from "../utils/is-valid-grabbable-element.js";
 import { isRootElement } from "../utils/is-root-element.js";
 import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
@@ -2376,6 +2379,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "scroll",
       () => {
         invalidateBoundsCache();
+        clearElementPositionCache();
         redetectElementUnderPointer();
         actions.incrementViewportVersion();
         actions.updateSessionBounds();
@@ -2386,6 +2390,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     eventListenerManager.addWindowListener("resize", () => {
       invalidateBoundsCache();
+      clearElementPositionCache();
       redetectElementUnderPointer();
       actions.incrementViewportVersion();
       actions.updateSessionBounds();
