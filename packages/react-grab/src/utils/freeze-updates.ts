@@ -51,6 +51,7 @@ interface PausedContextState {
 let isUpdatesPaused = false;
 let didInstallDispatcherProxy = false;
 
+const dispatcherProxyCache = new WeakMap<object, object>();
 const pendingStoreCallbacks = new Set<() => void>();
 const pendingTransitionCallbacks: Array<() => void> = [];
 const pausedQueueStates = new WeakMap<HookQueue, PausedQueueState>();
@@ -317,76 +318,86 @@ const installDispatcherProxy = (renderer: ReactRenderer): void => {
   const dispatcherKey = "H" in dispatcherRef ? "H" : "current";
   let currentDispatcher = dispatcherRef[dispatcherKey];
 
+  const createDispatcherProxy = (dispatcher: object): object => {
+    return new Proxy(dispatcher, {
+      get(target, propertyName, receiver) {
+        const originalMethod = Reflect.get(target, propertyName, receiver);
+
+        if (propertyName === "useSyncExternalStore") {
+          type UseSyncExternalStore = <T>(
+            subscribe: (onStoreChange: () => void) => () => void,
+            getSnapshot: () => T,
+            getServerSnapshot?: () => T,
+          ) => T;
+
+          return <T>(
+            subscribe: (onStoreChange: () => void) => () => void,
+            getSnapshot: () => T,
+            getServerSnapshot?: () => T,
+          ): T => {
+            const wrappedSubscribe = (onChange: () => void) =>
+              subscribe(() => {
+                if (isUpdatesPaused) {
+                  pendingStoreCallbacks.add(onChange);
+                } else {
+                  onChange();
+                }
+              });
+            return (originalMethod as UseSyncExternalStore)(
+              wrappedSubscribe,
+              getSnapshot,
+              getServerSnapshot,
+            );
+          };
+        }
+
+        if (
+          propertyName === "useTransition" &&
+          typeof originalMethod === "function"
+        ) {
+          return (...hookArgs: unknown[]) => {
+            const result = (
+              originalMethod as (...args: unknown[]) => unknown
+            )(...hookArgs);
+            if (!Array.isArray(result) || typeof result[1] !== "function") {
+              return result;
+            }
+            const [isPending, startTransition] = result as [
+              boolean,
+              (transitionCallback: () => void) => void,
+            ];
+            return [
+              isPending,
+              (transitionCallback: () => void) => {
+                if (isUpdatesPaused) {
+                  pendingTransitionCallbacks.push(() =>
+                    startTransition(transitionCallback),
+                  );
+                } else {
+                  startTransition(transitionCallback);
+                }
+              },
+            ];
+          };
+        }
+
+        return originalMethod;
+      },
+    });
+  };
+
   Object.defineProperty(dispatcherRef, dispatcherKey, {
     configurable: true,
     enumerable: true,
     get: () => {
       if (!currentDispatcher) return currentDispatcher;
-      return new Proxy(currentDispatcher as object, {
-        get(target, propertyName, receiver) {
-          const originalMethod = Reflect.get(target, propertyName, receiver);
 
-          if (propertyName === "useSyncExternalStore") {
-            type UseSyncExternalStore = <T>(
-              subscribe: (onStoreChange: () => void) => () => void,
-              getSnapshot: () => T,
-              getServerSnapshot?: () => T,
-            ) => T;
+      const cachedProxy = dispatcherProxyCache.get(currentDispatcher as object);
+      if (cachedProxy) return cachedProxy;
 
-            return <T>(
-              subscribe: (onStoreChange: () => void) => () => void,
-              getSnapshot: () => T,
-              getServerSnapshot?: () => T,
-            ): T => {
-              const wrappedSubscribe = (onChange: () => void) =>
-                subscribe(() => {
-                  if (isUpdatesPaused) {
-                    pendingStoreCallbacks.add(onChange);
-                  } else {
-                    onChange();
-                  }
-                });
-              return (originalMethod as UseSyncExternalStore)(
-                wrappedSubscribe,
-                getSnapshot,
-                getServerSnapshot,
-              );
-            };
-          }
-
-          if (
-            propertyName === "useTransition" &&
-            typeof originalMethod === "function"
-          ) {
-            return (...hookArgs: unknown[]) => {
-              const result = (
-                originalMethod as (...args: unknown[]) => unknown
-              )(...hookArgs);
-              if (!Array.isArray(result) || typeof result[1] !== "function") {
-                return result;
-              }
-              const [isPending, startTransition] = result as [
-                boolean,
-                (transitionCallback: () => void) => void,
-              ];
-              return [
-                isPending,
-                (transitionCallback: () => void) => {
-                  if (isUpdatesPaused) {
-                    pendingTransitionCallbacks.push(() =>
-                      startTransition(transitionCallback),
-                    );
-                  } else {
-                    startTransition(transitionCallback);
-                  }
-                },
-              ];
-            };
-          }
-
-          return originalMethod;
-        },
-      });
+      const proxy = createDispatcherProxy(currentDispatcher as object);
+      dispatcherProxyCache.set(currentDispatcher as object, proxy);
+      return proxy;
     },
     set: (newDispatcher) => {
       currentDispatcher = newDispatcher;
