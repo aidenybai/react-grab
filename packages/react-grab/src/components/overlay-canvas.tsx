@@ -110,7 +110,6 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
   const crosshairCurrentPosition: Position = { x: 0, y: 0 };
   const crosshairTargetPosition: Position = { x: 0, y: 0 };
-  let isCrosshairInitialized = false;
 
   let selectionAnimations: AnimatedBounds[] = [];
   let dragAnimation: AnimatedBounds | null = null;
@@ -549,7 +548,6 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
         crosshairCurrentPosition.y = targetY;
         crosshairTargetPosition.x = targetX;
         crosshairTargetPosition.y = targetY;
-        isCrosshairInitialized = true;
         scheduleAnimationFrame();
       },
     ),
@@ -559,12 +557,9 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     on(
       () => props.crosshairVisible,
       (visible) => {
-        if (!visible) {
-          isCrosshairInitialized = false;
-        } else {
+        if (visible) {
           crosshairCurrentPosition.x = crosshairTargetPosition.x;
           crosshairCurrentPosition.y = crosshairTargetPosition.y;
-          isCrosshairInitialized = true;
         }
         scheduleAnimationFrame();
       },
