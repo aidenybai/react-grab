@@ -415,7 +415,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                         "scrollbar-width": "none",
                       }}
                       value={props.inputValue ?? ""}
-                      placeholder="type to edit"
+                      placeholder="Add context"
                       rows={1}
                       disabled
                     />
@@ -508,15 +508,12 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     value={props.inputValue ?? ""}
                     onInput={handleInput}
                     onKeyDown={handleKeyDown}
-                    placeholder="type prompt"
+                    placeholder="Add context"
                     rows={1}
                   />
                   <button
                     data-react-grab-submit
-                    class={cn(
-                      "contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-black cursor-pointer ml-1 interactive-scale",
-                      !props.inputValue?.trim() && "opacity-35",
-                    )}
+                    class="contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-black cursor-pointer ml-1 interactive-scale"
                     onClick={handleSubmit}
                   >
                     <IconSubmit size={10} class="text-white" />

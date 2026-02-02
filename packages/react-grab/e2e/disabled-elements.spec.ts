@@ -229,6 +229,9 @@ test.describe("Disabled Element Selection", () => {
       { steps: 10 },
     );
     await reactGrab.page.mouse.up();
+    await reactGrab.page.waitForTimeout(300);
+
+    await reactGrab.clickContextMenuItem("Copy");
 
     await expect
       .poll(async () => {

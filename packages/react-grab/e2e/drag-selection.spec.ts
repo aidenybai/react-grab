@@ -32,6 +32,12 @@ test.describe("Drag Selection", () => {
     await reactGrab.activate();
 
     await reactGrab.dragSelect("li:first-child", "li:nth-child(3)");
+    await reactGrab.page.waitForTimeout(300);
+
+    const isContextMenuVisible = await reactGrab.isContextMenuVisible();
+    expect(isContextMenuVisible).toBe(true);
+
+    await reactGrab.clickContextMenuItem("Copy");
     await reactGrab.page.waitForTimeout(500);
 
     const clipboardContent = await reactGrab.getClipboardContent();
@@ -45,6 +51,9 @@ test.describe("Drag Selection", () => {
     await reactGrab.activate();
 
     await reactGrab.dragSelect("li:first-child", "li:nth-child(5)");
+    await reactGrab.page.waitForTimeout(300);
+
+    await reactGrab.clickContextMenuItem("Copy");
     await reactGrab.page.waitForTimeout(500);
 
     const clipboardContent = await reactGrab.getClipboardContent();
@@ -55,7 +64,6 @@ test.describe("Drag Selection", () => {
   test("should copy HTML for all selected elements via context menu", async ({
     reactGrab,
   }) => {
-    await reactGrab.setupMockAgent();
     await reactGrab.activate();
 
     const firstItem = reactGrab.page.locator("li").first();
@@ -136,6 +144,9 @@ test.describe("Drag Selection", () => {
     await reactGrab.activate();
 
     await reactGrab.dragSelect("li:first-child", "li:nth-child(2)");
+    await reactGrab.page.waitForTimeout(300);
+
+    await reactGrab.clickContextMenuItem("Copy");
 
     await reactGrab.page.waitForTimeout(2000);
 
@@ -150,6 +161,9 @@ test.describe("Drag Selection", () => {
       "[data-testid='todo-list'] li:first-child",
       "[data-testid='todo-list'] li:last-child",
     );
+    await reactGrab.page.waitForTimeout(300);
+
+    await reactGrab.clickContextMenuItem("Copy");
     await reactGrab.page.waitForTimeout(500);
 
     const clipboardContent = await reactGrab.getClipboardContent();
@@ -200,6 +214,9 @@ test.describe("Drag Selection with Scroll", () => {
 
     await reactGrab.activate();
     await reactGrab.dragSelect("li:first-child", "li:nth-child(2)");
+    await reactGrab.page.waitForTimeout(300);
+
+    await reactGrab.clickContextMenuItem("Copy");
     await reactGrab.page.waitForTimeout(500);
 
     const clipboardContent = await reactGrab.getClipboardContent();
@@ -238,6 +255,9 @@ test.describe("Drag Selection with Scroll", () => {
 
     if (count > 0) {
       await reactGrab.dragSelect("li:first-child", "li:nth-child(2)");
+      await reactGrab.page.waitForTimeout(300);
+
+      await reactGrab.clickContextMenuItem("Copy");
       await reactGrab.page.waitForTimeout(500);
 
       const clipboardContent = await reactGrab.getClipboardContent();
@@ -282,6 +302,9 @@ test.describe("Drag Selection with Scroll", () => {
       await reactGrab.page.mouse.down();
       await reactGrab.page.mouse.move(box.x + 200, box.y + 100, { steps: 5 });
       await reactGrab.page.mouse.up();
+      await reactGrab.page.waitForTimeout(300);
+
+      await reactGrab.clickContextMenuItem("Copy");
       await reactGrab.page.waitForTimeout(500);
 
       const clipboardContent = await reactGrab.getClipboardContent();

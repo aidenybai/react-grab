@@ -186,6 +186,9 @@ test.describe("Selection Bounds and Mutations", () => {
   }) => {
     await reactGrab.activate();
     await reactGrab.dragSelect("li:first-child", "li:nth-child(3)");
+    await reactGrab.page.waitForTimeout(300);
+
+    await reactGrab.clickContextMenuItem("Copy");
 
     await expect
       .poll(async () => {

@@ -11,6 +11,7 @@ import type {
   OverlayBounds,
   ContextMenuAction,
   ActionContext,
+  ContextMenuActionContext,
 } from "../types.js";
 import { ARROW_HEIGHT_PX, LABEL_GAP_PX, PANEL_STYLES } from "../constants.js";
 import { cn } from "../utils/cn.js";
@@ -18,7 +19,6 @@ import { Arrow } from "./selection-label/arrow.js";
 import { TagBadge } from "./selection-label/tag-badge.js";
 import { BottomSection } from "./selection-label/bottom-section.js";
 import { formatShortcut } from "../utils/format-shortcut.js";
-import { isScreenshotSupported } from "../utils/is-screenshot-supported.js";
 import { getTagDisplay } from "../utils/get-tag-display.js";
 
 interface ContextMenuProps {
@@ -28,11 +28,7 @@ interface ContextMenuProps {
   componentName?: string;
   hasFilePath: boolean;
   actions?: ContextMenuAction[];
-  actionContext?: ActionContext;
-  onCopy: () => void;
-  onCopyScreenshot: () => void;
-  onCopyHtml: () => void;
-  onOpen: () => void;
+  actionContext?: ContextMenuActionContext;
   onDismiss: () => void;
   onHide: () => void;
 }
@@ -52,6 +48,16 @@ const isEventFromOverlay = (event: Event) =>
         element instanceof HTMLElement &&
         element.hasAttribute("data-react-grab-ignore-events"),
     );
+
+const resolveActionEnabled = (
+  action: ContextMenuAction,
+  context: ActionContext | undefined,
+): boolean => {
+  if (typeof action.enabled === "function") {
+    return context ? action.enabled(context) : false;
+  }
+  return action.enabled ?? true;
+};
 
 export const ContextMenu: Component<ContextMenuProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
@@ -116,52 +122,19 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
   };
 
   const menuItems = (): MenuItem[] => {
-    const items: MenuItem[] = [
-      { label: "Copy", action: props.onCopy, enabled: true, shortcut: "C" },
-    ];
-    if (isScreenshotSupported()) {
-      items.push({
-        label: "Screenshot",
-        action: props.onCopyScreenshot,
-        enabled: true,
-        shortcut: "S",
-      });
-    }
-    items.push({
-      label: "Copy HTML",
-      action: props.onCopyHtml,
-      enabled: true,
-    });
-    items.push({
-      label: "Open",
-      action: props.onOpen,
-      enabled: props.hasFilePath,
-      shortcut: "O",
-    });
-
-    const customActions = props.actions ?? [];
+    const pluginActions = props.actions ?? [];
     const context = props.actionContext;
-    for (const customAction of customActions) {
-      const isEnabled =
-        typeof customAction.enabled === "function"
-          ? context
-            ? customAction.enabled(context)
-            : false
-          : (customAction.enabled ?? true);
 
-      items.push({
-        label: customAction.label,
-        action: () => {
-          if (context) {
-            customAction.onAction(context);
-          }
-        },
-        enabled: isEnabled,
-        shortcut: customAction.shortcut,
-      });
-    }
-
-    return items;
+    return pluginActions.map((action) => ({
+      label: action.label,
+      action: () => {
+        if (context) {
+          action.onAction(context);
+        }
+      },
+      enabled: resolveActionEnabled(action, context),
+      shortcut: action.shortcut,
+    }));
   };
 
   const handleAction = (item: MenuItem, event: Event) => {
@@ -196,23 +169,16 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         return;
       }
 
-      const customActions = props.actions ?? [];
+      const pluginActions = props.actions ?? [];
       const context = props.actionContext;
 
       if (isEnter) {
-        for (const customAction of customActions) {
-          if (customAction.shortcut === "Enter") {
-            const isEnabled =
-              typeof customAction.enabled === "function"
-                ? context
-                  ? customAction.enabled(context)
-                  : false
-                : (customAction.enabled ?? true);
-
-            if (isEnabled && context) {
+        for (const action of pluginActions) {
+          if (action.shortcut === "Enter") {
+            if (resolveActionEnabled(action, context) && context) {
               event.preventDefault();
               event.stopPropagation();
-              customAction.onAction(context);
+              action.onAction(context);
               props.onHide();
               return;
             }
@@ -224,42 +190,18 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       if (!hasModifierKey) return;
       if (event.repeat) return;
 
-      if (keyLower === "s" && isScreenshotSupported()) {
-        event.preventDefault();
-        event.stopPropagation();
-        props.onCopyScreenshot();
-        props.onHide();
-      } else if (keyLower === "c") {
-        event.preventDefault();
-        event.stopPropagation();
-        props.onCopy();
-        props.onHide();
-      } else if (keyLower === "o" && props.hasFilePath) {
-        event.preventDefault();
-        event.stopPropagation();
-        props.onOpen();
-        props.onHide();
-      } else {
-        for (const customAction of customActions) {
-          if (
-            customAction.shortcut &&
-            customAction.shortcut !== "Enter" &&
-            keyLower === customAction.shortcut.toLowerCase()
-          ) {
-            const isEnabled =
-              typeof customAction.enabled === "function"
-                ? context
-                  ? customAction.enabled(context)
-                  : false
-                : (customAction.enabled ?? true);
-
-            if (isEnabled && context) {
-              event.preventDefault();
-              event.stopPropagation();
-              customAction.onAction(context);
-              props.onHide();
-              return;
-            }
+      for (const action of pluginActions) {
+        if (
+          action.shortcut &&
+          action.shortcut !== "Enter" &&
+          keyLower === action.shortcut.toLowerCase()
+        ) {
+          if (resolveActionEnabled(action, context) && context) {
+            event.preventDefault();
+            event.stopPropagation();
+            action.onAction(context);
+            props.onHide();
+            return;
           }
         }
       }
@@ -330,8 +272,11 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
               isClickable={props.hasFilePath}
               onClick={(event) => {
                 event.stopPropagation();
-                if (props.hasFilePath) {
-                  props.onOpen();
+                if (props.hasFilePath && props.actionContext) {
+                  const openAction = props.actions?.find(
+                    (action) => action.id === "open",
+                  );
+                  openAction?.onAction(props.actionContext);
                 }
               }}
               shrink

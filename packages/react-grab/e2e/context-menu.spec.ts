@@ -541,15 +541,15 @@ test.describe("Context Menu", () => {
   });
 
   test.describe("Context Menu After Drag Selection", () => {
-    test("drag selection should create selection label", async ({
+    test("drag selection should show context menu", async ({
       reactGrab,
     }) => {
       await reactGrab.activate();
       await reactGrab.dragSelect("li:first-child", "li:nth-child(3)");
-      await reactGrab.page.waitForTimeout(500);
+      await reactGrab.page.waitForTimeout(300);
 
-      const selectionInfo = await reactGrab.getSelectionLabelInfo();
-      expect(selectionInfo.isVisible).toBe(true);
+      const isContextMenuVisible = await reactGrab.isContextMenuVisible();
+      expect(isContextMenuVisible).toBe(true);
     });
   });
 
