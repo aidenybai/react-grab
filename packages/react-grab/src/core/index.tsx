@@ -65,6 +65,7 @@ import {
   DEFAULT_KEY_HOLD_DURATION_MS,
   MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS,
   SCREENSHOT_CAPTURE_DELAY_MS,
+  ZOOM_DETECTION_THRESHOLD,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
@@ -2378,19 +2379,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    eventListenerManager.addWindowListener(
-      "scroll",
-      () => {
-        invalidateBoundsCache();
-        clearElementPositionCache();
-        clearVisibilityCache();
-        redetectElementUnderPointer();
-        actions.incrementViewportVersion();
-        actions.updateSessionBounds();
-        actions.updateContextMenuPosition();
-      },
-      { capture: true },
-    );
+    const handleViewportChange = () => {
+      invalidateBoundsCache();
+      clearElementPositionCache();
+      clearVisibilityCache();
+      redetectElementUnderPointer();
+      actions.incrementViewportVersion();
+      actions.updateSessionBounds();
+      actions.updateContextMenuPosition();
+    };
+
+    eventListenerManager.addWindowListener("scroll", handleViewportChange, {
+      capture: true,
+    });
 
     let previousViewportWidth = window.innerWidth;
     let previousViewportHeight = window.innerHeight;
@@ -2399,18 +2400,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const currentViewportWidth = window.innerWidth;
       const currentViewportHeight = window.innerHeight;
 
-      // Adjust pointer position for zoom changes
-      // When zoom changes, viewport dimensions change but physical cursor stays put
-      // We need to scale stored coordinates to match the new coordinate system
       if (previousViewportWidth > 0 && previousViewportHeight > 0) {
         const scaleX = currentViewportWidth / previousViewportWidth;
         const scaleY = currentViewportHeight / previousViewportHeight;
+        const isUniformScale =
+          Math.abs(scaleX - scaleY) < ZOOM_DETECTION_THRESHOLD;
+        const hasScaleChanged =
+          Math.abs(scaleX - 1) > ZOOM_DETECTION_THRESHOLD;
 
-        // Only adjust if there's a meaningful scale change (zoom, not just window resize)
-        const isZoomChange =
-          Math.abs(scaleX - scaleY) < 0.01 && Math.abs(scaleX - 1) > 0.01;
-
-        if (isZoomChange) {
+        // Uniform scaling indicates browser zoom, not window resize
+        if (isUniformScale && hasScaleChanged) {
           actions.setPointer({
             x: store.pointer.x * scaleX,
             y: store.pointer.y * scaleY,
@@ -2421,13 +2420,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       previousViewportWidth = currentViewportWidth;
       previousViewportHeight = currentViewportHeight;
 
-      invalidateBoundsCache();
-      clearElementPositionCache();
-      clearVisibilityCache();
-      redetectElementUnderPointer();
-      actions.incrementViewportVersion();
-      actions.updateSessionBounds();
-      actions.updateContextMenuPosition();
+      handleViewportChange();
     });
 
     let boundsRecalcIntervalId: number | null = null;

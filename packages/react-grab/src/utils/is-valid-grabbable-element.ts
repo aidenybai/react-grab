@@ -1,10 +1,11 @@
-import { IGNORE_EVENTS_ATTRIBUTE } from "../constants.js";
+import {
+  IGNORE_EVENTS_ATTRIBUTE,
+  VISIBILITY_CACHE_TTL_MS,
+} from "../constants.js";
 import { isElementVisible } from "./is-element-visible.js";
 import { ATTRIBUTE_NAME } from "./mount-root.js";
 
 const REACT_GRAB_SELECTOR = `[${ATTRIBUTE_NAME}], [${IGNORE_EVENTS_ATTRIBUTE}]`;
-
-const VISIBILITY_CACHE_TTL_MS = 50;
 
 interface VisibilityCache {
   isVisible: boolean;
