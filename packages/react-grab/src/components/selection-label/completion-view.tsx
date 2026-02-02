@@ -45,6 +45,8 @@ const MoreOptionsButton: Component<MoreOptionsButtonProps> = (props) => {
 export const CompletionView: Component<CompletionViewProps> = (props) => {
   const instanceId = Symbol();
   let inputRef: HTMLTextAreaElement | undefined;
+  let fadeTimeoutId: number | undefined;
+  let dismissTimeoutId: number | undefined;
   const [didCopy, setDidCopy] = createSignal(false);
   const [isFading, setIsFading] = createSignal(false);
   const [displayStatusText, setDisplayStatusText] = createSignal(
@@ -57,10 +59,10 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
     setDidCopy(true);
     setDisplayStatusText("Copied");
     props.onCopyStateChange?.();
-    setTimeout(() => {
+    fadeTimeoutId = window.setTimeout(() => {
       setIsFading(true);
       props.onFadingChange?.(true);
-      setTimeout(() => {
+      dismissTimeoutId = window.setTimeout(() => {
         props.onDismiss?.();
       }, FADE_DURATION_MS);
     }, FEEDBACK_DURATION_MS - FADE_DURATION_MS);
@@ -150,6 +152,8 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
   onCleanup(() => {
     confirmationFocusManager.release(instanceId);
     window.removeEventListener("keydown", handleKeyDown, { capture: true });
+    if (fadeTimeoutId !== undefined) window.clearTimeout(fadeTimeoutId);
+    if (dismissTimeoutId !== undefined) window.clearTimeout(dismissTimeoutId);
   });
 
   return (

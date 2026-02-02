@@ -135,7 +135,7 @@ const runCursorAgent = async function* (
       if (signal.aborted) {
         handleAbort();
       } else {
-        signal.addEventListener("abort", handleAbort);
+        signal.addEventListener("abort", handleAbort, { once: true });
       }
     }
 

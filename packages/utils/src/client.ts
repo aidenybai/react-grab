@@ -30,7 +30,7 @@ export const streamSSE = async function* (
     reader.cancel().catch(() => {});
   };
 
-  signal.addEventListener("abort", onAbort);
+  signal.addEventListener("abort", onAbort, { once: true });
 
   try {
     if (signal.aborted) {
@@ -150,7 +150,7 @@ export const streamAgentStatusFromServer = async function* <
     );
   };
 
-  signal.addEventListener("abort", handleAbort);
+  signal.addEventListener("abort", handleAbort, { once: true });
 
   try {
     const response = await fetch(agentUrl, {

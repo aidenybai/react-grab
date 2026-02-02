@@ -591,7 +591,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           enabled: props.enabled ?? true,
         });
 
-        setTimeout(() => {
+        snapAnimationTimeout = setTimeout(() => {
           setIsSnapping(false);
         }, TOOLBAR_SNAP_ANIMATION_DURATION_MS);
       });
@@ -691,6 +691,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   let resizeTimeout: ReturnType<typeof setTimeout> | undefined;
   let collapseAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
+  let snapAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
 
   const handleResize = () => {
     if (isDragging()) return;
@@ -864,6 +865,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     }
     if (shakeTooltipTimeout) {
       clearTimeout(shakeTooltipTimeout);
+    }
+    if (snapAnimationTimeout) {
+      clearTimeout(snapAnimationTimeout);
     }
     unfreezeUpdatesCallback?.();
   });

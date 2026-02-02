@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import { useEffect, useState, useCallback, type ReactElement } from 'react';
-import { Copy, Check } from 'lucide-react';
-import { COPY_FEEDBACK_DURATION_MS } from '@/constants';
-import { cn } from '@/utils/cn';
-import { detectMobile } from '@/utils/detect-mobile';
-import { hotkeyToString } from '@/utils/hotkey-to-string';
-import type { RecordedHotkey } from './grab-element-button';
-import { useHotkey } from './hotkey-context';
-import { highlightCode } from '../lib/shiki';
+import { useEffect, useState, useCallback, type ReactElement } from "react";
+import { Copy, Check } from "lucide-react";
+import { COPY_FEEDBACK_DURATION_MS } from "@/constants";
+import { cn } from "@/utils/cn";
+import { detectMobile } from "@/utils/detect-mobile";
+import { hotkeyToString } from "@/utils/hotkey-to-string";
+import type { RecordedHotkey } from "./grab-element-button";
+import { useHotkey } from "./hotkey-context";
+import { highlightCode } from "../lib/shiki";
 
 interface InlineCodeProps {
   children: React.ReactNode;
@@ -20,13 +20,13 @@ const InlineCode = ({ children }: InlineCodeProps): ReactElement => (
   </code>
 );
 
-InlineCode.displayName = 'InlineCode';
+InlineCode.displayName = "InlineCode";
 
 interface InstallTab {
   id: string;
   label: string;
   description: React.ReactNode;
-  lang?: 'tsx' | 'bash';
+  lang?: "tsx" | "bash";
   getCode: (hotkey: RecordedHotkey | null) => string;
   getChangedLines: (hotkey: RecordedHotkey | null) => number[];
 }
@@ -37,10 +37,10 @@ const formatInitOptions = (hotkey: RecordedHotkey): string => {
 
 const installTabsData: InstallTab[] = [
   {
-    id: 'cli',
-    label: 'CLI',
-    description: 'Run this command at your project root',
-    lang: 'bash',
+    id: "cli",
+    label: "CLI",
+    description: "Run this command at your project root",
+    lang: "bash",
     getCode: (hotkey) => {
       if (hotkey) {
         return `npx -y grab@latest init --key "${hotkeyToString(hotkey)}"`;
@@ -50,8 +50,8 @@ const installTabsData: InstallTab[] = [
     getChangedLines: () => [],
   },
   {
-    id: 'next-app',
-    label: 'Next.js (App)',
+    id: "next-app",
+    label: "Next.js (App)",
     description: (
       <>
         Add this inside of your <InlineCode>app/layout.tsx</InlineCode>
@@ -60,9 +60,9 @@ const installTabsData: InstallTab[] = [
     getCode: (hotkey) => {
       const dataOptionsAttr = hotkey
         ? `\n            data-options='{"activationKey":"${hotkeyToString(
-            hotkey
+            hotkey,
           )}"}'`
-        : '';
+        : "";
       return `import Script from "next/script";
 
 export default function RootLayout({ children }) {
@@ -86,8 +86,8 @@ export default function RootLayout({ children }) {
       hotkey ? [7, 8, 9, 10, 11, 12, 13, 14] : [7, 8, 9, 10, 11, 12, 13],
   },
   {
-    id: 'next-pages',
-    label: 'Next.js (Pages)',
+    id: "next-pages",
+    label: "Next.js (Pages)",
     description: (
       <>
         Add this into your <InlineCode>pages/_document.tsx</InlineCode>
@@ -96,9 +96,9 @@ export default function RootLayout({ children }) {
     getCode: (hotkey) => {
       const dataOptionsAttr = hotkey
         ? `\n            data-options='{"activationKey":"${hotkeyToString(
-            hotkey
+            hotkey,
           )}"}'`
-        : '';
+        : "";
       return `import { Html, Head, Main, NextScript } from "next/document";
 import Script from "next/script";
 
@@ -126,8 +126,8 @@ export default function Document() {
       hotkey ? [8, 9, 10, 11, 12, 13, 14, 15] : [8, 9, 10, 11, 12, 13, 14],
   },
   {
-    id: 'vite',
-    label: 'Vite',
+    id: "vite",
+    label: "Vite",
     description: (
       <>
         Example <InlineCode>index.html</InlineCode> with React Grab enabled in
@@ -175,8 +175,8 @@ export default function Document() {
       hotkey ? [4, 5, 6, 7, 8, 9, 10, 11] : [4, 5, 6, 7, 8, 9, 10],
   },
   {
-    id: 'webpack',
-    label: 'Webpack',
+    id: "webpack",
+    label: "Webpack",
     description: (
       <>
         First <InlineCode>npm install react-grab</InlineCode>, then add this at
@@ -224,8 +224,8 @@ root.render(
     getChangedLines: (hotkey) => (hotkey ? [5, 6, 7, 8, 9] : [5, 6, 7]),
   },
   {
-    id: 'tanstack',
-    label: 'TanStack Start',
+    id: "tanstack",
+    label: "TanStack Start",
     description: (
       <>
         Add this inside your <InlineCode>src/routes/__root.tsx</InlineCode>
@@ -285,7 +285,7 @@ export const InstallTabs = ({
 }: InstallTabsProps): ReactElement | null => {
   const { customHotkey } = useHotkey();
   const [activeTabId, setActiveTabId] = useState<string>(
-    installTabsData[0]?.id
+    installTabsData[0]?.id,
   );
   const [didCopy, setDidCopy] = useState(false);
   const [highlightedCodes, setHighlightedCodes] = useState<
@@ -310,10 +310,10 @@ export const InstallTabs = ({
           id: tab.id,
           html: await highlightCode({
             code: tab.getCode(hotkey),
-            lang: tab.lang ?? 'tsx',
+            lang: tab.lang ?? "tsx",
             changedLines: tab.getChangedLines(hotkey),
           }),
-        }))
+        })),
       );
       const codes: Record<string, string> = {};
       results.forEach((result) => {
@@ -321,7 +321,7 @@ export const InstallTabs = ({
       });
       setHighlightedCodes(codes);
     },
-    []
+    [],
   );
 
   useEffect(() => {
@@ -330,14 +330,14 @@ export const InstallTabs = ({
   }, [customHotkey, updateHighlightedCodes]);
 
   const handleCopyClick = () => {
-    if (typeof navigator === 'undefined' || !navigator.clipboard) return;
+    if (typeof navigator === "undefined" || !navigator.clipboard) return;
 
     const textToCopy =
       activeChangedLines.length > 0
         ? activeCode
-            .split('\n')
+            .split("\n")
             .filter((_, index) => activeChangedLines.includes(index + 1))
-            .join('\n')
+            .join("\n")
         : activeCode;
 
     navigator.clipboard
@@ -356,19 +356,19 @@ export const InstallTabs = ({
   }
 
   const headingText =
-    activeTabId === 'cli'
-      ? 'Run this command to get started:'
-      : 'It takes 1 script tag to get started:';
+    activeTabId === "cli"
+      ? "Run this command to get started:"
+      : "It takes 1 script tag to get started:";
 
   return (
     <div>
       {showHeading && (
         <span className="hidden sm:inline text-white">
           {headingText}
-          {activeTabId === 'cli' && (
+          {activeTabId === "cli" && (
             <button
               type="button"
-              onClick={() => setActiveTabId('next-app')}
+              onClick={() => setActiveTabId("next-app")}
               className="ml-3 text-xs italic text-white/40 hover:text-white/60 hover:underline transition-colors sm:text-sm"
             >
               Prefer manual install?
@@ -386,10 +386,10 @@ export const InstallTabs = ({
                 key={tab.id}
                 type="button"
                 className={cn(
-                  'shrink-0 whitespace-nowrap border-b pb-2 font-sans text-sm transition-colors sm:text-base',
+                  "shrink-0 whitespace-nowrap border-b pb-2 font-sans text-sm transition-colors sm:text-base",
                   isActive
-                    ? 'border-white text-white'
-                    : 'border-transparent text-white/60 hover:text-white'
+                    ? "border-white text-white"
+                    : "border-transparent text-white/60 hover:text-white",
                 )}
                 onClick={() => setActiveTabId(tab.id)}
               >
@@ -400,7 +400,7 @@ export const InstallTabs = ({
         </div>
         <div className="bg-black/60 relative">
           <div className="relative">
-            {activeTabId === 'cli' ? (
+            {activeTabId === "cli" ? (
               <button
                 type="button"
                 onClick={handleCopyClick}
@@ -444,14 +444,14 @@ export const InstallTabs = ({
           </div>
         </div>
       </div>
-      {activeTabId !== 'cli' && (
+      {activeTabId !== "cli" && (
         <span className="mt-4 block text-sm text-white/50 sm:text-base">
           {activeTab.description}
         </span>
       )}
-      {showAgentNote && activeTabId !== 'cli' && (
+      {showAgentNote && activeTabId !== "cli" && (
         <span className="mt-2 block text-sm text-white/50 sm:text-base">
-          Want to integrate directly with your coding agent?{' '}
+          Want to integrate directly with your coding agent?{" "}
           <a href="/blog/agent" className="underline hover:text-white/70">
             See our agent integration guide
           </a>
@@ -461,4 +461,4 @@ export const InstallTabs = ({
   );
 };
 
-InstallTabs.displayName = 'InstallTabs';
+InstallTabs.displayName = "InstallTabs";

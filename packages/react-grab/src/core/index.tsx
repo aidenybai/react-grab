@@ -382,6 +382,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         store.contextMenuPosition === null,
     );
 
+    const grabbedBoxTimeouts = new Map<string, number>();
+
     const showTemporaryGrabbedBox = (
       bounds: OverlayBounds,
       element: Element,
@@ -393,9 +395,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.addGrabbedBox(newBox);
       pluginRegistry.hooks.onGrabbedBox(bounds, element);
 
-      setTimeout(() => {
+      const timeoutId = window.setTimeout(() => {
+        grabbedBoxTimeouts.delete(boxId);
         actions.removeGrabbedBox(boxId);
       }, FEEDBACK_DURATION_MS);
+      grabbedBoxTimeouts.set(boxId, timeoutId);
     };
 
     const notifyElementsSelected = async (
@@ -2443,6 +2447,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       eventListenerManager.abort();
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
       if (toggleFeedbackTimerId) window.clearTimeout(toggleFeedbackTimerId);
+      grabbedBoxTimeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
+      grabbedBoxTimeouts.clear();
       autoScroller.stop();
       document.body.style.userSelect = "";
       document.body.style.touchAction = "";
