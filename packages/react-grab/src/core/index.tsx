@@ -1553,6 +1553,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleDragSelection = (
       dragSelectionRect: ReturnType<typeof calculateDragRectangle>,
+      hasModifierKeyHeld: boolean,
     ) => {
       const elements = getElementsInDrag(
         dragSelectionRect,
@@ -1582,7 +1583,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.freeze();
       actions.setLastGrabbed(firstElement);
 
-      const shouldDeactivateAfter = store.wasActivatedByToggle;
+      const shouldDeactivateAfter =
+        store.wasActivatedByToggle && !hasModifierKeyHeld;
 
       performCopyWithLabel({
         element: firstElement,
@@ -1660,7 +1662,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       document.body.style.userSelect = "";
 
       if (dragSelectionRect) {
-        handleDragSelection(dragSelectionRect);
+        handleDragSelection(dragSelectionRect, hasModifierKeyHeld);
       } else {
         handleSingleClick(clientX, clientY, hasModifierKeyHeld);
       }
