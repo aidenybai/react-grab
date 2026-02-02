@@ -43,6 +43,7 @@ export type {
   SettableOptions,
   ActivationMode,
   ContextMenuAction,
+  ContextMenuActionContext,
   ActionContext,
   ActionContextHooks,
   Plugin,
