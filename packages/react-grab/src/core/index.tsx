@@ -49,6 +49,7 @@ import {
 } from "../utils/create-bounds-from-drag-rect.js";
 import { getTagName } from "../utils/get-tag-name.js";
 import {
+  ARROW_KEYS,
   FEEDBACK_DURATION_MS,
   FADE_COMPLETE_BUFFER_MS,
   KEYDOWN_SPAM_TIMEOUT_MS,
@@ -373,6 +374,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let selectionSourceRequestVersion = 0;
     let componentNameRequestVersion = 0;
     let componentNameDebounceTimerId: number | null = null;
+    let keyboardSelectedElement: Element | null = null;
     const [
       debouncedElementForComponentName,
       setDebouncedElementForComponentName,
@@ -1240,6 +1242,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const previousFocused = store.previouslyFocusedElement;
       actions.deactivate();
       arrowNavigator.clearHistory();
+      keyboardSelectedElement = null;
       if (wasDragging) {
         document.body.style.userSelect = "";
       }
@@ -1647,16 +1650,39 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           ? store.frozenElement
           : null;
 
+      const validKeyboardSelectedElement =
+        keyboardSelectedElement && document.contains(keyboardSelectedElement)
+          ? keyboardSelectedElement
+          : null;
+
       const element =
         validFrozenElement ??
+        validKeyboardSelectedElement ??
         getElementAtPosition(clientX, clientY) ??
         (store.detectedElement && document.contains(store.detectedElement)
           ? store.detectedElement
           : null);
       if (!element) return;
 
-      const positionX = validFrozenElement ? store.pointer.x : clientX;
-      const positionY = validFrozenElement ? store.pointer.y : clientY;
+      const didSelectViaKeyboard =
+        !validFrozenElement && validKeyboardSelectedElement === element;
+
+      let positionX: number;
+      let positionY: number;
+
+      if (validFrozenElement) {
+        positionX = store.pointer.x;
+        positionY = store.pointer.y;
+      } else if (didSelectViaKeyboard) {
+        const elementCenter = getBoundsCenter(createElementBounds(element));
+        positionX = elementCenter.x;
+        positionY = elementCenter.y;
+      } else {
+        positionX = clientX;
+        positionY = clientY;
+      }
+
+      keyboardSelectedElement = null;
 
       if (store.pendingCommentMode) {
         enterCommentModeForElement(element, positionX, positionY);
@@ -1786,23 +1812,37 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleArrowNavigation = (event: KeyboardEvent): boolean => {
       if (!isActivated() || isPromptMode()) return false;
+      if (!ARROW_KEYS.has(event.key)) return false;
 
-      const currentElement = effectiveElement();
+      let currentElement = effectiveElement();
+      const isInitialSelection = !currentElement;
+
+      if (!currentElement) {
+        const viewportCenterX = window.innerWidth / 2;
+        const viewportCenterY = window.innerHeight / 2;
+        currentElement = getElementAtPosition(viewportCenterX, viewportCenterY);
+      }
+
       if (!currentElement) return false;
 
       const nextElement = arrowNavigator.findNext(event.key, currentElement);
-      if (!nextElement) return false;
+
+      if (!nextElement && !isInitialSelection) return false;
+
+      const elementToSelect = nextElement ?? currentElement;
 
       event.preventDefault();
       event.stopPropagation();
-      actions.setFrozenElement(nextElement);
+      actions.setFrozenElement(elementToSelect);
       actions.freeze();
-      const bounds = createElementBounds(nextElement);
-      const center = getBoundsCenter(bounds);
-      actions.setPointer(center);
+      keyboardSelectedElement = elementToSelect;
+
+      const selectionBounds = createElementBounds(elementToSelect);
+      const selectionCenter = getBoundsCenter(selectionBounds);
+      actions.setPointer(selectionCenter);
 
       if (store.contextMenuPosition !== null) {
-        actions.showContextMenu(center, nextElement);
+        actions.showContextMenu(selectionCenter, elementToSelect);
       }
 
       return true;
@@ -2105,11 +2145,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        if (
-          isPromptMode() ||
-          (isEventFromOverlay(event, "data-react-grab-ignore-events") &&
-            !isEnterToActivateInput)
-        ) {
+        const isFromOverlay =
+          isEventFromOverlay(event, "data-react-grab-ignore-events") &&
+          !isEnterToActivateInput;
+
+        if (isPromptMode() || isFromOverlay) {
           if (event.key === "Escape") {
             if (pendingAbortSessionId()) {
               event.preventDefault();
@@ -2119,6 +2159,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               deactivateRenderer();
             }
           }
+
+          if (isFromOverlay && ARROW_KEYS.has(event.key)) {
+            if (handleArrowNavigation(event)) return;
+          }
+
           return;
         }
 
@@ -2907,6 +2952,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handleContextMenuCopy = () => {
       const element = store.contextMenuElement;
       if (!element) return;
+
+      keyboardSelectedElement = null;
 
       const position = store.contextMenuPosition ?? store.pointer;
       const frozenElements = [...store.frozenElements];
