@@ -392,6 +392,8 @@ const installDispatcherProxy = (renderer: ReactRenderer): void => {
     get: () => {
       if (!currentDispatcher) return currentDispatcher;
 
+      if (!isUpdatesPaused) return currentDispatcher;
+
       const cachedProxy = dispatcherProxyCache.get(currentDispatcher as object);
       if (cachedProxy) return cachedProxy;
 
