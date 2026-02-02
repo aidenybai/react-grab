@@ -2372,12 +2372,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       ) {
         const candidate = getElementAtPosition(store.pointer.x, store.pointer.y);
         actions.setDetectedElement(candidate);
-
-        if (candidate) {
-          const bounds = createElementBounds(candidate);
-          const center = getBoundsCenter(bounds);
-          actions.setPointer(center);
-        }
       }
     };
 
