@@ -2388,7 +2388,35 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       { capture: true },
     );
 
+    let previousViewportWidth = window.innerWidth;
+    let previousViewportHeight = window.innerHeight;
+
     eventListenerManager.addWindowListener("resize", () => {
+      const currentViewportWidth = window.innerWidth;
+      const currentViewportHeight = window.innerHeight;
+
+      // Adjust pointer position for zoom changes
+      // When zoom changes, viewport dimensions change but physical cursor stays put
+      // We need to scale stored coordinates to match the new coordinate system
+      if (previousViewportWidth > 0 && previousViewportHeight > 0) {
+        const scaleX = currentViewportWidth / previousViewportWidth;
+        const scaleY = currentViewportHeight / previousViewportHeight;
+
+        // Only adjust if there's a meaningful scale change (zoom, not just window resize)
+        const isZoomChange =
+          Math.abs(scaleX - scaleY) < 0.01 && Math.abs(scaleX - 1) > 0.01;
+
+        if (isZoomChange) {
+          actions.setPointer({
+            x: store.pointer.x * scaleX,
+            y: store.pointer.y * scaleY,
+          });
+        }
+      }
+
+      previousViewportWidth = currentViewportWidth;
+      previousViewportHeight = currentViewportHeight;
+
       invalidateBoundsCache();
       clearElementPositionCache();
       redetectElementUnderPointer();
