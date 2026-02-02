@@ -53,6 +53,7 @@ let isUpdatesPaused = false;
 const dispatcherProxyCache = new WeakMap<object, object>();
 const pendingStoreCallbacks = new Set<() => void>();
 const pendingTransitionCallbacks: Array<() => void> = [];
+const pendingStateUpdates: Array<() => void> = [];
 const pausedQueueStates = new WeakMap<HookQueue, PausedQueueState>();
 const pausedContextStates = new WeakMap<
   ContextDependency,
@@ -355,9 +356,9 @@ const installDispatcherProxy = (renderer: ReactRenderer): void => {
           typeof originalMethod === "function"
         ) {
           return (...hookArgs: unknown[]) => {
-            const result = (
-              originalMethod as (...args: unknown[]) => unknown
-            )(...hookArgs);
+            const result = (originalMethod as (...args: unknown[]) => unknown)(
+              ...hookArgs,
+            );
             if (!Array.isArray(result) || typeof result[1] !== "function") {
               return result;
             }
@@ -377,6 +378,32 @@ const installDispatcherProxy = (renderer: ReactRenderer): void => {
                 }
               },
             ];
+          };
+        }
+
+        if (
+          (propertyName === "useState" || propertyName === "useReducer") &&
+          typeof originalMethod === "function"
+        ) {
+          return (...hookArgs: unknown[]) => {
+            const result = (originalMethod as (...args: unknown[]) => unknown)(
+              ...hookArgs,
+            );
+            if (!Array.isArray(result) || typeof result[1] !== "function") {
+              return result;
+            }
+            const [state, dispatch] = result as [
+              unknown,
+              (...args: unknown[]) => void,
+            ];
+            const wrappedDispatch = (...args: unknown[]) => {
+              if (isUpdatesPaused) {
+                pendingStateUpdates.push(() => dispatch(...args));
+              } else {
+                dispatch(...args);
+              }
+            };
+            return [state, wrappedDispatch];
           };
         }
 
@@ -467,15 +494,18 @@ export const freezeUpdates = (): (() => void) => {
 
       const storeCallbacksToInvoke = Array.from(pendingStoreCallbacks);
       const transitionCallbacksToInvoke = pendingTransitionCallbacks.slice();
+      const stateUpdatesToInvoke = pendingStateUpdates.slice();
 
       isUpdatesPaused = false;
 
       invokeCallbacks(storeCallbacksToInvoke);
       invokeCallbacks(transitionCallbacksToInvoke);
+      invokeCallbacks(stateUpdatesToInvoke);
       scheduleReactUpdate(fiberRootsToResume);
     } finally {
       pendingStoreCallbacks.clear();
       pendingTransitionCallbacks.length = 0;
+      pendingStateUpdates.length = 0;
     }
   };
 };
