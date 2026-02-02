@@ -154,9 +154,8 @@ const pauseHookQueue = (queue: HookQueue): void => {
     set: (newValue: PendingUpdate | null) => {
       if (isUpdatesPaused) {
         pauseState.bufferedPending = newValue;
-      } else {
-        currentPendingValue = newValue;
       }
+      currentPendingValue = newValue;
     },
   });
 
