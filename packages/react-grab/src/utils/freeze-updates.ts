@@ -50,7 +50,27 @@ interface PausedContextState {
 
 let isUpdatesPaused = false;
 
+const getOrCache = <K extends object, V>(
+  cache: WeakMap<K, V>,
+  key: K,
+  create: () => V,
+): V => {
+  const cached = cache.get(key);
+  if (cached) return cached;
+  const value = create();
+  cache.set(key, value);
+  return value;
+};
+
+type DispatchFunction = (...args: unknown[]) => void;
+type TransitionFunction = (callback: () => void) => void;
+
 const dispatcherProxyCache = new WeakMap<object, object>();
+const wrappedDispatchCache = new WeakMap<DispatchFunction, DispatchFunction>();
+const wrappedStartTransitionCache = new WeakMap<
+  TransitionFunction,
+  TransitionFunction
+>();
 const pendingStoreCallbacks = new Set<() => void>();
 const pendingTransitionCallbacks: Array<() => void> = [];
 const pendingStateUpdates: Array<() => void> = [];
@@ -364,11 +384,12 @@ const installDispatcherProxy = (renderer: ReactRenderer): void => {
             }
             const [isPending, startTransition] = result as [
               boolean,
-              (transitionCallback: () => void) => void,
+              TransitionFunction,
             ];
-            return [
-              isPending,
-              (transitionCallback: () => void) => {
+            const wrappedStartTransition = getOrCache(
+              wrappedStartTransitionCache,
+              startTransition,
+              () => (transitionCallback: () => void) => {
                 if (isUpdatesPaused) {
                   pendingTransitionCallbacks.push(() =>
                     startTransition(transitionCallback),
@@ -377,7 +398,8 @@ const installDispatcherProxy = (renderer: ReactRenderer): void => {
                   startTransition(transitionCallback);
                 }
               },
-            ];
+            );
+            return [isPending, wrappedStartTransition];
           };
         }
 
@@ -392,17 +414,19 @@ const installDispatcherProxy = (renderer: ReactRenderer): void => {
             if (!Array.isArray(result) || typeof result[1] !== "function") {
               return result;
             }
-            const [state, dispatch] = result as [
-              unknown,
-              (...args: unknown[]) => void,
-            ];
-            const wrappedDispatch = (...args: unknown[]) => {
-              if (isUpdatesPaused) {
-                pendingStateUpdates.push(() => dispatch(...args));
-              } else {
-                dispatch(...args);
-              }
-            };
+            const [state, dispatch] = result as [unknown, DispatchFunction];
+            const wrappedDispatch = getOrCache(
+              wrappedDispatchCache,
+              dispatch,
+              () =>
+                (...args: unknown[]) => {
+                  if (isUpdatesPaused) {
+                    pendingStateUpdates.push(() => dispatch(...args));
+                  } else {
+                    dispatch(...args);
+                  }
+                },
+            );
             return [state, wrappedDispatch];
           };
         }

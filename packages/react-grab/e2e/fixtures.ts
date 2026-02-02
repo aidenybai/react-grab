@@ -1845,8 +1845,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
 export const test = base.extend<{ reactGrab: ReactGrabPageObject }>({
   reactGrab: async ({ page }, use) => {
-    await page.goto("/", { waitUntil: "networkidle" });
-    await page.waitForLoadState("domcontentloaded");
+    await page.goto("/", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(
       () => {
         const api = (window as { __REACT_GRAB__?: unknown }).__REACT_GRAB__;
