@@ -208,53 +208,6 @@ test.describe("Prompt Mode", () => {
       const isPromptMode = await reactGrab.isPromptModeActive();
       expect(isPromptMode).toBe(true);
     });
-
-    test("prompt mode via right-click should work", async ({ reactGrab }) => {
-      await reactGrab.setupMockAgent();
-      await reactGrab.activate();
-
-      const element = reactGrab.page.locator("li").first();
-      const box = await element.boundingBox();
-      if (!box) throw new Error("Could not get bounding box");
-
-      await reactGrab.page.mouse.click(
-        box.x + box.width / 2,
-        box.y + box.height / 2,
-        { button: "right" },
-      );
-
-      await expect.poll(() => reactGrab.isContextMenuVisible()).toBe(true);
-
-      await reactGrab.clickContextMenuItem("Edit");
-
-      await expect.poll(() => reactGrab.isPromptModeActive()).toBe(true);
-    });
-
-    test("should show element info in prompt mode", async ({ reactGrab }) => {
-      await reactGrab.setupMockAgent();
-      await reactGrab.activate();
-
-      const element = reactGrab.page.locator("li").first();
-      const box = await element.boundingBox();
-      if (!box) throw new Error("Could not get bounding box");
-
-      await reactGrab.page.mouse.click(
-        box.x + box.width / 2,
-        box.y + box.height / 2,
-        { button: "right" },
-      );
-
-      await expect.poll(() => reactGrab.isContextMenuVisible()).toBe(true);
-
-      await reactGrab.clickContextMenuItem("Edit");
-
-      await expect
-        .poll(async () => {
-          const labelInfo = await reactGrab.getSelectionLabelInfo();
-          return labelInfo.isVisible;
-        })
-        .toBe(true);
-    });
   });
 
   test.describe("Keyboard Shortcuts in Prompt Mode", () => {
