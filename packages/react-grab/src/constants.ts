@@ -73,6 +73,13 @@ export const MODIFIER_KEYS: readonly string[] = [
   "Alt",
 ];
 
+export const ARROW_KEYS = new Set([
+  "ArrowUp",
+  "ArrowDown",
+  "ArrowLeft",
+  "ArrowRight",
+]);
+
 export const FROZEN_ELEMENT_ATTRIBUTE = "data-react-grab-frozen";
 export const IGNORE_EVENTS_ATTRIBUTE = "data-react-grab-ignore-events";
 

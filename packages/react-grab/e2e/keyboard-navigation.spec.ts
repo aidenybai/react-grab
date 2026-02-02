@@ -95,6 +95,35 @@ test.describe("Keyboard Navigation", () => {
     expect(clipboardContent).toBeTruthy();
   });
 
+  test("should copy keyboard-selected element when clicking after mouse movement", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    const initialBounds = await reactGrab.getSelectionBoxBounds();
+    expect(initialBounds).not.toBeNull();
+
+    await reactGrab.page.keyboard.press("ArrowUp");
+    await reactGrab.waitForSelectionBox();
+
+    const selectionBoundsAfterArrow = await reactGrab.getSelectionBoxBounds();
+    expect(selectionBoundsAfterArrow).not.toBeNull();
+
+    await reactGrab.page.mouse.move(10, 10);
+    await reactGrab.page.waitForTimeout(50);
+
+    await reactGrab.page.mouse.click(
+      selectionBoundsAfterArrow!.x + selectionBoundsAfterArrow!.width / 2,
+      selectionBoundsAfterArrow!.y + selectionBoundsAfterArrow!.height / 2,
+    );
+    await reactGrab.page.waitForTimeout(500);
+
+    const clipboardContent = await reactGrab.getClipboardContent();
+    expect(clipboardContent).toBeTruthy();
+  });
+
   test("should freeze selection when navigating with arrow keys", async ({
     reactGrab,
   }) => {
