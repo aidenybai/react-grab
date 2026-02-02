@@ -2364,12 +2364,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         !isPromptMode() &&
         !isToggleFrozen() &&
         !isDragging() &&
-        store.contextMenuPosition === null
+        store.contextMenuPosition === null &&
+        store.frozenElements.length === 0
       ) {
-        const candidate = getElementAtPosition(
-          store.pointer.x,
-          store.pointer.y,
-        );
+        const candidate = getElementAtPosition(store.pointer.x, store.pointer.y);
         actions.setDetectedElement(candidate);
       }
     };
@@ -2378,20 +2376,20 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "scroll",
       () => {
         invalidateBoundsCache();
+        redetectElementUnderPointer();
         actions.incrementViewportVersion();
         actions.updateSessionBounds();
         actions.updateContextMenuPosition();
-        redetectElementUnderPointer();
       },
       { capture: true },
     );
 
     eventListenerManager.addWindowListener("resize", () => {
       invalidateBoundsCache();
+      redetectElementUnderPointer();
       actions.incrementViewportVersion();
       actions.updateSessionBounds();
       actions.updateContextMenuPosition();
-      redetectElementUnderPointer();
     });
 
     let boundsRecalcIntervalId: number | null = null;
