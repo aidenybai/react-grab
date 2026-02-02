@@ -70,6 +70,7 @@ interface Position {
 
 export interface OverlayCanvasProps {
   crosshairVisible?: boolean;
+  crosshairShouldSnap?: boolean;
   mouseX?: number;
   mouseY?: number;
 
@@ -572,12 +573,12 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
   createEffect(
     on(
-      () => [props.mouseX, props.mouseY] as const,
-      ([mouseX, mouseY]) => {
+      () => [props.mouseX, props.mouseY, props.crosshairShouldSnap] as const,
+      ([mouseX, mouseY, shouldSnap]) => {
         const targetX = mouseX ?? 0;
         const targetY = mouseY ?? 0;
 
-        if (!isCrosshairInitialized) {
+        if (!isCrosshairInitialized || shouldSnap) {
           crosshairCurrentPosition.x = targetX;
           crosshairCurrentPosition.y = targetY;
           isCrosshairInitialized = true;

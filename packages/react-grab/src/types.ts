@@ -419,6 +419,7 @@ export interface ReactGrabRendererProps {
   mouseX?: number;
   mouseY?: number;
   crosshairVisible?: boolean;
+  crosshairShouldSnap?: boolean;
   isFrozen?: boolean;
   inputValue?: string;
   isPromptMode?: boolean;
