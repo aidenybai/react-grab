@@ -4,11 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "pnpm --filter react-grab build && next build",
+    "build": "pnpm --filter react-grab build && pnpm --filter @react-grab/design-system build && next build",
     "start": "next start",
     "lint": "oxlint"
   },
   "dependencies": {
+    "@react-grab/design-system": "workspace:*",
     "@vercel/analytics": "^1.5.0",
     "@vercel/firewall": "^1.1.1",
     "ai": "^5.0.36",

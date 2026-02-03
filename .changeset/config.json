@@ -29,6 +29,7 @@
     "@react-grab/website",
     "@react-grab/web-extension",
     "@react-grab/benchmarks",
-    "@react-grab/gym"
+    "@react-grab/gym",
+    "@react-grab/design-system"
   ]
 }

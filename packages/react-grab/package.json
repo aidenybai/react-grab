@@ -55,6 +55,7 @@
         "default": "./dist/core/index.cjs"
       }
     },
+    "./src/*": "./src/*",
     "./styles.css": "./dist/styles.css",
     "./dist/styles.css": "./dist/styles.css",
     "./dist/*": "./dist/*.js",

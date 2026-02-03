@@ -33,9 +33,7 @@ import { isValidGrabbableElement } from "../utils/is-valid-grabbable-element.js"
 import { isRootElement } from "../utils/is-root-element.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
-import {
-  createElementBounds,
-} from "../utils/create-element-bounds.js";
+import { createElementBounds } from "../utils/create-element-bounds.js";
 import { clearAllCaches } from "../utils/clear-all-caches.js";
 import {
   createBoundsFromDragRect,
@@ -1652,15 +1650,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       clientY: number,
       hasModifierKeyHeld: boolean,
     ) => {
-      const validFrozenElement =
-        isElementConnected(store.frozenElement)
-          ? store.frozenElement
-          : null;
+      const validFrozenElement = isElementConnected(store.frozenElement)
+        ? store.frozenElement
+        : null;
 
-      const validKeyboardSelectedElement =
-        isElementConnected(keyboardSelectedElement)
-          ? keyboardSelectedElement
-          : null;
+      const validKeyboardSelectedElement = isElementConnected(
+        keyboardSelectedElement,
+      )
+        ? keyboardSelectedElement
+        : null;
 
       const element =
         validFrozenElement ??

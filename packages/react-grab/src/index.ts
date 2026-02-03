@@ -10,7 +10,6 @@ export { copyHtmlPlugin } from "./core/plugins/copy-html.js";
 export { openPlugin } from "./core/plugins/open.js";
 export { commentPlugin } from "./core/plugins/comment.js";
 export { generateSnippet } from "./utils/generate-snippet.js";
-export { renderDesignSystemPreview } from "./design-system.js";
 export {
   captureElementScreenshot,
   copyImageToClipboard,

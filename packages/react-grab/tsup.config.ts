@@ -90,7 +90,7 @@ const browserBuildConfig: Options = {
 const libraryBuildConfig: Options = {
   ...DEFAULT_OPTIONS,
   clean: false,
-  entry: ["./src/index.ts", "./src/core/index.tsx", "./src/design-system.tsx"],
+  entry: ["./src/index.ts", "./src/core/index.tsx"],
   format: ["cjs", "esm"],
   loader: {
     ".css": "text",

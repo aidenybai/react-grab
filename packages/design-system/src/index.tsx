@@ -1,11 +1,14 @@
 // @ts-expect-error - CSS imported as text via tsup loader
-import cssText from "../dist/styles.css";
+import cssText from "react-grab/dist/styles.css";
 import { render } from "solid-js/web";
 import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
-import { SelectionLabel } from "./components/selection-label/index.js";
-import { ContextMenu } from "./components/context-menu.js";
-import { ToolbarContent } from "./components/toolbar/toolbar-content.js";
-import type { OverlayBounds, SelectionLabelStatus } from "./types.js";
+import { SelectionLabel } from "react-grab/src/components/selection-label/index.js";
+import { ContextMenu } from "react-grab/src/components/context-menu.js";
+import { ToolbarContent } from "react-grab/src/components/toolbar/toolbar-content.js";
+import type {
+  OverlayBounds,
+  SelectionLabelStatus,
+} from "react-grab/src/types.js";
 
 type ComponentType = "label" | "context-menu" | "toolbar";
 
@@ -2110,16 +2113,21 @@ const StateCard = (props: StateCardProps) => {
 
   let animationTimeout: ReturnType<typeof setTimeout> | undefined;
 
+  const clearAnimationTimeout = () => {
+    if (animationTimeout) {
+      clearTimeout(animationTimeout);
+      animationTimeout = undefined;
+    }
+  };
+
   const hasAnimation = () => Boolean(props.state.animationSequence?.length);
   const frameCount = () => props.state.animationSequence?.length ?? 0;
 
   const currentProps = (): DesignSystemStateProps => {
-    let baseProps: DesignSystemStateProps;
-    if (hasAnimation() && props.state.animationSequence) {
-      baseProps = props.state.animationSequence[frameIndex()].props;
-    } else {
-      baseProps = props.state.props;
-    }
+    const baseProps =
+      hasAnimation() && props.state.animationSequence
+        ? props.state.animationSequence[frameIndex()].props
+        : props.state.props;
     return props.isScrambled ? elongateProps(baseProps) : baseProps;
   };
 
@@ -2143,10 +2151,7 @@ const StateCard = (props: StateCardProps) => {
     event.stopPropagation();
     if (isPlaying()) {
       setIsPlaying(false);
-      if (animationTimeout) {
-        clearTimeout(animationTimeout);
-        animationTimeout = undefined;
-      }
+      clearAnimationTimeout();
     } else {
       setIsPlaying(true);
       scheduleNextFrame();
@@ -2154,21 +2159,17 @@ const StateCard = (props: StateCardProps) => {
   };
 
   const handleSliderChange = (event: Event) => {
-    const target = event.target as HTMLInputElement;
-    setFrameIndex(parseInt(target.value, 10));
+    const inputElement = event.target as HTMLInputElement;
+    const selectedFrameIndex = Number(inputElement.value);
+    setFrameIndex(selectedFrameIndex);
     if (isPlaying()) {
       setIsPlaying(false);
-      if (animationTimeout) {
-        clearTimeout(animationTimeout);
-        animationTimeout = undefined;
-      }
+      clearAnimationTimeout();
     }
   };
 
   onCleanup(() => {
-    if (animationTimeout) {
-      clearTimeout(animationTimeout);
-    }
+    clearAnimationTimeout();
   });
 
   const handleCardRefresh = (event: MouseEvent) => {
@@ -2176,10 +2177,7 @@ const StateCard = (props: StateCardProps) => {
     setIsCardRefreshing(true);
     setFrameIndex(0);
     setIsPlaying(false);
-    if (animationTimeout) {
-      clearTimeout(animationTimeout);
-      animationTimeout = undefined;
-    }
+    clearAnimationTimeout();
     props.onRefresh();
     queueMicrotask(() => setIsCardRefreshing(false));
   };
