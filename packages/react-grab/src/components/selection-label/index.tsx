@@ -488,7 +488,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                           data-react-grab-action-cycle-item={item.label.toLowerCase()}
                           class="contain-layout flex items-center justify-between w-full px-2 py-1 transition-colors"
                           classList={{
-                            "bg-blue-100 ring-1 ring-blue-300":
+                            "bg-blue-100 ring-1 ring-inset ring-blue-200":
                               itemIndex() === actionCycleActiveIndex(),
                             "rounded-b-[6px]":
                               itemIndex() === actionCycleItems().length - 1,
@@ -497,7 +497,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                           <span
                             class="text-[13px] leading-4 font-sans font-medium"
                             classList={{
-                              "text-blue-900":
+                              "text-blue-700":
                                 itemIndex() === actionCycleActiveIndex(),
                               "text-black/70":
                                 itemIndex() !== actionCycleActiveIndex(),
@@ -509,7 +509,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                             <span
                               class="text-[11px] font-sans ml-4"
                               classList={{
-                                "text-blue-700":
+                                "text-blue-500":
                                   itemIndex() === actionCycleActiveIndex(),
                                 "text-black/40":
                                   itemIndex() !== actionCycleActiveIndex(),
