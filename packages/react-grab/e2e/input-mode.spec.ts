@@ -209,7 +209,7 @@ test.describe("Input Mode", () => {
       expect(isPromptMode).toBe(true);
     });
 
-    test("activation shortcut should cancel input mode", async ({
+    test("activation shortcut should not cancel input mode when input is focused", async ({
       reactGrab,
     }) => {
       await reactGrab.setupMockAgent();
@@ -219,7 +219,7 @@ test.describe("Input Mode", () => {
       await reactGrab.page.keyboard.press("c");
       await reactGrab.page.keyboard.up(reactGrab.modifierKey);
 
-      await expect.poll(() => reactGrab.isOverlayVisible()).toBe(false);
+      await expect.poll(() => reactGrab.isPromptModeActive()).toBe(true);
     });
   });
 
