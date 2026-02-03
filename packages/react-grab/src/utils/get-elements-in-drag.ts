@@ -11,6 +11,8 @@ import {
   DRAG_SELECTION_MAX_TOTAL_SAMPLE_POINTS,
   DRAG_SELECTION_EDGE_INSET_PX,
 } from "../constants.js";
+import { getTagName } from "./get-tag-name.js";
+import { isRootElement } from "./is-root-element.js";
 
 const calculateIntersectionArea = (rect1: Rect, rect2: Rect): number => {
   const intersectionLeft = Math.max(rect1.left, rect2.left);
@@ -168,8 +170,7 @@ const filterElementsInDrag = (
 
   for (const candidateElement of candidates) {
     if (!shouldCheckCoverage) {
-      const tagName = (candidateElement.tagName || "").toUpperCase();
-      if (tagName === "HTML" || tagName === "BODY") continue;
+      if (isRootElement(candidateElement)) continue;
     }
 
     if (!isValidGrabbableElement(candidateElement)) continue;

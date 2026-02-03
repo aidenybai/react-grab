@@ -1,5 +1,6 @@
 import type { OverlayBounds } from "../types.js";
 import { getElementsAtPoint } from "../utils/get-element-at-position.js";
+import { isElementConnected } from "../utils/is-element-connected.js";
 
 interface ElementValidator {
   (element: Element): boolean;
@@ -46,7 +47,7 @@ export const createArrowNavigator = (
   const findDown = (currentElement: Element): Element | null => {
     if (navigationHistory.length > 0) {
       const previousElement = navigationHistory.pop()!;
-      if (document.contains(previousElement)) {
+      if (isElementConnected(previousElement)) {
         return previousElement;
       }
     }

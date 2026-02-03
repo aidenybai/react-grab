@@ -8,6 +8,7 @@ import type {
 } from "../types.js";
 import { OFFSCREEN_POSITION } from "../constants.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
+import { isElementConnected } from "../utils/is-element-connected.js";
 
 interface Position {
   x: number;
@@ -685,8 +686,8 @@ const createGrabStore = (input: GrabStoreInput) => {
       let didUpdate = false;
 
       for (const [sessionId, session] of currentSessions) {
-        const element = store.sessionElements.get(sessionId);
-        if (element && document.contains(element)) {
+        const element = store.sessionElements.get(sessionId) ?? null;
+        if (isElementConnected(element)) {
           const newBounds = createElementBounds(element);
           const oldFirstBounds = session.selectionBounds[0];
           let updatedPosition = session.position;
@@ -796,7 +797,7 @@ const createGrabStore = (input: GrabStoreInput) => {
       const clickOffset = store.contextMenuClickOffset;
 
       if (!element || !clickOffset) return;
-      if (!document.contains(element)) return;
+      if (!isElementConnected(element)) return;
 
       const newBounds = createElementBounds(element);
       const newCenterX = newBounds.x + newBounds.width / 2;

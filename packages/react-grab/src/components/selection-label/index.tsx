@@ -1,4 +1,11 @@
-import { Show, createSignal, createEffect, onMount, onCleanup } from "solid-js";
+import {
+  Show,
+  For,
+  createSignal,
+  createEffect,
+  onMount,
+  onCleanup,
+} from "solid-js";
 import type { Component } from "solid-js";
 import type { ArrowPosition, SelectionLabelProps } from "../../types.js";
 import {
@@ -11,6 +18,7 @@ import {
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
 import { cn } from "../../utils/cn.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
+import { formatShortcut } from "../../utils/format-shortcut.js";
 import { IconReply } from "../icons/icon-reply.jsx";
 import { IconSubmit } from "../icons/icon-submit.jsx";
 import { IconLoader } from "../icons/icon-loader.jsx";
@@ -73,8 +81,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     }
     return false;
   };
-
-  const showOpenIndicator = () => Boolean(props.isContextMenuOpen);
 
   const measureContainer = () => {
     if (containerRef && !isTagCurrentlyHovered) {
@@ -159,6 +165,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     void props.isPendingAbort;
     void props.visible;
     void props.status;
+    void props.actionCycleState?.items;
+    void props.actionCycleState?.activeIndex;
+    void props.actionCycleState?.isVisible;
     // HACK: use queueMicrotask instead of RAF to measure sooner after content changes
     // This prevents the flicker when transitioning between states (e.g., clicking "Keep")
     queueMicrotask(measureContainer);
@@ -291,6 +300,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   const tagDisplay = () => tagDisplayResult().tagName;
   const componentNameDisplay = () => tagDisplayResult().componentName;
+  const actionCycleItems = () => props.actionCycleState?.items ?? [];
+  const actionCycleActiveIndex = () => props.actionCycleState?.activeIndex ?? 0;
+  const isActionCycleVisible = () => Boolean(props.actionCycleState?.isVisible);
 
   const handleTagClick = (event: MouseEvent) => {
     event.stopPropagation();
@@ -310,10 +322,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     if (isEditableInputVisible && inputRef) {
       inputRef.focus();
     }
-  };
-
-  const handleSubmit = () => {
-    props.onSubmit?.();
   };
 
   const shouldPersistDuringFade = () =>
@@ -342,10 +350,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           opacity: props.status === "fading" || isInternalFading() ? 0 : 1,
         }}
         onPointerDown={handleContainerPointerDown}
-        onMouseDown={(event) => {
-          event.stopPropagation();
-          event.stopImmediatePropagation();
-        }}
         onClick={(event) => {
           event.stopPropagation();
           event.stopImmediatePropagation();
@@ -425,11 +429,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                         data-react-grab-abort
                         class="contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-black cursor-pointer ml-1 interactive-scale"
                         onPointerDown={(event) => event.stopPropagation()}
-                        onMouseDown={(event) => event.stopPropagation()}
-                        onPointerUp={(event) => {
-                          event.stopPropagation();
-                          props.onAbort?.();
-                        }}
                         onClick={(event) => {
                           event.stopPropagation();
                           props.onAbort?.();
@@ -452,16 +451,47 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           </Show>
 
           <Show when={canInteract() && !props.isPromptMode}>
-            <div class="contain-layout shrink-0 flex items-center gap-1 py-1.5 w-fit h-fit px-2">
-              <TagBadge
-                tagName={tagDisplay()}
-                componentName={componentNameDisplay()}
-                isClickable={isTagClickable()}
-                onClick={handleTagClick}
-                onHoverChange={handleTagHoverChange}
-                shrink
-                forceShowIcon={showOpenIndicator()}
-              />
+            <div class="contain-layout shrink-0 flex flex-col items-start w-fit h-fit">
+              <div class="contain-layout shrink-0 flex items-center gap-1 py-1.5 w-fit h-fit px-2">
+                <TagBadge
+                  tagName={tagDisplay()}
+                  componentName={componentNameDisplay()}
+                  isClickable={isTagClickable()}
+                  onClick={handleTagClick}
+                  onHoverChange={handleTagHoverChange}
+                  shrink
+                  forceShowIcon={Boolean(props.isContextMenuOpen)}
+                />
+              </div>
+              <Show when={isActionCycleVisible()}>
+                <BottomSection>
+                  <div class="flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5">
+                    <For each={actionCycleItems()}>
+                      {(item, itemIndex) => (
+                        <div
+                          data-react-grab-action-cycle-item={item.label.toLowerCase()}
+                          class="contain-layout flex items-center justify-between w-full px-2 py-1 transition-colors"
+                          classList={{
+                            "bg-black/5":
+                              itemIndex() === actionCycleActiveIndex(),
+                            "rounded-b-[6px]":
+                              itemIndex() === actionCycleItems().length - 1,
+                          }}
+                        >
+                          <span class="text-[13px] leading-4 font-sans font-medium text-black">
+                            {item.label}
+                          </span>
+                          <Show when={item.shortcut}>
+                            <span class="text-[11px] font-sans text-black/50 ml-4">
+                              {formatShortcut(item.shortcut!)}
+                            </span>
+                          </Show>
+                        </div>
+                      )}
+                    </For>
+                  </div>
+                </BottomSection>
+              </Show>
             </div>
           </Show>
 
@@ -514,7 +544,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   <button
                     data-react-grab-submit
                     class="contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-black cursor-pointer ml-1 interactive-scale"
-                    onClick={handleSubmit}
+                    onClick={() => props.onSubmit?.()}
                   >
                     <IconSubmit size={10} class="text-white" />
                   </button>

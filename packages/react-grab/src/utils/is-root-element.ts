@@ -1,4 +1,6 @@
+import { getTagName } from "./get-tag-name.js";
+
 export const isRootElement = (element: Element): boolean => {
-  const tagName = (element.tagName || "").toUpperCase();
-  return tagName === "HTML" || tagName === "BODY";
+  const tagName = getTagName(element);
+  return tagName === "html" || tagName === "body";
 };
