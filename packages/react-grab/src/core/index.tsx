@@ -2153,6 +2153,23 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
     };
 
+    const handleActionCyclePrompt = (agent?: AgentOptions) => {
+      const element = selectionElement();
+      if (!element) return;
+      const position = store.pointer;
+      if (agent) {
+        actions.setSelectedAgent(agent);
+      }
+      resetActionCycle();
+      preparePromptMode(element, position.x, position.y);
+      actions.setPointer({ x: position.x, y: position.y });
+      actions.setFrozenElement(element);
+      activatePromptMode();
+      if (!isActivated()) {
+        activateRenderer();
+      }
+    };
+
     const getActionCycleContext = (): ContextMenuActionContext | undefined => {
       const element = selectionElement();
       if (!element) return undefined;
@@ -2172,6 +2189,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         lineNumber,
         componentName,
         tagName,
+        enterPromptMode: handleActionCyclePrompt,
         copy: () => handleActionCycleCopy(element, elements),
         hooks: {
           transformHtmlContent: pluginRegistry.hooks.transformHtmlContent,
