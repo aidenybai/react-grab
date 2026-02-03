@@ -1,9 +1,19 @@
 import type { Component } from "solid-js";
 import type { ArrowProps } from "../../types.js";
+import { MODE } from "../../constants.js";
 
 export const Arrow: Component<ArrowProps> = (props) => {
-  const arrowColor = () => props.color ?? "white";
+  const defaultColor = MODE === "dark" ? "rgba(30,30,30,0.95)" : "white";
+  const arrowColor = () => props.color ?? defaultColor;
   const isBottom = () => props.position === "bottom";
+
+  const getShadowFilter = (): string | undefined => {
+    if (MODE === "dark") return undefined;
+
+    return isBottom()
+      ? "drop-shadow(-1px -1px 0 rgba(0,0,0,0.06)) drop-shadow(1px -1px 0 rgba(0,0,0,0.06))"
+      : "drop-shadow(-1px 1px 0 rgba(0,0,0,0.06)) drop-shadow(1px 1px 0 rgba(0,0,0,0.06))";
+  };
 
   return (
     <div
@@ -19,9 +29,7 @@ export const Arrow: Component<ArrowProps> = (props) => {
         "border-right": "8px solid transparent",
         "border-bottom": isBottom() ? `8px solid ${arrowColor()}` : undefined,
         "border-top": isBottom() ? undefined : `8px solid ${arrowColor()}`,
-        filter: isBottom()
-          ? "drop-shadow(-1px -1px 0 rgba(0,0,0,0.06)) drop-shadow(1px -1px 0 rgba(0,0,0,0.06))"
-          : "drop-shadow(-1px 1px 0 rgba(0,0,0,0.06)) drop-shadow(1px 1px 0 rgba(0,0,0,0.06))",
+        filter: getShadowFilter(),
       }}
     />
   );

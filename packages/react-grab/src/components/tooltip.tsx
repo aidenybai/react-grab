@@ -5,6 +5,7 @@ import {
   TOOLTIP_DELAY_MS,
   TOOLTIP_GRACE_PERIOD_MS,
   PANEL_STYLES,
+  TEXT_SECONDARY,
 } from "../constants.js";
 
 let tooltipCloseTimestamp = 0;
@@ -66,8 +67,9 @@ export const Tooltip: Component<TooltipProps> = (props) => {
     <Show when={delayedVisible()}>
       <div
         class={cn(
-          "absolute left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none [corner-shape:superellipse(1.25)]",
+          "absolute left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 rounded-[10px] text-[10px] pointer-events-none [corner-shape:superellipse(1.25)]",
           PANEL_STYLES,
+          TEXT_SECONDARY,
           props.position === "top" ? "bottom-full mb-2.5" : "top-full mt-2.5",
           shouldAnimate() && "animate-tooltip-fade-in",
         )}

@@ -13,7 +13,14 @@ import type {
   ActionContext,
   ContextMenuActionContext,
 } from "../types.js";
-import { ARROW_HEIGHT_PX, LABEL_GAP_PX, PANEL_STYLES } from "../constants.js";
+import {
+  ARROW_HEIGHT_PX,
+  LABEL_GAP_PX,
+  PANEL_STYLES,
+  TEXT_PRIMARY,
+  TEXT_SECONDARY,
+  BG_HOVER,
+} from "../constants.js";
 import { cn } from "../utils/cn.js";
 import { Arrow } from "./selection-label/arrow.js";
 import { TagBadge } from "./selection-label/tag-badge.js";
@@ -290,16 +297,26 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
                   <button
                     data-react-grab-ignore-events
                     data-react-grab-menu-item={item.label.toLowerCase()}
-                    class="contain-layout flex items-center justify-between w-full px-2 py-1 cursor-pointer transition-colors hover:bg-black/5 text-left border-none bg-transparent disabled:opacity-40 disabled:cursor-default disabled:hover:bg-transparent"
+                    class={cn(
+                      "contain-layout flex items-center justify-between w-full px-2 py-1 cursor-pointer transition-colors text-left border-none bg-transparent disabled:opacity-40 disabled:cursor-default disabled:hover:bg-transparent",
+                      BG_HOVER,
+                    )}
                     disabled={!item.enabled}
                     onPointerDown={(event) => event.stopPropagation()}
                     onClick={(event) => handleAction(item, event)}
                   >
-                    <span class="text-[13px] leading-4 font-sans font-medium text-black">
+                    <span
+                      class={cn(
+                        "text-[13px] leading-4 font-sans font-medium",
+                        TEXT_PRIMARY,
+                      )}
+                    >
                       {item.label}
                     </span>
                     <Show when={item.shortcut}>
-                      <span class="text-[11px] font-sans text-black/50 ml-4">
+                      <span
+                        class={cn("text-[11px] font-sans ml-4", TEXT_SECONDARY)}
+                      >
                         {formatShortcut(item.shortcut!)}
                       </span>
                     </Show>

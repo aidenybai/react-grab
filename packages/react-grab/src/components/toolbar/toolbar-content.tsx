@@ -1,6 +1,6 @@
 import type { Component, JSX } from "solid-js";
 import { cn } from "../../utils/cn.js";
-import { PANEL_STYLES } from "../../constants.js";
+import { PANEL_STYLES, MODE } from "../../constants.js";
 import { IconSelect } from "../icons/icon-select.jsx";
 import { IconComment } from "../icons/icon-comment.jsx";
 import { IconChevron } from "../icons/icon-chevron.jsx";
@@ -90,13 +90,20 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
       <div
         class={cn(
           "relative w-5 h-3 rounded-full transition-colors",
-          props.enabled ? "bg-black" : "bg-black/25",
+          props.enabled
+            ? MODE === "dark"
+              ? "bg-white/40"
+              : "bg-black"
+            : MODE === "dark"
+              ? "bg-white/20"
+              : "bg-black/25",
         )}
       >
         <div
           class={cn(
-            "absolute top-0.5 w-2 h-2 rounded-full bg-white transition-transform",
+            "absolute top-0.5 w-2 h-2 rounded-full transition-transform",
             props.enabled ? "left-2.5" : "left-0.5",
+            MODE === "dark" ? "bg-white" : "bg-white",
           )}
         />
       </div>

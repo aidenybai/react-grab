@@ -7,6 +7,9 @@ import {
   ARROW_CENTER_PERCENT,
   LABEL_GAP_PX,
   PANEL_STYLES,
+  TEXT_PRIMARY,
+  TEXT_MUTED,
+  MODE,
 } from "../../constants.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
 import { cn } from "../../utils/cn.js";
@@ -407,7 +410,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     <textarea
                       ref={inputRef}
                       data-react-grab-ignore-events
-                      class="text-black text-[13px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 opacity-50 wrap-break-word overflow-y-auto"
+                      class={cn(
+                        "text-[13px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 opacity-50 wrap-break-word overflow-y-auto",
+                        TEXT_PRIMARY,
+                      )}
                       style={{
                         "field-sizing": "content",
                         "min-height": "16px",
@@ -423,7 +429,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                       <button
                         data-react-grab-ignore-events
                         data-react-grab-abort
-                        class="contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-black cursor-pointer ml-1 interactive-scale"
+                        class={cn(
+                          "contain-layout shrink-0 flex items-center justify-center size-4 rounded-full cursor-pointer ml-1 interactive-scale",
+                          MODE === "dark" ? "bg-white" : "bg-black",
+                        )}
                         onPointerDown={(event) => event.stopPropagation()}
                         onMouseDown={(event) => event.stopPropagation()}
                         onPointerUp={(event) => {
@@ -435,7 +444,12 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                           props.onAbort?.();
                         }}
                       >
-                        <div class="size-1.5 bg-white rounded-[1px]" />
+                        <div
+                          class={cn(
+                            "size-1.5 rounded-[1px]",
+                            MODE === "dark" ? "bg-black" : "bg-white",
+                          )}
+                        />
                       </button>
                     </Show>
                   </div>
@@ -484,8 +498,13 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               <BottomSection>
                 <Show when={props.replyToPrompt}>
                   <div class="flex items-center gap-1 w-full mb-1 overflow-hidden">
-                    <IconReply size={10} class="text-black/30 shrink-0" />
-                    <span class="text-black/40 text-[11px] leading-3 font-medium truncate italic">
+                    <IconReply size={10} class={cn("shrink-0", TEXT_MUTED)} />
+                    <span
+                      class={cn(
+                        "text-[11px] leading-3 font-medium truncate italic",
+                        TEXT_MUTED,
+                      )}
+                    >
                       {props.replyToPrompt}
                     </span>
                   </div>
@@ -498,7 +517,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     ref={inputRef}
                     data-react-grab-ignore-events
                     data-react-grab-input
-                    class="text-black text-[13px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 wrap-break-word overflow-y-auto"
+                    class={cn(
+                      "text-[13px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 wrap-break-word overflow-y-auto",
+                      TEXT_PRIMARY,
+                    )}
                     style={{
                       "field-sizing": "content",
                       "min-height": "16px",
@@ -513,10 +535,16 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   />
                   <button
                     data-react-grab-submit
-                    class="contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-black cursor-pointer ml-1 interactive-scale"
+                    class={cn(
+                      "contain-layout shrink-0 flex items-center justify-center size-4 rounded-full cursor-pointer ml-1 interactive-scale",
+                      MODE === "dark" ? "bg-white" : "bg-black",
+                    )}
                     onClick={handleSubmit}
                   >
-                    <IconSubmit size={10} class="text-white" />
+                    <IconSubmit
+                      size={10}
+                      class={MODE === "dark" ? "text-black" : "text-white"}
+                    />
                   </button>
                 </div>
               </BottomSection>
