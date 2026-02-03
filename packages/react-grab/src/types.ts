@@ -259,6 +259,12 @@ export interface ActionCycleState {
   isVisible: boolean;
 }
 
+export interface PerformWithFeedbackOptions {
+  fallbackBounds?: OverlayBounds;
+  fallbackSelectionBounds?: OverlayBounds[];
+  position?: { x: number; y: number };
+}
+
 export interface ScreenshotBounds {
   x: number;
   y: number;

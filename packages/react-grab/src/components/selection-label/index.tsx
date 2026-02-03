@@ -303,8 +303,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const tagDisplay = () => tagDisplayResult().tagName;
   const componentNameDisplay = () => tagDisplayResult().componentName;
   const actionCycleItems = () => props.actionCycleState?.items ?? [];
-  const actionCycleActiveIndex = () =>
-    props.actionCycleState?.activeIndex ?? 0;
+  const actionCycleActiveIndex = () => props.actionCycleState?.activeIndex ?? 0;
   const isActionCycleVisible = () => Boolean(props.actionCycleState?.isVisible);
 
   const handleTagClick = (event: MouseEvent) => {
@@ -488,33 +487,17 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                           data-react-grab-action-cycle-item={item.label.toLowerCase()}
                           class="contain-layout flex items-center justify-between w-full px-2 py-1 transition-colors"
                           classList={{
-                            "bg-blue-100 ring-1 ring-inset ring-blue-200":
+                            "bg-black/5":
                               itemIndex() === actionCycleActiveIndex(),
                             "rounded-b-[6px]":
                               itemIndex() === actionCycleItems().length - 1,
                           }}
                         >
-                          <span
-                            class="text-[13px] leading-4 font-sans font-medium"
-                            classList={{
-                              "text-blue-700":
-                                itemIndex() === actionCycleActiveIndex(),
-                              "text-black/70":
-                                itemIndex() !== actionCycleActiveIndex(),
-                            }}
-                          >
+                          <span class="text-[13px] leading-4 font-sans font-medium text-black">
                             {item.label}
                           </span>
                           <Show when={item.shortcut}>
-                            <span
-                              class="text-[11px] font-sans ml-4"
-                              classList={{
-                                "text-blue-500":
-                                  itemIndex() === actionCycleActiveIndex(),
-                                "text-black/40":
-                                  itemIndex() !== actionCycleActiveIndex(),
-                              }}
-                            >
+                            <span class="text-[11px] font-sans text-black/50 ml-4">
                               {formatShortcut(item.shortcut!)}
                             </span>
                           </Show>

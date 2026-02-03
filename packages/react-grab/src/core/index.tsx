@@ -71,6 +71,7 @@ import {
   ACTION_CYCLE_INPUT_THROTTLE_MS,
   ACTION_CYCLE_SCROLL_THRESHOLD_PX,
   ACTION_CYCLE_SCROLL_LINE_HEIGHT_PX,
+  ACTION_CYCLE_ACTION_IDS,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
@@ -99,6 +100,7 @@ import type {
   ContextMenuAction,
   ActionCycleItem,
   ActionCycleState,
+  PerformWithFeedbackOptions,
   SettableOptions,
   SourceInfo,
   Plugin,
@@ -146,12 +148,6 @@ const builtInPlugins = [
   copyHtmlPlugin,
   openPlugin,
 ];
-
-interface PerformWithFeedbackOptions {
-  fallbackBounds?: OverlayBounds;
-  fallbackSelectionBounds?: OverlayBounds[];
-  position?: { x: number; y: number };
-}
 
 let hasInited = false;
 const toolbarStateChangeCallbacks = new Set<(state: ToolbarState) => void>();
@@ -405,14 +401,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [actionCycleActiveIndex, setActionCycleActiveIndex] = createSignal<
       number | null
     >(null);
-
-    const actionCycleActionIds = [
-      "copy",
-      "comment",
-      "screenshot",
-      "copy-html",
-      "open",
-    ];
 
     const arrowNavigator = createArrowNavigator(
       isValidGrabbableElement,
@@ -2111,38 +2099,33 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }),
     );
 
-    const getActionById = (
-      actionId: string,
-    ): ContextMenuAction | undefined =>
+    const getActionById = (actionId: string): ContextMenuAction | undefined =>
       pluginRegistry.store.actions.find((action) => action.id === actionId);
 
     const getActionCycleItems = (
       context: ContextMenuActionContext | undefined,
     ): ActionCycleItem[] => {
       if (!context) return [];
-      const actionsById = new Map<string, ContextMenuAction>();
-      for (const action of pluginRegistry.store.actions) {
-        actionsById.set(action.id, action);
-      }
 
-      return actionCycleActionIds.flatMap((actionId) => {
+      const actionsById = new Map(
+        pluginRegistry.store.actions.map((action) => [action.id, action]),
+      );
+
+      const items: ActionCycleItem[] = [];
+      for (const actionId of ACTION_CYCLE_ACTION_IDS) {
         const action = actionsById.get(actionId);
-        if (!action) return [];
-        if (!resolveActionEnabled(action, context)) return [];
-        return [
-          {
+        if (action && resolveActionEnabled(action, context)) {
+          items.push({
             id: action.id,
             label: action.label,
             shortcut: action.shortcut,
-          },
-        ];
-      });
+          });
+        }
+      }
+      return items;
     };
 
-    const handleActionCycleCopy = (
-      element: Element,
-      elements: Element[],
-    ) => {
+    const handleActionCycleCopy = (element: Element, elements: Element[]) => {
       const position = store.pointer;
       performCopyWithLabel({
         element,
@@ -2271,13 +2254,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           ? currentIndex
           : null;
       const directionOffset = direction === "forward" ? 1 : -1;
-      const nextIndex =
-        normalizedIndex === null
-          ? direction === "forward"
-            ? 0
-            : availableItems.length - 1
-          : (normalizedIndex + directionOffset + availableItems.length) %
-            availableItems.length;
+
+      let nextIndex: number;
+      if (normalizedIndex === null) {
+        nextIndex = direction === "forward" ? 0 : availableItems.length - 1;
+      } else {
+        nextIndex =
+          (normalizedIndex + directionOffset + availableItems.length) %
+          availableItems.length;
+      }
 
       setActionCycleActiveIndex(nextIndex);
       scheduleActionCycleActivation();
@@ -3153,8 +3138,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     ) => {
       return async (action: () => Promise<boolean>): Promise<void> => {
         const fallbackBounds = options?.fallbackBounds ?? null;
-        const fallbackSelectionBounds =
-          options?.fallbackSelectionBounds ?? [];
+        const fallbackSelectionBounds = options?.fallbackSelectionBounds ?? [];
         const position =
           options?.position ?? store.contextMenuPosition ?? store.pointer;
         const frozenBounds = frozenElementsBounds();

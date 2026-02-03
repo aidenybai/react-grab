@@ -20,6 +20,13 @@ export const ACTION_CYCLE_IDLE_TRIGGER_MS = 600;
 export const ACTION_CYCLE_INPUT_THROTTLE_MS = 100;
 export const ACTION_CYCLE_SCROLL_THRESHOLD_PX = 30;
 export const ACTION_CYCLE_SCROLL_LINE_HEIGHT_PX = 16;
+export const ACTION_CYCLE_ACTION_IDS: readonly string[] = [
+  "copy",
+  "comment",
+  "screenshot",
+  "copy-html",
+  "open",
+];
 
 export const DRAG_THRESHOLD_PX = 2;
 
