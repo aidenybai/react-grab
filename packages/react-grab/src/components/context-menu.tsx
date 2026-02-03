@@ -20,6 +20,7 @@ import { BottomSection } from "./selection-label/bottom-section.js";
 import { formatShortcut } from "../utils/format-shortcut.js";
 import { getTagDisplay } from "../utils/get-tag-display.js";
 import { resolveActionEnabled } from "../utils/resolve-action-enabled.js";
+import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
 
 interface ContextMenuProps {
   position: { x: number; y: number } | null;
@@ -39,15 +40,6 @@ interface MenuItem {
   enabled: boolean;
   shortcut?: string;
 }
-
-const isEventFromOverlay = (event: Event) =>
-  event
-    .composedPath()
-    .some(
-      (element) =>
-        element instanceof HTMLElement &&
-        element.hasAttribute("data-react-grab-ignore-events"),
-    );
 
 export const ContextMenu: Component<ContextMenuProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
@@ -127,6 +119,13 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     }));
   };
 
+  const handleMenuEvent = (event: Event) => {
+    if (event.type === "contextmenu") {
+      event.preventDefault();
+    }
+    event.stopImmediatePropagation();
+  };
+
   const handleAction = (item: MenuItem, event: Event) => {
     event.stopPropagation();
     if (item.enabled) {
@@ -139,7 +138,11 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     measureContainer();
 
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
-      if (!isVisible() || isEventFromOverlay(event)) return;
+      if (
+        !isVisible() ||
+        isEventFromOverlay(event, "data-react-grab-ignore-events")
+      )
+        return;
       if (event instanceof MouseEvent && event.button === 2) return;
       props.onDismiss();
     };
@@ -152,6 +155,19 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       const hasModifierKey = event.metaKey || event.ctrlKey;
       const keyLower = event.key.toLowerCase();
 
+      const pluginActions = props.actions ?? [];
+      const context = props.actionContext;
+
+      const runActionIfAllowed = (action: ContextMenuAction) => {
+        if (!context) return false;
+        if (!resolveActionEnabled(action, context)) return false;
+        event.preventDefault();
+        event.stopPropagation();
+        action.onAction(context);
+        props.onHide();
+        return true;
+      };
+
       if (isEscape) {
         event.preventDefault();
         event.stopPropagation();
@@ -159,20 +175,12 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         return;
       }
 
-      const pluginActions = props.actions ?? [];
-      const context = props.actionContext;
-
       if (isEnter) {
-        for (const action of pluginActions) {
-          if (action.shortcut === "Enter") {
-            if (resolveActionEnabled(action, context) && context) {
-              event.preventDefault();
-              event.stopPropagation();
-              action.onAction(context);
-              props.onHide();
-              return;
-            }
-          }
+        const enterAction = pluginActions.find(
+          (action) => action.shortcut === "Enter",
+        );
+        if (enterAction) {
+          runActionIfAllowed(enterAction);
         }
         return;
       }
@@ -180,20 +188,14 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       if (!hasModifierKey) return;
       if (event.repeat) return;
 
-      for (const action of pluginActions) {
-        if (
+      const modifierAction = pluginActions.find(
+        (action) =>
           action.shortcut &&
           action.shortcut !== "Enter" &&
-          keyLower === action.shortcut.toLowerCase()
-        ) {
-          if (resolveActionEnabled(action, context) && context) {
-            event.preventDefault();
-            event.stopPropagation();
-            action.onAction(context);
-            props.onHide();
-            return;
-          }
-        }
+          keyLower === action.shortcut.toLowerCase(),
+      );
+      if (modifierAction) {
+        runActionIfAllowed(modifierAction);
       }
     };
 
@@ -233,13 +235,10 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
           "z-index": "2147483647",
           "pointer-events": "auto",
         }}
-        onPointerDown={(event) => event.stopImmediatePropagation()}
-        onMouseDown={(event) => event.stopImmediatePropagation()}
-        onClick={(event) => event.stopImmediatePropagation()}
-        onContextMenu={(event) => {
-          event.preventDefault();
-          event.stopImmediatePropagation();
-        }}
+        onPointerDown={handleMenuEvent}
+        onMouseDown={handleMenuEvent}
+        onClick={handleMenuEvent}
+        onContextMenu={handleMenuEvent}
       >
         {/* Arrow positioned from left edge (leftPercent=0) using computed pixel offset,
             unlike SelectionLabel which centers (leftPercent=50) then applies offset */}

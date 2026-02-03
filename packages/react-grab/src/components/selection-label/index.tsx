@@ -82,8 +82,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     return false;
   };
 
-  const showOpenIndicator = () => Boolean(props.isContextMenuOpen);
-
   const measureContainer = () => {
     if (containerRef && !isTagCurrentlyHovered) {
       const rect = containerRef.getBoundingClientRect();
@@ -326,10 +324,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     }
   };
 
-  const handleSubmit = () => {
-    props.onSubmit?.();
-  };
-
   const shouldPersistDuringFade = () =>
     hadValidBounds() && (isCompletedStatus() || props.status === "error");
 
@@ -356,10 +350,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           opacity: props.status === "fading" || isInternalFading() ? 0 : 1,
         }}
         onPointerDown={handleContainerPointerDown}
-        onMouseDown={(event) => {
-          event.stopPropagation();
-          event.stopImmediatePropagation();
-        }}
         onClick={(event) => {
           event.stopPropagation();
           event.stopImmediatePropagation();
@@ -439,11 +429,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                         data-react-grab-abort
                         class="contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-black cursor-pointer ml-1 interactive-scale"
                         onPointerDown={(event) => event.stopPropagation()}
-                        onMouseDown={(event) => event.stopPropagation()}
-                        onPointerUp={(event) => {
-                          event.stopPropagation();
-                          props.onAbort?.();
-                        }}
                         onClick={(event) => {
                           event.stopPropagation();
                           props.onAbort?.();
@@ -475,7 +460,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   onClick={handleTagClick}
                   onHoverChange={handleTagHoverChange}
                   shrink
-                  forceShowIcon={showOpenIndicator()}
+                  forceShowIcon={Boolean(props.isContextMenuOpen)}
                 />
               </div>
               <Show when={isActionCycleVisible()}>
@@ -559,7 +544,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   <button
                     data-react-grab-submit
                     class="contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-black cursor-pointer ml-1 interactive-scale"
-                    onClick={handleSubmit}
+                    onClick={() => props.onSubmit?.()}
                   >
                     <IconSubmit size={10} class="text-white" />
                   </button>

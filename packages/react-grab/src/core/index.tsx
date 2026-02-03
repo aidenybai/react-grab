@@ -28,20 +28,15 @@ import { isSourceFile, normalizeFileName } from "bippy/source";
 import { createNoopApi } from "./noop-api.js";
 import { createEventListenerManager } from "./events.js";
 import { tryCopyWithFallback } from "./copy.js";
-import {
-  getElementAtPosition,
-  clearElementPositionCache,
-} from "../utils/get-element-at-position.js";
-import {
-  isValidGrabbableElement,
-  clearVisibilityCache,
-} from "../utils/is-valid-grabbable-element.js";
+import { getElementAtPosition } from "../utils/get-element-at-position.js";
+import { isValidGrabbableElement } from "../utils/is-valid-grabbable-element.js";
 import { isRootElement } from "../utils/is-root-element.js";
+import { isElementConnected } from "../utils/is-element-connected.js";
 import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
 import {
   createElementBounds,
-  invalidateBoundsCache,
 } from "../utils/create-element-bounds.js";
+import { clearAllCaches } from "../utils/clear-all-caches.js";
 import {
   createBoundsFromDragRect,
   createFlatOverlayBounds,
@@ -373,6 +368,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       x: number;
       y: number;
     } | null>(null);
+    const scheduleDragPreviewUpdate = (clientX: number, clientY: number) => {
+      if (dragPreviewDebounceTimerId !== null) {
+        clearTimeout(dragPreviewDebounceTimerId);
+      }
+      setDebouncedDragPointer(null);
+      dragPreviewDebounceTimerId = window.setTimeout(() => {
+        setDebouncedDragPointer({ x: clientX, y: clientY });
+        dragPreviewDebounceTimerId = null;
+      }, DRAG_PREVIEW_DEBOUNCE_MS);
+    };
     let keydownSpamTimerId: number | null = null;
     let holdTimerId: number | null = null;
     let holdStartTimestamp: number | null = null;
@@ -759,7 +764,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const targetElement = createMemo(() => {
       if (!isRendererActive() || isDragging()) return null;
       const element = store.detectedElement;
-      if (element && !document.contains(element)) return null;
+      if (!isElementConnected(element)) return null;
       return element;
     });
 
@@ -772,7 +777,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!element) return;
 
       const intervalId = setInterval(() => {
-        if (!document.contains(element)) {
+        if (!isElementConnected(element)) {
           actions.setDetectedElement(null);
         }
       }, BOUNDS_RECALC_INTERVAL_MS);
@@ -838,39 +843,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const selectionElement = createMemo(() => getSelectionElement());
 
     const isSelectionElementVisible = (): boolean => {
+      const element = getSelectionElement();
+      if (!element) return false;
       if (store.isTouchMode && isDragging()) {
-        const detected = store.detectedElement;
-        if (!detected || isRootElement(detected)) return false;
         return isRendererActive();
       }
-      const element = effectiveElement();
-      if (!element || isRootElement(element)) return false;
       return isRendererActive() && !isDragging();
     };
-
-    const selectionBounds = createMemo((): OverlayBounds | undefined => {
-      void store.viewportVersion;
-
-      const frozenElements = store.frozenElements;
-      if (frozenElements.length > 0) {
-        const firstElement = frozenElements[0];
-        if (frozenElements.length === 1 && firstElement) {
-          return createElementBounds(firstElement);
-        }
-        const dragRect = store.frozenDragRect;
-        if (dragRect) {
-          return createBoundsFromDragRect(dragRect);
-        }
-        const elementBounds = frozenElements
-          .filter((element): element is Element => element !== null)
-          .map((element) => createElementBounds(element));
-        return createFlatOverlayBounds(combineBounds(elementBounds));
-      }
-
-      const element = getSelectionElement();
-      if (!element) return undefined;
-      return createElementBounds(element);
-    });
 
     const frozenElementsBounds = createMemo((): OverlayBounds[] => {
       void store.viewportVersion;
@@ -886,6 +865,29 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return frozenElements
         .filter((element): element is Element => element !== null)
         .map((element) => createElementBounds(element));
+    });
+
+    const selectionBounds = createMemo((): OverlayBounds | undefined => {
+      void store.viewportVersion;
+
+      const frozenElements = store.frozenElements;
+      if (frozenElements.length > 0) {
+        const frozenBounds = frozenElementsBounds();
+        if (frozenElements.length === 1) {
+          const firstBounds = frozenBounds[0];
+          if (firstBounds) return firstBounds;
+        }
+        const dragRect = store.frozenDragRect;
+        if (dragRect) {
+          const dragBounds = frozenBounds[0];
+          return dragBounds ?? createBoundsFromDragRect(dragRect);
+        }
+        return createFlatOverlayBounds(combineBounds(frozenBounds));
+      }
+
+      const element = getSelectionElement();
+      if (!element) return undefined;
+      return createElementBounds(element);
     });
 
     const frozenElementsCount = createMemo(() => store.frozenElements.length);
@@ -1269,7 +1271,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       autoScroller.stop();
       if (
         previousFocused instanceof HTMLElement &&
-        document.contains(previousFocused)
+        isElementConnected(previousFocused)
       ) {
         previousFocused.focus();
       }
@@ -1287,7 +1289,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       agent?: AgentOptions,
     ) => {
       const element = elements[0];
-      if (element && document.contains(element)) {
+      if (isElementConnected(element)) {
         const rect = element.getBoundingClientRect();
         const centerY = rect.top + rect.height / 2;
 
@@ -1561,14 +1563,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       if (isDragging()) {
-        if (dragPreviewDebounceTimerId !== null) {
-          clearTimeout(dragPreviewDebounceTimerId);
-        }
-        setDebouncedDragPointer(null);
-        dragPreviewDebounceTimerId = window.setTimeout(() => {
-          setDebouncedDragPointer({ x: clientX, y: clientY });
-          dragPreviewDebounceTimerId = null;
-        }, DRAG_PREVIEW_DEBOUNCE_MS);
+        scheduleDragPreviewUpdate(clientX, clientY);
 
         const direction = getAutoScrollDirection(clientX, clientY);
         const isNearEdge =
@@ -1592,14 +1587,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.setPointer({ x: clientX, y: clientY });
       document.body.style.userSelect = "none";
 
-      if (dragPreviewDebounceTimerId !== null) {
-        clearTimeout(dragPreviewDebounceTimerId);
-      }
-      setDebouncedDragPointer(null);
-      dragPreviewDebounceTimerId = window.setTimeout(() => {
-        setDebouncedDragPointer({ x: clientX, y: clientY });
-        dragPreviewDebounceTimerId = null;
-      }, DRAG_PREVIEW_DEBOUNCE_MS);
+      scheduleDragPreviewUpdate(clientX, clientY);
 
       pluginRegistry.hooks.onDragStart(
         clientX + window.scrollX,
@@ -1665,12 +1653,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       hasModifierKeyHeld: boolean,
     ) => {
       const validFrozenElement =
-        store.frozenElement && document.contains(store.frozenElement)
+        isElementConnected(store.frozenElement)
           ? store.frozenElement
           : null;
 
       const validKeyboardSelectedElement =
-        keyboardSelectedElement && document.contains(keyboardSelectedElement)
+        isElementConnected(keyboardSelectedElement)
           ? keyboardSelectedElement
           : null;
 
@@ -1678,7 +1666,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         validFrozenElement ??
         validKeyboardSelectedElement ??
         getElementAtPosition(clientX, clientY) ??
-        (store.detectedElement && document.contains(store.detectedElement)
+        (isElementConnected(store.detectedElement)
           ? store.detectedElement
           : null);
       if (!element) return;
@@ -1876,13 +1864,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         !isPromptMode() &&
         !isActivated() &&
         copiedElement &&
-        document.contains(copiedElement) &&
+        isElementConnected(copiedElement) &&
         !store.labelInstances.some(
           (instance) =>
             instance.status === "copied" || instance.status === "fading",
         );
 
-      if (canActivateFromCopied && copiedElement) {
+      if (canActivateFromCopied) {
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation();
@@ -1909,13 +1897,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         event.stopImmediatePropagation();
 
         const element = store.frozenElement || targetElement();
-        const pointerX = store.pointer.x;
-        const pointerY = store.pointer.y;
         if (element) {
-          preparePromptMode(element, pointerX, pointerY);
+          preparePromptMode(element, store.pointer.x, store.pointer.y);
         }
 
-        actions.setPointer({ x: pointerX, y: pointerY });
+        actions.setPointer({ x: store.pointer.x, y: store.pointer.y });
         if (element) {
           actions.setFrozenElement(element);
         }
@@ -2339,10 +2325,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const isEnterToActivateInput =
           isEnterCode(event.code) && isHoldingKeys() && !isPromptMode();
 
+        const isFromReactGrabInput = isEventFromOverlay(
+          event,
+          "data-react-grab-input",
+        );
         if (
           isPromptMode() &&
           isTargetKeyCombination(event, pluginRegistry.store.options) &&
-          !event.repeat
+          !event.repeat &&
+          !isFromReactGrabInput
         ) {
           event.preventDefault();
           event.stopPropagation();
@@ -2696,9 +2687,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleViewportChange = () => {
-      invalidateBoundsCache();
-      clearElementPositionCache();
-      clearVisibilityCache();
+      clearAllCaches();
       redetectElementUnderPointer();
       actions.incrementViewportVersion();
       actions.updateSessionBounds();
@@ -3266,7 +3255,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const element = agentManager.session.getElement(sessionId);
       if (!element) return;
-      if (!document.contains(element)) return;
+      if (!isElementConnected(element)) return;
 
       // HACK: Defer context menu display to avoid event interference
       setTimeout(() => {
@@ -3286,7 +3275,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         (labelInstance) => labelInstance.id === instanceId,
       );
       if (!instance?.element) return;
-      if (!document.contains(instance.element)) return;
+      if (!isElementConnected(instance.element)) return;
 
       const elementBounds = createElementBounds(instance.element);
       const position = {
@@ -3296,7 +3285,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const elementsToFreeze =
         instance.elements && instance.elements.length > 0
-          ? instance.elements.filter((element) => document.contains(element))
+          ? instance.elements.filter((element) => isElementConnected(element))
           : [instance.element];
 
       // HACK: Defer context menu display to avoid event interference

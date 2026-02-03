@@ -16,6 +16,7 @@ import {
   updateSession,
 } from "./session.js";
 import { createElementBounds } from "../../utils/create-element-bounds.js";
+import { isElementConnected } from "../../utils/is-element-connected.js";
 import { generateSnippet } from "../../utils/generate-snippet.js";
 import { getNearestComponentName } from "../context.js";
 import {
@@ -550,7 +551,7 @@ export const createAgentManager = (
     void effectiveAgent?.provider?.redo?.();
 
     let validElements = elements.filter((element) =>
-      document.contains(element),
+      isElementConnected(element),
     );
 
     if (validElements.length === 0) {
@@ -641,10 +642,10 @@ export const createAgentManager = (
       const elements = getElementsForSession(sessionId);
       const firstElement = elements[0];
 
-      if (firstElement && document.contains(firstElement)) {
+      if (isElementConnected(firstElement)) {
         const newBounds = elements
-          .filter((el) => document.contains(el))
-          .map((el) => createElementBounds(el));
+          .filter((element) => isElementConnected(element))
+          .map((element) => createElementBounds(element));
 
         if (newBounds.length > 0) {
           const oldFirstBounds = session.selectionBounds[0];

@@ -7,7 +7,6 @@ interface ScrollCyclerOptions {
 
 interface ScrollCycler {
   handleWheel: (event: WheelEvent) => void;
-  reset: () => void;
 }
 
 export const createScrollCycler = (
@@ -18,11 +17,6 @@ export const createScrollCycler = (
   let accumulatedDelta = 0;
   let currentDirection: number | null = null;
   let lastStepTimestamp = 0;
-
-  const reset = () => {
-    accumulatedDelta = 0;
-    currentDirection = null;
-  };
 
   const handleWheel = (event: WheelEvent) => {
     const primaryAxisDelta =
@@ -61,5 +55,5 @@ export const createScrollCycler = (
     onStep(direction < 0 ? "backward" : "forward");
   };
 
-  return { handleWheel, reset };
+  return { handleWheel };
 };
