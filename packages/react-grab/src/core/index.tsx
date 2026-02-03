@@ -69,6 +69,8 @@ import {
   ZOOM_DETECTION_THRESHOLD,
   ACTION_CYCLE_IDLE_TRIGGER_MS,
   ACTION_CYCLE_INPUT_THROTTLE_MS,
+  ACTION_CYCLE_SCROLL_THRESHOLD_PX,
+  ACTION_CYCLE_SCROLL_LINE_HEIGHT_PX,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
@@ -383,7 +385,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let inToggleFeedbackPeriod = false;
     let toggleFeedbackTimerId: number | null = null;
     let actionCycleIdleTimeoutId: number | null = null;
-    let lastActionCycleInputTimestamp = 0;
+    let lastActionCycleStepTimestamp = 0;
+    let actionCycleScrollAccumulatedDelta = 0;
+    let actionCycleScrollDirection: number | null = null;
     let selectionSourceRequestVersion = 0;
     let componentNameRequestVersion = 0;
     let componentNameDebounceTimerId: number | null = null;
@@ -402,7 +406,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       number | null
     >(null);
 
-    const actionCycleActionIds = ["copy", "screenshot", "copy-html"];
+    const actionCycleActionIds = [
+      "copy",
+      "comment",
+      "screenshot",
+      "copy-html",
+      "open",
+    ];
 
     const arrowNavigator = createArrowNavigator(
       isValidGrabbableElement,
@@ -2119,7 +2129,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const action = actionsById.get(actionId);
         if (!action) return [];
         if (!resolveActionEnabled(action, context)) return [];
-        return [{ id: action.id, label: action.label }];
+        return [
+          {
+            id: action.id,
+            label: action.label,
+            shortcut: action.shortcut,
+          },
+        ];
       });
     };
 
@@ -2225,17 +2241,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, ACTION_CYCLE_IDLE_TRIGGER_MS);
     };
 
-    const handleActionCycleInput = (
+    const applyActionCycleItems = (
+      availableItems: ActionCycleItem[],
       direction: "forward" | "backward",
     ): boolean => {
-      if (!canCycleActions()) return false;
-      const context = getActionCycleContext();
-      if (!context) return false;
-      const availableItems = getActionCycleItems(context);
       if (availableItems.length === 0) return false;
-
       setActionCycleItems(availableItems);
-
       const currentIndex = actionCycleActiveIndex();
       const normalizedIndex =
         currentIndex !== null && currentIndex < availableItems.length
@@ -2255,31 +2266,77 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return true;
     };
 
+    const handleActionCycleInput = (
+      direction: "forward" | "backward",
+    ): boolean => {
+      if (!canCycleActions()) return false;
+      const context = getActionCycleContext();
+      if (!context) return false;
+      const availableItems = getActionCycleItems(context);
+      return applyActionCycleItems(availableItems, direction);
+    };
+
     const handleActionCycleKey = (event: KeyboardEvent): boolean => {
       if (event.code !== "KeyC") return false;
-      if (event.metaKey || event.ctrlKey || event.altKey) return false;
+      if (event.altKey) return false;
+      const hasCommandOrControl = event.metaKey || event.ctrlKey;
       if (event.repeat) return false;
       if (isKeyboardEventTriggeredByInput(event)) return false;
       if (!handleActionCycleInput("forward")) return false;
       event.preventDefault();
       event.stopPropagation();
+      if (hasCommandOrControl) {
+        event.stopImmediatePropagation();
+      }
       return true;
     };
 
     const handleActionCycleWheel = (event: WheelEvent) => {
       if (!canCycleActions()) return;
-      const now = Date.now();
-      if (now - lastActionCycleInputTimestamp < ACTION_CYCLE_INPUT_THROTTLE_MS)
-        return;
-      lastActionCycleInputTimestamp = now;
+      const context = getActionCycleContext();
+      if (!context) return;
+      const availableItems = getActionCycleItems(context);
+      if (availableItems.length === 0) return;
 
-      const delta =
+      const axisDelta =
         Math.abs(event.deltaY) >= Math.abs(event.deltaX)
           ? event.deltaY
           : event.deltaX;
-      if (delta === 0) return;
+      if (axisDelta === 0) return;
 
-      handleActionCycleInput(delta < 0 ? "backward" : "forward");
+      event.preventDefault();
+      event.stopPropagation();
+
+      let normalizedDelta = axisDelta;
+      if (event.deltaMode === 1) {
+        normalizedDelta *= ACTION_CYCLE_SCROLL_LINE_HEIGHT_PX;
+      } else if (event.deltaMode === 2) {
+        normalizedDelta *= window.innerHeight;
+      }
+
+      const direction = normalizedDelta > 0 ? 1 : -1;
+      if (actionCycleScrollDirection !== direction) {
+        actionCycleScrollDirection = direction;
+        actionCycleScrollAccumulatedDelta = 0;
+      }
+
+      actionCycleScrollAccumulatedDelta += Math.abs(normalizedDelta);
+
+      const now = Date.now();
+      if (
+        now - lastActionCycleStepTimestamp < ACTION_CYCLE_INPUT_THROTTLE_MS ||
+        actionCycleScrollAccumulatedDelta < ACTION_CYCLE_SCROLL_THRESHOLD_PX
+      ) {
+        return;
+      }
+
+      actionCycleScrollAccumulatedDelta -= ACTION_CYCLE_SCROLL_THRESHOLD_PX;
+      lastActionCycleStepTimestamp = now;
+
+      applyActionCycleItems(
+        availableItems,
+        direction < 0 ? "backward" : "forward",
+      );
     };
 
     const handleActivationKeys = (event: KeyboardEvent): void => {
@@ -2446,7 +2503,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     eventListenerManager.addWindowListener("wheel", handleActionCycleWheel, {
-      passive: true,
+      passive: false,
     });
 
     eventListenerManager.addWindowListener(

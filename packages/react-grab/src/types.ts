@@ -250,6 +250,7 @@ export interface ContextMenuAction {
 export interface ActionCycleItem {
   id: string;
   label: string;
+  shortcut?: string;
 }
 
 export interface ActionCycleState {

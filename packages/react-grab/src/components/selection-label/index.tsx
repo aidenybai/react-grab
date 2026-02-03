@@ -18,6 +18,7 @@ import {
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
 import { cn } from "../../utils/cn.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
+import { formatShortcut } from "../../utils/format-shortcut.js";
 import { IconReply } from "../icons/icon-reply.jsx";
 import { IconSubmit } from "../icons/icon-submit.jsx";
 import { IconLoader } from "../icons/icon-loader.jsx";
@@ -480,30 +481,42 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               </div>
               <Show when={isActionCycleVisible()}>
                 <BottomSection>
-                  <div class="contain-layout flex items-center gap-1.5">
+                  <div class="flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5">
                     <For each={actionCycleItems()}>
                       {(item, itemIndex) => (
-                        <>
+                        <div
+                          data-react-grab-action-cycle-item={item.label.toLowerCase()}
+                          class="contain-layout flex items-center justify-between w-full px-2 py-1 transition-colors"
+                          classList={{
+                            "bg-blue-100 ring-1 ring-blue-300":
+                              itemIndex() === actionCycleActiveIndex(),
+                          }}
+                        >
                           <span
-                            class="text-[11px] leading-3 font-medium transition-colors"
+                            class="text-[13px] leading-4 font-sans font-medium"
                             classList={{
-                              "text-black": itemIndex() === actionCycleActiveIndex(),
-                              "text-black/40":
+                              "text-blue-900":
+                                itemIndex() === actionCycleActiveIndex(),
+                              "text-black/70":
                                 itemIndex() !== actionCycleActiveIndex(),
                             }}
                           >
                             {item.label}
                           </span>
-                          <Show
-                            when={
-                              itemIndex() < actionCycleItems().length - 1
-                            }
-                          >
-                            <span class="text-[11px] leading-3 text-black/20">
-                              •
+                          <Show when={item.shortcut}>
+                            <span
+                              class="text-[11px] font-sans ml-4"
+                              classList={{
+                                "text-blue-700":
+                                  itemIndex() === actionCycleActiveIndex(),
+                                "text-black/40":
+                                  itemIndex() !== actionCycleActiveIndex(),
+                              }}
+                            >
+                              {formatShortcut(item.shortcut!)}
                             </span>
                           </Show>
-                        </>
+                        </div>
                       )}
                     </For>
                   </div>
