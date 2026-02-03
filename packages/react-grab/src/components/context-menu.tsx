@@ -10,7 +10,6 @@ import type { Component } from "solid-js";
 import type {
   OverlayBounds,
   ContextMenuAction,
-  ActionContext,
   ContextMenuActionContext,
 } from "../types.js";
 import { ARROW_HEIGHT_PX, LABEL_GAP_PX, PANEL_STYLES } from "../constants.js";
@@ -20,6 +19,7 @@ import { TagBadge } from "./selection-label/tag-badge.js";
 import { BottomSection } from "./selection-label/bottom-section.js";
 import { formatShortcut } from "../utils/format-shortcut.js";
 import { getTagDisplay } from "../utils/get-tag-display.js";
+import { resolveActionEnabled } from "../utils/resolve-action-enabled.js";
 
 interface ContextMenuProps {
   position: { x: number; y: number } | null;
@@ -48,16 +48,6 @@ const isEventFromOverlay = (event: Event) =>
         element instanceof HTMLElement &&
         element.hasAttribute("data-react-grab-ignore-events"),
     );
-
-const resolveActionEnabled = (
-  action: ContextMenuAction,
-  context: ActionContext | undefined,
-): boolean => {
-  if (typeof action.enabled === "function") {
-    return context ? action.enabled(context) : false;
-  }
-  return action.enabled ?? true;
-};
 
 export const ContextMenu: Component<ContextMenuProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;

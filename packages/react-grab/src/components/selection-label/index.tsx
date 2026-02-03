@@ -1,4 +1,11 @@
-import { Show, createSignal, createEffect, onMount, onCleanup } from "solid-js";
+import {
+  Show,
+  For,
+  createSignal,
+  createEffect,
+  onMount,
+  onCleanup,
+} from "solid-js";
 import type { Component } from "solid-js";
 import type { ArrowPosition, SelectionLabelProps } from "../../types.js";
 import {
@@ -159,6 +166,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     void props.isPendingAbort;
     void props.visible;
     void props.status;
+    void props.actionCycleState?.items;
+    void props.actionCycleState?.activeIndex;
+    void props.actionCycleState?.isVisible;
     // HACK: use queueMicrotask instead of RAF to measure sooner after content changes
     // This prevents the flicker when transitioning between states (e.g., clicking "Keep")
     queueMicrotask(measureContainer);
@@ -291,6 +301,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   const tagDisplay = () => tagDisplayResult().tagName;
   const componentNameDisplay = () => tagDisplayResult().componentName;
+  const actionCycleItems = () => props.actionCycleState?.items ?? [];
+  const actionCycleActiveIndex = () =>
+    props.actionCycleState?.activeIndex ?? 0;
+  const isActionCycleVisible = () => Boolean(props.actionCycleState?.isVisible);
 
   const handleTagClick = (event: MouseEvent) => {
     event.stopPropagation();
@@ -452,16 +466,49 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           </Show>
 
           <Show when={canInteract() && !props.isPromptMode}>
-            <div class="contain-layout shrink-0 flex items-center gap-1 py-1.5 w-fit h-fit px-2">
-              <TagBadge
-                tagName={tagDisplay()}
-                componentName={componentNameDisplay()}
-                isClickable={isTagClickable()}
-                onClick={handleTagClick}
-                onHoverChange={handleTagHoverChange}
-                shrink
-                forceShowIcon={showOpenIndicator()}
-              />
+            <div class="contain-layout shrink-0 flex flex-col items-start w-fit h-fit">
+              <div class="contain-layout shrink-0 flex items-center gap-1 py-1.5 w-fit h-fit px-2">
+                <TagBadge
+                  tagName={tagDisplay()}
+                  componentName={componentNameDisplay()}
+                  isClickable={isTagClickable()}
+                  onClick={handleTagClick}
+                  onHoverChange={handleTagHoverChange}
+                  shrink
+                  forceShowIcon={showOpenIndicator()}
+                />
+              </div>
+              <Show when={isActionCycleVisible()}>
+                <BottomSection>
+                  <div class="contain-layout flex items-center gap-1.5">
+                    <For each={actionCycleItems()}>
+                      {(item, itemIndex) => (
+                        <>
+                          <span
+                            class="text-[11px] leading-3 font-medium transition-colors"
+                            classList={{
+                              "text-black": itemIndex() === actionCycleActiveIndex(),
+                              "text-black/40":
+                                itemIndex() !== actionCycleActiveIndex(),
+                            }}
+                          >
+                            {item.label}
+                          </span>
+                          <Show
+                            when={
+                              itemIndex() < actionCycleItems().length - 1
+                            }
+                          >
+                            <span class="text-[11px] leading-3 text-black/20">
+                              •
+                            </span>
+                          </Show>
+                        </>
+                      )}
+                    </For>
+                  </div>
+                </BottomSection>
+              </Show>
             </div>
           </Show>
 

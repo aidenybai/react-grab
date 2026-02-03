@@ -247,6 +247,17 @@ export interface ContextMenuAction {
   agent?: AgentOptions;
 }
 
+export interface ActionCycleItem {
+  id: string;
+  label: string;
+}
+
+export interface ActionCycleState {
+  items: ActionCycleItem[];
+  activeIndex: number | null;
+  isVisible: boolean;
+}
+
 export interface ScreenshotBounds {
   x: number;
   y: number;
@@ -432,6 +443,7 @@ export interface ReactGrabRendererProps {
   selectionComponentName?: string;
   selectionLabelVisible?: boolean;
   selectionLabelStatus?: SelectionLabelStatus;
+  selectionActionCycleState?: ActionCycleState;
   labelInstances?: SelectionLabelInstance[];
   dragVisible?: boolean;
   dragBounds?: OverlayBounds;
@@ -586,6 +598,7 @@ export interface SelectionLabelProps {
   supportsUndo?: boolean;
   supportsFollowUp?: boolean;
   dismissButtonText?: string;
+  actionCycleState?: ActionCycleState;
   onInputChange?: (value: string) => void;
   onSubmit?: () => void;
   onCancel?: () => void;

@@ -67,6 +67,8 @@ import {
   MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS,
   SCREENSHOT_CAPTURE_DELAY_MS,
   ZOOM_DETECTION_THRESHOLD,
+  ACTION_CYCLE_IDLE_TRIGGER_MS,
+  ACTION_CYCLE_INPUT_THROTTLE_MS,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
@@ -81,6 +83,7 @@ import {
 } from "../utils/capture-screenshot.js";
 import { isScreenshotSupported } from "../utils/is-screenshot-supported.js";
 import { delay } from "../utils/delay.js";
+import { resolveActionEnabled } from "../utils/resolve-action-enabled.js";
 import type {
   Options,
   OverlayBounds,
@@ -90,8 +93,10 @@ import type {
   SelectionLabelInstance,
   AgentSession,
   AgentOptions,
-  ActionContext,
   ContextMenuActionContext,
+  ContextMenuAction,
+  ActionCycleItem,
+  ActionCycleState,
   SettableOptions,
   SourceInfo,
   Plugin,
@@ -139,6 +144,12 @@ const builtInPlugins = [
   copyHtmlPlugin,
   openPlugin,
 ];
+
+interface PerformWithFeedbackOptions {
+  fallbackBounds?: OverlayBounds;
+  fallbackSelectionBounds?: OverlayBounds[];
+  position?: { x: number; y: number };
+}
 
 let hasInited = false;
 const toolbarStateChangeCallbacks = new Set<(state: ToolbarState) => void>();
@@ -371,6 +382,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let isScreenshotInProgress = false;
     let inToggleFeedbackPeriod = false;
     let toggleFeedbackTimerId: number | null = null;
+    let actionCycleIdleTimeoutId: number | null = null;
+    let lastActionCycleInputTimestamp = 0;
     let selectionSourceRequestVersion = 0;
     let componentNameRequestVersion = 0;
     let componentNameDebounceTimerId: number | null = null;
@@ -382,6 +395,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [resolvedComponentName, setResolvedComponentName] = createSignal<
       string | undefined
     >(undefined);
+    const [actionCycleItems, setActionCycleItems] = createSignal<
+      ActionCycleItem[]
+    >([]);
+    const [actionCycleActiveIndex, setActionCycleActiveIndex] = createSignal<
+      number | null
+    >(null);
+
+    const actionCycleActionIds = ["copy", "screenshot", "copy-html"];
 
     const arrowNavigator = createArrowNavigator(
       isValidGrabbableElement,
@@ -817,6 +838,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!element || isRootElement(element)) return undefined;
       return element;
     };
+
+    const selectionElement = createMemo(() => getSelectionElement());
 
     const isSelectionElementVisible = (): boolean => {
       if (store.isTouchMode && isDragging()) {
@@ -2033,6 +2056,232 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return true;
     };
 
+    const clearActionCycleIdleTimeout = () => {
+      if (actionCycleIdleTimeoutId !== null) {
+        window.clearTimeout(actionCycleIdleTimeoutId);
+        actionCycleIdleTimeoutId = null;
+      }
+    };
+
+    const resetActionCycle = () => {
+      clearActionCycleIdleTimeout();
+      setActionCycleItems([]);
+      setActionCycleActiveIndex(null);
+    };
+
+    const canCycleActions = createMemo(() => {
+      const element = selectionElement();
+      return (
+        Boolean(element) &&
+        isRendererActive() &&
+        !isPromptMode() &&
+        !isDragging() &&
+        store.contextMenuPosition === null
+      );
+    });
+
+    const actionCycleState = createMemo<ActionCycleState>(() => ({
+      items: actionCycleItems(),
+      activeIndex: actionCycleActiveIndex(),
+      isVisible:
+        actionCycleActiveIndex() !== null && actionCycleItems().length > 0,
+    }));
+
+    createEffect(
+      on(selectionElement, () => {
+        resetActionCycle();
+      }),
+    );
+
+    createEffect(
+      on(canCycleActions, (isEnabled) => {
+        if (!isEnabled) {
+          resetActionCycle();
+        }
+      }),
+    );
+
+    const getActionById = (
+      actionId: string,
+    ): ContextMenuAction | undefined =>
+      pluginRegistry.store.actions.find((action) => action.id === actionId);
+
+    const getActionCycleItems = (
+      context: ContextMenuActionContext | undefined,
+    ): ActionCycleItem[] => {
+      if (!context) return [];
+      const actionsById = new Map<string, ContextMenuAction>();
+      for (const action of pluginRegistry.store.actions) {
+        actionsById.set(action.id, action);
+      }
+
+      return actionCycleActionIds.flatMap((actionId) => {
+        const action = actionsById.get(actionId);
+        if (!action) return [];
+        if (!resolveActionEnabled(action, context)) return [];
+        return [{ id: action.id, label: action.label }];
+      });
+    };
+
+    const handleActionCycleCopy = (
+      element: Element,
+      elements: Element[],
+    ) => {
+      const position = store.pointer;
+      performCopyWithLabel({
+        element,
+        positionX: position.x,
+        positionY: position.y,
+        elements: elements.length > 1 ? elements : undefined,
+        shouldDeactivateAfter: store.wasActivatedByToggle,
+      });
+    };
+
+    const getActionCycleContext = (): ContextMenuActionContext | undefined => {
+      const element = selectionElement();
+      if (!element) return undefined;
+      const elements =
+        store.frozenElements.length > 0 ? store.frozenElements : [element];
+      const tagName = getTagName(element) || undefined;
+      const componentName = selectionComponentName();
+      const filePath = store.selectionFilePath ?? undefined;
+      const lineNumber = store.selectionLineNumber ?? undefined;
+      const fallbackBounds = selectionBounds();
+      const fallbackSelectionBounds = fallbackBounds ? [fallbackBounds] : [];
+
+      const context: ContextMenuActionContext = {
+        element,
+        elements,
+        filePath,
+        lineNumber,
+        componentName,
+        tagName,
+        copy: () => handleActionCycleCopy(element, elements),
+        hooks: {
+          transformHtmlContent: pluginRegistry.hooks.transformHtmlContent,
+          transformScreenshot: pluginRegistry.hooks.transformScreenshot,
+          onOpenFile: pluginRegistry.hooks.onOpenFile,
+          transformOpenFileUrl: pluginRegistry.hooks.transformOpenFileUrl,
+        },
+        performWithFeedback: createPerformWithFeedback(
+          element,
+          elements,
+          tagName,
+          componentName,
+          {
+            fallbackBounds,
+            fallbackSelectionBounds,
+          },
+        ),
+        hideContextMenu: () => {
+          actions.hideContextMenu();
+        },
+        hideOverlay: () => {
+          isScreenshotInProgress = true;
+          rendererRoot.style.visibility = "hidden";
+        },
+        showOverlay: () => {
+          isScreenshotInProgress = false;
+          rendererRoot.style.visibility = "";
+        },
+        cleanup: () => {
+          if (store.wasActivatedByToggle) {
+            deactivateRenderer();
+          } else {
+            actions.unfreeze();
+          }
+        },
+      };
+
+      return pluginRegistry.hooks.transformActionContext(
+        context,
+      ) as ContextMenuActionContext;
+    };
+
+    const scheduleActionCycleActivation = () => {
+      clearActionCycleIdleTimeout();
+      actionCycleIdleTimeoutId = window.setTimeout(() => {
+        actionCycleIdleTimeoutId = null;
+        const activeIndex = actionCycleActiveIndex();
+        const items = actionCycleItems();
+        if (activeIndex === null || items.length === 0) return;
+        const selectedItem = items[activeIndex];
+        if (!selectedItem) return;
+        const action = getActionById(selectedItem.id);
+        if (!action) {
+          resetActionCycle();
+          return;
+        }
+        const context = getActionCycleContext();
+        if (!context || !resolveActionEnabled(action, context)) {
+          resetActionCycle();
+          return;
+        }
+        resetActionCycle();
+        const result = action.onAction(context);
+        if (result instanceof Promise) {
+          void result;
+        }
+      }, ACTION_CYCLE_IDLE_TRIGGER_MS);
+    };
+
+    const handleActionCycleInput = (
+      direction: "forward" | "backward",
+    ): boolean => {
+      if (!canCycleActions()) return false;
+      const context = getActionCycleContext();
+      if (!context) return false;
+      const availableItems = getActionCycleItems(context);
+      if (availableItems.length === 0) return false;
+
+      setActionCycleItems(availableItems);
+
+      const currentIndex = actionCycleActiveIndex();
+      const normalizedIndex =
+        currentIndex !== null && currentIndex < availableItems.length
+          ? currentIndex
+          : null;
+      const directionOffset = direction === "forward" ? 1 : -1;
+      const nextIndex =
+        normalizedIndex === null
+          ? direction === "forward"
+            ? 0
+            : availableItems.length - 1
+          : (normalizedIndex + directionOffset + availableItems.length) %
+            availableItems.length;
+
+      setActionCycleActiveIndex(nextIndex);
+      scheduleActionCycleActivation();
+      return true;
+    };
+
+    const handleActionCycleKey = (event: KeyboardEvent): boolean => {
+      if (event.code !== "KeyC") return false;
+      if (event.metaKey || event.ctrlKey || event.altKey) return false;
+      if (event.repeat) return false;
+      if (isKeyboardEventTriggeredByInput(event)) return false;
+      if (!handleActionCycleInput("forward")) return false;
+      event.preventDefault();
+      event.stopPropagation();
+      return true;
+    };
+
+    const handleActionCycleWheel = (event: WheelEvent) => {
+      if (!canCycleActions()) return;
+      const now = Date.now();
+      if (now - lastActionCycleInputTimestamp < ACTION_CYCLE_INPUT_THROTTLE_MS)
+        return;
+      lastActionCycleInputTimestamp = now;
+
+      const delta =
+        Math.abs(event.deltaY) >= Math.abs(event.deltaX)
+          ? event.deltaY
+          : event.deltaX;
+      if (delta === 0) return;
+
+      handleActionCycleInput(delta < 0 ? "backward" : "forward");
+    };
+
     const handleActivationKeys = (event: KeyboardEvent): void => {
       if (
         !pluginRegistry.store.options.allowActivationInsideInput &&
@@ -2185,6 +2434,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           }
         }
 
+        if (handleActionCycleKey(event)) return;
         if (handleArrowNavigation(event)) return;
         if (handleEnterKeyActivation(event)) return;
         if (handleOpenFileShortcut(event)) return;
@@ -2194,6 +2444,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
       { capture: true },
     );
+
+    eventListenerManager.addWindowListener("wheel", handleActionCycleWheel, {
+      passive: true,
+    });
 
     eventListenerManager.addWindowListener(
       "keyup",
@@ -2598,6 +2852,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       eventListenerManager.abort();
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
       if (toggleFeedbackTimerId) window.clearTimeout(toggleFeedbackTimerId);
+      if (actionCycleIdleTimeoutId) {
+        window.clearTimeout(actionCycleIdleTimeoutId);
+      }
       grabbedBoxTimeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
       grabbedBoxTimeouts.clear();
       autoScroller.stop();
@@ -2817,11 +3074,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       elements: Element[],
       tagName: string | undefined,
       componentName: string | undefined,
+      options?: PerformWithFeedbackOptions,
     ) => {
       return async (action: () => Promise<boolean>): Promise<void> => {
-        const position = store.contextMenuPosition ?? store.pointer;
+        const fallbackBounds = options?.fallbackBounds ?? null;
+        const fallbackSelectionBounds =
+          options?.fallbackSelectionBounds ?? [];
+        const position =
+          options?.position ?? store.contextMenuPosition ?? store.pointer;
         const frozenBounds = frozenElementsBounds();
-        const singleElementBounds = contextMenuBounds();
+        const singleElementBounds = contextMenuBounds() ?? fallbackBounds;
         const hasMultipleElements = elements.length > 1;
 
         const labelBounds = hasMultipleElements
@@ -2833,7 +3095,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           ? frozenBounds
           : singleElementBounds
             ? [singleElementBounds]
-            : [];
+            : fallbackSelectionBounds;
 
         actions.hideContextMenu();
 
@@ -3087,6 +3349,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             selectionComponentName={selectionComponentName()}
             selectionLabelVisible={selectionLabelVisible()}
             selectionLabelStatus="idle"
+            selectionActionCycleState={actionCycleState()}
             labelInstances={computedLabelInstances()}
             dragVisible={dragVisible()}
             dragBounds={dragBounds()}

@@ -100,3 +100,7 @@ pnpm lint
 pnpm typecheck # runs type checking
 pnpm format
 ```
+
+## Notes
+
+- Hover action cycling (Copy/Screenshot/Copy HTML) is handled in `packages/react-grab/src/core/index.tsx` via wheel and `KeyC`, with UI in `packages/react-grab/src/components/selection-label/index.tsx`. Action enablement is shared through `packages/react-grab/src/utils/resolve-action-enabled.ts`.
