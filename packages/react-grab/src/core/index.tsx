@@ -68,10 +68,10 @@ import {
   SCREENSHOT_CAPTURE_DELAY_MS,
   ZOOM_DETECTION_THRESHOLD,
   ACTION_CYCLE_IDLE_TRIGGER_MS,
+  ACTION_CYCLE_ACTION_IDS,
   ACTION_CYCLE_INPUT_THROTTLE_MS,
   ACTION_CYCLE_SCROLL_THRESHOLD_PX,
   ACTION_CYCLE_SCROLL_LINE_HEIGHT_PX,
-  ACTION_CYCLE_ACTION_IDS,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
@@ -87,6 +87,7 @@ import {
 import { isScreenshotSupported } from "../utils/is-screenshot-supported.js";
 import { delay } from "../utils/delay.js";
 import { resolveActionEnabled } from "../utils/resolve-action-enabled.js";
+import { createScrollCycler } from "../utils/create-scroll-cycler.js";
 import type {
   Options,
   OverlayBounds,
@@ -381,9 +382,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let inToggleFeedbackPeriod = false;
     let toggleFeedbackTimerId: number | null = null;
     let actionCycleIdleTimeoutId: number | null = null;
-    let lastActionCycleStepTimestamp = 0;
-    let actionCycleScrollAccumulatedDelta = 0;
-    let actionCycleScrollDirection: number | null = null;
     let selectionSourceRequestVersion = 0;
     let componentNameRequestVersion = 0;
     let componentNameDebounceTimerId: number | null = null;
@@ -2102,29 +2100,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const getActionById = (actionId: string): ContextMenuAction | undefined =>
       pluginRegistry.store.actions.find((action) => action.id === actionId);
 
-    const getActionCycleItems = (
-      context: ContextMenuActionContext | undefined,
-    ): ActionCycleItem[] => {
-      if (!context) return [];
-
-      const actionsById = new Map(
-        pluginRegistry.store.actions.map((action) => [action.id, action]),
-      );
-
-      const items: ActionCycleItem[] = [];
-      for (const actionId of ACTION_CYCLE_ACTION_IDS) {
-        const action = actionsById.get(actionId);
-        if (action && resolveActionEnabled(action, context)) {
-          items.push({
-            id: action.id,
-            label: action.label,
-            shortcut: action.shortcut,
-          });
-        }
-      }
-      return items;
-    };
-
     const getActionCycleContext = (): ContextMenuActionContext | undefined => {
       const element = selectionElement();
       if (!element) return undefined;
@@ -2142,10 +2117,34 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           fallbackBounds,
           fallbackSelectionBounds: fallbackBounds ? [fallbackBounds] : [],
         },
-        deferHideContextMenu: false,
+        shouldDeferHideContextMenu: false,
         onBeforePrompt: resetActionCycle,
       });
     };
+
+    const availableActionCycleItems = createMemo((): ActionCycleItem[] => {
+      const element = selectionElement();
+      if (!element) return [];
+
+      const actionsById = new Map(
+        pluginRegistry.store.actions.map((action) => [action.id, action]),
+      );
+
+      const cycleItems: ActionCycleItem[] = [];
+      for (const actionId of ACTION_CYCLE_ACTION_IDS) {
+        const action = actionsById.get(actionId);
+        if (!action) continue;
+        const isStaticallyDisabled =
+          typeof action.enabled === "boolean" && !action.enabled;
+        if (isStaticallyDisabled) continue;
+        cycleItems.push({
+          id: action.id,
+          label: action.label,
+          shortcut: action.shortcut,
+        });
+      }
+      return cycleItems;
+    });
 
     const scheduleActionCycleActivation = () => {
       clearActionCycleIdleTimeout();
@@ -2175,25 +2174,23 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const applyActionCycleItems = (
-      availableItems: ActionCycleItem[],
+      cycleItems: ActionCycleItem[],
       direction: "forward" | "backward",
     ): boolean => {
-      if (availableItems.length === 0) return false;
-      setActionCycleItems(availableItems);
+      if (cycleItems.length === 0) return false;
+      setActionCycleItems(cycleItems);
+
       const currentIndex = actionCycleActiveIndex();
-      const normalizedIndex =
-        currentIndex !== null && currentIndex < availableItems.length
-          ? currentIndex
-          : null;
-      const directionOffset = direction === "forward" ? 1 : -1;
+      const isCurrentIndexValid =
+        currentIndex !== null && currentIndex < cycleItems.length;
+      const stepOffset = direction === "forward" ? 1 : -1;
 
       let nextIndex: number;
-      if (normalizedIndex === null) {
-        nextIndex = direction === "forward" ? 0 : availableItems.length - 1;
+      if (!isCurrentIndexValid) {
+        nextIndex = direction === "forward" ? 0 : cycleItems.length - 1;
       } else {
         nextIndex =
-          (normalizedIndex + directionOffset + availableItems.length) %
-          availableItems.length;
+          (currentIndex + stepOffset + cycleItems.length) % cycleItems.length;
       }
 
       setActionCycleActiveIndex(nextIndex);
@@ -2205,73 +2202,39 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       direction: "forward" | "backward",
     ): boolean => {
       if (!canCycleActions()) return false;
-      const context = getActionCycleContext();
-      if (!context) return false;
-      const availableItems = getActionCycleItems(context);
-      return applyActionCycleItems(availableItems, direction);
+      const cycleItems = availableActionCycleItems();
+      if (cycleItems.length === 0) return false;
+      return applyActionCycleItems(cycleItems, direction);
     };
 
     const handleActionCycleKey = (event: KeyboardEvent): boolean => {
       if (event.code !== "KeyC") return false;
-      if (event.altKey) return false;
-      const hasCommandOrControl = event.metaKey || event.ctrlKey;
-      if (event.repeat) return false;
+      if (event.altKey || event.repeat) return false;
       if (isKeyboardEventTriggeredByInput(event)) return false;
       if (!handleActionCycleInput("forward")) return false;
+
       event.preventDefault();
       event.stopPropagation();
-      if (hasCommandOrControl) {
+      if (event.metaKey || event.ctrlKey) {
         event.stopImmediatePropagation();
       }
       return true;
     };
 
+    const actionCycleScrollCycler = createScrollCycler({
+      thresholdPx: ACTION_CYCLE_SCROLL_THRESHOLD_PX,
+      throttleMs: ACTION_CYCLE_INPUT_THROTTLE_MS,
+      lineHeightPx: ACTION_CYCLE_SCROLL_LINE_HEIGHT_PX,
+      onStep: handleActionCycleInput,
+    });
+
     const handleActionCycleWheel = (event: WheelEvent) => {
       if (!canCycleActions()) return;
-      const context = getActionCycleContext();
-      if (!context) return;
-      const availableItems = getActionCycleItems(context);
-      if (availableItems.length === 0) return;
-
-      const axisDelta =
-        Math.abs(event.deltaY) >= Math.abs(event.deltaX)
-          ? event.deltaY
-          : event.deltaX;
-      if (axisDelta === 0) return;
+      if (availableActionCycleItems().length === 0) return;
 
       event.preventDefault();
       event.stopPropagation();
-
-      let normalizedDelta = axisDelta;
-      if (event.deltaMode === 1) {
-        normalizedDelta *= ACTION_CYCLE_SCROLL_LINE_HEIGHT_PX;
-      } else if (event.deltaMode === 2) {
-        normalizedDelta *= window.innerHeight;
-      }
-
-      const direction = normalizedDelta > 0 ? 1 : -1;
-      if (actionCycleScrollDirection !== direction) {
-        actionCycleScrollDirection = direction;
-        actionCycleScrollAccumulatedDelta = 0;
-      }
-
-      actionCycleScrollAccumulatedDelta += Math.abs(normalizedDelta);
-
-      const now = Date.now();
-      if (
-        now - lastActionCycleStepTimestamp < ACTION_CYCLE_INPUT_THROTTLE_MS ||
-        actionCycleScrollAccumulatedDelta < ACTION_CYCLE_SCROLL_THRESHOLD_PX
-      ) {
-        return;
-      }
-
-      actionCycleScrollAccumulatedDelta -= ACTION_CYCLE_SCROLL_THRESHOLD_PX;
-      lastActionCycleStepTimestamp = now;
-
-      applyActionCycleItems(
-        availableItems,
-        direction < 0 ? "backward" : "forward",
-      );
+      actionCycleScrollCycler.handleWheel(event);
     };
 
     const handleActivationKeys = (event: KeyboardEvent): void => {
@@ -3142,6 +3105,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
     };
 
+    // HACK: Defer hiding context menu until after click event propagates fully
+    const deferHideContextMenu = () => {
+      setTimeout(() => {
+        actions.hideContextMenu();
+      }, 0);
+    };
+
     interface BuildActionContextOptions {
       element: Element;
       filePath: string | undefined;
@@ -3150,7 +3120,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       componentName: string | undefined;
       position: { x: number; y: number };
       performWithFeedbackOptions?: PerformWithFeedbackOptions;
-      deferHideContextMenu: boolean;
+      shouldDeferHideContextMenu: boolean;
       onBeforeCopy?: () => void;
       onBeforePrompt?: () => void;
       customEnterPromptMode?: (agent?: AgentOptions) => void;
@@ -3167,7 +3137,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         componentName,
         position,
         performWithFeedbackOptions,
-        deferHideContextMenu,
+        shouldDeferHideContextMenu,
         onBeforeCopy,
         onBeforePrompt,
         customEnterPromptMode,
@@ -3176,16 +3146,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const elements =
         store.frozenElements.length > 0 ? store.frozenElements : [element];
 
-      const hideContextMenuAction = () => {
-        if (deferHideContextMenu) {
-          // HACK: Defer hiding context menu until after click event propagates fully
-          setTimeout(() => {
-            actions.hideContextMenu();
-          }, 0);
-        } else {
-          actions.hideContextMenu();
-        }
-      };
+      const hideContextMenuAction = shouldDeferHideContextMenu
+        ? deferHideContextMenu
+        : actions.hideContextMenu;
 
       const copyAction = () => {
         onBeforeCopy?.();
@@ -3266,13 +3229,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const fileInfo = contextMenuFilePath();
         const position = store.contextMenuPosition ?? store.pointer;
 
-        const deferredHideContextMenu = () => {
-          // HACK: Defer hiding context menu until after click event propagates fully
-          setTimeout(() => {
-            actions.hideContextMenu();
-          }, 0);
-        };
-
         return buildActionContext({
           element,
           filePath: fileInfo?.filePath,
@@ -3280,7 +3236,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           tagName: contextMenuTagName(),
           componentName: contextMenuComponentName(),
           position,
-          deferHideContextMenu: true,
+          shouldDeferHideContextMenu: true,
           onBeforeCopy: () => {
             keyboardSelectedElement = null;
           },
@@ -3290,24 +3246,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             }
             loadCachedInput(element);
             actions.enterPromptMode(position, element);
-            deferredHideContextMenu();
+            deferHideContextMenu();
           },
         });
       },
     );
 
     const handleContextMenuDismiss = () => {
-      // HACK: Defer hiding context menu until after click event propagates fully
       setTimeout(() => {
         actions.hideContextMenu();
         deactivateRenderer();
-      }, 0);
-    };
-
-    const handleContextMenuHide = () => {
-      // HACK: Defer hiding context menu until after click event propagates fully
-      setTimeout(() => {
-        actions.hideContextMenu();
       }, 0);
     };
 
@@ -3463,7 +3411,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             actions={pluginRegistry.store.actions}
             actionContext={contextMenuActionContext()}
             onContextMenuDismiss={handleContextMenuDismiss}
-            onContextMenuHide={handleContextMenuHide}
+            onContextMenuHide={deferHideContextMenu}
           />
         );
       }, rendererRoot);
