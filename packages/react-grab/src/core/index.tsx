@@ -2125,94 +2125,26 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return items;
     };
 
-    const handleActionCycleCopy = (element: Element, elements: Element[]) => {
-      const position = store.pointer;
-      performCopyWithLabel({
-        element,
-        positionX: position.x,
-        positionY: position.y,
-        elements: elements.length > 1 ? elements : undefined,
-        shouldDeactivateAfter: store.wasActivatedByToggle,
-      });
-    };
-
-    const handleActionCyclePrompt = (agent?: AgentOptions) => {
-      const element = selectionElement();
-      if (!element) return;
-      const position = store.pointer;
-      if (agent) {
-        actions.setSelectedAgent(agent);
-      }
-      resetActionCycle();
-      preparePromptMode(element, position.x, position.y);
-      actions.setPointer({ x: position.x, y: position.y });
-      actions.setFrozenElement(element);
-      activatePromptMode();
-      if (!isActivated()) {
-        activateRenderer();
-      }
-    };
-
     const getActionCycleContext = (): ContextMenuActionContext | undefined => {
       const element = selectionElement();
       if (!element) return undefined;
-      const elements =
-        store.frozenElements.length > 0 ? store.frozenElements : [element];
-      const tagName = getTagName(element) || undefined;
-      const componentName = selectionComponentName();
-      const filePath = store.selectionFilePath ?? undefined;
-      const lineNumber = store.selectionLineNumber ?? undefined;
+
       const fallbackBounds = selectionBounds();
-      const fallbackSelectionBounds = fallbackBounds ? [fallbackBounds] : [];
 
-      const context: ContextMenuActionContext = {
+      return buildActionContext({
         element,
-        elements,
-        filePath,
-        lineNumber,
-        componentName,
-        tagName,
-        enterPromptMode: handleActionCyclePrompt,
-        copy: () => handleActionCycleCopy(element, elements),
-        hooks: {
-          transformHtmlContent: pluginRegistry.hooks.transformHtmlContent,
-          transformScreenshot: pluginRegistry.hooks.transformScreenshot,
-          onOpenFile: pluginRegistry.hooks.onOpenFile,
-          transformOpenFileUrl: pluginRegistry.hooks.transformOpenFileUrl,
+        filePath: store.selectionFilePath ?? undefined,
+        lineNumber: store.selectionLineNumber ?? undefined,
+        tagName: getTagName(element) || undefined,
+        componentName: selectionComponentName(),
+        position: store.pointer,
+        performWithFeedbackOptions: {
+          fallbackBounds,
+          fallbackSelectionBounds: fallbackBounds ? [fallbackBounds] : [],
         },
-        performWithFeedback: createPerformWithFeedback(
-          element,
-          elements,
-          tagName,
-          componentName,
-          {
-            fallbackBounds,
-            fallbackSelectionBounds,
-          },
-        ),
-        hideContextMenu: () => {
-          actions.hideContextMenu();
-        },
-        hideOverlay: () => {
-          isScreenshotInProgress = true;
-          rendererRoot.style.visibility = "hidden";
-        },
-        showOverlay: () => {
-          isScreenshotInProgress = false;
-          rendererRoot.style.visibility = "";
-        },
-        cleanup: () => {
-          if (store.wasActivatedByToggle) {
-            deactivateRenderer();
-          } else {
-            actions.unfreeze();
-          }
-        },
-      };
-
-      return pluginRegistry.hooks.transformActionContext(
-        context,
-      ) as ContextMenuActionContext;
+        deferHideContextMenu: false,
+        onBeforePrompt: resetActionCycle,
+      });
     };
 
     const scheduleActionCycleActivation = () => {
@@ -3210,106 +3142,159 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
     };
 
+    interface BuildActionContextOptions {
+      element: Element;
+      filePath: string | undefined;
+      lineNumber: number | undefined;
+      tagName: string | undefined;
+      componentName: string | undefined;
+      position: { x: number; y: number };
+      performWithFeedbackOptions?: PerformWithFeedbackOptions;
+      deferHideContextMenu: boolean;
+      onBeforeCopy?: () => void;
+      onBeforePrompt?: () => void;
+      customEnterPromptMode?: (agent?: AgentOptions) => void;
+    }
+
+    const buildActionContext = (
+      options: BuildActionContextOptions,
+    ): ContextMenuActionContext => {
+      const {
+        element,
+        filePath,
+        lineNumber,
+        tagName,
+        componentName,
+        position,
+        performWithFeedbackOptions,
+        deferHideContextMenu,
+        onBeforeCopy,
+        onBeforePrompt,
+        customEnterPromptMode,
+      } = options;
+
+      const elements =
+        store.frozenElements.length > 0 ? store.frozenElements : [element];
+
+      const hideContextMenuAction = () => {
+        if (deferHideContextMenu) {
+          // HACK: Defer hiding context menu until after click event propagates fully
+          setTimeout(() => {
+            actions.hideContextMenu();
+          }, 0);
+        } else {
+          actions.hideContextMenu();
+        }
+      };
+
+      const copyAction = () => {
+        onBeforeCopy?.();
+        performCopyWithLabel({
+          element,
+          positionX: position.x,
+          positionY: position.y,
+          elements: elements.length > 1 ? elements : undefined,
+          shouldDeactivateAfter: store.wasActivatedByToggle,
+        });
+        hideContextMenuAction();
+      };
+
+      const defaultEnterPromptMode = (agent?: AgentOptions) => {
+        if (agent) {
+          actions.setSelectedAgent(agent);
+        }
+        onBeforePrompt?.();
+        preparePromptMode(element, position.x, position.y);
+        actions.setPointer({ x: position.x, y: position.y });
+        actions.setFrozenElement(element);
+        activatePromptMode();
+        if (!isActivated()) {
+          activateRenderer();
+        }
+        hideContextMenuAction();
+      };
+
+      const context: ContextMenuActionContext = {
+        element,
+        elements,
+        filePath,
+        lineNumber,
+        componentName,
+        tagName,
+        enterPromptMode: customEnterPromptMode ?? defaultEnterPromptMode,
+        copy: copyAction,
+        hooks: {
+          transformHtmlContent: pluginRegistry.hooks.transformHtmlContent,
+          transformScreenshot: pluginRegistry.hooks.transformScreenshot,
+          onOpenFile: pluginRegistry.hooks.onOpenFile,
+          transformOpenFileUrl: pluginRegistry.hooks.transformOpenFileUrl,
+        },
+        performWithFeedback: createPerformWithFeedback(
+          element,
+          elements,
+          tagName,
+          componentName,
+          performWithFeedbackOptions,
+        ),
+        hideContextMenu: hideContextMenuAction,
+        hideOverlay: () => {
+          isScreenshotInProgress = true;
+          rendererRoot.style.visibility = "hidden";
+        },
+        showOverlay: () => {
+          isScreenshotInProgress = false;
+          rendererRoot.style.visibility = "";
+        },
+        cleanup: () => {
+          if (store.wasActivatedByToggle) {
+            deactivateRenderer();
+          } else {
+            actions.unfreeze();
+          }
+        },
+      };
+
+      return pluginRegistry.hooks.transformActionContext(
+        context,
+      ) as ContextMenuActionContext;
+    };
+
     const contextMenuActionContext = createMemo(
       (): ContextMenuActionContext | undefined => {
         const element = store.contextMenuElement;
         if (!element) return undefined;
         const fileInfo = contextMenuFilePath();
-        const elements =
-          store.frozenElements.length > 0 ? store.frozenElements : [element];
-        const tagName = contextMenuTagName();
-        const componentName = contextMenuComponentName();
+        const position = store.contextMenuPosition ?? store.pointer;
 
-        const context: ContextMenuActionContext = {
-          element,
-          elements,
-          filePath: fileInfo?.filePath,
-          lineNumber: fileInfo?.lineNumber,
-          componentName,
-          tagName,
-          enterPromptMode: handleContextMenuPrompt,
-          copy: handleContextMenuCopy,
-          hooks: {
-            transformHtmlContent: pluginRegistry.hooks.transformHtmlContent,
-            transformScreenshot: pluginRegistry.hooks.transformScreenshot,
-            onOpenFile: pluginRegistry.hooks.onOpenFile,
-            transformOpenFileUrl: pluginRegistry.hooks.transformOpenFileUrl,
-          },
-          performWithFeedback: createPerformWithFeedback(
-            element,
-            elements,
-            tagName,
-            componentName,
-          ),
-          hideContextMenu: () => {
-            // HACK: Defer hiding context menu until after click event propagates fully
-            setTimeout(() => {
-              actions.hideContextMenu();
-            }, 0);
-          },
-          hideOverlay: () => {
-            isScreenshotInProgress = true;
-            rendererRoot.style.visibility = "hidden";
-          },
-          showOverlay: () => {
-            isScreenshotInProgress = false;
-            rendererRoot.style.visibility = "";
-          },
-          cleanup: () => {
-            if (store.wasActivatedByToggle) {
-              deactivateRenderer();
-            } else {
-              actions.unfreeze();
-            }
-          },
+        const deferredHideContextMenu = () => {
+          // HACK: Defer hiding context menu until after click event propagates fully
+          setTimeout(() => {
+            actions.hideContextMenu();
+          }, 0);
         };
 
-        return pluginRegistry.hooks.transformActionContext(
-          context,
-        ) as ContextMenuActionContext;
+        return buildActionContext({
+          element,
+          filePath: fileInfo?.filePath,
+          lineNumber: fileInfo?.lineNumber,
+          tagName: contextMenuTagName(),
+          componentName: contextMenuComponentName(),
+          position,
+          deferHideContextMenu: true,
+          onBeforeCopy: () => {
+            keyboardSelectedElement = null;
+          },
+          customEnterPromptMode: (agent?: AgentOptions) => {
+            if (agent) {
+              actions.setSelectedAgent(agent);
+            }
+            loadCachedInput(element);
+            actions.enterPromptMode(position, element);
+            deferredHideContextMenu();
+          },
+        });
       },
     );
-
-    const handleContextMenuCopy = () => {
-      const element = store.contextMenuElement;
-      if (!element) return;
-
-      keyboardSelectedElement = null;
-
-      const position = store.contextMenuPosition ?? store.pointer;
-      const frozenElements = [...store.frozenElements];
-
-      performCopyWithLabel({
-        element,
-        positionX: position.x,
-        positionY: position.y,
-        elements: frozenElements.length > 1 ? frozenElements : undefined,
-        shouldDeactivateAfter: store.wasActivatedByToggle,
-      });
-
-      // HACK: Defer hiding context menu until after click event propagates fully
-      setTimeout(() => {
-        actions.hideContextMenu();
-      }, 0);
-    };
-
-    const handleContextMenuPrompt = (agent?: AgentOptions) => {
-      const element = store.contextMenuElement;
-      const position = store.contextMenuPosition;
-      if (!element || !position) return;
-
-      if (agent) {
-        actions.setSelectedAgent(agent);
-      }
-
-      loadCachedInput(element);
-      actions.enterPromptMode(position, element);
-
-      // HACK: Defer hiding context menu until after click event propagates fully
-      setTimeout(() => {
-        actions.hideContextMenu();
-      }, 0);
-    };
 
     const handleContextMenuDismiss = () => {
       // HACK: Defer hiding context menu until after click event propagates fully

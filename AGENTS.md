@@ -14,7 +14,6 @@
 - MUST: Do not type cast ("as") unless absolutely necessary
 - MUST: Remove unused code and don't repeat yourself.
 - MUST: Always search the codebase, think of many solutions, then implement the most _elegant_ solution.
-- MUST: Capture uniquely helpful insights in `AGENTS.md` so future work stays aligned.
 - MUST: Put all magic numbers in `constants.ts` using `SCREAMING_SNAKE_CASE` with unit suffixes (`_MS`, `_PX`).
 - MUST: Put small, focused utility functions in `utils/` with one utility per file.
 - MUST: Use Boolean over !!.
@@ -100,7 +99,3 @@ pnpm lint
 pnpm typecheck # runs type checking
 pnpm format
 ```
-
-## Notes
-
-- Hover action cycling (Copy/Screenshot/Copy HTML) is handled in `packages/react-grab/src/core/index.tsx` via wheel and `KeyC`, with UI in `packages/react-grab/src/components/selection-label/index.tsx`. Action enablement is shared through `packages/react-grab/src/utils/resolve-action-enabled.ts`.
