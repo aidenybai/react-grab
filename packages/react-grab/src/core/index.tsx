@@ -2213,9 +2213,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const handleActionCycleWheel = (event: WheelEvent) => {
-      const isActionCycleActive = actionCycleActiveIndex() !== null;
-      if (!isActionCycleActive) return;
       if (!canCycleActions()) return;
+
+      const isActionCycleActive = actionCycleActiveIndex() !== null;
+      if (!isActionCycleActive) {
+        const cycleItems = availableActionCycleItems();
+        if (cycleItems.length === 0) return;
+      }
 
       event.preventDefault();
       event.stopPropagation();
