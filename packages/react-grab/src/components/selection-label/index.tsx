@@ -490,6 +490,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                           classList={{
                             "bg-blue-100 ring-1 ring-blue-300":
                               itemIndex() === actionCycleActiveIndex(),
+                            "rounded-b-[6px]":
+                              itemIndex() === actionCycleItems().length - 1,
                           }}
                         >
                           <span
