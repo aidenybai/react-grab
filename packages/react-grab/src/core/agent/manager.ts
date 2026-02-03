@@ -23,6 +23,7 @@ import {
   FADE_DURATION_MS,
   RECENT_THRESHOLD_MS,
 } from "../../constants.js";
+import { getTagName } from "../../utils/get-tag-name.js";
 
 interface StartSessionParams {
   elements: Element[];
@@ -247,7 +248,7 @@ export const createAgentManager = (
     if (!element) return undefined;
 
     const isValidHtmlTagName = tagName && !tagName.includes(" ");
-    if (isValidHtmlTagName && element.tagName.toLowerCase() !== tagName) {
+    if (isValidHtmlTagName && getTagName(element) !== tagName) {
       return undefined;
     }
 
@@ -374,7 +375,7 @@ export const createAgentManager = (
       const tagName =
         elements.length > 1
           ? `${elements.length} elements`
-          : (firstElement.tagName || "").toLowerCase() || undefined;
+          : getTagName(firstElement) || undefined;
       const componentName =
         elements.length > 1
           ? undefined

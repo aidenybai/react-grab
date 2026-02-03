@@ -17,6 +17,7 @@ import {
   PREVIEW_MAX_ATTRS,
   PREVIEW_PRIORITY_ATTRS,
 } from "../constants.js";
+import { getTagName } from "../utils/get-tag-name.js";
 
 const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
   "InnerLayoutRouter",
@@ -251,7 +252,7 @@ export const getElementContext = async (
 };
 
 const getFallbackContext = (element: Element): string => {
-  const tagName = element.tagName.toLowerCase();
+  const tagName = getTagName(element);
 
   if (!(element instanceof HTMLElement)) {
     const attrsHint = formatPriorityAttrs(element, {
@@ -306,7 +307,7 @@ const formatPriorityAttrs = (
 };
 
 const getHTMLPreview = (element: Element): string => {
-  const tagName = element.tagName.toLowerCase();
+  const tagName = getTagName(element);
   if (!(element instanceof HTMLElement)) {
     const attrsHint = formatPriorityAttrs(element);
     return `<${tagName}${attrsHint} />`;
@@ -342,9 +343,7 @@ const getHTMLPreview = (element: Element): string => {
   const formatElements = (elements: Array<Element>): string => {
     if (elements.length === 0) return "";
     if (elements.length <= 2) {
-      return elements
-        .map((el) => `<${el.tagName.toLowerCase()} ...>`)
-        .join("\n  ");
+      return elements.map((el) => `<${getTagName(el)} ...>`).join("\n  ");
     }
     return `(${elements.length} elements)`;
   };

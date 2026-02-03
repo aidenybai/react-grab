@@ -1,3 +1,5 @@
+import { getTagName } from "./get-tag-name.js";
+
 const EDITABLE_TAGS_AND_ROLES: readonly string[] = [
   "input",
   "textarea",
@@ -36,7 +38,7 @@ export const isKeyboardEventTriggeredByInput = (
 
   if (targetElement.isContentEditable) return true;
 
-  const tagName = targetElement.tagName.toLowerCase();
+  const tagName = getTagName(targetElement);
   return EDITABLE_TAGS_AND_ROLES.some(
     (tagOrRole) => tagOrRole === tagName || tagOrRole === targetElement.role,
   );
