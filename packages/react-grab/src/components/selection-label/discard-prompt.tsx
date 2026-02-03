@@ -3,7 +3,6 @@ import type { Component } from "solid-js";
 import type { DiscardPromptProps } from "../../types.js";
 import { confirmationFocusManager } from "../../utils/confirmation-focus-manager.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
-import { IconReturn } from "../icons/icon-return.jsx";
 import { BottomSection } from "./bottom-section.js";
 
 export const DiscardPrompt: Component<DiscardPromptProps> = (props) => {
@@ -60,13 +59,12 @@ export const DiscardPrompt: Component<DiscardPromptProps> = (props) => {
           </button>
           <button
             data-react-grab-discard-yes
-            class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#7e0002] cursor-pointer transition-all hover:bg-[#FEF2F2] press-scale h-[17px]"
+            class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[#FEF2F2] cursor-pointer transition-all hover:bg-[#FEE2E2] press-scale h-[17px]"
             onClick={props.onConfirm}
           >
             <span class="text-[#B91C1C] text-[13px] leading-3.5 font-sans font-medium">
               Yes
             </span>
-            <IconReturn size={10} class="text-[#c00002]" />
           </button>
         </div>
       </BottomSection>
