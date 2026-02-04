@@ -1,5 +1,13 @@
 # @react-grab/relay
 
+## 0.1.4
+
+### Patch Changes
+
+- fix: improve cli edge cases
+- Updated dependencies
+  - @react-grab/utils@0.1.4
+
 ## 0.1.3
 
 ### Patch Changes

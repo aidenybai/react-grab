@@ -1,5 +1,11 @@
 # @react-grab/cli
 
+## 0.1.4
+
+### Patch Changes
+
+- fix: improve cli edge cases
+
 ## 0.1.3
 
 ### Patch Changes
