@@ -8,7 +8,10 @@ test.describe("Viewport and Scroll Handling", () => {
     await reactGrab.hoverElement("li:first-child");
     await reactGrab.waitForSelectionBox();
 
-    await reactGrab.scrollPage(50);
+    await reactGrab.page.evaluate(() => {
+      window.scrollBy(0, 50);
+    });
+    await reactGrab.page.waitForTimeout(200);
 
     const isVisible = await reactGrab.isOverlayVisible();
     expect(isVisible).toBe(true);
