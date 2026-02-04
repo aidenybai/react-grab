@@ -117,7 +117,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     expect(result.newContent).toContain("maxContextLines: 3");
     expect(result.newContent).toContain("/>");
     expect(result.newContent).not.toMatch(/\}\)\s*\n\s*\n\s*\/>/);
-    expect(result.newContent).not.toMatch(/strategy="beforeInteractive"\s*\/\s*\n/);
+    expect(result.newContent).not.toMatch(
+      /strategy="beforeInteractive"\s*\/\s*\n/,
+    );
   });
 
   it("should not add extra blank line before closing tag", () => {
@@ -363,6 +365,39 @@ describe("previewOptionsTransform - Vite", () => {
     expect(result.newContent).toContain('"activationKey":"Space"');
   });
 
+  it("should update existing options in Vite import without duplicating", () => {
+    const indexWithExistingOptions = `<!doctype html>
+<html lang="en">
+  <head>
+    <script type="module">
+      if (import.meta.env.DEV) {
+        import("react-grab").then((m) => m.init({"activationKey":"g"}));
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>`;
+
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("index.html"),
+    );
+    mockReadFileSync.mockReturnValue(indexWithExistingOptions);
+
+    const options: ReactGrabOptions = {
+      activationKey: "Meta+K",
+    };
+
+    const result = previewOptionsTransform("/test", "vite", "unknown", options);
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain('"activationKey":"Meta+K"');
+    expect(result.newContent).not.toContain('"activationKey":"g"');
+    const initCount = (result.newContent!.match(/\.then\(/g) || []).length;
+    expect(initCount).toBe(1);
+  });
+
   it("should add multiple options to Vite import", () => {
     mockExistsSync.mockImplementation((path) =>
       String(path).endsWith("index.html"),
@@ -443,6 +478,37 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     expect(result.success).toBe(true);
     expect(result.newContent).toContain(".then((m) => m.init(");
     expect(result.newContent).toContain('"activationKey":"Ctrl+K"');
+  });
+
+  it("should update existing options in Webpack import without duplicating", () => {
+    const entryWithExistingOptions = `if (process.env.NODE_ENV === "development") {
+  import("react-grab").then((m) => m.init({"activationKey":"Ctrl+G"}));
+}
+
+import React from "react";
+import ReactDOM from "react-dom/client";`;
+
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("index.tsx"),
+    );
+    mockReadFileSync.mockReturnValue(entryWithExistingOptions);
+
+    const options: ReactGrabOptions = {
+      activationKey: "Space",
+    };
+
+    const result = previewOptionsTransform(
+      "/test",
+      "webpack",
+      "unknown",
+      options,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain('"activationKey":"Space"');
+    expect(result.newContent).not.toContain('"activationKey":"Ctrl+G"');
+    const initCount = (result.newContent!.match(/\.then\(/g) || []).length;
+    expect(initCount).toBe(1);
   });
 
   it("should handle all configuration options", () => {

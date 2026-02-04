@@ -1156,11 +1156,11 @@ const addOptionsToViteScript = (
   options: ReactGrabOptions,
   filePath: string,
 ): TransformResult => {
-  const reactGrabImportMatch = originalContent.match(
-    /import\s*\(\s*["']react-grab["']\s*\)/,
+  const reactGrabImportWithInitMatch = originalContent.match(
+    /import\s*\(\s*["']react-grab["']\s*\)(?:\.then\s*\(\s*\(m\)\s*=>\s*m\.init\s*\([^)]*\)\s*\))?/,
   );
 
-  if (!reactGrabImportMatch) {
+  if (!reactGrabImportWithInitMatch) {
     return {
       success: false,
       filePath,
@@ -1172,7 +1172,7 @@ const addOptionsToViteScript = (
   const newImport = `import("react-grab").then((m) => m.init(${optionsJson}))`;
 
   const newContent = originalContent.replace(
-    reactGrabImportMatch[0],
+    reactGrabImportWithInitMatch[0],
     newImport,
   );
 
@@ -1190,11 +1190,11 @@ const addOptionsToWebpackImport = (
   options: ReactGrabOptions,
   filePath: string,
 ): TransformResult => {
-  const reactGrabImportMatch = originalContent.match(
-    /import\s*\(\s*["']react-grab["']\s*\)/,
+  const reactGrabImportWithInitMatch = originalContent.match(
+    /import\s*\(\s*["']react-grab["']\s*\)(?:\.then\s*\(\s*\(m\)\s*=>\s*m\.init\s*\([^)]*\)\s*\))?/,
   );
 
-  if (!reactGrabImportMatch) {
+  if (!reactGrabImportWithInitMatch) {
     return {
       success: false,
       filePath,
@@ -1206,7 +1206,7 @@ const addOptionsToWebpackImport = (
   const newImport = `import("react-grab").then((m) => m.init(${optionsJson}))`;
 
   const newContent = originalContent.replace(
-    reactGrabImportMatch[0],
+    reactGrabImportWithInitMatch[0],
     newImport,
   );
 
@@ -1224,11 +1224,11 @@ const addOptionsToTanStackImport = (
   options: ReactGrabOptions,
   filePath: string,
 ): TransformResult => {
-  const reactGrabImportMatch = originalContent.match(
-    /void\s+import\s*\(\s*["']react-grab["']\s*\)/,
+  const reactGrabImportWithInitMatch = originalContent.match(
+    /(?:void\s+import\s*\(\s*["']react-grab["']\s*\)|import\s*\(\s*["']react-grab\/core["']\s*\)\.then\s*\(\s*\(\s*\{\s*init\s*\}\s*\)\s*=>\s*init\s*\([^)]*\)\s*\))/,
   );
 
-  if (!reactGrabImportMatch) {
+  if (!reactGrabImportWithInitMatch) {
     return {
       success: false,
       filePath,
@@ -1240,7 +1240,7 @@ const addOptionsToTanStackImport = (
   const newImport = `import("react-grab/core").then(({ init }) => init(${optionsJson}))`;
 
   const newContent = originalContent.replace(
-    reactGrabImportMatch[0],
+    reactGrabImportWithInitMatch[0],
     newImport,
   );
 
