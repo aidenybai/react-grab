@@ -1,5 +1,11 @@
 # @react-grab/utils
 
+## 0.1.7
+
+### Patch Changes
+
+- fix: react freezing safety
+
 ## 0.1.6
 
 ### Patch Changes

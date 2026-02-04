@@ -1,5 +1,14 @@
 # @react-grab/droid
 
+## 0.1.7
+
+### Patch Changes
+
+- fix: react freezing safety
+- Updated dependencies
+  - react-grab@0.1.7
+  - @react-grab/relay@0.1.7
+
 ## 0.1.6
 
 ### Patch Changes
