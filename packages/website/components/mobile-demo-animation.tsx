@@ -630,6 +630,7 @@ export const MobileDemoAnimation = (): ReactElement => {
         isCancelled = true;
         resetAnimationState();
         isCancelled = false;
+        runAnimationLoop();
       }
     };
 
