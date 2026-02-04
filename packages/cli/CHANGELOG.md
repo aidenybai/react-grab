@@ -1,5 +1,11 @@
 # @react-grab/cli
 
+## 0.1.3
+
+### Patch Changes
+
+- fix: @react-grab/utils not publishing
+
 ## 0.1.2
 
 ### Patch Changes

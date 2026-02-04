@@ -1,5 +1,14 @@
 # @react-grab/gemini
 
+## 0.1.3
+
+### Patch Changes
+
+- fix: @react-grab/utils not publishing
+- Updated dependencies
+  - react-grab@0.1.3
+  - @react-grab/relay@0.1.3
+
 ## 0.1.2
 
 ### Patch Changes
