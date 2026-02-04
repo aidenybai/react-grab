@@ -50,13 +50,20 @@ const HIDDEN_LABEL: LabelState = {
   tagName: "",
 };
 
-type LabelMode = "idle" | "selecting" | "grabbing" | "copied" | "fading";
+type LabelMode =
+  | "idle"
+  | "selecting"
+  | "grabbing"
+  | "copied"
+  | "commenting"
+  | "submitted"
+  | "fading";
 type CursorType = "default" | "crosshair" | "drag" | "grabbing";
 
 const ACTIVITY_DATA = [
-  { label: "New signup", time: "2m ago", component: "SignupRow" },
-  { label: "Order placed", time: "5m ago", component: "OrderRow" },
-  { label: "Payment received", time: "12m ago", component: "PaymentRow" },
+  { label: "New signup", time: "2m ago", component: "SignupRow", comment: "new user joined" },
+  { label: "Order placed", time: "5m ago", component: "OrderRow", comment: "check order #847" },
+  { label: "Payment received", time: "12m ago", component: "PaymentRow", comment: "" },
 ];
 
 const createSelectionBox = (position: Position, padding: number): BoxState => ({
@@ -83,6 +90,24 @@ const CheckIcon = (): ReactElement => (
     <path
       d="M20.1767 10.0875C20.1767 15.6478 15.6576 20.175 10.0875 20.175C4.52715 20.175 0 15.6478 0 10.0875C0 4.51914 4.52715 0 10.0875 0C15.6576 0 20.1767 4.51914 20.1767 10.0875ZM13.0051 6.23867L8.96699 12.7041L7.08476 10.3143C6.83358 9.99199 6.59941 9.88828 6.28984 9.88828C5.79414 9.88828 5.39961 10.2918 5.39961 10.7893C5.39961 11.0367 5.48925 11.2621 5.66386 11.4855L8.05703 14.3967C8.33027 14.7508 8.63183 14.9103 8.99902 14.9103C9.36445 14.9103 9.68105 14.7312 9.90546 14.3896L14.4742 7.27206C14.6107 7.04765 14.7289 6.80898 14.7289 6.58359C14.7289 6.07187 14.281 5.72968 13.7934 5.72968C13.4937 5.72968 13.217 5.90527 13.0051 6.23867Z"
       fill="currentColor"
+    />
+  </svg>
+);
+
+const SubmitIcon = (): ReactElement => (
+  <svg
+    width="10"
+    height="10"
+    viewBox="0 0 24 24"
+    fill="none"
+    className="shrink-0 text-white"
+  >
+    <path
+      d="M5 12h14M12 5l7 7-7 7"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
     />
   </svg>
 );
@@ -272,6 +297,7 @@ export const MobileDemoAnimation = (): ReactElement => {
   const [label, setLabel] = useState<LabelState>(HIDDEN_LABEL);
   const [labelMode, setLabelMode] = useState<LabelMode>("idle");
   const [cursorType, setCursorType] = useState<CursorType>("default");
+  const [commentText, setCommentText] = useState("");
 
   const containerRef = useRef<HTMLDivElement>(null);
   const metricCardRef = useRef<HTMLDivElement>(null);
@@ -358,6 +384,7 @@ export const MobileDemoAnimation = (): ReactElement => {
       setSuccessFlash(HIDDEN_BOX);
       setLabel(HIDDEN_LABEL);
       setLabelMode("idle");
+      setCommentText("");
     };
 
     const displaySelectionLabel = (
@@ -520,6 +547,7 @@ export const MobileDemoAnimation = (): ReactElement => {
 
       for (const [i, rowPos] of activityRowPositions.current.slice(0, -1).entries()) {
         if (isCancelled) return;
+        const activity = ACTIVITY_DATA[i];
 
         const rowCenter = getElementCenter(rowPos);
         setCursorPos(rowCenter);
@@ -530,13 +558,39 @@ export const MobileDemoAnimation = (): ReactElement => {
         displaySelectionLabel(
           rowPos.x + rowPos.width / 2,
           rowPos.y + rowPos.height + 10,
-          ACTIVITY_DATA[i].component,
+          activity.component,
           "div",
         );
-        await wait(400);
+        await wait(300);
         if (isCancelled) return;
 
-        await simulateClickAndCopy(rowPos);
+        // Switch to comment input mode
+        setLabelMode("commenting");
+        setCommentText("");
+        await wait(200);
+        if (isCancelled) return;
+
+        // Type the comment character by character
+        const comment = activity.comment;
+        for (let j = 0; j <= comment.length; j++) {
+          if (isCancelled) return;
+          setCommentText(comment.slice(0, j));
+          await wait(50);
+        }
+        await wait(300);
+        if (isCancelled) return;
+
+        // Submit
+        setLabelMode("submitted");
+        setSuccessFlash(createSelectionBox(rowPos, SELECTION_PADDING_PX));
+        await wait(500);
+        if (isCancelled) return;
+
+        // Fade out
+        setSuccessFlash(HIDDEN_BOX);
+        setSelectionBox(HIDDEN_BOX);
+        await fadeOutSelectionLabel();
+        setCommentText("");
         if (isCancelled) return;
       }
 
@@ -753,7 +807,7 @@ export const MobileDemoAnimation = (): ReactElement => {
 
           <div
             className={cn(
-              "pointer-events-none absolute z-55 flex items-center gap-[5px] rounded-[10px] bg-white py-1.5 px-2 shadow-[0_1px_2px_#51515140] transition-[opacity,transform] duration-300 ease-out",
+              "pointer-events-none absolute z-55 rounded-[10px] bg-white shadow-[0_1px_2px_#51515140] transition-[opacity,transform] duration-300 ease-out",
               isLabelVisible ? "scale-100 opacity-100" : "scale-95 opacity-0",
             )}
             style={{
@@ -763,30 +817,69 @@ export const MobileDemoAnimation = (): ReactElement => {
             }}
           >
             {labelMode === "selecting" && (
-              <>
+              <div className="flex items-center gap-[5px] py-1.5 px-2">
                 <span className="text-[13px] leading-4 font-medium text-black">
                   {label.componentName}
                 </span>
                 <span className="text-[13px] leading-4 font-medium text-black/50">
                   .{label.tagName}
                 </span>
-              </>
+              </div>
             )}
             {labelMode === "grabbing" && (
-              <>
+              <div className="flex items-center gap-[5px] py-1.5 px-2">
                 <LoaderIcon />
                 <span className="shimmer-text text-[13px] leading-4 font-medium">
                   Grabbing…
                 </span>
-              </>
+              </div>
             )}
-            {(labelMode === "copied" || labelMode === "fading") && (
-              <>
+            {labelMode === "copied" && (
+              <div className="flex items-center gap-[5px] py-1.5 px-2">
                 <CheckIcon />
                 <span className="text-[13px] leading-4 font-medium text-black">
                   Copied
                 </span>
-              </>
+              </div>
+            )}
+            {labelMode === "commenting" && (
+              <div className="flex flex-col min-w-[140px]">
+                <div className="flex items-center gap-[5px] pt-1.5 pb-1 px-2">
+                  <span className="text-[13px] leading-4 font-medium text-black">
+                    {label.componentName}
+                  </span>
+                  <span className="text-[13px] leading-4 font-medium text-black/50">
+                    .{label.tagName}
+                  </span>
+                </div>
+                <div className="flex items-end justify-between gap-2 px-2 pb-1.5 border-t border-black/5 pt-1">
+                  <span className={cn(
+                    "text-[13px] leading-4 font-medium",
+                    commentText ? "text-black" : "text-black/40"
+                  )}>
+                    {commentText || "Add context"}
+                  </span>
+                  <div className="shrink-0 flex items-center justify-center size-4 rounded-full bg-black">
+                    <SubmitIcon />
+                  </div>
+                </div>
+              </div>
+            )}
+            {labelMode === "submitted" && (
+              <div className="flex items-center gap-[5px] py-1.5 px-2">
+                <CheckIcon />
+                <span className="text-[13px] leading-4 font-medium text-black">
+                  Sent
+                </span>
+              </div>
+            )}
+            {labelMode === "fading" && (
+              <div className="flex items-center gap-[5px] py-1.5 px-2">
+                <CheckIcon />
+                <span className="text-[13px] leading-4 font-medium text-black">
+                  Sent
+                </span>
+              </div>
             )}
           </div>
         </div>
