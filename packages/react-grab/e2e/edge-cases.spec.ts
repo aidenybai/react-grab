@@ -205,9 +205,12 @@ test.describe("Edge Cases", () => {
       await reactGrab.waitForSelectionBox();
 
       for (let i = 0; i < 5; i++) {
-        await reactGrab.scrollPage(50);
+        await reactGrab.page.evaluate(() => {
+          window.scrollBy(0, 50);
+        });
         await reactGrab.page.waitForTimeout(20);
       }
+      await reactGrab.page.waitForTimeout(200);
 
       const isActive = await reactGrab.isOverlayVisible();
       expect(isActive).toBe(true);

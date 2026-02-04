@@ -1,6 +1,11 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["typescript"],
+  "settings": {
+    "typescript": {
+      "tsconfigPath": "./tsconfig.json"
+    }
+  },
   "categories": {
     "correctness": "off"
   },
