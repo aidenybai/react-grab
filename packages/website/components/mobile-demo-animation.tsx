@@ -661,7 +661,9 @@ export const MobileDemoAnimation = (): ReactElement => {
               {ACTIVITY_DATA.map((activity, i) => (
                 <div
                   key={activity.label}
-                  ref={(el) => (activityRowRefs.current[i] = el)}
+                  ref={(el) => {
+                    activityRowRefs.current[i] = el;
+                  }}
                   className="flex items-center justify-between px-3 py-2"
                 >
                   <div className="flex items-center gap-2">
