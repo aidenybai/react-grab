@@ -14,7 +14,10 @@
     "lint:fix": "pnpm --filter react-grab lint:fix",
     "format": "oxfmt",
     "extension:dev": "pnpm --filter web-extension dev",
-    "extension:build": "pnpm --filter web-extension build"
+    "extension:build": "pnpm --filter web-extension build",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "pnpm build && changeset publish"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.10",
