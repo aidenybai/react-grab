@@ -1,5 +1,11 @@
 # @react-grab/utils
 
+## 0.1.5
+
+### Patch Changes
+
+- fix: fullscreen inset the root
+
 ## 0.1.4
 
 ### Patch Changes

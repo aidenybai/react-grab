@@ -1,5 +1,13 @@
 # @react-grab/ami
 
+## 0.1.5
+
+### Patch Changes
+
+- fix: fullscreen inset the root
+- Updated dependencies
+  - react-grab@0.1.5
+
 ## 0.1.4
 
 ### Patch Changes
