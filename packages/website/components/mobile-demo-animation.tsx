@@ -518,11 +518,8 @@ export const MobileDemoAnimation = (): ReactElement => {
       await simulateClickAndCopy(valuePos);
       if (isCancelled) return;
 
-      // Animate through table rows
-      for (let i = 0; i < activityRowPositions.current.length; i++) {
+      for (const [i, rowPos] of activityRowPositions.current.entries()) {
         if (isCancelled) return;
-        const rowPos = activityRowPositions.current[i];
-        if (!rowPos) continue;
 
         const rowCenter = getElementCenter(rowPos);
         setCursorPos(rowCenter);
@@ -533,7 +530,7 @@ export const MobileDemoAnimation = (): ReactElement => {
         displaySelectionLabel(
           rowPos.x + rowPos.width / 2,
           rowPos.y + rowPos.height + 10,
-          ACTIVITY_DATA[i]?.component ?? "TableRow",
+          ACTIVITY_DATA[i].component,
           "div",
         );
         await wait(400);
@@ -554,21 +551,17 @@ export const MobileDemoAnimation = (): ReactElement => {
       }
     };
 
-    const initializeAnimationLoop = (): void => {
-      isCancelled = false;
-      runAnimationLoop();
-    };
-
     const handleVisibilityChange = (): void => {
       if (document.visibilityState === "visible") {
         isCancelled = true;
         resetAnimationState();
-        setTimeout(initializeAnimationLoop, 100);
+        isCancelled = false;
+        setTimeout(runAnimationLoop, 100);
       }
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    initializeAnimationLoop();
+    runAnimationLoop();
 
     return () => {
       isCancelled = true;
@@ -665,12 +658,10 @@ export const MobileDemoAnimation = (): ReactElement => {
               </div>
             </div>
             <div className="divide-y divide-white/10">
-              {ACTIVITY_DATA.map((activity, index) => (
+              {ACTIVITY_DATA.map((activity, i) => (
                 <div
                   key={activity.label}
-                  ref={(el) => {
-                    activityRowRefs.current[index] = el;
-                  }}
+                  ref={(el) => (activityRowRefs.current[i] = el)}
                   className="flex items-center justify-between px-3 py-2"
                 >
                   <div className="flex items-center gap-2">
