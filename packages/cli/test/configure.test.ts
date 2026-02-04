@@ -62,6 +62,100 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     expect(result.newContent).toContain("Meta+K");
   });
 
+  it("should preserve valid JSX format when adding data-options to self-closing Script", () => {
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("layout.tsx"),
+    );
+    mockReadFileSync.mockReturnValue(layoutWithReactGrab);
+
+    const options: ReactGrabOptions = {
+      activationMode: "toggle",
+    };
+
+    const result = previewOptionsTransform("/test", "next", "app", options);
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).not.toMatch(/\/\s*\n\s*data-options/);
+    expect(result.newContent).toMatch(/data-options.*\n\s*\/>/s);
+  });
+
+  it("should not split self-closing tag when adding data-options", () => {
+    const layoutWithSelfClosingScript = `import Script from "next/script";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <head>
+        <Script
+          src="//unpkg.com/react-grab/dist/index.global.js"
+          crossOrigin="anonymous"
+          strategy="beforeInteractive"
+        />
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}`;
+
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("layout.tsx"),
+    );
+    mockReadFileSync.mockReturnValue(layoutWithSelfClosingScript);
+
+    const options: ReactGrabOptions = {
+      activationMode: "toggle",
+      allowActivationInsideInput: false,
+      maxContextLines: 3,
+    };
+
+    const result = previewOptionsTransform("/test", "next", "app", options);
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain("data-options={JSON.stringify(");
+    expect(result.newContent).toContain('activationMode: "toggle"');
+    expect(result.newContent).toContain("allowActivationInsideInput: false");
+    expect(result.newContent).toContain("maxContextLines: 3");
+    expect(result.newContent).toContain("/>");
+    expect(result.newContent).not.toMatch(/\}\)\s*\n\s*\n\s*\/>/);
+    expect(result.newContent).not.toMatch(/strategy="beforeInteractive"\s*\/\s*\n/);
+  });
+
+  it("should not add extra blank line before closing tag", () => {
+    const layoutWithScript = `import Script from "next/script";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <head>
+        {process.env.NODE_ENV === "development" && (
+          <Script
+            src="//unpkg.com/react-grab/dist/index.global.js"
+            crossOrigin="anonymous"
+            strategy="beforeInteractive"
+          />
+        )}
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}`;
+
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("layout.tsx"),
+    );
+    mockReadFileSync.mockReturnValue(layoutWithScript);
+
+    const options: ReactGrabOptions = {
+      activationKey: "Meta+K",
+    };
+
+    const result = previewOptionsTransform("/test", "next", "app", options);
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain("data-options");
+    expect(result.newContent).not.toMatch(/\}\)\n\s*\n\s*\/>/);
+  });
+
   it("should add multiple options to React Grab script", () => {
     mockExistsSync.mockImplementation((path) =>
       String(path).endsWith("layout.tsx"),

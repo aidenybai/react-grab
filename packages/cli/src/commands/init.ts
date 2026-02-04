@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import pc from "picocolors";
-import prompts from "prompts";
+import { prompts } from "../utils/prompts.js";
 import {
   applyPackageJsonWithFeedback,
   applyTransformWithFeedback,
@@ -588,6 +588,93 @@ export const init = new Command()
                       `${getAgentName(agentIntegration)} has been added.`,
                     );
                   }
+                }
+              }
+            } else {
+              const result = previewTransform(
+                projectInfo.projectRoot,
+                projectInfo.framework,
+                projectInfo.nextRouterType,
+                agentIntegration,
+                true,
+              );
+
+              const packageJsonResult = previewPackageJsonTransform(
+                projectInfo.projectRoot,
+                agentIntegration,
+                projectInfo.installedAgents,
+                projectInfo.packageManager,
+              );
+
+              if (!result.success) {
+                logger.break();
+                logger.error(result.message);
+                logger.break();
+                process.exit(1);
+              }
+
+              const hasLayoutChanges =
+                !result.noChanges &&
+                result.originalContent &&
+                result.newContent;
+              const hasPackageJsonChanges =
+                packageJsonResult.success &&
+                !packageJsonResult.noChanges &&
+                packageJsonResult.originalContent &&
+                packageJsonResult.newContent;
+
+              if (hasLayoutChanges || hasPackageJsonChanges) {
+                logger.break();
+
+                if (hasLayoutChanges) {
+                  printDiff(
+                    result.filePath,
+                    result.originalContent!,
+                    result.newContent!,
+                  );
+                }
+
+                if (hasPackageJsonChanges) {
+                  if (hasLayoutChanges) {
+                    logger.break();
+                  }
+                  printDiff(
+                    packageJsonResult.filePath,
+                    packageJsonResult.originalContent!,
+                    packageJsonResult.newContent!,
+                  );
+                }
+
+                logger.break();
+                const { proceed } = await prompts({
+                  type: "confirm",
+                  name: "proceed",
+                  message: "Apply these changes?",
+                  initial: true,
+                });
+
+                if (!proceed) {
+                  logger.break();
+                  logger.log("Agent addition cancelled.");
+                } else {
+                  installPackagesWithFeedback(
+                    getPackagesToInstall(agentIntegration, false),
+                    projectInfo.packageManager,
+                    projectInfo.projectRoot,
+                  );
+
+                  if (hasLayoutChanges) {
+                    applyTransformWithFeedback(result);
+                  }
+
+                  if (hasPackageJsonChanges) {
+                    applyPackageJsonWithFeedback(packageJsonResult);
+                  }
+
+                  logger.break();
+                  logger.success(
+                    `${getAgentName(agentIntegration)} has been added.`,
+                  );
                 }
               }
             }

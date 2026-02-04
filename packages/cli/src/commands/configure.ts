@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import pc from "picocolors";
-import prompts from "prompts";
+import { prompts } from "../utils/prompts.js";
 import { detectProject } from "../utils/detect.js";
 import { printDiff } from "../utils/diff.js";
 import { handleError } from "../utils/handle-error.js";

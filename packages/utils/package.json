@@ -1,7 +1,6 @@
 {
   "name": "@react-grab/utils",
   "version": "0.1.2",
-  "private": true,
   "files": [
     "dist"
   ],

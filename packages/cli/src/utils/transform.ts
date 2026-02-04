@@ -1109,7 +1109,7 @@ const addOptionsToNextScript = (
   filePath: string,
 ): TransformResult => {
   const reactGrabScriptMatch = originalContent.match(
-    /(<Script[^>]*react-grab[^>]*)(\/?>)/is,
+    /(<Script[\s\S]*?react-grab[\s\S]*?)\s*(\/?>)/i,
   );
 
   if (!reactGrabScriptMatch) {

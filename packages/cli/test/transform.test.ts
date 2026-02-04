@@ -25,6 +25,69 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+describe("adding agent to existing installation with no prior agents", () => {
+  it("should add agent to layout when React Grab exists but no agents are installed", () => {
+    const layoutWithReactGrabNoAgent = `import Script from "next/script";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <head>
+        <Script src="//unpkg.com/react-grab/dist/index.global.js" strategy="beforeInteractive" />
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}`;
+
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("layout.tsx"),
+    );
+    mockReadFileSync.mockReturnValue(layoutWithReactGrabNoAgent);
+
+    const result = previewTransform(
+      "/test",
+      "next",
+      "app",
+      "claude-code",
+      true,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBeFalsy();
+    expect(result.newContent).toContain("@react-grab/claude-code");
+  });
+
+  it("should add agent to package.json when installedAgents is empty", () => {
+    const packageJsonContent = JSON.stringify(
+      {
+        name: "my-app",
+        scripts: {
+          dev: "next dev",
+        },
+      },
+      null,
+      2,
+    );
+
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(packageJsonContent);
+
+    const result = previewPackageJsonTransform(
+      "/test",
+      "claude-code",
+      [],
+      "npm",
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBeFalsy();
+    expect(result.newContent).toContain(
+      "npx @react-grab/claude-code@latest &&",
+    );
+  });
+});
+
 describe("previewTransform - Next.js App Router", () => {
   const layoutContent = `import type { Metadata } from "next";
 
