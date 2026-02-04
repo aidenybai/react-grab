@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.1.2
+
+### Patch Changes
+
+- fix: packages not being published
+
 ## 0.1.1
 
 ### Patch Changes

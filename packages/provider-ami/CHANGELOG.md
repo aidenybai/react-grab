@@ -1,5 +1,13 @@
 # @react-grab/ami
 
+## 0.1.2
+
+### Patch Changes
+
+- fix: packages not being published
+- Updated dependencies
+  - react-grab@0.1.2
+
 ## 0.1.1
 
 ### Patch Changes
