@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, type ReactElement } from "react";
 import { cn } from "@/utils/cn";
 
-const ANIMATION_LOOP_INTERVAL_MS = 12000;
+const ANIMATION_RESTART_DELAY_MS = 200;
 const SELECTION_PADDING_PX = 4;
 const DRAG_PADDING_PX = 6;
 const CURSOR_OFFSET_PX = 16;
@@ -52,6 +52,12 @@ const HIDDEN_LABEL: LabelState = {
 
 type LabelMode = "idle" | "selecting" | "grabbing" | "copied" | "fading";
 type CursorType = "default" | "crosshair" | "drag" | "grabbing";
+
+const ACTIVITY_DATA = [
+  { label: "New signup", time: "2m ago", component: "SignupRow" },
+  { label: "Order placed", time: "5m ago", component: "OrderRow" },
+  { label: "Payment received", time: "12m ago", component: "PaymentRow" },
+];
 
 const createSelectionBox = (position: Position, padding: number): BoxState => ({
   visible: true,
@@ -271,6 +277,7 @@ export const MobileDemoAnimation = (): ReactElement => {
   const metricCardRef = useRef<HTMLDivElement>(null);
   const metricValueRef = useRef<HTMLDivElement>(null);
   const exportButtonRef = useRef<HTMLDivElement>(null);
+  const activityRowRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const metricCardPosition = useRef<Position>({
     x: 0,
@@ -290,6 +297,7 @@ export const MobileDemoAnimation = (): ReactElement => {
     width: 0,
     height: 0,
   });
+  const activityRowPositions = useRef<Position[]>([]);
 
   const measureElementPositions = (): void => {
     const container = containerRef.current;
@@ -314,6 +322,18 @@ export const MobileDemoAnimation = (): ReactElement => {
     measureRelativePosition(metricCardRef.current, metricCardPosition);
     measureRelativePosition(metricValueRef.current, metricValuePosition);
     measureRelativePosition(exportButtonRef.current, exportButtonPosition);
+
+    activityRowPositions.current = activityRowRefs.current
+      .filter((ref): ref is HTMLDivElement => ref !== null)
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        return {
+          x: rect.left - containerRect.left,
+          y: rect.top - containerRect.top,
+          width: rect.width,
+          height: rect.height,
+        };
+      });
   };
 
   useEffect(() => {
@@ -327,7 +347,6 @@ export const MobileDemoAnimation = (): ReactElement => {
 
   useEffect(() => {
     let isCancelled = false;
-    let animationInterval: ReturnType<typeof setInterval>;
 
     const resetAnimationState = (): void => {
       setCursorPos({ x: 150, y: 80 });
@@ -499,24 +518,50 @@ export const MobileDemoAnimation = (): ReactElement => {
       await simulateClickAndCopy(valuePos);
       if (isCancelled) return;
 
+      // Animate through table rows
+      for (let i = 0; i < activityRowPositions.current.length; i++) {
+        if (isCancelled) return;
+        const rowPos = activityRowPositions.current[i];
+        if (!rowPos) continue;
+
+        const rowCenter = getElementCenter(rowPos);
+        setCursorPos(rowCenter);
+        await wait(350);
+        if (isCancelled) return;
+
+        setSelectionBox(createSelectionBox(rowPos, SELECTION_PADDING_PX));
+        displaySelectionLabel(
+          rowPos.x + rowPos.width / 2,
+          rowPos.y + rowPos.height + 10,
+          ACTIVITY_DATA[i]?.component ?? "TableRow",
+          "div",
+        );
+        await wait(400);
+        if (isCancelled) return;
+
+        await simulateClickAndCopy(rowPos);
+        if (isCancelled) return;
+      }
+
       setIsCursorVisible(false);
       setCursorType("default");
-      await wait(600);
+      await wait(ANIMATION_RESTART_DELAY_MS);
+    };
+
+    const runAnimationLoop = async (): Promise<void> => {
+      while (!isCancelled) {
+        await executeAnimationSequence();
+      }
     };
 
     const initializeAnimationLoop = (): void => {
       isCancelled = false;
-      executeAnimationSequence();
-      animationInterval = setInterval(
-        executeAnimationSequence,
-        ANIMATION_LOOP_INTERVAL_MS,
-      );
+      runAnimationLoop();
     };
 
     const handleVisibilityChange = (): void => {
       if (document.visibilityState === "visible") {
         isCancelled = true;
-        clearInterval(animationInterval);
         resetAnimationState();
         setTimeout(initializeAnimationLoop, 100);
       }
@@ -527,7 +572,6 @@ export const MobileDemoAnimation = (): ReactElement => {
 
     return () => {
       isCancelled = true;
-      clearInterval(animationInterval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
@@ -621,13 +665,12 @@ export const MobileDemoAnimation = (): ReactElement => {
               </div>
             </div>
             <div className="divide-y divide-white/10">
-              {[
-                { label: "New signup", time: "2m ago" },
-                { label: "Order placed", time: "5m ago" },
-                { label: "Payment received", time: "12m ago" },
-              ].map((activity) => (
+              {ACTIVITY_DATA.map((activity, index) => (
                 <div
                   key={activity.label}
+                  ref={(el) => {
+                    activityRowRefs.current[index] = el;
+                  }}
                   className="flex items-center justify-between px-3 py-2"
                 >
                   <div className="flex items-center gap-2">
