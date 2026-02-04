@@ -31,6 +31,10 @@ const data = {
           url: "/playground",
         },
         {
+          title: "Freeze Demo",
+          url: "/freeze-demo",
+        },
+        {
           title: "Login",
           url: "/login",
         },
