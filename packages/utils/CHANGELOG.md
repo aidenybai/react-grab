@@ -1,5 +1,11 @@
 # @react-grab/utils
 
+## 0.1.6
+
+### Patch Changes
+
+- fix: compat with React Scan
+
 ## 0.1.5
 
 ### Patch Changes

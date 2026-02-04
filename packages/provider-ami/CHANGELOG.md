@@ -1,5 +1,13 @@
 # @react-grab/ami
 
+## 0.1.6
+
+### Patch Changes
+
+- fix: compat with React Scan
+- Updated dependencies
+  - react-grab@0.1.6
+
 ## 0.1.5
 
 ### Patch Changes
