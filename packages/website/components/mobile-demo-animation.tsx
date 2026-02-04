@@ -545,7 +545,7 @@ export const MobileDemoAnimation = (): ReactElement => {
       await simulateClickAndCopy(valuePos);
       if (isCancelled) return;
 
-      for (const [i, rowPos] of activityRowPositions.current.slice(0, -1).entries()) {
+      for (const [i, rowPos] of activityRowPositions.current.entries()) {
         if (isCancelled) return;
         const activity = ACTIVITY_DATA[i];
 
@@ -610,7 +610,6 @@ export const MobileDemoAnimation = (): ReactElement => {
         isCancelled = true;
         resetAnimationState();
         isCancelled = false;
-        setTimeout(runAnimationLoop, 100);
       }
     };
 
