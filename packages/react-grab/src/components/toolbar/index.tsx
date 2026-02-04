@@ -961,11 +961,15 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         "fixed left-0 top-0 font-sans text-[13px] antialiased filter-[drop-shadow(0px_1px_2px_#51515140)] select-none",
         getCursorClass(),
         getTransitionClass(),
-        isVisible() ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
+        isVisible()
+          ? "opacity-100 pointer-events-auto"
+          : "opacity-0 pointer-events-none",
       )}
       style={{
         "z-index": "2147483647",
-        transform: `translate(${currentPosition().x}px, ${currentPosition().y}px)`,
+        transform: `translate(${currentPosition().x}px, ${
+          currentPosition().y
+        }px)`,
         "transform-origin": getTransformOrigin(),
       }}
       onPointerDown={handlePointerDown}
