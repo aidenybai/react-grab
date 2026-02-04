@@ -518,7 +518,7 @@ export const MobileDemoAnimation = (): ReactElement => {
       await simulateClickAndCopy(valuePos);
       if (isCancelled) return;
 
-      for (const [i, rowPos] of activityRowPositions.current.entries()) {
+      for (const [i, rowPos] of activityRowPositions.current.slice(0, -1).entries()) {
         if (isCancelled) return;
 
         const rowCenter = getElementCenter(rowPos);
