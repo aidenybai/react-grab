@@ -36,8 +36,8 @@ export const mountRoot = (cssText?: string) => {
   host.setAttribute(ATTRIBUTE_NAME, "true");
   host.style.zIndex = "2147483646";
   host.style.position = "fixed";
-  host.style.top = "0";
-  host.style.left = "0";
+  host.style.inset = "0";
+  host.style.pointerEvents = "none";
   const shadowRoot = host.attachShadow({ mode: "open" });
 
   if (cssText) {

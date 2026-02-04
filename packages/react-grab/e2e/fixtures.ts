@@ -248,7 +248,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const hoverElement = async (selector: string) => {
     const element = page.locator(selector).first();
-    await element.hover();
+    await element.hover({ force: true });
     await page.waitForTimeout(100);
   };
 
