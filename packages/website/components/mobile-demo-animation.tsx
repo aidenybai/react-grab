@@ -61,9 +61,24 @@ type LabelMode =
 type CursorType = "default" | "crosshair" | "drag" | "grabbing";
 
 const ACTIVITY_DATA = [
-  { label: "New signup", time: "2m ago", component: "SignupRow", comment: "new user joined" },
-  { label: "Order placed", time: "5m ago", component: "OrderRow", comment: "check order #847" },
-  { label: "Payment received", time: "12m ago", component: "PaymentRow", comment: "" },
+  {
+    label: "New signup",
+    time: "2m ago",
+    component: "SignupRow",
+    comment: "new user joined",
+  },
+  {
+    label: "Order placed",
+    time: "5m ago",
+    component: "OrderRow",
+    comment: "check order #847",
+  },
+  {
+    label: "Payment received",
+    time: "12m ago",
+    component: "PaymentRow",
+    comment: "",
+  },
 ];
 
 const createSelectionBox = (position: Position, padding: number): BoxState => ({
@@ -304,6 +319,7 @@ export const MobileDemoAnimation = (): ReactElement => {
   const metricValueRef = useRef<HTMLDivElement>(null);
   const exportButtonRef = useRef<HTMLDivElement>(null);
   const activityRowRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const fadingLabelTextRef = useRef<"Copied" | "Sent">("Sent");
 
   const metricCardPosition = useRef<Position>({
     x: 0,
@@ -323,7 +339,7 @@ export const MobileDemoAnimation = (): ReactElement => {
     width: 0,
     height: 0,
   });
-  const activityRowPositions = useRef<Position[]>([]);
+  const activityRowPositions = useRef<(Position | null)[]>([]);
 
   const measureElementPositions = (): void => {
     const container = containerRef.current;
@@ -349,17 +365,16 @@ export const MobileDemoAnimation = (): ReactElement => {
     measureRelativePosition(metricValueRef.current, metricValuePosition);
     measureRelativePosition(exportButtonRef.current, exportButtonPosition);
 
-    activityRowPositions.current = activityRowRefs.current
-      .filter((ref): ref is HTMLDivElement => ref !== null)
-      .map((element) => {
-        const rect = element.getBoundingClientRect();
-        return {
-          x: rect.left - containerRect.left,
-          y: rect.top - containerRect.top,
-          width: rect.width,
-          height: rect.height,
-        };
-      });
+    activityRowPositions.current = activityRowRefs.current.map((ref) => {
+      if (!ref) return null;
+      const rect = ref.getBoundingClientRect();
+      return {
+        x: rect.left - containerRect.left,
+        y: rect.top - containerRect.top,
+        width: rect.width,
+        height: rect.height,
+      };
+    });
   };
 
   useEffect(() => {
@@ -397,7 +412,10 @@ export const MobileDemoAnimation = (): ReactElement => {
       setLabelMode("selecting");
     };
 
-    const fadeOutSelectionLabel = async (): Promise<void> => {
+    const fadeOutSelectionLabel = async (
+      text: "Copied" | "Sent",
+    ): Promise<void> => {
+      fadingLabelTextRef.current = text;
       setLabelMode("fading");
       await wait(300);
       setLabel(HIDDEN_LABEL);
@@ -417,7 +435,7 @@ export const MobileDemoAnimation = (): ReactElement => {
       if (isCancelled) return;
 
       setSuccessFlash(HIDDEN_BOX);
-      await fadeOutSelectionLabel();
+      await fadeOutSelectionLabel("Copied");
       setCursorType("crosshair");
     };
 
@@ -521,7 +539,7 @@ export const MobileDemoAnimation = (): ReactElement => {
       if (isCancelled) return;
 
       setSuccessFlash(HIDDEN_BOX);
-      await fadeOutSelectionLabel();
+      await fadeOutSelectionLabel("Copied");
       setCursorType("crosshair");
       await wait(300);
       if (isCancelled) return;
@@ -545,8 +563,10 @@ export const MobileDemoAnimation = (): ReactElement => {
       await simulateClickAndCopy(valuePos);
       if (isCancelled) return;
 
-      for (const [i, rowPos] of activityRowPositions.current.entries()) {
+      for (let i = 0; i < ACTIVITY_DATA.length; i++) {
         if (isCancelled) return;
+        const rowPos = activityRowPositions.current[i];
+        if (!rowPos) continue;
         const activity = ACTIVITY_DATA[i];
 
         const rowCenter = getElementCenter(rowPos);
@@ -589,7 +609,7 @@ export const MobileDemoAnimation = (): ReactElement => {
         // Fade out
         setSuccessFlash(HIDDEN_BOX);
         setSelectionBox(HIDDEN_BOX);
-        await fadeOutSelectionLabel();
+        await fadeOutSelectionLabel("Sent");
         setCommentText("");
         if (isCancelled) return;
       }
@@ -852,10 +872,12 @@ export const MobileDemoAnimation = (): ReactElement => {
                   </span>
                 </div>
                 <div className="flex items-end justify-between gap-2 px-2 pb-1.5 border-t border-black/5 pt-1">
-                  <span className={cn(
-                    "text-[13px] leading-4 font-medium",
-                    commentText ? "text-black" : "text-black/40"
-                  )}>
+                  <span
+                    className={cn(
+                      "text-[13px] leading-4 font-medium",
+                      commentText ? "text-black" : "text-black/40",
+                    )}
+                  >
                     {commentText || "Add context"}
                   </span>
                   <div className="shrink-0 flex items-center justify-center size-4 rounded-full bg-black">
@@ -876,7 +898,7 @@ export const MobileDemoAnimation = (): ReactElement => {
               <div className="flex items-center gap-[5px] py-1.5 px-2">
                 <CheckIcon />
                 <span className="text-[13px] leading-4 font-medium text-black">
-                  Sent
+                  {fadingLabelTextRef.current}
                 </span>
               </div>
             )}
