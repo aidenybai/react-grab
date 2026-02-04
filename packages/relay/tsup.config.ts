@@ -23,7 +23,10 @@ export default defineConfig([
     platform: "node",
     treeshake: true,
     noExternal: [/.*/],
-    external: module.builtinModules,
+    external: [
+      ...module.builtinModules,
+      ...module.builtinModules.map((name) => `node:${name}`),
+    ],
     env: {
       VERSION: process.env.VERSION ?? packageJson.version,
     },

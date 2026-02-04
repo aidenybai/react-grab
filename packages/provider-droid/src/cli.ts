@@ -1,15 +1,14 @@
 #!/usr/bin/env node
-import { connectRelay } from "@react-grab/relay";
-import { droidAgentHandler } from "./handler.js";
+import { spawn } from "node:child_process";
+import { dirname, join } from "node:path";
 
-try {
-  fetch(
-    `https://www.react-grab.com/api/version?source=droid&t=${Date.now()}`,
-  ).catch(() => {});
-} catch {}
+const scriptDir = dirname(process.argv[1]);
+const serverPath = join(scriptDir, "server.cjs");
 
-(async () => {
-  await connectRelay({ handler: droidAgentHandler });
-})().catch((error) => {
-  throw error;
+const child = spawn(process.execPath, [serverPath], {
+  detached: true,
+  stdio: "inherit",
 });
+
+child.unref();
+process.exit(0);

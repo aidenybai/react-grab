@@ -11,6 +11,7 @@ export default defineConfig([
     entry: {
       handler: "./src/handler.ts",
       cli: "./src/cli.ts",
+      server: "./src/server.ts",
     },
     format: ["cjs", "esm"],
     dts: true,
@@ -21,7 +22,10 @@ export default defineConfig([
     platform: "node",
     treeshake: true,
     noExternal: [/.*/],
-    external: module.builtinModules,
+    external: [
+      ...module.builtinModules,
+      ...module.builtinModules.map((name) => `node:${name}`),
+    ],
     env: {
       VERSION: process.env.VERSION ?? packageJson.version,
     },
