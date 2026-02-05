@@ -4,35 +4,80 @@ export const dynamic = "force-dynamic";
 
 const REACT_GRAB_SCRIPT_URL = "https://react-grab.com/script.js";
 
-const createHistoryPatchScript = (
+const createProxyPatchScript = (
   proxyBaseUrl: string,
+  assetProxyBaseUrl: string,
   originalOrigin: string,
 ): string => {
   return `<script>
 (function() {
   var proxyBase = ${JSON.stringify(proxyBaseUrl)};
+  var assetProxyBase = ${JSON.stringify(assetProxyBaseUrl)};
   var originalOrigin = ${JSON.stringify(originalOrigin)};
   
-  function rewriteUrl(url) {
+  function shouldProxy(url) {
+    if (!url) return false;
+    try {
+      var parsed = new URL(url, window.location.href);
+      return parsed.origin === originalOrigin;
+    } catch (e) {}
+    return false;
+  }
+  
+  function rewriteToPageProxy(url) {
     if (!url) return url;
     try {
       var parsed = new URL(url, window.location.href);
-      if (parsed.origin === originalOrigin || parsed.href.startsWith(originalOrigin)) {
+      if (parsed.origin === originalOrigin) {
         return proxyBase + '?url=' + encodeURIComponent(parsed.href);
       }
     } catch (e) {}
     return url;
   }
   
+  function rewriteToAssetProxy(url) {
+    if (!url) return url;
+    try {
+      var parsed = new URL(url, window.location.href);
+      if (parsed.origin === originalOrigin) {
+        return assetProxyBase + '?url=' + encodeURIComponent(parsed.href);
+      }
+    } catch (e) {}
+    return url;
+  }
+  
+  // Patch History API
   var originalPushState = history.pushState;
   var originalReplaceState = history.replaceState;
   
   history.pushState = function(state, title, url) {
-    return originalPushState.call(this, state, title, rewriteUrl(url));
+    return originalPushState.call(this, state, title, rewriteToPageProxy(url));
   };
   
   history.replaceState = function(state, title, url) {
-    return originalReplaceState.call(this, state, title, rewriteUrl(url));
+    return originalReplaceState.call(this, state, title, rewriteToPageProxy(url));
+  };
+  
+  // Patch fetch API
+  var originalFetch = window.fetch;
+  window.fetch = function(input, init) {
+    var url = typeof input === 'string' ? input : (input instanceof Request ? input.url : String(input));
+    if (shouldProxy(url)) {
+      var newUrl = rewriteToAssetProxy(url);
+      if (typeof input === 'string') {
+        input = newUrl;
+      } else if (input instanceof Request) {
+        input = new Request(newUrl, input);
+      }
+    }
+    return originalFetch.call(this, input, init);
+  };
+  
+  // Patch XMLHttpRequest
+  var originalXHROpen = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function(method, url) {
+    var newUrl = rewriteToAssetProxy(url);
+    return originalXHROpen.apply(this, [method, newUrl].concat(Array.prototype.slice.call(arguments, 2)));
   };
 })();
 </script>`;
@@ -108,11 +153,11 @@ const rewriteLinksToProxy = (
 const injectHeadContent = (
   html: string,
   baseHref: string,
-  historyPatchScript: string,
+  proxyPatchScript: string,
 ): string => {
   const baseTag = `<base href="${baseHref}">`;
   const grabScriptTag = `<script src="${REACT_GRAB_SCRIPT_URL}"></script>`;
-  const injection = `${historyPatchScript}\n${baseTag}\n${grabScriptTag}`;
+  const injection = `${proxyPatchScript}\n${baseTag}\n${grabScriptTag}`;
 
   const existingBaseMatch = html.match(/<base[^>]*>/i);
   if (existingBaseMatch) {
@@ -121,7 +166,7 @@ const injectHeadContent = (
     if (headMatch) {
       return html.replace(
         headMatch[0],
-        `${headMatch[0]}\n${historyPatchScript}\n${grabScriptTag}`,
+        `${headMatch[0]}\n${proxyPatchScript}\n${grabScriptTag}`,
       );
     }
     return html;
@@ -227,11 +272,13 @@ export const GET = async (request: NextRequest): Promise<Response> => {
 
     const baseHref =
       parsedUrl.origin + parsedUrl.pathname.replace(/\/[^/]*$/, "/");
-    const historyPatchScript = createHistoryPatchScript(
+    const assetProxyBaseUrl = new URL("/proxy/asset", request.url).href;
+    const proxyPatchScript = createProxyPatchScript(
       proxyBaseUrl,
+      assetProxyBaseUrl,
       parsedUrl.origin,
     );
-    html = injectHeadContent(html, baseHref, historyPatchScript);
+    html = injectHeadContent(html, baseHref, proxyPatchScript);
 
     return new Response(html, {
       status: 200,
