@@ -1034,7 +1034,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                   data-react-grab-ignore-events
                   data-react-grab-toolbar-toggle
                   class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5"
-                  on:pointerdown={stopEventPropagation}
+                  on:pointerdown={(event) => {
+                    stopEventPropagation(event);
+                    handlePointerDown(event);
+                  }}
                   on:mousedown={stopEventPropagation}
                   onClick={(event) => {
                     setIsSelectTooltipVisible(false);
@@ -1070,11 +1073,15 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               )}
             >
               <div class="relative overflow-visible min-w-0">
+                {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
                 <button
                   data-react-grab-ignore-events
                   data-react-grab-toolbar-comment
                   class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5"
-                  on:pointerdown={stopEventPropagation}
+                  on:pointerdown={(event) => {
+                    stopEventPropagation(event);
+                    handlePointerDown(event);
+                  }}
                   on:mousedown={stopEventPropagation}
                   onClick={(event) => {
                     setIsCommentTooltipVisible(false);

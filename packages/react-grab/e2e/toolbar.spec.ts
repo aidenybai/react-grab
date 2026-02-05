@@ -257,6 +257,78 @@ test.describe("Toolbar", () => {
         expect(Math.abs(finalPosition.y - initialPosition.y)).toBeLessThan(20);
       }
     });
+
+    test("should be draggable from select button", async ({ reactGrab }) => {
+      const initialInfo = await reactGrab.getToolbarInfo();
+      const initialPosition = initialInfo.position;
+      expect(initialPosition).not.toBeNull();
+
+      await reactGrab.dragToolbarFromButton(
+        "[data-react-grab-toolbar-toggle]",
+        100,
+        0,
+      );
+
+      await expect
+        .poll(
+          async () => {
+            const info = await reactGrab.getToolbarInfo();
+            if (!info.position || !initialPosition) return 0;
+            return Math.abs(info.position.x - initialPosition.x);
+          },
+          { timeout: 3000 },
+        )
+        .toBeGreaterThan(0);
+    });
+
+    test("should be draggable from comment button", async ({ reactGrab }) => {
+      const initialInfo = await reactGrab.getToolbarInfo();
+      const initialPosition = initialInfo.position;
+      expect(initialPosition).not.toBeNull();
+
+      await reactGrab.dragToolbarFromButton(
+        "[data-react-grab-toolbar-comment]",
+        100,
+        0,
+      );
+
+      await expect
+        .poll(
+          async () => {
+            const info = await reactGrab.getToolbarInfo();
+            if (!info.position || !initialPosition) return 0;
+            return Math.abs(info.position.x - initialPosition.x);
+          },
+          { timeout: 3000 },
+        )
+        .toBeGreaterThan(0);
+    });
+
+    test("should not close page dropdown when clicking select button", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.openDropdown();
+      expect(await reactGrab.isDropdownOpen()).toBe(true);
+
+      await reactGrab.clickToolbarToggle();
+
+      expect(await reactGrab.isDropdownOpen()).toBe(true);
+    });
+
+    test("should not close page dropdown when dragging from select button", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.openDropdown();
+      expect(await reactGrab.isDropdownOpen()).toBe(true);
+
+      await reactGrab.dragToolbarFromButton(
+        "[data-react-grab-toolbar-toggle]",
+        50,
+        0,
+      );
+
+      expect(await reactGrab.isDropdownOpen()).toBe(true);
+    });
   });
 
   test.describe("State Persistence", () => {

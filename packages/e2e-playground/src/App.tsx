@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 interface Todo {
   id: number;
@@ -382,6 +382,72 @@ const ZeroDimensionElements = () => {
   );
 };
 
+const DropdownSection = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent | PointerEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("pointerdown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("pointerdown", handleClickOutside);
+    };
+  }, [isOpen]);
+
+  return (
+    <section className="border rounded-lg p-4" data-testid="dropdown-section">
+      <h2 className="text-lg font-bold mb-4">Dropdown Test</h2>
+      <div className="relative" ref={dropdownRef}>
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="bg-blue-500 text-white px-4 py-2 rounded"
+          data-testid="dropdown-trigger"
+        >
+          {isOpen ? "Close Dropdown" : "Open Dropdown"}
+        </button>
+        {isOpen && (
+          <div
+            className="absolute top-full left-0 mt-2 w-48 bg-white border rounded-lg shadow-lg z-50"
+            data-testid="dropdown-menu"
+          >
+            <button
+              className="w-full text-left px-4 py-2 hover:bg-gray-100"
+              data-testid="dropdown-item-1"
+            >
+              Option 1
+            </button>
+            <button
+              className="w-full text-left px-4 py-2 hover:bg-gray-100"
+              data-testid="dropdown-item-2"
+            >
+              Option 2
+            </button>
+            <button
+              className="w-full text-left px-4 py-2 hover:bg-gray-100"
+              data-testid="dropdown-item-3"
+            >
+              Option 3
+            </button>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+};
+
 const HiddenToggleSection = () => {
   const [isVisible, setIsVisible] = useState(true);
   const elementRef = useRef<HTMLDivElement>(null);
@@ -439,6 +505,8 @@ export default function App() {
       <VariousElements />
 
       <ZeroDimensionElements />
+
+      <DropdownSection />
 
       <HiddenToggleSection />
 

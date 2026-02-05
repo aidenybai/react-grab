@@ -111,6 +111,11 @@ interface ReactGrabPageObject {
   clickToolbarToggle: () => Promise<void>;
   clickToolbarCollapse: () => Promise<void>;
   dragToolbar: (deltaX: number, deltaY: number) => Promise<void>;
+  dragToolbarFromButton: (
+    buttonSelector: string,
+    deltaX: number,
+    deltaY: number,
+  ) => Promise<void>;
 
   getSelectionLabelInfo: () => Promise<SelectionLabelInfo>;
   isSelectionLabelVisible: () => Promise<boolean>;
@@ -179,6 +184,8 @@ interface ReactGrabPageObject {
   getElementBounds: (
     selector: string,
   ) => Promise<{ x: number; y: number; width: number; height: number } | null>;
+  isDropdownOpen: () => Promise<boolean>;
+  openDropdown: () => Promise<void>;
 
   setupCallbackTracking: () => Promise<void>;
   getCallbackHistory: () => Promise<
@@ -775,6 +782,41 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
     const startX = toolbarRect.x + toolbarRect.width / 2;
     const startY = toolbarRect.y + toolbarRect.height / 2;
+    const endX = startX + deltaX;
+    const endY = startY + deltaY;
+
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(endX, endY, { steps: 10 });
+    await page.mouse.up();
+    // HACK: Wait for snap animation to complete
+    await page.waitForTimeout(300);
+  };
+
+  const dragToolbarFromButton = async (
+    buttonSelector: string,
+    deltaX: number,
+    deltaY: number,
+  ) => {
+    const buttonRect = await page.evaluate(
+      ({ attrName, selector }) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const shadowRoot = host?.shadowRoot;
+        if (!shadowRoot) return null;
+        const root = shadowRoot.querySelector(`[${attrName}]`);
+        if (!root) return null;
+        const button = root.querySelector<HTMLElement>(selector);
+        if (!button) return null;
+        const rect = button.getBoundingClientRect();
+        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+      },
+      { attrName: ATTRIBUTE_NAME, selector: buttonSelector },
+    );
+
+    if (!buttonRect) return;
+
+    const startX = buttonRect.x + buttonRect.width / 2;
+    const startY = buttonRect.y + buttonRect.height / 2;
     const endX = startX + deltaX;
     const endY = startY + deltaY;
 
@@ -1625,6 +1667,20 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       : null;
   };
 
+  const isDropdownOpen = async (): Promise<boolean> => {
+    const dropdownMenu = page.locator('[data-testid="dropdown-menu"]');
+    return dropdownMenu.isVisible();
+  };
+
+  const openDropdown = async () => {
+    const trigger = page.locator('[data-testid="dropdown-trigger"]');
+    await trigger.click();
+    await page.waitForSelector('[data-testid="dropdown-menu"]', {
+      state: "visible",
+      timeout: 2000,
+    });
+  };
+
   const setupCallbackTracking = async () => {
     await page.evaluate(() => {
       (
@@ -1788,6 +1844,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     clickToolbarToggle,
     clickToolbarCollapse,
     dragToolbar,
+    dragToolbarFromButton,
 
     getSelectionLabelInfo,
     isSelectionLabelVisible,
@@ -1835,6 +1892,8 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     hideElement,
     showElement,
     getElementBounds,
+    isDropdownOpen,
+    openDropdown,
 
     setupCallbackTracking,
     getCallbackHistory,
