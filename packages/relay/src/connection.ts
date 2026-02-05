@@ -34,19 +34,26 @@ const checkIfRelayServerIsRunning = async (
       ? `${httpProtocol}://localhost:${port}/health?${RELAY_TOKEN_PARAM}=${encodeURIComponent(token)}`
       : `${httpProtocol}://localhost:${port}/health`;
 
-    const fetchOptions: RequestInit & { dispatcher?: unknown } = {
-      method: "GET",
-      signal: AbortSignal.timeout(HEALTH_CHECK_TIMEOUT_MS),
-    };
-
     if (secure) {
-      const { Agent } = await import("undici");
-      fetchOptions.dispatcher = new Agent({
-        connect: { rejectUnauthorized: false },
+      const https = await import("node:https");
+      return new Promise((resolve) => {
+        const request = https.get(
+          healthUrl,
+          { rejectUnauthorized: false, timeout: HEALTH_CHECK_TIMEOUT_MS },
+          (response) => resolve(response.statusCode === 200),
+        );
+        request.on("error", () => resolve(false));
+        request.on("timeout", () => {
+          request.destroy();
+          resolve(false);
+        });
       });
     }
 
-    const response = await fetch(healthUrl, fetchOptions);
+    const response = await fetch(healthUrl, {
+      method: "GET",
+      signal: AbortSignal.timeout(HEALTH_CHECK_TIMEOUT_MS),
+    });
     return response.ok;
   } catch {
     return false;
