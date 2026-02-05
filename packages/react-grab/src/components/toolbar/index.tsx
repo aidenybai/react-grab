@@ -182,10 +182,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     width: TOOLBAR_DEFAULT_WIDTH_PX,
     height: TOOLBAR_DEFAULT_HEIGHT_PX,
   };
-  let collapsedDimensions = {
+  const [collapsedDimensions, setCollapsedDimensions] = createSignal({
     width: TOOLBAR_COLLAPSED_WIDTH_PX,
     height: TOOLBAR_COLLAPSED_HEIGHT_PX,
-  };
+  });
 
   const clampToViewport = (value: number, min: number, max: number): number =>
     Math.max(min, Math.min(value, max));
@@ -433,10 +433,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       if (isCollapsed()) {
         const collapsedRect = containerRef?.getBoundingClientRect();
         if (collapsedRect) {
-          collapsedDimensions = {
+          setCollapsedDimensions({
             width: collapsedRect.width,
             height: collapsedRect.height,
-          };
+          });
         }
       }
     }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
@@ -664,7 +664,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     const pos = position();
     const { width: expandedWidth, height: expandedHeight } = expandedDimensions;
     const { width: collapsedWidth, height: collapsedHeight } =
-      collapsedDimensions;
+      collapsedDimensions();
     const viewport = getVisualViewport();
 
     switch (edge) {
@@ -794,10 +794,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         requestAnimationFrame(() => {
           const collapsedRect = containerRef?.getBoundingClientRect();
           if (collapsedRect) {
-            collapsedDimensions = {
+            setCollapsedDimensions({
               width: collapsedRect.width,
               height: collapsedRect.height,
-            };
+            });
           }
         });
       }
