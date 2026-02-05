@@ -1,6 +1,6 @@
 import { exec as execCallback } from "node:child_process";
 import { createWriteStream, existsSync } from "node:fs";
-import { chmod, mkdir, readFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir, platform, arch } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -59,9 +59,18 @@ const downloadMkcert = async (downloadUrl: string): Promise<void> => {
   }
 
   const fileStream = createWriteStream(MKCERT_PATH);
-  // HACK: Web ReadableStream and Node.js ReadableStream types are incompatible but work at runtime
-  await pipeline(response.body as unknown as NodeJS.ReadableStream, fileStream);
-  await chmod(MKCERT_PATH, 0o755);
+  try {
+    // HACK: Web ReadableStream and Node.js ReadableStream types are incompatible but work at runtime
+    await pipeline(
+      response.body as unknown as NodeJS.ReadableStream,
+      fileStream,
+    );
+    await chmod(MKCERT_PATH, 0o755);
+  } catch (error) {
+    const { unlink } = await import("node:fs/promises");
+    await unlink(MKCERT_PATH).catch(() => {});
+    throw error;
+  }
 };
 
 const runMkcert = async (args: string): Promise<void> => {
@@ -72,6 +81,8 @@ export interface Certificate {
   key: Buffer;
   cert: Buffer;
 }
+
+const CA_INSTALLED_FLAG = join(DATA_DIR, ".ca-installed");
 
 export const ensureCertificates = async (
   hosts: string[] = ["localhost", "127.0.0.1"],
@@ -84,7 +95,12 @@ export const ensureCertificates = async (
       );
     }
     await downloadMkcert(downloadUrl);
+  }
+
+  if (!existsSync(CA_INSTALLED_FLAG)) {
     await runMkcert("-install");
+    await mkdir(DATA_DIR, { recursive: true });
+    await writeFile(CA_INSTALLED_FLAG, "");
   }
 
   if (!existsSync(KEY_PATH) || !existsSync(CERT_PATH)) {

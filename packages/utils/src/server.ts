@@ -55,3 +55,14 @@ export const formatSpawnError = (error: Error, commandName: string): string => {
 
   return error.message;
 };
+
+export const spawnDetachedServer = (serverPath: string): void => {
+  const { spawn } = require("node:child_process");
+  const userArgs = process.argv.slice(2);
+  const child = spawn(process.execPath, [serverPath, ...userArgs], {
+    detached: true,
+    stdio: "inherit",
+  });
+  child.unref();
+  process.exit(0);
+};
