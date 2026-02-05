@@ -31,9 +31,12 @@ interface RelayClientOptions {
 }
 
 const getDefaultWebSocketUrl = (): string => {
-  const isSecure =
-    typeof window !== "undefined" && window.location.protocol === "https:";
-  return `${isSecure ? "wss" : "ws"}://localhost:${DEFAULT_RELAY_PORT}`;
+  if (typeof window === "undefined") {
+    return `ws://localhost:${DEFAULT_RELAY_PORT}`;
+  }
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const hostname = window.location.hostname;
+  return `${protocol}//${hostname}:${DEFAULT_RELAY_PORT}`;
 };
 
 export const createRelayClient = (
