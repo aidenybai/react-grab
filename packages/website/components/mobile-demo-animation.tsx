@@ -63,24 +63,9 @@ type LabelMode =
 type CursorType = "default" | "crosshair" | "drag" | "grabbing";
 
 const ACTIVITY_DATA = [
-  {
-    label: "New signup",
-    time: "2m ago",
-    component: "SignupRow",
-    comment: "new user joined",
-  },
-  {
-    label: "Order placed",
-    time: "5m ago",
-    component: "OrderRow",
-    comment: "check order #847",
-  },
-  {
-    label: "Payment received",
-    time: "12m ago",
-    component: "PaymentRow",
-    comment: "",
-  },
+  { label: "New signup", time: "2m ago", component: "SignupRow" },
+  { label: "Order placed", time: "5m ago", component: "OrderRow" },
+  { label: "Payment received", time: "12m ago", component: "PaymentRow" },
 ];
 
 const createSelectionBox = (position: Position, padding: number): BoxState => ({
@@ -442,6 +427,37 @@ export const MobileDemoAnimation = (): ReactElement => {
       setCursorType("crosshair");
     };
 
+    const simulateComment = async (
+      position: Position,
+      comment: string,
+    ): Promise<void> => {
+      await wait(300);
+      if (isCancelled) return;
+
+      setLabelMode("commenting");
+      setCommentText("");
+      await wait(200);
+      if (isCancelled) return;
+
+      for (let j = 0; j <= comment.length; j++) {
+        if (isCancelled) return;
+        setCommentText(comment.slice(0, j));
+        await wait(50);
+      }
+      await wait(300);
+      if (isCancelled) return;
+
+      setLabelMode("submitted");
+      setSuccessFlash(createSelectionBox(position, SELECTION_PADDING_PX));
+      await wait(500);
+      if (isCancelled) return;
+
+      setSuccessFlash(HIDDEN_BOX);
+      setSelectionBox(HIDDEN_BOX);
+      await fadeOutSelectionLabel("Sent");
+      setCommentText("");
+    };
+
     const animateDragSelection = async (
       startX: number,
       startY: number,
@@ -479,10 +495,11 @@ export const MobileDemoAnimation = (): ReactElement => {
       await wait(300);
       if (isCancelled) return;
 
+      // 1. Export button - comment
       const buttonPos = exportButtonPosition.current;
       const buttonCenter = getElementCenter(buttonPos);
       setCursorPos(buttonCenter);
-      await wait(450);
+      await wait(400);
       if (isCancelled) return;
 
       setSelectionBox(createSelectionBox(buttonPos, SELECTION_PADDING_PX));
@@ -492,65 +509,31 @@ export const MobileDemoAnimation = (): ReactElement => {
         "ExportBtn",
         "button",
       );
-      await wait(600);
+      await simulateComment(buttonPos, "add CSV option");
       if (isCancelled) return;
 
-      await simulateClickAndCopy(buttonPos);
-      await wait(300);
-      if (isCancelled) return;
-
+      // 2. MetricCard - comment
       const cardPos = metricCardPosition.current;
-      const dragStartX = cardPos.x - DRAG_PADDING_PX;
-      const dragStartY = cardPos.y - DRAG_PADDING_PX;
-      const dragEndX = cardPos.x + cardPos.width + DRAG_PADDING_PX;
-      const dragEndY = cardPos.y + cardPos.height + DRAG_PADDING_PX;
-
-      setCursorPos({ x: dragStartX, y: dragStartY });
-      await wait(500);
+      const cardCenter = getElementCenter(cardPos);
+      setCursorPos(cardCenter);
+      await wait(400);
       if (isCancelled) return;
 
-      setIsDragging(true);
-      setCursorType("drag");
-      setDragBox({
-        visible: true,
-        x: dragStartX,
-        y: dragStartY,
-        width: 0,
-        height: 0,
-      });
-      await animateDragSelection(dragStartX, dragStartY, dragEndX, dragEndY);
-      if (isCancelled) return;
-      await wait(200);
-      if (isCancelled) return;
-
-      setIsDragging(false);
-      setDragBox(HIDDEN_BOX);
-      setCursorType("grabbing");
-      setSuccessFlash(createSelectionBox(cardPos, SELECTION_PADDING_PX));
+      setSelectionBox(createSelectionBox(cardPos, SELECTION_PADDING_PX));
       displaySelectionLabel(
         cardPos.x + cardPos.width / 2,
         cardPos.y - 10,
         "MetricCard",
         "div",
       );
-      setLabelMode("grabbing");
-      await wait(500);
+      await simulateComment(cardPos, "show graph");
       if (isCancelled) return;
 
-      setLabelMode("copied");
-      await wait(500);
-      if (isCancelled) return;
-
-      setSuccessFlash(HIDDEN_BOX);
-      await fadeOutSelectionLabel("Copied");
-      setCursorType("crosshair");
-      await wait(300);
-      if (isCancelled) return;
-
+      // 3. StatValue - comment
       const valuePos = metricValuePosition.current;
       const valueCenter = getElementCenter(valuePos);
       setCursorPos(valueCenter);
-      await wait(500);
+      await wait(400);
       if (isCancelled) return;
 
       setSelectionBox(createSelectionBox(valuePos, SELECTION_PADDING_PX));
@@ -560,61 +543,47 @@ export const MobileDemoAnimation = (): ReactElement => {
         "StatValue",
         "span",
       );
-      await wait(600);
+      await simulateComment(valuePos, "format as USD");
       if (isCancelled) return;
 
-      await simulateClickAndCopy(valuePos);
-      if (isCancelled) return;
-
-      for (let i = 0; i < ACTIVITY_DATA.length - 1; i++) {
-        if (isCancelled) return;
-        const rowPos = activityRowPositions.current[i];
-        if (!rowPos) continue;
-        const activity = ACTIVITY_DATA[i];
-
-        const rowCenter = getElementCenter(rowPos);
-        setCursorPos(rowCenter);
-        await wait(350);
+      // 4. SignupRow - comment
+      const signupRowPos = activityRowPositions.current[0];
+      if (signupRowPos) {
+        const signupCenter = getElementCenter(signupRowPos);
+        setCursorPos(signupCenter);
+        await wait(400);
         if (isCancelled) return;
 
-        setSelectionBox(createSelectionBox(rowPos, SELECTION_PADDING_PX));
+        setSelectionBox(createSelectionBox(signupRowPos, SELECTION_PADDING_PX));
         displaySelectionLabel(
-          rowPos.x + 60,
-          rowPos.y + rowPos.height + 8,
-          activity.component,
+          signupRowPos.x + 60,
+          signupRowPos.y + signupRowPos.height + 8,
+          "SignupRow",
           "div",
-          false,
         );
-        await wait(300);
+        await simulateComment(signupRowPos, "add avatar");
+        if (isCancelled) return;
+      }
+
+      // 5. OrderRow - grab/copy (last one)
+      const orderRowPos = activityRowPositions.current[1];
+      if (orderRowPos) {
+        const orderCenter = getElementCenter(orderRowPos);
+        setCursorPos(orderCenter);
+        await wait(400);
         if (isCancelled) return;
 
-        // Switch to comment input mode
-        setLabelMode("commenting");
-        setCommentText("");
-        await wait(200);
+        setSelectionBox(createSelectionBox(orderRowPos, SELECTION_PADDING_PX));
+        displaySelectionLabel(
+          orderRowPos.x + 60,
+          orderRowPos.y + orderRowPos.height + 8,
+          "OrderRow",
+          "div",
+        );
+        await wait(400);
         if (isCancelled) return;
 
-        // Type the comment character by character
-        const comment = activity.comment;
-        for (let j = 0; j <= comment.length; j++) {
-          if (isCancelled) return;
-          setCommentText(comment.slice(0, j));
-          await wait(50);
-        }
-        await wait(300);
-        if (isCancelled) return;
-
-        // Submit
-        setLabelMode("submitted");
-        setSuccessFlash(createSelectionBox(rowPos, SELECTION_PADDING_PX));
-        await wait(500);
-        if (isCancelled) return;
-
-        // Fade out
-        setSuccessFlash(HIDDEN_BOX);
-        setSelectionBox(HIDDEN_BOX);
-        await fadeOutSelectionLabel("Sent");
-        setCommentText("");
+        await simulateClickAndCopy(orderRowPos);
         if (isCancelled) return;
       }
 
