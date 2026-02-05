@@ -102,6 +102,7 @@
     "@playwright/test": "^1.40.0",
     "@tailwindcss/cli": "^4.1.17",
     "@types/node": "^20.19.23",
+    "@types/react": "^19.2.11",
     "babel-preset-solid": "^1.9.10",
     "clsx": "^2.1.1",
     "concurrently": "^9.1.2",
