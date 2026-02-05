@@ -1,5 +1,11 @@
 # @react-grab/utils
 
+## 0.1.8
+
+### Patch Changes
+
+- fix: providers not detaching
+
 ## 0.1.7
 
 ### Patch Changes

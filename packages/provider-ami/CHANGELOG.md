@@ -1,5 +1,13 @@
 # @react-grab/ami
 
+## 0.1.8
+
+### Patch Changes
+
+- fix: providers not detaching
+- Updated dependencies
+  - react-grab@0.1.8
+
 ## 0.1.7
 
 ### Patch Changes

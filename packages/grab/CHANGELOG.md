@@ -1,5 +1,13 @@
 # grab
 
+## 0.1.8
+
+### Patch Changes
+
+- fix: providers not detaching
+- Updated dependencies
+  - @react-grab/cli@0.1.8
+
 ## 0.1.7
 
 ### Patch Changes
