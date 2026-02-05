@@ -23,8 +23,8 @@ import {
   TOOLBAR_SNAP_ANIMATION_DURATION_MS,
   TOOLBAR_DRAG_THRESHOLD_PX,
   TOOLBAR_VELOCITY_MULTIPLIER_MS,
-  TOOLBAR_COLLAPSED_WIDTH_PX,
-  TOOLBAR_COLLAPSED_HEIGHT_PX,
+  TOOLBAR_COLLAPSED_SHORT_PX,
+  TOOLBAR_COLLAPSED_LONG_PX,
   TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS,
   TOOLBAR_DEFAULT_WIDTH_PX,
   TOOLBAR_DEFAULT_HEIGHT_PX,
@@ -183,8 +183,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     height: TOOLBAR_DEFAULT_HEIGHT_PX,
   };
   const [collapsedDimensions, setCollapsedDimensions] = createSignal({
-    width: TOOLBAR_COLLAPSED_WIDTH_PX,
-    height: TOOLBAR_COLLAPSED_HEIGHT_PX,
+    width: TOOLBAR_COLLAPSED_SHORT_PX,
+    height: TOOLBAR_COLLAPSED_SHORT_PX,
   });
 
   const clampToViewport = (value: number, min: number, max: number): number =>
@@ -218,9 +218,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     const { width: expandedWidth, height: expandedHeight } = expandedDimensions;
     const actualRect = containerRef?.getBoundingClientRect();
     const actualCollapsedWidth =
-      actualRect?.width ?? TOOLBAR_COLLAPSED_WIDTH_PX;
+      actualRect?.width ?? TOOLBAR_COLLAPSED_SHORT_PX;
     const actualCollapsedHeight =
-      actualRect?.height ?? TOOLBAR_COLLAPSED_HEIGHT_PX;
+      actualRect?.height ?? TOOLBAR_COLLAPSED_SHORT_PX;
 
     let newPosition: { x: number; y: number };
 
@@ -767,12 +767,24 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     if (savedState) {
       setSnapEdge(savedState.edge);
       setPositionRatio(savedState.ratio);
-      setIsCollapsed(savedState.collapsed);
       if (rect) {
         // HACK: On initial mount, the element is always rendered expanded (isCollapsed defaults to false).
         // So rect always measures expanded dimensions, regardless of savedState.collapsed.
         expandedDimensions = { width: rect.width, height: rect.height };
       }
+      if (savedState.collapsed) {
+        const isHorizontalEdge =
+          savedState.edge === "top" || savedState.edge === "bottom";
+        setCollapsedDimensions({
+          width: isHorizontalEdge
+            ? TOOLBAR_COLLAPSED_LONG_PX
+            : TOOLBAR_COLLAPSED_SHORT_PX,
+          height: isHorizontalEdge
+            ? TOOLBAR_COLLAPSED_SHORT_PX
+            : TOOLBAR_COLLAPSED_LONG_PX,
+        });
+      }
+      setIsCollapsed(savedState.collapsed);
       const newPosition = getPositionFromEdgeAndRatio(
         savedState.edge,
         savedState.ratio,
@@ -780,19 +792,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         expandedDimensions.height,
       );
       setPosition(newPosition);
-
-      // HACK: Inner panel has transition-all, so we must wait for it to finish before measuring
-      if (savedState.collapsed) {
-        setTimeout(() => {
-          const collapsedRect = containerRef?.getBoundingClientRect();
-          if (collapsedRect) {
-            setCollapsedDimensions({
-              width: collapsedRect.width,
-              height: collapsedRect.height,
-            });
-          }
-        }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
-      }
     } else if (rect) {
       expandedDimensions = { width: rect.width, height: rect.height };
       setPosition({
