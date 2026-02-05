@@ -1599,10 +1599,15 @@ export const previewCdnTransform = (
     };
   }
   const originalContent = readFileSync(filePath, "utf-8");
-  const newContent = originalContent.replace(
-    /\/\/[^/\s"']+(?=\/(?:@?react-grab))/g,
-    `//${targetCdnDomain}`,
-  );
+  const newContent = originalContent
+    .replace(
+      /(https?:)?\/\/[^/\s"']+(?=\/(?:@?react-grab))/g,
+      `//${targetCdnDomain}`,
+    )
+    .replace(
+      /(https?:)?\/\/[^/\s"']*react-grab[^/\s"']*\.com(?=\/script\.js)/g,
+      `//${targetCdnDomain}`,
+    );
   if (newContent === originalContent) {
     return {
       success: true,
