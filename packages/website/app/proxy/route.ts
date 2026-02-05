@@ -45,37 +45,31 @@ const createErrorResponse = (message: string, status: number): Response => {
   );
 };
 
-const resolveUrl = (base: string, relative: string): string => {
-  try {
-    return new URL(relative, base).href;
-  } catch {
-    return relative;
-  }
-};
-
-const createProxyUrl = (targetUrl: string, proxyBase: string): string => {
-  return `${proxyBase}?url=${encodeURIComponent(targetUrl)}`;
-};
-
-const rewriteHtml = (
-  html: string,
-  baseUrl: string,
-  proxyBaseUrl: string,
-): string => {
+const rewriteHtml = (html: string, baseUrl: string): string => {
   const baseUrlObj = new URL(baseUrl);
   const baseOrigin = baseUrlObj.origin;
-  const basePath = baseUrlObj.pathname.replace(/[^/]*$/, "");
 
   let result = html;
 
-  // Inject React Grab script into <head>
+  // Remove any existing <base> tag to prevent conflicts
+  result = result.replace(
+    /<base[^>]*>/gi,
+    "<!-- base tag removed by proxy -->",
+  );
+
+  // Create injection: <base> tag + React Grab script
+  // The <base> tag makes all relative URLs resolve to the original domain
+  // This is much simpler than rewriting all URLs and works with dynamic imports
+  const injection = `<base href="${baseOrigin}/">\n${REACT_GRAB_SCRIPT}`;
+
+  // Inject into <head>
   const headMatch = result.match(/<head[^>]*>/i);
   if (headMatch) {
     const headEndIndex = headMatch.index! + headMatch[0].length;
     result =
       result.slice(0, headEndIndex) +
       "\n" +
-      REACT_GRAB_SCRIPT +
+      injection +
       "\n" +
       result.slice(headEndIndex);
   } else {
@@ -86,182 +80,13 @@ const rewriteHtml = (
       result =
         result.slice(0, htmlEndIndex) +
         "\n<head>\n" +
-        REACT_GRAB_SCRIPT +
+        injection +
         "\n</head>\n" +
         result.slice(htmlEndIndex);
     } else {
-      result = REACT_GRAB_SCRIPT + "\n" + result;
+      result = injection + "\n" + result;
     }
   }
-
-  // Rewrite URLs in HTML attributes
-  // Handle: href, src, action, data, poster, srcset
-  const urlAttributes = ["href", "src", "action", "data", "poster"];
-
-  for (const attr of urlAttributes) {
-    // Match attribute with double quotes
-    const doubleQuoteRegex = new RegExp(`(${attr}\\s*=\\s*")([^"]+)(")`, "gi");
-    result = result.replace(doubleQuoteRegex, (match, prefix, url, suffix) => {
-      const rewrittenUrl = rewriteUrl(url, baseOrigin, basePath, proxyBaseUrl);
-      return prefix + rewrittenUrl + suffix;
-    });
-
-    // Match attribute with single quotes
-    const singleQuoteRegex = new RegExp(`(${attr}\\s*=\\s*')([^']+)(')`, "gi");
-    result = result.replace(singleQuoteRegex, (match, prefix, url, suffix) => {
-      const rewrittenUrl = rewriteUrl(url, baseOrigin, basePath, proxyBaseUrl);
-      return prefix + rewrittenUrl + suffix;
-    });
-  }
-
-  // Handle srcset (contains multiple URLs with descriptors)
-  const srcsetDoubleRegex = /(srcset\s*=\s*")([^"]+)(")/gi;
-  result = result.replace(
-    srcsetDoubleRegex,
-    (match, prefix, srcset, suffix) => {
-      const rewrittenSrcset = rewriteSrcset(
-        srcset,
-        baseOrigin,
-        basePath,
-        proxyBaseUrl,
-      );
-      return prefix + rewrittenSrcset + suffix;
-    },
-  );
-
-  const srcsetSingleRegex = /(srcset\s*=\s*')([^']+)(')/gi;
-  result = result.replace(
-    srcsetSingleRegex,
-    (match, prefix, srcset, suffix) => {
-      const rewrittenSrcset = rewriteSrcset(
-        srcset,
-        baseOrigin,
-        basePath,
-        proxyBaseUrl,
-      );
-      return prefix + rewrittenSrcset + suffix;
-    },
-  );
-
-  // Rewrite inline style url() references
-  const styleUrlRegex = /(url\s*\(\s*)(['"]?)([^)'"]+)(\2\s*\))/gi;
-  result = result.replace(
-    styleUrlRegex,
-    (match, prefix, quote, url, suffix) => {
-      if (url.startsWith("data:")) return match;
-      const rewrittenUrl = rewriteUrl(url, baseOrigin, basePath, proxyBaseUrl);
-      return prefix + quote + rewrittenUrl + quote + ")";
-    },
-  );
-
-  // Remove or neutralize <base> tag to prevent it from interfering
-  result = result.replace(
-    /<base[^>]*>/gi,
-    "<!-- base tag removed by proxy -->",
-  );
-
-  return result;
-};
-
-const rewriteUrl = (
-  url: string,
-  baseOrigin: string,
-  basePath: string,
-  proxyBaseUrl: string,
-): string => {
-  const trimmedUrl = url.trim();
-
-  // Skip data URIs, javascript:, mailto:, tel:, and anchors
-  if (
-    trimmedUrl.startsWith("data:") ||
-    trimmedUrl.startsWith("javascript:") ||
-    trimmedUrl.startsWith("mailto:") ||
-    trimmedUrl.startsWith("tel:") ||
-    trimmedUrl.startsWith("#") ||
-    trimmedUrl === ""
-  ) {
-    return url;
-  }
-
-  let absoluteUrl: string;
-
-  if (trimmedUrl.startsWith("//")) {
-    // Protocol-relative URL
-    absoluteUrl = "https:" + trimmedUrl;
-  } else if (trimmedUrl.startsWith("/")) {
-    // Root-relative URL
-    absoluteUrl = baseOrigin + trimmedUrl;
-  } else if (
-    trimmedUrl.startsWith("http://") ||
-    trimmedUrl.startsWith("https://")
-  ) {
-    // Already absolute
-    absoluteUrl = trimmedUrl;
-  } else {
-    // Relative URL
-    absoluteUrl = resolveUrl(baseOrigin + basePath, trimmedUrl);
-  }
-
-  return createProxyUrl(absoluteUrl, proxyBaseUrl);
-};
-
-const rewriteSrcset = (
-  srcset: string,
-  baseOrigin: string,
-  basePath: string,
-  proxyBaseUrl: string,
-): string => {
-  return srcset
-    .split(",")
-    .map((entry) => {
-      const parts = entry.trim().split(/\s+/);
-      if (parts.length === 0) return entry;
-
-      const url = parts[0];
-      const descriptor = parts.slice(1).join(" ");
-
-      const rewrittenUrl = rewriteUrl(url, baseOrigin, basePath, proxyBaseUrl);
-
-      return descriptor ? `${rewrittenUrl} ${descriptor}` : rewrittenUrl;
-    })
-    .join(", ");
-};
-
-const rewriteCss = (
-  css: string,
-  baseUrl: string,
-  proxyBaseUrl: string,
-): string => {
-  const baseUrlObj = new URL(baseUrl);
-  const baseOrigin = baseUrlObj.origin;
-  const basePath = baseUrlObj.pathname.replace(/[^/]*$/, "");
-
-  let result = css;
-
-  // Rewrite url() references
-  const urlRegex = /(url\s*\(\s*)(['"]?)([^)'"]+)(\2\s*\))/gi;
-  result = result.replace(urlRegex, (match, prefix, quote, url, suffix) => {
-    if (url.startsWith("data:")) return match;
-    const rewrittenUrl = rewriteUrl(url, baseOrigin, basePath, proxyBaseUrl);
-    return prefix + quote + rewrittenUrl + quote + ")";
-  });
-
-  // Rewrite @import urls
-  const importRegex = /(@import\s+)(['"])([^'"]+)(\2)/gi;
-  result = result.replace(importRegex, (match, prefix, quote, url, suffix) => {
-    const rewrittenUrl = rewriteUrl(url, baseOrigin, basePath, proxyBaseUrl);
-    return prefix + quote + rewrittenUrl + suffix;
-  });
-
-  // Rewrite @import url()
-  const importUrlRegex = /(@import\s+url\s*\(\s*)(['"]?)([^)'"]+)(\2\s*\))/gi;
-  result = result.replace(
-    importUrlRegex,
-    (match, prefix, quote, url, suffix) => {
-      const rewrittenUrl = rewriteUrl(url, baseOrigin, basePath, proxyBaseUrl);
-      return prefix + quote + rewrittenUrl + quote + ")";
-    },
-  );
 
   return result;
 };
@@ -269,7 +94,6 @@ const rewriteCss = (
 export const GET = async (request: Request): Promise<Response> => {
   const requestUrl = new URL(request.url);
   const targetUrl = requestUrl.searchParams.get("url");
-  const proxyBaseUrl = `${requestUrl.origin}/proxy`;
 
   if (!targetUrl) {
     return createErrorResponse(
@@ -315,12 +139,11 @@ export const GET = async (request: Request): Promise<Response> => {
 
     const contentType = response.headers.get("Content-Type") || "";
     const isHtml = contentType.includes("text/html");
-    const isCss = contentType.includes("text/css");
 
-    // For HTML, transform and inject React Grab
+    // For HTML, inject <base> tag and React Grab script
     if (isHtml) {
       const html = await response.text();
-      const transformedHtml = rewriteHtml(html, targetUrl, proxyBaseUrl);
+      const transformedHtml = rewriteHtml(html, targetUrl);
 
       return new Response(transformedHtml, {
         status: 200,
@@ -331,42 +154,11 @@ export const GET = async (request: Request): Promise<Response> => {
       });
     }
 
-    // For CSS, rewrite url() references
-    if (isCss) {
-      const css = await response.text();
-      const transformedCss = rewriteCss(css, targetUrl, proxyBaseUrl);
-
-      return new Response(transformedCss, {
-        status: 200,
-        headers: {
-          "Content-Type": "text/css; charset=utf-8",
-          "X-Proxied-From": targetUrl,
-        },
-      });
-    }
-
-    // For other content types, pass through as-is
-    const responseHeaders = new Headers();
-    responseHeaders.set("X-Proxied-From", targetUrl);
-
-    // Preserve important headers
-    const headersToPreserve = [
-      "Content-Type",
-      "Cache-Control",
-      "Content-Encoding",
-    ];
-
-    for (const header of headersToPreserve) {
-      const value = response.headers.get(header);
-      if (value) {
-        responseHeaders.set(header, value);
-      }
-    }
-
-    return new Response(response.body, {
-      status: response.status,
-      headers: responseHeaders,
-    });
+    // For non-HTML content, return error (proxy only handles HTML pages)
+    return createErrorResponse(
+      "This proxy only handles HTML pages. For assets, use the original URL.",
+      400,
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return createErrorResponse(`Proxy error: ${message}`, 500);
