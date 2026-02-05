@@ -1,5 +1,13 @@
 # grab
 
+## 0.1.11
+
+### Patch Changes
+
+- fix: claude code provider
+- Updated dependencies
+  - @react-grab/cli@0.1.11
+
 ## 0.1.10
 
 ### Patch Changes

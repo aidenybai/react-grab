@@ -1,5 +1,14 @@
 # @react-grab/gemini
 
+## 0.1.11
+
+### Patch Changes
+
+- fix: claude code provider
+- Updated dependencies
+  - react-grab@0.1.11
+  - @react-grab/relay@0.1.11
+
 ## 0.1.10
 
 ### Patch Changes

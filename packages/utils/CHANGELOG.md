@@ -1,5 +1,11 @@
 # @react-grab/utils
 
+## 0.1.11
+
+### Patch Changes
+
+- fix: claude code provider
+
 ## 0.1.10
 
 ### Patch Changes
