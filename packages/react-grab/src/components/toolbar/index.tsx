@@ -371,14 +371,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   };
 
   const recalculatePosition = () => {
-    const rect = containerRef?.getBoundingClientRect();
-    if (!rect) return;
-
     const newPosition = getPositionFromEdgeAndRatio(
       snapEdge(),
       positionRatio(),
-      rect.width,
-      rect.height,
+      expandedDimensions.width,
+      expandedDimensions.height,
     );
     setPosition(newPosition);
   };
@@ -400,6 +397,26 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const handleComment = createDragAwareHandler(() => props.onComment?.());
 
+  const scheduleCollapseAnimationEnd = () => {
+    if (collapseAnimationTimeout) {
+      clearTimeout(collapseAnimationTimeout);
+    }
+    collapseAnimationTimeout = setTimeout(() => {
+      if (isCollapsed()) {
+        const collapsedRect = containerRef?.getBoundingClientRect();
+        if (collapsedRect) {
+          setCollapsedDimensions({
+            width: collapsedRect.width,
+            height: collapsedRect.height,
+          });
+        }
+      }
+      requestAnimationFrame(() => {
+        setIsCollapseAnimating(false);
+      });
+    }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
+  };
+
   const handleToggleCollapse = createDragAwareHandler(() => {
     const rect = containerRef?.getBoundingClientRect();
     const wasCollapsed = isCollapsed();
@@ -416,30 +433,21 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     }
 
     setIsCollapseAnimating(true);
-    setIsCollapsed((prev) => !prev);
 
-    saveAndNotify({
-      edge: snapEdge(),
-      ratio: newRatio,
-      collapsed: !wasCollapsed,
-      enabled: props.enabled ?? true,
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setIsCollapsed((prev) => !prev);
+
+        saveAndNotify({
+          edge: snapEdge(),
+          ratio: newRatio,
+          collapsed: !wasCollapsed,
+          enabled: props.enabled ?? true,
+        });
+
+        scheduleCollapseAnimationEnd();
+      });
     });
-
-    if (collapseAnimationTimeout) {
-      clearTimeout(collapseAnimationTimeout);
-    }
-    collapseAnimationTimeout = setTimeout(() => {
-      setIsCollapseAnimating(false);
-      if (isCollapsed()) {
-        const collapsedRect = containerRef?.getBoundingClientRect();
-        if (collapsedRect) {
-          setCollapsedDimensions({
-            width: collapsedRect.width,
-            height: collapsedRect.height,
-          });
-        }
-      }
-    }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
   });
 
   const handleToggleEnabled = createDragAwareHandler(() =>
@@ -661,8 +669,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const getCollapsedPosition = () => {
     const edge = snapEdge();
-    const pos = position();
-    const { width: expandedWidth, height: expandedHeight } = expandedDimensions;
+    const ratio = positionRatio();
     const { width: collapsedWidth, height: collapsedHeight } =
       collapsedDimensions();
     const viewport = getVisualViewport();
@@ -670,15 +677,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     switch (edge) {
       case "top":
       case "bottom": {
-        const xOffset = (expandedWidth - collapsedWidth) / 2;
-        const centeredX = pos.x + xOffset;
-        const clampedX = clampToViewport(
-          centeredX,
-          viewport.offsetLeft,
-          viewport.offsetLeft + viewport.width - collapsedWidth,
-        );
+        const availableWidth = Math.max(0, viewport.width - collapsedWidth);
         return {
-          x: clampedX,
+          x: viewport.offsetLeft + availableWidth * ratio,
           y:
             edge === "top"
               ? viewport.offsetTop
@@ -687,23 +688,17 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       }
       case "left":
       case "right": {
-        const yOffset = (expandedHeight - collapsedHeight) / 2;
-        const centeredY = pos.y + yOffset;
-        const clampedY = clampToViewport(
-          centeredY,
-          viewport.offsetTop,
-          viewport.offsetTop + viewport.height - collapsedHeight,
-        );
+        const availableHeight = Math.max(0, viewport.height - collapsedHeight);
         return {
           x:
             edge === "left"
               ? viewport.offsetLeft
               : viewport.offsetLeft + viewport.width - collapsedWidth,
-          y: clampedY,
+          y: viewport.offsetTop + availableHeight * ratio,
         };
       }
       default:
-        return pos;
+        return position();
     }
   };
 
@@ -742,23 +737,20 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     resizeTimeout = setTimeout(() => {
       setIsResizing(false);
 
-      const rect = containerRef?.getBoundingClientRect();
-      if (rect) {
-        const newRatio = getRatioFromPosition(
-          snapEdge(),
-          position().x,
-          position().y,
-          rect.width,
-          rect.height,
-        );
-        setPositionRatio(newRatio);
-        saveAndNotify({
-          edge: snapEdge(),
-          ratio: newRatio,
-          collapsed: isCollapsed(),
-          enabled: props.enabled ?? true,
-        });
-      }
+      const newRatio = getRatioFromPosition(
+        snapEdge(),
+        position().x,
+        position().y,
+        expandedDimensions.width,
+        expandedDimensions.height,
+      );
+      setPositionRatio(newRatio);
+      saveAndNotify({
+        edge: snapEdge(),
+        ratio: newRatio,
+        collapsed: isCollapsed(),
+        enabled: props.enabled ?? true,
+      });
     }, TOOLBAR_FADE_IN_DELAY_MS);
   };
 
@@ -826,9 +818,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       const unsubscribe = props.onSubscribeToStateChanges(
         (state: ToolbarState) => {
           if (isCollapseAnimating()) return;
-
-          const rect = containerRef?.getBoundingClientRect();
-          if (!rect) return;
+          if (!containerRef) return;
 
           const didCollapsedChange = isCollapsed() !== state.collapsed;
 
@@ -836,29 +826,29 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
           if (didCollapsedChange && !state.collapsed) {
             const collapsedPos = currentPosition();
-            setIsCollapseAnimating(true);
-            setIsCollapsed(state.collapsed);
             const { position: newPos, ratio: newRatio } =
               calculateExpandedPositionFromCollapsed(collapsedPos, state.edge);
             setPosition(newPos);
             setPositionRatio(newRatio);
-            if (collapseAnimationTimeout) {
-              clearTimeout(collapseAnimationTimeout);
-            }
-            collapseAnimationTimeout = setTimeout(() => {
-              setIsCollapseAnimating(false);
-            }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
+            setIsCollapseAnimating(true);
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                setIsCollapsed(false);
+                scheduleCollapseAnimationEnd();
+              });
+            });
           } else {
             if (didCollapsedChange) {
               setIsCollapseAnimating(true);
-              if (collapseAnimationTimeout) {
-                clearTimeout(collapseAnimationTimeout);
-              }
-              collapseAnimationTimeout = setTimeout(() => {
-                setIsCollapseAnimating(false);
-              }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                  setIsCollapsed(state.collapsed);
+                  scheduleCollapseAnimationEnd();
+                });
+              });
+            } else {
+              setIsCollapsed(state.collapsed);
             }
-            setIsCollapsed(state.collapsed);
             const newPosition = getPositionFromEdgeAndRatio(
               state.edge,
               state.ratio,
@@ -995,19 +985,19 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             setPosition(newPos);
             setPositionRatio(newRatio);
             setIsCollapseAnimating(true);
-            setIsCollapsed(false);
-            saveAndNotify({
-              edge: snapEdge(),
-              ratio: newRatio,
-              collapsed: false,
-              enabled: props.enabled ?? true,
+
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                setIsCollapsed(false);
+                saveAndNotify({
+                  edge: snapEdge(),
+                  ratio: newRatio,
+                  collapsed: false,
+                  enabled: props.enabled ?? true,
+                });
+                scheduleCollapseAnimationEnd();
+              });
             });
-            if (collapseAnimationTimeout) {
-              clearTimeout(collapseAnimationTimeout);
-            }
-            collapseAnimationTimeout = setTimeout(() => {
-              setIsCollapseAnimating(false);
-            }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
           }
         }}
       >
