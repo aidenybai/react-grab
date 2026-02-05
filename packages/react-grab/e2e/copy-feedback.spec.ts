@@ -84,22 +84,20 @@ test.describe("Copy Feedback Behavior", () => {
       await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.down("c");
       await reactGrab.clickElement("li:first-child");
+      await reactGrab.page.waitForTimeout(100);
       await reactGrab.hoverElement("h1");
-      await expect
-        .poll(
-          async () => {
-            const bounds = await reactGrab.getSelectionBoxBounds();
-            return bounds ? `${bounds.width}x${bounds.height}` : null;
-          },
-          { timeout: FEEDBACK_DURATION_MS },
-        )
-        .not.toBe(
-          boundsBefore ? `${boundsBefore.width}x${boundsBefore.height}` : null,
-        );
+      await reactGrab.waitForSelectionBox();
+
+      const boundsAfter = await reactGrab.getSelectionBoxBounds();
+      const boundsSizeChanged =
+        boundsBefore &&
+        boundsAfter &&
+        (boundsBefore.width !== boundsAfter.width ||
+          boundsBefore.height !== boundsAfter.height);
 
       expect(boundsBefore).not.toBeNull();
-      const boundsAfter = await reactGrab.getSelectionBoxBounds();
       expect(boundsAfter).not.toBeNull();
+      expect(boundsSizeChanged).toBe(true);
 
       await reactGrab.page.keyboard.up("c");
       await reactGrab.page.keyboard.up(reactGrab.modifierKey);
