@@ -16,6 +16,7 @@ interface ConnectRelayOptions {
   port?: number;
   handler: AgentHandler;
   token?: string;
+  secure?: boolean;
 }
 
 interface RelayConnection {
@@ -25,11 +26,13 @@ interface RelayConnection {
 const checkIfRelayServerIsRunning = async (
   port: number,
   token?: string,
+  secure?: boolean,
 ): Promise<boolean> => {
   try {
+    const httpProtocol = secure ? "https" : "http";
     const healthUrl = token
-      ? `http://localhost:${port}/health?${RELAY_TOKEN_PARAM}=${encodeURIComponent(token)}`
-      : `http://localhost:${port}/health`;
+      ? `${httpProtocol}://localhost:${port}/health?${RELAY_TOKEN_PARAM}=${encodeURIComponent(token)}`
+      : `${httpProtocol}://localhost:${port}/health`;
     const response = await fetch(healthUrl, {
       method: "GET",
       signal: AbortSignal.timeout(HEALTH_CHECK_TIMEOUT_MS),
@@ -44,7 +47,7 @@ export const connectRelay = async (
   options: ConnectRelayOptions,
 ): Promise<RelayConnection> => {
   const relayPort = options.port ?? DEFAULT_RELAY_PORT;
-  const { handler, token } = options;
+  const { handler, token, secure } = options;
 
   let relayServer: RelayServer | null = null;
   let isRelayHost = false;
@@ -52,15 +55,21 @@ export const connectRelay = async (
   const isRelayServerRunning = await checkIfRelayServerIsRunning(
     relayPort,
     token,
+    secure,
   );
 
   if (isRelayServerRunning) {
-    relayServer = await connectToExistingRelay(relayPort, handler, token);
+    relayServer = await connectToExistingRelay(
+      relayPort,
+      handler,
+      token,
+      secure,
+    );
   } else {
     await fkill(`:${relayPort}`, { force: true, silent: true }).catch(() => {});
     await sleep(POST_KILL_DELAY_MS);
 
-    relayServer = createRelayServer({ port: relayPort, token });
+    relayServer = createRelayServer({ port: relayPort, token, secure });
     relayServer.registerHandler(handler);
 
     try {
@@ -75,15 +84,24 @@ export const connectRelay = async (
       if (!isAddressInUse) throw error;
 
       await sleep(POST_KILL_DELAY_MS);
-      const isNowRunning = await checkIfRelayServerIsRunning(relayPort, token);
+      const isNowRunning = await checkIfRelayServerIsRunning(
+        relayPort,
+        token,
+        secure,
+      );
 
       if (!isNowRunning) throw error;
 
-      relayServer = await connectToExistingRelay(relayPort, handler, token);
+      relayServer = await connectToExistingRelay(
+        relayPort,
+        handler,
+        token,
+        secure,
+      );
     }
   }
 
-  printStartupMessage(handler.agentId, relayPort);
+  printStartupMessage(handler.agentId, relayPort, secure);
 
   const handleShutdown = async () => {
     if (isRelayHost) {
@@ -114,15 +132,18 @@ const connectToExistingRelay = async (
   port: number,
   handler: AgentHandler,
   token?: string,
+  secure?: boolean,
 ): Promise<RelayServer> => {
   const { WebSocket } = await import("ws");
 
   return new Promise((resolve, reject) => {
+    const webSocketProtocol = secure ? "wss" : "ws";
     const connectionUrl = token
-      ? `ws://localhost:${port}?${RELAY_TOKEN_PARAM}=${encodeURIComponent(token)}`
-      : `ws://localhost:${port}`;
+      ? `${webSocketProtocol}://localhost:${port}?${RELAY_TOKEN_PARAM}=${encodeURIComponent(token)}`
+      : `${webSocketProtocol}://localhost:${port}`;
     const socket = new WebSocket(connectionUrl, {
       headers: { "x-relay-handler": "true" },
+      rejectUnauthorized: false,
     });
 
     socket.on("open", () => {
@@ -296,9 +317,16 @@ const connectToExistingRelay = async (
   });
 };
 
-const printStartupMessage = (agentId: string, port: number) => {
+const printStartupMessage = (
+  agentId: string,
+  port: number,
+  secure?: boolean,
+) => {
+  const webSocketProtocol = secure ? "wss" : "ws";
   console.log(
     `${pc.magenta("✿")} ${pc.bold("React Grab")} ${pc.gray(VERSION)} ${pc.dim(`(${agentId})`)}`,
   );
-  console.log(`- Local:    ${pc.cyan(`ws://localhost:${port}`)}`);
+  console.log(
+    `- Local:    ${pc.cyan(`${webSocketProtocol}://localhost:${port}`)}`,
+  );
 };

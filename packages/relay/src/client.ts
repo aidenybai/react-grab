@@ -30,10 +30,16 @@ interface RelayClientOptions {
   token?: string;
 }
 
+const getDefaultWebSocketUrl = (): string => {
+  const isSecure =
+    typeof window !== "undefined" && window.location.protocol === "https:";
+  return `${isSecure ? "wss" : "ws"}://localhost:${DEFAULT_RELAY_PORT}`;
+};
+
 export const createRelayClient = (
   options: RelayClientOptions = {},
 ): RelayClient => {
-  const serverUrl = options.serverUrl ?? `ws://localhost:${DEFAULT_RELAY_PORT}`;
+  const serverUrl = options.serverUrl ?? getDefaultWebSocketUrl();
   const autoReconnect = options.autoReconnect ?? true;
   const reconnectIntervalMs =
     options.reconnectIntervalMs ?? DEFAULT_RECONNECT_INTERVAL_MS;

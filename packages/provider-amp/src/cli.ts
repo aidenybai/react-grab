@@ -6,8 +6,9 @@ import { dirname, join } from "node:path";
 const realScriptPath = realpathSync(process.argv[1]);
 const scriptDir = dirname(realScriptPath);
 const serverPath = join(scriptDir, "server.cjs");
+const userArgs = process.argv.slice(2);
 
-const child = spawn(process.execPath, [serverPath], {
+const child = spawn(process.execPath, [serverPath, ...userArgs], {
   detached: true,
   stdio: "inherit",
 });
