@@ -4,6 +4,40 @@ export const dynamic = "force-dynamic";
 
 const REACT_GRAB_SCRIPT_URL = "https://react-grab.com/script.js";
 
+const createHistoryPatchScript = (
+  proxyBaseUrl: string,
+  originalOrigin: string,
+): string => {
+  return `<script>
+(function() {
+  var proxyBase = ${JSON.stringify(proxyBaseUrl)};
+  var originalOrigin = ${JSON.stringify(originalOrigin)};
+  
+  function rewriteUrl(url) {
+    if (!url) return url;
+    try {
+      var parsed = new URL(url, window.location.href);
+      if (parsed.origin === originalOrigin || parsed.href.startsWith(originalOrigin)) {
+        return proxyBase + '?url=' + encodeURIComponent(parsed.href);
+      }
+    } catch (e) {}
+    return url;
+  }
+  
+  var originalPushState = history.pushState;
+  var originalReplaceState = history.replaceState;
+  
+  history.pushState = function(state, title, url) {
+    return originalPushState.call(this, state, title, rewriteUrl(url));
+  };
+  
+  history.replaceState = function(state, title, url) {
+    return originalReplaceState.call(this, state, title, rewriteUrl(url));
+  };
+})();
+</script>`;
+};
+
 const resolveUrl = (href: string, baseUrl: URL): string | null => {
   if (
     !href ||
@@ -71,17 +105,24 @@ const rewriteLinksToProxy = (
   return html;
 };
 
-const injectBaseTagAndScript = (html: string, baseHref: string): string => {
+const injectHeadContent = (
+  html: string,
+  baseHref: string,
+  historyPatchScript: string,
+): string => {
   const baseTag = `<base href="${baseHref}">`;
-  const scriptTag = `<script src="${REACT_GRAB_SCRIPT_URL}"></script>`;
-  const injection = `${baseTag}\n${scriptTag}`;
+  const grabScriptTag = `<script src="${REACT_GRAB_SCRIPT_URL}"></script>`;
+  const injection = `${historyPatchScript}\n${baseTag}\n${grabScriptTag}`;
 
   const existingBaseMatch = html.match(/<base[^>]*>/i);
   if (existingBaseMatch) {
     html = html.replace(existingBaseMatch[0], baseTag);
     const headMatch = html.match(/<head[^>]*>/i);
     if (headMatch) {
-      return html.replace(headMatch[0], `${headMatch[0]}\n${scriptTag}`);
+      return html.replace(
+        headMatch[0],
+        `${headMatch[0]}\n${historyPatchScript}\n${grabScriptTag}`,
+      );
     }
     return html;
   }
@@ -186,7 +227,11 @@ export const GET = async (request: NextRequest): Promise<Response> => {
 
     const baseHref =
       parsedUrl.origin + parsedUrl.pathname.replace(/\/[^/]*$/, "/");
-    html = injectBaseTagAndScript(html, baseHref);
+    const historyPatchScript = createHistoryPatchScript(
+      proxyBaseUrl,
+      parsedUrl.origin,
+    );
+    html = injectHeadContent(html, baseHref, historyPatchScript);
 
     return new Response(html, {
       status: 200,
