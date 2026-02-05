@@ -40,6 +40,7 @@ interface LabelState {
   y: number;
   componentName: string;
   tagName: string;
+  above?: boolean;
 }
 
 const HIDDEN_LABEL: LabelState = {
@@ -48,6 +49,7 @@ const HIDDEN_LABEL: LabelState = {
   y: 0,
   componentName: "",
   tagName: "",
+  above: false,
 };
 
 type LabelMode =
@@ -407,8 +409,9 @@ export const MobileDemoAnimation = (): ReactElement => {
       y: number,
       componentName: string,
       tagName: string,
+      above = false,
     ): void => {
-      setLabel({ visible: true, x, y, componentName, tagName });
+      setLabel({ visible: true, x, y, componentName, tagName, above });
       setLabelMode("selecting");
     };
 
@@ -577,9 +580,10 @@ export const MobileDemoAnimation = (): ReactElement => {
         setSelectionBox(createSelectionBox(rowPos, SELECTION_PADDING_PX));
         displaySelectionLabel(
           rowPos.x + rowPos.width / 2,
-          rowPos.y + rowPos.height + 10,
+          rowPos.y - 6,
           activity.component,
           "div",
+          true,
         );
         await wait(300);
         if (isCancelled) return;
@@ -833,7 +837,9 @@ export const MobileDemoAnimation = (): ReactElement => {
             style={{
               left: label.x,
               top: label.y,
-              transform: "translateX(-50%)",
+              transform: label.above
+                ? "translateX(-50%) translateY(-100%)"
+                : "translateX(-50%)",
             }}
           >
             {labelMode === "selecting" && (
