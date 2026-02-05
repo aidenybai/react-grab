@@ -1,5 +1,13 @@
 # @react-grab/ami
 
+## 0.1.10
+
+### Patch Changes
+
+- feat: cdn in cli
+- Updated dependencies
+  - react-grab@0.1.10
+
 ## 0.1.9
 
 ### Patch Changes

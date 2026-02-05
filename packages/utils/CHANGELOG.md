@@ -1,5 +1,11 @@
 # @react-grab/utils
 
+## 0.1.10
+
+### Patch Changes
+
+- feat: cdn in cli
+
 ## 0.1.9
 
 ### Patch Changes
