@@ -1,6 +1,6 @@
 import { exec as execCallback } from "node:child_process";
 import { createWriteStream, existsSync } from "node:fs";
-import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { homedir, platform, arch } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -68,7 +68,6 @@ const downloadMkcert = async (downloadUrl: string): Promise<void> => {
     );
     await chmod(MKCERT_PATH, 0o755);
   } catch (error) {
-    const { unlink } = await import("node:fs/promises");
     await unlink(MKCERT_PATH).catch(() => {});
     throw error;
   }
