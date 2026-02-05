@@ -566,7 +566,7 @@ export const MobileDemoAnimation = (): ReactElement => {
       await simulateClickAndCopy(valuePos);
       if (isCancelled) return;
 
-      for (let i = 0; i < ACTIVITY_DATA.length; i++) {
+      for (let i = 0; i < ACTIVITY_DATA.length - 1; i++) {
         if (isCancelled) return;
         const rowPos = activityRowPositions.current[i];
         if (!rowPos) continue;
@@ -579,11 +579,11 @@ export const MobileDemoAnimation = (): ReactElement => {
 
         setSelectionBox(createSelectionBox(rowPos, SELECTION_PADDING_PX));
         displaySelectionLabel(
-          rowPos.x + rowPos.width / 2,
-          rowPos.y - 6,
+          rowPos.x + 60,
+          rowPos.y + rowPos.height + 8,
           activity.component,
           "div",
-          true,
+          false,
         );
         await wait(300);
         if (isCancelled) return;
@@ -675,7 +675,7 @@ export const MobileDemoAnimation = (): ReactElement => {
       `}</style>
 
       <div className="overflow-hidden rounded-xl border border-white/10 bg-neutral-900 shadow-lg shadow-black/20">
-        <div ref={containerRef} className="relative p-4">
+        <div ref={containerRef} className="relative p-4 pb-14">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <div className="text-[13px] font-semibold text-white">
