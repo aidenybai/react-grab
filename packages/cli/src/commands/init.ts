@@ -125,7 +125,7 @@ export const init = new Command()
   .option("-f, --force", "force overwrite existing config", false)
   .option(
     "-a, --agent <agent>",
-    "agent integration (claude-code, cursor, opencode, codex, gemini, amp)",
+    "agent integration (claude-code, cursor, opencode, codex, gemini, amp, droid)",
   )
   .option(
     "-k, --key <key>",
@@ -413,7 +413,7 @@ export const init = new Command()
           const { wantAddAgent } = await prompts({
             type: "confirm",
             name: "wantAddAgent",
-            message: `Would you like to add an ${highlighter.info("agent integration")}?`,
+            message: `Would you like to connect React Grab to a ${highlighter.info("coding agent")}? ${highlighter.dim("(optional)")}`,
             initial: false,
           });
 
@@ -426,7 +426,7 @@ export const init = new Command()
             const { agent } = await prompts({
               type: "select",
               name: "agent",
-              message: `Which ${highlighter.info("agent integration")} would you like to add?`,
+              message: `Which ${highlighter.info("coding agent")} would you like to connect?`,
               choices: [
                 ...availableAgents.map((innerAgent) => ({
                   title: getAgentName(innerAgent),
@@ -809,7 +809,7 @@ export const init = new Command()
         const { wantAddAgent } = await prompts({
           type: "confirm",
           name: "wantAddAgent",
-          message: `Would you like to add an ${highlighter.info("agent integration")}?`,
+          message: `Would you like to connect React Grab to a ${highlighter.info("coding agent")}? ${highlighter.dim("(optional)")}`,
           initial: false,
         });
 
@@ -822,7 +822,7 @@ export const init = new Command()
           const { agent } = await prompts({
             type: "select",
             name: "agent",
-            message: `Which ${highlighter.info("agent integration")} would you like to add?`,
+            message: `Which ${highlighter.info("coding agent")} would you like to connect?`,
             choices: [
               ...AGENTS.map((innerAgent) => ({
                 title: getAgentName(innerAgent),

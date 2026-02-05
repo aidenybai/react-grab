@@ -147,7 +147,7 @@ export const add = new Command()
         const { agent } = await prompts({
           type: "select",
           name: "agent",
-          message: `Which ${highlighter.info("agent integration")} would you like to add?`,
+          message: `Which ${highlighter.info("coding agent")} would you like to connect?`,
           choices: availableAgents.map((availableAgent) => ({
             title: AGENT_NAMES[availableAgent],
             value: availableAgent,
