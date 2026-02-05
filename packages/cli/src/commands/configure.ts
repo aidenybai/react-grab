@@ -9,6 +9,8 @@ import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
 import {
   applyOptionsTransform,
+  applyTransform,
+  previewCdnTransform,
   previewOptionsTransform,
   type ReactGrabOptions,
 } from "../utils/transform.js";
@@ -304,6 +306,10 @@ export const configure = new Command()
   )
   .option("--context-lines <lines>", "max context lines to include")
   .option(
+    "--cdn <domain>",
+    "CDN domain (e.g., unpkg.com, custom.react-grab.com)",
+  )
+  .option(
     "-c, --cwd <cwd>",
     "working directory (defaults to current directory)",
     process.cwd(),
@@ -332,6 +338,67 @@ export const configure = new Command()
       }
 
       preflightSpinner.succeed();
+
+      if (opts.cdn) {
+        const result = previewCdnTransform(
+          projectInfo.projectRoot,
+          projectInfo.framework,
+          projectInfo.nextRouterType,
+          opts.cdn,
+        );
+
+        if (!result.success) {
+          logger.break();
+          logger.error(result.message);
+          logger.break();
+          process.exit(1);
+        }
+
+        if (result.noChanges) {
+          logger.break();
+          logger.log("No changes needed.");
+          logger.break();
+          process.exit(0);
+        }
+
+        logger.break();
+        printDiff(result.filePath, result.originalContent!, result.newContent!);
+
+        if (!opts.yes) {
+          logger.break();
+          const { proceed } = await prompts({
+            type: "confirm",
+            name: "proceed",
+            message: "Apply these changes?",
+            initial: true,
+          });
+
+          if (!proceed) {
+            logger.break();
+            logger.log("Changes cancelled.");
+            logger.break();
+            process.exit(0);
+          }
+        }
+
+        const writeSpinner = spinner(
+          `Applying changes to ${result.filePath}.`,
+        ).start();
+        const writeResult = applyTransform(result);
+        if (!writeResult.success) {
+          writeSpinner.fail();
+          logger.break();
+          logger.error(writeResult.error || "Failed to write file.");
+          logger.break();
+          process.exit(1);
+        }
+        writeSpinner.succeed();
+
+        logger.break();
+        logger.log(`${highlighter.success("Success!")} CDN updated.`);
+        logger.break();
+        return;
+      }
 
       const hasFlags =
         opts.key ||

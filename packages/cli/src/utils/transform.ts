@@ -1583,3 +1583,39 @@ export const previewPackageJsonAgentRemoval = (
     };
   }
 };
+
+export const previewCdnTransform = (
+  projectRoot: string,
+  framework: Framework,
+  nextRouterType: NextRouterType,
+  targetCdnDomain: string,
+): TransformResult => {
+  const filePath = findReactGrabFile(projectRoot, framework, nextRouterType);
+  if (!filePath) {
+    return {
+      success: false,
+      filePath: "",
+      message: "Could not find React Grab file",
+    };
+  }
+  const originalContent = readFileSync(filePath, "utf-8");
+  const newContent = originalContent.replace(
+    /\/\/[^/\s"']+(?=\/(?:@?react-grab))/g,
+    `//${targetCdnDomain}`,
+  );
+  if (newContent === originalContent) {
+    return {
+      success: true,
+      filePath,
+      message: "CDN already set",
+      noChanges: true,
+    };
+  }
+  return {
+    success: true,
+    filePath,
+    message: "Update CDN",
+    originalContent,
+    newContent,
+  };
+};
