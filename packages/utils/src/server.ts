@@ -1,3 +1,5 @@
+import { spawn } from "node:child_process";
+
 export const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -57,7 +59,6 @@ export const formatSpawnError = (error: Error, commandName: string): string => {
 };
 
 export const spawnDetachedServer = (serverPath: string): void => {
-  const { spawn } = require("node:child_process");
   const userArgs = process.argv.slice(2);
   const child = spawn(process.execPath, [serverPath, ...userArgs], {
     detached: true,

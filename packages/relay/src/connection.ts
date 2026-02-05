@@ -17,6 +17,7 @@ interface ConnectRelayOptions {
   handler: AgentHandler;
   token?: string;
   secure?: boolean;
+  certHostnames?: string[];
 }
 
 interface RelayConnection {
@@ -64,7 +65,7 @@ export const connectRelay = async (
   options: ConnectRelayOptions,
 ): Promise<RelayConnection> => {
   const relayPort = options.port ?? DEFAULT_RELAY_PORT;
-  const { handler, token, secure } = options;
+  const { handler, token, secure, certHostnames } = options;
 
   let relayServer: RelayServer | null = null;
   let isRelayHost = false;
@@ -80,6 +81,7 @@ export const connectRelay = async (
   const startServer = async (useSecure: boolean): Promise<void> => {
     const onSecureUpgradeRequested = async () => {
       if (isSecureMode || !isRelayHost) return;
+      isSecureMode = true;
 
       console.log(
         pc.yellow(
@@ -88,13 +90,13 @@ export const connectRelay = async (
       );
 
       await relayServer?.stop();
-      isSecureMode = true;
 
       relayServer = createRelayServer({
         port: relayPort,
         token,
         secure: true,
         onSecureUpgradeRequested,
+        certHostnames,
       });
       relayServer.registerHandler(handler);
       await relayServer.start();
@@ -107,6 +109,7 @@ export const connectRelay = async (
       token,
       secure: useSecure,
       onSecureUpgradeRequested,
+      certHostnames,
     });
     relayServer.registerHandler(handler);
 
