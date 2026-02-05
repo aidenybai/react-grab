@@ -781,9 +781,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       );
       setPosition(newPosition);
 
-      // HACK: If loading collapsed state, measure actual collapsed dimensions after re-render
+      // HACK: Inner panel has transition-all, so we must wait for it to finish before measuring
       if (savedState.collapsed) {
-        requestAnimationFrame(() => {
+        setTimeout(() => {
           const collapsedRect = containerRef?.getBoundingClientRect();
           if (collapsedRect) {
             setCollapsedDimensions({
@@ -791,7 +791,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               height: collapsedRect.height,
             });
           }
-        });
+        }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
       }
     } else if (rect) {
       expandedDimensions = { width: rect.width, height: rect.height };
