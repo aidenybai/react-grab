@@ -22,6 +22,7 @@
     "build": "rm -rf dist && NODE_ENV=production tsup"
   },
   "devDependencies": {
+    "@types/node": "^25.2.0",
     "tsup": "^8.4.0"
   }
 }
