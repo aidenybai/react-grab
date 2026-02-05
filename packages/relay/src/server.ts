@@ -90,7 +90,7 @@ interface RelayServerOptions {
   port?: number;
   token?: string;
   secure?: boolean;
-  onSecureUpgradeRequested?: () => void;
+  onSecureUpgradeRequested?: () => Promise<void>;
   certHostnames?: string[];
 }
 

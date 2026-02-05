@@ -15,6 +15,7 @@ const MKCERT_PATH = join(
 );
 const KEY_PATH = join(DATA_DIR, "localhost-key.pem");
 const CERT_PATH = join(DATA_DIR, "localhost.pem");
+const HOSTS_METADATA_PATH = join(DATA_DIR, "cert-hosts.json");
 
 const MKCERT_ENV = { env: { ...process.env, CAROOT: DATA_DIR } };
 
@@ -111,10 +112,25 @@ export const ensureCertificates = async (
     await writeFile(CA_INSTALLED_FLAG, "");
   }
 
-  if (!existsSync(KEY_PATH) || !existsSync(CERT_PATH)) {
+  let shouldRegenerateCerts = !existsSync(KEY_PATH) || !existsSync(CERT_PATH);
+
+  if (!shouldRegenerateCerts && existsSync(HOSTS_METADATA_PATH)) {
+    const storedHostsData = await readFile(HOSTS_METADATA_PATH, "utf-8");
+    const storedHosts = JSON.parse(storedHostsData) as string[];
+    const sortedStoredHosts = [...storedHosts].sort();
+    const sortedRequestedHosts = [...hosts].sort();
+    shouldRegenerateCerts =
+      JSON.stringify(sortedStoredHosts) !==
+      JSON.stringify(sortedRequestedHosts);
+  } else if (!shouldRegenerateCerts) {
+    shouldRegenerateCerts = true;
+  }
+
+  if (shouldRegenerateCerts) {
     await runMkcert(
       `-key-file "${KEY_PATH}" -cert-file "${CERT_PATH}" ${hosts.join(" ")}`,
     );
+    await writeFile(HOSTS_METADATA_PATH, JSON.stringify(hosts));
   }
 
   const [key, cert] = await Promise.all([
