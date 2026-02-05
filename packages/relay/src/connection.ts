@@ -68,18 +68,39 @@ export const connectRelay = async (
     secure,
   );
 
-  if (isRelayServerRunning) {
-    relayServer = await connectToExistingRelay(
-      relayPort,
-      handler,
-      token,
-      secure,
-    );
-  } else {
-    await fkill(`:${relayPort}`, { force: true, silent: true }).catch(() => {});
-    await sleep(POST_KILL_DELAY_MS);
+  let isSecureMode = secure ?? false;
 
-    relayServer = createRelayServer({ port: relayPort, token, secure });
+  const startServer = async (useSecure: boolean): Promise<void> => {
+    const onSecureUpgradeRequested = async () => {
+      if (isSecureMode || !isRelayHost) return;
+
+      console.log(
+        pc.yellow(
+          "Secure connection requested by browser, upgrading to HTTPS...",
+        ),
+      );
+
+      await relayServer?.stop();
+      isSecureMode = true;
+
+      relayServer = createRelayServer({
+        port: relayPort,
+        token,
+        secure: true,
+        onSecureUpgradeRequested,
+      });
+      relayServer.registerHandler(handler);
+      await relayServer.start();
+
+      printStartupMessage(handler.agentId, relayPort, true);
+    };
+
+    relayServer = createRelayServer({
+      port: relayPort,
+      token,
+      secure: useSecure,
+      onSecureUpgradeRequested,
+    });
     relayServer.registerHandler(handler);
 
     try {
@@ -97,7 +118,7 @@ export const connectRelay = async (
       const isNowRunning = await checkIfRelayServerIsRunning(
         relayPort,
         token,
-        secure,
+        useSecure,
       );
 
       if (!isNowRunning) throw error;
@@ -106,12 +127,25 @@ export const connectRelay = async (
         relayPort,
         handler,
         token,
-        secure,
+        useSecure,
       );
     }
+  };
+
+  if (isRelayServerRunning) {
+    relayServer = await connectToExistingRelay(
+      relayPort,
+      handler,
+      token,
+      secure,
+    );
+  } else {
+    await fkill(`:${relayPort}`, { force: true, silent: true }).catch(() => {});
+    await sleep(POST_KILL_DELAY_MS);
+    await startServer(isSecureMode);
   }
 
-  printStartupMessage(handler.agentId, relayPort, secure);
+  printStartupMessage(handler.agentId, relayPort, isSecureMode);
 
   const handleShutdown = async () => {
     if (isRelayHost) {
@@ -330,7 +364,7 @@ const connectToExistingRelay = async (
 const printStartupMessage = (
   agentId: string,
   port: number,
-  secure?: boolean,
+  secure: boolean,
 ) => {
   const webSocketProtocol = secure ? "wss" : "ws";
   console.log(

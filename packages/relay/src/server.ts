@@ -90,6 +90,7 @@ interface RelayServerOptions {
   port?: number;
   token?: string;
   secure?: boolean;
+  onSecureUpgradeRequested?: () => void;
 }
 
 export interface RelayServer {
@@ -106,6 +107,7 @@ export const createRelayServer = (
   const port = options.port ?? DEFAULT_RELAY_PORT;
   const token = options.token;
   const secure = options.secure ?? false;
+  const onSecureUpgradeRequested = options.onSecureUpgradeRequested;
 
   const registeredHandlers = new Map<string, RegisteredHandler>();
   const activeSessions = new Map<string, ActiveSession>();
@@ -542,10 +544,26 @@ export const createRelayServer = (
               return;
             }
           }
+
+          const clientNeedsSecure =
+            requestUrl.searchParams.get("secure") === "true";
+          if (clientNeedsSecure && !secure && onSecureUpgradeRequested) {
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(
+              JSON.stringify({
+                status: "upgrading",
+                handlers: getRegisteredHandlerIds(),
+              }),
+            );
+            onSecureUpgradeRequested();
+            return;
+          }
+
           res.writeHead(200, { "Content-Type": "application/json" });
           res.end(
             JSON.stringify({
               status: "ok",
+              secure,
               handlers: getRegisteredHandlerIds(),
             }),
           );
