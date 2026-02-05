@@ -1,5 +1,13 @@
 # @react-grab/relay
 
+## 0.1.9
+
+### Patch Changes
+
+- fix: startServer not exported in providers
+- Updated dependencies
+  - @react-grab/utils@0.1.9
+
 ## 0.1.8
 
 ### Patch Changes
