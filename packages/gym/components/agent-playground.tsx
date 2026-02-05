@@ -128,7 +128,10 @@ export const AgentPlaygroundContent = ({
       }
 
       if (loadedProviders.length === 0 && failedProviders.length === 0) {
-        addLog("info", "No providers loaded. Add ?provider=cursor,claude to URL");
+        addLog(
+          "info",
+          "No providers loaded. Add ?provider=cursor,claude to URL",
+        );
       } else {
         for (const provider of loadedProviders) {
           addLog("info", `Loaded: ${provider}`);

@@ -10,7 +10,7 @@ declare global {
   }
 }
 
-interface ReactGrabProps extends Options {}
+type ReactGrabProps = Options;
 
 const shouldActivate = (): boolean => {
   if (typeof window === "undefined") return false;

@@ -1,11 +1,70 @@
 import {
-  IGNORE_EVENTS_ATTRIBUTE,
+  DEV_TOOLS_OVERLAY_Z_INDEX_THRESHOLD,
+  OVERLAY_Z_INDEX_THRESHOLD,
+  USER_IGNORE_ATTRIBUTE,
+  VIEWPORT_COVERAGE_THRESHOLD,
   VISIBILITY_CACHE_TTL_MS,
 } from "../constants.js";
 import { isElementVisible } from "./is-element-visible.js";
-import { ATTRIBUTE_NAME } from "./mount-root.js";
 
-const REACT_GRAB_SELECTOR = `[${ATTRIBUTE_NAME}], [${IGNORE_EVENTS_ATTRIBUTE}]`;
+const isReactGrabElement = (element: Element): boolean => {
+  if (element.hasAttribute("data-react-grab")) return true;
+
+  const rootNode = element.getRootNode();
+  return (
+    rootNode instanceof ShadowRoot &&
+    rootNode.host.hasAttribute("data-react-grab")
+  );
+};
+
+const isUserIgnoredElement = (element: Element): boolean =>
+  element.hasAttribute(USER_IGNORE_ATTRIBUTE) ||
+  element.closest(`[${USER_IGNORE_ATTRIBUTE}]`) !== null;
+
+// HACK: Dev tools like react-scan create full-viewport canvas overlays with
+// pointer-events: none that document.elementsFromPoint() still returns.
+// @see https://github.com/aidenybai/react-grab/issues/148
+const isDevToolsOverlay = (computedStyle: CSSStyleDeclaration): boolean => {
+  const zIndex = parseInt(computedStyle.zIndex, 10);
+  return (
+    computedStyle.pointerEvents === "none" &&
+    computedStyle.position === "fixed" &&
+    !isNaN(zIndex) &&
+    zIndex >= DEV_TOOLS_OVERLAY_Z_INDEX_THRESHOLD
+  );
+};
+
+const isFullViewportOverlay = (
+  element: Element,
+  computedStyle: CSSStyleDeclaration,
+): boolean => {
+  const position = computedStyle.position;
+  if (position !== "fixed" && position !== "absolute") {
+    return false;
+  }
+
+  const rect = element.getBoundingClientRect();
+  const coversViewport =
+    rect.width / window.innerWidth >= VIEWPORT_COVERAGE_THRESHOLD &&
+    rect.height / window.innerHeight >= VIEWPORT_COVERAGE_THRESHOLD;
+
+  if (!coversViewport) {
+    return false;
+  }
+
+  const backgroundColor = computedStyle.backgroundColor;
+  const hasInvisibleBackground =
+    backgroundColor === "transparent" ||
+    backgroundColor === "rgba(0, 0, 0, 0)" ||
+    parseFloat(computedStyle.opacity) < 0.1;
+
+  if (hasInvisibleBackground) {
+    return true;
+  }
+
+  const zIndex = parseInt(computedStyle.zIndex, 10);
+  return !isNaN(zIndex) && zIndex > OVERLAY_Z_INDEX_THRESHOLD;
+};
 
 interface VisibilityCache {
   isVisible: boolean;
@@ -18,35 +77,12 @@ export const clearVisibilityCache = (): void => {
   visibilityCache = new WeakMap<Element, VisibilityCache>();
 };
 
-/**
- * Detects dev tools overlay elements that should be ignored during selection.
- *
- * Dev tools like react-scan create full-viewport canvas overlays to highlight
- * re-rendering components. These canvases use pointer-events: none so clicks
- * pass through, but document.elementsFromPoint() still returns them.
- *
- * react-scan's canvas styles (from outline-overlay.ts):
- *   position: fixed; top: 0; left: 0;
- *   pointer-events: none;
- *   z-index: 2147483600;
- *
- * @see https://github.com/aidenybai/react-grab/issues/148
- */
-const isNonInteractiveOverlay = (
-  computedStyle: CSSStyleDeclaration,
-): boolean => {
-  const zIndex = parseInt(computedStyle.zIndex, 10);
-  const DEV_TOOLS_OVERLAY_Z_INDEX_THRESHOLD = 2147483600;
-  return (
-    computedStyle.pointerEvents === "none" &&
-    computedStyle.position === "fixed" &&
-    !isNaN(zIndex) &&
-    zIndex >= DEV_TOOLS_OVERLAY_Z_INDEX_THRESHOLD
-  );
-};
-
 export const isValidGrabbableElement = (element: Element): boolean => {
-  if (element.closest(REACT_GRAB_SELECTOR)) {
+  if (isReactGrabElement(element)) {
+    return false;
+  }
+
+  if (isUserIgnoredElement(element)) {
     return false;
   }
 
@@ -59,7 +95,11 @@ export const isValidGrabbableElement = (element: Element): boolean => {
 
   const computedStyle = window.getComputedStyle(element);
 
-  if (isNonInteractiveOverlay(computedStyle)) {
+  if (isDevToolsOverlay(computedStyle)) {
+    return false;
+  }
+
+  if (isFullViewportOverlay(element, computedStyle)) {
     return false;
   }
 

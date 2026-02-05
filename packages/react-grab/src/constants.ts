@@ -93,6 +93,11 @@ export const ARROW_KEYS = new Set([
 
 export const FROZEN_ELEMENT_ATTRIBUTE = "data-react-grab-frozen";
 export const IGNORE_EVENTS_ATTRIBUTE = "data-react-grab-ignore-events";
+export const USER_IGNORE_ATTRIBUTE = "data-react-grab-ignore";
+
+export const VIEWPORT_COVERAGE_THRESHOLD = 0.9;
+export const OVERLAY_Z_INDEX_THRESHOLD = 1000;
+export const DEV_TOOLS_OVERLAY_Z_INDEX_THRESHOLD = 2147483600;
 
 export const TOOLTIP_DELAY_MS = 400;
 export const TOOLTIP_GRACE_PERIOD_MS = 100;

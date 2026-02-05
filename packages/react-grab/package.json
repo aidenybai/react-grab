@@ -96,14 +96,6 @@
     "bippy": "^0.5.28",
     "solid-js": "^1.9.10"
   },
-  "peerDependencies": {
-    "react": ">=17.0.0"
-  },
-  "peerDependenciesMeta": {
-    "react": {
-      "optional": true
-    }
-  },
   "devDependencies": {
     "@babel/core": "^7.28.5",
     "@babel/preset-typescript": "^7.28.5",
@@ -119,5 +111,13 @@
     "tailwind-merge": "^2.5.5",
     "tailwindcss": "^4.1.0",
     "tsup": "^8.2.4"
+  },
+  "peerDependencies": {
+    "react": ">=17.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
   }
 }
