@@ -42,7 +42,8 @@ const getDefaultWebSocketUrl = (): string => {
 };
 
 const getHealthCheckUrl = (wsUrl: string, token?: string): string => {
-  const url = new URL(wsUrl.replace(/^wss?:/, "http:"));
+  const httpProtocol = wsUrl.startsWith("wss:") ? "https:" : "http:";
+  const url = new URL(wsUrl.replace(/^wss?:/, httpProtocol));
   url.pathname = "/health";
   if (isSecureContext()) {
     url.searchParams.set("secure", "true");

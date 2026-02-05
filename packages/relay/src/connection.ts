@@ -91,17 +91,25 @@ export const connectRelay = async (
 
       await relayServer?.stop();
 
-      relayServer = createRelayServer({
-        port: relayPort,
-        token,
-        secure: true,
-        onSecureUpgradeRequested,
-        certHostnames,
-      });
-      relayServer.registerHandler(handler);
-      await relayServer.start();
+      try {
+        relayServer = createRelayServer({
+          port: relayPort,
+          token,
+          secure: true,
+          onSecureUpgradeRequested,
+          certHostnames,
+        });
+        relayServer.registerHandler(handler);
+        await relayServer.start();
 
-      printStartupMessage(handler.agentId, relayPort, true);
+        printStartupMessage(handler.agentId, relayPort, true);
+      } catch (error) {
+        console.error(
+          pc.red("Failed to upgrade to HTTPS:"),
+          error instanceof Error ? error.message : error,
+        );
+        process.exit(1);
+      }
     };
 
     relayServer = createRelayServer({

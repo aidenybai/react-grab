@@ -84,9 +84,17 @@ export interface Certificate {
 
 const CA_INSTALLED_FLAG = join(DATA_DIR, ".ca-installed");
 
+const validateHostname = (hostname: string): void => {
+  if (!/^[a-zA-Z0-9.-]+$/.test(hostname)) {
+    throw new Error(`Invalid hostname: ${hostname}`);
+  }
+};
+
 export const ensureCertificates = async (
   hosts: string[] = ["localhost", "127.0.0.1"],
 ): Promise<Certificate> => {
+  hosts.forEach(validateHostname);
+
   if (!existsSync(MKCERT_PATH)) {
     const downloadUrl = await fetchMkcertDownloadUrl();
     if (!downloadUrl) {

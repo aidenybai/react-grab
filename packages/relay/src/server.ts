@@ -557,7 +557,7 @@ export const createRelayServer = (
                 handlers: getRegisteredHandlerIds(),
               }),
             );
-            onSecureUpgradeRequested();
+            onSecureUpgradeRequested().catch(() => {});
             return;
           }
 
