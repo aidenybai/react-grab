@@ -360,7 +360,7 @@ export function DataTable({
     [data],
   );
 
-  const table = useReactTable({
+  const table = useReactTable({ // eslint-disable-line react-hooks/incompatible-library
     data,
     columns,
     state: {

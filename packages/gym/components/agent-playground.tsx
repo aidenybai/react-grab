@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import type { ReactGrabAPI } from "react-grab";
 
 interface RelayClient {
   onMessage: (callback: (message: RelayMessage) => void) => () => void;
@@ -24,9 +25,7 @@ interface RelayMessage {
 
 declare global {
   interface Window {
-    __REACT_GRAB__?: {
-      activate: () => void;
-    };
+    __REACT_GRAB__?: ReactGrabAPI;
     __REACT_GRAB_RELAY__?: RelayClient;
   }
 }
@@ -123,17 +122,19 @@ export const AgentPlaygroundContent = ({
       return;
     }
 
-    for (const provider of failedProviders) {
-      addLog("error", `Failed to load: ${provider}`);
-    }
-
-    if (loadedProviders.length === 0 && failedProviders.length === 0) {
-      addLog("info", "No providers loaded. Add ?provider=cursor,claude to URL");
-    } else {
-      for (const provider of loadedProviders) {
-        addLog("info", `Loaded: ${provider}`);
+    queueMicrotask(() => {
+      for (const provider of failedProviders) {
+        addLog("error", `Failed to load: ${provider}`);
       }
-    }
+
+      if (loadedProviders.length === 0 && failedProviders.length === 0) {
+        addLog("info", "No providers loaded. Add ?provider=cursor,claude to URL");
+      } else {
+        for (const provider of loadedProviders) {
+          addLog("info", `Loaded: ${provider}`);
+        }
+      }
+    });
   }, [loadedProviders, failedProviders, addLog]);
 
   useEffect(() => {

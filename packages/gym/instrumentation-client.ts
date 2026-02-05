@@ -1,1 +1,1 @@
-import "react-grab";
+export {};

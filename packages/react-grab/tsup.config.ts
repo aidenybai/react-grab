@@ -112,4 +112,45 @@ const libraryBuildConfig: Options = {
   ],
 };
 
-export default defineConfig([browserBuildConfig, libraryBuildConfig]);
+const reactBuildConfig: Options = {
+  banner: {
+    js: `"use client";\n${banner}`,
+  },
+  clean: false,
+  dts: true,
+  entry: ["./src/react.tsx"],
+  env: {
+    VERSION: version,
+  },
+  esbuildPlugins: [
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- babel is not typed
+    babel({
+      filter: /\.(tsx|jsx)$/,
+      config: {
+        presets: [
+          ["@babel/preset-typescript", { onlyRemoveTypeImports: true }],
+          "babel-preset-solid",
+        ],
+      },
+    }),
+  ],
+  external: ["react"],
+  format: ["cjs", "esm"],
+  loader: {
+    ".css": "text",
+  },
+  minify: false,
+  noExternal: ["bippy", "solid-js", "clsx", "tailwind-merge"],
+  outDir: "./dist",
+  platform: "neutral",
+  sourcemap: false,
+  splitting: false,
+  target: "esnext",
+  treeshake: false,
+};
+
+export default defineConfig([
+  browserBuildConfig,
+  libraryBuildConfig,
+  reactBuildConfig,
+]);

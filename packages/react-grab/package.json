@@ -55,6 +55,16 @@
         "default": "./dist/core/index.cjs"
       }
     },
+    "./react": {
+      "import": {
+        "types": "./dist/react.d.ts",
+        "default": "./dist/react.js"
+      },
+      "require": {
+        "types": "./dist/react.d.cts",
+        "default": "./dist/react.cjs"
+      }
+    },
     "./src/*": "./src/*",
     "./styles.css": "./dist/styles.css",
     "./dist/styles.css": "./dist/styles.css",
@@ -85,6 +95,14 @@
   "dependencies": {
     "bippy": "^0.5.28",
     "solid-js": "^1.9.10"
+  },
+  "peerDependencies": {
+    "react": ">=17.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@babel/core": "^7.28.5",
