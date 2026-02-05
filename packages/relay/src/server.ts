@@ -91,6 +91,7 @@ interface RelayServerOptions {
   token?: string;
   secure?: boolean;
   onSecureUpgradeRequested?: () => void;
+  certHostnames?: string[];
 }
 
 export interface RelayServer {
@@ -108,6 +109,7 @@ export const createRelayServer = (
   const token = options.token;
   const secure = options.secure ?? false;
   const onSecureUpgradeRequested = options.onSecureUpgradeRequested;
+  const certHostnames = options.certHostnames;
 
   const registeredHandlers = new Map<string, RegisteredHandler>();
   const activeSessions = new Map<string, ActiveSession>();
@@ -529,7 +531,7 @@ export const createRelayServer = (
   };
 
   const start = async (): Promise<void> => {
-    const certificate = secure ? await ensureCertificates() : null;
+    const certificate = secure ? await ensureCertificates(certHostnames) : null;
 
     return new Promise((resolve, reject) => {
       const requestHandler = (req: IncomingMessage, res: ServerResponse) => {
