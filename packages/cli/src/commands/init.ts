@@ -9,6 +9,10 @@ import {
   uninstallPackagesWithFeedback,
 } from "../utils/cli-helpers.js";
 import {
+  promptConnectionMode,
+  promptMcpInstall,
+} from "../utils/install-mcp.js";
+import {
   detectProject,
   findWorkspaceProjects,
   type Framework,
@@ -125,7 +129,7 @@ export const init = new Command()
   .option("-f, --force", "force overwrite existing config", false)
   .option(
     "-a, --agent <agent>",
-    "agent integration (claude-code, cursor, opencode, codex, gemini, amp, droid)",
+    "agent integration (claude-code, cursor, opencode, codex, gemini, amp)",
   )
   .option(
     "-k, --key <key>",
@@ -413,7 +417,7 @@ export const init = new Command()
           const { wantAddAgent } = await prompts({
             type: "confirm",
             name: "wantAddAgent",
-            message: `Would you like to connect React Grab to a ${highlighter.info("coding agent")}? ${highlighter.dim("(optional)")}`,
+            message: `Would you like to add an ${highlighter.info("agent integration")}?`,
             initial: false,
           });
 
@@ -423,10 +427,30 @@ export const init = new Command()
           }
 
           if (wantAddAgent) {
+            const connectionMode = await promptConnectionMode();
+
+            if (connectionMode === undefined) {
+              logger.break();
+              process.exit(1);
+            }
+
+            if (connectionMode === "mcp") {
+              const didInstall = await promptMcpInstall();
+              if (!didInstall) {
+                logger.break();
+                process.exit(0);
+              }
+              logger.break();
+              logger.success("MCP server has been configured.");
+              logger.log("Restart your agents to activate.");
+              logger.break();
+              process.exit(0);
+            }
+
             const { agent } = await prompts({
               type: "select",
               name: "agent",
-              message: `Which ${highlighter.info("coding agent")} would you like to connect?`,
+              message: `Which ${highlighter.info("agent integration")} would you like to add?`,
               choices: [
                 ...availableAgents.map((innerAgent) => ({
                   title: getAgentName(innerAgent),
@@ -809,7 +833,7 @@ export const init = new Command()
         const { wantAddAgent } = await prompts({
           type: "confirm",
           name: "wantAddAgent",
-          message: `Would you like to connect React Grab to a ${highlighter.info("coding agent")}? ${highlighter.dim("(optional)")}`,
+          message: `Would you like to add an ${highlighter.info("agent integration")}?`,
           initial: false,
         });
 
@@ -819,26 +843,45 @@ export const init = new Command()
         }
 
         if (wantAddAgent) {
-          const { agent } = await prompts({
-            type: "select",
-            name: "agent",
-            message: `Which ${highlighter.info("coding agent")} would you like to connect?`,
-            choices: [
-              ...AGENTS.map((innerAgent) => ({
-                title: getAgentName(innerAgent),
-                value: innerAgent,
-              })),
-              { title: "Skip", value: "skip" },
-            ],
-          });
+          const connectionMode = await promptConnectionMode();
 
-          if (agent === undefined) {
+          if (connectionMode === undefined) {
             logger.break();
             process.exit(1);
           }
 
-          if (agent !== "skip") {
-            agentIntegration = agent as AgentIntegration;
+          if (connectionMode === "mcp") {
+            const didInstall = await promptMcpInstall();
+            if (!didInstall) {
+              logger.break();
+              process.exit(0);
+            }
+            logger.break();
+            logger.success("MCP server has been configured.");
+            logger.log("Continuing with React Grab installation...");
+            logger.break();
+          } else {
+            const { agent } = await prompts({
+              type: "select",
+              name: "agent",
+              message: `Which ${highlighter.info("agent integration")} would you like to add?`,
+              choices: [
+                ...AGENTS.map((innerAgent) => ({
+                  title: getAgentName(innerAgent),
+                  value: innerAgent,
+                })),
+                { title: "Skip", value: "skip" },
+              ],
+            });
+
+            if (agent === undefined) {
+              logger.break();
+              process.exit(1);
+            }
+
+            if (agent !== "skip") {
+              agentIntegration = agent as AgentIntegration;
+            }
           }
         }
       }
