@@ -114,13 +114,17 @@ export const ensureCertificates = async (
   let shouldRegenerateCerts = !existsSync(KEY_PATH) || !existsSync(CERT_PATH);
 
   if (!shouldRegenerateCerts && existsSync(HOSTS_METADATA_PATH)) {
-    const storedHostsData = await readFile(HOSTS_METADATA_PATH, "utf-8");
-    const storedHosts = JSON.parse(storedHostsData) as string[];
-    const sortedStoredHosts = [...storedHosts].sort();
-    const sortedRequestedHosts = [...hosts].sort();
-    shouldRegenerateCerts =
-      JSON.stringify(sortedStoredHosts) !==
-      JSON.stringify(sortedRequestedHosts);
+    try {
+      const storedHostsData = await readFile(HOSTS_METADATA_PATH, "utf-8");
+      const storedHosts = JSON.parse(storedHostsData) as string[];
+      const sortedStoredHosts = [...storedHosts].sort();
+      const sortedRequestedHosts = [...hosts].sort();
+      shouldRegenerateCerts =
+        JSON.stringify(sortedStoredHosts) !==
+        JSON.stringify(sortedRequestedHosts);
+    } catch {
+      shouldRegenerateCerts = true;
+    }
   } else if (!shouldRegenerateCerts) {
     shouldRegenerateCerts = true;
   }
