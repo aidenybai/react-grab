@@ -11,7 +11,7 @@ const PROVIDER_MAP: Record<string, string> = {
   codex: "provider-codex",
   gemini: "provider-gemini",
   droid: "provider-droid",
-  mcp: "provider-mcp",
+  mcp: "mcp",
 };
 
 export const GET = async (

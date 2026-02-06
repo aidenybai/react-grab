@@ -275,6 +275,28 @@ importers:
         specifier: ^5
         version: 5.9.3
 
+  packages/mcp:
+    dependencies:
+      '@modelcontextprotocol/sdk':
+        specifier: ^1.25.0
+        version: 1.26.0(zod@3.25.76)
+      fkill:
+        specifier: ^9.0.0
+        version: 9.0.0
+      react-grab:
+        specifier: workspace:*
+        version: link:../react-grab
+      zod:
+        specifier: ^3.25.0
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.7
+        version: 22.19.2
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
+
   packages/next-playground:
     dependencies:
       bippy:
@@ -468,28 +490,6 @@ importers:
       '@react-grab/utils':
         specifier: workspace:*
         version: link:../utils
-      '@types/node':
-        specifier: ^22.10.7
-        version: 22.19.2
-      tsup:
-        specifier: ^8.4.0
-        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
-
-  packages/provider-mcp:
-    dependencies:
-      '@modelcontextprotocol/sdk':
-        specifier: ^1.25.0
-        version: 1.26.0(zod@3.25.76)
-      fkill:
-        specifier: ^9.0.0
-        version: 9.0.0
-      react-grab:
-        specifier: workspace:*
-        version: link:../react-grab
-      zod:
-        specifier: ^3.25.0
-        version: 3.25.76
-    devDependencies:
       '@types/node':
         specifier: ^22.10.7
         version: 22.19.2
@@ -3089,8 +3089,8 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
-  '@sourcegraph/amp@0.0.1770352274-gd36e02':
-    resolution: {integrity: sha512-Gs7m7nomhJ79jGneQcHYoG8jWvb1aLfxVci3KgzCeIOya19662nEi/Y+T8LsnZa5eI3tSJWa2mDRFeojECVahg==}
+  '@sourcegraph/amp@0.0.1770366910-g1852ef':
+    resolution: {integrity: sha512-ZXxRYD8u+6/Jh0EXUXYe+tXYO0xyROfrrHFpUALPJUeBjbziyxfQ6MD2hz8mMaAt7wkboEitD5pST2o2q7n+tw==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -9297,14 +9297,14 @@ snapshots:
 
   '@sourcegraph/amp-sdk@0.1.0-20251210081226-g90e3892':
     dependencies:
-      '@sourcegraph/amp': 0.0.1770352274-gd36e02
+      '@sourcegraph/amp': 0.0.1770366910-g1852ef
       zod: 3.25.76
 
   '@sourcegraph/amp@0.0.1767830505-ga62310':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
-  '@sourcegraph/amp@0.0.1770352274-gd36e02':
+  '@sourcegraph/amp@0.0.1770366910-g1852ef':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
