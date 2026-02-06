@@ -192,6 +192,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           onStateChange={props.onToolbarStateChange}
           onSubscribeToStateChanges={props.onSubscribeToToolbarStateChanges}
           onSelectHoverChange={props.onToolbarSelectHoverChange}
+          persistToolbarState={props.persistToolbarState}
         />
       </Show>
 

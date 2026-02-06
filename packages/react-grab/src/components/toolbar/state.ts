@@ -5,7 +5,10 @@ export type SnapEdge = "top" | "bottom" | "left" | "right";
 
 const STORAGE_KEY = "react-grab-toolbar-state";
 
-export const loadToolbarState = (): ToolbarState | null => {
+export const loadToolbarState = (
+  persistToolbarState = true,
+): ToolbarState | null => {
+  if (!persistToolbarState) return null;
   try {
     const serializedToolbarState = localStorage.getItem(STORAGE_KEY);
     if (!serializedToolbarState) return null;
@@ -28,7 +31,11 @@ export const loadToolbarState = (): ToolbarState | null => {
   return null;
 };
 
-export const saveToolbarState = (state: ToolbarState): void => {
+export const saveToolbarState = (
+  state: ToolbarState,
+  persistToolbarState = true,
+): void => {
+  if (!persistToolbarState) return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (error) {

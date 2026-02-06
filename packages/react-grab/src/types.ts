@@ -366,6 +366,12 @@ export interface Options {
    * @default true
    */
   freezeReactUpdates?: boolean;
+  /**
+   * Whether to persist toolbar state (position, collapsed, enabled) to localStorage.
+   * Set to false when an external consumer (e.g. web extension) handles persistence.
+   * @default true
+   */
+  persistToolbarState?: boolean;
 }
 
 export interface SettableOptions extends Options {
@@ -505,6 +511,7 @@ export interface ReactGrabRendererProps {
     callback: (state: ToolbarState) => void,
   ) => () => void;
   onToolbarSelectHoverChange?: (isHovered: boolean) => void;
+  persistToolbarState?: boolean;
   contextMenuPosition?: { x: number; y: number } | null;
   contextMenuBounds?: OverlayBounds | null;
   contextMenuTagName?: string;
