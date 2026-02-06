@@ -37,6 +37,12 @@
       "world": "MAIN"
     }
   ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/worker.ts"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "host_permissions": ["<all_urls>"],
   "permissions": ["storage"]
 }

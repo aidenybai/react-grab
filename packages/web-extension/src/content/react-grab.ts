@@ -1,10 +1,17 @@
 import { init } from "react-grab/core";
-import type { Options, ReactGrabAPI } from "react-grab";
+import type { Options, ReactGrabAPI, ToolbarState } from "react-grab";
 import TurndownService from "turndown";
 import {
   LOCALHOST_INIT_DELAY_MS,
   STATE_QUERY_TIMEOUT_MS,
 } from "../constants.js";
+import {
+  initSinkingClient,
+  loadToolbarStateFromSinking,
+  saveToolbarStateToSinking,
+  subscribeToToolbarState,
+  getCachedToolbarState,
+} from "../storage/client.js";
 
 declare global {
   interface Window {
@@ -19,48 +26,62 @@ const isLocalhost =
 
 const turndownService = new TurndownService();
 
-interface ToolbarState {
-  edge: "top" | "bottom" | "left" | "right";
-  ratio: number;
-  collapsed: boolean;
-  enabled: boolean;
-}
-
 let extensionApi: ReactGrabAPI | null = null;
 let lastToolbarState: ToolbarState | null = null;
 let isApplyingExternalState = false;
 let stateChangeUnsubscribe: (() => void) | null = null;
+let sinkingUnsubscribe: (() => void) | null = null;
+
+const isToolbarStateEqual = (
+  stateA: ToolbarState | null,
+  stateB: ToolbarState | null,
+): boolean => {
+  if (stateA === stateB) return true;
+  if (!stateA || !stateB) return false;
+  return (
+    stateA.edge === stateB.edge &&
+    stateA.ratio === stateB.ratio &&
+    stateA.collapsed === stateB.collapsed &&
+    stateA.enabled === stateB.enabled
+  );
+};
 
 const handleToolbarStateFromApi = (toolbarState: ToolbarState | null): void => {
   if (isApplyingExternalState) return;
   if (!toolbarState) return;
-  if (
-    lastToolbarState &&
-    lastToolbarState.edge === toolbarState.edge &&
-    lastToolbarState.ratio === toolbarState.ratio &&
-    lastToolbarState.collapsed === toolbarState.collapsed &&
-    lastToolbarState.enabled === toolbarState.enabled
-  ) {
-    return;
-  }
+  if (isToolbarStateEqual(lastToolbarState, toolbarState)) return;
   lastToolbarState = toolbarState;
-  window.postMessage(
-    { type: "__REACT_GRAB_TOOLBAR_STATE_SAVE__", state: toolbarState },
-    "*",
-  );
+  void saveToolbarStateToSinking(toolbarState);
+};
+
+const handleSinkingChange = (): void => {
+  const cachedState = getCachedToolbarState();
+  if (!cachedState) return;
+  if (isToolbarStateEqual(lastToolbarState, cachedState)) return;
+
+  lastToolbarState = cachedState;
+  const api = getActiveApi();
+  if (api) {
+    isApplyingExternalState = true;
+    api.setToolbarState(cachedState);
+    isApplyingExternalState = false;
+  }
 };
 
 const subscribeToStateChanges = (api: ReactGrabAPI): void => {
-  if (stateChangeUnsubscribe) {
-    stateChangeUnsubscribe();
-  }
-  stateChangeUnsubscribe = api.onToolbarStateChange((state) => {
-    handleToolbarStateFromApi(state);
-  });
+  stateChangeUnsubscribe?.();
+  stateChangeUnsubscribe = api.onToolbarStateChange(handleToolbarStateFromApi);
+
+  sinkingUnsubscribe?.();
+  sinkingUnsubscribe = subscribeToToolbarState(handleSinkingChange);
+};
+
+const disableCorePersistence = (api: ReactGrabAPI): void => {
+  api.setOptions({ persistToolbarState: false });
 };
 
 const createExtensionApi = (): ReactGrabAPI => {
-  const options: Options = { enabled: true };
+  const options: Options = { enabled: true, persistToolbarState: false };
 
   if (!isLocalhost) {
     options.getContent = (elements) => {
@@ -95,6 +116,8 @@ const initializeReactGrab = (): Promise<ReactGrabAPI | null> => {
         const delayedApi = getActiveApi();
         if (delayedApi) {
           extensionApi = delayedApi;
+          disableCorePersistence(delayedApi);
+          subscribeToStateChanges(delayedApi);
           resolve(delayedApi);
           return;
         }
@@ -116,6 +139,7 @@ window.addEventListener("react-grab:init", (event) => {
   }
   extensionApi = pageApi;
   window.__REACT_GRAB__ = pageApi;
+  disableCorePersistence(pageApi);
   subscribeToStateChanges(pageApi);
 });
 
@@ -128,37 +152,20 @@ const handleToggle = async (enabled: boolean): Promise<void> => {
   }
 };
 
-const handleToolbarStateChange = async (state: ToolbarState): Promise<void> => {
-  if (isApplyingExternalState) return;
-
-  await initializeReactGrab();
-  const api = getActiveApi();
-  if (api) {
-    isApplyingExternalState = true;
-    api.setToolbarState(state);
-    isApplyingExternalState = false;
-  }
-};
-
 window.addEventListener("message", (event: MessageEvent) => {
   if (event.data?.type === "__REACT_GRAB_EXTENSION_TOGGLE__") {
     void handleToggle(event.data.enabled);
-  }
-
-  if (event.data?.type === "__REACT_GRAB_TOOLBAR_STATE_CHANGE__") {
-    void handleToolbarStateChange(event.data.state);
   }
 });
 
 interface InitialState {
   enabled: boolean;
-  toolbarState: ToolbarState | null;
 }
 
 const queryInitialState = (): Promise<InitialState> => {
   return new Promise((resolve) => {
     const timeout = setTimeout(() => {
-      resolve({ enabled: true, toolbarState: null });
+      resolve({ enabled: true });
     }, STATE_QUERY_TIMEOUT_MS);
 
     const handler = (event: MessageEvent) => {
@@ -167,7 +174,6 @@ const queryInitialState = (): Promise<InitialState> => {
         window.removeEventListener("message", handler);
         resolve({
           enabled: event.data.enabled ?? true,
-          toolbarState: event.data.toolbarState ?? null,
         });
       }
     };
@@ -177,16 +183,52 @@ const queryInitialState = (): Promise<InitialState> => {
   });
 };
 
+const requestWorkerUrl = (): Promise<string | null> => {
+  return new Promise((resolve) => {
+    const timeout = setTimeout(() => {
+      resolve(null);
+    }, STATE_QUERY_TIMEOUT_MS);
+
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === "__REACT_GRAB_WORKER_URL__") {
+        clearTimeout(timeout);
+        window.removeEventListener("message", handler);
+        resolve(event.data.workerUrl ?? null);
+      }
+    };
+
+    window.addEventListener("message", handler);
+    window.postMessage({ type: "__REACT_GRAB_GET_WORKER_URL__" }, "*");
+  });
+};
+
 const startup = async (): Promise<void> => {
-  const initialState = await queryInitialState();
+  const [initialState, workerUrl] = await Promise.all([
+    queryInitialState(),
+    requestWorkerUrl(),
+  ]);
+
+  if (workerUrl) {
+    initSinkingClient(workerUrl);
+
+    const existingApi = getActiveApi();
+    if (existingApi) {
+      sinkingUnsubscribe?.();
+      sinkingUnsubscribe = subscribeToToolbarState(handleSinkingChange);
+    }
+  }
+
   const api = await initializeReactGrab();
 
   if (api) {
-    if (initialState.toolbarState) {
+    const sinkingToolbarState = await loadToolbarStateFromSinking();
+    if (sinkingToolbarState) {
       isApplyingExternalState = true;
-      api.setToolbarState(initialState.toolbarState);
+      api.setToolbarState(sinkingToolbarState);
       isApplyingExternalState = false;
-    } else if (!initialState.enabled) {
+    }
+
+    if (!initialState.enabled) {
       api.setEnabled(false);
     }
   }

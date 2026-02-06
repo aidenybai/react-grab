@@ -13,6 +13,7 @@
     "react": "19.1.2",
     "react-dom": "19.1.2",
     "react-grab": "workspace:*",
+    "sinking": "^0.0.6",
     "turndown": "^7.2.0",
     "webextension-polyfill": "^0.12.0"
   },

@@ -8,16 +8,6 @@ chrome.storage.onChanged.addListener((changes) => {
       "*",
     );
   }
-
-  if (changes.react_grab_toolbar_state) {
-    const newState = changes.react_grab_toolbar_state.newValue;
-    if (newState) {
-      window.postMessage(
-        { type: "__REACT_GRAB_TOOLBAR_STATE_CHANGE__", state: newState },
-        "*",
-      );
-    }
-  }
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -38,25 +28,21 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
 window.addEventListener("message", (event) => {
   if (event.data?.type === "__REACT_GRAB_QUERY_STATE__") {
-    chrome.storage.local.get(
-      ["react_grab_enabled", "react_grab_toolbar_state"],
-      (result) => {
-        const enabled = result.react_grab_enabled ?? true;
-        const toolbarState = result.react_grab_toolbar_state ?? null;
+    chrome.storage.local.get(["react_grab_enabled"], (result) => {
+      const enabled = result.react_grab_enabled ?? true;
 
-        window.postMessage(
-          {
-            type: "__REACT_GRAB_STATE_RESPONSE__",
-            enabled,
-            toolbarState,
-          },
-          "*",
-        );
-      },
-    );
+      window.postMessage(
+        {
+          type: "__REACT_GRAB_STATE_RESPONSE__",
+          enabled,
+        },
+        "*",
+      );
+    });
   }
 
-  if (event.data?.type === "__REACT_GRAB_TOOLBAR_STATE_SAVE__") {
-    chrome.storage.local.set({ react_grab_toolbar_state: event.data.state });
+  if (event.data?.type === "__REACT_GRAB_GET_WORKER_URL__") {
+    const workerUrl = chrome.runtime.getURL("src/worker.ts");
+    window.postMessage({ type: "__REACT_GRAB_WORKER_URL__", workerUrl }, "*");
   }
 });

@@ -57,6 +57,7 @@ interface ToolbarProps {
     callback: (state: ToolbarState) => void,
   ) => () => void;
   onSelectHoverChange?: (isHovered: boolean) => void;
+  persistToolbarState?: boolean;
 }
 
 export const Toolbar: Component<ToolbarProps> = (props) => {
@@ -757,12 +758,12 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   };
 
   const saveAndNotify = (state: ToolbarState) => {
-    saveToolbarState(state);
+    saveToolbarState(state, props.persistToolbarState);
     props.onStateChange?.(state);
   };
 
   onMount(() => {
-    const savedState = loadToolbarState();
+    const savedState = loadToolbarState(props.persistToolbarState);
     const rect = containerRef?.getBoundingClientRect();
     const viewport = getVisualViewport();
 
