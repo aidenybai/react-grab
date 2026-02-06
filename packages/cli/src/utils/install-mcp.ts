@@ -168,7 +168,8 @@ export const insertIntoJsonc = (
   if (lastBrace === -1) return;
 
   const beforeBrace = content.slice(0, lastBrace).trimEnd();
-  const lastChar = beforeBrace[beforeBrace.length - 1];
+  const withoutComments = beforeBrace.replace(/\/\/.*$/, "").trimEnd();
+  const lastChar = withoutComments[withoutComments.length - 1];
   const needsComma =
     lastChar !== undefined && lastChar !== "{" && lastChar !== ",";
 

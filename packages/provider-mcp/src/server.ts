@@ -171,6 +171,7 @@ const listenWithRetry = (httpServer: Server, port: number): Promise<void> =>
       await fkill(`:${port}`, { force: true, silent: true }).catch(() => {});
       await sleep(POST_KILL_DELAY_MS);
 
+      httpServer.once("error", reject);
       httpServer.listen(port, () => resolve());
     });
 
