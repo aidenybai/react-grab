@@ -851,7 +851,16 @@ export const init = new Command()
           }
 
           if (connectionMode === "mcp") {
-            await promptMcpInstall();
+            const didInstall = await promptMcpInstall();
+            if (!didInstall) {
+              logger.break();
+              process.exit(0);
+            }
+            logger.break();
+            logger.success("MCP server has been configured.");
+            logger.log("Restart your agents to activate.");
+            logger.break();
+            process.exit(0);
           } else {
             const { agent } = await prompts({
               type: "select",
