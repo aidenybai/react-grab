@@ -11,6 +11,10 @@ import {
   installPackages,
   uninstallPackages,
 } from "../utils/install.js";
+import {
+  promptConnectionMode,
+  promptMcpInstall,
+} from "../utils/install-mcp.js";
 import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
 import { AGENTS, AGENT_NAMES, type Agent } from "../utils/templates.js";
@@ -144,10 +148,32 @@ export const add = new Command()
           logger.break();
         }
 
+        const connectionMode = await promptConnectionMode();
+
+        if (connectionMode === undefined) {
+          logger.break();
+          process.exit(1);
+        }
+
+        if (connectionMode === "mcp") {
+          const didInstall = await promptMcpInstall();
+          if (!didInstall) {
+            logger.break();
+            process.exit(0);
+          }
+          logger.break();
+          logger.log(
+            `${highlighter.success("Success!")} MCP server has been configured.`,
+          );
+          logger.log("Restart your agents to activate.");
+          logger.break();
+          process.exit(0);
+        }
+
         const { agent } = await prompts({
           type: "select",
           name: "agent",
-          message: `Which ${highlighter.info("coding agent")} would you like to connect?`,
+          message: `Which ${highlighter.info("agent integration")} would you like to add?`,
           choices: availableAgents.map((availableAgent) => ({
             title: AGENT_NAMES[availableAgent],
             value: availableAgent,

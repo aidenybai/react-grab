@@ -1,0 +1,52 @@
+import module from "node:module";
+import { defineConfig } from "tsup";
+
+export default defineConfig([
+  {
+    entry: {
+      client: "./src/client.ts",
+    },
+    format: ["cjs", "esm"],
+    dts: true,
+    clean: false,
+    splitting: false,
+    sourcemap: false,
+    target: "esnext",
+    platform: "browser",
+    treeshake: true,
+  },
+  {
+    entry: ["./src/client.ts"],
+    format: ["iife"],
+    globalName: "ReactGrabMcp",
+    outExtension: () => ({ js: ".global.js" }),
+    dts: false,
+    clean: false,
+    minify: process.env.NODE_ENV === "production",
+    splitting: false,
+    sourcemap: false,
+    target: "esnext",
+    platform: "browser",
+    treeshake: true,
+    noExternal: [/.*/],
+  },
+  {
+    entry: {
+      server: "./src/server.ts",
+      cli: "./src/cli.ts",
+    },
+    format: ["cjs", "esm"],
+    dts: true,
+    clean: false,
+    splitting: false,
+    sourcemap: false,
+    target: "node18",
+    platform: "node",
+    treeshake: true,
+    noExternal: [/.*/],
+    external: [
+      ...module.builtinModules,
+      ...module.builtinModules.map((name) => `node:${name}`),
+    ],
+  },
+]);

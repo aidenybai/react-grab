@@ -59,6 +59,7 @@ const PROVIDER_SCRIPTS: Record<string, string> = {
   codex: "/@provider-codex/client.global.js",
   gemini: "/@provider-gemini/client.global.js",
   droid: "/@provider-droid/client.global.js",
+  mcp: "/@provider-mcp/client.global.js",
 };
 
 interface ProviderBadgeProps {
