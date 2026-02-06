@@ -858,9 +858,8 @@ export const init = new Command()
             }
             logger.break();
             logger.success("MCP server has been configured.");
-            logger.log("Restart your agents to activate.");
+            logger.log("Continuing with React Grab installation...");
             logger.break();
-            process.exit(0);
           } else {
             const { agent } = await prompts({
               type: "select",
