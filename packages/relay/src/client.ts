@@ -110,7 +110,12 @@ export const createRelayClient = (
     for (let attempt = 0; attempt < MAX_UPGRADE_RETRIES; attempt++) {
       try {
         const response = await fetch(healthUrl);
-        if (!response.ok) continue;
+        if (!response.ok) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, UPGRADE_RETRY_DELAY_MS),
+          );
+          continue;
+        }
 
         const data = (await response.json()) as { status: string };
         if (data.status === "upgrading") {
