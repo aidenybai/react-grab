@@ -702,8 +702,30 @@ export const createRelayServer = (
     }
     handlerSockets.clear();
 
-    webSocketServer?.close();
-    httpServer?.close();
+    const webSocketClosePromise = new Promise<void>((resolve) => {
+      if (webSocketServer) {
+        webSocketServer.close(() => resolve());
+      } else {
+        resolve();
+      }
+    });
+
+    const httpServerClosePromise = new Promise<void>((resolve, reject) => {
+      if (httpServer) {
+        httpServer.close((error) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve();
+          }
+        });
+      } else {
+        resolve();
+      }
+    });
+
+    await webSocketClosePromise;
+    await httpServerClosePromise;
   };
 
   const registerHandler = (handler: AgentHandler) => {
