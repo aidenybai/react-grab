@@ -31,20 +31,49 @@ npx -y grab@latest init -y
 Init Options:
 ```
 Options:
-  -f, --framework        Override detected framework [choices: "next", "vite", "webpack"]
-  -p, --package-manager  Override detected package manager [choices: "npm", "yarn", "pnpm", "bun"]
-  -r, --router           Next.js router type [choices: "app", "pages"]
-  -k, --key              Activation key (e.g., "Meta+K", "Ctrl+Shift+G", "Space")
-  -y, --yes              Skip all prompts and use auto-detected/default values
-      --skip-install     Only modify config files, skip package install
+  -y, --yes              Skip confirmation prompts
+  -f, --force            Force overwrite existing config
+  -a, --agent <agent>    Connect to your agent (claude-code, cursor, opencode, codex, gemini, amp, ami, droid, mcp)
+  -k, --key <key>        Activation key (e.g., "Meta+K", "Ctrl+Shift+G", "Space")
+      --skip-install     Skip package installation
+  -c, --cwd <cwd>        Working directory (defaults to current directory)
 
 Examples:
   npx -y grab@latest init -y                         # Auto-detect and install without prompts
-  npx -y grab@latest init -f next -r app -y          # Configure for Next.js App Router
+  npx -y grab@latest init -a cursor -y               # Connect to Cursor agent
+  npx -y grab@latest init -a mcp -y                  # Connect via MCP
   npx -y grab@latest init -k "Meta+K" -y             # Set activation key to Cmd+K / Win+K
 ```
 
 The CLI will detect your framework and add the necessary scripts automatically.
+
+### Agent Connection
+
+Connect React Grab to your coding agent:
+
+```bash
+npx -y grab@latest add [agent]
+```
+
+Add Options:
+```
+Options:
+  -y, --yes              Skip confirmation prompts
+  -c, --cwd <cwd>        Working directory (defaults to current directory)
+
+Agents: claude-code, cursor, opencode, codex, gemini, amp, ami, droid, mcp
+
+Examples:
+  npx -y grab@latest add cursor                      # Connect to Cursor
+  npx -y grab@latest add claude-code                  # Connect to Claude Code
+  npx -y grab@latest add mcp                          # Connect via MCP
+```
+
+Disconnect an agent:
+
+```bash
+npx -y grab@latest remove [agent]
+```
 
 ### Configuration
 
@@ -57,17 +86,20 @@ npx -y grab@latest config
 Config Options:
 ```
 Options:
-  -k, --key <key>           Activation key (e.g., "Meta+K", "Ctrl+Shift+G", "Space")
-  -m, --mode <mode>         Activation mode [choices: "toggle", "hold"]
-      --hold-duration <ms>  Key hold duration in milliseconds (for hold mode)
-      --allow-input <bool>  Allow activation inside input fields [choices: "true", "false"]
-      --context-lines <n>   Max context lines to include
+  -y, --yes                  Skip confirmation prompts
+  -k, --key <key>            Activation key (e.g., "Meta+K", "Ctrl+Shift+G", "Space")
+  -m, --mode <mode>          Activation mode (toggle, hold)
+      --hold-duration <ms>   Key hold duration in milliseconds (for hold mode)
+      --allow-input <bool>   Allow activation inside input fields (true/false)
+      --context-lines <n>    Max context lines to include
+      --cdn <domain>         CDN domain (e.g., unpkg.com, custom.react-grab.com)
+  -c, --cwd <cwd>            Working directory (defaults to current directory)
 
 Examples:
   npx -y grab@latest config -k "Meta+K"              # Set activation key to Cmd+K / Win+K
   npx -y grab@latest config -k "Ctrl+Shift+G"        # Set activation key to Ctrl+Shift+G
   npx -y grab@latest config -m hold --hold-duration 150   # Use hold mode with 150ms delay
-  npx -y grab@latest config --context-lines 5        # Include 5 lines of context
+  npx -y grab@latest config --context-lines 5         # Include 5 lines of context
 ```
 
 To discover all available commands and flags:
@@ -75,6 +107,7 @@ To discover all available commands and flags:
 ```bash
 npx -y grab@latest --help
 npx -y grab@latest init --help
+npx -y grab@latest add --help
 npx -y grab@latest config --help
 ```
 

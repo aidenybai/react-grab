@@ -42,7 +42,7 @@ export const add = new Command()
   .name("add")
   .alias("install")
   .description("connect React Grab to your agent")
-  .argument("[agent]", `agent to add (${AGENTS.join(", ")})`)
+  .argument("[agent]", `agent to connect (${AGENTS.join(", ")}, mcp)`)
   .option("-y, --yes", "skip confirmation prompts", false)
   .option(
     "-c, --cwd <cwd>",
@@ -233,7 +233,7 @@ export const add = new Command()
         }
       } else {
         logger.break();
-        logger.error("Please specify an agent to add.");
+        logger.error("Please specify an agent to connect.");
         logger.error("Available agents: " + availableAgents.join(", "));
         logger.break();
         process.exit(1);

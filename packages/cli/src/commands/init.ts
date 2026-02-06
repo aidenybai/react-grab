@@ -124,7 +124,7 @@ export const init = new Command()
   .option("-f, --force", "force overwrite existing config", false)
   .option(
     "-a, --agent <agent>",
-    "connect to your agent (claude-code, cursor, opencode, codex, gemini, amp, mcp)",
+    `connect to your agent (${AGENTS.join(", ")}, mcp)`,
   )
   .option(
     "-k, --key <key>",

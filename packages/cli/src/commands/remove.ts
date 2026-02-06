@@ -8,7 +8,7 @@ import { highlighter } from "../utils/highlighter.js";
 import { getPackagesToUninstall, uninstallPackages } from "../utils/install.js";
 import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
-import { getAgentDisplayName } from "../utils/templates.js";
+import { AGENTS, getAgentDisplayName } from "../utils/templates.js";
 import {
   applyPackageJsonTransform,
   applyTransform,
@@ -23,7 +23,7 @@ export const remove = new Command()
   .description("disconnect React Grab from your agent")
   .argument(
     "[agent]",
-    "agent to remove (claude-code, cursor, opencode, codex, gemini, amp, ami, mcp)",
+    `agent to disconnect (${AGENTS.join(", ")}, mcp)`,
   )
   .option("-y, --yes", "skip confirmation prompts", false)
   .option(
@@ -98,7 +98,7 @@ export const remove = new Command()
         agentToRemove = agent;
       } else {
         logger.break();
-        logger.error("Please specify an agent to remove.");
+        logger.error("Please specify an agent to disconnect.");
         logger.error(
           "Installed agents: " + projectInfo.installedAgents.join(", "),
         );

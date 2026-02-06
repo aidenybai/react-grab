@@ -451,9 +451,9 @@ export const InstallTabs = ({
       )}
       {showAgentNote && activeTabId !== "cli" && (
         <span className="mt-2 block text-sm text-white/50 sm:text-base">
-          Want to integrate directly with your coding agent?{" "}
+          Want to connect directly to your coding agent?{" "}
           <a href="/blog/agent" className="underline hover:text-white/70">
-            See our agent integration guide
+            See our agent connection guide
           </a>
         </span>
       )}
