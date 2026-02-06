@@ -85,6 +85,9 @@ export interface Certificate {
 const CA_INSTALLED_FLAG = join(DATA_DIR, ".ca-installed");
 
 const validateHostname = (hostname: string): void => {
+  if (hostname.startsWith("-")) {
+    throw new Error(`Invalid hostname (leading hyphen): ${hostname}`);
+  }
   if (!/^[a-zA-Z0-9.-]+$/.test(hostname)) {
     throw new Error(`Invalid hostname: ${hostname}`);
   }
@@ -131,7 +134,7 @@ export const ensureCertificates = async (
 
   if (shouldRegenerateCerts) {
     await runMkcert(
-      `-key-file "${KEY_PATH}" -cert-file "${CERT_PATH}" ${hosts.join(" ")}`,
+      `-key-file "${KEY_PATH}" -cert-file "${CERT_PATH}" -- ${hosts.join(" ")}`,
     );
     await writeFile(HOSTS_METADATA_PATH, JSON.stringify(hosts));
   }
