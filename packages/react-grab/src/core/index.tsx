@@ -249,6 +249,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const shouldPersistToolbarState = () =>
       pluginRegistry.store.options.persistToolbarState !== false;
+    const resolveToolbarState = (): ToolbarState | null =>
+      loadToolbarState(shouldPersistToolbarState()) ?? currentToolbarState();
     const savedToolbarState = loadToolbarState(
       initialOptions.persistToolbarState !== false,
     );
@@ -1518,16 +1520,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handleToggleEnabled = () => {
       const newEnabled = !isEnabled();
       setIsEnabled(newEnabled);
-      const persistEnabled = shouldPersistToolbarState();
-      const currentState =
-        loadToolbarState(persistEnabled) ?? currentToolbarState();
+      const currentState = resolveToolbarState();
       const newState = {
         edge: currentState?.edge ?? "bottom",
         ratio: currentState?.ratio ?? 0.5,
         collapsed: currentState?.collapsed ?? false,
         enabled: newEnabled,
       };
-      saveToolbarState(newState, persistEnabled);
+      saveToolbarState(newState, shouldPersistToolbarState());
       setCurrentToolbarState(newState);
       toolbarStateChangeCallbacks.forEach((cb) => cb(newState));
       if (!newEnabled) {
@@ -3512,21 +3512,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           inToggleFeedbackPeriod = false;
         }
       },
-      getToolbarState: () => {
-        const persistEnabled = shouldPersistToolbarState();
-        return loadToolbarState(persistEnabled) ?? currentToolbarState();
-      },
+      getToolbarState: () => resolveToolbarState(),
       setToolbarState: (state: Partial<ToolbarState>) => {
-        const persistEnabled = shouldPersistToolbarState();
-        const currentState =
-          loadToolbarState(persistEnabled) ?? currentToolbarState();
+        const currentState = resolveToolbarState();
         const newState = {
           edge: state.edge ?? currentState?.edge ?? "bottom",
           ratio: state.ratio ?? currentState?.ratio ?? 0.5,
           collapsed: state.collapsed ?? currentState?.collapsed ?? false,
           enabled: state.enabled ?? currentState?.enabled ?? true,
         };
-        saveToolbarState(newState, persistEnabled);
+        saveToolbarState(newState, shouldPersistToolbarState());
         setCurrentToolbarState(newState);
         if (state.enabled !== undefined && state.enabled !== isEnabled()) {
           setIsEnabled(state.enabled);

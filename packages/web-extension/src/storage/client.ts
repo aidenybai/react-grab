@@ -1,11 +1,5 @@
+import type { ToolbarState } from "react-grab";
 import { Sinking, type DatabaseSchema } from "sinking/core";
-
-interface ToolbarState {
-  edge: "top" | "bottom" | "left" | "right";
-  ratio: number;
-  collapsed: boolean;
-  enabled: boolean;
-}
 
 interface ToolbarStateRecord extends ToolbarState {
   id: string;
@@ -24,28 +18,31 @@ const schema: DatabaseSchema = {
 
 let sinkingClient: Sinking | null = null;
 
+const toToolbarState = (record: ToolbarStateRecord): ToolbarState => ({
+  edge: record.edge,
+  ratio: record.ratio,
+  collapsed: record.collapsed,
+  enabled: record.enabled,
+});
+
+const getToolbarStateQuery = () =>
+  sinkingClient!.get<ToolbarStateRecord>(
+    TOOLBAR_STATE_STORE,
+    TOOLBAR_STATE_KEY,
+  );
+
 export const initSinkingClient = (workerUrl: string | URL): Sinking => {
   if (sinkingClient) return sinkingClient;
   sinkingClient = new Sinking({ workerUrl, schema });
   return sinkingClient;
 };
 
-export const getSinkingClient = (): Sinking | null => sinkingClient;
-
 export const loadToolbarStateFromSinking =
   async (): Promise<ToolbarState | null> => {
     if (!sinkingClient) return null;
-    const record = await sinkingClient.get<ToolbarStateRecord>(
-      TOOLBAR_STATE_STORE,
-      TOOLBAR_STATE_KEY,
-    );
+    const record = await getToolbarStateQuery();
     if (!record) return null;
-    return {
-      edge: record.edge,
-      ratio: record.ratio,
-      collapsed: record.collapsed,
-      enabled: record.enabled,
-    };
+    return toToolbarState(record);
   };
 
 export const saveToolbarStateToSinking = async (
@@ -58,25 +55,14 @@ export const saveToolbarStateToSinking = async (
 
 export const subscribeToToolbarState = (listener: () => void): (() => void) => {
   if (!sinkingClient) return () => {};
-  const query = sinkingClient.get<ToolbarStateRecord>(
-    TOOLBAR_STATE_STORE,
-    TOOLBAR_STATE_KEY,
-  );
-  return sinkingClient.subscribe(query.description, listener);
+  return sinkingClient.subscribe(getToolbarStateQuery().description, listener);
 };
 
 export const getCachedToolbarState = (): ToolbarState | null => {
   if (!sinkingClient) return null;
-  const query = sinkingClient.get<ToolbarStateRecord>(
-    TOOLBAR_STATE_STORE,
-    TOOLBAR_STATE_KEY,
+  const record = sinkingClient.getCached<ToolbarStateRecord>(
+    getToolbarStateQuery().description,
   );
-  const record = sinkingClient.getCached<ToolbarStateRecord>(query.description);
   if (!record) return null;
-  return {
-    edge: record.edge,
-    ratio: record.ratio,
-    collapsed: record.collapsed,
-    enabled: record.enabled,
-  };
+  return toToolbarState(record);
 };

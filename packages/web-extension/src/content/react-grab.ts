@@ -1,5 +1,5 @@
 import { init } from "react-grab/core";
-import type { Options, ReactGrabAPI } from "react-grab";
+import type { Options, ReactGrabAPI, ToolbarState } from "react-grab";
 import TurndownService from "turndown";
 import {
   LOCALHOST_INIT_DELAY_MS,
@@ -25,13 +25,6 @@ const isLocalhost =
   window.location.hostname.endsWith(".localhost");
 
 const turndownService = new TurndownService();
-
-interface ToolbarState {
-  edge: "top" | "bottom" | "left" | "right";
-  ratio: number;
-  collapsed: boolean;
-  enabled: boolean;
-}
 
 let extensionApi: ReactGrabAPI | null = null;
 let lastToolbarState: ToolbarState | null = null;
@@ -76,16 +69,10 @@ const handleSinkingChange = (): void => {
 };
 
 const subscribeToStateChanges = (api: ReactGrabAPI): void => {
-  if (stateChangeUnsubscribe) {
-    stateChangeUnsubscribe();
-  }
-  stateChangeUnsubscribe = api.onToolbarStateChange((state) => {
-    handleToolbarStateFromApi(state);
-  });
+  stateChangeUnsubscribe?.();
+  stateChangeUnsubscribe = api.onToolbarStateChange(handleToolbarStateFromApi);
 
-  if (sinkingUnsubscribe) {
-    sinkingUnsubscribe();
-  }
+  sinkingUnsubscribe?.();
   sinkingUnsubscribe = subscribeToToolbarState(handleSinkingChange);
 };
 
