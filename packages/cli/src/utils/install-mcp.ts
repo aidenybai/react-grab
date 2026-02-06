@@ -110,12 +110,7 @@ const getClients = (): ClientDefinition[] => {
     },
     {
       name: "Windsurf",
-      configPath: path.join(
-        homeDir,
-        ".codeium",
-        "windsurf",
-        "mcp_config.json",
-      ),
+      configPath: path.join(homeDir, ".codeium", "windsurf", "mcp_config.json"),
       configKey: "mcpServers",
       format: "json",
       serverConfig: stdioConfig,
@@ -149,7 +144,8 @@ export const insertIntoJsonc = (
     JSON.stringify(serverConfig, null, 2),
     "      ",
   );
-  const keyPattern = new RegExp(`"${configKey}"\\s*:\\s*\\{`);
+  const escapedConfigKey = configKey.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const keyPattern = new RegExp(`"${escapedConfigKey}"\\s*:\\s*\\{`);
   const keyMatch = keyPattern.exec(content);
 
   if (keyMatch) {
@@ -157,9 +153,7 @@ export const insertIntoJsonc = (
     const entry = `\n    "${serverName}": ${serverJson},`;
     fs.writeFileSync(
       filePath,
-      content.slice(0, insertPosition) +
-        entry +
-        content.slice(insertPosition),
+      content.slice(0, insertPosition) + entry + content.slice(insertPosition),
     );
     return;
   }
@@ -184,10 +178,7 @@ export const installJsonClient = (client: ClientDefinition): void => {
     const config = {
       [client.configKey]: { [SERVER_NAME]: client.serverConfig },
     };
-    fs.writeFileSync(
-      client.configPath,
-      JSON.stringify(config, null, 2) + "\n",
-    );
+    fs.writeFileSync(client.configPath, JSON.stringify(config, null, 2) + "\n");
     return;
   }
 
@@ -195,14 +186,10 @@ export const installJsonClient = (client: ClientDefinition): void => {
 
   try {
     const config = JSON.parse(content) as Record<string, unknown>;
-    const servers =
-      (config[client.configKey] as Record<string, unknown>) ?? {};
+    const servers = (config[client.configKey] as Record<string, unknown>) ?? {};
     servers[SERVER_NAME] = client.serverConfig;
     config[client.configKey] = servers;
-    fs.writeFileSync(
-      client.configPath,
-      JSON.stringify(config, null, 2) + "\n",
-    );
+    fs.writeFileSync(client.configPath, JSON.stringify(config, null, 2) + "\n");
   } catch {
     insertIntoJsonc(
       client.configPath,
@@ -234,10 +221,7 @@ export const installTomlClient = (client: ClientDefinition): void => {
   ensureDirectory(client.configPath);
 
   const sectionHeader = `[${client.configKey}.${SERVER_NAME}]`;
-  const newSection = buildTomlSection(
-    client.configKey,
-    client.serverConfig,
-  );
+  const newSection = buildTomlSection(client.configKey, client.serverConfig);
 
   if (!fs.existsSync(client.configPath)) {
     fs.writeFileSync(client.configPath, newSection + "\n");
@@ -308,8 +292,7 @@ export const installMcpServers = (
         success: true,
       });
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : String(error);
+      const message = error instanceof Error ? error.message : String(error);
       results.push({
         client: client.name,
         configPath: client.configPath,
@@ -387,6 +370,7 @@ export const promptMcpInstall = async (): Promise<boolean> => {
   }
 
   logger.break();
-  installMcpServers(selectedAgents);
-  return true;
+  const results = installMcpServers(selectedAgents);
+  const hasSuccess = results.some((result) => result.success);
+  return hasSuccess;
 };
