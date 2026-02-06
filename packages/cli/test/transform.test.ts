@@ -4,6 +4,8 @@ import {
   applyTransform,
   previewPackageJsonTransform,
   applyPackageJsonTransform,
+  previewAgentRemoval,
+  previewPackageJsonAgentRemoval,
 } from "../src/utils/transform.js";
 
 vi.mock("node:fs", () => ({
@@ -193,6 +195,28 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     expect(result.newContent).toContain("@react-grab/cursor");
   });
 
+  it("should add MCP client to layout when agent is mcp", () => {
+    const layoutWithHead = `export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <head></head>
+      <body>{children}</body>
+    </html>
+  );
+}`;
+
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("layout.tsx"),
+    );
+    mockReadFileSync.mockReturnValue(layoutWithHead);
+
+    const result = previewTransform("/test", "next", "app", "mcp", false);
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain("react-grab");
+    expect(result.newContent).toContain("@react-grab/mcp");
+  });
+
   it("should fail when layout file not found", () => {
     mockExistsSync.mockReturnValue(false);
 
@@ -278,6 +302,19 @@ describe("previewTransform - Vite", () => {
 
     expect(result.success).toBe(true);
     expect(result.newContent).toContain("@react-grab/claude-code");
+  });
+
+  it("should add MCP client to Vite index.html when agent is mcp", () => {
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("index.html"),
+    );
+    mockReadFileSync.mockReturnValue(indexContent);
+
+    const result = previewTransform("/test", "vite", "unknown", "mcp", false);
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).toContain("react-grab");
+    expect(result.newContent).toContain("@react-grab/mcp/client");
   });
 });
 
@@ -645,6 +682,14 @@ describe("previewPackageJsonTransform", () => {
     expect(result.noChanges).toBe(true);
   });
 
+  it("should skip package.json when agent is mcp", () => {
+    const result = previewPackageJsonTransform("/test", "mcp", []);
+
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBe(true);
+    expect(result.message).toContain("MCP");
+  });
+
   it("should not duplicate if agent is already configured", () => {
     const packageJsonWithAgent = JSON.stringify(
       {
@@ -891,6 +936,55 @@ describe("previewPackageJsonTransform", () => {
       "pnpm",
     );
     expect(pnpmResult.warning).toContain("pnpm dlx @react-grab/cursor@latest");
+  });
+});
+
+describe("previewAgentRemoval", () => {
+  it("should remove MCP script from Next.js layout", () => {
+    const layoutWithMcp = `import Script from "next/script";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <head>
+        <Script src="//unpkg.com/react-grab/dist/index.global.js" strategy="beforeInteractive" />
+        {process.env.NODE_ENV === "development" && (
+          <Script src="//unpkg.com/@react-grab/mcp/dist/client.global.js" strategy="lazyOnload" />
+        )}
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}`;
+
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("layout.tsx"),
+    );
+    mockReadFileSync.mockReturnValue(layoutWithMcp);
+
+    const result = previewAgentRemoval("/test", "next", "app", "mcp");
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).not.toContain("@react-grab/mcp");
+    expect(result.newContent).toContain("react-grab");
+  });
+});
+
+describe("previewPackageJsonAgentRemoval", () => {
+  it("should return noChanges for mcp since it has no dev script prefix", () => {
+    const packageJsonContent = JSON.stringify(
+      { name: "my-app", scripts: { dev: "next dev" } },
+      null,
+      2,
+    );
+
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(packageJsonContent);
+
+    const result = previewPackageJsonAgentRemoval("/test", "mcp");
+
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBe(true);
   });
 });
 

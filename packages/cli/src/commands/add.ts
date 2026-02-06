@@ -17,7 +17,13 @@ import {
 } from "../utils/install-mcp.js";
 import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
-import { AGENTS, AGENT_NAMES, type Agent } from "../utils/templates.js";
+import {
+  AGENTS,
+  AGENT_NAMES,
+  type Agent,
+  type AgentIntegration,
+  getAgentDisplayName,
+} from "../utils/templates.js";
 import {
   applyPackageJsonTransform,
   applyTransform,
@@ -35,7 +41,7 @@ const formatInstalledAgentNames = (agents: string[]): string =>
 export const add = new Command()
   .name("add")
   .alias("install")
-  .description("add an agent integration")
+  .description("connect React Grab to your agent")
   .argument("[agent]", `agent to add (${AGENTS.join(", ")})`)
   .option("-y, --yes", "skip confirmation prompts", false)
   .option(
@@ -73,14 +79,15 @@ export const add = new Command()
         (agent) => !projectInfo.installedAgents.includes(agent),
       );
 
-      if (availableAgents.length === 0) {
+      if (availableAgents.length === 0 && isNonInteractive && !agentArg) {
         logger.break();
-        logger.success("All agent integrations are already installed.");
+        logger.success("All legacy agents are already installed.");
+        logger.log("Run without -y to add MCP.");
         logger.break();
         process.exit(0);
       }
 
-      let agentIntegration: Agent;
+      let agentIntegration: AgentIntegration;
       let agentsToRemove: Agent[] = [];
 
       if (agentArg) {
@@ -117,11 +124,11 @@ export const add = new Command()
             message: "How would you like to proceed?",
             choices: [
               {
-                title: `Replace with ${AGENT_NAMES[agentIntegration]}`,
+                title: `Replace with ${getAgentDisplayName(agentIntegration)}`,
                 value: "replace",
               },
               {
-                title: `Add ${AGENT_NAMES[agentIntegration]} alongside existing`,
+                title: `Add ${getAgentDisplayName(agentIntegration)} alongside existing`,
                 value: "add",
               },
               { title: "Cancel", value: "cancel" },
@@ -167,25 +174,28 @@ export const add = new Command()
           );
           logger.log("Restart your agents to activate.");
           logger.break();
-          process.exit(0);
-        }
+          agentIntegration = "mcp";
+          projectInfo.installedAgents = [...projectInfo.installedAgents, "mcp"];
+        } else {
+          const { agent } = await prompts({
+            type: "select",
+            name: "agent",
+            message: `Which ${highlighter.info("agent")} would you like to connect?`,
+            choices: [
+              ...availableAgents.map((availableAgent) => ({
+                title: AGENT_NAMES[availableAgent],
+                value: availableAgent,
+              })),
+              { title: "Skip", value: "skip" },
+            ],
+          });
 
-        const { agent } = await prompts({
-          type: "select",
-          name: "agent",
-          message: `Which ${highlighter.info("agent integration")} would you like to add?`,
-          choices: availableAgents.map((availableAgent) => ({
-            title: AGENT_NAMES[availableAgent],
-            value: availableAgent,
-          })),
-        });
+          if (!agent || agent === "skip") {
+            logger.break();
+            process.exit(0);
+          }
 
-        if (!agent) {
-          logger.break();
-          process.exit(1);
-        }
-
-        agentIntegration = agent;
+          agentIntegration = agent as AgentIntegration;
 
         if (projectInfo.installedAgents.length > 0) {
           const installedNames = formatInstalledAgentNames(
@@ -198,11 +208,11 @@ export const add = new Command()
             message: "How would you like to proceed?",
             choices: [
               {
-                title: `Replace ${installedNames} with ${AGENT_NAMES[agentIntegration]}`,
+                title: `Replace ${installedNames} with ${getAgentDisplayName(agentIntegration)}`,
                 value: "replace",
               },
               {
-                title: `Add ${AGENT_NAMES[agentIntegration]} alongside existing`,
+                title: `Add ${getAgentDisplayName(agentIntegration)} alongside existing`,
                 value: "add",
               },
               { title: "Cancel", value: "cancel" },
@@ -219,6 +229,7 @@ export const add = new Command()
           if (action === "replace") {
             agentsToRemove = [...projectInfo.installedAgents] as Agent[];
           }
+        }
         }
       } else {
         logger.break();
@@ -311,7 +322,7 @@ export const add = new Command()
       }
 
       const addingSpinner = spinner(
-        `Adding ${AGENT_NAMES[agentIntegration]}.`,
+        `Adding ${getAgentDisplayName(agentIntegration)}.`,
       ).start();
       addingSpinner.succeed();
 
@@ -438,7 +449,7 @@ export const add = new Command()
 
       logger.break();
       logger.log(
-        `${highlighter.success("Success!")} ${AGENT_NAMES[agentIntegration]} has been added.`,
+        `${highlighter.success("Success!")} ${getAgentDisplayName(agentIntegration)} has been added.`,
       );
       if (packageJsonResult.warning) {
         logger.warn(packageJsonResult.warning);

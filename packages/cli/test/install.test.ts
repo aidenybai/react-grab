@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { getPackagesToInstall } from "../src/utils/install.js";
+import {
+  getPackagesToInstall,
+  getPackagesToUninstall,
+} from "../src/utils/install.js";
 
 describe("getPackagesToInstall", () => {
   it("should return only react-grab when no agent and includeReactGrab is true", () => {
@@ -33,5 +36,31 @@ describe("getPackagesToInstall", () => {
       const packages = getPackagesToInstall(agent, false);
       expect(packages).toEqual([`@react-grab/${agent}`]);
     }
+  });
+
+  it("should return @react-grab/mcp when agent is mcp", () => {
+    const packages = getPackagesToInstall("mcp", false);
+
+    expect(packages).toEqual(["@react-grab/mcp"]);
+  });
+
+  it("should return react-grab and @react-grab/mcp when agent is mcp and includeReactGrab is true", () => {
+    const packages = getPackagesToInstall("mcp", true);
+
+    expect(packages).toEqual(["react-grab", "@react-grab/mcp"]);
+  });
+});
+
+describe("getPackagesToUninstall", () => {
+  it("should return @react-grab/mcp for mcp agent", () => {
+    const packages = getPackagesToUninstall("mcp");
+
+    expect(packages).toEqual(["@react-grab/mcp"]);
+  });
+
+  it("should return legacy agent package", () => {
+    const packages = getPackagesToUninstall("cursor");
+
+    expect(packages).toEqual(["@react-grab/cursor"]);
   });
 });

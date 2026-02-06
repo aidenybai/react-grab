@@ -909,6 +909,15 @@ export const previewPackageJsonTransform = (
     };
   }
 
+  if (agent === "mcp") {
+    return {
+      success: true,
+      filePath: "",
+      message: "MCP does not use package.json dev script",
+      noChanges: true,
+    };
+  }
+
   const packageJsonPath = join(projectRoot, "package.json");
 
   if (!existsSync(packageJsonPath)) {

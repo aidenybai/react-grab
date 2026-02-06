@@ -8,12 +8,10 @@ import { handleError } from "./handle-error.js";
 import { installPackages, uninstallPackages } from "./install.js";
 import { logger } from "./logger.js";
 import { spinner } from "./spinner.js";
-import { AGENT_NAMES } from "./templates.js";
+import { getAgentDisplayName } from "./templates.js";
 
 export const formatInstalledAgentNames = (agents: string[]): string =>
-  agents
-    .map((agent) => AGENT_NAMES[agent as keyof typeof AGENT_NAMES] ?? agent)
-    .join(", ");
+  agents.map(getAgentDisplayName).join(", ");
 
 export const applyTransformWithFeedback = (
   result: TransformResult,

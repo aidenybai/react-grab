@@ -11,7 +11,7 @@ export const AGENTS = [
 
 export type Agent = (typeof AGENTS)[number];
 
-export type AgentIntegration = Agent | "none";
+export type AgentIntegration = Agent | "mcp" | "none";
 
 export const AGENT_NAMES: Record<Agent, string> = {
   "claude-code": "Claude Code",
@@ -22,6 +22,14 @@ export const AGENT_NAMES: Record<Agent, string> = {
   amp: "Amp",
   ami: "Ami",
   droid: "Droid",
+};
+
+export const getAgentDisplayName = (agent: string): string => {
+  if (agent === "mcp") return "MCP";
+  if (agent in AGENT_NAMES) {
+    return AGENT_NAMES[agent as Agent];
+  }
+  return agent;
 };
 
 export const PROVIDERS = AGENTS.filter((agent) => agent !== "ami").map(

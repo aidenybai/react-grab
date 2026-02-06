@@ -317,6 +317,7 @@ const AGENT_PACKAGES = [
   "@react-grab/gemini",
   "@react-grab/amp",
   "@react-grab/ami",
+  "@react-grab/mcp",
 ];
 
 export const detectUnsupportedFramework = (

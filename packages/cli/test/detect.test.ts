@@ -262,6 +262,20 @@ describe("detectInstalledAgents", () => {
 
     expect(detectInstalledAgents("/test")).toEqual([]);
   });
+
+  it("should detect mcp when @react-grab/mcp is installed", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(
+      JSON.stringify({
+        devDependencies: {
+          "@react-grab/mcp": "0.1.0",
+        },
+      }),
+    );
+
+    const agents = detectInstalledAgents("/test");
+    expect(agents).toContain("mcp");
+  });
 });
 
 describe("detectMonorepo", () => {

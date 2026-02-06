@@ -30,8 +30,8 @@ import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
 import {
   AGENTS,
-  AGENT_NAMES,
   type AgentIntegration,
+  getAgentDisplayName,
 } from "../utils/templates.js";
 import {
   previewAgentRemoval,
@@ -97,12 +97,7 @@ const UNSUPPORTED_FRAMEWORK_NAMES: Record<
   gatsby: "Gatsby",
 };
 
-const getAgentName = (agent: string): string => {
-  if (agent in AGENT_NAMES) {
-    return AGENT_NAMES[agent as keyof typeof AGENT_NAMES];
-  }
-  return agent;
-};
+const getAgentName = getAgentDisplayName;
 
 const formatActivationKeyDisplay = (
   activationKey: ReactGrabOptions["activationKey"],
@@ -129,7 +124,7 @@ export const init = new Command()
   .option("-f, --force", "force overwrite existing config", false)
   .option(
     "-a, --agent <agent>",
-    "agent integration (claude-code, cursor, opencode, codex, gemini, amp)",
+    "connect to your agent (claude-code, cursor, opencode, codex, gemini, amp, mcp)",
   )
   .option(
     "-k, --key <key>",
@@ -412,45 +407,132 @@ export const init = new Command()
           (agent) => !projectInfo.installedAgents.includes(agent),
         );
 
-        if (availableAgents.length > 0) {
-          logger.break();
-          const { wantAddAgent } = await prompts({
-            type: "confirm",
-            name: "wantAddAgent",
-            message: `Would you like to add an ${highlighter.info("agent integration")}?`,
-            initial: false,
-          });
+        logger.break();
+        const { wantAddAgent } = await prompts({
+          type: "confirm",
+          name: "wantAddAgent",
+          message: `Would you like to ${highlighter.info("connect it to your agent")}?`,
+          initial: false,
+        });
 
-          if (wantAddAgent === undefined) {
+        if (wantAddAgent === undefined) {
+          logger.break();
+          process.exit(1);
+        }
+
+        if (wantAddAgent) {
+          const connectionMode = await promptConnectionMode();
+
+          if (connectionMode === undefined) {
             logger.break();
             process.exit(1);
           }
 
-          if (wantAddAgent) {
-            const connectionMode = await promptConnectionMode();
+          let agentIntegration: AgentIntegration;
 
-            if (connectionMode === undefined) {
+          if (connectionMode === "mcp") {
+            const didInstall = await promptMcpInstall();
+            if (!didInstall) {
+              logger.break();
+              process.exit(0);
+            }
+            logger.break();
+            logger.success("MCP server has been configured.");
+            logger.log("Restart your agents to activate.");
+            agentIntegration = "mcp";
+            projectInfo.installedAgents = ["mcp"];
+
+            const result = previewTransform(
+              projectInfo.projectRoot,
+              projectInfo.framework,
+              projectInfo.nextRouterType,
+              agentIntegration,
+              true,
+            );
+
+            const packageJsonResult = previewPackageJsonTransform(
+              projectInfo.projectRoot,
+              agentIntegration,
+              projectInfo.installedAgents,
+              projectInfo.packageManager,
+            );
+
+            if (!result.success) {
+              logger.break();
+              logger.error(result.message);
               logger.break();
               process.exit(1);
             }
 
-            if (connectionMode === "mcp") {
-              const didInstall = await promptMcpInstall();
-              if (!didInstall) {
-                logger.break();
-                process.exit(0);
-              }
-              logger.break();
-              logger.success("MCP server has been configured.");
-              logger.log("Restart your agents to activate.");
-              logger.break();
-              process.exit(0);
-            }
+            const hasLayoutChanges =
+              !result.noChanges &&
+              result.originalContent &&
+              result.newContent;
+            const hasPackageJsonChanges =
+              packageJsonResult.success &&
+              !packageJsonResult.noChanges &&
+              packageJsonResult.originalContent &&
+              packageJsonResult.newContent;
 
+            if (hasLayoutChanges || hasPackageJsonChanges) {
+              logger.break();
+
+              if (hasLayoutChanges) {
+                printDiff(
+                  result.filePath,
+                  result.originalContent!,
+                  result.newContent!,
+                );
+              }
+
+              if (hasPackageJsonChanges) {
+                if (hasLayoutChanges) {
+                  logger.break();
+                }
+                printDiff(
+                  packageJsonResult.filePath,
+                  packageJsonResult.originalContent!,
+                  packageJsonResult.newContent!,
+                );
+              }
+
+              logger.break();
+              const { proceed } = await prompts({
+                type: "confirm",
+                name: "proceed",
+                message: "Apply these changes?",
+                initial: true,
+              });
+
+              if (!proceed) {
+                logger.break();
+                logger.log("Agent addition cancelled.");
+              } else {
+                installPackagesWithFeedback(
+                  getPackagesToInstall(agentIntegration, false),
+                  projectInfo.packageManager,
+                  projectInfo.projectRoot,
+                );
+
+                if (hasLayoutChanges) {
+                  applyTransformWithFeedback(result);
+                }
+
+                if (hasPackageJsonChanges) {
+                  applyPackageJsonWithFeedback(packageJsonResult);
+                }
+
+                logger.break();
+                logger.success(
+                  `${getAgentName(agentIntegration)} has been added.`,
+                );
+              }
+            }
+          } else {
             const { agent } = await prompts({
               type: "select",
               name: "agent",
-              message: `Which ${highlighter.info("agent integration")} would you like to add?`,
+              message: `Which ${highlighter.info("agent")} would you like to connect?`,
               choices: [
                 ...availableAgents.map((innerAgent) => ({
                   title: getAgentName(innerAgent),
@@ -465,7 +547,7 @@ export const init = new Command()
               process.exit(0);
             }
 
-            const agentIntegration = agent as AgentIntegration;
+            agentIntegration = agent as AgentIntegration;
             let agentsToRemove: string[] = [];
 
             if (projectInfo.installedAgents.length > 0) {
@@ -833,7 +915,7 @@ export const init = new Command()
         const { wantAddAgent } = await prompts({
           type: "confirm",
           name: "wantAddAgent",
-          message: `Would you like to add an ${highlighter.info("agent integration")}?`,
+          message: `Would you like to ${highlighter.info("connect it to your agent")}?`,
           initial: false,
         });
 
@@ -860,11 +942,12 @@ export const init = new Command()
             logger.success("MCP server has been configured.");
             logger.log("Continuing with React Grab installation...");
             logger.break();
+            agentIntegration = "mcp";
           } else {
             const { agent } = await prompts({
               type: "select",
               name: "agent",
-              message: `Which ${highlighter.info("agent integration")} would you like to add?`,
+              message: `Which ${highlighter.info("agent")} would you like to connect?`,
               choices: [
                 ...AGENTS.map((innerAgent) => ({
                   title: getAgentName(innerAgent),

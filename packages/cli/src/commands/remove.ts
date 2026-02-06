@@ -8,7 +8,7 @@ import { highlighter } from "../utils/highlighter.js";
 import { getPackagesToUninstall, uninstallPackages } from "../utils/install.js";
 import { logger } from "../utils/logger.js";
 import { spinner } from "../utils/spinner.js";
-import { AGENT_NAMES } from "../utils/templates.js";
+import { getAgentDisplayName } from "../utils/templates.js";
 import {
   applyPackageJsonTransform,
   applyTransform,
@@ -20,10 +20,10 @@ const VERSION = process.env.VERSION ?? "0.0.1";
 
 export const remove = new Command()
   .name("remove")
-  .description("remove an agent integration")
+  .description("disconnect React Grab from your agent")
   .argument(
     "[agent]",
-    "agent to remove (claude-code, cursor, opencode, codex, gemini, amp, ami)",
+    "agent to remove (claude-code, cursor, opencode, codex, gemini, amp, ami, mcp)",
   )
   .option("-y, --yes", "skip confirmation prompts", false)
   .option(
@@ -58,7 +58,7 @@ export const remove = new Command()
       if (projectInfo.installedAgents.length === 0) {
         preflightSpinner.succeed();
         logger.break();
-        logger.warn("No agent integrations are installed.");
+        logger.warn("No agent connections are installed.");
         logger.break();
         process.exit(0);
       }
@@ -72,7 +72,7 @@ export const remove = new Command()
           logger.break();
           logger.error(`Agent ${highlighter.info(agentArg)} is not installed.`);
           logger.log(
-            `Installed agents: ${projectInfo.installedAgents.map((innerAgent) => AGENT_NAMES[innerAgent] || innerAgent).join(", ")}`,
+            `Installed agents: ${projectInfo.installedAgents.map(getAgentDisplayName).join(", ")}`,
           );
           logger.break();
           process.exit(1);
@@ -83,9 +83,9 @@ export const remove = new Command()
         const { agent } = await prompts({
           type: "select",
           name: "agent",
-          message: `Which ${highlighter.info("agent integration")} would you like to remove?`,
+          message: `Which ${highlighter.info("agent")} would you like to disconnect?`,
           choices: projectInfo.installedAgents.map((innerAgent) => ({
-            title: AGENT_NAMES[innerAgent] || innerAgent,
+            title: getAgentDisplayName(innerAgent),
             value: innerAgent,
           })),
         });
@@ -107,7 +107,7 @@ export const remove = new Command()
       }
 
       const removingSpinner = spinner(
-        `Preparing to remove ${AGENT_NAMES[agentToRemove] || agentToRemove}.`,
+        `Preparing to remove ${getAgentDisplayName(agentToRemove)}.`,
       ).start();
       removingSpinner.succeed();
 
@@ -227,7 +227,7 @@ export const remove = new Command()
 
       logger.break();
       logger.log(
-        `${highlighter.success("Success!")} ${AGENT_NAMES[agentToRemove] || agentToRemove} has been removed.`,
+        `${highlighter.success("Success!")} ${getAgentDisplayName(agentToRemove)} has been removed.`,
       );
       logger.break();
     } catch (error) {
