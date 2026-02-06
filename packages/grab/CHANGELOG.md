@@ -1,5 +1,13 @@
 # grab
 
+## 0.1.13
+
+### Patch Changes
+
+- fix MCP client injection
+- Updated dependencies
+  - @react-grab/cli@0.1.13
+
 ## 0.1.12
 
 ### Patch Changes
