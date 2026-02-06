@@ -210,6 +210,12 @@ const startup = async (): Promise<void> => {
 
   if (workerUrl) {
     initSinkingClient(workerUrl);
+
+    const existingApi = getActiveApi();
+    if (existingApi) {
+      sinkingUnsubscribe?.();
+      sinkingUnsubscribe = subscribeToToolbarState(handleSinkingChange);
+    }
   }
 
   const api = await initializeReactGrab();
