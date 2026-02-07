@@ -557,7 +557,12 @@ export const createRelayServer = (
                 handlers: getRegisteredHandlerIds(),
               }),
             );
-            onSecureUpgradeRequested().catch(() => {});
+            onSecureUpgradeRequested().catch((error) => {
+              console.error(
+                "Failed to upgrade to secure connection:",
+                error instanceof Error ? error.message : error,
+              );
+            });
             return;
           }
 

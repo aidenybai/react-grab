@@ -25,7 +25,6 @@ interface GithubReleaseAsset {
 }
 
 interface GithubReleaseResponse {
-  tag_name: string;
   assets: GithubReleaseAsset[];
 }
 

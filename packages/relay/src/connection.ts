@@ -36,6 +36,7 @@ const checkIfRelayServerIsRunning = async (
       : `${httpProtocol}://localhost:${port}/health`;
 
     if (secure) {
+      // HACK: rejectUnauthorized: false is needed because mkcert generates self-signed certs
       const https = await import("node:https");
       return new Promise((resolve) => {
         const request = https.get(
@@ -104,6 +105,7 @@ export const connectRelay = async (
 
         printStartupMessage(handler.agentId, relayPort, true);
       } catch (error) {
+        // HACK: process.exit(1) because the old HTTP server is already stopped, so fallback isn't possible
         console.error(
           pc.red("Failed to upgrade to HTTPS:"),
           error instanceof Error ? error.message : error,
@@ -203,6 +205,7 @@ const connectToExistingRelay = async (
     const connectionUrl = token
       ? `${webSocketProtocol}://localhost:${port}?${RELAY_TOKEN_PARAM}=${encodeURIComponent(token)}`
       : `${webSocketProtocol}://localhost:${port}`;
+    // HACK: rejectUnauthorized: false is needed because mkcert generates self-signed certs
     const socket = new WebSocket(connectionUrl, {
       headers: { "x-relay-handler": "true" },
       rejectUnauthorized: false,

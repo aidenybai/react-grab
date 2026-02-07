@@ -7,6 +7,8 @@ import {
   DEFAULT_RELAY_PORT,
   DEFAULT_RECONNECT_INTERVAL_MS,
   RELAY_TOKEN_PARAM,
+  UPGRADE_RETRY_DELAY_MS,
+  MAX_UPGRADE_RETRIES,
 } from "./protocol.js";
 
 export interface RelayClient {
@@ -53,9 +55,6 @@ const getHealthCheckUrl = (wsUrl: string, token?: string): string => {
   }
   return url.toString();
 };
-
-const UPGRADE_RETRY_DELAY_MS = 1000;
-const MAX_UPGRADE_RETRIES = 5;
 
 export const createRelayClient = (
   options: RelayClientOptions = {},
@@ -126,10 +125,13 @@ export const createRelayClient = (
         }
         return;
       } catch {
-        await new Promise((resolve) =>
-          setTimeout(resolve, UPGRADE_RETRY_DELAY_MS),
-        );
-        continue;
+        if (attempt < MAX_UPGRADE_RETRIES - 1) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, UPGRADE_RETRY_DELAY_MS),
+          );
+          continue;
+        }
+        return;
       }
     }
   };
