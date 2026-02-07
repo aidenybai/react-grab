@@ -126,7 +126,10 @@ export const createRelayClient = (
         }
         return;
       } catch {
-        return;
+        await new Promise((resolve) =>
+          setTimeout(resolve, UPGRADE_RETRY_DELAY_MS),
+        );
+        continue;
       }
     }
   };
