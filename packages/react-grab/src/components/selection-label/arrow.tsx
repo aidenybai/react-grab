@@ -1,9 +1,11 @@
 import type { Component } from "solid-js";
 import type { ArrowProps } from "../../types.js";
+import { getArrowSize } from "../../utils/get-arrow-size.js";
 
 export const Arrow: Component<ArrowProps> = (props) => {
   const arrowColor = () => props.color ?? "white";
   const isBottom = () => props.position === "bottom";
+  const arrowSize = () => getArrowSize(props.labelWidth ?? 0);
 
   return (
     <div
@@ -16,10 +18,14 @@ export const Arrow: Component<ArrowProps> = (props) => {
         transform: isBottom()
           ? "translateX(-50%) translateY(-100%)"
           : "translateX(-50%) translateY(100%)",
-        "border-left": "8px solid transparent",
-        "border-right": "8px solid transparent",
-        "border-bottom": isBottom() ? `8px solid ${arrowColor()}` : undefined,
-        "border-top": isBottom() ? undefined : `8px solid ${arrowColor()}`,
+        "border-left": `${arrowSize()}px solid transparent`,
+        "border-right": `${arrowSize()}px solid transparent`,
+        "border-bottom": isBottom()
+          ? `${arrowSize()}px solid ${arrowColor()}`
+          : undefined,
+        "border-top": isBottom()
+          ? undefined
+          : `${arrowSize()}px solid ${arrowColor()}`,
         filter: isBottom()
           ? "drop-shadow(-1px -1px 0 rgba(0,0,0,0.06)) drop-shadow(1px -1px 0 rgba(0,0,0,0.06))"
           : "drop-shadow(-1px 1px 0 rgba(0,0,0,0.06)) drop-shadow(1px 1px 0 rgba(0,0,0,0.06))",

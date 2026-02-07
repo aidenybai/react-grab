@@ -10,12 +10,12 @@ import type { Component } from "solid-js";
 import type { ArrowPosition, SelectionLabelProps } from "../../types.js";
 import {
   VIEWPORT_MARGIN_PX,
-  ARROW_HEIGHT_PX,
   ARROW_CENTER_PERCENT,
   ARROW_LABEL_MARGIN_PX,
   LABEL_GAP_PX,
   PANEL_STYLES,
 } from "../../constants.js";
+import { getArrowSize } from "../../utils/get-arrow-size.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
 import { cn } from "../../utils/cn.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
@@ -40,6 +40,7 @@ const DEFAULT_OFFSCREEN_POSITION = {
 
 export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
+  let panelRef: HTMLDivElement | undefined;
   let inputRef: HTMLTextAreaElement | undefined;
   let isTagCurrentlyHovered = false;
   let lastValidPosition: {
@@ -53,6 +54,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
+  const [panelWidth, setPanelWidth] = createSignal(0);
   const [arrowPosition, setArrowPosition] =
     createSignal<ArrowPosition>("bottom");
   const [viewportVersion, setViewportVersion] = createSignal(0);
@@ -88,6 +90,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       const rect = containerRef.getBoundingClientRect();
       setMeasuredWidth(rect.width);
       setMeasuredHeight(rect.height);
+    }
+    if (panelRef) {
+      setPanelWidth(panelRef.getBoundingClientRect().width);
     }
   };
 
@@ -215,11 +220,13 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     const selectionBottom = bounds.y + bounds.height;
     const selectionTop = bounds.y;
 
+    const actualArrowHeight = getArrowSize(panelWidth());
+
     // HACK: Use cursorX as anchor point, CSS transform handles centering via translateX(-50%)
     // This avoids the flicker when content changes because centering doesn't depend on JS measurement
     const anchorX = cursorX;
     let edgeOffsetX = 0;
-    let positionTop = selectionBottom + ARROW_HEIGHT_PX + LABEL_GAP_PX;
+    let positionTop = selectionBottom + actualArrowHeight + LABEL_GAP_PX;
 
     // Calculate edge clamping offset (only applied when we have valid measurements)
     if (labelWidth > 0) {
@@ -234,7 +241,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       }
     }
 
-    const totalHeightNeeded = labelHeight + ARROW_HEIGHT_PX + LABEL_GAP_PX;
+    const totalHeightNeeded = labelHeight + actualArrowHeight + LABEL_GAP_PX;
     const fitsBelow =
       positionTop + labelHeight <= viewportHeight - VIEWPORT_MARGIN_PX;
 
@@ -371,6 +378,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           position={arrowPosition()}
           leftPercent={computedPosition().arrowLeftPercent}
           leftOffsetPx={computedPosition().arrowLeftOffset}
+          labelWidth={panelWidth()}
         />
 
         <Show when={isCompletedStatus() && !props.error}>
@@ -394,6 +402,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         </Show>
 
         <div
+          ref={panelRef}
           class={cn(
             "contain-layout flex items-center gap-[5px] rounded-[10px] antialiased w-fit h-fit p-0 [font-synthesis:none] [corner-shape:superellipse(1.25)]",
             PANEL_STYLES,

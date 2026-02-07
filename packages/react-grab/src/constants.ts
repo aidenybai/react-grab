@@ -57,6 +57,8 @@ export const FROZEN_GLOW_COLOR = `rgba(${GRAB_PURPLE_RGB}, 0.15)`;
 export const FROZEN_GLOW_EDGE_PX = 50;
 
 export const ARROW_HEIGHT_PX = 8;
+export const ARROW_MIN_SIZE_PX = 4;
+export const ARROW_MAX_LABEL_WIDTH_RATIO = 0.2;
 export const ARROW_CENTER_PERCENT = 50;
 export const ARROW_LABEL_MARGIN_PX = 16;
 export const LABEL_GAP_PX = 4;
