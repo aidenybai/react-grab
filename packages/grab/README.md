@@ -16,10 +16,36 @@ It makes tools like Cursor, Claude Code, Copilot run up to [**3× faster**](http
 
 ## Install
 
-Run this command to install React Grab into your project. Ensure you are running at project root (e.g. where the `next.config.ts` or `vite.config.ts` file is located).
+Run this command at your project root (where `next.config.ts` or `vite.config.ts` is located):
 
-```html
+```bash
 npx -y grab@latest init
+```
+
+Use the `-y` flag to skip interactive prompts:
+
+```bash
+npx -y grab@latest init -y
+```
+
+## Connect to Your Agent
+
+Connect React Grab directly to your coding agent (Cursor, Claude Code, Codex, Gemini, Amp, and more):
+
+```bash
+npx -y grab@latest add [agent]
+```
+
+Or connect via MCP:
+
+```bash
+npx -y grab@latest add mcp
+```
+
+Disconnect an agent:
+
+```bash
+npx -y grab@latest remove [agent]
 ```
 
 ## Usage
@@ -53,7 +79,6 @@ export default function RootLayout({ children }) {
   return (
     <html>
       <head>
-        {/* put this in the <head> */}
         {process.env.NODE_ENV === "development" && (
           <Script
             src="//unpkg.com/grab/dist/index.global.js"
@@ -79,7 +104,6 @@ export default function Document() {
   return (
     <Html lang="en">
       <Head>
-        {/* put this in the <Head> */}
         {process.env.NODE_ENV === "development" && (
           <Script
             src="//unpkg.com/grab/dist/index.global.js"
@@ -99,15 +123,13 @@ export default function Document() {
 
 #### Vite
 
-Your `index.html` could look like this:
+Add this to your `index.html`:
 
 ```html
 <!doctype html>
 <html lang="en">
   <head>
     <script type="module">
-      // first npm i grab
-      // then in head:
       if (import.meta.env.DEV) {
         import("grab");
       }
@@ -161,11 +183,11 @@ Generate an example plugin that logs when an element is selected.
 
 ## Resources & Contributing Back
 
-Want to try it out? Check the [our demo](https://react-grab.com).
+Want to try it out? Check out [our demo](https://react-grab.com).
 
-Looking to contribute back? Check the [Contributing Guide](https://github.com/aidenybai/react-grab/blob/main/CONTRIBUTING.md) out.
+Looking to contribute back? Check out the [Contributing Guide](https://github.com/aidenybai/react-grab/blob/main/CONTRIBUTING.md).
 
-Want to talk to the community? Hop in our [Discord](https://discord.com/invite/G7zxfUzkm7) and share your ideas and what you've build with React Grab.
+Want to talk to the community? Hop in our [Discord](https://discord.com/invite/G7zxfUzkm7) and share your ideas and what you've built with React Grab.
 
 Find a bug? Head over to our [issue tracker](https://github.com/aidenybai/react-grab/issues) and we'll do our best to help. We love pull requests, too!
 
