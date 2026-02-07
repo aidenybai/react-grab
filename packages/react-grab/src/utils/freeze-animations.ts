@@ -1,6 +1,5 @@
 import { FROZEN_ELEMENT_ATTRIBUTE } from "../constants.js";
 import { createStyleElement } from "./create-style-element.js";
-import { ATTRIBUTE_NAME } from "./mount-root.js";
 
 const FROZEN_STYLES = `
 [${FROZEN_ELEMENT_ATTRIBUTE}],
@@ -96,10 +95,7 @@ export const unfreezeGlobalAnimations = (): void => {
       const target = animation.effect.target;
       if (target instanceof Element) {
         const rootNode = target.getRootNode();
-        if (
-          rootNode instanceof ShadowRoot &&
-          rootNode.host.hasAttribute(ATTRIBUTE_NAME)
-        ) {
+        if (rootNode instanceof ShadowRoot) {
           continue;
         }
       }
