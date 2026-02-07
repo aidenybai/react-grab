@@ -151,7 +151,7 @@ test.describe("Freeze Animations", () => {
       );
 
       if (shadowAnimationCountBefore > 0) {
-        expect(shadowAnimationCountAfter).toBeGreaterThanOrEqual(0);
+        expect(shadowAnimationCountAfter).toBe(shadowAnimationCountBefore);
       }
     });
 
