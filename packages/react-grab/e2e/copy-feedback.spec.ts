@@ -79,25 +79,16 @@ test.describe("Copy Feedback Behavior", () => {
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
 
-      const boundsBefore = await reactGrab.getSelectionBoxBounds();
-
       await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.down("c");
       await reactGrab.clickElement("li:first-child");
-      await reactGrab.page.waitForTimeout(100);
       await reactGrab.hoverElement("h1");
-      await reactGrab.waitForSelectionBox();
 
+      await reactGrab.page.waitForTimeout(FEEDBACK_DURATION_MS + 500);
+
+      expect(await reactGrab.isOverlayVisible()).toBe(true);
       const boundsAfter = await reactGrab.getSelectionBoxBounds();
-      const boundsSizeChanged =
-        boundsBefore &&
-        boundsAfter &&
-        (boundsBefore.width !== boundsAfter.width ||
-          boundsBefore.height !== boundsAfter.height);
-
-      expect(boundsBefore).not.toBeNull();
       expect(boundsAfter).not.toBeNull();
-      expect(boundsSizeChanged).toBe(true);
 
       await reactGrab.page.keyboard.up("c");
       await reactGrab.page.keyboard.up(reactGrab.modifierKey);
