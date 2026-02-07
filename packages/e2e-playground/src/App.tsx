@@ -357,6 +357,28 @@ const VariousElements = () => {
   );
 };
 
+const AnimatedElements = () => {
+  return (
+    <section className="border rounded-lg p-4" data-testid="animated-section">
+      <h2 className="text-lg font-bold mb-4">Animated Elements</h2>
+      <div className="space-y-4">
+        <div
+          className="w-8 h-8 bg-blue-500 rounded-full animate-pulse"
+          data-testid="animated-pulse"
+        />
+        <div
+          className="w-8 h-8 bg-green-500 rounded animate-spin"
+          data-testid="animated-spin"
+        />
+        <div
+          className="w-8 h-8 bg-red-500 rounded animate-bounce"
+          data-testid="animated-bounce"
+        />
+      </div>
+    </section>
+  );
+};
+
 const ZeroDimensionElements = () => {
   return (
     <section
@@ -503,6 +525,8 @@ export default function App() {
       <DynamicElements />
 
       <VariousElements />
+
+      <AnimatedElements />
 
       <ZeroDimensionElements />
 

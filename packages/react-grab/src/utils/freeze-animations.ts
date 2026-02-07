@@ -91,6 +91,16 @@ export const unfreezeGlobalAnimations = (): void => {
 `;
 
   for (const animation of document.getAnimations()) {
+    if (animation.effect instanceof KeyframeEffect) {
+      const target = animation.effect.target;
+      if (target instanceof Element) {
+        const rootNode = target.getRootNode();
+        if (rootNode instanceof ShadowRoot) {
+          continue;
+        }
+      }
+    }
+
     try {
       animation.finish();
     } catch {
