@@ -32,6 +32,7 @@ import {
   CAUSE_TYPE_STATE,
   CAUSE_TYPE_CONTEXT,
   CAUSE_TYPE_PARENT,
+  MINIMUM_SIGNIFICANT_TIME_MS,
 } from "../constants.js";
 import {
   recordActivity,
@@ -90,6 +91,7 @@ const fiberIdsRenderedInCommit = new Set<number>();
 let loafObserver: PerformanceObserver | null = null;
 const recentLoAFs: LoAFEntry[] = [];
 const wrappedEffects = new WeakSet<object>();
+const unstablePropsPerComponent = new Map<string, Set<string>>();
 let diagnosticSessionId = "";
 
 interface PerformanceLongAnimationFrameTiming extends PerformanceEntry {
@@ -491,6 +493,24 @@ const formatRenderLog = (
         `unstable state: [${unstableInfo.unstableState.join(", ")}]`,
       );
     }
+
+    if (warnings.length > 0) {
+      const unstableEntries =
+        unstablePropsPerComponent.get(displayName) || new Set<string>();
+      for (const functionName of unstableInfo.unstableFunctions) {
+        unstableEntries.add(`${functionName}(fn)`);
+      }
+      for (const propName of unstableInfo.unstableProps) {
+        const sanitizedPropName = propName
+          .replace(" (shallow)", "")
+          .replace(" (deep)", "");
+        unstableEntries.add(`${sanitizedPropName}(obj)`);
+      }
+      for (const stateIndex of unstableInfo.unstableState) {
+        unstableEntries.add(`state[${stateIndex}]`);
+      }
+      unstablePropsPerComponent.set(displayName, unstableEntries);
+    }
   }
   const warningText = warnings.length > 0 ? ` ⚠️ ${warnings.join(", ")}` : "";
 
@@ -738,6 +758,7 @@ export const startRecording = (): void => {
   renderLogHistory = [];
   clearBuffer();
   recentLoAFs.length = 0;
+  unstablePropsPerComponent.clear();
   diagnosticSessionId = `session-${Date.now()}-${Math.random()
     .toString(36)
     .slice(2, 9)}`;
@@ -833,364 +854,88 @@ const serializeDiagnostic = (diagnostic: PerformanceDiagnostic): string => {
   return JSON.stringify(serializable, null, 2);
 };
 
-interface AggregatedContributor {
-  name: string;
-  renderTimes: number[];
-  effectTimes: number[];
-  effectTypes: Set<string>;
-  source: string | null;
-}
+const formatComponentLine = (
+  componentName: string,
+  stats: ComponentStats,
+): string => {
+  const source = stats.component.source;
+  const sourceLabel = source
+    ? `${source.filePath}${source.lineNumber ? `:${source.lineNumber}` : ""}`
+    : "";
 
-interface AggregatedLoAF {
-  indices: number[];
-  avgDuration: number;
-  contributors: AggregatedContributor[];
-  unstableProps: string[];
-}
-
-const getEffectHookName = (effectType: string): string => {
-  switch (effectType) {
-    case "layout":
-      return "useLayoutEffect";
-    case "insertion":
-      return "useInsertionEffect";
-    default:
-      return "useEffect";
+  const diagnosticParts: string[] = [componentName];
+  if (sourceLabel) {
+    diagnosticParts.push(sourceLabel);
   }
-};
 
-const formatSourceLocation = (
-  filePath: string | undefined,
-  lineNumber: number | null | undefined,
-): string | null => {
-  if (!filePath) return null;
-  return lineNumber ? `${filePath}:${lineNumber}` : filePath;
-};
+  if (stats.renderCount > 0) {
+    diagnosticParts.push(
+      `render:${Math.round(stats.totalRenderTime)}ms*${stats.renderCount}`,
+    );
+    diagnosticParts.push(`max:${Math.round(stats.maxRenderTime)}ms`);
+  }
 
-const aggregateContributors = (
-  frame: PerformanceFrame,
-): AggregatedContributor[] => {
-  const contributorsByName = new Map<string, AggregatedContributor>();
-  const MIN_SIGNIFICANT_TIME_MS = 5;
-
-  const significantContributors = frame.topContributors.filter(
-    (contributor) => contributor.totalTime >= MIN_SIGNIFICANT_TIME_MS,
+  const passiveEffectCount = stats.effectCount - stats.layoutEffectCount;
+  const passiveEffectTime = Math.round(
+    stats.totalEffectTime - stats.totalLayoutEffectTime,
   );
 
-  for (const contributor of significantContributors) {
-    const componentName = contributor.component.displayName;
-    const existingContributor = contributorsByName.get(componentName);
-    const sourceLocation = formatSourceLocation(
-      contributor.component.source?.filePath,
-      contributor.component.source?.lineNumber,
+  if (passiveEffectCount > 0 && passiveEffectTime > 0) {
+    diagnosticParts.push(
+      `effect:${passiveEffectTime}ms*${passiveEffectCount}`,
     );
-
-    if (existingContributor) {
-      if (contributor.renderTime > 0) {
-        existingContributor.renderTimes.push(
-          Math.round(contributor.renderTime),
-        );
-      }
-      if (contributor.effectTime > 0) {
-        existingContributor.effectTimes.push(
-          Math.round(contributor.effectTime),
-        );
-      }
-      if (!existingContributor.source && sourceLocation) {
-        existingContributor.source = sourceLocation;
-      }
-    } else {
-      contributorsByName.set(componentName, {
-        name: componentName,
-        renderTimes:
-          contributor.renderTime > 0
-            ? [Math.round(contributor.renderTime)]
-            : [],
-        effectTimes:
-          contributor.effectTime > 0
-            ? [Math.round(contributor.effectTime)]
-            : [],
-        effectTypes: new Set<string>(),
-        source: sourceLocation,
-      });
-    }
   }
 
-  for (const effectExecution of frame.effects) {
-    const componentName = effectExecution.component.displayName;
-    const existingContributor = contributorsByName.get(componentName);
-    if (existingContributor && effectExecution.duration > 0) {
-      const effectHookName = getEffectHookName(effectExecution.effectType);
-      existingContributor.effectTypes.add(effectHookName);
-
-      if (
-        !existingContributor.source &&
-        effectExecution.component.source?.filePath
-      ) {
-        existingContributor.source = formatSourceLocation(
-          effectExecution.component.source.filePath,
-          effectExecution.component.source.lineNumber,
-        );
-      }
-    }
-  }
-
-  return Array.from(contributorsByName.values()).sort(
-    (contributorA, contributorB) => {
-      const totalTimeA =
-        contributorA.renderTimes.reduce((sum, time) => sum + time, 0) +
-        contributorA.effectTimes.reduce((sum, time) => sum + time, 0);
-      const totalTimeB =
-        contributorB.renderTimes.reduce((sum, time) => sum + time, 0) +
-        contributorB.effectTimes.reduce((sum, time) => sum + time, 0);
-      return totalTimeB - totalTimeA;
-    },
-  );
-};
-
-const formatTimesCompact = (durations: number[]): string => {
-  if (durations.length === 0) return "";
-
-  const countByDuration = new Map<number, number>();
-  for (const duration of durations) {
-    if (duration === 0) continue;
-    countByDuration.set(duration, (countByDuration.get(duration) || 0) + 1);
-  }
-
-  const formattedParts: string[] = [];
-  const sortedDurations = Array.from(countByDuration.entries()).sort(
-    ([durationA], [durationB]) => durationB - durationA,
-  );
-  for (const [duration, occurrences] of sortedDurations) {
-    const durationStr =
-      occurrences > 1 ? `${duration}ms x${occurrences}` : `${duration}ms`;
-    formattedParts.push(durationStr);
-  }
-  return formattedParts.join(", ");
-};
-
-const formatContributorLine = (contributor: AggregatedContributor): string => {
-  const timingParts: string[] = [];
-
-  const renderTimingStr = formatTimesCompact(contributor.renderTimes);
-  if (renderTimingStr) {
-    timingParts.push(`render ${renderTimingStr}`);
-  }
-
-  const effectTimingStr = formatTimesCompact(contributor.effectTimes);
-  if (effectTimingStr) {
-    const effectTypeLabel =
-      contributor.effectTypes.size > 0
-        ? Array.from(contributor.effectTypes).join("/")
-        : "effect";
-    timingParts.push(`${effectTypeLabel} ${effectTimingStr}`);
-  }
-
-  return timingParts.join(", ");
-};
-
-const extractUnstableFromRenderLog = (
-  relevantComponentNames: Set<string>,
-): string[] => {
-  const unstableReferences: string[] = [];
-  const processedEntries = new Set<string>();
-
-  for (const logLine of renderLogHistory) {
-    if (!logLine.includes("unstable")) continue;
-
-    const componentMatch = logLine.match(/^\[(?:mount|update)\]\s+(\w+)/);
-    if (!componentMatch) continue;
-
-    const componentName = componentMatch[1];
-    if (!relevantComponentNames.has(componentName)) continue;
-
-    const unstableMatch = logLine.match(/⚠️\s*(.+)$/);
-    if (unstableMatch) {
-      const unstableDescription = unstableMatch[1];
-      const dedupeKey = `${componentName}:${unstableDescription}`;
-      if (!processedEntries.has(dedupeKey)) {
-        processedEntries.add(dedupeKey);
-        const unstableParts = unstableDescription
-          .split(",")
-          .map((segment) => segment.trim());
-        for (const unstablePart of unstableParts) {
-          if (unstablePart.includes("unstable function:")) {
-            const functionNames = unstablePart
-              .replace("unstable function:", "")
-              .trim();
-            unstableReferences.push(`${componentName}.${functionNames} (fn)`);
-          } else if (unstablePart.includes("unstable object:")) {
-            const objectNames = unstablePart
-              .replace("unstable object:", "")
-              .replace("(shallow)", "")
-              .trim();
-            unstableReferences.push(`${componentName}.${objectNames} (obj)`);
-          }
-        }
-      }
-    }
-  }
-  return [...new Set(unstableReferences)];
-};
-
-const aggregateSimilarLoAFs = (
-  frames: PerformanceFrame[],
-): AggregatedLoAF[] => {
-  const aggregatedGroups: AggregatedLoAF[] = [];
-  const DURATION_SIMILARITY_THRESHOLD_MS = 30;
-  let activeGroup: AggregatedLoAF | null = null;
-
-  for (let frameIndex = 0; frameIndex < frames.length; frameIndex++) {
-    const frame = frames[frameIndex];
-    const frameContributors = aggregateContributors(frame);
-    const frameContributorNames = new Set(
-      frameContributors.map((contributor) => contributor.name),
+  if (stats.layoutEffectCount > 0 && stats.totalLayoutEffectTime > 0) {
+    diagnosticParts.push(
+      `layoutEffect:${Math.round(stats.totalLayoutEffectTime)}ms*${stats.layoutEffectCount}`,
     );
-    const frameUnstableProps = extractUnstableFromRenderLog(
-      frameContributorNames,
+  }
+
+  const unstableEntries = unstablePropsPerComponent.get(componentName);
+  if (unstableEntries && unstableEntries.size > 0) {
+    diagnosticParts.push(
+      `unstable:${Array.from(unstableEntries).join(",")}`,
     );
-    const frameDuration = Math.round(frame.loaf.duration);
-
-    const frameContributorKey = frameContributors
-      .map((contributor) => contributor.name)
-      .sort()
-      .join(",");
-    const activeGroupContributorKey = activeGroup?.contributors
-      .map((contributor) => contributor.name)
-      .sort()
-      .join(",");
-
-    const isSimilarToActiveGroup =
-      activeGroup &&
-      frameContributorKey === activeGroupContributorKey &&
-      Math.abs(frameDuration - activeGroup.avgDuration) <
-        DURATION_SIMILARITY_THRESHOLD_MS;
-
-    if (isSimilarToActiveGroup && activeGroup) {
-      activeGroup.indices.push(frameIndex + 1);
-      activeGroup.avgDuration = Math.round(
-        (activeGroup.avgDuration * (activeGroup.indices.length - 1) +
-          frameDuration) /
-          activeGroup.indices.length,
-      );
-      for (const unstableProp of frameUnstableProps) {
-        if (!activeGroup.unstableProps.includes(unstableProp)) {
-          activeGroup.unstableProps.push(unstableProp);
-        }
-      }
-    } else {
-      if (activeGroup) {
-        aggregatedGroups.push(activeGroup);
-      }
-      activeGroup = {
-        indices: [frameIndex + 1],
-        avgDuration: frameDuration,
-        contributors: frameContributors,
-        unstableProps: frameUnstableProps,
-      };
-    }
   }
 
-  if (activeGroup) {
-    aggregatedGroups.push(activeGroup);
-  }
-  return aggregatedGroups;
-};
-
-const formatLoAFGroupMarkdown = (loafGroup: AggregatedLoAF): string[] => {
-  if (loafGroup.contributors.length === 0) {
-    return [];
-  }
-
-  const MAX_CONTRIBUTORS_TO_SHOW = 5;
-  const MAX_UNSTABLE_PROPS_TO_SHOW = 5;
-  const markdownLines: string[] = [];
-
-  const isSingleFrame = loafGroup.indices.length === 1;
-  const indexLabel = isSingleFrame
-    ? `#${loafGroup.indices[0]}`
-    : `#${loafGroup.indices[0]}-${
-        loafGroup.indices[loafGroup.indices.length - 1]
-      }`;
-  const durationLabel = isSingleFrame
-    ? `${loafGroup.avgDuration}ms`
-    : `~${loafGroup.avgDuration}ms`;
-
-  markdownLines.push(`- **${indexLabel}** (${durationLabel})`);
-
-  for (const contributor of loafGroup.contributors.slice(
-    0,
-    MAX_CONTRIBUTORS_TO_SHOW,
-  )) {
-    const timingStr = formatContributorLine(contributor);
-    if (!timingStr) continue;
-    const sourceStr = contributor.source ? ` \`${contributor.source}\`` : "";
-    markdownLines.push(`  - \`${contributor.name}\` ${timingStr}${sourceStr}`);
-  }
-
-  if (loafGroup.unstableProps.length > 0) {
-    const unstablePropsFormatted = loafGroup.unstableProps
-      .slice(0, MAX_UNSTABLE_PROPS_TO_SHOW)
-      .map((propName) => `\`${propName}\``)
-      .join(", ");
-    markdownLines.push(`  - *unstable:* ${unstablePropsFormatted}`);
-  }
-
-  return markdownLines;
+  return diagnosticParts.join(" ");
 };
 
 export const copyRecording = async (): Promise<boolean> => {
   const diagnostic = getPerformanceDiagnostic();
-  const { summary } = diagnostic;
 
-  const aggregatedLoAFs = aggregateSimilarLoAFs(diagnostic.frames);
-  const loafIssues = aggregatedLoAFs
-    .filter((loafGroup) => loafGroup.contributors.length > 0)
-    .flatMap(formatLoAFGroupMarkdown);
-
-  const slowComponents: string[] = [];
+  const significantComponents: Array<[string, ComponentStats]> = [];
   for (const [componentName, stats] of diagnostic.componentStats) {
-    if (stats.totalRenderTime >= 10) {
-      slowComponents.push(
-        `| \`${componentName}\` | ${Math.round(stats.totalRenderTime)}ms | ${
-          stats.renderCount
-        } | ${Math.round(stats.maxRenderTime)}ms |`,
-      );
+    const totalTime = stats.totalRenderTime + stats.totalEffectTime;
+    const hasUnstableProps = unstablePropsPerComponent.has(componentName);
+    if (totalTime >= MINIMUM_SIGNIFICANT_TIME_MS || hasUnstableProps) {
+      significantComponents.push([componentName, stats]);
     }
   }
-  slowComponents.sort((lineA, lineB) => {
-    const msA = parseInt(lineA.match(/\| (\d+)ms \|/)?.[1] || "0");
-    const msB = parseInt(lineB.match(/\| (\d+)ms \|/)?.[1] || "0");
-    return msB - msA;
-  });
 
-  const sections: string[] = [
-    "# React Grab Diagnostic",
-    "",
-    `**${summary.totalLoAFs} LoAFs** | ${Math.round(
-      summary.totalDuration,
-    )}ms total | max ${Math.round(summary.maxLoAFDuration)}ms`,
-    "",
-  ];
+  significantComponents.sort(
+    ([, statsA], [, statsB]) =>
+      statsB.totalRenderTime +
+      statsB.totalEffectTime -
+      (statsA.totalRenderTime + statsA.totalEffectTime),
+  );
 
-  if (loafIssues.length > 0) {
-    sections.push("## LoAF Issues", "", ...loafIssues, "");
+  const componentLines = significantComponents.map(([componentName, stats]) =>
+    formatComponentLine(componentName, stats),
+  );
+
+  let outputText: string;
+  if (componentLines.length === 0) {
+    outputText = "React Grab detected no significant performance issues.";
+  } else {
+    const preamble =
+      "React Grab detected these components causing Long Animation Frames (>50ms main thread blocks). Fix each:";
+    outputText = `${preamble}\n\n${componentLines.join("\n")}`;
   }
 
-  if (slowComponents.length > 0) {
-    sections.push(
-      "## Slow Components",
-      "",
-      "| Component | Total | Renders | Max |",
-      "|-----------|-------|---------|-----|",
-      ...slowComponents.slice(0, 10),
-      "",
-    );
-  }
-
-  const markdownText = sections.join("\n");
   if (typeof navigator !== "undefined" && navigator.clipboard) {
-    await navigator.clipboard.writeText(markdownText);
+    await navigator.clipboard.writeText(outputText);
     return true;
   }
   return false;
@@ -1408,6 +1153,8 @@ const aggregateByComponent = (
           effectCount: 0,
           totalEffectTime: 0,
           avgEffectTime: 0,
+          layoutEffectCount: 0,
+          totalLayoutEffectTime: 0,
           loafsContributed: 1,
           topRenderCauses: [],
           allOptimizationHints: [],
@@ -1418,12 +1165,17 @@ const aggregateByComponent = (
     for (const effect of frame.effects) {
       const key = effect.component.displayName;
       const existing = stats.get(key);
+      const isLayoutEffect = effect.effectType === "layout";
 
       if (existing) {
         existing.effectCount++;
         existing.totalEffectTime += effect.duration;
         existing.avgEffectTime =
           existing.totalEffectTime / existing.effectCount;
+        if (isLayoutEffect) {
+          existing.layoutEffectCount++;
+          existing.totalLayoutEffectTime += effect.duration;
+        }
       } else {
         stats.set(key, {
           component: effect.component,
@@ -1434,6 +1186,8 @@ const aggregateByComponent = (
           effectCount: 1,
           totalEffectTime: effect.duration,
           avgEffectTime: effect.duration,
+          layoutEffectCount: isLayoutEffect ? 1 : 0,
+          totalLayoutEffectTime: isLayoutEffect ? effect.duration : 0,
           loafsContributed: 1,
           topRenderCauses: [],
           allOptimizationHints: [],

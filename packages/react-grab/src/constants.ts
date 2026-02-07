@@ -190,3 +190,5 @@ export const CAUSE_TYPE_PROPS = 1;
 export const CAUSE_TYPE_STATE = 2;
 export const CAUSE_TYPE_CONTEXT = 3;
 export const CAUSE_TYPE_PARENT = 4;
+
+export const MINIMUM_SIGNIFICANT_TIME_MS = 10;

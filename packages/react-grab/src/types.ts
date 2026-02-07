@@ -757,6 +757,8 @@ export interface ComponentStats {
   effectCount: number;
   totalEffectTime: number;
   avgEffectTime: number;
+  layoutEffectCount: number;
+  totalLayoutEffectTime: number;
   loafsContributed: number;
   topRenderCauses: Array<{
     type: string;
