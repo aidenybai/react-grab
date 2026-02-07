@@ -150,55 +150,61 @@ export const createRelayClient = (
     isIntentionalDisconnect = false;
 
     pendingConnectionPromise = (async () => {
-      await ensureServerReady();
+      try {
+        await ensureServerReady();
 
-      if (isIntentionalDisconnect) {
-        throw new Error("Connection aborted");
-      }
+        if (isIntentionalDisconnect) {
+          throw new Error("Connection aborted");
+        }
 
-      return new Promise<void>((resolve, reject) => {
-        pendingConnectionReject = reject;
-        const connectionUrl = token
-          ? `${serverUrl}?${RELAY_TOKEN_PARAM}=${encodeURIComponent(token)}`
-          : serverUrl;
-        webSocketConnection = new WebSocket(connectionUrl);
+        return new Promise<void>((resolve, reject) => {
+          pendingConnectionReject = reject;
+          const connectionUrl = token
+            ? `${serverUrl}?${RELAY_TOKEN_PARAM}=${encodeURIComponent(token)}`
+            : serverUrl;
+          webSocketConnection = new WebSocket(connectionUrl);
 
-        webSocketConnection.onopen = () => {
-          pendingConnectionPromise = null;
-          pendingConnectionReject = null;
-          isConnectedState = true;
-          for (const callback of connectionChangeCallbacks) {
-            callback(true);
-          }
-          resolve();
-        };
-
-        webSocketConnection.onmessage = handleMessage;
-
-        webSocketConnection.onclose = () => {
-          if (pendingConnectionReject) {
-            pendingConnectionReject(new Error("WebSocket connection closed"));
+          webSocketConnection.onopen = () => {
+            pendingConnectionPromise = null;
             pendingConnectionReject = null;
-          }
-          pendingConnectionPromise = null;
-          isConnectedState = false;
-          availableHandlers = [];
-          for (const callback of handlersChangeCallbacks) {
-            callback(availableHandlers);
-          }
-          for (const callback of connectionChangeCallbacks) {
-            callback(false);
-          }
-          scheduleReconnect();
-        };
+            isConnectedState = true;
+            for (const callback of connectionChangeCallbacks) {
+              callback(true);
+            }
+            resolve();
+          };
 
-        webSocketConnection.onerror = () => {
-          pendingConnectionPromise = null;
-          pendingConnectionReject = null;
-          isConnectedState = false;
-          reject(new Error("WebSocket connection failed"));
-        };
-      });
+          webSocketConnection.onmessage = handleMessage;
+
+          webSocketConnection.onclose = () => {
+            if (pendingConnectionReject) {
+              pendingConnectionReject(new Error("WebSocket connection closed"));
+              pendingConnectionReject = null;
+            }
+            pendingConnectionPromise = null;
+            isConnectedState = false;
+            availableHandlers = [];
+            for (const callback of handlersChangeCallbacks) {
+              callback(availableHandlers);
+            }
+            for (const callback of connectionChangeCallbacks) {
+              callback(false);
+            }
+            scheduleReconnect();
+          };
+
+          webSocketConnection.onerror = () => {
+            pendingConnectionPromise = null;
+            pendingConnectionReject = null;
+            isConnectedState = false;
+            reject(new Error("WebSocket connection failed"));
+          };
+        });
+      } catch (error) {
+        pendingConnectionPromise = null;
+        pendingConnectionReject = null;
+        throw error;
+      }
     })();
 
     return pendingConnectionPromise;

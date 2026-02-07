@@ -28,7 +28,7 @@ const checkIfRelayServerIsRunning = async (
   port: number,
   token?: string,
   secure?: boolean,
-): Promise<boolean> => {
+): Promise<boolean | { isRunning: true; isSecure: boolean }> => {
   const tryProtocol = async (useHttps: boolean): Promise<boolean> => {
     try {
       const httpProtocol = useHttps ? "https" : "http";
@@ -70,8 +70,10 @@ const checkIfRelayServerIsRunning = async (
   }
 
   const httpResult = await tryProtocol(false);
-  if (httpResult) return true;
-  return await tryProtocol(true);
+  if (httpResult) return { isRunning: true, isSecure: false };
+  const httpsResult = await tryProtocol(true);
+  if (httpsResult) return { isRunning: true, isSecure: true };
+  return false;
 };
 
 export const connectRelay = async (
@@ -83,13 +85,21 @@ export const connectRelay = async (
   let relayServer: RelayServer | null = null;
   let isRelayHost = false;
 
-  const isRelayServerRunning = await checkIfRelayServerIsRunning(
+  const healthCheckResult = await checkIfRelayServerIsRunning(
     relayPort,
     token,
     secure,
   );
 
-  let isSecureMode = secure ?? false;
+  const isRelayServerRunning =
+    healthCheckResult === true ||
+    (typeof healthCheckResult === "object" && healthCheckResult.isRunning);
+  const detectedSecure =
+    typeof healthCheckResult === "object"
+      ? healthCheckResult.isSecure
+      : undefined;
+
+  let isSecureMode = secure ?? detectedSecure ?? false;
 
   const startServer = async (useSecure: boolean): Promise<void> => {
     const onSecureUpgradeRequested = async () => {
@@ -169,7 +179,7 @@ export const connectRelay = async (
       relayPort,
       handler,
       token,
-      secure,
+      detectedSecure ?? secure,
     );
   } else {
     await fkill(`:${relayPort}`, { force: true, silent: true }).catch(() => {});
@@ -245,25 +255,25 @@ const connectToExistingRelay = async (
         rejectUnauthorized: false,
       });
 
+      socket.on("close", () => {
+        isSocketClosed = true;
+        for (const sessionId of activeSessionIds) {
+          try {
+            handler.abort?.(sessionId);
+          } catch {}
+        }
+        activeSessionIds.clear();
+
+        if (!isExplicitDisconnect) {
+          setTimeout(() => {
+            attemptConnection().catch(() => {});
+          }, 1000);
+        }
+      });
+
       socket.on("open", () => {
         currentSocket = socket;
         isSocketClosed = false;
-
-        socket.on("close", () => {
-          isSocketClosed = true;
-          for (const sessionId of activeSessionIds) {
-            try {
-              handler.abort?.(sessionId);
-            } catch {}
-          }
-          activeSessionIds.clear();
-
-          if (!isExplicitDisconnect) {
-            setTimeout(() => {
-              attemptConnection().catch(() => {});
-            }, 1000);
-          }
-        });
 
         socket.send(
           JSON.stringify({
