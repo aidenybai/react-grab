@@ -350,6 +350,19 @@ export const migrate = new Command()
         projectInfo.projectRoot,
       );
 
+      if (getOtherDetectedFiles().length > 0) {
+        logger.break();
+        logger.warn(
+          "React Scan was detected in additional files that were not automatically cleaned:",
+        );
+        for (const file of getOtherDetectedFiles()) {
+          logger.log(`  - ${file}`);
+        }
+        logger.warn(
+          "Please remove React Scan references from these files manually.",
+        );
+      }
+
       logger.break();
       logger.log(`${highlighter.success("Success!")} Migration complete.`);
       logger.log("You may now start your development server.");
