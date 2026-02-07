@@ -465,9 +465,7 @@ export const init = new Command()
             }
 
             const hasLayoutChanges =
-              !result.noChanges &&
-              result.originalContent &&
-              result.newContent;
+              !result.noChanges && result.originalContent && result.newContent;
             const hasPackageJsonChanges =
               packageJsonResult.success &&
               !packageJsonResult.noChanges &&

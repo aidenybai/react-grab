@@ -197,39 +197,39 @@ export const add = new Command()
 
           agentIntegration = agent as AgentIntegration;
 
-        if (projectInfo.installedAgents.length > 0) {
-          const installedNames = formatInstalledAgentNames(
-            projectInfo.installedAgents,
-          );
+          if (projectInfo.installedAgents.length > 0) {
+            const installedNames = formatInstalledAgentNames(
+              projectInfo.installedAgents,
+            );
 
-          const { action } = await prompts({
-            type: "select",
-            name: "action",
-            message: "How would you like to proceed?",
-            choices: [
-              {
-                title: `Replace ${installedNames} with ${getAgentDisplayName(agentIntegration)}`,
-                value: "replace",
-              },
-              {
-                title: `Add ${getAgentDisplayName(agentIntegration)} alongside existing`,
-                value: "add",
-              },
-              { title: "Cancel", value: "cancel" },
-            ],
-          });
+            const { action } = await prompts({
+              type: "select",
+              name: "action",
+              message: "How would you like to proceed?",
+              choices: [
+                {
+                  title: `Replace ${installedNames} with ${getAgentDisplayName(agentIntegration)}`,
+                  value: "replace",
+                },
+                {
+                  title: `Add ${getAgentDisplayName(agentIntegration)} alongside existing`,
+                  value: "add",
+                },
+                { title: "Cancel", value: "cancel" },
+              ],
+            });
 
-          if (!action || action === "cancel") {
-            logger.break();
-            logger.log("Changes cancelled.");
-            logger.break();
-            process.exit(0);
+            if (!action || action === "cancel") {
+              logger.break();
+              logger.log("Changes cancelled.");
+              logger.break();
+              process.exit(0);
+            }
+
+            if (action === "replace") {
+              agentsToRemove = [...projectInfo.installedAgents] as Agent[];
+            }
           }
-
-          if (action === "replace") {
-            agentsToRemove = [...projectInfo.installedAgents] as Agent[];
-          }
-        }
         }
       } else {
         logger.break();

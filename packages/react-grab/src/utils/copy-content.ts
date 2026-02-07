@@ -29,13 +29,12 @@ interface LexicalNode {
   source?: string;
 }
 
-const generateUuid = (): string => {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
-    const random = (Math.random() * 16) | 0;
-    const value = char === "x" ? random : (random & 0x3) | 0x8;
-    return value.toString(16);
+const generateUuid = (): string =>
+  "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (character) => {
+    const randomNibble = (Math.random() * 16) | 0;
+    const hexValue = character === "x" ? randomNibble : (randomNibble & 0x3) | 0x8;
+    return hexValue.toString(16);
   });
-};
 
 const createMentionNode = (
   displayName: string,
@@ -67,13 +66,26 @@ const createTextNode = (text: string): LexicalNode => ({
   version: 1,
 });
 
+const escapeHtml = (text: string): string =>
+  text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+interface ClipboardData {
+  plainText: string;
+  htmlContent: string;
+  lexicalData: string;
+}
+
 // HACK: Cursor's Lexical editor only reads content from registered commands/files,
 // not from embedded clipboard data. We include the content after the mention chip
 // so Cursor can actually read it.
-const createLexicalClipboardData = (
+const createClipboardData = (
   content: string,
   elementName: string,
-): { plainText: string; htmlContent: string; lexicalData: string } => {
+): ClipboardData => {
   const mentionKey = String(Math.floor(Math.random() * 10000));
   const namespaceUuid = generateUuid();
   const displayName = `<${elementName}>`;
@@ -100,14 +112,9 @@ const createLexicalClipboardData = (
     selectedOption,
   };
 
-  const escapedMentionMetadata = JSON.stringify(mentionMetadata).replace(
-    /"/g,
-    "&quot;",
-  );
-
   return {
     plainText: `@${displayName}\n\n${content}\n`,
-    htmlContent: `<meta charset='utf-8'><span data-mention-key="${mentionKey}" data-lexical-mention="true" data-mention-name="${displayName}" data-typeahead-type="[object Object]" data-mention-metadata="${escapedMentionMetadata}">@${displayName}</span><pre><code>${content}</code></pre>`,
+    htmlContent: `<meta charset='utf-8'><pre><code>${escapeHtml(content)}</code></pre>`,
     lexicalData: JSON.stringify({
       namespace: `chat-input${namespaceUuid}-pane`,
       nodes: [
@@ -128,7 +135,7 @@ export const copyContent = (
   options?: CopyContentOptions,
 ): boolean => {
   const elementName = options?.name ?? "div";
-  const { plainText, htmlContent, lexicalData } = createLexicalClipboardData(
+  const { plainText, htmlContent, lexicalData } = createClipboardData(
     content,
     elementName,
   );

@@ -231,9 +231,7 @@ describe("installTomlClient", () => {
     const content = fs.readFileSync(client.configPath, "utf8");
     expect(content).toContain("[mcp_servers.react-grab-mcp]");
     expect(content).toContain('command = "npx"');
-    expect(content).toContain(
-      'args = ["-y", "@react-grab/mcp", "--stdio"]',
-    );
+    expect(content).toContain('args = ["-y", "@react-grab/mcp", "--stdio"]');
   });
 
   it("should append to an existing TOML file", () => {
@@ -262,7 +260,7 @@ describe("installTomlClient", () => {
     const content = fs.readFileSync(client.configPath, "utf8");
     expect(content).toContain('command = "npx"');
     expect(content).not.toContain('command = "old"');
-    expect(content).toContain('[other]');
+    expect(content).toContain("[other]");
   });
 
   it("should create nested directories if needed", () => {

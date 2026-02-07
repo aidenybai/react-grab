@@ -21,10 +21,7 @@ const VERSION = process.env.VERSION ?? "0.0.1";
 export const remove = new Command()
   .name("remove")
   .description("disconnect React Grab from your agent")
-  .argument(
-    "[agent]",
-    `agent to disconnect (${AGENTS.join(", ")}, mcp)`,
-  )
+  .argument("[agent]", `agent to disconnect (${AGENTS.join(", ")}, mcp)`)
   .option("-y, --yes", "skip confirmation prompts", false)
   .option(
     "-c, --cwd <cwd>",

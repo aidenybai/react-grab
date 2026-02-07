@@ -1,9 +1,4 @@
-import type {
-  init,
-  ReactGrabAPI,
-  Plugin,
-  AgentContext,
-} from "react-grab/core";
+import type { init, ReactGrabAPI, Plugin, AgentContext } from "react-grab/core";
 import { DEFAULT_MCP_PORT } from "./constants.js";
 
 interface McpPluginOptions {
@@ -22,9 +17,7 @@ const sendContextToServer = async (
   }).catch(() => {});
 };
 
-export const createMcpPlugin = (
-  options: McpPluginOptions = {},
-): Plugin => {
+export const createMcpPlugin = (options: McpPluginOptions = {}): Plugin => {
   const port = options.port ?? DEFAULT_MCP_PORT;
   const contextUrl = `http://localhost:${port}/context`;
 
