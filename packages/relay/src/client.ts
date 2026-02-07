@@ -134,6 +134,8 @@ export const createRelayClient = (
         return;
       }
     }
+
+    throw new Error("Server upgrade timed out after maximum retries");
   };
 
   const connect = (): Promise<void> => {
@@ -149,6 +151,10 @@ export const createRelayClient = (
 
     pendingConnectionPromise = (async () => {
       await ensureServerReady();
+
+      if (isIntentionalDisconnect) {
+        throw new Error("Connection aborted");
+      }
 
       return new Promise<void>((resolve, reject) => {
         pendingConnectionReject = reject;

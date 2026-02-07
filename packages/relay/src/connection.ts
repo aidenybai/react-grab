@@ -29,37 +29,49 @@ const checkIfRelayServerIsRunning = async (
   token?: string,
   secure?: boolean,
 ): Promise<boolean> => {
-  try {
-    const httpProtocol = secure ? "https" : "http";
-    const healthUrl = token
-      ? `${httpProtocol}://localhost:${port}/health?${RELAY_TOKEN_PARAM}=${encodeURIComponent(token)}`
-      : `${httpProtocol}://localhost:${port}/health`;
+  const tryProtocol = async (useHttps: boolean): Promise<boolean> => {
+    try {
+      const httpProtocol = useHttps ? "https" : "http";
+      const healthUrl = token
+        ? `${httpProtocol}://localhost:${port}/health?${RELAY_TOKEN_PARAM}=${encodeURIComponent(token)}`
+        : `${httpProtocol}://localhost:${port}/health`;
 
-    if (secure) {
-      // HACK: rejectUnauthorized: false is needed because mkcert generates self-signed certs
-      const https = await import("node:https");
-      return new Promise((resolve) => {
-        const request = https.get(
-          healthUrl,
-          { rejectUnauthorized: false, timeout: HEALTH_CHECK_TIMEOUT_MS },
-          (response) => resolve(response.statusCode === 200),
-        );
-        request.on("error", () => resolve(false));
-        request.on("timeout", () => {
-          request.destroy();
-          resolve(false);
+      if (useHttps) {
+        // HACK: rejectUnauthorized: false is needed because mkcert generates self-signed certs
+        const https = await import("node:https");
+        return new Promise((resolve) => {
+          const request = https.get(
+            healthUrl,
+            { rejectUnauthorized: false, timeout: HEALTH_CHECK_TIMEOUT_MS },
+            (response) => resolve(response.statusCode === 200),
+          );
+          request.on("error", () => resolve(false));
+          request.on("timeout", () => {
+            request.destroy();
+            resolve(false);
+          });
         });
-      });
-    }
+      }
 
-    const response = await fetch(healthUrl, {
-      method: "GET",
-      signal: AbortSignal.timeout(HEALTH_CHECK_TIMEOUT_MS),
-    });
-    return response.ok;
-  } catch {
-    return false;
+      const response = await fetch(healthUrl, {
+        method: "GET",
+        signal: AbortSignal.timeout(HEALTH_CHECK_TIMEOUT_MS),
+      });
+      return response.ok;
+    } catch {
+      return false;
+    }
+  };
+
+  if (secure !== undefined) {
+    const result = await tryProtocol(secure);
+    if (result) return true;
+    return await tryProtocol(!secure);
   }
+
+  const httpResult = await tryProtocol(false);
+  if (httpResult) return true;
+  return await tryProtocol(true);
 };
 
 export const connectRelay = async (
@@ -200,88 +212,133 @@ const connectToExistingRelay = async (
 ): Promise<RelayServer> => {
   const { WebSocket } = await import("ws");
 
-  return new Promise((resolve, reject) => {
-    const webSocketProtocol = secure ? "wss" : "ws";
-    const connectionUrl = token
-      ? `${webSocketProtocol}://localhost:${port}?${RELAY_TOKEN_PARAM}=${encodeURIComponent(token)}`
-      : `${webSocketProtocol}://localhost:${port}`;
-    // HACK: rejectUnauthorized: false is needed because mkcert generates self-signed certs
-    const socket = new WebSocket(connectionUrl, {
-      headers: { "x-relay-handler": "true" },
-      rejectUnauthorized: false,
-    });
+  let currentSocket: typeof WebSocket.prototype | null = null;
+  let isSocketClosed = false;
+  let isExplicitDisconnect = false;
+  const activeSessionIds = new Set<string>();
 
-    socket.on("open", () => {
-      let isSocketClosed = false;
-      const activeSessionIds = new Set<string>();
+  const sendData = (data: string): boolean => {
+    if (
+      isSocketClosed ||
+      !currentSocket ||
+      currentSocket.readyState !== WebSocket.OPEN
+    ) {
+      return false;
+    }
+    try {
+      currentSocket.send(data);
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
-      const sendData = (data: string): boolean => {
-        if (isSocketClosed || socket.readyState !== WebSocket.OPEN) {
-          return false;
-        }
-        try {
-          socket.send(data);
-          return true;
-        } catch {
-          return false;
-        }
-      };
-
-      socket.on("close", () => {
-        isSocketClosed = true;
-        for (const sessionId of activeSessionIds) {
-          try {
-            handler.abort?.(sessionId);
-          } catch {}
-        }
-        activeSessionIds.clear();
+  const attemptConnection = (): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const webSocketProtocol = secure ? "wss" : "ws";
+      const connectionUrl = token
+        ? `${webSocketProtocol}://localhost:${port}?${RELAY_TOKEN_PARAM}=${encodeURIComponent(token)}`
+        : `${webSocketProtocol}://localhost:${port}`;
+      // HACK: rejectUnauthorized: false is needed because mkcert generates self-signed certs
+      const socket = new WebSocket(connectionUrl, {
+        headers: { "x-relay-handler": "true" },
+        rejectUnauthorized: false,
       });
 
-      socket.send(
-        JSON.stringify({
-          type: "register-handler",
-          agentId: handler.agentId,
-        }),
-      );
+      socket.on("open", () => {
+        currentSocket = socket;
+        isSocketClosed = false;
 
-      socket.on("message", async (data) => {
-        try {
-          const message = JSON.parse(data.toString());
+        socket.on("close", () => {
+          isSocketClosed = true;
+          for (const sessionId of activeSessionIds) {
+            try {
+              handler.abort?.(sessionId);
+            } catch {}
+          }
+          activeSessionIds.clear();
 
-          if (message.type === "invoke-handler") {
-            const { method, sessionId, payload } = message;
+          if (!isExplicitDisconnect) {
+            setTimeout(() => {
+              attemptConnection().catch(() => {});
+            }, 1000);
+          }
+        });
 
-            if (method === "run" && payload?.prompt) {
-              activeSessionIds.add(sessionId);
-              try {
-                let didComplete = false;
-                for await (const agentMessage of handler.run(payload.prompt, {
-                  sessionId,
-                })) {
-                  if (isSocketClosed) {
-                    break;
+        socket.send(
+          JSON.stringify({
+            type: "register-handler",
+            agentId: handler.agentId,
+          }),
+        );
+
+        socket.on("message", async (data) => {
+          try {
+            const message = JSON.parse(data.toString());
+
+            if (message.type === "invoke-handler") {
+              const { method, sessionId, payload } = message;
+
+              if (method === "run" && payload?.prompt) {
+                activeSessionIds.add(sessionId);
+                try {
+                  let didComplete = false;
+                  for await (const agentMessage of handler.run(payload.prompt, {
+                    sessionId,
+                  })) {
+                    if (isSocketClosed) {
+                      break;
+                    }
+                    sendData(
+                      JSON.stringify({
+                        type:
+                          agentMessage.type === "status"
+                            ? "agent-status"
+                            : agentMessage.type === "error"
+                              ? "agent-error"
+                              : "agent-done",
+                        sessionId,
+                        agentId: handler.agentId,
+                        content: agentMessage.content,
+                      }),
+                    );
+                    if (
+                      agentMessage.type === "done" ||
+                      agentMessage.type === "error"
+                    ) {
+                      didComplete = true;
+                    }
                   }
+                  if (!didComplete && !isSocketClosed) {
+                    sendData(
+                      JSON.stringify({
+                        type: "agent-done",
+                        sessionId,
+                        agentId: handler.agentId,
+                        content: "",
+                      }),
+                    );
+                  }
+                } catch (error) {
                   sendData(
                     JSON.stringify({
-                      type:
-                        agentMessage.type === "status"
-                          ? "agent-status"
-                          : agentMessage.type === "error"
-                            ? "agent-error"
-                            : "agent-done",
+                      type: "agent-error",
                       sessionId,
                       agentId: handler.agentId,
-                      content: agentMessage.content,
+                      content:
+                        error instanceof Error
+                          ? error.message
+                          : "Unknown error",
                     }),
                   );
-                  if (
-                    agentMessage.type === "done" ||
-                    agentMessage.type === "error"
-                  ) {
-                    didComplete = true;
-                  }
+                } finally {
+                  activeSessionIds.delete(sessionId);
                 }
-                if (!didComplete && !isSocketClosed) {
+              } else if (method === "abort") {
+                handler.abort?.(sessionId);
+              } else if (method === "undo") {
+                try {
+                  await handler.undo?.();
                   sendData(
                     JSON.stringify({
                       type: "agent-done",
@@ -290,96 +347,80 @@ const connectToExistingRelay = async (
                       content: "",
                     }),
                   );
+                } catch (error) {
+                  sendData(
+                    JSON.stringify({
+                      type: "agent-error",
+                      sessionId,
+                      agentId: handler.agentId,
+                      content:
+                        error instanceof Error
+                          ? error.message
+                          : "Unknown error",
+                    }),
+                  );
                 }
-              } catch (error) {
-                sendData(
-                  JSON.stringify({
-                    type: "agent-error",
-                    sessionId,
-                    agentId: handler.agentId,
-                    content:
-                      error instanceof Error ? error.message : "Unknown error",
-                  }),
-                );
-              } finally {
-                activeSessionIds.delete(sessionId);
-              }
-            } else if (method === "abort") {
-              handler.abort?.(sessionId);
-            } else if (method === "undo") {
-              try {
-                await handler.undo?.();
-                sendData(
-                  JSON.stringify({
-                    type: "agent-done",
-                    sessionId,
-                    agentId: handler.agentId,
-                    content: "",
-                  }),
-                );
-              } catch (error) {
-                sendData(
-                  JSON.stringify({
-                    type: "agent-error",
-                    sessionId,
-                    agentId: handler.agentId,
-                    content:
-                      error instanceof Error ? error.message : "Unknown error",
-                  }),
-                );
-              }
-            } else if (method === "redo") {
-              try {
-                await handler.redo?.();
-                sendData(
-                  JSON.stringify({
-                    type: "agent-done",
-                    sessionId,
-                    agentId: handler.agentId,
-                    content: "",
-                  }),
-                );
-              } catch (error) {
-                sendData(
-                  JSON.stringify({
-                    type: "agent-error",
-                    sessionId,
-                    agentId: handler.agentId,
-                    content:
-                      error instanceof Error ? error.message : "Unknown error",
-                  }),
-                );
+              } else if (method === "redo") {
+                try {
+                  await handler.redo?.();
+                  sendData(
+                    JSON.stringify({
+                      type: "agent-done",
+                      sessionId,
+                      agentId: handler.agentId,
+                      content: "",
+                    }),
+                  );
+                } catch (error) {
+                  sendData(
+                    JSON.stringify({
+                      type: "agent-error",
+                      sessionId,
+                      agentId: handler.agentId,
+                      content:
+                        error instanceof Error
+                          ? error.message
+                          : "Unknown error",
+                    }),
+                  );
+                }
               }
             }
-          }
-        } catch {}
+          } catch {}
+        });
+
+        resolve();
       });
 
-      const proxyServer: RelayServer = {
-        start: async () => {},
-        stop: async () => {
-          socket.close();
-        },
-        registerHandler: () => {},
-        unregisterHandler: (agentId) => {
-          sendData(
-            JSON.stringify({
-              type: "unregister-handler",
-              agentId,
-            }),
-          );
-          socket.close();
-        },
-        getRegisteredHandlerIds: () => [handler.agentId],
-      };
-
-      resolve(proxyServer);
+      socket.on("error", (error) => {
+        reject(error);
+      });
     });
+  };
 
-    socket.on("error", (error) => {
-      reject(error);
-    });
-  });
+  await attemptConnection();
+
+  const proxyServer: RelayServer = {
+    start: async () => {},
+    stop: async () => {
+      isExplicitDisconnect = true;
+      currentSocket?.close();
+    },
+    registerHandler: () => {},
+    unregisterHandler: (agentId) => {
+      isExplicitDisconnect = true;
+      sendData(
+        JSON.stringify({
+          type: "unregister-handler",
+          agentId,
+        }),
+      );
+      currentSocket?.close();
+    },
+    getRegisteredHandlerIds: () => [handler.agentId],
+  };
+
+  return proxyServer;
 };
 
 const printStartupMessage = (
