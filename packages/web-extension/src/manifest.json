@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "React Grab",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Select context for coding agents directly from your website. Makes tools like Cursor, Claude Code, Copilot run up to 3× faster",
   "author": "Aiden Bai",
   "homepage_url": "https://react-grab.com",
