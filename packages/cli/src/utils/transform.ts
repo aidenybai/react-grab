@@ -62,8 +62,12 @@ const findLayoutFile = (projectRoot: string): string | null => {
   const possiblePaths = [
     join(projectRoot, "app", "layout.tsx"),
     join(projectRoot, "app", "layout.jsx"),
+    join(projectRoot, "app", "layout.ts"),
+    join(projectRoot, "app", "layout.js"),
     join(projectRoot, "src", "app", "layout.tsx"),
     join(projectRoot, "src", "app", "layout.jsx"),
+    join(projectRoot, "src", "app", "layout.ts"),
+    join(projectRoot, "src", "app", "layout.js"),
   ];
 
   for (const filePath of possiblePaths) {
@@ -104,8 +108,12 @@ const findDocumentFile = (projectRoot: string): string | null => {
   const possiblePaths = [
     join(projectRoot, "pages", "_document.tsx"),
     join(projectRoot, "pages", "_document.jsx"),
+    join(projectRoot, "pages", "_document.ts"),
+    join(projectRoot, "pages", "_document.js"),
     join(projectRoot, "src", "pages", "_document.tsx"),
     join(projectRoot, "src", "pages", "_document.jsx"),
+    join(projectRoot, "src", "pages", "_document.ts"),
+    join(projectRoot, "src", "pages", "_document.js"),
   ];
 
   for (const filePath of possiblePaths) {
@@ -157,8 +165,12 @@ const findTanStackRootFile = (projectRoot: string): string | null => {
   const possiblePaths = [
     join(projectRoot, "src", "routes", "__root.tsx"),
     join(projectRoot, "src", "routes", "__root.jsx"),
+    join(projectRoot, "src", "routes", "__root.ts"),
+    join(projectRoot, "src", "routes", "__root.js"),
     join(projectRoot, "app", "routes", "__root.tsx"),
     join(projectRoot, "app", "routes", "__root.jsx"),
+    join(projectRoot, "app", "routes", "__root.ts"),
+    join(projectRoot, "app", "routes", "__root.js"),
   ];
 
   for (const filePath of possiblePaths) {
@@ -1102,7 +1114,7 @@ const findReactGrabFile = (
       }
       return findDocumentFile(projectRoot);
     case "vite":
-      return findIndexHtml(projectRoot);
+      return findIndexHtml(projectRoot) || findEntryFile(projectRoot);
     case "tanstack":
       return findTanStackRootFile(projectRoot);
     case "webpack":
@@ -1590,6 +1602,128 @@ export const previewPackageJsonAgentRemoval = (
       filePath: packageJsonPath,
       message: "Failed to parse package.json",
     };
+  }
+};
+
+const removePatternFromContent = (
+  originalContent: string,
+  filePath: string,
+  patterns: RegExp[],
+  successMessage: string,
+  noChangesMessage: string,
+): TransformResult => {
+  for (const pattern of patterns) {
+    const newContent = originalContent.replace(pattern, "");
+    if (newContent !== originalContent) {
+      return {
+        success: true,
+        filePath,
+        message: successMessage,
+        originalContent,
+        newContent,
+      };
+    }
+  }
+  return {
+    success: true,
+    filePath,
+    message: noChangesMessage,
+    noChanges: true,
+  };
+};
+
+const REACT_SCAN_SCRIPT_WITH_DEV_CONDITION =
+  /\s*\{process\.env\.NODE_ENV === ["']development["'] && \(\s*<Script[^>]*react-scan[^>]*\/>\s*\)\}/gis;
+const REACT_SCAN_SCRIPT_TAG = /<Script[^>]*react-scan[^>]*\/>/gi;
+const REACT_SCAN_DYNAMIC_IMPORT =
+  /\s*import\s*\(\s*["']react-scan["']\s*\)\s*;?\s*/gi;
+const REACT_SCAN_DEV_CONDITIONAL_IMPORT =
+  /if\s*\(\s*process\.env\.NODE_ENV\s*===\s*["']development["']\s*\)\s*\{\s*import\s*\(\s*["']react-scan["']\s*\)\s*;?\s*\}\s*/gi;
+const REACT_SCAN_VOID_IMPORT =
+  /\s*void\s+import\s*\(\s*["']react-scan["']\s*\)\s*;?\s*/gi;
+
+const removeReactScanFromNextApp = (
+  originalContent: string,
+  filePath: string,
+): TransformResult =>
+  removePatternFromContent(
+    originalContent,
+    filePath,
+    [REACT_SCAN_SCRIPT_WITH_DEV_CONDITION, REACT_SCAN_SCRIPT_TAG],
+    "Remove React Scan from Next.js App Router",
+    "No React Scan Script found in layout",
+  );
+
+const removeReactScanFromVite = (
+  originalContent: string,
+  filePath: string,
+): TransformResult =>
+  removePatternFromContent(
+    originalContent,
+    filePath,
+    [REACT_SCAN_DYNAMIC_IMPORT],
+    "Remove React Scan from Vite",
+    "No React Scan import found",
+  );
+
+const removeReactScanFromWebpack = (
+  originalContent: string,
+  filePath: string,
+): TransformResult =>
+  removePatternFromContent(
+    originalContent,
+    filePath,
+    [REACT_SCAN_DEV_CONDITIONAL_IMPORT, REACT_SCAN_DYNAMIC_IMPORT],
+    "Remove React Scan from Webpack",
+    "No React Scan import found",
+  );
+
+const removeReactScanFromTanStack = (
+  originalContent: string,
+  filePath: string,
+): TransformResult =>
+  removePatternFromContent(
+    originalContent,
+    filePath,
+    [REACT_SCAN_VOID_IMPORT],
+    "Remove React Scan from TanStack",
+    "No React Scan import found",
+  );
+
+export const previewReactScanRemoval = (
+  projectRoot: string,
+  framework: Framework,
+  nextRouterType: NextRouterType,
+): TransformResult => {
+  const filePath = findReactGrabFile(projectRoot, framework, nextRouterType);
+
+  if (!filePath || !existsSync(filePath)) {
+    return {
+      success: true,
+      filePath: filePath ?? "",
+      message: "No file found to check for React Scan",
+      noChanges: true,
+    };
+  }
+
+  const originalContent = readFileSync(filePath, "utf-8");
+
+  switch (framework) {
+    case "next":
+      return removeReactScanFromNextApp(originalContent, filePath);
+    case "vite":
+      return removeReactScanFromVite(originalContent, filePath);
+    case "tanstack":
+      return removeReactScanFromTanStack(originalContent, filePath);
+    case "webpack":
+      return removeReactScanFromWebpack(originalContent, filePath);
+    default:
+      return {
+        success: true,
+        filePath,
+        message: "Unknown framework",
+        noChanges: true,
+      };
   }
 };
 

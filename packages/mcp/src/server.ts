@@ -174,11 +174,13 @@ const createHttpServer = (port: number): Server => {
         return;
       }
 
-      response.writeHead(400, { "Content-Type": "application/json" }).end(
-        JSON.stringify({
-          error: "No valid session. Send an initialize request first.",
-        }),
-      );
+      response
+        .writeHead(400, { "Content-Type": "application/json" })
+        .end(
+          JSON.stringify({
+            error: "No valid session. Send an initialize request first.",
+          }),
+        );
       return;
     }
 

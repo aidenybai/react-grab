@@ -4,11 +4,14 @@ import { PANEL_STYLES } from "../../constants.js";
 import { IconSelect } from "../icons/icon-select.jsx";
 import { IconComment } from "../icons/icon-comment.jsx";
 import { IconChevron } from "../icons/icon-chevron.jsx";
-import { getToolbarIconColor } from "../../utils/get-toolbar-icon-color.js";
+import {
+  getSelectIconColor,
+  getCommentIconColor,
+} from "../../utils/get-toolbar-icon-color.js";
+import type { SelectionMode } from "../../types.js";
 
 export interface ToolbarContentProps {
-  isActive?: boolean;
-  isCommentMode?: boolean;
+  selectionMode?: SelectionMode;
   enabled?: boolean;
   isCollapsed?: boolean;
   snapEdge?: "top" | "bottom" | "left" | "right";
@@ -61,10 +64,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
         size={14}
         class={cn(
           "transition-colors",
-          getToolbarIconColor(
-            Boolean(props.isActive) && !props.isCommentMode,
-            Boolean(props.isCommentMode),
-          ),
+          getSelectIconColor(props.selectionMode ?? "inactive"),
         )}
       />
     </button>
@@ -76,10 +76,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
         size={14}
         class={cn(
           "transition-colors",
-          getToolbarIconColor(
-            Boolean(props.isCommentMode),
-            Boolean(props.isActive) && !props.isCommentMode,
-          ),
+          getCommentIconColor(props.selectionMode ?? "inactive"),
         )}
       />
     </button>

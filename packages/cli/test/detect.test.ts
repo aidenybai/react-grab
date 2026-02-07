@@ -4,6 +4,7 @@ import {
   detectMonorepo,
   detectNextRouterType,
   detectReactGrab,
+  detectReactScan,
   detectInstalledAgents,
   detectUnsupportedFramework,
   detectAvailableAgentCLIs,
@@ -220,6 +221,157 @@ describe("detectReactGrab", () => {
     mockReadFileSync.mockReturnValue("not valid json");
 
     expect(detectReactGrab("/test")).toBe(false);
+  });
+});
+
+describe("detectReactScan", () => {
+  it("should detect react-scan in dependencies", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(
+      JSON.stringify({ dependencies: { "react-scan": "1.0.0" } }),
+    );
+
+    const result = detectReactScan("/test");
+    expect(result.hasReactScan).toBe(true);
+    expect(result.isPackageInstalled).toBe(true);
+    expect(result.hasReactScanMonitoring).toBe(false);
+  });
+
+  it("should detect react-scan in devDependencies", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(
+      JSON.stringify({ devDependencies: { "react-scan": "1.0.0" } }),
+    );
+
+    const result = detectReactScan("/test");
+    expect(result.hasReactScan).toBe(true);
+    expect(result.isPackageInstalled).toBe(true);
+  });
+
+  it("should detect @react-scan/monitoring package", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(
+      JSON.stringify({ dependencies: { "@react-scan/monitoring": "1.0.0" } }),
+    );
+
+    const result = detectReactScan("/test");
+    expect(result.hasReactScan).toBe(true);
+    expect(result.hasReactScanMonitoring).toBe(true);
+  });
+
+  it("should detect react-scan CDN script in file", () => {
+    mockExistsSync.mockImplementation((path) => {
+      const pathStr = String(path);
+      return pathStr.endsWith("package.json") || pathStr.endsWith("layout.tsx");
+    });
+    mockReadFileSync.mockImplementation((path) => {
+      const pathStr = String(path);
+      if (pathStr.endsWith("package.json")) {
+        return JSON.stringify({ dependencies: {} });
+      }
+      if (pathStr.endsWith("layout.tsx")) {
+        return `<Script src="//unpkg.com/react-scan/dist/auto.global.js" />`;
+      }
+      return "";
+    });
+
+    const result = detectReactScan("/test");
+    expect(result.hasReactScan).toBe(true);
+    expect(result.detectedFiles.length).toBeGreaterThan(0);
+  });
+
+  it("should detect react-scan dynamic import in file", () => {
+    mockExistsSync.mockImplementation((path) => {
+      const pathStr = String(path);
+      return pathStr.endsWith("package.json") || pathStr.endsWith("index.html");
+    });
+    mockReadFileSync.mockImplementation((path) => {
+      const pathStr = String(path);
+      if (pathStr.endsWith("package.json")) {
+        return JSON.stringify({ dependencies: {} });
+      }
+      if (pathStr.endsWith("index.html")) {
+        return `<script>import("react-scan")</script>`;
+      }
+      return "";
+    });
+
+    const result = detectReactScan("/test");
+    expect(result.hasReactScan).toBe(true);
+    expect(result.detectedFiles.length).toBeGreaterThan(0);
+  });
+
+  it("should detect react-scan static import in file", () => {
+    mockExistsSync.mockImplementation((path) => {
+      const pathStr = String(path);
+      return pathStr.endsWith("package.json") || pathStr.endsWith("main.tsx");
+    });
+    mockReadFileSync.mockImplementation((path) => {
+      const pathStr = String(path);
+      if (pathStr.endsWith("package.json")) {
+        return JSON.stringify({ dependencies: {} });
+      }
+      if (pathStr.endsWith("main.tsx")) {
+        return `import { scan } from "react-scan";\nscan();`;
+      }
+      return "";
+    });
+
+    const result = detectReactScan("/test");
+    expect(result.hasReactScan).toBe(true);
+    expect(result.detectedFiles.length).toBeGreaterThan(0);
+  });
+
+  it("should return false when react-scan not present", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(
+      JSON.stringify({ dependencies: { react: "18.0.0" } }),
+    );
+
+    const result = detectReactScan("/test");
+    expect(result.hasReactScan).toBe(false);
+    expect(result.isPackageInstalled).toBe(false);
+    expect(result.detectedFiles).toEqual([]);
+  });
+
+  it("should return false for malformed package.json", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue("invalid json");
+
+    const result = detectReactScan("/test");
+    expect(result.hasReactScan).toBe(false);
+    expect(result.isPackageInstalled).toBe(false);
+  });
+
+  it("should handle missing files gracefully", () => {
+    mockExistsSync.mockReturnValue(false);
+
+    const result = detectReactScan("/test");
+    expect(result.hasReactScan).toBe(false);
+    expect(result.isPackageInstalled).toBe(false);
+    expect(result.detectedFiles).toEqual([]);
+  });
+
+  it("should detect both package and file references", () => {
+    mockExistsSync.mockImplementation((path) => {
+      const pathStr = String(path);
+      return pathStr.endsWith("package.json") || pathStr.endsWith("layout.tsx");
+    });
+    mockReadFileSync.mockImplementation((path) => {
+      const pathStr = String(path);
+      if (pathStr.endsWith("package.json")) {
+        return JSON.stringify({ dependencies: { "react-scan": "1.0.0" } });
+      }
+      if (pathStr.endsWith("layout.tsx")) {
+        return `<Script src="//unpkg.com/react-scan/dist/auto.global.js" />`;
+      }
+      return "";
+    });
+
+    const result = detectReactScan("/test");
+    expect(result.hasReactScan).toBe(true);
+    expect(result.isPackageInstalled).toBe(true);
+    expect(result.detectedFiles.length).toBeGreaterThan(0);
   });
 });
 

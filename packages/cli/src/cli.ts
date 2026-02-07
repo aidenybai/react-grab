@@ -2,6 +2,7 @@ import { Command } from "commander";
 import { add } from "./commands/add.js";
 import { configure } from "./commands/configure.js";
 import { init } from "./commands/init.js";
+import { migrate } from "./commands/migrate.js";
 import { remove } from "./commands/remove.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
@@ -23,6 +24,7 @@ program.addCommand(init);
 program.addCommand(add);
 program.addCommand(remove);
 program.addCommand(configure);
+program.addCommand(migrate);
 
 const main = async () => {
   await program.parseAsync();
