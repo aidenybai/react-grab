@@ -32,7 +32,8 @@ interface LexicalNode {
 const generateUuid = (): string =>
   "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (character) => {
     const randomNibble = (Math.random() * 16) | 0;
-    const hexValue = character === "x" ? randomNibble : (randomNibble & 0x3) | 0x8;
+    const hexValue =
+      character === "x" ? randomNibble : (randomNibble & 0x3) | 0x8;
     return hexValue.toString(16);
   });
 
