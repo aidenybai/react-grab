@@ -544,6 +544,7 @@ export interface ArrowProps {
   leftPercent: number;
   leftOffsetPx: number;
   color?: string;
+  labelWidth?: number;
 }
 
 export interface TagBadgeProps {
