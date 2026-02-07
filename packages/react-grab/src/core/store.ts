@@ -289,6 +289,7 @@ const createGrabStore = (input: GrabStoreInput) => {
       setStore("contextMenuElement", null);
       setStore("contextMenuClickOffset", null);
       setStore("selectedAgent", null);
+      setStore("lastCopiedElement", null);
     },
 
     toggle: () => {
