@@ -244,6 +244,75 @@ test.describe("Visual Feedback", () => {
       const labelInfo = await reactGrab.getSelectionLabelInfo();
       expect(labelInfo.isVisible).toBe(true);
     });
+
+    test("label and arrow should stay within bounds at left edge", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+      await reactGrab.hoverElement("[data-testid='edge-top-left']");
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.waitForSelectionLabel();
+
+      const bounds = await reactGrab.getSelectionLabelBounds();
+      expect(bounds).not.toBeNull();
+      expect(bounds?.arrow).not.toBeNull();
+      if (bounds?.arrow) {
+        expect(bounds.label.x).toBeGreaterThanOrEqual(0);
+        expect(bounds.label.x + bounds.label.width).toBeLessThanOrEqual(
+          bounds.viewport.width,
+        );
+        expect(bounds.arrow.x).toBeGreaterThanOrEqual(bounds.label.x);
+        expect(bounds.arrow.x + bounds.arrow.width).toBeLessThanOrEqual(
+          bounds.label.x + bounds.label.width,
+        );
+      }
+    });
+
+    test("label and arrow should stay within bounds at right edge", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+      await reactGrab.hoverElement("[data-testid='edge-top-right']");
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.waitForSelectionLabel();
+
+      const bounds = await reactGrab.getSelectionLabelBounds();
+      expect(bounds).not.toBeNull();
+      expect(bounds?.arrow).not.toBeNull();
+      if (bounds?.arrow) {
+        expect(bounds.label.x).toBeGreaterThanOrEqual(0);
+        expect(bounds.label.x + bounds.label.width).toBeLessThanOrEqual(
+          bounds.viewport.width,
+        );
+        expect(bounds.arrow.x).toBeGreaterThanOrEqual(bounds.label.x);
+        expect(bounds.arrow.x + bounds.arrow.width).toBeLessThanOrEqual(
+          bounds.label.x + bounds.label.width,
+        );
+      }
+    });
+
+    test("label and arrow should stay within bounds at bottom-left edge", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+      await reactGrab.hoverElement("[data-testid='edge-bottom-left']");
+      await reactGrab.waitForSelectionBox();
+      await reactGrab.waitForSelectionLabel();
+
+      const bounds = await reactGrab.getSelectionLabelBounds();
+      expect(bounds).not.toBeNull();
+      expect(bounds?.arrow).not.toBeNull();
+      if (bounds?.arrow) {
+        expect(bounds.label.x).toBeGreaterThanOrEqual(0);
+        expect(bounds.label.x + bounds.label.width).toBeLessThanOrEqual(
+          bounds.viewport.width,
+        );
+        expect(bounds.arrow.x).toBeGreaterThanOrEqual(bounds.label.x);
+        expect(bounds.arrow.x + bounds.arrow.width).toBeLessThanOrEqual(
+          bounds.label.x + bounds.label.width,
+        );
+      }
+    });
   });
 
   test.describe("Status Transitions", () => {

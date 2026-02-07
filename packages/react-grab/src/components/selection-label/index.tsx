@@ -12,6 +12,7 @@ import {
   VIEWPORT_MARGIN_PX,
   ARROW_HEIGHT_PX,
   ARROW_CENTER_PERCENT,
+  ARROW_LABEL_MARGIN_PX,
   LABEL_GAP_PX,
   PANEL_STYLES,
 } from "../../constants.js";
@@ -248,10 +249,19 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       positionTop = VIEWPORT_MARGIN_PX;
     }
 
-    // Arrow is centered by default, offset by edge clamping
-    // When edgeOffsetX is 0, arrow is at center. When label shifts, arrow compensates.
     const arrowLeftPercent = ARROW_CENTER_PERCENT;
-    const arrowLeftOffset = -edgeOffsetX; // px offset to keep arrow pointing at cursor
+    const labelHalfWidth = labelWidth / 2;
+    const arrowCenterPx = labelHalfWidth - edgeOffsetX;
+    const arrowMinPx = Math.min(ARROW_LABEL_MARGIN_PX, labelHalfWidth);
+    const arrowMaxPx = Math.max(
+      labelWidth - ARROW_LABEL_MARGIN_PX,
+      labelHalfWidth,
+    );
+    const clampedArrowCenterPx = Math.max(
+      arrowMinPx,
+      Math.min(arrowMaxPx, arrowCenterPx),
+    );
+    const arrowLeftOffset = clampedArrowCenterPx - labelHalfWidth;
 
     const position = {
       left: anchorX,

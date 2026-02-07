@@ -21,6 +21,12 @@ interface SelectionLabelInfo {
   filePath: string | null;
 }
 
+interface SelectionLabelBounds {
+  label: { x: number; y: number; width: number; height: number };
+  arrow: { x: number; y: number; width: number; height: number } | null;
+  viewport: { width: number; height: number };
+}
+
 interface ToolbarInfo {
   isVisible: boolean;
   isCollapsed: boolean;
@@ -118,6 +124,7 @@ interface ReactGrabPageObject {
   ) => Promise<void>;
 
   getSelectionLabelInfo: () => Promise<SelectionLabelInfo>;
+  getSelectionLabelBounds: () => Promise<SelectionLabelBounds | null>;
   isSelectionLabelVisible: () => Promise<boolean>;
   waitForSelectionLabel: () => Promise<void>;
   getLabelStatusText: () => Promise<string | null>;
@@ -892,6 +899,38 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         status,
         elementsCount,
         filePath: null,
+      };
+    }, ATTRIBUTE_NAME);
+  };
+
+  const getSelectionLabelBounds = async (): Promise<SelectionLabelBounds | null> => {
+    return page.evaluate((attrName) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      if (!shadowRoot) return null;
+      const root = shadowRoot.querySelector(`[${attrName}]`);
+      if (!root) return null;
+
+      const label = root.querySelector<HTMLElement>(
+        "[data-react-grab-selection-label]",
+      );
+      if (!label) return null;
+
+      const toRect = (rect: DOMRect) => ({
+        x: rect.x,
+        y: rect.y,
+        width: rect.width,
+        height: rect.height,
+      });
+
+      const arrowElement = label.querySelector<HTMLElement>(
+        "[data-react-grab-arrow]",
+      );
+
+      return {
+        label: toRect(label.getBoundingClientRect()),
+        arrow: arrowElement ? toRect(arrowElement.getBoundingClientRect()) : null,
+        viewport: { width: window.innerWidth, height: window.innerHeight },
       };
     }, ATTRIBUTE_NAME);
   };
@@ -1847,6 +1886,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     dragToolbarFromButton,
 
     getSelectionLabelInfo,
+    getSelectionLabelBounds,
     isSelectionLabelVisible,
     waitForSelectionLabel,
     getLabelStatusText,

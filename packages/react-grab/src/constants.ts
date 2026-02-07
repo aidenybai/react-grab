@@ -58,6 +58,7 @@ export const FROZEN_GLOW_EDGE_PX = 50;
 
 export const ARROW_HEIGHT_PX = 8;
 export const ARROW_CENTER_PERCENT = 50;
+export const ARROW_LABEL_MARGIN_PX = 16;
 export const LABEL_GAP_PX = 4;
 export const PREVIEW_ATTR_VALUE_MAX_LENGTH = 15;
 export const PREVIEW_MAX_ATTRS = 3;
