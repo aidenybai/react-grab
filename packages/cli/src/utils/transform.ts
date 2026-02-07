@@ -1612,17 +1612,18 @@ const removePatternFromContent = (
   successMessage: string,
   noChangesMessage: string,
 ): TransformResult => {
+  let newContent = originalContent;
   for (const pattern of patterns) {
-    const newContent = originalContent.replace(pattern, "");
-    if (newContent !== originalContent) {
-      return {
-        success: true,
-        filePath,
-        message: successMessage,
-        originalContent,
-        newContent,
-      };
-    }
+    newContent = newContent.replace(pattern, "");
+  }
+  if (newContent !== originalContent) {
+    return {
+      success: true,
+      filePath,
+      message: successMessage,
+      originalContent,
+      newContent,
+    };
   }
   return {
     success: true,
@@ -1635,6 +1636,8 @@ const removePatternFromContent = (
 const REACT_SCAN_SCRIPT_WITH_DEV_CONDITION =
   /\s*\{process\.env\.NODE_ENV === ["']development["'] && \(\s*<Script[^>]*react-scan[^>]*\/>\s*\)\}/gis;
 const REACT_SCAN_SCRIPT_TAG = /<Script[^>]*react-scan[^>]*\/>/gi;
+const REACT_SCAN_HTML_SCRIPT_TAG =
+  /<script[^>]*react-scan[^>]*>[\s\S]*?<\/script>/gi;
 const REACT_SCAN_DYNAMIC_IMPORT =
   /\s*import\s*\(\s*["']react-scan["']\s*\)\s*;?\s*/gi;
 const REACT_SCAN_DEV_CONDITIONAL_IMPORT =
@@ -1661,7 +1664,7 @@ const removeReactScanFromVite = (
   removePatternFromContent(
     originalContent,
     filePath,
-    [REACT_SCAN_DYNAMIC_IMPORT],
+    [REACT_SCAN_HTML_SCRIPT_TAG, REACT_SCAN_DYNAMIC_IMPORT],
     "Remove React Scan from Vite",
     "No React Scan import found",
   );
@@ -1673,7 +1676,11 @@ const removeReactScanFromWebpack = (
   removePatternFromContent(
     originalContent,
     filePath,
-    [REACT_SCAN_DEV_CONDITIONAL_IMPORT, REACT_SCAN_DYNAMIC_IMPORT],
+    [
+      REACT_SCAN_HTML_SCRIPT_TAG,
+      REACT_SCAN_DEV_CONDITIONAL_IMPORT,
+      REACT_SCAN_DYNAMIC_IMPORT,
+    ],
     "Remove React Scan from Webpack",
     "No React Scan import found",
   );

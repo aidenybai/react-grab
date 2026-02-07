@@ -881,9 +881,7 @@ const formatComponentLine = (
   );
 
   if (passiveEffectCount > 0 && passiveEffectTime > 0) {
-    diagnosticParts.push(
-      `effect:${passiveEffectTime}ms*${passiveEffectCount}`,
-    );
+    diagnosticParts.push(`effect:${passiveEffectTime}ms*${passiveEffectCount}`);
   }
 
   if (stats.layoutEffectCount > 0 && stats.totalLayoutEffectTime > 0) {
@@ -894,9 +892,7 @@ const formatComponentLine = (
 
   const unstableEntries = unstablePropsPerComponent.get(componentName);
   if (unstableEntries && unstableEntries.size > 0) {
-    diagnosticParts.push(
-      `unstable:${Array.from(unstableEntries).join(",")}`,
-    );
+    diagnosticParts.push(`unstable:${Array.from(unstableEntries).join(",")}`);
   }
 
   return diagnosticParts.join(" ");
