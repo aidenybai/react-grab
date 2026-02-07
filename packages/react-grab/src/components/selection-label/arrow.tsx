@@ -7,6 +7,7 @@ export const Arrow: Component<ArrowProps> = (props) => {
 
   return (
     <div
+      data-react-grab-arrow
       class="absolute w-0 h-0 z-10"
       style={{
         left: `calc(${props.leftPercent}% + ${props.leftOffsetPx}px)`,
