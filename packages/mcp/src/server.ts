@@ -6,6 +6,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import fkill from "fkill";
 import { z } from "zod";
 import {
+  CONTEXT_TTL_MS,
   DEFAULT_MCP_PORT,
   HEALTH_CHECK_TIMEOUT_MS,
   POST_KILL_DELAY_MS,
@@ -21,7 +22,12 @@ const agentContextSchema = z.object({
 
 type AgentContext = z.infer<typeof agentContextSchema>;
 
-let latestContext: AgentContext | null = null;
+interface StoredContext {
+  context: AgentContext;
+  submittedAt: number;
+}
+
+let latestContext: StoredContext | null = null;
 
 const textResult = (text: string) => ({
   content: [{ type: "text" as const, text }],
@@ -52,7 +58,14 @@ const createMcpServer = (): McpServer => {
       if (!latestContext) {
         return textResult("No context has been submitted yet.");
       }
-      const result = textResult(formatContext(latestContext));
+
+      const isExpired = Date.now() - latestContext.submittedAt > CONTEXT_TTL_MS;
+      if (isExpired) {
+        latestContext = null;
+        return textResult("No context has been submitted yet.");
+      }
+
+      const result = textResult(formatContext(latestContext.context));
       latestContext = null;
       return result;
     },
@@ -108,7 +121,10 @@ const createHttpServer = (port: number): Server => {
 
       try {
         const body = JSON.parse(Buffer.concat(chunks).toString());
-        latestContext = agentContextSchema.parse(body);
+        latestContext = {
+          context: agentContextSchema.parse(body),
+          submittedAt: Date.now(),
+        };
         response.writeHead(200, { "Content-Type": "application/json" }).end(
           JSON.stringify({ status: "ok" }),
         );
