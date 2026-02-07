@@ -78,6 +78,26 @@ export const freezeGlobalAnimations = (): void => {
 };
 
 export const unfreezeGlobalAnimations = (): void => {
-  globalAnimationStyleElement?.remove();
+  if (!globalAnimationStyleElement) return;
+
+  // HACK: Finish all paused CSS animations before removing the freeze style.
+  // Simply removing the pause causes animations to resume from mid-point,
+  // creating visual "jumps" (e.g., dropdowns snapping through entry animation).
+  // Finishing advances them to their end state instead.
+  globalAnimationStyleElement.textContent = `
+*, *::before, *::after {
+  transition: none !important;
+}
+`;
+
+  for (const animation of document.getAnimations()) {
+    try {
+      animation.finish();
+    } catch {
+      // HACK: finish() throws for infinite animations or zero playback rate
+    }
+  }
+
+  globalAnimationStyleElement.remove();
   globalAnimationStyleElement = null;
 };
