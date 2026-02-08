@@ -154,10 +154,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const isSideEdge = (edge: SnapEdge) => edge === "left" || edge === "right";
 
-  const getClosestEdgeFromPointer = (
-    pointerX: number,
-    pointerY: number,
-  ): SnapEdge => {
+  const computeEdgeDistances = (pointerX: number, pointerY: number) => {
     const viewport = getVisualViewport();
     const edgeDistanceMap: EdgeDistanceMap = {
       top: Math.max(0, pointerY - viewport.offsetTop),
@@ -177,6 +174,25 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       edgeDistanceMap.top,
       edgeDistanceMap.bottom,
     );
+    return {
+      edgeDistanceMap,
+      nearestHorizontalEdge,
+      nearestVerticalEdge,
+      nearestHorizontalDistance,
+      nearestVerticalDistance,
+    };
+  };
+
+  const getClosestEdgeFromPointer = (
+    pointerX: number,
+    pointerY: number,
+  ): SnapEdge => {
+    const {
+      nearestHorizontalEdge,
+      nearestVerticalEdge,
+      nearestHorizontalDistance,
+      nearestVerticalDistance,
+    } = computeEdgeDistances(pointerX, pointerY);
     return nearestHorizontalDistance < nearestVerticalDistance
       ? nearestHorizontalEdge
       : nearestVerticalEdge;
@@ -213,25 +229,13 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     dragDeltaY: number,
     previousPreviewEdge: SnapEdge | null,
   ): DragDockPreviewState => {
-    const viewport = getVisualViewport();
-    const edgeDistanceMap: EdgeDistanceMap = {
-      top: Math.max(0, pointerY - viewport.offsetTop),
-      bottom: Math.max(0, viewport.offsetTop + viewport.height - pointerY),
-      left: Math.max(0, pointerX - viewport.offsetLeft),
-      right: Math.max(0, viewport.offsetLeft + viewport.width - pointerX),
-    };
-    const nearestHorizontalDistance = Math.min(
-      edgeDistanceMap.left,
-      edgeDistanceMap.right,
-    );
-    const nearestVerticalDistance = Math.min(
-      edgeDistanceMap.top,
-      edgeDistanceMap.bottom,
-    );
-    const nearestHorizontalEdge: SnapEdge =
-      edgeDistanceMap.left <= edgeDistanceMap.right ? "left" : "right";
-    const nearestVerticalEdge: SnapEdge =
-      edgeDistanceMap.top <= edgeDistanceMap.bottom ? "top" : "bottom";
+    const {
+      edgeDistanceMap,
+      nearestHorizontalEdge,
+      nearestVerticalEdge,
+      nearestHorizontalDistance,
+      nearestVerticalDistance,
+    } = computeEdgeDistances(pointerX, pointerY);
     const nearestDistance = Math.min(
       nearestHorizontalDistance,
       nearestVerticalDistance,
