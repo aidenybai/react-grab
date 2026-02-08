@@ -177,12 +177,14 @@ export const connectRelay = async (
   };
 
   if (isRelayServerRunning) {
+    const actualSecure = detectedSecure ?? secure;
     relayServer = await connectToExistingRelay(
       relayPort,
       handler,
       token,
-      detectedSecure ?? secure,
+      actualSecure,
     );
+    isSecureMode = actualSecure ?? false;
   } else {
     await fkill(`:${relayPort}`, { force: true, silent: true }).catch(() => {});
     await sleep(POST_KILL_DELAY_MS);
