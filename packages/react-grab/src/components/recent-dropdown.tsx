@@ -303,31 +303,31 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                   data-react-grab-ignore-events
                   data-react-grab-recent-clear
                   aria-label="Clear all"
-                  class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[#FEF2F2] cursor-pointer transition-all hover:bg-[#FEE2E2] press-scale h-[17px]"
+                  class="contain-layout shrink-0 flex items-center justify-center w-[18px] h-[18px] rounded-sm bg-[#FEF2F2] border-none cursor-pointer transition-all hover:bg-black/[0.02] press-scale"
                   onClick={(event) => {
                     event.stopPropagation();
                     props.onClearAll?.();
                   }}
                 >
-                  <IconTrash size={10} class="text-[#B91C1C]" />
+                  <IconTrash size={12} class="text-[#B91C1C]" />
                 </button>
                 <button
                   data-react-grab-ignore-events
                   data-react-grab-recent-copy-all
                   aria-label="Copy all"
-                  class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] press-scale h-[17px]"
+                  class="contain-layout shrink-0 flex items-center justify-center w-[18px] h-[18px] rounded-sm bg-white border-none cursor-pointer transition-all hover:bg-black/[0.02] press-scale"
                   onClick={(event) => {
                     event.stopPropagation();
                     props.onCopyAll?.();
                   }}
                 >
-                  <IconCopy size={11} class="text-black" />
+                  <IconCopy size={12} class="text-black" />
                 </button>
               </div>
             </Show>
           </div>
 
-          <div class="[border-top-width:0.5px] border-t-solid border-t-[#D9D9D9] px-2 py-1.5">
+          <div class="px-2 py-1.5">
             <Show
               when={props.items.length > 0}
               fallback={
@@ -348,9 +348,9 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                       data-react-grab-recent-item-highlighted={
                         isRecentItemHighlighted(item.id) ? "" : undefined
                       }
-                      class="contain-layout flex items-start justify-between w-full px-2 py-1 cursor-pointer transition-colors duration-150 text-left border border-transparent hover:bg-black/[0.035] hover:border-black/[0.08] gap-2"
+                      class="contain-layout flex items-start justify-between w-full px-2 py-1 cursor-pointer transition-colors duration-150 text-left border border-transparent hover:bg-black/[0.02] hover:border-black/[0.05] gap-2"
                       classList={{
-                        "bg-black/[0.075] border-black/[0.12]":
+                        "bg-black/[0.02] border-black/[0.05]":
                           isRecentItemHighlighted(item.id),
                         "rounded-none": !isBottomRecentItem(itemIndex()),
                         "rounded-b-[6px]": isBottomRecentItem(itemIndex()),
