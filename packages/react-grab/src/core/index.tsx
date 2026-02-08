@@ -2005,7 +2005,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const buttonRect = recentButtonElement.getBoundingClientRect();
       const anchorX = buttonRect.left + buttonRect.width / 2;
       const toolbarEdge = currentToolbarState()?.edge;
-      const anchorY = toolbarEdge === "top" ? buttonRect.bottom : buttonRect.top;
+      const anchorY =
+        toolbarEdge === "top" ? buttonRect.bottom : buttonRect.top;
 
       return { x: anchorX, y: anchorY };
     };
@@ -3374,6 +3375,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           const centerY = bounds.y + bounds.height / 2;
           actions.enterPromptMode({ x: centerX, y: centerY }, element);
           actions.setInputText(item.commentText);
+        } else {
+          copyContent(item.content, { name: item.elementName });
         }
       } else {
         copyContent(item.content, { name: item.elementName });
