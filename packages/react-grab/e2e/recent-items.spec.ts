@@ -93,6 +93,16 @@ test.describe("Recent Items", () => {
       expect(isDropdownVisible).toBe(true);
     });
 
+    test("should open when pressing R while active", async ({ reactGrab }) => {
+      await copyElement(reactGrab, "li:first-child");
+      await reactGrab.activate();
+      await reactGrab.pressKey("r");
+
+      await expect
+        .poll(() => reactGrab.isRecentDropdownVisible(), { timeout: 2000 })
+        .toBe(true);
+    });
+
     test("should close when clicking the recent button again", async ({
       reactGrab,
     }) => {

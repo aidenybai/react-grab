@@ -2014,6 +2014,36 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return true;
     };
 
+    const getRecentDropdownAnchorPosition = (): { x: number; y: number } => {
+      const recentButtonElement = rendererRoot.querySelector<HTMLButtonElement>(
+        "[data-react-grab-toolbar-recent]",
+      );
+      if (!recentButtonElement) {
+        return { x: store.pointer.x, y: store.pointer.y };
+      }
+
+      const buttonRect = recentButtonElement.getBoundingClientRect();
+      const anchorX = buttonRect.left + buttonRect.width / 2;
+      const toolbarEdge = currentToolbarState()?.edge;
+      const anchorY = toolbarEdge === "top" ? buttonRect.bottom : buttonRect.top;
+
+      return { x: anchorX, y: anchorY };
+    };
+
+    const handleRecentShortcut = (event: KeyboardEvent): boolean => {
+      if (event.key?.toLowerCase() !== "r" || isPromptMode()) return false;
+      if (event.metaKey || event.ctrlKey || event.altKey || event.repeat) {
+        return false;
+      }
+      if (!isActivated()) return false;
+      if (isKeyboardEventTriggeredByInput(event)) return false;
+
+      event.preventDefault();
+      event.stopPropagation();
+      handleToggleRecent(getRecentDropdownAnchorPosition());
+      return true;
+    };
+
     const handleScreenshotShortcut = (event: KeyboardEvent): boolean => {
       if (!isScreenshotSupported()) return false;
       if (store.contextMenuPosition !== null) return false;
@@ -2453,6 +2483,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (handleActionCycleKey(event)) return;
         if (handleArrowNavigation(event)) return;
         if (handleEnterKeyActivation(event)) return;
+        if (handleRecentShortcut(event)) return;
         if (handleOpenFileShortcut(event)) return;
         if (handleScreenshotShortcut(event)) return;
 
