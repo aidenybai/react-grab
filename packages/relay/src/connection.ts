@@ -65,8 +65,10 @@ const checkIfRelayServerIsRunning = async (
 
   if (secure !== undefined) {
     const result = await tryProtocol(secure);
-    if (result) return true;
-    return await tryProtocol(!secure);
+    if (result) return { isRunning: true, isSecure: secure };
+    const fallbackResult = await tryProtocol(!secure);
+    if (fallbackResult) return { isRunning: true, isSecure: !secure };
+    return false;
   }
 
   const httpResult = await tryProtocol(false);
@@ -225,6 +227,7 @@ const connectToExistingRelay = async (
   let currentSocket: typeof WebSocket.prototype | null = null;
   let isSocketClosed = false;
   let isExplicitDisconnect = false;
+  let hasConnectedOnce = false;
   const activeSessionIds = new Set<string>();
 
   const sendData = (data: string): boolean => {
@@ -264,7 +267,7 @@ const connectToExistingRelay = async (
         }
         activeSessionIds.clear();
 
-        if (!isExplicitDisconnect) {
+        if (!isExplicitDisconnect && hasConnectedOnce) {
           setTimeout(() => {
             attemptConnection().catch(() => {});
           }, 1000);
@@ -274,6 +277,7 @@ const connectToExistingRelay = async (
       socket.on("open", () => {
         currentSocket = socket;
         isSocketClosed = false;
+        hasConnectedOnce = true;
 
         socket.send(
           JSON.stringify({

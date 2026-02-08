@@ -131,7 +131,6 @@ export const createRelayClient = (
           );
           continue;
         }
-        return;
       }
     }
 
