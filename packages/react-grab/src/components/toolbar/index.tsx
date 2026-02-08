@@ -93,6 +93,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [isRecentTooltipVisible, setIsRecentTooltipVisible] = createSignal(false);
   let recentButtonRef: HTMLButtonElement | undefined;
 
+  const recentTooltipLabel = () => {
+    const count = props.recentItemCount ?? 0;
+    return count > 0 ? `Recent (${count})` : "Recent";
+  };
+
   const tooltipPosition = () => (snapEdge() === "top" ? "bottom" : "top");
 
   const stopEventPropagation = (event: Event) => {
@@ -1231,7 +1236,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     visible={isRecentTooltipVisible() && !isCollapsed()}
                     position={tooltipPosition()}
                   >
-                    Recent
+                    {recentTooltipLabel()}
                   </Tooltip>
                 </div>
               </div>
