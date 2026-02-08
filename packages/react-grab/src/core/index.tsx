@@ -3311,10 +3311,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    const handleRecentDismiss = () => {
-      dismissRecentDropdown();
-    };
-
     const handleRecentItemSelect = (item: RecentItem) => {
       dismissRecentDropdown();
 
@@ -3565,7 +3561,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onRecentItemHover={handleRecentItemHover}
             onRecentCopyAll={handleRecentCopyAll}
             onRecentClear={handleRecentClear}
-            onRecentDismiss={handleRecentDismiss}
+            onRecentDismiss={dismissRecentDropdown}
           />
         );
       }, rendererRoot);
