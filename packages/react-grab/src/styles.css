@@ -1,7 +1,26 @@
 @import "tailwindcss";
 
+:host {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-kerning: normal;
+  font-optical-sizing: auto;
+  font-synthesis: none;
+  font-weight: 460;
+  letter-spacing: -0.00563rem;
+  font-feature-settings: "cv01", "cv03", "cv04", "cv09", "cv11";
+}
+
+code,
+kbd,
+samp,
+pre {
+  letter-spacing: normal;
+}
+
 @theme {
-  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono:
     ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
     monospace;

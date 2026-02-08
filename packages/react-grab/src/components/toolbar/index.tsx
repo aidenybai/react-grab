@@ -17,6 +17,7 @@ import {
 import { IconSelect } from "../icons/icon-select.jsx";
 import { IconChevron } from "../icons/icon-chevron.jsx";
 import { IconComment } from "../icons/icon-comment.jsx";
+import { IconInbox, IconInboxUnread } from "../icons/icon-inbox.jsx";
 import {
   TOOLBAR_SNAP_MARGIN_PX,
   TOOLBAR_FADE_IN_DELAY_MS,
@@ -29,6 +30,8 @@ import {
   TOOLBAR_DEFAULT_WIDTH_PX,
   TOOLBAR_DEFAULT_HEIGHT_PX,
   TOOLBAR_SHAKE_TOOLTIP_DURATION_MS,
+  TOOLBAR_ACTIVE_ACCENT_COLOR,
+  TOOLBAR_COMMENT_ICON_SIZE_PX,
   PANEL_STYLES,
 } from "../../constants.js";
 import { freezeUpdates } from "../../utils/freeze-updates.js";
@@ -47,6 +50,7 @@ interface ToolbarProps {
   isActive?: boolean;
   isCommentMode?: boolean;
   isContextMenuOpen?: boolean;
+  isHistoryOpen?: boolean;
   onToggle?: () => void;
   onComment?: () => void;
   enabled?: boolean;
@@ -57,6 +61,9 @@ interface ToolbarProps {
     callback: (state: ToolbarState) => void,
   ) => () => void;
   onSelectHoverChange?: (isHovered: boolean) => void;
+  recentItemCount?: number;
+  hasUnreadRecentItems?: boolean;
+  onToggleRecent?: (anchorPosition: { x: number; y: number }) => void;
 }
 
 export const Toolbar: Component<ToolbarProps> = (props) => {
@@ -86,6 +93,14 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     createSignal(false);
   const [isShakeTooltipVisible, setIsShakeTooltipVisible] = createSignal(false);
   const [isToggleAnimating, setIsToggleAnimating] = createSignal(false);
+  const [isRecentTooltipVisible, setIsRecentTooltipVisible] =
+    createSignal(false);
+  let recentButtonRef: HTMLButtonElement | undefined;
+
+  const recentTooltipLabel = () => {
+    const count = props.recentItemCount ?? 0;
+    return count > 0 ? `History (${count})` : "History";
+  };
 
   const tooltipPosition = () => (snapEdge() === "top" ? "bottom" : "top");
 
@@ -109,7 +124,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     onMouseLeave: () => {
       setTooltipVisible(false);
       props.onSelectHoverChange?.(false);
-      if (!props.isActive && !props.isContextMenuOpen) {
+      if (!props.isActive && !props.isContextMenuOpen && !props.isHistoryOpen) {
         unfreezeUpdatesCallback?.();
         unfreezeUpdatesCallback = null;
         unfreezeGlobalAnimations();
@@ -118,18 +133,12 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     },
   });
 
-  const collapsedEdgeClasses = () => {
+  const collapsedPaddingClasses = () => {
     if (!isCollapsed()) return "";
     const edge = snapEdge();
-    const roundedClass = {
-      top: "rounded-t-none rounded-b-[10px]",
-      bottom: "rounded-b-none rounded-t-[10px]",
-      left: "rounded-l-none rounded-r-[10px]",
-      right: "rounded-r-none rounded-l-[10px]",
-    }[edge];
     const paddingClass =
       edge === "top" || edge === "bottom" ? "px-2 py-0.25" : "px-0.25 py-2";
-    return `${roundedClass} ${paddingClass}`;
+    return paddingClass;
   };
 
   let shakeTooltipTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -169,9 +178,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   createEffect(
     on(
-      () => [props.isActive, props.isContextMenuOpen] as const,
-      ([isActive, isContextMenuOpen]) => {
-        if (!isActive && !isContextMenuOpen && unfreezeUpdatesCallback) {
+      () => [props.isActive, props.isContextMenuOpen, props.isHistoryOpen] as const,
+      ([isActive, isContextMenuOpen, isHistoryOpen]) => {
+        if (!isActive && !isContextMenuOpen && !isHistoryOpen && unfreezeUpdatesCallback) {
           unfreezeUpdatesCallback();
           unfreezeUpdatesCallback = null;
         }
@@ -400,6 +409,15 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const handleComment = createDragAwareHandler(() => props.onComment?.());
 
+  const handleRecent = createDragAwareHandler(() => {
+    const buttonRect = recentButtonRef?.getBoundingClientRect();
+    if (buttonRect) {
+      const anchorX = buttonRect.left + buttonRect.width / 2;
+      const anchorY = snapEdge() === "top" ? buttonRect.bottom : buttonRect.top;
+      props.onToggleRecent?.({ x: anchorX, y: anchorY });
+    }
+  });
+
   const handleToggleCollapse = createDragAwareHandler(() => {
     const rect = containerRef?.getBoundingClientRect();
     const wasCollapsed = isCollapsed();
@@ -456,7 +474,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     props.onToggleEnabled?.();
 
     if (expandableWidth > 0) {
-      const widthChange = isCurrentlyEnabled ? -expandableWidth : expandableWidth;
+      const widthChange = isCurrentlyEnabled
+        ? -expandableWidth
+        : expandableWidth;
       expandedDimensions = {
         width: expandedDimensions.width + widthChange,
         height: expandedDimensions.height,
@@ -465,9 +485,15 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
     if (shouldCompensatePosition) {
       const viewport = getVisualViewport();
-      const positionOffset = isCurrentlyEnabled ? expandableWidth : -expandableWidth;
+      const positionOffset = isCurrentlyEnabled
+        ? expandableWidth
+        : -expandableWidth;
       const clampMin = viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX;
-      const clampMax = viewport.offsetLeft + viewport.width - expandedDimensions.width - TOOLBAR_SNAP_MARGIN_PX;
+      const clampMax =
+        viewport.offsetLeft +
+        viewport.width -
+        expandedDimensions.width -
+        TOOLBAR_SNAP_MARGIN_PX;
       const compensatedX = clampToViewport(
         preTogglePosition.x + positionOffset,
         clampMin,
@@ -1030,10 +1056,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     >
       <div
         class={cn(
-          "flex items-center justify-center rounded-[10px] antialiased transition-all duration-150 ease-out relative overflow-visible [font-synthesis:none] [corner-shape:superellipse(1.25)]",
-          PANEL_STYLES,
+          "flex items-center justify-center rounded-full antialiased transition-all duration-150 ease-out relative overflow-visible [font-synthesis:none] [corner-shape:superellipse(1.25)]",
+          "bg-black",
           !isCollapsed() && "py-1.5 gap-1.5 px-2",
-          collapsedEdgeClasses(),
+          collapsedPaddingClasses(),
           isShaking() && "animate-shake",
         )}
         style={{ "transform-origin": getTransformOrigin() }}
@@ -1102,6 +1128,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                   >
                     <IconSelect
                       size={14}
+                      style={
+                        Boolean(props.isActive) && !props.isCommentMode
+                          ? { color: TOOLBAR_ACTIVE_ACCENT_COLOR }
+                          : undefined
+                      }
                       class={cn(
                         "transition-colors",
                         getToolbarIconColor(
@@ -1145,7 +1176,13 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     {...createFreezeHandlers(setIsCommentTooltipVisible)}
                   >
                     <IconComment
-                      size={14}
+                      size={TOOLBAR_COMMENT_ICON_SIZE_PX}
+                      isActive={Boolean(props.isCommentMode)}
+                      style={
+                        Boolean(props.isCommentMode)
+                          ? { color: TOOLBAR_ACTIVE_ACCENT_COLOR }
+                          : undefined
+                      }
                       class={cn(
                         "transition-colors",
                         getToolbarIconColor(
@@ -1160,6 +1197,55 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     position={tooltipPosition()}
                   >
                     Comment
+                  </Tooltip>
+                </div>
+              </div>
+              <div
+                class={cn(
+                  "grid transition-all duration-150 ease-out",
+                  props.enabled && (props.recentItemCount ?? 0) > 0
+                    ? "grid-cols-[1fr] opacity-100"
+                    : "grid-cols-[0fr] opacity-0 pointer-events-none",
+                )}
+              >
+                <div class="relative overflow-visible min-w-0">
+                  {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
+                  <button
+                    ref={recentButtonRef}
+                    data-react-grab-ignore-events
+                    data-react-grab-toolbar-recent
+                    class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5"
+                    on:pointerdown={(event) => {
+                      stopEventPropagation(event);
+                      handlePointerDown(event);
+                    }}
+                    on:mousedown={stopEventPropagation}
+                    onClick={(event) => {
+                      setIsRecentTooltipVisible(false);
+                      handleRecent(event);
+                    }}
+                    {...createFreezeHandlers(setIsRecentTooltipVisible)}
+                  >
+                    <Show
+                      when={props.hasUnreadRecentItems}
+                      fallback={
+                        <IconInbox
+                          size={16}
+                          class="text-white/70 transition-colors"
+                        />
+                      }
+                    >
+                      <IconInboxUnread
+                        size={16}
+                        class="text-white transition-colors"
+                      />
+                    </Show>
+                  </button>
+                  <Tooltip
+                    visible={isRecentTooltipVisible() && !isCollapsed()}
+                    position={tooltipPosition()}
+                  >
+                    {recentTooltipLabel()}
                   </Tooltip>
                 </div>
               </div>
@@ -1179,12 +1265,12 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                 <div
                   class={cn(
                     "relative w-5 h-3 rounded-full transition-colors",
-                    props.enabled ? "bg-black" : "bg-black/25",
+                    props.enabled ? "bg-white" : "bg-white/25",
                   )}
                 >
                   <div
                     class={cn(
-                      "absolute top-0.5 w-2 h-2 rounded-full bg-white transition-transform",
+                      "absolute top-0.5 w-2 h-2 rounded-full bg-black transition-transform",
                       props.enabled ? "left-2.5" : "left-0.5",
                     )}
                   />
@@ -1206,8 +1292,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           onClick={handleToggleCollapse}
         >
           <IconChevron
+            size={14}
             class={cn(
-              "text-[#B3B3B3] transition-transform duration-150",
+              "text-white/70 transition-transform duration-150",
               chevronRotation(),
             )}
           />

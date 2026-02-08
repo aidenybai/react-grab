@@ -50,9 +50,7 @@ export const tryCopyWithFallback = async (
       generatedContent =
         nonEmptySnippets.length > 1
           ? nonEmptySnippets
-              .map(
-                (snippet, index) => `[${index + 1}]\n${snippet}`,
-              )
+              .map((snippet, index) => `[${index + 1}]\n${snippet}`)
               .join("\n\n")
           : nonEmptySnippets.join("\n\n");
     }

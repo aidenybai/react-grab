@@ -3,11 +3,42 @@
 
 @custom-variant dark (&:is(.dark *));
 
+html {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-kerning: normal;
+  font-optical-sizing: auto;
+  font-synthesis: none;
+}
+
 html,
 body {
   background-color: #000;
   min-height: 100vh;
   overflow-x: clip;
+}
+
+body {
+  font-family: var(--font-inter), sans-serif;
+  font-weight: 460;
+  letter-spacing: -0.00563rem;
+  font-feature-settings: "cv01", "cv03", "cv04", "cv09", "cv11";
+}
+
+input,
+textarea,
+select,
+button {
+  font-kerning: inherit;
+  font-optical-sizing: inherit;
+}
+
+code,
+kbd,
+samp,
+pre {
+  letter-spacing: normal;
 }
 
 @keyframes shimmer {
@@ -270,6 +301,7 @@ body {
 }
 
 @theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
