@@ -1268,6 +1268,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     setDragReleaseOriginOffset({ x: 0, y: 0 });
     clearDragReleaseRevealAnimationFrame();
     clearDragReleaseRevealAnimationTimeout();
+    clearTimeout(snapAnimationTimeout);
     setIsDragging(true);
     setHasDragMoved(false);
 
