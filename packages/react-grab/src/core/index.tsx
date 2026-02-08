@@ -135,7 +135,12 @@ import {
   unfreezePseudoStates,
 } from "../utils/freeze-pseudo-states.js";
 import { freezeUpdates } from "../utils/freeze-updates.js";
-import { loadRecent, addRecentItem, removeRecentItem, clearRecent } from "../utils/recent-storage.js";
+import {
+  loadRecent,
+  addRecentItem,
+  removeRecentItem,
+  clearRecent,
+} from "../utils/recent-storage.js";
 import { copyContent } from "../utils/copy-content.js";
 
 const builtInPlugins = [
@@ -259,7 +264,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       createSignal<ToolbarState | null>(savedToolbarState);
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] =
       createSignal(false);
-    const [recentItems, setRecentItems] = createSignal<RecentItem[]>(loadRecent());
+    const [recentItems, setRecentItems] =
+      createSignal<RecentItem[]>(loadRecent());
     const [recentDropdownPosition, setRecentDropdownPosition] = createSignal<{
       x: number;
       y: number;
@@ -687,13 +693,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             const isComment = Boolean(extraPrompt);
             if (primaryElement) {
               const currentItems = recentItems();
-              for (const [existingItemId, mappedElement] of recentElementMap.entries()) {
+              for (const [
+                existingItemId,
+                mappedElement,
+              ] of recentElementMap.entries()) {
                 if (mappedElement !== primaryElement) continue;
-                const existingItem = currentItems.find((item) => item.id === existingItemId);
+                const existingItem = currentItems.find(
+                  (item) => item.id === existingItemId,
+                );
                 if (!existingItem) continue;
 
                 const shouldDedup = isComment
-                  ? existingItem.isComment && existingItem.commentText === extraPrompt
+                  ? existingItem.isComment &&
+                    existingItem.commentText === extraPrompt
                   : !existingItem.isComment;
 
                 if (shouldDedup) {
@@ -1306,6 +1318,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.deactivate();
       arrowNavigator.clearHistory();
       keyboardSelectedElement = null;
+      dismissRecentDropdown();
       if (wasDragging) {
         document.body.style.userSelect = "";
       }
