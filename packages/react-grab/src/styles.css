@@ -267,7 +267,8 @@ pre {
 }
 
 .animate-toolbar-dock-shift {
-  animation: toolbar-dock-shift var(--transition-slow) cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: toolbar-dock-shift var(--transition-slow)
+    cubic-bezier(0.2, 0.8, 0.2, 1);
   will-change: transform, opacity;
 }
 

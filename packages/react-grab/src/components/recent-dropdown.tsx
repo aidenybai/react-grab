@@ -127,9 +127,10 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
       notifyRecentItemHover(highlightedRecentItem?.id ?? null);
 
       requestAnimationFrame(() => {
-        const highlightedItemButton = containerRef?.querySelectorAll<
-          HTMLButtonElement
-        >("[data-react-grab-recent-item]")[nextHighlightedIndex];
+        const highlightedItemButton =
+          containerRef?.querySelectorAll<HTMLButtonElement>(
+            "[data-react-grab-recent-item]",
+          )[nextHighlightedIndex];
         highlightedItemButton?.scrollIntoView({
           block: "nearest",
         });
@@ -388,7 +389,9 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                         event.stopPropagation();
                         props.onSelectItem?.(item);
                       }}
-                      onMouseEnter={() => setHighlightedRecentItem(itemIndex(), true)}
+                      onMouseEnter={() =>
+                        setHighlightedRecentItem(itemIndex(), true)
+                      }
                       onMouseLeave={() => setHighlightedRecentItem(null, true)}
                     >
                       <span class="flex flex-col min-w-0 flex-1">

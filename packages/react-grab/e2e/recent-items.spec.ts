@@ -222,7 +222,6 @@ test.describe("Recent Items", () => {
       const dropdownInfo = await reactGrab.getRecentDropdownInfo();
       expect(dropdownInfo.itemCount).toBe(2);
     });
-
   });
 
   test.describe("Item Selection", () => {
@@ -359,7 +358,9 @@ test.describe("Recent Items", () => {
       expect(await reactGrab.isRecentDropdownVisible()).toBe(false);
     });
 
-    test("should select highlighted item via Enter key", async ({ reactGrab }) => {
+    test("should select highlighted item via Enter key", async ({
+      reactGrab,
+    }) => {
       await copyElement(reactGrab, "li:first-child");
 
       await reactGrab.page.evaluate(() => navigator.clipboard.writeText(""));

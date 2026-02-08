@@ -131,7 +131,9 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
         "flex items-center justify-center rounded-full antialiased transition-all duration-150 ease-out relative overflow-visible [font-synthesis:none] filter-[drop-shadow(0px_1px_2px_#51515140)] [corner-shape:superellipse(1.25)]",
         "bg-black",
         !props.isCollapsed && !isVerticalLayout() && "py-1.5 gap-1.5 px-2",
-        !props.isCollapsed && isVerticalLayout() && "flex-col py-2 px-1.5 gap-1.5",
+        !props.isCollapsed &&
+          isVerticalLayout() &&
+          "flex-col py-2 px-1.5 gap-1.5",
         collapsedPaddingClasses(),
         props.isShaking && "animate-shake",
       )}

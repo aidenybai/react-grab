@@ -28,6 +28,10 @@ import {
   TOOLBAR_DRAG_PREVIEW_SHORT_PX,
   TOOLBAR_DRAG_PREVIEW_LONG_PX,
   TOOLBAR_DRAG_PREVIEW_ROTATION_DURATION_MS,
+  TOOLBAR_DRAG_RELEASE_REVEAL_DURATION_MS,
+  TOOLBAR_DRAG_RELEASE_ITEM_OFFSET_PX,
+  TOOLBAR_DRAG_RELEASE_ICON_STAGGER_DELAY_MS,
+  TOOLBAR_DRAG_RELEASE_ICON_STAGGER_COUNT,
   TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS,
   TOOLBAR_DEFAULT_WIDTH_PX,
   TOOLBAR_DEFAULT_HEIGHT_PX,
@@ -126,10 +130,19 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     createSignal(false);
   const [isShakeTooltipVisible, setIsShakeTooltipVisible] = createSignal(false);
   const [isToggleAnimating, setIsToggleAnimating] = createSignal(false);
-  const [isRecentTooltipVisible, setIsRecentTooltipVisible] = createSignal(false);
+  const [isRecentTooltipVisible, setIsRecentTooltipVisible] =
+    createSignal(false);
   const [isDockLayoutAnimating, setIsDockLayoutAnimating] = createSignal(false);
   const [isDragSnapTransitionActive, setIsDragSnapTransitionActive] =
     createSignal(false);
+  const [isDragReleaseRevealPrepared, setIsDragReleaseRevealPrepared] =
+    createSignal(false);
+  const [isDragReleaseRevealAnimating, setIsDragReleaseRevealAnimating] =
+    createSignal(false);
+  const [dragReleaseOriginOffset, setDragReleaseOriginOffset] = createSignal({
+    x: 0,
+    y: 0,
+  });
   const [dragDockPreviewEdge, setDragDockPreviewEdge] =
     createSignal<SnapEdge | null>(null);
   const [dragPointerPosition, setDragPointerPosition] = createSignal({
@@ -221,6 +234,63 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     if (edge === "bottom") return 180;
     return 0;
   };
+
+  const getDragReleaseItemTransform = (
+    slot: number,
+    shouldScaleDuringReveal: boolean,
+  ): string | undefined => {
+    if (hasDragMoved() || !isDragReleaseRevealPrepared()) return undefined;
+    const originOffset = dragReleaseOriginOffset();
+    const releaseOffsetPx = slot * TOOLBAR_DRAG_RELEASE_ITEM_OFFSET_PX;
+    const translation = isVerticalLayout()
+      ? `translate(${originOffset.x}px, ${originOffset.y - releaseOffsetPx}px)`
+      : `translate(${originOffset.x - releaseOffsetPx}px, ${originOffset.y}px)`;
+    if (!shouldScaleDuringReveal) return translation;
+    return `${translation} scale(0)`;
+  };
+
+  const getDragReleaseIconStaggerOrder = (slot: number): number => {
+    if (slot === -2) return 0;
+    if (slot === -1) return 1;
+    if (slot === 0) return 2;
+    return 0;
+  };
+
+  const getDragReleaseItemTransitionDelayMs = (
+    slot: number,
+    shouldStagger: boolean,
+  ): number => {
+    if (!shouldStagger || !isDragReleaseRevealAnimating()) return 0;
+    return (
+      getDragReleaseIconStaggerOrder(slot) *
+      TOOLBAR_DRAG_RELEASE_ICON_STAGGER_DELAY_MS
+    );
+  };
+
+  const getDragReleaseRevealAnimationDurationMs = (): number => {
+    return (
+      TOOLBAR_DRAG_RELEASE_REVEAL_DURATION_MS +
+      Math.max(0, TOOLBAR_DRAG_RELEASE_ICON_STAGGER_COUNT - 1) *
+        TOOLBAR_DRAG_RELEASE_ICON_STAGGER_DELAY_MS
+    );
+  };
+
+  const getDragReleaseItemStyle = (
+    slot: number,
+    shouldStagger = false,
+    shouldScaleDuringReveal = false,
+  ) => ({
+    transform: getDragReleaseItemTransform(slot, shouldScaleDuringReveal),
+    "transition-duration": `${
+      isDragReleaseRevealPrepared() ? 0 : TOOLBAR_DRAG_RELEASE_REVEAL_DURATION_MS
+    }ms`,
+    "transition-timing-function": "cubic-bezier(0.22,1,0.36,1)",
+    "transition-delay": `${
+      isDragReleaseRevealPrepared()
+        ? 0
+        : getDragReleaseItemTransitionDelayMs(slot, shouldStagger)
+    }ms`,
+  });
 
   const getDragDockPreviewState = (
     pointerX: number,
@@ -379,9 +449,15 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   createEffect(
     on(
-      () => [props.isActive, props.isContextMenuOpen, props.isHistoryOpen] as const,
+      () =>
+        [props.isActive, props.isContextMenuOpen, props.isHistoryOpen] as const,
       ([isActive, isContextMenuOpen, isHistoryOpen]) => {
-        if (!isActive && !isContextMenuOpen && !isHistoryOpen && unfreezeUpdatesCallback) {
+        if (
+          !isActive &&
+          !isContextMenuOpen &&
+          !isHistoryOpen &&
+          unfreezeUpdatesCallback
+        ) {
           unfreezeUpdatesCallback();
           unfreezeUpdatesCallback = null;
         }
@@ -430,6 +506,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   });
 
   let pointerStartPosition = { x: 0, y: 0 };
+  let dragReleaseRevealAnimationFrame: number | undefined;
+  let dragReleaseRevealAnimationTimeout:
+    | ReturnType<typeof setTimeout>
+    | undefined;
   let previousDocumentElementUserSelect = "";
   let previousDocumentBodyUserSelect = "";
   let isGlobalUserSelectDisabled = false;
@@ -448,6 +528,18 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const clampToViewport = (value: number, min: number, max: number): number =>
     Math.max(min, Math.min(value, max));
+
+  const clearDragReleaseRevealAnimationFrame = () => {
+    if (dragReleaseRevealAnimationFrame === undefined) return;
+    cancelAnimationFrame(dragReleaseRevealAnimationFrame);
+    dragReleaseRevealAnimationFrame = undefined;
+  };
+
+  const clearDragReleaseRevealAnimationTimeout = () => {
+    if (dragReleaseRevealAnimationTimeout === undefined) return;
+    clearTimeout(dragReleaseRevealAnimationTimeout);
+    dragReleaseRevealAnimationTimeout = undefined;
+  };
 
   const setGlobalUserSelectDisabled = (shouldDisable: boolean) => {
     const documentElement = document.documentElement;
@@ -941,7 +1033,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     const minX = viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX;
     const maxX = Math.max(
       minX,
-      viewport.offsetLeft + viewport.width - elementWidth - TOOLBAR_SNAP_MARGIN_PX,
+      viewport.offsetLeft +
+        viewport.width -
+        elementWidth -
+        TOOLBAR_SNAP_MARGIN_PX,
     );
     const minY = viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX;
     const maxY = Math.max(
@@ -1013,17 +1108,25 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       setIsDragSnapTransitionActive(false);
       setIsDragging(false);
       setHasDragMoved(false);
+      setIsDragReleaseRevealPrepared(false);
+      setIsDragReleaseRevealAnimating(false);
+      setDragReleaseOriginOffset({ x: 0, y: 0 });
+      clearDragReleaseRevealAnimationFrame();
+      clearDragReleaseRevealAnimationTimeout();
       setDragDockPreviewEdge(null);
       return;
     }
 
     didDragOccur = true;
     suppressNextWindowClickAfterDrag();
+    setIsDragReleaseRevealPrepared(true);
+    setIsDragReleaseRevealAnimating(true);
+    clearDragReleaseRevealAnimationFrame();
+    clearDragReleaseRevealAnimationTimeout();
     const dragPreviewEdgeAtRelease =
       dragDockPreviewEdgeAtRelease ??
       getClosestEdgeFromPointer(event.clientX, event.clientY);
-    const dragPreviewDimensionsAtRelease =
-      getDragPreviewDimensions();
+    const dragPreviewDimensionsAtRelease = getDragPreviewDimensions();
     const releaseCenterX =
       event.clientX ?? position().x + dragPreviewDimensionsAtRelease.width / 2;
     const releaseCenterY =
@@ -1087,6 +1190,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       snapDimensions.width,
       snapDimensions.height,
     );
+    const snapCenterX = snap.x + snapDimensions.width / 2;
+    const snapCenterY = snap.y + snapDimensions.height / 2;
     expandedDimensions = {
       width: snapDimensions.width,
       height: snapDimensions.height,
@@ -1096,12 +1201,25 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     setDragDockPreviewEdge(snap.edge);
     setSnapEdge(snap.edge);
     setPositionRatio(ratio);
+    setDragReleaseOriginOffset({
+      x: releaseCenterX - snapCenterX,
+      y: releaseCenterY - snapCenterY,
+    });
     setIsDragging(false);
     setIsSnapping(true);
 
     requestAnimationFrame(() => {
       setPosition({ x: snap.x, y: snap.y });
       setHasDragMoved(false);
+      dragReleaseRevealAnimationFrame = requestAnimationFrame(() => {
+        setIsDragReleaseRevealPrepared(false);
+        clearDragReleaseRevealAnimationTimeout();
+        dragReleaseRevealAnimationTimeout = setTimeout(() => {
+          setIsDragReleaseRevealAnimating(false);
+          dragReleaseRevealAnimationTimeout = undefined;
+        }, getDragReleaseRevealAnimationDurationMs());
+        dragReleaseRevealAnimationFrame = undefined;
+      });
 
       snapAnimationTimeout = setTimeout(() => {
         let nextRatio = ratio;
@@ -1145,6 +1263,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
     pointerStartPosition = { x: event.clientX, y: event.clientY };
     setDragPointerPosition({ x: event.clientX, y: event.clientY });
+    setIsDragReleaseRevealPrepared(false);
+    setIsDragReleaseRevealAnimating(false);
+    setDragReleaseOriginOffset({ x: 0, y: 0 });
+    clearDragReleaseRevealAnimationFrame();
+    clearDragReleaseRevealAnimationTimeout();
     setIsDragging(true);
     setHasDragMoved(false);
 
@@ -1396,7 +1519,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     clearTimeout(snapAnimationTimeout);
     clearTimeout(toggleAnimationTimeout);
     clearTimeout(dockLayoutAnimationTimeout);
+    clearDragReleaseRevealAnimationFrame();
+    clearDragReleaseRevealAnimationTimeout();
     setIsDragSnapTransitionActive(false);
+    setIsDragReleaseRevealPrepared(false);
+    setIsDragReleaseRevealAnimating(false);
     setDragDockPreviewEdge(null);
     setGlobalUserSelectDisabled(false);
     unfreezeUpdatesCallback?.();
@@ -1539,6 +1666,19 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           }
         }}
       >
+        <div
+          class={cn(
+            "flex min-w-0 origin-center transition-[transform,opacity] ease-out",
+            isVerticalLayout()
+              ? "flex-col items-center gap-2"
+              : "items-center gap-2",
+            hasDragMoved() && "opacity-0 pointer-events-none",
+            !hasDragMoved() && "opacity-100",
+          )}
+          style={{
+            "transition-duration": `${TOOLBAR_DRAG_RELEASE_REVEAL_DURATION_MS}ms`,
+          }}
+        >
           <div
             class={cn(
               "grid transition-all duration-150 ease-out",
@@ -1548,16 +1688,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               hasDragMoved() && "opacity-0 pointer-events-none",
             )}
           >
-          <div
-            class={cn(
-              "flex min-w-0",
-              isVerticalLayout()
-                ? "flex-col items-center gap-2"
-                : "items-center gap-2",
-            )}
-          >
             <div
-              ref={expandableButtonsRef}
               class={cn(
                 "flex min-w-0",
                 isVerticalLayout()
@@ -1566,216 +1697,233 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               )}
             >
               <div
+                ref={expandableButtonsRef}
                 class={cn(
-                  "grid transition-all duration-150 ease-out",
-                  props.enabled
-                    ? "grid-cols-[1fr] opacity-100"
-                    : "grid-cols-[0fr] opacity-0",
+                  "flex min-w-0",
+                  isVerticalLayout()
+                    ? "flex-col items-center gap-2"
+                    : "items-center gap-2",
                 )}
               >
-                <div class="relative overflow-visible min-w-0">
-                  {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
-                  <button
-                    data-react-grab-ignore-events
-                    data-react-grab-toolbar-toggle
-                    class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox"
-                    on:pointerdown={(event) => {
-                      stopEventPropagation(event);
-                      handlePointerDown(event);
-                    }}
-                    on:mousedown={stopEventPropagation}
-                    onClick={(event) => {
-                      setIsSelectTooltipVisible(false);
-                      handleToggle(event);
-                    }}
-                    {...createFreezeHandlers(setIsSelectTooltipVisible)}
-                  >
-                    <span class="inline-flex">
-                      <IconSelect
-                        size={14}
-                        style={
-                          Boolean(props.isActive) && !props.isCommentMode
-                            ? { color: TOOLBAR_ACTIVE_ACCENT_COLOR }
-                            : undefined
-                        }
-                        class={cn(
-                          "transition-colors",
-                          getToolbarIconColor(
-                            Boolean(props.isActive) && !props.isCommentMode,
-                            Boolean(props.isCommentMode),
-                          ),
-                        )}
-                      />
-                    </span>
-                  </button>
-                  <Tooltip
-                    visible={isSelectTooltipVisible() && !isCollapsed()}
-                    position={tooltipPosition()}
-                  >
-                    Select
-                  </Tooltip>
-                </div>
-              </div>
-              <div
-                class={cn(
-                  "grid transition-all duration-150 ease-out",
-                  props.enabled
-                    ? "grid-cols-[1fr] opacity-100"
-                    : "grid-cols-[0fr] opacity-0",
-                )}
-              >
-                <div class="relative overflow-visible min-w-0">
-                  {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
-                  <button
-                    data-react-grab-ignore-events
-                    data-react-grab-toolbar-comment
-                    class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox"
-                    on:pointerdown={(event) => {
-                      stopEventPropagation(event);
-                      handlePointerDown(event);
-                    }}
-                    on:mousedown={stopEventPropagation}
-                    onClick={(event) => {
-                      setIsCommentTooltipVisible(false);
-                      handleComment(event);
-                    }}
-                    {...createFreezeHandlers(setIsCommentTooltipVisible)}
-                  >
-                    <span class="inline-flex">
-                      <IconComment
-                        size={TOOLBAR_COMMENT_ICON_SIZE_PX}
-                        isActive={Boolean(props.isCommentMode)}
-                        style={
-                          Boolean(props.isCommentMode)
-                            ? { color: TOOLBAR_ACTIVE_ACCENT_COLOR }
-                            : undefined
-                        }
-                        class={cn(
-                          "transition-colors",
-                          getToolbarIconColor(
-                            Boolean(props.isCommentMode),
-                            Boolean(props.isActive) && !props.isCommentMode,
-                          ),
-                        )}
-                      />
-                    </span>
-                  </button>
-                  <Tooltip
-                    visible={isCommentTooltipVisible() && !isCollapsed()}
-                    position={tooltipPosition()}
-                  >
-                    Comment
-                  </Tooltip>
-                </div>
-              </div>
-              <div
-                class={cn(
-                  "grid transition-all duration-150 ease-out",
-                  props.enabled && (props.recentItemCount ?? 0) > 0
-                    ? "grid-cols-[1fr] opacity-100"
-                    : "grid-cols-[0fr] opacity-0 pointer-events-none",
-                )}
-              >
-                <div class="relative overflow-visible min-w-0">
-                  {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
-                  <button
-                    ref={recentButtonRef}
-                    data-react-grab-ignore-events
-                    data-react-grab-toolbar-recent
-                    class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox"
-                    on:pointerdown={(event) => {
-                      stopEventPropagation(event);
-                      handlePointerDown(event);
-                    }}
-                    on:mousedown={stopEventPropagation}
-                    onClick={(event) => {
-                      setIsRecentTooltipVisible(false);
-                      handleRecent(event);
-                    }}
-                    {...createFreezeHandlers(setIsRecentTooltipVisible)}
-                  >
-                    <span class="inline-flex">
-                      <Show
-                        when={props.hasUnreadRecentItems}
-                        fallback={
-                          <IconInbox
-                            size={16}
-                            class="text-white/70 transition-colors"
-                          />
-                        }
-                      >
-                        <IconInboxUnread
-                          size={16}
-                          class="text-white transition-colors"
+                <div
+                  class={cn(
+                    "grid transition-all transition-transform duration-150 ease-out",
+                    props.enabled
+                      ? "grid-cols-[1fr] opacity-100"
+                      : "grid-cols-[0fr] opacity-0",
+                  )}
+                  style={getDragReleaseItemStyle(-2, true, true)}
+                >
+                  <div class="relative overflow-visible min-w-0">
+                    {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
+                    <button
+                      data-react-grab-ignore-events
+                      data-react-grab-toolbar-toggle
+                      class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox"
+                      on:pointerdown={(event) => {
+                        stopEventPropagation(event);
+                        handlePointerDown(event);
+                      }}
+                      on:mousedown={stopEventPropagation}
+                      onClick={(event) => {
+                        setIsSelectTooltipVisible(false);
+                        handleToggle(event);
+                      }}
+                      {...createFreezeHandlers(setIsSelectTooltipVisible)}
+                    >
+                      <span class="inline-flex">
+                        <IconSelect
+                          size={14}
+                          style={
+                            Boolean(props.isActive) && !props.isCommentMode
+                              ? { color: TOOLBAR_ACTIVE_ACCENT_COLOR }
+                              : undefined
+                          }
+                          class={cn(
+                            "transition-colors",
+                            getToolbarIconColor(
+                              Boolean(props.isActive) && !props.isCommentMode,
+                              Boolean(props.isCommentMode),
+                            ),
+                          )}
                         />
-                      </Show>
-                    </span>
-                  </button>
-                  <Tooltip
-                    visible={isRecentTooltipVisible() && !isCollapsed()}
-                    position={tooltipPosition()}
-                  >
-                    {recentTooltipLabel()}
-                  </Tooltip>
+                      </span>
+                    </button>
+                    <Tooltip
+                      visible={isSelectTooltipVisible() && !isCollapsed()}
+                      position={tooltipPosition()}
+                    >
+                      Select
+                    </Tooltip>
+                  </div>
+                </div>
+                <div
+                  class={cn(
+                    "grid transition-all transition-transform duration-150 ease-out",
+                    props.enabled
+                      ? "grid-cols-[1fr] opacity-100"
+                      : "grid-cols-[0fr] opacity-0",
+                  )}
+                  style={getDragReleaseItemStyle(-1, true, true)}
+                >
+                  <div class="relative overflow-visible min-w-0">
+                    {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
+                    <button
+                      data-react-grab-ignore-events
+                      data-react-grab-toolbar-comment
+                      class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox"
+                      on:pointerdown={(event) => {
+                        stopEventPropagation(event);
+                        handlePointerDown(event);
+                      }}
+                      on:mousedown={stopEventPropagation}
+                      onClick={(event) => {
+                        setIsCommentTooltipVisible(false);
+                        handleComment(event);
+                      }}
+                      {...createFreezeHandlers(setIsCommentTooltipVisible)}
+                    >
+                      <span class="inline-flex">
+                        <IconComment
+                          size={TOOLBAR_COMMENT_ICON_SIZE_PX}
+                          isActive={Boolean(props.isCommentMode)}
+                          style={
+                            Boolean(props.isCommentMode)
+                              ? { color: TOOLBAR_ACTIVE_ACCENT_COLOR }
+                              : undefined
+                          }
+                          class={cn(
+                            "transition-colors",
+                            getToolbarIconColor(
+                              Boolean(props.isCommentMode),
+                              Boolean(props.isActive) && !props.isCommentMode,
+                            ),
+                          )}
+                        />
+                      </span>
+                    </button>
+                    <Tooltip
+                      visible={isCommentTooltipVisible() && !isCollapsed()}
+                      position={tooltipPosition()}
+                    >
+                      Comment
+                    </Tooltip>
+                  </div>
+                </div>
+                <div
+                  class={cn(
+                    "grid transition-all transition-transform duration-150 ease-out",
+                    props.enabled && (props.recentItemCount ?? 0) > 0
+                      ? "grid-cols-[1fr] opacity-100"
+                      : "grid-cols-[0fr] opacity-0 pointer-events-none",
+                  )}
+                  style={getDragReleaseItemStyle(0, true, true)}
+                >
+                  <div class="relative overflow-visible min-w-0">
+                    {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
+                    <button
+                      ref={recentButtonRef}
+                      data-react-grab-ignore-events
+                      data-react-grab-toolbar-recent
+                      class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox"
+                      on:pointerdown={(event) => {
+                        stopEventPropagation(event);
+                        handlePointerDown(event);
+                      }}
+                      on:mousedown={stopEventPropagation}
+                      onClick={(event) => {
+                        setIsRecentTooltipVisible(false);
+                        handleRecent(event);
+                      }}
+                      {...createFreezeHandlers(setIsRecentTooltipVisible)}
+                    >
+                      <span class="inline-flex">
+                        <Show
+                          when={props.hasUnreadRecentItems}
+                          fallback={
+                            <IconInbox
+                              size={16}
+                              class="text-white/70 transition-colors"
+                            />
+                          }
+                        >
+                          <IconInboxUnread
+                            size={16}
+                            class="text-white transition-colors"
+                          />
+                        </Show>
+                      </span>
+                    </button>
+                    <Tooltip
+                      visible={isRecentTooltipVisible() && !isCollapsed()}
+                      position={tooltipPosition()}
+                    >
+                      {recentTooltipLabel()}
+                    </Tooltip>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div class="relative shrink-0 overflow-visible">
-              <button
-                data-react-grab-ignore-events
-                data-react-grab-toolbar-enabled
-                class="contain-layout flex items-center justify-center cursor-pointer interactive-scale outline-none"
-                onClick={(event) => {
-                  setIsToggleTooltipVisible(false);
-                  handleToggleEnabled(event);
-                }}
-                onMouseEnter={() => setIsToggleTooltipVisible(true)}
-                onMouseLeave={() => setIsToggleTooltipVisible(false)}
+              <div
+                class="relative shrink-0 overflow-visible transition-transform"
+                style={getDragReleaseItemStyle(1, false, true)}
               >
-                <span class="inline-flex">
-                  <div
-                    class={cn(
-                      "relative w-5 h-3 rounded-full transition-colors",
-                      props.enabled ? "bg-white" : "bg-white/25",
-                    )}
-                  >
+                <button
+                  data-react-grab-ignore-events
+                  data-react-grab-toolbar-enabled
+                  class="contain-layout flex items-center justify-center cursor-pointer interactive-scale outline-none"
+                  onClick={(event) => {
+                    setIsToggleTooltipVisible(false);
+                    handleToggleEnabled(event);
+                  }}
+                  onMouseEnter={() => setIsToggleTooltipVisible(true)}
+                  onMouseLeave={() => setIsToggleTooltipVisible(false)}
+                >
+                  <span class="inline-flex">
                     <div
                       class={cn(
-                        "absolute top-0.5 w-2 h-2 rounded-full bg-black transition-transform",
-                        props.enabled ? "left-2.5" : "left-0.5",
+                        "relative w-5 h-3 rounded-full transition-colors",
+                        props.enabled ? "bg-white" : "bg-white/25",
                       )}
-                    />
-                  </div>
-                </span>
-              </button>
-              <Tooltip
-                visible={isToggleTooltipVisible() && !isCollapsed()}
-                position={tooltipPosition()}
-              >
-                {props.enabled ? "Disable" : "Enable"}
-              </Tooltip>
+                    >
+                      <div
+                        class={cn(
+                          "absolute top-0.5 w-2 h-2 rounded-full bg-black transition-transform",
+                          props.enabled ? "left-2.5" : "left-0.5",
+                        )}
+                      />
+                    </div>
+                  </span>
+                </button>
+                <Tooltip
+                  visible={isToggleTooltipVisible() && !isCollapsed()}
+                  position={tooltipPosition()}
+                >
+                  {props.enabled ? "Disable" : "Enable"}
+                </Tooltip>
+              </div>
             </div>
           </div>
+          <button
+            data-react-grab-ignore-events
+            data-react-grab-toolbar-collapse
+            class={cn(
+              "contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale transition-opacity transition-transform duration-100",
+              hasDragMoved() && "opacity-0 pointer-events-none",
+            )}
+            style={getDragReleaseItemStyle(2, false, true)}
+            onClick={handleToggleCollapse}
+          >
+            <span class="inline-flex">
+              <IconChevron
+                size={14}
+                class={cn(
+                  "text-white/70 transition-transform duration-150",
+                  chevronRotation(),
+                )}
+              />
+            </span>
+          </button>
         </div>
-        <button
-          data-react-grab-ignore-events
-          data-react-grab-toolbar-collapse
-          class={cn(
-            "contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale transition-opacity duration-100",
-            hasDragMoved() && "opacity-0 pointer-events-none",
-          )}
-          onClick={handleToggleCollapse}
-        >
-          <span class="inline-flex">
-            <IconChevron
-              size={14}
-              class={cn(
-                "text-white/70 transition-transform duration-150",
-                chevronRotation(),
-              )}
-            />
-          </span>
-        </button>
         <Show when={isShakeTooltipVisible()}>
           <div
             class={cn(
