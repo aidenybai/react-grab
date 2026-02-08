@@ -48,6 +48,7 @@ interface ToolbarProps {
   isActive?: boolean;
   isCommentMode?: boolean;
   isContextMenuOpen?: boolean;
+  isHistoryOpen?: boolean;
   onToggle?: () => void;
   onComment?: () => void;
   enabled?: boolean;
@@ -96,7 +97,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const recentTooltipLabel = () => {
     const count = props.recentItemCount ?? 0;
-    return count > 0 ? `Recent (${count})` : "Recent";
+    return count > 0 ? `History (${count})` : "History";
   };
 
   const tooltipPosition = () => (snapEdge() === "top" ? "bottom" : "top");
@@ -130,18 +131,12 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     },
   });
 
-  const collapsedEdgeClasses = () => {
+  const collapsedPaddingClasses = () => {
     if (!isCollapsed()) return "";
     const edge = snapEdge();
-    const roundedClass = {
-      top: "rounded-t-none rounded-b-[10px]",
-      bottom: "rounded-b-none rounded-t-[10px]",
-      left: "rounded-l-none rounded-r-[10px]",
-      right: "rounded-r-none rounded-l-[10px]",
-    }[edge];
     const paddingClass =
       edge === "top" || edge === "bottom" ? "px-2 py-0.25" : "px-0.25 py-2";
-    return `${roundedClass} ${paddingClass}`;
+    return paddingClass;
   };
 
   let shakeTooltipTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -1059,10 +1054,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     >
       <div
         class={cn(
-          "flex items-center justify-center rounded-[10px] antialiased transition-all duration-150 ease-out relative overflow-visible [font-synthesis:none] [corner-shape:superellipse(1.25)]",
-          PANEL_STYLES,
+          "flex items-center justify-center rounded-full antialiased transition-all duration-150 ease-out relative overflow-visible [font-synthesis:none] [corner-shape:superellipse(1.25)]",
+          "bg-black",
           !isCollapsed() && "py-1.5 gap-1.5 px-2",
-          collapsedEdgeClasses(),
+          collapsedPaddingClasses(),
           isShaking() && "animate-shake",
         )}
         style={{ "transform-origin": getTransformOrigin() }}
@@ -1174,7 +1169,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     {...createFreezeHandlers(setIsCommentTooltipVisible)}
                   >
                     <IconComment
-                      size={14}
+                      size={16}
+                      isActive={Boolean(props.isCommentMode)}
                       class={cn(
                         "transition-colors",
                         getToolbarIconColor(
@@ -1219,17 +1215,17 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     {...createFreezeHandlers(setIsRecentTooltipVisible)}
                   >
                     <Show
-                      when={props.hasUnreadRecentItems}
+                      when={props.isHistoryOpen}
                       fallback={
                         <IconInbox
-                          size={14}
-                          class="text-[#B3B3B3] transition-colors"
+                          size={16}
+                          class="text-white/70 transition-colors"
                         />
                       }
                     >
                       <IconInboxUnread
-                        size={14}
-                        class="text-[#B3B3B3] transition-colors"
+                        size={16}
+                        class="text-white transition-colors"
                       />
                     </Show>
                   </button>
@@ -1257,12 +1253,12 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                 <div
                   class={cn(
                     "relative w-5 h-3 rounded-full transition-colors",
-                    props.enabled ? "bg-black" : "bg-black/25",
+                    props.enabled ? "bg-white" : "bg-white/25",
                   )}
                 >
                   <div
                     class={cn(
-                      "absolute top-0.5 w-2 h-2 rounded-full bg-white transition-transform",
+                      "absolute top-0.5 w-2 h-2 rounded-full bg-black transition-transform",
                       props.enabled ? "left-2.5" : "left-0.5",
                     )}
                   />
@@ -1286,7 +1282,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           <IconChevron
             size={14}
             class={cn(
-              "text-[#B3B3B3] transition-transform duration-150",
+              "text-white/70 transition-transform duration-150",
               chevronRotation(),
             )}
           />

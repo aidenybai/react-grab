@@ -18,6 +18,7 @@ import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
 import { IconComment } from "./icons/icon-comment.jsx";
 import { IconCopy } from "./icons/icon-copy.jsx";
 import { IconTrash } from "./icons/icon-trash.jsx";
+import { Tooltip } from "./tooltip.jsx";
 
 const DEFAULT_OFFSCREEN_POSITION = { left: -9999, top: -9999 };
 
@@ -49,6 +50,10 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
   const [highlightedRecentItemIndex, setHighlightedRecentItemIndex] =
     createSignal<number | null>(null);
+  const [isClearAllTooltipVisible, setIsClearAllTooltipVisible] =
+    createSignal(false);
+  const [isCopyAllTooltipVisible, setIsCopyAllTooltipVisible] =
+    createSignal(false);
 
   const isVisible = () => props.position !== null;
 
@@ -200,6 +205,13 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
     }
   });
 
+  createEffect(() => {
+    if (!isVisible()) {
+      setIsClearAllTooltipVisible(false);
+      setIsCopyAllTooltipVisible(false);
+    }
+  });
+
   onMount(() => {
     measureContainer();
 
@@ -296,33 +308,49 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
           )}
         >
           <div class="contain-layout shrink-0 flex items-center justify-between px-2 pt-1.5 pb-1">
-            <span class="text-[11px] font-medium text-black/40">Recent</span>
+            <span class="text-[11px] font-medium text-black/40">History</span>
             <Show when={props.items.length > 0}>
               <div class="flex items-center gap-[5px]">
-                <button
-                  data-react-grab-ignore-events
-                  data-react-grab-recent-clear
-                  aria-label="Clear all"
-                  class="contain-layout shrink-0 flex items-center justify-center w-[18px] h-[18px] rounded-sm bg-[#FEF2F2] border-none cursor-pointer transition-all hover:bg-black/[0.02] press-scale"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    props.onClearAll?.();
-                  }}
-                >
-                  <IconTrash size={12} class="text-[#B91C1C]" />
-                </button>
-                <button
-                  data-react-grab-ignore-events
-                  data-react-grab-recent-copy-all
-                  aria-label="Copy all"
-                  class="contain-layout shrink-0 flex items-center justify-center w-[18px] h-[18px] rounded-sm bg-white border-none cursor-pointer transition-all hover:bg-black/[0.02] press-scale"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    props.onCopyAll?.();
-                  }}
-                >
-                  <IconCopy size={12} class="text-black" />
-                </button>
+                <div class="relative overflow-visible shrink-0 w-[18px] h-[18px]">
+                  <button
+                    data-react-grab-ignore-events
+                    data-react-grab-recent-clear
+                    aria-label="Clear all"
+                    class="contain-layout flex items-center justify-center w-full h-full rounded-sm bg-[#FEF2F2] border-none cursor-pointer transition-all hover:bg-black/[0.02] press-scale"
+                    onMouseEnter={() => setIsClearAllTooltipVisible(true)}
+                    onMouseLeave={() => setIsClearAllTooltipVisible(false)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setIsClearAllTooltipVisible(false);
+                      props.onClearAll?.();
+                    }}
+                  >
+                    <IconTrash size={12} class="text-[#B91C1C]" />
+                  </button>
+                  <Tooltip visible={isClearAllTooltipVisible()} position="top">
+                    Clear all
+                  </Tooltip>
+                </div>
+                <div class="relative overflow-visible shrink-0 w-[18px] h-[18px]">
+                  <button
+                    data-react-grab-ignore-events
+                    data-react-grab-recent-copy-all
+                    aria-label="Copy all"
+                    class="contain-layout flex items-center justify-center w-full h-full rounded-sm bg-white border-none cursor-pointer transition-all hover:bg-black/[0.02] press-scale"
+                    onMouseEnter={() => setIsCopyAllTooltipVisible(true)}
+                    onMouseLeave={() => setIsCopyAllTooltipVisible(false)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setIsCopyAllTooltipVisible(false);
+                      props.onCopyAll?.();
+                    }}
+                  >
+                    <IconCopy size={12} class="text-black" />
+                  </button>
+                  <Tooltip visible={isCopyAllTooltipVisible()} position="top">
+                    Copy all
+                  </Tooltip>
+                </div>
               </div>
             </Show>
           </div>

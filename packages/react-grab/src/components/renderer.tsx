@@ -189,6 +189,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           isActive={props.isActive}
           isCommentMode={props.isCommentMode}
           isContextMenuOpen={props.contextMenuPosition !== null}
+          isHistoryOpen={props.recentDropdownPosition !== null}
           onToggle={props.onToggleActive}
           onComment={props.onComment}
           enabled={props.enabled}

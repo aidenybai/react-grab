@@ -1,6 +1,5 @@
 import type { Component, JSX } from "solid-js";
 import { cn } from "../../utils/cn.js";
-import { PANEL_STYLES } from "../../constants.js";
 import { IconSelect } from "../icons/icon-select.jsx";
 import { IconComment } from "../icons/icon-comment.jsx";
 import { IconChevron } from "../icons/icon-chevron.jsx";
@@ -27,17 +26,11 @@ export interface ToolbarContentProps {
 export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
   const edge = () => props.snapEdge ?? "bottom";
 
-  const collapsedEdgeClasses = () => {
+  const collapsedPaddingClasses = () => {
     if (!props.isCollapsed) return "";
-    const roundedClass = {
-      top: "rounded-t-none rounded-b-[10px]",
-      bottom: "rounded-b-none rounded-t-[10px]",
-      left: "rounded-l-none rounded-r-[10px]",
-      right: "rounded-r-none rounded-l-[10px]",
-    }[edge()];
     const paddingClass =
       edge() === "top" || edge() === "bottom" ? "px-2 py-0.25" : "px-0.25 py-2";
-    return `${roundedClass} ${paddingClass}`;
+    return paddingClass;
   };
 
   const chevronRotation = () => {
@@ -74,7 +67,8 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
   const defaultCommentButton = () => (
     <button class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5">
       <IconComment
-        size={14}
+        size={16}
+        isActive={Boolean(props.isCommentMode)}
         class={cn(
           "transition-colors",
           getToolbarIconColor(
@@ -91,12 +85,12 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
       <div
         class={cn(
           "relative w-5 h-3 rounded-full transition-colors",
-          props.enabled ? "bg-black" : "bg-black/25",
+          props.enabled ? "bg-white" : "bg-white/25",
         )}
       >
         <div
           class={cn(
-            "absolute top-0.5 w-2 h-2 rounded-full bg-white transition-transform",
+            "absolute top-0.5 w-2 h-2 rounded-full bg-black transition-transform",
             props.enabled ? "left-2.5" : "left-0.5",
           )}
         />
@@ -108,7 +102,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
     <button class="contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale">
       <IconChevron
         class={cn(
-          "text-[#B3B3B3] transition-transform duration-150",
+          "text-white/70 transition-transform duration-150",
           chevronRotation(),
         )}
       />
@@ -118,10 +112,10 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
   return (
     <div
       class={cn(
-        "flex items-center justify-center rounded-[10px] antialiased transition-all duration-150 ease-out relative overflow-visible [font-synthesis:none] filter-[drop-shadow(0px_1px_2px_#51515140)] [corner-shape:superellipse(1.25)]",
-        PANEL_STYLES,
+        "flex items-center justify-center rounded-full antialiased transition-all duration-150 ease-out relative overflow-visible [font-synthesis:none] filter-[drop-shadow(0px_1px_2px_#51515140)] [corner-shape:superellipse(1.25)]",
+        "bg-black",
         !props.isCollapsed && "py-1.5 gap-1.5 px-2",
-        collapsedEdgeClasses(),
+        collapsedPaddingClasses(),
         props.isShaking && "animate-shake",
       )}
       style={{ "transform-origin": props.transformOrigin }}
