@@ -352,7 +352,8 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                       classList={{
                         "bg-black/[0.075] border-black/[0.12]":
                           isRecentItemHighlighted(item.id),
-                        "hover:rounded-b-[6px]": isBottomRecentItem(itemIndex()),
+                        "rounded-none": !isBottomRecentItem(itemIndex()),
+                        "rounded-b-[6px]": isBottomRecentItem(itemIndex()),
                       }}
                       onPointerDown={(event) => event.stopPropagation()}
                       onClick={(event) => {
