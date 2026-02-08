@@ -1,5 +1,6 @@
 import type { Component, JSX } from "solid-js";
 import { cn } from "../../utils/cn.js";
+import { TOOLBAR_SELECT_ACTIVE_COLOR } from "../../constants.js";
 import { IconSelect } from "../icons/icon-select.jsx";
 import { IconComment } from "../icons/icon-comment.jsx";
 import { IconChevron } from "../icons/icon-chevron.jsx";
@@ -53,6 +54,11 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
     <button class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5">
       <IconSelect
         size={14}
+        style={
+          Boolean(props.isActive) && !props.isCommentMode
+            ? { color: TOOLBAR_SELECT_ACTIVE_COLOR }
+            : undefined
+        }
         class={cn(
           "transition-colors",
           getToolbarIconColor(

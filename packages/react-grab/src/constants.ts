@@ -55,6 +55,7 @@ export const OVERLAY_BORDER_COLOR_DEFAULT = `rgba(${GRAB_PURPLE_RGB}, 0.5)`;
 export const OVERLAY_FILL_COLOR_DEFAULT = `rgba(${GRAB_PURPLE_RGB}, 0.08)`;
 export const FROZEN_GLOW_COLOR = `rgba(${GRAB_PURPLE_RGB}, 0.15)`;
 export const FROZEN_GLOW_EDGE_PX = 50;
+export const TOOLBAR_SELECT_ACTIVE_COLOR = "#FF96EC";
 
 export const ARROW_HEIGHT_PX = 8;
 export const ARROW_MIN_SIZE_PX = 4;
