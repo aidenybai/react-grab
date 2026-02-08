@@ -1797,7 +1797,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                 >
                   <div
                     class={cn(
-                      "grid transition-all transition-transform duration-150 ease-out",
+                      "grid transition-all duration-150 ease-out",
                       props.enabled
                         ? "grid-cols-[1fr] opacity-100"
                         : "grid-cols-[0fr] opacity-0",
@@ -1849,7 +1849,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                   </div>
                   <div
                     class={cn(
-                      "grid transition-all transition-transform duration-150 ease-out",
+                      "grid transition-all duration-150 ease-out",
                       props.enabled
                         ? "grid-cols-[1fr] opacity-100"
                         : "grid-cols-[0fr] opacity-0",
@@ -1897,7 +1897,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                   </div>
                   <div
                     class={cn(
-                      "grid transition-all transition-transform duration-150 ease-out",
+                      "grid transition-all duration-150 ease-out",
                       props.enabled && (props.recentItemCount ?? 0) > 0
                         ? "grid-cols-[1fr] opacity-100"
                         : "grid-cols-[0fr] opacity-0 pointer-events-none",
