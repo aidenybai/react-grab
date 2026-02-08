@@ -128,6 +128,16 @@ test.describe("Recent Items", () => {
   });
 
   test.describe("Dropdown Open/Close", () => {
+    test("should not open when pressing R with no recent items", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+      await reactGrab.pressKey("r");
+      await reactGrab.page.waitForTimeout(100);
+
+      expect(await reactGrab.isRecentDropdownVisible()).toBe(false);
+    });
+
     test("should open when clicking the recent button", async ({
       reactGrab,
     }) => {
