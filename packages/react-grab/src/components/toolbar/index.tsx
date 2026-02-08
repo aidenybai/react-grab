@@ -1787,11 +1787,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                         <IconComment
                           size={TOOLBAR_COMMENT_ICON_SIZE_PX}
                           isActive={Boolean(props.isCommentMode)}
-                          style={
-                            Boolean(props.isCommentMode)
-                              ? { color: TOOLBAR_ACTIVE_ACCENT_COLOR }
-                              : undefined
-                          }
                           class={cn(
                             "transition-colors",
                             getToolbarIconColor(
@@ -1839,17 +1834,29 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     >
                       <span class="inline-flex">
                         <Show
-                          when={props.hasUnreadRecentItems}
+                          when={Boolean(props.isHistoryOpen)}
                           fallback={
                             <IconInbox
                               size={16}
-                              class="text-white/70 transition-colors"
+                              class={cn(
+                                "transition-colors",
+                                getToolbarIconColor(
+                                  Boolean(props.isHistoryOpen),
+                                  false,
+                                ),
+                              )}
                             />
                           }
                         >
                           <IconInboxUnread
                             size={16}
-                            class="text-white transition-colors"
+                            class={cn(
+                              "transition-colors",
+                              getToolbarIconColor(
+                                Boolean(props.isHistoryOpen),
+                                false,
+                              ),
+                            )}
                           />
                         </Show>
                       </span>

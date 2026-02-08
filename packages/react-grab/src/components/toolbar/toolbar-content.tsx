@@ -80,11 +80,6 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
       <IconComment
         size={TOOLBAR_COMMENT_ICON_SIZE_PX}
         isActive={Boolean(props.isCommentMode)}
-        style={
-          Boolean(props.isCommentMode)
-            ? { color: TOOLBAR_ACTIVE_ACCENT_COLOR }
-            : undefined
-        }
         class={cn(
           "transition-colors",
           getToolbarIconColor(
