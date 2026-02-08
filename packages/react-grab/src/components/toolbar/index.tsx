@@ -93,7 +93,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     createSignal(false);
   const [isShakeTooltipVisible, setIsShakeTooltipVisible] = createSignal(false);
   const [isToggleAnimating, setIsToggleAnimating] = createSignal(false);
-  const [isRecentTooltipVisible, setIsRecentTooltipVisible] = createSignal(false);
+  const [isRecentTooltipVisible, setIsRecentTooltipVisible] =
+    createSignal(false);
   let recentButtonRef: HTMLButtonElement | undefined;
 
   const recentTooltipLabel = () => {
@@ -1226,7 +1227,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     {...createFreezeHandlers(setIsRecentTooltipVisible)}
                   >
                     <Show
-                      when={props.isHistoryOpen}
+                      when={props.hasUnreadRecentItems}
                       fallback={
                         <IconInbox
                           size={16}
