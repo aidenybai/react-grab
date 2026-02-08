@@ -1830,6 +1830,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const shouldBlockEnter =
         isEnterKey &&
         isOverlayActive &&
+        recentDropdownPosition() === null &&
         !isPromptMode() &&
         !store.wasActivatedByToggle;
 
@@ -1884,6 +1885,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleArrowNavigation = (event: KeyboardEvent): boolean => {
       if (!isActivated() || isPromptMode()) return false;
+      if (recentDropdownPosition() !== null) return false;
       if (!ARROW_KEYS.has(event.key)) return false;
 
       let currentElement = effectiveElement();
@@ -1922,6 +1924,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleEnterKeyActivation = (event: KeyboardEvent): boolean => {
       if (!isEnterCode(event.code)) return false;
+      if (recentDropdownPosition() !== null) return false;
 
       const copiedElement = store.lastCopiedElement;
       const canActivateFromCopied =
@@ -2463,6 +2466,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
 
         if (event.key === "Escape") {
+          if (recentDropdownPosition() !== null) {
+            return;
+          }
+
           if (pendingAbortSessionId()) {
             event.preventDefault();
             event.stopPropagation();

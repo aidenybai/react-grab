@@ -16,6 +16,51 @@ const copyElement = async (
   await reactGrab.page.waitForTimeout(300);
 };
 
+interface CopiedListItemContents {
+  firstCopiedContent: string;
+  secondCopiedContent: string;
+}
+
+const copyThreeListItems = async (
+  reactGrab: ReactGrabPageObject,
+): Promise<CopiedListItemContents> => {
+  await copyElement(reactGrab, "li:first-child");
+  const firstCopiedContent = await reactGrab.getClipboardContent();
+
+  await copyElement(reactGrab, "li:nth-child(2)");
+  const secondCopiedContent = await reactGrab.getClipboardContent();
+
+  await copyElement(reactGrab, "li:last-child");
+
+  return {
+    firstCopiedContent,
+    secondCopiedContent,
+  };
+};
+
+const getHighlightedRecentItemIndex = async (
+  reactGrab: ReactGrabPageObject,
+): Promise<number | null> => {
+  return reactGrab.page.evaluate(() => {
+    const host = document.querySelector("[data-react-grab]");
+    const shadowRoot = host?.shadowRoot;
+    const root = shadowRoot?.querySelector("[data-react-grab]");
+    const dropdown = root?.querySelector("[data-react-grab-recent-dropdown]");
+    if (!dropdown) return null;
+
+    const recentItemButtons = Array.from(
+      dropdown.querySelectorAll<HTMLButtonElement>(
+        "[data-react-grab-recent-item]",
+      ),
+    );
+    const highlightedIndex = recentItemButtons.findIndex((recentItemButton) =>
+      recentItemButton.hasAttribute("data-react-grab-recent-item-highlighted"),
+    );
+
+    return highlightedIndex >= 0 ? highlightedIndex : null;
+  });
+};
+
 test.describe("Recent Items", () => {
   test.describe("Toolbar Recent Button", () => {
     test("should not be visible before any elements are copied", async ({
@@ -217,6 +262,76 @@ test.describe("Recent Items", () => {
 
       expect(await reactGrab.isRecentDropdownVisible()).toBe(false);
     });
+
+    test("should select the next item with ArrowDown then Enter", async ({
+      reactGrab,
+    }) => {
+      const copiedListItemContents = await copyThreeListItems(reactGrab);
+
+      await reactGrab.activate();
+      await reactGrab.pressKey("r");
+      await expect
+        .poll(() => reactGrab.isRecentDropdownVisible(), { timeout: 2000 })
+        .toBe(true);
+
+      await reactGrab.pressArrowDown();
+      await reactGrab.pressEnter();
+
+      await expect
+        .poll(() => reactGrab.isRecentDropdownVisible(), { timeout: 2000 })
+        .toBe(false);
+      await expect
+        .poll(() => reactGrab.getClipboardContent(), { timeout: 3000 })
+        .toBe(copiedListItemContents.secondCopiedContent);
+    });
+
+    test("should show highlighted state while cycling with arrow keys", async ({
+      reactGrab,
+    }) => {
+      await copyThreeListItems(reactGrab);
+
+      await reactGrab.activate();
+      await reactGrab.pressKey("r");
+      await expect
+        .poll(() => reactGrab.isRecentDropdownVisible(), { timeout: 2000 })
+        .toBe(true);
+
+      await expect
+        .poll(() => getHighlightedRecentItemIndex(reactGrab), { timeout: 2000 })
+        .toBe(0);
+
+      await reactGrab.pressArrowDown();
+      await expect
+        .poll(() => getHighlightedRecentItemIndex(reactGrab), { timeout: 2000 })
+        .toBe(1);
+
+      await reactGrab.pressArrowUp();
+      await expect
+        .poll(() => getHighlightedRecentItemIndex(reactGrab), { timeout: 2000 })
+        .toBe(0);
+    });
+
+    test("should select the previous item with ArrowUp then Enter", async ({
+      reactGrab,
+    }) => {
+      const copiedListItemContents = await copyThreeListItems(reactGrab);
+
+      await reactGrab.activate();
+      await reactGrab.pressKey("r");
+      await expect
+        .poll(() => reactGrab.isRecentDropdownVisible(), { timeout: 2000 })
+        .toBe(true);
+
+      await reactGrab.pressArrowUp();
+      await reactGrab.pressEnter();
+
+      await expect
+        .poll(() => reactGrab.isRecentDropdownVisible(), { timeout: 2000 })
+        .toBe(false);
+      await expect
+        .poll(() => reactGrab.getClipboardContent(), { timeout: 3000 })
+        .toBe(copiedListItemContents.firstCopiedContent);
+    });
   });
 
   test.describe("Copy All", () => {
@@ -247,7 +362,7 @@ test.describe("Recent Items", () => {
       expect(await reactGrab.isRecentDropdownVisible()).toBe(false);
     });
 
-    test("should trigger copy all via Enter key", async ({ reactGrab }) => {
+    test("should select highlighted item via Enter key", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
 
       await reactGrab.page.evaluate(() => navigator.clipboard.writeText(""));
@@ -258,6 +373,7 @@ test.describe("Recent Items", () => {
 
       const clipboardContent = await reactGrab.getClipboardContent();
       expect(clipboardContent).toBeTruthy();
+      expect(await reactGrab.isRecentDropdownVisible()).toBe(false);
     });
   });
 

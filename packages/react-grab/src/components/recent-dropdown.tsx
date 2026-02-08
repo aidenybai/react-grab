@@ -41,9 +41,12 @@ const formatRelativeTime = (timestamp: number): string => {
 
 export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
+  let lastHoveredRecentItemId: string | null = null;
 
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
+  const [highlightedRecentItemIndex, setHighlightedRecentItemIndex] =
+    createSignal<number | null>(null);
 
   const isVisible = () => props.position !== null;
 
@@ -95,6 +98,106 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
     event.stopImmediatePropagation();
   };
 
+  const notifyRecentItemHover = (recentItemId: string | null) => {
+    if (recentItemId === lastHoveredRecentItemId) return;
+    lastHoveredRecentItemId = recentItemId;
+    props.onItemHover?.(recentItemId);
+  };
+
+  const setHighlightedRecentItem = (
+    nextHighlightedIndex: number | null,
+    shouldSyncHover: boolean,
+  ) => {
+    setHighlightedRecentItemIndex(nextHighlightedIndex);
+
+    if (shouldSyncHover) {
+      if (nextHighlightedIndex === null) {
+        notifyRecentItemHover(null);
+        return;
+      }
+
+      const highlightedRecentItem = props.items[nextHighlightedIndex] ?? null;
+      notifyRecentItemHover(highlightedRecentItem?.id ?? null);
+
+      requestAnimationFrame(() => {
+        const highlightedItemButton = containerRef?.querySelectorAll<
+          HTMLButtonElement
+        >("[data-react-grab-recent-item]")[nextHighlightedIndex];
+        highlightedItemButton?.scrollIntoView({
+          block: "nearest",
+        });
+      });
+    }
+  };
+
+  const moveHighlightedRecentItem = (direction: "forward" | "backward") => {
+    const totalRecentItems = props.items.length;
+    if (totalRecentItems === 0) return;
+
+    const currentHighlightedIndex = highlightedRecentItemIndex();
+
+    let nextHighlightedIndex = 0;
+    if (
+      currentHighlightedIndex === null ||
+      currentHighlightedIndex >= totalRecentItems
+    ) {
+      nextHighlightedIndex = direction === "forward" ? 0 : totalRecentItems - 1;
+    } else if (direction === "forward") {
+      nextHighlightedIndex =
+        currentHighlightedIndex + 1 >= totalRecentItems
+          ? 0
+          : currentHighlightedIndex + 1;
+    } else {
+      nextHighlightedIndex =
+        currentHighlightedIndex - 1 < 0
+          ? totalRecentItems - 1
+          : currentHighlightedIndex - 1;
+    }
+
+    setHighlightedRecentItem(nextHighlightedIndex, true);
+  };
+
+  const selectHighlightedRecentItem = () => {
+    if (props.items.length === 0) return;
+
+    const currentHighlightedIndex = highlightedRecentItemIndex();
+    const selectedRecentItem =
+      currentHighlightedIndex === null ||
+      currentHighlightedIndex >= props.items.length
+        ? props.items[0]
+        : props.items[currentHighlightedIndex];
+
+    if (!selectedRecentItem) return;
+    props.onSelectItem?.(selectedRecentItem);
+  };
+
+  const isRecentItemHighlighted = (recentItemId: string): boolean => {
+    const currentHighlightedIndex = highlightedRecentItemIndex();
+    if (currentHighlightedIndex === null) return false;
+    return props.items[currentHighlightedIndex]?.id === recentItemId;
+  };
+
+  const isBottomRecentItem = (recentItemIndex: number): boolean => {
+    return recentItemIndex === props.items.length - 1;
+  };
+
+  createEffect(() => {
+    const currentItems = props.items;
+    if (!isVisible() || currentItems.length === 0) {
+      setHighlightedRecentItem(null, true);
+      return;
+    }
+
+    const currentHighlightedIndex = highlightedRecentItemIndex();
+    if (
+      currentHighlightedIndex === null ||
+      currentHighlightedIndex >= currentItems.length
+    ) {
+      setHighlightedRecentItem(0, false);
+      return;
+    }
+  });
+
   onMount(() => {
     measureContainer();
 
@@ -110,15 +213,36 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!isVisible()) return;
+
       if (event.code === "Escape") {
         event.preventDefault();
         event.stopPropagation();
+        event.stopImmediatePropagation();
         props.onDismiss?.();
+        return;
       }
-      if (event.code === "Enter" && props.items.length > 0) {
+
+      if (event.code === "ArrowDown") {
         event.preventDefault();
         event.stopPropagation();
-        props.onCopyAll?.();
+        event.stopImmediatePropagation();
+        moveHighlightedRecentItem("forward");
+        return;
+      }
+
+      if (event.code === "ArrowUp") {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        moveHighlightedRecentItem("backward");
+        return;
+      }
+
+      if (event.code === "Enter") {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        selectHighlightedRecentItem();
       }
     };
 
@@ -189,7 +313,7 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                 <button
                   data-react-grab-ignore-events
                   data-react-grab-recent-copy-all
-                  class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] press-scale h-[17px]"
+                  class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] press-scale h-[17px]"
                   onClick={(event) => {
                     event.stopPropagation();
                     props.onCopyAll?.();
@@ -198,7 +322,6 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                   <span class="text-black text-[13px] leading-3.5 font-sans font-medium">
                     Copy all
                   </span>
-                  <span class="text-[11px] font-sans text-black/50">↵</span>
                 </button>
               </div>
             </Show>
@@ -218,18 +341,26 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                 style={{ "scrollbar-color": "rgba(0,0,0,0.15) transparent" }}
               >
                 <For each={props.items}>
-                  {(item) => (
+                  {(item, itemIndex) => (
                     <button
                       data-react-grab-ignore-events
                       data-react-grab-recent-item
-                      class="contain-layout flex items-start justify-between w-full px-2 py-1 cursor-pointer transition-colors hover:bg-black/5 text-left border-none bg-transparent gap-2"
+                      data-react-grab-recent-item-highlighted={
+                        isRecentItemHighlighted(item.id) ? "" : undefined
+                      }
+                      class="contain-layout flex items-start justify-between w-full px-2 py-1 cursor-pointer transition-colors duration-150 text-left border border-transparent hover:bg-black/[0.035] hover:border-black/[0.08] gap-2"
+                      classList={{
+                        "bg-black/[0.075] border-black/[0.12]":
+                          isRecentItemHighlighted(item.id),
+                        "hover:rounded-b-[6px]": isBottomRecentItem(itemIndex()),
+                      }}
                       onPointerDown={(event) => event.stopPropagation()}
                       onClick={(event) => {
                         event.stopPropagation();
                         props.onSelectItem?.(item);
                       }}
-                      onMouseEnter={() => props.onItemHover?.(item.id)}
-                      onMouseLeave={() => props.onItemHover?.(null)}
+                      onMouseEnter={() => setHighlightedRecentItem(itemIndex(), true)}
+                      onMouseLeave={() => setHighlightedRecentItem(null, true)}
                     >
                       <span class="flex flex-col min-w-0 flex-1">
                         <span class="flex items-center gap-1 text-[12px] leading-4 font-sans font-medium text-black truncate">
