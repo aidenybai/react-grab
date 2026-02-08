@@ -22,7 +22,8 @@ test.describe("Toolbar", () => {
       );
       if (!toolbar || !enabledToggleButton) return null;
 
-      const enabledToggleButtonRect = enabledToggleButton.getBoundingClientRect();
+      const enabledToggleButtonRect =
+        enabledToggleButton.getBoundingClientRect();
       const transform = toolbar.style.transform;
       const translateMatch = transform.match(
         /translate\((-?\d+(?:\.\d+)?)px,\s*(-?\d+(?:\.\d+)?)px\)/,
@@ -58,7 +59,8 @@ test.describe("Toolbar", () => {
         if (!enabledToggleButton) return null;
 
         const getEnabledToggleCenter = () => {
-          const enabledToggleButtonRect = enabledToggleButton.getBoundingClientRect();
+          const enabledToggleButtonRect =
+            enabledToggleButton.getBoundingClientRect();
           return {
             x: enabledToggleButtonRect.left + enabledToggleButtonRect.width / 2,
             y: enabledToggleButtonRect.top + enabledToggleButtonRect.height / 2,
@@ -83,7 +85,9 @@ test.describe("Toolbar", () => {
             );
             maxVerticalDrift = Math.max(
               maxVerticalDrift,
-              Math.abs(currentEnabledToggleCenter.y - initialEnabledToggleCenter.y),
+              Math.abs(
+                currentEnabledToggleCenter.y - initialEnabledToggleCenter.y,
+              ),
             );
 
             if (timestamp - animationStartTime >= measureDurationMs) {

@@ -298,7 +298,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   ) => ({
     transform: getDragReleaseItemTransform(slot, shouldScaleDuringReveal),
     "transition-duration": `${
-      isDragReleaseRevealPrepared() ? 0 : TOOLBAR_DRAG_RELEASE_REVEAL_DURATION_MS
+      isDragReleaseRevealPrepared()
+        ? 0
+        : TOOLBAR_DRAG_RELEASE_REVEAL_DURATION_MS
     }ms`,
     "transition-timing-function": "cubic-bezier(0.22,1,0.36,1)",
     "transition-delay": `${
@@ -1336,6 +1338,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     clearDragReleaseRevealAnimationFrame();
     clearDragReleaseRevealAnimationTimeout();
     clearTimeout(snapAnimationTimeout);
+    setIsSnapping(false);
     setIsDragging(true);
     setHasDragMoved(false);
 
