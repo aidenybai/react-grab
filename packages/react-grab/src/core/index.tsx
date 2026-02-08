@@ -1341,6 +1341,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.deactivate();
       arrowNavigator.clearHistory();
       keyboardSelectedElement = null;
+      dismissRecentDropdown();
       if (wasDragging) {
         document.body.style.userSelect = "";
       }
