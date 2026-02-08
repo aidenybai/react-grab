@@ -231,13 +231,7 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                           />
                         </Show>
                         <span class="truncate min-w-0">
-                          <Show
-                            when={item.componentName}
-                            fallback={item.tagName}
-                          >
-                            {item.componentName}
-                            <span class="text-black/50">.{item.tagName}</span>
-                          </Show>
+                          {item.componentName ?? item.tagName}
                         </span>
                       </span>
                       <Show when={item.commentText}>
