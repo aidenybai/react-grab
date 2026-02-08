@@ -165,6 +165,21 @@ pre {
   }
 }
 
+@keyframes toolbar-dock-shift {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.96);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @keyframes icon-loader-spin {
   0% {
     opacity: 1;
@@ -248,6 +263,11 @@ pre {
 
 .animate-tooltip-fade-in {
   animation: tooltip-fade-in var(--transition-fast) ease-out;
+  will-change: transform, opacity;
+}
+
+.animate-toolbar-dock-shift {
+  animation: toolbar-dock-shift var(--transition-slow) cubic-bezier(0.2, 0.8, 0.2, 1);
   will-change: transform, opacity;
 }
 

@@ -29,6 +29,8 @@ export interface ToolbarContentProps {
 
 export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
   const edge = () => props.snapEdge ?? "bottom";
+  const isVerticalLayout = () =>
+    !props.isCollapsed && (edge() === "left" || edge() === "right");
 
   const collapsedPaddingClasses = () => {
     if (!props.isCollapsed) return "";
@@ -54,7 +56,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
   };
 
   const defaultSelectButton = () => (
-    <button class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5">
+    <button class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox">
       <IconSelect
         size={14}
         style={
@@ -74,7 +76,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
   );
 
   const defaultCommentButton = () => (
-    <button class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5">
+    <button class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox">
       <IconComment
         size={TOOLBAR_COMMENT_ICON_SIZE_PX}
         isActive={Boolean(props.isCommentMode)}
@@ -95,7 +97,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
   );
 
   const defaultToggleButton = () => (
-    <button class="contain-layout flex items-center justify-center cursor-pointer interactive-scale outline-none mx-0.5">
+    <button class="contain-layout flex items-center justify-center cursor-pointer interactive-scale outline-none">
       <div
         class={cn(
           "relative w-5 h-3 rounded-full transition-colors",
@@ -128,7 +130,8 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
       class={cn(
         "flex items-center justify-center rounded-full antialiased transition-all duration-150 ease-out relative overflow-visible [font-synthesis:none] filter-[drop-shadow(0px_1px_2px_#51515140)] [corner-shape:superellipse(1.25)]",
         "bg-black",
-        !props.isCollapsed && "py-1.5 gap-1.5 px-2",
+        !props.isCollapsed && !isVerticalLayout() && "py-1.5 gap-1.5 px-2",
+        !props.isCollapsed && isVerticalLayout() && "flex-col py-2 px-1.5 gap-1.5",
         collapsedPaddingClasses(),
         props.isShaking && "animate-shake",
       )}
@@ -144,7 +147,14 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
             : "grid-cols-[1fr] opacity-100",
         )}
       >
-        <div class="flex items-center min-w-0">
+        <div
+          class={cn(
+            "flex min-w-0",
+            isVerticalLayout()
+              ? "flex-col items-center gap-1.5"
+              : "items-center gap-1.5",
+          )}
+        >
           <div
             class={cn(
               "grid transition-all duration-150 ease-out",

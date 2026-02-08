@@ -210,6 +210,20 @@ test.describe("Toolbar", () => {
         .toBe("top");
     });
 
+    test("should snap to bottom edge", async ({ reactGrab }) => {
+      await reactGrab.dragToolbar(0, 1200);
+
+      await expect
+        .poll(
+          async () => {
+            const info = await reactGrab.getToolbarInfo();
+            return info.snapEdge;
+          },
+          { timeout: 3000 },
+        )
+        .toBe("bottom");
+    });
+
     test("should snap to left edge", async ({ reactGrab }) => {
       await reactGrab.dragToolbar(-1000, -500);
 
@@ -236,6 +250,58 @@ test.describe("Toolbar", () => {
           { timeout: 3000 },
         )
         .toMatch(/^(right|top)$/);
+    });
+
+    test("should switch to vertical layout on left edge", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.dragToolbar(-1500, 0);
+
+      await expect
+        .poll(
+          async () => {
+            const info = await reactGrab.getToolbarInfo();
+            return info.snapEdge;
+          },
+          { timeout: 3000 },
+        )
+        .toBe("left");
+
+      await expect
+        .poll(
+          async () => {
+            const info = await reactGrab.getToolbarInfo();
+            return info.orientation;
+          },
+          { timeout: 3000 },
+        )
+        .toBe("vertical");
+    });
+
+    test("should switch to vertical layout on right edge", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.dragToolbar(1500, 0);
+
+      await expect
+        .poll(
+          async () => {
+            const info = await reactGrab.getToolbarInfo();
+            return info.snapEdge;
+          },
+          { timeout: 3000 },
+        )
+        .toBe("right");
+
+      await expect
+        .poll(
+          async () => {
+            const info = await reactGrab.getToolbarInfo();
+            return info.orientation;
+          },
+          { timeout: 3000 },
+        )
+        .toBe("vertical");
     });
 
     test("should not drag when collapsed", async ({ reactGrab }) => {

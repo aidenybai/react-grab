@@ -23,15 +23,21 @@ import {
   TOOLBAR_FADE_IN_DELAY_MS,
   TOOLBAR_SNAP_ANIMATION_DURATION_MS,
   TOOLBAR_DRAG_THRESHOLD_PX,
-  TOOLBAR_VELOCITY_MULTIPLIER_MS,
   TOOLBAR_COLLAPSED_SHORT_PX,
   TOOLBAR_COLLAPSED_LONG_PX,
+  TOOLBAR_DRAG_PREVIEW_SHORT_PX,
+  TOOLBAR_DRAG_PREVIEW_LONG_PX,
+  TOOLBAR_DRAG_PREVIEW_ROTATION_DURATION_MS,
   TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS,
   TOOLBAR_DEFAULT_WIDTH_PX,
   TOOLBAR_DEFAULT_HEIGHT_PX,
   TOOLBAR_SHAKE_TOOLTIP_DURATION_MS,
   TOOLBAR_ACTIVE_ACCENT_COLOR,
   TOOLBAR_COMMENT_ICON_SIZE_PX,
+  TOOLBAR_SIDE_DOCK_THRESHOLD_PX,
+  TOOLBAR_DOCK_LAYOUT_ANIMATION_DURATION_MS,
+  TOOLBAR_DOCK_PREVIEW_DISTANCE_PX,
+  TOOLBAR_DOCK_PREVIEW_EDGE_SWITCH_HYSTERESIS_PX,
   PANEL_STYLES,
 } from "../../constants.js";
 import { freezeUpdates } from "../../utils/freeze-updates.js";
@@ -66,6 +72,35 @@ interface ToolbarProps {
   onToggleRecent?: (anchorPosition: { x: number; y: number }) => void;
 }
 
+interface DragDockPreviewState {
+  edge: SnapEdge | null;
+}
+
+interface EdgeDistanceMap {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+}
+
+interface ProjectedDragPosition {
+  viewport: {
+    width: number;
+    height: number;
+    offsetLeft: number;
+    offsetTop: number;
+  };
+  projectedX: number;
+  projectedY: number;
+  clampedProjectedX: number;
+  clampedProjectedY: number;
+}
+
+interface ToolbarDimensions {
+  width: number;
+  height: number;
+}
+
 export const Toolbar: Component<ToolbarProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
   let expandableButtonsRef: HTMLDivElement | undefined;
@@ -80,8 +115,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [snapEdge, setSnapEdge] = createSignal<SnapEdge>("bottom");
   const [positionRatio, setPositionRatio] = createSignal(0.5);
   const [position, setPosition] = createSignal({ x: 0, y: 0 });
-  const [dragOffset, setDragOffset] = createSignal({ x: 0, y: 0 });
-  const [velocity, setVelocity] = createSignal({ x: 0, y: 0 });
   const [hasDragMoved, setHasDragMoved] = createSignal(false);
   const [isShaking, setIsShaking] = createSignal(false);
   const [isCollapseAnimating, setIsCollapseAnimating] = createSignal(false);
@@ -93,8 +126,16 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     createSignal(false);
   const [isShakeTooltipVisible, setIsShakeTooltipVisible] = createSignal(false);
   const [isToggleAnimating, setIsToggleAnimating] = createSignal(false);
-  const [isRecentTooltipVisible, setIsRecentTooltipVisible] =
+  const [isRecentTooltipVisible, setIsRecentTooltipVisible] = createSignal(false);
+  const [isDockLayoutAnimating, setIsDockLayoutAnimating] = createSignal(false);
+  const [isDragSnapTransitionActive, setIsDragSnapTransitionActive] =
     createSignal(false);
+  const [dragDockPreviewEdge, setDragDockPreviewEdge] =
+    createSignal<SnapEdge | null>(null);
+  const [dragPointerPosition, setDragPointerPosition] = createSignal({
+    x: 0,
+    y: 0,
+  });
   let recentButtonRef: HTMLButtonElement | undefined;
 
   const recentTooltipLabel = () => {
@@ -104,9 +145,165 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const tooltipPosition = () => (snapEdge() === "top" ? "bottom" : "top");
 
+  const isSideDockedEdge = () =>
+    snapEdge() === "left" || snapEdge() === "right";
+
+  const isVerticalOrientation = () => isSideDockedEdge();
+
+  const isVerticalLayout = () => !isCollapsed() && isVerticalOrientation();
+
+  const isSideEdge = (edge: SnapEdge) => edge === "left" || edge === "right";
+
+  const getClosestEdgeFromPointer = (
+    pointerX: number,
+    pointerY: number,
+  ): SnapEdge => {
+    const viewport = getVisualViewport();
+    const edgeDistanceMap: EdgeDistanceMap = {
+      top: Math.max(0, pointerY - viewport.offsetTop),
+      bottom: Math.max(0, viewport.offsetTop + viewport.height - pointerY),
+      left: Math.max(0, pointerX - viewport.offsetLeft),
+      right: Math.max(0, viewport.offsetLeft + viewport.width - pointerX),
+    };
+    const nearestHorizontalEdge: SnapEdge =
+      edgeDistanceMap.left <= edgeDistanceMap.right ? "left" : "right";
+    const nearestVerticalEdge: SnapEdge =
+      edgeDistanceMap.top <= edgeDistanceMap.bottom ? "top" : "bottom";
+    const nearestHorizontalDistance = Math.min(
+      edgeDistanceMap.left,
+      edgeDistanceMap.right,
+    );
+    const nearestVerticalDistance = Math.min(
+      edgeDistanceMap.top,
+      edgeDistanceMap.bottom,
+    );
+    return nearestHorizontalDistance < nearestVerticalDistance
+      ? nearestHorizontalEdge
+      : nearestVerticalEdge;
+  };
+
+  const getDragPreviewEdge = (): SnapEdge => {
+    const previewEdge = dragDockPreviewEdge();
+    if (previewEdge) return previewEdge;
+    const currentDragPointerPosition = dragPointerPosition();
+    return getClosestEdgeFromPointer(
+      currentDragPointerPosition.x,
+      currentDragPointerPosition.y,
+    );
+  };
+
+  const getDragPreviewDimensions = (): ToolbarDimensions => {
+    return {
+      width: TOOLBAR_DRAG_PREVIEW_LONG_PX,
+      height: TOOLBAR_DRAG_PREVIEW_SHORT_PX,
+    };
+  };
+
+  const getDragPreviewRotationDegrees = (edge: SnapEdge): number => {
+    if (edge === "left") return -90;
+    if (edge === "right") return 90;
+    if (edge === "bottom") return 180;
+    return 0;
+  };
+
+  const getDragDockPreviewState = (
+    pointerX: number,
+    pointerY: number,
+    dragDeltaX: number,
+    dragDeltaY: number,
+    previousPreviewEdge: SnapEdge | null,
+  ): DragDockPreviewState => {
+    const viewport = getVisualViewport();
+    const edgeDistanceMap: EdgeDistanceMap = {
+      top: Math.max(0, pointerY - viewport.offsetTop),
+      bottom: Math.max(0, viewport.offsetTop + viewport.height - pointerY),
+      left: Math.max(0, pointerX - viewport.offsetLeft),
+      right: Math.max(0, viewport.offsetLeft + viewport.width - pointerX),
+    };
+    const nearestHorizontalDistance = Math.min(
+      edgeDistanceMap.left,
+      edgeDistanceMap.right,
+    );
+    const nearestVerticalDistance = Math.min(
+      edgeDistanceMap.top,
+      edgeDistanceMap.bottom,
+    );
+    const nearestHorizontalEdge: SnapEdge =
+      edgeDistanceMap.left <= edgeDistanceMap.right ? "left" : "right";
+    const nearestVerticalEdge: SnapEdge =
+      edgeDistanceMap.top <= edgeDistanceMap.bottom ? "top" : "bottom";
+    const nearestDistance = Math.min(
+      nearestHorizontalDistance,
+      nearestVerticalDistance,
+    );
+    const canPreviewHorizontalEdge =
+      nearestHorizontalDistance <= TOOLBAR_DOCK_PREVIEW_DISTANCE_PX;
+    const canPreviewVerticalEdge =
+      nearestVerticalDistance <= TOOLBAR_DOCK_PREVIEW_DISTANCE_PX;
+
+    if (nearestDistance > TOOLBAR_DOCK_PREVIEW_DISTANCE_PX) {
+      return { edge: null };
+    }
+
+    if (previousPreviewEdge) {
+      const previousEdgeDistance = edgeDistanceMap[previousPreviewEdge];
+      const shouldRetainPreviousEdge =
+        previousEdgeDistance <= TOOLBAR_DOCK_PREVIEW_DISTANCE_PX &&
+        previousEdgeDistance <=
+          nearestDistance + TOOLBAR_DOCK_PREVIEW_EDGE_SWITCH_HYSTERESIS_PX;
+
+      if (shouldRetainPreviousEdge) {
+        return { edge: previousPreviewEdge };
+      }
+    }
+
+    const shouldPreferHorizontalAxis =
+      Math.abs(dragDeltaX) >= Math.abs(dragDeltaY);
+
+    if (shouldPreferHorizontalAxis && canPreviewHorizontalEdge) {
+      return { edge: nearestHorizontalEdge };
+    }
+
+    if (!shouldPreferHorizontalAxis && canPreviewVerticalEdge) {
+      return { edge: nearestVerticalEdge };
+    }
+
+    const areAxisDistancesSimilar =
+      Math.abs(nearestHorizontalDistance - nearestVerticalDistance) <=
+      TOOLBAR_DOCK_PREVIEW_EDGE_SWITCH_HYSTERESIS_PX;
+
+    if (areAxisDistancesSimilar) {
+      return {
+        edge: shouldPreferHorizontalAxis
+          ? nearestHorizontalEdge
+          : nearestVerticalEdge,
+      };
+    }
+
+    return {
+      edge:
+        nearestHorizontalDistance < nearestVerticalDistance
+          ? nearestHorizontalEdge
+          : nearestVerticalEdge,
+    };
+  };
+
   const stopEventPropagation = (event: Event) => {
     event.stopPropagation();
     event.stopImmediatePropagation();
+  };
+
+  const suppressNextWindowClickAfterDrag = () => {
+    const handleWindowClick = (event: MouseEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+    };
+
+    window.addEventListener("click", handleWindowClick, true);
+    requestAnimationFrame(() => {
+      window.removeEventListener("click", handleWindowClick, true);
+    });
   };
 
   const createFreezeHandlers = (
@@ -188,8 +385,47 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     ),
   );
 
-  let lastPointerPosition = { x: 0, y: 0, time: 0 };
+  createEffect(
+    on(
+      () => [snapEdge(), isCollapsed()] as const,
+      ([nextEdge, nextIsCollapsed], previousLayoutState) => {
+        if (!previousLayoutState) return;
+
+        const [previousEdge, previousIsCollapsed] = previousLayoutState;
+        const wasVerticalLayout =
+          !previousIsCollapsed &&
+          (previousEdge === "left" || previousEdge === "right");
+        const isVerticalLayoutNow =
+          !nextIsCollapsed && (nextEdge === "left" || nextEdge === "right");
+
+        if (wasVerticalLayout === isVerticalLayoutNow) return;
+
+        setIsDockLayoutAnimating(true);
+        clearTimeout(dockLayoutAnimationTimeout);
+        dockLayoutAnimationTimeout = setTimeout(() => {
+          setIsDockLayoutAnimating(false);
+          if (isDragSnapTransitionActive()) return;
+          const rect = containerRef?.getBoundingClientRect();
+          if (!rect || isCollapsed()) return;
+
+          expandedDimensions = { width: rect.width, height: rect.height };
+          const nextPosition = getPositionFromEdgeAndRatio(
+            snapEdge(),
+            positionRatio(),
+            rect.width,
+            rect.height,
+          );
+          setPosition(nextPosition);
+        }, TOOLBAR_DOCK_LAYOUT_ANIMATION_DURATION_MS);
+      },
+    ),
+  );
+
   let pointerStartPosition = { x: 0, y: 0 };
+  let activeDragElementDimensions = {
+    width: TOOLBAR_DEFAULT_WIDTH_PX,
+    height: TOOLBAR_DEFAULT_HEIGHT_PX,
+  };
   let expandedDimensions = {
     width: TOOLBAR_DEFAULT_WIDTH_PX,
     height: TOOLBAR_DEFAULT_HEIGHT_PX,
@@ -541,15 +777,100 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     currentY: number,
     elementWidth: number,
     elementHeight: number,
-    velocityX: number,
-    velocityY: number,
+    preferredEdge: SnapEdge | null = null,
   ): { edge: SnapEdge; x: number; y: number } => {
-    const viewport = getVisualViewport();
+    const getProjectedDragPosition = (): ProjectedDragPosition => {
+      const viewport = getVisualViewport();
+      const projectedX = currentX;
+      const projectedY = currentY;
+      const minX = viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX;
+      const maxX = Math.max(
+        minX,
+        viewport.offsetLeft +
+          viewport.width -
+          elementWidth -
+          TOOLBAR_SNAP_MARGIN_PX,
+      );
+      const minY = viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX;
+      const maxY = Math.max(
+        minY,
+        viewport.offsetTop +
+          viewport.height -
+          elementHeight -
+          TOOLBAR_SNAP_MARGIN_PX,
+      );
+
+      return {
+        viewport,
+        projectedX,
+        projectedY,
+        clampedProjectedX: clampToViewport(projectedX, minX, maxX),
+        clampedProjectedY: clampToViewport(projectedY, minY, maxY),
+      };
+    };
+
+    const getSnapPositionForEdge = (
+      edge: SnapEdge,
+      projectedDragPosition: ProjectedDragPosition,
+    ): { edge: SnapEdge; x: number; y: number } => {
+      const viewport = projectedDragPosition.viewport;
+      if (edge === "top") {
+        return {
+          edge,
+          x: projectedDragPosition.clampedProjectedX,
+          y: viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX,
+        };
+      }
+      if (edge === "bottom") {
+        return {
+          edge,
+          x: projectedDragPosition.clampedProjectedX,
+          y:
+            viewport.offsetTop +
+            viewport.height -
+            elementHeight -
+            TOOLBAR_SNAP_MARGIN_PX,
+        };
+      }
+      if (edge === "left") {
+        return {
+          edge,
+          x: viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX,
+          y: projectedDragPosition.clampedProjectedY,
+        };
+      }
+      return {
+        edge,
+        x:
+          viewport.offsetLeft +
+          viewport.width -
+          elementWidth -
+          TOOLBAR_SNAP_MARGIN_PX,
+        y: projectedDragPosition.clampedProjectedY,
+      };
+    };
+
+    const projectedDragPosition = getProjectedDragPosition();
+    const viewport = projectedDragPosition.viewport;
     const viewportWidth = viewport.width;
     const viewportHeight = viewport.height;
+    const projectedX = projectedDragPosition.projectedX;
+    const projectedY = projectedDragPosition.projectedY;
 
-    const projectedX = currentX + velocityX * TOOLBAR_VELOCITY_MULTIPLIER_MS;
-    const projectedY = currentY + velocityY * TOOLBAR_VELOCITY_MULTIPLIER_MS;
+    if (preferredEdge) {
+      return getSnapPositionForEdge(preferredEdge, projectedDragPosition);
+    }
+
+    if (projectedX <= viewport.offsetLeft + TOOLBAR_SIDE_DOCK_THRESHOLD_PX) {
+      return getSnapPositionForEdge("left", projectedDragPosition);
+    }
+
+    if (
+      projectedX + elementWidth >=
+      viewport.offsetLeft + viewportWidth - TOOLBAR_SIDE_DOCK_THRESHOLD_PX
+    ) {
+      return getSnapPositionForEdge("right", projectedDragPosition);
+    }
 
     const distanceToTop = projectedY - viewport.offsetTop + elementHeight / 2;
     const distanceToBottom =
@@ -566,161 +887,224 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     );
 
     if (minDistance === distanceToTop) {
-      return {
-        edge: "top",
-        x: Math.max(
-          viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX,
-          Math.min(
-            projectedX,
-            viewport.offsetLeft +
-              viewportWidth -
-              elementWidth -
-              TOOLBAR_SNAP_MARGIN_PX,
-          ),
-        ),
-        y: viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX,
-      };
+      return getSnapPositionForEdge("top", projectedDragPosition);
     }
     if (minDistance === distanceToLeft) {
-      return {
-        edge: "left",
-        x: viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX,
-        y: Math.max(
-          viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX,
-          Math.min(
-            projectedY,
-            viewport.offsetTop +
-              viewportHeight -
-              elementHeight -
-              TOOLBAR_SNAP_MARGIN_PX,
-          ),
-        ),
-      };
+      return getSnapPositionForEdge("left", projectedDragPosition);
     }
     if (minDistance === distanceToRight) {
-      return {
-        edge: "right",
-        x:
-          viewport.offsetLeft +
-          viewportWidth -
-          elementWidth -
-          TOOLBAR_SNAP_MARGIN_PX,
-        y: Math.max(
-          viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX,
-          Math.min(
-            projectedY,
-            viewport.offsetTop +
-              viewportHeight -
-              elementHeight -
-              TOOLBAR_SNAP_MARGIN_PX,
-          ),
-        ),
-      };
+      return getSnapPositionForEdge("right", projectedDragPosition);
     }
-    return {
-      edge: "bottom",
-      x: Math.max(
-        viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX,
-        Math.min(
-          projectedX,
-          viewport.offsetLeft +
-            viewportWidth -
-            elementWidth -
-            TOOLBAR_SNAP_MARGIN_PX,
-        ),
-      ),
-      y:
-        viewport.offsetTop +
-        viewportHeight -
+    return getSnapPositionForEdge("bottom", projectedDragPosition);
+  };
+
+  const getAxisLockedSnapPosition = (
+    edge: SnapEdge,
+    releasePosition: { x: number; y: number },
+    snapPosition: { x: number; y: number },
+    elementWidth: number,
+    elementHeight: number,
+  ) => {
+    const viewport = getVisualViewport();
+    const minX = viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX;
+    const maxX = Math.max(
+      minX,
+      viewport.offsetLeft + viewport.width - elementWidth - TOOLBAR_SNAP_MARGIN_PX,
+    );
+    const minY = viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX;
+    const maxY = Math.max(
+      minY,
+      viewport.offsetTop +
+        viewport.height -
         elementHeight -
         TOOLBAR_SNAP_MARGIN_PX,
+    );
+
+    if (edge === "left" || edge === "right") {
+      return {
+        x: snapPosition.x,
+        y: clampToViewport(releasePosition.y, minY, maxY),
+      };
+    }
+
+    return {
+      x: clampToViewport(releasePosition.x, minX, maxX),
+      y: snapPosition.y,
     };
   };
 
   const handleWindowPointerMove = (event: PointerEvent) => {
     if (!isDragging()) return;
 
+    setDragPointerPosition({ x: event.clientX, y: event.clientY });
+
     const distanceMoved = Math.sqrt(
       Math.pow(event.clientX - pointerStartPosition.x, 2) +
         Math.pow(event.clientY - pointerStartPosition.y, 2),
     );
 
-    if (distanceMoved > TOOLBAR_DRAG_THRESHOLD_PX) {
+    const hasExceededDragThreshold = distanceMoved > TOOLBAR_DRAG_THRESHOLD_PX;
+    if (hasExceededDragThreshold && !hasDragMoved()) {
       setHasDragMoved(true);
     }
 
-    if (!hasDragMoved()) return;
+    if (!hasDragMoved() && !hasExceededDragThreshold) return;
 
-    const now = performance.now();
-    const deltaTime = now - lastPointerPosition.time;
-
-    if (deltaTime > 0) {
-      const newVelocityX = (event.clientX - lastPointerPosition.x) / deltaTime;
-      const newVelocityY = (event.clientY - lastPointerPosition.y) / deltaTime;
-      setVelocity({ x: newVelocityX, y: newVelocityY });
-    }
-
-    lastPointerPosition = { x: event.clientX, y: event.clientY, time: now };
-
-    const newX = event.clientX - dragOffset().x;
-    const newY = event.clientY - dragOffset().y;
+    const previousPreviewEdge = dragDockPreviewEdge();
+    const dragDockPreviewState = getDragDockPreviewState(
+      event.clientX,
+      event.clientY,
+      event.clientX - pointerStartPosition.x,
+      event.clientY - pointerStartPosition.y,
+      previousPreviewEdge,
+    );
+    const dragPreviewDimensions = getDragPreviewDimensions();
+    const newX = event.clientX - dragPreviewDimensions.width / 2;
+    const newY = event.clientY - dragPreviewDimensions.height / 2;
 
     setPosition({ x: newX, y: newY });
+    if (dragDockPreviewState.edge !== previousPreviewEdge) {
+      setDragDockPreviewEdge(dragDockPreviewState.edge);
+    }
   };
 
-  const handleWindowPointerUp = () => {
+  const handleWindowPointerUp = (event: PointerEvent) => {
     if (!isDragging()) return;
 
     window.removeEventListener("pointermove", handleWindowPointerMove);
     window.removeEventListener("pointerup", handleWindowPointerUp);
 
     const didMove = hasDragMoved();
-    setIsDragging(false);
+    const dragDockPreviewEdgeAtRelease = dragDockPreviewEdge();
 
     if (!didMove) {
+      setIsDragSnapTransitionActive(false);
+      setIsDragging(false);
+      setHasDragMoved(false);
+      setDragDockPreviewEdge(null);
       return;
     }
 
     didDragOccur = true;
+    suppressNextWindowClickAfterDrag();
+    const dragPreviewEdgeAtRelease =
+      dragDockPreviewEdgeAtRelease ??
+      getClosestEdgeFromPointer(event.clientX, event.clientY);
+    const dragPreviewDimensionsAtRelease =
+      getDragPreviewDimensions();
+    const releaseCenterX =
+      event.clientX ?? position().x + dragPreviewDimensionsAtRelease.width / 2;
+    const releaseCenterY =
+      event.clientY ?? position().y + dragPreviewDimensionsAtRelease.height / 2;
+    const releasePosition = {
+      x: releaseCenterX - activeDragElementDimensions.width / 2,
+      y: releaseCenterY - activeDragElementDimensions.height / 2,
+    };
+    let snapDimensions: ToolbarDimensions = {
+      width: activeDragElementDimensions.width,
+      height: activeDragElementDimensions.height,
+    };
 
-    const rect = containerRef?.getBoundingClientRect();
-    if (!rect) return;
-
-    const currentVelocity = velocity();
-    const snap = getSnapPosition(
-      position().x,
-      position().y,
-      rect.width,
-      rect.height,
-      currentVelocity.x,
-      currentVelocity.y,
+    let snap = getSnapPosition(
+      releasePosition.x,
+      releasePosition.y,
+      snapDimensions.width,
+      snapDimensions.height,
+      dragDockPreviewEdgeAtRelease ?? dragPreviewEdgeAtRelease,
     );
+    const minimumDragDimension = Math.min(
+      activeDragElementDimensions.width,
+      activeDragElementDimensions.height,
+    );
+    const maximumDragDimension = Math.max(
+      activeDragElementDimensions.width,
+      activeDragElementDimensions.height,
+    );
+    const shouldUseSideDimensions = isSideEdge(snap.edge);
+    snapDimensions = {
+      width: shouldUseSideDimensions
+        ? minimumDragDimension
+        : maximumDragDimension,
+      height: shouldUseSideDimensions
+        ? maximumDragDimension
+        : minimumDragDimension,
+    };
+    snap = getSnapPosition(
+      releasePosition.x,
+      releasePosition.y,
+      snapDimensions.width,
+      snapDimensions.height,
+      snap.edge,
+    );
+
+    snap = {
+      edge: snap.edge,
+      ...getAxisLockedSnapPosition(
+        snap.edge,
+        releasePosition,
+        { x: snap.x, y: snap.y },
+        snapDimensions.width,
+        snapDimensions.height,
+      ),
+    };
+
     const ratio = getRatioFromPosition(
       snap.edge,
       snap.x,
       snap.y,
-      rect.width,
-      rect.height,
+      snapDimensions.width,
+      snapDimensions.height,
     );
+    expandedDimensions = {
+      width: snapDimensions.width,
+      height: snapDimensions.height,
+    };
 
+    setIsDragSnapTransitionActive(true);
+    setDragDockPreviewEdge(snap.edge);
     setSnapEdge(snap.edge);
     setPositionRatio(ratio);
+    setIsDragging(false);
     setIsSnapping(true);
 
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setPosition({ x: snap.x, y: snap.y });
+      setHasDragMoved(false);
+      setPosition({ x: snap.x, y: snap.y });
+
+      snapAnimationTimeout = setTimeout(() => {
+        let nextRatio = ratio;
+        const measuredRect = containerRef?.getBoundingClientRect();
+        if (measuredRect && !isCollapsed()) {
+          expandedDimensions = {
+            width: measuredRect.width,
+            height: measuredRect.height,
+          };
+          const correctedPosition = getPositionFromEdgeAndRatio(
+            snap.edge,
+            ratio,
+            measuredRect.width,
+            measuredRect.height,
+          );
+          nextRatio = getRatioFromPosition(
+            snap.edge,
+            correctedPosition.x,
+            correctedPosition.y,
+            measuredRect.width,
+            measuredRect.height,
+          );
+          setPosition(correctedPosition);
+          setPositionRatio(nextRatio);
+        }
         saveAndNotify({
           edge: snap.edge,
-          ratio,
+          ratio: nextRatio,
           collapsed: isCollapsed(),
           enabled: props.enabled ?? true,
         });
-
-        snapAnimationTimeout = setTimeout(() => {
-          setIsSnapping(false);
-        }, TOOLBAR_SNAP_ANIMATION_DURATION_MS);
-      });
+        setIsSnapping(false);
+        setIsDragSnapTransitionActive(false);
+        setDragDockPreviewEdge(null);
+      }, TOOLBAR_SNAP_ANIMATION_DURATION_MS);
     });
   };
 
@@ -730,20 +1114,14 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     const rect = containerRef?.getBoundingClientRect();
     if (!rect) return;
 
-    pointerStartPosition = { x: event.clientX, y: event.clientY };
+    activeDragElementDimensions = { width: rect.width, height: rect.height };
+    setIsDragSnapTransitionActive(false);
+    setDragDockPreviewEdge(null);
 
-    setDragOffset({
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
-    });
+    pointerStartPosition = { x: event.clientX, y: event.clientY };
+    setDragPointerPosition({ x: event.clientX, y: event.clientY });
     setIsDragging(true);
     setHasDragMoved(false);
-    setVelocity({ x: 0, y: 0 });
-    lastPointerPosition = {
-      x: event.clientX,
-      y: event.clientY,
-      time: performance.now(),
-    };
 
     window.addEventListener("pointermove", handleWindowPointerMove);
     window.addEventListener("pointerup", handleWindowPointerUp);
@@ -819,6 +1197,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   let collapseAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
   let snapAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
   let toggleAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
+  let dockLayoutAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
 
   const handleResize = () => {
     if (isDragging()) return;
@@ -916,7 +1295,13 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     if (props.onSubscribeToStateChanges) {
       const unsubscribe = props.onSubscribeToStateChanges(
         (state: ToolbarState) => {
-          if (isCollapseAnimating() || isToggleAnimating()) return;
+          if (
+            isCollapseAnimating() ||
+            isToggleAnimating() ||
+            isDragSnapTransitionActive()
+          ) {
+            return;
+          }
 
           const rect = containerRef?.getBoundingClientRect();
           if (!rect) return;
@@ -985,6 +1370,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     clearTimeout(shakeTooltipTimeout);
     clearTimeout(snapAnimationTimeout);
     clearTimeout(toggleAnimationTimeout);
+    clearTimeout(dockLayoutAnimationTimeout);
+    setIsDragSnapTransitionActive(false);
+    setDragDockPreviewEdge(null);
     unfreezeUpdatesCallback?.();
   });
 
@@ -1037,6 +1425,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       ref={containerRef}
       data-react-grab-ignore-events
       data-react-grab-toolbar
+      data-react-grab-toolbar-orientation={
+        isVerticalOrientation() ? "vertical" : "horizontal"
+      }
       class={cn(
         "fixed left-0 top-0 font-sans text-[13px] antialiased filter-[drop-shadow(0px_1px_2px_#51515140)] select-none",
         getCursorClass(),
@@ -1052,17 +1443,48 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         }px)`,
         "transform-origin": getTransformOrigin(),
       }}
-      onPointerDown={handlePointerDown}
+      on:pointerdown={(event) => {
+        stopEventPropagation(event);
+        handlePointerDown(event);
+      }}
+      on:mousedown={stopEventPropagation}
     >
       <div
         class={cn(
-          "flex items-center justify-center rounded-full antialiased transition-all duration-150 ease-out relative overflow-visible [font-synthesis:none] [corner-shape:superellipse(1.25)]",
+          "flex items-center justify-center rounded-full antialiased relative overflow-visible [font-synthesis:none] [corner-shape:superellipse(1.25)]",
           "bg-black",
-          !isCollapsed() && "py-1.5 gap-1.5 px-2",
-          collapsedPaddingClasses(),
+          hasDragMoved()
+            ? "transition-transform ease-[cubic-bezier(0.22,1,0.36,1)]"
+            : "transition-[padding,gap,width,height] duration-150 ease-out",
+          !hasDragMoved() &&
+            !isCollapsed() &&
+            !isVerticalLayout() &&
+            "py-1.5 gap-2 px-2",
+          !hasDragMoved() &&
+            !isCollapsed() &&
+            isVerticalLayout() &&
+            "flex-col py-2 px-1.5 gap-2",
+          !hasDragMoved() && collapsedPaddingClasses(),
+          hasDragMoved() && "p-0 gap-0",
           isShaking() && "animate-shake",
+          isDockLayoutAnimating() && "animate-toolbar-dock-shift",
+          isDragging() && "will-change-transform",
         )}
-        style={{ "transform-origin": getTransformOrigin() }}
+        style={{
+          width: hasDragMoved()
+            ? `${getDragPreviewDimensions().width}px`
+            : undefined,
+          height: hasDragMoved()
+            ? `${getDragPreviewDimensions().height}px`
+            : undefined,
+          transform: hasDragMoved()
+            ? `rotate(${getDragPreviewRotationDegrees(getDragPreviewEdge())}deg)`
+            : undefined,
+          "transition-duration": hasDragMoved()
+            ? `${TOOLBAR_DRAG_PREVIEW_ROTATION_DURATION_MS}ms`
+            : undefined,
+          "animation-duration": `${TOOLBAR_DOCK_LAYOUT_ANIMATION_DURATION_MS}ms`,
+        }}
         onAnimationEnd={() => setIsShaking(false)}
         onClick={(event) => {
           if (isCollapsed()) {
@@ -1091,16 +1513,32 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           }
         }}
       >
-        <div
-          class={cn(
-            "grid transition-all duration-150 ease-out",
-            isCollapsed()
-              ? "grid-cols-[0fr] opacity-0 pointer-events-none"
-              : "grid-cols-[1fr] opacity-100",
-          )}
-        >
-          <div class="flex items-center min-w-0">
-            <div ref={expandableButtonsRef} class="flex items-center">
+          <div
+            class={cn(
+              "grid transition-all duration-150 ease-out",
+              isCollapsed()
+                ? "grid-cols-[0fr] opacity-0 pointer-events-none"
+                : "grid-cols-[1fr] opacity-100",
+              hasDragMoved() && "opacity-0 pointer-events-none",
+            )}
+          >
+          <div
+            class={cn(
+              "flex min-w-0",
+              isVerticalLayout()
+                ? "flex-col items-center gap-2"
+                : "items-center gap-2",
+            )}
+          >
+            <div
+              ref={expandableButtonsRef}
+              class={cn(
+                "flex min-w-0",
+                isVerticalLayout()
+                  ? "flex-col items-center gap-2"
+                  : "items-center gap-2",
+              )}
+            >
               <div
                 class={cn(
                   "grid transition-all duration-150 ease-out",
@@ -1114,7 +1552,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                   <button
                     data-react-grab-ignore-events
                     data-react-grab-toolbar-toggle
-                    class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5"
+                    class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox"
                     on:pointerdown={(event) => {
                       stopEventPropagation(event);
                       handlePointerDown(event);
@@ -1126,21 +1564,23 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     }}
                     {...createFreezeHandlers(setIsSelectTooltipVisible)}
                   >
-                    <IconSelect
-                      size={14}
-                      style={
-                        Boolean(props.isActive) && !props.isCommentMode
-                          ? { color: TOOLBAR_ACTIVE_ACCENT_COLOR }
-                          : undefined
-                      }
-                      class={cn(
-                        "transition-colors",
-                        getToolbarIconColor(
-                          Boolean(props.isActive) && !props.isCommentMode,
-                          Boolean(props.isCommentMode),
-                        ),
-                      )}
-                    />
+                    <span class="inline-flex">
+                      <IconSelect
+                        size={14}
+                        style={
+                          Boolean(props.isActive) && !props.isCommentMode
+                            ? { color: TOOLBAR_ACTIVE_ACCENT_COLOR }
+                            : undefined
+                        }
+                        class={cn(
+                          "transition-colors",
+                          getToolbarIconColor(
+                            Boolean(props.isActive) && !props.isCommentMode,
+                            Boolean(props.isCommentMode),
+                          ),
+                        )}
+                      />
+                    </span>
                   </button>
                   <Tooltip
                     visible={isSelectTooltipVisible() && !isCollapsed()}
@@ -1163,7 +1603,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                   <button
                     data-react-grab-ignore-events
                     data-react-grab-toolbar-comment
-                    class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5"
+                    class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox"
                     on:pointerdown={(event) => {
                       stopEventPropagation(event);
                       handlePointerDown(event);
@@ -1175,22 +1615,24 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     }}
                     {...createFreezeHandlers(setIsCommentTooltipVisible)}
                   >
-                    <IconComment
-                      size={TOOLBAR_COMMENT_ICON_SIZE_PX}
-                      isActive={Boolean(props.isCommentMode)}
-                      style={
-                        Boolean(props.isCommentMode)
-                          ? { color: TOOLBAR_ACTIVE_ACCENT_COLOR }
-                          : undefined
-                      }
-                      class={cn(
-                        "transition-colors",
-                        getToolbarIconColor(
-                          Boolean(props.isCommentMode),
-                          Boolean(props.isActive) && !props.isCommentMode,
-                        ),
-                      )}
-                    />
+                    <span class="inline-flex">
+                      <IconComment
+                        size={TOOLBAR_COMMENT_ICON_SIZE_PX}
+                        isActive={Boolean(props.isCommentMode)}
+                        style={
+                          Boolean(props.isCommentMode)
+                            ? { color: TOOLBAR_ACTIVE_ACCENT_COLOR }
+                            : undefined
+                        }
+                        class={cn(
+                          "transition-colors",
+                          getToolbarIconColor(
+                            Boolean(props.isCommentMode),
+                            Boolean(props.isActive) && !props.isCommentMode,
+                          ),
+                        )}
+                      />
+                    </span>
                   </button>
                   <Tooltip
                     visible={isCommentTooltipVisible() && !isCollapsed()}
@@ -1214,7 +1656,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     ref={recentButtonRef}
                     data-react-grab-ignore-events
                     data-react-grab-toolbar-recent
-                    class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5"
+                    class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox"
                     on:pointerdown={(event) => {
                       stopEventPropagation(event);
                       handlePointerDown(event);
@@ -1226,20 +1668,22 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     }}
                     {...createFreezeHandlers(setIsRecentTooltipVisible)}
                   >
-                    <Show
-                      when={props.hasUnreadRecentItems}
-                      fallback={
-                        <IconInbox
+                    <span class="inline-flex">
+                      <Show
+                        when={props.hasUnreadRecentItems}
+                        fallback={
+                          <IconInbox
+                            size={16}
+                            class="text-white/70 transition-colors"
+                          />
+                        }
+                      >
+                        <IconInboxUnread
                           size={16}
-                          class="text-white/70 transition-colors"
+                          class="text-white transition-colors"
                         />
-                      }
-                    >
-                      <IconInboxUnread
-                        size={16}
-                        class="text-white transition-colors"
-                      />
-                    </Show>
+                      </Show>
+                    </span>
                   </button>
                   <Tooltip
                     visible={isRecentTooltipVisible() && !isCollapsed()}
@@ -1254,7 +1698,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               <button
                 data-react-grab-ignore-events
                 data-react-grab-toolbar-enabled
-                class="contain-layout flex items-center justify-center cursor-pointer interactive-scale outline-none mx-0.5"
+                class="contain-layout flex items-center justify-center cursor-pointer interactive-scale outline-none"
                 onClick={(event) => {
                   setIsToggleTooltipVisible(false);
                   handleToggleEnabled(event);
@@ -1262,19 +1706,21 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                 onMouseEnter={() => setIsToggleTooltipVisible(true)}
                 onMouseLeave={() => setIsToggleTooltipVisible(false)}
               >
-                <div
-                  class={cn(
-                    "relative w-5 h-3 rounded-full transition-colors",
-                    props.enabled ? "bg-white" : "bg-white/25",
-                  )}
-                >
+                <span class="inline-flex">
                   <div
                     class={cn(
-                      "absolute top-0.5 w-2 h-2 rounded-full bg-black transition-transform",
-                      props.enabled ? "left-2.5" : "left-0.5",
+                      "relative w-5 h-3 rounded-full transition-colors",
+                      props.enabled ? "bg-white" : "bg-white/25",
                     )}
-                  />
-                </div>
+                  >
+                    <div
+                      class={cn(
+                        "absolute top-0.5 w-2 h-2 rounded-full bg-black transition-transform",
+                        props.enabled ? "left-2.5" : "left-0.5",
+                      )}
+                    />
+                  </div>
+                </span>
               </button>
               <Tooltip
                 visible={isToggleTooltipVisible() && !isCollapsed()}
@@ -1288,16 +1734,21 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         <button
           data-react-grab-ignore-events
           data-react-grab-toolbar-collapse
-          class="contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale"
+          class={cn(
+            "contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale transition-opacity duration-100",
+            hasDragMoved() && "opacity-0 pointer-events-none",
+          )}
           onClick={handleToggleCollapse}
         >
-          <IconChevron
-            size={14}
-            class={cn(
-              "text-white/70 transition-transform duration-150",
-              chevronRotation(),
-            )}
-          />
+          <span class="inline-flex">
+            <IconChevron
+              size={14}
+              class={cn(
+                "text-white/70 transition-transform duration-150",
+                chevronRotation(),
+              )}
+            />
+          </span>
         </button>
         <Show when={isShakeTooltipVisible()}>
           <div
