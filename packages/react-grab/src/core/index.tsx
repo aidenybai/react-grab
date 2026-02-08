@@ -2041,6 +2041,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       if (!isActivated()) return false;
       if (isKeyboardEventTriggeredByInput(event)) return false;
+      if (recentItems().length === 0) return false;
 
       event.preventDefault();
       event.stopPropagation();
