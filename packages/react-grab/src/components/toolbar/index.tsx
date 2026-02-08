@@ -30,7 +30,8 @@ import {
   TOOLBAR_DEFAULT_WIDTH_PX,
   TOOLBAR_DEFAULT_HEIGHT_PX,
   TOOLBAR_SHAKE_TOOLTIP_DURATION_MS,
-  TOOLBAR_SELECT_ACTIVE_COLOR,
+  TOOLBAR_ACTIVE_ACCENT_COLOR,
+  TOOLBAR_COMMENT_ICON_SIZE_PX,
   PANEL_STYLES,
 } from "../../constants.js";
 import { freezeUpdates } from "../../utils/freeze-updates.js";
@@ -1129,7 +1130,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                       size={14}
                       style={
                         Boolean(props.isActive) && !props.isCommentMode
-                          ? { color: TOOLBAR_SELECT_ACTIVE_COLOR }
+                          ? { color: TOOLBAR_ACTIVE_ACCENT_COLOR }
                           : undefined
                       }
                       class={cn(
@@ -1175,8 +1176,13 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     {...createFreezeHandlers(setIsCommentTooltipVisible)}
                   >
                     <IconComment
-                      size={16}
+                      size={TOOLBAR_COMMENT_ICON_SIZE_PX}
                       isActive={Boolean(props.isCommentMode)}
+                      style={
+                        Boolean(props.isCommentMode)
+                          ? { color: TOOLBAR_ACTIVE_ACCENT_COLOR }
+                          : undefined
+                      }
                       class={cn(
                         "transition-colors",
                         getToolbarIconColor(
