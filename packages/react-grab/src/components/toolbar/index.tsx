@@ -1227,7 +1227,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     {...createFreezeHandlers(setIsRecentTooltipVisible)}
                   >
                     <Show
-                      when={props.isHistoryOpen}
+                      when={props.hasUnreadRecentItems}
                       fallback={
                         <IconInbox
                           size={16}
