@@ -221,7 +221,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         onSelectItem={props.onRecentItemSelect}
         onItemHover={props.onRecentItemHover}
         onCopyAll={props.onRecentCopyAll}
-        onClearAll={props.onRecentClear}
+        onClearAll={props.onRecentClearAll}
         onDismiss={props.onRecentDismiss}
       />
     </>

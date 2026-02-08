@@ -16,6 +16,8 @@ import {
 import { cn } from "../utils/cn.js";
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
 import { IconComment } from "./icons/icon-comment.jsx";
+import { IconCopy } from "./icons/icon-copy.jsx";
+import { IconTrash } from "./icons/icon-trash.jsx";
 
 const DEFAULT_OFFSCREEN_POSITION = { left: -9999, top: -9999 };
 
@@ -300,43 +302,26 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                 <button
                   data-react-grab-ignore-events
                   data-react-grab-recent-clear
-                  aria-label="Clear recent items"
-                  class="contain-layout shrink-0 flex items-center justify-center w-[17px] h-[17px] rounded-sm bg-[#FEF2F2] cursor-pointer transition-all hover:bg-[#FEE2E2] press-scale"
+                  aria-label="Clear all"
+                  class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[#FEF2F2] cursor-pointer transition-all hover:bg-[#FEE2E2] press-scale h-[17px]"
                   onClick={(event) => {
                     event.stopPropagation();
                     props.onClearAll?.();
                   }}
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="11"
-                    height="11"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#B91C1C"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                  >
-                    <path d="M3 6h18" />
-                    <path d="M8 6V4h8v2" />
-                    <path d="M19 6l-1 14H6L5 6" />
-                    <path d="M10 11v6" />
-                    <path d="M14 11v6" />
-                  </svg>
+                  <IconTrash size={10} class="text-[#B91C1C]" />
                 </button>
                 <button
                   data-react-grab-ignore-events
                   data-react-grab-recent-copy-all
+                  aria-label="Copy all"
                   class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] press-scale h-[17px]"
                   onClick={(event) => {
                     event.stopPropagation();
                     props.onCopyAll?.();
                   }}
                 >
-                  <span class="text-black text-[13px] leading-3.5 font-sans font-medium">
-                    Copy all
-                  </span>
+                  <IconCopy size={11} class="text-black" />
                 </button>
               </div>
             </Show>

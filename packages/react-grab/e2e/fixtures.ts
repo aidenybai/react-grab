@@ -135,7 +135,6 @@ export interface ReactGrabPageObject {
   getRecentDropdownInfo: () => Promise<RecentDropdownInfo>;
   clickRecentItem: (index: number) => Promise<void>;
   clickRecentCopyAll: () => Promise<void>;
-  clickRecentClear: () => Promise<void>;
   hoverRecentItem: (index: number) => Promise<void>;
 
   getSelectionLabelInfo: () => Promise<SelectionLabelInfo>;
@@ -2070,7 +2069,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     getRecentDropdownInfo,
     clickRecentItem,
     clickRecentCopyAll,
-    clickRecentClear,
     hoverRecentItem,
 
     getSelectionLabelInfo,
