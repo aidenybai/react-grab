@@ -11,6 +11,7 @@ import { OverlayCanvas } from "./overlay-canvas.js";
 import { SelectionLabel } from "./selection-label/index.js";
 import { Toolbar } from "./toolbar/index.js";
 import { ContextMenu } from "./context-menu.js";
+import { RecentDropdown } from "./recent-dropdown.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
   return (
@@ -161,6 +162,10 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
             mouseX={instance().mouseX}
             visible={true}
             status={instance().status}
+            statusText={instance().statusText}
+            hasAgent={Boolean(instance().statusText)}
+            isPromptMode={instance().isPromptMode}
+            inputValue={instance().inputValue}
             error={instance().errorMessage}
             onShowContextMenu={
               (instance().status === "copied" ||
@@ -192,6 +197,9 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           onStateChange={props.onToolbarStateChange}
           onSubscribeToStateChanges={props.onSubscribeToToolbarStateChanges}
           onSelectHoverChange={props.onToolbarSelectHoverChange}
+          recentItemCount={props.recentItemCount}
+          hasUnreadRecentItems={props.hasUnreadRecentItems}
+          onToggleRecent={props.onToggleRecent}
         />
       </Show>
 
@@ -205,6 +213,16 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         actionContext={props.actionContext}
         onDismiss={props.onContextMenuDismiss ?? (() => {})}
         onHide={props.onContextMenuHide ?? (() => {})}
+      />
+
+      <RecentDropdown
+        position={props.recentDropdownPosition ?? null}
+        items={props.recentItems ?? []}
+        onSelectItem={props.onRecentItemSelect}
+        onItemHover={props.onRecentItemHover}
+        onCopyAll={props.onRecentCopyAll}
+        onClearAll={props.onRecentClear}
+        onDismiss={props.onRecentDismiss}
       />
     </>
   );

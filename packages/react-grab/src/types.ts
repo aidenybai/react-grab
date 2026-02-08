@@ -429,6 +429,9 @@ export interface SelectionLabelInstance {
   tagName: string;
   componentName?: string;
   status: SelectionLabelStatus;
+  statusText?: string;
+  isPromptMode?: boolean;
+  inputValue?: string;
   createdAt: number;
   element?: Element;
   elements?: Element[];
@@ -436,6 +439,17 @@ export interface SelectionLabelInstance {
   mouseXOffsetFromCenter?: number;
   mouseXOffsetRatio?: number;
   errorMessage?: string;
+}
+
+export interface RecentItem {
+  id: string;
+  content: string;
+  elementName: string;
+  tagName: string;
+  componentName?: string;
+  isComment: boolean;
+  commentText?: string;
+  timestamp: number;
 }
 
 export interface ReactGrabRendererProps {
@@ -514,6 +528,16 @@ export interface ReactGrabRendererProps {
   actionContext?: ActionContext;
   onContextMenuDismiss?: () => void;
   onContextMenuHide?: () => void;
+  recentItems?: RecentItem[];
+  recentItemCount?: number;
+  hasUnreadRecentItems?: boolean;
+  recentDropdownPosition?: { x: number; y: number } | null;
+  onToggleRecent?: (anchorPosition: { x: number; y: number }) => void;
+  onRecentItemSelect?: (item: RecentItem) => void;
+  onRecentItemHover?: (recentItemId: string | null) => void;
+  onRecentCopyAll?: () => void;
+  onRecentClear?: () => void;
+  onRecentDismiss?: () => void;
 }
 
 export interface GrabbedBox {
