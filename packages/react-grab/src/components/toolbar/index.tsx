@@ -124,7 +124,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     onMouseLeave: () => {
       setTooltipVisible(false);
       props.onSelectHoverChange?.(false);
-      if (!props.isActive && !props.isContextMenuOpen) {
+      if (!props.isActive && !props.isContextMenuOpen && !props.isHistoryOpen) {
         unfreezeUpdatesCallback?.();
         unfreezeUpdatesCallback = null;
         unfreezeGlobalAnimations();
@@ -178,9 +178,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   createEffect(
     on(
-      () => [props.isActive, props.isContextMenuOpen] as const,
-      ([isActive, isContextMenuOpen]) => {
-        if (!isActive && !isContextMenuOpen && unfreezeUpdatesCallback) {
+      () => [props.isActive, props.isContextMenuOpen, props.isHistoryOpen] as const,
+      ([isActive, isContextMenuOpen, isHistoryOpen]) => {
+        if (!isActive && !isContextMenuOpen && !isHistoryOpen && unfreezeUpdatesCallback) {
           unfreezeUpdatesCallback();
           unfreezeUpdatesCallback = null;
         }
