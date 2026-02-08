@@ -456,7 +456,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     props.onToggleEnabled?.();
 
     if (expandableWidth > 0) {
-      const widthChange = isCurrentlyEnabled ? -expandableWidth : expandableWidth;
+      const widthChange = isCurrentlyEnabled
+        ? -expandableWidth
+        : expandableWidth;
       expandedDimensions = {
         width: expandedDimensions.width + widthChange,
         height: expandedDimensions.height,
@@ -465,9 +467,15 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
     if (shouldCompensatePosition) {
       const viewport = getVisualViewport();
-      const positionOffset = isCurrentlyEnabled ? expandableWidth : -expandableWidth;
+      const positionOffset = isCurrentlyEnabled
+        ? expandableWidth
+        : -expandableWidth;
       const clampMin = viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX;
-      const clampMax = viewport.offsetLeft + viewport.width - expandedDimensions.width - TOOLBAR_SNAP_MARGIN_PX;
+      const clampMax =
+        viewport.offsetLeft +
+        viewport.width -
+        expandedDimensions.width -
+        TOOLBAR_SNAP_MARGIN_PX;
       const compensatedX = clampToViewport(
         preTogglePosition.x + positionOffset,
         clampMin,
