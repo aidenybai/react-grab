@@ -421,7 +421,14 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     ),
   );
 
+  createEffect(() => {
+    setGlobalUserSelectDisabled(isDragging());
+  });
+
   let pointerStartPosition = { x: 0, y: 0 };
+  let previousDocumentElementUserSelect = "";
+  let previousDocumentBodyUserSelect = "";
+  let isGlobalUserSelectDisabled = false;
   let activeDragElementDimensions = {
     width: TOOLBAR_DEFAULT_WIDTH_PX,
     height: TOOLBAR_DEFAULT_HEIGHT_PX,
@@ -437,6 +444,27 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const clampToViewport = (value: number, min: number, max: number): number =>
     Math.max(min, Math.min(value, max));
+
+  const setGlobalUserSelectDisabled = (shouldDisable: boolean) => {
+    const documentElement = document.documentElement;
+    const documentBody = document.body;
+    if (!documentElement || !documentBody) return;
+
+    if (shouldDisable && !isGlobalUserSelectDisabled) {
+      previousDocumentElementUserSelect = documentElement.style.userSelect;
+      previousDocumentBodyUserSelect = documentBody.style.userSelect;
+      documentElement.style.userSelect = "none";
+      documentBody.style.userSelect = "none";
+      isGlobalUserSelectDisabled = true;
+      return;
+    }
+
+    if (!shouldDisable && isGlobalUserSelectDisabled) {
+      documentElement.style.userSelect = previousDocumentElementUserSelect;
+      documentBody.style.userSelect = previousDocumentBodyUserSelect;
+      isGlobalUserSelectDisabled = false;
+    }
+  };
 
   const getVisualViewport = () => {
     const visualViewport = window.visualViewport;
@@ -1068,8 +1096,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     setIsSnapping(true);
 
     requestAnimationFrame(() => {
-      setHasDragMoved(false);
       setPosition({ x: snap.x, y: snap.y });
+      setHasDragMoved(false);
 
       snapAnimationTimeout = setTimeout(() => {
         let nextRatio = ratio;
@@ -1079,20 +1107,13 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             width: measuredRect.width,
             height: measuredRect.height,
           };
-          const correctedPosition = getPositionFromEdgeAndRatio(
-            snap.edge,
-            ratio,
-            measuredRect.width,
-            measuredRect.height,
-          );
           nextRatio = getRatioFromPosition(
             snap.edge,
-            correctedPosition.x,
-            correctedPosition.y,
+            position().x,
+            position().y,
             measuredRect.width,
             measuredRect.height,
           );
-          setPosition(correctedPosition);
           setPositionRatio(nextRatio);
         }
         saveAndNotify({
@@ -1373,6 +1394,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     clearTimeout(dockLayoutAnimationTimeout);
     setIsDragSnapTransitionActive(false);
     setDragDockPreviewEdge(null);
+    setGlobalUserSelectDisabled(false);
     unfreezeUpdatesCallback?.();
   });
 
