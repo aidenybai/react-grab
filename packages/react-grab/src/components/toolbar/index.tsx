@@ -30,6 +30,7 @@ import {
   TOOLBAR_DEFAULT_WIDTH_PX,
   TOOLBAR_DEFAULT_HEIGHT_PX,
   TOOLBAR_SHAKE_TOOLTIP_DURATION_MS,
+  TOOLBAR_SELECT_ACTIVE_COLOR,
   PANEL_STYLES,
 } from "../../constants.js";
 import { freezeUpdates } from "../../utils/freeze-updates.js";
@@ -1126,6 +1127,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                   >
                     <IconSelect
                       size={14}
+                      style={
+                        Boolean(props.isActive) && !props.isCommentMode
+                          ? { color: TOOLBAR_SELECT_ACTIVE_COLOR }
+                          : undefined
+                      }
                       class={cn(
                         "transition-colors",
                         getToolbarIconColor(

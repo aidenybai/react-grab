@@ -1,8 +1,9 @@
-import type { Component } from "solid-js";
+import type { Component, JSX } from "solid-js";
 
 interface IconSelectProps {
   size?: number;
   class?: string;
+  style?: JSX.CSSProperties;
 }
 
 export const IconSelect: Component<IconSelectProps> = (props) => {
@@ -16,6 +17,7 @@ export const IconSelect: Component<IconSelectProps> = (props) => {
       viewBox="0 0 24 24"
       fill="none"
       class={props.class}
+      style={props.style}
     >
       <path
         fill-rule="evenodd"
