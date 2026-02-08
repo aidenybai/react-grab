@@ -378,11 +378,15 @@ export interface SourceInfo {
   componentName: string | null;
 }
 
+export type ToolbarMode = "off" | "select" | "scan";
+
+export type SelectionMode = "inactive" | "select" | "comment";
+
 export interface ToolbarState {
   edge: "top" | "bottom" | "left" | "right";
   ratio: number;
   collapsed: boolean;
-  enabled: boolean;
+  mode: ToolbarMode;
 }
 
 export interface ReactGrabAPI {
@@ -493,12 +497,16 @@ export interface ReactGrabRendererProps {
   pendingAbortSessionId?: string | null;
   theme?: Required<Theme>;
   toolbarVisible?: boolean;
-  isActive?: boolean;
-  isCommentMode?: boolean;
+  selectionMode?: SelectionMode;
   onToggleActive?: () => void;
   onComment?: () => void;
-  enabled?: boolean;
-  onToggleEnabled?: () => void;
+  toolbarMode?: ToolbarMode;
+  onToolbarModeChange?: (mode: ToolbarMode) => void;
+  isRecording?: boolean;
+  hasRecordedData?: boolean;
+  onStartRecording?: () => void;
+  onStopRecording?: () => void;
+  onCopyRecording?: () => void;
   shakeCount?: number;
   onToolbarStateChange?: (state: ToolbarState) => void;
   onSubscribeToToolbarStateChanges?: (
@@ -628,4 +636,185 @@ export interface SelectionLabelProps {
   isContextMenuOpen?: boolean;
   onShowContextMenu?: () => void;
   onHoverChange?: (isHovered: boolean) => void;
+}
+
+export interface SourceLocation {
+  filePath: string;
+  lineNumber: number | null;
+  columnNumber: number | null;
+  functionName: string | null;
+}
+
+export interface ComponentIdentity {
+  displayName: string;
+  fiberId: number;
+  source: SourceLocation | null;
+  isCompiled: boolean;
+  parentComponent: string | null;
+}
+
+export interface LoAFScriptAttribution {
+  invokerType: string;
+  invoker: string;
+  sourceURL: string;
+  sourceFunctionName: string;
+  sourceCharPosition: number;
+  executionStart: number;
+  duration: number;
+  forcedStyleAndLayoutDuration: number;
+  pauseDuration: number;
+}
+
+export interface LoAFEntry {
+  startTime: number;
+  duration: number;
+  blockingDuration: number;
+  renderStart: number;
+  styleAndLayoutStart: number;
+  firstUIEventTimestamp: number;
+  scripts: LoAFScriptAttribution[];
+}
+
+export interface EffectExecution {
+  component: ComponentIdentity;
+  effectType: "passive" | "layout" | "insertion";
+  phase: "create" | "destroy";
+  startTime: number;
+  duration: number;
+  effectSource: SourceLocation | null;
+  containingLoAF: LoAFEntry | null;
+}
+
+export interface PropChange {
+  name: string;
+  previousValue: unknown;
+  currentValue: unknown;
+  isReferenceEqual: boolean;
+  isShallowEqual: boolean;
+  isDeepEqual: boolean;
+  isFunctionWithChangedClosure: boolean;
+}
+
+export interface RenderExecution {
+  component: ComponentIdentity;
+  phase: "mount" | "update";
+  startTime: number;
+  selfTime: number;
+  totalTime: number;
+  renderCause: {
+    type: "initial" | "props" | "state" | "context" | "parent";
+    propChanges: PropChange[];
+  };
+  optimizationHints: OptimizationHint[];
+  containingLoAF: LoAFEntry | null;
+}
+
+export interface OptimizationHint {
+  type:
+    | "unstable-reference"
+    | "missing-memo"
+    | "inline-object"
+    | "inline-function"
+    | "missing-usecallback"
+    | "missing-usememo";
+  description: string;
+  affectedProp: string | null;
+  suggestedFix: string;
+  estimatedImpact: "low" | "medium" | "high";
+}
+
+export interface PerformanceFrameBreakdown {
+  totalDuration: number;
+  reactRenderTime: number;
+  effectTime: number;
+  layoutEffectTime: number;
+  forcedLayoutTime: number;
+  otherScriptTime: number;
+}
+
+export interface PerformanceFrameContributor {
+  component: ComponentIdentity;
+  totalTime: number;
+  renderTime: number;
+  effectTime: number;
+  renderCount: number;
+}
+
+export interface PerformanceFrame {
+  loaf: LoAFEntry;
+  renders: RenderExecution[];
+  effects: EffectExecution[];
+  breakdown: PerformanceFrameBreakdown;
+  topContributors: PerformanceFrameContributor[];
+}
+
+export interface ComponentStats {
+  component: ComponentIdentity;
+  renderCount: number;
+  totalRenderTime: number;
+  avgRenderTime: number;
+  maxRenderTime: number;
+  effectCount: number;
+  totalEffectTime: number;
+  avgEffectTime: number;
+  layoutEffectCount: number;
+  totalLayoutEffectTime: number;
+  loafsContributed: number;
+  topRenderCauses: Array<{
+    type: string;
+    count: number;
+    percentage: number;
+  }>;
+  allOptimizationHints: Array<{
+    type: string;
+    count: number;
+    suggestedFix: string;
+  }>;
+}
+
+export interface PerformanceRecommendation {
+  priority: 1 | 2 | 3 | 4 | 5;
+  component: ComponentIdentity;
+  issue: string;
+  impact: string;
+  fix: {
+    type:
+      | "add-memo"
+      | "add-usecallback"
+      | "add-usememo"
+      | "split-component"
+      | "move-state-down"
+      | "optimize-effect"
+      | "debounce"
+      | "virtualize";
+    description: string;
+    codeExample: string;
+    affectedFile: string;
+    affectedLines: [number, number];
+  };
+  evidence: {
+    occurrences: number;
+    avgTimeWasted: number;
+    worstCaseTime: number;
+    sampleTimestamps: number[];
+  };
+}
+
+export interface PerformanceDiagnosticSummary {
+  totalLoAFs: number;
+  totalDuration: number;
+  avgLoAFDuration: number;
+  maxLoAFDuration: number;
+  totalRenders: number;
+  totalEffects: number;
+  totalForcedLayouts: number;
+}
+
+export interface PerformanceDiagnostic {
+  timestamp: number;
+  sessionId: string;
+  summary: PerformanceDiagnosticSummary;
+  frames: PerformanceFrame[];
+  componentStats: Map<string, ComponentStats>;
+  recommendations: PerformanceRecommendation[];
 }

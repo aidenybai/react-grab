@@ -248,20 +248,54 @@ export const findWorkspaceProjects = (
   return projects;
 };
 
-const hasReactGrabInFile = (filePath: string): boolean => {
+const REACT_GRAB_DETECTION_PATTERNS: RegExp[] = [
+  /["'`][^"'`]*react-grab/,
+  /react-grab[^"'`]*["'`]/,
+  /<[^>]*react-grab/i,
+  /import[^;]*react-grab/i,
+  /require[^)]*react-grab/i,
+  /from\s+[^;]*react-grab/i,
+  /src[^>]*react-grab/i,
+];
+
+const CONFIG_FILE_PATTERNS: readonly (readonly string[])[] = [
+  ["app", "layout"],
+  ["src", "app", "layout"],
+  ["pages", "_document"],
+  ["pages", "_app"],
+  ["src", "pages", "_document"],
+  ["src", "pages", "_app"],
+  ["instrumentation-client"],
+  ["src", "instrumentation-client"],
+  ["index"],
+  ["public", "index"],
+  ["src", "index"],
+  ["src", "main"],
+  ["src", "routes", "__root"],
+  ["app", "routes", "__root"],
+];
+
+const SCRIPT_EXTENSIONS = ["tsx", "jsx", "ts", "js"] as const;
+
+const getConfigFilesToCheck = (projectRoot: string): string[] =>
+  CONFIG_FILE_PATTERNS.flatMap((segments) => {
+    const baseName = segments[segments.length - 1];
+    const isHtmlFile =
+      baseName === "index" &&
+      (segments.length <= 1 || segments[0] === "public");
+    const extensions = isHtmlFile
+      ? [...SCRIPT_EXTENSIONS, "html"]
+      : SCRIPT_EXTENSIONS;
+    return extensions.map(
+      (extension) => join(projectRoot, ...segments) + `.${extension}`,
+    );
+  });
+
+const hasPatternInFile = (filePath: string, patterns: RegExp[]): boolean => {
   if (!existsSync(filePath)) return false;
   try {
     const content = readFileSync(filePath, "utf-8");
-    const fuzzyPatterns = [
-      /["'`][^"'`]*react-grab/,
-      /react-grab[^"'`]*["'`]/,
-      /<[^>]*react-grab/i,
-      /import[^;]*react-grab/i,
-      /require[^)]*react-grab/i,
-      /from\s+[^;]*react-grab/i,
-      /src[^>]*react-grab/i,
-    ];
-    return fuzzyPatterns.some((pattern) => pattern.test(content));
+    return patterns.some((pattern) => pattern.test(content));
   } catch {
     return false;
   }
@@ -283,30 +317,9 @@ export const detectReactGrab = (projectRoot: string): boolean => {
     } catch {}
   }
 
-  const filesToCheck = [
-    join(projectRoot, "app", "layout.tsx"),
-    join(projectRoot, "app", "layout.jsx"),
-    join(projectRoot, "src", "app", "layout.tsx"),
-    join(projectRoot, "src", "app", "layout.jsx"),
-    join(projectRoot, "pages", "_document.tsx"),
-    join(projectRoot, "pages", "_document.jsx"),
-    join(projectRoot, "instrumentation-client.ts"),
-    join(projectRoot, "instrumentation-client.js"),
-    join(projectRoot, "src", "instrumentation-client.ts"),
-    join(projectRoot, "src", "instrumentation-client.js"),
-    join(projectRoot, "index.html"),
-    join(projectRoot, "public", "index.html"),
-    join(projectRoot, "src", "index.tsx"),
-    join(projectRoot, "src", "index.ts"),
-    join(projectRoot, "src", "main.tsx"),
-    join(projectRoot, "src", "main.ts"),
-    join(projectRoot, "src", "routes", "__root.tsx"),
-    join(projectRoot, "src", "routes", "__root.jsx"),
-    join(projectRoot, "app", "routes", "__root.tsx"),
-    join(projectRoot, "app", "routes", "__root.jsx"),
-  ];
-
-  return filesToCheck.some(hasReactGrabInFile);
+  return getConfigFilesToCheck(projectRoot).some((file) =>
+    hasPatternInFile(file, REACT_GRAB_DETECTION_PATTERNS),
+  );
 };
 
 const AGENT_PACKAGES = [
@@ -319,6 +332,64 @@ const AGENT_PACKAGES = [
   "@react-grab/ami",
   "@react-grab/mcp",
 ];
+
+export const REACT_SCAN_DETECTION_PATTERNS: RegExp[] = [
+  /["'`][^"'`]*react-scan/,
+  /react-scan[^"'`]*["'`]/,
+  /unpkg\.com\/react-scan/,
+  /import\s*\(?["']react-scan/,
+  /require\s*\(["']react-scan/,
+  /from\s+["']react-scan/,
+  /<Script[^>]*react-scan/i,
+  /<script[^>]*react-scan/i,
+];
+
+export interface ReactScanInfo {
+  hasReactScan: boolean;
+  hasReactScanMonitoring: boolean;
+  isPackageInstalled: boolean;
+  detectedFiles: string[];
+}
+
+export const detectReactScan = (projectRoot: string): ReactScanInfo => {
+  const result: ReactScanInfo = {
+    hasReactScan: false,
+    hasReactScanMonitoring: false,
+    isPackageInstalled: false,
+    detectedFiles: [],
+  };
+
+  const packageJsonPath = join(projectRoot, "package.json");
+
+  if (existsSync(packageJsonPath)) {
+    try {
+      const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+      const allDependencies = {
+        ...packageJson.dependencies,
+        ...packageJson.devDependencies,
+      };
+
+      if (allDependencies["react-scan"]) {
+        result.isPackageInstalled = true;
+        result.hasReactScan = true;
+      }
+
+      if (allDependencies["@react-scan/monitoring"]) {
+        result.hasReactScanMonitoring = true;
+        result.hasReactScan = true;
+      }
+    } catch {}
+  }
+
+  for (const filePath of getConfigFilesToCheck(projectRoot)) {
+    if (hasPatternInFile(filePath, REACT_SCAN_DETECTION_PATTERNS)) {
+      result.hasReactScan = true;
+      result.detectedFiles.push(filePath);
+    }
+  }
+
+  return result;
+};
 
 export const detectUnsupportedFramework = (
   projectRoot: string,

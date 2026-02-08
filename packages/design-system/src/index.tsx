@@ -5,9 +5,13 @@ import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { SelectionLabel } from "react-grab/src/components/selection-label/index.js";
 import { ContextMenu } from "react-grab/src/components/context-menu.js";
 import { ToolbarContent } from "react-grab/src/components/toolbar/toolbar-content.js";
+import { ModeSelector } from "react-grab/src/components/toolbar/index.js";
+import { IconCopy } from "react-grab/src/components/icons/icon-copy.jsx";
 import type {
   OverlayBounds,
   SelectionLabelStatus,
+  SelectionMode,
+  ToolbarMode,
 } from "react-grab/src/types.js";
 
 type ComponentType = "label" | "context-menu" | "toolbar";
@@ -43,6 +47,10 @@ interface DesignSystemStateProps {
   isToolbarEnabled?: boolean;
   isToolbarCollapsed?: boolean;
   toolbarSnapEdge?: "top" | "bottom" | "left" | "right";
+  toolbarMode?: "off" | "select" | "scan";
+  hasPerformanceMode?: boolean;
+  isRecording?: boolean;
+  hasRecordedData?: boolean;
 }
 
 interface AnimationFrame {
@@ -902,6 +910,64 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
     },
   },
 
+  // === TOOLBAR MODE STATES ===
+  {
+    id: "toolbar-mode-off",
+    label: "Toolbar (Off)",
+    description: "Mode switch at Off position",
+    component: "toolbar",
+    props: {
+      toolbarMode: "off",
+      hasPerformanceMode: true,
+    },
+  },
+  {
+    id: "toolbar-mode-select",
+    label: "Toolbar (Select)",
+    description: "Mode switch at Select position",
+    component: "toolbar",
+    props: {
+      toolbarMode: "select",
+      hasPerformanceMode: true,
+    },
+  },
+  {
+    id: "toolbar-mode-scan",
+    label: "Toolbar (Scan)",
+    description: "Scan mode with play button",
+    component: "toolbar",
+    props: {
+      toolbarMode: "scan",
+      hasPerformanceMode: true,
+      isRecording: false,
+      hasRecordedData: false,
+    },
+  },
+  {
+    id: "toolbar-mode-scan-recording",
+    label: "Toolbar (Scan Recording)",
+    description: "Scan mode while recording",
+    component: "toolbar",
+    props: {
+      toolbarMode: "scan",
+      hasPerformanceMode: true,
+      isRecording: true,
+      hasRecordedData: false,
+    },
+  },
+  {
+    id: "toolbar-mode-scan-recorded",
+    label: "Toolbar (Scan Recorded)",
+    description: "Scan mode with recorded data",
+    component: "toolbar",
+    props: {
+      toolbarMode: "scan",
+      hasPerformanceMode: true,
+      isRecording: false,
+      hasRecordedData: true,
+    },
+  },
+
   // ══════════════════════════════════════════════════════════════════════════
   // ANIMATION SEQUENCES
   // ══════════════════════════════════════════════════════════════════════════
@@ -1233,6 +1299,80 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       {
         props: { isToolbarActive: false, isToolbarEnabled: false },
         durationMs: 1500,
+      },
+    ],
+  },
+  {
+    id: "anim-toolbar-mode-cycle",
+    label: "Mode Cycle",
+    description: "off → select → scan → off",
+    component: "toolbar",
+    props: {
+      toolbarMode: "off",
+      hasPerformanceMode: true,
+    },
+    animationSequence: [
+      {
+        props: { toolbarMode: "off", hasPerformanceMode: true },
+        durationMs: 1500,
+      },
+      {
+        props: { toolbarMode: "select", hasPerformanceMode: true },
+        durationMs: 1500,
+      },
+      {
+        props: {
+          toolbarMode: "scan",
+          hasPerformanceMode: true,
+          isRecording: false,
+          hasRecordedData: false,
+        },
+        durationMs: 2000,
+      },
+      {
+        props: { toolbarMode: "off", hasPerformanceMode: true },
+        durationMs: 1500,
+      },
+    ],
+  },
+  {
+    id: "anim-toolbar-scan-record",
+    label: "Scan Record Flow",
+    description: "scan → recording → recorded",
+    component: "toolbar",
+    props: {
+      toolbarMode: "scan",
+      hasPerformanceMode: true,
+      isRecording: false,
+      hasRecordedData: false,
+    },
+    animationSequence: [
+      {
+        props: {
+          toolbarMode: "scan",
+          hasPerformanceMode: true,
+          isRecording: false,
+          hasRecordedData: false,
+        },
+        durationMs: 1500,
+      },
+      {
+        props: {
+          toolbarMode: "scan",
+          hasPerformanceMode: true,
+          isRecording: true,
+          hasRecordedData: false,
+        },
+        durationMs: 2000,
+      },
+      {
+        props: {
+          toolbarMode: "scan",
+          hasPerformanceMode: true,
+          isRecording: false,
+          hasRecordedData: true,
+        },
+        durationMs: 2000,
       },
     ],
   },
@@ -2447,11 +2587,87 @@ const StateCard = (props: StateCardProps) => {
 
           <Show when={props.state.component === "toolbar"}>
             <ToolbarContent
-              isActive={currentProps().isToolbarActive ?? false}
-              isCommentMode={currentProps().isToolbarCommentMode ?? false}
-              enabled={currentProps().isToolbarEnabled ?? true}
+              selectionMode={((): SelectionMode => {
+                if (currentProps().isToolbarCommentMode) return "comment";
+                const isActive =
+                  currentProps().toolbarMode !== undefined
+                    ? currentProps().toolbarMode !== "off"
+                    : (currentProps().isToolbarActive ?? false);
+                if (isActive) return "select";
+                return "inactive";
+              })()}
+              enabled={
+                currentProps().toolbarMode !== undefined
+                  ? currentProps().toolbarMode !== "off"
+                  : (currentProps().isToolbarEnabled ?? true)
+              }
               isCollapsed={currentProps().isToolbarCollapsed}
               snapEdge={currentProps().toolbarSnapEdge}
+              selectButton={
+                currentProps().toolbarMode === "scan" ? (
+                  <div class="flex items-center gap-1 mr-1 overflow-visible min-w-0">
+                    <Show
+                      when={
+                        !currentProps().isRecording &&
+                        !currentProps().hasRecordedData
+                      }
+                    >
+                      <button class="contain-layout shrink-0 flex items-center justify-center size-3.5 rounded-full bg-black/70 hover:bg-black cursor-pointer">
+                        <svg
+                          class="ml-px"
+                          width="6"
+                          height="7"
+                          viewBox="0 0 6 7"
+                          fill="white"
+                          stroke="white"
+                          stroke-width="1"
+                          stroke-linejoin="round"
+                        >
+                          <path d="M1 1L5 3.5L1 6V1Z" />
+                        </svg>
+                      </button>
+                    </Show>
+                    <Show when={currentProps().isRecording}>
+                      <button class="contain-layout shrink-0 flex items-center justify-center size-3.5 rounded-full bg-black cursor-pointer">
+                        <div class="size-1.5 bg-white rounded-[1px]" />
+                      </button>
+                    </Show>
+                    <Show
+                      when={
+                        !currentProps().isRecording &&
+                        currentProps().hasRecordedData
+                      }
+                    >
+                      <button class="contain-layout shrink-0 flex items-center justify-center size-3.5 rounded-full bg-black/70 hover:bg-black cursor-pointer">
+                        <svg
+                          class="ml-px"
+                          width="6"
+                          height="7"
+                          viewBox="0 0 6 7"
+                          fill="white"
+                          stroke="white"
+                          stroke-width="1"
+                          stroke-linejoin="round"
+                        >
+                          <path d="M1 1L5 3.5L1 6V1Z" />
+                        </svg>
+                      </button>
+                      <button class="flex items-center justify-center cursor-pointer text-black/70 hover:text-black">
+                        <IconCopy size={14} />
+                      </button>
+                    </Show>
+                  </div>
+                ) : undefined
+              }
+              toggleButton={
+                currentProps().toolbarMode !== undefined ? (
+                  <ModeSelector
+                    mode={currentProps().toolbarMode as ToolbarMode}
+                    onModeChange={() => {}}
+                    showScanMode={currentProps().hasPerformanceMode ?? false}
+                  />
+                ) : undefined
+              }
             />
           </Show>
         </Show>

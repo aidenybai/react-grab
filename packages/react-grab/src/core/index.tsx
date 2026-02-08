@@ -81,6 +81,13 @@ import { isScreenshotSupported } from "../utils/is-screenshot-supported.js";
 import { delay } from "../utils/delay.js";
 import { resolveActionEnabled } from "../utils/resolve-action-enabled.js";
 import { createScrollCycler } from "../utils/create-scroll-cycler.js";
+import {
+  startRecording,
+  stopRecording,
+  copyRecording,
+  hasLogHistory,
+  isRecording as isScanRecording,
+} from "../utils/scan.js";
 import type {
   Options,
   OverlayBounds,
@@ -99,6 +106,8 @@ import type {
   SourceInfo,
   Plugin,
   ToolbarState,
+  ToolbarMode,
+  SelectionMode,
 } from "../types.js";
 import { DEFAULT_THEME } from "./theme.js";
 import { createPluginRegistry } from "./plugin-registry.js";
@@ -240,6 +249,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => store.pendingCommentMode || isPromptMode(),
     );
 
+    const selectionMode = createMemo<SelectionMode>(() => {
+      if (isCommentMode()) return "comment";
+      if (isActivated()) return "select";
+      return "inactive";
+    });
+
     const isPendingDismiss = createMemo(
       () =>
         store.current.state === "active" &&
@@ -248,14 +263,34 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const savedToolbarState = loadToolbarState();
-    const [isEnabled, setIsEnabled] = createSignal(
-      savedToolbarState?.enabled ?? true,
+    const [toolbarMode, setToolbarMode] = createSignal<ToolbarMode>(
+      savedToolbarState?.mode ?? "select",
     );
+    const isEnabled = () => toolbarMode() !== "off";
+    const isSelectMode = () => toolbarMode() === "select";
     const [toolbarShakeCount, setToolbarShakeCount] = createSignal(0);
     const [currentToolbarState, setCurrentToolbarState] =
       createSignal<ToolbarState | null>(savedToolbarState);
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] =
       createSignal(false);
+    const [isRecording, setIsRecording] = createSignal(isScanRecording());
+    const [hasRecordedData, setHasRecordedData] = createSignal(false);
+
+    const handleStartRecording = () => {
+      startRecording();
+      setIsRecording(true);
+      setHasRecordedData(false);
+    };
+
+    const handleStopRecording = () => {
+      stopRecording();
+      setIsRecording(false);
+      setHasRecordedData(hasLogHistory());
+    };
+
+    const handleCopyRecording = async () => {
+      await copyRecording();
+    };
 
     const pendingAbortSessionId = createMemo(() => store.pendingAbortSessionId);
 
@@ -1481,7 +1516,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handleToggleActive = () => {
       if (isActivated()) {
         deactivateRenderer();
-      } else if (isEnabled()) {
+      } else if (isSelectMode()) {
         toggleActivate();
       }
     };
@@ -1497,7 +1532,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleComment = () => {
-      if (!isEnabled()) return;
+      if (!isSelectMode()) return;
 
       const isAlreadyInCommentMode = isActivated() && isCommentMode();
       if (isAlreadyInCommentMode) {
@@ -1511,27 +1546,25 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    const handleToggleEnabled = () => {
-      const newEnabled = !isEnabled();
-      setIsEnabled(newEnabled);
+    const handleModeChange = (newMode: ToolbarMode) => {
+      setToolbarMode(newMode);
       const currentState = loadToolbarState();
       const newState = {
         edge: currentState?.edge ?? "bottom",
         ratio: currentState?.ratio ?? 0.5,
         collapsed: currentState?.collapsed ?? false,
-        enabled: newEnabled,
+        mode: newMode,
       };
       saveToolbarState(newState);
       setCurrentToolbarState(newState);
       toolbarStateChangeCallbacks.forEach((cb) => cb(newState));
-      if (!newEnabled) {
+      if (newMode !== "select") {
         if (isHoldingKeys()) {
           actions.release();
         }
         if (isActivated()) {
           deactivateRenderer();
         }
-        // Clear toggle feedback state to prevent stale state from affecting re-enable
         if (toggleFeedbackTimerId !== null) {
           window.clearTimeout(toggleFeedbackTimerId);
           toggleFeedbackTimerId = null;
@@ -1542,7 +1575,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handlePointerMove = (clientX: number, clientY: number) => {
       if (
-        !isEnabled() ||
+        !isSelectMode() ||
         isPromptMode() ||
         isToggleFrozen() ||
         store.contextMenuPosition !== null
@@ -1688,6 +1721,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       keyboardSelectedElement = null;
+
+      if (store.pendingCommentMode) {
+        enterCommentModeForElement(element, positionX, positionY);
+        return;
+      }
 
       if (store.pendingCommentMode) {
         enterCommentModeForElement(element, positionX, positionY);
@@ -2312,8 +2350,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       (event: KeyboardEvent) => {
         blockEnterIfNeeded(event);
 
-        if (!isEnabled()) {
+        if (!isSelectMode()) {
           if (
+            !isEnabled() &&
             isTargetKeyCombination(event, pluginRegistry.store.options) &&
             !event.repeat
           ) {
@@ -3377,12 +3416,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onAbortSession={handleAgentAbort}
             theme={pluginRegistry.store.theme}
             toolbarVisible={pluginRegistry.store.theme.toolbar.enabled}
-            isActive={isActivated()}
-            isCommentMode={isCommentMode()}
+            selectionMode={selectionMode()}
             onToggleActive={handleToggleActive}
             onComment={handleComment}
-            enabled={isEnabled()}
-            onToggleEnabled={handleToggleEnabled}
+            toolbarMode={toolbarMode()}
+            onToolbarModeChange={handleModeChange}
+            isRecording={isRecording()}
+            hasRecordedData={hasRecordedData()}
+            onStartRecording={handleStartRecording}
+            onStopRecording={handleStopRecording}
+            onCopyRecording={handleCopyRecording}
             shakeCount={toolbarShakeCount()}
             onToolbarStateChange={(state) => {
               setCurrentToolbarState(state);
@@ -3470,7 +3513,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const api: ReactGrabAPI = {
       activate: () => {
-        if (!isActivated() && isEnabled()) {
+        if (!isActivated() && isSelectMode()) {
           toggleActivate();
         }
       },
@@ -3482,42 +3525,35 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       toggle: () => {
         if (isActivated()) {
           deactivateRenderer();
-        } else if (isEnabled()) {
+        } else if (isSelectMode()) {
           toggleActivate();
         }
       },
       isActive: () => isActivated(),
       isEnabled: () => isEnabled(),
       setEnabled: (enabled: boolean) => {
-        if (enabled === isEnabled()) return;
-        setIsEnabled(enabled);
-        if (!enabled) {
-          if (isHoldingKeys()) {
-            actions.release();
-          }
-          if (isActivated()) {
-            deactivateRenderer();
-          }
-          if (toggleFeedbackTimerId !== null) {
-            window.clearTimeout(toggleFeedbackTimerId);
-            toggleFeedbackTimerId = null;
-          }
-          inToggleFeedbackPeriod = false;
-        }
+        const currentMode = toolbarMode();
+        const newMode = enabled
+          ? currentMode === "off"
+            ? "select"
+            : currentMode
+          : "off";
+        if (newMode === currentMode) return;
+        handleModeChange(newMode);
       },
       getToolbarState: () => loadToolbarState(),
       setToolbarState: (state: Partial<ToolbarState>) => {
         const currentState = loadToolbarState();
-        const newState = {
+        const newState: ToolbarState = {
           edge: state.edge ?? currentState?.edge ?? "bottom",
           ratio: state.ratio ?? currentState?.ratio ?? 0.5,
           collapsed: state.collapsed ?? currentState?.collapsed ?? false,
-          enabled: state.enabled ?? currentState?.enabled ?? true,
+          mode: state.mode ?? currentState?.mode ?? "select",
         };
         saveToolbarState(newState);
         setCurrentToolbarState(newState);
-        if (state.enabled !== undefined && state.enabled !== isEnabled()) {
-          setIsEnabled(state.enabled);
+        if (state.mode !== undefined && state.mode !== toolbarMode()) {
+          setToolbarMode(state.mode);
         }
         toolbarStateChangeCallbacks.forEach((cb) => cb(newState));
       },
@@ -3614,6 +3650,8 @@ export type {
   Plugin,
   PluginConfig,
   PluginHooks,
+  ToolbarState,
+  ToolbarMode,
 } from "../types.js";
 
 export { generateSnippet } from "../utils/generate-snippet.js";

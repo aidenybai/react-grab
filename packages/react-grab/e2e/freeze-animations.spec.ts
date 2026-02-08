@@ -9,8 +9,9 @@ test.describe("Freeze Animations", () => {
     }) => {
       const getPageAnimationStates = async () => {
         return reactGrab.page.evaluate((attrName) => {
-          return document.getAnimations().reduce<string[]>(
-            (states, animation) => {
+          return document
+            .getAnimations()
+            .reduce<string[]>((states, animation) => {
               if (animation.effect instanceof KeyframeEffect) {
                 const target = animation.effect.target;
                 if (target instanceof Element) {
@@ -25,9 +26,7 @@ test.describe("Freeze Animations", () => {
               }
               states.push(animation.playState);
               return states;
-            },
-            [],
-          );
+            }, []);
         }, ATTRIBUTE_NAME);
       };
 

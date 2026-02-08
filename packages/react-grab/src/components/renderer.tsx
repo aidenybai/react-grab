@@ -8,6 +8,7 @@ import {
 } from "../constants.js";
 import { buildOpenFileUrl } from "../utils/build-open-file-url.js";
 import { OverlayCanvas } from "./overlay-canvas.js";
+import { RenderScan } from "./render-scan.js";
 import { SelectionLabel } from "./selection-label/index.js";
 import { Toolbar } from "./toolbar/index.js";
 import { ContextMenu } from "./context-menu.js";
@@ -15,6 +16,10 @@ import { ContextMenu } from "./context-menu.js";
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
   return (
     <>
+      <Show when={props.toolbarMode === "scan"}>
+        <RenderScan enabled={props.isRecording} />
+      </Show>
+
       <OverlayCanvas
         crosshairVisible={props.crosshairVisible}
         mouseX={props.mouseX}
@@ -40,7 +45,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           left: 0,
           "pointer-events": "none",
           "z-index": Z_INDEX_OVERLAY_CANVAS,
-          opacity: props.isFrozen ? 1 : 0,
+          opacity: props.isFrozen || props.isRecording ? 1 : 0,
           transition: "opacity 100ms ease-out",
           "will-change": "opacity",
           contain: "strict",
@@ -181,13 +186,17 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
 
       <Show when={props.toolbarVisible !== false}>
         <Toolbar
-          isActive={props.isActive}
-          isCommentMode={props.isCommentMode}
+          selectionMode={props.selectionMode}
           isContextMenuOpen={props.contextMenuPosition !== null}
           onToggle={props.onToggleActive}
           onComment={props.onComment}
-          enabled={props.enabled}
-          onToggleEnabled={props.onToggleEnabled}
+          mode={props.toolbarMode}
+          onModeChange={props.onToolbarModeChange}
+          isRecording={props.isRecording}
+          hasRecordedData={props.hasRecordedData}
+          onStartRecording={props.onStartRecording}
+          onStopRecording={props.onStopRecording}
+          onCopyRecording={props.onCopyRecording}
           shakeCount={props.shakeCount}
           onStateChange={props.onToolbarStateChange}
           onSubscribeToStateChanges={props.onSubscribeToToolbarStateChanges}

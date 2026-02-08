@@ -6,6 +6,7 @@ import {
   applyPackageJsonTransform,
   previewAgentRemoval,
   previewPackageJsonAgentRemoval,
+  previewReactScanRemoval,
 } from "../src/utils/transform.js";
 
 vi.mock("node:fs", () => ({
@@ -1042,5 +1043,342 @@ describe("applyPackageJsonTransform", () => {
 
     expect(writeResult.success).toBe(true);
     expect(mockWriteFileSync).not.toHaveBeenCalled();
+  });
+});
+
+describe("previewReactScanRemoval - Next.js App Router", () => {
+  it("should remove react-scan Script tag with dev conditional", () => {
+    const layoutWithReactScan = `import Script from "next/script";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <head>
+        {process.env.NODE_ENV === "development" && (
+          <Script src="//unpkg.com/react-scan/dist/auto.global.js" />
+        )}
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}`;
+
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("layout.tsx"),
+    );
+    mockReadFileSync.mockReturnValue(layoutWithReactScan);
+
+    const result = previewReactScanRemoval("/test", "next", "app");
+
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBeFalsy();
+    expect(result.newContent).not.toContain("react-scan");
+    expect(result.newContent).toContain("<head>");
+  });
+
+  it("should remove bare react-scan Script tag", () => {
+    const layoutWithReactScan = `import Script from "next/script";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <head>
+        <Script src="//unpkg.com/react-scan/dist/auto.global.js" strategy="beforeInteractive" />
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}`;
+
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("layout.tsx"),
+    );
+    mockReadFileSync.mockReturnValue(layoutWithReactScan);
+
+    const result = previewReactScanRemoval("/test", "next", "app");
+
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBeFalsy();
+    expect(result.newContent).not.toContain("react-scan");
+  });
+
+  it("should preserve other Script tags", () => {
+    const layoutWithMultipleScripts = `import Script from "next/script";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <head>
+        <Script src="//unpkg.com/react-scan/dist/auto.global.js" />
+        <Script src="//example.com/other-script.js" />
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}`;
+
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("layout.tsx"),
+    );
+    mockReadFileSync.mockReturnValue(layoutWithMultipleScripts);
+
+    const result = previewReactScanRemoval("/test", "next", "app");
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).not.toContain("react-scan");
+    expect(result.newContent).toContain("other-script.js");
+  });
+
+  it("should return noChanges when react-scan not present", () => {
+    const layoutWithoutReactScan = `export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  );
+}`;
+
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("layout.tsx"),
+    );
+    mockReadFileSync.mockReturnValue(layoutWithoutReactScan);
+
+    const result = previewReactScanRemoval("/test", "next", "app");
+
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBe(true);
+  });
+});
+
+describe("previewReactScanRemoval - Vite", () => {
+  it("should remove react-scan import in script block", () => {
+    const indexWithReactScan = `<!doctype html>
+<html lang="en">
+  <head>
+    <script type="module">
+      if (import.meta.env.DEV) {
+        import("react-scan");
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>`;
+
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("index.html"),
+    );
+    mockReadFileSync.mockReturnValue(indexWithReactScan);
+
+    const result = previewReactScanRemoval("/test", "vite", "unknown");
+
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBeFalsy();
+    expect(result.newContent).not.toContain("react-scan");
+  });
+
+  it("should preserve other imports in same block", () => {
+    const indexWithMultipleImports = `<!doctype html>
+<html lang="en">
+  <head>
+    <script type="module">
+      if (import.meta.env.DEV) {
+        import("react-scan");
+        import("some-other-lib");
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>`;
+
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("index.html"),
+    );
+    mockReadFileSync.mockReturnValue(indexWithMultipleImports);
+
+    const result = previewReactScanRemoval("/test", "vite", "unknown");
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).not.toContain("react-scan");
+    expect(result.newContent).toContain("some-other-lib");
+  });
+
+  it("should return noChanges when react-scan not present", () => {
+    const indexWithoutReactScan = `<!doctype html>
+<html lang="en">
+  <head>
+    <title>My App</title>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>`;
+
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("index.html"),
+    );
+    mockReadFileSync.mockReturnValue(indexWithoutReactScan);
+
+    const result = previewReactScanRemoval("/test", "vite", "unknown");
+
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBe(true);
+  });
+});
+
+describe("previewReactScanRemoval - Webpack", () => {
+  it("should remove react-scan import in dev conditional", () => {
+    const entryWithReactScan = `if (process.env.NODE_ENV === "development") {
+  import("react-scan");
+}
+
+import React from "react";
+import ReactDOM from "react-dom/client";`;
+
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("index.tsx"),
+    );
+    mockReadFileSync.mockReturnValue(entryWithReactScan);
+
+    const result = previewReactScanRemoval("/test", "webpack", "unknown");
+
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBeFalsy();
+    expect(result.newContent).not.toContain("react-scan");
+    expect(result.newContent).toContain("React");
+  });
+
+  it("should preserve other code", () => {
+    const entryWithReactScan = `if (process.env.NODE_ENV === "development") {
+  import("react-scan");
+}
+
+import React from "react";
+console.log("Hello");`;
+
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("index.tsx"),
+    );
+    mockReadFileSync.mockReturnValue(entryWithReactScan);
+
+    const result = previewReactScanRemoval("/test", "webpack", "unknown");
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).not.toContain("react-scan");
+    expect(result.newContent).toContain("Hello");
+  });
+
+  it("should return noChanges when react-scan not present", () => {
+    const entryWithoutReactScan = `import React from "react";
+import ReactDOM from "react-dom/client";
+
+ReactDOM.createRoot(document.getElementById("root")!).render(<App />);`;
+
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("index.tsx"),
+    );
+    mockReadFileSync.mockReturnValue(entryWithoutReactScan);
+
+    const result = previewReactScanRemoval("/test", "webpack", "unknown");
+
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBe(true);
+  });
+});
+
+describe("previewReactScanRemoval - TanStack", () => {
+  it("should remove void import of react-scan", () => {
+    const rootWithReactScan = `import { useEffect } from "react";
+
+export function RootRoute() {
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      void import("react-scan");
+    }
+  }, []);
+
+  return <div>App</div>;
+}`;
+
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("__root.tsx"),
+    );
+    mockReadFileSync.mockReturnValue(rootWithReactScan);
+
+    const result = previewReactScanRemoval("/test", "tanstack", "unknown");
+
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBeFalsy();
+    expect(result.newContent).not.toContain("react-scan");
+    expect(result.newContent).toContain("useEffect");
+  });
+
+  it("should preserve other void imports", () => {
+    const rootWithMultipleImports = `import { useEffect } from "react";
+
+export function RootRoute() {
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      void import("react-scan");
+      void import("other-dev-tool");
+    }
+  }, []);
+
+  return <div>App</div>;
+}`;
+
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("__root.tsx"),
+    );
+    mockReadFileSync.mockReturnValue(rootWithMultipleImports);
+
+    const result = previewReactScanRemoval("/test", "tanstack", "unknown");
+
+    expect(result.success).toBe(true);
+    expect(result.newContent).not.toContain("react-scan");
+    expect(result.newContent).toContain("other-dev-tool");
+  });
+
+  it("should return noChanges when react-scan not present", () => {
+    const rootWithoutReactScan = `export function RootRoute() {
+  return <div>App</div>;
+}`;
+
+    mockExistsSync.mockImplementation((path) =>
+      String(path).endsWith("__root.tsx"),
+    );
+    mockReadFileSync.mockReturnValue(rootWithoutReactScan);
+
+    const result = previewReactScanRemoval("/test", "tanstack", "unknown");
+
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBe(true);
+  });
+});
+
+describe("previewReactScanRemoval - Edge cases", () => {
+  it("should return noChanges when file not found", () => {
+    mockExistsSync.mockReturnValue(false);
+
+    const result = previewReactScanRemoval("/test", "next", "app");
+
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBe(true);
+  });
+
+  it("should handle unknown framework", () => {
+    mockExistsSync.mockReturnValue(false);
+
+    const result = previewReactScanRemoval(
+      "/test",
+      "unknown" as "next",
+      "unknown",
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.noChanges).toBe(true);
   });
 });

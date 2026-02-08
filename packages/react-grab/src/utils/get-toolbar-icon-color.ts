@@ -1,8 +1,23 @@
-export const getToolbarIconColor = (
-  isHighlighted: boolean,
-  isDimmed: boolean,
-): string => {
-  if (isHighlighted) return "text-black";
-  if (isDimmed) return "text-black/40";
-  return "text-black/70";
+import type { SelectionMode } from "../types.js";
+
+export const getSelectIconColor = (mode: SelectionMode): string => {
+  switch (mode) {
+    case "select":
+      return "text-black";
+    case "comment":
+      return "text-black/40";
+    default:
+      return "text-black/70";
+  }
+};
+
+export const getCommentIconColor = (mode: SelectionMode): string => {
+  switch (mode) {
+    case "comment":
+      return "text-black";
+    case "select":
+      return "text-black/40";
+    default:
+      return "text-black/70";
+  }
 };
