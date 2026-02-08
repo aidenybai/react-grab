@@ -17,6 +17,7 @@ export interface ToolbarContentProps {
   onPanelClick?: (event: MouseEvent) => void;
   selectButton?: JSX.Element;
   commentButton?: JSX.Element;
+  recentButton?: JSX.Element;
   toggleButton?: JSX.Element;
   collapseButton?: JSX.Element;
   shakeTooltip?: JSX.Element;
@@ -160,6 +161,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
               {props.commentButton ?? defaultCommentButton()}
             </div>
           </div>
+          {props.recentButton}
           <div class="relative shrink-0 overflow-visible">
             {props.toggleButton ?? defaultToggleButton()}
           </div>

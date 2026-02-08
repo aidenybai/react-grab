@@ -205,63 +205,54 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
           </div>
 
           <div class="[border-top-width:0.5px] border-t-solid border-t-[#D9D9D9] px-2 py-1.5">
-            <Show
-              when={props.items.length > 0}
-              fallback={
-                <div class="py-1.5 text-center text-[12px] text-black/30">
-                  No copied elements yet
-                </div>
-              }
+            <div
+              class="flex flex-col max-h-[240px] overflow-y-auto -mx-2 -my-1.5"
+              style={{ "scrollbar-color": "rgba(0,0,0,0.15) transparent" }}
             >
-              <div
-                class="flex flex-col max-h-[240px] overflow-y-auto -mx-2 -my-1.5"
-                style={{ "scrollbar-color": "rgba(0,0,0,0.15) transparent" }}
-              >
-                <For each={props.items}>
-                  {(item) => (
-                    <button
-                      data-react-grab-ignore-events
-                      class="contain-layout flex items-start justify-between w-full px-2 py-1 cursor-pointer transition-colors hover:bg-black/5 text-left border-none bg-transparent gap-2"
-                      onPointerDown={(event) => event.stopPropagation()}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        props.onSelectItem?.(item);
-                      }}
-                      onMouseEnter={() => props.onItemHover?.(item.id)}
-                      onMouseLeave={() => props.onItemHover?.(null)}
-                    >
-                      <span class="flex flex-col min-w-0 flex-1">
-                        <span class="flex items-center gap-1 text-[12px] leading-4 font-sans font-medium text-black truncate">
-                          <Show when={item.isComment}>
-                            <IconComment
-                              size={12}
-                              class="text-black/40 shrink-0"
-                            />
-                          </Show>
-                          <span class="truncate min-w-0">
-                            <Show
-                              when={item.componentName}
-                              fallback={item.tagName}
-                            >
-                              {item.componentName}
-                              <span class="text-black/50">.{item.tagName}</span>
-                            </Show>
-                          </span>
-                        </span>
-                        <Show when={item.commentText}>
-                          <span class="text-[11px] leading-3 font-sans text-black/40 truncate mt-0.5 pl-4">
-                            {item.commentText}
-                          </span>
+              <For each={props.items}>
+                {(item) => (
+                  <button
+                    data-react-grab-ignore-events
+                    class="contain-layout flex items-start justify-between w-full px-2 py-1 cursor-pointer transition-colors hover:bg-black/5 text-left border-none bg-transparent gap-2"
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      props.onSelectItem?.(item);
+                    }}
+                    onMouseEnter={() => props.onItemHover?.(item.id)}
+                    onMouseLeave={() => props.onItemHover?.(null)}
+                  >
+                    <span class="flex flex-col min-w-0 flex-1">
+                      <span class="flex items-center gap-1 text-[12px] leading-4 font-sans font-medium text-black truncate">
+                        <Show when={item.isComment}>
+                          <IconComment
+                            size={12}
+                            class="text-black/40 shrink-0"
+                          />
                         </Show>
+                        <span class="truncate min-w-0">
+                          <Show
+                            when={item.componentName}
+                            fallback={item.tagName}
+                          >
+                            {item.componentName}
+                            <span class="text-black/50">.{item.tagName}</span>
+                          </Show>
+                        </span>
                       </span>
-                      <span class="text-[10px] font-sans text-black/25 shrink-0 mt-0.5">
-                        {formatRelativeTime(item.timestamp)}
-                      </span>
-                    </button>
-                  )}
-                </For>
-              </div>
-            </Show>
+                      <Show when={item.commentText}>
+                        <span class="text-[11px] leading-3 font-sans text-black/40 truncate mt-0.5 pl-4">
+                          {item.commentText}
+                        </span>
+                      </Show>
+                    </span>
+                    <span class="text-[10px] font-sans text-black/25 shrink-0 mt-0.5">
+                      {formatRelativeTime(item.timestamp)}
+                    </span>
+                  </button>
+                )}
+              </For>
+            </div>
           </div>
         </div>
       </div>
