@@ -915,7 +915,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         "[data-react-grab-toolbar-recent]",
       );
       if (!recentButton) return false;
-      const unreadDot = recentButton.querySelector('path[fill="#404040"]');
+      const unreadDot = recentButton.querySelector('path[fill="currentColor"]');
       return unreadDot !== null;
     }, ATTRIBUTE_NAME);
   };
