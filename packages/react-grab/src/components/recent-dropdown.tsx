@@ -300,15 +300,30 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                 <button
                   data-react-grab-ignore-events
                   data-react-grab-recent-clear
-                  class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[#FEF2F2] cursor-pointer transition-all hover:bg-[#FEE2E2] press-scale h-[17px]"
+                  aria-label="Clear recent items"
+                  class="contain-layout shrink-0 flex items-center justify-center w-[17px] h-[17px] rounded-sm bg-[#FEF2F2] cursor-pointer transition-all hover:bg-[#FEE2E2] press-scale"
                   onClick={(event) => {
                     event.stopPropagation();
                     props.onClearAll?.();
                   }}
                 >
-                  <span class="text-[#B91C1C] text-[13px] leading-3.5 font-sans font-medium">
-                    Clear
-                  </span>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="11"
+                    height="11"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#B91C1C"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                  >
+                    <path d="M3 6h18" />
+                    <path d="M8 6V4h8v2" />
+                    <path d="M19 6l-1 14H6L5 6" />
+                    <path d="M10 11v6" />
+                    <path d="M14 11v6" />
+                  </svg>
                 </button>
                 <button
                   data-react-grab-ignore-events
