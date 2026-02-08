@@ -173,9 +173,13 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const getExpandableSectionSizeStyle = () => {
     if (props.enabled) return undefined;
+    if (isVerticalLayout()) {
+      return {
+        height: "0px",
+      };
+    }
     return {
       width: "0px",
-      height: "0px",
     };
   };
 
@@ -842,6 +846,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const handleToggleEnabled = createDragAwareHandler(() => {
     const isCurrentlyEnabled = Boolean(props.enabled);
     const edge = snapEdge();
+    const preTogglePosition = position();
     const previousToggleRect = toggleEnabledButtonRef?.getBoundingClientRect();
     const previousToggleCenter = previousToggleRect
       ? {
@@ -896,9 +901,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                 minX,
                 maxX,
               )
-            : previousPosition.x,
+            : preTogglePosition.x,
           y: shouldAdjustHorizontalAxis
-            ? previousPosition.y
+            ? preTogglePosition.y
             : clampToViewport(
                 previousPosition.y + (previousToggleCenter.y - toggleCenterY),
                 minY,
@@ -930,7 +935,16 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           height: nextContainerRect.height,
         };
 
-        const nextPosition = position();
+        const currentPositionAfterToggle = position();
+        const nextPosition = {
+          x: shouldAdjustHorizontalAxis
+            ? currentPositionAfterToggle.x
+            : preTogglePosition.x,
+          y: shouldAdjustHorizontalAxis
+            ? preTogglePosition.y
+            : currentPositionAfterToggle.y,
+        };
+        setPosition(nextPosition);
         const newRatio = getRatioFromPosition(
           edge,
           nextPosition.x,
@@ -1504,6 +1518,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           const rect = containerRef?.getBoundingClientRect();
           if (!rect) return;
 
+          const previousEdge = snapEdge();
+          const didEdgeChange = previousEdge !== state.edge;
           const didCollapsedChange = isCollapsed() !== state.collapsed;
 
           setSnapEdge(state.edge);
@@ -1529,13 +1545,27 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
             }
             setIsCollapsed(state.collapsed);
+            const currentExpandedPosition = position();
             const newPosition = getPositionFromEdgeAndRatio(
               state.edge,
               state.ratio,
               expandedDimensions.width,
               expandedDimensions.height,
             );
-            setPosition(newPosition);
+            const shouldPreserveCrossAxis =
+              !didEdgeChange && !state.collapsed && !didCollapsedChange;
+            const synchronizedPosition = shouldPreserveCrossAxis
+              ? state.edge === "top" || state.edge === "bottom"
+                ? {
+                    x: newPosition.x,
+                    y: currentExpandedPosition.y,
+                  }
+                : {
+                    x: currentExpandedPosition.x,
+                    y: newPosition.y,
+                  }
+              : newPosition;
+            setPosition(synchronizedPosition);
             setPositionRatio(state.ratio);
           }
         },

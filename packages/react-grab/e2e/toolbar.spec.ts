@@ -4,6 +4,7 @@ import type { Page } from "@playwright/test";
 test.describe("Toolbar", () => {
   const overlayAttributeName = "data-react-grab";
   const toggleMeasureDurationMs = 220;
+  const maxEnabledToggleDriftPx = 1;
 
   const getToolbarEnabledToggleMetrics = async (page: Page) => {
     return page.evaluate((attrName) => {
@@ -728,8 +729,12 @@ test.describe("Toolbar", () => {
 
       if (!driftMetrics) return;
 
-      expect(driftMetrics.maxHorizontalDrift).toBeLessThan(2);
-      expect(driftMetrics.maxVerticalDrift).toBeLessThan(2);
+      expect(driftMetrics.maxHorizontalDrift).toBeLessThan(
+        maxEnabledToggleDriftPx,
+      );
+      expect(driftMetrics.maxVerticalDrift).toBeLessThan(
+        maxEnabledToggleDriftPx,
+      );
 
       const metricsAfterToggle = await getToolbarEnabledToggleMetrics(
         reactGrab.page,
@@ -743,19 +748,19 @@ test.describe("Toolbar", () => {
           metricsAfterToggle.enabledToggleCenter.x -
             metricsBeforeToggle.enabledToggleCenter.x,
         ),
-      ).toBeLessThan(2);
+      ).toBeLessThan(maxEnabledToggleDriftPx);
       expect(
         Math.abs(
           metricsAfterToggle.enabledToggleCenter.y -
             metricsBeforeToggle.enabledToggleCenter.y,
         ),
-      ).toBeLessThan(2);
+      ).toBeLessThan(maxEnabledToggleDriftPx);
       expect(
         Math.abs(
           (metricsAfterToggle.toolbarPosition?.y ?? 0) -
             (metricsBeforeToggle.toolbarPosition?.y ?? 0),
         ),
-      ).toBeLessThan(2);
+      ).toBeLessThan(maxEnabledToggleDriftPx);
     });
 
     test("enabled toggle should stay anchored on vertical edges", async ({
@@ -788,8 +793,12 @@ test.describe("Toolbar", () => {
 
       if (!driftMetrics) return;
 
-      expect(driftMetrics.maxHorizontalDrift).toBeLessThan(2);
-      expect(driftMetrics.maxVerticalDrift).toBeLessThan(2);
+      expect(driftMetrics.maxHorizontalDrift).toBeLessThan(
+        maxEnabledToggleDriftPx,
+      );
+      expect(driftMetrics.maxVerticalDrift).toBeLessThan(
+        maxEnabledToggleDriftPx,
+      );
 
       const metricsAfterToggle = await getToolbarEnabledToggleMetrics(
         reactGrab.page,
@@ -803,19 +812,19 @@ test.describe("Toolbar", () => {
           metricsAfterToggle.enabledToggleCenter.x -
             metricsBeforeToggle.enabledToggleCenter.x,
         ),
-      ).toBeLessThan(2);
+      ).toBeLessThan(maxEnabledToggleDriftPx);
       expect(
         Math.abs(
           metricsAfterToggle.enabledToggleCenter.y -
             metricsBeforeToggle.enabledToggleCenter.y,
         ),
-      ).toBeLessThan(2);
+      ).toBeLessThan(maxEnabledToggleDriftPx);
       expect(
         Math.abs(
           (metricsAfterToggle.toolbarPosition?.x ?? 0) -
             (metricsBeforeToggle.toolbarPosition?.x ?? 0),
         ),
-      ).toBeLessThan(2);
+      ).toBeLessThan(maxEnabledToggleDriftPx);
     });
   });
 });
