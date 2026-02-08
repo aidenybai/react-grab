@@ -17,6 +17,7 @@ import {
 import { IconSelect } from "../icons/icon-select.jsx";
 import { IconChevron } from "../icons/icon-chevron.jsx";
 import { IconComment } from "../icons/icon-comment.jsx";
+import { IconInbox, IconInboxUnread } from "../icons/icon-inbox.jsx";
 import {
   TOOLBAR_SNAP_MARGIN_PX,
   TOOLBAR_FADE_IN_DELAY_MS,
@@ -57,6 +58,9 @@ interface ToolbarProps {
     callback: (state: ToolbarState) => void,
   ) => () => void;
   onSelectHoverChange?: (isHovered: boolean) => void;
+  recentItemCount?: number;
+  hasUnreadRecentItems?: boolean;
+  onToggleRecent?: (anchorPosition: { x: number; y: number }) => void;
 }
 
 export const Toolbar: Component<ToolbarProps> = (props) => {
@@ -86,6 +90,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     createSignal(false);
   const [isShakeTooltipVisible, setIsShakeTooltipVisible] = createSignal(false);
   const [isToggleAnimating, setIsToggleAnimating] = createSignal(false);
+  const [isRecentTooltipVisible, setIsRecentTooltipVisible] = createSignal(false);
+  let recentButtonRef: HTMLButtonElement | undefined;
 
   const tooltipPosition = () => (snapEdge() === "top" ? "bottom" : "top");
 
@@ -400,6 +406,15 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const handleComment = createDragAwareHandler(() => props.onComment?.());
 
+  const handleRecent = createDragAwareHandler(() => {
+    const buttonRect = recentButtonRef?.getBoundingClientRect();
+    if (buttonRect) {
+      const anchorX = buttonRect.left + buttonRect.width / 2;
+      const anchorY = snapEdge() === "top" ? buttonRect.bottom : buttonRect.top;
+      props.onToggleRecent?.({ x: anchorX, y: anchorY });
+    }
+  });
+
   const handleToggleCollapse = createDragAwareHandler(() => {
     const rect = containerRef?.getBoundingClientRect();
     const wasCollapsed = isCollapsed();
@@ -456,7 +471,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     props.onToggleEnabled?.();
 
     if (expandableWidth > 0) {
-      const widthChange = isCurrentlyEnabled ? -expandableWidth : expandableWidth;
+      const widthChange = isCurrentlyEnabled
+        ? -expandableWidth
+        : expandableWidth;
       expandedDimensions = {
         width: expandedDimensions.width + widthChange,
         height: expandedDimensions.height,
@@ -465,9 +482,15 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
     if (shouldCompensatePosition) {
       const viewport = getVisualViewport();
-      const positionOffset = isCurrentlyEnabled ? expandableWidth : -expandableWidth;
+      const positionOffset = isCurrentlyEnabled
+        ? expandableWidth
+        : -expandableWidth;
       const clampMin = viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX;
-      const clampMax = viewport.offsetLeft + viewport.width - expandedDimensions.width - TOOLBAR_SNAP_MARGIN_PX;
+      const clampMax =
+        viewport.offsetLeft +
+        viewport.width -
+        expandedDimensions.width -
+        TOOLBAR_SNAP_MARGIN_PX;
       const compensatedX = clampToViewport(
         preTogglePosition.x + positionOffset,
         clampMin,
@@ -1163,6 +1186,55 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                   </Tooltip>
                 </div>
               </div>
+              <div
+                class={cn(
+                  "grid transition-all duration-150 ease-out",
+                  props.enabled && (props.recentItemCount ?? 0) > 0
+                    ? "grid-cols-[1fr] opacity-100"
+                    : "grid-cols-[0fr] opacity-0 pointer-events-none",
+                )}
+              >
+                <div class="relative overflow-visible min-w-0">
+                  {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
+                  <button
+                    ref={recentButtonRef}
+                    data-react-grab-ignore-events
+                    data-react-grab-toolbar-recent
+                    class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5"
+                    on:pointerdown={(event) => {
+                      stopEventPropagation(event);
+                      handlePointerDown(event);
+                    }}
+                    on:mousedown={stopEventPropagation}
+                    onClick={(event) => {
+                      setIsRecentTooltipVisible(false);
+                      handleRecent(event);
+                    }}
+                    {...createFreezeHandlers(setIsRecentTooltipVisible)}
+                  >
+                    <Show
+                      when={props.hasUnreadRecentItems}
+                      fallback={
+                        <IconInbox
+                          size={14}
+                          class="text-[#B3B3B3] transition-colors"
+                        />
+                      }
+                    >
+                      <IconInboxUnread
+                        size={14}
+                        class="text-[#B3B3B3] transition-colors"
+                      />
+                    </Show>
+                  </button>
+                  <Tooltip
+                    visible={isRecentTooltipVisible() && !isCollapsed()}
+                    position={tooltipPosition()}
+                  >
+                    Recent
+                  </Tooltip>
+                </div>
+              </div>
             </div>
             <div class="relative shrink-0 overflow-visible">
               <button
@@ -1206,6 +1278,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           onClick={handleToggleCollapse}
         >
           <IconChevron
+            size={14}
             class={cn(
               "text-[#B3B3B3] transition-transform duration-150",
               chevronRotation(),
