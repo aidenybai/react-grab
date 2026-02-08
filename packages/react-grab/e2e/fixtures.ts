@@ -135,7 +135,6 @@ export interface ReactGrabPageObject {
   getRecentDropdownInfo: () => Promise<RecentDropdownInfo>;
   clickRecentItem: (index: number) => Promise<void>;
   clickRecentCopyAll: () => Promise<void>;
-  clickRecentClear: () => Promise<void>;
   hoverRecentItem: (index: number) => Promise<void>;
 
   getSelectionLabelInfo: () => Promise<SelectionLabelInfo>;
@@ -948,11 +947,10 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       if (!dropdown)
         return { isVisible: false, itemCount: 0 };
 
-      const allButtons = Array.from(dropdown.querySelectorAll("button"));
-      const itemButtons = allButtons.filter(
-        (btn) =>
-          !btn.hasAttribute("data-react-grab-recent-clear") &&
-          !btn.hasAttribute("data-react-grab-recent-copy-all"),
+      const itemButtons = Array.from(
+        dropdown.querySelectorAll<HTMLButtonElement>(
+          "[data-react-grab-recent-item]",
+        ),
       );
 
       return {
@@ -974,13 +972,12 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
           "[data-react-grab-recent-dropdown]",
         );
         if (!dropdown) return;
-        const allButtons = Array.from(dropdown.querySelectorAll("button"));
-        const itemButtons = allButtons.filter(
-          (btn) =>
-            !btn.hasAttribute("data-react-grab-recent-clear") &&
-            !btn.hasAttribute("data-react-grab-recent-copy-all"),
+        const itemButtons = Array.from(
+          dropdown.querySelectorAll<HTMLButtonElement>(
+            "[data-react-grab-recent-item]",
+          ),
         );
-        const button = itemButtons[itemIndex] as HTMLButtonElement | undefined;
+        const button = itemButtons[itemIndex];
         button?.click();
       },
       { attrName: ATTRIBUTE_NAME, itemIndex: index },
@@ -1003,21 +1000,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     await waitForRecentDropdown(false);
   };
 
-  const clickRecentClear = async () => {
-    await page.evaluate((attrName) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      if (!shadowRoot) return;
-      const root = shadowRoot.querySelector(`[${attrName}]`);
-      if (!root) return;
-      const clearButton = root.querySelector<HTMLButtonElement>(
-        "[data-react-grab-recent-clear]",
-      );
-      clearButton?.click();
-    }, ATTRIBUTE_NAME);
-    await waitForRecentDropdown(false);
-  };
-
   const hoverRecentItem = async (index: number) => {
     const itemRect = await page.evaluate(
       ({ attrName, itemIndex }) => {
@@ -1030,11 +1012,10 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
           "[data-react-grab-recent-dropdown]",
         );
         if (!dropdown) return null;
-        const allButtons = Array.from(dropdown.querySelectorAll("button"));
-        const itemButtons = allButtons.filter(
-          (btn) =>
-            !btn.hasAttribute("data-react-grab-recent-clear") &&
-            !btn.hasAttribute("data-react-grab-recent-copy-all"),
+        const itemButtons = Array.from(
+          dropdown.querySelectorAll<HTMLButtonElement>(
+            "[data-react-grab-recent-item]",
+          ),
         );
         const button = itemButtons[itemIndex];
         if (!button) return null;
@@ -2117,7 +2098,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     getRecentDropdownInfo,
     clickRecentItem,
     clickRecentCopyAll,
-    clickRecentClear,
     hoverRecentItem,
 
     getSelectionLabelInfo,

@@ -139,7 +139,7 @@ import {
   loadRecent,
   addRecentItem,
   removeRecentItem,
-  clearRecent,
+  clearRecentItems,
 } from "../utils/recent-storage.js";
 import { copyContent } from "../utils/copy-content.js";
 
@@ -3409,6 +3409,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       dismissRecentDropdown();
     };
 
+    const handleRecentClearAll = () => {
+      if (recentItems().length === 0) return;
+      const clearedRecentItems = clearRecentItems();
+      recentElementMap.clear();
+      setRecentItems(clearedRecentItems);
+      setHasUnreadRecentItems(false);
+      dismissRecentDropdown();
+    };
+
     const handleRecentItemHover = (recentItemId: string | null) => {
       clearRecentHoverBox();
       if (recentItemId) {
@@ -3444,14 +3453,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           }
         }
       }
-    };
-
-    const handleRecentClear = () => {
-      recentElementMap.clear();
-      const updatedRecentItems = clearRecent();
-      setRecentItems(updatedRecentItems);
-      setHasUnreadRecentItems(false);
-      dismissRecentDropdown();
     };
 
     const handleShowContextMenuSession = (sessionId: string) => {
@@ -3615,7 +3616,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onRecentItemSelect={handleRecentItemSelect}
             onRecentItemHover={handleRecentItemHover}
             onRecentCopyAll={handleRecentCopyAll}
-            onRecentClear={handleRecentClear}
+            onRecentClearAll={handleRecentClearAll}
             onRecentDismiss={dismissRecentDropdown}
           />
         );

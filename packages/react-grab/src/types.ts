@@ -536,7 +536,7 @@ export interface ReactGrabRendererProps {
   onRecentItemSelect?: (item: RecentItem) => void;
   onRecentItemHover?: (recentItemId: string | null) => void;
   onRecentCopyAll?: () => void;
-  onRecentClear?: () => void;
+  onRecentClearAll?: () => void;
   onRecentDismiss?: () => void;
 }
 

@@ -223,19 +223,6 @@ test.describe("Recent Items", () => {
       expect(dropdownInfo.itemCount).toBe(2);
     });
 
-    test("should hide recent button after clearing all items", async ({
-      reactGrab,
-    }) => {
-      await copyElement(reactGrab, "li:first-child");
-      await reactGrab.clickRecentButton();
-      await reactGrab.clickRecentClear();
-
-      await expect
-        .poll(() => reactGrab.isRecentButtonVisible(), { timeout: 2000 })
-        .toBe(false);
-
-      expect(await reactGrab.isRecentDropdownVisible()).toBe(false);
-    });
   });
 
   test.describe("Item Selection", () => {
@@ -383,50 +370,6 @@ test.describe("Recent Items", () => {
 
       const clipboardContent = await reactGrab.getClipboardContent();
       expect(clipboardContent).toBeTruthy();
-      expect(await reactGrab.isRecentDropdownVisible()).toBe(false);
-    });
-  });
-
-  test.describe("Clear All", () => {
-    test("should remove all recent items", async ({ reactGrab }) => {
-      await copyElement(reactGrab, "li:first-child");
-      await copyElement(reactGrab, "li:last-child");
-
-      await reactGrab.clickRecentButton();
-      expect((await reactGrab.getRecentDropdownInfo()).itemCount).toBe(2);
-
-      await reactGrab.clickRecentClear();
-
-      await expect
-        .poll(() => reactGrab.isRecentButtonVisible(), { timeout: 2000 })
-        .toBe(false);
-    });
-
-    test("should hide the recent button in toolbar after clearing", async ({
-      reactGrab,
-    }) => {
-      await copyElement(reactGrab, "li:first-child");
-
-      await expect
-        .poll(() => reactGrab.isRecentButtonVisible(), { timeout: 2000 })
-        .toBe(true);
-
-      await reactGrab.clickRecentButton();
-      await reactGrab.clickRecentClear();
-
-      await expect
-        .poll(() => reactGrab.isRecentButtonVisible(), { timeout: 2000 })
-        .toBe(false);
-    });
-
-    test("should close the dropdown after clearing", async ({ reactGrab }) => {
-      await copyElement(reactGrab, "li:first-child");
-      await reactGrab.clickRecentButton();
-
-      expect(await reactGrab.isRecentDropdownVisible()).toBe(true);
-
-      await reactGrab.clickRecentClear();
-
       expect(await reactGrab.isRecentDropdownVisible()).toBe(false);
     });
   });

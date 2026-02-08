@@ -22,7 +22,7 @@ export const removeRecentItem = (itemId: string): RecentItem[] => {
   return recentItems;
 };
 
-export const clearRecent = (): RecentItem[] => {
+export const clearRecentItems = (): RecentItem[] => {
   recentItems = [];
   return recentItems;
 };
