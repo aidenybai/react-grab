@@ -132,6 +132,12 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [isToggleAnimating, setIsToggleAnimating] = createSignal(false);
   const [isRecentTooltipVisible, setIsRecentTooltipVisible] =
     createSignal(false);
+  const [expandableSectionMainAxisSizePx, setExpandableSectionMainAxisSizePx] =
+    createSignal(0);
+  const [
+    isExpandableSectionMainAxisSizeLocked,
+    setIsExpandableSectionMainAxisSizeLocked,
+  ] = createSignal(false);
   const [isDockLayoutAnimating, setIsDockLayoutAnimating] = createSignal(false);
   const [isDragSnapTransitionActive, setIsDragSnapTransitionActive] =
     createSignal(false);
@@ -167,12 +173,44 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const isSideEdge = (edge: SnapEdge) => edge === "left" || edge === "right";
 
+  const getMeasuredExpandableSectionMainAxisSizePx = (): number => {
+    const expandableSectionElement = expandableButtonsRef;
+    if (!expandableSectionElement) return 0;
+    return isVerticalLayout()
+      ? expandableSectionElement.scrollHeight
+      : expandableSectionElement.scrollWidth;
+  };
+
+  const cacheExpandableSectionMainAxisSizePx = () => {
+    const measuredExpandableSectionMainAxisSizePx =
+      getMeasuredExpandableSectionMainAxisSizePx();
+    if (measuredExpandableSectionMainAxisSizePx <= 0) return;
+    setExpandableSectionMainAxisSizePx(measuredExpandableSectionMainAxisSizePx);
+  };
+
   const getExpandableSectionVisibilityClasses = (): string => {
     return props.enabled ? "opacity-100" : "opacity-0 pointer-events-none";
   };
 
   const getExpandableSectionSizeStyle = () => {
-    if (props.enabled) return undefined;
+    const currentExpandableSectionMainAxisSizePx =
+      expandableSectionMainAxisSizePx();
+    if (props.enabled) {
+      if (
+        !isExpandableSectionMainAxisSizeLocked() ||
+        currentExpandableSectionMainAxisSizePx <= 0
+      ) {
+        return undefined;
+      }
+      if (isVerticalLayout()) {
+        return {
+          height: `${currentExpandableSectionMainAxisSizePx}px`,
+        };
+      }
+      return {
+        width: `${currentExpandableSectionMainAxisSizePx}px`,
+      };
+    }
     if (isVerticalLayout()) {
       return {
         height: "0px",
@@ -461,6 +499,24 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             clearTimeout(shakeTooltipTimeout);
           }
         }
+      },
+    ),
+  );
+
+  createEffect(
+    on(
+      () =>
+        [
+          isVerticalLayout(),
+          props.enabled,
+          props.recentItemCount,
+          Boolean(props.isHistoryOpen),
+        ] as const,
+      () => {
+        if (!props.enabled) return;
+        requestAnimationFrame(() => {
+          cacheExpandableSectionMainAxisSizePx();
+        });
       },
     ),
   );
@@ -846,87 +902,21 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   });
 
   const handleToggleEnabled = createDragAwareHandler(() => {
+    cacheExpandableSectionMainAxisSizePx();
+    setIsExpandableSectionMainAxisSizeLocked(true);
     const isCurrentlyEnabled = Boolean(props.enabled);
     const edge = snapEdge();
-    const preTogglePosition = position();
-    const previousToggleRect = toggleEnabledButtonRef?.getBoundingClientRect();
-    const previousToggleCenter = previousToggleRect
-      ? {
-          x: previousToggleRect.left + previousToggleRect.width / 2,
-          y: previousToggleRect.top + previousToggleRect.height / 2,
-        }
-      : null;
-    const shouldAdjustHorizontalAxis = edge === "top" || edge === "bottom";
 
     setIsToggleAnimating(true);
     clearToggleAnchorLockAnimationFrame();
 
     props.onToggleEnabled?.();
 
-    if (previousToggleCenter) {
-      const lockToggleCenterToPointer = () => {
-        if (!isToggleAnimating()) return;
-
-        const toolbarRect = containerRef?.getBoundingClientRect();
-        const toggleRect = toggleEnabledButtonRef?.getBoundingClientRect();
-        if (!toolbarRect || !toggleRect) {
-          toggleAnchorLockAnimationFrame = requestAnimationFrame(
-            lockToggleCenterToPointer,
-          );
-          return;
-        }
-
-        const toggleCenterX = toggleRect.left + toggleRect.width / 2;
-        const toggleCenterY = toggleRect.top + toggleRect.height / 2;
-        const viewport = getVisualViewport();
-        const minX = viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX;
-        const maxX = Math.max(
-          minX,
-          viewport.offsetLeft +
-            viewport.width -
-            toolbarRect.width -
-            TOOLBAR_SNAP_MARGIN_PX,
-        );
-        const minY = viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX;
-        const maxY = Math.max(
-          minY,
-          viewport.offsetTop +
-            viewport.height -
-            toolbarRect.height -
-            TOOLBAR_SNAP_MARGIN_PX,
-        );
-
-        setPosition((previousPosition) => ({
-          x: shouldAdjustHorizontalAxis
-            ? clampToViewport(
-                previousPosition.x + (previousToggleCenter.x - toggleCenterX),
-                minX,
-                maxX,
-              )
-            : preTogglePosition.x,
-          y: shouldAdjustHorizontalAxis
-            ? preTogglePosition.y
-            : clampToViewport(
-                previousPosition.y + (previousToggleCenter.y - toggleCenterY),
-                minY,
-                maxY,
-              ),
-        }));
-
-        toggleAnchorLockAnimationFrame = requestAnimationFrame(
-          lockToggleCenterToPointer,
-        );
-      };
-
-      toggleAnchorLockAnimationFrame = requestAnimationFrame(
-        lockToggleCenterToPointer,
-      );
-    }
-
     clearTimeout(toggleAnimationTimeout);
     toggleAnimationTimeout = setTimeout(() => {
       clearToggleAnchorLockAnimationFrame();
       setIsToggleAnimating(false);
+      setIsExpandableSectionMainAxisSizeLocked(false);
 
       requestAnimationFrame(() => {
         const nextContainerRect = containerRef?.getBoundingClientRect();
@@ -937,16 +927,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           height: nextContainerRect.height,
         };
 
-        const currentPositionAfterToggle = position();
-        const nextPosition = {
-          x: shouldAdjustHorizontalAxis
-            ? currentPositionAfterToggle.x
-            : preTogglePosition.x,
-          y: shouldAdjustHorizontalAxis
-            ? preTogglePosition.y
-            : currentPositionAfterToggle.y,
-        };
-        setPosition(nextPosition);
+        const nextPosition = position();
         const newRatio = getRatioFromPosition(
           edge,
           nextPosition.x,
@@ -1417,6 +1398,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   let snapAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
   let toggleAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
   let dockLayoutAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
+  let pendingSelfPublishedToolbarState: ToolbarState | null = null;
 
   const handleResize = () => {
     if (isDragging()) return;
@@ -1449,6 +1431,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   };
 
   const saveAndNotify = (state: ToolbarState) => {
+    pendingSelfPublishedToolbarState = state;
     saveToolbarState(state);
     props.onStateChange?.(state);
   };
@@ -1510,6 +1493,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     if (props.onSubscribeToStateChanges) {
       const unsubscribe = props.onSubscribeToStateChanges(
         (state: ToolbarState) => {
+          if (state === pendingSelfPublishedToolbarState) {
+            pendingSelfPublishedToolbarState = null;
+            return;
+          }
+
           if (
             isCollapseAnimating() ||
             isToggleAnimating() ||
@@ -1777,14 +1765,14 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           >
             <div
               class={cn(
-                "flex min-w-0",
+                "flex min-w-0 transition-[gap] duration-150 ease-out",
                 isVerticalLayout() ? "flex-col items-center" : "items-center",
                 props.enabled ? "gap-2" : "gap-0",
               )}
             >
               <div
                 class={cn(
-                  "grid min-w-0 min-h-0 overflow-hidden transition-all duration-150 ease-out",
+                  "order-2 grid min-w-0 min-h-0 overflow-hidden transition-all duration-150 ease-out",
                   getExpandableSectionVisibilityClasses(),
                 )}
                 style={getExpandableSectionSizeStyle()}
@@ -1965,7 +1953,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                 </div>
               </div>
               <div
-                class="relative shrink-0 overflow-visible transition-transform"
+                class="order-1 relative shrink-0 overflow-visible transition-transform"
                 style={getDragReleaseItemStyle(1, false, true)}
               >
                 <button
