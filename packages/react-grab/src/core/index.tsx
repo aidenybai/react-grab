@@ -2028,7 +2028,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const buttonRect = recentButtonElement.getBoundingClientRect();
       const anchorX = buttonRect.left + buttonRect.width / 2;
       const toolbarEdge = currentToolbarState()?.edge;
-      const anchorY = toolbarEdge === "top" ? buttonRect.bottom : buttonRect.top;
+      const anchorY =
+        toolbarEdge === "top" ? buttonRect.bottom : buttonRect.top;
 
       return { x: anchorX, y: anchorY };
     };
