@@ -534,14 +534,31 @@ export const createRelayServer = (
     const certificate = secure ? await ensureCertificates(certHostnames) : null;
 
     return new Promise((resolve, reject) => {
+      const corsHeaders = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      };
+
       const requestHandler = (req: IncomingMessage, res: ServerResponse) => {
         const requestUrl = new URL(req.url ?? "", `http://localhost:${port}`);
 
+        if (req.method === "OPTIONS") {
+          res.writeHead(204, corsHeaders);
+          res.end();
+          return;
+        }
+
         if (requestUrl.pathname === "/health") {
+          const healthHeaders = {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          };
+
           if (token) {
             const clientToken = requestUrl.searchParams.get(RELAY_TOKEN_PARAM);
             if (clientToken !== token) {
-              res.writeHead(401, { "Content-Type": "application/json" });
+              res.writeHead(401, healthHeaders);
               res.end(JSON.stringify({ error: "Unauthorized" }));
               return;
             }
@@ -550,7 +567,7 @@ export const createRelayServer = (
           const clientNeedsSecure =
             requestUrl.searchParams.get("secure") === "true";
           if (clientNeedsSecure && !secure && onSecureUpgradeRequested) {
-            res.writeHead(200, { "Content-Type": "application/json" });
+            res.writeHead(200, healthHeaders);
             res.end(
               JSON.stringify({
                 status: "upgrading",
@@ -566,7 +583,7 @@ export const createRelayServer = (
             return;
           }
 
-          res.writeHead(200, { "Content-Type": "application/json" });
+          res.writeHead(200, healthHeaders);
           res.end(
             JSON.stringify({
               status: "ok",

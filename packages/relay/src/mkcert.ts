@@ -17,7 +17,21 @@ const KEY_PATH = join(DATA_DIR, "localhost-key.pem");
 const CERT_PATH = join(DATA_DIR, "localhost.pem");
 const HOSTS_METADATA_PATH = join(DATA_DIR, "cert-hosts.json");
 
-const MKCERT_ENV = { env: { ...process.env, CAROOT: DATA_DIR } };
+const getDefaultCaRoot = (): string => {
+  if (platform() === "win32") {
+    const localAppData =
+      process.env.LOCALAPPDATA ?? join(homedir(), "AppData", "Local");
+    return join(localAppData, "mkcert");
+  }
+  if (platform() === "darwin") {
+    return join(homedir(), "Library", "Application Support", "mkcert");
+  }
+  const dataHome =
+    process.env.XDG_DATA_HOME ?? join(homedir(), ".local", "share");
+  return join(dataHome, "mkcert");
+};
+
+const MKCERT_ENV = { env: { ...process.env, CAROOT: getDefaultCaRoot() } };
 
 interface GithubReleaseAsset {
   name: string;
