@@ -10,15 +10,19 @@ import type { Component } from "solid-js";
 import type { RecentItem, DropdownAnchor } from "../types.js";
 import {
   DROPDOWN_ANCHOR_GAP_PX,
+  DROPDOWN_ICON_SIZE_PX,
   DROPDOWN_VIEWPORT_PADDING_PX,
   PANEL_STYLES,
 } from "../constants.js";
+import { clampToViewport } from "../utils/clamp-to-viewport.js";
 import { cn } from "../utils/cn.js";
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
 import { IconTrash } from "./icons/icon-trash.jsx";
 import { IconCopy } from "./icons/icon-copy.jsx";
 
 const DEFAULT_OFFSCREEN_POSITION = { left: -9999, top: -9999 };
+const ITEM_ACTION_CLASS =
+  "flex items-center justify-center cursor-pointer text-black/25 transition-colors press-scale";
 
 interface RecentDropdownProps {
   position: DropdownAnchor | null;
@@ -66,63 +70,33 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
   });
 
   const computedPosition = () => {
-    const anchorPosition = props.position;
-    const dropdownWidth = measuredWidth();
-    const dropdownHeight = measuredHeight();
+    const anchor = props.position;
+    const width = measuredWidth();
+    const height = measuredHeight();
 
-    if (!anchorPosition || dropdownWidth === 0 || dropdownHeight === 0) {
+    if (!anchor || width === 0 || height === 0) {
       return DEFAULT_OFFSCREEN_POSITION;
     }
 
-    const edge = anchorPosition.edge;
-    let left: number;
-    let top: number;
+    const { edge } = anchor;
+    const isHorizontalEdge = edge === "left" || edge === "right";
 
-    if (edge === "left" || edge === "right") {
-      if (edge === "left") {
-        left = anchorPosition.x + DROPDOWN_ANCHOR_GAP_PX;
-      } else {
-        left = anchorPosition.x - dropdownWidth - DROPDOWN_ANCHOR_GAP_PX;
-      }
-      left = Math.max(
-        DROPDOWN_VIEWPORT_PADDING_PX,
-        Math.min(
-          left,
-          window.innerWidth - dropdownWidth - DROPDOWN_VIEWPORT_PADDING_PX,
-        ),
-      );
-      top = anchorPosition.y - dropdownHeight / 2;
-      top = Math.max(
-        DROPDOWN_VIEWPORT_PADDING_PX,
-        Math.min(
-          top,
-          window.innerHeight - dropdownHeight - DROPDOWN_VIEWPORT_PADDING_PX,
-        ),
-      );
-    } else {
-      left = anchorPosition.x - dropdownWidth / 2;
-      left = Math.max(
-        DROPDOWN_VIEWPORT_PADDING_PX,
-        Math.min(
-          left,
-          window.innerWidth - dropdownWidth - DROPDOWN_VIEWPORT_PADDING_PX,
-        ),
-      );
-      if (edge === "top") {
-        top = anchorPosition.y + DROPDOWN_ANCHOR_GAP_PX;
-      } else {
-        top = anchorPosition.y - dropdownHeight - DROPDOWN_ANCHOR_GAP_PX;
-      }
-      top = Math.max(
-        DROPDOWN_VIEWPORT_PADDING_PX,
-        Math.min(
-          top,
-          window.innerHeight - dropdownHeight - DROPDOWN_VIEWPORT_PADDING_PX,
-        ),
-      );
-    }
+    const rawLeft = isHorizontalEdge
+      ? edge === "left"
+        ? anchor.x + DROPDOWN_ANCHOR_GAP_PX
+        : anchor.x - width - DROPDOWN_ANCHOR_GAP_PX
+      : anchor.x - width / 2;
 
-    return { left, top };
+    const rawTop = isHorizontalEdge
+      ? anchor.y - height / 2
+      : edge === "top"
+        ? anchor.y + DROPDOWN_ANCHOR_GAP_PX
+        : anchor.y - height - DROPDOWN_ANCHOR_GAP_PX;
+
+    return {
+      left: clampToViewport(rawLeft, width, window.innerWidth, DROPDOWN_VIEWPORT_PADDING_PX),
+      top: clampToViewport(rawTop, height, window.innerHeight, DROPDOWN_VIEWPORT_PADDING_PX),
+    };
   };
 
   const handleMenuEvent = (event: Event) => {
@@ -219,7 +193,7 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                     props.onClearAll?.();
                   }}
                 >
-                  <IconTrash size={11} />
+                  <IconTrash size={DROPDOWN_ICON_SIZE_PX} />
                 </button>
                 <button
                   data-react-grab-ignore-events
@@ -230,7 +204,7 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                     props.onCopyAll?.();
                   }}
                 >
-                  <IconCopy size={11} />
+                  <IconCopy size={DROPDOWN_ICON_SIZE_PX} />
                   <span class="text-[11px] font-sans text-black/50">↵</span>
                 </button>
               </div>
@@ -285,24 +259,24 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                         <button
                           data-react-grab-ignore-events
                           data-react-grab-recent-item-remove
-                          class="flex items-center justify-center cursor-pointer text-black/25 hover:text-[#B91C1C] transition-colors press-scale"
+                          class={cn(ITEM_ACTION_CLASS, "hover:text-[#B91C1C]")}
                           onClick={(event) => {
                             event.stopPropagation();
                             props.onRemoveItem?.(item);
                           }}
                         >
-                          <IconTrash size={11} />
+                          <IconTrash size={DROPDOWN_ICON_SIZE_PX} />
                         </button>
                         <button
                           data-react-grab-ignore-events
                           data-react-grab-recent-item-copy
-                          class="flex items-center justify-center cursor-pointer text-black/25 hover:text-black/60 transition-colors press-scale"
+                          class={cn(ITEM_ACTION_CLASS, "hover:text-black/60")}
                           onClick={(event) => {
                             event.stopPropagation();
                             props.onCopyItem?.(item);
                           }}
                         >
-                          <IconCopy size={11} />
+                          <IconCopy size={DROPDOWN_ICON_SIZE_PX} />
                         </button>
                       </span>
                     </span>
