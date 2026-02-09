@@ -372,6 +372,131 @@ test.describe("Recent Items", () => {
     });
   });
 
+  test.describe("Remove Individual Item", () => {
+    test("should remove a single item and keep others", async ({
+      reactGrab,
+    }) => {
+      await copyElement(reactGrab, "li:first-child");
+      await copyElement(reactGrab, "li:last-child");
+
+      await reactGrab.clickRecentButton();
+      expect((await reactGrab.getRecentDropdownInfo()).itemCount).toBe(2);
+
+      await reactGrab.clickRecentItemRemove(0);
+      await reactGrab.page.waitForTimeout(200);
+
+      const dropdownInfo = await reactGrab.getRecentDropdownInfo();
+      expect(dropdownInfo.itemCount).toBe(1);
+    });
+
+    test("should keep the dropdown open after removing an item", async ({
+      reactGrab,
+    }) => {
+      await copyElement(reactGrab, "li:first-child");
+      await copyElement(reactGrab, "li:last-child");
+
+      await reactGrab.clickRecentButton();
+      await reactGrab.clickRecentItemRemove(0);
+      await reactGrab.page.waitForTimeout(200);
+
+      expect(await reactGrab.isRecentDropdownVisible()).toBe(true);
+    });
+
+    test("should close the dropdown and hide button when removing the last item", async ({
+      reactGrab,
+    }) => {
+      await copyElement(reactGrab, "li:first-child");
+
+      await reactGrab.clickRecentButton();
+      expect((await reactGrab.getRecentDropdownInfo()).itemCount).toBe(1);
+
+      await reactGrab.clickRecentItemRemove(0);
+      await reactGrab.page.waitForTimeout(200);
+
+      expect(await reactGrab.isRecentDropdownVisible()).toBe(false);
+
+      await expect
+        .poll(() => reactGrab.isRecentButtonVisible(), { timeout: 2000 })
+        .toBe(false);
+    });
+  });
+
+  test.describe("Copy Individual Item", () => {
+    test("should copy the item content to clipboard", async ({ reactGrab }) => {
+      await copyElement(reactGrab, "li:first-child");
+
+      const originalClipboard = await reactGrab.getClipboardContent();
+
+      await reactGrab.page.evaluate(() => navigator.clipboard.writeText(""));
+
+      await reactGrab.clickRecentButton();
+      await reactGrab.clickRecentItemCopy(0);
+      await reactGrab.page.waitForTimeout(200);
+
+      const newClipboard = await reactGrab.getClipboardContent();
+      expect(newClipboard).toBe(originalClipboard);
+    });
+
+    test("should keep the dropdown open after copying an item", async ({
+      reactGrab,
+    }) => {
+      await copyElement(reactGrab, "li:first-child");
+
+      await reactGrab.clickRecentButton();
+      await reactGrab.clickRecentItemCopy(0);
+      await reactGrab.page.waitForTimeout(200);
+
+      expect(await reactGrab.isRecentDropdownVisible()).toBe(true);
+    });
+  });
+
+  test.describe("Dropdown Positioning", () => {
+    test("should position the dropdown within the viewport", async ({
+      reactGrab,
+    }) => {
+      await copyElement(reactGrab, "li:first-child");
+      await reactGrab.clickRecentButton();
+
+      await expect
+        .poll(
+          async () => {
+            const position = await reactGrab.getRecentDropdownPosition();
+            return position?.left ?? -9999;
+          },
+          { timeout: 3000 },
+        )
+        .toBeGreaterThanOrEqual(0);
+
+      const position = await reactGrab.getRecentDropdownPosition();
+      expect(position).not.toBeNull();
+      expect(position!.top).toBeGreaterThanOrEqual(0);
+    });
+
+    test("should reposition when toolbar is dragged to top edge", async ({
+      reactGrab,
+    }) => {
+      await copyElement(reactGrab, "li:first-child");
+
+      await reactGrab.dragToolbar(0, -600);
+      await reactGrab.page.waitForTimeout(400);
+
+      await reactGrab.clickRecentButton();
+
+      await expect
+        .poll(
+          async () => {
+            const position = await reactGrab.getRecentDropdownPosition();
+            return position?.top ?? -9999;
+          },
+          { timeout: 3000 },
+        )
+        .toBeGreaterThanOrEqual(0);
+
+      const toolbarInfo = await reactGrab.getToolbarInfo();
+      expect(toolbarInfo.snapEdge).toBe("top");
+    });
+  });
+
   test.describe("Persistence Across Copies", () => {
     test("should accumulate items across multiple copy operations", async ({
       reactGrab,

@@ -1,13 +1,6 @@
-import {
-  Show,
-  For,
-  onMount,
-  onCleanup,
-  createSignal,
-  createEffect,
-} from "solid-js";
+import { Show, For, onMount, onCleanup, createSignal, createEffect } from "solid-js";
 import type { Component } from "solid-js";
-import type { RecentItem } from "../types.js";
+import type { RecentItem, DropdownAnchor } from "../types.js";
 import {
   DROPDOWN_ANCHOR_GAP_PX,
   DROPDOWN_VIEWPORT_PADDING_PX,
@@ -15,13 +8,17 @@ import {
 } from "../constants.js";
 import { cn } from "../utils/cn.js";
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
+import { IconTrash } from "./icons/icon-trash.jsx";
+import { IconCopy } from "./icons/icon-copy.jsx";
 
 const DEFAULT_OFFSCREEN_POSITION = { left: -9999, top: -9999 };
 
 interface RecentDropdownProps {
-  position: { x: number; y: number } | null;
+  position: DropdownAnchor | null;
   items: RecentItem[];
   onSelectItem?: (item: RecentItem) => void;
+  onRemoveItem?: (item: RecentItem) => void;
+  onCopyItem?: (item: RecentItem) => void;
   onItemHover?: (recentItemId: string | null) => void;
   onCopyAll?: () => void;
   onClearAll?: () => void;
@@ -55,6 +52,7 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
   };
 
   createEffect(() => {
+    props.items.length;
     if (isVisible()) {
       requestAnimationFrame(measureContainer);
     }
@@ -69,20 +67,39 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
       return DEFAULT_OFFSCREEN_POSITION;
     }
 
-    let left = anchorPosition.x - dropdownWidth / 2;
-    left = Math.max(
-      DROPDOWN_VIEWPORT_PADDING_PX,
-      Math.min(
-        left,
-        window.innerWidth - dropdownWidth - DROPDOWN_VIEWPORT_PADDING_PX,
-      ),
-    );
+    const edge = anchorPosition.edge;
+    let left: number;
+    let top: number;
 
-    const wouldOverflowTop =
-      anchorPosition.y - dropdownHeight - DROPDOWN_ANCHOR_GAP_PX < 0;
-    const top = wouldOverflowTop
-      ? anchorPosition.y + DROPDOWN_ANCHOR_GAP_PX
-      : anchorPosition.y - dropdownHeight - DROPDOWN_ANCHOR_GAP_PX;
+    if (edge === "left" || edge === "right") {
+      if (edge === "left") {
+        left = anchorPosition.x + DROPDOWN_ANCHOR_GAP_PX;
+      } else {
+        left = anchorPosition.x - dropdownWidth - DROPDOWN_ANCHOR_GAP_PX;
+      }
+      top = anchorPosition.y - dropdownHeight / 2;
+      top = Math.max(
+        DROPDOWN_VIEWPORT_PADDING_PX,
+        Math.min(
+          top,
+          window.innerHeight - dropdownHeight - DROPDOWN_VIEWPORT_PADDING_PX,
+        ),
+      );
+    } else {
+      left = anchorPosition.x - dropdownWidth / 2;
+      left = Math.max(
+        DROPDOWN_VIEWPORT_PADDING_PX,
+        Math.min(
+          left,
+          window.innerWidth - dropdownWidth - DROPDOWN_VIEWPORT_PADDING_PX,
+        ),
+      );
+      if (edge === "top") {
+        top = anchorPosition.y + DROPDOWN_ANCHOR_GAP_PX;
+      } else {
+        top = anchorPosition.y - dropdownHeight - DROPDOWN_ANCHOR_GAP_PX;
+      }
+    }
 
     return { left, top };
   };
@@ -175,28 +192,24 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                 <button
                   data-react-grab-ignore-events
                   data-react-grab-recent-clear
-                  class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[#FEF2F2] cursor-pointer transition-all hover:bg-[#FEE2E2] press-scale h-[17px]"
+                  class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[#FEF2F2] cursor-pointer transition-all hover:bg-[#FEE2E2] press-scale h-[17px] text-[#B91C1C]"
                   onClick={(event) => {
                     event.stopPropagation();
                     props.onClearAll?.();
                   }}
                 >
-                  <span class="text-[#B91C1C] text-[13px] leading-3.5 font-sans font-medium">
-                    Clear
-                  </span>
+                  <IconTrash size={11} />
                 </button>
                 <button
                   data-react-grab-ignore-events
                   data-react-grab-recent-copy-all
-                  class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] press-scale h-[17px]"
+                  class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] press-scale h-[17px] text-black/60"
                   onClick={(event) => {
                     event.stopPropagation();
                     props.onCopyAll?.();
                   }}
                 >
-                  <span class="text-black text-[13px] leading-3.5 font-sans font-medium">
-                    Copy all
-                  </span>
+                  <IconCopy size={11} />
                   <span class="text-[11px] font-sans text-black/50">↵</span>
                 </button>
               </div>
@@ -210,10 +223,10 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
             >
               <For each={props.items}>
                 {(item) => (
-                  <button
+                  <div
                     data-react-grab-ignore-events
                     data-react-grab-recent-item
-                    class="contain-layout flex items-start justify-between w-full px-2 py-1 cursor-pointer transition-colors hover:bg-black/5 text-left border-none bg-transparent gap-2"
+                    class="group contain-layout flex items-start justify-between w-full px-2 py-1 cursor-pointer transition-colors hover:bg-black/5 text-left gap-2"
                     onPointerDown={(event) => event.stopPropagation()}
                     onClick={(event) => {
                       event.stopPropagation();
@@ -232,10 +245,36 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                         </span>
                       </Show>
                     </span>
-                    <span class="text-[10px] font-sans text-black/25 shrink-0 mt-0.5">
-                      {formatRelativeTime(item.timestamp)}
+                    <span class="shrink-0 grid mt-0.5">
+                      <span class="text-[10px] font-sans text-black/25 group-hover:invisible [grid-area:1/1] flex items-center justify-end">
+                        {formatRelativeTime(item.timestamp)}
+                      </span>
+                      <span class="invisible group-hover:visible [grid-area:1/1] flex items-center justify-end gap-1.5">
+                        <button
+                          data-react-grab-ignore-events
+                          data-react-grab-recent-item-remove
+                          class="flex items-center justify-center cursor-pointer text-black/25 hover:text-[#B91C1C] transition-colors press-scale"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            props.onRemoveItem?.(item);
+                          }}
+                        >
+                          <IconTrash size={11} />
+                        </button>
+                        <button
+                          data-react-grab-ignore-events
+                          data-react-grab-recent-item-copy
+                          class="flex items-center justify-center cursor-pointer text-black/25 hover:text-black/60 transition-colors press-scale"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            props.onCopyItem?.(item);
+                          }}
+                        >
+                          <IconCopy size={11} />
+                        </button>
+                      </span>
                     </span>
-                  </button>
+                  </div>
                 )}
               </For>
             </div>

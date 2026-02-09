@@ -167,6 +167,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
             isPromptMode={instance().isPromptMode}
             inputValue={instance().inputValue}
             error={instance().errorMessage}
+            hideArrow={instance().hideArrow}
             onShowContextMenu={
               (instance().status === "copied" ||
                 instance().status === "fading") &&
@@ -197,6 +198,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           onStateChange={props.onToolbarStateChange}
           onSubscribeToStateChanges={props.onSubscribeToToolbarStateChanges}
           onSelectHoverChange={props.onToolbarSelectHoverChange}
+          onContainerRef={props.onToolbarRef}
           recentItemCount={props.recentItemCount}
           hasUnreadRecentItems={props.hasUnreadRecentItems}
           onToggleRecent={props.onToggleRecent}
@@ -219,6 +221,8 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         position={props.recentDropdownPosition ?? null}
         items={props.recentItems ?? []}
         onSelectItem={props.onRecentItemSelect}
+        onRemoveItem={props.onRecentItemRemove}
+        onCopyItem={props.onRecentItemCopy}
         onItemHover={props.onRecentItemHover}
         onCopyAll={props.onRecentCopyAll}
         onClearAll={props.onRecentClear}
