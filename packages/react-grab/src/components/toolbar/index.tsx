@@ -271,10 +271,18 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       () => {
         if (isCollapsed()) return;
         // HACK: Wait for grid-cols CSS transition to complete, then re-measure and clamp to viewport
-        setTimeout(
+        if (recentItemCountTimeout) {
+          clearTimeout(recentItemCountTimeout);
+        }
+        recentItemCountTimeout = setTimeout(
           reclampToolbarToViewport,
           TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS,
         );
+        onCleanup(() => {
+          if (recentItemCountTimeout) {
+            clearTimeout(recentItemCountTimeout);
+          }
+        });
       },
       { defer: true },
     ),
@@ -904,6 +912,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   let collapseAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
   let snapAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
   let toggleAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
+  let recentItemCountTimeout: ReturnType<typeof setTimeout> | undefined;
 
   const handleResize = () => {
     if (isDragging()) return;
@@ -1074,6 +1083,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     clearTimeout(shakeTooltipTimeout);
     clearTimeout(snapAnimationTimeout);
     clearTimeout(toggleAnimationTimeout);
+    clearTimeout(recentItemCountTimeout);
     unfreezeUpdatesCallback?.();
   });
 

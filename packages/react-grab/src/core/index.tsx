@@ -3441,6 +3441,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleRecentItemRemove = (item: RecentItem) => {
+      clearRecentHoverBox();
       recentElementMap.delete(item.id);
       const updatedRecentItems = removeRecentItem(item.id);
       setRecentItems(updatedRecentItems);

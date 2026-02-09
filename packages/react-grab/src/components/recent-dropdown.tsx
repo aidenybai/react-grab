@@ -84,6 +84,13 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
       } else {
         left = anchorPosition.x - dropdownWidth - DROPDOWN_ANCHOR_GAP_PX;
       }
+      left = Math.max(
+        DROPDOWN_VIEWPORT_PADDING_PX,
+        Math.min(
+          left,
+          window.innerWidth - dropdownWidth - DROPDOWN_VIEWPORT_PADDING_PX,
+        ),
+      );
       top = anchorPosition.y - dropdownHeight / 2;
       top = Math.max(
         DROPDOWN_VIEWPORT_PADDING_PX,
@@ -106,6 +113,13 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
       } else {
         top = anchorPosition.y - dropdownHeight - DROPDOWN_ANCHOR_GAP_PX;
       }
+      top = Math.max(
+        DROPDOWN_VIEWPORT_PADDING_PX,
+        Math.min(
+          top,
+          window.innerHeight - dropdownHeight - DROPDOWN_VIEWPORT_PADDING_PX,
+        ),
+      );
     }
 
     return { left, top };
