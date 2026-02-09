@@ -117,6 +117,8 @@ export const createRelayClient = (
     const needsUpgrade = isSecureContext();
 
     let didTriggerUpgrade = false;
+    let consecutiveHttpFailures = 0;
+    const HTTP_FAILURE_THRESHOLD = 3;
 
     const delay = (): Promise<void> =>
       new Promise((resolve) => setTimeout(resolve, UPGRADE_RETRY_DELAY_MS));
@@ -146,6 +148,7 @@ export const createRelayClient = (
       if (!didTriggerUpgrade) {
         const healthResponse = await tryFetch(httpHealthUrl);
         if (healthResponse) {
+          consecutiveHttpFailures = 0;
           if (
             healthResponse.status === "upgrading" ||
             (!healthResponse.secure && needsUpgrade)
@@ -155,13 +158,23 @@ export const createRelayClient = (
             continue;
           }
           if (healthResponse.status === "ok" && healthResponse.secure) return;
+        } else {
+          consecutiveHttpFailures++;
+          if (consecutiveHttpFailures >= HTTP_FAILURE_THRESHOLD) {
+            didTriggerUpgrade = true;
+          }
         }
         await delay();
         continue;
       }
 
       const healthResponse = await tryFetch(httpsHealthUrl);
-      if (healthResponse && healthResponse.status === "ok" && healthResponse.secure) return;
+      if (
+        healthResponse &&
+        healthResponse.status === "ok" &&
+        healthResponse.secure
+      )
+        return;
       await delay();
     }
 

@@ -242,6 +242,7 @@ const connectToExistingRelay = async (
   let isExplicitDisconnect = false;
   let hasConnectedOnce = false;
   const activeSessionIds = new Set<string>();
+  let currentSecure = secure;
 
   const sendData = (data: string): boolean => {
     if (
@@ -279,16 +280,26 @@ const connectToExistingRelay = async (
           type: "agent-error",
           sessionId,
           agentId: handler.agentId,
-          content:
-            error instanceof Error ? error.message : "Unknown error",
+          content: error instanceof Error ? error.message : "Unknown error",
         }),
       );
     }
   };
 
-  const attemptConnection = (): Promise<void> => {
+  const attemptConnection = async (): Promise<void> => {
+    if (hasConnectedOnce) {
+      const healthCheckResult = await checkIfRelayServerIsRunning(
+        port,
+        token,
+        currentSecure,
+      );
+      if (healthCheckResult) {
+        currentSecure = healthCheckResult.isSecure;
+      }
+    }
+
     return new Promise((resolve, reject) => {
-      const webSocketProtocol = secure ? "wss" : "ws";
+      const webSocketProtocol = currentSecure ? "wss" : "ws";
       const connectionUrl = token
         ? `${webSocketProtocol}://localhost:${port}?${RELAY_TOKEN_PARAM}=${encodeURIComponent(token)}`
         : `${webSocketProtocol}://localhost:${port}`;
