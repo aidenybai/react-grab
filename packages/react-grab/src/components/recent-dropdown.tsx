@@ -126,15 +126,9 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
         props.onDismiss?.();
       }
       if (event.code === "Enter" && props.items.length > 0) {
-        const target = event.target as Element;
-        const isWithinDropdown = target.closest(
-          "[data-react-grab-recent-dropdown]",
-        );
-        if (!isWithinDropdown) {
-          event.preventDefault();
-          event.stopPropagation();
-          props.onCopyAll?.();
-        }
+        event.preventDefault();
+        event.stopPropagation();
+        props.onCopyAll?.();
       }
     };
 
@@ -235,7 +229,7 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                     }}
                     onKeyDown={(event) => {
                       if (
-                        (event.code === "Enter" || event.code === "Space") &&
+                        event.code === "Space" &&
                         event.currentTarget === event.target
                       ) {
                         event.preventDefault();
