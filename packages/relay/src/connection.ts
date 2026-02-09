@@ -3,6 +3,7 @@ import fkill from "fkill";
 import type { AgentHandler } from "./protocol.js";
 import {
   DEFAULT_RELAY_PORT,
+  HANDLER_RECONNECT_DELAY_MS,
   HEALTH_CHECK_TIMEOUT_MS,
   POST_KILL_DELAY_MS,
   RELAY_TOKEN_PARAM,
@@ -11,6 +12,14 @@ import { createRelayServer, type RelayServer } from "./server.js";
 import { sleep } from "@react-grab/utils/server";
 
 const VERSION = process.env.VERSION ?? "0.0.0";
+
+const getRelayMessageType = (
+  agentMessageType: string,
+): "agent-status" | "agent-error" | "agent-done" => {
+  if (agentMessageType === "status") return "agent-status";
+  if (agentMessageType === "error") return "agent-error";
+  return "agent-done";
+};
 
 interface ConnectRelayOptions {
   port?: number;
@@ -24,11 +33,16 @@ interface RelayConnection {
   disconnect: () => Promise<void>;
 }
 
+interface HealthCheckResult {
+  isRunning: true;
+  isSecure: boolean;
+}
+
 const checkIfRelayServerIsRunning = async (
   port: number,
   token?: string,
   secure?: boolean,
-): Promise<boolean | { isRunning: true; isSecure: boolean }> => {
+): Promise<false | HealthCheckResult> => {
   const tryProtocol = async (useHttps: boolean): Promise<boolean> => {
     try {
       const httpProtocol = useHttps ? "https" : "http";
@@ -93,13 +107,10 @@ export const connectRelay = async (
     secure,
   );
 
-  const isRelayServerRunning =
-    healthCheckResult === true ||
-    (typeof healthCheckResult === "object" && healthCheckResult.isRunning);
-  const detectedSecure =
-    typeof healthCheckResult === "object"
-      ? healthCheckResult.isSecure
-      : undefined;
+  const isRelayServerRunning = Boolean(healthCheckResult);
+  const detectedSecure = healthCheckResult
+    ? healthCheckResult.isSecure
+    : undefined;
 
   let isSecureMode = secure ?? detectedSecure ?? false;
 
@@ -248,6 +259,33 @@ const connectToExistingRelay = async (
     }
   };
 
+  const sendOperationResult = async (
+    operation: () => Promise<void> | undefined,
+    sessionId: string,
+  ): Promise<void> => {
+    try {
+      await operation();
+      sendData(
+        JSON.stringify({
+          type: "agent-done",
+          sessionId,
+          agentId: handler.agentId,
+          content: "",
+        }),
+      );
+    } catch (error) {
+      sendData(
+        JSON.stringify({
+          type: "agent-error",
+          sessionId,
+          agentId: handler.agentId,
+          content:
+            error instanceof Error ? error.message : "Unknown error",
+        }),
+      );
+    }
+  };
+
   const attemptConnection = (): Promise<void> => {
     return new Promise((resolve, reject) => {
       const webSocketProtocol = secure ? "wss" : "ws";
@@ -272,7 +310,7 @@ const connectToExistingRelay = async (
         if (!isExplicitDisconnect && hasConnectedOnce) {
           setTimeout(() => {
             attemptConnection().catch(() => {});
-          }, 1000);
+          }, HANDLER_RECONNECT_DELAY_MS);
         }
       });
 
@@ -307,12 +345,7 @@ const connectToExistingRelay = async (
                     }
                     sendData(
                       JSON.stringify({
-                        type:
-                          agentMessage.type === "status"
-                            ? "agent-status"
-                            : agentMessage.type === "error"
-                              ? "agent-error"
-                              : "agent-done",
+                        type: getRelayMessageType(agentMessage.type),
                         sessionId,
                         agentId: handler.agentId,
                         content: agentMessage.content,
@@ -353,53 +386,15 @@ const connectToExistingRelay = async (
               } else if (method === "abort") {
                 handler.abort?.(sessionId);
               } else if (method === "undo") {
-                try {
-                  await handler.undo?.();
-                  sendData(
-                    JSON.stringify({
-                      type: "agent-done",
-                      sessionId,
-                      agentId: handler.agentId,
-                      content: "",
-                    }),
-                  );
-                } catch (error) {
-                  sendData(
-                    JSON.stringify({
-                      type: "agent-error",
-                      sessionId,
-                      agentId: handler.agentId,
-                      content:
-                        error instanceof Error
-                          ? error.message
-                          : "Unknown error",
-                    }),
-                  );
-                }
+                await sendOperationResult(
+                  async () => handler.undo?.(),
+                  sessionId,
+                );
               } else if (method === "redo") {
-                try {
-                  await handler.redo?.();
-                  sendData(
-                    JSON.stringify({
-                      type: "agent-done",
-                      sessionId,
-                      agentId: handler.agentId,
-                      content: "",
-                    }),
-                  );
-                } catch (error) {
-                  sendData(
-                    JSON.stringify({
-                      type: "agent-error",
-                      sessionId,
-                      agentId: handler.agentId,
-                      content:
-                        error instanceof Error
-                          ? error.message
-                          : "Unknown error",
-                    }),
-                  );
-                }
+                await sendOperationResult(
+                  async () => handler.redo?.(),
+                  sessionId,
+                );
               }
             }
           } catch {}

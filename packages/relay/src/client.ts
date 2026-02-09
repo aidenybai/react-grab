@@ -11,6 +11,11 @@ import {
   MAX_UPGRADE_RETRIES,
 } from "./protocol.js";
 
+interface HealthCheckResponse {
+  status: string;
+  secure?: boolean;
+}
+
 export interface RelayClient {
   connect: () => Promise<void>;
   disconnect: () => void;
@@ -43,9 +48,12 @@ const getDefaultWebSocketUrl = (): string => {
   return `${protocol}//${window.location.hostname}:${DEFAULT_RELAY_PORT}`;
 };
 
-const getHealthCheckUrl = (wsUrl: string, token?: string): string => {
-  const httpProtocol = wsUrl.startsWith("wss:") ? "https:" : "http:";
-  const url = new URL(wsUrl.replace(/^wss?:/, httpProtocol));
+const buildHealthUrl = (
+  baseWsUrl: string,
+  protocol: "http:" | "https:",
+  token?: string,
+): string => {
+  const url = new URL(baseWsUrl.replace(/^wss?:/, protocol));
   url.pathname = "/health";
   if (isSecureContext()) {
     url.searchParams.set("secure", "true");
@@ -104,34 +112,57 @@ export const createRelayClient = (
   };
 
   const ensureServerReady = async (): Promise<void> => {
-    const healthUrl = getHealthCheckUrl(serverUrl, token);
+    const httpHealthUrl = buildHealthUrl(serverUrl, "http:", token);
+    const httpsHealthUrl = buildHealthUrl(serverUrl, "https:", token);
+    const needsUpgrade = isSecureContext();
+
+    let didTriggerUpgrade = false;
+
+    const delay = (): Promise<void> =>
+      new Promise((resolve) => setTimeout(resolve, UPGRADE_RETRY_DELAY_MS));
+
+    const tryFetch = async (
+      url: string,
+    ): Promise<HealthCheckResponse | null> => {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) return null;
+        return (await response.json()) as HealthCheckResponse;
+      } catch {
+        return null;
+      }
+    };
 
     for (let attempt = 0; attempt < MAX_UPGRADE_RETRIES; attempt++) {
-      try {
-        const response = await fetch(healthUrl);
-        if (!response.ok) {
-          await new Promise((resolve) =>
-            setTimeout(resolve, UPGRADE_RETRY_DELAY_MS),
-          );
-          continue;
-        }
-
-        const data = (await response.json()) as { status: string };
-        if (data.status === "upgrading") {
-          await new Promise((resolve) =>
-            setTimeout(resolve, UPGRADE_RETRY_DELAY_MS),
-          );
-          continue;
-        }
-        return;
-      } catch {
-        if (attempt < MAX_UPGRADE_RETRIES - 1) {
-          await new Promise((resolve) =>
-            setTimeout(resolve, UPGRADE_RETRY_DELAY_MS),
-          );
-          continue;
-        }
+      if (!needsUpgrade) {
+        const healthResponse = await tryFetch(httpHealthUrl);
+        if (healthResponse && healthResponse.status === "ok") return;
+        await delay();
+        continue;
       }
+
+      // HACK: When in a secure context, use HTTP to trigger the upgrade,
+      // then switch to HTTPS once the server has restarted
+      if (!didTriggerUpgrade) {
+        const healthResponse = await tryFetch(httpHealthUrl);
+        if (healthResponse) {
+          if (
+            healthResponse.status === "upgrading" ||
+            (!healthResponse.secure && needsUpgrade)
+          ) {
+            didTriggerUpgrade = true;
+            await delay();
+            continue;
+          }
+          if (healthResponse.status === "ok" && healthResponse.secure) return;
+        }
+        await delay();
+        continue;
+      }
+
+      const healthResponse = await tryFetch(httpsHealthUrl);
+      if (healthResponse && healthResponse.status === "ok" && healthResponse.secure) return;
+      await delay();
     }
 
     throw new Error("Server upgrade timed out after maximum retries");
