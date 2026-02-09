@@ -100,6 +100,7 @@ import type {
   Plugin,
   ToolbarState,
   RecentItem,
+  DropdownAnchor,
 } from "../types.js";
 import { DEFAULT_THEME } from "./theme.js";
 import { createPluginRegistry } from "./plugin-registry.js";
@@ -266,10 +267,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       createSignal(false);
     const [recentItems, setRecentItems] =
       createSignal<RecentItem[]>(loadRecent());
-    const [recentDropdownPosition, setRecentDropdownPosition] = createSignal<{
-      x: number;
-      y: number;
-    } | null>(null);
+    const [recentDropdownPosition, setRecentDropdownPosition] =
+      createSignal<DropdownAnchor | null>(null);
+    let toolbarElement: HTMLDivElement | undefined;
+    let recentPositionFrameId: number | null = null;
     const recentElementMap = new Map<string, Element>();
     const [hasUnreadRecentItems, setHasUnreadRecentItems] = createSignal(false);
     let recentHoverBoxId: string | null = null;
@@ -528,10 +529,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       tagName: string,
       componentName: string | undefined,
       status: SelectionLabelInstance["status"],
-      element?: Element,
-      mouseX?: number,
-      elements?: Element[],
-      boundsMultiple?: OverlayBounds[],
+      options?: {
+        element?: Element;
+        mouseX?: number;
+        elements?: Element[];
+        boundsMultiple?: OverlayBounds[];
+        hideArrow?: boolean;
+      },
     ): string => {
       actions.clearLabelInstances();
       const instanceId = `label-${Date.now()}-${Math.random()
@@ -539,25 +543,27 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         .slice(2)}`;
       const boundsCenterX = bounds.x + bounds.width / 2;
       const boundsHalfWidth = bounds.width / 2;
+      const mouseX = options?.mouseX;
       const mouseXOffset =
         mouseX !== undefined ? mouseX - boundsCenterX : undefined;
 
       const instance: SelectionLabelInstance = {
         id: instanceId,
         bounds,
-        boundsMultiple,
+        boundsMultiple: options?.boundsMultiple,
         tagName,
         componentName,
         status,
         createdAt: Date.now(),
-        element,
-        elements,
+        element: options?.element,
+        elements: options?.elements,
         mouseX,
         mouseXOffsetFromCenter: mouseXOffset,
         mouseXOffsetRatio:
           mouseXOffset !== undefined && boundsHalfWidth > 0
             ? mouseXOffset / boundsHalfWidth
             : undefined,
+        hideArrow: options?.hideArrow,
       };
       actions.addLabelInstance(instance);
       return instanceId;
@@ -632,15 +638,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const instanceId =
         bounds && tagName
-          ? createLabelInstance(
-              bounds,
-              tagName,
-              componentName,
-              "copying",
+          ? createLabelInstance(bounds, tagName, componentName, "copying", {
               element,
-              positionX,
+              mouseX: positionX,
               elements,
-            )
+            })
           : null;
 
       await operation().finally(() => {
@@ -695,6 +697,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
             const primaryElement = copiedElements[0];
             const isComment = Boolean(extraPrompt);
+
             if (primaryElement) {
               const currentItems = recentItems();
               for (const [
@@ -1597,6 +1600,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (isActivated()) {
           deactivateRenderer();
         }
+        dismissRecentDropdown();
         // Clear toggle feedback state to prevent stale state from affecting re-enable
         if (toggleFeedbackTimerId !== null) {
           window.clearTimeout(toggleFeedbackTimerId);
@@ -2040,10 +2044,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         tagName,
         undefined,
         "copying",
-        element ?? undefined,
-        bounds.x + bounds.width / 2,
-        undefined,
-        selectionBoundsArray,
+        {
+          element: element ?? undefined,
+          mouseX: bounds.x + bounds.width / 2,
+          boundsMultiple: selectionBoundsArray,
+        },
       );
 
       isScreenshotInProgress = true;
@@ -3122,10 +3127,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             tagName || "element",
             componentName,
             "copying",
-            element,
-            labelPositionX,
-            hasMultipleElements ? elements : undefined,
-            selectionBoundsForLabel,
+            {
+              element,
+              mouseX: labelPositionX,
+              elements: hasMultipleElements ? elements : undefined,
+              boundsMultiple: selectionBoundsForLabel,
+            },
           );
 
           let didSucceed = false;
@@ -3329,12 +3336,63 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
+    const stopTrackingToolbarPosition = () => {
+      if (recentPositionFrameId !== null) {
+        cancelAnimationFrame(recentPositionFrameId);
+        recentPositionFrameId = null;
+      }
+    };
+
+    const getNearestEdge = (rect: DOMRect): ToolbarState["edge"] => {
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const distanceToTop = centerY;
+      const distanceToBottom = window.innerHeight - centerY;
+      const distanceToLeft = centerX;
+      const distanceToRight = window.innerWidth - centerX;
+      const minimumDistance = Math.min(
+        distanceToTop,
+        distanceToBottom,
+        distanceToLeft,
+        distanceToRight,
+      );
+      if (minimumDistance === distanceToTop) return "top";
+      if (minimumDistance === distanceToLeft) return "left";
+      if (minimumDistance === distanceToRight) return "right";
+      return "bottom";
+    };
+
+    const startTrackingToolbarPosition = () => {
+      stopTrackingToolbarPosition();
+      const updatePosition = () => {
+        if (!toolbarElement) return;
+        const toolbarRect = toolbarElement.getBoundingClientRect();
+        const edge = getNearestEdge(toolbarRect);
+
+        let anchorX: number;
+        let anchorY: number;
+
+        if (edge === "left" || edge === "right") {
+          anchorX = edge === "left" ? toolbarRect.right : toolbarRect.left;
+          anchorY = toolbarRect.top + toolbarRect.height / 2;
+        } else {
+          anchorX = toolbarRect.left + toolbarRect.width / 2;
+          anchorY = edge === "top" ? toolbarRect.bottom : toolbarRect.top;
+        }
+
+        setRecentDropdownPosition({ x: anchorX, y: anchorY, edge });
+        recentPositionFrameId = requestAnimationFrame(updatePosition);
+      };
+      recentPositionFrameId = requestAnimationFrame(updatePosition);
+    };
+
     const dismissRecentDropdown = () => {
+      stopTrackingToolbarPosition();
       clearRecentHoverBox();
       setRecentDropdownPosition(null);
     };
 
-    const handleToggleRecent = (anchorPosition: { x: number; y: number }) => {
+    const handleToggleRecent = () => {
       const isCurrentlyOpen = recentDropdownPosition() !== null;
       if (isCurrentlyOpen) {
         dismissRecentDropdown();
@@ -3342,7 +3400,23 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.hideContextMenu();
         setRecentItems(loadRecent());
         setHasUnreadRecentItems(false);
-        setRecentDropdownPosition(anchorPosition);
+        startTrackingToolbarPosition();
+      }
+    };
+
+    const copyRecentItemContent = (item: RecentItem) => {
+      copyContent(item.content, { name: item.elementName });
+      const element = recentElementMap.get(item.id);
+      if (element && isElementConnected(element)) {
+        const bounds = createElementBounds(element);
+        const instanceId = createLabelInstance(
+          bounds,
+          item.tagName,
+          item.componentName,
+          "copied",
+          { element, mouseX: bounds.x + bounds.width / 2 },
+        );
+        scheduleLabelFade(instanceId);
       }
     };
 
@@ -3362,25 +3436,26 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           copyContent(item.content, { name: item.elementName });
         }
       } else {
-        copyContent(item.content, { name: item.elementName });
-        if (element && isElementConnected(element)) {
-          const bounds = createElementBounds(element);
-          const instanceId = createLabelInstance(
-            bounds,
-            item.tagName,
-            item.componentName,
-            "copied",
-            element,
-            bounds.x + bounds.width / 2,
-          );
-          scheduleLabelFade(instanceId);
-        }
+        copyRecentItemContent(item);
+      }
+    };
+
+    const handleRecentItemRemove = (item: RecentItem) => {
+      clearRecentHoverBox();
+      recentElementMap.delete(item.id);
+      const updatedRecentItems = removeRecentItem(item.id);
+      setRecentItems(updatedRecentItems);
+      if (updatedRecentItems.length === 0) {
+        setHasUnreadRecentItems(false);
+        dismissRecentDropdown();
       }
     };
 
     const handleRecentCopyAll = () => {
       const currentRecentItems = recentItems();
       if (currentRecentItems.length === 0) return;
+      const dropdownAnchor = recentDropdownPosition();
+
       const combinedContent = currentRecentItems
         .map(
           (recentItem, index) =>
@@ -3389,6 +3464,23 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         .join("\n\n");
       copyContent(combinedContent, { name: "recent" });
       dismissRecentDropdown();
+
+      if (dropdownAnchor) {
+        const anchorBounds = createFlatOverlayBounds({
+          x: dropdownAnchor.x - 1,
+          y: dropdownAnchor.y - 1,
+          width: 2,
+          height: 2,
+        });
+        const instanceId = createLabelInstance(
+          anchorBounds,
+          `${currentRecentItems.length} items`,
+          undefined,
+          "copied",
+          { mouseX: dropdownAnchor.x, hideArrow: true },
+        );
+        scheduleLabelFade(instanceId);
+      }
     };
 
     const handleRecentItemHover = (recentItemId: string | null) => {
@@ -3580,6 +3672,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               };
             }}
             onToolbarSelectHoverChange={setIsToolbarSelectHovered}
+            onToolbarRef={(element) => {
+              toolbarElement = element;
+            }}
             contextMenuPosition={contextMenuPosition()}
             contextMenuBounds={contextMenuBounds()}
             contextMenuTagName={contextMenuTagName()}
@@ -3595,6 +3690,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             recentDropdownPosition={recentDropdownPosition()}
             onToggleRecent={handleToggleRecent}
             onRecentItemSelect={handleRecentItemSelect}
+            onRecentItemRemove={handleRecentItemRemove}
+            onRecentItemCopy={copyRecentItemContent}
             onRecentItemHover={handleRecentItemHover}
             onRecentCopyAll={handleRecentCopyAll}
             onRecentClear={handleRecentClear}
@@ -3724,6 +3821,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
       dispose: () => {
         hasInited = false;
+        stopTrackingToolbarPosition();
         toolbarStateChangeCallbacks.clear();
         dispose();
       },

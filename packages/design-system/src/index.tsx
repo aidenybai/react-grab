@@ -2805,6 +2805,7 @@ const StateCard = (props: StateCardProps) => {
                   ? {
                       x: props.getBounds()!.x + props.getBounds()!.width / 2,
                       y: props.getBounds()!.y + props.getBounds()!.height,
+                      edge: "top",
                     }
                   : null
               }

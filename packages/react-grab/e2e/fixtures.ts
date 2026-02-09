@@ -2,7 +2,7 @@ import { test as base, expect, Page, Locator } from "@playwright/test";
 
 const ATTRIBUTE_NAME = "data-react-grab";
 const DEFAULT_KEY_HOLD_DURATION_MS = 200;
-const ACTIVATION_BUFFER_MS = 100;
+const ACTIVATION_BUFFER_MS = 200;
 const MODIFIER_KEY = process.platform === "darwin" ? "Meta" : "Control";
 
 interface ContextMenuInfo {
@@ -134,9 +134,15 @@ export interface ReactGrabPageObject {
   isRecentDropdownVisible: () => Promise<boolean>;
   getRecentDropdownInfo: () => Promise<RecentDropdownInfo>;
   clickRecentItem: (index: number) => Promise<void>;
+  clickRecentItemRemove: (index: number) => Promise<void>;
+  clickRecentItemCopy: (index: number) => Promise<void>;
   clickRecentCopyAll: () => Promise<void>;
   clickRecentClear: () => Promise<void>;
   hoverRecentItem: (index: number) => Promise<void>;
+  getRecentDropdownPosition: () => Promise<{
+    left: number;
+    top: number;
+  } | null>;
 
   getSelectionLabelInfo: () => Promise<SelectionLabelInfo>;
   getSelectionLabelBounds: () => Promise<SelectionLabelBounds | null>;
@@ -970,6 +976,46 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     await waitForRecentDropdown(false);
   };
 
+  const clickRecentItemRemove = async (index: number) => {
+    await page.evaluate(
+      ({ attrName, itemIndex }) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const shadowRoot = host?.shadowRoot;
+        if (!shadowRoot) return;
+        const root = shadowRoot.querySelector(`[${attrName}]`);
+        if (!root) return;
+        const items = root.querySelectorAll("[data-react-grab-recent-item]");
+        const item = items[itemIndex];
+        if (!item) return;
+        const removeButton = item.querySelector<HTMLButtonElement>(
+          "[data-react-grab-recent-item-remove]",
+        );
+        removeButton?.click();
+      },
+      { attrName: ATTRIBUTE_NAME, itemIndex: index },
+    );
+  };
+
+  const clickRecentItemCopy = async (index: number) => {
+    await page.evaluate(
+      ({ attrName, itemIndex }) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const shadowRoot = host?.shadowRoot;
+        if (!shadowRoot) return;
+        const root = shadowRoot.querySelector(`[${attrName}]`);
+        if (!root) return;
+        const items = root.querySelectorAll("[data-react-grab-recent-item]");
+        const item = items[itemIndex];
+        if (!item) return;
+        const copyButton = item.querySelector<HTMLButtonElement>(
+          "[data-react-grab-recent-item-copy]",
+        );
+        copyButton?.click();
+      },
+      { attrName: ATTRIBUTE_NAME, itemIndex: index },
+    );
+  };
+
   const clickRecentCopyAll = async () => {
     await clickShadowRootButton("[data-react-grab-recent-copy-all]");
     await waitForRecentDropdown(false);
@@ -1008,6 +1054,27 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       );
       await page.waitForTimeout(100);
     }
+  };
+
+  const getRecentDropdownPosition = async (): Promise<{
+    left: number;
+    top: number;
+  } | null> => {
+    return page.evaluate((attrName) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      if (!shadowRoot) return null;
+      const root = shadowRoot.querySelector(`[${attrName}]`);
+      if (!root) return null;
+      const dropdown = root.querySelector<HTMLElement>(
+        "[data-react-grab-recent-dropdown]",
+      );
+      if (!dropdown) return null;
+      return {
+        left: parseFloat(dropdown.style.left),
+        top: parseFloat(dropdown.style.top),
+      };
+    }, ATTRIBUTE_NAME);
   };
 
   const getSelectionLabelInfo = async (): Promise<SelectionLabelInfo> => {
@@ -2069,9 +2136,12 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     isRecentDropdownVisible,
     getRecentDropdownInfo,
     clickRecentItem,
+    clickRecentItemRemove,
+    clickRecentItemCopy,
     clickRecentCopyAll,
     clickRecentClear,
     hoverRecentItem,
+    getRecentDropdownPosition,
 
     getSelectionLabelInfo,
     getSelectionLabelBounds,

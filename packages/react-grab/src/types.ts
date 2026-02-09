@@ -385,6 +385,12 @@ export interface ToolbarState {
   enabled: boolean;
 }
 
+export interface DropdownAnchor {
+  x: number;
+  y: number;
+  edge: ToolbarState["edge"];
+}
+
 export interface ReactGrabAPI {
   activate: () => void;
   deactivate: () => void;
@@ -439,6 +445,7 @@ export interface SelectionLabelInstance {
   mouseXOffsetFromCenter?: number;
   mouseXOffsetRatio?: number;
   errorMessage?: string;
+  hideArrow?: boolean;
 }
 
 export interface RecentItem {
@@ -519,6 +526,7 @@ export interface ReactGrabRendererProps {
     callback: (state: ToolbarState) => void,
   ) => () => void;
   onToolbarSelectHoverChange?: (isHovered: boolean) => void;
+  onToolbarRef?: (element: HTMLDivElement) => void;
   contextMenuPosition?: { x: number; y: number } | null;
   contextMenuBounds?: OverlayBounds | null;
   contextMenuTagName?: string;
@@ -531,9 +539,11 @@ export interface ReactGrabRendererProps {
   recentItems?: RecentItem[];
   recentItemCount?: number;
   hasUnreadRecentItems?: boolean;
-  recentDropdownPosition?: { x: number; y: number } | null;
-  onToggleRecent?: (anchorPosition: { x: number; y: number }) => void;
+  recentDropdownPosition?: DropdownAnchor | null;
+  onToggleRecent?: () => void;
   onRecentItemSelect?: (item: RecentItem) => void;
+  onRecentItemRemove?: (item: RecentItem) => void;
+  onRecentItemCopy?: (item: RecentItem) => void;
   onRecentItemHover?: (recentItemId: string | null) => void;
   onRecentCopyAll?: () => void;
   onRecentClear?: () => void;
@@ -652,4 +662,5 @@ export interface SelectionLabelProps {
   isContextMenuOpen?: boolean;
   onShowContextMenu?: () => void;
   onHoverChange?: (isHovered: boolean) => void;
+  hideArrow?: boolean;
 }

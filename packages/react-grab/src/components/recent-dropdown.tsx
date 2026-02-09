@@ -7,21 +7,29 @@ import {
   createEffect,
 } from "solid-js";
 import type { Component } from "solid-js";
-import type { RecentItem } from "../types.js";
+import type { RecentItem, DropdownAnchor } from "../types.js";
 import {
   DROPDOWN_ANCHOR_GAP_PX,
+  DROPDOWN_ICON_SIZE_PX,
   DROPDOWN_VIEWPORT_PADDING_PX,
   PANEL_STYLES,
 } from "../constants.js";
+import { clampToViewport } from "../utils/clamp-to-viewport.js";
 import { cn } from "../utils/cn.js";
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
+import { IconTrash } from "./icons/icon-trash.jsx";
+import { IconCopy } from "./icons/icon-copy.jsx";
 
 const DEFAULT_OFFSCREEN_POSITION = { left: -9999, top: -9999 };
+const ITEM_ACTION_CLASS =
+  "flex items-center justify-center cursor-pointer text-black/25 transition-colors press-scale";
 
 interface RecentDropdownProps {
-  position: { x: number; y: number } | null;
+  position: DropdownAnchor | null;
   items: RecentItem[];
   onSelectItem?: (item: RecentItem) => void;
+  onRemoveItem?: (item: RecentItem) => void;
+  onCopyItem?: (item: RecentItem) => void;
   onItemHover?: (recentItemId: string | null) => void;
   onCopyAll?: () => void;
   onClearAll?: () => void;
@@ -61,30 +69,33 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
   });
 
   const computedPosition = () => {
-    const anchorPosition = props.position;
-    const dropdownWidth = measuredWidth();
-    const dropdownHeight = measuredHeight();
+    const anchor = props.position;
+    const width = measuredWidth();
+    const height = measuredHeight();
 
-    if (!anchorPosition || dropdownWidth === 0 || dropdownHeight === 0) {
+    if (!anchor || width === 0 || height === 0) {
       return DEFAULT_OFFSCREEN_POSITION;
     }
 
-    let left = anchorPosition.x - dropdownWidth / 2;
-    left = Math.max(
-      DROPDOWN_VIEWPORT_PADDING_PX,
-      Math.min(
-        left,
-        window.innerWidth - dropdownWidth - DROPDOWN_VIEWPORT_PADDING_PX,
-      ),
-    );
+    const { edge } = anchor;
+    const isHorizontalEdge = edge === "left" || edge === "right";
 
-    const wouldOverflowTop =
-      anchorPosition.y - dropdownHeight - DROPDOWN_ANCHOR_GAP_PX < 0;
-    const top = wouldOverflowTop
-      ? anchorPosition.y + DROPDOWN_ANCHOR_GAP_PX
-      : anchorPosition.y - dropdownHeight - DROPDOWN_ANCHOR_GAP_PX;
+    const rawLeft = isHorizontalEdge
+      ? edge === "left"
+        ? anchor.x + DROPDOWN_ANCHOR_GAP_PX
+        : anchor.x - width - DROPDOWN_ANCHOR_GAP_PX
+      : anchor.x - width / 2;
 
-    return { left, top };
+    const rawTop = isHorizontalEdge
+      ? anchor.y - height / 2
+      : edge === "top"
+        ? anchor.y + DROPDOWN_ANCHOR_GAP_PX
+        : anchor.y - height - DROPDOWN_ANCHOR_GAP_PX;
+
+    return {
+      left: clampToViewport(rawLeft, width, window.innerWidth, DROPDOWN_VIEWPORT_PADDING_PX),
+      top: clampToViewport(rawTop, height, window.innerHeight, DROPDOWN_VIEWPORT_PADDING_PX),
+    };
   };
 
   const handleMenuEvent = (event: Event) => {
@@ -175,28 +186,24 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                 <button
                   data-react-grab-ignore-events
                   data-react-grab-recent-clear
-                  class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[#FEF2F2] cursor-pointer transition-all hover:bg-[#FEE2E2] press-scale h-[17px]"
+                  class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[#FEF2F2] cursor-pointer transition-all hover:bg-[#FEE2E2] press-scale h-[17px] text-[#B91C1C]"
                   onClick={(event) => {
                     event.stopPropagation();
                     props.onClearAll?.();
                   }}
                 >
-                  <span class="text-[#B91C1C] text-[13px] leading-3.5 font-sans font-medium">
-                    Clear
-                  </span>
+                  <IconTrash size={DROPDOWN_ICON_SIZE_PX} />
                 </button>
                 <button
                   data-react-grab-ignore-events
                   data-react-grab-recent-copy-all
-                  class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] press-scale h-[17px]"
+                  class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] press-scale h-[17px] text-black/60"
                   onClick={(event) => {
                     event.stopPropagation();
                     props.onCopyAll?.();
                   }}
                 >
-                  <span class="text-black text-[13px] leading-3.5 font-sans font-medium">
-                    Copy all
-                  </span>
+                  <IconCopy size={DROPDOWN_ICON_SIZE_PX} />
                   <span class="text-[11px] font-sans text-black/50">↵</span>
                 </button>
               </div>
@@ -210,14 +217,25 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
             >
               <For each={props.items}>
                 {(item) => (
-                  <button
+                  <div
                     data-react-grab-ignore-events
                     data-react-grab-recent-item
-                    class="contain-layout flex items-start justify-between w-full px-2 py-1 cursor-pointer transition-colors hover:bg-black/5 text-left border-none bg-transparent gap-2"
+                    class="group contain-layout flex items-start justify-between w-full px-2 py-1 cursor-pointer transition-colors hover:bg-black/5 focus-within:bg-black/5 text-left gap-2"
+                    tabindex="0"
                     onPointerDown={(event) => event.stopPropagation()}
                     onClick={(event) => {
                       event.stopPropagation();
                       props.onSelectItem?.(item);
+                    }}
+                    onKeyDown={(event) => {
+                      if (
+                        event.code === "Space" &&
+                        event.currentTarget === event.target
+                      ) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        props.onSelectItem?.(item);
+                      }
                     }}
                     onMouseEnter={() => props.onItemHover?.(item.id)}
                     onMouseLeave={() => props.onItemHover?.(null)}
@@ -232,10 +250,36 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                         </span>
                       </Show>
                     </span>
-                    <span class="text-[10px] font-sans text-black/25 shrink-0 mt-0.5">
-                      {formatRelativeTime(item.timestamp)}
+                    <span class="shrink-0 grid mt-0.5">
+                      <span class="text-[10px] font-sans text-black/25 group-hover:invisible group-focus-within:invisible [grid-area:1/1] flex items-center justify-end">
+                        {formatRelativeTime(item.timestamp)}
+                      </span>
+                      <span class="invisible group-hover:visible group-focus-within:visible [grid-area:1/1] flex items-center justify-end gap-1.5">
+                        <button
+                          data-react-grab-ignore-events
+                          data-react-grab-recent-item-remove
+                          class={cn(ITEM_ACTION_CLASS, "hover:text-[#B91C1C]")}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            props.onRemoveItem?.(item);
+                          }}
+                        >
+                          <IconTrash size={DROPDOWN_ICON_SIZE_PX} />
+                        </button>
+                        <button
+                          data-react-grab-ignore-events
+                          data-react-grab-recent-item-copy
+                          class={cn(ITEM_ACTION_CLASS, "hover:text-black/60")}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            props.onCopyItem?.(item);
+                          }}
+                        >
+                          <IconCopy size={DROPDOWN_ICON_SIZE_PX} />
+                        </button>
+                      </span>
                     </span>
-                  </button>
+                  </div>
                 )}
               </For>
             </div>

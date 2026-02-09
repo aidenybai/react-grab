@@ -58,9 +58,10 @@ interface ToolbarProps {
     callback: (state: ToolbarState) => void,
   ) => () => void;
   onSelectHoverChange?: (isHovered: boolean) => void;
+  onContainerRef?: (element: HTMLDivElement) => void;
   recentItemCount?: number;
   hasUnreadRecentItems?: boolean;
-  onToggleRecent?: (anchorPosition: { x: number; y: number }) => void;
+  onToggleRecent?: () => void;
 }
 
 export const Toolbar: Component<ToolbarProps> = (props) => {
@@ -92,7 +93,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [isToggleAnimating, setIsToggleAnimating] = createSignal(false);
   const [isRecentTooltipVisible, setIsRecentTooltipVisible] =
     createSignal(false);
-  let recentButtonRef: HTMLButtonElement | undefined;
 
   const recentTooltipLabel = () => {
     const count = props.recentItemCount ?? 0;
@@ -188,6 +188,103 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           unfreezeUpdatesCallback = null;
         }
       },
+    ),
+  );
+
+  const reclampToolbarToViewport = () => {
+    if (!containerRef) return;
+    const rect = containerRef.getBoundingClientRect();
+    expandedDimensions = { width: rect.width, height: rect.height };
+
+    const currentPos = position();
+    const viewport = getVisualViewport();
+    const edge = snapEdge();
+    let clampedX = currentPos.x;
+    let clampedY = currentPos.y;
+
+    if (edge === "top" || edge === "bottom") {
+      const minX = viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX;
+      const maxX = Math.max(
+        minX,
+        viewport.offsetLeft +
+          viewport.width -
+          rect.width -
+          TOOLBAR_SNAP_MARGIN_PX,
+      );
+      clampedX = clampToViewport(currentPos.x, minX, maxX);
+      clampedY =
+        edge === "top"
+          ? viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX
+          : viewport.offsetTop +
+            viewport.height -
+            rect.height -
+            TOOLBAR_SNAP_MARGIN_PX;
+    } else {
+      const minY = viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX;
+      const maxY = Math.max(
+        minY,
+        viewport.offsetTop +
+          viewport.height -
+          rect.height -
+          TOOLBAR_SNAP_MARGIN_PX,
+      );
+      clampedY = clampToViewport(currentPos.y, minY, maxY);
+      clampedX =
+        edge === "left"
+          ? viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX
+          : viewport.offsetLeft +
+            viewport.width -
+            rect.width -
+            TOOLBAR_SNAP_MARGIN_PX;
+    }
+
+    const newRatio = getRatioFromPosition(
+      edge,
+      clampedX,
+      clampedY,
+      rect.width,
+      rect.height,
+    );
+    setPositionRatio(newRatio);
+
+    const didPositionChange =
+      clampedX !== currentPos.x || clampedY !== currentPos.y;
+    if (didPositionChange) {
+      setIsCollapseAnimating(true);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setPosition({ x: clampedX, y: clampedY });
+          if (collapseAnimationTimeout) {
+            clearTimeout(collapseAnimationTimeout);
+          }
+          collapseAnimationTimeout = setTimeout(() => {
+            setIsCollapseAnimating(false);
+          }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
+        });
+      });
+    }
+  };
+
+  createEffect(
+    on(
+      () => props.recentItemCount ?? 0,
+      () => {
+        if (isCollapsed()) return;
+        // HACK: Wait for grid-cols CSS transition to complete, then re-measure and clamp to viewport
+        if (recentItemCountTimeout) {
+          clearTimeout(recentItemCountTimeout);
+        }
+        recentItemCountTimeout = setTimeout(
+          reclampToolbarToViewport,
+          TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS,
+        );
+        onCleanup(() => {
+          if (recentItemCountTimeout) {
+            clearTimeout(recentItemCountTimeout);
+          }
+        });
+      },
+      { defer: true },
     ),
   );
 
@@ -412,14 +509,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const handleComment = createDragAwareHandler(() => props.onComment?.());
 
-  const handleRecent = createDragAwareHandler(() => {
-    const buttonRect = recentButtonRef?.getBoundingClientRect();
-    if (buttonRect) {
-      const anchorX = buttonRect.left + buttonRect.width / 2;
-      const anchorY = snapEdge() === "top" ? buttonRect.bottom : buttonRect.top;
-      props.onToggleRecent?.({ x: anchorX, y: anchorY });
-    }
-  });
+  const handleRecent = createDragAwareHandler(() => props.onToggleRecent?.());
 
   const handleToggleCollapse = createDragAwareHandler(() => {
     const rect = containerRef?.getBoundingClientRect();
@@ -822,6 +912,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   let collapseAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
   let snapAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
   let toggleAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
+  let recentItemCountTimeout: ReturnType<typeof setTimeout> | undefined;
 
   const handleResize = () => {
     if (isDragging()) return;
@@ -859,6 +950,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   };
 
   onMount(() => {
+    if (containerRef) {
+      props.onContainerRef?.(containerRef);
+    }
+
     const savedState = loadToolbarState();
     const rect = containerRef?.getBoundingClientRect();
     const viewport = getVisualViewport();
@@ -988,6 +1083,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     clearTimeout(shakeTooltipTimeout);
     clearTimeout(snapAnimationTimeout);
     clearTimeout(toggleAnimationTimeout);
+    clearTimeout(recentItemCountTimeout);
     unfreezeUpdatesCallback?.();
   });
 
@@ -1203,7 +1299,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                 <div class="relative overflow-visible min-w-0">
                   {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
                   <button
-                    ref={recentButtonRef}
                     data-react-grab-ignore-events
                     data-react-grab-toolbar-recent
                     class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5"

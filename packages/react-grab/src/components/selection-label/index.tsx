@@ -220,7 +220,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     const selectionBottom = bounds.y + bounds.height;
     const selectionTop = bounds.y;
 
-    const actualArrowHeight = getArrowSize(panelWidth());
+    const actualArrowHeight = props.hideArrow ? 0 : getArrowSize(panelWidth());
 
     // HACK: Use cursorX as anchor point, CSS transform handles centering via translateX(-50%)
     // This avoids the flicker when content changes because centering doesn't depend on JS measurement
@@ -377,12 +377,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         onMouseEnter={() => props.onHoverChange?.(true)}
         onMouseLeave={() => props.onHoverChange?.(false)}
       >
-        <Arrow
-          position={arrowPosition()}
-          leftPercent={computedPosition().arrowLeftPercent}
-          leftOffsetPx={computedPosition().arrowLeftOffset}
-          labelWidth={panelWidth()}
-        />
+        <Show when={!props.hideArrow}>
+          <Arrow
+            position={arrowPosition()}
+            leftPercent={computedPosition().arrowLeftPercent}
+            leftOffsetPx={computedPosition().arrowLeftOffset}
+            labelWidth={panelWidth()}
+          />
+        </Show>
 
         <Show when={isCompletedStatus() && !props.error}>
           <CompletionView
