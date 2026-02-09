@@ -15,7 +15,6 @@ import {
 } from "../constants.js";
 import { cn } from "../utils/cn.js";
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
-import { IconComment } from "./icons/icon-comment.jsx";
 
 const DEFAULT_OFFSCREEN_POSITION = { left: -9999, top: -9999 };
 
@@ -213,6 +212,7 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                 {(item) => (
                   <button
                     data-react-grab-ignore-events
+                    data-react-grab-recent-item
                     class="contain-layout flex items-start justify-between w-full px-2 py-1 cursor-pointer transition-colors hover:bg-black/5 text-left border-none bg-transparent gap-2"
                     onPointerDown={(event) => event.stopPropagation()}
                     onClick={(event) => {
@@ -223,19 +223,11 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                     onMouseLeave={() => props.onItemHover?.(null)}
                   >
                     <span class="flex flex-col min-w-0 flex-1">
-                      <span class="flex items-center gap-1 text-[12px] leading-4 font-sans font-medium text-black truncate">
-                        <Show when={item.isComment}>
-                          <IconComment
-                            size={12}
-                            class="text-black/40 shrink-0"
-                          />
-                        </Show>
-                        <span class="truncate min-w-0">
-                          {item.componentName ?? item.tagName}
-                        </span>
+                      <span class="text-[12px] leading-4 font-sans font-medium text-black truncate">
+                        {item.componentName ?? item.tagName}
                       </span>
                       <Show when={item.commentText}>
-                        <span class="text-[11px] leading-3 font-sans text-black/40 truncate mt-0.5 pl-4">
+                        <span class="text-[11px] leading-3 font-sans text-black/40 truncate mt-0.5">
                           {item.commentText}
                         </span>
                       </Show>

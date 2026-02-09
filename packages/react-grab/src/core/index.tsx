@@ -661,11 +661,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
     };
 
-    const copyWithFallback = (elements: Element[], extraPrompt?: string) => {
+    const copyWithFallback = (elements: Element[], extraPrompt?: string, resolvedComponentName?: string) => {
       const firstElement = elements[0];
-      const componentName = firstElement
-        ? getComponentDisplayName(firstElement)
-        : null;
+      const componentName = resolvedComponentName
+        ?? (firstElement ? getComponentDisplayName(firstElement) : null);
       const tagName = firstElement ? getTagName(firstElement) : null;
       const elementName = componentName ?? tagName ?? undefined;
 
@@ -737,6 +736,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const copyElementsToClipboard = async (
       targetElements: Element[],
       extraPrompt?: string,
+      resolvedComponentName?: string,
     ): Promise<void> => {
       if (targetElements.length === 0) return;
 
@@ -747,7 +747,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
       }
       await new Promise((resolve) => requestAnimationFrame(resolve));
-      await copyWithFallback(targetElements, extraPrompt);
+      await copyWithFallback(targetElements, extraPrompt, resolvedComponentName);
       void notifyElementsSelected(targetElements);
     };
 
@@ -797,7 +797,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         void executeCopyOperation(
           labelPositionX,
           positionY,
-          () => copyElementsToClipboard(allElements, extraPrompt),
+          () => copyElementsToClipboard(allElements, extraPrompt, componentName ?? undefined),
           overlayBounds,
           tagName,
           componentName ?? undefined,

@@ -902,19 +902,23 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     );
   };
 
+  const clickShadowRootButton = async (selector: string) => {
+    await page.evaluate(
+      ({ attrName, buttonSelector }) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const shadowRoot = host?.shadowRoot;
+        if (!shadowRoot) return;
+        const root = shadowRoot.querySelector(`[${attrName}]`);
+        if (!root) return;
+        root.querySelector<HTMLButtonElement>(buttonSelector)?.click();
+      },
+      { attrName: ATTRIBUTE_NAME, buttonSelector: selector },
+    );
+  };
+
   const clickRecentButton = async () => {
     const wasOpen = await isRecentDropdownVisible();
-    await page.evaluate((attrName) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      if (!shadowRoot) return;
-      const root = shadowRoot.querySelector(`[${attrName}]`);
-      if (!root) return;
-      const recentButton = root.querySelector<HTMLButtonElement>(
-        "[data-react-grab-toolbar-recent]",
-      );
-      recentButton?.click();
-    }, ATTRIBUTE_NAME);
+    await clickShadowRootButton("[data-react-grab-toolbar-recent]");
     await waitForRecentDropdown(!wasOpen);
   };
 
@@ -936,28 +940,18 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     return page.evaluate((attrName) => {
       const host = document.querySelector(`[${attrName}]`);
       const shadowRoot = host?.shadowRoot;
-      if (!shadowRoot)
-        return { isVisible: false, itemCount: 0 };
+      if (!shadowRoot) return { isVisible: false, itemCount: 0 };
       const root = shadowRoot.querySelector(`[${attrName}]`);
-      if (!root)
-        return { isVisible: false, itemCount: 0 };
-
+      if (!root) return { isVisible: false, itemCount: 0 };
       const dropdown = root.querySelector(
         "[data-react-grab-recent-dropdown]",
       );
-      if (!dropdown)
-        return { isVisible: false, itemCount: 0 };
-
-      const allButtons = Array.from(dropdown.querySelectorAll("button"));
-      const itemButtons = allButtons.filter(
-        (btn) =>
-          !btn.hasAttribute("data-react-grab-recent-clear") &&
-          !btn.hasAttribute("data-react-grab-recent-copy-all"),
-      );
+      if (!dropdown) return { isVisible: false, itemCount: 0 };
 
       return {
         isVisible: true,
-        itemCount: itemButtons.length,
+        itemCount: dropdown.querySelectorAll("[data-react-grab-recent-item]")
+          .length,
       };
     }, ATTRIBUTE_NAME);
   };
@@ -970,18 +964,10 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         if (!shadowRoot) return;
         const root = shadowRoot.querySelector(`[${attrName}]`);
         if (!root) return;
-        const dropdown = root.querySelector(
-          "[data-react-grab-recent-dropdown]",
+        const items = root.querySelectorAll<HTMLButtonElement>(
+          "[data-react-grab-recent-item]",
         );
-        if (!dropdown) return;
-        const allButtons = Array.from(dropdown.querySelectorAll("button"));
-        const itemButtons = allButtons.filter(
-          (btn) =>
-            !btn.hasAttribute("data-react-grab-recent-clear") &&
-            !btn.hasAttribute("data-react-grab-recent-copy-all"),
-        );
-        const button = itemButtons[itemIndex] as HTMLButtonElement | undefined;
-        button?.click();
+        items[itemIndex]?.click();
       },
       { attrName: ATTRIBUTE_NAME, itemIndex: index },
     );
@@ -989,32 +975,12 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   };
 
   const clickRecentCopyAll = async () => {
-    await page.evaluate((attrName) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      if (!shadowRoot) return;
-      const root = shadowRoot.querySelector(`[${attrName}]`);
-      if (!root) return;
-      const copyAllButton = root.querySelector<HTMLButtonElement>(
-        "[data-react-grab-recent-copy-all]",
-      );
-      copyAllButton?.click();
-    }, ATTRIBUTE_NAME);
+    await clickShadowRootButton("[data-react-grab-recent-copy-all]");
     await waitForRecentDropdown(false);
   };
 
   const clickRecentClear = async () => {
-    await page.evaluate((attrName) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      if (!shadowRoot) return;
-      const root = shadowRoot.querySelector(`[${attrName}]`);
-      if (!root) return;
-      const clearButton = root.querySelector<HTMLButtonElement>(
-        "[data-react-grab-recent-clear]",
-      );
-      clearButton?.click();
-    }, ATTRIBUTE_NAME);
+    await clickShadowRootButton("[data-react-grab-recent-clear]");
     await waitForRecentDropdown(false);
   };
 
@@ -1026,17 +992,8 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         if (!shadowRoot) return null;
         const root = shadowRoot.querySelector(`[${attrName}]`);
         if (!root) return null;
-        const dropdown = root.querySelector(
-          "[data-react-grab-recent-dropdown]",
-        );
-        if (!dropdown) return null;
-        const allButtons = Array.from(dropdown.querySelectorAll("button"));
-        const itemButtons = allButtons.filter(
-          (btn) =>
-            !btn.hasAttribute("data-react-grab-recent-clear") &&
-            !btn.hasAttribute("data-react-grab-recent-copy-all"),
-        );
-        const button = itemButtons[itemIndex];
+        const items = root.querySelectorAll("[data-react-grab-recent-item]");
+        const button = items[itemIndex];
         if (!button) return null;
         const rect = button.getBoundingClientRect();
         return {
