@@ -99,6 +99,7 @@ import type {
   SourceInfo,
   Plugin,
   ToolbarState,
+  RecentItem,
 } from "../types.js";
 import { DEFAULT_THEME } from "./theme.js";
 import { createPluginRegistry } from "./plugin-registry.js";
@@ -134,6 +135,13 @@ import {
   unfreezePseudoStates,
 } from "../utils/freeze-pseudo-states.js";
 import { freezeUpdates } from "../utils/freeze-updates.js";
+import {
+  loadRecent,
+  addRecentItem,
+  removeRecentItem,
+  clearRecent,
+} from "../utils/recent-storage.js";
+import { copyContent } from "../utils/copy-content.js";
 
 const builtInPlugins = [
   copyPlugin,
@@ -256,6 +264,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       createSignal<ToolbarState | null>(savedToolbarState);
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] =
       createSignal(false);
+    const [recentItems, setRecentItems] =
+      createSignal<RecentItem[]>(loadRecent());
+    const [recentDropdownPosition, setRecentDropdownPosition] = createSignal<{
+      x: number;
+      y: number;
+    } | null>(null);
+    const recentElementMap = new Map<string, Element>();
+    const [hasUnreadRecentItems, setHasUnreadRecentItems] = createSignal(false);
+    let recentHoverBoxId: string | null = null;
+    let recentHoverLabelId: string | null = null;
 
     const pendingAbortSessionId = createMemo(() => store.pendingAbortSessionId);
 
@@ -325,20 +343,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       previouslyHoldingKeys = currentlyHolding;
     });
 
-    const elementInputCache = new WeakMap<Element, string>();
-
-    const loadCachedInput = (element: Element) => {
-      const cachedInput = elementInputCache.get(element);
-      actions.setInputText(cachedInput ?? "");
-    };
-
     const preparePromptMode = (
       element: Element,
       positionX: number,
       positionY: number,
     ) => {
       setCopyStartPosition(element, positionX, positionY);
-      loadCachedInput(element);
+      actions.clearInputText();
     };
 
     const activatePromptMode = () => {
@@ -656,11 +667,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
     };
 
-    const copyWithFallback = (elements: Element[], extraPrompt?: string) => {
+    const copyWithFallback = (
+      elements: Element[],
+      extraPrompt?: string,
+      resolvedComponentName?: string,
+    ) => {
       const firstElement = elements[0];
-      const componentName = firstElement
-        ? getComponentDisplayName(firstElement)
-        : null;
+      const componentName =
+        resolvedComponentName ??
+        (firstElement ? getComponentDisplayName(firstElement) : null);
       const tagName = firstElement ? getTagName(firstElement) : null;
       const elementName = componentName ?? tagName ?? undefined;
 
@@ -675,7 +690,61 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           transformSnippet: pluginRegistry.hooks.transformSnippet,
           transformCopyContent: pluginRegistry.hooks.transformCopyContent,
           onAfterCopy: pluginRegistry.hooks.onAfterCopy,
-          onCopySuccess: pluginRegistry.hooks.onCopySuccess,
+          onCopySuccess: (copiedElements: Element[], content: string) => {
+            pluginRegistry.hooks.onCopySuccess(copiedElements, content);
+
+            const primaryElement = copiedElements[0];
+            const isComment = Boolean(extraPrompt);
+            if (primaryElement) {
+              const currentItems = recentItems();
+              for (const [
+                existingItemId,
+                mappedElement,
+              ] of recentElementMap.entries()) {
+                if (mappedElement !== primaryElement) continue;
+                const existingItem = currentItems.find(
+                  (item) => item.id === existingItemId,
+                );
+                if (!existingItem) continue;
+
+                const shouldDedup = isComment
+                  ? existingItem.isComment &&
+                    existingItem.commentText === extraPrompt
+                  : !existingItem.isComment;
+
+                if (shouldDedup) {
+                  removeRecentItem(existingItemId);
+                  recentElementMap.delete(existingItemId);
+                  break;
+                }
+              }
+            }
+
+            const updatedRecentItems = addRecentItem({
+              content,
+              elementName: elementName ?? "element",
+              tagName: tagName ?? "div",
+              componentName: componentName ?? undefined,
+              isComment,
+              commentText: extraPrompt ?? undefined,
+              timestamp: Date.now(),
+            });
+            setRecentItems(updatedRecentItems);
+            setHasUnreadRecentItems(true);
+            const newestRecentItem = updatedRecentItems[0];
+            if (newestRecentItem && primaryElement) {
+              recentElementMap.set(newestRecentItem.id, primaryElement);
+            }
+
+            const currentItemIds = new Set(
+              updatedRecentItems.map((item) => item.id),
+            );
+            for (const mapItemId of recentElementMap.keys()) {
+              if (!currentItemIds.has(mapItemId)) {
+                recentElementMap.delete(mapItemId);
+              }
+            }
+          },
           onCopyError: pluginRegistry.hooks.onCopyError,
         },
         elements,
@@ -686,6 +755,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const copyElementsToClipboard = async (
       targetElements: Element[],
       extraPrompt?: string,
+      resolvedComponentName?: string,
     ): Promise<void> => {
       if (targetElements.length === 0) return;
 
@@ -696,7 +766,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
       }
       await new Promise((resolve) => requestAnimationFrame(resolve));
-      await copyWithFallback(targetElements, extraPrompt);
+      await copyWithFallback(
+        targetElements,
+        extraPrompt,
+        resolvedComponentName,
+      );
       void notifyElementsSelected(targetElements);
     };
 
@@ -746,7 +820,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         void executeCopyOperation(
           labelPositionX,
           positionY,
-          () => copyElementsToClipboard(allElements, extraPrompt),
+          () =>
+            copyElementsToClipboard(
+              allElements,
+              extraPrompt,
+              componentName ?? undefined,
+            ),
           overlayBounds,
           tagName,
           componentName ?? undefined,
@@ -1357,8 +1436,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const labelPositionX = currentX + store.copyOffsetFromCenterX;
 
       if ((store.selectedAgent || hasAgentProvider()) && prompt) {
-        elementInputCache.delete(element);
-
         const currentReplySessionId = store.replySessionId;
         const selectedAgent = store.selectedAgent;
 
@@ -1386,12 +1463,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.clearInputText();
       actions.clearReplySessionId();
 
-      if (prompt) {
-        elementInputCache.set(element, prompt);
-      } else {
-        elementInputCache.delete(element);
-      }
-
       performCopyWithLabel({
         element,
         positionX: labelPositionX,
@@ -1410,11 +1481,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (currentInput && !isPendingDismiss()) {
         actions.setPendingDismiss(true);
         return;
-      }
-
-      const element = store.frozenElement || targetElement();
-      if (element && currentInput) {
-        elementInputCache.set(element, currentInput);
       }
 
       actions.clearInputText();
@@ -1492,7 +1558,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       positionY: number,
     ) => {
       actions.setPendingCommentMode(false);
-      loadCachedInput(element);
+      actions.clearInputText();
       actions.enterPromptMode({ x: positionX, y: positionY }, element);
     };
 
@@ -2615,6 +2681,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.setPointer(position);
         actions.freeze();
         actions.showContextMenu(position, element);
+        dismissRecentDropdown();
         pluginRegistry.hooks.onContextMenu(element, position);
       },
       { capture: true },
@@ -3236,7 +3303,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             if (agent) {
               actions.setSelectedAgent(agent);
             }
-            loadCachedInput(element);
+            actions.clearInputText();
             actions.enterPromptMode(position, element);
             deferHideContextMenu();
           },
@@ -3249,6 +3316,124 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.hideContextMenu();
         deactivateRenderer();
       }, 0);
+    };
+
+    const clearRecentHoverBox = () => {
+      if (recentHoverBoxId) {
+        actions.removeGrabbedBox(recentHoverBoxId);
+        recentHoverBoxId = null;
+      }
+      if (recentHoverLabelId) {
+        actions.removeLabelInstance(recentHoverLabelId);
+        recentHoverLabelId = null;
+      }
+    };
+
+    const dismissRecentDropdown = () => {
+      clearRecentHoverBox();
+      setRecentDropdownPosition(null);
+    };
+
+    const handleToggleRecent = (anchorPosition: { x: number; y: number }) => {
+      const isCurrentlyOpen = recentDropdownPosition() !== null;
+      if (isCurrentlyOpen) {
+        dismissRecentDropdown();
+      } else {
+        actions.hideContextMenu();
+        setRecentItems(loadRecent());
+        setHasUnreadRecentItems(false);
+        setRecentDropdownPosition(anchorPosition);
+      }
+    };
+
+    const handleRecentItemSelect = (item: RecentItem) => {
+      dismissRecentDropdown();
+
+      const element = recentElementMap.get(item.id);
+
+      if (item.isComment && item.commentText) {
+        if (element && isElementConnected(element)) {
+          const bounds = createElementBounds(element);
+          const centerX = bounds.x + bounds.width / 2;
+          const centerY = bounds.y + bounds.height / 2;
+          actions.enterPromptMode({ x: centerX, y: centerY }, element);
+          actions.setInputText(item.commentText);
+        } else {
+          copyContent(item.content, { name: item.elementName });
+        }
+      } else {
+        copyContent(item.content, { name: item.elementName });
+        if (element && isElementConnected(element)) {
+          const bounds = createElementBounds(element);
+          const instanceId = createLabelInstance(
+            bounds,
+            item.tagName,
+            item.componentName,
+            "copied",
+            element,
+            bounds.x + bounds.width / 2,
+          );
+          scheduleLabelFade(instanceId);
+        }
+      }
+    };
+
+    const handleRecentCopyAll = () => {
+      const currentRecentItems = recentItems();
+      if (currentRecentItems.length === 0) return;
+      const combinedContent = currentRecentItems
+        .map(
+          (recentItem, index) =>
+            `[${index + 1}] <${recentItem.componentName ?? recentItem.tagName}>\n${recentItem.content}`,
+        )
+        .join("\n\n");
+      copyContent(combinedContent, { name: "recent" });
+      dismissRecentDropdown();
+    };
+
+    const handleRecentItemHover = (recentItemId: string | null) => {
+      clearRecentHoverBox();
+      if (recentItemId) {
+        const element = recentElementMap.get(recentItemId);
+        if (element && isElementConnected(element)) {
+          const bounds = createElementBounds(element);
+          recentHoverBoxId = `recent-hover-${recentItemId}`;
+          // HACK: createdAt=0 is falsy, which skips the auto-fade logic in the overlay canvas animation loop
+          actions.addGrabbedBox({
+            id: recentHoverBoxId,
+            bounds,
+            createdAt: 0,
+            element,
+          });
+
+          const recentItem = recentItems().find(
+            (innerItem) => innerItem.id === recentItemId,
+          );
+          if (recentItem?.isComment && recentItem.commentText) {
+            recentHoverLabelId = `recent-label-${recentItemId}`;
+            actions.addLabelInstance({
+              id: recentHoverLabelId,
+              bounds,
+              tagName: recentItem.tagName,
+              componentName: recentItem.componentName,
+              status: "idle",
+              isPromptMode: true,
+              inputValue: recentItem.commentText,
+              createdAt: 0,
+              element,
+              mouseX: bounds.x + bounds.width / 2,
+            });
+          }
+        }
+      }
+    };
+
+    const handleRecentClear = () => {
+      recentElementMap.clear();
+      const updatedRecentItems = clearRecent();
+      setRecentItems(updatedRecentItems);
+      setHasUnreadRecentItems(false);
+      dismissRecentDropdown();
     };
 
     const handleShowContextMenuSession = (sessionId: string) => {
@@ -3404,6 +3589,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             actionContext={contextMenuActionContext()}
             onContextMenuDismiss={handleContextMenuDismiss}
             onContextMenuHide={deferHideContextMenu}
+            recentItems={recentItems()}
+            recentItemCount={recentItems().length}
+            hasUnreadRecentItems={hasUnreadRecentItems()}
+            recentDropdownPosition={recentDropdownPosition()}
+            onToggleRecent={handleToggleRecent}
+            onRecentItemSelect={handleRecentItemSelect}
+            onRecentItemHover={handleRecentItemHover}
+            onRecentCopyAll={handleRecentCopyAll}
+            onRecentClear={handleRecentClear}
+            onRecentDismiss={dismissRecentDropdown}
           />
         );
       }, rendererRoot);

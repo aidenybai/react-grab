@@ -180,7 +180,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   });
 
   createEffect(() => {
-    if (props.isPromptMode && inputRef) {
+    if (props.isPromptMode && inputRef && props.onSubmit) {
       // HACK: setTimeout(0) defers focus to the next event loop tick to ensure
       // the textarea is fully mounted and ready to receive focus
       setTimeout(() => {
@@ -335,7 +335,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     event.stopPropagation();
     event.stopImmediatePropagation();
     const isEditableInputVisible =
-      canInteract() && props.isPromptMode && !props.isPendingDismiss;
+      canInteract() &&
+      props.isPromptMode &&
+      !props.isPendingDismiss &&
+      props.onSubmit;
     if (isEditableInputVisible && inputRef) {
       inputRef.focus();
     }
@@ -559,14 +562,17 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     onKeyDown={handleKeyDown}
                     placeholder="Add context"
                     rows={1}
+                    readOnly={!props.onSubmit}
                   />
-                  <button
-                    data-react-grab-submit
-                    class="contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-black cursor-pointer ml-1 interactive-scale"
-                    onClick={() => props.onSubmit?.()}
-                  >
-                    <IconSubmit size={10} class="text-white" />
-                  </button>
+                  <Show when={props.onSubmit}>
+                    <button
+                      data-react-grab-submit
+                      class="contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-black cursor-pointer ml-1 interactive-scale"
+                      onClick={() => props.onSubmit?.()}
+                    >
+                      <IconSubmit size={10} class="text-white" />
+                    </button>
+                  </Show>
                 </div>
               </BottomSection>
             </div>

@@ -5,12 +5,18 @@ import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { SelectionLabel } from "react-grab/src/components/selection-label/index.js";
 import { ContextMenu } from "react-grab/src/components/context-menu.js";
 import { ToolbarContent } from "react-grab/src/components/toolbar/toolbar-content.js";
+import { RecentDropdown } from "react-grab/src/components/recent-dropdown.js";
+import {
+  IconInbox,
+  IconInboxUnread,
+} from "react-grab/src/components/icons/icon-inbox.js";
 import type {
   OverlayBounds,
   SelectionLabelStatus,
+  RecentItem,
 } from "react-grab/src/types.js";
 
-type ComponentType = "label" | "context-menu" | "toolbar";
+type ComponentType = "label" | "context-menu" | "toolbar" | "recent-dropdown";
 
 interface DesignSystemStateProps {
   tagName?: string;
@@ -43,6 +49,9 @@ interface DesignSystemStateProps {
   isToolbarEnabled?: boolean;
   isToolbarCollapsed?: boolean;
   toolbarSnapEdge?: "top" | "bottom" | "left" | "right";
+  toolbarRecentItemCount?: number;
+  toolbarHasUnreadRecentItems?: boolean;
+  recentItems?: RecentItem[];
 }
 
 interface AnimationFrame {
@@ -820,6 +829,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
     props: {
       isToolbarActive: true,
       isToolbarEnabled: true,
+      toolbarRecentItemCount: 3,
     },
   },
   {
@@ -899,6 +909,278 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
       isToolbarEnabled: true,
       isToolbarCollapsed: true,
       toolbarSnapEdge: "right",
+    },
+  },
+  {
+    id: "toolbar-recent-read",
+    label: "Toolbar (Recent Read)",
+    description: "Inbox icon, no unread items",
+    component: "toolbar",
+    props: {
+      isToolbarActive: true,
+      isToolbarEnabled: true,
+      toolbarRecentItemCount: 5,
+      toolbarHasUnreadRecentItems: false,
+    },
+  },
+  {
+    id: "toolbar-recent-unread",
+    label: "Toolbar (Recent Unread)",
+    description: "Inbox icon with unread indicator",
+    component: "toolbar",
+    props: {
+      isToolbarActive: true,
+      isToolbarEnabled: true,
+      toolbarRecentItemCount: 3,
+      toolbarHasUnreadRecentItems: true,
+    },
+  },
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // RECENT DROPDOWN STATES
+  // ══════════════════════════════════════════════════════════════════════════
+  {
+    id: "recent-empty",
+    label: "Recent (Empty)",
+    description: "No copied elements yet",
+    component: "recent-dropdown",
+    props: {
+      recentItems: [],
+    },
+  },
+  {
+    id: "recent-single-item",
+    label: "Recent (Single Item)",
+    description: "One copied element",
+    component: "recent-dropdown",
+    props: {
+      recentItems: [
+        {
+          id: "recent-1",
+          content: "<Button />",
+          elementName: "Button",
+          tagName: "button",
+          componentName: "Button",
+          isComment: false,
+          timestamp: Date.now() - 30_000,
+        },
+      ],
+    },
+  },
+  {
+    id: "recent-multiple-items",
+    label: "Recent (Multiple Items)",
+    description: "Several copied elements",
+    component: "recent-dropdown",
+    props: {
+      recentItems: [
+        {
+          id: "recent-1",
+          content: "<Header />",
+          elementName: "Header",
+          tagName: "header",
+          componentName: "Header",
+          isComment: false,
+          timestamp: Date.now() - 15_000,
+        },
+        {
+          id: "recent-2",
+          content: "<Navigation />",
+          elementName: "Navigation",
+          tagName: "nav",
+          componentName: "Navigation",
+          isComment: false,
+          timestamp: Date.now() - 120_000,
+        },
+        {
+          id: "recent-3",
+          content: "<Footer />",
+          elementName: "Footer",
+          tagName: "footer",
+          componentName: "Footer",
+          isComment: false,
+          timestamp: Date.now() - 3_600_000,
+        },
+      ],
+    },
+  },
+  {
+    id: "recent-with-comments",
+    label: "Recent (With Comments)",
+    description: "Items with comment annotations",
+    component: "recent-dropdown",
+    props: {
+      recentItems: [
+        {
+          id: "recent-1",
+          content: "<Card />",
+          elementName: "Card",
+          tagName: "div",
+          componentName: "Card",
+          isComment: true,
+          commentText: "make it bigger",
+          timestamp: Date.now() - 10_000,
+        },
+        {
+          id: "recent-2",
+          content: "<Sidebar />",
+          elementName: "Sidebar",
+          tagName: "aside",
+          componentName: "Sidebar",
+          isComment: true,
+          commentText: "add dark mode support",
+          timestamp: Date.now() - 300_000,
+        },
+        {
+          id: "recent-3",
+          content: "<Button />",
+          elementName: "Button",
+          tagName: "button",
+          componentName: "Button",
+          isComment: false,
+          timestamp: Date.now() - 7_200_000,
+        },
+      ],
+    },
+  },
+  {
+    id: "recent-tag-only",
+    label: "Recent (Tag Only)",
+    description: "Items without component names",
+    component: "recent-dropdown",
+    props: {
+      recentItems: [
+        {
+          id: "recent-1",
+          content: "<section />",
+          elementName: "section",
+          tagName: "section",
+          isComment: false,
+          timestamp: Date.now() - 60_000,
+        },
+        {
+          id: "recent-2",
+          content: "<div />",
+          elementName: "div",
+          tagName: "div",
+          isComment: false,
+          timestamp: Date.now() - 180_000,
+        },
+      ],
+    },
+  },
+  {
+    id: "recent-long-names",
+    label: "Recent (Long Names)",
+    description: "Long component names truncation",
+    component: "recent-dropdown",
+    props: {
+      recentItems: [
+        {
+          id: "recent-1",
+          content: "<InteractiveDataVisualizationChart />",
+          elementName: "InteractiveDataVisualizationChart",
+          tagName: "div",
+          componentName: "InteractiveDataVisualizationChart",
+          isComment: true,
+          commentText: "add tooltips on hover with data values and percentage",
+          timestamp: Date.now() - 5_000,
+        },
+        {
+          id: "recent-2",
+          content: "<SuperLongComponentNameWrapper />",
+          elementName: "SuperLongComponentNameWrapper",
+          tagName: "custom-interactive-element",
+          componentName: "SuperLongComponentNameWrapper",
+          isComment: false,
+          timestamp: Date.now() - 86_400_000,
+        },
+      ],
+    },
+  },
+  {
+    id: "recent-many-items",
+    label: "Recent (Many Items)",
+    description: "Scrollable list with many items",
+    component: "recent-dropdown",
+    props: {
+      recentItems: [
+        {
+          id: "recent-1",
+          content: "<Header />",
+          elementName: "Header",
+          tagName: "header",
+          componentName: "Header",
+          isComment: false,
+          timestamp: Date.now() - 10_000,
+        },
+        {
+          id: "recent-2",
+          content: "<Navigation />",
+          elementName: "Navigation",
+          tagName: "nav",
+          componentName: "Navigation",
+          isComment: true,
+          commentText: "make it sticky",
+          timestamp: Date.now() - 60_000,
+        },
+        {
+          id: "recent-3",
+          content: "<Card />",
+          elementName: "Card",
+          tagName: "div",
+          componentName: "Card",
+          isComment: false,
+          timestamp: Date.now() - 300_000,
+        },
+        {
+          id: "recent-4",
+          content: "<Button />",
+          elementName: "Button",
+          tagName: "button",
+          componentName: "Button",
+          isComment: true,
+          commentText: "increase padding",
+          timestamp: Date.now() - 600_000,
+        },
+        {
+          id: "recent-5",
+          content: "<Footer />",
+          elementName: "Footer",
+          tagName: "footer",
+          componentName: "Footer",
+          isComment: false,
+          timestamp: Date.now() - 1_800_000,
+        },
+        {
+          id: "recent-6",
+          content: "<Sidebar />",
+          elementName: "Sidebar",
+          tagName: "aside",
+          componentName: "Sidebar",
+          isComment: false,
+          timestamp: Date.now() - 3_600_000,
+        },
+        {
+          id: "recent-7",
+          content: "<Modal />",
+          elementName: "Modal",
+          tagName: "dialog",
+          componentName: "Modal",
+          isComment: true,
+          commentText: "add animation",
+          timestamp: Date.now() - 7_200_000,
+        },
+        {
+          id: "recent-8",
+          content: "<Form />",
+          elementName: "Form",
+          tagName: "form",
+          componentName: "Form",
+          isComment: false,
+          timestamp: Date.now() - 43_200_000,
+        },
+      ],
     },
   },
 
@@ -2335,7 +2617,12 @@ const StateCard = (props: StateCardProps) => {
 
       <div style={createCardContentStyle(props.theme)}>
         <Show when={!isCardRefreshing()}>
-          <Show when={props.state.component !== "toolbar"}>
+          <Show
+            when={
+              props.state.component !== "toolbar" &&
+              props.state.component !== "recent-dropdown"
+            }
+          >
             <div
               ref={(element) => props.registerCell(element)}
               style={createTargetStyle(props.theme)}
@@ -2452,6 +2739,76 @@ const StateCard = (props: StateCardProps) => {
               enabled={currentProps().isToolbarEnabled ?? true}
               isCollapsed={currentProps().isToolbarCollapsed}
               snapEdge={currentProps().toolbarSnapEdge}
+              recentButton={
+                <Show
+                  when={
+                    (currentProps().isToolbarEnabled ?? true) &&
+                    (currentProps().toolbarRecentItemCount ?? 0) > 0
+                  }
+                >
+                  <div class="grid grid-cols-[1fr] opacity-100 transition-all duration-150 ease-out">
+                    <div class="relative overflow-visible min-w-0">
+                      <button class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5">
+                        <Show
+                          when={currentProps().toolbarHasUnreadRecentItems}
+                          fallback={
+                            <IconInbox
+                              size={14}
+                              class="text-[#B3B3B3] transition-colors"
+                            />
+                          }
+                        >
+                          <IconInboxUnread
+                            size={14}
+                            class="text-[#B3B3B3] transition-colors"
+                          />
+                        </Show>
+                      </button>
+                    </div>
+                  </div>
+                </Show>
+              }
+            />
+          </Show>
+
+          <Show when={props.state.component === "recent-dropdown"}>
+            <div
+              style={{
+                position: "absolute",
+                bottom: `${CARD_CONTENT_PADDING_PX}px`,
+                left: "50%",
+                transform: "translateX(-50%)",
+              }}
+            >
+              <div ref={(element) => props.registerCell(element)}>
+                <ToolbarContent
+                  isActive={true}
+                  enabled={true}
+                  recentButton={
+                    <div class="grid grid-cols-[1fr] opacity-100 transition-all duration-150 ease-out">
+                      <div class="relative overflow-visible min-w-0">
+                        <button class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5">
+                          <IconInbox
+                            size={14}
+                            class="text-[#B3B3B3] transition-colors"
+                          />
+                        </button>
+                      </div>
+                    </div>
+                  }
+                />
+              </div>
+            </div>
+            <RecentDropdown
+              position={
+                props.getBounds()
+                  ? {
+                      x: props.getBounds()!.x + props.getBounds()!.width / 2,
+                      y: props.getBounds()!.y,
+                    }
+                  : null
+              }
+              items={currentProps().recentItems ?? []}
             />
           </Show>
         </Show>
@@ -2677,6 +3034,13 @@ const DesignSystemGrid = () => {
       (state) =>
         state.component === "label" &&
         state.props.hasAgent &&
+        !hasAnimation(state) &&
+        matchesSearch(state),
+    );
+  const recentDropdownStates = () =>
+    DESIGN_SYSTEM_STATES.filter(
+      (state) =>
+        state.component === "recent-dropdown" &&
         !hasAnimation(state) &&
         matchesSearch(state),
     );
@@ -2980,6 +3344,30 @@ const DesignSystemGrid = () => {
           </div>
         </Show>
 
+        {/* Recent Dropdown Section */}
+        <Show when={recentDropdownStates().length > 0}>
+          <div style={{ padding: `${GAP_PX}px 24px` }}>
+            <span style={sectionTitleStyle()}>Recent Dropdown</span>
+            <div style={gridStyle()}>
+              <For each={recentDropdownStates()}>
+                {(state) => (
+                  <StateCard
+                    state={state}
+                    theme={theme()}
+                    getBounds={() => getBoundsForCell(state.id)}
+                    registerCell={(element) => registerCell(state.id, element)}
+                    onRefresh={createRefreshHandler(state.id)}
+                    getTargetDisplayText={() => getTargetDisplayText(state)}
+                    isStarred={isStarred(state.id)}
+                    onToggleStar={() => handleToggleStar(state.id)}
+                    isScrambled={isScrambled()}
+                  />
+                )}
+              </For>
+            </div>
+          </div>
+        </Show>
+
         {/* Agent States Section */}
         <Show when={agentLabelStates().length > 0}>
           <div style={{ padding: `${GAP_PX}px 24px` }}>
@@ -3013,6 +3401,7 @@ const DesignSystemGrid = () => {
               labelStates().length +
               contextMenuStates().length +
               toolbarStates().length +
+              recentDropdownStates().length +
               agentLabelStates().length ===
               0
           }
