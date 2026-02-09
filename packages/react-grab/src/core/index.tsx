@@ -719,6 +719,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             if (newestRecentItem && primaryElement) {
               recentElementMap.set(newestRecentItem.id, primaryElement);
             }
+            
+            const currentItemIds = new Set(updatedRecentItems.map((item) => item.id));
+            for (const mapItemId of recentElementMap.keys()) {
+              if (!currentItemIds.has(mapItemId)) {
+                recentElementMap.delete(mapItemId);
+              }
+            }
           },
           onCopyError: pluginRegistry.hooks.onCopyError,
         },
