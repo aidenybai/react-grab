@@ -182,13 +182,13 @@ export const connectRelay = async (
         relayPort,
         handler,
         token,
-        useSecure,
+        isNowRunning.isSecure,
       );
     }
   };
 
   if (isRelayServerRunning) {
-    const actualSecure = secure ?? detectedSecure;
+    const actualSecure = detectedSecure ?? secure;
     relayServer = await connectToExistingRelay(
       relayPort,
       handler,
