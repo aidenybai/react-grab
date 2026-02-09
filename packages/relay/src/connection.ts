@@ -188,7 +188,7 @@ export const connectRelay = async (
   };
 
   if (isRelayServerRunning) {
-    const actualSecure = detectedSecure ?? secure;
+    const actualSecure = secure ?? detectedSecure;
     relayServer = await connectToExistingRelay(
       relayPort,
       handler,
@@ -243,6 +243,7 @@ const connectToExistingRelay = async (
   let hasConnectedOnce = false;
   const activeSessionIds = new Set<string>();
   let currentSecure = secure;
+  let reconnectTimeoutId: NodeJS.Timeout | null = null;
 
   const sendData = (data: string): boolean => {
     if (
@@ -319,7 +320,7 @@ const connectToExistingRelay = async (
         activeSessionIds.clear();
 
         if (!isExplicitDisconnect && hasConnectedOnce) {
-          setTimeout(() => {
+          reconnectTimeoutId = setTimeout(() => {
             attemptConnection().catch(() => {});
           }, HANDLER_RECONNECT_DELAY_MS);
         }
@@ -426,11 +427,19 @@ const connectToExistingRelay = async (
     start: async () => {},
     stop: async () => {
       isExplicitDisconnect = true;
+      if (reconnectTimeoutId) {
+        clearTimeout(reconnectTimeoutId);
+        reconnectTimeoutId = null;
+      }
       currentSocket?.close();
     },
     registerHandler: () => {},
     unregisterHandler: (agentId) => {
       isExplicitDisconnect = true;
+      if (reconnectTimeoutId) {
+        clearTimeout(reconnectTimeoutId);
+        reconnectTimeoutId = null;
+      }
       sendData(
         JSON.stringify({
           type: "unregister-handler",
