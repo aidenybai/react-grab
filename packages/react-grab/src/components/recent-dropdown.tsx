@@ -255,7 +255,10 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                       props.onSelectItem?.(item);
                     }}
                     onKeyDown={(event) => {
-                      if (event.code === "Enter" || event.code === "Space") {
+                      if (
+                        (event.code === "Enter" || event.code === "Space") &&
+                        event.currentTarget === event.target
+                      ) {
                         event.preventDefault();
                         event.stopPropagation();
                         props.onSelectItem?.(item);
