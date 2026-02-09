@@ -64,9 +64,7 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
 
   createEffect(() => {
     props.items.length;
-    if (isVisible()) {
-      requestAnimationFrame(measureContainer);
-    }
+    requestAnimationFrame(measureContainer);
   });
 
   const computedPosition = () => {
@@ -127,9 +125,15 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
         props.onDismiss?.();
       }
       if (event.code === "Enter" && props.items.length > 0) {
-        event.preventDefault();
-        event.stopPropagation();
-        props.onCopyAll?.();
+        const target = event.target as Element;
+        const isWithinDropdown = target.closest(
+          "[data-react-grab-recent-dropdown]",
+        );
+        if (!isWithinDropdown) {
+          event.preventDefault();
+          event.stopPropagation();
+          props.onCopyAll?.();
+        }
       }
     };
 
