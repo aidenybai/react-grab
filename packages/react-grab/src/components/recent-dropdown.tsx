@@ -63,8 +63,9 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
   };
 
   createEffect(() => {
-    props.items.length;
-    requestAnimationFrame(measureContainer);
+    if (isVisible()) {
+      requestAnimationFrame(measureContainer);
+    }
   });
 
   const computedPosition = () => {
