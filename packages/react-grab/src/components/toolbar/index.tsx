@@ -29,14 +29,12 @@ import {
   TOOLBAR_DRAG_PREVIEW_LONG_PX,
   TOOLBAR_DRAG_PREVIEW_ROTATION_DURATION_MS,
   TOOLBAR_DRAG_RELEASE_REVEAL_DURATION_MS,
-  TOOLBAR_DRAG_RELEASE_ITEM_OFFSET_PX,
   TOOLBAR_DRAG_RELEASE_ICON_STAGGER_DELAY_MS,
   TOOLBAR_DRAG_RELEASE_ICON_STAGGER_COUNT,
   TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS,
   TOOLBAR_DEFAULT_WIDTH_PX,
   TOOLBAR_DEFAULT_HEIGHT_PX,
   TOOLBAR_SHAKE_TOOLTIP_DURATION_MS,
-  TOOLBAR_ACTIVE_ACCENT_COLOR,
   TOOLBAR_COMMENT_ICON_SIZE_PX,
   TOOLBAR_SIDE_DOCK_THRESHOLD_PX,
   TOOLBAR_DOCK_LAYOUT_ANIMATION_DURATION_MS,
@@ -145,10 +143,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     createSignal(false);
   const [isDragReleaseRevealAnimating, setIsDragReleaseRevealAnimating] =
     createSignal(false);
-  const [dragReleaseOriginOffset, setDragReleaseOriginOffset] = createSignal({
-    x: 0,
-    y: 0,
-  });
   const [dragDockPreviewEdge, setDragDockPreviewEdge] =
     createSignal<SnapEdge | null>(null);
   const [dragPointerPosition, setDragPointerPosition] = createSignal({
@@ -283,24 +277,16 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   };
 
   const getDragPreviewRotationDegrees = (edge: SnapEdge): number => {
-    if (edge === "left") return -90;
-    if (edge === "right") return 90;
-    if (edge === "bottom") return 180;
+    if (edge === "left" || edge === "right") return 90;
     return 0;
   };
 
   const getDragReleaseItemTransform = (
-    slot: number,
     shouldScaleDuringReveal: boolean,
   ): string | undefined => {
     if (hasDragMoved() || !isDragReleaseRevealPrepared()) return undefined;
-    const originOffset = dragReleaseOriginOffset();
-    const releaseOffsetPx = slot * TOOLBAR_DRAG_RELEASE_ITEM_OFFSET_PX;
-    const translation = isVerticalLayout()
-      ? `translate(${originOffset.x}px, ${originOffset.y - releaseOffsetPx}px)`
-      : `translate(${originOffset.x - releaseOffsetPx}px, ${originOffset.y}px)`;
-    if (!shouldScaleDuringReveal) return translation;
-    return `${translation} scale(0)`;
+    if (!shouldScaleDuringReveal) return undefined;
+    return "scale(0)";
   };
 
   const getDragReleaseIconStaggerOrder = (slot: number): number => {
@@ -334,7 +320,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     shouldStagger = false,
     shouldScaleDuringReveal = false,
   ) => ({
-    transform: getDragReleaseItemTransform(slot, shouldScaleDuringReveal),
+    transform: getDragReleaseItemTransform(shouldScaleDuringReveal),
+    opacity: isDragReleaseRevealPrepared() ? "0" : undefined,
+    "transition-property": "transform,opacity",
     "transition-duration": `${
       isDragReleaseRevealPrepared()
         ? 0
@@ -1160,7 +1148,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       setHasDragMoved(false);
       setIsDragReleaseRevealPrepared(false);
       setIsDragReleaseRevealAnimating(false);
-      setDragReleaseOriginOffset({ x: 0, y: 0 });
       clearDragReleaseRevealAnimationFrame();
       clearDragReleaseRevealAnimationTimeout();
       setDragDockPreviewEdge(null);
@@ -1240,8 +1227,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       snapDimensions.width,
       snapDimensions.height,
     );
-    const snapCenterX = snap.x + snapDimensions.width / 2;
-    const snapCenterY = snap.y + snapDimensions.height / 2;
     expandedDimensions = {
       width: snapDimensions.width,
       height: snapDimensions.height,
@@ -1251,10 +1236,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     setDragDockPreviewEdge(snap.edge);
     setSnapEdge(snap.edge);
     setPositionRatio(ratio);
-    setDragReleaseOriginOffset({
-      x: releaseCenterX - snapCenterX,
-      y: releaseCenterY - snapCenterY,
-    });
     setIsDragging(false);
     setIsSnapping(true);
 
@@ -1315,7 +1296,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     setDragPointerPosition({ x: event.clientX, y: event.clientY });
     setIsDragReleaseRevealPrepared(false);
     setIsDragReleaseRevealAnimating(false);
-    setDragReleaseOriginOffset({ x: 0, y: 0 });
     clearDragReleaseRevealAnimationFrame();
     clearDragReleaseRevealAnimationTimeout();
     clearTimeout(snapAnimationTimeout);
@@ -1680,7 +1660,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       <div
         class={cn(
           "flex items-center justify-center rounded-full antialiased relative overflow-visible [font-synthesis:none] [corner-shape:superellipse(1.25)]",
-          "bg-black",
+          "bg-white",
           hasDragMoved()
             ? "transition-transform ease-[cubic-bezier(0.22,1,0.36,1)]"
             : "transition-[padding,gap,width,height] duration-150 ease-out",
@@ -1815,11 +1795,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                         <span class="inline-flex">
                           <IconSelect
                             size={14}
-                            style={
-                              Boolean(props.isActive) && !props.isCommentMode
-                                ? { color: TOOLBAR_ACTIVE_ACCENT_COLOR }
-                                : undefined
-                            }
                             class={cn(
                               "transition-colors",
                               getToolbarIconColor(
@@ -1972,12 +1947,15 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     <div
                       class={cn(
                         "relative w-5 h-3 rounded-full transition-colors",
-                        props.enabled ? "bg-white" : "bg-white/25",
+                        props.enabled ? "bg-black" : "bg-black/25",
                       )}
                     >
                       <div
                         class={cn(
-                          "absolute top-0.5 w-2 h-2 rounded-full bg-black transition-transform",
+                          "absolute top-0.5 w-2 h-2 rounded-full transition-[transform,background-color] duration-150 ease-out",
+                          isToggleAnimating() && props.enabled
+                            ? "bg-black"
+                            : "bg-white",
                           props.enabled ? "left-2.5" : "left-0.5",
                         )}
                       />
@@ -2007,7 +1985,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               <IconChevron
                 size={14}
                 class={cn(
-                  "text-white/70 transition-transform duration-150",
+                  "text-black/70 transition-transform duration-150",
                   chevronRotation(),
                 )}
               />
