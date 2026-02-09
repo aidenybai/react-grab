@@ -247,11 +247,19 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                   <div
                     data-react-grab-ignore-events
                     data-react-grab-recent-item
-                    class="group contain-layout flex items-start justify-between w-full px-2 py-1 cursor-pointer transition-colors hover:bg-black/5 text-left gap-2"
+                    class="group contain-layout flex items-start justify-between w-full px-2 py-1 cursor-pointer transition-colors hover:bg-black/5 focus-within:bg-black/5 text-left gap-2"
+                    tabindex="0"
                     onPointerDown={(event) => event.stopPropagation()}
                     onClick={(event) => {
                       event.stopPropagation();
                       props.onSelectItem?.(item);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.code === "Enter" || event.code === "Space") {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        props.onSelectItem?.(item);
+                      }
                     }}
                     onMouseEnter={() => props.onItemHover?.(item.id)}
                     onMouseLeave={() => props.onItemHover?.(null)}
@@ -267,10 +275,10 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                       </Show>
                     </span>
                     <span class="shrink-0 grid mt-0.5">
-                      <span class="text-[10px] font-sans text-black/25 group-hover:invisible [grid-area:1/1] flex items-center justify-end">
+                      <span class="text-[10px] font-sans text-black/25 group-hover:invisible group-focus-within:invisible [grid-area:1/1] flex items-center justify-end">
                         {formatRelativeTime(item.timestamp)}
                       </span>
-                      <span class="invisible group-hover:visible [grid-area:1/1] flex items-center justify-end gap-1.5">
+                      <span class="invisible group-hover:visible group-focus-within:visible [grid-area:1/1] flex items-center justify-end gap-1.5">
                         <button
                           data-react-grab-ignore-events
                           data-react-grab-recent-item-remove
