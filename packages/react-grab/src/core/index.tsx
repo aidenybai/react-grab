@@ -711,7 +711,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 if (!existingItem) continue;
 
                 const shouldDedup = isComment
-                  ? existingItem.isComment
+                  ? existingItem.isComment &&
+                    existingItem.commentText === extraPrompt
                   : !existingItem.isComment;
 
                 if (shouldDedup) {
@@ -3372,13 +3373,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         let anchorY: number;
 
         if (edge === "left" || edge === "right") {
-          anchorX =
-            edge === "left" ? toolbarRect.right : toolbarRect.left;
+          anchorX = edge === "left" ? toolbarRect.right : toolbarRect.left;
           anchorY = toolbarRect.top + toolbarRect.height / 2;
         } else {
           anchorX = toolbarRect.left + toolbarRect.width / 2;
-          anchorY =
-            edge === "top" ? toolbarRect.bottom : toolbarRect.top;
+          anchorY = edge === "top" ? toolbarRect.bottom : toolbarRect.top;
         }
 
         setRecentDropdownPosition({ x: anchorX, y: anchorY, edge });

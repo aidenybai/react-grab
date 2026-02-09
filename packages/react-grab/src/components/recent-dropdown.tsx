@@ -1,4 +1,11 @@
-import { Show, For, onMount, onCleanup, createSignal, createEffect } from "solid-js";
+import {
+  Show,
+  For,
+  onMount,
+  onCleanup,
+  createSignal,
+  createEffect,
+} from "solid-js";
 import type { Component } from "solid-js";
 import type { RecentItem, DropdownAnchor } from "../types.js";
 import {

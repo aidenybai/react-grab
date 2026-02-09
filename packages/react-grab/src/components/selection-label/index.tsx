@@ -220,9 +220,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     const selectionBottom = bounds.y + bounds.height;
     const selectionTop = bounds.y;
 
-    const actualArrowHeight = props.hideArrow
-      ? 0
-      : getArrowSize(panelWidth());
+    const actualArrowHeight = props.hideArrow ? 0 : getArrowSize(panelWidth());
 
     // HACK: Use cursorX as anchor point, CSS transform handles centering via translateX(-50%)
     // This avoids the flicker when content changes because centering doesn't depend on JS measurement
