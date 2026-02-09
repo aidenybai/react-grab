@@ -335,7 +335,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     event.stopPropagation();
     event.stopImmediatePropagation();
     const isEditableInputVisible =
-      canInteract() && props.isPromptMode && !props.isPendingDismiss && props.onSubmit;
+      canInteract() &&
+      props.isPromptMode &&
+      !props.isPendingDismiss &&
+      props.onSubmit;
     if (isEditableInputVisible && inputRef) {
       inputRef.focus();
     }

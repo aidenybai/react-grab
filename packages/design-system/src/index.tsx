@@ -6,7 +6,10 @@ import { SelectionLabel } from "react-grab/src/components/selection-label/index.
 import { ContextMenu } from "react-grab/src/components/context-menu.js";
 import { ToolbarContent } from "react-grab/src/components/toolbar/toolbar-content.js";
 import { RecentDropdown } from "react-grab/src/components/recent-dropdown.js";
-import { IconInbox, IconInboxUnread } from "react-grab/src/components/icons/icon-inbox.js";
+import {
+  IconInbox,
+  IconInboxUnread,
+} from "react-grab/src/components/icons/icon-inbox.js";
 import type {
   OverlayBounds,
   SelectionLabelStatus,
@@ -2800,8 +2803,7 @@ const StateCard = (props: StateCardProps) => {
               position={
                 props.getBounds()
                   ? {
-                      x:
-                        props.getBounds()!.x + props.getBounds()!.width / 2,
+                      x: props.getBounds()!.x + props.getBounds()!.width / 2,
                       y: props.getBounds()!.y,
                     }
                   : null

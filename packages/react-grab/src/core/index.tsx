@@ -135,7 +135,12 @@ import {
   unfreezePseudoStates,
 } from "../utils/freeze-pseudo-states.js";
 import { freezeUpdates } from "../utils/freeze-updates.js";
-import { loadRecent, addRecentItem, removeRecentItem, clearRecent } from "../utils/recent-storage.js";
+import {
+  loadRecent,
+  addRecentItem,
+  removeRecentItem,
+  clearRecent,
+} from "../utils/recent-storage.js";
 import { copyContent } from "../utils/copy-content.js";
 
 const builtInPlugins = [
@@ -259,7 +264,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       createSignal<ToolbarState | null>(savedToolbarState);
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] =
       createSignal(false);
-    const [recentItems, setRecentItems] = createSignal<RecentItem[]>(loadRecent());
+    const [recentItems, setRecentItems] =
+      createSignal<RecentItem[]>(loadRecent());
     const [recentDropdownPosition, setRecentDropdownPosition] = createSignal<{
       x: number;
       y: number;
@@ -661,10 +667,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
     };
 
-    const copyWithFallback = (elements: Element[], extraPrompt?: string, resolvedComponentName?: string) => {
+    const copyWithFallback = (
+      elements: Element[],
+      extraPrompt?: string,
+      resolvedComponentName?: string,
+    ) => {
       const firstElement = elements[0];
-      const componentName = resolvedComponentName
-        ?? (firstElement ? getComponentDisplayName(firstElement) : null);
+      const componentName =
+        resolvedComponentName ??
+        (firstElement ? getComponentDisplayName(firstElement) : null);
       const tagName = firstElement ? getTagName(firstElement) : null;
       const elementName = componentName ?? tagName ?? undefined;
 
@@ -686,13 +697,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             const isComment = Boolean(extraPrompt);
             if (primaryElement) {
               const currentItems = recentItems();
-              for (const [existingItemId, mappedElement] of recentElementMap.entries()) {
+              for (const [
+                existingItemId,
+                mappedElement,
+              ] of recentElementMap.entries()) {
                 if (mappedElement !== primaryElement) continue;
-                const existingItem = currentItems.find((item) => item.id === existingItemId);
+                const existingItem = currentItems.find(
+                  (item) => item.id === existingItemId,
+                );
                 if (!existingItem) continue;
 
                 const shouldDedup = isComment
-                  ? existingItem.isComment && existingItem.commentText === extraPrompt
+                  ? existingItem.isComment &&
+                    existingItem.commentText === extraPrompt
                   : !existingItem.isComment;
 
                 if (shouldDedup) {
@@ -718,8 +735,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             if (newestRecentItem && primaryElement) {
               recentElementMap.set(newestRecentItem.id, primaryElement);
             }
-            
-            const currentItemIds = new Set(updatedRecentItems.map((item) => item.id));
+
+            const currentItemIds = new Set(
+              updatedRecentItems.map((item) => item.id),
+            );
             for (const mapItemId of recentElementMap.keys()) {
               if (!currentItemIds.has(mapItemId)) {
                 recentElementMap.delete(mapItemId);
@@ -747,7 +766,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
       }
       await new Promise((resolve) => requestAnimationFrame(resolve));
-      await copyWithFallback(targetElements, extraPrompt, resolvedComponentName);
+      await copyWithFallback(
+        targetElements,
+        extraPrompt,
+        resolvedComponentName,
+      );
       void notifyElementsSelected(targetElements);
     };
 
@@ -797,7 +820,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         void executeCopyOperation(
           labelPositionX,
           positionY,
-          () => copyElementsToClipboard(allElements, extraPrompt, componentName ?? undefined),
+          () =>
+            copyElementsToClipboard(
+              allElements,
+              extraPrompt,
+              componentName ?? undefined,
+            ),
           overlayBounds,
           tagName,
           componentName ?? undefined,
@@ -3330,6 +3358,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           const centerY = bounds.y + bounds.height / 2;
           actions.enterPromptMode({ x: centerX, y: centerY }, element);
           actions.setInputText(item.commentText);
+        } else {
+          copyContent(item.content, { name: item.elementName });
         }
       } else {
         copyContent(item.content, { name: item.elementName });

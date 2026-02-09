@@ -929,9 +929,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       if (!shadowRoot) return false;
       const root = shadowRoot.querySelector(`[${attrName}]`);
       if (!root) return false;
-      const dropdown = root.querySelector(
-        "[data-react-grab-recent-dropdown]",
-      );
+      const dropdown = root.querySelector("[data-react-grab-recent-dropdown]");
       return dropdown !== null;
     }, ATTRIBUTE_NAME);
   };
@@ -943,9 +941,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       if (!shadowRoot) return { isVisible: false, itemCount: 0 };
       const root = shadowRoot.querySelector(`[${attrName}]`);
       if (!root) return { isVisible: false, itemCount: 0 };
-      const dropdown = root.querySelector(
-        "[data-react-grab-recent-dropdown]",
-      );
+      const dropdown = root.querySelector("[data-react-grab-recent-dropdown]");
       if (!dropdown) return { isVisible: false, itemCount: 0 };
 
       return {
