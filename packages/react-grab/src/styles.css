@@ -1,7 +1,26 @@
 @import "tailwindcss";
 
+:host {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-kerning: normal;
+  font-optical-sizing: auto;
+  font-synthesis: none;
+  font-weight: 460;
+  letter-spacing: -0.00563rem;
+  font-feature-settings: "cv01", "cv03", "cv04", "cv09", "cv11";
+}
+
+code,
+kbd,
+samp,
+pre {
+  letter-spacing: normal;
+}
+
 @theme {
-  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono:
     ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
     monospace;
@@ -146,6 +165,21 @@
   }
 }
 
+@keyframes toolbar-dock-shift {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.96);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @keyframes icon-loader-spin {
   0% {
     opacity: 1;
@@ -229,6 +263,12 @@
 
 .animate-tooltip-fade-in {
   animation: tooltip-fade-in var(--transition-fast) ease-out;
+  will-change: transform, opacity;
+}
+
+.animate-toolbar-dock-shift {
+  animation: toolbar-dock-shift var(--transition-slow)
+    cubic-bezier(0.2, 0.8, 0.2, 1);
   will-change: transform, opacity;
 }
 

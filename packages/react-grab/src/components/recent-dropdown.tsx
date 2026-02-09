@@ -15,6 +15,10 @@ import {
 } from "../constants.js";
 import { cn } from "../utils/cn.js";
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
+import { IconComment } from "./icons/icon-comment.jsx";
+import { IconCopy } from "./icons/icon-copy.jsx";
+import { IconTrash } from "./icons/icon-trash.jsx";
+import { Tooltip } from "./tooltip.jsx";
 
 const DEFAULT_OFFSCREEN_POSITION = { left: -9999, top: -9999 };
 
@@ -40,9 +44,16 @@ const formatRelativeTime = (timestamp: number): string => {
 
 export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
+  let lastHoveredRecentItemId: string | null = null;
 
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
+  const [highlightedRecentItemIndex, setHighlightedRecentItemIndex] =
+    createSignal<number | null>(null);
+  const [isClearAllTooltipVisible, setIsClearAllTooltipVisible] =
+    createSignal(false);
+  const [isCopyAllTooltipVisible, setIsCopyAllTooltipVisible] =
+    createSignal(false);
 
   const isVisible = () => props.position !== null;
 
@@ -94,6 +105,114 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
     event.stopImmediatePropagation();
   };
 
+  const notifyRecentItemHover = (recentItemId: string | null) => {
+    if (recentItemId === lastHoveredRecentItemId) return;
+    lastHoveredRecentItemId = recentItemId;
+    props.onItemHover?.(recentItemId);
+  };
+
+  const setHighlightedRecentItem = (
+    nextHighlightedIndex: number | null,
+    shouldSyncHover: boolean,
+  ) => {
+    setHighlightedRecentItemIndex(nextHighlightedIndex);
+
+    if (shouldSyncHover) {
+      if (nextHighlightedIndex === null) {
+        notifyRecentItemHover(null);
+        return;
+      }
+
+      const highlightedRecentItem = props.items[nextHighlightedIndex] ?? null;
+      notifyRecentItemHover(highlightedRecentItem?.id ?? null);
+
+      requestAnimationFrame(() => {
+        const highlightedItemButton =
+          containerRef?.querySelectorAll<HTMLButtonElement>(
+            "[data-react-grab-recent-item]",
+          )[nextHighlightedIndex];
+        highlightedItemButton?.scrollIntoView({
+          block: "nearest",
+        });
+      });
+    }
+  };
+
+  const moveHighlightedRecentItem = (direction: "forward" | "backward") => {
+    const totalRecentItems = props.items.length;
+    if (totalRecentItems === 0) return;
+
+    const currentHighlightedIndex = highlightedRecentItemIndex();
+
+    let nextHighlightedIndex = 0;
+    if (
+      currentHighlightedIndex === null ||
+      currentHighlightedIndex >= totalRecentItems
+    ) {
+      nextHighlightedIndex = direction === "forward" ? 0 : totalRecentItems - 1;
+    } else if (direction === "forward") {
+      nextHighlightedIndex =
+        currentHighlightedIndex + 1 >= totalRecentItems
+          ? 0
+          : currentHighlightedIndex + 1;
+    } else {
+      nextHighlightedIndex =
+        currentHighlightedIndex - 1 < 0
+          ? totalRecentItems - 1
+          : currentHighlightedIndex - 1;
+    }
+
+    setHighlightedRecentItem(nextHighlightedIndex, true);
+  };
+
+  const selectHighlightedRecentItem = () => {
+    if (props.items.length === 0) return;
+
+    const currentHighlightedIndex = highlightedRecentItemIndex();
+    const selectedRecentItem =
+      currentHighlightedIndex === null ||
+      currentHighlightedIndex >= props.items.length
+        ? props.items[0]
+        : props.items[currentHighlightedIndex];
+
+    if (!selectedRecentItem) return;
+    props.onSelectItem?.(selectedRecentItem);
+  };
+
+  const isRecentItemHighlighted = (recentItemId: string): boolean => {
+    const currentHighlightedIndex = highlightedRecentItemIndex();
+    if (currentHighlightedIndex === null) return false;
+    return props.items[currentHighlightedIndex]?.id === recentItemId;
+  };
+
+  const isBottomRecentItem = (recentItemIndex: number): boolean => {
+    return recentItemIndex === props.items.length - 1;
+  };
+
+  createEffect(() => {
+    const currentItems = props.items;
+    if (!isVisible() || currentItems.length === 0) {
+      setHighlightedRecentItem(null, true);
+      return;
+    }
+
+    const currentHighlightedIndex = highlightedRecentItemIndex();
+    if (
+      currentHighlightedIndex === null ||
+      currentHighlightedIndex >= currentItems.length
+    ) {
+      setHighlightedRecentItem(0, false);
+      return;
+    }
+  });
+
+  createEffect(() => {
+    if (!isVisible()) {
+      setIsClearAllTooltipVisible(false);
+      setIsCopyAllTooltipVisible(false);
+    }
+  });
+
   onMount(() => {
     measureContainer();
 
@@ -109,15 +228,36 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!isVisible()) return;
+
       if (event.code === "Escape") {
         event.preventDefault();
         event.stopPropagation();
+        event.stopImmediatePropagation();
         props.onDismiss?.();
+        return;
       }
-      if (event.code === "Enter" && props.items.length > 0) {
+
+      if (event.code === "ArrowDown") {
         event.preventDefault();
         event.stopPropagation();
-        props.onCopyAll?.();
+        event.stopImmediatePropagation();
+        moveHighlightedRecentItem("forward");
+        return;
+      }
+
+      if (event.code === "ArrowUp") {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        moveHighlightedRecentItem("backward");
+        return;
+      }
+
+      if (event.code === "Enter") {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        selectHighlightedRecentItem();
       }
     };
 
@@ -169,76 +309,123 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
           )}
         >
           <div class="contain-layout shrink-0 flex items-center justify-between px-2 pt-1.5 pb-1">
-            <span class="text-[11px] font-medium text-black/40">Recent</span>
+            <span class="text-[11px] font-medium text-black/40">History</span>
             <Show when={props.items.length > 0}>
               <div class="flex items-center gap-[5px]">
-                <button
-                  data-react-grab-ignore-events
-                  data-react-grab-recent-clear
-                  class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[#FEF2F2] cursor-pointer transition-all hover:bg-[#FEE2E2] press-scale h-[17px]"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    props.onClearAll?.();
-                  }}
-                >
-                  <span class="text-[#B91C1C] text-[13px] leading-3.5 font-sans font-medium">
-                    Clear
-                  </span>
-                </button>
-                <button
-                  data-react-grab-ignore-events
-                  data-react-grab-recent-copy-all
-                  class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] press-scale h-[17px]"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    props.onCopyAll?.();
-                  }}
-                >
-                  <span class="text-black text-[13px] leading-3.5 font-sans font-medium">
+                <div class="relative overflow-visible shrink-0 w-[18px] h-[18px]">
+                  <button
+                    data-react-grab-ignore-events
+                    data-react-grab-recent-clear
+                    aria-label="Clear all"
+                    class="contain-layout flex items-center justify-center w-full h-full rounded-sm bg-[#FEF2F2] border-none cursor-pointer transition-all hover:bg-black/[0.02] press-scale"
+                    onMouseEnter={() => setIsClearAllTooltipVisible(true)}
+                    onMouseLeave={() => setIsClearAllTooltipVisible(false)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setIsClearAllTooltipVisible(false);
+                      props.onClearAll?.();
+                    }}
+                  >
+                    <IconTrash size={12} class="text-[#B91C1C]" />
+                  </button>
+                  <Tooltip visible={isClearAllTooltipVisible()} position="top">
+                    Clear all
+                  </Tooltip>
+                </div>
+                <div class="relative overflow-visible shrink-0 w-[18px] h-[18px]">
+                  <button
+                    data-react-grab-ignore-events
+                    data-react-grab-recent-copy-all
+                    aria-label="Copy all"
+                    class="contain-layout flex items-center justify-center w-full h-full rounded-sm bg-white border-none cursor-pointer transition-all hover:bg-black/[0.02] press-scale"
+                    onMouseEnter={() => setIsCopyAllTooltipVisible(true)}
+                    onMouseLeave={() => setIsCopyAllTooltipVisible(false)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setIsCopyAllTooltipVisible(false);
+                      props.onCopyAll?.();
+                    }}
+                  >
+                    <IconCopy size={12} class="text-black" />
+                  </button>
+                  <Tooltip visible={isCopyAllTooltipVisible()} position="top">
                     Copy all
-                  </span>
-                  <span class="text-[11px] font-sans text-black/50">↵</span>
-                </button>
+                  </Tooltip>
+                </div>
               </div>
             </Show>
           </div>
 
-          <div class="[border-top-width:0.5px] border-t-solid border-t-[#D9D9D9] px-2 py-1.5">
-            <div
-              class="flex flex-col max-h-[240px] overflow-y-auto -mx-2 -my-1.5"
-              style={{ "scrollbar-color": "rgba(0,0,0,0.15) transparent" }}
+          <div class="px-2 py-1.5">
+            <Show
+              when={props.items.length > 0}
+              fallback={
+                <div class="py-1.5 text-center text-[12px] text-black/30">
+                  No copied elements yet
+                </div>
+              }
             >
-              <For each={props.items}>
-                {(item) => (
-                  <button
-                    data-react-grab-ignore-events
-                    data-react-grab-recent-item
-                    class="contain-layout flex items-start justify-between w-full px-2 py-1 cursor-pointer transition-colors hover:bg-black/5 text-left border-none bg-transparent gap-2"
-                    onPointerDown={(event) => event.stopPropagation()}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      props.onSelectItem?.(item);
-                    }}
-                    onMouseEnter={() => props.onItemHover?.(item.id)}
-                    onMouseLeave={() => props.onItemHover?.(null)}
-                  >
-                    <span class="flex flex-col min-w-0 flex-1">
-                      <span class="text-[12px] leading-4 font-sans font-medium text-black truncate">
-                        {item.componentName ?? item.tagName}
-                      </span>
-                      <Show when={item.commentText}>
-                        <span class="text-[11px] leading-3 font-sans text-black/40 truncate mt-0.5">
-                          {item.commentText}
+              <div
+                class="flex flex-col max-h-[240px] overflow-y-auto -mx-2 -my-1.5"
+                style={{ "scrollbar-color": "rgba(0,0,0,0.15) transparent" }}
+              >
+                <For each={props.items}>
+                  {(item, itemIndex) => (
+                    <button
+                      data-react-grab-ignore-events
+                      data-react-grab-recent-item
+                      data-react-grab-recent-item-highlighted={
+                        isRecentItemHighlighted(item.id) ? "" : undefined
+                      }
+                      class="contain-layout flex items-start justify-between w-full px-2 py-1 cursor-pointer transition-colors duration-150 text-left border border-transparent hover:bg-black/[0.02] hover:border-black/[0.05] gap-2"
+                      classList={{
+                        "bg-black/[0.02] border-black/[0.05]":
+                          isRecentItemHighlighted(item.id),
+                        "rounded-none": !isBottomRecentItem(itemIndex()),
+                        "rounded-b-[6px]": isBottomRecentItem(itemIndex()),
+                      }}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        props.onSelectItem?.(item);
+                      }}
+                      onMouseEnter={() =>
+                        setHighlightedRecentItem(itemIndex(), true)
+                      }
+                      onMouseLeave={() => setHighlightedRecentItem(null, true)}
+                    >
+                      <span class="flex flex-col min-w-0 flex-1">
+                        <span class="flex items-center gap-1 text-[12px] leading-4 font-sans font-medium text-black truncate">
+                          <Show when={item.isComment}>
+                            <IconComment
+                              size={12}
+                              class="text-black/40 shrink-0"
+                            />
+                          </Show>
+                          <span class="truncate min-w-0">
+                            <Show
+                              when={item.componentName}
+                              fallback={item.tagName}
+                            >
+                              {item.componentName}
+                              <span class="text-black/50">.{item.tagName}</span>
+                            </Show>
+                          </span>
                         </span>
-                      </Show>
-                    </span>
-                    <span class="text-[10px] font-sans text-black/25 shrink-0 mt-0.5">
-                      {formatRelativeTime(item.timestamp)}
-                    </span>
-                  </button>
-                )}
-              </For>
-            </div>
+                        <Show when={item.commentText}>
+                          <span class="text-[11px] leading-3 font-sans text-black/40 truncate mt-0.5 pl-4">
+                            {item.commentText}
+                          </span>
+                        </Show>
+                      </span>
+                      <span class="text-[10px] font-sans text-black/25 shrink-0 mt-0.5">
+                        {formatRelativeTime(item.timestamp)}
+                      </span>
+                    </button>
+                  )}
+                </For>
+              </div>
+            </Show>
           </div>
         </div>
       </div>

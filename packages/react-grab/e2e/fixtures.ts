@@ -32,6 +32,7 @@ interface ToolbarInfo {
   isCollapsed: boolean;
   position: { x: number; y: number } | null;
   snapEdge: string | null;
+  orientation: "horizontal" | "vertical" | null;
 }
 
 interface AgentSessionInfo {
@@ -135,7 +136,6 @@ export interface ReactGrabPageObject {
   getRecentDropdownInfo: () => Promise<RecentDropdownInfo>;
   clickRecentItem: (index: number) => Promise<void>;
   clickRecentCopyAll: () => Promise<void>;
-  clickRecentClear: () => Promise<void>;
   hoverRecentItem: (index: number) => Promise<void>;
 
   getSelectionLabelInfo: () => Promise<SelectionLabelInfo>;
@@ -699,6 +699,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
           isCollapsed: false,
           position: null,
           snapEdge: null,
+          orientation: null,
         };
       const root = shadowRoot.querySelector(`[${attrName}]`);
       if (!root)
@@ -707,6 +708,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
           isCollapsed: false,
           position: null,
           snapEdge: null,
+          orientation: null,
         };
 
       const toolbar = root.querySelector<HTMLElement>(
@@ -718,6 +720,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
           isCollapsed: false,
           position: null,
           snapEdge: null,
+          orientation: null,
         };
 
       const computedStyle = window.getComputedStyle(toolbar);
@@ -734,7 +737,31 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       const rect = toolbar.getBoundingClientRect();
 
       let snapEdge: string | null = null;
-      if (position) {
+      const serializedToolbarState = localStorage.getItem(
+        "react-grab-toolbar-state",
+      );
+      if (serializedToolbarState) {
+        try {
+          const parsedToolbarState = JSON.parse(serializedToolbarState);
+          if (
+            parsedToolbarState &&
+            typeof parsedToolbarState === "object" &&
+            "edge" in parsedToolbarState
+          ) {
+            const edgeValue = parsedToolbarState.edge;
+            if (
+              edgeValue === "top" ||
+              edgeValue === "bottom" ||
+              edgeValue === "left" ||
+              edgeValue === "right"
+            ) {
+              snapEdge = edgeValue;
+            }
+          }
+        } catch {}
+      }
+
+      if (!snapEdge && position) {
         const SNAP_THRESHOLD = 30;
         if (position.y <= SNAP_THRESHOLD) snapEdge = "top";
         else if (position.y + rect.height >= viewportHeight - SNAP_THRESHOLD)
@@ -745,12 +772,21 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       }
 
       const isCollapsed = computedStyle.cursor === "pointer";
+      const orientationAttribute = toolbar.getAttribute(
+        "data-react-grab-toolbar-orientation",
+      );
+      const orientation =
+        orientationAttribute === "vertical" ||
+        orientationAttribute === "horizontal"
+          ? orientationAttribute
+          : null;
 
       return {
         isVisible: computedStyle.opacity !== "0",
         isCollapsed,
         position,
         snapEdge,
+        orientation,
       };
     }, ATTRIBUTE_NAME);
   };
@@ -879,7 +915,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         "[data-react-grab-toolbar-recent]",
       );
       if (!recentButton) return false;
-      const unreadDot = recentButton.querySelector('path[fill="#404040"]');
+      const unreadDot = recentButton.querySelector('path[fill="currentColor"]');
       return unreadDot !== null;
     }, ATTRIBUTE_NAME);
   };
@@ -2070,7 +2106,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     getRecentDropdownInfo,
     clickRecentItem,
     clickRecentCopyAll,
-    clickRecentClear,
     hoverRecentItem,
 
     getSelectionLabelInfo,

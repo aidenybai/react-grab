@@ -23,13 +23,23 @@ import {
   TOOLBAR_FADE_IN_DELAY_MS,
   TOOLBAR_SNAP_ANIMATION_DURATION_MS,
   TOOLBAR_DRAG_THRESHOLD_PX,
-  TOOLBAR_VELOCITY_MULTIPLIER_MS,
   TOOLBAR_COLLAPSED_SHORT_PX,
   TOOLBAR_COLLAPSED_LONG_PX,
+  TOOLBAR_DRAG_PREVIEW_SHORT_PX,
+  TOOLBAR_DRAG_PREVIEW_LONG_PX,
+  TOOLBAR_DRAG_PREVIEW_ROTATION_DURATION_MS,
+  TOOLBAR_DRAG_RELEASE_REVEAL_DURATION_MS,
+  TOOLBAR_DRAG_RELEASE_ICON_STAGGER_DELAY_MS,
+  TOOLBAR_DRAG_RELEASE_ICON_STAGGER_COUNT,
   TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS,
   TOOLBAR_DEFAULT_WIDTH_PX,
   TOOLBAR_DEFAULT_HEIGHT_PX,
   TOOLBAR_SHAKE_TOOLTIP_DURATION_MS,
+  TOOLBAR_COMMENT_ICON_SIZE_PX,
+  TOOLBAR_SIDE_DOCK_THRESHOLD_PX,
+  TOOLBAR_DOCK_LAYOUT_ANIMATION_DURATION_MS,
+  TOOLBAR_DOCK_PREVIEW_DISTANCE_PX,
+  TOOLBAR_DOCK_PREVIEW_EDGE_SWITCH_HYSTERESIS_PX,
   PANEL_STYLES,
 } from "../../constants.js";
 import { freezeUpdates } from "../../utils/freeze-updates.js";
@@ -48,6 +58,7 @@ interface ToolbarProps {
   isActive?: boolean;
   isCommentMode?: boolean;
   isContextMenuOpen?: boolean;
+  isHistoryOpen?: boolean;
   onToggle?: () => void;
   onComment?: () => void;
   enabled?: boolean;
@@ -63,11 +74,40 @@ interface ToolbarProps {
   onToggleRecent?: (anchorPosition: { x: number; y: number }) => void;
 }
 
+interface DragDockPreviewState {
+  edge: SnapEdge | null;
+}
+
+interface EdgeDistanceMap {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+}
+
+interface ProjectedDragPosition {
+  viewport: {
+    width: number;
+    height: number;
+    offsetLeft: number;
+    offsetTop: number;
+  };
+  projectedX: number;
+  projectedY: number;
+  clampedProjectedX: number;
+  clampedProjectedY: number;
+}
+
+interface ToolbarDimensions {
+  width: number;
+  height: number;
+}
+
 export const Toolbar: Component<ToolbarProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
   let expandableButtonsRef: HTMLDivElement | undefined;
+  let toggleEnabledButtonRef: HTMLButtonElement | undefined;
   let unfreezeUpdatesCallback: (() => void) | null = null;
-  let lastKnownExpandableWidth = 0;
 
   const [isVisible, setIsVisible] = createSignal(false);
   const [isCollapsed, setIsCollapsed] = createSignal(false);
@@ -77,8 +117,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [snapEdge, setSnapEdge] = createSignal<SnapEdge>("bottom");
   const [positionRatio, setPositionRatio] = createSignal(0.5);
   const [position, setPosition] = createSignal({ x: 0, y: 0 });
-  const [dragOffset, setDragOffset] = createSignal({ x: 0, y: 0 });
-  const [velocity, setVelocity] = createSignal({ x: 0, y: 0 });
   const [hasDragMoved, setHasDragMoved] = createSignal(false);
   const [isShaking, setIsShaking] = createSignal(false);
   const [isCollapseAnimating, setIsCollapseAnimating] = createSignal(false);
@@ -92,18 +130,298 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [isToggleAnimating, setIsToggleAnimating] = createSignal(false);
   const [isRecentTooltipVisible, setIsRecentTooltipVisible] =
     createSignal(false);
+  const [expandableSectionMainAxisSizePx, setExpandableSectionMainAxisSizePx] =
+    createSignal(0);
+  const [
+    isExpandableSectionMainAxisSizeLocked,
+    setIsExpandableSectionMainAxisSizeLocked,
+  ] = createSignal(false);
+  const [isDockLayoutAnimating, setIsDockLayoutAnimating] = createSignal(false);
+  const [isDragSnapTransitionActive, setIsDragSnapTransitionActive] =
+    createSignal(false);
+  const [isDragReleaseRevealPrepared, setIsDragReleaseRevealPrepared] =
+    createSignal(false);
+  const [isDragReleaseRevealAnimating, setIsDragReleaseRevealAnimating] =
+    createSignal(false);
+  const [dragDockPreviewEdge, setDragDockPreviewEdge] =
+    createSignal<SnapEdge | null>(null);
+  const [dragPointerPosition, setDragPointerPosition] = createSignal({
+    x: 0,
+    y: 0,
+  });
   let recentButtonRef: HTMLButtonElement | undefined;
 
   const recentTooltipLabel = () => {
     const count = props.recentItemCount ?? 0;
-    return count > 0 ? `Recent (${count})` : "Recent";
+    return count > 0 ? `History (${count})` : "History";
   };
 
   const tooltipPosition = () => (snapEdge() === "top" ? "bottom" : "top");
 
+  const isSideDockedEdge = () =>
+    snapEdge() === "left" || snapEdge() === "right";
+
+  const isVerticalOrientation = () => isSideDockedEdge();
+
+  const isVerticalLayout = () => !isCollapsed() && isVerticalOrientation();
+
+  const isSideEdge = (edge: SnapEdge) => edge === "left" || edge === "right";
+
+  const getMeasuredExpandableSectionMainAxisSizePx = (): number => {
+    const expandableSectionElement = expandableButtonsRef;
+    if (!expandableSectionElement) return 0;
+    return isVerticalLayout()
+      ? expandableSectionElement.scrollHeight
+      : expandableSectionElement.scrollWidth;
+  };
+
+  const cacheExpandableSectionMainAxisSizePx = () => {
+    const measuredExpandableSectionMainAxisSizePx =
+      getMeasuredExpandableSectionMainAxisSizePx();
+    if (measuredExpandableSectionMainAxisSizePx <= 0) return;
+    setExpandableSectionMainAxisSizePx(measuredExpandableSectionMainAxisSizePx);
+  };
+
+  const getExpandableSectionVisibilityClasses = (): string => {
+    return props.enabled ? "opacity-100" : "opacity-0 pointer-events-none";
+  };
+
+  const getExpandableSectionSizeStyle = () => {
+    const currentExpandableSectionMainAxisSizePx =
+      expandableSectionMainAxisSizePx();
+    if (props.enabled) {
+      if (
+        !isExpandableSectionMainAxisSizeLocked() ||
+        currentExpandableSectionMainAxisSizePx <= 0
+      ) {
+        return undefined;
+      }
+      if (isVerticalLayout()) {
+        return {
+          height: `${currentExpandableSectionMainAxisSizePx}px`,
+        };
+      }
+      return {
+        width: `${currentExpandableSectionMainAxisSizePx}px`,
+      };
+    }
+    if (isVerticalLayout()) {
+      return {
+        height: "0px",
+      };
+    }
+    return {
+      width: "0px",
+    };
+  };
+
+  const computeEdgeDistances = (pointerX: number, pointerY: number) => {
+    const viewport = getVisualViewport();
+    const edgeDistanceMap: EdgeDistanceMap = {
+      top: Math.max(0, pointerY - viewport.offsetTop),
+      bottom: Math.max(0, viewport.offsetTop + viewport.height - pointerY),
+      left: Math.max(0, pointerX - viewport.offsetLeft),
+      right: Math.max(0, viewport.offsetLeft + viewport.width - pointerX),
+    };
+    const nearestHorizontalEdge: SnapEdge =
+      edgeDistanceMap.left <= edgeDistanceMap.right ? "left" : "right";
+    const nearestVerticalEdge: SnapEdge =
+      edgeDistanceMap.top <= edgeDistanceMap.bottom ? "top" : "bottom";
+    const nearestHorizontalDistance = Math.min(
+      edgeDistanceMap.left,
+      edgeDistanceMap.right,
+    );
+    const nearestVerticalDistance = Math.min(
+      edgeDistanceMap.top,
+      edgeDistanceMap.bottom,
+    );
+    return {
+      edgeDistanceMap,
+      nearestHorizontalEdge,
+      nearestVerticalEdge,
+      nearestHorizontalDistance,
+      nearestVerticalDistance,
+    };
+  };
+
+  const getClosestEdgeFromPointer = (
+    pointerX: number,
+    pointerY: number,
+  ): SnapEdge => {
+    const {
+      nearestHorizontalEdge,
+      nearestVerticalEdge,
+      nearestHorizontalDistance,
+      nearestVerticalDistance,
+    } = computeEdgeDistances(pointerX, pointerY);
+    return nearestHorizontalDistance < nearestVerticalDistance
+      ? nearestHorizontalEdge
+      : nearestVerticalEdge;
+  };
+
+  const getDragPreviewEdge = (): SnapEdge => {
+    const previewEdge = dragDockPreviewEdge();
+    if (previewEdge) return previewEdge;
+    const currentDragPointerPosition = dragPointerPosition();
+    return getClosestEdgeFromPointer(
+      currentDragPointerPosition.x,
+      currentDragPointerPosition.y,
+    );
+  };
+
+  const getDragPreviewDimensions = (): ToolbarDimensions => {
+    return {
+      width: TOOLBAR_DRAG_PREVIEW_LONG_PX,
+      height: TOOLBAR_DRAG_PREVIEW_SHORT_PX,
+    };
+  };
+
+  const getDragPreviewRotationDegrees = (edge: SnapEdge): number => {
+    if (edge === "left" || edge === "right") return 90;
+    return 0;
+  };
+
+  const getDragReleaseItemTransform = (
+    shouldScaleDuringReveal: boolean,
+  ): string | undefined => {
+    if (hasDragMoved() || !isDragReleaseRevealPrepared()) return undefined;
+    if (!shouldScaleDuringReveal) return undefined;
+    return "scale(0)";
+  };
+
+  const getDragReleaseIconStaggerOrder = (slot: number): number => {
+    if (slot === -2) return 0;
+    if (slot === -1) return 1;
+    if (slot === 0) return 2;
+    return 0;
+  };
+
+  const getDragReleaseItemTransitionDelayMs = (
+    slot: number,
+    shouldStagger: boolean,
+  ): number => {
+    if (!shouldStagger || !isDragReleaseRevealAnimating()) return 0;
+    return (
+      getDragReleaseIconStaggerOrder(slot) *
+      TOOLBAR_DRAG_RELEASE_ICON_STAGGER_DELAY_MS
+    );
+  };
+
+  const getDragReleaseRevealAnimationDurationMs = (): number => {
+    return (
+      TOOLBAR_DRAG_RELEASE_REVEAL_DURATION_MS +
+      Math.max(0, TOOLBAR_DRAG_RELEASE_ICON_STAGGER_COUNT - 1) *
+        TOOLBAR_DRAG_RELEASE_ICON_STAGGER_DELAY_MS
+    );
+  };
+
+  const getDragReleaseItemStyle = (
+    slot: number,
+    shouldStagger = false,
+    shouldScaleDuringReveal = false,
+  ) => ({
+    transform: getDragReleaseItemTransform(shouldScaleDuringReveal),
+    opacity: isDragReleaseRevealPrepared() ? "0" : undefined,
+    "transition-property": "transform,opacity",
+    "transition-duration": `${
+      isDragReleaseRevealPrepared()
+        ? 0
+        : TOOLBAR_DRAG_RELEASE_REVEAL_DURATION_MS
+    }ms`,
+    "transition-timing-function": "cubic-bezier(0.22,1,0.36,1)",
+    "transition-delay": `${
+      isDragReleaseRevealPrepared()
+        ? 0
+        : getDragReleaseItemTransitionDelayMs(slot, shouldStagger)
+    }ms`,
+  });
+
+  const getDragDockPreviewState = (
+    pointerX: number,
+    pointerY: number,
+    dragDeltaX: number,
+    dragDeltaY: number,
+    previousPreviewEdge: SnapEdge | null,
+  ): DragDockPreviewState => {
+    const {
+      edgeDistanceMap,
+      nearestHorizontalEdge,
+      nearestVerticalEdge,
+      nearestHorizontalDistance,
+      nearestVerticalDistance,
+    } = computeEdgeDistances(pointerX, pointerY);
+    const nearestDistance = Math.min(
+      nearestHorizontalDistance,
+      nearestVerticalDistance,
+    );
+    const canPreviewHorizontalEdge =
+      nearestHorizontalDistance <= TOOLBAR_DOCK_PREVIEW_DISTANCE_PX;
+    const canPreviewVerticalEdge =
+      nearestVerticalDistance <= TOOLBAR_DOCK_PREVIEW_DISTANCE_PX;
+
+    if (nearestDistance > TOOLBAR_DOCK_PREVIEW_DISTANCE_PX) {
+      return { edge: null };
+    }
+
+    if (previousPreviewEdge) {
+      const previousEdgeDistance = edgeDistanceMap[previousPreviewEdge];
+      const shouldRetainPreviousEdge =
+        previousEdgeDistance <= TOOLBAR_DOCK_PREVIEW_DISTANCE_PX &&
+        previousEdgeDistance <=
+          nearestDistance + TOOLBAR_DOCK_PREVIEW_EDGE_SWITCH_HYSTERESIS_PX;
+
+      if (shouldRetainPreviousEdge) {
+        return { edge: previousPreviewEdge };
+      }
+    }
+
+    const shouldPreferHorizontalAxis =
+      Math.abs(dragDeltaX) >= Math.abs(dragDeltaY);
+
+    if (shouldPreferHorizontalAxis && canPreviewHorizontalEdge) {
+      return { edge: nearestHorizontalEdge };
+    }
+
+    if (!shouldPreferHorizontalAxis && canPreviewVerticalEdge) {
+      return { edge: nearestVerticalEdge };
+    }
+
+    const areAxisDistancesSimilar =
+      Math.abs(nearestHorizontalDistance - nearestVerticalDistance) <=
+      TOOLBAR_DOCK_PREVIEW_EDGE_SWITCH_HYSTERESIS_PX;
+
+    if (areAxisDistancesSimilar) {
+      return {
+        edge: shouldPreferHorizontalAxis
+          ? nearestHorizontalEdge
+          : nearestVerticalEdge,
+      };
+    }
+
+    return {
+      edge:
+        nearestHorizontalDistance < nearestVerticalDistance
+          ? nearestHorizontalEdge
+          : nearestVerticalEdge,
+    };
+  };
+
   const stopEventPropagation = (event: Event) => {
     event.stopPropagation();
     event.stopImmediatePropagation();
+  };
+
+  const suppressNextWindowClickAfterDrag = () => {
+    const handleWindowClick = (event: MouseEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+    };
+
+    window.addEventListener("click", handleWindowClick, true);
+    requestAnimationFrame(() => {
+      window.removeEventListener("click", handleWindowClick, true);
+    });
   };
 
   const createFreezeHandlers = (
@@ -121,7 +439,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     onMouseLeave: () => {
       setTooltipVisible(false);
       props.onSelectHoverChange?.(false);
-      if (!props.isActive && !props.isContextMenuOpen) {
+      if (!props.isActive && !props.isContextMenuOpen && !props.isHistoryOpen) {
         unfreezeUpdatesCallback?.();
         unfreezeUpdatesCallback = null;
         unfreezeGlobalAnimations();
@@ -130,18 +448,12 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     },
   });
 
-  const collapsedEdgeClasses = () => {
+  const collapsedPaddingClasses = () => {
     if (!isCollapsed()) return "";
     const edge = snapEdge();
-    const roundedClass = {
-      top: "rounded-t-none rounded-b-[10px]",
-      bottom: "rounded-b-none rounded-t-[10px]",
-      left: "rounded-l-none rounded-r-[10px]",
-      right: "rounded-r-none rounded-l-[10px]",
-    }[edge];
     const paddingClass =
       edge === "top" || edge === "bottom" ? "px-2 py-0.25" : "px-0.25 py-2";
-    return `${roundedClass} ${paddingClass}`;
+    return paddingClass;
   };
 
   let shakeTooltipTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -181,9 +493,33 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   createEffect(
     on(
-      () => [props.isActive, props.isContextMenuOpen] as const,
-      ([isActive, isContextMenuOpen]) => {
-        if (!isActive && !isContextMenuOpen && unfreezeUpdatesCallback) {
+      () =>
+        [
+          isVerticalLayout(),
+          props.enabled,
+          props.recentItemCount,
+          Boolean(props.isHistoryOpen),
+        ] as const,
+      () => {
+        if (!props.enabled) return;
+        requestAnimationFrame(() => {
+          cacheExpandableSectionMainAxisSizePx();
+        });
+      },
+    ),
+  );
+
+  createEffect(
+    on(
+      () =>
+        [props.isActive, props.isContextMenuOpen, props.isHistoryOpen] as const,
+      ([isActive, isContextMenuOpen, isHistoryOpen]) => {
+        if (
+          !isActive &&
+          !isContextMenuOpen &&
+          !isHistoryOpen &&
+          unfreezeUpdatesCallback
+        ) {
           unfreezeUpdatesCallback();
           unfreezeUpdatesCallback = null;
         }
@@ -191,8 +527,59 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     ),
   );
 
-  let lastPointerPosition = { x: 0, y: 0, time: 0 };
+  createEffect(
+    on(
+      () => [snapEdge(), isCollapsed()] as const,
+      ([nextEdge, nextIsCollapsed], previousLayoutState) => {
+        if (!previousLayoutState) return;
+
+        const [previousEdge, previousIsCollapsed] = previousLayoutState;
+        const wasVerticalLayout =
+          !previousIsCollapsed &&
+          (previousEdge === "left" || previousEdge === "right");
+        const isVerticalLayoutNow =
+          !nextIsCollapsed && (nextEdge === "left" || nextEdge === "right");
+
+        if (wasVerticalLayout === isVerticalLayoutNow) return;
+
+        setIsDockLayoutAnimating(true);
+        clearTimeout(dockLayoutAnimationTimeout);
+        dockLayoutAnimationTimeout = setTimeout(() => {
+          setIsDockLayoutAnimating(false);
+          if (isDragSnapTransitionActive()) return;
+          const rect = containerRef?.getBoundingClientRect();
+          if (!rect || isCollapsed()) return;
+
+          expandedDimensions = { width: rect.width, height: rect.height };
+          const nextPosition = getPositionFromEdgeAndRatio(
+            snapEdge(),
+            positionRatio(),
+            rect.width,
+            rect.height,
+          );
+          setPosition(nextPosition);
+        }, TOOLBAR_DOCK_LAYOUT_ANIMATION_DURATION_MS);
+      },
+    ),
+  );
+
+  createEffect(() => {
+    setGlobalUserSelectDisabled(isDragging());
+  });
+
   let pointerStartPosition = { x: 0, y: 0 };
+  let dragReleaseRevealAnimationFrame: number | undefined;
+  let dragReleaseRevealAnimationTimeout:
+    | ReturnType<typeof setTimeout>
+    | undefined;
+  let toggleAnchorLockAnimationFrame: number | undefined;
+  let previousDocumentElementUserSelect = "";
+  let previousDocumentBodyUserSelect = "";
+  let isGlobalUserSelectDisabled = false;
+  let activeDragElementDimensions = {
+    width: TOOLBAR_DEFAULT_WIDTH_PX,
+    height: TOOLBAR_DEFAULT_HEIGHT_PX,
+  };
   let expandedDimensions = {
     width: TOOLBAR_DEFAULT_WIDTH_PX,
     height: TOOLBAR_DEFAULT_HEIGHT_PX,
@@ -204,6 +591,45 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const clampToViewport = (value: number, min: number, max: number): number =>
     Math.max(min, Math.min(value, max));
+
+  const clearDragReleaseRevealAnimationFrame = () => {
+    if (dragReleaseRevealAnimationFrame === undefined) return;
+    cancelAnimationFrame(dragReleaseRevealAnimationFrame);
+    dragReleaseRevealAnimationFrame = undefined;
+  };
+
+  const clearDragReleaseRevealAnimationTimeout = () => {
+    if (dragReleaseRevealAnimationTimeout === undefined) return;
+    clearTimeout(dragReleaseRevealAnimationTimeout);
+    dragReleaseRevealAnimationTimeout = undefined;
+  };
+
+  const clearToggleAnchorLockAnimationFrame = () => {
+    if (toggleAnchorLockAnimationFrame === undefined) return;
+    cancelAnimationFrame(toggleAnchorLockAnimationFrame);
+    toggleAnchorLockAnimationFrame = undefined;
+  };
+
+  const setGlobalUserSelectDisabled = (shouldDisable: boolean) => {
+    const documentElement = document.documentElement;
+    const documentBody = document.body;
+    if (!documentElement || !documentBody) return;
+
+    if (shouldDisable && !isGlobalUserSelectDisabled) {
+      previousDocumentElementUserSelect = documentElement.style.userSelect;
+      previousDocumentBodyUserSelect = documentBody.style.userSelect;
+      documentElement.style.userSelect = "none";
+      documentBody.style.userSelect = "none";
+      isGlobalUserSelectDisabled = true;
+      return;
+    }
+
+    if (!shouldDisable && isGlobalUserSelectDisabled) {
+      documentElement.style.userSelect = previousDocumentElementUserSelect;
+      documentBody.style.userSelect = previousDocumentBodyUserSelect;
+      isGlobalUserSelectDisabled = false;
+    }
+  };
 
   const getVisualViewport = () => {
     const visualViewport = window.visualViewport;
@@ -464,56 +890,38 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   });
 
   const handleToggleEnabled = createDragAwareHandler(() => {
+    cacheExpandableSectionMainAxisSizePx();
+    setIsExpandableSectionMainAxisSizeLocked(true);
     const isCurrentlyEnabled = Boolean(props.enabled);
     const edge = snapEdge();
-    const preTogglePosition = position();
-    const expandableWidth = lastKnownExpandableWidth;
-    const shouldCompensatePosition = expandableWidth > 0 && edge !== "left";
 
-    if (shouldCompensatePosition) {
-      setIsToggleAnimating(true);
-    }
+    setIsToggleAnimating(true);
+    clearToggleAnchorLockAnimationFrame();
 
     props.onToggleEnabled?.();
 
-    if (expandableWidth > 0) {
-      const widthChange = isCurrentlyEnabled
-        ? -expandableWidth
-        : expandableWidth;
-      expandedDimensions = {
-        width: expandedDimensions.width + widthChange,
-        height: expandedDimensions.height,
-      };
-    }
+    clearTimeout(toggleAnimationTimeout);
+    toggleAnimationTimeout = setTimeout(() => {
+      clearToggleAnchorLockAnimationFrame();
+      setIsToggleAnimating(false);
+      setIsExpandableSectionMainAxisSizeLocked(false);
 
-    if (shouldCompensatePosition) {
-      const viewport = getVisualViewport();
-      const positionOffset = isCurrentlyEnabled
-        ? expandableWidth
-        : -expandableWidth;
-      const clampMin = viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX;
-      const clampMax =
-        viewport.offsetLeft +
-        viewport.width -
-        expandedDimensions.width -
-        TOOLBAR_SNAP_MARGIN_PX;
-      const compensatedX = clampToViewport(
-        preTogglePosition.x + positionOffset,
-        clampMin,
-        clampMax,
-      );
+      requestAnimationFrame(() => {
+        const nextContainerRect = containerRef?.getBoundingClientRect();
+        if (!nextContainerRect) return;
 
-      setPosition({ x: compensatedX, y: preTogglePosition.y });
+        expandedDimensions = {
+          width: nextContainerRect.width,
+          height: nextContainerRect.height,
+        };
 
-      clearTimeout(toggleAnimationTimeout);
-      toggleAnimationTimeout = setTimeout(() => {
-        setIsToggleAnimating(false);
+        const nextPosition = position();
         const newRatio = getRatioFromPosition(
           edge,
-          position().x,
-          position().y,
-          expandedDimensions.width,
-          expandedDimensions.height,
+          nextPosition.x,
+          nextPosition.y,
+          nextContainerRect.width,
+          nextContainerRect.height,
         );
         setPositionRatio(newRatio);
         saveAndNotify({
@@ -522,21 +930,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           collapsed: isCollapsed(),
           enabled: !isCurrentlyEnabled,
         });
-      }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
-    } else if (!isCurrentlyEnabled && lastKnownExpandableWidth === 0) {
-      // HACK: When toolbar mounts disabled, expandable buttons are hidden (grid-cols-[0fr])
-      // so we can't measure their width. Learn it after the first enable animation completes.
-      clearTimeout(toggleAnimationTimeout);
-      toggleAnimationTimeout = setTimeout(() => {
-        if (expandableButtonsRef) {
-          lastKnownExpandableWidth = expandableButtonsRef.offsetWidth;
-        }
-        const rect = containerRef?.getBoundingClientRect();
-        if (rect) {
-          expandedDimensions = { width: rect.width, height: rect.height };
-        }
-      }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
-    }
+      });
+    }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
   });
 
   const getSnapPosition = (
@@ -544,15 +939,100 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     currentY: number,
     elementWidth: number,
     elementHeight: number,
-    velocityX: number,
-    velocityY: number,
+    preferredEdge: SnapEdge | null = null,
   ): { edge: SnapEdge; x: number; y: number } => {
-    const viewport = getVisualViewport();
+    const getProjectedDragPosition = (): ProjectedDragPosition => {
+      const viewport = getVisualViewport();
+      const projectedX = currentX;
+      const projectedY = currentY;
+      const minX = viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX;
+      const maxX = Math.max(
+        minX,
+        viewport.offsetLeft +
+          viewport.width -
+          elementWidth -
+          TOOLBAR_SNAP_MARGIN_PX,
+      );
+      const minY = viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX;
+      const maxY = Math.max(
+        minY,
+        viewport.offsetTop +
+          viewport.height -
+          elementHeight -
+          TOOLBAR_SNAP_MARGIN_PX,
+      );
+
+      return {
+        viewport,
+        projectedX,
+        projectedY,
+        clampedProjectedX: clampToViewport(projectedX, minX, maxX),
+        clampedProjectedY: clampToViewport(projectedY, minY, maxY),
+      };
+    };
+
+    const getSnapPositionForEdge = (
+      edge: SnapEdge,
+      projectedDragPosition: ProjectedDragPosition,
+    ): { edge: SnapEdge; x: number; y: number } => {
+      const viewport = projectedDragPosition.viewport;
+      if (edge === "top") {
+        return {
+          edge,
+          x: projectedDragPosition.clampedProjectedX,
+          y: viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX,
+        };
+      }
+      if (edge === "bottom") {
+        return {
+          edge,
+          x: projectedDragPosition.clampedProjectedX,
+          y:
+            viewport.offsetTop +
+            viewport.height -
+            elementHeight -
+            TOOLBAR_SNAP_MARGIN_PX,
+        };
+      }
+      if (edge === "left") {
+        return {
+          edge,
+          x: viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX,
+          y: projectedDragPosition.clampedProjectedY,
+        };
+      }
+      return {
+        edge,
+        x:
+          viewport.offsetLeft +
+          viewport.width -
+          elementWidth -
+          TOOLBAR_SNAP_MARGIN_PX,
+        y: projectedDragPosition.clampedProjectedY,
+      };
+    };
+
+    const projectedDragPosition = getProjectedDragPosition();
+    const viewport = projectedDragPosition.viewport;
     const viewportWidth = viewport.width;
     const viewportHeight = viewport.height;
+    const projectedX = projectedDragPosition.projectedX;
+    const projectedY = projectedDragPosition.projectedY;
 
-    const projectedX = currentX + velocityX * TOOLBAR_VELOCITY_MULTIPLIER_MS;
-    const projectedY = currentY + velocityY * TOOLBAR_VELOCITY_MULTIPLIER_MS;
+    if (preferredEdge) {
+      return getSnapPositionForEdge(preferredEdge, projectedDragPosition);
+    }
+
+    if (projectedX <= viewport.offsetLeft + TOOLBAR_SIDE_DOCK_THRESHOLD_PX) {
+      return getSnapPositionForEdge("left", projectedDragPosition);
+    }
+
+    if (
+      projectedX + elementWidth >=
+      viewport.offsetLeft + viewportWidth - TOOLBAR_SIDE_DOCK_THRESHOLD_PX
+    ) {
+      return getSnapPositionForEdge("right", projectedDragPosition);
+    }
 
     const distanceToTop = projectedY - viewport.offsetTop + elementHeight / 2;
     const distanceToBottom =
@@ -569,161 +1049,236 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     );
 
     if (minDistance === distanceToTop) {
-      return {
-        edge: "top",
-        x: Math.max(
-          viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX,
-          Math.min(
-            projectedX,
-            viewport.offsetLeft +
-              viewportWidth -
-              elementWidth -
-              TOOLBAR_SNAP_MARGIN_PX,
-          ),
-        ),
-        y: viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX,
-      };
+      return getSnapPositionForEdge("top", projectedDragPosition);
     }
     if (minDistance === distanceToLeft) {
-      return {
-        edge: "left",
-        x: viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX,
-        y: Math.max(
-          viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX,
-          Math.min(
-            projectedY,
-            viewport.offsetTop +
-              viewportHeight -
-              elementHeight -
-              TOOLBAR_SNAP_MARGIN_PX,
-          ),
-        ),
-      };
+      return getSnapPositionForEdge("left", projectedDragPosition);
     }
     if (minDistance === distanceToRight) {
-      return {
-        edge: "right",
-        x:
-          viewport.offsetLeft +
-          viewportWidth -
-          elementWidth -
-          TOOLBAR_SNAP_MARGIN_PX,
-        y: Math.max(
-          viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX,
-          Math.min(
-            projectedY,
-            viewport.offsetTop +
-              viewportHeight -
-              elementHeight -
-              TOOLBAR_SNAP_MARGIN_PX,
-          ),
-        ),
-      };
+      return getSnapPositionForEdge("right", projectedDragPosition);
     }
-    return {
-      edge: "bottom",
-      x: Math.max(
-        viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX,
-        Math.min(
-          projectedX,
-          viewport.offsetLeft +
-            viewportWidth -
-            elementWidth -
-            TOOLBAR_SNAP_MARGIN_PX,
-        ),
-      ),
-      y:
-        viewport.offsetTop +
-        viewportHeight -
+    return getSnapPositionForEdge("bottom", projectedDragPosition);
+  };
+
+  const getAxisLockedSnapPosition = (
+    edge: SnapEdge,
+    releasePosition: { x: number; y: number },
+    snapPosition: { x: number; y: number },
+    elementWidth: number,
+    elementHeight: number,
+  ) => {
+    const viewport = getVisualViewport();
+    const minX = viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX;
+    const maxX = Math.max(
+      minX,
+      viewport.offsetLeft +
+        viewport.width -
+        elementWidth -
+        TOOLBAR_SNAP_MARGIN_PX,
+    );
+    const minY = viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX;
+    const maxY = Math.max(
+      minY,
+      viewport.offsetTop +
+        viewport.height -
         elementHeight -
         TOOLBAR_SNAP_MARGIN_PX,
+    );
+
+    if (edge === "left" || edge === "right") {
+      return {
+        x: snapPosition.x,
+        y: clampToViewport(releasePosition.y, minY, maxY),
+      };
+    }
+
+    return {
+      x: clampToViewport(releasePosition.x, minX, maxX),
+      y: snapPosition.y,
     };
   };
 
   const handleWindowPointerMove = (event: PointerEvent) => {
     if (!isDragging()) return;
 
+    setDragPointerPosition({ x: event.clientX, y: event.clientY });
+
     const distanceMoved = Math.sqrt(
       Math.pow(event.clientX - pointerStartPosition.x, 2) +
         Math.pow(event.clientY - pointerStartPosition.y, 2),
     );
 
-    if (distanceMoved > TOOLBAR_DRAG_THRESHOLD_PX) {
+    const hasExceededDragThreshold = distanceMoved > TOOLBAR_DRAG_THRESHOLD_PX;
+    if (hasExceededDragThreshold && !hasDragMoved()) {
       setHasDragMoved(true);
     }
 
-    if (!hasDragMoved()) return;
+    if (!hasDragMoved() && !hasExceededDragThreshold) return;
 
-    const now = performance.now();
-    const deltaTime = now - lastPointerPosition.time;
-
-    if (deltaTime > 0) {
-      const newVelocityX = (event.clientX - lastPointerPosition.x) / deltaTime;
-      const newVelocityY = (event.clientY - lastPointerPosition.y) / deltaTime;
-      setVelocity({ x: newVelocityX, y: newVelocityY });
-    }
-
-    lastPointerPosition = { x: event.clientX, y: event.clientY, time: now };
-
-    const newX = event.clientX - dragOffset().x;
-    const newY = event.clientY - dragOffset().y;
+    const previousPreviewEdge = dragDockPreviewEdge();
+    const dragDockPreviewState = getDragDockPreviewState(
+      event.clientX,
+      event.clientY,
+      event.clientX - pointerStartPosition.x,
+      event.clientY - pointerStartPosition.y,
+      previousPreviewEdge,
+    );
+    const dragPreviewDimensions = getDragPreviewDimensions();
+    const newX = event.clientX - dragPreviewDimensions.width / 2;
+    const newY = event.clientY - dragPreviewDimensions.height / 2;
 
     setPosition({ x: newX, y: newY });
+    if (dragDockPreviewState.edge !== previousPreviewEdge) {
+      setDragDockPreviewEdge(dragDockPreviewState.edge);
+    }
   };
 
-  const handleWindowPointerUp = () => {
+  const handleWindowPointerUp = (event: PointerEvent) => {
     if (!isDragging()) return;
 
     window.removeEventListener("pointermove", handleWindowPointerMove);
     window.removeEventListener("pointerup", handleWindowPointerUp);
 
     const didMove = hasDragMoved();
-    setIsDragging(false);
+    const dragDockPreviewEdgeAtRelease = dragDockPreviewEdge();
 
     if (!didMove) {
+      setIsDragSnapTransitionActive(false);
+      setIsDragging(false);
+      setHasDragMoved(false);
+      setIsDragReleaseRevealPrepared(false);
+      setIsDragReleaseRevealAnimating(false);
+      clearDragReleaseRevealAnimationFrame();
+      clearDragReleaseRevealAnimationTimeout();
+      setDragDockPreviewEdge(null);
       return;
     }
 
     didDragOccur = true;
+    suppressNextWindowClickAfterDrag();
+    setIsDragReleaseRevealPrepared(true);
+    setIsDragReleaseRevealAnimating(true);
+    clearDragReleaseRevealAnimationFrame();
+    clearDragReleaseRevealAnimationTimeout();
+    const dragPreviewEdgeAtRelease =
+      dragDockPreviewEdgeAtRelease ??
+      getClosestEdgeFromPointer(event.clientX, event.clientY);
+    const dragPreviewDimensionsAtRelease = getDragPreviewDimensions();
+    const releaseCenterX =
+      event.clientX ?? position().x + dragPreviewDimensionsAtRelease.width / 2;
+    const releaseCenterY =
+      event.clientY ?? position().y + dragPreviewDimensionsAtRelease.height / 2;
+    const releasePosition = {
+      x: releaseCenterX - activeDragElementDimensions.width / 2,
+      y: releaseCenterY - activeDragElementDimensions.height / 2,
+    };
+    let snapDimensions: ToolbarDimensions = {
+      width: activeDragElementDimensions.width,
+      height: activeDragElementDimensions.height,
+    };
 
-    const rect = containerRef?.getBoundingClientRect();
-    if (!rect) return;
-
-    const currentVelocity = velocity();
-    const snap = getSnapPosition(
-      position().x,
-      position().y,
-      rect.width,
-      rect.height,
-      currentVelocity.x,
-      currentVelocity.y,
+    let snap = getSnapPosition(
+      releasePosition.x,
+      releasePosition.y,
+      snapDimensions.width,
+      snapDimensions.height,
+      dragDockPreviewEdgeAtRelease ?? dragPreviewEdgeAtRelease,
     );
+    const minimumDragDimension = Math.min(
+      activeDragElementDimensions.width,
+      activeDragElementDimensions.height,
+    );
+    const maximumDragDimension = Math.max(
+      activeDragElementDimensions.width,
+      activeDragElementDimensions.height,
+    );
+    const shouldUseSideDimensions = isSideEdge(snap.edge);
+    snapDimensions = {
+      width: shouldUseSideDimensions
+        ? minimumDragDimension
+        : maximumDragDimension,
+      height: shouldUseSideDimensions
+        ? maximumDragDimension
+        : minimumDragDimension,
+    };
+    snap = getSnapPosition(
+      releasePosition.x,
+      releasePosition.y,
+      snapDimensions.width,
+      snapDimensions.height,
+      snap.edge,
+    );
+
+    snap = {
+      edge: snap.edge,
+      ...getAxisLockedSnapPosition(
+        snap.edge,
+        releasePosition,
+        { x: snap.x, y: snap.y },
+        snapDimensions.width,
+        snapDimensions.height,
+      ),
+    };
+
     const ratio = getRatioFromPosition(
       snap.edge,
       snap.x,
       snap.y,
-      rect.width,
-      rect.height,
+      snapDimensions.width,
+      snapDimensions.height,
     );
+    expandedDimensions = {
+      width: snapDimensions.width,
+      height: snapDimensions.height,
+    };
 
+    setIsDragSnapTransitionActive(true);
+    setDragDockPreviewEdge(snap.edge);
     setSnapEdge(snap.edge);
     setPositionRatio(ratio);
+    setIsDragging(false);
     setIsSnapping(true);
 
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setPosition({ x: snap.x, y: snap.y });
+      setPosition({ x: snap.x, y: snap.y });
+      setHasDragMoved(false);
+      dragReleaseRevealAnimationFrame = requestAnimationFrame(() => {
+        setIsDragReleaseRevealPrepared(false);
+        clearDragReleaseRevealAnimationTimeout();
+        dragReleaseRevealAnimationTimeout = setTimeout(() => {
+          setIsDragReleaseRevealAnimating(false);
+          dragReleaseRevealAnimationTimeout = undefined;
+        }, getDragReleaseRevealAnimationDurationMs());
+        dragReleaseRevealAnimationFrame = undefined;
+      });
+
+      snapAnimationTimeout = setTimeout(() => {
+        let nextRatio = ratio;
+        const measuredRect = containerRef?.getBoundingClientRect();
+        if (measuredRect && !isCollapsed()) {
+          expandedDimensions = {
+            width: measuredRect.width,
+            height: measuredRect.height,
+          };
+          nextRatio = getRatioFromPosition(
+            snap.edge,
+            position().x,
+            position().y,
+            measuredRect.width,
+            measuredRect.height,
+          );
+          setPositionRatio(nextRatio);
+        }
         saveAndNotify({
           edge: snap.edge,
-          ratio,
+          ratio: nextRatio,
           collapsed: isCollapsed(),
           enabled: props.enabled ?? true,
         });
-
-        snapAnimationTimeout = setTimeout(() => {
-          setIsSnapping(false);
-        }, TOOLBAR_SNAP_ANIMATION_DURATION_MS);
-      });
+        setIsSnapping(false);
+        setIsDragSnapTransitionActive(false);
+        setDragDockPreviewEdge(null);
+      }, TOOLBAR_SNAP_ANIMATION_DURATION_MS);
     });
   };
 
@@ -733,20 +1288,20 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     const rect = containerRef?.getBoundingClientRect();
     if (!rect) return;
 
-    pointerStartPosition = { x: event.clientX, y: event.clientY };
+    activeDragElementDimensions = { width: rect.width, height: rect.height };
+    setIsDragSnapTransitionActive(false);
+    setDragDockPreviewEdge(null);
 
-    setDragOffset({
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
-    });
+    pointerStartPosition = { x: event.clientX, y: event.clientY };
+    setDragPointerPosition({ x: event.clientX, y: event.clientY });
+    setIsDragReleaseRevealPrepared(false);
+    setIsDragReleaseRevealAnimating(false);
+    clearDragReleaseRevealAnimationFrame();
+    clearDragReleaseRevealAnimationTimeout();
+    clearTimeout(snapAnimationTimeout);
+    setIsSnapping(false);
     setIsDragging(true);
     setHasDragMoved(false);
-    setVelocity({ x: 0, y: 0 });
-    lastPointerPosition = {
-      x: event.clientX,
-      y: event.clientY,
-      time: performance.now(),
-    };
 
     window.addEventListener("pointermove", handleWindowPointerMove);
     window.addEventListener("pointerup", handleWindowPointerUp);
@@ -822,6 +1377,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   let collapseAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
   let snapAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
   let toggleAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
+  let dockLayoutAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
+  let pendingSelfPublishedToolbarState: ToolbarState | null = null;
 
   const handleResize = () => {
     if (isDragging()) return;
@@ -854,6 +1411,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   };
 
   const saveAndNotify = (state: ToolbarState) => {
+    pendingSelfPublishedToolbarState = state;
     saveToolbarState(state);
     props.onStateChange?.(state);
   };
@@ -912,18 +1470,27 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       setPosition(defaultPosition);
     }
 
-    if (props.enabled && expandableButtonsRef) {
-      lastKnownExpandableWidth = expandableButtonsRef.offsetWidth;
-    }
-
     if (props.onSubscribeToStateChanges) {
       const unsubscribe = props.onSubscribeToStateChanges(
         (state: ToolbarState) => {
-          if (isCollapseAnimating() || isToggleAnimating()) return;
+          if (state === pendingSelfPublishedToolbarState) {
+            pendingSelfPublishedToolbarState = null;
+            return;
+          }
+
+          if (
+            isCollapseAnimating() ||
+            isToggleAnimating() ||
+            isDragSnapTransitionActive()
+          ) {
+            return;
+          }
 
           const rect = containerRef?.getBoundingClientRect();
           if (!rect) return;
 
+          const previousEdge = snapEdge();
+          const didEdgeChange = previousEdge !== state.edge;
           const didCollapsedChange = isCollapsed() !== state.collapsed;
 
           setSnapEdge(state.edge);
@@ -949,13 +1516,27 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
             }
             setIsCollapsed(state.collapsed);
+            const currentExpandedPosition = position();
             const newPosition = getPositionFromEdgeAndRatio(
               state.edge,
               state.ratio,
               expandedDimensions.width,
               expandedDimensions.height,
             );
-            setPosition(newPosition);
+            const shouldPreserveCrossAxis =
+              !didEdgeChange && !state.collapsed && !didCollapsedChange;
+            const synchronizedPosition = shouldPreserveCrossAxis
+              ? state.edge === "top" || state.edge === "bottom"
+                ? {
+                    x: newPosition.x,
+                    y: currentExpandedPosition.y,
+                  }
+                : {
+                    x: currentExpandedPosition.x,
+                    y: newPosition.y,
+                  }
+              : newPosition;
+            setPosition(synchronizedPosition);
             setPositionRatio(state.ratio);
           }
         },
@@ -988,6 +1569,15 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     clearTimeout(shakeTooltipTimeout);
     clearTimeout(snapAnimationTimeout);
     clearTimeout(toggleAnimationTimeout);
+    clearTimeout(dockLayoutAnimationTimeout);
+    clearDragReleaseRevealAnimationFrame();
+    clearDragReleaseRevealAnimationTimeout();
+    clearToggleAnchorLockAnimationFrame();
+    setIsDragSnapTransitionActive(false);
+    setIsDragReleaseRevealPrepared(false);
+    setIsDragReleaseRevealAnimating(false);
+    setDragDockPreviewEdge(null);
+    setGlobalUserSelectDisabled(false);
     unfreezeUpdatesCallback?.();
   });
 
@@ -1013,8 +1603,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     if (isSnapping()) {
       return "transition-[transform,opacity] duration-300 ease-out";
     }
-    if (isCollapseAnimating() || isToggleAnimating()) {
+    if (isCollapseAnimating()) {
       return "transition-[transform,opacity] duration-150 ease-out";
+    }
+    if (isToggleAnimating()) {
+      return "transition-opacity duration-150 ease-out";
     }
     return "transition-opacity duration-300 ease-out";
   };
@@ -1040,6 +1633,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       ref={containerRef}
       data-react-grab-ignore-events
       data-react-grab-toolbar
+      data-react-grab-toolbar-orientation={
+        isVerticalOrientation() ? "vertical" : "horizontal"
+      }
       class={cn(
         "fixed left-0 top-0 font-sans text-[13px] antialiased filter-[drop-shadow(0px_1px_2px_#51515140)] select-none",
         getCursorClass(),
@@ -1055,17 +1651,48 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         }px)`,
         "transform-origin": getTransformOrigin(),
       }}
-      onPointerDown={handlePointerDown}
+      on:pointerdown={(event) => {
+        stopEventPropagation(event);
+        handlePointerDown(event);
+      }}
+      on:mousedown={stopEventPropagation}
     >
       <div
         class={cn(
-          "flex items-center justify-center rounded-[10px] antialiased transition-all duration-150 ease-out relative overflow-visible [font-synthesis:none] [corner-shape:superellipse(1.25)]",
-          PANEL_STYLES,
-          !isCollapsed() && "py-1.5 gap-1.5 px-2",
-          collapsedEdgeClasses(),
+          "flex items-center justify-center rounded-full antialiased relative overflow-visible [font-synthesis:none] [corner-shape:superellipse(1.25)]",
+          "bg-white",
+          hasDragMoved()
+            ? "transition-transform ease-[cubic-bezier(0.22,1,0.36,1)]"
+            : "transition-[padding,gap,width,height] duration-150 ease-out",
+          !hasDragMoved() &&
+            !isCollapsed() &&
+            !isVerticalLayout() &&
+            "py-1.5 gap-2 px-2",
+          !hasDragMoved() &&
+            !isCollapsed() &&
+            isVerticalLayout() &&
+            "flex-col py-2 px-1.5 gap-2",
+          !hasDragMoved() && collapsedPaddingClasses(),
+          hasDragMoved() && "p-0 gap-0",
           isShaking() && "animate-shake",
+          isDockLayoutAnimating() && "animate-toolbar-dock-shift",
+          isDragging() && "will-change-transform",
         )}
-        style={{ "transform-origin": getTransformOrigin() }}
+        style={{
+          width: hasDragMoved()
+            ? `${getDragPreviewDimensions().width}px`
+            : undefined,
+          height: hasDragMoved()
+            ? `${getDragPreviewDimensions().height}px`
+            : undefined,
+          transform: hasDragMoved()
+            ? `rotate(${getDragPreviewRotationDegrees(getDragPreviewEdge())}deg)`
+            : undefined,
+          "transition-duration": hasDragMoved()
+            ? `${TOOLBAR_DRAG_PREVIEW_ROTATION_DURATION_MS}ms`
+            : undefined,
+          "animation-duration": `${TOOLBAR_DOCK_LAYOUT_ANIMATION_DURATION_MS}ms`,
+        }}
         onAnimationEnd={() => setIsShaking(false)}
         onClick={(event) => {
           if (isCollapsed()) {
@@ -1096,201 +1723,275 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       >
         <div
           class={cn(
-            "grid transition-all duration-150 ease-out",
-            isCollapsed()
-              ? "grid-cols-[0fr] opacity-0 pointer-events-none"
-              : "grid-cols-[1fr] opacity-100",
+            "flex min-w-0 origin-center transition-[transform,opacity] ease-out",
+            isVerticalLayout()
+              ? "flex-col items-center gap-2"
+              : "items-center gap-2",
+            hasDragMoved() && "opacity-0 pointer-events-none",
+            !hasDragMoved() && "opacity-100",
           )}
+          style={{
+            "transition-duration": `${TOOLBAR_DRAG_RELEASE_REVEAL_DURATION_MS}ms`,
+          }}
         >
-          <div class="flex items-center min-w-0">
-            <div ref={expandableButtonsRef} class="flex items-center">
+          <div
+            class={cn(
+              "grid transition-all duration-150 ease-out",
+              isCollapsed()
+                ? "grid-cols-[0fr] opacity-0 pointer-events-none"
+                : "grid-cols-[1fr] opacity-100",
+              hasDragMoved() && "opacity-0 pointer-events-none",
+            )}
+          >
+            <div
+              class={cn(
+                "flex min-w-0 transition-[gap] duration-150 ease-out",
+                isVerticalLayout() ? "flex-col items-center" : "items-center",
+                props.enabled ? "gap-2" : "gap-0",
+              )}
+            >
               <div
                 class={cn(
-                  "grid transition-all duration-150 ease-out",
-                  props.enabled
-                    ? "grid-cols-[1fr] opacity-100"
-                    : "grid-cols-[0fr] opacity-0",
+                  "order-2 grid min-w-0 min-h-0 overflow-hidden transition-all duration-150 ease-out",
+                  getExpandableSectionVisibilityClasses(),
                 )}
-              >
-                <div class="relative overflow-visible min-w-0">
-                  {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
-                  <button
-                    data-react-grab-ignore-events
-                    data-react-grab-toolbar-toggle
-                    class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5"
-                    on:pointerdown={(event) => {
-                      stopEventPropagation(event);
-                      handlePointerDown(event);
-                    }}
-                    on:mousedown={stopEventPropagation}
-                    onClick={(event) => {
-                      setIsSelectTooltipVisible(false);
-                      handleToggle(event);
-                    }}
-                    {...createFreezeHandlers(setIsSelectTooltipVisible)}
-                  >
-                    <IconSelect
-                      size={14}
-                      class={cn(
-                        "transition-colors",
-                        getToolbarIconColor(
-                          Boolean(props.isActive) && !props.isCommentMode,
-                          Boolean(props.isCommentMode),
-                        ),
-                      )}
-                    />
-                  </button>
-                  <Tooltip
-                    visible={isSelectTooltipVisible() && !isCollapsed()}
-                    position={tooltipPosition()}
-                  >
-                    Select
-                  </Tooltip>
-                </div>
-              </div>
-              <div
-                class={cn(
-                  "grid transition-all duration-150 ease-out",
-                  props.enabled
-                    ? "grid-cols-[1fr] opacity-100"
-                    : "grid-cols-[0fr] opacity-0",
-                )}
-              >
-                <div class="relative overflow-visible min-w-0">
-                  {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
-                  <button
-                    data-react-grab-ignore-events
-                    data-react-grab-toolbar-comment
-                    class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5"
-                    on:pointerdown={(event) => {
-                      stopEventPropagation(event);
-                      handlePointerDown(event);
-                    }}
-                    on:mousedown={stopEventPropagation}
-                    onClick={(event) => {
-                      setIsCommentTooltipVisible(false);
-                      handleComment(event);
-                    }}
-                    {...createFreezeHandlers(setIsCommentTooltipVisible)}
-                  >
-                    <IconComment
-                      size={14}
-                      class={cn(
-                        "transition-colors",
-                        getToolbarIconColor(
-                          Boolean(props.isCommentMode),
-                          Boolean(props.isActive) && !props.isCommentMode,
-                        ),
-                      )}
-                    />
-                  </button>
-                  <Tooltip
-                    visible={isCommentTooltipVisible() && !isCollapsed()}
-                    position={tooltipPosition()}
-                  >
-                    Comment
-                  </Tooltip>
-                </div>
-              </div>
-              <div
-                class={cn(
-                  "grid transition-all duration-150 ease-out",
-                  props.enabled && (props.recentItemCount ?? 0) > 0
-                    ? "grid-cols-[1fr] opacity-100"
-                    : "grid-cols-[0fr] opacity-0 pointer-events-none",
-                )}
-              >
-                <div class="relative overflow-visible min-w-0">
-                  {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
-                  <button
-                    ref={recentButtonRef}
-                    data-react-grab-ignore-events
-                    data-react-grab-toolbar-recent
-                    class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5"
-                    on:pointerdown={(event) => {
-                      stopEventPropagation(event);
-                      handlePointerDown(event);
-                    }}
-                    on:mousedown={stopEventPropagation}
-                    onClick={(event) => {
-                      setIsRecentTooltipVisible(false);
-                      handleRecent(event);
-                    }}
-                    {...createFreezeHandlers(setIsRecentTooltipVisible)}
-                  >
-                    <Show
-                      when={props.hasUnreadRecentItems}
-                      fallback={
-                        <IconInbox
-                          size={14}
-                          class="text-[#B3B3B3] transition-colors"
-                        />
-                      }
-                    >
-                      <IconInboxUnread
-                        size={14}
-                        class="text-[#B3B3B3] transition-colors"
-                      />
-                    </Show>
-                  </button>
-                  <Tooltip
-                    visible={isRecentTooltipVisible() && !isCollapsed()}
-                    position={tooltipPosition()}
-                  >
-                    {recentTooltipLabel()}
-                  </Tooltip>
-                </div>
-              </div>
-            </div>
-            <div class="relative shrink-0 overflow-visible">
-              <button
-                data-react-grab-ignore-events
-                data-react-grab-toolbar-enabled
-                class="contain-layout flex items-center justify-center cursor-pointer interactive-scale outline-none mx-0.5"
-                onClick={(event) => {
-                  setIsToggleTooltipVisible(false);
-                  handleToggleEnabled(event);
-                }}
-                onMouseEnter={() => setIsToggleTooltipVisible(true)}
-                onMouseLeave={() => setIsToggleTooltipVisible(false)}
+                style={getExpandableSectionSizeStyle()}
               >
                 <div
+                  ref={expandableButtonsRef}
                   class={cn(
-                    "relative w-5 h-3 rounded-full transition-colors",
-                    props.enabled ? "bg-black" : "bg-black/25",
+                    "flex min-w-0 min-h-0",
+                    isVerticalLayout()
+                      ? "flex-col items-center gap-2"
+                      : "items-center gap-2",
                   )}
                 >
                   <div
                     class={cn(
-                      "absolute top-0.5 w-2 h-2 rounded-full bg-white transition-transform",
-                      props.enabled ? "left-2.5" : "left-0.5",
+                      "grid transition-all duration-150 ease-out",
+                      props.enabled
+                        ? "grid-cols-[1fr] opacity-100"
+                        : "grid-cols-[0fr] opacity-0",
                     )}
-                  />
+                    style={getDragReleaseItemStyle(-2, true, true)}
+                  >
+                    <div class="relative overflow-visible min-w-0">
+                      {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
+                      <button
+                        data-react-grab-ignore-events
+                        data-react-grab-toolbar-toggle
+                        class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox"
+                        on:pointerdown={(event) => {
+                          stopEventPropagation(event);
+                          handlePointerDown(event);
+                        }}
+                        on:mousedown={stopEventPropagation}
+                        onClick={(event) => {
+                          setIsSelectTooltipVisible(false);
+                          handleToggle(event);
+                        }}
+                        {...createFreezeHandlers(setIsSelectTooltipVisible)}
+                      >
+                        <span class="inline-flex">
+                          <IconSelect
+                            size={14}
+                            class={cn(
+                              "transition-colors",
+                              getToolbarIconColor(
+                                Boolean(props.isActive) && !props.isCommentMode,
+                                Boolean(props.isCommentMode),
+                              ),
+                            )}
+                          />
+                        </span>
+                      </button>
+                      <Tooltip
+                        visible={isSelectTooltipVisible() && !isCollapsed()}
+                        position={tooltipPosition()}
+                      >
+                        Select
+                      </Tooltip>
+                    </div>
+                  </div>
+                  <div
+                    class={cn(
+                      "grid transition-all duration-150 ease-out",
+                      props.enabled
+                        ? "grid-cols-[1fr] opacity-100"
+                        : "grid-cols-[0fr] opacity-0",
+                    )}
+                    style={getDragReleaseItemStyle(-1, true, true)}
+                  >
+                    <div class="relative overflow-visible min-w-0">
+                      {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
+                      <button
+                        data-react-grab-ignore-events
+                        data-react-grab-toolbar-comment
+                        class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox"
+                        on:pointerdown={(event) => {
+                          stopEventPropagation(event);
+                          handlePointerDown(event);
+                        }}
+                        on:mousedown={stopEventPropagation}
+                        onClick={(event) => {
+                          setIsCommentTooltipVisible(false);
+                          handleComment(event);
+                        }}
+                        {...createFreezeHandlers(setIsCommentTooltipVisible)}
+                      >
+                        <span class="inline-flex">
+                          <IconComment
+                            size={TOOLBAR_COMMENT_ICON_SIZE_PX}
+                            isActive={Boolean(props.isCommentMode)}
+                            class={cn(
+                              "transition-colors",
+                              getToolbarIconColor(
+                                Boolean(props.isCommentMode),
+                                Boolean(props.isActive) && !props.isCommentMode,
+                              ),
+                            )}
+                          />
+                        </span>
+                      </button>
+                      <Tooltip
+                        visible={isCommentTooltipVisible() && !isCollapsed()}
+                        position={tooltipPosition()}
+                      >
+                        Comment
+                      </Tooltip>
+                    </div>
+                  </div>
+                  <div
+                    class={cn(
+                      "grid transition-all duration-150 ease-out",
+                      props.enabled && (props.recentItemCount ?? 0) > 0
+                        ? "grid-cols-[1fr] opacity-100"
+                        : "grid-cols-[0fr] opacity-0 pointer-events-none",
+                    )}
+                    style={getDragReleaseItemStyle(0, true, true)}
+                  >
+                    <div class="relative overflow-visible min-w-0">
+                      {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
+                      <button
+                        ref={recentButtonRef}
+                        data-react-grab-ignore-events
+                        data-react-grab-toolbar-recent
+                        class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox"
+                        on:pointerdown={(event) => {
+                          stopEventPropagation(event);
+                          handlePointerDown(event);
+                        }}
+                        on:mousedown={stopEventPropagation}
+                        onClick={(event) => {
+                          setIsRecentTooltipVisible(false);
+                          handleRecent(event);
+                        }}
+                        {...createFreezeHandlers(setIsRecentTooltipVisible)}
+                      >
+                        <span class="inline-flex">
+                          <Show
+                            when={Boolean(props.isHistoryOpen)}
+                            fallback={
+                              <IconInbox
+                                size={16}
+                                class={cn(
+                                  "transition-colors",
+                                  getToolbarIconColor(
+                                    Boolean(props.isHistoryOpen),
+                                    false,
+                                  ),
+                                )}
+                              />
+                            }
+                          >
+                            <IconInboxUnread
+                              size={16}
+                              class={cn(
+                                "transition-colors",
+                                getToolbarIconColor(
+                                  Boolean(props.isHistoryOpen),
+                                  false,
+                                ),
+                              )}
+                            />
+                          </Show>
+                        </span>
+                      </button>
+                      <Tooltip
+                        visible={isRecentTooltipVisible() && !isCollapsed()}
+                        position={tooltipPosition()}
+                      >
+                        {recentTooltipLabel()}
+                      </Tooltip>
+                    </div>
+                  </div>
                 </div>
-              </button>
-              <Tooltip
-                visible={isToggleTooltipVisible() && !isCollapsed()}
-                position={tooltipPosition()}
+              </div>
+              <div
+                class="order-1 relative shrink-0 overflow-visible transition-transform"
+                style={getDragReleaseItemStyle(1, false, true)}
               >
-                {props.enabled ? "Disable" : "Enable"}
-              </Tooltip>
+                <button
+                  ref={toggleEnabledButtonRef}
+                  data-react-grab-ignore-events
+                  data-react-grab-toolbar-enabled
+                  class="contain-layout flex items-center justify-center cursor-pointer interactive-scale outline-none"
+                  onClick={(event) => {
+                    setIsToggleTooltipVisible(false);
+                    handleToggleEnabled(event);
+                  }}
+                  onMouseEnter={() => setIsToggleTooltipVisible(true)}
+                  onMouseLeave={() => setIsToggleTooltipVisible(false)}
+                >
+                  <span class="inline-flex">
+                    <div
+                      class={cn(
+                        "relative w-5 h-3 rounded-full transition-colors",
+                        props.enabled ? "bg-black" : "bg-black/25",
+                      )}
+                    >
+                      <div
+                        class={cn(
+                          "absolute top-0.5 w-2 h-2 rounded-full transition-[transform,background-color] duration-150 ease-out",
+                          isToggleAnimating() && props.enabled
+                            ? "bg-black"
+                            : "bg-white",
+                          props.enabled ? "left-2.5" : "left-0.5",
+                        )}
+                      />
+                    </div>
+                  </span>
+                </button>
+                <Tooltip
+                  visible={isToggleTooltipVisible() && !isCollapsed()}
+                  position={tooltipPosition()}
+                >
+                  {props.enabled ? "Disable" : "Enable"}
+                </Tooltip>
+              </div>
             </div>
           </div>
-        </div>
-        <button
-          data-react-grab-ignore-events
-          data-react-grab-toolbar-collapse
-          class="contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale"
-          onClick={handleToggleCollapse}
-        >
-          <IconChevron
-            size={14}
+          <button
+            data-react-grab-ignore-events
+            data-react-grab-toolbar-collapse
             class={cn(
-              "text-[#B3B3B3] transition-transform duration-150",
-              chevronRotation(),
+              "contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale transition-opacity transition-transform duration-100",
+              hasDragMoved() && "opacity-0 pointer-events-none",
             )}
-          />
-        </button>
+            style={getDragReleaseItemStyle(2, false, true)}
+            onClick={handleToggleCollapse}
+          >
+            <span class="inline-flex">
+              <IconChevron
+                size={14}
+                class={cn(
+                  "text-black/70 transition-transform duration-150",
+                  chevronRotation(),
+                )}
+              />
+            </span>
+          </button>
+        </div>
         <Show when={isShakeTooltipVisible()}>
           <div
             class={cn(

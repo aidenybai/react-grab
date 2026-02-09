@@ -139,7 +139,7 @@ import {
   loadRecent,
   addRecentItem,
   removeRecentItem,
-  clearRecent,
+  clearRecentItems,
 } from "../utils/recent-storage.js";
 import { copyContent } from "../utils/copy-content.js";
 
@@ -1341,6 +1341,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.deactivate();
       arrowNavigator.clearHistory();
       keyboardSelectedElement = null;
+      dismissRecentDropdown();
       if (wasDragging) {
         document.body.style.userSelect = "";
       }
@@ -1829,6 +1830,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const shouldBlockEnter =
         isEnterKey &&
         isOverlayActive &&
+        recentDropdownPosition() === null &&
         !isPromptMode() &&
         !store.wasActivatedByToggle;
 
@@ -1883,6 +1885,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleArrowNavigation = (event: KeyboardEvent): boolean => {
       if (!isActivated() || isPromptMode()) return false;
+      if (recentDropdownPosition() !== null) return false;
       if (!ARROW_KEYS.has(event.key)) return false;
 
       let currentElement = effectiveElement();
@@ -1921,6 +1924,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleEnterKeyActivation = (event: KeyboardEvent): boolean => {
       if (!isEnterCode(event.code)) return false;
+      if (recentDropdownPosition() !== null) return false;
 
       const copiedElement = store.lastCopiedElement;
       const canActivateFromCopied =
@@ -2010,6 +2014,38 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         );
         window.open(url, "_blank", "noopener,noreferrer");
       }
+      return true;
+    };
+
+    const getRecentDropdownAnchorPosition = (): { x: number; y: number } => {
+      const recentButtonElement = rendererRoot.querySelector<HTMLButtonElement>(
+        "[data-react-grab-toolbar-recent]",
+      );
+      if (!recentButtonElement) {
+        return { x: store.pointer.x, y: store.pointer.y };
+      }
+
+      const buttonRect = recentButtonElement.getBoundingClientRect();
+      const anchorX = buttonRect.left + buttonRect.width / 2;
+      const toolbarEdge = currentToolbarState()?.edge;
+      const anchorY =
+        toolbarEdge === "top" ? buttonRect.bottom : buttonRect.top;
+
+      return { x: anchorX, y: anchorY };
+    };
+
+    const handleRecentShortcut = (event: KeyboardEvent): boolean => {
+      if (event.key?.toLowerCase() !== "r" || isPromptMode()) return false;
+      if (event.metaKey || event.ctrlKey || event.altKey || event.repeat) {
+        return false;
+      }
+      if (!isActivated()) return false;
+      if (isKeyboardEventTriggeredByInput(event)) return false;
+      if (recentItems().length === 0) return false;
+
+      event.preventDefault();
+      event.stopPropagation();
+      handleToggleRecent(getRecentDropdownAnchorPosition());
       return true;
     };
 
@@ -2432,6 +2468,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
 
         if (event.key === "Escape") {
+          if (recentDropdownPosition() !== null) {
+            return;
+          }
+
           if (pendingAbortSessionId()) {
             event.preventDefault();
             event.stopPropagation();
@@ -2452,6 +2492,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (handleActionCycleKey(event)) return;
         if (handleArrowNavigation(event)) return;
         if (handleEnterKeyActivation(event)) return;
+        if (handleRecentShortcut(event)) return;
         if (handleOpenFileShortcut(event)) return;
         if (handleScreenshotShortcut(event)) return;
 
@@ -3391,6 +3432,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       dismissRecentDropdown();
     };
 
+    const handleRecentClearAll = () => {
+      if (recentItems().length === 0) return;
+      const clearedRecentItems = clearRecentItems();
+      recentElementMap.clear();
+      setRecentItems(clearedRecentItems);
+      setHasUnreadRecentItems(false);
+      dismissRecentDropdown();
+    };
+
     const handleRecentItemHover = (recentItemId: string | null) => {
       clearRecentHoverBox();
       if (recentItemId) {
@@ -3426,14 +3476,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           }
         }
       }
-    };
-
-    const handleRecentClear = () => {
-      recentElementMap.clear();
-      const updatedRecentItems = clearRecent();
-      setRecentItems(updatedRecentItems);
-      setHasUnreadRecentItems(false);
-      dismissRecentDropdown();
     };
 
     const handleShowContextMenuSession = (sessionId: string) => {
@@ -3597,7 +3639,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onRecentItemSelect={handleRecentItemSelect}
             onRecentItemHover={handleRecentItemHover}
             onRecentCopyAll={handleRecentCopyAll}
-            onRecentClear={handleRecentClear}
+            onRecentClearAll={handleRecentClearAll}
             onRecentDismiss={dismissRecentDropdown}
           />
         );

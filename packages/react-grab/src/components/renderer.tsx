@@ -189,6 +189,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           isActive={props.isActive}
           isCommentMode={props.isCommentMode}
           isContextMenuOpen={props.contextMenuPosition !== null}
+          isHistoryOpen={props.recentDropdownPosition !== null}
           onToggle={props.onToggleActive}
           onComment={props.onComment}
           enabled={props.enabled}
@@ -221,7 +222,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         onSelectItem={props.onRecentItemSelect}
         onItemHover={props.onRecentItemHover}
         onCopyAll={props.onRecentCopyAll}
-        onClearAll={props.onRecentClear}
+        onClearAll={props.onRecentClearAll}
         onDismiss={props.onRecentDismiss}
       />
     </>
