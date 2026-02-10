@@ -372,6 +372,114 @@ test.describe("Recent Items", () => {
     });
   });
 
+  test.describe("Recent Button Hover Preview", () => {
+    test("should show highlight boxes for all recent items when hovering the recent button", async ({
+      reactGrab,
+    }) => {
+      await copyElement(reactGrab, "li:first-child");
+      await copyElement(reactGrab, "li:last-child");
+
+      const grabbedBoxesBefore = await reactGrab.getGrabbedBoxInfo();
+      const initialBoxCount = grabbedBoxesBefore.count;
+
+      await reactGrab.hoverRecentButton();
+
+      await expect
+        .poll(
+          async () => {
+            const info = await reactGrab.getGrabbedBoxInfo();
+            return info.count;
+          },
+          { timeout: 2000 },
+        )
+        .toBeGreaterThanOrEqual(initialBoxCount + 2);
+
+      const grabbedBoxes = await reactGrab.getGrabbedBoxInfo();
+      const allHoverBoxes = grabbedBoxes.boxes.filter((box) =>
+        box.id.startsWith("recent-all-hover-"),
+      );
+      expect(allHoverBoxes.length).toBe(2);
+    });
+
+    test("should remove all highlight boxes when mouse leaves the recent button", async ({
+      reactGrab,
+    }) => {
+      await copyElement(reactGrab, "li:first-child");
+      await copyElement(reactGrab, "li:last-child");
+
+      await reactGrab.hoverRecentButton();
+
+      await expect
+        .poll(
+          async () => {
+            const info = await reactGrab.getGrabbedBoxInfo();
+            return info.boxes.filter((box) =>
+              box.id.startsWith("recent-all-hover-"),
+            ).length;
+          },
+          { timeout: 2000 },
+        )
+        .toBe(2);
+
+      await reactGrab.page.mouse.move(0, 0);
+      await reactGrab.page.waitForTimeout(200);
+
+      const grabbedBoxesAfter = await reactGrab.getGrabbedBoxInfo();
+      const remainingHoverBoxes = grabbedBoxesAfter.boxes.filter((box) =>
+        box.id.startsWith("recent-all-hover-"),
+      );
+      expect(remainingHoverBoxes.length).toBe(0);
+    });
+
+    test("should clear button hover boxes when opening the dropdown", async ({
+      reactGrab,
+    }) => {
+      await copyElement(reactGrab, "li:first-child");
+
+      await reactGrab.hoverRecentButton();
+
+      await expect
+        .poll(
+          async () => {
+            const info = await reactGrab.getGrabbedBoxInfo();
+            return info.boxes.filter((box) =>
+              box.id.startsWith("recent-all-hover-"),
+            ).length;
+          },
+          { timeout: 2000 },
+        )
+        .toBe(1);
+
+      await reactGrab.clickRecentButton();
+
+      const grabbedBoxesAfter = await reactGrab.getGrabbedBoxInfo();
+      const remainingHoverBoxes = grabbedBoxesAfter.boxes.filter((box) =>
+        box.id.startsWith("recent-all-hover-"),
+      );
+      expect(remainingHoverBoxes.length).toBe(0);
+    });
+
+    test("should show highlight box for a single recent item", async ({
+      reactGrab,
+    }) => {
+      await copyElement(reactGrab, "li:first-child");
+
+      await reactGrab.hoverRecentButton();
+
+      await expect
+        .poll(
+          async () => {
+            const info = await reactGrab.getGrabbedBoxInfo();
+            return info.boxes.filter((box) =>
+              box.id.startsWith("recent-all-hover-"),
+            ).length;
+          },
+          { timeout: 2000 },
+        )
+        .toBe(1);
+    });
+  });
+
   test.describe("Remove Individual Item", () => {
     test("should remove a single item and keep others", async ({
       reactGrab,

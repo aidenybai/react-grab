@@ -62,6 +62,7 @@ interface ToolbarProps {
   recentItemCount?: number;
   hasUnreadRecentItems?: boolean;
   onToggleRecent?: () => void;
+  onRecentButtonHover?: (isHovered: boolean) => void;
 }
 
 export const Toolbar: Component<ToolbarProps> = (props) => {
@@ -108,6 +109,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const createFreezeHandlers = (
     setTooltipVisible: (visible: boolean) => void,
+    onHoverChange?: (isHovered: boolean) => void,
   ) => ({
     onMouseEnter: () => {
       setTooltipVisible(true);
@@ -117,6 +119,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         freezeGlobalAnimations();
         freezePseudoStates();
       }
+      onHoverChange?.(true);
     },
     onMouseLeave: () => {
       setTooltipVisible(false);
@@ -127,6 +130,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         unfreezeGlobalAnimations();
         unfreezePseudoStates();
       }
+      onHoverChange?.(false);
     },
   });
 
@@ -1311,7 +1315,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                       setIsRecentTooltipVisible(false);
                       handleRecent(event);
                     }}
-                    {...createFreezeHandlers(setIsRecentTooltipVisible)}
+                    {...createFreezeHandlers(setIsRecentTooltipVisible, props.onRecentButtonHover)}
                   >
                     <Show
                       when={props.hasUnreadRecentItems}
