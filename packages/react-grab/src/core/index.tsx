@@ -3529,7 +3529,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleRecentButtonHover = (isHovered: boolean) => {
       clearRecentHoverPreviews();
-      if (isHovered) {
+      if (isHovered && recentDropdownPosition() === null) {
         for (const item of recentItems()) {
           const element = recentElementMap.get(item.id);
           if (element && isElementConnected(element)) {
