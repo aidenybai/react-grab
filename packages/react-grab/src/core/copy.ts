@@ -1,5 +1,6 @@
 import { copyContent } from "../utils/copy-content.js";
 import { generateSnippet } from "../utils/generate-snippet.js";
+import { joinSnippets } from "../utils/join-snippets.js";
 
 interface CopyOptions {
   maxContextLines?: number;
@@ -47,12 +48,7 @@ export const tryCopyWithFallback = async (
         ),
       );
       const nonEmptySnippets = transformedSnippets.filter((s) => s.trim());
-      generatedContent =
-        nonEmptySnippets.length > 1
-          ? nonEmptySnippets
-              .map((snippet, index) => `[${index + 1}]\n${snippet}`)
-              .join("\n\n")
-          : nonEmptySnippets.join("\n\n");
+      generatedContent = joinSnippets(nonEmptySnippets);
     }
 
     if (generatedContent.trim()) {

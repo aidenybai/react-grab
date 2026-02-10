@@ -61,6 +61,7 @@ import {
   SCREENSHOT_CAPTURE_DELAY_MS,
   ZOOM_DETECTION_THRESHOLD,
   ACTION_CYCLE_IDLE_TRIGGER_MS,
+  WINDOW_REFOCUS_GRACE_PERIOD_MS,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
@@ -138,6 +139,7 @@ import {
   clearRecent,
 } from "../utils/recent-storage.js";
 import { copyContent } from "../utils/copy-content.js";
+import { joinSnippets } from "../utils/join-snippets.js";
 
 const builtInPlugins = [
   copyPlugin,
@@ -388,6 +390,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let copyWaitingForConfirmation = false;
     let holdTimerFiredWaitingForConfirmation = false;
     let isScreenshotInProgress = false;
+    let lastWindowFocusTimestamp = 0;
     let inToggleFeedbackPeriod = false;
     let toggleFeedbackTimerId: number | null = null;
     let actionCycleIdleTimeoutId: number | null = null;
@@ -2405,13 +2408,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           }
         }
 
-        if (handleActionCycleKey(event)) return;
+        const didWindowJustRegainFocus =
+          Date.now() - lastWindowFocusTimestamp <
+          WINDOW_REFOCUS_GRACE_PERIOD_MS;
+
+        if (!didWindowJustRegainFocus && handleActionCycleKey(event)) return;
         if (handleArrowNavigation(event)) return;
         if (handleEnterKeyActivation(event)) return;
         if (handleOpenFileShortcut(event)) return;
         if (handleScreenshotShortcut(event)) return;
 
-        handleActivationKeys(event);
+        if (!didWindowJustRegainFocus) {
+          handleActivationKeys(event);
+        }
       },
       { capture: true },
     );
@@ -2689,6 +2698,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           deactivateRenderer();
         }
       }
+    });
+
+    eventListenerManager.addWindowListener("focus", () => {
+      lastWindowFocusTimestamp = Date.now();
     });
 
     const redetectElementUnderPointer = () => {
@@ -3434,13 +3447,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const currentRecentItems = recentItems();
       if (currentRecentItems.length === 0) return;
 
-      const combinedContent = currentRecentItems
-        .map(
-          (recentItem, index) =>
-            `[${index + 1}] <${recentItem.componentName ?? recentItem.tagName}>\n${recentItem.content}`,
-        )
-        .join("\n\n");
-      copyContent(combinedContent, { name: "recent" });
+      const combinedContent = joinSnippets(
+        currentRecentItems.map((recentItem) => recentItem.content),
+      );
+
+      const firstItem = currentRecentItems[0];
+      copyContent(combinedContent, {
+        name: firstItem.componentName ?? firstItem.tagName,
+      });
       dismissRecentDropdown();
 
       actions.clearLabelInstances();
