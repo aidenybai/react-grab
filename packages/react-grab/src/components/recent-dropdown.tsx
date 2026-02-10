@@ -19,6 +19,7 @@ import { cn } from "../utils/cn.js";
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
 import { IconTrash } from "./icons/icon-trash.jsx";
 import { IconCopy } from "./icons/icon-copy.jsx";
+import { Tooltip } from "./tooltip.jsx";
 
 const DEFAULT_OFFSCREEN_POSITION = { left: -9999, top: -9999 };
 const ITEM_ACTION_CLASS =
@@ -51,6 +52,8 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
 
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
+  const [activeHeaderTooltip, setActiveHeaderTooltip] =
+    createSignal<"clear" | "copy" | null>(null);
 
   const isVisible = () => props.position !== null;
 
@@ -183,29 +186,51 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
             <span class="text-[11px] font-medium text-black/40">Recent</span>
             <Show when={props.items.length > 0}>
               <div class="flex items-center gap-[5px]">
-                <button
-                  data-react-grab-ignore-events
-                  data-react-grab-recent-clear
-                  class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[#FEF2F2] cursor-pointer transition-all hover:bg-[#FEE2E2] press-scale h-[17px] text-[#B91C1C]"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    props.onClearAll?.();
-                  }}
-                >
-                  <IconTrash size={DROPDOWN_ICON_SIZE_PX} />
-                </button>
-                <button
-                  data-react-grab-ignore-events
-                  data-react-grab-recent-copy-all
-                  class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] press-scale h-[17px] text-black/60"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    props.onCopyAll?.();
-                  }}
-                >
-                  <IconCopy size={DROPDOWN_ICON_SIZE_PX} />
-                  <span class="text-[11px] font-sans text-black/50">↵</span>
-                </button>
+                <div class="relative">
+                  <button
+                    data-react-grab-ignore-events
+                    data-react-grab-recent-clear
+                    class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[#FEF2F2] cursor-pointer transition-all hover:bg-[#FEE2E2] press-scale h-[17px] text-[#B91C1C]"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setActiveHeaderTooltip(null);
+                      props.onClearAll?.();
+                    }}
+                    onMouseEnter={() => setActiveHeaderTooltip("clear")}
+                    onMouseLeave={() => setActiveHeaderTooltip(null)}
+                  >
+                    <IconTrash size={DROPDOWN_ICON_SIZE_PX} />
+                  </button>
+                  <Tooltip
+                    visible={activeHeaderTooltip() === "clear"}
+                    position="top"
+                  >
+                    Clear all
+                  </Tooltip>
+                </div>
+                <div class="relative">
+                  <button
+                    data-react-grab-ignore-events
+                    data-react-grab-recent-copy-all
+                    class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] press-scale h-[17px] text-black/60"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setActiveHeaderTooltip(null);
+                      props.onCopyAll?.();
+                    }}
+                    onMouseEnter={() => setActiveHeaderTooltip("copy")}
+                    onMouseLeave={() => setActiveHeaderTooltip(null)}
+                  >
+                    <IconCopy size={DROPDOWN_ICON_SIZE_PX} />
+                    <span class="text-[11px] font-sans text-black/50">↵</span>
+                  </button>
+                  <Tooltip
+                    visible={activeHeaderTooltip() === "copy"}
+                    position="top"
+                  >
+                    Copy all
+                  </Tooltip>
+                </div>
               </div>
             </Show>
           </div>
