@@ -11,6 +11,7 @@ import type { RecentItem, DropdownAnchor } from "../types.js";
 import {
   DROPDOWN_ANCHOR_GAP_PX,
   DROPDOWN_ICON_SIZE_PX,
+  DROPDOWN_MAX_WIDTH_PX,
   DROPDOWN_VIEWPORT_PADDING_PX,
   PANEL_STYLES,
 } from "../constants.js";
@@ -101,6 +102,15 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
     };
   };
 
+  const clampedMaxWidth = () =>
+    Math.min(
+      DROPDOWN_MAX_WIDTH_PX,
+      window.innerWidth - computedPosition().left - DROPDOWN_VIEWPORT_PADDING_PX,
+    );
+
+  const clampedMaxHeight = () =>
+    window.innerHeight - computedPosition().top - DROPDOWN_VIEWPORT_PADDING_PX;
+
   const handleMenuEvent = (event: Event) => {
     if (event.type === "contextmenu") {
       event.preventDefault();
@@ -178,9 +188,13 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
       >
         <div
           class={cn(
-            "contain-layout flex flex-col rounded-[10px] antialiased w-fit h-fit min-w-[180px] max-w-[280px] [font-synthesis:none] [corner-shape:superellipse(1.25)]",
+            "contain-layout flex flex-col rounded-[10px] antialiased w-fit h-fit min-w-[180px] overflow-hidden [font-synthesis:none] [corner-shape:superellipse(1.25)]",
             PANEL_STYLES,
           )}
+          style={{
+            "max-width": `${clampedMaxWidth()}px`,
+            "max-height": `${clampedMaxHeight()}px`,
+          }}
         >
           <div class="contain-layout shrink-0 flex items-center justify-between px-2 pt-1.5 pb-1">
             <span class="text-[11px] font-medium text-black/40">Recent</span>
@@ -235,7 +249,7 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
             </Show>
           </div>
 
-          <div class="[border-top-width:0.5px] border-t-solid border-t-[#D9D9D9] px-2 py-1.5">
+          <div class="min-h-0 [border-top-width:0.5px] border-t-solid border-t-[#D9D9D9] px-2 py-1.5">
             <div
               class="flex flex-col max-h-[240px] overflow-y-auto -mx-2 -my-1.5"
               style={{ "scrollbar-color": "rgba(0,0,0,0.15) transparent" }}
