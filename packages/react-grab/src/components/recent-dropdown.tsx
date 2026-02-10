@@ -296,7 +296,7 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                         </span>
                       </Show>
                     </span>
-                    <span class="shrink-0 grid mt-0.5">
+                    <span class="shrink-0 grid">
                       <span class="text-[10px] font-sans text-black/25 group-hover:invisible group-focus-within:invisible [grid-area:1/1] flex items-center justify-end">
                         {formatRelativeTime(item.timestamp)}
                       </span>
