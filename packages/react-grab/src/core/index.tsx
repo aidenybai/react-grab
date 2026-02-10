@@ -2285,6 +2285,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleActionCycleWheel = (event: WheelEvent) => {
       if (!canCycleActions()) return;
+      // HACK: trackpad pinch-to-zoom fires WheelEvents with ctrlKey=true on macOS
+      if (event.ctrlKey) return;
 
       const isActionCycleActive = actionCycleActiveIndex() !== null;
       if (!isActionCycleActive) {

@@ -26,9 +26,6 @@ export const Arrow: Component<ArrowProps> = (props) => {
         "border-top": isBottom()
           ? undefined
           : `${arrowSize()}px solid ${arrowColor()}`,
-        filter: isBottom()
-          ? "drop-shadow(-1px -1px 0 rgba(0,0,0,0.06)) drop-shadow(1px -1px 0 rgba(0,0,0,0.06))"
-          : "drop-shadow(-1px 1px 0 rgba(0,0,0,0.06)) drop-shadow(1px 1px 0 rgba(0,0,0,0.06))",
       }}
     />
   );
