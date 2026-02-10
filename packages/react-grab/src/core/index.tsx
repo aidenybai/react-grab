@@ -3485,7 +3485,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handleRecentCopyAll = () => {
       const currentRecentItems = recentItems();
       if (currentRecentItems.length === 0) return;
-      const dropdownAnchor = recentDropdownPosition();
 
       const combinedContent = currentRecentItems
         .map(
@@ -3496,21 +3495,25 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       copyContent(combinedContent, { name: "recent" });
       dismissRecentDropdown();
 
-      if (dropdownAnchor) {
-        const anchorBounds = createFlatOverlayBounds({
-          x: dropdownAnchor.x - 1,
-          y: dropdownAnchor.y - 1,
-          width: 2,
-          height: 2,
+      actions.clearLabelInstances();
+      for (const recentItem of currentRecentItems) {
+        const element = recentElementMap.get(recentItem.id);
+        if (!element || !isElementConnected(element)) continue;
+
+        const bounds = createElementBounds(element);
+        const labelId = `label-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+        actions.addLabelInstance({
+          id: labelId,
+          bounds,
+          tagName: recentItem.tagName,
+          componentName: recentItem.componentName,
+          status: "copied",
+          createdAt: Date.now(),
+          element,
+          mouseX: bounds.x + bounds.width / 2,
         });
-        const instanceId = createLabelInstance(
-          anchorBounds,
-          `${currentRecentItems.length} items`,
-          undefined,
-          "copied",
-          { mouseX: dropdownAnchor.x, hideArrow: true },
-        );
-        scheduleLabelFade(instanceId);
+        scheduleLabelFade(labelId);
       }
     };
 
