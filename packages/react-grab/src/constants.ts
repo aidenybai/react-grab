@@ -129,6 +129,7 @@ export const MAX_RECENT_ITEMS = 20;
 export const DROPDOWN_VIEWPORT_PADDING_PX = 8;
 export const DROPDOWN_ANCHOR_GAP_PX = 8;
 export const DROPDOWN_ICON_SIZE_PX = 11;
+export const DROPDOWN_MIN_WIDTH_PX = 180;
 export const DROPDOWN_MAX_WIDTH_PX = 280;
 export const PANEL_STYLES = "bg-white";
 

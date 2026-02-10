@@ -2542,6 +2542,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.setTouchMode(isTouchPointer);
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
+        if (isTouchPointer && !isHoldingKeys() && !isActivated()) return;
         const isActiveState = isTouchPointer ? isHoldingKeys() : isActivated();
         if (isActiveState && !isPromptMode() && isToggleFrozen()) {
           actions.unfreeze();
@@ -2691,6 +2692,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const redetectElementUnderPointer = () => {
+      if (store.isTouchMode && !isHoldingKeys() && !isActivated()) return;
       if (
         isEnabled() &&
         !isPromptMode() &&
@@ -3356,7 +3358,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           anchorY = edge === "top" ? toolbarRect.bottom : toolbarRect.top;
         }
 
-        setRecentDropdownPosition({ x: anchorX, y: anchorY, edge });
+        setRecentDropdownPosition({ x: anchorX, y: anchorY, edge, toolbarWidth: toolbarRect.width });
         recentPositionFrameId = requestAnimationFrame(updatePosition);
       };
       recentPositionFrameId = requestAnimationFrame(updatePosition);

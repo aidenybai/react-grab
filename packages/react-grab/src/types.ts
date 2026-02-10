@@ -389,6 +389,7 @@ export interface DropdownAnchor {
   x: number;
   y: number;
   edge: ToolbarState["edge"];
+  toolbarWidth: number;
 }
 
 export interface ReactGrabAPI {

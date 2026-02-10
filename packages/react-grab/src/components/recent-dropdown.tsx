@@ -12,6 +12,7 @@ import {
   DROPDOWN_ANCHOR_GAP_PX,
   DROPDOWN_ICON_SIZE_PX,
   DROPDOWN_MAX_WIDTH_PX,
+  DROPDOWN_MIN_WIDTH_PX,
   DROPDOWN_VIEWPORT_PADDING_PX,
   PANEL_STYLES,
 } from "../constants.js";
@@ -82,19 +83,21 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
     }
 
     const { edge } = anchor;
-    const isHorizontalEdge = edge === "left" || edge === "right";
 
-    const rawLeft = isHorizontalEdge
-      ? edge === "left"
+    let rawLeft: number;
+    let rawTop: number;
+
+    if (edge === "left" || edge === "right") {
+      rawLeft = edge === "left"
         ? anchor.x + DROPDOWN_ANCHOR_GAP_PX
-        : anchor.x - width - DROPDOWN_ANCHOR_GAP_PX
-      : anchor.x - width / 2;
-
-    const rawTop = isHorizontalEdge
-      ? anchor.y - height / 2
-      : edge === "top"
+        : anchor.x - width - DROPDOWN_ANCHOR_GAP_PX;
+      rawTop = anchor.y - height / 2;
+    } else {
+      rawLeft = anchor.x - anchor.toolbarWidth / 2;
+      rawTop = edge === "top"
         ? anchor.y + DROPDOWN_ANCHOR_GAP_PX
         : anchor.y - height - DROPDOWN_ANCHOR_GAP_PX;
+    }
 
     return {
       left: clampToViewport(rawLeft, width, window.innerWidth, DROPDOWN_VIEWPORT_PADDING_PX),
@@ -110,6 +113,9 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
 
   const clampedMaxHeight = () =>
     window.innerHeight - computedPosition().top - DROPDOWN_VIEWPORT_PADDING_PX;
+
+  const panelMinWidth = () =>
+    Math.max(DROPDOWN_MIN_WIDTH_PX, props.position?.toolbarWidth ?? 0);
 
   const handleMenuEvent = (event: Event) => {
     if (event.type === "contextmenu") {
@@ -188,10 +194,11 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
       >
         <div
           class={cn(
-            "contain-layout flex flex-col rounded-[10px] antialiased w-fit h-fit min-w-[180px] overflow-hidden [font-synthesis:none] [corner-shape:superellipse(1.25)]",
+            "contain-layout flex flex-col rounded-[10px] antialiased w-fit h-fit overflow-hidden [font-synthesis:none] [corner-shape:superellipse(1.25)]",
             PANEL_STYLES,
           )}
           style={{
+            "min-width": `${panelMinWidth()}px`,
             "max-width": `${clampedMaxWidth()}px`,
             "max-height": `${clampedMaxHeight()}px`,
           }}
