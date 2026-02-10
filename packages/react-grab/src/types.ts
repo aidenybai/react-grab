@@ -541,6 +541,7 @@ export interface ReactGrabRendererProps {
   hasUnreadRecentItems?: boolean;
   recentDropdownPosition?: DropdownAnchor | null;
   onToggleRecent?: () => void;
+  onRecentButtonHover?: (isHovered: boolean) => void;
   onRecentItemSelect?: (item: RecentItem) => void;
   onRecentItemRemove?: (item: RecentItem) => void;
   onRecentItemCopy?: (item: RecentItem) => void;

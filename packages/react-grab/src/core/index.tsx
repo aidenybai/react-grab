@@ -273,8 +273,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let recentPositionFrameId: number | null = null;
     const recentElementMap = new Map<string, Element>();
     const [hasUnreadRecentItems, setHasUnreadRecentItems] = createSignal(false);
-    let recentHoverBoxId: string | null = null;
-    let recentHoverLabelId: string | null = null;
+    let recentHoverPreviews: { boxId: string; labelId: string | null }[] = [];
 
     const pendingAbortSessionId = createMemo(() => store.pendingAbortSessionId);
 
@@ -3327,15 +3326,44 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, 0);
     };
 
-    const clearRecentHoverBox = () => {
-      if (recentHoverBoxId) {
-        actions.removeGrabbedBox(recentHoverBoxId);
-        recentHoverBoxId = null;
+    const clearRecentHoverPreviews = () => {
+      for (const { boxId, labelId } of recentHoverPreviews) {
+        actions.removeGrabbedBox(boxId);
+        if (labelId) {
+          actions.removeLabelInstance(labelId);
+        }
       }
-      if (recentHoverLabelId) {
-        actions.removeLabelInstance(recentHoverLabelId);
-        recentHoverLabelId = null;
+      recentHoverPreviews = [];
+    };
+
+    const addRecentItemPreview = (
+      item: RecentItem,
+      element: Element,
+      idPrefix: string,
+    ) => {
+      const bounds = createElementBounds(element);
+      const boxId = `${idPrefix}-${item.id}`;
+      // HACK: createdAt=0 is falsy, which skips the auto-fade logic in the overlay canvas animation loop
+      actions.addGrabbedBox({ id: boxId, bounds, createdAt: 0, element });
+
+      let labelId: string | null = null;
+      if (item.isComment && item.commentText) {
+        labelId = `${idPrefix}-label-${item.id}`;
+        actions.addLabelInstance({
+          id: labelId,
+          bounds,
+          tagName: item.tagName,
+          componentName: item.componentName,
+          status: "idle",
+          isPromptMode: true,
+          inputValue: item.commentText,
+          createdAt: 0,
+          element,
+          mouseX: bounds.x + bounds.width / 2,
+        });
       }
+
+      recentHoverPreviews.push({ boxId, labelId });
     };
 
     const stopTrackingToolbarPosition = () => {
@@ -3390,7 +3418,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const dismissRecentDropdown = () => {
       stopTrackingToolbarPosition();
-      clearRecentHoverBox();
+      clearRecentHoverPreviews();
       setRecentDropdownPosition(null);
     };
 
@@ -3399,6 +3427,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isCurrentlyOpen) {
         dismissRecentDropdown();
       } else {
+        clearRecentHoverPreviews();
         actions.hideContextMenu();
         setRecentItems(loadRecent());
         setHasUnreadRecentItems(false);
@@ -3443,7 +3472,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleRecentItemRemove = (item: RecentItem) => {
-      clearRecentHoverBox();
+      clearRecentHoverPreviews();
       recentElementMap.delete(item.id);
       const updatedRecentItems = removeRecentItem(item.id);
       setRecentItems(updatedRecentItems);
@@ -3486,37 +3515,25 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleRecentItemHover = (recentItemId: string | null) => {
-      clearRecentHoverBox();
+      clearRecentHoverPreviews();
       if (recentItemId) {
+        const item = recentItems().find(
+          (innerItem) => innerItem.id === recentItemId,
+        );
         const element = recentElementMap.get(recentItemId);
-        if (element && isElementConnected(element)) {
-          const bounds = createElementBounds(element);
-          recentHoverBoxId = `recent-hover-${recentItemId}`;
-          // HACK: createdAt=0 is falsy, which skips the auto-fade logic in the overlay canvas animation loop
-          actions.addGrabbedBox({
-            id: recentHoverBoxId,
-            bounds,
-            createdAt: 0,
-            element,
-          });
+        if (item && element && isElementConnected(element)) {
+          addRecentItemPreview(item, element, "recent-hover");
+        }
+      }
+    };
 
-          const recentItem = recentItems().find(
-            (innerItem) => innerItem.id === recentItemId,
-          );
-          if (recentItem?.isComment && recentItem.commentText) {
-            recentHoverLabelId = `recent-label-${recentItemId}`;
-            actions.addLabelInstance({
-              id: recentHoverLabelId,
-              bounds,
-              tagName: recentItem.tagName,
-              componentName: recentItem.componentName,
-              status: "idle",
-              isPromptMode: true,
-              inputValue: recentItem.commentText,
-              createdAt: 0,
-              element,
-              mouseX: bounds.x + bounds.width / 2,
-            });
+    const handleRecentButtonHover = (isHovered: boolean) => {
+      clearRecentHoverPreviews();
+      if (isHovered && recentDropdownPosition() === null) {
+        for (const item of recentItems()) {
+          const element = recentElementMap.get(item.id);
+          if (element && isElementConnected(element)) {
+            addRecentItemPreview(item, element, "recent-all-hover");
           }
         }
       }
@@ -3691,6 +3708,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             hasUnreadRecentItems={hasUnreadRecentItems()}
             recentDropdownPosition={recentDropdownPosition()}
             onToggleRecent={handleToggleRecent}
+            onRecentButtonHover={handleRecentButtonHover}
             onRecentItemSelect={handleRecentItemSelect}
             onRecentItemRemove={handleRecentItemRemove}
             onRecentItemCopy={copyRecentItemContent}

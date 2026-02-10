@@ -139,6 +139,7 @@ export interface ReactGrabPageObject {
   clickRecentCopyAll: () => Promise<void>;
   clickRecentClear: () => Promise<void>;
   hoverRecentItem: (index: number) => Promise<void>;
+  hoverRecentButton: () => Promise<void>;
   getRecentDropdownPosition: () => Promise<{
     left: number;
     top: number;
@@ -1051,6 +1052,29 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       await page.mouse.move(
         itemRect.x + itemRect.width / 2,
         itemRect.y + itemRect.height / 2,
+      );
+      await page.waitForTimeout(100);
+    }
+  };
+
+  const hoverRecentButton = async () => {
+    const buttonRect = await page.evaluate((attrName) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      if (!shadowRoot) return null;
+      const root = shadowRoot.querySelector(`[${attrName}]`);
+      if (!root) return null;
+      const button = root.querySelector<HTMLElement>(
+        "[data-react-grab-toolbar-recent]",
+      );
+      if (!button) return null;
+      const rect = button.getBoundingClientRect();
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+    }, ATTRIBUTE_NAME);
+    if (buttonRect) {
+      await page.mouse.move(
+        buttonRect.x + buttonRect.width / 2,
+        buttonRect.y + buttonRect.height / 2,
       );
       await page.waitForTimeout(100);
     }
@@ -2141,6 +2165,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     clickRecentCopyAll,
     clickRecentClear,
     hoverRecentItem,
+    hoverRecentButton,
     getRecentDropdownPosition,
 
     getSelectionLabelInfo,

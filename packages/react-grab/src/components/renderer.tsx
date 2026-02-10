@@ -202,6 +202,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           recentItemCount={props.recentItemCount}
           hasUnreadRecentItems={props.hasUnreadRecentItems}
           onToggleRecent={props.onToggleRecent}
+          onRecentButtonHover={props.onRecentButtonHover}
         />
       </Show>
 
