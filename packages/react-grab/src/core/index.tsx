@@ -61,10 +61,6 @@ import {
   SCREENSHOT_CAPTURE_DELAY_MS,
   ZOOM_DETECTION_THRESHOLD,
   ACTION_CYCLE_IDLE_TRIGGER_MS,
-  ACTION_CYCLE_ACTION_IDS,
-  ACTION_CYCLE_INPUT_THROTTLE_MS,
-  ACTION_CYCLE_SCROLL_THRESHOLD_PX,
-  ACTION_CYCLE_SCROLL_LINE_HEIGHT_PX,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
@@ -80,7 +76,6 @@ import {
 import { isScreenshotSupported } from "../utils/is-screenshot-supported.js";
 import { delay } from "../utils/delay.js";
 import { resolveActionEnabled } from "../utils/resolve-action-enabled.js";
-import { createScrollCycler } from "../utils/create-scroll-cycler.js";
 import type {
   Options,
   OverlayBounds,
@@ -2177,17 +2172,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const availableActionCycleItems = createMemo((): ActionCycleItem[] => {
-      const element = selectionElement();
-      if (!element) return [];
-
-      const actionsById = new Map(
-        pluginRegistry.store.actions.map((action) => [action.id, action]),
-      );
+      if (!selectionElement()) return [];
 
       const cycleItems: ActionCycleItem[] = [];
-      for (const actionId of ACTION_CYCLE_ACTION_IDS) {
-        const action = actionsById.get(actionId);
-        if (!action) continue;
+      for (const action of pluginRegistry.store.actions) {
         const isStaticallyDisabled =
           typeof action.enabled === "boolean" && !action.enabled;
         if (isStaticallyDisabled) continue;
@@ -2227,45 +2215,30 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, ACTION_CYCLE_IDLE_TRIGGER_MS);
     };
 
-    const applyActionCycleItems = (
-      cycleItems: ActionCycleItem[],
-      direction: "forward" | "backward",
-    ): boolean => {
+    const advanceActionCycle = (): boolean => {
+      if (!canCycleActions()) return false;
+      const cycleItems = availableActionCycleItems();
       if (cycleItems.length === 0) return false;
+
       setActionCycleItems(cycleItems);
 
       const currentIndex = actionCycleActiveIndex();
       const isCurrentIndexValid =
         currentIndex !== null && currentIndex < cycleItems.length;
-      const stepOffset = direction === "forward" ? 1 : -1;
-
-      let nextIndex: number;
-      if (!isCurrentIndexValid) {
-        nextIndex = direction === "forward" ? 0 : cycleItems.length - 1;
-      } else {
-        nextIndex =
-          (currentIndex + stepOffset + cycleItems.length) % cycleItems.length;
-      }
+      const nextIndex = isCurrentIndexValid
+        ? (currentIndex + 1) % cycleItems.length
+        : 0;
 
       setActionCycleActiveIndex(nextIndex);
       scheduleActionCycleActivation();
       return true;
     };
 
-    const handleActionCycleInput = (
-      direction: "forward" | "backward",
-    ): boolean => {
-      if (!canCycleActions()) return false;
-      const cycleItems = availableActionCycleItems();
-      if (cycleItems.length === 0) return false;
-      return applyActionCycleItems(cycleItems, direction);
-    };
-
     const handleActionCycleKey = (event: KeyboardEvent): boolean => {
       if (event.code !== "KeyC") return false;
       if (event.altKey || event.repeat) return false;
       if (isKeyboardEventTriggeredByInput(event)) return false;
-      if (!handleActionCycleInput("forward")) return false;
+      if (!advanceActionCycle()) return false;
 
       event.preventDefault();
       event.stopPropagation();
@@ -2273,29 +2246,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         event.stopImmediatePropagation();
       }
       return true;
-    };
-
-    const actionCycleScrollCycler = createScrollCycler({
-      thresholdPx: ACTION_CYCLE_SCROLL_THRESHOLD_PX,
-      throttleMs: ACTION_CYCLE_INPUT_THROTTLE_MS,
-      lineHeightPx: ACTION_CYCLE_SCROLL_LINE_HEIGHT_PX,
-      onStep: handleActionCycleInput,
-    });
-
-    const handleActionCycleWheel = (event: WheelEvent) => {
-      if (!canCycleActions()) return;
-      // HACK: trackpad pinch-to-zoom fires WheelEvents with ctrlKey=true on macOS
-      if (event.ctrlKey) return;
-
-      const isActionCycleActive = actionCycleActiveIndex() !== null;
-      if (!isActionCycleActive) {
-        const cycleItems = availableActionCycleItems();
-        if (cycleItems.length === 0) return;
-      }
-
-      event.preventDefault();
-      event.stopPropagation();
-      actionCycleScrollCycler.handleWheel(event);
     };
 
     const handleActivationKeys = (event: KeyboardEvent): void => {
@@ -2465,10 +2415,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
       { capture: true },
     );
-
-    eventListenerManager.addWindowListener("wheel", handleActionCycleWheel, {
-      passive: false,
-    });
 
     eventListenerManager.addWindowListener(
       "keyup",
