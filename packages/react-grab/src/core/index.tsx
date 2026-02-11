@@ -3500,11 +3500,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handleRecentButtonHover = (isHovered: boolean) => {
       clearRecentHoverPreviews();
       if (isHovered && recentDropdownPosition() === null) {
-        for (const item of recentItems()) {
-          const element = recentElementMap.get(item.id);
-          if (element && isElementConnected(element)) {
-            addRecentItemPreview(item, element, "recent-all-hover");
-          }
+        showAllRecentItemPreviews();
+      }
+    };
+
+    const handleRecentCopyAllHover = (isHovered: boolean) => {
+      clearRecentHoverPreviews();
+      if (isHovered) {
+        showAllRecentItemPreviews();
+      }
+    };
+
+    const showAllRecentItemPreviews = () => {
+      for (const item of recentItems()) {
+        const element = recentElementMap.get(item.id);
+        if (element && isElementConnected(element)) {
+          addRecentItemPreview(item, element, "recent-all-hover");
         }
       }
     };
@@ -3684,6 +3695,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onRecentItemCopy={copyRecentItemContent}
             onRecentItemHover={handleRecentItemHover}
             onRecentCopyAll={handleRecentCopyAll}
+            onRecentCopyAllHover={handleRecentCopyAllHover}
             onRecentClear={handleRecentClear}
             onRecentDismiss={dismissRecentDropdown}
           />

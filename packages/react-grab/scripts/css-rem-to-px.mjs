@@ -12,11 +12,12 @@
 import { readFileSync, writeFileSync } from "node:fs";
 
 const BROWSER_DEFAULT_FONT_SIZE_PX = 16;
-const cssPath = "./dist/styles.css";
+const CSS_OUTPUT_PATH = "./dist/styles.css";
 
-const css = readFileSync(cssPath, "utf8");
-const transformedCSS = css.replace(
+const cssContent = readFileSync(CSS_OUTPUT_PATH, "utf8");
+const transformedCss = cssContent.replace(
   /(\d*\.?\d+)rem\b/g,
-  (_, remValue) => `${parseFloat(remValue) * BROWSER_DEFAULT_FONT_SIZE_PX}px`,
+  (_, remValue) =>
+    `${parseFloat(remValue) * BROWSER_DEFAULT_FONT_SIZE_PX}px`,
 );
-writeFileSync(cssPath, transformedCSS);
+writeFileSync(CSS_OUTPUT_PATH, transformedCss);

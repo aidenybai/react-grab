@@ -226,6 +226,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         onCopyItem={props.onRecentItemCopy}
         onItemHover={props.onRecentItemHover}
         onCopyAll={props.onRecentCopyAll}
+        onCopyAllHover={props.onRecentCopyAllHover}
         onClearAll={props.onRecentClear}
         onDismiss={props.onRecentDismiss}
       />

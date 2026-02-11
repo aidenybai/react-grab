@@ -35,6 +35,7 @@ interface RecentDropdownProps {
   onCopyItem?: (item: RecentItem) => void;
   onItemHover?: (recentItemId: string | null) => void;
   onCopyAll?: () => void;
+  onCopyAllHover?: (isHovered: boolean) => void;
   onClearAll?: () => void;
   onDismiss?: () => void;
 }
@@ -254,8 +255,14 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                       setActiveHeaderTooltip(null);
                       props.onCopyAll?.();
                     }}
-                    onMouseEnter={() => setActiveHeaderTooltip("copy")}
-                    onMouseLeave={() => setActiveHeaderTooltip(null)}
+                    onMouseEnter={() => {
+                      setActiveHeaderTooltip("copy");
+                      props.onCopyAllHover?.(true);
+                    }}
+                    onMouseLeave={() => {
+                      setActiveHeaderTooltip(null);
+                      props.onCopyAllHover?.(false);
+                    }}
                   >
                     <IconCopy size={DROPDOWN_ICON_SIZE_PX} />
                     <span class="text-[11px] font-sans text-black/50">↵</span>
