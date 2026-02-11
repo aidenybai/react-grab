@@ -373,26 +373,128 @@ export const GrabElementButton = ({
       }
       className="hidden flex-col gap-2 py-4 sm:flex sm:flex-row sm:items-center sm:gap-3"
     >
-      <button
-        onClick={toggleReactGrab}
-        className={cn(
-          "flex h-12 w-full items-center justify-center gap-2 rounded-lg px-3 text-sm text-white transition-all active:scale-[0.98] sm:w-auto sm:text-base",
-          hasAdvanced
-            ? "border border-white/20 bg-white/5 hover:bg-white/10"
-            : "border border-[#d75fcb] bg-[#330039] hover:bg-[#4a0052] shadow-[0_0_12px_rgba(215,95,203,0.4)]",
+      <div className="relative">
+        {!hasAdvanced && (
+          <motion.div
+            aria-hidden
+            className="absolute inset-0 rounded-lg"
+            style={{
+              boxShadow:
+                "0 0 24px rgba(215,95,203,0.6), 0 0 48px rgba(215,95,203,0.15)",
+            }}
+            initial={shouldReduceMotion ? false : { opacity: 0 }}
+            animate={{ opacity: [0, 1, 0] }}
+            transition={
+              shouldReduceMotion
+                ? { duration: 0 }
+                : {
+                    delay: animationDelay + 1.5,
+                    duration: 0.85,
+                    ease: "easeInOut",
+                    times: [0, 0.35, 1],
+                  }
+            }
+          />
         )}
-        type="button"
-      >
-        {!isActivated ? (
-          renderActivationPrompt()
-        ) : (
-          <span className="animate-pulse flex items-center gap-1.5">
-            Click anywhere to select or press
-            <Kbd wide>Esc</Kbd>
-            to cancel
-          </span>
+        <button
+          onClick={toggleReactGrab}
+          className={cn(
+            "relative flex h-12 w-full items-center justify-center gap-2 rounded-lg px-3 text-sm text-white transition-all active:scale-[0.98] sm:w-auto sm:text-base",
+            hasAdvanced
+              ? "border border-white/20 bg-white/5 hover:bg-white/10"
+              : "border border-[#d75fcb] bg-[#330039] hover:bg-[#4a0052] shadow-[0_0_12px_rgba(215,95,203,0.4)]",
+          )}
+          type="button"
+        >
+          {!isActivated ? (
+            renderActivationPrompt()
+          ) : (
+            <span className="animate-pulse flex items-center gap-1.5">
+              Click anywhere to select or press
+              <Kbd wide>Esc</Kbd>
+              to cancel
+            </span>
+          )}
+        </button>
+        {!hasAdvanced && !isActivated && (
+          <motion.div
+            initial={shouldReduceMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={
+              shouldReduceMotion
+                ? { duration: 0 }
+                : {
+                    duration: 0.5,
+                    ease: "easeOut",
+                    delay: animationDelay + 0.6,
+                  }
+            }
+            className="absolute top-1/2 right-full -translate-y-1/2 mr-2 flex items-center gap-1 pointer-events-none select-none"
+          >
+            <motion.span
+              className="font-(family-name:--font-caveat) text-white/40 text-lg -rotate-3"
+              initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={
+                shouldReduceMotion
+                  ? { duration: 0 }
+                  : {
+                      duration: 0.4,
+                      ease: "easeOut",
+                      delay: animationDelay + 1.3,
+                    }
+              }
+            >
+              click&nbsp;me!
+            </motion.span>
+            <svg
+              width="32"
+              height="16"
+              viewBox="0 0 32 16"
+              fill="none"
+              className="text-white/40 shrink-0"
+            >
+              <motion.path
+                d="M2 10 Q14 12 24 8"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                fill="none"
+                initial={shouldReduceMotion ? false : { pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={
+                  shouldReduceMotion
+                    ? { duration: 0 }
+                    : {
+                        duration: 0.5,
+                        ease: "easeOut",
+                        delay: animationDelay + 0.8,
+                      }
+                }
+              />
+              <motion.path
+                d="M21 4 L26 8 L21 12"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+                initial={shouldReduceMotion ? false : { pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={
+                  shouldReduceMotion
+                    ? { duration: 0 }
+                    : {
+                        duration: 0.3,
+                        ease: "easeOut",
+                        delay: animationDelay + 1.2,
+                      }
+                }
+              />
+            </svg>
+          </motion.div>
         )}
-      </button>
+      </div>
       {!hideSkip && showSkip && (
         <button
           onClick={handleSkip}
