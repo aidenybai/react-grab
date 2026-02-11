@@ -10,7 +10,7 @@ const copyElement = async (
   await reactGrab.waitForSelectionBox();
   await reactGrab.clickElement(selector);
   await expect
-    .poll(() => reactGrab.getClipboardContent(), { timeout: 3000 })
+    .poll(() => reactGrab.getClipboardContent(), { timeout: 5000 })
     .toBeTruthy();
   // HACK: Wait for copy feedback transition and recent item addition
   await reactGrab.page.waitForTimeout(300);

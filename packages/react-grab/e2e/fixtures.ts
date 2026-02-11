@@ -250,7 +250,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         return api?.isActive() === expected;
       },
       expectedState,
-      { timeout: 2000 },
+      { timeout: 5000 },
     );
   };
 

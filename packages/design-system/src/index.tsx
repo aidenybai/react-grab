@@ -2405,6 +2405,16 @@ const StateCard = (props: StateCardProps) => {
   const hasAnimation = () => Boolean(props.state.animationSequence?.length);
   const frameCount = () => props.state.animationSequence?.length ?? 0;
 
+  const boundsAnchor = () => {
+    const bounds = props.getBounds();
+    if (!bounds) return null;
+    return {
+      x: bounds.x + bounds.width / 2,
+      y: bounds.y + bounds.height,
+      width: bounds.width,
+    };
+  };
+
   const currentProps = (): DesignSystemStateProps => {
     const baseProps =
       hasAnimation() && props.state.animationSequence
@@ -2637,11 +2647,7 @@ const StateCard = (props: StateCardProps) => {
               componentName={currentProps().componentName}
               elementsCount={currentProps().elementsCount}
               selectionBounds={props.getBounds()}
-              mouseX={
-                props.getBounds()
-                  ? props.getBounds()!.x + props.getBounds()!.width / 2
-                  : undefined
-              }
+              mouseX={boundsAnchor()?.x}
               visible={true}
               status={currentProps().status}
               hasAgent={currentProps().hasAgent}
@@ -2688,11 +2694,8 @@ const StateCard = (props: StateCardProps) => {
           <Show when={props.state.component === "context-menu"}>
             <ContextMenu
               position={
-                props.getBounds()
-                  ? {
-                      x: props.getBounds()!.x + props.getBounds()!.width / 2,
-                      y: props.getBounds()!.y + props.getBounds()!.height,
-                    }
+                boundsAnchor()
+                  ? { x: boundsAnchor()!.x, y: boundsAnchor()!.y }
                   : null
               }
               selectionBounds={props.getBounds() ?? null}
@@ -2801,11 +2804,11 @@ const StateCard = (props: StateCardProps) => {
             </div>
             <RecentDropdown
               position={
-                props.getBounds()
+                boundsAnchor()
                   ? {
-                      x: props.getBounds()!.x + props.getBounds()!.width / 2,
-                      y: props.getBounds()!.y + props.getBounds()!.height,
-                      edge: "top",
+                      ...boundsAnchor()!,
+                      edge: "top" as const,
+                      toolbarWidth: boundsAnchor()!.width,
                     }
                   : null
               }
