@@ -77,9 +77,9 @@
     "access": "public"
   },
   "scripts": {
-    "css:build": "tailwindcss -i ./src/styles.css -o ./dist/styles.css -m",
+    "css:build": "tailwindcss -i ./src/styles.css -o ./dist/styles.css -m && node scripts/css-rem-to-px.mjs",
     "css:watch": "tailwindcss -i ./src/styles.css -o ./dist/styles.css -w",
-    "prebuild": "mkdir -p dist && tailwindcss -i ./src/styles.css -o ./dist/styles.css -m",
+    "prebuild": "mkdir -p dist && tailwindcss -i ./src/styles.css -o ./dist/styles.css -m && node scripts/css-rem-to-px.mjs",
     "build": "NODE_ENV=production tsup",
     "dev": "concurrently \"pnpm:css:watch\" \"tsup --watch --ignore-watch dist\"",
     "lint": "oxlint",

@@ -22,6 +22,11 @@
   --transition-slow: 200ms;
 }
 
+:host {
+  all: initial;
+  direction: ltr;
+}
+
 @keyframes shake {
   0%,
   100% {

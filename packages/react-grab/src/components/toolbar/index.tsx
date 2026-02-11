@@ -1315,7 +1315,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                       setIsRecentTooltipVisible(false);
                       handleRecent(event);
                     }}
-                    {...createFreezeHandlers(setIsRecentTooltipVisible, props.onRecentButtonHover)}
+                    {...createFreezeHandlers(
+                      setIsRecentTooltipVisible,
+                      props.onRecentButtonHover,
+                    )}
                   >
                     <Show
                       when={props.hasUnreadRecentItems}

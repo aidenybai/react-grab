@@ -3371,7 +3371,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           anchorY = edge === "top" ? toolbarRect.bottom : toolbarRect.top;
         }
 
-        setRecentDropdownPosition({ x: anchorX, y: anchorY, edge, toolbarWidth: toolbarRect.width });
+        setRecentDropdownPosition({
+          x: anchorX,
+          y: anchorY,
+          edge,
+          toolbarWidth: toolbarRect.width,
+        });
         recentPositionFrameId = requestAnimationFrame(updatePosition);
       };
       recentPositionFrameId = requestAnimationFrame(updatePosition);

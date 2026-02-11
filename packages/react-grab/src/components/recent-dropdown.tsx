@@ -54,8 +54,9 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
 
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
-  const [activeHeaderTooltip, setActiveHeaderTooltip] =
-    createSignal<"clear" | "copy" | null>(null);
+  const [activeHeaderTooltip, setActiveHeaderTooltip] = createSignal<
+    "clear" | "copy" | null
+  >(null);
 
   const isVisible = () => props.position !== null;
 
@@ -88,27 +89,41 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
     let rawTop: number;
 
     if (edge === "left" || edge === "right") {
-      rawLeft = edge === "left"
-        ? anchor.x + DROPDOWN_ANCHOR_GAP_PX
-        : anchor.x - width - DROPDOWN_ANCHOR_GAP_PX;
+      rawLeft =
+        edge === "left"
+          ? anchor.x + DROPDOWN_ANCHOR_GAP_PX
+          : anchor.x - width - DROPDOWN_ANCHOR_GAP_PX;
       rawTop = anchor.y - height / 2;
     } else {
       rawLeft = anchor.x - anchor.toolbarWidth / 2;
-      rawTop = edge === "top"
-        ? anchor.y + DROPDOWN_ANCHOR_GAP_PX
-        : anchor.y - height - DROPDOWN_ANCHOR_GAP_PX;
+      rawTop =
+        edge === "top"
+          ? anchor.y + DROPDOWN_ANCHOR_GAP_PX
+          : anchor.y - height - DROPDOWN_ANCHOR_GAP_PX;
     }
 
     return {
-      left: clampToViewport(rawLeft, width, window.innerWidth, DROPDOWN_VIEWPORT_PADDING_PX),
-      top: clampToViewport(rawTop, height, window.innerHeight, DROPDOWN_VIEWPORT_PADDING_PX),
+      left: clampToViewport(
+        rawLeft,
+        width,
+        window.innerWidth,
+        DROPDOWN_VIEWPORT_PADDING_PX,
+      ),
+      top: clampToViewport(
+        rawTop,
+        height,
+        window.innerHeight,
+        DROPDOWN_VIEWPORT_PADDING_PX,
+      ),
     };
   };
 
   const clampedMaxWidth = () =>
     Math.min(
       DROPDOWN_MAX_WIDTH_PX,
-      window.innerWidth - computedPosition().left - DROPDOWN_VIEWPORT_PADDING_PX,
+      window.innerWidth -
+        computedPosition().left -
+        DROPDOWN_VIEWPORT_PADDING_PX,
     );
 
   const clampedMaxHeight = () =>
