@@ -5,7 +5,7 @@ import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { SelectionLabel } from "react-grab/src/components/selection-label/index.js";
 import { ContextMenu } from "react-grab/src/components/context-menu.js";
 import { ToolbarContent } from "react-grab/src/components/toolbar/toolbar-content.js";
-import { RecentDropdown } from "react-grab/src/components/recent-dropdown.js";
+import { HistoryDropdown } from "react-grab/src/components/history-dropdown.js";
 import {
   IconInbox,
   IconInboxUnread,
@@ -13,10 +13,10 @@ import {
 import type {
   OverlayBounds,
   SelectionLabelStatus,
-  RecentItem,
+  HistoryItem,
 } from "react-grab/src/types.js";
 
-type ComponentType = "label" | "context-menu" | "toolbar" | "recent-dropdown";
+type ComponentType = "label" | "context-menu" | "toolbar" | "history-dropdown";
 
 interface DesignSystemStateProps {
   tagName?: string;
@@ -49,9 +49,9 @@ interface DesignSystemStateProps {
   isToolbarEnabled?: boolean;
   isToolbarCollapsed?: boolean;
   toolbarSnapEdge?: "top" | "bottom" | "left" | "right";
-  toolbarRecentItemCount?: number;
-  toolbarHasUnreadRecentItems?: boolean;
-  recentItems?: RecentItem[];
+  toolbarHistoryItemCount?: number;
+  toolbarHasUnreadHistoryItems?: boolean;
+  historyItems?: HistoryItem[];
 }
 
 interface AnimationFrame {
@@ -829,7 +829,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
     props: {
       isToolbarActive: true,
       isToolbarEnabled: true,
-      toolbarRecentItemCount: 3,
+      toolbarHistoryItemCount: 3,
     },
   },
   {
@@ -912,51 +912,51 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
     },
   },
   {
-    id: "toolbar-recent-read",
-    label: "Toolbar (Recent Read)",
+    id: "toolbar-history-read",
+    label: "Toolbar (History Read)",
     description: "Inbox icon, no unread items",
     component: "toolbar",
     props: {
       isToolbarActive: true,
       isToolbarEnabled: true,
-      toolbarRecentItemCount: 5,
-      toolbarHasUnreadRecentItems: false,
+      toolbarHistoryItemCount: 5,
+      toolbarHasUnreadHistoryItems: false,
     },
   },
   {
-    id: "toolbar-recent-unread",
-    label: "Toolbar (Recent Unread)",
+    id: "toolbar-history-unread",
+    label: "Toolbar (History Unread)",
     description: "Inbox icon with unread indicator",
     component: "toolbar",
     props: {
       isToolbarActive: true,
       isToolbarEnabled: true,
-      toolbarRecentItemCount: 3,
-      toolbarHasUnreadRecentItems: true,
+      toolbarHistoryItemCount: 3,
+      toolbarHasUnreadHistoryItems: true,
     },
   },
 
   // ══════════════════════════════════════════════════════════════════════════
-  // RECENT DROPDOWN STATES
+  // HISTORY DROPDOWN STATES
   // ══════════════════════════════════════════════════════════════════════════
   {
-    id: "recent-empty",
-    label: "Recent (Empty)",
+    id: "history-empty",
+    label: "History (Empty)",
     description: "No copied elements yet",
-    component: "recent-dropdown",
+    component: "history-dropdown",
     props: {
-      recentItems: [],
+      historyItems: [],
     },
   },
   {
-    id: "recent-single-item",
-    label: "Recent (Single Item)",
+    id: "history-single-item",
+    label: "History (Single Item)",
     description: "One copied element",
-    component: "recent-dropdown",
+    component: "history-dropdown",
     props: {
-      recentItems: [
+      historyItems: [
         {
-          id: "recent-1",
+          id: "history-1",
           content: "<Button />",
           elementName: "Button",
           tagName: "button",
@@ -968,14 +968,14 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
     },
   },
   {
-    id: "recent-multiple-items",
-    label: "Recent (Multiple Items)",
+    id: "history-multiple-items",
+    label: "History (Multiple Items)",
     description: "Several copied elements",
-    component: "recent-dropdown",
+    component: "history-dropdown",
     props: {
-      recentItems: [
+      historyItems: [
         {
-          id: "recent-1",
+          id: "history-1",
           content: "<Header />",
           elementName: "Header",
           tagName: "header",
@@ -984,7 +984,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           timestamp: Date.now() - 15_000,
         },
         {
-          id: "recent-2",
+          id: "history-2",
           content: "<Navigation />",
           elementName: "Navigation",
           tagName: "nav",
@@ -993,7 +993,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           timestamp: Date.now() - 120_000,
         },
         {
-          id: "recent-3",
+          id: "history-3",
           content: "<Footer />",
           elementName: "Footer",
           tagName: "footer",
@@ -1005,14 +1005,14 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
     },
   },
   {
-    id: "recent-with-comments",
-    label: "Recent (With Comments)",
+    id: "history-with-comments",
+    label: "History (With Comments)",
     description: "Items with comment annotations",
-    component: "recent-dropdown",
+    component: "history-dropdown",
     props: {
-      recentItems: [
+      historyItems: [
         {
-          id: "recent-1",
+          id: "history-1",
           content: "<Card />",
           elementName: "Card",
           tagName: "div",
@@ -1022,7 +1022,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           timestamp: Date.now() - 10_000,
         },
         {
-          id: "recent-2",
+          id: "history-2",
           content: "<Sidebar />",
           elementName: "Sidebar",
           tagName: "aside",
@@ -1032,7 +1032,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           timestamp: Date.now() - 300_000,
         },
         {
-          id: "recent-3",
+          id: "history-3",
           content: "<Button />",
           elementName: "Button",
           tagName: "button",
@@ -1044,14 +1044,14 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
     },
   },
   {
-    id: "recent-tag-only",
-    label: "Recent (Tag Only)",
+    id: "history-tag-only",
+    label: "History (Tag Only)",
     description: "Items without component names",
-    component: "recent-dropdown",
+    component: "history-dropdown",
     props: {
-      recentItems: [
+      historyItems: [
         {
-          id: "recent-1",
+          id: "history-1",
           content: "<section />",
           elementName: "section",
           tagName: "section",
@@ -1059,7 +1059,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           timestamp: Date.now() - 60_000,
         },
         {
-          id: "recent-2",
+          id: "history-2",
           content: "<div />",
           elementName: "div",
           tagName: "div",
@@ -1070,14 +1070,14 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
     },
   },
   {
-    id: "recent-long-names",
-    label: "Recent (Long Names)",
+    id: "history-long-names",
+    label: "History (Long Names)",
     description: "Long component names truncation",
-    component: "recent-dropdown",
+    component: "history-dropdown",
     props: {
-      recentItems: [
+      historyItems: [
         {
-          id: "recent-1",
+          id: "history-1",
           content: "<InteractiveDataVisualizationChart />",
           elementName: "InteractiveDataVisualizationChart",
           tagName: "div",
@@ -1087,7 +1087,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           timestamp: Date.now() - 5_000,
         },
         {
-          id: "recent-2",
+          id: "history-2",
           content: "<SuperLongComponentNameWrapper />",
           elementName: "SuperLongComponentNameWrapper",
           tagName: "custom-interactive-element",
@@ -1099,14 +1099,14 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
     },
   },
   {
-    id: "recent-many-items",
-    label: "Recent (Many Items)",
+    id: "history-many-items",
+    label: "History (Many Items)",
     description: "Scrollable list with many items",
-    component: "recent-dropdown",
+    component: "history-dropdown",
     props: {
-      recentItems: [
+      historyItems: [
         {
-          id: "recent-1",
+          id: "history-1",
           content: "<Header />",
           elementName: "Header",
           tagName: "header",
@@ -1115,7 +1115,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           timestamp: Date.now() - 10_000,
         },
         {
-          id: "recent-2",
+          id: "history-2",
           content: "<Navigation />",
           elementName: "Navigation",
           tagName: "nav",
@@ -1125,7 +1125,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           timestamp: Date.now() - 60_000,
         },
         {
-          id: "recent-3",
+          id: "history-3",
           content: "<Card />",
           elementName: "Card",
           tagName: "div",
@@ -1134,7 +1134,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           timestamp: Date.now() - 300_000,
         },
         {
-          id: "recent-4",
+          id: "history-4",
           content: "<Button />",
           elementName: "Button",
           tagName: "button",
@@ -1144,7 +1144,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           timestamp: Date.now() - 600_000,
         },
         {
-          id: "recent-5",
+          id: "history-5",
           content: "<Footer />",
           elementName: "Footer",
           tagName: "footer",
@@ -1153,7 +1153,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           timestamp: Date.now() - 1_800_000,
         },
         {
-          id: "recent-6",
+          id: "history-6",
           content: "<Sidebar />",
           elementName: "Sidebar",
           tagName: "aside",
@@ -1162,7 +1162,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           timestamp: Date.now() - 3_600_000,
         },
         {
-          id: "recent-7",
+          id: "history-7",
           content: "<Modal />",
           elementName: "Modal",
           tagName: "dialog",
@@ -1172,7 +1172,7 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
           timestamp: Date.now() - 7_200_000,
         },
         {
-          id: "recent-8",
+          id: "history-8",
           content: "<Form />",
           elementName: "Form",
           tagName: "form",
@@ -2630,7 +2630,7 @@ const StateCard = (props: StateCardProps) => {
           <Show
             when={
               props.state.component !== "toolbar" &&
-              props.state.component !== "recent-dropdown"
+              props.state.component !== "history-dropdown"
             }
           >
             <div
@@ -2742,18 +2742,18 @@ const StateCard = (props: StateCardProps) => {
               enabled={currentProps().isToolbarEnabled ?? true}
               isCollapsed={currentProps().isToolbarCollapsed}
               snapEdge={currentProps().toolbarSnapEdge}
-              recentButton={
+              historyButton={
                 <Show
                   when={
                     (currentProps().isToolbarEnabled ?? true) &&
-                    (currentProps().toolbarRecentItemCount ?? 0) > 0
+                    (currentProps().toolbarHistoryItemCount ?? 0) > 0
                   }
                 >
                   <div class="grid grid-cols-[1fr] opacity-100 transition-all duration-150 ease-out">
                     <div class="relative overflow-visible min-w-0">
                       <button class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5">
                         <Show
-                          when={currentProps().toolbarHasUnreadRecentItems}
+                          when={currentProps().toolbarHasUnreadHistoryItems}
                           fallback={
                             <IconInbox
                               size={14}
@@ -2774,7 +2774,7 @@ const StateCard = (props: StateCardProps) => {
             />
           </Show>
 
-          <Show when={props.state.component === "recent-dropdown"}>
+          <Show when={props.state.component === "history-dropdown"}>
             <div
               style={{
                 position: "absolute",
@@ -2787,7 +2787,7 @@ const StateCard = (props: StateCardProps) => {
                 <ToolbarContent
                   isActive={true}
                   enabled={true}
-                  recentButton={
+                  historyButton={
                     <div class="grid grid-cols-[1fr] opacity-100 transition-all duration-150 ease-out">
                       <div class="relative overflow-visible min-w-0">
                         <button class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5">
@@ -2802,7 +2802,7 @@ const StateCard = (props: StateCardProps) => {
                 />
               </div>
             </div>
-            <RecentDropdown
+            <HistoryDropdown
               position={
                 boundsAnchor()
                   ? {
@@ -2812,7 +2812,7 @@ const StateCard = (props: StateCardProps) => {
                     }
                   : null
               }
-              items={currentProps().recentItems ?? []}
+              items={currentProps().historyItems ?? []}
             />
           </Show>
         </Show>
@@ -3041,10 +3041,10 @@ const DesignSystemGrid = () => {
         !hasAnimation(state) &&
         matchesSearch(state),
     );
-  const recentDropdownStates = () =>
+  const historyDropdownStates = () =>
     DESIGN_SYSTEM_STATES.filter(
       (state) =>
-        state.component === "recent-dropdown" &&
+        state.component === "history-dropdown" &&
         !hasAnimation(state) &&
         matchesSearch(state),
     );
@@ -3348,12 +3348,12 @@ const DesignSystemGrid = () => {
           </div>
         </Show>
 
-        {/* Recent Dropdown Section */}
-        <Show when={recentDropdownStates().length > 0}>
+        {/* History Dropdown Section */}
+        <Show when={historyDropdownStates().length > 0}>
           <div style={{ padding: `${GAP_PX}px 24px` }}>
-            <span style={sectionTitleStyle()}>Recent Dropdown</span>
+            <span style={sectionTitleStyle()}>History Dropdown</span>
             <div style={gridStyle()}>
-              <For each={recentDropdownStates()}>
+              <For each={historyDropdownStates()}>
                 {(state) => (
                   <StateCard
                     state={state}
@@ -3405,7 +3405,7 @@ const DesignSystemGrid = () => {
               labelStates().length +
               contextMenuStates().length +
               toolbarStates().length +
-              recentDropdownStates().length +
+              historyDropdownStates().length +
               agentLabelStates().length ===
               0
           }

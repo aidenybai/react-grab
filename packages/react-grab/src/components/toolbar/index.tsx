@@ -59,10 +59,10 @@ interface ToolbarProps {
   ) => () => void;
   onSelectHoverChange?: (isHovered: boolean) => void;
   onContainerRef?: (element: HTMLDivElement) => void;
-  recentItemCount?: number;
-  hasUnreadRecentItems?: boolean;
-  onToggleRecent?: () => void;
-  onRecentButtonHover?: (isHovered: boolean) => void;
+  historyItemCount?: number;
+  hasUnreadHistoryItems?: boolean;
+  onToggleHistory?: () => void;
+  onHistoryButtonHover?: (isHovered: boolean) => void;
 }
 
 export const Toolbar: Component<ToolbarProps> = (props) => {
@@ -92,12 +92,12 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     createSignal(false);
   const [isShakeTooltipVisible, setIsShakeTooltipVisible] = createSignal(false);
   const [isToggleAnimating, setIsToggleAnimating] = createSignal(false);
-  const [isRecentTooltipVisible, setIsRecentTooltipVisible] =
+  const [isHistoryTooltipVisible, setIsHistoryTooltipVisible] =
     createSignal(false);
 
-  const recentTooltipLabel = () => {
-    const count = props.recentItemCount ?? 0;
-    return count > 0 ? `Recent (${count})` : "Recent";
+  const historyTooltipLabel = () => {
+    const count = props.historyItemCount ?? 0;
+    return count > 0 ? `History (${count})` : "History";
   };
 
   const tooltipPosition = () => (snapEdge() === "top" ? "bottom" : "top");
@@ -271,20 +271,20 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   createEffect(
     on(
-      () => props.recentItemCount ?? 0,
+      () => props.historyItemCount ?? 0,
       () => {
         if (isCollapsed()) return;
         // HACK: Wait for grid-cols CSS transition to complete, then re-measure and clamp to viewport
-        if (recentItemCountTimeout) {
-          clearTimeout(recentItemCountTimeout);
+        if (historyItemCountTimeout) {
+          clearTimeout(historyItemCountTimeout);
         }
-        recentItemCountTimeout = setTimeout(
+        historyItemCountTimeout = setTimeout(
           reclampToolbarToViewport,
           TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS,
         );
         onCleanup(() => {
-          if (recentItemCountTimeout) {
-            clearTimeout(recentItemCountTimeout);
+          if (historyItemCountTimeout) {
+            clearTimeout(historyItemCountTimeout);
           }
         });
       },
@@ -513,7 +513,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const handleComment = createDragAwareHandler(() => props.onComment?.());
 
-  const handleRecent = createDragAwareHandler(() => props.onToggleRecent?.());
+  const handleHistory = createDragAwareHandler(() => props.onToggleHistory?.());
 
   const handleToggleCollapse = createDragAwareHandler(() => {
     const rect = containerRef?.getBoundingClientRect();
@@ -916,7 +916,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   let collapseAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
   let snapAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
   let toggleAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
-  let recentItemCountTimeout: ReturnType<typeof setTimeout> | undefined;
+  let historyItemCountTimeout: ReturnType<typeof setTimeout> | undefined;
 
   const handleResize = () => {
     if (isDragging()) return;
@@ -1087,7 +1087,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     clearTimeout(shakeTooltipTimeout);
     clearTimeout(snapAnimationTimeout);
     clearTimeout(toggleAnimationTimeout);
-    clearTimeout(recentItemCountTimeout);
+    clearTimeout(historyItemCountTimeout);
     unfreezeUpdatesCallback?.();
   });
 
@@ -1295,7 +1295,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               <div
                 class={cn(
                   "grid transition-all duration-150 ease-out",
-                  props.enabled && (props.recentItemCount ?? 0) > 0
+                  props.enabled && (props.historyItemCount ?? 0) > 0
                     ? "grid-cols-[1fr] opacity-100"
                     : "grid-cols-[0fr] opacity-0 pointer-events-none",
                 )}
@@ -1304,7 +1304,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                   {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
                   <button
                     data-react-grab-ignore-events
-                    data-react-grab-toolbar-recent
+                    data-react-grab-toolbar-history
                     class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5"
                     on:pointerdown={(event) => {
                       stopEventPropagation(event);
@@ -1312,16 +1312,16 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     }}
                     on:mousedown={stopEventPropagation}
                     onClick={(event) => {
-                      setIsRecentTooltipVisible(false);
-                      handleRecent(event);
+                      setIsHistoryTooltipVisible(false);
+                      handleHistory(event);
                     }}
                     {...createFreezeHandlers(
-                      setIsRecentTooltipVisible,
-                      props.onRecentButtonHover,
+                      setIsHistoryTooltipVisible,
+                      props.onHistoryButtonHover,
                     )}
                   >
                     <Show
-                      when={props.hasUnreadRecentItems}
+                      when={props.hasUnreadHistoryItems}
                       fallback={
                         <IconInbox
                           size={14}
@@ -1336,10 +1336,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     </Show>
                   </button>
                   <Tooltip
-                    visible={isRecentTooltipVisible() && !isCollapsed()}
+                    visible={isHistoryTooltipVisible() && !isCollapsed()}
                     position={tooltipPosition()}
                   >
-                    {recentTooltipLabel()}
+                    {historyTooltipLabel()}
                   </Tooltip>
                 </div>
               </div>

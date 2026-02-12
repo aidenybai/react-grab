@@ -449,7 +449,7 @@ export interface SelectionLabelInstance {
   hideArrow?: boolean;
 }
 
-export interface RecentItem {
+export interface HistoryItem {
   id: string;
   content: string;
   elementName: string;
@@ -537,20 +537,21 @@ export interface ReactGrabRendererProps {
   actionContext?: ActionContext;
   onContextMenuDismiss?: () => void;
   onContextMenuHide?: () => void;
-  recentItems?: RecentItem[];
-  recentItemCount?: number;
-  hasUnreadRecentItems?: boolean;
-  recentDropdownPosition?: DropdownAnchor | null;
-  onToggleRecent?: () => void;
-  onRecentButtonHover?: (isHovered: boolean) => void;
-  onRecentItemSelect?: (item: RecentItem) => void;
-  onRecentItemRemove?: (item: RecentItem) => void;
-  onRecentItemCopy?: (item: RecentItem) => void;
-  onRecentItemHover?: (recentItemId: string | null) => void;
-  onRecentCopyAll?: () => void;
-  onRecentCopyAllHover?: (isHovered: boolean) => void;
-  onRecentClear?: () => void;
-  onRecentDismiss?: () => void;
+  historyItems?: HistoryItem[];
+  historyDisconnectedItemIds?: Set<string>;
+  historyItemCount?: number;
+  hasUnreadHistoryItems?: boolean;
+  historyDropdownPosition?: DropdownAnchor | null;
+  onToggleHistory?: () => void;
+  onHistoryButtonHover?: (isHovered: boolean) => void;
+  onHistoryItemSelect?: (item: HistoryItem) => void;
+  onHistoryItemRemove?: (item: HistoryItem) => void;
+  onHistoryItemCopy?: (item: HistoryItem) => void;
+  onHistoryItemHover?: (historyItemId: string | null) => void;
+  onHistoryCopyAll?: () => void;
+  onHistoryCopyAllHover?: (isHovered: boolean) => void;
+  onHistoryClear?: () => void;
+  onHistoryDismiss?: () => void;
 }
 
 export interface GrabbedBox {

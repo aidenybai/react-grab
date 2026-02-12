@@ -11,7 +11,7 @@ import { OverlayCanvas } from "./overlay-canvas.js";
 import { SelectionLabel } from "./selection-label/index.js";
 import { Toolbar } from "./toolbar/index.js";
 import { ContextMenu } from "./context-menu.js";
-import { RecentDropdown } from "./recent-dropdown.js";
+import { HistoryDropdown } from "./history-dropdown.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
   return (
@@ -199,10 +199,10 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           onSubscribeToStateChanges={props.onSubscribeToToolbarStateChanges}
           onSelectHoverChange={props.onToolbarSelectHoverChange}
           onContainerRef={props.onToolbarRef}
-          recentItemCount={props.recentItemCount}
-          hasUnreadRecentItems={props.hasUnreadRecentItems}
-          onToggleRecent={props.onToggleRecent}
-          onRecentButtonHover={props.onRecentButtonHover}
+          historyItemCount={props.historyItemCount}
+          hasUnreadHistoryItems={props.hasUnreadHistoryItems}
+          onToggleHistory={props.onToggleHistory}
+          onHistoryButtonHover={props.onHistoryButtonHover}
         />
       </Show>
 
@@ -218,17 +218,18 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         onHide={props.onContextMenuHide ?? (() => {})}
       />
 
-      <RecentDropdown
-        position={props.recentDropdownPosition ?? null}
-        items={props.recentItems ?? []}
-        onSelectItem={props.onRecentItemSelect}
-        onRemoveItem={props.onRecentItemRemove}
-        onCopyItem={props.onRecentItemCopy}
-        onItemHover={props.onRecentItemHover}
-        onCopyAll={props.onRecentCopyAll}
-        onCopyAllHover={props.onRecentCopyAllHover}
-        onClearAll={props.onRecentClear}
-        onDismiss={props.onRecentDismiss}
+      <HistoryDropdown
+        position={props.historyDropdownPosition ?? null}
+        items={props.historyItems ?? []}
+        disconnectedItemIds={props.historyDisconnectedItemIds}
+        onSelectItem={props.onHistoryItemSelect}
+        onRemoveItem={props.onHistoryItemRemove}
+        onCopyItem={props.onHistoryItemCopy}
+        onItemHover={props.onHistoryItemHover}
+        onCopyAll={props.onHistoryCopyAll}
+        onCopyAllHover={props.onHistoryCopyAllHover}
+        onClearAll={props.onHistoryClear}
+        onDismiss={props.onHistoryDismiss}
       />
     </>
   );

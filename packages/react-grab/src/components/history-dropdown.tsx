@@ -7,7 +7,7 @@ import {
   createEffect,
 } from "solid-js";
 import type { Component } from "solid-js";
-import type { RecentItem, DropdownAnchor } from "../types.js";
+import type { HistoryItem, DropdownAnchor } from "../types.js";
 import {
   DROPDOWN_ANCHOR_GAP_PX,
   DROPDOWN_ICON_SIZE_PX,
@@ -27,13 +27,14 @@ const DEFAULT_OFFSCREEN_POSITION = { left: -9999, top: -9999 };
 const ITEM_ACTION_CLASS =
   "flex items-center justify-center cursor-pointer text-black/25 transition-colors press-scale";
 
-interface RecentDropdownProps {
+interface HistoryDropdownProps {
   position: DropdownAnchor | null;
-  items: RecentItem[];
-  onSelectItem?: (item: RecentItem) => void;
-  onRemoveItem?: (item: RecentItem) => void;
-  onCopyItem?: (item: RecentItem) => void;
-  onItemHover?: (recentItemId: string | null) => void;
+  items: HistoryItem[];
+  disconnectedItemIds?: Set<string>;
+  onSelectItem?: (item: HistoryItem) => void;
+  onRemoveItem?: (item: HistoryItem) => void;
+  onCopyItem?: (item: HistoryItem) => void;
+  onItemHover?: (historyItemId: string | null) => void;
   onCopyAll?: () => void;
   onCopyAllHover?: (isHovered: boolean) => void;
   onClearAll?: () => void;
@@ -50,7 +51,7 @@ const formatRelativeTime = (timestamp: number): string => {
   return `${Math.floor(elapsedHours / 24)}d`;
 };
 
-export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
+export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
 
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
@@ -195,7 +196,7 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
       <div
         ref={containerRef}
         data-react-grab-ignore-events
-        data-react-grab-recent-dropdown
+        data-react-grab-history-dropdown
         class="fixed font-sans text-[13px] antialiased filter-[drop-shadow(0px_1px_2px_#51515140)] select-none transition-opacity duration-150 ease-out"
         style={{
           top: `${computedPosition().top}px`,
@@ -220,13 +221,13 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
           }}
         >
           <div class="contain-layout shrink-0 flex items-center justify-between px-2 pt-1.5 pb-1">
-            <span class="text-[11px] font-medium text-black/40">Recent</span>
+            <span class="text-[11px] font-medium text-black/40">History</span>
             <Show when={props.items.length > 0}>
               <div class="flex items-center gap-[5px]">
                 <div class="relative">
                   <button
                     data-react-grab-ignore-events
-                    data-react-grab-recent-clear
+                    data-react-grab-history-clear
                     class="contain-layout shrink-0 flex items-center justify-center px-[3px] py-px rounded-sm bg-[#FEF2F2] cursor-pointer transition-all hover:bg-[#FEE2E2] press-scale h-[17px] text-[#B91C1C]"
                     onClick={(event) => {
                       event.stopPropagation();
@@ -248,7 +249,7 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                 <div class="relative">
                   <button
                     data-react-grab-ignore-events
-                    data-react-grab-recent-copy-all
+                    data-react-grab-history-copy-all
                     class="contain-layout shrink-0 flex items-center justify-center gap-1 px-[3px] py-px rounded-sm bg-white [border-width:0.5px] border-solid border-[#B3B3B3] cursor-pointer transition-all hover:bg-[#F5F5F5] press-scale h-[17px] text-black/60"
                     onClick={(event) => {
                       event.stopPropagation();
@@ -287,8 +288,13 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                 {(item) => (
                   <div
                     data-react-grab-ignore-events
-                    data-react-grab-recent-item
-                    class="group contain-layout flex items-start justify-between w-full px-2 py-1 cursor-pointer transition-colors hover:bg-black/5 focus-within:bg-black/5 text-left gap-2"
+                    data-react-grab-history-item
+                    class="group contain-layout flex items-start justify-between w-full px-2 py-1 cursor-pointer transition-[background-color,opacity] hover:bg-black/5 focus-within:bg-black/5 text-left gap-2"
+                    classList={{
+                      "opacity-40 hover:opacity-100": Boolean(
+                        props.disconnectedItemIds?.has(item.id),
+                      ),
+                    }}
                     tabindex="0"
                     onPointerDown={(event) => event.stopPropagation()}
                     onClick={(event) => {
@@ -325,7 +331,7 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                       <span class="invisible group-hover:visible group-focus-within:visible [grid-area:1/1] flex items-center justify-end gap-1.5">
                         <button
                           data-react-grab-ignore-events
-                          data-react-grab-recent-item-remove
+                          data-react-grab-history-item-remove
                           class={cn(ITEM_ACTION_CLASS, "hover:text-[#B91C1C]")}
                           onClick={(event) => {
                             event.stopPropagation();
@@ -336,7 +342,7 @@ export const RecentDropdown: Component<RecentDropdownProps> = (props) => {
                         </button>
                         <button
                           data-react-grab-ignore-events
-                          data-react-grab-recent-item-copy
+                          data-react-grab-history-item-copy
                           class={cn(ITEM_ACTION_CLASS, "hover:text-black/60")}
                           onClick={(event) => {
                             event.stopPropagation();
