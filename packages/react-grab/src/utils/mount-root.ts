@@ -1,4 +1,4 @@
-import { MOUNT_ROOT_RECHECK_DELAY_MS } from "../constants.js";
+import { MOUNT_ROOT_RECHECK_DELAY_MS, Z_INDEX_HOST } from "../constants.js";
 
 export const ATTRIBUTE_NAME = "data-react-grab";
 
@@ -34,7 +34,7 @@ export const mountRoot = (cssText?: string) => {
   const host = document.createElement("div");
 
   host.setAttribute(ATTRIBUTE_NAME, "true");
-  host.style.zIndex = "2147483646";
+  host.style.zIndex = String(Z_INDEX_HOST);
   host.style.position = "fixed";
   host.style.inset = "0";
   host.style.pointerEvents = "none";
@@ -56,12 +56,14 @@ export const mountRoot = (cssText?: string) => {
   // HACK: wait for hydration (in case something blows away the DOM)
   doc.appendChild(host);
 
-  // HACK:double check after a short delay since
-  // something might have blown away the DOM
+  // HACK: re-append after a delay to ensure we're the last child of body.
+  // This handles two cases:
+  //   1. Hydration blew away the DOM and the host was removed
+  //   2. Another tool (e.g. react-scan) appended at the same max z-index —
+  //      being last in DOM order wins the stacking tiebreaker
+  // appendChild of an existing node is an atomic move (no flash, no reflow).
   setTimeout(() => {
-    if (!doc.contains(host)) {
-      doc.appendChild(host);
-    }
+    doc.appendChild(host);
   }, MOUNT_ROOT_RECHECK_DELAY_MS);
 
   return root;

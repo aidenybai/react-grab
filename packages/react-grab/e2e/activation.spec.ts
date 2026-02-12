@@ -115,7 +115,7 @@ test.describe("Activation Mode Configuration", () => {
 
     await reactGrab.page.keyboard.down(reactGrab.modifierKey);
     await reactGrab.page.keyboard.down("c");
-    await reactGrab.page.waitForTimeout(350);
+    await reactGrab.page.waitForTimeout(500);
     await reactGrab.page.keyboard.up("c");
     await reactGrab.page.keyboard.up(reactGrab.modifierKey);
 
@@ -129,7 +129,7 @@ test.describe("Activation Mode Configuration", () => {
 
     await reactGrab.page.keyboard.down(reactGrab.modifierKey);
     await reactGrab.page.keyboard.down("c");
-    await reactGrab.page.waitForTimeout(350);
+    await reactGrab.page.waitForTimeout(500);
     await reactGrab.page.keyboard.up("c");
     await reactGrab.page.keyboard.up(reactGrab.modifierKey);
 
