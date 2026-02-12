@@ -410,9 +410,7 @@ export const GrabElementButton = ({
             renderActivationPrompt()
           ) : (
             <span className="animate-pulse flex items-center gap-1.5">
-              Click anywhere to select or press
-              <Kbd wide>Esc</Kbd>
-              to cancel
+              Click anywhere to select
             </span>
           )}
         </button>
