@@ -69,7 +69,7 @@ interface GrabbedBoxInfo {
   }>;
 }
 
-interface RecentDropdownInfo {
+interface HistoryDropdownInfo {
   isVisible: boolean;
   itemCount: number;
 }
@@ -128,19 +128,19 @@ export interface ReactGrabPageObject {
     deltaY: number,
   ) => Promise<void>;
 
-  isRecentButtonVisible: () => Promise<boolean>;
-  hasUnreadRecentIndicator: () => Promise<boolean>;
-  clickRecentButton: () => Promise<void>;
-  isRecentDropdownVisible: () => Promise<boolean>;
-  getRecentDropdownInfo: () => Promise<RecentDropdownInfo>;
-  clickRecentItem: (index: number) => Promise<void>;
-  clickRecentItemRemove: (index: number) => Promise<void>;
-  clickRecentItemCopy: (index: number) => Promise<void>;
-  clickRecentCopyAll: () => Promise<void>;
-  clickRecentClear: () => Promise<void>;
-  hoverRecentItem: (index: number) => Promise<void>;
-  hoverRecentButton: () => Promise<void>;
-  getRecentDropdownPosition: () => Promise<{
+  isHistoryButtonVisible: () => Promise<boolean>;
+  hasUnreadHistoryIndicator: () => Promise<boolean>;
+  clickHistoryButton: () => Promise<void>;
+  isHistoryDropdownVisible: () => Promise<boolean>;
+  getHistoryDropdownInfo: () => Promise<HistoryDropdownInfo>;
+  clickHistoryItem: (index: number) => Promise<void>;
+  clickHistoryItemRemove: (index: number) => Promise<void>;
+  clickHistoryItemCopy: (index: number) => Promise<void>;
+  clickHistoryCopyAll: () => Promise<void>;
+  clickHistoryClear: () => Promise<void>;
+  hoverHistoryItem: (index: number) => Promise<void>;
+  hoverHistoryButton: () => Promise<void>;
+  getHistoryDropdownPosition: () => Promise<{
     left: number;
     top: number;
   } | null>;
@@ -857,41 +857,41 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     await page.waitForTimeout(300);
   };
 
-  const isRecentButtonVisible = async (): Promise<boolean> => {
+  const isHistoryButtonVisible = async (): Promise<boolean> => {
     return page.evaluate((attrName) => {
       const host = document.querySelector(`[${attrName}]`);
       const shadowRoot = host?.shadowRoot;
       if (!shadowRoot) return false;
       const root = shadowRoot.querySelector(`[${attrName}]`);
       if (!root) return false;
-      const recentButton = root.querySelector<HTMLElement>(
-        "[data-react-grab-toolbar-recent]",
+      const historyButton = root.querySelector<HTMLElement>(
+        "[data-react-grab-toolbar-history]",
       );
-      if (!recentButton) return false;
-      const gridParent = recentButton.parentElement?.parentElement;
+      if (!historyButton) return false;
+      const gridParent = historyButton.parentElement?.parentElement;
       if (!gridParent) return false;
       const computedStyle = window.getComputedStyle(gridParent);
       return computedStyle.opacity !== "0";
     }, ATTRIBUTE_NAME);
   };
 
-  const hasUnreadRecentIndicator = async (): Promise<boolean> => {
+  const hasUnreadHistoryIndicator = async (): Promise<boolean> => {
     return page.evaluate((attrName) => {
       const host = document.querySelector(`[${attrName}]`);
       const shadowRoot = host?.shadowRoot;
       if (!shadowRoot) return false;
       const root = shadowRoot.querySelector(`[${attrName}]`);
       if (!root) return false;
-      const recentButton = root.querySelector(
-        "[data-react-grab-toolbar-recent]",
+      const historyButton = root.querySelector(
+        "[data-react-grab-toolbar-history]",
       );
-      if (!recentButton) return false;
-      const unreadDot = recentButton.querySelector('path[fill="#404040"]');
+      if (!historyButton) return false;
+      const unreadDot = historyButton.querySelector('path[fill="#404040"]');
       return unreadDot !== null;
     }, ATTRIBUTE_NAME);
   };
 
-  const waitForRecentDropdown = async (visible: boolean) => {
+  const waitForHistoryDropdown = async (visible: boolean) => {
     await page.waitForFunction(
       ({ attrName, expectedVisible }) => {
         const host = document.querySelector(`[${attrName}]`);
@@ -900,7 +900,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         const root = shadowRoot.querySelector(`[${attrName}]`);
         if (!root) return !expectedVisible;
         const dropdown = root.querySelector(
-          "[data-react-grab-recent-dropdown]",
+          "[data-react-grab-history-dropdown]",
         );
         return expectedVisible ? dropdown !== null : dropdown === null;
       },
@@ -923,43 +923,43 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     );
   };
 
-  const clickRecentButton = async () => {
-    const wasOpen = await isRecentDropdownVisible();
-    await clickShadowRootButton("[data-react-grab-toolbar-recent]");
-    await waitForRecentDropdown(!wasOpen);
+  const clickHistoryButton = async () => {
+    const wasOpen = await isHistoryDropdownVisible();
+    await clickShadowRootButton("[data-react-grab-toolbar-history]");
+    await waitForHistoryDropdown(!wasOpen);
   };
 
-  const isRecentDropdownVisible = async (): Promise<boolean> => {
+  const isHistoryDropdownVisible = async (): Promise<boolean> => {
     return page.evaluate((attrName) => {
       const host = document.querySelector(`[${attrName}]`);
       const shadowRoot = host?.shadowRoot;
       if (!shadowRoot) return false;
       const root = shadowRoot.querySelector(`[${attrName}]`);
       if (!root) return false;
-      const dropdown = root.querySelector("[data-react-grab-recent-dropdown]");
+      const dropdown = root.querySelector("[data-react-grab-history-dropdown]");
       return dropdown !== null;
     }, ATTRIBUTE_NAME);
   };
 
-  const getRecentDropdownInfo = async (): Promise<RecentDropdownInfo> => {
+  const getHistoryDropdownInfo = async (): Promise<HistoryDropdownInfo> => {
     return page.evaluate((attrName) => {
       const host = document.querySelector(`[${attrName}]`);
       const shadowRoot = host?.shadowRoot;
       if (!shadowRoot) return { isVisible: false, itemCount: 0 };
       const root = shadowRoot.querySelector(`[${attrName}]`);
       if (!root) return { isVisible: false, itemCount: 0 };
-      const dropdown = root.querySelector("[data-react-grab-recent-dropdown]");
+      const dropdown = root.querySelector("[data-react-grab-history-dropdown]");
       if (!dropdown) return { isVisible: false, itemCount: 0 };
 
       return {
         isVisible: true,
-        itemCount: dropdown.querySelectorAll("[data-react-grab-recent-item]")
+        itemCount: dropdown.querySelectorAll("[data-react-grab-history-item]")
           .length,
       };
     }, ATTRIBUTE_NAME);
   };
 
-  const clickRecentItem = async (index: number) => {
+  const clickHistoryItem = async (index: number) => {
     await page.evaluate(
       ({ attrName, itemIndex }) => {
         const host = document.querySelector(`[${attrName}]`);
@@ -968,16 +968,16 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         const root = shadowRoot.querySelector(`[${attrName}]`);
         if (!root) return;
         const items = root.querySelectorAll<HTMLButtonElement>(
-          "[data-react-grab-recent-item]",
+          "[data-react-grab-history-item]",
         );
         items[itemIndex]?.click();
       },
       { attrName: ATTRIBUTE_NAME, itemIndex: index },
     );
-    await waitForRecentDropdown(false);
+    await waitForHistoryDropdown(false);
   };
 
-  const clickRecentItemRemove = async (index: number) => {
+  const clickHistoryItemRemove = async (index: number) => {
     await page.evaluate(
       ({ attrName, itemIndex }) => {
         const host = document.querySelector(`[${attrName}]`);
@@ -985,11 +985,11 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         if (!shadowRoot) return;
         const root = shadowRoot.querySelector(`[${attrName}]`);
         if (!root) return;
-        const items = root.querySelectorAll("[data-react-grab-recent-item]");
+        const items = root.querySelectorAll("[data-react-grab-history-item]");
         const item = items[itemIndex];
         if (!item) return;
         const removeButton = item.querySelector<HTMLButtonElement>(
-          "[data-react-grab-recent-item-remove]",
+          "[data-react-grab-history-item-remove]",
         );
         removeButton?.click();
       },
@@ -997,7 +997,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     );
   };
 
-  const clickRecentItemCopy = async (index: number) => {
+  const clickHistoryItemCopy = async (index: number) => {
     await page.evaluate(
       ({ attrName, itemIndex }) => {
         const host = document.querySelector(`[${attrName}]`);
@@ -1005,11 +1005,11 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         if (!shadowRoot) return;
         const root = shadowRoot.querySelector(`[${attrName}]`);
         if (!root) return;
-        const items = root.querySelectorAll("[data-react-grab-recent-item]");
+        const items = root.querySelectorAll("[data-react-grab-history-item]");
         const item = items[itemIndex];
         if (!item) return;
         const copyButton = item.querySelector<HTMLButtonElement>(
-          "[data-react-grab-recent-item-copy]",
+          "[data-react-grab-history-item-copy]",
         );
         copyButton?.click();
       },
@@ -1017,17 +1017,17 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     );
   };
 
-  const clickRecentCopyAll = async () => {
-    await clickShadowRootButton("[data-react-grab-recent-copy-all]");
-    await waitForRecentDropdown(false);
+  const clickHistoryCopyAll = async () => {
+    await clickShadowRootButton("[data-react-grab-history-copy-all]");
+    await waitForHistoryDropdown(false);
   };
 
-  const clickRecentClear = async () => {
-    await clickShadowRootButton("[data-react-grab-recent-clear]");
-    await waitForRecentDropdown(false);
+  const clickHistoryClear = async () => {
+    await clickShadowRootButton("[data-react-grab-history-clear]");
+    await waitForHistoryDropdown(false);
   };
 
-  const hoverRecentItem = async (index: number) => {
+  const hoverHistoryItem = async (index: number) => {
     const itemRect = await page.evaluate(
       ({ attrName, itemIndex }) => {
         const host = document.querySelector(`[${attrName}]`);
@@ -1035,7 +1035,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         if (!shadowRoot) return null;
         const root = shadowRoot.querySelector(`[${attrName}]`);
         if (!root) return null;
-        const items = root.querySelectorAll("[data-react-grab-recent-item]");
+        const items = root.querySelectorAll("[data-react-grab-history-item]");
         const button = items[itemIndex];
         if (!button) return null;
         const rect = button.getBoundingClientRect();
@@ -1057,7 +1057,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     }
   };
 
-  const hoverRecentButton = async () => {
+  const hoverHistoryButton = async () => {
     const buttonRect = await page.evaluate((attrName) => {
       const host = document.querySelector(`[${attrName}]`);
       const shadowRoot = host?.shadowRoot;
@@ -1065,7 +1065,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       const root = shadowRoot.querySelector(`[${attrName}]`);
       if (!root) return null;
       const button = root.querySelector<HTMLElement>(
-        "[data-react-grab-toolbar-recent]",
+        "[data-react-grab-toolbar-history]",
       );
       if (!button) return null;
       const rect = button.getBoundingClientRect();
@@ -1080,7 +1080,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     }
   };
 
-  const getRecentDropdownPosition = async (): Promise<{
+  const getHistoryDropdownPosition = async (): Promise<{
     left: number;
     top: number;
   } | null> => {
@@ -1091,7 +1091,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       const root = shadowRoot.querySelector(`[${attrName}]`);
       if (!root) return null;
       const dropdown = root.querySelector<HTMLElement>(
-        "[data-react-grab-recent-dropdown]",
+        "[data-react-grab-history-dropdown]",
       );
       if (!dropdown) return null;
       return {
@@ -2154,19 +2154,19 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     dragToolbar,
     dragToolbarFromButton,
 
-    isRecentButtonVisible,
-    hasUnreadRecentIndicator,
-    clickRecentButton,
-    isRecentDropdownVisible,
-    getRecentDropdownInfo,
-    clickRecentItem,
-    clickRecentItemRemove,
-    clickRecentItemCopy,
-    clickRecentCopyAll,
-    clickRecentClear,
-    hoverRecentItem,
-    hoverRecentButton,
-    getRecentDropdownPosition,
+    isHistoryButtonVisible,
+    hasUnreadHistoryIndicator,
+    clickHistoryButton,
+    isHistoryDropdownVisible,
+    getHistoryDropdownInfo,
+    clickHistoryItem,
+    clickHistoryItemRemove,
+    clickHistoryItemCopy,
+    clickHistoryCopyAll,
+    clickHistoryClear,
+    hoverHistoryItem,
+    hoverHistoryButton,
+    getHistoryDropdownPosition,
 
     getSelectionLabelInfo,
     getSelectionLabelBounds,

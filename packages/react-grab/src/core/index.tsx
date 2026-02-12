@@ -95,7 +95,7 @@ import type {
   SourceInfo,
   Plugin,
   ToolbarState,
-  RecentItem,
+  HistoryItem,
   DropdownAnchor,
 } from "../types.js";
 import { DEFAULT_THEME } from "./theme.js";
@@ -133,11 +133,11 @@ import {
 } from "../utils/freeze-pseudo-states.js";
 import { freezeUpdates } from "../utils/freeze-updates.js";
 import {
-  loadRecent,
-  addRecentItem,
-  removeRecentItem,
-  clearRecent,
-} from "../utils/recent-storage.js";
+  loadHistory,
+  addHistoryItem,
+  removeHistoryItem,
+  clearHistory,
+} from "../utils/history-storage.js";
 import { copyContent } from "../utils/copy-content.js";
 import { joinSnippets } from "../utils/join-snippets.js";
 
@@ -262,15 +262,28 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       createSignal<ToolbarState | null>(savedToolbarState);
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] =
       createSignal(false);
-    const [recentItems, setRecentItems] =
-      createSignal<RecentItem[]>(loadRecent());
-    const [recentDropdownPosition, setRecentDropdownPosition] =
+    const [historyItems, setHistoryItems] =
+      createSignal<HistoryItem[]>(loadHistory());
+    const [historyDropdownPosition, setHistoryDropdownPosition] =
       createSignal<DropdownAnchor | null>(null);
     let toolbarElement: HTMLDivElement | undefined;
-    let recentPositionFrameId: number | null = null;
-    const recentElementMap = new Map<string, Element>();
-    const [hasUnreadRecentItems, setHasUnreadRecentItems] = createSignal(false);
-    let recentHoverPreviews: { boxId: string; labelId: string | null }[] = [];
+    let historyPositionFrameId: number | null = null;
+    const historyElementMap = new Map<string, Element>();
+    const [hasUnreadHistoryItems, setHasUnreadHistoryItems] = createSignal(false);
+    let historyHoverPreviews: { boxId: string; labelId: string | null }[] = [];
+
+    const historyDisconnectedItemIds = createMemo(() => {
+      // HACK: subscribe to dropdown position so connectivity refreshes when dropdown opens
+      void historyDropdownPosition();
+      const disconnectedIds = new Set<string>();
+      for (const item of historyItems()) {
+        const element = historyElementMap.get(item.id);
+        if (!element || !isElementConnected(element)) {
+          disconnectedIds.add(item.id);
+        }
+      }
+      return disconnectedIds;
+    });
 
     const pendingAbortSessionId = createMemo(() => store.pendingAbortSessionId);
 
@@ -696,11 +709,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             const isComment = Boolean(extraPrompt);
 
             if (primaryElement) {
-              const currentItems = recentItems();
+              const currentItems = historyItems();
               for (const [
                 existingItemId,
                 mappedElement,
-              ] of recentElementMap.entries()) {
+              ] of historyElementMap.entries()) {
                 if (mappedElement !== primaryElement) continue;
                 const existingItem = currentItems.find(
                   (item) => item.id === existingItemId,
@@ -713,14 +726,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                   : !existingItem.isComment;
 
                 if (shouldDedup) {
-                  removeRecentItem(existingItemId);
-                  recentElementMap.delete(existingItemId);
+                  removeHistoryItem(existingItemId);
+                  historyElementMap.delete(existingItemId);
                   break;
                 }
               }
             }
 
-            const updatedRecentItems = addRecentItem({
+            const updatedHistoryItems = addHistoryItem({
               content,
               elementName: elementName ?? "element",
               tagName: tagName ?? "div",
@@ -729,19 +742,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               commentText: extraPrompt ?? undefined,
               timestamp: Date.now(),
             });
-            setRecentItems(updatedRecentItems);
-            setHasUnreadRecentItems(true);
-            const newestRecentItem = updatedRecentItems[0];
-            if (newestRecentItem && primaryElement) {
-              recentElementMap.set(newestRecentItem.id, primaryElement);
+            setHistoryItems(updatedHistoryItems);
+            setHasUnreadHistoryItems(true);
+            const newestHistoryItem = updatedHistoryItems[0];
+            if (newestHistoryItem && primaryElement) {
+              historyElementMap.set(newestHistoryItem.id, primaryElement);
             }
 
             const currentItemIds = new Set(
-              updatedRecentItems.map((item) => item.id),
+              updatedHistoryItems.map((item) => item.id),
             );
-            for (const mapItemId of recentElementMap.keys()) {
+            for (const mapItemId of historyElementMap.keys()) {
               if (!currentItemIds.has(mapItemId)) {
-                recentElementMap.delete(mapItemId);
+                historyElementMap.delete(mapItemId);
               }
             }
           },
@@ -1597,7 +1610,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (isActivated()) {
           deactivateRenderer();
         }
-        dismissRecentDropdown();
+        dismissHistoryDropdown();
         // Clear toggle feedback state to prevent stale state from affecting re-enable
         if (toggleFeedbackTimerId !== null) {
           window.clearTimeout(toggleFeedbackTimerId);
@@ -2644,7 +2657,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.setPointer(position);
         actions.freeze();
         actions.showContextMenu(position, element);
-        dismissRecentDropdown();
+        dismissHistoryDropdown();
         pluginRegistry.hooks.onContextMenu(element, position);
       },
       { capture: true },
@@ -3288,18 +3301,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, 0);
     };
 
-    const clearRecentHoverPreviews = () => {
-      for (const { boxId, labelId } of recentHoverPreviews) {
+    const clearHistoryHoverPreviews = () => {
+      for (const { boxId, labelId } of historyHoverPreviews) {
         actions.removeGrabbedBox(boxId);
         if (labelId) {
           actions.removeLabelInstance(labelId);
         }
       }
-      recentHoverPreviews = [];
+      historyHoverPreviews = [];
     };
 
-    const addRecentItemPreview = (
-      item: RecentItem,
+    const addHistoryItemPreview = (
+      item: HistoryItem,
       element: Element,
       idPrefix: string,
     ) => {
@@ -3325,13 +3338,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         });
       }
 
-      recentHoverPreviews.push({ boxId, labelId });
+      historyHoverPreviews.push({ boxId, labelId });
     };
 
     const stopTrackingToolbarPosition = () => {
-      if (recentPositionFrameId !== null) {
-        cancelAnimationFrame(recentPositionFrameId);
-        recentPositionFrameId = null;
+      if (historyPositionFrameId !== null) {
+        cancelAnimationFrame(historyPositionFrameId);
+        historyPositionFrameId = null;
       }
     };
 
@@ -3372,39 +3385,39 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           anchorY = edge === "top" ? toolbarRect.bottom : toolbarRect.top;
         }
 
-        setRecentDropdownPosition({
+        setHistoryDropdownPosition({
           x: anchorX,
           y: anchorY,
           edge,
           toolbarWidth: toolbarRect.width,
         });
-        recentPositionFrameId = requestAnimationFrame(updatePosition);
+        historyPositionFrameId = requestAnimationFrame(updatePosition);
       };
-      recentPositionFrameId = requestAnimationFrame(updatePosition);
+      historyPositionFrameId = requestAnimationFrame(updatePosition);
     };
 
-    const dismissRecentDropdown = () => {
+    const dismissHistoryDropdown = () => {
       stopTrackingToolbarPosition();
-      clearRecentHoverPreviews();
-      setRecentDropdownPosition(null);
+      clearHistoryHoverPreviews();
+      setHistoryDropdownPosition(null);
     };
 
-    const handleToggleRecent = () => {
-      const isCurrentlyOpen = recentDropdownPosition() !== null;
+    const handleToggleHistory = () => {
+      const isCurrentlyOpen = historyDropdownPosition() !== null;
       if (isCurrentlyOpen) {
-        dismissRecentDropdown();
+        dismissHistoryDropdown();
       } else {
-        clearRecentHoverPreviews();
+        clearHistoryHoverPreviews();
         actions.hideContextMenu();
-        setRecentItems(loadRecent());
-        setHasUnreadRecentItems(false);
+        setHistoryItems(loadHistory());
+        setHasUnreadHistoryItems(false);
         startTrackingToolbarPosition();
       }
     };
 
-    const copyRecentItemContent = (item: RecentItem) => {
+    const copyHistoryItemContent = (item: HistoryItem) => {
       copyContent(item.content, { name: item.elementName });
-      const element = recentElementMap.get(item.id);
+      const element = historyElementMap.get(item.id);
       if (element && isElementConnected(element)) {
         const bounds = createElementBounds(element);
         const instanceId = createLabelInstance(
@@ -3418,10 +3431,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    const handleRecentItemSelect = (item: RecentItem) => {
-      dismissRecentDropdown();
+    const handleHistoryItemSelect = (item: HistoryItem) => {
+      dismissHistoryDropdown();
 
-      const element = recentElementMap.get(item.id);
+      const element = historyElementMap.get(item.id);
 
       if (item.isComment && item.commentText) {
         if (element && isElementConnected(element)) {
@@ -3434,38 +3447,38 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           copyContent(item.content, { name: item.elementName });
         }
       } else {
-        copyRecentItemContent(item);
+        copyHistoryItemContent(item);
       }
     };
 
-    const handleRecentItemRemove = (item: RecentItem) => {
-      clearRecentHoverPreviews();
-      recentElementMap.delete(item.id);
-      const updatedRecentItems = removeRecentItem(item.id);
-      setRecentItems(updatedRecentItems);
-      if (updatedRecentItems.length === 0) {
-        setHasUnreadRecentItems(false);
-        dismissRecentDropdown();
+    const handleHistoryItemRemove = (item: HistoryItem) => {
+      clearHistoryHoverPreviews();
+      historyElementMap.delete(item.id);
+      const updatedHistoryItems = removeHistoryItem(item.id);
+      setHistoryItems(updatedHistoryItems);
+      if (updatedHistoryItems.length === 0) {
+        setHasUnreadHistoryItems(false);
+        dismissHistoryDropdown();
       }
     };
 
-    const handleRecentCopyAll = () => {
-      const currentRecentItems = recentItems();
-      if (currentRecentItems.length === 0) return;
+    const handleHistoryCopyAll = () => {
+      const currentHistoryItems = historyItems();
+      if (currentHistoryItems.length === 0) return;
 
       const combinedContent = joinSnippets(
-        currentRecentItems.map((recentItem) => recentItem.content),
+        currentHistoryItems.map((historyItem) => historyItem.content),
       );
 
-      const firstItem = currentRecentItems[0];
+      const firstItem = currentHistoryItems[0];
       copyContent(combinedContent, {
         name: firstItem.componentName ?? firstItem.tagName,
       });
-      dismissRecentDropdown();
+      dismissHistoryDropdown();
 
       actions.clearLabelInstances();
-      for (const recentItem of currentRecentItems) {
-        const element = recentElementMap.get(recentItem.id);
+      for (const historyItem of currentHistoryItems) {
+        const element = historyElementMap.get(historyItem.id);
         if (!element || !isElementConnected(element)) continue;
 
         const bounds = createElementBounds(element);
@@ -3474,8 +3487,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.addLabelInstance({
           id: labelId,
           bounds,
-          tagName: recentItem.tagName,
-          componentName: recentItem.componentName,
+          tagName: historyItem.tagName,
+          componentName: historyItem.componentName,
           status: "copied",
           createdAt: Date.now(),
           element,
@@ -3485,48 +3498,48 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    const handleRecentItemHover = (recentItemId: string | null) => {
-      clearRecentHoverPreviews();
-      if (recentItemId) {
-        const item = recentItems().find(
-          (innerItem) => innerItem.id === recentItemId,
+    const handleHistoryItemHover = (historyItemId: string | null) => {
+      clearHistoryHoverPreviews();
+      if (historyItemId) {
+        const item = historyItems().find(
+          (innerItem) => innerItem.id === historyItemId,
         );
-        const element = recentElementMap.get(recentItemId);
+        const element = historyElementMap.get(historyItemId);
         if (item && element && isElementConnected(element)) {
-          addRecentItemPreview(item, element, "recent-hover");
+          addHistoryItemPreview(item, element, "history-hover");
         }
       }
     };
 
-    const handleRecentButtonHover = (isHovered: boolean) => {
-      clearRecentHoverPreviews();
-      if (isHovered && recentDropdownPosition() === null) {
-        showAllRecentItemPreviews();
+    const handleHistoryButtonHover = (isHovered: boolean) => {
+      clearHistoryHoverPreviews();
+      if (isHovered && historyDropdownPosition() === null) {
+        showAllHistoryItemPreviews();
       }
     };
 
-    const handleRecentCopyAllHover = (isHovered: boolean) => {
-      clearRecentHoverPreviews();
+    const handleHistoryCopyAllHover = (isHovered: boolean) => {
+      clearHistoryHoverPreviews();
       if (isHovered) {
-        showAllRecentItemPreviews();
+        showAllHistoryItemPreviews();
       }
     };
 
-    const showAllRecentItemPreviews = () => {
-      for (const item of recentItems()) {
-        const element = recentElementMap.get(item.id);
+    const showAllHistoryItemPreviews = () => {
+      for (const item of historyItems()) {
+        const element = historyElementMap.get(item.id);
         if (element && isElementConnected(element)) {
-          addRecentItemPreview(item, element, "recent-all-hover");
+          addHistoryItemPreview(item, element, "history-all-hover");
         }
       }
     };
 
-    const handleRecentClear = () => {
-      recentElementMap.clear();
-      const updatedRecentItems = clearRecent();
-      setRecentItems(updatedRecentItems);
-      setHasUnreadRecentItems(false);
-      dismissRecentDropdown();
+    const handleHistoryClear = () => {
+      historyElementMap.clear();
+      const updatedHistoryItems = clearHistory();
+      setHistoryItems(updatedHistoryItems);
+      setHasUnreadHistoryItems(false);
+      dismissHistoryDropdown();
     };
 
     const handleShowContextMenuSession = (sessionId: string) => {
@@ -3685,20 +3698,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             actionContext={contextMenuActionContext()}
             onContextMenuDismiss={handleContextMenuDismiss}
             onContextMenuHide={deferHideContextMenu}
-            recentItems={recentItems()}
-            recentItemCount={recentItems().length}
-            hasUnreadRecentItems={hasUnreadRecentItems()}
-            recentDropdownPosition={recentDropdownPosition()}
-            onToggleRecent={handleToggleRecent}
-            onRecentButtonHover={handleRecentButtonHover}
-            onRecentItemSelect={handleRecentItemSelect}
-            onRecentItemRemove={handleRecentItemRemove}
-            onRecentItemCopy={copyRecentItemContent}
-            onRecentItemHover={handleRecentItemHover}
-            onRecentCopyAll={handleRecentCopyAll}
-            onRecentCopyAllHover={handleRecentCopyAllHover}
-            onRecentClear={handleRecentClear}
-            onRecentDismiss={dismissRecentDropdown}
+            historyItems={historyItems()}
+            historyDisconnectedItemIds={historyDisconnectedItemIds()}
+            historyItemCount={historyItems().length}
+            hasUnreadHistoryItems={hasUnreadHistoryItems()}
+            historyDropdownPosition={historyDropdownPosition()}
+            onToggleHistory={handleToggleHistory}
+            onHistoryButtonHover={handleHistoryButtonHover}
+            onHistoryItemSelect={handleHistoryItemSelect}
+            onHistoryItemRemove={handleHistoryItemRemove}
+            onHistoryItemCopy={copyHistoryItemContent}
+            onHistoryItemHover={handleHistoryItemHover}
+            onHistoryCopyAll={handleHistoryCopyAll}
+            onHistoryCopyAllHover={handleHistoryCopyAllHover}
+            onHistoryClear={handleHistoryClear}
+            onHistoryDismiss={dismissHistoryDropdown}
           />
         );
       }, rendererRoot);

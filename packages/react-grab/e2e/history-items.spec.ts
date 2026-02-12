@@ -12,12 +12,12 @@ const copyElement = async (
   await expect
     .poll(() => reactGrab.getClipboardContent(), { timeout: 5000 })
     .toBeTruthy();
-  // HACK: Wait for copy feedback transition and recent item addition
+  // HACK: Wait for copy feedback transition and history item addition
   await reactGrab.page.waitForTimeout(300);
 };
 
-test.describe("Recent Items", () => {
-  test.describe("Toolbar Recent Button", () => {
+test.describe("History Items", () => {
+  test.describe("Toolbar History Button", () => {
     test("should not be visible before any elements are copied", async ({
       reactGrab,
     }) => {
@@ -25,8 +25,8 @@ test.describe("Recent Items", () => {
         .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
         .toBe(true);
 
-      const isRecentVisible = await reactGrab.isRecentButtonVisible();
-      expect(isRecentVisible).toBe(false);
+      const isHistoryVisible = await reactGrab.isHistoryButtonVisible();
+      expect(isHistoryVisible).toBe(false);
     });
 
     test("should become visible after copying an element", async ({
@@ -35,7 +35,7 @@ test.describe("Recent Items", () => {
       await copyElement(reactGrab, "li:first-child");
 
       await expect
-        .poll(() => reactGrab.isRecentButtonVisible(), { timeout: 2000 })
+        .poll(() => reactGrab.isHistoryButtonVisible(), { timeout: 2000 })
         .toBe(true);
     });
 
@@ -43,7 +43,7 @@ test.describe("Recent Items", () => {
       await copyElement(reactGrab, "li:first-child");
 
       await expect
-        .poll(() => reactGrab.hasUnreadRecentIndicator(), { timeout: 2000 })
+        .poll(() => reactGrab.hasUnreadHistoryIndicator(), { timeout: 2000 })
         .toBe(true);
     });
 
@@ -53,13 +53,13 @@ test.describe("Recent Items", () => {
       await copyElement(reactGrab, "li:first-child");
 
       await expect
-        .poll(() => reactGrab.hasUnreadRecentIndicator(), { timeout: 2000 })
+        .poll(() => reactGrab.hasUnreadHistoryIndicator(), { timeout: 2000 })
         .toBe(true);
 
-      await reactGrab.clickRecentButton();
+      await reactGrab.clickHistoryButton();
 
       await expect
-        .poll(() => reactGrab.hasUnreadRecentIndicator(), { timeout: 2000 })
+        .poll(() => reactGrab.hasUnreadHistoryIndicator(), { timeout: 2000 })
         .toBe(false);
     });
 
@@ -67,69 +67,69 @@ test.describe("Recent Items", () => {
       reactGrab,
     }) => {
       await copyElement(reactGrab, "li:first-child");
-      await reactGrab.clickRecentButton();
-      await reactGrab.clickRecentButton();
+      await reactGrab.clickHistoryButton();
+      await reactGrab.clickHistoryButton();
 
       await expect
-        .poll(() => reactGrab.hasUnreadRecentIndicator(), { timeout: 2000 })
+        .poll(() => reactGrab.hasUnreadHistoryIndicator(), { timeout: 2000 })
         .toBe(false);
 
       await copyElement(reactGrab, "li:last-child");
 
       await expect
-        .poll(() => reactGrab.hasUnreadRecentIndicator(), { timeout: 2000 })
+        .poll(() => reactGrab.hasUnreadHistoryIndicator(), { timeout: 2000 })
         .toBe(true);
     });
   });
 
   test.describe("Dropdown Open/Close", () => {
-    test("should open when clicking the recent button", async ({
+    test("should open when clicking the history button", async ({
       reactGrab,
     }) => {
       await copyElement(reactGrab, "li:first-child");
-      await reactGrab.clickRecentButton();
+      await reactGrab.clickHistoryButton();
 
-      const isDropdownVisible = await reactGrab.isRecentDropdownVisible();
+      const isDropdownVisible = await reactGrab.isHistoryDropdownVisible();
       expect(isDropdownVisible).toBe(true);
     });
 
-    test("should close when clicking the recent button again", async ({
+    test("should close when clicking the history button again", async ({
       reactGrab,
     }) => {
       await copyElement(reactGrab, "li:first-child");
-      await reactGrab.clickRecentButton();
+      await reactGrab.clickHistoryButton();
 
-      expect(await reactGrab.isRecentDropdownVisible()).toBe(true);
+      expect(await reactGrab.isHistoryDropdownVisible()).toBe(true);
 
-      await reactGrab.clickRecentButton();
+      await reactGrab.clickHistoryButton();
 
-      expect(await reactGrab.isRecentDropdownVisible()).toBe(false);
+      expect(await reactGrab.isHistoryDropdownVisible()).toBe(false);
     });
 
     test("should close when pressing Escape", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
-      await reactGrab.clickRecentButton();
+      await reactGrab.clickHistoryButton();
 
-      expect(await reactGrab.isRecentDropdownVisible()).toBe(true);
+      expect(await reactGrab.isHistoryDropdownVisible()).toBe(true);
 
       await reactGrab.pressEscape();
       await reactGrab.page.waitForTimeout(100);
 
-      expect(await reactGrab.isRecentDropdownVisible()).toBe(false);
+      expect(await reactGrab.isHistoryDropdownVisible()).toBe(false);
     });
 
     test("should close when context menu is opened", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
-      await reactGrab.clickRecentButton();
+      await reactGrab.clickHistoryButton();
 
-      expect(await reactGrab.isRecentDropdownVisible()).toBe(true);
+      expect(await reactGrab.isHistoryDropdownVisible()).toBe(true);
 
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
       await reactGrab.rightClickElement("li:first-child");
 
-      expect(await reactGrab.isRecentDropdownVisible()).toBe(false);
+      expect(await reactGrab.isHistoryDropdownVisible()).toBe(false);
       expect(await reactGrab.isContextMenuVisible()).toBe(true);
     });
   });
@@ -139,9 +139,9 @@ test.describe("Recent Items", () => {
       reactGrab,
     }) => {
       await copyElement(reactGrab, "li:first-child");
-      await reactGrab.clickRecentButton();
+      await reactGrab.clickHistoryButton();
 
-      const dropdownInfo = await reactGrab.getRecentDropdownInfo();
+      const dropdownInfo = await reactGrab.getHistoryDropdownInfo();
       expect(dropdownInfo.isVisible).toBe(true);
       expect(dropdownInfo.itemCount).toBe(1);
     });
@@ -152,24 +152,24 @@ test.describe("Recent Items", () => {
       await copyElement(reactGrab, "li:first-child");
       await copyElement(reactGrab, "li:last-child");
 
-      await reactGrab.clickRecentButton();
+      await reactGrab.clickHistoryButton();
 
-      const dropdownInfo = await reactGrab.getRecentDropdownInfo();
+      const dropdownInfo = await reactGrab.getHistoryDropdownInfo();
       expect(dropdownInfo.itemCount).toBe(2);
     });
 
-    test("should hide recent button after clearing all items", async ({
+    test("should hide history button after clearing all items", async ({
       reactGrab,
     }) => {
       await copyElement(reactGrab, "li:first-child");
-      await reactGrab.clickRecentButton();
-      await reactGrab.clickRecentClear();
+      await reactGrab.clickHistoryButton();
+      await reactGrab.clickHistoryClear();
 
       await expect
-        .poll(() => reactGrab.isRecentButtonVisible(), { timeout: 2000 })
+        .poll(() => reactGrab.isHistoryButtonVisible(), { timeout: 2000 })
         .toBe(false);
 
-      expect(await reactGrab.isRecentDropdownVisible()).toBe(false);
+      expect(await reactGrab.isHistoryDropdownVisible()).toBe(false);
     });
   });
 
@@ -184,8 +184,8 @@ test.describe("Recent Items", () => {
 
       await reactGrab.page.evaluate(() => navigator.clipboard.writeText(""));
 
-      await reactGrab.clickRecentButton();
-      await reactGrab.clickRecentItem(0);
+      await reactGrab.clickHistoryButton();
+      await reactGrab.clickHistoryItem(0);
 
       await expect
         .poll(() => reactGrab.getClipboardContent(), { timeout: 3000 })
@@ -199,13 +199,13 @@ test.describe("Recent Items", () => {
       reactGrab,
     }) => {
       await copyElement(reactGrab, "li:first-child");
-      await reactGrab.clickRecentButton();
+      await reactGrab.clickHistoryButton();
 
-      expect(await reactGrab.isRecentDropdownVisible()).toBe(true);
+      expect(await reactGrab.isHistoryDropdownVisible()).toBe(true);
 
-      await reactGrab.clickRecentItem(0);
+      await reactGrab.clickHistoryItem(0);
 
-      expect(await reactGrab.isRecentDropdownVisible()).toBe(false);
+      expect(await reactGrab.isHistoryDropdownVisible()).toBe(false);
     });
   });
 
@@ -218,8 +218,8 @@ test.describe("Recent Items", () => {
 
       await reactGrab.page.evaluate(() => navigator.clipboard.writeText(""));
 
-      await reactGrab.clickRecentButton();
-      await reactGrab.clickRecentCopyAll();
+      await reactGrab.clickHistoryButton();
+      await reactGrab.clickHistoryCopyAll();
 
       const clipboardContent = await reactGrab.getClipboardContent();
       expect(clipboardContent).toContain("[1]");
@@ -228,13 +228,13 @@ test.describe("Recent Items", () => {
 
     test("should close the dropdown after copy all", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
-      await reactGrab.clickRecentButton();
+      await reactGrab.clickHistoryButton();
 
-      expect(await reactGrab.isRecentDropdownVisible()).toBe(true);
+      expect(await reactGrab.isHistoryDropdownVisible()).toBe(true);
 
-      await reactGrab.clickRecentCopyAll();
+      await reactGrab.clickHistoryCopyAll();
 
-      expect(await reactGrab.isRecentDropdownVisible()).toBe(false);
+      expect(await reactGrab.isHistoryDropdownVisible()).toBe(false);
     });
 
     test("should trigger copy all via Enter key", async ({ reactGrab }) => {
@@ -242,7 +242,7 @@ test.describe("Recent Items", () => {
 
       await reactGrab.page.evaluate(() => navigator.clipboard.writeText(""));
 
-      await reactGrab.clickRecentButton();
+      await reactGrab.clickHistoryButton();
       await reactGrab.pressEnter();
       await reactGrab.page.waitForTimeout(200);
 
@@ -252,46 +252,46 @@ test.describe("Recent Items", () => {
   });
 
   test.describe("Clear All", () => {
-    test("should remove all recent items", async ({ reactGrab }) => {
+    test("should remove all history items", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
       await copyElement(reactGrab, "li:last-child");
 
-      await reactGrab.clickRecentButton();
-      expect((await reactGrab.getRecentDropdownInfo()).itemCount).toBe(2);
+      await reactGrab.clickHistoryButton();
+      expect((await reactGrab.getHistoryDropdownInfo()).itemCount).toBe(2);
 
-      await reactGrab.clickRecentClear();
+      await reactGrab.clickHistoryClear();
 
       await expect
-        .poll(() => reactGrab.isRecentButtonVisible(), { timeout: 2000 })
+        .poll(() => reactGrab.isHistoryButtonVisible(), { timeout: 2000 })
         .toBe(false);
     });
 
-    test("should hide the recent button in toolbar after clearing", async ({
+    test("should hide the history button in toolbar after clearing", async ({
       reactGrab,
     }) => {
       await copyElement(reactGrab, "li:first-child");
 
       await expect
-        .poll(() => reactGrab.isRecentButtonVisible(), { timeout: 2000 })
+        .poll(() => reactGrab.isHistoryButtonVisible(), { timeout: 2000 })
         .toBe(true);
 
-      await reactGrab.clickRecentButton();
-      await reactGrab.clickRecentClear();
+      await reactGrab.clickHistoryButton();
+      await reactGrab.clickHistoryClear();
 
       await expect
-        .poll(() => reactGrab.isRecentButtonVisible(), { timeout: 2000 })
+        .poll(() => reactGrab.isHistoryButtonVisible(), { timeout: 2000 })
         .toBe(false);
     });
 
     test("should close the dropdown after clearing", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
-      await reactGrab.clickRecentButton();
+      await reactGrab.clickHistoryButton();
 
-      expect(await reactGrab.isRecentDropdownVisible()).toBe(true);
+      expect(await reactGrab.isHistoryDropdownVisible()).toBe(true);
 
-      await reactGrab.clickRecentClear();
+      await reactGrab.clickHistoryClear();
 
-      expect(await reactGrab.isRecentDropdownVisible()).toBe(false);
+      expect(await reactGrab.isHistoryDropdownVisible()).toBe(false);
     });
   });
 
@@ -302,9 +302,9 @@ test.describe("Recent Items", () => {
       await copyElement(reactGrab, "li:first-child");
       await copyElement(reactGrab, "li:first-child");
 
-      await reactGrab.clickRecentButton();
+      await reactGrab.clickHistoryButton();
 
-      const dropdownInfo = await reactGrab.getRecentDropdownInfo();
+      const dropdownInfo = await reactGrab.getHistoryDropdownInfo();
       expect(dropdownInfo.itemCount).toBe(1);
     });
 
@@ -314,24 +314,24 @@ test.describe("Recent Items", () => {
       await copyElement(reactGrab, "li:first-child");
       await copyElement(reactGrab, "li:last-child");
 
-      await reactGrab.clickRecentButton();
+      await reactGrab.clickHistoryButton();
 
-      const dropdownInfo = await reactGrab.getRecentDropdownInfo();
+      const dropdownInfo = await reactGrab.getHistoryDropdownInfo();
       expect(dropdownInfo.itemCount).toBe(2);
     });
   });
 
   test.describe("Hover Behavior", () => {
-    test("should show a highlight box on the element when hovering a recent item", async ({
+    test("should show a highlight box on the element when hovering a history item", async ({
       reactGrab,
     }) => {
       await copyElement(reactGrab, "li:first-child");
-      await reactGrab.clickRecentButton();
+      await reactGrab.clickHistoryButton();
 
       const grabbedBoxesBefore = await reactGrab.getGrabbedBoxInfo();
       const initialBoxCount = grabbedBoxesBefore.count;
 
-      await reactGrab.hoverRecentItem(0);
+      await reactGrab.hoverHistoryItem(0);
 
       await expect
         .poll(
@@ -344,13 +344,13 @@ test.describe("Recent Items", () => {
         .toBeGreaterThan(initialBoxCount);
     });
 
-    test("should remove highlight box when mouse leaves a recent item", async ({
+    test("should remove highlight box when mouse leaves a history item", async ({
       reactGrab,
     }) => {
       await copyElement(reactGrab, "li:first-child");
-      await reactGrab.clickRecentButton();
+      await reactGrab.clickHistoryButton();
 
-      await reactGrab.hoverRecentItem(0);
+      await reactGrab.hoverHistoryItem(0);
       await expect
         .poll(
           async () => {
@@ -365,15 +365,15 @@ test.describe("Recent Items", () => {
       await reactGrab.page.waitForTimeout(200);
 
       const grabbedBoxesAfter = await reactGrab.getGrabbedBoxInfo();
-      const hasRecentHoverBox = grabbedBoxesAfter.boxes.some((box) =>
-        box.id.startsWith("recent-hover-"),
+      const hasHistoryHoverBox = grabbedBoxesAfter.boxes.some((box) =>
+        box.id.startsWith("history-hover-"),
       );
-      expect(hasRecentHoverBox).toBe(false);
+      expect(hasHistoryHoverBox).toBe(false);
     });
   });
 
-  test.describe("Recent Button Hover Preview", () => {
-    test("should show highlight boxes for all recent items when hovering the recent button", async ({
+  test.describe("History Button Hover Preview", () => {
+    test("should show highlight boxes for all history items when hovering the history button", async ({
       reactGrab,
     }) => {
       await copyElement(reactGrab, "li:first-child");
@@ -382,7 +382,7 @@ test.describe("Recent Items", () => {
       const grabbedBoxesBefore = await reactGrab.getGrabbedBoxInfo();
       const initialBoxCount = grabbedBoxesBefore.count;
 
-      await reactGrab.hoverRecentButton();
+      await reactGrab.hoverHistoryButton();
 
       await expect
         .poll(
@@ -396,25 +396,25 @@ test.describe("Recent Items", () => {
 
       const grabbedBoxes = await reactGrab.getGrabbedBoxInfo();
       const allHoverBoxes = grabbedBoxes.boxes.filter((box) =>
-        box.id.startsWith("recent-all-hover-"),
+        box.id.startsWith("history-all-hover-"),
       );
       expect(allHoverBoxes.length).toBe(2);
     });
 
-    test("should remove all highlight boxes when mouse leaves the recent button", async ({
+    test("should remove all highlight boxes when mouse leaves the history button", async ({
       reactGrab,
     }) => {
       await copyElement(reactGrab, "li:first-child");
       await copyElement(reactGrab, "li:last-child");
 
-      await reactGrab.hoverRecentButton();
+      await reactGrab.hoverHistoryButton();
 
       await expect
         .poll(
           async () => {
             const info = await reactGrab.getGrabbedBoxInfo();
             return info.boxes.filter((box) =>
-              box.id.startsWith("recent-all-hover-"),
+              box.id.startsWith("history-all-hover-"),
             ).length;
           },
           { timeout: 2000 },
@@ -426,7 +426,7 @@ test.describe("Recent Items", () => {
 
       const grabbedBoxesAfter = await reactGrab.getGrabbedBoxInfo();
       const remainingHoverBoxes = grabbedBoxesAfter.boxes.filter((box) =>
-        box.id.startsWith("recent-all-hover-"),
+        box.id.startsWith("history-all-hover-"),
       );
       expect(remainingHoverBoxes.length).toBe(0);
     });
@@ -436,42 +436,42 @@ test.describe("Recent Items", () => {
     }) => {
       await copyElement(reactGrab, "li:first-child");
 
-      await reactGrab.hoverRecentButton();
+      await reactGrab.hoverHistoryButton();
 
       await expect
         .poll(
           async () => {
             const info = await reactGrab.getGrabbedBoxInfo();
             return info.boxes.filter((box) =>
-              box.id.startsWith("recent-all-hover-"),
+              box.id.startsWith("history-all-hover-"),
             ).length;
           },
           { timeout: 2000 },
         )
         .toBe(1);
 
-      await reactGrab.clickRecentButton();
+      await reactGrab.clickHistoryButton();
 
       const grabbedBoxesAfter = await reactGrab.getGrabbedBoxInfo();
       const remainingHoverBoxes = grabbedBoxesAfter.boxes.filter((box) =>
-        box.id.startsWith("recent-all-hover-"),
+        box.id.startsWith("history-all-hover-"),
       );
       expect(remainingHoverBoxes.length).toBe(0);
     });
 
-    test("should show highlight box for a single recent item", async ({
+    test("should show highlight box for a single history item", async ({
       reactGrab,
     }) => {
       await copyElement(reactGrab, "li:first-child");
 
-      await reactGrab.hoverRecentButton();
+      await reactGrab.hoverHistoryButton();
 
       await expect
         .poll(
           async () => {
             const info = await reactGrab.getGrabbedBoxInfo();
             return info.boxes.filter((box) =>
-              box.id.startsWith("recent-all-hover-"),
+              box.id.startsWith("history-all-hover-"),
             ).length;
           },
           { timeout: 2000 },
@@ -487,13 +487,13 @@ test.describe("Recent Items", () => {
       await copyElement(reactGrab, "li:first-child");
       await copyElement(reactGrab, "li:last-child");
 
-      await reactGrab.clickRecentButton();
-      expect((await reactGrab.getRecentDropdownInfo()).itemCount).toBe(2);
+      await reactGrab.clickHistoryButton();
+      expect((await reactGrab.getHistoryDropdownInfo()).itemCount).toBe(2);
 
-      await reactGrab.clickRecentItemRemove(0);
+      await reactGrab.clickHistoryItemRemove(0);
       await reactGrab.page.waitForTimeout(200);
 
-      const dropdownInfo = await reactGrab.getRecentDropdownInfo();
+      const dropdownInfo = await reactGrab.getHistoryDropdownInfo();
       expect(dropdownInfo.itemCount).toBe(1);
     });
 
@@ -503,11 +503,11 @@ test.describe("Recent Items", () => {
       await copyElement(reactGrab, "li:first-child");
       await copyElement(reactGrab, "li:last-child");
 
-      await reactGrab.clickRecentButton();
-      await reactGrab.clickRecentItemRemove(0);
+      await reactGrab.clickHistoryButton();
+      await reactGrab.clickHistoryItemRemove(0);
       await reactGrab.page.waitForTimeout(200);
 
-      expect(await reactGrab.isRecentDropdownVisible()).toBe(true);
+      expect(await reactGrab.isHistoryDropdownVisible()).toBe(true);
     });
 
     test("should close the dropdown and hide button when removing the last item", async ({
@@ -515,16 +515,16 @@ test.describe("Recent Items", () => {
     }) => {
       await copyElement(reactGrab, "li:first-child");
 
-      await reactGrab.clickRecentButton();
-      expect((await reactGrab.getRecentDropdownInfo()).itemCount).toBe(1);
+      await reactGrab.clickHistoryButton();
+      expect((await reactGrab.getHistoryDropdownInfo()).itemCount).toBe(1);
 
-      await reactGrab.clickRecentItemRemove(0);
+      await reactGrab.clickHistoryItemRemove(0);
       await reactGrab.page.waitForTimeout(200);
 
-      expect(await reactGrab.isRecentDropdownVisible()).toBe(false);
+      expect(await reactGrab.isHistoryDropdownVisible()).toBe(false);
 
       await expect
-        .poll(() => reactGrab.isRecentButtonVisible(), { timeout: 2000 })
+        .poll(() => reactGrab.isHistoryButtonVisible(), { timeout: 2000 })
         .toBe(false);
     });
   });
@@ -537,8 +537,8 @@ test.describe("Recent Items", () => {
 
       await reactGrab.page.evaluate(() => navigator.clipboard.writeText(""));
 
-      await reactGrab.clickRecentButton();
-      await reactGrab.clickRecentItemCopy(0);
+      await reactGrab.clickHistoryButton();
+      await reactGrab.clickHistoryItemCopy(0);
       await reactGrab.page.waitForTimeout(200);
 
       const newClipboard = await reactGrab.getClipboardContent();
@@ -550,11 +550,11 @@ test.describe("Recent Items", () => {
     }) => {
       await copyElement(reactGrab, "li:first-child");
 
-      await reactGrab.clickRecentButton();
-      await reactGrab.clickRecentItemCopy(0);
+      await reactGrab.clickHistoryButton();
+      await reactGrab.clickHistoryItemCopy(0);
       await reactGrab.page.waitForTimeout(200);
 
-      expect(await reactGrab.isRecentDropdownVisible()).toBe(true);
+      expect(await reactGrab.isHistoryDropdownVisible()).toBe(true);
     });
   });
 
@@ -563,19 +563,19 @@ test.describe("Recent Items", () => {
       reactGrab,
     }) => {
       await copyElement(reactGrab, "li:first-child");
-      await reactGrab.clickRecentButton();
+      await reactGrab.clickHistoryButton();
 
       await expect
         .poll(
           async () => {
-            const position = await reactGrab.getRecentDropdownPosition();
+            const position = await reactGrab.getHistoryDropdownPosition();
             return position?.left ?? -9999;
           },
           { timeout: 3000 },
         )
         .toBeGreaterThanOrEqual(0);
 
-      const position = await reactGrab.getRecentDropdownPosition();
+      const position = await reactGrab.getHistoryDropdownPosition();
       expect(position).not.toBeNull();
       expect(position!.top).toBeGreaterThanOrEqual(0);
     });
@@ -588,12 +588,12 @@ test.describe("Recent Items", () => {
       await reactGrab.dragToolbar(0, -600);
       await reactGrab.page.waitForTimeout(400);
 
-      await reactGrab.clickRecentButton();
+      await reactGrab.clickHistoryButton();
 
       await expect
         .poll(
           async () => {
-            const position = await reactGrab.getRecentDropdownPosition();
+            const position = await reactGrab.getHistoryDropdownPosition();
             return position?.top ?? -9999;
           },
           { timeout: 3000 },
@@ -613,13 +613,13 @@ test.describe("Recent Items", () => {
       await copyElement(reactGrab, '[data-testid="card-title"]');
       await copyElement(reactGrab, '[data-testid="submit-button"]');
 
-      await reactGrab.clickRecentButton();
+      await reactGrab.clickHistoryButton();
 
-      const dropdownInfo = await reactGrab.getRecentDropdownInfo();
+      const dropdownInfo = await reactGrab.getHistoryDropdownInfo();
       expect(dropdownInfo.itemCount).toBe(3);
     });
 
-    test("should maintain recent items after activation cycle", async ({
+    test("should maintain history items after activation cycle", async ({
       reactGrab,
     }) => {
       await copyElement(reactGrab, "li:first-child");
@@ -629,12 +629,12 @@ test.describe("Recent Items", () => {
       await reactGrab.page.waitForTimeout(200);
 
       await expect
-        .poll(() => reactGrab.isRecentButtonVisible(), { timeout: 2000 })
+        .poll(() => reactGrab.isHistoryButtonVisible(), { timeout: 2000 })
         .toBe(true);
 
-      await reactGrab.clickRecentButton();
+      await reactGrab.clickHistoryButton();
 
-      const dropdownInfo = await reactGrab.getRecentDropdownInfo();
+      const dropdownInfo = await reactGrab.getHistoryDropdownInfo();
       expect(dropdownInfo.itemCount).toBe(1);
     });
   });
