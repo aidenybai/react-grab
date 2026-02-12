@@ -1,5 +1,14 @@
 # @react-grab/gemini
 
+## 0.1.14
+
+### Patch Changes
+
+- fix: improve recent UX
+- Updated dependencies
+  - react-grab@0.1.14
+  - @react-grab/relay@0.1.14
+
 ## 0.1.13
 
 ### Patch Changes

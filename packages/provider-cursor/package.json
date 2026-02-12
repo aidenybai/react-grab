@@ -1,6 +1,6 @@
 {
   "name": "@react-grab/cursor",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "bin": {
     "react-grab-cursor": "./dist/cli.cjs"
   },
