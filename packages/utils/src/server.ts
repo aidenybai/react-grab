@@ -1,3 +1,7 @@
+import { spawn } from "node:child_process";
+import { realpathSync } from "node:fs";
+import { dirname, join } from "node:path";
+
 export const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -54,4 +58,18 @@ export const formatSpawnError = (error: Error, commandName: string): string => {
   }
 
   return error.message;
+};
+
+export const spawnDetachedServer = (serverFilename = "server.cjs"): void => {
+  const realScriptPath = realpathSync(process.argv[1]);
+  const scriptDir = dirname(realScriptPath);
+  const serverPath = join(scriptDir, serverFilename);
+
+  const userArgs = process.argv.slice(2);
+  const child = spawn(process.execPath, [serverPath, ...userArgs], {
+    detached: true,
+    stdio: "inherit",
+  });
+  child.unref();
+  process.exit(0);
 };

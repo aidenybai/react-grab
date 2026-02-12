@@ -7,7 +7,14 @@ import {
   DEFAULT_RELAY_PORT,
   DEFAULT_RECONNECT_INTERVAL_MS,
   RELAY_TOKEN_PARAM,
+  UPGRADE_RETRY_DELAY_MS,
+  MAX_UPGRADE_RETRIES,
 } from "./protocol.js";
+
+interface HealthCheckResponse {
+  status: string;
+  secure?: boolean;
+}
 
 export interface RelayClient {
   connect: () => Promise<void>;
@@ -30,10 +37,37 @@ interface RelayClientOptions {
   token?: string;
 }
 
+const isSecureContext = (): boolean =>
+  typeof window !== "undefined" && window.location.protocol === "https:";
+
+const getDefaultWebSocketUrl = (): string => {
+  if (typeof window === "undefined") {
+    return `ws://localhost:${DEFAULT_RELAY_PORT}`;
+  }
+  const protocol = isSecureContext() ? "wss:" : "ws:";
+  return `${protocol}//${window.location.hostname}:${DEFAULT_RELAY_PORT}`;
+};
+
+const buildHealthUrl = (
+  baseWsUrl: string,
+  protocol: "http:" | "https:",
+  token?: string,
+): string => {
+  const url = new URL(baseWsUrl.replace(/^wss?:/, protocol));
+  url.pathname = "/health";
+  if (isSecureContext()) {
+    url.searchParams.set("secure", "true");
+  }
+  if (token) {
+    url.searchParams.set(RELAY_TOKEN_PARAM, token);
+  }
+  return url.toString();
+};
+
 export const createRelayClient = (
   options: RelayClientOptions = {},
 ): RelayClient => {
-  const serverUrl = options.serverUrl ?? `ws://localhost:${DEFAULT_RELAY_PORT}`;
+  const serverUrl = options.serverUrl ?? getDefaultWebSocketUrl();
   const autoReconnect = options.autoReconnect ?? true;
   const reconnectIntervalMs =
     options.reconnectIntervalMs ?? DEFAULT_RECONNECT_INTERVAL_MS;
@@ -77,6 +111,76 @@ export const createRelayClient = (
     } catch {}
   };
 
+  const ensureServerReady = async (): Promise<void> => {
+    const httpHealthUrl = buildHealthUrl(serverUrl, "http:", token);
+    const httpsHealthUrl = buildHealthUrl(serverUrl, "https:", token);
+    const needsUpgrade = isSecureContext();
+
+    let didTriggerUpgrade = false;
+    let consecutiveHttpFailures = 0;
+    const HTTP_FAILURE_THRESHOLD = 3;
+
+    const delay = (): Promise<void> =>
+      new Promise((resolve) => setTimeout(resolve, UPGRADE_RETRY_DELAY_MS));
+
+    const tryFetch = async (
+      url: string,
+    ): Promise<HealthCheckResponse | null> => {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) return null;
+        return (await response.json()) as HealthCheckResponse;
+      } catch {
+        return null;
+      }
+    };
+
+    for (let attempt = 0; attempt < MAX_UPGRADE_RETRIES; attempt++) {
+      if (!needsUpgrade) {
+        const healthResponse = await tryFetch(httpHealthUrl);
+        if (healthResponse && healthResponse.status === "ok") return;
+        await delay();
+        continue;
+      }
+
+      // HACK: When in a secure context, use HTTP to trigger the upgrade,
+      // then switch to HTTPS once the server has restarted
+      if (!didTriggerUpgrade) {
+        const healthResponse = await tryFetch(httpHealthUrl);
+        if (healthResponse) {
+          consecutiveHttpFailures = 0;
+          if (
+            healthResponse.status === "upgrading" ||
+            (!healthResponse.secure && needsUpgrade)
+          ) {
+            didTriggerUpgrade = true;
+            await delay();
+            continue;
+          }
+          if (healthResponse.status === "ok" && healthResponse.secure) return;
+        } else {
+          consecutiveHttpFailures++;
+          if (consecutiveHttpFailures >= HTTP_FAILURE_THRESHOLD) {
+            didTriggerUpgrade = true;
+          }
+        }
+        await delay();
+        continue;
+      }
+
+      const healthResponse = await tryFetch(httpsHealthUrl);
+      if (
+        healthResponse &&
+        healthResponse.status === "ok" &&
+        healthResponse.secure
+      )
+        return;
+      await delay();
+    }
+
+    throw new Error("Server upgrade timed out after maximum retries");
+  };
+
   const connect = (): Promise<void> => {
     if (webSocketConnection?.readyState === WebSocket.OPEN) {
       return Promise.resolve();
@@ -88,49 +192,63 @@ export const createRelayClient = (
 
     isIntentionalDisconnect = false;
 
-    pendingConnectionPromise = new Promise((resolve, reject) => {
-      pendingConnectionReject = reject;
-      const connectionUrl = token
-        ? `${serverUrl}?${RELAY_TOKEN_PARAM}=${encodeURIComponent(token)}`
-        : serverUrl;
-      webSocketConnection = new WebSocket(connectionUrl);
+    pendingConnectionPromise = (async () => {
+      try {
+        await ensureServerReady();
 
-      webSocketConnection.onopen = () => {
+        if (isIntentionalDisconnect) {
+          throw new Error("Connection aborted");
+        }
+
+        return new Promise<void>((resolve, reject) => {
+          pendingConnectionReject = reject;
+          const connectionUrl = token
+            ? `${serverUrl}?${RELAY_TOKEN_PARAM}=${encodeURIComponent(token)}`
+            : serverUrl;
+          webSocketConnection = new WebSocket(connectionUrl);
+
+          webSocketConnection.onopen = () => {
+            pendingConnectionPromise = null;
+            pendingConnectionReject = null;
+            isConnectedState = true;
+            for (const callback of connectionChangeCallbacks) {
+              callback(true);
+            }
+            resolve();
+          };
+
+          webSocketConnection.onmessage = handleMessage;
+
+          webSocketConnection.onclose = () => {
+            if (pendingConnectionReject) {
+              pendingConnectionReject(new Error("WebSocket connection closed"));
+              pendingConnectionReject = null;
+            }
+            pendingConnectionPromise = null;
+            isConnectedState = false;
+            availableHandlers = [];
+            for (const callback of handlersChangeCallbacks) {
+              callback(availableHandlers);
+            }
+            for (const callback of connectionChangeCallbacks) {
+              callback(false);
+            }
+            scheduleReconnect();
+          };
+
+          webSocketConnection.onerror = () => {
+            pendingConnectionPromise = null;
+            pendingConnectionReject = null;
+            isConnectedState = false;
+            reject(new Error("WebSocket connection failed"));
+          };
+        });
+      } catch (error) {
         pendingConnectionPromise = null;
         pendingConnectionReject = null;
-        isConnectedState = true;
-        for (const callback of connectionChangeCallbacks) {
-          callback(true);
-        }
-        resolve();
-      };
-
-      webSocketConnection.onmessage = handleMessage;
-
-      webSocketConnection.onclose = () => {
-        if (pendingConnectionReject) {
-          pendingConnectionReject(new Error("WebSocket connection closed"));
-          pendingConnectionReject = null;
-        }
-        pendingConnectionPromise = null;
-        isConnectedState = false;
-        availableHandlers = [];
-        for (const callback of handlersChangeCallbacks) {
-          callback(availableHandlers);
-        }
-        for (const callback of connectionChangeCallbacks) {
-          callback(false);
-        }
-        scheduleReconnect();
-      };
-
-      webSocketConnection.onerror = () => {
-        pendingConnectionPromise = null;
-        pendingConnectionReject = null;
-        isConnectedState = false;
-        reject(new Error("WebSocket connection failed"));
-      };
-    });
+        throw error;
+      }
+    })();
 
     return pendingConnectionPromise;
   };

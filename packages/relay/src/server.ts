@@ -1,5 +1,10 @@
 import { WebSocketServer, WebSocket } from "ws";
-import { createServer as createHttpServer } from "node:http";
+import {
+  createServer as createHttpServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from "node:http";
+import { createServer as createHttpsServer } from "node:https";
 import type {
   AgentHandler,
   AgentMessage,
@@ -10,6 +15,7 @@ import type {
   AgentContext,
 } from "./protocol.js";
 import { DEFAULT_RELAY_PORT, RELAY_TOKEN_PARAM } from "./protocol.js";
+import { ensureCertificates } from "./mkcert.js";
 
 interface RegisteredHandler {
   agentId: string;
@@ -83,6 +89,9 @@ interface ActiveSession {
 interface RelayServerOptions {
   port?: number;
   token?: string;
+  secure?: boolean;
+  onSecureUpgradeRequested?: () => Promise<void>;
+  certHostnames?: string[];
 }
 
 export interface RelayServer {
@@ -98,6 +107,9 @@ export const createRelayServer = (
 ): RelayServer => {
   const port = options.port ?? DEFAULT_RELAY_PORT;
   const token = options.token;
+  const secure = options.secure ?? false;
+  const onSecureUpgradeRequested = options.onSecureUpgradeRequested;
+  const certHostnames = options.certHostnames;
 
   const registeredHandlers = new Map<string, RegisteredHandler>();
   const activeSessions = new Map<string, ActiveSession>();
@@ -106,7 +118,10 @@ export const createRelayServer = (
   const sessionMessageQueues = new Map<string, SessionMessageQueue>();
   const undoRedoSessionOwners = new Map<string, WebSocket>();
 
-  let httpServer: ReturnType<typeof createHttpServer> | null = null;
+  let httpServer:
+    | ReturnType<typeof createHttpServer>
+    | ReturnType<typeof createHttpsServer>
+    | null = null;
   let webSocketServer: WebSocketServer | null = null;
 
   const broadcastHandlerList = () => {
@@ -516,23 +531,63 @@ export const createRelayServer = (
   };
 
   const start = async (): Promise<void> => {
+    const certificate = secure ? await ensureCertificates(certHostnames) : null;
+
     return new Promise((resolve, reject) => {
-      httpServer = createHttpServer((req, res) => {
+      const corsHeaders = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      };
+
+      const requestHandler = (req: IncomingMessage, res: ServerResponse) => {
         const requestUrl = new URL(req.url ?? "", `http://localhost:${port}`);
 
+        if (req.method === "OPTIONS") {
+          res.writeHead(204, corsHeaders);
+          res.end();
+          return;
+        }
+
         if (requestUrl.pathname === "/health") {
+          const healthHeaders = {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          };
+
           if (token) {
             const clientToken = requestUrl.searchParams.get(RELAY_TOKEN_PARAM);
             if (clientToken !== token) {
-              res.writeHead(401, { "Content-Type": "application/json" });
+              res.writeHead(401, healthHeaders);
               res.end(JSON.stringify({ error: "Unauthorized" }));
               return;
             }
           }
-          res.writeHead(200, { "Content-Type": "application/json" });
+
+          const clientNeedsSecure =
+            requestUrl.searchParams.get("secure") === "true";
+          if (clientNeedsSecure && !secure && onSecureUpgradeRequested) {
+            res.writeHead(200, healthHeaders);
+            res.end(
+              JSON.stringify({
+                status: "upgrading",
+                handlers: getRegisteredHandlerIds(),
+              }),
+            );
+            onSecureUpgradeRequested().catch((error) => {
+              console.error(
+                "Failed to upgrade to secure connection:",
+                error instanceof Error ? error.message : error,
+              );
+            });
+            return;
+          }
+
+          res.writeHead(200, healthHeaders);
           res.end(
             JSON.stringify({
               status: "ok",
+              secure,
               handlers: getRegisteredHandlerIds(),
             }),
           );
@@ -540,7 +595,19 @@ export const createRelayServer = (
         }
         res.writeHead(404);
         res.end();
-      });
+      };
+
+      if (secure && certificate) {
+        httpServer = createHttpsServer(
+          {
+            key: certificate.key,
+            cert: certificate.cert,
+          },
+          requestHandler,
+        );
+      } else {
+        httpServer = createHttpServer(requestHandler);
+      }
 
       httpServer.on("error", (error) => {
         reject(error);
@@ -657,8 +724,30 @@ export const createRelayServer = (
     }
     handlerSockets.clear();
 
-    webSocketServer?.close();
-    httpServer?.close();
+    const webSocketClosePromise = new Promise<void>((resolve) => {
+      if (webSocketServer) {
+        webSocketServer.close(() => resolve());
+      } else {
+        resolve();
+      }
+    });
+
+    const httpServerClosePromise = new Promise<void>((resolve, reject) => {
+      if (httpServer) {
+        httpServer.close((error) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve();
+          }
+        });
+      } else {
+        resolve();
+      }
+    });
+
+    await webSocketClosePromise;
+    await httpServerClosePromise;
   };
 
   const registerHandler = (handler: AgentHandler) => {

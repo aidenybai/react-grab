@@ -4,6 +4,9 @@ export const HEALTH_CHECK_TIMEOUT_MS = 1000;
 export const POST_KILL_DELAY_MS = 100;
 export const RELAY_TOKEN_PARAM = "token";
 export const COMPLETED_STATUS = "Completed";
+export const UPGRADE_RETRY_DELAY_MS = 1000;
+export const MAX_UPGRADE_RETRIES = 15;
+export const HANDLER_RECONNECT_DELAY_MS = 1000;
 
 export interface AgentMessage {
   type: "status" | "error" | "done";
