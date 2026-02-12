@@ -24,12 +24,23 @@ export interface ProjectInfo {
   unsupportedFramework: UnsupportedFramework;
 }
 
+const VALID_PACKAGE_MANAGERS: ReadonlySet<string> = new Set([
+  "npm",
+  "yarn",
+  "pnpm",
+  "bun",
+]);
+
 export const detectPackageManager = async (
   projectRoot: string,
 ): Promise<PackageManager> => {
   const detected = await detect({ cwd: projectRoot });
-  if (detected && ["npm", "yarn", "pnpm", "bun"].includes(detected)) {
-    return detected as PackageManager;
+  if (detected) {
+    // @antfu/ni returns versioned agents like "pnpm@6" or "yarn@berry"
+    const managerName = detected.split("@")[0];
+    if (VALID_PACKAGE_MANAGERS.has(managerName)) {
+      return managerName as PackageManager;
+    }
   }
   return "npm";
 };
