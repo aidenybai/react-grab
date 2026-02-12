@@ -26,7 +26,9 @@ const generateHistoryItemId = (): string =>
 
 export const loadHistory = (): HistoryItem[] => historyItems;
 
-export const addHistoryItem = (item: Omit<HistoryItem, "id">): HistoryItem[] => {
+export const addHistoryItem = (
+  item: Omit<HistoryItem, "id">,
+): HistoryItem[] => {
   const newItem: HistoryItem = {
     ...item,
     id: generateHistoryItemId(),

@@ -701,7 +701,7 @@ export const MobileDemoAnimation = (): ReactElement => {
           <div className="rounded-lg border border-white/10">
             <div className="border-b border-white/10 px-3 py-2">
               <div className="text-[11px] font-medium text-white/70">
-                History
+                Recent Activity
               </div>
             </div>
             <div className="divide-y divide-white/10">

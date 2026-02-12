@@ -269,21 +269,34 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let toolbarElement: HTMLDivElement | undefined;
     let historyPositionFrameId: number | null = null;
     const historyElementMap = new Map<string, Element>();
-    const [hasUnreadHistoryItems, setHasUnreadHistoryItems] = createSignal(false);
+    const [hasUnreadHistoryItems, setHasUnreadHistoryItems] =
+      createSignal(false);
     let historyHoverPreviews: { boxId: string; labelId: string | null }[] = [];
 
-    const historyDisconnectedItemIds = createMemo(() => {
-      // HACK: subscribe to dropdown position so connectivity refreshes when dropdown opens
-      void historyDropdownPosition();
-      const disconnectedIds = new Set<string>();
-      for (const item of historyItems()) {
-        const element = historyElementMap.get(item.id);
-        if (!element || !isElementConnected(element)) {
-          disconnectedIds.add(item.id);
+    const historyDisconnectedItemIds = createMemo(
+      () => {
+        // HACK: subscribe to dropdown position so connectivity refreshes when dropdown opens
+        void historyDropdownPosition();
+        const disconnectedIds = new Set<string>();
+        for (const item of historyItems()) {
+          const element = historyElementMap.get(item.id);
+          if (!element || !isElementConnected(element)) {
+            disconnectedIds.add(item.id);
+          }
         }
-      }
-      return disconnectedIds;
-    });
+        return disconnectedIds;
+      },
+      undefined,
+      {
+        equals: (prev, next) => {
+          if (prev.size !== next.size) return false;
+          for (const id of next) {
+            if (!prev.has(id)) return false;
+          }
+          return true;
+        },
+      },
+    );
 
     const pendingAbortSessionId = createMemo(() => store.pendingAbortSessionId);
 
