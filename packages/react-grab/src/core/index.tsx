@@ -2727,6 +2727,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     });
 
+    eventListenerManager.addWindowListener("blur", () => {
+      if (isHoldingKeys()) {
+        clearHoldTimer();
+        actions.release();
+        resetCopyConfirmation();
+      }
+    });
+
     eventListenerManager.addWindowListener("focus", () => {
       lastWindowFocusTimestamp = Date.now();
     });
