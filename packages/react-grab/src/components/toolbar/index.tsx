@@ -43,6 +43,11 @@ import {
 } from "../../utils/freeze-pseudo-states.js";
 import { Tooltip } from "../tooltip.jsx";
 import { getToolbarIconColor } from "../../utils/get-toolbar-icon-color.js";
+import {
+  getExpandGridClass,
+  getButtonSpacingClass,
+  getMinDimensionClass,
+} from "../../utils/toolbar-layout.js";
 
 interface ToolbarProps {
   isActive?: boolean;
@@ -119,20 +124,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const expandGridClass = (
     isExpanded: boolean,
     collapsedExtra?: string,
-  ): string => {
-    if (isExpanded) {
-      return isVertical()
-        ? "grid-rows-[1fr] opacity-100"
-        : "grid-cols-[1fr] opacity-100";
-    }
-    const base = isVertical()
-      ? "grid-rows-[0fr] opacity-0"
-      : "grid-cols-[0fr] opacity-0";
-    return collapsedExtra ? `${base} ${collapsedExtra}` : base;
-  };
+  ): string => getExpandGridClass(isVertical(), isExpanded, collapsedExtra);
 
-  const buttonSpacingClass = () => (isVertical() ? "mb-1.5" : "mr-1.5");
-  const minDimensionClass = () => (isVertical() ? "min-h-0" : "min-w-0");
+  const buttonSpacingClass = () => getButtonSpacingClass(isVertical());
+  const minDimensionClass = () => getMinDimensionClass(isVertical());
 
   const shakeTooltipPositionClass = (): string => {
     const tooltipSide = tooltipPosition();
@@ -665,6 +660,13 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     } else if (vertical) {
       clearTimeout(toggleAnimationTimeout);
       toggleAnimationTimeout = setTimeout(() => {
+        if (
+          !isCurrentlyEnabled &&
+          lastKnownExpandableWidth === 0 &&
+          expandableButtonsRef
+        ) {
+          lastKnownExpandableWidth = expandableButtonsRef.offsetWidth;
+        }
         const rect = containerRef?.getBoundingClientRect();
         if (rect) {
           expandedDimensions = { width: rect.width, height: rect.height };
@@ -689,7 +691,20 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         if (rect) {
           expandedDimensions = { width: rect.width, height: rect.height };
         }
+        saveAndNotify({
+          edge,
+          ratio: positionRatio(),
+          collapsed: isCollapsed(),
+          enabled: !isCurrentlyEnabled,
+        });
       }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
+    } else {
+      saveAndNotify({
+        edge,
+        ratio: positionRatio(),
+        collapsed: isCollapsed(),
+        enabled: !isCurrentlyEnabled,
+      });
     }
   });
 
@@ -1244,9 +1259,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           isVertical() && "flex-col",
           PANEL_STYLES,
           !isCollapsed() &&
-            (isVertical()
-              ? "px-1.5 gap-1.5 py-2"
-              : "py-1.5 gap-1.5 px-2"),
+            (isVertical() ? "px-1.5 gap-1.5 py-2" : "py-1.5 gap-1.5 px-2"),
           collapsedEdgeClasses(),
           isShaking() && "animate-shake",
         )}

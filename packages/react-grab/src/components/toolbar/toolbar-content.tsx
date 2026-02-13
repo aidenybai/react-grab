@@ -5,6 +5,11 @@ import { IconSelect } from "../icons/icon-select.jsx";
 import { IconComment } from "../icons/icon-comment.jsx";
 import { IconChevron } from "../icons/icon-chevron.jsx";
 import { getToolbarIconColor } from "../../utils/get-toolbar-icon-color.js";
+import {
+  getExpandGridClass,
+  getButtonSpacingClass,
+  getMinDimensionClass,
+} from "../../utils/toolbar-layout.js";
 
 export interface ToolbarContentProps {
   isActive?: boolean;
@@ -31,20 +36,10 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
   const expandGridClass = (
     isExpanded: boolean,
     collapsedExtra?: string,
-  ): string => {
-    if (isExpanded) {
-      return isVertical()
-        ? "grid-rows-[1fr] opacity-100"
-        : "grid-cols-[1fr] opacity-100";
-    }
-    const base = isVertical()
-      ? "grid-rows-[0fr] opacity-0"
-      : "grid-cols-[0fr] opacity-0";
-    return collapsedExtra ? `${base} ${collapsedExtra}` : base;
-  };
+  ): string => getExpandGridClass(isVertical(), isExpanded, collapsedExtra);
 
-  const buttonSpacingClass = () => (isVertical() ? "mb-1.5" : "mr-1.5");
-  const minDimensionClass = () => (isVertical() ? "min-h-0" : "min-w-0");
+  const buttonSpacingClass = () => getButtonSpacingClass(isVertical());
+  const minDimensionClass = () => getMinDimensionClass(isVertical());
 
   const collapsedEdgeClasses = () => {
     if (!props.isCollapsed) return "";
@@ -54,8 +49,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
       left: "rounded-l-none rounded-r-[10px]",
       right: "rounded-r-none rounded-l-[10px]",
     }[edge()];
-    const paddingClass =
-      isVertical() ? "px-0.25 py-2" : "px-2 py-0.25";
+    const paddingClass = isVertical() ? "px-0.25 py-2" : "px-2 py-0.25";
     return `${roundedClass} ${paddingClass}`;
   };
 
@@ -156,9 +150,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
         isVertical() && "flex-col",
         PANEL_STYLES,
         !props.isCollapsed &&
-          (isVertical()
-            ? "px-1.5 gap-1.5 py-2"
-            : "py-1.5 gap-1.5 px-2"),
+          (isVertical() ? "px-1.5 gap-1.5 py-2" : "py-1.5 gap-1.5 px-2"),
         collapsedEdgeClasses(),
         props.isShaking && "animate-shake",
       )}
@@ -186,9 +178,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
               expandGridClass(Boolean(props.enabled)),
             )}
           >
-            <div
-              class={cn("relative overflow-visible", minDimensionClass())}
-            >
+            <div class={cn("relative overflow-visible", minDimensionClass())}>
               {props.selectButton ?? defaultSelectButton()}
             </div>
           </div>
@@ -198,9 +188,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
               expandGridClass(Boolean(props.enabled)),
             )}
           >
-            <div
-              class={cn("relative overflow-visible", minDimensionClass())}
-            >
+            <div class={cn("relative overflow-visible", minDimensionClass())}>
               {props.commentButton ?? defaultCommentButton()}
             </div>
           </div>
