@@ -3598,7 +3598,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isHovered) {
         cancelHistoryHoverCloseTimeout();
       } else if (!isHovered && isHistoryHoverOpen()) {
-        dismissHistoryDropdown();
+        historyHoverCloseTimeoutId = setTimeout(() => {
+          historyHoverCloseTimeoutId = null;
+          dismissHistoryDropdown();
+        }, DROPDOWN_HOVER_OPEN_DELAY_MS);
       }
     };
 

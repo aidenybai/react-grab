@@ -97,6 +97,8 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
       if (props.position) setLastAnchorEdge(props.position.edge);
       clearTimeout(exitAnimationTimeout);
       setShouldMount(true);
+      if (enterAnimationFrameId !== undefined)
+        cancelAnimationFrame(enterAnimationFrameId);
       // HACK: rAF measures then forces reflow so the browser commits the correct position before transitioning in
       enterAnimationFrameId = requestAnimationFrame(() => {
         measureContainer();
