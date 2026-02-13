@@ -3480,8 +3480,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleHistoryItemSelect = (item: HistoryItem) => {
-      dismissHistoryDropdown();
-
       const element = historyElementMap.get(item.id);
 
       if (
@@ -3529,7 +3527,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           commentText: historyItem.commentText,
         })),
       });
-      dismissHistoryDropdown();
 
       actions.clearLabelInstances();
       for (const historyItem of currentHistoryItems) {
@@ -3576,6 +3573,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           setIsHistoryHoverOpen(true);
           openHistoryDropdown();
         }, DROPDOWN_HOVER_OPEN_DELAY_MS);
+      } else if (!isHovered && isHistoryHoverOpen()) {
+        dismissHistoryDropdown();
+      }
+    };
+
+    const handleHistoryDropdownHover = (isHovered: boolean) => {
+      if (!isHovered && isHistoryHoverOpen()) {
+        dismissHistoryDropdown();
       }
     };
 
@@ -3777,6 +3782,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onHistoryCopyAllHover={handleHistoryCopyAllHover}
             onHistoryClear={handleHistoryClear}
             onHistoryDismiss={dismissHistoryDropdown}
+            onHistoryDropdownHover={handleHistoryDropdownHover}
           />
         );
       }, rendererRoot);
@@ -3902,6 +3908,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
       dispose: () => {
         hasInited = false;
+        cancelHistoryHoverOpenTimeout();
         stopTrackingToolbarPosition();
         toolbarStateChangeCallbacks.clear();
         dispose();
