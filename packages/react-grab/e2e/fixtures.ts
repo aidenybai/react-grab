@@ -30,7 +30,9 @@ interface SelectionLabelBounds {
 interface ToolbarInfo {
   isVisible: boolean;
   isCollapsed: boolean;
+  isVertical: boolean;
   position: { x: number; y: number } | null;
+  dimensions: { width: number; height: number } | null;
   snapEdge: string | null;
 }
 
@@ -122,6 +124,7 @@ export interface ReactGrabPageObject {
   clickToolbarToggle: () => Promise<void>;
   clickToolbarCollapse: () => Promise<void>;
   dragToolbar: (deltaX: number, deltaY: number) => Promise<void>;
+  clickToolbarEnabled: () => Promise<void>;
   dragToolbarFromButton: (
     buttonSelector: string,
     deltaX: number,
@@ -697,69 +700,75 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   };
 
   const getToolbarInfo = async (): Promise<ToolbarInfo> => {
-    return page.evaluate((attrName) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      if (!shadowRoot)
+    const defaultInfo: ToolbarInfo = {
+      isVisible: false,
+      isCollapsed: false,
+      isVertical: false,
+      position: null,
+      dimensions: null,
+      snapEdge: null,
+    };
+
+    return page.evaluate(
+      ({ attrName, fallback }) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const shadowRoot = host?.shadowRoot;
+        if (!shadowRoot) return fallback;
+        const root = shadowRoot.querySelector(`[${attrName}]`);
+        if (!root) return fallback;
+
+        const toolbar = root.querySelector<HTMLElement>(
+          "[data-react-grab-toolbar]",
+        );
+        if (!toolbar) return fallback;
+
+        const computedStyle = window.getComputedStyle(toolbar);
+        const transform = toolbar.style.transform;
+        const translateMatch = transform.match(
+          /translate\((-?\d+(?:\.\d+)?)px,\s*(-?\d+(?:\.\d+)?)px\)/,
+        );
+        const position = translateMatch
+          ? {
+              x: parseFloat(translateMatch[1]),
+              y: parseFloat(translateMatch[2]),
+            }
+          : null;
+
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const rect = toolbar.getBoundingClientRect();
+        const dimensions = { width: rect.width, height: rect.height };
+
+        let snapEdge: string | null = null;
+        if (position) {
+          const SNAP_THRESHOLD = 30;
+          if (position.y <= SNAP_THRESHOLD) snapEdge = "top";
+          else if (position.y + rect.height >= viewportHeight - SNAP_THRESHOLD)
+            snapEdge = "bottom";
+          else if (position.x <= SNAP_THRESHOLD) snapEdge = "left";
+          else if (position.x + rect.width >= viewportWidth - SNAP_THRESHOLD)
+            snapEdge = "right";
+        }
+
+        const isCollapsed = computedStyle.cursor === "pointer";
+
+        const innerDiv = toolbar.querySelector("div");
+        const innerStyle = innerDiv
+          ? window.getComputedStyle(innerDiv)
+          : null;
+        const isVertical = innerStyle?.flexDirection === "column";
+
         return {
-          isVisible: false,
-          isCollapsed: false,
-          position: null,
-          snapEdge: null,
+          isVisible: computedStyle.opacity !== "0",
+          isCollapsed,
+          isVertical,
+          position,
+          dimensions,
+          snapEdge,
         };
-      const root = shadowRoot.querySelector(`[${attrName}]`);
-      if (!root)
-        return {
-          isVisible: false,
-          isCollapsed: false,
-          position: null,
-          snapEdge: null,
-        };
-
-      const toolbar = root.querySelector<HTMLElement>(
-        "[data-react-grab-toolbar]",
-      );
-      if (!toolbar)
-        return {
-          isVisible: false,
-          isCollapsed: false,
-          position: null,
-          snapEdge: null,
-        };
-
-      const computedStyle = window.getComputedStyle(toolbar);
-      const transform = toolbar.style.transform;
-      const translateMatch = transform.match(
-        /translate\((-?\d+(?:\.\d+)?)px,\s*(-?\d+(?:\.\d+)?)px\)/,
-      );
-      const position = translateMatch
-        ? { x: parseFloat(translateMatch[1]), y: parseFloat(translateMatch[2]) }
-        : null;
-
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      const rect = toolbar.getBoundingClientRect();
-
-      let snapEdge: string | null = null;
-      if (position) {
-        const SNAP_THRESHOLD = 30;
-        if (position.y <= SNAP_THRESHOLD) snapEdge = "top";
-        else if (position.y + rect.height >= viewportHeight - SNAP_THRESHOLD)
-          snapEdge = "bottom";
-        else if (position.x <= SNAP_THRESHOLD) snapEdge = "left";
-        else if (position.x + rect.width >= viewportWidth - SNAP_THRESHOLD)
-          snapEdge = "right";
-      }
-
-      const isCollapsed = computedStyle.cursor === "pointer";
-
-      return {
-        isVisible: computedStyle.opacity !== "0",
-        isCollapsed,
-        position,
-        snapEdge,
-      };
-    }, ATTRIBUTE_NAME);
+      },
+      { attrName: ATTRIBUTE_NAME, fallback: defaultInfo },
+    );
   };
 
   const clickToolbarToggle = async () => {
@@ -789,6 +798,20 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         "[data-react-grab-toolbar-collapse]",
       );
       collapseButton?.click();
+    }, ATTRIBUTE_NAME);
+  };
+
+  const clickToolbarEnabled = async () => {
+    await page.evaluate((attrName) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      if (!shadowRoot) return;
+      const root = shadowRoot.querySelector(`[${attrName}]`);
+      if (!root) return;
+      const enabledButton = root.querySelector<HTMLButtonElement>(
+        "[data-react-grab-toolbar-enabled]",
+      );
+      enabledButton?.click();
     }, ATTRIBUTE_NAME);
   };
 
@@ -2151,6 +2174,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     getToolbarInfo,
     clickToolbarToggle,
     clickToolbarCollapse,
+    clickToolbarEnabled,
     dragToolbar,
     dragToolbarFromButton,
 

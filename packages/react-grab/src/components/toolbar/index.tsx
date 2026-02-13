@@ -43,6 +43,11 @@ import {
 } from "../../utils/freeze-pseudo-states.js";
 import { Tooltip } from "../tooltip.jsx";
 import { getToolbarIconColor } from "../../utils/get-toolbar-icon-color.js";
+import {
+  getExpandGridClass,
+  getButtonSpacingClass,
+  getMinDimensionClass,
+} from "../../utils/toolbar-layout.js";
 
 interface ToolbarProps {
   isActive?: boolean;
@@ -71,13 +76,19 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   let unfreezeUpdatesCallback: (() => void) | null = null;
   let lastKnownExpandableWidth = 0;
 
+  const savedState = loadToolbarState();
+
   const [isVisible, setIsVisible] = createSignal(false);
   const [isCollapsed, setIsCollapsed] = createSignal(false);
   const [isDragging, setIsDragging] = createSignal(false);
   const [isSnapping, setIsSnapping] = createSignal(false);
   const [isResizing, setIsResizing] = createSignal(false);
-  const [snapEdge, setSnapEdge] = createSignal<SnapEdge>("bottom");
-  const [positionRatio, setPositionRatio] = createSignal(0.5);
+  const [snapEdge, setSnapEdge] = createSignal<SnapEdge>(
+    savedState?.edge ?? "bottom",
+  );
+  const [positionRatio, setPositionRatio] = createSignal(
+    savedState?.ratio ?? 0.5,
+  );
   const [position, setPosition] = createSignal({ x: 0, y: 0 });
   const [dragOffset, setDragOffset] = createSignal({ x: 0, y: 0 });
   const [velocity, setVelocity] = createSignal({ x: 0, y: 0 });
@@ -100,7 +111,41 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     return count > 0 ? `History (${count})` : "History";
   };
 
-  const tooltipPosition = () => (snapEdge() === "top" ? "bottom" : "top");
+  const isVertical = () => snapEdge() === "left" || snapEdge() === "right";
+
+  const tooltipPosition = (): "top" | "bottom" | "left" | "right" => {
+    const edge = snapEdge();
+    switch (edge) {
+      case "top":
+        return "bottom";
+      case "bottom":
+        return "top";
+      case "left":
+        return "right";
+      case "right":
+        return "left";
+    }
+  };
+
+  const expandGridClass = (
+    isExpanded: boolean,
+    collapsedExtra?: string,
+  ): string => getExpandGridClass(isVertical(), isExpanded, collapsedExtra);
+
+  const buttonSpacingClass = () => getButtonSpacingClass(isVertical());
+  const minDimensionClass = () => getMinDimensionClass(isVertical());
+
+  const shakeTooltipPositionClass = (): string => {
+    const tooltipSide = tooltipPosition();
+    if (isVertical()) {
+      const placementClass =
+        tooltipSide === "left" ? "right-full mr-0.5" : "left-full ml-0.5";
+      return `top-1/2 -translate-y-1/2 ${placementClass}`;
+    }
+    const placementClass =
+      tooltipSide === "top" ? "bottom-full mb-0.5" : "top-full mt-0.5";
+    return `left-1/2 -translate-x-1/2 ${placementClass}`;
+  };
 
   const stopEventPropagation = (event: Event) => {
     event.stopPropagation();
@@ -112,6 +157,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     onHoverChange?: (isHovered: boolean) => void,
   ) => ({
     onMouseEnter: () => {
+      if (isDragging()) return;
       setTooltipVisible(true);
       props.onSelectHoverChange?.(true);
       if (!unfreezeUpdatesCallback) {
@@ -143,8 +189,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       left: "rounded-l-none rounded-r-[10px]",
       right: "rounded-r-none rounded-l-[10px]",
     }[edge];
-    const paddingClass =
-      edge === "top" || edge === "bottom" ? "px-2 py-0.25" : "px-0.25 py-2";
+    const paddingClass = isVertical() ? "px-0.25 py-2" : "px-2 py-0.25";
     return `${roundedClass} ${paddingClass}`;
   };
 
@@ -562,7 +607,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     const edge = snapEdge();
     const preTogglePosition = position();
     const expandableWidth = lastKnownExpandableWidth;
-    const shouldCompensatePosition = expandableWidth > 0 && edge !== "left";
+    const vertical = edge === "left" || edge === "right";
+    const shouldCompensatePosition = !vertical && expandableWidth > 0;
 
     if (shouldCompensatePosition) {
       setIsToggleAnimating(true);
@@ -570,7 +616,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
     props.onToggleEnabled?.();
 
-    if (expandableWidth > 0) {
+    if (shouldCompensatePosition) {
       const widthChange = isCurrentlyEnabled
         ? -expandableWidth
         : expandableWidth;
@@ -617,6 +663,23 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           enabled: !isCurrentlyEnabled,
         });
       }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
+    } else if (vertical) {
+      setIsToggleAnimating(true);
+      clearTimeout(toggleAnimationTimeout);
+      toggleAnimationTimeout = setTimeout(() => {
+        setIsToggleAnimating(false);
+        const rect = containerRef?.getBoundingClientRect();
+        if (rect) {
+          expandedDimensions = { width: rect.width, height: rect.height };
+        }
+        reclampToolbarToViewport();
+        saveAndNotify({
+          edge,
+          ratio: positionRatio(),
+          collapsed: isCollapsed(),
+          enabled: !isCurrentlyEnabled,
+        });
+      }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
     } else if (!isCurrentlyEnabled && lastKnownExpandableWidth === 0) {
       // HACK: When toolbar mounts disabled, expandable buttons are hidden (grid-cols-[0fr])
       // so we can't measure their width. Learn it after the first enable animation completes.
@@ -629,7 +692,20 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         if (rect) {
           expandedDimensions = { width: rect.width, height: rect.height };
         }
+        saveAndNotify({
+          edge,
+          ratio: positionRatio(),
+          collapsed: isCollapsed(),
+          enabled: !isCurrentlyEnabled,
+        });
       }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
+    } else {
+      saveAndNotify({
+        edge,
+        ratio: positionRatio(),
+        collapsed: isCollapsed(),
+        enabled: !isCurrentlyEnabled,
+      });
     }
   });
 
@@ -744,6 +820,12 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
     if (distanceMoved > TOOLBAR_DRAG_THRESHOLD_PX) {
       setHasDragMoved(true);
+      if (unfreezeUpdatesCallback) {
+        unfreezeUpdatesCallback();
+        unfreezeUpdatesCallback = null;
+        unfreezeGlobalAnimations();
+        unfreezePseudoStates();
+      }
     }
 
     if (!hasDragMoved()) return;
@@ -805,8 +887,23 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     setIsSnapping(true);
 
     requestAnimationFrame(() => {
+      const postRenderRect = containerRef?.getBoundingClientRect();
+      if (postRenderRect) {
+        expandedDimensions = {
+          width: postRenderRect.width,
+          height: postRenderRect.height,
+        };
+      }
+
       requestAnimationFrame(() => {
-        setPosition({ x: snap.x, y: snap.y });
+        const snappedPosition = getPositionFromEdgeAndRatio(
+          snap.edge,
+          ratio,
+          expandedDimensions.width,
+          expandedDimensions.height,
+        );
+
+        setPosition(snappedPosition);
         saveAndNotify({
           edge: snap.edge,
           ratio,
@@ -958,13 +1055,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       props.onContainerRef?.(containerRef);
     }
 
-    const savedState = loadToolbarState();
     const rect = containerRef?.getBoundingClientRect();
     const viewport = getVisualViewport();
 
     if (savedState) {
-      setSnapEdge(savedState.edge);
-      setPositionRatio(savedState.ratio);
       if (rect) {
         // HACK: On initial mount, the element is always rendered expanded (isCollapsed defaults to false).
         // So rect always measures expanded dimensions, regardless of savedState.collapsed.
@@ -1011,7 +1105,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       setPosition(defaultPosition);
     }
 
-    if (props.enabled && expandableButtonsRef) {
+    if (props.enabled && expandableButtonsRef && !isVertical()) {
       lastKnownExpandableWidth = expandableButtonsRef.offsetWidth;
     }
 
@@ -1160,8 +1254,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       <div
         class={cn(
           "flex items-center justify-center rounded-[10px] antialiased transition-all duration-150 ease-out relative overflow-visible [font-synthesis:none] [corner-shape:superellipse(1.25)]",
+          isVertical() && "flex-col",
           PANEL_STYLES,
-          !isCollapsed() && "py-1.5 gap-1.5 px-2",
+          !isCollapsed() &&
+            (isVertical() ? "px-1.5 gap-1.5 py-2" : "py-1.5 gap-1.5 px-2"),
           collapsedEdgeClasses(),
           isShaking() && "animate-shake",
         )}
@@ -1197,27 +1293,38 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         <div
           class={cn(
             "grid transition-all duration-150 ease-out",
-            isCollapsed()
-              ? "grid-cols-[0fr] opacity-0 pointer-events-none"
-              : "grid-cols-[1fr] opacity-100",
+            expandGridClass(!isCollapsed(), "pointer-events-none"),
           )}
         >
-          <div class="flex items-center min-w-0">
-            <div ref={expandableButtonsRef} class="flex items-center">
+          <div
+            class={cn(
+              "flex",
+              isVertical()
+                ? "flex-col items-center min-h-0"
+                : "items-center min-w-0",
+            )}
+          >
+            <div
+              ref={expandableButtonsRef}
+              class={cn("flex items-center", isVertical() && "flex-col")}
+            >
               <div
                 class={cn(
                   "grid transition-all duration-150 ease-out",
-                  props.enabled
-                    ? "grid-cols-[1fr] opacity-100"
-                    : "grid-cols-[0fr] opacity-0",
+                  expandGridClass(Boolean(props.enabled)),
                 )}
               >
-                <div class="relative overflow-visible min-w-0">
+                <div
+                  class={cn("relative overflow-visible", minDimensionClass())}
+                >
                   {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
                   <button
                     data-react-grab-ignore-events
                     data-react-grab-toolbar-toggle
-                    class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5"
+                    class={cn(
+                      "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
+                      buttonSpacingClass(),
+                    )}
                     on:pointerdown={(event) => {
                       stopEventPropagation(event);
                       handlePointerDown(event);
@@ -1251,17 +1358,20 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               <div
                 class={cn(
                   "grid transition-all duration-150 ease-out",
-                  props.enabled
-                    ? "grid-cols-[1fr] opacity-100"
-                    : "grid-cols-[0fr] opacity-0",
+                  expandGridClass(Boolean(props.enabled)),
                 )}
               >
-                <div class="relative overflow-visible min-w-0">
+                <div
+                  class={cn("relative overflow-visible", minDimensionClass())}
+                >
                   {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
                   <button
                     data-react-grab-ignore-events
                     data-react-grab-toolbar-comment
-                    class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5"
+                    class={cn(
+                      "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
+                      buttonSpacingClass(),
+                    )}
                     on:pointerdown={(event) => {
                       stopEventPropagation(event);
                       handlePointerDown(event);
@@ -1295,17 +1405,23 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               <div
                 class={cn(
                   "grid transition-all duration-150 ease-out",
-                  props.enabled && (props.historyItemCount ?? 0) > 0
-                    ? "grid-cols-[1fr] opacity-100"
-                    : "grid-cols-[0fr] opacity-0 pointer-events-none",
+                  expandGridClass(
+                    Boolean(props.enabled) && (props.historyItemCount ?? 0) > 0,
+                    "pointer-events-none",
+                  ),
                 )}
               >
-                <div class="relative overflow-visible min-w-0">
+                <div
+                  class={cn("relative overflow-visible", minDimensionClass())}
+                >
                   {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
                   <button
                     data-react-grab-ignore-events
                     data-react-grab-toolbar-history
-                    class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5"
+                    class={cn(
+                      "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
+                      buttonSpacingClass(),
+                    )}
                     on:pointerdown={(event) => {
                       stopEventPropagation(event);
                       handlePointerDown(event);
@@ -1348,7 +1464,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               <button
                 data-react-grab-ignore-events
                 data-react-grab-toolbar-enabled
-                class="contain-layout flex items-center justify-center cursor-pointer interactive-scale outline-none mx-0.5"
+                class={cn(
+                  "contain-layout flex items-center justify-center cursor-pointer interactive-scale outline-none",
+                  isVertical() ? "my-0.5" : "mx-0.5",
+                )}
                 onClick={(event) => {
                   setIsToggleTooltipVisible(false);
                   handleToggleEnabled(event);
@@ -1358,14 +1477,17 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               >
                 <div
                   class={cn(
-                    "relative w-5 h-3 rounded-full transition-colors",
+                    "relative rounded-full transition-colors",
+                    isVertical() ? "w-3.5 h-2.5" : "w-5 h-3",
                     props.enabled ? "bg-black" : "bg-black/25",
                   )}
                 >
                   <div
                     class={cn(
-                      "absolute top-0.5 w-2 h-2 rounded-full bg-white transition-transform",
-                      props.enabled ? "left-2.5" : "left-0.5",
+                      "absolute top-0.5 rounded-full bg-white transition-transform",
+                      isVertical() ? "w-1.5 h-1.5" : "w-2 h-2",
+                      !props.enabled && "left-0.5",
+                      props.enabled && (isVertical() ? "left-1.5" : "left-2.5"),
                     )}
                   />
                 </div>
@@ -1396,11 +1518,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         <Show when={isShakeTooltipVisible()}>
           <div
             class={cn(
-              "absolute left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none animate-tooltip-fade-in [corner-shape:superellipse(1.25)]",
+              "absolute whitespace-nowrap px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none animate-tooltip-fade-in [corner-shape:superellipse(1.25)]",
               PANEL_STYLES,
-              tooltipPosition() === "top"
-                ? "bottom-full mb-0.5"
-                : "top-full mt-0.5",
+              shakeTooltipPositionClass(),
             )}
             style={{ "z-index": "2147483647" }}
           >

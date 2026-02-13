@@ -1,4 +1,4 @@
-import { copyContent } from "../utils/copy-content.js";
+import { copyContent, type ReactGrabEntry } from "../utils/copy-content.js";
 import { generateSnippet } from "../utils/generate-snippet.js";
 import { joinSnippets } from "../utils/join-snippets.js";
 
@@ -33,6 +33,7 @@ export const tryCopyWithFallback = async (
 
   try {
     let generatedContent: string;
+    let entries: ReactGrabEntry[] | undefined;
 
     if (options.getContent) {
       generatedContent = await options.getContent(elements);
@@ -47,8 +48,17 @@ export const tryCopyWithFallback = async (
             : Promise.resolve(""),
         ),
       );
-      const nonEmptySnippets = transformedSnippets.filter((s) => s.trim());
-      generatedContent = joinSnippets(nonEmptySnippets);
+      const snippetElementPairs = transformedSnippets
+        .map((snippet, index) => ({ snippet, element: elements[index] }))
+        .filter(({ snippet }) => snippet.trim());
+
+      generatedContent = joinSnippets(
+        snippetElementPairs.map(({ snippet }) => snippet),
+      );
+      entries = snippetElementPairs.map(({ snippet, element }) => ({
+        tagName: element.localName,
+        content: snippet,
+      }));
     }
 
     if (generatedContent.trim()) {
@@ -61,7 +71,10 @@ export const tryCopyWithFallback = async (
         ? `${extraPrompt}\n\n${transformedContent}`
         : transformedContent;
 
-      didCopy = copyContent(copiedContent, { name: options.componentName });
+      didCopy = copyContent(copiedContent, {
+        componentName: options.componentName,
+        entries,
+      });
     }
   } catch (error) {
     const resolvedError =
