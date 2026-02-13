@@ -660,13 +660,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     } else if (vertical) {
       clearTimeout(toggleAnimationTimeout);
       toggleAnimationTimeout = setTimeout(() => {
-        if (
-          !isCurrentlyEnabled &&
-          lastKnownExpandableWidth === 0 &&
-          expandableButtonsRef
-        ) {
-          lastKnownExpandableWidth = expandableButtonsRef.offsetWidth;
-        }
         const rect = containerRef?.getBoundingClientRect();
         if (rect) {
           expandedDimensions = { width: rect.width, height: rect.height };
@@ -1107,7 +1100,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       setPosition(defaultPosition);
     }
 
-    if (props.enabled && expandableButtonsRef) {
+    if (props.enabled && expandableButtonsRef && !isVertical()) {
       lastKnownExpandableWidth = expandableButtonsRef.offsetWidth;
     }
 
