@@ -753,9 +753,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         const isCollapsed = computedStyle.cursor === "pointer";
 
         const innerDiv = toolbar.querySelector("div");
-        const innerStyle = innerDiv
-          ? window.getComputedStyle(innerDiv)
-          : null;
+        const innerStyle = innerDiv ? window.getComputedStyle(innerDiv) : null;
         const isVertical = innerStyle?.flexDirection === "column";
 
         return {
@@ -997,7 +995,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       },
       { attrName: ATTRIBUTE_NAME, itemIndex: index },
     );
-    await waitForHistoryDropdown(false);
   };
 
   const clickHistoryItemRemove = async (index: number) => {
@@ -1042,7 +1039,6 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
   const clickHistoryCopyAll = async () => {
     await clickShadowRootButton("[data-react-grab-history-copy-all]");
-    await waitForHistoryDropdown(false);
   };
 
   const clickHistoryClear = async () => {
