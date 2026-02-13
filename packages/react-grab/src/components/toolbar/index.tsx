@@ -75,6 +75,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   let expandableButtonsRef: HTMLDivElement | undefined;
   let unfreezeUpdatesCallback: (() => void) | null = null;
   let lastKnownExpandableWidth = 0;
+  let lastKnownExpandableHeight = 0;
 
   const savedState = loadToolbarState();
 
@@ -112,6 +113,15 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   };
 
   const isVertical = () => snapEdge() === "left" || snapEdge() === "right";
+
+  const measureExpandableDimension = () => {
+    if (!expandableButtonsRef) return;
+    if (isVertical()) {
+      lastKnownExpandableHeight = expandableButtonsRef.offsetHeight;
+    } else {
+      lastKnownExpandableWidth = expandableButtonsRef.offsetWidth;
+    }
+  };
 
   const tooltipPosition = (): "top" | "bottom" | "left" | "right" => {
     const edge = snapEdge();
@@ -606,9 +616,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     const isCurrentlyEnabled = Boolean(props.enabled);
     const edge = snapEdge();
     const preTogglePosition = position();
-    const expandableWidth = lastKnownExpandableWidth;
-    const vertical = edge === "left" || edge === "right";
-    const shouldCompensatePosition = !vertical && expandableWidth > 0;
+    const isVerticalEdge = edge === "left" || edge === "right";
+    const expandableDimension = isVerticalEdge
+      ? lastKnownExpandableHeight
+      : lastKnownExpandableWidth;
+    const shouldCompensatePosition = expandableDimension > 0;
 
     if (shouldCompensatePosition) {
       setIsToggleAnimating(true);
@@ -617,33 +629,47 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     props.onToggleEnabled?.();
 
     if (shouldCompensatePosition) {
-      const widthChange = isCurrentlyEnabled
-        ? -expandableWidth
-        : expandableWidth;
-      expandedDimensions = {
-        width: expandedDimensions.width + widthChange,
-        height: expandedDimensions.height,
-      };
-    }
-
-    if (shouldCompensatePosition) {
+      const dimensionChange = isCurrentlyEnabled
+        ? -expandableDimension
+        : expandableDimension;
+      const positionOffset = -dimensionChange;
       const viewport = getVisualViewport();
-      const positionOffset = isCurrentlyEnabled
-        ? expandableWidth
-        : -expandableWidth;
-      const clampMin = viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX;
-      const clampMax =
-        viewport.offsetLeft +
-        viewport.width -
-        expandedDimensions.width -
-        TOOLBAR_SNAP_MARGIN_PX;
-      const compensatedX = clampToViewport(
-        preTogglePosition.x + positionOffset,
-        clampMin,
-        clampMax,
-      );
 
-      setPosition({ x: compensatedX, y: preTogglePosition.y });
+      if (isVerticalEdge) {
+        expandedDimensions = {
+          width: expandedDimensions.width,
+          height: expandedDimensions.height + dimensionChange,
+        };
+        const clampMin = viewport.offsetTop + TOOLBAR_SNAP_MARGIN_PX;
+        const clampMax =
+          viewport.offsetTop +
+          viewport.height -
+          expandedDimensions.height -
+          TOOLBAR_SNAP_MARGIN_PX;
+        const compensatedY = clampToViewport(
+          preTogglePosition.y + positionOffset,
+          clampMin,
+          clampMax,
+        );
+        setPosition({ x: preTogglePosition.x, y: compensatedY });
+      } else {
+        expandedDimensions = {
+          width: expandedDimensions.width + dimensionChange,
+          height: expandedDimensions.height,
+        };
+        const clampMin = viewport.offsetLeft + TOOLBAR_SNAP_MARGIN_PX;
+        const clampMax =
+          viewport.offsetLeft +
+          viewport.width -
+          expandedDimensions.width -
+          TOOLBAR_SNAP_MARGIN_PX;
+        const compensatedX = clampToViewport(
+          preTogglePosition.x + positionOffset,
+          clampMin,
+          clampMax,
+        );
+        setPosition({ x: compensatedX, y: preTogglePosition.y });
+      }
 
       clearTimeout(toggleAnimationTimeout);
       toggleAnimationTimeout = setTimeout(() => {
@@ -663,35 +689,19 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           enabled: !isCurrentlyEnabled,
         });
       }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
-    } else if (vertical) {
+    } else if (!isCurrentlyEnabled && expandableDimension === 0) {
+      // HACK: When toolbar mounts disabled, expandable buttons are hidden (grid-rows/cols-[0fr])
+      // so we can't measure their dimension. Learn it after the first enable animation completes.
       setIsToggleAnimating(true);
       clearTimeout(toggleAnimationTimeout);
       toggleAnimationTimeout = setTimeout(() => {
         setIsToggleAnimating(false);
+        measureExpandableDimension();
         const rect = containerRef?.getBoundingClientRect();
         if (rect) {
           expandedDimensions = { width: rect.width, height: rect.height };
         }
         reclampToolbarToViewport();
-        saveAndNotify({
-          edge,
-          ratio: positionRatio(),
-          collapsed: isCollapsed(),
-          enabled: !isCurrentlyEnabled,
-        });
-      }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
-    } else if (!isCurrentlyEnabled && lastKnownExpandableWidth === 0) {
-      // HACK: When toolbar mounts disabled, expandable buttons are hidden (grid-cols-[0fr])
-      // so we can't measure their width. Learn it after the first enable animation completes.
-      clearTimeout(toggleAnimationTimeout);
-      toggleAnimationTimeout = setTimeout(() => {
-        if (expandableButtonsRef) {
-          lastKnownExpandableWidth = expandableButtonsRef.offsetWidth;
-        }
-        const rect = containerRef?.getBoundingClientRect();
-        if (rect) {
-          expandedDimensions = { width: rect.width, height: rect.height };
-        }
         saveAndNotify({
           edge,
           ratio: positionRatio(),
@@ -913,6 +923,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
         snapAnimationTimeout = setTimeout(() => {
           setIsSnapping(false);
+          if (props.enabled) {
+            measureExpandableDimension();
+          }
         }, TOOLBAR_SNAP_ANIMATION_DURATION_MS);
       });
     });
@@ -1105,8 +1118,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       setPosition(defaultPosition);
     }
 
-    if (props.enabled && expandableButtonsRef && !isVertical()) {
-      lastKnownExpandableWidth = expandableButtonsRef.offsetWidth;
+    if (props.enabled) {
+      measureExpandableDimension();
     }
 
     if (props.onSubscribeToStateChanges) {
