@@ -21,7 +21,6 @@ import {
 } from "../constants.js";
 import { clampToViewport } from "../utils/clamp-to-viewport.js";
 import { cn } from "../utils/cn.js";
-import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
 import { IconTrash } from "./icons/icon-trash.jsx";
 import { IconCopy } from "./icons/icon-copy.jsx";
 import { IconCheck } from "./icons/icon-check.jsx";
@@ -158,23 +157,18 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
     };
   };
 
-  const displayPosition = createMemo(
-    (previousPosition) => {
-      const position = computedPosition();
-      if (position.left !== DEFAULT_OFFSCREEN_POSITION.left) {
-        return position;
-      }
-      return previousPosition;
-    },
-    DEFAULT_OFFSCREEN_POSITION,
-  );
+  const displayPosition = createMemo((previousPosition) => {
+    const position = computedPosition();
+    if (position.left !== DEFAULT_OFFSCREEN_POSITION.left) {
+      return position;
+    }
+    return previousPosition;
+  }, DEFAULT_OFFSCREEN_POSITION);
 
   const clampedMaxWidth = () =>
     Math.min(
       DROPDOWN_MAX_WIDTH_PX,
-      window.innerWidth -
-        displayPosition().left -
-        DROPDOWN_VIEWPORT_PADDING_PX,
+      window.innerWidth - displayPosition().left - DROPDOWN_VIEWPORT_PADDING_PX,
     );
 
   const clampedMaxHeight = () =>
@@ -193,16 +187,6 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
   onMount(() => {
     measureContainer();
 
-    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
-      if (
-        !isVisible() ||
-        isEventFromOverlay(event, "data-react-grab-ignore-events")
-      )
-        return;
-      if (event instanceof MouseEvent && event.button === 2) return;
-      props.onDismiss?.();
-    };
-
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!isVisible()) return;
       if (event.code === "Escape") {
@@ -210,37 +194,16 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
         event.stopPropagation();
         props.onDismiss?.();
       }
-      if (event.code === "Enter" && props.items.length > 0) {
-        event.preventDefault();
-        event.stopPropagation();
-        props.onCopyAll?.();
-      }
     };
 
-    // HACK: Delay mousedown/touchstart listener to avoid catching the triggering click
-    const frameId = requestAnimationFrame(() => {
-      window.addEventListener("mousedown", handleClickOutside, {
-        capture: true,
-      });
-      window.addEventListener("touchstart", handleClickOutside, {
-        capture: true,
-      });
-    });
     window.addEventListener("keydown", handleKeyDown, { capture: true });
 
     onCleanup(() => {
-      cancelAnimationFrame(frameId);
       clearTimeout(copyAllFeedbackTimeout);
       clearTimeout(copyItemFeedbackTimeout);
       clearTimeout(exitAnimationTimeout);
       if (enterAnimationFrameId !== undefined)
         cancelAnimationFrame(enterAnimationFrameId);
-      window.removeEventListener("mousedown", handleClickOutside, {
-        capture: true,
-      });
-      window.removeEventListener("touchstart", handleClickOutside, {
-        capture: true,
-      });
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
     });
   });
@@ -331,9 +294,7 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
                   >
                     <Show
                       when={isCopyAllConfirmed()}
-                      fallback={
-                        <IconCopy size={DROPDOWN_ICON_SIZE_PX} />
-                      }
+                      fallback={<IconCopy size={DROPDOWN_ICON_SIZE_PX} />}
                     >
                       <IconCheck
                         size={DROPDOWN_ICON_SIZE_PX}
@@ -430,9 +391,7 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
                         >
                           <Show
                             when={confirmedCopyItemId() === item.id}
-                            fallback={
-                              <IconCopy size={DROPDOWN_ICON_SIZE_PX} />
-                            }
+                            fallback={<IconCopy size={DROPDOWN_ICON_SIZE_PX} />}
                           >
                             <IconCheck
                               size={DROPDOWN_ICON_SIZE_PX}

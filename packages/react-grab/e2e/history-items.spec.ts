@@ -129,7 +129,9 @@ test.describe("History Items", () => {
       await reactGrab.waitForSelectionBox();
       await reactGrab.rightClickElement("li:first-child");
 
-      expect(await reactGrab.isHistoryDropdownVisible()).toBe(false);
+      await expect
+        .poll(() => reactGrab.isHistoryDropdownVisible(), { timeout: 2000 })
+        .toBe(false);
       expect(await reactGrab.isContextMenuVisible()).toBe(true);
     });
   });
@@ -433,7 +435,7 @@ test.describe("History Items", () => {
       expect(remainingHoverBoxes.length).toBe(0);
     });
 
-    test("should clear button hover boxes when opening the dropdown", async ({
+    test("should clear button hover boxes when pinning the dropdown", async ({
       reactGrab,
     }) => {
       await copyElement(reactGrab, "li:first-child");
@@ -452,7 +454,17 @@ test.describe("History Items", () => {
         )
         .toBe(1);
 
-      await reactGrab.clickHistoryButton();
+      await reactGrab.page.evaluate((attrName) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const shadowRoot = host?.shadowRoot;
+        if (!shadowRoot) return;
+        const root = shadowRoot.querySelector(`[${attrName}]`);
+        if (!root) return;
+        root
+          .querySelector<HTMLButtonElement>("[data-react-grab-toolbar-history]")
+          ?.click();
+      }, "data-react-grab");
+      await reactGrab.page.waitForTimeout(200);
 
       const grabbedBoxesAfter = await reactGrab.getGrabbedBoxInfo();
       const remainingHoverBoxes = grabbedBoxesAfter.boxes.filter((box) =>

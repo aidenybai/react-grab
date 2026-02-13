@@ -62,6 +62,7 @@ import {
   ZOOM_DETECTION_THRESHOLD,
   ACTION_CYCLE_IDLE_TRIGGER_MS,
   WINDOW_REFOCUS_GRACE_PERIOD_MS,
+  DROPDOWN_HOVER_OPEN_DELAY_MS,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
@@ -271,6 +272,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const historyElementMap = new Map<string, Element>();
     const [hasUnreadHistoryItems, setHasUnreadHistoryItems] =
       createSignal(false);
+    const [isHistoryHoverOpen, setIsHistoryHoverOpen] = createSignal(false);
     let historyHoverPreviews: { boxId: string; labelId: string | null }[] = [];
 
     const historyDisconnectedItemIds = createMemo(
@@ -3418,21 +3420,42 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const dismissHistoryDropdown = () => {
+      cancelHistoryHoverOpenTimeout();
       stopTrackingToolbarPosition();
       clearHistoryHoverPreviews();
       setHistoryDropdownPosition(null);
+      setIsHistoryHoverOpen(false);
+    };
+
+    const openHistoryDropdown = () => {
+      actions.hideContextMenu();
+      setHistoryItems(loadHistory());
+      setHasUnreadHistoryItems(false);
+      startTrackingToolbarPosition();
+    };
+
+    let historyHoverOpenTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const cancelHistoryHoverOpenTimeout = () => {
+      if (historyHoverOpenTimeoutId !== null) {
+        clearTimeout(historyHoverOpenTimeoutId);
+        historyHoverOpenTimeoutId = null;
+      }
     };
 
     const handleToggleHistory = () => {
+      cancelHistoryHoverOpenTimeout();
       const isCurrentlyOpen = historyDropdownPosition() !== null;
       if (isCurrentlyOpen) {
-        dismissHistoryDropdown();
+        if (isHistoryHoverOpen()) {
+          clearHistoryHoverPreviews();
+          setIsHistoryHoverOpen(false);
+        } else {
+          dismissHistoryDropdown();
+        }
       } else {
         clearHistoryHoverPreviews();
-        actions.hideContextMenu();
-        setHistoryItems(loadHistory());
-        setHasUnreadHistoryItems(false);
-        startTrackingToolbarPosition();
+        openHistoryDropdown();
       }
     };
 
@@ -3544,9 +3567,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleHistoryButtonHover = (isHovered: boolean) => {
+      cancelHistoryHoverOpenTimeout();
       clearHistoryHoverPreviews();
       if (isHovered && historyDropdownPosition() === null) {
         showAllHistoryItemPreviews();
+        historyHoverOpenTimeoutId = setTimeout(() => {
+          historyHoverOpenTimeoutId = null;
+          setIsHistoryHoverOpen(true);
+          openHistoryDropdown();
+        }, DROPDOWN_HOVER_OPEN_DELAY_MS);
       }
     };
 
@@ -3735,6 +3764,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             historyItemCount={historyItems().length}
             hasUnreadHistoryItems={hasUnreadHistoryItems()}
             historyDropdownPosition={historyDropdownPosition()}
+            isHistoryPinned={
+              historyDropdownPosition() !== null && !isHistoryHoverOpen()
+            }
             onToggleHistory={handleToggleHistory}
             onHistoryButtonHover={handleHistoryButtonHover}
             onHistoryItemSelect={handleHistoryItemSelect}
