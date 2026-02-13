@@ -50,6 +50,7 @@ interface HistoryDropdownProps {
   onCopyAllHover?: (isHovered: boolean) => void;
   onClearAll?: () => void;
   onDismiss?: () => void;
+  onDropdownHover?: (isHovered: boolean) => void;
 }
 
 const formatRelativeTime = (timestamp: number): string => {
@@ -264,6 +265,8 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
         onMouseDown={handleMenuEvent}
         onClick={handleMenuEvent}
         onContextMenu={handleMenuEvent}
+        onMouseEnter={() => props.onDropdownHover?.(true)}
+        onMouseLeave={() => props.onDropdownHover?.(false)}
       >
         <div
           class={cn(
