@@ -3421,6 +3421,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const dismissHistoryDropdown = () => {
       cancelHistoryHoverOpenTimeout();
+      cancelHistoryHoverCloseTimeout();
       stopTrackingToolbarPosition();
       clearHistoryHoverPreviews();
       setHistoryDropdownPosition(null);
@@ -3435,6 +3436,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     let historyHoverOpenTimeoutId: ReturnType<typeof setTimeout> | null = null;
+    let historyHoverCloseTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
     const cancelHistoryHoverOpenTimeout = () => {
       if (historyHoverOpenTimeoutId !== null) {
@@ -3443,8 +3445,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
+    const cancelHistoryHoverCloseTimeout = () => {
+      if (historyHoverCloseTimeoutId !== null) {
+        clearTimeout(historyHoverCloseTimeoutId);
+        historyHoverCloseTimeoutId = null;
+      }
+    };
+
     const handleToggleHistory = () => {
       cancelHistoryHoverOpenTimeout();
+      cancelHistoryHoverCloseTimeout();
       const isCurrentlyOpen = historyDropdownPosition() !== null;
       if (isCurrentlyOpen) {
         if (isHistoryHoverOpen()) {
@@ -3566,20 +3576,28 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handleHistoryButtonHover = (isHovered: boolean) => {
       cancelHistoryHoverOpenTimeout();
       clearHistoryHoverPreviews();
-      if (isHovered && historyDropdownPosition() === null) {
-        showAllHistoryItemPreviews();
-        historyHoverOpenTimeoutId = setTimeout(() => {
-          historyHoverOpenTimeoutId = null;
-          setIsHistoryHoverOpen(true);
-          openHistoryDropdown();
-        }, DROPDOWN_HOVER_OPEN_DELAY_MS);
+      if (isHovered) {
+        cancelHistoryHoverCloseTimeout();
+        if (historyDropdownPosition() === null) {
+          showAllHistoryItemPreviews();
+          historyHoverOpenTimeoutId = setTimeout(() => {
+            historyHoverOpenTimeoutId = null;
+            setIsHistoryHoverOpen(true);
+            openHistoryDropdown();
+          }, DROPDOWN_HOVER_OPEN_DELAY_MS);
+        }
       } else if (!isHovered && isHistoryHoverOpen()) {
-        dismissHistoryDropdown();
+        historyHoverCloseTimeoutId = setTimeout(() => {
+          historyHoverCloseTimeoutId = null;
+          dismissHistoryDropdown();
+        }, DROPDOWN_HOVER_OPEN_DELAY_MS);
       }
     };
 
     const handleHistoryDropdownHover = (isHovered: boolean) => {
-      if (!isHovered && isHistoryHoverOpen()) {
+      if (isHovered) {
+        cancelHistoryHoverCloseTimeout();
+      } else if (!isHovered && isHistoryHoverOpen()) {
         dismissHistoryDropdown();
       }
     };
@@ -3909,6 +3927,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       dispose: () => {
         hasInited = false;
         cancelHistoryHoverOpenTimeout();
+        cancelHistoryHoverCloseTimeout();
         stopTrackingToolbarPosition();
         toolbarStateChangeCallbacks.clear();
         dispose();
