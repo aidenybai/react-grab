@@ -203,6 +203,8 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           hasUnreadHistoryItems={props.hasUnreadHistoryItems}
           onToggleHistory={props.onToggleHistory}
           onHistoryButtonHover={props.onHistoryButtonHover}
+          isHistoryDropdownOpen={Boolean(props.historyDropdownPosition)}
+          isHistoryPinned={props.isHistoryPinned}
         />
       </Show>
 
@@ -230,6 +232,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         onCopyAllHover={props.onHistoryCopyAllHover}
         onClearAll={props.onHistoryClear}
         onDismiss={props.onHistoryDismiss}
+        onDropdownHover={props.onHistoryDropdownHover}
       />
     </>
   );

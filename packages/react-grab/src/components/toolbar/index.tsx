@@ -67,7 +67,12 @@ interface ToolbarProps {
   historyItemCount?: number;
   hasUnreadHistoryItems?: boolean;
   onToggleHistory?: () => void;
-  onHistoryButtonHover?: (isHovered: boolean) => void;
+  onHistoryButtonHover?: (
+    isHovered: boolean,
+    mousePosition?: { x: number; y: number },
+  ) => void;
+  isHistoryDropdownOpen?: boolean;
+  isHistoryPinned?: boolean;
 }
 
 export const Toolbar: Component<ToolbarProps> = (props) => {
@@ -111,6 +116,12 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     const count = props.historyItemCount ?? 0;
     return count > 0 ? `History (${count})` : "History";
   };
+
+  const historyIconClass = () =>
+    cn(
+      "transition-colors",
+      props.isHistoryPinned ? "text-black/80" : "text-[#B3B3B3]",
+    );
 
   const isVertical = () => snapEdge() === "left" || snapEdge() === "right";
 
@@ -1444,28 +1455,36 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                       setIsHistoryTooltipVisible(false);
                       handleHistory(event);
                     }}
-                    {...createFreezeHandlers(
-                      setIsHistoryTooltipVisible,
-                      props.onHistoryButtonHover,
-                    )}
+                    onMouseEnter={() => {
+                      if (isDragging()) return;
+                      if (!props.isHistoryDropdownOpen) {
+                        setIsHistoryTooltipVisible(true);
+                      }
+                      props.onHistoryButtonHover?.(true);
+                    }}
+                    onMouseLeave={(event) => {
+                      setIsHistoryTooltipVisible(false);
+                      props.onHistoryButtonHover?.(false, {
+                        x: event.clientX,
+                        y: event.clientY,
+                      });
+                    }}
                   >
                     <Show
                       when={props.hasUnreadHistoryItems}
                       fallback={
-                        <IconInbox
-                          size={14}
-                          class="text-[#B3B3B3] transition-colors"
-                        />
+                        <IconInbox size={14} class={historyIconClass()} />
                       }
                     >
-                      <IconInboxUnread
-                        size={14}
-                        class="text-[#B3B3B3] transition-colors"
-                      />
+                      <IconInboxUnread size={14} class={historyIconClass()} />
                     </Show>
                   </button>
                   <Tooltip
-                    visible={isHistoryTooltipVisible() && !isCollapsed()}
+                    visible={
+                      isHistoryTooltipVisible() &&
+                      !isCollapsed() &&
+                      !props.isHistoryDropdownOpen
+                    }
                     position={tooltipPosition()}
                   >
                     {historyTooltipLabel()}
