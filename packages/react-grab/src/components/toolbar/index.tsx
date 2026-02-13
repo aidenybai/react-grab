@@ -658,8 +658,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         });
       }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
     } else if (vertical) {
+      setIsToggleAnimating(true);
       clearTimeout(toggleAnimationTimeout);
       toggleAnimationTimeout = setTimeout(() => {
+        setIsToggleAnimating(false);
         const rect = containerRef?.getBoundingClientRect();
         if (rect) {
           expandedDimensions = { width: rect.width, height: rect.height };
