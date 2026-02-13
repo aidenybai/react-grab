@@ -118,14 +118,17 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
     >
       <div
         class={cn(
-          "relative w-5 h-3 rounded-full transition-colors",
+          "relative rounded-full transition-colors",
+          isVertical() ? "w-3.5 h-2.5" : "w-5 h-3",
           props.enabled ? "bg-black" : "bg-black/25",
         )}
       >
         <div
           class={cn(
-            "absolute top-0.5 w-2 h-2 rounded-full bg-white transition-transform",
-            props.enabled ? "left-2.5" : "left-0.5",
+            "absolute top-0.5 rounded-full bg-white transition-transform",
+            isVertical() ? "w-1.5 h-1.5" : "w-2 h-2",
+            !props.enabled && "left-0.5",
+            props.enabled && (isVertical() ? "left-1.5" : "left-2.5"),
           )}
         />
       </div>

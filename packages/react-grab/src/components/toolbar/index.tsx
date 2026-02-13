@@ -1487,8 +1487,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                       "absolute top-0.5 rounded-full bg-white transition-transform",
                       isVertical() ? "w-1.5 h-1.5" : "w-2 h-2",
                       !props.enabled && "left-0.5",
-                      props.enabled &&
-                        (isVertical() ? "left-1.5" : "left-2.5"),
+                      props.enabled && (isVertical() ? "left-1.5" : "left-2.5"),
                     )}
                   />
                 </div>
