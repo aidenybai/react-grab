@@ -3,14 +3,25 @@ import { VERSION } from "../constants.js";
 const LEXICAL_EDITOR_MIME_TYPE = "application/x-lexical-editor";
 const REACT_GRAB_MIME_TYPE = "application/x-react-grab";
 
+export interface ReactGrabEntry {
+  tagName?: string;
+  componentName?: string;
+  content: string;
+  commentText?: string;
+}
+
 interface CopyContentOptions {
   onSuccess?: () => void;
-  name?: string;
+  componentName?: string;
+  tagName?: string;
+  commentText?: string;
+  entries?: ReactGrabEntry[];
 }
 
 interface ReactGrabMetadata {
   version: string;
   content: string;
+  entries: ReactGrabEntry[];
   timestamp: number;
 }
 
@@ -135,14 +146,23 @@ export const copyContent = (
   content: string,
   options?: CopyContentOptions,
 ): boolean => {
-  const elementName = options?.name ?? "div";
+  const elementName = options?.componentName ?? "div";
   const { plainText, htmlContent, lexicalData } = createClipboardData(
     content,
     elementName,
   );
+  const entries = options?.entries ?? [
+    {
+      tagName: options?.tagName,
+      componentName: elementName,
+      content,
+      commentText: options?.commentText,
+    },
+  ];
   const reactGrabMetadata: ReactGrabMetadata = {
     version: VERSION,
     content,
+    entries,
     timestamp: Date.now(),
   };
 

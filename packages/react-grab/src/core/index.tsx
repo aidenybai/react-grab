@@ -3437,7 +3437,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const copyHistoryItemContent = (item: HistoryItem) => {
-      copyContent(item.content, { name: item.elementName });
+      copyContent(item.content, {
+        tagName: item.tagName,
+        componentName: item.componentName ?? item.elementName,
+        commentText: item.commentText,
+      });
       const element = historyElementMap.get(item.id);
       if (element && isElementConnected(element)) {
         const bounds = createElementBounds(element);
@@ -3457,16 +3461,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const element = historyElementMap.get(item.id);
 
-      if (item.isComment && item.commentText) {
-        if (element && isElementConnected(element)) {
-          const bounds = createElementBounds(element);
-          const centerX = bounds.x + bounds.width / 2;
-          const centerY = bounds.y + bounds.height / 2;
-          actions.enterPromptMode({ x: centerX, y: centerY }, element);
-          actions.setInputText(item.commentText);
-        } else {
-          copyContent(item.content, { name: item.elementName });
-        }
+      if (
+        item.isComment &&
+        item.commentText &&
+        element &&
+        isElementConnected(element)
+      ) {
+        const bounds = createElementBounds(element);
+        const centerX = bounds.x + bounds.width / 2;
+        const centerY = bounds.y + bounds.height / 2;
+        actions.enterPromptMode({ x: centerX, y: centerY }, element);
+        actions.setInputText(item.commentText);
       } else {
         copyHistoryItemContent(item);
       }
@@ -3493,7 +3498,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const firstItem = currentHistoryItems[0];
       copyContent(combinedContent, {
-        name: firstItem.componentName ?? firstItem.tagName,
+        componentName: firstItem.componentName ?? firstItem.tagName,
+        entries: currentHistoryItems.map((historyItem) => ({
+          tagName: historyItem.tagName,
+          componentName: historyItem.componentName ?? historyItem.elementName,
+          content: historyItem.content,
+          commentText: historyItem.commentText,
+        })),
       });
       dismissHistoryDropdown();
 
