@@ -76,13 +76,19 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   let unfreezeUpdatesCallback: (() => void) | null = null;
   let lastKnownExpandableWidth = 0;
 
+  const savedState = loadToolbarState();
+
   const [isVisible, setIsVisible] = createSignal(false);
   const [isCollapsed, setIsCollapsed] = createSignal(false);
   const [isDragging, setIsDragging] = createSignal(false);
   const [isSnapping, setIsSnapping] = createSignal(false);
   const [isResizing, setIsResizing] = createSignal(false);
-  const [snapEdge, setSnapEdge] = createSignal<SnapEdge>("bottom");
-  const [positionRatio, setPositionRatio] = createSignal(0.5);
+  const [snapEdge, setSnapEdge] = createSignal<SnapEdge>(
+    savedState?.edge ?? "bottom",
+  );
+  const [positionRatio, setPositionRatio] = createSignal(
+    savedState?.ratio ?? 0.5,
+  );
   const [position, setPosition] = createSignal({ x: 0, y: 0 });
   const [dragOffset, setDragOffset] = createSignal({ x: 0, y: 0 });
   const [velocity, setVelocity] = createSignal({ x: 0, y: 0 });
@@ -1049,13 +1055,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       props.onContainerRef?.(containerRef);
     }
 
-    const savedState = loadToolbarState();
     const rect = containerRef?.getBoundingClientRect();
     const viewport = getVisualViewport();
 
     if (savedState) {
-      setSnapEdge(savedState.edge);
-      setPositionRatio(savedState.ratio);
       if (rect) {
         // HACK: On initial mount, the element is always rendered expanded (isCollapsed defaults to false).
         // So rect always measures expanded dimensions, regardless of savedState.collapsed.
@@ -1474,14 +1477,18 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               >
                 <div
                   class={cn(
-                    "relative w-5 h-3 rounded-full transition-colors",
+                    "relative rounded-full transition-colors",
+                    isVertical() ? "w-3.5 h-2.5" : "w-5 h-3",
                     props.enabled ? "bg-black" : "bg-black/25",
                   )}
                 >
                   <div
                     class={cn(
-                      "absolute top-0.5 w-2 h-2 rounded-full bg-white transition-transform",
-                      props.enabled ? "left-2.5" : "left-0.5",
+                      "absolute top-0.5 rounded-full bg-white transition-transform",
+                      isVertical() ? "w-1.5 h-1.5" : "w-2 h-2",
+                      !props.enabled && "left-0.5",
+                      props.enabled &&
+                        (isVertical() ? "left-1.5" : "left-2.5"),
                     )}
                   />
                 </div>
