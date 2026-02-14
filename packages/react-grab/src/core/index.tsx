@@ -273,7 +273,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [hasUnreadHistoryItems, setHasUnreadHistoryItems] =
       createSignal(false);
     const [isHistoryHoverOpen, setIsHistoryHoverOpen] = createSignal(false);
-    let historyHoverPreviews: { boxId: string; labelId: string | null }[] = [];
+    let historyHoverPreviews: { boxId: string; labelId: string }[] = [];
 
     const historyDisconnectedItemIds = createMemo(
       () => {
@@ -3231,6 +3231,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (agent) {
           actions.setSelectedAgent(agent);
         }
+        actions.clearLabelInstances();
         onBeforePrompt?.();
         preparePromptMode(element, position.x, position.y);
         actions.setPointer({ x: position.x, y: position.y });
@@ -3309,6 +3310,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             if (agent) {
               actions.setSelectedAgent(agent);
             }
+            actions.clearLabelInstances();
             actions.clearInputText();
             actions.enterPromptMode(position, element);
             deferHideContextMenu();
@@ -3327,9 +3329,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const clearHistoryHoverPreviews = () => {
       for (const { boxId, labelId } of historyHoverPreviews) {
         actions.removeGrabbedBox(boxId);
-        if (labelId) {
-          actions.removeLabelInstance(labelId);
-        }
+        actions.removeLabelInstance(labelId);
       }
       historyHoverPreviews = [];
     };
@@ -3344,22 +3344,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // HACK: createdAt=0 is falsy, which skips the auto-fade logic in the overlay canvas animation loop
       actions.addGrabbedBox({ id: boxId, bounds, createdAt: 0, element });
 
-      let labelId: string | null = null;
-      if (item.isComment && item.commentText) {
-        labelId = `${idPrefix}-label-${item.id}`;
-        actions.addLabelInstance({
-          id: labelId,
-          bounds,
-          tagName: item.tagName,
-          componentName: item.componentName,
-          status: "idle",
-          isPromptMode: true,
-          inputValue: item.commentText,
-          createdAt: 0,
-          element,
-          mouseX: bounds.x + bounds.width / 2,
-        });
-      }
+      const labelId = `${idPrefix}-label-${item.id}`;
+      actions.addLabelInstance({
+        id: labelId,
+        bounds,
+        tagName: item.tagName,
+        componentName: item.componentName,
+        status: "idle",
+        isPromptMode: Boolean(item.isComment && item.commentText),
+        inputValue: item.commentText,
+        createdAt: 0,
+        element,
+        mouseX: bounds.x + bounds.width / 2,
+      });
 
       historyHoverPreviews.push({ boxId, labelId });
     };
@@ -3491,6 +3488,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleHistoryItemSelect = (item: HistoryItem) => {
       clearHistoryHoverPreviews();
+      if (isPromptMode()) {
+        actions.exitPromptMode();
+        actions.clearInputText();
+      }
       const element = historyElementMap.get(item.id);
 
       if (
@@ -3588,7 +3589,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             openHistoryDropdown();
           }, DROPDOWN_HOVER_OPEN_DELAY_MS);
         }
-      } else if (!isHovered && isHistoryHoverOpen()) {
+      } else if (isHistoryHoverOpen()) {
         historyHoverCloseTimeoutId = setTimeout(() => {
           historyHoverCloseTimeoutId = null;
           dismissHistoryDropdown();
@@ -3599,7 +3600,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handleHistoryDropdownHover = (isHovered: boolean) => {
       if (isHovered) {
         cancelHistoryHoverCloseTimeout();
-      } else if (!isHovered && isHistoryHoverOpen()) {
+      } else if (isHistoryHoverOpen()) {
         historyHoverCloseTimeoutId = setTimeout(() => {
           historyHoverCloseTimeoutId = null;
           dismissHistoryDropdown();

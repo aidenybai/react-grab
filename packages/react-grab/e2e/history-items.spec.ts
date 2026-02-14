@@ -611,7 +611,16 @@ test.describe("History Items", () => {
       await copyElement(reactGrab, "li:first-child");
 
       await reactGrab.dragToolbar(0, -600);
-      await reactGrab.page.waitForTimeout(400);
+
+      await expect
+        .poll(
+          async () => {
+            const info = await reactGrab.getToolbarInfo();
+            return info.snapEdge;
+          },
+          { timeout: 3000 },
+        )
+        .toBe("top");
 
       await reactGrab.clickHistoryButton();
 
@@ -624,9 +633,6 @@ test.describe("History Items", () => {
           { timeout: 3000 },
         )
         .toBeGreaterThanOrEqual(0);
-
-      const toolbarInfo = await reactGrab.getToolbarInfo();
-      expect(toolbarInfo.snapEdge).toBe("top");
     });
   });
 

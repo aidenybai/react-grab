@@ -544,10 +544,7 @@ export interface ReactGrabRendererProps {
   historyDropdownPosition?: DropdownAnchor | null;
   isHistoryPinned?: boolean;
   onToggleHistory?: () => void;
-  onHistoryButtonHover?: (
-    isHovered: boolean,
-    mousePosition?: { x: number; y: number },
-  ) => void;
+  onHistoryButtonHover?: (isHovered: boolean) => void;
   onHistoryItemSelect?: (item: HistoryItem) => void;
   onHistoryItemRemove?: (item: HistoryItem) => void;
   onHistoryItemCopy?: (item: HistoryItem) => void;
@@ -556,10 +553,7 @@ export interface ReactGrabRendererProps {
   onHistoryCopyAllHover?: (isHovered: boolean) => void;
   onHistoryClear?: () => void;
   onHistoryDismiss?: () => void;
-  onHistoryDropdownHover?: (
-    isHovered: boolean,
-    mousePosition?: { x: number; y: number },
-  ) => void;
+  onHistoryDropdownHover?: (isHovered: boolean) => void;
 }
 
 export interface GrabbedBox {

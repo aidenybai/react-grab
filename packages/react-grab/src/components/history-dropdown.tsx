@@ -102,7 +102,8 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
       // HACK: rAF measures then forces reflow so the browser commits the correct position before transitioning in
       enterAnimationFrameId = requestAnimationFrame(() => {
         measureContainer();
-        containerRef?.offsetHeight;
+        // HACK: Reading offsetHeight forces a synchronous reflow so the browser commits layout before the transition starts
+        void containerRef?.offsetHeight;
         setIsAnimatedIn(true);
       });
     } else {
@@ -115,6 +116,7 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
     }
   });
 
+  // HACK: mouseenter doesn't fire when an element appears under the cursor, so we check :hover after the enter animation commits
   createEffect(() => {
     if (isAnimatedIn() && containerRef?.matches(":hover")) {
       props.onDropdownHover?.(true);
@@ -165,13 +167,16 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
     };
   };
 
-  const displayPosition = createMemo((previousPosition) => {
-    const position = computedPosition();
-    if (position.left !== DEFAULT_OFFSCREEN_POSITION.left) {
-      return position;
-    }
-    return previousPosition;
-  }, DEFAULT_OFFSCREEN_POSITION);
+  const displayPosition = createMemo(
+    (previousPosition: { left: number; top: number }) => {
+      const position = computedPosition();
+      if (position.left !== DEFAULT_OFFSCREEN_POSITION.left) {
+        return position;
+      }
+      return previousPosition;
+    },
+    DEFAULT_OFFSCREEN_POSITION,
+  );
 
   const clampedMaxWidth = () =>
     Math.min(
@@ -332,7 +337,7 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
                   <div
                     data-react-grab-ignore-events
                     data-react-grab-history-item
-                    class="group contain-layout flex items-start justify-between w-full px-2 py-1 cursor-pointer transition-[background-color,opacity] hover:bg-black/5 focus-within:bg-black/5 text-left gap-2"
+                    class="group contain-layout flex items-start justify-between w-full px-2 py-1 cursor-pointer hover:bg-black/5 focus-within:bg-black/5 text-left gap-2"
                     classList={{
                       "opacity-40 hover:opacity-100": Boolean(
                         props.disconnectedItemIds?.has(item.id),
@@ -343,6 +348,11 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
                     onClick={(event) => {
                       event.stopPropagation();
                       props.onSelectItem?.(item);
+                      setConfirmedCopyItemId(item.id);
+                      clearTimeout(copyItemFeedbackTimeout);
+                      copyItemFeedbackTimeout = setTimeout(() => {
+                        setConfirmedCopyItemId(null);
+                      }, FEEDBACK_DURATION_MS);
                     }}
                     onKeyDown={(event) => {
                       if (

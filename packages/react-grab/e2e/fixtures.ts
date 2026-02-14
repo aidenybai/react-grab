@@ -2247,14 +2247,24 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
 export const test = base.extend<{ reactGrab: ReactGrabPageObject }>({
   reactGrab: async ({ page }, use) => {
-    await page.goto("/", { waitUntil: "domcontentloaded" });
-    await page.waitForFunction(
-      () => {
-        const api = (window as { __REACT_GRAB__?: unknown }).__REACT_GRAB__;
-        return api !== undefined;
-      },
-      { timeout: 10000 },
-    );
+    const initializePage = async () => {
+      await page.goto("/", { waitUntil: "domcontentloaded" });
+      await page.waitForFunction(
+        () => {
+          const api = (window as { __REACT_GRAB__?: unknown }).__REACT_GRAB__;
+          return api !== undefined;
+        },
+        { timeout: 10000 },
+      );
+    };
+
+    try {
+      await initializePage();
+    } catch {
+      // HACK: Retry once if app initialization failed (dev server can be slow under parallel load)
+      await initializePage();
+    }
+
     const reactGrab = createReactGrabPageObject(page);
     await use(reactGrab);
   },

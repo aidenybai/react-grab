@@ -267,13 +267,16 @@ test.describe("Edge Cases", () => {
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.clickElement("li:first-child");
-      await reactGrab.page.waitForTimeout(2000);
 
-      const focusedElement = await reactGrab.page.evaluate(() => {
-        return document.activeElement?.getAttribute("data-testid");
-      });
-
-      expect(focusedElement).toBe("test-input");
+      await expect
+        .poll(
+          () =>
+            reactGrab.page.evaluate(() =>
+              document.activeElement?.getAttribute("data-testid"),
+            ),
+          { timeout: 5000 },
+        )
+        .toBe("test-input");
     });
   });
 

@@ -45,8 +45,9 @@ test.describe("Agent Integration", () => {
       await reactGrab.submitInput();
 
       await reactGrab.waitForAgentSession(3000);
-      const isVisible = await reactGrab.isAgentSessionVisible();
-      expect(isVisible).toBe(true);
+      await expect
+        .poll(() => reactGrab.isAgentSessionVisible(), { timeout: 3000 })
+        .toBe(true);
     });
 
     test("should show streaming status during processing", async ({
@@ -372,7 +373,9 @@ test.describe("Agent Integration", () => {
         await reactGrab.typeInInput(`Prompt ${i}`);
         await reactGrab.submitInput();
 
+        await reactGrab.waitForAgentSession(3000);
         await reactGrab.clickAgentDismiss();
+        await reactGrab.page.waitForTimeout(200);
       }
 
       const state = await reactGrab.getState();
