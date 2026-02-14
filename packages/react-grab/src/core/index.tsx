@@ -3490,6 +3490,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleHistoryItemSelect = (item: HistoryItem) => {
+      clearHistoryHoverPreviews();
       const element = historyElementMap.get(item.id);
 
       if (
@@ -3520,6 +3521,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleHistoryCopyAll = () => {
+      clearHistoryHoverPreviews();
       const currentHistoryItems = historyItems();
       if (currentHistoryItems.length === 0) return;
 
