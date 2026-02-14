@@ -643,6 +643,14 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     let expandableDimension = readExpandableDimension();
     let shouldCompensatePosition = expandableDimension > 0;
 
+    let currentRenderedDimension = 0;
+    if (expandableButtonsRef) {
+      const expandableRect = expandableButtonsRef.getBoundingClientRect();
+      currentRenderedDimension = isVerticalEdge
+        ? expandableRect.height
+        : expandableRect.width;
+    }
+
     // HACK: On first enable, expandable buttons are collapsed (0fr) so getBoundingClientRect
     // returns 0. Temporarily force the relevant grid wrappers to 1fr without transitions to measure
     // the real dimension synchronously, then restore. The browser never renders the intermediate state.
@@ -659,15 +667,18 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           return !(isHistoryGrid && !hasHistoryItems);
         },
       );
+      const gridProperty = isVerticalEdge
+        ? "gridTemplateRows"
+        : "gridTemplateColumns";
       for (const wrapper of expandedWrappers) {
         wrapper.style.transition = "none";
-        wrapper.style.gridTemplateColumns = "1fr";
+        wrapper.style[gridProperty] = "1fr";
       }
       void expandableButtonsRef.offsetWidth;
       measureExpandableDimension();
       expandableDimension = readExpandableDimension();
       for (const wrapper of expandedWrappers) {
-        wrapper.style.gridTemplateColumns = "";
+        wrapper.style[gridProperty] = "";
       }
       void expandableButtonsRef.offsetWidth;
       for (const wrapper of expandedWrappers) {
@@ -701,8 +712,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       }
 
       const collapsedAxisPosition = isVerticalEdge
-        ? preTogglePosition.y + (isCurrentlyEnabled ? expandableDimension : 0)
-        : preTogglePosition.x + (isCurrentlyEnabled ? expandableDimension : 0);
+        ? preTogglePosition.y + currentRenderedDimension
+        : preTogglePosition.x + currentRenderedDimension;
 
       const computeClampedPosition = (
         expandDimension: number,

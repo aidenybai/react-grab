@@ -314,7 +314,6 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
                         class="text-black"
                       />
                     </Show>
-                    <span class="text-[11px] font-sans text-black/50">↵</span>
                   </button>
                   <Tooltip
                     visible={activeHeaderTooltip() === "copy"}
