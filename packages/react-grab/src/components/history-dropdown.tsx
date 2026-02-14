@@ -115,6 +115,12 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
     }
   });
 
+  createEffect(() => {
+    if (isAnimatedIn() && containerRef?.matches(":hover")) {
+      props.onDropdownHover?.(true);
+    }
+  });
+
   const computedPosition = () => {
     const anchor = props.position;
     const width = measuredWidth();
