@@ -5,27 +5,37 @@ import {
   onCleanup,
   createSignal,
   createEffect,
+  createMemo,
 } from "solid-js";
 import type { Component } from "solid-js";
 import type { HistoryItem, DropdownAnchor } from "../types.js";
 import {
   DROPDOWN_ANCHOR_GAP_PX,
+  DROPDOWN_ANIMATION_DURATION_MS,
   DROPDOWN_ICON_SIZE_PX,
   DROPDOWN_MAX_WIDTH_PX,
   DROPDOWN_MIN_WIDTH_PX,
   DROPDOWN_VIEWPORT_PADDING_PX,
+  FEEDBACK_DURATION_MS,
   PANEL_STYLES,
 } from "../constants.js";
 import { clampToViewport } from "../utils/clamp-to-viewport.js";
 import { cn } from "../utils/cn.js";
-import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
 import { IconTrash } from "./icons/icon-trash.jsx";
 import { IconCopy } from "./icons/icon-copy.jsx";
+import { IconCheck } from "./icons/icon-check.jsx";
 import { Tooltip } from "./tooltip.jsx";
 
 const DEFAULT_OFFSCREEN_POSITION = { left: -9999, top: -9999 };
 const ITEM_ACTION_CLASS =
   "flex items-center justify-center cursor-pointer text-black/25 transition-colors press-scale";
+
+const EDGE_TO_TRANSFORM_ORIGIN: Record<string, string> = {
+  left: "left center",
+  right: "right center",
+  top: "center top",
+  bottom: "center bottom",
+};
 
 interface HistoryDropdownProps {
   position: DropdownAnchor | null;
@@ -39,6 +49,7 @@ interface HistoryDropdownProps {
   onCopyAllHover?: (isHovered: boolean) => void;
   onClearAll?: () => void;
   onDismiss?: () => void;
+  onDropdownHover?: (isHovered: boolean) => void;
 }
 
 const formatRelativeTime = (timestamp: number): string => {
@@ -59,20 +70,56 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
   const [activeHeaderTooltip, setActiveHeaderTooltip] = createSignal<
     "clear" | "copy" | null
   >(null);
+  const [isCopyAllConfirmed, setIsCopyAllConfirmed] = createSignal(false);
+  const [confirmedCopyItemId, setConfirmedCopyItemId] = createSignal<
+    string | null
+  >(null);
+
+  let copyAllFeedbackTimeout: ReturnType<typeof setTimeout> | undefined;
+  let copyItemFeedbackTimeout: ReturnType<typeof setTimeout> | undefined;
+  let exitAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
+  let enterAnimationFrameId: number | undefined;
 
   const isVisible = () => props.position !== null;
+  const [shouldMount, setShouldMount] = createSignal(false);
+  const [isAnimatedIn, setIsAnimatedIn] = createSignal(false);
+  const [lastAnchorEdge, setLastAnchorEdge] = createSignal<string>("bottom");
 
   const measureContainer = () => {
     if (containerRef) {
-      const rect = containerRef.getBoundingClientRect();
-      setMeasuredWidth(rect.width);
-      setMeasuredHeight(rect.height);
+      setMeasuredWidth(containerRef.offsetWidth);
+      setMeasuredHeight(containerRef.offsetHeight);
     }
   };
 
   createEffect(() => {
     if (isVisible()) {
-      requestAnimationFrame(measureContainer);
+      if (props.position) setLastAnchorEdge(props.position.edge);
+      clearTimeout(exitAnimationTimeout);
+      setShouldMount(true);
+      if (enterAnimationFrameId !== undefined)
+        cancelAnimationFrame(enterAnimationFrameId);
+      // HACK: rAF measures then forces reflow so the browser commits the correct position before transitioning in
+      enterAnimationFrameId = requestAnimationFrame(() => {
+        measureContainer();
+        // HACK: Reading offsetHeight forces a synchronous reflow so the browser commits layout before the transition starts
+        void containerRef?.offsetHeight;
+        setIsAnimatedIn(true);
+      });
+    } else {
+      if (enterAnimationFrameId !== undefined)
+        cancelAnimationFrame(enterAnimationFrameId);
+      setIsAnimatedIn(false);
+      exitAnimationTimeout = setTimeout(() => {
+        setShouldMount(false);
+      }, DROPDOWN_ANIMATION_DURATION_MS);
+    }
+  });
+
+  // HACK: mouseenter doesn't fire when an element appears under the cursor, so we check :hover after the enter animation commits
+  createEffect(() => {
+    if (isAnimatedIn() && containerRef?.matches(":hover")) {
+      props.onDropdownHover?.(true);
     }
   });
 
@@ -97,7 +144,7 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
           : anchor.x - width - DROPDOWN_ANCHOR_GAP_PX;
       rawTop = anchor.y - height / 2;
     } else {
-      rawLeft = anchor.x - anchor.toolbarWidth / 2;
+      rawLeft = anchor.x - width / 2;
       rawTop =
         edge === "top"
           ? anchor.y + DROPDOWN_ANCHOR_GAP_PX
@@ -120,16 +167,25 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
     };
   };
 
+  const displayPosition = createMemo(
+    (previousPosition: { left: number; top: number }) => {
+      const position = computedPosition();
+      if (position.left !== DEFAULT_OFFSCREEN_POSITION.left) {
+        return position;
+      }
+      return previousPosition;
+    },
+    DEFAULT_OFFSCREEN_POSITION,
+  );
+
   const clampedMaxWidth = () =>
     Math.min(
       DROPDOWN_MAX_WIDTH_PX,
-      window.innerWidth -
-        computedPosition().left -
-        DROPDOWN_VIEWPORT_PADDING_PX,
+      window.innerWidth - displayPosition().left - DROPDOWN_VIEWPORT_PADDING_PX,
     );
 
   const clampedMaxHeight = () =>
-    window.innerHeight - computedPosition().top - DROPDOWN_VIEWPORT_PADDING_PX;
+    window.innerHeight - displayPosition().top - DROPDOWN_VIEWPORT_PADDING_PX;
 
   const panelMinWidth = () =>
     Math.max(DROPDOWN_MIN_WIDTH_PX, props.position?.toolbarWidth ?? 0);
@@ -144,16 +200,6 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
   onMount(() => {
     measureContainer();
 
-    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
-      if (
-        !isVisible() ||
-        isEventFromOverlay(event, "data-react-grab-ignore-events")
-      )
-        return;
-      if (event instanceof MouseEvent && event.button === 2) return;
-      props.onDismiss?.();
-    };
-
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!isVisible()) return;
       if (event.code === "Escape") {
@@ -161,53 +207,42 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
         event.stopPropagation();
         props.onDismiss?.();
       }
-      if (event.code === "Enter" && props.items.length > 0) {
-        event.preventDefault();
-        event.stopPropagation();
-        props.onCopyAll?.();
-      }
     };
 
-    // HACK: Delay mousedown/touchstart listener to avoid catching the triggering click
-    const frameId = requestAnimationFrame(() => {
-      window.addEventListener("mousedown", handleClickOutside, {
-        capture: true,
-      });
-      window.addEventListener("touchstart", handleClickOutside, {
-        capture: true,
-      });
-    });
     window.addEventListener("keydown", handleKeyDown, { capture: true });
 
     onCleanup(() => {
-      cancelAnimationFrame(frameId);
-      window.removeEventListener("mousedown", handleClickOutside, {
-        capture: true,
-      });
-      window.removeEventListener("touchstart", handleClickOutside, {
-        capture: true,
-      });
+      clearTimeout(copyAllFeedbackTimeout);
+      clearTimeout(copyItemFeedbackTimeout);
+      clearTimeout(exitAnimationTimeout);
+      if (enterAnimationFrameId !== undefined)
+        cancelAnimationFrame(enterAnimationFrameId);
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
     });
   });
 
   return (
-    <Show when={isVisible()}>
+    <Show when={shouldMount()}>
       <div
         ref={containerRef}
         data-react-grab-ignore-events
         data-react-grab-history-dropdown
-        class="fixed font-sans text-[13px] antialiased filter-[drop-shadow(0px_1px_2px_#51515140)] select-none transition-opacity duration-150 ease-out"
+        class="fixed font-sans text-[13px] antialiased filter-[drop-shadow(0px_1px_2px_#51515140)] select-none transition-[opacity,transform] duration-100 ease-out will-change-[opacity,transform]"
         style={{
-          top: `${computedPosition().top}px`,
-          left: `${computedPosition().left}px`,
+          top: `${displayPosition().top}px`,
+          left: `${displayPosition().left}px`,
           "z-index": "2147483647",
-          "pointer-events": "auto",
+          "pointer-events": isAnimatedIn() ? "auto" : "none",
+          "transform-origin": EDGE_TO_TRANSFORM_ORIGIN[lastAnchorEdge()],
+          opacity: isAnimatedIn() ? "1" : "0",
+          transform: isAnimatedIn() ? "scale(1)" : "scale(0.95)",
         }}
         onPointerDown={handleMenuEvent}
         onMouseDown={handleMenuEvent}
         onClick={handleMenuEvent}
         onContextMenu={handleMenuEvent}
+        onMouseEnter={() => props.onDropdownHover?.(true)}
+        onMouseLeave={() => props.onDropdownHover?.(false)}
       >
         <div
           class={cn(
@@ -255,6 +290,11 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
                       event.stopPropagation();
                       setActiveHeaderTooltip(null);
                       props.onCopyAll?.();
+                      setIsCopyAllConfirmed(true);
+                      clearTimeout(copyAllFeedbackTimeout);
+                      copyAllFeedbackTimeout = setTimeout(() => {
+                        setIsCopyAllConfirmed(false);
+                      }, FEEDBACK_DURATION_MS);
                     }}
                     onMouseEnter={() => {
                       setActiveHeaderTooltip("copy");
@@ -265,8 +305,15 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
                       props.onCopyAllHover?.(false);
                     }}
                   >
-                    <IconCopy size={DROPDOWN_ICON_SIZE_PX} />
-                    <span class="text-[11px] font-sans text-black/50">↵</span>
+                    <Show
+                      when={isCopyAllConfirmed()}
+                      fallback={<IconCopy size={DROPDOWN_ICON_SIZE_PX} />}
+                    >
+                      <IconCheck
+                        size={DROPDOWN_ICON_SIZE_PX}
+                        class="text-black"
+                      />
+                    </Show>
                   </button>
                   <Tooltip
                     visible={activeHeaderTooltip() === "copy"}
@@ -289,7 +336,7 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
                   <div
                     data-react-grab-ignore-events
                     data-react-grab-history-item
-                    class="group contain-layout flex items-start justify-between w-full px-2 py-1 cursor-pointer transition-[background-color,opacity] hover:bg-black/5 focus-within:bg-black/5 text-left gap-2"
+                    class="group contain-layout flex items-start justify-between w-full px-2 py-1 cursor-pointer hover:bg-black/5 focus-within:bg-black/5 text-left gap-2"
                     classList={{
                       "opacity-40 hover:opacity-100": Boolean(
                         props.disconnectedItemIds?.has(item.id),
@@ -300,6 +347,11 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
                     onClick={(event) => {
                       event.stopPropagation();
                       props.onSelectItem?.(item);
+                      setConfirmedCopyItemId(item.id);
+                      clearTimeout(copyItemFeedbackTimeout);
+                      copyItemFeedbackTimeout = setTimeout(() => {
+                        setConfirmedCopyItemId(null);
+                      }, FEEDBACK_DURATION_MS);
                     }}
                     onKeyDown={(event) => {
                       if (
@@ -347,9 +399,22 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
                           onClick={(event) => {
                             event.stopPropagation();
                             props.onCopyItem?.(item);
+                            setConfirmedCopyItemId(item.id);
+                            clearTimeout(copyItemFeedbackTimeout);
+                            copyItemFeedbackTimeout = setTimeout(() => {
+                              setConfirmedCopyItemId(null);
+                            }, FEEDBACK_DURATION_MS);
                           }}
                         >
-                          <IconCopy size={DROPDOWN_ICON_SIZE_PX} />
+                          <Show
+                            when={confirmedCopyItemId() === item.id}
+                            fallback={<IconCopy size={DROPDOWN_ICON_SIZE_PX} />}
+                          >
+                            <IconCheck
+                              size={DROPDOWN_ICON_SIZE_PX}
+                              class="text-black"
+                            />
+                          </Show>
                         </button>
                       </span>
                     </span>

@@ -735,7 +735,9 @@ test.describe("Toolbar", () => {
       expect(horizontalInfo.isVertical).toBe(false);
     });
 
-    test("should be draggable from vertical position", async ({ reactGrab }) => {
+    test("should be draggable from vertical position", async ({
+      reactGrab,
+    }) => {
       await seedVerticalState(reactGrab.page, "right");
       await expect
         .poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 })

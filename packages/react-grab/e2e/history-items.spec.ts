@@ -129,7 +129,9 @@ test.describe("History Items", () => {
       await reactGrab.waitForSelectionBox();
       await reactGrab.rightClickElement("li:first-child");
 
-      expect(await reactGrab.isHistoryDropdownVisible()).toBe(false);
+      await expect
+        .poll(() => reactGrab.isHistoryDropdownVisible(), { timeout: 2000 })
+        .toBe(false);
       expect(await reactGrab.isContextMenuVisible()).toBe(true);
     });
   });
@@ -195,7 +197,7 @@ test.describe("History Items", () => {
       expect(newClipboard).toBe(originalClipboard);
     });
 
-    test("should close the dropdown after selecting an item", async ({
+    test("should keep the dropdown open after selecting an item", async ({
       reactGrab,
     }) => {
       await copyElement(reactGrab, "li:first-child");
@@ -205,7 +207,7 @@ test.describe("History Items", () => {
 
       await reactGrab.clickHistoryItem(0);
 
-      expect(await reactGrab.isHistoryDropdownVisible()).toBe(false);
+      expect(await reactGrab.isHistoryDropdownVisible()).toBe(true);
     });
   });
 
@@ -226,7 +228,9 @@ test.describe("History Items", () => {
       expect(clipboardContent).toContain("[2]");
     });
 
-    test("should close the dropdown after copy all", async ({ reactGrab }) => {
+    test("should keep the dropdown open after copy all", async ({
+      reactGrab,
+    }) => {
       await copyElement(reactGrab, "li:first-child");
       await reactGrab.clickHistoryButton();
 
@@ -234,10 +238,10 @@ test.describe("History Items", () => {
 
       await reactGrab.clickHistoryCopyAll();
 
-      expect(await reactGrab.isHistoryDropdownVisible()).toBe(false);
+      expect(await reactGrab.isHistoryDropdownVisible()).toBe(true);
     });
 
-    test("should trigger copy all via Enter key", async ({ reactGrab }) => {
+    test("should not trigger copy all via Enter key", async ({ reactGrab }) => {
       await copyElement(reactGrab, "li:first-child");
 
       await reactGrab.page.evaluate(() => navigator.clipboard.writeText(""));
@@ -247,7 +251,7 @@ test.describe("History Items", () => {
       await reactGrab.page.waitForTimeout(200);
 
       const clipboardContent = await reactGrab.getClipboardContent();
-      expect(clipboardContent).toBeTruthy();
+      expect(clipboardContent).toBe("");
     });
   });
 
@@ -431,7 +435,7 @@ test.describe("History Items", () => {
       expect(remainingHoverBoxes.length).toBe(0);
     });
 
-    test("should clear button hover boxes when opening the dropdown", async ({
+    test("should clear button hover boxes when pinning the dropdown", async ({
       reactGrab,
     }) => {
       await copyElement(reactGrab, "li:first-child");
@@ -450,7 +454,17 @@ test.describe("History Items", () => {
         )
         .toBe(1);
 
-      await reactGrab.clickHistoryButton();
+      await reactGrab.page.evaluate((attrName) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const shadowRoot = host?.shadowRoot;
+        if (!shadowRoot) return;
+        const root = shadowRoot.querySelector(`[${attrName}]`);
+        if (!root) return;
+        root
+          .querySelector<HTMLButtonElement>("[data-react-grab-toolbar-history]")
+          ?.click();
+      }, "data-react-grab");
+      await reactGrab.page.waitForTimeout(200);
 
       const grabbedBoxesAfter = await reactGrab.getGrabbedBoxInfo();
       const remainingHoverBoxes = grabbedBoxesAfter.boxes.filter((box) =>
@@ -556,6 +570,17 @@ test.describe("History Items", () => {
 
       expect(await reactGrab.isHistoryDropdownVisible()).toBe(true);
     });
+
+    test("should keep the dropdown open after clicking a row to copy", async ({
+      reactGrab,
+    }) => {
+      await copyElement(reactGrab, "li:first-child");
+
+      await reactGrab.clickHistoryButton();
+      await reactGrab.clickHistoryItem(0);
+
+      expect(await reactGrab.isHistoryDropdownVisible()).toBe(true);
+    });
   });
 
   test.describe("Dropdown Positioning", () => {
@@ -586,7 +611,16 @@ test.describe("History Items", () => {
       await copyElement(reactGrab, "li:first-child");
 
       await reactGrab.dragToolbar(0, -600);
-      await reactGrab.page.waitForTimeout(400);
+
+      await expect
+        .poll(
+          async () => {
+            const info = await reactGrab.getToolbarInfo();
+            return info.snapEdge;
+          },
+          { timeout: 3000 },
+        )
+        .toBe("top");
 
       await reactGrab.clickHistoryButton();
 
@@ -599,9 +633,6 @@ test.describe("History Items", () => {
           { timeout: 3000 },
         )
         .toBeGreaterThanOrEqual(0);
-
-      const toolbarInfo = await reactGrab.getToolbarInfo();
-      expect(toolbarInfo.snapEdge).toBe("top");
     });
   });
 
@@ -636,6 +667,177 @@ test.describe("History Items", () => {
 
       const dropdownInfo = await reactGrab.getHistoryDropdownInfo();
       expect(dropdownInfo.itemCount).toBe(1);
+    });
+  });
+
+  test.describe("Dismiss Behavior", () => {
+    test("should not dismiss when clicking outside the dropdown", async ({
+      reactGrab,
+    }) => {
+      await copyElement(reactGrab, "li:first-child");
+      await reactGrab.clickHistoryButton();
+
+      expect(await reactGrab.isHistoryDropdownVisible()).toBe(true);
+
+      await reactGrab.page.mouse.click(10, 10);
+      await reactGrab.page.waitForTimeout(200);
+
+      expect(await reactGrab.isHistoryDropdownVisible()).toBe(true);
+    });
+
+    test("should dismiss when pressing Escape", async ({ reactGrab }) => {
+      await copyElement(reactGrab, "li:first-child");
+      await reactGrab.clickHistoryButton();
+
+      expect(await reactGrab.isHistoryDropdownVisible()).toBe(true);
+
+      await reactGrab.pressEscape();
+      await reactGrab.page.waitForTimeout(200);
+
+      expect(await reactGrab.isHistoryDropdownVisible()).toBe(false);
+    });
+
+    test("should dismiss when clicking the history button to toggle off", async ({
+      reactGrab,
+    }) => {
+      await copyElement(reactGrab, "li:first-child");
+      await reactGrab.clickHistoryButton();
+
+      expect(await reactGrab.isHistoryDropdownVisible()).toBe(true);
+
+      await reactGrab.clickHistoryButton();
+
+      expect(await reactGrab.isHistoryDropdownVisible()).toBe(false);
+    });
+  });
+
+  test.describe("Hover to Open", () => {
+    test("should open dropdown when hovering the history button", async ({
+      reactGrab,
+    }) => {
+      await copyElement(reactGrab, "li:first-child");
+
+      await reactGrab.hoverHistoryButton();
+
+      await expect
+        .poll(() => reactGrab.isHistoryDropdownVisible(), { timeout: 2000 })
+        .toBe(true);
+    });
+
+    test("should show all preview boxes when hovering the history button", async ({
+      reactGrab,
+    }) => {
+      await copyElement(reactGrab, "li:first-child");
+      await copyElement(reactGrab, "li:last-child");
+
+      await reactGrab.hoverHistoryButton();
+
+      await expect
+        .poll(
+          async () => {
+            const info = await reactGrab.getGrabbedBoxInfo();
+            return info.boxes.filter((box) =>
+              box.id.startsWith("history-all-hover-"),
+            ).length;
+          },
+          { timeout: 2000 },
+        )
+        .toBe(2);
+    });
+
+    test("should pin dropdown open when clicking the history button while hover-opened", async ({
+      reactGrab,
+    }) => {
+      await copyElement(reactGrab, "li:first-child");
+
+      await reactGrab.hoverHistoryButton();
+
+      await expect
+        .poll(() => reactGrab.isHistoryDropdownVisible(), { timeout: 2000 })
+        .toBe(true);
+
+      await reactGrab.page.evaluate((attrName) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const shadowRoot = host?.shadowRoot;
+        if (!shadowRoot) return;
+        const root = shadowRoot.querySelector(`[${attrName}]`);
+        if (!root) return;
+        root
+          .querySelector<HTMLButtonElement>("[data-react-grab-toolbar-history]")
+          ?.click();
+      }, "data-react-grab");
+      await reactGrab.page.waitForTimeout(300);
+
+      await reactGrab.page.mouse.move(0, 0);
+      await reactGrab.page.waitForTimeout(500);
+
+      expect(await reactGrab.isHistoryDropdownVisible()).toBe(true);
+    });
+  });
+
+  test.describe("Preview Suppression After Copy", () => {
+    test("should clear hover preview boxes after copying via row click", async ({
+      reactGrab,
+    }) => {
+      await copyElement(reactGrab, "li:first-child");
+      await reactGrab.clickHistoryButton();
+
+      await reactGrab.clickHistoryItem(0);
+      await reactGrab.page.waitForTimeout(300);
+
+      const grabbedBoxes = await reactGrab.getGrabbedBoxInfo();
+      const hoverBoxCount = grabbedBoxes.boxes.filter(
+        (box) =>
+          box.id.startsWith("history-hover-") ||
+          box.id.startsWith("history-all-hover-"),
+      ).length;
+      expect(hoverBoxCount).toBe(0);
+    });
+
+    test("should clear all hover preview boxes after copy all", async ({
+      reactGrab,
+    }) => {
+      await copyElement(reactGrab, "li:first-child");
+      await copyElement(reactGrab, "li:last-child");
+
+      await reactGrab.clickHistoryButton();
+      await reactGrab.page.waitForTimeout(200);
+
+      await reactGrab.clickHistoryCopyAll();
+      await reactGrab.page.waitForTimeout(300);
+
+      const grabbedBoxes = await reactGrab.getGrabbedBoxInfo();
+      const allHoverBoxes = grabbedBoxes.boxes.filter(
+        (box) =>
+          box.id.startsWith("history-all-hover-") ||
+          box.id.startsWith("history-hover-"),
+      );
+      expect(allHoverBoxes.length).toBe(0);
+    });
+
+    test("should suppress all-item previews during feedback but allow different item hover", async ({
+      reactGrab,
+    }) => {
+      await copyElement(reactGrab, "li:first-child");
+      await copyElement(reactGrab, "li:last-child");
+
+      await reactGrab.clickHistoryButton();
+      await reactGrab.clickHistoryItemCopy(0);
+      await reactGrab.page.waitForTimeout(200);
+
+      await reactGrab.hoverHistoryItem(1);
+
+      await expect
+        .poll(
+          async () => {
+            const info = await reactGrab.getGrabbedBoxInfo();
+            return info.boxes.filter((box) =>
+              box.id.startsWith("history-hover-"),
+            ).length;
+          },
+          { timeout: 2000 },
+        )
+        .toBeGreaterThan(0);
     });
   });
 });

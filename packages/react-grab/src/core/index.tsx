@@ -62,6 +62,7 @@ import {
   ZOOM_DETECTION_THRESHOLD,
   ACTION_CYCLE_IDLE_TRIGGER_MS,
   WINDOW_REFOCUS_GRACE_PERIOD_MS,
+  DROPDOWN_HOVER_OPEN_DELAY_MS,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
@@ -271,6 +272,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const historyElementMap = new Map<string, Element>();
     const [hasUnreadHistoryItems, setHasUnreadHistoryItems] =
       createSignal(false);
+    const [isHistoryHoverOpen, setIsHistoryHoverOpen] = createSignal(false);
     let historyHoverPreviews: { boxId: string; labelId: string | null }[] = [];
 
     const historyDisconnectedItemIds = createMemo(
@@ -3229,6 +3231,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (agent) {
           actions.setSelectedAgent(agent);
         }
+        actions.clearLabelInstances();
         onBeforePrompt?.();
         preparePromptMode(element, position.x, position.y);
         actions.setPointer({ x: position.x, y: position.y });
@@ -3307,6 +3310,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             if (agent) {
               actions.setSelectedAgent(agent);
             }
+            actions.clearLabelInstances();
             actions.clearInputText();
             actions.enterPromptMode(position, element);
             deferHideContextMenu();
@@ -3418,21 +3422,52 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const dismissHistoryDropdown = () => {
+      cancelHistoryHoverOpenTimeout();
+      cancelHistoryHoverCloseTimeout();
       stopTrackingToolbarPosition();
       clearHistoryHoverPreviews();
       setHistoryDropdownPosition(null);
+      setIsHistoryHoverOpen(false);
+    };
+
+    const openHistoryDropdown = () => {
+      actions.hideContextMenu();
+      setHistoryItems(loadHistory());
+      setHasUnreadHistoryItems(false);
+      startTrackingToolbarPosition();
+    };
+
+    let historyHoverOpenTimeoutId: ReturnType<typeof setTimeout> | null = null;
+    let historyHoverCloseTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const cancelHistoryHoverOpenTimeout = () => {
+      if (historyHoverOpenTimeoutId !== null) {
+        clearTimeout(historyHoverOpenTimeoutId);
+        historyHoverOpenTimeoutId = null;
+      }
+    };
+
+    const cancelHistoryHoverCloseTimeout = () => {
+      if (historyHoverCloseTimeoutId !== null) {
+        clearTimeout(historyHoverCloseTimeoutId);
+        historyHoverCloseTimeoutId = null;
+      }
     };
 
     const handleToggleHistory = () => {
+      cancelHistoryHoverOpenTimeout();
+      cancelHistoryHoverCloseTimeout();
       const isCurrentlyOpen = historyDropdownPosition() !== null;
       if (isCurrentlyOpen) {
-        dismissHistoryDropdown();
+        if (isHistoryHoverOpen()) {
+          clearHistoryHoverPreviews();
+          setIsHistoryHoverOpen(false);
+        } else {
+          dismissHistoryDropdown();
+        }
       } else {
         clearHistoryHoverPreviews();
-        actions.hideContextMenu();
-        setHistoryItems(loadHistory());
-        setHasUnreadHistoryItems(false);
-        startTrackingToolbarPosition();
+        openHistoryDropdown();
       }
     };
 
@@ -3457,8 +3492,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleHistoryItemSelect = (item: HistoryItem) => {
-      dismissHistoryDropdown();
-
+      clearHistoryHoverPreviews();
+      if (isPromptMode()) {
+        actions.exitPromptMode();
+        actions.clearInputText();
+      }
       const element = historyElementMap.get(item.id);
 
       if (
@@ -3489,6 +3527,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleHistoryCopyAll = () => {
+      clearHistoryHoverPreviews();
       const currentHistoryItems = historyItems();
       if (currentHistoryItems.length === 0) return;
 
@@ -3506,7 +3545,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           commentText: historyItem.commentText,
         })),
       });
-      dismissHistoryDropdown();
 
       actions.clearLabelInstances();
       for (const historyItem of currentHistoryItems) {
@@ -3544,9 +3582,34 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleHistoryButtonHover = (isHovered: boolean) => {
+      cancelHistoryHoverOpenTimeout();
       clearHistoryHoverPreviews();
-      if (isHovered && historyDropdownPosition() === null) {
-        showAllHistoryItemPreviews();
+      if (isHovered) {
+        cancelHistoryHoverCloseTimeout();
+        if (historyDropdownPosition() === null) {
+          showAllHistoryItemPreviews();
+          historyHoverOpenTimeoutId = setTimeout(() => {
+            historyHoverOpenTimeoutId = null;
+            setIsHistoryHoverOpen(true);
+            openHistoryDropdown();
+          }, DROPDOWN_HOVER_OPEN_DELAY_MS);
+        }
+      } else if (isHistoryHoverOpen()) {
+        historyHoverCloseTimeoutId = setTimeout(() => {
+          historyHoverCloseTimeoutId = null;
+          dismissHistoryDropdown();
+        }, DROPDOWN_HOVER_OPEN_DELAY_MS);
+      }
+    };
+
+    const handleHistoryDropdownHover = (isHovered: boolean) => {
+      if (isHovered) {
+        cancelHistoryHoverCloseTimeout();
+      } else if (isHistoryHoverOpen()) {
+        historyHoverCloseTimeoutId = setTimeout(() => {
+          historyHoverCloseTimeoutId = null;
+          dismissHistoryDropdown();
+        }, DROPDOWN_HOVER_OPEN_DELAY_MS);
       }
     };
 
@@ -3735,6 +3798,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             historyItemCount={historyItems().length}
             hasUnreadHistoryItems={hasUnreadHistoryItems()}
             historyDropdownPosition={historyDropdownPosition()}
+            isHistoryPinned={
+              historyDropdownPosition() !== null && !isHistoryHoverOpen()
+            }
             onToggleHistory={handleToggleHistory}
             onHistoryButtonHover={handleHistoryButtonHover}
             onHistoryItemSelect={handleHistoryItemSelect}
@@ -3745,6 +3811,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onHistoryCopyAllHover={handleHistoryCopyAllHover}
             onHistoryClear={handleHistoryClear}
             onHistoryDismiss={dismissHistoryDropdown}
+            onHistoryDropdownHover={handleHistoryDropdownHover}
           />
         );
       }, rendererRoot);
@@ -3870,6 +3937,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
       dispose: () => {
         hasInited = false;
+        cancelHistoryHoverOpenTimeout();
+        cancelHistoryHoverCloseTimeout();
         stopTrackingToolbarPosition();
         toolbarStateChangeCallbacks.clear();
         dispose();
