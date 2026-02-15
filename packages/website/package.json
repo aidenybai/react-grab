@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "pnpm --filter react-grab build && pnpm --filter @react-grab/design-system build && next build",
+    "build": "pnpm --filter react-grab build && pnpm --filter react-grab exec cp dist/index.global.js ../website/public/script.js && pnpm --filter @react-grab/design-system build && next build",
     "start": "next start",
     "lint": "oxlint"
   },
