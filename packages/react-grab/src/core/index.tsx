@@ -273,7 +273,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [hasUnreadHistoryItems, setHasUnreadHistoryItems] =
       createSignal(false);
     const [isHistoryHoverOpen, setIsHistoryHoverOpen] = createSignal(false);
-    let historyHoverPreviews: { boxId: string; labelId: string }[] = [];
+    let historyHoverPreviews: { boxId: string; labelId: string | null }[] = [];
 
     const historyDisconnectedItemIds = createMemo(
       () => {
@@ -3329,7 +3329,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const clearHistoryHoverPreviews = () => {
       for (const { boxId, labelId } of historyHoverPreviews) {
         actions.removeGrabbedBox(boxId);
-        actions.removeLabelInstance(labelId);
+        if (labelId) {
+          actions.removeLabelInstance(labelId);
+        }
       }
       historyHoverPreviews = [];
     };
@@ -3344,19 +3346,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // HACK: createdAt=0 is falsy, which skips the auto-fade logic in the overlay canvas animation loop
       actions.addGrabbedBox({ id: boxId, bounds, createdAt: 0, element });
 
-      const labelId = `${idPrefix}-label-${item.id}`;
-      actions.addLabelInstance({
-        id: labelId,
-        bounds,
-        tagName: item.tagName,
-        componentName: item.componentName,
-        status: "idle",
-        isPromptMode: Boolean(item.isComment && item.commentText),
-        inputValue: item.commentText,
-        createdAt: 0,
-        element,
-        mouseX: bounds.x + bounds.width / 2,
-      });
+      let labelId: string | null = null;
+      if (item.isComment && item.commentText) {
+        labelId = `${idPrefix}-label-${item.id}`;
+        actions.addLabelInstance({
+          id: labelId,
+          bounds,
+          tagName: item.tagName,
+          componentName: item.componentName,
+          status: "idle",
+          isPromptMode: true,
+          inputValue: item.commentText,
+          createdAt: 0,
+          element,
+          mouseX: bounds.x + bounds.width / 2,
+        });
+      }
 
       historyHoverPreviews.push({ boxId, labelId });
     };
