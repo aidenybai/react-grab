@@ -120,6 +120,29 @@ export const getNearestComponentName = async (
   return null;
 };
 
+export const resolveSourceFromStack = (
+  stack: StackFrame[] | null,
+): {
+  filePath: string;
+  lineNumber: number | undefined;
+  componentName: string | null;
+} | null => {
+  if (!stack || stack.length === 0) return null;
+  for (const frame of stack) {
+    if (frame.fileName && isSourceFile(frame.fileName)) {
+      return {
+        filePath: normalizeFileName(frame.fileName),
+        lineNumber: frame.lineNumber,
+        componentName:
+          frame.functionName && checkIsSourceComponentName(frame.functionName)
+            ? frame.functionName
+            : null,
+      };
+    }
+  }
+  return null;
+};
+
 const isUsefulComponentName = (name: string): boolean => {
   if (!name) return false;
   if (checkIsInternalComponentName(name)) return false;

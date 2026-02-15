@@ -188,7 +188,6 @@ interface GrabActions {
   clearFrozenElement: () => void;
   setCopyStart: (position: Position, element: Element) => void;
   setLastGrabbed: (element: Element | null) => void;
-  setLastCopied: (element: Element | null) => void;
   clearLastCopied: () => void;
   setWasActivatedByToggle: (value: boolean) => void;
   setPendingCommentMode: (value: boolean) => void;
@@ -200,7 +199,6 @@ interface GrabActions {
   clearSelectionSource: () => void;
   setPendingClickData: (data: PendingClickData | null) => void;
   clearPendingClickData: () => void;
-  setReplySessionId: (sessionId: string | null) => void;
   clearReplySessionId: () => void;
   incrementViewportVersion: () => void;
   addGrabbedBox: (box: GrabbedBox) => void;
@@ -550,10 +548,6 @@ const createGrabStore = (input: GrabStoreInput) => {
       setStore("lastGrabbedElement", element);
     },
 
-    setLastCopied: (element: Element | null) => {
-      setStore("lastCopiedElement", element);
-    },
-
     clearLastCopied: () => {
       setStore("lastCopiedElement", null);
     },
@@ -589,10 +583,6 @@ const createGrabStore = (input: GrabStoreInput) => {
 
     clearPendingClickData: () => {
       setStore("pendingClickData", null);
-    },
-
-    setReplySessionId: (sessionId: string | null) => {
-      setStore("replySessionId", sessionId);
     },
 
     clearReplySessionId: () => {

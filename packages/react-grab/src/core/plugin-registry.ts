@@ -5,6 +5,7 @@ import type {
   PluginHooks,
   Theme,
   ContextMenuAction,
+  ReactGrabAPI,
   ReactGrabState,
   PromptModeContext,
   OverlayBounds,
@@ -104,21 +105,12 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     }
   };
 
-  const register = (plugin: Plugin, api: unknown) => {
+  const register = (plugin: Plugin, api: ReactGrabAPI) => {
     if (plugins.has(plugin.name)) {
       unregister(plugin.name);
     }
 
-    let config: PluginConfig;
-
-    if (plugin.setup) {
-      const setupResult = plugin.setup(
-        api as Parameters<NonNullable<Plugin["setup"]>>[0],
-      );
-      config = setupResult ?? {};
-    } else {
-      config = {};
-    }
+    const config: PluginConfig = plugin.setup?.(api) ?? {};
 
     if (plugin.theme) {
       config.theme = config.theme

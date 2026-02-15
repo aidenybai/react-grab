@@ -9,20 +9,24 @@ interface ModifierKeys {
 }
 
 export const getRequiredModifiers = (options: Options): ModifierKeys => {
-  const modifiers = getModifiersFromActivationKey(options.activationKey);
-  return {
-    metaKey: modifiers.metaKey,
-    ctrlKey: modifiers.ctrlKey,
-    shiftKey: modifiers.shiftKey,
-    altKey: modifiers.altKey,
-  };
+  const { metaKey, ctrlKey, shiftKey, altKey } = getModifiersFromActivationKey(
+    options.activationKey,
+  );
+  return { metaKey, ctrlKey, shiftKey, altKey };
 };
+
+interface PatchableGetter {
+  (this: KeyboardEvent): string;
+  __reactGrabPatched?: boolean;
+}
+
+interface KeyDescriptor extends PropertyDescriptor {
+  get?: PatchableGetter;
+}
 
 interface KeyboardEventClaimer {
   claimedEvents: WeakSet<KeyboardEvent>;
-  originalKeyDescriptor:
-    | (PropertyDescriptor & { get?: () => string })
-    | undefined;
+  originalKeyDescriptor: KeyDescriptor | undefined;
   didPatch: boolean;
   restore: () => void;
 }
@@ -33,24 +37,22 @@ export const setupKeyboardEventClaimer = (): KeyboardEventClaimer => {
   const originalKeyDescriptor = Object.getOwnPropertyDescriptor(
     KeyboardEvent.prototype,
     "key",
-  ) as PropertyDescriptor & { get?: () => string };
+  ) as KeyDescriptor | undefined;
 
   let didPatch = false;
   if (
     originalKeyDescriptor?.get &&
-    !(originalKeyDescriptor.get as { __reactGrabPatched?: boolean })
-      .__reactGrabPatched
+    !originalKeyDescriptor.get.__reactGrabPatched
   ) {
     didPatch = true;
     const originalGetter = originalKeyDescriptor.get;
-    const patchedGetter = function (this: KeyboardEvent) {
+    const patchedGetter: PatchableGetter = function (this: KeyboardEvent) {
       if (claimedEvents.has(this)) {
         return "";
       }
       return originalGetter.call(this);
     };
-    (patchedGetter as { __reactGrabPatched?: boolean }).__reactGrabPatched =
-      true;
+    patchedGetter.__reactGrabPatched = true;
     Object.defineProperty(KeyboardEvent.prototype, "key", {
       get: patchedGetter,
       configurable: true,

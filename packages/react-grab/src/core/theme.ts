@@ -23,7 +23,7 @@ export const DEFAULT_THEME: Required<Theme> = {
   },
 };
 
-const mergeThemeWithBase = (
+export const deepMergeTheme = (
   baseTheme: Required<Theme>,
   partialTheme: DeepPartial<Theme>,
 ): Required<Theme> => ({
@@ -51,5 +51,3 @@ const mergeThemeWithBase = (
     enabled: partialTheme.toolbar?.enabled ?? baseTheme.toolbar.enabled,
   },
 });
-
-export const deepMergeTheme = mergeThemeWithBase;

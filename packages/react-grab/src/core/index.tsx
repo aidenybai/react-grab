@@ -23,6 +23,7 @@ import {
   getNearestComponentName,
   checkIsSourceComponentName,
   getComponentDisplayName,
+  resolveSourceFromStack,
 } from "./context.js";
 import { isSourceFile, normalizeFileName } from "bippy/source";
 import { createNoopApi } from "./noop-api.js";
@@ -594,14 +595,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return instanceId;
     };
 
-    const updateLabelInstance = (
-      instanceId: string,
-      status: SelectionLabelInstance["status"],
-      errorMessage?: string,
-    ) => {
-      actions.updateLabelInstance(instanceId, status, errorMessage);
-    };
-
     const removeLabelInstance = (instanceId: string) => {
       labelFadeTimeouts.delete(instanceId);
       actions.removeLabelInstance(instanceId);
@@ -622,7 +615,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const timeoutId = window.setTimeout(() => {
         labelFadeTimeouts.delete(instanceId);
-        updateLabelInstance(instanceId, "fading");
+        actions.updateLabelInstance(instanceId, "fading");
         setTimeout(() => {
           removeLabelInstance(instanceId);
         }, FADE_COMPLETE_BUFFER_MS);
@@ -674,7 +667,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.completeCopy(element);
 
         if (instanceId) {
-          updateLabelInstance(instanceId, "copied");
+          actions.updateLabelInstance(instanceId, "copied");
           scheduleLabelFade(instanceId);
         }
 
@@ -1442,7 +1435,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleInputSubmit = () => {
-      actions.setLastCopied(null);
+      actions.clearLastCopied();
       const frozenElements = [...store.frozenElements];
       const element = store.frozenElement || targetElement();
       const prompt = isPromptMode() ? store.inputText.trim() : "";
@@ -1469,7 +1462,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         deactivateRenderer();
 
-        actions.setReplySessionId(null);
+        actions.clearReplySessionId();
         actions.clearSelectedAgent();
 
         void agentManager.session.start({
@@ -1502,7 +1495,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleInputCancel = () => {
-      actions.setLastCopied(null);
+      actions.clearLastCopied();
       if (!isPromptMode()) return;
 
       const currentInput = store.inputText.trim();
@@ -1617,7 +1610,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
       saveToolbarState(newState);
       setCurrentToolbarState(newState);
-      toolbarStateChangeCallbacks.forEach((cb) => cb(newState));
+      toolbarStateChangeCallbacks.forEach((callback) => callback(newState));
       if (!newEnabled) {
         if (isHoldingKeys()) {
           actions.release();
@@ -1974,7 +1967,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.setPointer(center);
         preparePromptMode(copiedElement, center.x, center.y);
         actions.setFrozenElement(copiedElement);
-        actions.setLastCopied(null);
+        actions.clearLastCopied();
 
         activatePromptMode();
         if (!isActivated()) {
@@ -2115,7 +2108,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         isScreenshotInProgress = false;
         rendererRoot.style.visibility = "";
 
-        updateLabelInstance(
+        actions.updateLabelInstance(
           instanceId,
           didSucceed ? "copied" : "error",
           didSucceed ? undefined : errorMessage || "Unknown error",
@@ -3066,24 +3059,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const [contextMenuFilePath] = createResource(
       () => store.contextMenuElement,
-      async (
-        element,
-      ): Promise<{
-        filePath: string;
-        lineNumber: number | undefined;
-      } | null> => {
+      async (element) => {
         if (!element) return null;
         const stack = await getStack(element);
-        if (!stack || stack.length === 0) return null;
-        for (const frame of stack) {
-          if (frame.fileName && isSourceFile(frame.fileName)) {
-            return {
-              filePath: normalizeFileName(frame.fileName),
-              lineNumber: frame.lineNumber,
-            };
-          }
-        }
-        return null;
+        return resolveSourceFromStack(stack);
       },
     );
 
@@ -3149,7 +3128,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 : "Action failed";
           }
 
-          updateLabelInstance(
+          actions.updateLabelInstance(
             labelInstanceId,
             didSucceed ? "copied" : "error",
             didSucceed ? undefined : errorMessage || "Unknown error",
@@ -3772,7 +3751,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             shakeCount={toolbarShakeCount()}
             onToolbarStateChange={(state) => {
               setCurrentToolbarState(state);
-              toolbarStateChangeCallbacks.forEach((cb) => cb(state));
+              toolbarStateChangeCallbacks.forEach((callback) =>
+                callback(state),
+              );
             }}
             onSubscribeToToolbarStateChanges={(callback) => {
               toolbarStateChangeCallbacks.add(callback);
@@ -3927,7 +3908,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (state.enabled !== undefined && state.enabled !== isEnabled()) {
           setIsEnabled(state.enabled);
         }
-        toolbarStateChangeCallbacks.forEach((cb) => cb(newState));
+        toolbarStateChangeCallbacks.forEach((callback) => callback(newState));
       },
       onToolbarStateChange: (callback: (state: ToolbarState) => void) => {
         toolbarStateChangeCallbacks.add(callback);
@@ -3946,21 +3927,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       copyElement: copyElementAPI,
       getSource: async (element: Element): Promise<SourceInfo | null> => {
         const stack = await getStack(element);
-        if (!stack) return null;
-        for (const frame of stack) {
-          if (frame.fileName && isSourceFile(frame.fileName)) {
-            return {
-              filePath: normalizeFileName(frame.fileName),
-              lineNumber: frame.lineNumber ?? null,
-              componentName:
-                frame.functionName &&
-                checkIsSourceComponentName(frame.functionName)
-                  ? frame.functionName
-                  : null,
-            };
-          }
-        }
-        return null;
+        const source = resolveSourceFromStack(stack);
+        if (!source) return null;
+        return {
+          filePath: source.filePath,
+          lineNumber: source.lineNumber ?? null,
+          componentName: source.componentName,
+        };
       },
       getState: (): ReactGrabState => ({
         isActive: isActivated(),

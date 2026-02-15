@@ -3,7 +3,7 @@ export const onIdle = (callback: () => void): void => {
     (
       globalThis as unknown as {
         scheduler: {
-          postTask: (cb: () => void, opts: { priority: string }) => void;
+          postTask: (callback: () => void, opts: { priority: string }) => void;
         };
       }
     ).scheduler.postTask(callback, {
