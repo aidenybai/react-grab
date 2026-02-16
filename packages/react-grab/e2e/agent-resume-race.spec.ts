@@ -3,13 +3,6 @@ import { test, expect } from "./fixtures.js";
 const OLD_STREAM_ABORT_DELAY_MS = 150;
 const RESUME_STATUS_INTERVAL_MS = 40;
 const RACE_SETTLE_WAIT_MS = 500;
-const SESSION_VISIBLE_TIMEOUT_MS = 4000;
-const ABORT_CONFIRM_VISIBLE_TIMEOUT_MS = 2000;
-const SESSION_HIDDEN_TIMEOUT_MS = 5000;
-const REACT_GRAB_ATTRIBUTE_NAME = "data-react-grab";
-const EDIT_TARGET_SELECTOR = "li:first-child";
-const PROMPT_TEXT = "Trigger resume race";
-const DISCARD_YES_SELECTOR = "[data-react-grab-discard-yes]";
 
 interface ResumeRaceAgentActionContext {
   enterPromptMode?: (agent?: Record<string, unknown>) => void;
@@ -103,10 +96,10 @@ test.describe("Agent Resume Race", () => {
       },
     );
 
-    await reactGrab.enterPromptMode(EDIT_TARGET_SELECTOR);
-    await reactGrab.typeInInput(PROMPT_TEXT);
+    await reactGrab.enterPromptMode("li:first-child");
+    await reactGrab.typeInInput("Trigger resume race");
     await reactGrab.submitInput();
-    await reactGrab.waitForAgentSession(SESSION_VISIBLE_TIMEOUT_MS);
+    await reactGrab.waitForAgentSession(4000);
 
     await reactGrab.page.evaluate(() => {
       const currentWindow = window as ResumeRaceAgentInstallerWindow;
@@ -117,7 +110,7 @@ test.describe("Agent Resume Race", () => {
 
     await expect
       .poll(() => reactGrab.isAgentSessionVisible(), {
-        timeout: SESSION_VISIBLE_TIMEOUT_MS,
+        timeout: 4000,
       })
       .toBe(true);
 
@@ -136,11 +129,11 @@ test.describe("Agent Resume Race", () => {
               return root.querySelector(discardYesSelector) !== null;
             },
             {
-              attributeName: REACT_GRAB_ATTRIBUTE_NAME,
-              discardYesSelector: DISCARD_YES_SELECTOR,
+              attributeName: "data-react-grab",
+              discardYesSelector: "[data-react-grab-discard-yes]",
             },
           ),
-        { timeout: ABORT_CONFIRM_VISIBLE_TIMEOUT_MS },
+        { timeout: 2000 },
       )
       .toBe(true);
 
@@ -148,7 +141,7 @@ test.describe("Agent Resume Race", () => {
 
     await expect
       .poll(() => reactGrab.isAgentSessionVisible(), {
-        timeout: SESSION_HIDDEN_TIMEOUT_MS,
+        timeout: 5000,
       })
       .toBe(false);
   });
