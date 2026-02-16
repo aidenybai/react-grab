@@ -1466,7 +1466,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     visible={isSelectTooltipVisible() && !isCollapsed()}
                     position={tooltipPosition()}
                   >
-                    Select
+                    Select element
                   </Tooltip>
                 </div>
               </div>
@@ -1514,7 +1514,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     visible={isCommentTooltipVisible() && !isCollapsed()}
                     position={tooltipPosition()}
                   >
-                    Comment
+                    Add comment
                   </Tooltip>
                 </div>
               </div>

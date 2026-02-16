@@ -8,6 +8,7 @@ import {
   createEffect,
   createResource,
   on,
+  batch,
 } from "solid-js";
 import { render } from "solid-js/web";
 import { createGrabStore } from "./store.js";
@@ -1232,6 +1233,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               bounds: box.bounds,
               createdAt: box.createdAt,
             })),
+            labelInstances: store.labelInstances.map((instance) => ({
+              id: instance.id,
+              status: instance.status,
+              tagName: instance.tagName,
+              componentName: instance.componentName,
+              createdAt: instance.createdAt,
+            })),
             selectionFilePath: store.selectionFilePath,
             toolbarState,
           });
@@ -2283,12 +2291,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (!isTargetKeyCombination(event, pluginRegistry.store.options)) {
         if (
-          isActivated() &&
-          !store.wasActivatedByToggle &&
-          (event.metaKey || event.ctrlKey)
+          (event.metaKey || event.ctrlKey) &&
+          !MODIFIER_KEYS.includes(event.key) &&
+          !isEnterCode(event.code)
         ) {
-          if (!MODIFIER_KEYS.includes(event.key) && !isEnterCode(event.code)) {
+          if (isActivated() && !store.wasActivatedByToggle) {
             deactivateRenderer();
+          } else if (isHoldingKeys()) {
+            clearHoldTimer();
+            resetCopyConfirmation();
+            actions.release();
           }
         }
         if (!isEnterCode(event.code) || !isHoldingKeys()) {
@@ -3325,22 +3337,20 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // HACK: createdAt=0 is falsy, which skips the auto-fade logic in the overlay canvas animation loop
       actions.addGrabbedBox({ id: boxId, bounds, createdAt: 0, element });
 
-      let labelId: string | null = null;
-      if (item.isComment && item.commentText) {
-        labelId = `${idPrefix}-label-${item.id}`;
-        actions.addLabelInstance({
-          id: labelId,
-          bounds,
-          tagName: item.tagName,
-          componentName: item.componentName,
-          status: "idle",
-          isPromptMode: true,
-          inputValue: item.commentText,
-          createdAt: 0,
-          element,
-          mouseX: bounds.x + bounds.width / 2,
-        });
-      }
+      const hasCommentText = item.isComment && item.commentText;
+      const labelId = `${idPrefix}-label-${item.id}`;
+      actions.addLabelInstance({
+        id: labelId,
+        bounds,
+        tagName: item.tagName,
+        componentName: item.componentName,
+        status: "idle",
+        isPromptMode: Boolean(hasCommentText),
+        inputValue: hasCommentText ? item.commentText : undefined,
+        createdAt: 0,
+        element,
+        mouseX: bounds.x + bounds.width / 2,
+      });
 
       historyHoverPreviews.push({ boxId, labelId });
     };
@@ -3457,7 +3467,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         commentText: item.commentText,
       });
       const element = historyElementMap.get(item.id);
-      if (element && isElementConnected(element)) {
+      if (!element || !isElementConnected(element)) return;
+
+      actions.clearLabelInstances();
+
+      // HACK: defer to next frame so idle preview label clears visually before "copied" appears
+      requestAnimationFrame(() => {
+        if (!isElementConnected(element)) return;
         const bounds = createElementBounds(element);
         const instanceId = createLabelInstance(
           bounds,
@@ -3467,7 +3483,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           { element, mouseX: bounds.x + bounds.width / 2 },
         );
         scheduleLabelFade(instanceId);
-      }
+      });
     };
 
     const handleHistoryItemSelect = (item: HistoryItem) => {
@@ -3526,25 +3542,31 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
 
       actions.clearLabelInstances();
-      for (const historyItem of currentHistoryItems) {
-        const element = historyElementMap.get(historyItem.id);
-        if (!element || !isElementConnected(element)) continue;
 
-        const bounds = createElementBounds(element);
-        const labelId = `label-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      // HACK: defer to next frame so idle preview labels clear visually before "copied" appears
+      requestAnimationFrame(() => {
+        batch(() => {
+          for (const historyItem of currentHistoryItems) {
+            const element = historyElementMap.get(historyItem.id);
+            if (!element || !isElementConnected(element)) continue;
 
-        actions.addLabelInstance({
-          id: labelId,
-          bounds,
-          tagName: historyItem.tagName,
-          componentName: historyItem.componentName,
-          status: "copied",
-          createdAt: Date.now(),
-          element,
-          mouseX: bounds.x + bounds.width / 2,
+            const bounds = createElementBounds(element);
+            const labelId = `label-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+            actions.addLabelInstance({
+              id: labelId,
+              bounds,
+              tagName: historyItem.tagName,
+              componentName: historyItem.componentName,
+              status: "copied",
+              createdAt: Date.now(),
+              element,
+              mouseX: bounds.x + bounds.width / 2,
+            });
+            scheduleLabelFade(labelId);
+          }
         });
-        scheduleLabelFade(labelId);
-      }
+      });
     };
 
     const handleHistoryItemHover = (historyItemId: string | null) => {
@@ -3949,6 +3971,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           id: box.id,
           bounds: box.bounds,
           createdAt: box.createdAt,
+        })),
+        labelInstances: store.labelInstances.map((instance) => ({
+          id: instance.id,
+          status: instance.status,
+          tagName: instance.tagName,
+          componentName: instance.componentName,
+          createdAt: instance.createdAt,
         })),
         selectionFilePath: store.selectionFilePath,
         toolbarState: currentToolbarState(),

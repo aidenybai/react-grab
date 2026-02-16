@@ -16,16 +16,21 @@ test.describe("Toolbar", () => {
         .toBe(true);
     });
 
-    test("toolbar should be hidden on mobile viewport", async ({
+    test("toolbar should be visible on mobile viewport after reload", async ({
       reactGrab,
     }) => {
       await reactGrab.setViewportSize(375, 667);
       await reactGrab.page.reload();
       await reactGrab.page.waitForLoadState("domcontentloaded");
+      await reactGrab.page.waitForFunction(
+        () =>
+          (window as { __REACT_GRAB__?: unknown }).__REACT_GRAB__ !== undefined,
+        { timeout: 10000 },
+      );
 
       await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(false);
+        .poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 })
+        .toBe(true);
 
       await reactGrab.setViewportSize(1280, 720);
     });

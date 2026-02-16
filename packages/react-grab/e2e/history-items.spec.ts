@@ -840,4 +840,168 @@ test.describe("History Items", () => {
         .toBeGreaterThan(0);
     });
   });
+
+  test.describe("Selection Label Lifecycle on Copy", () => {
+    test("should show selection label when hovering a history item", async ({
+      reactGrab,
+    }) => {
+      await copyElement(reactGrab, "li:first-child");
+      await reactGrab.clickHistoryButton();
+      await reactGrab.page.waitForTimeout(200);
+
+      await reactGrab.hoverHistoryItem(0);
+
+      await expect
+        .poll(
+          async () => {
+            const labels = await reactGrab.getLabelInstancesInfo();
+            return labels.filter(
+              (label) => label.status === "idle" && label.createdAt === 0,
+            ).length;
+          },
+          { timeout: 5000 },
+        )
+        .toBeGreaterThan(0);
+    });
+
+    test("should clear idle labels and show copied label after copy all", async ({
+      reactGrab,
+    }) => {
+      await copyElement(reactGrab, "li:first-child");
+      await copyElement(reactGrab, "li:last-child");
+
+      await reactGrab.clickHistoryButton();
+      await reactGrab.page.waitForTimeout(200);
+
+      await reactGrab.hoverCopyAllButton();
+      await expect
+        .poll(
+          async () => {
+            const labels = await reactGrab.getLabelInstancesInfo();
+            return labels.filter(
+              (label) => label.status === "idle" && label.createdAt === 0,
+            ).length;
+          },
+          { timeout: 5000 },
+        )
+        .toBeGreaterThanOrEqual(2);
+
+      await reactGrab.clickHistoryCopyAll();
+
+      await expect
+        .poll(
+          async () => {
+            const labels = await reactGrab.getLabelInstancesInfo();
+            const idlePreviewLabels = labels.filter(
+              (label) => label.status === "idle" && label.createdAt === 0,
+            );
+            return idlePreviewLabels.length;
+          },
+          { timeout: 5000 },
+        )
+        .toBe(0);
+
+      await expect
+        .poll(
+          async () => {
+            const labels = await reactGrab.getLabelInstancesInfo();
+            return labels.filter((label) => label.status === "copied").length;
+          },
+          { timeout: 5000 },
+        )
+        .toBeGreaterThanOrEqual(1);
+    });
+
+    test("should clear idle labels and show copied label after individual copy", async ({
+      reactGrab,
+    }) => {
+      await copyElement(reactGrab, "li:first-child");
+      await reactGrab.clickHistoryButton();
+      await reactGrab.page.waitForTimeout(200);
+
+      await reactGrab.hoverHistoryItem(0);
+      await expect
+        .poll(
+          async () => {
+            const labels = await reactGrab.getLabelInstancesInfo();
+            return labels.filter(
+              (label) => label.status === "idle" && label.createdAt === 0,
+            ).length;
+          },
+          { timeout: 5000 },
+        )
+        .toBeGreaterThan(0);
+
+      await reactGrab.clickHistoryItem(0);
+
+      await expect
+        .poll(
+          async () => {
+            const labels = await reactGrab.getLabelInstancesInfo();
+            const idlePreviewLabels = labels.filter(
+              (label) => label.status === "idle" && label.createdAt === 0,
+            );
+            return idlePreviewLabels.length;
+          },
+          { timeout: 5000 },
+        )
+        .toBe(0);
+
+      await expect
+        .poll(
+          async () => {
+            const labels = await reactGrab.getLabelInstancesInfo();
+            return labels.filter((label) => label.status === "copied").length;
+          },
+          { timeout: 5000 },
+        )
+        .toBeGreaterThanOrEqual(1);
+    });
+
+    test("should clear idle labels and show copied label after copy button click", async ({
+      reactGrab,
+    }) => {
+      await copyElement(reactGrab, "li:first-child");
+      await reactGrab.clickHistoryButton();
+      await reactGrab.page.waitForTimeout(200);
+
+      await reactGrab.hoverHistoryItem(0);
+      await expect
+        .poll(
+          async () => {
+            const labels = await reactGrab.getLabelInstancesInfo();
+            return labels.filter(
+              (label) => label.status === "idle" && label.createdAt === 0,
+            ).length;
+          },
+          { timeout: 5000 },
+        )
+        .toBeGreaterThan(0);
+
+      await reactGrab.clickHistoryItemCopy(0);
+
+      await expect
+        .poll(
+          async () => {
+            const labels = await reactGrab.getLabelInstancesInfo();
+            const idlePreviewLabels = labels.filter(
+              (label) => label.status === "idle" && label.createdAt === 0,
+            );
+            return idlePreviewLabels.length;
+          },
+          { timeout: 5000 },
+        )
+        .toBe(0);
+
+      await expect
+        .poll(
+          async () => {
+            const labels = await reactGrab.getLabelInstancesInfo();
+            return labels.filter((label) => label.status === "copied").length;
+          },
+          { timeout: 5000 },
+        )
+        .toBeGreaterThanOrEqual(1);
+    });
+  });
 });

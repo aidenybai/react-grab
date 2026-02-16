@@ -298,7 +298,9 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
                     }}
                     onMouseEnter={() => {
                       setActiveHeaderTooltip("copy");
-                      props.onCopyAllHover?.(true);
+                      if (!isCopyAllConfirmed()) {
+                        props.onCopyAllHover?.(true);
+                      }
                     }}
                     onMouseLeave={() => {
                       setActiveHeaderTooltip(null);
