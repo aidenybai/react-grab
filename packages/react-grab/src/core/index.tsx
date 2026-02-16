@@ -273,11 +273,31 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       createSignal<DropdownAnchor | null>(null);
     let toolbarElement: HTMLDivElement | undefined;
     let historyPositionFrameId: number | null = null;
-    const historyElementMap = new Map<string, Element>();
+    const historyElementMap = new Map<string, Element[]>();
     const [hasUnreadHistoryItems, setHasUnreadHistoryItems] =
       createSignal(false);
     const [isHistoryHoverOpen, setIsHistoryHoverOpen] = createSignal(false);
     let historyHoverPreviews: { boxId: string; labelId: string | null }[] = [];
+
+    const getMappedHistoryElements = (historyItemId: string): Element[] =>
+      historyElementMap.get(historyItemId) ?? [];
+
+    const getConnectedHistoryElements = (historyItemId: string): Element[] =>
+      getMappedHistoryElements(historyItemId).filter((mappedElement) =>
+        isElementConnected(mappedElement),
+      );
+
+    const getFirstConnectedHistoryElement = (
+      historyItemId: string,
+    ): Element | undefined => getConnectedHistoryElements(historyItemId)[0];
+
+    const getHistoryPreviewBounds = (historyItem: HistoryItem): OverlayBounds[] => {
+      const connectedElements = getConnectedHistoryElements(historyItem.id);
+      if (connectedElements.length > 0) {
+        return connectedElements.map((element) => createElementBounds(element));
+      }
+      return historyItem.previewBounds ?? [];
+    };
 
     const historyDisconnectedItemIds = createMemo(
       () => {
@@ -285,8 +305,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         void historyDropdownPosition();
         const disconnectedIds = new Set<string>();
         for (const item of historyItems()) {
-          const element = historyElementMap.get(item.id);
-          if (!element || !isElementConnected(element)) {
+          if (getConnectedHistoryElements(item.id).length === 0) {
             disconnectedIds.add(item.id);
           }
         }
@@ -721,9 +740,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               const currentItems = historyItems();
               for (const [
                 existingItemId,
-                mappedElement,
+                mappedElements,
               ] of historyElementMap.entries()) {
-                if (mappedElement !== primaryElement) continue;
+                const mappedPrimaryElement = mappedElements[0];
+                if (mappedPrimaryElement !== primaryElement) continue;
                 const existingItem = currentItems.find(
                   (item) => item.id === existingItemId,
                 );
@@ -747,6 +767,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               elementName: elementName ?? "element",
               tagName: tagName ?? "div",
               componentName: componentName ?? undefined,
+              elementsCount: copiedElements.length,
+              previewBounds: copiedElements.map((element) =>
+                createElementBounds(element),
+              ),
               isComment,
               commentText: extraPrompt ?? undefined,
               timestamp: Date.now(),
@@ -755,7 +779,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             setHasUnreadHistoryItems(true);
             const newestHistoryItem = updatedHistoryItems[0];
             if (newestHistoryItem && primaryElement) {
-              historyElementMap.set(newestHistoryItem.id, primaryElement);
+              historyElementMap.set(newestHistoryItem.id, [...copiedElements]);
             }
 
             const currentItemIds = new Set(
@@ -3362,30 +3386,53 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const addHistoryItemPreview = (
       item: HistoryItem,
-      element: Element,
+      previewBounds: OverlayBounds[],
+      previewElements: Element[],
       idPrefix: string,
     ) => {
-      const bounds = createElementBounds(element);
-      const boxId = `${idPrefix}-${item.id}`;
-      // HACK: createdAt=0 is falsy, which skips the auto-fade logic in the overlay canvas animation loop
-      actions.addGrabbedBox({ id: boxId, bounds, createdAt: 0, element });
+      if (previewBounds.length === 0) return;
 
       const hasCommentText = item.isComment && item.commentText;
-      const labelId = `${idPrefix}-label-${item.id}`;
-      actions.addLabelInstance({
-        id: labelId,
-        bounds,
-        tagName: item.tagName,
-        componentName: item.componentName,
-        status: "idle",
-        isPromptMode: Boolean(hasCommentText),
-        inputValue: hasCommentText ? item.commentText : undefined,
-        createdAt: 0,
-        element,
-        mouseX: bounds.x + bounds.width / 2,
-      });
+      for (const [index, bounds] of previewBounds.entries()) {
+        const previewElement = previewElements[index];
+        const boxId = `${idPrefix}-${item.id}-${index}`;
+        // HACK: createdAt=0 is falsy, which skips the auto-fade logic in the overlay canvas animation loop
+        actions.addGrabbedBox({
+          id: boxId,
+          bounds,
+          createdAt: 0,
+          element: previewElement,
+        });
 
-      historyHoverPreviews.push({ boxId, labelId });
+        let labelId: string | null = null;
+        if (index === 0) {
+          labelId = `${idPrefix}-label-${item.id}`;
+          actions.addLabelInstance({
+            id: labelId,
+            bounds,
+            tagName: item.tagName,
+            componentName: item.componentName,
+            elementsCount: item.elementsCount,
+            status: "idle",
+            isPromptMode: Boolean(hasCommentText),
+            inputValue: hasCommentText ? item.commentText : undefined,
+            createdAt: 0,
+            element: previewElement,
+            mouseX: bounds.x + bounds.width / 2,
+          });
+        }
+
+        historyHoverPreviews.push({ boxId, labelId });
+      }
+    };
+
+    const showHistoryItemPreview = (
+      item: HistoryItem,
+      idPrefix: string,
+    ): void => {
+      const previewBounds = getHistoryPreviewBounds(item);
+      const connectedElements = getConnectedHistoryElements(item.id);
+      addHistoryItemPreview(item, previewBounds, connectedElements, idPrefix);
     };
 
     const stopTrackingToolbarPosition = () => {
@@ -3499,8 +3546,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         componentName: item.componentName ?? item.elementName,
         commentText: item.commentText,
       });
-      const element = historyElementMap.get(item.id);
-      if (!element || !isElementConnected(element)) return;
+      const element = getFirstConnectedHistoryElement(item.id);
+      if (!element) return;
 
       actions.clearLabelInstances();
 
@@ -3525,13 +3572,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.exitPromptMode();
         actions.clearInputText();
       }
-      const element = historyElementMap.get(item.id);
+      const element = getFirstConnectedHistoryElement(item.id);
 
       if (
         item.isComment &&
         item.commentText &&
-        element &&
-        isElementConnected(element)
+        element
       ) {
         const bounds = createElementBounds(element);
         const centerX = bounds.x + bounds.width / 2;
@@ -3580,23 +3626,23 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       requestAnimationFrame(() => {
         batch(() => {
           for (const historyItem of currentHistoryItems) {
-            const element = historyElementMap.get(historyItem.id);
-            if (!element || !isElementConnected(element)) continue;
+            const connectedElements = getConnectedHistoryElements(historyItem.id);
+            for (const element of connectedElements) {
+              const bounds = createElementBounds(element);
+              const labelId = `label-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-            const bounds = createElementBounds(element);
-            const labelId = `label-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
-            actions.addLabelInstance({
-              id: labelId,
-              bounds,
-              tagName: historyItem.tagName,
-              componentName: historyItem.componentName,
-              status: "copied",
-              createdAt: Date.now(),
-              element,
-              mouseX: bounds.x + bounds.width / 2,
-            });
-            scheduleLabelFade(labelId);
+              actions.addLabelInstance({
+                id: labelId,
+                bounds,
+                tagName: historyItem.tagName,
+                componentName: historyItem.componentName,
+                status: "copied",
+                createdAt: Date.now(),
+                element,
+                mouseX: bounds.x + bounds.width / 2,
+              });
+              scheduleLabelFade(labelId);
+            }
           }
         });
       });
@@ -3604,15 +3650,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleHistoryItemHover = (historyItemId: string | null) => {
       clearHistoryHoverPreviews();
-      if (historyItemId) {
-        const item = historyItems().find(
-          (innerItem) => innerItem.id === historyItemId,
-        );
-        const element = historyElementMap.get(historyItemId);
-        if (item && element && isElementConnected(element)) {
-          addHistoryItemPreview(item, element, "history-hover");
-        }
-      }
+      if (!historyItemId) return;
+
+      const item = historyItems().find(
+        (innerItem) => innerItem.id === historyItemId,
+      );
+      if (!item) return;
+      showHistoryItemPreview(item, "history-hover");
     };
 
     const handleHistoryButtonHover = (isHovered: boolean) => {
@@ -3656,10 +3700,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const showAllHistoryItemPreviews = () => {
       for (const item of historyItems()) {
-        const element = historyElementMap.get(item.id);
-        if (element && isElementConnected(element)) {
-          addHistoryItemPreview(item, element, "history-all-hover");
-        }
+        showHistoryItemPreview(item, "history-all-hover");
       }
     };
 

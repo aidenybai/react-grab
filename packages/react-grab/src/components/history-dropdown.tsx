@@ -63,6 +63,13 @@ const formatRelativeTime = (timestamp: number): string => {
   return `${Math.floor(elapsedHours / 24)}d`;
 };
 
+const getHistoryItemDisplayName = (item: HistoryItem): string => {
+  if (item.elementsCount > 1) {
+    return `${item.elementsCount} elements`;
+  }
+  return item.componentName ?? item.tagName;
+};
+
 export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
 
@@ -377,7 +384,7 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
                   >
                     <span class="flex flex-col min-w-0 flex-1">
                       <span class="text-[12px] leading-4 font-sans font-medium text-black truncate">
-                        {item.componentName ?? item.tagName}
+                        {getHistoryItemDisplayName(item)}
                       </span>
                       <Show when={item.commentText}>
                         <span class="text-[11px] leading-3 font-sans text-black/40 truncate mt-0.5">
