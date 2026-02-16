@@ -44,6 +44,14 @@ interface AgentSessionInfo {
   prompt: string;
 }
 
+interface LabelInstanceInfo {
+  id: string;
+  status: string;
+  tagName: string;
+  componentName?: string;
+  createdAt: number;
+}
+
 interface ReactGrabState {
   isActive: boolean;
   isDragging: boolean;
@@ -56,6 +64,7 @@ interface ReactGrabState {
     bounds: { x: number; y: number; width: number; height: number };
     createdAt: number;
   }>;
+  labelInstances: LabelInstanceInfo[];
 }
 
 interface CrosshairInfo {
@@ -143,6 +152,7 @@ export interface ReactGrabPageObject {
   clickHistoryClear: () => Promise<void>;
   hoverHistoryItem: (index: number) => Promise<void>;
   hoverHistoryButton: () => Promise<void>;
+  hoverCopyAllButton: () => Promise<void>;
   getHistoryDropdownPosition: () => Promise<{
     left: number;
     top: number;
@@ -157,6 +167,7 @@ export interface ReactGrabPageObject {
   getCrosshairInfo: () => Promise<CrosshairInfo>;
   isCrosshairVisible: () => Promise<boolean>;
   getGrabbedBoxInfo: () => Promise<GrabbedBoxInfo>;
+  getLabelInstancesInfo: () => Promise<LabelInstanceInfo[]>;
   isGrabbedBoxVisible: () => Promise<boolean>;
   getDragBoxBounds: () => Promise<{
     x: number;
@@ -1099,6 +1110,29 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     }
   };
 
+  const hoverCopyAllButton = async () => {
+    const buttonRect = await page.evaluate((attrName) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      if (!shadowRoot) return null;
+      const root = shadowRoot.querySelector(`[${attrName}]`);
+      if (!root) return null;
+      const button = root.querySelector<HTMLElement>(
+        "[data-react-grab-history-copy-all]",
+      );
+      if (!button) return null;
+      const rect = button.getBoundingClientRect();
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+    }, ATTRIBUTE_NAME);
+    if (buttonRect) {
+      await page.mouse.move(
+        buttonRect.x + buttonRect.width / 2,
+        buttonRect.y + buttonRect.height / 2,
+      );
+      await page.waitForTimeout(100);
+    }
+  };
+
   const getHistoryDropdownPosition = async (): Promise<{
     left: number;
     top: number;
@@ -1351,6 +1385,35 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     });
   };
 
+  const getLabelInstancesInfo = async (): Promise<LabelInstanceInfo[]> => {
+    return page.evaluate(() => {
+      const api = (
+        window as {
+          __REACT_GRAB__?: {
+            getState: () => {
+              labelInstances: Array<{
+                id: string;
+                status: string;
+                tagName: string;
+                componentName?: string;
+                createdAt: number;
+              }>;
+            };
+          };
+        }
+      ).__REACT_GRAB__;
+
+      const state = api?.getState();
+      return (state?.labelInstances ?? []).map((instance) => ({
+        id: instance.id,
+        status: instance.status,
+        tagName: instance.tagName,
+        componentName: instance.componentName,
+        createdAt: instance.createdAt,
+      }));
+    });
+  };
+
   const isGrabbedBoxVisible = async (): Promise<boolean> => {
     return page.evaluate(() => {
       const api = (
@@ -1438,6 +1501,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
           targetElement: false,
           dragBounds: null,
           grabbedBoxes: [],
+          labelInstances: [],
         }
       );
     });
@@ -2186,6 +2250,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     clickHistoryClear,
     hoverHistoryItem,
     hoverHistoryButton,
+    hoverCopyAllButton,
     getHistoryDropdownPosition,
 
     getSelectionLabelInfo,
@@ -2197,6 +2262,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     getCrosshairInfo,
     isCrosshairVisible,
     getGrabbedBoxInfo,
+    getLabelInstancesInfo,
     isGrabbedBoxVisible,
     getDragBoxBounds,
     getSelectionBoxBounds,

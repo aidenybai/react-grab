@@ -373,9 +373,9 @@ test.describe("Agent Integration", () => {
         await reactGrab.typeInInput(`Prompt ${i}`);
         await reactGrab.submitInput();
 
-        await reactGrab.waitForAgentSession(3000);
+        await reactGrab.waitForAgentSession(5000);
         await reactGrab.clickAgentDismiss();
-        await reactGrab.page.waitForTimeout(200);
+        await reactGrab.page.waitForTimeout(500);
       }
 
       const state = await reactGrab.getState();

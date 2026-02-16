@@ -62,6 +62,27 @@ test.describe("Hold Activation Mode", () => {
     await reactGrab.page.mouse.up();
   });
 
+  test("should cancel hold when pressing a non-activation key during hold", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.page.click("body");
+
+    await reactGrab.page.keyboard.down(reactGrab.modifierKey);
+    await reactGrab.page.keyboard.down("c");
+    await reactGrab.page.waitForTimeout(50);
+
+    await reactGrab.page.keyboard.down("a");
+    await reactGrab.page.keyboard.up("c");
+
+    await reactGrab.page.waitForTimeout(500);
+
+    const isVisible = await reactGrab.isOverlayVisible();
+    expect(isVisible).toBe(false);
+
+    await reactGrab.page.keyboard.up("a");
+    await reactGrab.page.keyboard.up(reactGrab.modifierKey);
+  });
+
   test("should copy heading element after API activation", async ({
     reactGrab,
   }) => {

@@ -98,6 +98,13 @@ export interface ReactGrabState {
     bounds: OverlayBounds;
     createdAt: number;
   }>;
+  labelInstances: Array<{
+    id: string;
+    status: SelectionLabelStatus;
+    tagName: string;
+    componentName?: string;
+    createdAt: number;
+  }>;
   selectionFilePath: string | null;
   toolbarState: ToolbarState | null;
 }
