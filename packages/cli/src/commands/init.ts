@@ -1,5 +1,8 @@
+import { existsSync } from "node:fs";
+import { relative, resolve } from "node:path";
 import { Command } from "commander";
 import pc from "picocolors";
+import { detectNonInteractive } from "../utils/is-non-interactive.js";
 import { prompts } from "../utils/prompts.js";
 import {
   applyPackageJsonWithFeedback,
@@ -14,10 +17,11 @@ import {
 } from "../utils/install-mcp.js";
 import {
   detectProject,
-  findWorkspaceProjects,
+  findReactProjects,
   type Framework,
   type PackageManager,
   type UnsupportedFramework,
+  type WorkspaceProject,
 } from "../utils/detect.js";
 import { printDiff } from "../utils/diff.js";
 import { handleError } from "../utils/handle-error.js";
@@ -99,6 +103,45 @@ const UNSUPPORTED_FRAMEWORK_NAMES: Record<
 
 const getAgentName = getAgentDisplayName;
 
+const sortProjectsByFramework = (
+  projects: WorkspaceProject[],
+): WorkspaceProject[] =>
+  [...projects].sort((projectA, projectB) => {
+    if (projectA.framework === "unknown" && projectB.framework !== "unknown")
+      return 1;
+    if (projectA.framework !== "unknown" && projectB.framework === "unknown")
+      return -1;
+    return 0;
+  });
+
+const printSubprojects = (
+  searchRoot: string,
+  sortedProjects: WorkspaceProject[],
+): void => {
+  logger.break();
+  logger.log("Found the following projects:");
+  logger.break();
+  for (const project of sortedProjects) {
+    const frameworkLabel =
+      project.framework !== "unknown"
+        ? ` ${highlighter.dim(`(${FRAMEWORK_NAMES[project.framework]})`)}`
+        : "";
+    const relativePath = relative(searchRoot, project.path);
+    logger.log(
+      `  ${highlighter.info(project.name)}${frameworkLabel} ${highlighter.dim(relativePath)}`,
+    );
+  }
+  logger.break();
+  logger.log(
+    `Re-run with ${highlighter.info("-c <path>")} to specify a project:`,
+  );
+  logger.break();
+  logger.log(
+    `  ${highlighter.dim("$")} npx -y grab@latest init -c ${relative(searchRoot, sortedProjects[0].path)}`,
+  );
+  logger.break();
+};
+
 const formatActivationKeyDisplay = (
   activationKey: ReactGrabOptions["activationKey"],
 ): string => {
@@ -144,8 +187,15 @@ export const init = new Command()
     console.log();
 
     try {
-      const cwd = opts.cwd;
-      const isNonInteractive = opts.yes;
+      const cwd = resolve(opts.cwd);
+      const isNonInteractive = detectNonInteractive(opts.yes);
+
+      if (!existsSync(cwd)) {
+        logger.break();
+        logger.error(`Directory does not exist: ${highlighter.info(cwd)}`);
+        logger.break();
+        process.exit(1);
+      }
 
       const preflightSpinner = spinner("Preflight checks.").start();
 
@@ -805,72 +855,58 @@ export const init = new Command()
       }
 
       if (projectInfo.framework === "unknown") {
-        if (projectInfo.isMonorepo && !isNonInteractive) {
-          frameworkSpinner.info("Verifying framework. Found monorepo.");
+        let searchRoot = cwd;
+        let reactProjects = findReactProjects(searchRoot);
+        if (reactProjects.length === 0 && cwd !== process.cwd()) {
+          searchRoot = process.cwd();
+          reactProjects = findReactProjects(searchRoot);
+        }
 
-          const workspaceProjects = findWorkspaceProjects(
-            projectInfo.projectRoot,
+        if (reactProjects.length > 0) {
+          frameworkSpinner.info(
+            `Verifying framework. Found ${reactProjects.length} project${reactProjects.length === 1 ? "" : "s"}.`,
           );
-          const reactProjects = workspaceProjects.filter(
-            (project) => project.hasReact || project.framework !== "unknown",
-          );
 
-          if (reactProjects.length > 0) {
-            logger.break();
-            const sortedProjects = [...reactProjects].sort(
-              (projectA, projectB) => {
-                if (
-                  projectA.framework === "unknown" &&
-                  projectB.framework !== "unknown"
-                )
-                  return 1;
-                if (
-                  projectA.framework !== "unknown" &&
-                  projectB.framework === "unknown"
-                )
-                  return -1;
-                return 0;
-              },
-            );
-            const { selectedProject } = await prompts({
-              type: "select",
-              name: "selectedProject",
-              message: "Select a project to install React Grab:",
-              choices: [
-                ...sortedProjects.map((project) => {
-                  const frameworkLabel =
-                    project.framework !== "unknown"
-                      ? ` ${highlighter.dim(`(${FRAMEWORK_NAMES[project.framework]})`)}`
-                      : "";
-                  return {
-                    title: `${project.name}${frameworkLabel}`,
-                    value: project.path,
-                  };
-                }),
-                { title: "Skip", value: "skip" },
-              ],
-            });
+          const sortedProjects = sortProjectsByFramework(reactProjects);
 
-            if (!selectedProject || selectedProject === "skip") {
-              logger.break();
-              process.exit(0);
-            }
-
-            process.chdir(selectedProject);
-            const newProjectInfo = await detectProject(selectedProject);
-            Object.assign(projectInfo, newProjectInfo);
-
-            const newFrameworkSpinner = spinner("Verifying framework.").start();
-            newFrameworkSpinner.succeed(
-              `Verifying framework. Found ${highlighter.info(FRAMEWORK_NAMES[newProjectInfo.framework])}.`,
-            );
-          } else {
-            frameworkSpinner.fail("Could not detect a supported framework.");
-            logger.break();
-            logger.log(`Visit ${highlighter.info(DOCS_URL)} for manual setup.`);
-            logger.break();
+          if (isNonInteractive) {
+            printSubprojects(searchRoot, sortedProjects);
             process.exit(1);
           }
+
+          logger.break();
+          const { selectedProject } = await prompts({
+            type: "select",
+            name: "selectedProject",
+            message: "Select a project to install React Grab:",
+            choices: [
+              ...sortedProjects.map((project) => {
+                const frameworkLabel =
+                  project.framework !== "unknown"
+                    ? ` ${highlighter.dim(`(${FRAMEWORK_NAMES[project.framework]})`)}`
+                    : "";
+                return {
+                  title: `${project.name}${frameworkLabel}`,
+                  value: project.path,
+                };
+              }),
+              { title: "Skip", value: "skip" },
+            ],
+          });
+
+          if (!selectedProject || selectedProject === "skip") {
+            logger.break();
+            process.exit(0);
+          }
+
+          process.chdir(selectedProject);
+          const newProjectInfo = await detectProject(selectedProject);
+          Object.assign(projectInfo, newProjectInfo);
+
+          const newFrameworkSpinner = spinner("Verifying framework.").start();
+          newFrameworkSpinner.succeed(
+            `Verifying framework. Found ${highlighter.info(FRAMEWORK_NAMES[newProjectInfo.framework])}.`,
+          );
         } else {
           frameworkSpinner.fail("Could not detect a supported framework.");
           logger.break();

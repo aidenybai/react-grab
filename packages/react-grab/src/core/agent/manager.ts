@@ -459,12 +459,12 @@ export const createAgentManager = (
       transformedContext,
       abortController.signal,
     );
-  void executeSessionStream(
-    session,
-    streamIterator,
-    abortController,
-    activeAgent,
-  );
+    void executeSessionStream(
+      session,
+      streamIterator,
+      abortController,
+      activeAgent,
+    );
   };
 
   const abort = (sessionId?: string) => {

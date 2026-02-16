@@ -2330,7 +2330,11 @@ export const test = base.extend<{ reactGrab: ReactGrabPageObject }>({
 
     const initializePage = async () => {
       let lastError: unknown;
-      for (let attemptIndex = 0; attemptIndex < PAGE_SETUP_MAX_ATTEMPTS; attemptIndex++) {
+      for (
+        let attemptIndex = 0;
+        attemptIndex < PAGE_SETUP_MAX_ATTEMPTS;
+        attemptIndex++
+      ) {
         if (page.isClosed()) {
           throw new Error("Browser page closed during reactGrab fixture setup");
         }
