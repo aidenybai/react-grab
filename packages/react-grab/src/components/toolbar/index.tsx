@@ -804,6 +804,13 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           cancelAnimationFrame(toggleAnimationRafId);
           toggleAnimationRafId = undefined;
         }
+        // HACK: Under heavy system load the rAF loop may not have run enough
+        // frames to fully track the CSS grid transition. Snap to the final
+        // expected position so the toggle button never drifts.
+        const finalExpandDimension = isCurrentlyEnabled
+          ? 0
+          : expandableDimension;
+        setPosition(computeClampedPosition(finalExpandDimension));
         setIsToggleAnimating(false);
         setIsRapidRetoggle(false);
         const newRatio = getRatioFromPosition(
