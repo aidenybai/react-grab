@@ -442,6 +442,7 @@ export interface SelectionLabelInstance {
   boundsMultiple?: OverlayBounds[];
   tagName: string;
   componentName?: string;
+  elementsCount?: number;
   status: SelectionLabelStatus;
   statusText?: string;
   isPromptMode?: boolean;
@@ -462,6 +463,8 @@ export interface HistoryItem {
   elementName: string;
   tagName: string;
   componentName?: string;
+  elementsCount?: number;
+  previewBounds?: OverlayBounds[];
   isComment: boolean;
   commentText?: string;
   timestamp: number;
@@ -567,7 +570,7 @@ export interface GrabbedBox {
   id: string;
   bounds: OverlayBounds;
   createdAt: number;
-  element: Element;
+  element?: Element;
 }
 
 export interface Rect {

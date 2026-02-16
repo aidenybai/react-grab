@@ -7,6 +7,7 @@ import {
   Z_INDEX_OVERLAY_CANVAS,
 } from "../constants.js";
 import { buildOpenFileUrl } from "../utils/build-open-file-url.js";
+import { isElementConnected } from "../utils/is-element-connected.js";
 import { OverlayCanvas } from "./overlay-canvas.js";
 import { SelectionLabel } from "./selection-label/index.js";
 import { Toolbar } from "./toolbar/index.js";
@@ -158,6 +159,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           <SelectionLabel
             tagName={instance().tagName}
             componentName={instance().componentName}
+            elementsCount={instance().elementsCount}
             selectionBounds={instance().bounds}
             mouseX={instance().mouseX}
             visible={true}
@@ -168,16 +170,16 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
             inputValue={instance().inputValue}
             error={instance().errorMessage}
             hideArrow={instance().hideArrow}
-            onShowContextMenu={
-              (instance().status === "copied" ||
-                instance().status === "fading") &&
-              instance().element &&
-              (document.body ?? document.documentElement).contains(
-                instance().element as Node,
-              )
-                ? () => props.onShowContextMenuInstance?.(instance().id)
-                : undefined
-            }
+            onShowContextMenu={(() => {
+              const currentInstance = instance();
+              const hasCompletedStatus =
+                currentInstance.status === "copied" ||
+                currentInstance.status === "fading";
+              if (!hasCompletedStatus || !isElementConnected(currentInstance.element)) {
+                return undefined;
+              }
+              return () => props.onShowContextMenuInstance?.(currentInstance.id);
+            })()}
             onHoverChange={(isHovered) =>
               props.onLabelInstanceHoverChange?.(instance().id, isHovered)
             }
