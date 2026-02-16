@@ -1,4 +1,5 @@
 import type { Plugin } from "../../types.js";
+import { copyContent } from "../../utils/copy-content.js";
 
 export const copyHtmlPlugin: Plugin = {
   name: "copy-html",
@@ -22,8 +23,7 @@ export const copyHtmlPlugin: Plugin = {
 
           if (!transformedHtml) return false;
 
-          await navigator.clipboard.writeText(transformedHtml);
-          return true;
+          return copyContent(transformedHtml);
         });
       },
     },
