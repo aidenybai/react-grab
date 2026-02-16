@@ -10,11 +10,14 @@ import {
 import type { Component } from "solid-js";
 import type { ArrowPosition, SelectionLabelProps } from "../../types.js";
 import {
+  DEFERRED_EXECUTION_DELAY_MS,
+  IME_COMPOSING_KEY_CODE,
   VIEWPORT_MARGIN_PX,
   ARROW_CENTER_PERCENT,
   ARROW_LABEL_MARGIN_PX,
   LABEL_GAP_PX,
   PANEL_STYLES,
+  SELECTION_LABEL_OFFSCREEN_PX,
 } from "../../constants.js";
 import { getArrowSize } from "../../utils/get-arrow-size.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
@@ -32,8 +35,8 @@ import { ErrorView } from "./error-view.js";
 import { CompletionView } from "./completion-view.js";
 
 const DEFAULT_OFFSCREEN_POSITION = {
-  left: -9999,
-  top: -9999,
+  left: SELECTION_LABEL_OFFSCREEN_PX,
+  top: SELECTION_LABEL_OFFSCREEN_PX,
   arrowLeftPercent: ARROW_CENTER_PERCENT,
   arrowLeftOffset: 0,
   edgeOffsetX: 0,
@@ -152,41 +155,45 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     }
   });
 
+  const sizeAffectingSignature = createMemo(() => [
+    props.tagName,
+    props.componentName,
+    props.elementsCount,
+    props.statusText,
+    props.inputValue,
+    props.hasAgent,
+    props.isPromptMode,
+    props.isPendingDismiss,
+    props.error,
+    props.isPendingAbort,
+    props.visible,
+    props.status,
+    props.actionCycleState?.items,
+    props.actionCycleState?.activeIndex,
+    props.actionCycleState?.isVisible,
+  ]);
+
   createEffect(() => {
-    // HACK: trigger measurement when content that affects size changes
-    // this is necessary because Solid's fine-grained reactivity means we don't re-render
-    // the entire component when props change. Since the label position depends on its
-    // width/height (to center it), and width/height depends on content, we must force
-    // a re-measure whenever ANY prop that could change the rendered size updates.
-    // Without this, switching from a short tag to a long component name would use the
-    // old cached width, causing the label to be offset incorrectly.
-    void props.tagName;
-    void props.componentName;
-    void props.elementsCount;
-    void props.statusText;
-    void props.inputValue;
-    void props.hasAgent;
-    void props.isPromptMode;
-    void props.isPendingDismiss;
-    void props.error;
-    void props.isPendingAbort;
-    void props.visible;
-    void props.status;
-    void props.actionCycleState?.items;
-    void props.actionCycleState?.activeIndex;
-    void props.actionCycleState?.isVisible;
-    // HACK: use queueMicrotask instead of RAF to measure sooner after content changes
-    // This prevents the flicker when transitioning between states (e.g., clicking "Keep")
+    // HACK: Trigger measurement when content that affects size changes.
+    // Solid's fine-grained reactivity means we do not re-render the entire
+    // component on every prop change. Label positioning depends on measured
+    // width/height for centering, and width/height depends on rendered content.
+    // We therefore force a re-measure whenever any size-affecting input changes.
+    // Without this, switching from a short tag to a long component name can keep
+    // stale width and offset the label incorrectly.
+    void sizeAffectingSignature();
     queueMicrotask(measureContainer);
   });
 
   createEffect(() => {
     if (props.isPromptMode && inputRef && props.onSubmit) {
-      // HACK: setTimeout(0) defers focus to the next event loop tick to ensure
-      // the textarea is fully mounted and ready to receive focus
-      setTimeout(() => {
+      // HACK: Defer focus one tick so the textarea is fully mounted.
+      const focusTimeout = setTimeout(() => {
         inputRef?.focus();
-      }, 0);
+      }, DEFERRED_EXECUTION_DELAY_MS);
+      onCleanup(() => {
+        clearTimeout(focusTimeout);
+      });
     }
   });
 
@@ -299,7 +306,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   });
 
   const handleKeyDown = (event: KeyboardEvent) => {
-    if (event.isComposing || event.keyCode === 229) {
+    if (event.isComposing || event.keyCode === IME_COMPOSING_KEY_CODE) {
       return;
     }
 
@@ -319,8 +326,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   };
 
   const handleInput = (event: InputEvent) => {
-    const target = event.target as HTMLTextAreaElement;
-    props.onInputChange?.(target.value);
+    const inputTarget = event.target;
+    if (!(inputTarget instanceof HTMLTextAreaElement)) {
+      return;
+    }
+    props.onInputChange?.(inputTarget.value);
   };
 
   const tagDisplayResult = () =>

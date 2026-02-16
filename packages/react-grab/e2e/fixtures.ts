@@ -3,6 +3,9 @@ import { test as base, expect, Page, Locator } from "@playwright/test";
 const ATTRIBUTE_NAME = "data-react-grab";
 const DEFAULT_KEY_HOLD_DURATION_MS = 200;
 const ACTIVATION_BUFFER_MS = 200;
+const PAGE_SETUP_MAX_ATTEMPTS = 2;
+const PAGE_SETUP_NAVIGATION_TIMEOUT_MS = 8_000;
+const PAGE_SETUP_API_TIMEOUT_MS = 8_000;
 const MODIFIER_KEY = process.platform === "darwin" ? "Meta" : "Control";
 
 interface ContextMenuInfo {
@@ -1655,7 +1658,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         const api = (window as { __REACT_GRAB__?: unknown }).__REACT_GRAB__;
         return api !== undefined;
       },
-      { timeout: 2000 },
+      { timeout: 5000 },
     );
   };
 
@@ -2315,23 +2318,46 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
 
 export const test = base.extend<{ reactGrab: ReactGrabPageObject }>({
   reactGrab: async ({ page }, use) => {
-    const initializePage = async () => {
-      await page.goto("/", { waitUntil: "domcontentloaded" });
+    const waitForApiReady = async () => {
       await page.waitForFunction(
         () => {
           const api = (window as { __REACT_GRAB__?: unknown }).__REACT_GRAB__;
           return api !== undefined;
         },
-        { timeout: 10000 },
+        { timeout: PAGE_SETUP_API_TIMEOUT_MS },
       );
     };
 
-    try {
-      await initializePage();
-    } catch {
-      // HACK: Retry once if app initialization failed (dev server can be slow under parallel load)
-      await initializePage();
-    }
+    const initializePage = async () => {
+      let lastError: unknown;
+      for (let attemptIndex = 0; attemptIndex < PAGE_SETUP_MAX_ATTEMPTS; attemptIndex++) {
+        if (page.isClosed()) {
+          throw new Error("Browser page closed during reactGrab fixture setup");
+        }
+        try {
+          await page.goto("/", {
+            waitUntil: "domcontentloaded",
+            timeout: PAGE_SETUP_NAVIGATION_TIMEOUT_MS,
+          });
+          await waitForApiReady();
+          return;
+        } catch (error) {
+          lastError = error;
+          if (page.isClosed()) {
+            throw lastError;
+          }
+          if (attemptIndex === PAGE_SETUP_MAX_ATTEMPTS - 1) {
+            throw lastError;
+          }
+          // HACK: brief backoff helps when dev server is under heavy parallel load.
+          await new Promise((resolve) => {
+            setTimeout(resolve, 250 * (attemptIndex + 1));
+          });
+        }
+      }
+    };
+
+    await initializePage();
 
     const reactGrab = createReactGrabPageObject(page);
     await use(reactGrab);
