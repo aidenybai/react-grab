@@ -507,7 +507,7 @@ const invokeCallbacks = (callbacks: Array<() => void>): void => {
   }
 };
 
-export const initializeFreezeSupport = (): void => {
+const initializeFreezeSupport = (): void => {
   for (const renderer of getRDTHook().renderers.values()) {
     if (renderersWithPatchedDispatcher.has(renderer)) continue;
     installDispatcherPatching(renderer);

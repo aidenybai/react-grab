@@ -65,6 +65,8 @@ import {
   ACTION_CYCLE_IDLE_TRIGGER_MS,
   WINDOW_REFOCUS_GRACE_PERIOD_MS,
   DROPDOWN_HOVER_OPEN_DELAY_MS,
+  PREVIEW_TEXT_MAX_LENGTH,
+  DEFERRED_EXECUTION_DELAY_MS,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
@@ -356,19 +358,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       onCleanup(() => clearTimeout(timerId));
     });
 
-    let previouslyHoldingKeys = false;
-    createEffect(() => {
-      const currentlyHolding = isHoldingKeys();
-      const currentlyActive = isActivated();
-
-      if (previouslyHoldingKeys && !currentlyHolding && currentlyActive) {
+    createEffect(
+      on(isHoldingKeys, (currentlyHolding, previouslyHolding = false) => {
+        if (!previouslyHolding || currentlyHolding || !isActivated()) {
+          return;
+        }
         if (pluginRegistry.store.options.activationMode !== "hold") {
           actions.setWasActivatedByToggle(true);
         }
         pluginRegistry.hooks.onActivate();
-      }
-      previouslyHoldingKeys = currentlyHolding;
-    });
+      }),
+    );
 
     const preparePromptMode = (
       element: Element,
@@ -526,7 +526,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
           const textContent =
             element instanceof HTMLElement
-              ? element.innerText?.slice(0, 100)
+              ? element.innerText?.slice(0, PREVIEW_TEXT_MAX_LENGTH)
               : undefined;
 
           return {
@@ -885,32 +885,30 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     createEffect(
-      on(
-        () => effectiveElement(),
-        (element) => {
-          if (componentNameDebounceTimerId !== null) {
-            clearTimeout(componentNameDebounceTimerId);
-          }
+      on(effectiveElement, (element) => {
+        if (componentNameDebounceTimerId !== null) {
+          clearTimeout(componentNameDebounceTimerId);
+          componentNameDebounceTimerId = null;
+        }
 
-          if (!element) {
-            setDebouncedElementForComponentName(null);
-            return;
-          }
+        if (!element) {
+          setDebouncedElementForComponentName(null);
+          return;
+        }
 
-          componentNameDebounceTimerId = window.setTimeout(() => {
-            componentNameDebounceTimerId = null;
-            setDebouncedElementForComponentName(element);
-          }, COMPONENT_NAME_DEBOUNCE_MS);
-
-          onCleanup(() => {
-            if (componentNameDebounceTimerId !== null) {
-              clearTimeout(componentNameDebounceTimerId);
-              componentNameDebounceTimerId = null;
-            }
-          });
-        },
-      ),
+        componentNameDebounceTimerId = window.setTimeout(() => {
+          componentNameDebounceTimerId = null;
+          setDebouncedElementForComponentName(element);
+        }, COMPONENT_NAME_DEBOUNCE_MS);
+      }),
     );
+
+    onCleanup(() => {
+      if (componentNameDebounceTimerId !== null) {
+        clearTimeout(componentNameDebounceTimerId);
+        componentNameDebounceTimerId = null;
+      }
+    });
 
     createEffect(() => {
       const elements = store.frozenElements;
@@ -942,7 +940,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const selectionElement = createMemo(() => getSelectionElement());
 
     const isSelectionElementVisible = (): boolean => {
-      const element = getSelectionElement();
+      const element = selectionElement();
       if (!element) return false;
       if (store.isTouchMode && isDragging()) {
         return isRendererActive();
@@ -984,7 +982,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return createFlatOverlayBounds(combineBounds(frozenBounds));
       }
 
-      const element = getSelectionElement();
+      const element = selectionElement();
       if (!element) return undefined;
       return createElementBounds(element);
     });
@@ -1158,6 +1156,24 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       ),
     );
 
+    const stateChangeGrabbedBoxes = createMemo(() =>
+      store.grabbedBoxes.map((box) => ({
+        id: box.id,
+        bounds: box.bounds,
+        createdAt: box.createdAt,
+      })),
+    );
+
+    const stateChangeLabelInstances = createMemo(() =>
+      store.labelInstances.map((instance) => ({
+        id: instance.id,
+        status: instance.status,
+        tagName: instance.tagName,
+        componentName: instance.componentName,
+        createdAt: instance.createdAt,
+      })),
+    );
+
     createEffect(
       on(
         () =>
@@ -1169,7 +1185,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             crosshairVisible(),
             targetElement(),
             dragBounds(),
-            store.grabbedBoxes,
             pluginRegistry.store.theme.enabled,
             pluginRegistry.store.theme.selectionBox.enabled,
             pluginRegistry.store.theme.dragBox.enabled,
@@ -1177,6 +1192,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             effectiveElement(),
             didJustCopy(),
             currentToolbarState(),
+            stateChangeGrabbedBoxes(),
+            stateChangeLabelInstances(),
+            store.selectionFilePath,
           ] as const,
         ([
           active,
@@ -1186,7 +1204,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           isCrosshairVisible,
           target,
           drag,
-          grabbedBoxes,
           themeEnabled,
           selectionBoxEnabled,
           dragBoxEnabled,
@@ -1194,6 +1211,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           effectiveTarget,
           justCopied,
           toolbarState,
+          grabbedBoxes,
+          labelInstances,
+          selectionFilePath,
         ]) => {
           const isSelectionBoxVisible = Boolean(
             themeEnabled &&
@@ -1228,19 +1248,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                   height: drag.height,
                 }
               : null,
-            grabbedBoxes: grabbedBoxes.map((box) => ({
-              id: box.id,
-              bounds: box.bounds,
-              createdAt: box.createdAt,
-            })),
-            labelInstances: store.labelInstances.map((instance) => ({
-              id: instance.id,
-              status: instance.status,
-              tagName: instance.tagName,
-              componentName: instance.componentName,
-              createdAt: instance.createdAt,
-            })),
-            selectionFilePath: store.selectionFilePath,
+            grabbedBoxes,
+            labelInstances,
+            selectionFilePath,
             toolbarState,
           });
         },
@@ -1456,8 +1466,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const elements =
         frozenElements.length > 0 ? frozenElements : element ? [element] : [];
 
-      const currentSelectionBounds = elements.map((el) =>
-        createElementBounds(el),
+      const currentSelectionBounds = elements.map((selectedElement) =>
+        createElementBounds(selectedElement),
       );
       const firstBounds = currentSelectionBounds[0];
       const currentX = firstBounds.x + firstBounds.width / 2;
@@ -1471,7 +1481,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         deactivateRenderer();
 
         actions.clearReplySessionId();
-        actions.clearSelectedAgent();
+        actions.setSelectedAgent(null);
 
         void agentManager.session.start({
           elements,
@@ -2402,10 +2412,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        if (
-          event.key === "Escape" &&
-          historyDropdownPosition() !== null
-        ) {
+        if (event.key === "Escape" && historyDropdownPosition() !== null) {
           dismissHistoryDropdown();
           return;
         }
@@ -2881,10 +2888,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     onCleanup(() => {
       eventListenerManager.abort();
+      if (dragPreviewDebounceTimerId !== null) {
+        window.clearTimeout(dragPreviewDebounceTimerId);
+      }
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
       if (toggleFeedbackTimerId) window.clearTimeout(toggleFeedbackTimerId);
       if (actionCycleIdleTimeoutId) {
         window.clearTimeout(actionCycleIdleTimeoutId);
+      }
+      if (historyPositionFrameId !== null) {
+        cancelAnimationFrame(historyPositionFrameId);
       }
       grabbedBoxTimeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
       grabbedBoxTimeouts.clear();
@@ -2897,19 +2910,31 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const rendererRoot = mountRoot(cssText as string);
 
+    const isThemeEnabled = createMemo(() => pluginRegistry.store.theme.enabled);
+    const isSelectionBoxThemeEnabled = createMemo(
+      () => pluginRegistry.store.theme.selectionBox.enabled,
+    );
+    const isElementLabelThemeEnabled = createMemo(
+      () => pluginRegistry.store.theme.elementLabel.enabled,
+    );
+    const isDragBoxThemeEnabled = createMemo(
+      () => pluginRegistry.store.theme.dragBox.enabled,
+    );
+    const isSelectionSuppressed = createMemo(() => didJustCopy());
+    const hasDragPreviewBounds = createMemo(
+      () => dragPreviewBounds().length > 0,
+    );
+
     const selectionVisible = createMemo(() => {
-      if (!pluginRegistry.store.theme.enabled) return false;
-      if (!pluginRegistry.store.theme.selectionBox.enabled) return false;
-      if (didJustCopy()) return false;
-
-      const hasDragPreview = dragPreviewBounds().length > 0;
-      if (hasDragPreview) return true;
-
+      if (!isThemeEnabled()) return false;
+      if (!isSelectionBoxThemeEnabled()) return false;
+      if (isSelectionSuppressed()) return false;
+      if (hasDragPreviewBounds()) return true;
       return isSelectionElementVisible();
     });
 
     const selectionTagName = createMemo(() => {
-      const element = getSelectionElement();
+      const element = selectionElement();
       if (!element) return undefined;
       return getTagName(element) || undefined;
     });
@@ -2942,15 +2967,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const selectionLabelVisible = createMemo(() => {
       if (store.contextMenuPosition !== null) return false;
-      if (!pluginRegistry.store.theme.elementLabel.enabled) return false;
-      if (didJustCopy()) return false;
+      if (!isElementLabelThemeEnabled()) return false;
+      if (isSelectionSuppressed()) return false;
 
       return isSelectionElementVisible();
     });
 
     const labelInstanceCache = new Map<string, SelectionLabelInstance>();
     const computedLabelInstances = createMemo(() => {
-      if (!pluginRegistry.store.theme.enabled) return [];
+      if (!isThemeEnabled()) return [];
       if (!pluginRegistry.store.theme.grabbedBoxes.enabled) return [];
       void store.viewportVersion;
       const currentIds = new Set(store.labelInstances.map((i) => i.id));
@@ -3001,7 +3026,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const computedGrabbedBoxes = createMemo(() => {
-      if (!pluginRegistry.store.theme.enabled) return [];
+      if (!isThemeEnabled()) return [];
       if (!pluginRegistry.store.theme.grabbedBoxes.enabled) return [];
       void store.viewportVersion;
       return store.grabbedBoxes.map((box) => {
@@ -3017,8 +3042,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const dragVisible = createMemo(
       () =>
-        pluginRegistry.store.theme.enabled &&
-        pluginRegistry.store.theme.dragBox.enabled &&
+        isThemeEnabled() &&
+        isDragBoxThemeEnabled() &&
         isRendererActive() &&
         isDraggingBeyondThreshold(),
     );
@@ -3028,8 +3053,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const labelVisible = createMemo(() => {
-      if (!pluginRegistry.store.theme.enabled) return false;
-      const themeEnabled = pluginRegistry.store.theme.elementLabel.enabled;
+      if (!isThemeEnabled()) return false;
+      const themeEnabled = isElementLabelThemeEnabled();
       const inPromptMode = isPromptMode();
       const copying = isCopying();
       const rendererActive = isRendererActive();
@@ -3173,7 +3198,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const deferHideContextMenu = () => {
       setTimeout(() => {
         actions.hideContextMenu();
-      }, 0);
+      }, DEFERRED_EXECUTION_DELAY_MS);
     };
 
     interface BuildActionContextOptions {
@@ -3322,7 +3347,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setTimeout(() => {
         actions.hideContextMenu();
         deactivateRenderer();
-      }, 0);
+      }, DEFERRED_EXECUTION_DELAY_MS);
     };
 
     const clearHistoryHoverPreviews = () => {
@@ -3664,7 +3689,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.setFrozenElement(element);
         actions.freeze();
         actions.showContextMenu(session.position, element);
-      }, 0);
+      }, DEFERRED_EXECUTION_DELAY_MS);
     };
 
     const handleShowContextMenuInstance = (instanceId: string) => {
@@ -3699,7 +3724,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
         actions.freeze();
         actions.showContextMenu(position, instance.element!);
-      }, 0);
+      }, DEFERRED_EXECUTION_DELAY_MS);
     };
 
     createEffect(() => {

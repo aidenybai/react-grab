@@ -33,7 +33,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "pnpm dev",
+    command: "pnpm --filter react-grab build && pnpm dev",
     url: "http://localhost:5175",
     reuseExistingServer: !process.env.CI,
     cwd: path.resolve(__dirname, "../e2e-playground"),

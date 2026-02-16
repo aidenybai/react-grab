@@ -1,3 +1,4 @@
+import { MAX_MEMORY_SESSIONS } from "../../constants.js";
 import type {
   AgentContext,
   AgentSession,
@@ -34,6 +35,15 @@ export const createSession = (
 
 const memorySessions = new Map<string, AgentSession>();
 
+const evictOldestMemorySessions = (): void => {
+  while (memorySessions.size > MAX_MEMORY_SESSIONS) {
+    const oldestKey = memorySessions.keys().next().value;
+    if (oldestKey !== undefined) {
+      memorySessions.delete(oldestKey);
+    }
+  }
+};
+
 export const saveSessions = (
   sessions: Map<string, AgentSession>,
   storage?: AgentSessionStorage | null,
@@ -41,6 +51,7 @@ export const saveSessions = (
   if (!storage) {
     memorySessions.clear();
     sessions.forEach((session, id) => memorySessions.set(id, session));
+    evictOldestMemorySessions();
     return;
   }
 
@@ -50,6 +61,7 @@ export const saveSessions = (
   } catch {
     memorySessions.clear();
     sessions.forEach((session, id) => memorySessions.set(id, session));
+    evictOldestMemorySessions();
   }
 };
 

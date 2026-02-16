@@ -6,6 +6,7 @@ import {
   createSignal,
   createEffect,
   createMemo,
+  on,
 } from "solid-js";
 import type { Component } from "solid-js";
 import type { HistoryItem, DropdownAnchor } from "../types.js";
@@ -117,11 +118,17 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
   });
 
   // HACK: mouseenter doesn't fire when an element appears under the cursor, so we check :hover after the enter animation commits
-  createEffect(() => {
-    if (isAnimatedIn() && containerRef?.matches(":hover")) {
-      props.onDropdownHover?.(true);
-    }
-  });
+  createEffect(
+    on(
+      isAnimatedIn,
+      (animatedIn) => {
+        if (animatedIn && containerRef?.matches(":hover")) {
+          props.onDropdownHover?.(true);
+        }
+      },
+      { defer: true },
+    ),
+  );
 
   const computedPosition = () => {
     const anchor = props.position;

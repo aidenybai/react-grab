@@ -10,8 +10,6 @@ declare global {
   }
 }
 
-type ReactGrabProps = Options;
-
 const shouldActivate = (): boolean => {
   if (typeof window === "undefined") return false;
 
@@ -22,7 +20,7 @@ const shouldActivate = (): boolean => {
   return !isProduction || hasQueryParam;
 };
 
-export const ReactGrab = (props: ReactGrabProps): null => {
+export const ReactGrab = (props: Options): null => {
   const apiRef = useRef<ReactGrabAPI | null>(null);
   const didInitRef = useRef(false);
   const didCreateRef = useRef(false);

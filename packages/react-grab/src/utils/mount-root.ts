@@ -1,6 +1,6 @@
 import { MOUNT_ROOT_RECHECK_DELAY_MS, Z_INDEX_HOST } from "../constants.js";
 
-export const ATTRIBUTE_NAME = "data-react-grab";
+const ATTRIBUTE_NAME = "data-react-grab";
 
 const FONT_LINK_ID = "react-grab-fonts";
 const FONT_LINK_URL =

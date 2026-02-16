@@ -47,7 +47,7 @@ export const freezeAllAnimations = (elements: Element[]): void => {
   }
 };
 
-export const unfreezeAllAnimations = (): void => {
+const unfreezeAllAnimations = (): void => {
   if (frozenElements.length === 0) return;
 
   for (const element of frozenElements) {

@@ -132,14 +132,18 @@ export const createAgentManager = (
   const executeSessionStream = async (
     session: AgentSession,
     streamIterator: AsyncIterable<string>,
+    abortController: AbortController,
     activeAgent?: AgentOptions,
   ) => {
     const effectiveAgent = activeAgent ?? agentOptions;
     const storage = effectiveAgent?.storage;
     let wasAborted = false;
+    const isCurrentExecution = () =>
+      abortControllers.get(session.id) === abortController;
 
     try {
       for await (const status of streamIterator) {
+        if (!isCurrentExecution()) break;
         const currentSessions = sessions();
         const currentSession = currentSessions.get(session.id);
         if (!currentSession) break;
@@ -153,6 +157,7 @@ export const createAgentManager = (
         effectiveAgent?.onStatus?.(status, updatedSession);
       }
 
+      if (!isCurrentExecution()) return;
       const finalSessions = sessions();
       const finalSession = finalSessions.get(session.id);
       if (finalSession) {
@@ -195,6 +200,7 @@ export const createAgentManager = (
         }
       }
     } catch (error) {
+      if (!isCurrentExecution()) return;
       const currentSessions = sessions();
       const currentSession = currentSessions.get(session.id);
       if (error instanceof Error && error.name === "AbortError") {
@@ -223,9 +229,17 @@ export const createAgentManager = (
         }
       }
     } finally {
+      if (!isCurrentExecution()) {
+        return;
+      }
       abortControllers.delete(session.id);
 
       if (wasAborted) {
+        const dismissTimeout = dismissTimeouts.get(session.id);
+        if (dismissTimeout) {
+          clearTimeout(dismissTimeout);
+          dismissTimeouts.delete(session.id);
+        }
         sessionMetadata.delete(session.id);
         clearSessionById(session.id, storage);
         setSessions((prev) => {
@@ -291,6 +305,12 @@ export const createAgentManager = (
       return;
     }
 
+    dismissTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
+    dismissTimeouts.clear();
+    abortControllers.forEach((controller) => controller.abort());
+    abortControllers.clear();
+    sessionMetadata.clear();
+
     const resumableSessionsMap = new Map(
       resumableSessions.map((session) => [session.id, session]),
     );
@@ -329,7 +349,11 @@ export const createAgentManager = (
         abortController.signal,
         storage,
       );
-      void executeSessionStream(existingSession, streamIterator);
+      void executeSessionStream(
+        existingSession,
+        streamIterator,
+        abortController,
+      );
     }
   };
 
@@ -435,7 +459,12 @@ export const createAgentManager = (
       transformedContext,
       abortController.signal,
     );
-    void executeSessionStream(session, streamIterator, activeAgent);
+  void executeSessionStream(
+    session,
+    streamIterator,
+    abortController,
+    activeAgent,
+  );
   };
 
   const abort = (sessionId?: string) => {
@@ -489,6 +518,11 @@ export const createAgentManager = (
 
     const timeoutId = setTimeout(() => {
       dismissTimeouts.delete(sessionId);
+      const controller = abortControllers.get(sessionId);
+      if (controller) {
+        controller.abort();
+        abortControllers.delete(sessionId);
+      }
       sessionMetadata.delete(sessionId);
       clearSessionById(sessionId, activeAgent?.storage);
       setSessions((prev) => {
@@ -628,7 +662,12 @@ export const createAgentManager = (
       contextWithSessionId,
       abortController.signal,
     );
-    void executeSessionStream(retriedSession, streamIterator, activeAgent);
+    void executeSessionStream(
+      retriedSession,
+      streamIterator,
+      abortController,
+      activeAgent,
+    );
   };
 
   const updateSessionBoundsOnViewportChange = () => {
