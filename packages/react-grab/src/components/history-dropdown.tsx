@@ -64,7 +64,7 @@ const formatRelativeTime = (timestamp: number): string => {
 };
 
 const getHistoryItemDisplayName = (item: HistoryItem): string => {
-  if (item.elementsCount > 1) {
+  if (item.elementsCount && item.elementsCount > 1) {
     return `${item.elementsCount} elements`;
   }
   return item.componentName ?? item.tagName;

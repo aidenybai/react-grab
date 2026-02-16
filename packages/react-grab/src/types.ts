@@ -463,7 +463,7 @@ export interface HistoryItem {
   elementName: string;
   tagName: string;
   componentName?: string;
-  elementsCount: number;
+  elementsCount?: number;
   previewBounds?: OverlayBounds[];
   isComment: boolean;
   commentText?: string;
