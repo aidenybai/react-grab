@@ -733,17 +733,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           onCopySuccess: (copiedElements: Element[], content: string) => {
             pluginRegistry.hooks.onCopySuccess(copiedElements, content);
 
-            const primaryElement = copiedElements[0];
+            const hasCopiedElements = copiedElements.length > 0;
             const isComment = Boolean(extraPrompt);
 
-            if (primaryElement) {
+            if (hasCopiedElements) {
               const currentItems = historyItems();
               for (const [
                 existingItemId,
                 mappedElements,
               ] of historyElementMap.entries()) {
-                const mappedPrimaryElement = mappedElements[0];
-                if (mappedPrimaryElement !== primaryElement) continue;
+                const isSameSelection =
+                  mappedElements.length === copiedElements.length &&
+                  mappedElements.every(
+                    (element, index) => element === copiedElements[index],
+                  );
+                if (!isSameSelection) continue;
                 const existingItem = currentItems.find(
                   (item) => item.id === existingItemId,
                 );
@@ -778,7 +782,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             setHistoryItems(updatedHistoryItems);
             setHasUnreadHistoryItems(true);
             const newestHistoryItem = updatedHistoryItems[0];
-            if (newestHistoryItem && primaryElement) {
+            if (newestHistoryItem && hasCopiedElements) {
               historyElementMap.set(newestHistoryItem.id, [...copiedElements]);
             }
 
