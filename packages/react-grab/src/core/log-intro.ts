@@ -20,7 +20,7 @@ export const logIntro = () => {
           cache: "no-store",
         } as RequestInit,
       )
-        .then((res) => res.text())
+        .then((response) => response.text())
         .then((latestVersion) => {
           if (latestVersion && latestVersion !== version) {
             console.warn(

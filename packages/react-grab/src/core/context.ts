@@ -13,11 +13,13 @@ import {
   traverseFiber,
 } from "bippy";
 import {
+  PREVIEW_TEXT_MAX_LENGTH,
   PREVIEW_ATTR_VALUE_MAX_LENGTH,
   PREVIEW_MAX_ATTRS,
   PREVIEW_PRIORITY_ATTRS,
 } from "../constants.js";
 import { getTagName } from "../utils/get-tag-name.js";
+import { truncateString } from "../utils/truncate-string.js";
 
 const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
   "InnerLayoutRouter",
@@ -292,7 +294,7 @@ const getFallbackContext = (element: Element): string => {
     attrsText += ` ${name}="${value}"`;
   }
 
-  const truncatedText = text.length > 100 ? `${text.slice(0, 100)}...` : text;
+  const truncatedText = truncateString(text, PREVIEW_TEXT_MAX_LENGTH);
 
   if (truncatedText.length > 0) {
     return `<${tagName}${attrsText}>\n  ${truncatedText}\n</${tagName}>`;
@@ -301,9 +303,7 @@ const getFallbackContext = (element: Element): string => {
 };
 
 const truncateAttrValue = (value: string): string =>
-  value.length > PREVIEW_ATTR_VALUE_MAX_LENGTH
-    ? `${value.slice(0, PREVIEW_ATTR_VALUE_MAX_LENGTH)}...`
-    : value;
+  truncateString(value, PREVIEW_ATTR_VALUE_MAX_LENGTH);
 
 interface FormatPriorityAttrsOptions {
   truncate?: boolean;
@@ -366,7 +366,9 @@ const getHTMLPreview = (element: Element): string => {
   const formatElements = (elements: Array<Element>): string => {
     if (elements.length === 0) return "";
     if (elements.length <= 2) {
-      return elements.map((el) => `<${getTagName(el)} ...>`).join("\n  ");
+      return elements
+        .map((childElement) => `<${getTagName(childElement)} ...>`)
+        .join("\n  ");
     }
     return `(${elements.length} elements)`;
   };
@@ -375,8 +377,7 @@ const getHTMLPreview = (element: Element): string => {
   const topElementsStr = formatElements(topElements);
   if (topElementsStr) content += `\n  ${topElementsStr}`;
   if (text.length > 0) {
-    const truncatedText = text.length > 100 ? `${text.slice(0, 100)}...` : text;
-    content += `\n  ${truncatedText}`;
+    content += `\n  ${truncateString(text, PREVIEW_TEXT_MAX_LENGTH)}`;
   }
   const bottomElementsStr = formatElements(bottomElements);
   if (bottomElementsStr) content += `\n  ${bottomElementsStr}`;

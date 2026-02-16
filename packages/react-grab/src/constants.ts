@@ -55,6 +55,7 @@ export const ARROW_MAX_LABEL_WIDTH_RATIO = 0.2;
 export const ARROW_CENTER_PERCENT = 50;
 export const ARROW_LABEL_MARGIN_PX = 16;
 export const LABEL_GAP_PX = 4;
+export const PREVIEW_TEXT_MAX_LENGTH = 100;
 export const PREVIEW_ATTR_VALUE_MAX_LENGTH = 15;
 export const PREVIEW_MAX_ATTRS = 3;
 export const PREVIEW_PRIORITY_ATTRS: readonly string[] = [
@@ -88,7 +89,6 @@ export const ARROW_KEYS = new Set([
 ]);
 
 export const FROZEN_ELEMENT_ATTRIBUTE = "data-react-grab-frozen";
-export const IGNORE_EVENTS_ATTRIBUTE = "data-react-grab-ignore-events";
 export const USER_IGNORE_ATTRIBUTE = "data-react-grab-ignore";
 
 export const VIEWPORT_COVERAGE_THRESHOLD = 0.9;
@@ -117,6 +117,9 @@ export const DRAG_SELECTION_MIN_SAMPLES_PER_AXIS = 3;
 export const DRAG_SELECTION_MAX_SAMPLES_PER_AXIS = 20;
 export const DRAG_SELECTION_MAX_TOTAL_SAMPLE_POINTS = 100;
 export const DRAG_SELECTION_EDGE_INSET_PX = 1;
+
+export const MAX_ARROW_NAVIGATION_HISTORY = 50;
+export const MAX_MEMORY_SESSIONS = 50;
 
 export const MAX_TRANSFORM_ANCESTOR_DEPTH = 6;
 export const TRANSFORM_EARLY_BAIL_DEPTH = 3;

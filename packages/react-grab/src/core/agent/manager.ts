@@ -226,6 +226,11 @@ export const createAgentManager = (
       abortControllers.delete(session.id);
 
       if (wasAborted) {
+        const dismissTimeout = dismissTimeouts.get(session.id);
+        if (dismissTimeout) {
+          clearTimeout(dismissTimeout);
+          dismissTimeouts.delete(session.id);
+        }
         sessionMetadata.delete(session.id);
         clearSessionById(session.id, storage);
         setSessions((prev) => {
@@ -290,6 +295,12 @@ export const createAgentManager = (
       clearSessions(storage);
       return;
     }
+
+    dismissTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
+    dismissTimeouts.clear();
+    abortControllers.forEach((controller) => controller.abort());
+    abortControllers.clear();
+    sessionMetadata.clear();
 
     const resumableSessionsMap = new Map(
       resumableSessions.map((session) => [session.id, session]),
@@ -489,6 +500,11 @@ export const createAgentManager = (
 
     const timeoutId = setTimeout(() => {
       dismissTimeouts.delete(sessionId);
+      const controller = abortControllers.get(sessionId);
+      if (controller) {
+        controller.abort();
+        abortControllers.delete(sessionId);
+      }
       sessionMetadata.delete(sessionId);
       clearSessionById(sessionId, activeAgent?.storage);
       setSessions((prev) => {

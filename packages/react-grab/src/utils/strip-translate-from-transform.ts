@@ -53,9 +53,6 @@ const isIdentityMatrix3d = (values: number[]): boolean =>
   values[11] === 0 &&
   values[15] === 1;
 
-/**
- * Strips translation from a computed transform string.
- */
 export const stripTranslateFromTransformString = (
   transform: string,
 ): string => {
@@ -95,9 +92,6 @@ export const stripTranslateFromTransformString = (
   return "none";
 };
 
-/**
- * Strips translation from a DOMMatrix, returning a CSS matrix string.
- */
 export const stripTranslateFromMatrix = (matrix: DOMMatrix): string => {
   if (matrix.isIdentity) return "none";
 

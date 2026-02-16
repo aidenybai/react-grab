@@ -73,6 +73,11 @@ interface ToolbarProps {
   isHistoryPinned?: boolean;
 }
 
+interface FreezeHandlersOptions {
+  shouldFreezeInteractions?: boolean;
+  shouldSetSelectHoverState?: boolean;
+}
+
 export const Toolbar: Component<ToolbarProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
   let expandableButtonsRef: HTMLDivElement | undefined;
@@ -134,8 +139,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     }
   };
 
-  const isTooltipAllowed = () =>
-    !isCollapsed() && !props.isHistoryDropdownOpen;
+  const isTooltipAllowed = () => !isCollapsed() && !props.isHistoryDropdownOpen;
 
   const tooltipPosition = (): "top" | "bottom" | "left" | "right" => {
     const edge = snapEdge();
@@ -184,12 +188,18 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const createFreezeHandlers = (
     setTooltipVisible: (visible: boolean) => void,
     onHoverChange?: (isHovered: boolean) => void,
+    options?: FreezeHandlersOptions,
   ) => ({
     onMouseEnter: () => {
       if (isDragging()) return;
       setTooltipVisible(true);
-      props.onSelectHoverChange?.(true);
-      if (!unfreezeUpdatesCallback) {
+      if (options?.shouldSetSelectHoverState !== false) {
+        props.onSelectHoverChange?.(true);
+      }
+      if (
+        options?.shouldFreezeInteractions !== false &&
+        !unfreezeUpdatesCallback
+      ) {
         unfreezeUpdatesCallback = freezeUpdates();
         freezeGlobalAnimations();
         freezePseudoStates();
@@ -198,8 +208,14 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     },
     onMouseLeave: () => {
       setTooltipVisible(false);
-      props.onSelectHoverChange?.(false);
-      if (!props.isActive && !props.isContextMenuOpen) {
+      if (options?.shouldSetSelectHoverState !== false) {
+        props.onSelectHoverChange?.(false);
+      }
+      if (
+        options?.shouldFreezeInteractions !== false &&
+        !props.isActive &&
+        !props.isContextMenuOpen
+      ) {
         unfreezeUpdatesCallback?.();
         unfreezeUpdatesCallback = null;
         unfreezeGlobalAnimations();
@@ -1557,6 +1573,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                         setIsHistoryTooltipVisible(visible);
                       },
                       (isHovered) => props.onHistoryButtonHover?.(isHovered),
+                      {
+                        shouldFreezeInteractions: false,
+                        shouldSetSelectHoverState: false,
+                      },
                     )}
                   >
                     <Show

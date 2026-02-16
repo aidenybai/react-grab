@@ -1,3 +1,4 @@
+import { MAX_ARROW_NAVIGATION_HISTORY } from "../constants.js";
 import type { OverlayBounds } from "../types.js";
 import { getElementsAtPoint } from "../utils/get-element-at-position.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
@@ -40,6 +41,11 @@ export const createArrowNavigator = (
     const nextElement = findVerticalNext(currentElement, 1);
     if (nextElement) {
       navigationHistory.push(currentElement);
+      if (navigationHistory.length > MAX_ARROW_NAVIGATION_HISTORY) {
+        navigationHistory = navigationHistory.slice(
+          -MAX_ARROW_NAVIGATION_HISTORY,
+        );
+      }
     }
     return nextElement;
   };

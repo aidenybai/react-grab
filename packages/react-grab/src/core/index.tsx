@@ -65,6 +65,7 @@ import {
   ACTION_CYCLE_IDLE_TRIGGER_MS,
   WINDOW_REFOCUS_GRACE_PERIOD_MS,
   DROPDOWN_HOVER_OPEN_DELAY_MS,
+  PREVIEW_TEXT_MAX_LENGTH,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
@@ -526,7 +527,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
           const textContent =
             element instanceof HTMLElement
-              ? element.innerText?.slice(0, 100)
+              ? element.innerText?.slice(0, PREVIEW_TEXT_MAX_LENGTH)
               : undefined;
 
           return {
@@ -1456,8 +1457,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const elements =
         frozenElements.length > 0 ? frozenElements : element ? [element] : [];
 
-      const currentSelectionBounds = elements.map((el) =>
-        createElementBounds(el),
+      const currentSelectionBounds = elements.map((selectedElement) =>
+        createElementBounds(selectedElement),
       );
       const firstBounds = currentSelectionBounds[0];
       const currentX = firstBounds.x + firstBounds.width / 2;
@@ -1471,7 +1472,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         deactivateRenderer();
 
         actions.clearReplySessionId();
-        actions.clearSelectedAgent();
+        actions.setSelectedAgent(null);
 
         void agentManager.session.start({
           elements,
@@ -2402,10 +2403,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
-        if (
-          event.key === "Escape" &&
-          historyDropdownPosition() !== null
-        ) {
+        if (event.key === "Escape" && historyDropdownPosition() !== null) {
           dismissHistoryDropdown();
           return;
         }

@@ -3,6 +3,7 @@ import {
   For,
   createSignal,
   createEffect,
+  createMemo,
   onMount,
   onCleanup,
 } from "solid-js";
@@ -189,7 +190,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     }
   });
 
-  const computedPosition = () => {
+  const positionComputation = createMemo(() => {
     viewportVersion();
 
     const bounds = props.selectionBounds;
@@ -199,7 +200,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     const hasValidBounds = bounds && bounds.width > 0 && bounds.height > 0;
 
     if (!hasMeasurements || !hasValidBounds) {
-      return lastValidPosition ?? DEFAULT_OFFSCREEN_POSITION;
+      return {
+        position: lastValidPosition ?? DEFAULT_OFFSCREEN_POSITION,
+        computedArrowPosition: null,
+      };
     }
 
     const viewportWidth = window.innerWidth;
@@ -212,7 +216,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       bounds.y < viewportHeight;
 
     if (!isSelectionVisibleInViewport) {
-      return DEFAULT_OFFSCREEN_POSITION;
+      return {
+        position: DEFAULT_OFFSCREEN_POSITION,
+        computedArrowPosition: null,
+      };
     }
 
     const selectionCenterX = bounds.x + bounds.width / 2;
@@ -228,7 +235,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     let edgeOffsetX = 0;
     let positionTop = selectionBottom + actualArrowHeight + LABEL_GAP_PX;
 
-    // Calculate edge clamping offset (only applied when we have valid measurements)
     if (labelWidth > 0) {
       const labelLeft = anchorX - labelWidth / 2;
       const labelRight = anchorX + labelWidth / 2;
@@ -247,9 +253,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
     if (!fitsBelow) {
       positionTop = selectionTop - totalHeightNeeded;
-      setArrowPosition("top");
-    } else {
-      setArrowPosition("bottom");
     }
 
     if (positionTop < VIEWPORT_MARGIN_PX) {
@@ -270,18 +273,30 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     );
     const arrowLeftOffset = clampedArrowCenterPx - labelHalfWidth;
 
-    const position = {
-      left: anchorX,
-      top: positionTop,
-      arrowLeftPercent,
-      arrowLeftOffset,
-      edgeOffsetX,
-    };
-    lastValidPosition = position;
-    setHadValidBounds(true);
+    const computedArrowPosition: ArrowPosition = fitsBelow ? "bottom" : "top";
 
-    return position;
-  };
+    return {
+      position: {
+        left: anchorX,
+        top: positionTop,
+        arrowLeftPercent,
+        arrowLeftOffset,
+        edgeOffsetX,
+      },
+      computedArrowPosition,
+    };
+  });
+
+  const computedPosition = () => positionComputation().position;
+
+  createEffect(() => {
+    const result = positionComputation();
+    if (result.computedArrowPosition !== null) {
+      lastValidPosition = result.position;
+      setHadValidBounds(true);
+      setArrowPosition(result.computedArrowPosition);
+    }
+  });
 
   const handleKeyDown = (event: KeyboardEvent) => {
     if (event.isComposing || event.keyCode === 229) {
