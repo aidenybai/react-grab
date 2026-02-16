@@ -2402,6 +2402,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
+        if (
+          event.key === "Escape" &&
+          historyDropdownPosition() !== null
+        ) {
+          dismissHistoryDropdown();
+          return;
+        }
+
         const isFromOverlay =
           isEventFromOverlay(event, "data-react-grab-ignore-events") &&
           !isEnterToActivateInput;

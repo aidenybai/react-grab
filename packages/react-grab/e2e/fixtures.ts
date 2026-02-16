@@ -931,10 +931,12 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         if (!shadowRoot) return !expectedVisible;
         const root = shadowRoot.querySelector(`[${attrName}]`);
         if (!root) return !expectedVisible;
-        const dropdown = root.querySelector(
+        const dropdown = root.querySelector<HTMLElement>(
           "[data-react-grab-history-dropdown]",
         );
-        return expectedVisible ? dropdown !== null : dropdown === null;
+        if (!expectedVisible) return dropdown === null;
+        if (!dropdown) return false;
+        return getComputedStyle(dropdown).pointerEvents !== "none";
       },
       { attrName: ATTRIBUTE_NAME, expectedVisible: visible },
       { timeout: 2000 },
