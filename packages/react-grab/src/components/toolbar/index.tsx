@@ -134,6 +134,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     }
   };
 
+  const isTooltipAllowed = () =>
+    !isCollapsed() && !props.isHistoryDropdownOpen;
+
   const tooltipPosition = (): "top" | "bottom" | "left" | "right" => {
     const edge = snapEdge();
     switch (edge) {
@@ -1463,7 +1466,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     />
                   </button>
                   <Tooltip
-                    visible={isSelectTooltipVisible() && !isCollapsed()}
+                    visible={isSelectTooltipVisible() && isTooltipAllowed()}
                     position={tooltipPosition()}
                   >
                     Select element
@@ -1511,7 +1514,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     />
                   </button>
                   <Tooltip
-                    visible={isCommentTooltipVisible() && !isCollapsed()}
+                    visible={isCommentTooltipVisible() && isTooltipAllowed()}
                     position={tooltipPosition()}
                   >
                     Add comment
@@ -1566,11 +1569,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     </Show>
                   </button>
                   <Tooltip
-                    visible={
-                      isHistoryTooltipVisible() &&
-                      !isCollapsed() &&
-                      !props.isHistoryDropdownOpen
-                    }
+                    visible={isHistoryTooltipVisible() && isTooltipAllowed()}
                     position={tooltipPosition()}
                   >
                     {historyTooltipLabel()}
@@ -1611,7 +1610,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                 </div>
               </button>
               <Tooltip
-                visible={isToggleTooltipVisible() && !isCollapsed()}
+                visible={isToggleTooltipVisible() && isTooltipAllowed()}
                 position={tooltipPosition()}
               >
                 {props.enabled ? "Disable" : "Enable"}
