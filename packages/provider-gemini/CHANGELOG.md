@@ -1,5 +1,14 @@
 # @react-grab/gemini
 
+## 0.1.15
+
+### Patch Changes
+
+- fix: animations and ux
+- Updated dependencies
+  - react-grab@0.1.15
+  - @react-grab/relay@0.1.15
+
 ## 0.1.14
 
 ### Patch Changes

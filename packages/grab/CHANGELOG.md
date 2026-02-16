@@ -1,5 +1,13 @@
 # grab
 
+## 0.1.15
+
+### Patch Changes
+
+- fix: animations and ux
+- Updated dependencies
+  - @react-grab/cli@0.1.15
+
 ## 0.1.14
 
 ### Patch Changes
