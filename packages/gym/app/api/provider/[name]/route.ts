@@ -11,6 +11,7 @@ const PROVIDER_MAP: Record<string, string> = {
   codex: "provider-codex",
   gemini: "provider-gemini",
   droid: "provider-droid",
+  copilot: "provider-copilot",
   mcp: "mcp",
 };
 

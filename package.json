@@ -6,8 +6,8 @@
   ],
   "type": "module",
   "scripts": {
-    "build": "cp README.md packages/react-grab/README.md && turbo run build --filter=react-grab --filter=@react-grab/cursor --filter=@react-grab/claude-code --filter=@react-grab/ami --filter=@react-grab/opencode --filter=@react-grab/codex --filter=@react-grab/gemini --filter=@react-grab/amp --filter=@react-grab/droid --filter=@react-grab/cli --filter=@react-grab/utils && pnpm --filter grab build",
-    "dev": "turbo dev --filter=react-grab --filter=@react-grab/cursor --filter=@react-grab/claude-code --filter=@react-grab/ami --filter=@react-grab/opencode --filter=@react-grab/codex --filter=@react-grab/gemini --filter=@react-grab/amp --filter=@react-grab/droid --filter=@react-grab/cli --filter=@react-grab/utils",
+    "build": "cp README.md packages/react-grab/README.md && turbo run build --filter=react-grab --filter=@react-grab/cursor --filter=@react-grab/claude-code --filter=@react-grab/ami --filter=@react-grab/opencode --filter=@react-grab/codex --filter=@react-grab/gemini --filter=@react-grab/amp --filter=@react-grab/droid --filter=@react-grab/copilot --filter=@react-grab/cli --filter=@react-grab/utils && pnpm --filter grab build",
+    "dev": "turbo dev --filter=react-grab --filter=@react-grab/cursor --filter=@react-grab/claude-code --filter=@react-grab/ami --filter=@react-grab/opencode --filter=@react-grab/codex --filter=@react-grab/gemini --filter=@react-grab/amp --filter=@react-grab/droid --filter=@react-grab/copilot --filter=@react-grab/cli --filter=@react-grab/utils",
     "test": "turbo run test --filter=react-grab --filter=@react-grab/cli",
     "typecheck": "pnpm --filter react-grab typecheck",
     "lint": "pnpm --filter react-grab lint",

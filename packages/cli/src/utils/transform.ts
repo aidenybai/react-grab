@@ -871,6 +871,8 @@ const AGENT_PACKAGES: Record<string, string> = {
   codex: "@react-grab/codex@latest",
   gemini: "@react-grab/gemini@latest",
   amp: "@react-grab/amp@latest",
+  droid: "@react-grab/droid@latest",
+  copilot: "@react-grab/copilot@latest",
 };
 
 export const getAgentPrefix = (

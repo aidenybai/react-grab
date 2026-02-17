@@ -408,6 +408,8 @@ const AGENT_PACKAGES = [
   "@react-grab/gemini",
   "@react-grab/amp",
   "@react-grab/ami",
+  "@react-grab/droid",
+  "@react-grab/copilot",
   "@react-grab/mcp",
 ];
 
@@ -477,7 +479,9 @@ export type AgentCLI =
   | "opencode"
   | "codex"
   | "gemini"
-  | "amp";
+  | "amp"
+  | "copilot"
+  | "droid";
 
 const AGENT_CLI_COMMANDS: AgentCLI[] = [
   "claude",
@@ -486,6 +490,8 @@ const AGENT_CLI_COMMANDS: AgentCLI[] = [
   "codex",
   "gemini",
   "amp",
+  "copilot",
+  "droid",
 ];
 
 const isCommandAvailable = (command: string): boolean => {
