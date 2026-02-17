@@ -43,6 +43,7 @@ export type {
   ActivationMode,
   ContextMenuAction,
   ContextMenuActionContext,
+  ToolbarMenuAction,
   ActionContext,
   ActionContextHooks,
   Plugin,

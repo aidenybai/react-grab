@@ -7,6 +7,7 @@ import {
   Show,
 } from "solid-js";
 import type { Component } from "solid-js";
+import type { ToolbarMenuAction } from "../../types.js";
 import { cn } from "../../utils/cn.js";
 import {
   loadToolbarState,
@@ -18,6 +19,7 @@ import { IconSelect } from "../icons/icon-select.jsx";
 import { IconChevron } from "../icons/icon-chevron.jsx";
 import { IconComment } from "../icons/icon-comment.jsx";
 import { IconInbox, IconInboxUnread } from "../icons/icon-inbox.jsx";
+import { IconMenu } from "../icons/icon-menu.jsx";
 import {
   TOOLBAR_SNAP_MARGIN_PX,
   TOOLBAR_FADE_IN_DELAY_MS,
@@ -71,6 +73,9 @@ interface ToolbarProps {
   onHistoryButtonHover?: (isHovered: boolean) => void;
   isHistoryDropdownOpen?: boolean;
   isHistoryPinned?: boolean;
+  toolbarActions?: ToolbarMenuAction[];
+  onToggleMenu?: () => void;
+  isMenuOpen?: boolean;
 }
 
 interface FreezeHandlersOptions {
@@ -115,6 +120,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [isRapidRetoggle, setIsRapidRetoggle] = createSignal(false);
   const [isHistoryTooltipVisible, setIsHistoryTooltipVisible] =
     createSignal(false);
+  const [isMenuTooltipVisible, setIsMenuTooltipVisible] = createSignal(false);
+
+  const hasToolbarActions = () => (props.toolbarActions ?? []).length > 0;
 
   const historyTooltipLabel = () => {
     const count = props.historyItemCount ?? 0;
@@ -139,7 +147,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     }
   };
 
-  const isTooltipAllowed = () => !isCollapsed() && !props.isHistoryDropdownOpen;
+  const isTooltipAllowed = () =>
+    !isCollapsed() && !props.isHistoryDropdownOpen && !props.isMenuOpen;
 
   const tooltipPosition = (): "top" | "bottom" | "left" | "right" => {
     const edge = snapEdge();
@@ -604,6 +613,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const handleComment = createDragAwareHandler(() => props.onComment?.());
 
   const handleHistory = createDragAwareHandler(() => props.onToggleHistory?.());
+
+  const handleToggleMenu = createDragAwareHandler(
+    () => props.onToggleMenu?.(),
+  );
 
   const handleToggleCollapse = createDragAwareHandler(() => {
     const rect = containerRef?.getBoundingClientRect();
@@ -1600,6 +1613,63 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     position={tooltipPosition()}
                   >
                     {historyTooltipLabel()}
+                  </Tooltip>
+                </div>
+              </div>
+              <div
+                class={cn(
+                  "grid",
+                  !isRapidRetoggle() && gridTransitionClass(),
+                  expandGridClass(
+                    Boolean(props.enabled) && hasToolbarActions(),
+                    "pointer-events-none",
+                  ),
+                )}
+              >
+                <div
+                  class={cn("relative overflow-visible", minDimensionClass())}
+                >
+                  <button
+                    data-react-grab-ignore-events
+                    data-react-grab-toolbar-menu
+                    class={cn(
+                      "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
+                      buttonSpacingClass(),
+                    )}
+                    on:pointerdown={(event) => {
+                      stopEventPropagation(event);
+                      handlePointerDown(event);
+                    }}
+                    on:mousedown={stopEventPropagation}
+                    onClick={(event) => {
+                      setIsMenuTooltipVisible(false);
+                      handleToggleMenu(event);
+                    }}
+                    {...createFreezeHandlers(
+                      (visible) => {
+                        if (visible && props.isMenuOpen) return;
+                        setIsMenuTooltipVisible(visible);
+                      },
+                      undefined,
+                      {
+                        shouldFreezeInteractions: false,
+                        shouldSetSelectHoverState: false,
+                      },
+                    )}
+                  >
+                    <IconMenu
+                      size={14}
+                      class={cn(
+                        "transition-colors",
+                        props.isMenuOpen ? "text-black/80" : "text-[#B3B3B3]",
+                      )}
+                    />
+                  </button>
+                  <Tooltip
+                    visible={isMenuTooltipVisible() && isTooltipAllowed()}
+                    position={tooltipPosition()}
+                  >
+                    Menu
                   </Tooltip>
                 </div>
               </div>

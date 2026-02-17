@@ -271,6 +271,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       createSignal<HistoryItem[]>(loadHistory());
     const [historyDropdownPosition, setHistoryDropdownPosition] =
       createSignal<DropdownAnchor | null>(null);
+    const [toolbarMenuPosition, setToolbarMenuPosition] =
+      createSignal<DropdownAnchor | null>(null);
     let toolbarElement: HTMLDivElement | undefined;
     let historyPositionFrameId: number | null = null;
     const historyElementMap = new Map<string, Element[]>();
@@ -2721,6 +2723,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.freeze();
         actions.showContextMenu(position, element);
         dismissHistoryDropdown();
+        dismissToolbarMenu();
         pluginRegistry.hooks.onContextMenu(element, position);
       },
       { capture: true },
@@ -3527,6 +3530,42 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
+    const computeToolbarMenuPosition = (): DropdownAnchor | null => {
+      if (!toolbarElement) return null;
+      const toolbarRect = toolbarElement.getBoundingClientRect();
+      const edge = getNearestEdge(toolbarRect);
+
+      if (edge === "left" || edge === "right") {
+        return {
+          x: edge === "left" ? toolbarRect.right : toolbarRect.left,
+          y: toolbarRect.top + toolbarRect.height / 2,
+          edge,
+          toolbarWidth: toolbarRect.width,
+        };
+      }
+
+      return {
+        x: toolbarRect.left + toolbarRect.width / 2,
+        y: edge === "top" ? toolbarRect.bottom : toolbarRect.top,
+        edge,
+        toolbarWidth: toolbarRect.width,
+      };
+    };
+
+    const dismissToolbarMenu = () => {
+      setToolbarMenuPosition(null);
+    };
+
+    const handleToggleMenu = () => {
+      if (toolbarMenuPosition() !== null) {
+        dismissToolbarMenu();
+      } else {
+        actions.hideContextMenu();
+        dismissHistoryDropdown();
+        setToolbarMenuPosition(computeToolbarMenuPosition());
+      }
+    };
+
     const handleToggleHistory = () => {
       cancelHistoryHoverOpenTimeout();
       cancelHistoryHoverCloseTimeout();
@@ -3871,6 +3910,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             contextMenuComponentName={contextMenuComponentName()}
             contextMenuHasFilePath={Boolean(contextMenuFilePath()?.filePath)}
             actions={pluginRegistry.store.actions}
+            toolbarActions={pluginRegistry.store.toolbarActions}
             actionContext={contextMenuActionContext()}
             onContextMenuDismiss={handleContextMenuDismiss}
             onContextMenuHide={deferHideContextMenu}
@@ -3893,6 +3933,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onHistoryClear={handleHistoryClear}
             onHistoryDismiss={dismissHistoryDropdown}
             onHistoryDropdownHover={handleHistoryDropdownHover}
+            toolbarMenuPosition={toolbarMenuPosition()}
+            onToggleMenu={handleToggleMenu}
+            onToolbarMenuDismiss={dismissToolbarMenu}
           />
         );
       }, rendererRoot);

@@ -11,6 +11,7 @@ import { isElementConnected } from "../utils/is-element-connected.js";
 import { OverlayCanvas } from "./overlay-canvas.js";
 import { SelectionLabel } from "./selection-label/index.js";
 import { Toolbar } from "./toolbar/index.js";
+import { ToolbarMenu } from "./toolbar/toolbar-menu.js";
 import { ContextMenu } from "./context-menu.js";
 import { HistoryDropdown } from "./history-dropdown.js";
 
@@ -207,6 +208,9 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           onHistoryButtonHover={props.onHistoryButtonHover}
           isHistoryDropdownOpen={Boolean(props.historyDropdownPosition)}
           isHistoryPinned={props.isHistoryPinned}
+          toolbarActions={props.toolbarActions}
+          onToggleMenu={props.onToggleMenu}
+          isMenuOpen={Boolean(props.toolbarMenuPosition)}
         />
       </Show>
 
@@ -220,6 +224,12 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         actionContext={props.actionContext}
         onDismiss={props.onContextMenuDismiss ?? (() => {})}
         onHide={props.onContextMenuHide ?? (() => {})}
+      />
+
+      <ToolbarMenu
+        position={props.toolbarMenuPosition ?? null}
+        actions={props.toolbarActions ?? []}
+        onDismiss={props.onToolbarMenuDismiss ?? (() => {})}
       />
 
       <HistoryDropdown

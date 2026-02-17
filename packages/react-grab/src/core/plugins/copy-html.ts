@@ -28,4 +28,33 @@ export const copyHtmlPlugin: Plugin = {
       },
     },
   ],
+  setup: (api) => {
+    let isPendingSelection = false;
+
+    return {
+      hooks: {
+        onElementSelect: (element) => {
+          if (!isPendingSelection) return;
+          isPendingSelection = false;
+          api.deactivate();
+          if (element instanceof HTMLElement) {
+            copyContent(element.outerHTML);
+          }
+        },
+        onDeactivate: () => {
+          isPendingSelection = false;
+        },
+      },
+      toolbarActions: [
+        {
+          id: "copy-html",
+          label: "Copy HTML",
+          onAction: () => {
+            isPendingSelection = true;
+            api.activate();
+          },
+        },
+      ],
+    };
+  },
 };

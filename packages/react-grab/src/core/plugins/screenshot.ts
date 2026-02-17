@@ -15,7 +15,7 @@ export const screenshotPlugin: Plugin = {
       id: "screenshot",
       label: "Screenshot",
       shortcut: "S",
-      enabled: () => isScreenshotSupported(),
+      enabled: isScreenshotSupported,
       onAction: async (context) => {
         const elementBoundsList = context.elements.map((element) => {
           const rect = element.getBoundingClientRect();

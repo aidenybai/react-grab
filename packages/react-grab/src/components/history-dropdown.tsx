@@ -31,7 +31,7 @@ const DEFAULT_OFFSCREEN_POSITION = { left: -9999, top: -9999 };
 const ITEM_ACTION_CLASS =
   "flex items-center justify-center cursor-pointer text-black/25 transition-colors press-scale";
 
-const EDGE_TO_TRANSFORM_ORIGIN: Record<string, string> = {
+const EDGE_TO_TRANSFORM_ORIGIN: Record<DropdownAnchor["edge"], string> = {
   left: "left center",
   right: "right center",
   top: "center top",
@@ -91,7 +91,7 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
   const isVisible = () => props.position !== null;
   const [shouldMount, setShouldMount] = createSignal(false);
   const [isAnimatedIn, setIsAnimatedIn] = createSignal(false);
-  const [lastAnchorEdge, setLastAnchorEdge] = createSignal<string>("bottom");
+  const [lastAnchorEdge, setLastAnchorEdge] = createSignal<DropdownAnchor["edge"]>("bottom");
 
   const measureContainer = () => {
     if (containerRef) {

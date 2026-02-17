@@ -342,10 +342,19 @@ export interface PluginHooks {
   ) => string | Promise<string>;
 }
 
+export interface ToolbarMenuAction {
+  id: string;
+  label: string;
+  enabled?: boolean | (() => boolean);
+  isActive?: () => boolean;
+  onAction: () => void | Promise<void>;
+}
+
 export interface PluginConfig {
   theme?: DeepPartial<Theme>;
   options?: SettableOptions;
   actions?: ContextMenuAction[];
+  toolbarActions?: ToolbarMenuAction[];
   hooks?: PluginHooks;
   cleanup?: () => void;
 }
@@ -355,6 +364,7 @@ export interface Plugin {
   theme?: DeepPartial<Theme>;
   options?: SettableOptions;
   actions?: ContextMenuAction[];
+  toolbarActions?: ToolbarMenuAction[];
   hooks?: PluginHooks;
   setup?: (api: ReactGrabAPI) => PluginConfig | void;
 }
@@ -544,6 +554,7 @@ export interface ReactGrabRendererProps {
   contextMenuComponentName?: string;
   contextMenuHasFilePath?: boolean;
   actions?: ContextMenuAction[];
+  toolbarActions?: ToolbarMenuAction[];
   actionContext?: ActionContext;
   onContextMenuDismiss?: () => void;
   onContextMenuHide?: () => void;
@@ -564,6 +575,9 @@ export interface ReactGrabRendererProps {
   onHistoryClear?: () => void;
   onHistoryDismiss?: () => void;
   onHistoryDropdownHover?: (isHovered: boolean) => void;
+  toolbarMenuPosition?: DropdownAnchor | null;
+  onToggleMenu?: () => void;
+  onToolbarMenuDismiss?: () => void;
 }
 
 export interface GrabbedBox {
