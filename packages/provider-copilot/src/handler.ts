@@ -100,11 +100,13 @@ const runCopilotAgent = async function* (
 
       processEnded = true;
 
-      if (code !== 0 && !childProcess.killed) {
-        const errorDetail = stderrBuffer.trim() || `copilot exited with code ${code}`;
-        enqueueMessage({ type: "error", content: errorDetail });
-      } else {
-        enqueueMessage({ type: "status", content: COMPLETED_STATUS });
+      if (!childProcess.killed) {
+        if (code !== 0) {
+          const errorDetail = stderrBuffer.trim() || `copilot exited with code ${code}`;
+          enqueueMessage({ type: "error", content: errorDetail });
+        } else {
+          enqueueMessage({ type: "status", content: COMPLETED_STATUS });
+        }
       }
 
       enqueueMessage({ type: "done", content: "" });
