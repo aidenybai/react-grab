@@ -131,9 +131,9 @@ test.describe("Toolbar Menu", () => {
         .toBe(true);
 
       await reactGrab.activate();
-      await reactGrab.hoverElement('[data-testid="todo-item-1"]');
+      await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
-      await reactGrab.rightClickElement('[data-testid="todo-item-1"]');
+      await reactGrab.rightClickElement("li:first-child");
 
       await expect
         .poll(() => reactGrab.isToolbarMenuVisible(), { timeout: 2000 })
@@ -144,9 +144,9 @@ test.describe("Toolbar Menu", () => {
       reactGrab,
     }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement('[data-testid="todo-item-1"]');
+      await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();
-      await reactGrab.clickElement('[data-testid="todo-item-1"]');
+      await reactGrab.clickElement("li:first-child");
       await reactGrab.page.waitForTimeout(300);
 
       await expect

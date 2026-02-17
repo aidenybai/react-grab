@@ -695,11 +695,17 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       expandableButtonsRef
     ) {
       const hasHistoryItems = (props.historyItemCount ?? 0) > 0;
+      const hasMenuActions = hasToolbarActions();
       const expandedWrappers = Array.from(expandableButtonsRef.children).filter(
         (child): child is HTMLElement => {
           if (!(child instanceof HTMLElement)) return false;
-          const isHistoryGrid = child.classList.contains("pointer-events-none");
-          return !(isHistoryGrid && !hasHistoryItems);
+          if (child.querySelector("[data-react-grab-toolbar-history]")) {
+            return hasHistoryItems;
+          }
+          if (child.querySelector("[data-react-grab-toolbar-menu]")) {
+            return hasMenuActions;
+          }
+          return true;
         },
       );
       const gridProperty = isVerticalEdge
