@@ -69,7 +69,6 @@ const runCopilotAgent = async function* (
     const messageQueue: AgentMessage[] = [];
     let resolveWait: (() => void) | null = null;
     let processEnded = false;
-    let outputBuffer = "";
 
     const enqueueMessage = (message: AgentMessage) => {
       messageQueue.push(message);
@@ -81,10 +80,7 @@ const runCopilotAgent = async function* (
 
     if (copilotProcess.stdout) {
       copilotProcess.stdout.on("data", (chunk: Buffer) => {
-        const text = chunk.toString();
-        outputBuffer += text;
-
-        const trimmedChunk = text.trim();
+        const trimmedChunk = chunk.toString().trim();
         if (trimmedChunk) {
           enqueueMessage({ type: "status", content: trimmedChunk });
         }
