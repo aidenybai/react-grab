@@ -14,17 +14,4 @@ export default defineConfig([
     platform: "node",
     treeshake: true,
   },
-  {
-    entry: {
-      client: "./src/client.ts",
-    },
-    format: ["cjs", "esm"],
-    dts: true,
-    clean: false,
-    splitting: false,
-    sourcemap: false,
-    target: "esnext",
-    platform: "browser",
-    treeshake: true,
-  },
 ]);

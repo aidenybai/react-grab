@@ -1,17 +1,6 @@
 export const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
-export interface AgentMessage {
-  type: "status" | "error" | "done";
-  content: string;
-}
-
-export interface AgentCoreOptions {
-  cwd?: string;
-  signal?: AbortSignal;
-  sessionId?: string;
-}
-
 const COMMAND_INSTALL_MAP: Record<string, string> = {
   "cursor-agent":
     "Install Cursor (https://cursor.com) and ensure 'cursor-agent' is in your PATH.",
