@@ -13,6 +13,7 @@ import {
   DROPDOWN_ANCHOR_GAP_PX,
   DROPDOWN_ANIMATION_DURATION_MS,
   DROPDOWN_VIEWPORT_PADDING_PX,
+  TOOLBAR_MENU_MIN_WIDTH_PX,
   PANEL_STYLES,
 } from "../../constants.js";
 import { clampToViewport } from "../../utils/clamp-to-viewport.js";
@@ -229,9 +230,10 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
       >
         <div
           class={cn(
-            "contain-layout flex flex-col rounded-[10px] antialiased w-fit h-fit min-w-[100px] overflow-hidden [font-synthesis:none] [corner-shape:superellipse(1.25)]",
+            "contain-layout flex flex-col rounded-[10px] antialiased w-fit h-fit overflow-hidden [font-synthesis:none] [corner-shape:superellipse(1.25)]",
             PANEL_STYLES,
           )}
+          style={{ "min-width": `${TOOLBAR_MENU_MIN_WIDTH_PX}px` }}
         >
           <div class="flex flex-col py-1">
             <For each={props.actions}>
