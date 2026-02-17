@@ -434,6 +434,28 @@ importers:
         specifier: ^8.4.0
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
 
+  packages/provider-copilot:
+    dependencies:
+      '@react-grab/relay':
+        specifier: workspace:*
+        version: link:../relay
+      execa:
+        specifier: ^9.6.0
+        version: 9.6.1
+      react-grab:
+        specifier: workspace:*
+        version: link:../react-grab
+    devDependencies:
+      '@react-grab/utils':
+        specifier: workspace:*
+        version: link:../utils
+      '@types/node':
+        specifier: ^22.10.7
+        version: 22.19.2
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
+
   packages/provider-cursor:
     dependencies:
       '@react-grab/relay':
@@ -3074,8 +3096,8 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
-  '@sourcegraph/amp@0.0.1771302820-ga4c3d4':
-    resolution: {integrity: sha512-K1cEQ5c3AALTw4epCzcq7VzVQevdfKr/y6oJAhwl6LTAVvozZO6TUKh3UcOpmIF6KVoWEL1witx+BmwcYMUuBQ==}
+  '@sourcegraph/amp@0.0.1771313506-g75b756':
+    resolution: {integrity: sha512-vL1CZmn3MAHSpF4jRCQpR9+zbXhKYRTdheOMwyulrTYhEdJ/AMERWIknY5GhvBmP+xff/P+vCI33wo4M9p9JKQ==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -9276,14 +9298,14 @@ snapshots:
 
   '@sourcegraph/amp-sdk@0.1.0-20251210081226-g90e3892':
     dependencies:
-      '@sourcegraph/amp': 0.0.1771302820-ga4c3d4
+      '@sourcegraph/amp': 0.0.1771313506-g75b756
       zod: 3.25.76
 
   '@sourcegraph/amp@0.0.1767830505-ga62310':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
-  '@sourcegraph/amp@0.0.1771302820-ga4c3d4':
+  '@sourcegraph/amp@0.0.1771313506-g75b756':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 

@@ -1,12 +1,18 @@
-const NON_INTERACTIVE_ENVIRONMENT_VARIABLES = [
+const AGENT_ENVIRONMENT_VARIABLES = [
   "CI",
   "CLAUDECODE",
+  "CURSOR_TRACE_ID",
+  "CURSOR_AGENT",
+  "CODEX_CI",
+  "OPENCODE",
+  "AMP_HOME",
   "AMI",
 ] as const;
 
+const isEnvironmentVariableSet = (variable: string): boolean =>
+  Boolean(process.env[variable]);
+
 export const detectNonInteractive = (yesFlag: boolean): boolean =>
   yesFlag ||
-  NON_INTERACTIVE_ENVIRONMENT_VARIABLES.some(
-    (variable) => process.env[variable] === "true",
-  ) ||
+  AGENT_ENVIRONMENT_VARIABLES.some(isEnvironmentVariableSet) ||
   !process.stdin.isTTY;

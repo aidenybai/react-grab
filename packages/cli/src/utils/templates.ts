@@ -7,6 +7,7 @@ export const AGENTS = [
   "amp",
   "ami",
   "droid",
+  "copilot",
 ] as const;
 
 export type Agent = (typeof AGENTS)[number];
@@ -22,6 +23,7 @@ export const AGENT_NAMES: Record<Agent, string> = {
   amp: "Amp",
   ami: "Ami",
   droid: "Droid",
+  copilot: "Copilot",
 };
 
 export const getAgentDisplayName = (agent: string): string => {

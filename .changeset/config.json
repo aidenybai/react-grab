@@ -15,6 +15,7 @@
       "@react-grab/gemini",
       "@react-grab/amp",
       "@react-grab/droid",
+      "@react-grab/copilot",
       "@react-grab/cli",
       "@react-grab/utils",
       "@react-grab/relay"
