@@ -1,6 +1,6 @@
 {
   "name": "@react-grab/copilot",
-  "version": "0.1.15",
+  "version": "0.1.16",
   "bin": {
     "react-grab-copilot": "./dist/cli.cjs"
   },

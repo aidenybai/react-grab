@@ -1,5 +1,13 @@
 # @react-grab/mcp
 
+## 0.1.16
+
+### Patch Changes
+
+- fix: environment detection
+- Updated dependencies
+  - react-grab@0.1.16
+
 ## 0.1.15
 
 ### Patch Changes
