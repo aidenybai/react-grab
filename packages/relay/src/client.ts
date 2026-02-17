@@ -480,9 +480,14 @@ export const createRelayAgentProvider = (
   };
 };
 
+interface ReactGrabApi {
+  registerPlugin: (plugin: unknown) => void;
+}
+
 declare global {
   interface Window {
     __REACT_GRAB_RELAY__?: RelayClient;
+    __REACT_GRAB__?: ReactGrabApi;
   }
 }
 
@@ -503,4 +508,90 @@ export const getDefaultRelayClient = (): RelayClient | null => {
     window.__REACT_GRAB_RELAY__ = defaultRelayClient;
   }
   return defaultRelayClient;
+};
+
+interface ProviderPluginConfig {
+  agentId: string;
+  pluginName: string;
+  actionId: string;
+  actionLabel: string;
+}
+
+const isReactGrabApi = (value: unknown): value is ReactGrabApi =>
+  typeof value === "object" && value !== null && "registerPlugin" in value;
+
+export const createProviderClientPlugin = (config: ProviderPluginConfig) => {
+  const createAgentProvider = (
+    providerOptions: { relayClient?: RelayClient } = {},
+  ): AgentProvider => {
+    const relayClient = providerOptions.relayClient ?? getDefaultRelayClient();
+    if (!relayClient) {
+      throw new Error("RelayClient is required in browser environments");
+    }
+
+    return createRelayAgentProvider({
+      relayClient,
+      agentId: config.agentId,
+    });
+  };
+
+  const attachAgent = async () => {
+    if (typeof window === "undefined") return;
+
+    const relayClient = getDefaultRelayClient();
+    if (!relayClient) return;
+
+    try {
+      await relayClient.connect();
+    } catch {
+      return;
+    }
+
+    const provider = createRelayAgentProvider({
+      relayClient,
+      agentId: config.agentId,
+    });
+
+    const attach = (api: ReactGrabApi) => {
+      const agent = { provider, storage: sessionStorage };
+      api.registerPlugin({
+        name: config.pluginName,
+        actions: [
+          {
+            id: config.actionId,
+            label: config.actionLabel,
+            shortcut: "Enter",
+            onAction: (actionContext: { enterPromptMode?: (agent: unknown) => void }) => {
+              actionContext.enterPromptMode?.(agent);
+            },
+            agent,
+          },
+        ],
+      });
+    };
+
+    const existingApi = window.__REACT_GRAB__;
+    if (isReactGrabApi(existingApi)) {
+      attach(existingApi);
+      return;
+    }
+
+    window.addEventListener(
+      "react-grab:init",
+      (event: Event) => {
+        if (!(event instanceof CustomEvent)) return;
+        if (!isReactGrabApi(event.detail)) return;
+        attach(event.detail);
+      },
+      { once: true },
+    );
+
+    // HACK: Check again after adding listener in case of race condition
+    const apiAfterListener = window.__REACT_GRAB__;
+    if (isReactGrabApi(apiAfterListener)) {
+      attach(apiAfterListener);
+    }
+  };
+
+  return { createAgentProvider, attachAgent };
 };

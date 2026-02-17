@@ -19,12 +19,13 @@ export {
 
 export { createRelayServer, type RelayServer } from "./server.js";
 
-export { connectRelay } from "./connection.js";
+export { connectRelay, startProviderServer } from "./connection.js";
 
 export {
   createRelayClient,
   createRelayAgentProvider,
   getDefaultRelayClient,
+  createProviderClientPlugin,
   type RelayClient,
   type AgentProvider,
 } from "./client.js";

@@ -662,37 +662,19 @@ importers:
 
   packages/web-extension:
     dependencies:
-      react:
-        specifier: 19.1.2
-        version: 19.1.2
-      react-dom:
-        specifier: 19.1.2
-        version: 19.1.2(react@19.1.2)
       react-grab:
         specifier: workspace:*
         version: link:../react-grab
       turndown:
         specifier: ^7.2.0
         version: 7.2.2
-      webextension-polyfill:
-        specifier: ^0.12.0
-        version: 0.12.0
     devDependencies:
       '@types/chrome':
         specifier: ^0.0.278
         version: 0.0.278
-      '@types/react':
-        specifier: ^19.0.4
-        version: 19.2.2
-      '@types/react-dom':
-        specifier: ^19.0.2
-        version: 19.2.2(@types/react@19.2.2)
       '@types/turndown':
         specifier: ^5.0.5
         version: 5.0.6
-      '@types/webextension-polyfill':
-        specifier: ^0.12.1
-        version: 0.12.4
       '@vitejs/plugin-react':
         specifier: ^4.3.4
         version: 4.7.0(vite@6.4.1(@types/node@24.10.2)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.37.0)(tsx@4.20.6)(yaml@2.8.1))
@@ -3092,8 +3074,8 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
-  '@sourcegraph/amp@0.0.1771243550-geaf318':
-    resolution: {integrity: sha512-ZrxW54tyNNtJFNpCjsPVozZxkD/sbi9BHFKRylZkHrCOCT17oCokmtrg36QpErULrVHhrQwlPYmzL/gvI3sv3w==}
+  '@sourcegraph/amp@0.0.1771302820-ga4c3d4':
+    resolution: {integrity: sha512-K1cEQ5c3AALTw4epCzcq7VzVQevdfKr/y6oJAhwl6LTAVvozZO6TUKh3UcOpmIF6KVoWEL1witx+BmwcYMUuBQ==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -3503,9 +3485,6 @@ packages:
 
   '@types/use-sync-external-store@0.0.6':
     resolution: {integrity: sha512-zFDAD+tlpf2r4asuHEj0XH6pY6i0g5NeAHPn+15wk3BV6JA69eERFXC1gyGThDkVa1zCyKr5jox1+2LbV/AMLg==}
-
-  '@types/webextension-polyfill@0.12.4':
-    resolution: {integrity: sha512-wK8YdSI0pDiaehSLDIvtvonYmLwUUivg4Z6JCJO8rkyssMAG82cFJgwPK/V7NO61mJBLg/tXeoXQL8AFzpXZmQ==}
 
   '@types/ws@8.18.1':
     resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
@@ -7209,9 +7188,6 @@ packages:
   webextension-polyfill@0.10.0:
     resolution: {integrity: sha512-c5s35LgVa5tFaHhrZDnr3FpQpjj1BB+RXhLTYUxGqBVN460HkbM8TBtEqdXWbpTKfzwCcjAZVF7zXCYSKtcp9g==}
 
-  webextension-polyfill@0.12.0:
-    resolution: {integrity: sha512-97TBmpoWJEE+3nFBQ4VocyCdLKfw54rFaJ6EVQYLBCXqCIpLSZkwGgASpv4oPt9gdKCJ80RJlcmNzNn008Ag6Q==}
-
   webidl-conversions@4.0.2:
     resolution: {integrity: sha512-YQ+BmxuTgd6UXZW3+ICGfyqRyHXVlD5GtQr5+qjiNW7bF0cqrzX500HVXPBOvgXb5YnzDd+h0zqyv61KUD7+Sg==}
 
@@ -9300,14 +9276,14 @@ snapshots:
 
   '@sourcegraph/amp-sdk@0.1.0-20251210081226-g90e3892':
     dependencies:
-      '@sourcegraph/amp': 0.0.1771243550-geaf318
+      '@sourcegraph/amp': 0.0.1771302820-ga4c3d4
       zod: 3.25.76
 
   '@sourcegraph/amp@0.0.1767830505-ga62310':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
-  '@sourcegraph/amp@0.0.1771243550-geaf318':
+  '@sourcegraph/amp@0.0.1771302820-ga4c3d4':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
@@ -9676,8 +9652,6 @@ snapshots:
   '@types/unist@3.0.3': {}
 
   '@types/use-sync-external-store@0.0.6': {}
-
-  '@types/webextension-polyfill@0.12.4': {}
 
   '@types/ws@8.18.1':
     dependencies:
@@ -10902,7 +10876,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.12.1(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)):
+  eslint-module-utils@2.12.1(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1)(eslint@9.37.0(jiti@2.6.1)):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
@@ -10924,7 +10898,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 9.37.0(jiti@2.6.1)
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1))
+      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1)(eslint@9.37.0(jiti@2.6.1))
       hasown: 2.0.2
       is-core-module: 2.16.1
       is-glob: 4.0.3
@@ -13823,8 +13797,6 @@ snapshots:
       - supports-color
 
   webextension-polyfill@0.10.0: {}
-
-  webextension-polyfill@0.12.0: {}
 
   webidl-conversions@4.0.2: {}
 
