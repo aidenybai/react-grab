@@ -7,10 +7,14 @@ const realScriptPath = realpathSync(process.argv[1]);
 const scriptDir = dirname(realScriptPath);
 const serverPath = join(scriptDir, "server.cjs");
 
-const child = spawn(process.execPath, [serverPath], {
-  detached: true,
-  stdio: "inherit",
-});
+const child = spawn(
+  process.execPath,
+  ["-e", `require(${JSON.stringify(serverPath)}).startServer()`],
+  {
+    detached: true,
+    stdio: "inherit",
+  },
+);
 
 child.unref();
 process.exit(0);

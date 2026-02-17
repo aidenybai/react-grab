@@ -1,5 +1,6 @@
-#!/usr/bin/env node
 import { startProviderServer } from "@react-grab/relay";
 import { openCodeAgentHandler } from "./handler.js";
 
-startProviderServer("opencode", openCodeAgentHandler);
+export const startServer = () => {
+  startProviderServer("opencode", openCodeAgentHandler);
+};
