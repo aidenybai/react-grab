@@ -650,6 +650,12 @@ importers:
       '@remotion/cli':
         specifier: ^4.0.0
         version: 4.0.424(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@remotion/google-fonts':
+        specifier: 4.0.424
+        version: 4.0.424(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@remotion/transitions':
+        specifier: 4.0.424
+        version: 4.0.424(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       react:
         specifier: 19.2.3
         version: 19.2.3
@@ -3211,6 +3217,9 @@ packages:
     peerDependencies:
       eslint: '>=9'
 
+  '@remotion/google-fonts@4.0.424':
+    resolution: {integrity: sha512-4s0aH6JQimOqDxV22C/our6JV5eGDtxR4BF1RRtuuKf0ovw+rvOKZ2XsySsTVO4NjbSKPwpbVdkwRCg5822w2w==}
+
   '@remotion/licensing@4.0.424':
     resolution: {integrity: sha512-sTILsx6+tCHLgzp3m2nFevf73CL1lgdGdgwH4jMe3kbVtEDj7+Va3QFWLLm3ZMex7IsmiR522pAW0MgvMhUOFg==}
 
@@ -3223,6 +3232,9 @@ packages:
       react: '>=16.8.0'
       react-dom: '>=16.8.0'
 
+  '@remotion/paths@4.0.424':
+    resolution: {integrity: sha512-HtjqJsgdqkHPL0PVjtOpLujf84XtNYpla1yDbuxrFvkbj9B1siEWJOdCtIz04HlvULCd+kdBsL3lpgTnEZjiRg==}
+
   '@remotion/player@4.0.424':
     resolution: {integrity: sha512-nhEXc6dZMHL13Od7IGcNG/D58IHwCCjPhMioDAG5CCQ/c+LPirkaXGmf5TuIrd933DOWrNUpXuKDUyAOJozPqA==}
     peerDependencies:
@@ -3231,6 +3243,12 @@ packages:
 
   '@remotion/renderer@4.0.424':
     resolution: {integrity: sha512-57b7ZFYSouTXEA4kKmfyKaooiTw0eQ/A3Th30Jxa4KdQspl+D3z0SaiIzE9yP/pxHoT2qmUntUbjFxPUoHhjyQ==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+
+  '@remotion/shapes@4.0.424':
+    resolution: {integrity: sha512-Buh2v2N0ekx9J9IWxJ26dYpEHgC3JvJ1OZaCqoZj2JggxmW/qDETBUmD6/mas/lJj3XmI2HkpXd35r+Rntv9KA==}
     peerDependencies:
       react: '>=16.8.0'
       react-dom: '>=16.8.0'
@@ -3246,6 +3264,12 @@ packages:
 
   '@remotion/studio@4.0.424':
     resolution: {integrity: sha512-zdko2oC7mtarPlARyM2ULoI9+5l1zigZ2kdKpYOe+LG3QI+8mB5rZC6Ndr962mmuGwbBZnehZyteJKtSp5ihrw==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+
+  '@remotion/transitions@4.0.424':
+    resolution: {integrity: sha512-vvokb6tI0Z1snRODy3TldwobdZ09JueAMNqbzqLa7Bnt79JF1zwyBhW3lqESsB4AzYpNZC0gTfmkxThMwL/xBQ==}
     peerDependencies:
       react: '>=16.8.0'
       react-dom: '>=16.8.0'
@@ -3420,8 +3444,8 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
-  '@sourcegraph/amp@0.0.1771488529-g484559':
-    resolution: {integrity: sha512-DGHLQBtVleBJU/lX+IPd+FhI3obW3v1C3fyOOutqDmuFK+c7T/GiqYdt1zbpZqXxOBwpc+/dhWJ4BD4RkgT1DQ==}
+  '@sourcegraph/amp@0.0.1771747379-gbb5ca2':
+    resolution: {integrity: sha512-+DHGxd1hHLo1SNN5obtUKP5B5psC8ZRwRV8fAGvztf8bGVSLSerm1NTa0loaS0hSq/2xcuEgi6B9aEueTdrhkw==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -10107,14 +10131,14 @@ snapshots:
       '@remotion/media-parser': 4.0.424
       '@remotion/studio': 4.0.424(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@remotion/studio-shared': 4.0.424(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      css-loader: 5.2.7(webpack@5.105.0)
+      css-loader: 5.2.7(webpack@5.105.0(esbuild@0.25.0))
       esbuild: 0.25.0
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
       react-refresh: 0.9.0
       remotion: 4.0.424(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       source-map: 0.7.3
-      style-loader: 4.0.0(webpack@5.105.0)
+      style-loader: 4.0.0(webpack@5.105.0(esbuild@0.25.0))
       webpack: 5.105.0(esbuild@0.25.0)
     transitivePeerDependencies:
       - '@swc/core'
@@ -10176,6 +10200,13 @@ snapshots:
       - supports-color
       - typescript
 
+  '@remotion/google-fonts@4.0.424(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+    dependencies:
+      remotion: 4.0.424(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+    transitivePeerDependencies:
+      - react
+      - react-dom
+
   '@remotion/licensing@4.0.424': {}
 
   '@remotion/media-parser@4.0.424': {}
@@ -10188,6 +10219,8 @@ snapshots:
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
       remotion: 4.0.424(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+
+  '@remotion/paths@4.0.424': {}
 
   '@remotion/player@4.0.424(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
@@ -10218,6 +10251,12 @@ snapshots:
       - bufferutil
       - supports-color
       - utf-8-validate
+
+  '@remotion/shapes@4.0.424(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+    dependencies:
+      '@remotion/paths': 4.0.424
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
 
   '@remotion/streaming@4.0.424': {}
 
@@ -10271,6 +10310,14 @@ snapshots:
       - bufferutil
       - supports-color
       - utf-8-validate
+
+  '@remotion/transitions@4.0.424(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+    dependencies:
+      '@remotion/paths': 4.0.424
+      '@remotion/shapes': 4.0.424(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
+      remotion: 4.0.424(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
 
   '@remotion/web-renderer@4.0.424(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
@@ -10405,14 +10452,14 @@ snapshots:
 
   '@sourcegraph/amp-sdk@0.1.0-20251210081226-g90e3892':
     dependencies:
-      '@sourcegraph/amp': 0.0.1771488529-g484559
+      '@sourcegraph/amp': 0.0.1771747379-gbb5ca2
       zod: 3.25.76
 
   '@sourcegraph/amp@0.0.1767830505-ga62310':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
-  '@sourcegraph/amp@0.0.1771488529-g484559':
+  '@sourcegraph/amp@0.0.1771747379-gbb5ca2':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
@@ -11716,7 +11763,7 @@ snapshots:
 
   crypt@0.0.2: {}
 
-  css-loader@5.2.7(webpack@5.105.0):
+  css-loader@5.2.7(webpack@5.105.0(esbuild@0.25.0)):
     dependencies:
       icss-utils: 5.1.0(postcss@8.5.6)
       loader-utils: 2.0.4
@@ -12286,7 +12333,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.12.1(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)):
+  eslint-module-utils@2.12.1(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1)(eslint@9.37.0(jiti@2.6.1)):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
@@ -12308,7 +12355,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 9.37.0(jiti@2.6.1)
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1))
+      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1)(eslint@9.37.0(jiti@2.6.1))
       hasown: 2.0.2
       is-core-module: 2.16.1
       is-glob: 4.0.3
@@ -14842,7 +14889,7 @@ snapshots:
 
   stubborn-utils@1.0.2: {}
 
-  style-loader@4.0.0(webpack@5.105.0):
+  style-loader@4.0.0(webpack@5.105.0(esbuild@0.25.0)):
     dependencies:
       webpack: 5.105.0(esbuild@0.25.0)
 
