@@ -4037,6 +4037,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const api: ReactGrabAPI = {
       activate: () => {
+        actions.setPendingContextMenuMode(false);
         if (!isActivated() && isEnabled()) {
           toggleActivate();
         }
