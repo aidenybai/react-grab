@@ -669,9 +669,6 @@ importers:
       eslint:
         specifier: 9.19.0
         version: 9.19.0(jiti@2.6.1)
-      prettier:
-        specifier: 3.6.0
-        version: 3.6.0
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -3417,8 +3414,8 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
-  '@sourcegraph/amp@0.0.1771378455-g3b2d0b':
-    resolution: {integrity: sha512-liBrGk6vbq+VTvmDcWsuFIotqoMs4M0DqhxlOfPH366PkJiwX8dspXPhw/cN1ndha0Jp7KWOYPBoknHDd5jw8g==}
+  '@sourcegraph/amp@0.0.1771412186-g4e04c3':
+    resolution: {integrity: sha512-VdGhvERGk2yvJFqUzBVEDHAy00594xiRx54USX9IbSKbB7TuHuDS2McMCG9Xpej+DqGWwO7qKp7mRYKHPYSXFw==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -6797,11 +6794,6 @@ packages:
     engines: {node: '>=10.13.0'}
     hasBin: true
 
-  prettier@3.6.0:
-    resolution: {integrity: sha512-ujSB9uXHJKzM/2GBuE0hBOUgC77CN3Bnpqa+g80bkv3T3A93wL/xlzDATHhnhkzifz/UE2SNOvmbTz5hSkDlHw==}
-    engines: {node: '>=14'}
-    hasBin: true
-
   pretty-ms@9.3.0:
     resolution: {integrity: sha512-gjVS5hOP+M3wMm5nmNOucbIrqudzs9v/57bWRHQWLYklXqoXKrVfYW2W9+glfGsqtPgpiz5WwyEEB+ksXIx3gQ==}
     engines: {node: '>=18'}
@@ -10107,14 +10099,14 @@ snapshots:
       '@remotion/media-parser': 4.0.424
       '@remotion/studio': 4.0.424(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@remotion/studio-shared': 4.0.424(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      css-loader: 5.2.7(webpack@5.105.0)
+      css-loader: 5.2.7(webpack@5.105.0(esbuild@0.25.0))
       esbuild: 0.25.0
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
       react-refresh: 0.9.0
       remotion: 4.0.424(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       source-map: 0.7.3
-      style-loader: 4.0.0(webpack@5.105.0)
+      style-loader: 4.0.0(webpack@5.105.0(esbuild@0.25.0))
       webpack: 5.105.0(esbuild@0.25.0)
     transitivePeerDependencies:
       - '@swc/core'
@@ -10405,14 +10397,14 @@ snapshots:
 
   '@sourcegraph/amp-sdk@0.1.0-20251210081226-g90e3892':
     dependencies:
-      '@sourcegraph/amp': 0.0.1771378455-g3b2d0b
+      '@sourcegraph/amp': 0.0.1771412186-g4e04c3
       zod: 3.25.76
 
   '@sourcegraph/amp@0.0.1767830505-ga62310':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
-  '@sourcegraph/amp@0.0.1771378455-g3b2d0b':
+  '@sourcegraph/amp@0.0.1771412186-g4e04c3':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
@@ -11716,7 +11708,7 @@ snapshots:
 
   crypt@0.0.2: {}
 
-  css-loader@5.2.7(webpack@5.105.0):
+  css-loader@5.2.7(webpack@5.105.0(esbuild@0.25.0)):
     dependencies:
       icss-utils: 5.1.0(postcss@8.5.6)
       loader-utils: 2.0.4
@@ -14069,8 +14061,6 @@ snapshots:
 
   prettier@2.8.8: {}
 
-  prettier@3.6.0: {}
-
   pretty-ms@9.3.0:
     dependencies:
       parse-ms: 4.0.0
@@ -14844,7 +14834,7 @@ snapshots:
 
   stubborn-utils@1.0.2: {}
 
-  style-loader@4.0.0(webpack@5.105.0):
+  style-loader@4.0.0(webpack@5.105.0(esbuild@0.25.0)):
     dependencies:
       webpack: 5.105.0(esbuild@0.25.0)
 
