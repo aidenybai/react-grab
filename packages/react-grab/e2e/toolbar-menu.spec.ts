@@ -35,16 +35,13 @@ test.describe("Toolbar Menu", () => {
       await reactGrab.clickToolbarEnabled();
       await reactGrab.page.waitForTimeout(200);
 
-      const isMenuButtonVisible =
-        await reactGrab.isToolbarMenuButtonVisible();
+      const isMenuButtonVisible = await reactGrab.isToolbarMenuButtonVisible();
       expect(isMenuButtonVisible).toBe(false);
     });
   });
 
   test.describe("Open and Close", () => {
-    test("clicking menu button should open the menu", async ({
-      reactGrab,
-    }) => {
+    test("clicking menu button should open the menu", async ({ reactGrab }) => {
       await expect
         .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
         .toBe(true);

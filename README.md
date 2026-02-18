@@ -205,9 +205,20 @@ Actions use a `target` field to control where they appear. Omit `target` (or set
 
 ```js
 actions: [
-  { id: "inspect", label: "Inspect", shortcut: "I", onAction: (ctx) => console.dir(ctx.element) },
-  { id: "toggle-freeze", label: "Freeze", target: "toolbar", isActive: () => isFrozen, onAction: () => toggleFreeze() },
-]
+  {
+    id: "inspect",
+    label: "Inspect",
+    shortcut: "I",
+    onAction: (ctx) => console.dir(ctx.element),
+  },
+  {
+    id: "toggle-freeze",
+    label: "Freeze",
+    target: "toolbar",
+    isActive: () => isFrozen,
+    onAction: () => toggleFreeze(),
+  },
+];
 ```
 
 A plugin can provide any combination of:

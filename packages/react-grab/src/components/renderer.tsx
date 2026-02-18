@@ -176,10 +176,14 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
               const hasCompletedStatus =
                 currentInstance.status === "copied" ||
                 currentInstance.status === "fading";
-              if (!hasCompletedStatus || !isElementConnected(currentInstance.element)) {
+              if (
+                !hasCompletedStatus ||
+                !isElementConnected(currentInstance.element)
+              ) {
                 return undefined;
               }
-              return () => props.onShowContextMenuInstance?.(currentInstance.id);
+              return () =>
+                props.onShowContextMenuInstance?.(currentInstance.id);
             })()}
             onHoverChange={(isHovered) =>
               props.onLabelInstanceHoverChange?.(instance().id, isHovered)

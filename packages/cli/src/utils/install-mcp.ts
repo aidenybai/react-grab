@@ -139,12 +139,9 @@ export const upsertIntoJsonc = (
   serverName: string,
   serverConfig: Record<string, unknown>,
 ): void => {
-  const edits = jsonc.modify(
-    content,
-    [configKey, serverName],
-    serverConfig,
-    { formattingOptions: JSONC_FORMAT_OPTIONS },
-  );
+  const edits = jsonc.modify(content, [configKey, serverName], serverConfig, {
+    formattingOptions: JSONC_FORMAT_OPTIONS,
+  });
   fs.writeFileSync(filePath, jsonc.applyEdits(content, edits));
 };
 
@@ -173,7 +170,10 @@ export const installTomlClient = (client: ClientDefinition): void => {
     ? TOML.parse(fs.readFileSync(client.configPath, "utf8"))
     : {};
 
-  const serverSection = (existingConfig[client.configKey] ?? {}) as Record<string, unknown>;
+  const serverSection = (existingConfig[client.configKey] ?? {}) as Record<
+    string,
+    unknown
+  >;
   serverSection[SERVER_NAME] = client.serverConfig;
   existingConfig[client.configKey] = serverSection;
 

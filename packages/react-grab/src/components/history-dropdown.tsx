@@ -91,7 +91,8 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
   const isVisible = () => props.position !== null;
   const [shouldMount, setShouldMount] = createSignal(false);
   const [isAnimatedIn, setIsAnimatedIn] = createSignal(false);
-  const [lastAnchorEdge, setLastAnchorEdge] = createSignal<DropdownAnchor["edge"]>("bottom");
+  const [lastAnchorEdge, setLastAnchorEdge] =
+    createSignal<DropdownAnchor["edge"]>("bottom");
 
   const measureContainer = () => {
     if (containerRef) {

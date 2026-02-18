@@ -229,9 +229,7 @@ const hasReactDependency = (projectPath: string): boolean => {
   }
 };
 
-const buildReactProject = (
-  projectPath: string,
-): WorkspaceProject | null => {
+const buildReactProject = (projectPath: string): WorkspaceProject | null => {
   const framework = detectFramework(projectPath);
   const hasReact = hasReactDependency(projectPath);
   if (!hasReact && framework === "unknown") return null;
@@ -246,9 +244,7 @@ const buildReactProject = (
   return { name, path: projectPath, framework, hasReact };
 };
 
-const findWorkspaceProjects = (
-  projectRoot: string,
-): WorkspaceProject[] => {
+const findWorkspaceProjects = (projectRoot: string): WorkspaceProject[] => {
   const patterns = getWorkspacePatterns(projectRoot);
   const projects: WorkspaceProject[] = [];
 

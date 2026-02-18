@@ -614,9 +614,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const handleHistory = createDragAwareHandler(() => props.onToggleHistory?.());
 
-  const handleToggleMenu = createDragAwareHandler(
-    () => props.onToggleMenu?.(),
-  );
+  const handleToggleMenu = createDragAwareHandler(() => props.onToggleMenu?.());
 
   const handleToggleCollapse = createDragAwareHandler(() => {
     const rect = containerRef?.getBoundingClientRect();

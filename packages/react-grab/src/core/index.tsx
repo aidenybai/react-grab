@@ -285,7 +285,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       historyItemId: string,
     ): Element | undefined => getConnectedHistoryElements(historyItemId)[0];
 
-    const getHistoryPreviewBounds = (historyItem: HistoryItem): OverlayBounds[] => {
+    const getHistoryPreviewBounds = (
+      historyItem: HistoryItem,
+    ): OverlayBounds[] => {
       const connectedElements = getConnectedHistoryElements(historyItem.id);
       if (connectedElements.length > 0) {
         return connectedElements.map((element) => createElementBounds(element));
@@ -3609,11 +3611,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       const element = getFirstConnectedHistoryElement(item.id);
 
-      if (
-        item.isComment &&
-        item.commentText &&
-        element
-      ) {
+      if (item.isComment && item.commentText && element) {
         const bounds = createElementBounds(element);
         const centerX = bounds.x + bounds.width / 2;
         const centerY = bounds.y + bounds.height / 2;
@@ -3661,7 +3659,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       requestAnimationFrame(() => {
         batch(() => {
           for (const historyItem of currentHistoryItems) {
-            const connectedElements = getConnectedHistoryElements(historyItem.id);
+            const connectedElements = getConnectedHistoryElements(
+              historyItem.id,
+            );
             for (const element of connectedElements) {
               const bounds = createElementBounds(element);
               const labelId = `label-${Date.now()}-${Math.random().toString(36).slice(2)}`;

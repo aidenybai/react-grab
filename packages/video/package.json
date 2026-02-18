@@ -1,8 +1,8 @@
 {
   "name": "@react-grab/video",
   "version": "1.0.0",
-  "description": "React Grab video content",
   "private": true,
+  "description": "React Grab video content",
   "scripts": {
     "dev": "remotion studio",
     "build": "remotion bundle",

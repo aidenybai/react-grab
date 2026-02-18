@@ -303,10 +303,7 @@ const printStartupMessage = (agentId: string, port: number) => {
   console.log(`- Local:    ${pc.cyan(`ws://localhost:${port}`)}`);
 };
 
-export const startProviderServer = (
-  source: string,
-  handler: AgentHandler,
-) => {
+export const startProviderServer = (source: string, handler: AgentHandler) => {
   fetch(
     `https://www.react-grab.com/api/version?source=${source}&t=${Date.now()}`,
   ).catch(() => {});

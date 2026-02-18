@@ -17,9 +17,21 @@ export const IconMenu: Component<IconMenuProps> = (props) => {
       fill="currentColor"
       class={props.class}
     >
-      <path fill-rule="evenodd" clip-rule="evenodd" d="M20 6L4 6L4 4L20 4L20 6Z" />
-      <path fill-rule="evenodd" clip-rule="evenodd" d="M20 13L4 13L4 11L20 11L20 13Z" />
-      <path fill-rule="evenodd" clip-rule="evenodd" d="M20 20L4 20L4 18L20 18L20 20Z" />
+      <path
+        fill-rule="evenodd"
+        clip-rule="evenodd"
+        d="M20 6L4 6L4 4L20 4L20 6Z"
+      />
+      <path
+        fill-rule="evenodd"
+        clip-rule="evenodd"
+        d="M20 13L4 13L4 11L20 11L20 13Z"
+      />
+      <path
+        fill-rule="evenodd"
+        clip-rule="evenodd"
+        d="M20 20L4 20L4 18L20 18L20 20Z"
+      />
     </svg>
   );
 };

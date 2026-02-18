@@ -7,7 +7,9 @@ const loadFromSessionStorage = (): HistoryItem[] => {
   try {
     const serializedHistoryItems = sessionStorage.getItem(SESSION_STORAGE_KEY);
     if (!serializedHistoryItems) return [];
-    const parsedHistoryItems = JSON.parse(serializedHistoryItems) as HistoryItem[];
+    const parsedHistoryItems = JSON.parse(
+      serializedHistoryItems,
+    ) as HistoryItem[];
     return parsedHistoryItems.map((historyItem) => ({
       ...historyItem,
       elementsCount: Math.max(1, historyItem.elementsCount ?? 1),

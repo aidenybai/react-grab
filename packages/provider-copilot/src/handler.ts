@@ -20,13 +20,7 @@ const runCopilotAgent = async function* (
   options?: CopilotAgentOptions,
 ): AsyncGenerator<AgentMessage> {
   const sessionId = options?.sessionId;
-  const copilotArgs = [
-    "-p",
-    prompt,
-    "--silent",
-    "--allow-all",
-    "--no-color",
-  ];
+  const copilotArgs = ["-p", prompt, "--silent", "--allow-all", "--no-color"];
 
   if (options?.model) {
     copilotArgs.push("--model", options.model);
@@ -102,7 +96,8 @@ const runCopilotAgent = async function* (
 
       if (!childProcess.killed) {
         if (code !== 0) {
-          const errorDetail = stderrBuffer.trim() || `copilot exited with code ${code}`;
+          const errorDetail =
+            stderrBuffer.trim() || `copilot exited with code ${code}`;
           enqueueMessage({ type: "error", content: errorDetail });
         } else {
           enqueueMessage({ type: "status", content: COMPLETED_STATUS });

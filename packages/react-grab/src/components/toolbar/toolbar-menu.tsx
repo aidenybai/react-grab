@@ -48,7 +48,8 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
   const [shouldMount, setShouldMount] = createSignal(false);
   const [isAnimatedIn, setIsAnimatedIn] = createSignal(false);
-  const [lastAnchorEdge, setLastAnchorEdge] = createSignal<DropdownAnchor["edge"]>("bottom");
+  const [lastAnchorEdge, setLastAnchorEdge] =
+    createSignal<DropdownAnchor["edge"]>("bottom");
   const [toggleTrigger, setToggleTrigger] = createSignal(0);
 
   let exitAnimationTimeout: ReturnType<typeof setTimeout> | undefined;

@@ -561,7 +561,9 @@ export const createProviderClientPlugin = (config: ProviderPluginConfig) => {
             id: config.actionId,
             label: config.actionLabel,
             shortcut: "Enter",
-            onAction: (actionContext: { enterPromptMode?: (agent: unknown) => void }) => {
+            onAction: (actionContext: {
+              enterPromptMode?: (agent: unknown) => void;
+            }) => {
               actionContext.enterPromptMode?.(agent);
             },
             agent,
