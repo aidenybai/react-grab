@@ -49,7 +49,9 @@ export const screenshotPlugin: Plugin = {
           if (!isPendingSelection) return;
           isPendingSelection = false;
           api.deactivate();
-          captureAndCopyScreenshot([element], hooks.transformScreenshot);
+          captureAndCopyScreenshot([element], hooks.transformScreenshot).catch(
+            () => {},
+          );
           return true;
         },
         onDeactivate: () => {

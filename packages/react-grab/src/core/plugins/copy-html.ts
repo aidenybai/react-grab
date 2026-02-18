@@ -18,7 +18,8 @@ export const copyHtmlPlugin: Plugin = {
               if (transformedHtml) {
                 copyContent(transformedHtml);
               }
-            });
+            })
+            .catch(() => {});
           return true;
         },
         onDeactivate: () => {

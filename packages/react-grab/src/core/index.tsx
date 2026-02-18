@@ -814,19 +814,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     ): Promise<void> => {
       if (targetElements.length === 0) return;
 
-      let isHandledByPlugin = false;
+      const unhandledElements: Element[] = [];
       for (const element of targetElements) {
-        if (pluginRegistry.hooks.onElementSelect(element)) {
-          isHandledByPlugin = true;
+        if (!pluginRegistry.hooks.onElementSelect(element)) {
+          unhandledElements.push(element);
         }
         if (pluginRegistry.store.theme.grabbedBoxes.enabled) {
           showTemporaryGrabbedBox(createElementBounds(element), element);
         }
       }
       await new Promise((resolve) => requestAnimationFrame(resolve));
-      if (!isHandledByPlugin) {
+      if (unhandledElements.length > 0) {
         await copyWithFallback(
-          targetElements,
+          unhandledElements,
           extraPrompt,
           resolvedComponentName,
         );
