@@ -415,6 +415,7 @@ export interface ReactGrabAPI {
   activate: () => void;
   deactivate: () => void;
   toggle: () => void;
+  comment: () => void;
   isActive: () => boolean;
   isEnabled: () => boolean;
   setEnabled: (enabled: boolean) => void;
@@ -538,9 +539,7 @@ export interface ReactGrabRendererProps {
   theme?: Required<Theme>;
   toolbarVisible?: boolean;
   isActive?: boolean;
-  isCommentMode?: boolean;
   onToggleActive?: () => void;
-  onComment?: () => void;
   enabled?: boolean;
   onToggleEnabled?: () => void;
   shakeCount?: number;

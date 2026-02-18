@@ -286,29 +286,6 @@ test.describe("Toolbar", () => {
         .toBeGreaterThan(0);
     });
 
-    test("should be draggable from comment button", async ({ reactGrab }) => {
-      const initialInfo = await reactGrab.getToolbarInfo();
-      const initialPosition = initialInfo.position;
-      expect(initialPosition).not.toBeNull();
-
-      await reactGrab.dragToolbarFromButton(
-        "[data-react-grab-toolbar-comment]",
-        100,
-        0,
-      );
-
-      await expect
-        .poll(
-          async () => {
-            const info = await reactGrab.getToolbarInfo();
-            if (!info.position || !initialPosition) return 0;
-            return Math.abs(info.position.x - initialPosition.x);
-          },
-          { timeout: 3000 },
-        )
-        .toBeGreaterThan(0);
-    });
-
     test("should not close page dropdown when clicking select button", async ({
       reactGrab,
     }) => {

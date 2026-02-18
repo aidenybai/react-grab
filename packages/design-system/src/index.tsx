@@ -45,7 +45,6 @@ interface DesignSystemStateProps {
   hasOnRetry?: boolean;
   hasOnAcknowledge?: boolean;
   isToolbarActive?: boolean;
-  isToolbarCommentMode?: boolean;
   isToolbarEnabled?: boolean;
   isToolbarCollapsed?: boolean;
   toolbarSnapEdge?: "top" | "bottom" | "left" | "right";
@@ -850,17 +849,6 @@ const DESIGN_SYSTEM_STATES: DesignSystemState[] = [
     props: {
       isToolbarActive: true,
       isToolbarEnabled: false,
-    },
-  },
-  {
-    id: "toolbar-comment-mode",
-    label: "Toolbar (Comment Mode)",
-    description: "Comment selection mode active",
-    component: "toolbar",
-    props: {
-      isToolbarActive: true,
-      isToolbarCommentMode: true,
-      isToolbarEnabled: true,
     },
   },
   {
@@ -2738,7 +2726,6 @@ const StateCard = (props: StateCardProps) => {
           <Show when={props.state.component === "toolbar"}>
             <ToolbarContent
               isActive={currentProps().isToolbarActive ?? false}
-              isCommentMode={currentProps().isToolbarCommentMode ?? false}
               enabled={currentProps().isToolbarEnabled ?? true}
               isCollapsed={currentProps().isToolbarCollapsed}
               snapEdge={currentProps().toolbarSnapEdge}

@@ -19,3 +19,6 @@ export const getButtonSpacingClass = (isVertical: boolean): string =>
 
 export const getMinDimensionClass = (isVertical: boolean): string =>
   isVertical ? "min-h-0" : "min-w-0";
+
+export const getHitboxConstraintClass = (isVertical: boolean): string =>
+  isVertical ? "before:!min-h-full" : "before:!min-w-full";
