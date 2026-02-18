@@ -158,28 +158,67 @@ if (process.env.NODE_ENV === "development") {
 }
 ```
 
-## Extending React Grab
+## Plugins
 
-React Grab exposes the `__REACT_GRAB__` API for extending functionality with plugins, hooks, actions, themes, and custom agents.
+React Grab can be extended with plugins. A plugin can add context menu actions, toolbar menu items, lifecycle hooks, and theme overrides.
 
-See [`packages/react-grab/src/types.ts`](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) and [`packages/react-grab/src/core/plugin-registry.ts`](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/core/plugin-registry.ts) for reference.
+Register a plugin via `window.__REACT_GRAB__`:
 
-Or copy this into an agent to generate a plugin:
-
-```md
-Clone https://github.com/aidenybai/react-grab into /tmp
-
-Check these files for reference:
-
-- packages/react-grab/src/types.ts (Plugin and PluginHooks interfaces)
-- packages/react-grab/src/core/plugin-registry.ts (implementation)
-
-Plugins are registered via `__REACT_GRAB__.registerPlugin({ name, hooks, actions, theme })`.
-
-Add the code in client-side code (e.g., "use client" in Next.js) inside a useEffect after React Grab loads.
-
-Generate an example plugin that logs when an element is selected.
+```js
+window.__REACT_GRAB__.registerPlugin({
+  name: "my-plugin",
+  hooks: {
+    onElementSelect: (element) => {
+      console.log("Selected:", element.tagName);
+    },
+  },
+});
 ```
+
+In React, register inside a `useEffect` after React Grab loads:
+
+```jsx
+useEffect(() => {
+  const api = window.__REACT_GRAB__;
+  if (!api) return;
+
+  api.registerPlugin({
+    name: "my-plugin",
+    actions: [
+      {
+        id: "my-action",
+        label: "My Action",
+        shortcut: "M",
+        onAction: (context) => {
+          console.log("Action on:", context.element);
+          context.hideContextMenu();
+        },
+      },
+    ],
+  });
+
+  return () => api.unregisterPlugin("my-plugin");
+}, []);
+```
+
+Actions use a `target` field to control where they appear. Omit `target` (or set `"context-menu"`) for the right-click menu, or set `"toolbar"` for the toolbar dropdown:
+
+```js
+actions: [
+  { id: "inspect", label: "Inspect", shortcut: "I", onAction: (ctx) => console.dir(ctx.element) },
+  { id: "toggle-freeze", label: "Freeze", target: "toolbar", isActive: () => isFrozen, onAction: () => toggleFreeze() },
+]
+```
+
+A plugin can provide any combination of:
+
+- **`actions`** — context menu and/or toolbar items in a single array (use `target: "toolbar"` for toolbar items)
+- **`hooks`** — lifecycle callbacks like `onActivate`, `onElementSelect`, `onCopySuccess`, `transformCopyContent`, etc. (see `PluginHooks`)
+- **`theme`** — partial theme overrides (see `Theme`)
+- **`options`** — override default options like `activationMode` or `keyHoldDuration`
+- **`setup(api)`** — a function that receives the full `ReactGrabAPI` and can return additional config or a `cleanup` function
+
+See [`packages/react-grab/src/types.ts`](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) for the full `Plugin`, `PluginHooks`, and `PluginConfig` interfaces.
 
 ## Resources & Contributing Back
 

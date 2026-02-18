@@ -248,6 +248,7 @@ export interface ContextMenuActionContext extends ActionContext {
 export interface ContextMenuAction {
   id: string;
   label: string;
+  target?: "context-menu";
   shortcut?: string;
   enabled?: boolean | ((context: ActionContext) => boolean);
   onAction: (context: ContextMenuActionContext) => void | Promise<void>;
@@ -345,16 +346,18 @@ export interface PluginHooks {
 export interface ToolbarMenuAction {
   id: string;
   label: string;
+  target: "toolbar";
   enabled?: boolean | (() => boolean);
   isActive?: () => boolean;
   onAction: () => void | Promise<void>;
 }
 
+export type PluginAction = ContextMenuAction | ToolbarMenuAction;
+
 export interface PluginConfig {
   theme?: DeepPartial<Theme>;
   options?: SettableOptions;
-  actions?: ContextMenuAction[];
-  toolbarActions?: ToolbarMenuAction[];
+  actions?: PluginAction[];
   hooks?: PluginHooks;
   cleanup?: () => void;
 }
@@ -363,8 +366,7 @@ export interface Plugin {
   name: string;
   theme?: DeepPartial<Theme>;
   options?: SettableOptions;
-  actions?: ContextMenuAction[];
-  toolbarActions?: ToolbarMenuAction[];
+  actions?: PluginAction[];
   hooks?: PluginHooks;
   setup?: (api: ReactGrabAPI) => PluginConfig | void;
 }

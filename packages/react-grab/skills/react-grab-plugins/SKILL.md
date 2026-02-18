@@ -32,7 +32,7 @@ interface Plugin {
   name: string; // Unique identifier (required)
   theme?: DeepPartial<Theme>; // Theme customizations
   options?: SettableOptions; // Configuration overrides
-  actions?: ContextMenuAction[]; // Context menu actions
+  actions?: PluginAction[]; // Context menu and toolbar actions
   hooks?: PluginHooks; // Lifecycle hooks
   setup?: (api: ReactGrabAPI) => PluginConfig | void;
 }
@@ -41,7 +41,7 @@ interface Plugin {
 - **name**: Unique string identifier
 - **theme**: Customize colors, visibility of UI elements
 - **options**: Override activation mode, key bindings, content generation
-- **actions**: Add items to the right-click context menu
+- **actions**: Add items to the context menu or toolbar (use `target: "toolbar"` for toolbar items)
 - **hooks**: React to lifecycle events (hover, select, copy, etc.)
 - **setup**: Initialize with API access, return config and cleanup function
 

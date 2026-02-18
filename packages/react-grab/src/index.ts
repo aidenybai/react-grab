@@ -42,6 +42,7 @@ export type {
   ContextMenuAction,
   ContextMenuActionContext,
   ToolbarMenuAction,
+  PluginAction,
   ActionContext,
   ActionContextHooks,
   Plugin,

@@ -45,10 +45,11 @@ export const copyHtmlPlugin: Plugin = {
           isPendingSelection = false;
         },
       },
-      toolbarActions: [
+      actions: [
         {
-          id: "copy-html",
+          id: "copy-html-toolbar",
           label: "Copy HTML",
+          target: "toolbar",
           onAction: () => {
             isPendingSelection = true;
             api.activate();

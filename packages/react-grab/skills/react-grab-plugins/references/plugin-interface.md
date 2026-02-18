@@ -9,11 +9,15 @@ interface Plugin {
   name: string;
   theme?: DeepPartial<Theme>;
   options?: SettableOptions;
-  actions?: ContextMenuAction[];
+  actions?: PluginAction[];
   hooks?: PluginHooks;
   setup?: (api: ReactGrabAPI) => PluginConfig | void;
 }
+
+type PluginAction = ContextMenuAction | ToolbarMenuAction;
 ```
+
+Actions use a `target` field to control placement: omit it (or use `"context-menu"`) for the right-click menu, or set `"toolbar"` for the toolbar dropdown.
 
 ## PluginConfig
 
@@ -23,7 +27,7 @@ Returned from `setup()` or merged from plugin properties:
 interface PluginConfig {
   theme?: DeepPartial<Theme>;
   options?: SettableOptions;
-  actions?: ContextMenuAction[];
+  actions?: PluginAction[];
   hooks?: PluginHooks;
   cleanup?: () => void;
 }

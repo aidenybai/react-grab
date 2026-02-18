@@ -4,6 +4,7 @@ import type {
   PluginConfig,
   PluginHooks,
   Theme,
+  PluginAction,
   ContextMenuAction,
   ToolbarMenuAction,
   ReactGrabAPI,
@@ -69,10 +70,13 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     toolbarActions: [],
   });
 
+  const isToolbarAction = (action: PluginAction): action is ToolbarMenuAction =>
+    action.target === "toolbar";
+
   const recomputeStore = () => {
     let mergedTheme: Required<Theme> = DEFAULT_THEME;
     let mergedOptions: OptionsState = { ...DEFAULT_OPTIONS, ...initialOptions };
-    const allActions: ContextMenuAction[] = [];
+    const allContextMenuActions: ContextMenuAction[] = [];
     const allToolbarActions: ToolbarMenuAction[] = [];
 
     for (const { config } of plugins.values()) {
@@ -85,11 +89,13 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       }
 
       if (config.actions) {
-        allActions.push(...config.actions);
-      }
-
-      if (config.toolbarActions) {
-        allToolbarActions.push(...config.toolbarActions);
+        for (const action of config.actions) {
+          if (isToolbarAction(action)) {
+            allToolbarActions.push(action);
+          } else {
+            allContextMenuActions.push(action);
+          }
+        }
       }
     }
 
@@ -97,7 +103,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
 
     setStore("theme", mergedTheme);
     setStore("options", mergedOptions);
-    setStore("actions", allActions);
+    setStore("actions", allContextMenuActions);
     setStore("toolbarActions", allToolbarActions);
   };
 
@@ -132,13 +138,6 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
 
     if (plugin.actions) {
       config.actions = [...plugin.actions, ...(config.actions ?? [])];
-    }
-
-    if (plugin.toolbarActions) {
-      config.toolbarActions = [
-        ...plugin.toolbarActions,
-        ...(config.toolbarActions ?? []),
-      ];
     }
 
     if (plugin.hooks) {
