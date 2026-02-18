@@ -52,33 +52,6 @@ test.describe("Drag Selection", () => {
     expect(clipboardContent).toContain("Buy groceries");
   });
 
-  test("should copy HTML for element via context menu", async ({
-    reactGrab,
-  }) => {
-    await reactGrab.activate();
-
-    const firstItem = reactGrab.page.locator("li").first();
-    const startBox = await firstItem.boundingBox();
-    if (!startBox) throw new Error("Could not get bounding box");
-
-    await reactGrab.page.mouse.click(
-      startBox.x + startBox.width / 2,
-      startBox.y + startBox.height / 2,
-      { button: "right" },
-    );
-    await reactGrab.page.waitForTimeout(300);
-
-    const isContextMenuVisible = await reactGrab.isContextMenuVisible();
-    expect(isContextMenuVisible).toBe(true);
-
-    await reactGrab.clickContextMenuItem("Copy html");
-    await reactGrab.page.waitForTimeout(500);
-
-    const clipboardContent = await reactGrab.getClipboardContent();
-    expect(clipboardContent).toContain("<li");
-    expect(clipboardContent).toContain("Buy groceries");
-  });
-
   test("should cancel drag selection on Escape", async ({ reactGrab }) => {
     await reactGrab.activate();
 

@@ -102,19 +102,6 @@ test.describe("Toolbar Menu", () => {
       expect(menuInfo.itemCount).toBeGreaterThan(0);
       expect(menuInfo.itemLabels.length).toBeGreaterThan(0);
     });
-
-    test("menu should include Copy HTML action from built-in plugin", async ({
-      reactGrab,
-    }) => {
-      await expect
-        .poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 })
-        .toBe(true);
-
-      await reactGrab.clickToolbarMenuButton();
-
-      const menuInfo = await reactGrab.getToolbarMenuInfo();
-      expect(menuInfo.itemLabels).toContain("Copy HTML");
-    });
   });
 
   test.describe("Interaction with Other Dropdowns", () => {

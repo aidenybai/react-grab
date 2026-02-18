@@ -122,10 +122,8 @@ import {
   saveToolbarState,
 } from "../components/toolbar/state.js";
 import { copyPlugin } from "./plugins/copy.js";
-import { screenshotPlugin } from "./plugins/screenshot.js";
-import { copyHtmlPlugin } from "./plugins/copy-html.js";
-import { openPlugin } from "./plugins/open.js";
 import { commentPlugin } from "./plugins/comment.js";
+import { openPlugin } from "./plugins/open.js";
 import {
   freezeAnimations,
   freezeAllAnimations,
@@ -146,13 +144,7 @@ import {
 import { copyContent } from "../utils/copy-content.js";
 import { joinSnippets } from "../utils/join-snippets.js";
 
-const builtInPlugins = [
-  copyPlugin,
-  commentPlugin,
-  screenshotPlugin,
-  copyHtmlPlugin,
-  openPlugin,
-];
+const builtInPlugins = [copyPlugin, commentPlugin, openPlugin];
 
 let hasInited = false;
 const toolbarStateChangeCallbacks = new Set<(state: ToolbarState) => void>();
