@@ -3,7 +3,7 @@ import { copyContent } from "../../utils/copy-content.js";
 
 export const copyHtmlPlugin: Plugin = {
   name: "copy-html",
-  setup: (api) => {
+  setup: (api, hooks) => {
     let isPendingSelection = false;
 
     return {
@@ -12,9 +12,13 @@ export const copyHtmlPlugin: Plugin = {
           if (!isPendingSelection) return;
           isPendingSelection = false;
           api.deactivate();
-          if (element instanceof HTMLElement) {
-            copyContent(element.outerHTML);
-          }
+          hooks
+            .transformHtmlContent(element.outerHTML, [element])
+            .then((transformedHtml) => {
+              if (transformedHtml) {
+                copyContent(transformedHtml);
+              }
+            });
           return true;
         },
         onDeactivate: () => {
@@ -27,11 +31,7 @@ export const copyHtmlPlugin: Plugin = {
           label: "Copy HTML",
           onAction: async (context) => {
             await context.performWithFeedback(async () => {
-              const htmlElements = context.elements.filter(
-                (element): element is HTMLElement =>
-                  element instanceof HTMLElement,
-              );
-              const combinedHtml = htmlElements
+              const combinedHtml = context.elements
                 .map((element) => element.outerHTML)
                 .join("\n\n");
 

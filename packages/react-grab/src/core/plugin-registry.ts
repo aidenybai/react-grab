@@ -125,7 +125,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       unregister(plugin.name);
     }
 
-    const config: PluginConfig = plugin.setup?.(api) ?? {};
+    const config: PluginConfig = plugin.setup?.(api, hooks) ?? {};
 
     if (plugin.theme) {
       config.theme = config.theme

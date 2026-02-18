@@ -1,4 +1,4 @@
-import type { Plugin } from "../../types.js";
+import type { ActionContextHooks, Plugin } from "../../types.js";
 import { SCREENSHOT_CAPTURE_DELAY_MS } from "../../constants.js";
 import {
   captureElementScreenshot,
@@ -21,18 +21,26 @@ const getElementBounds = (elements: Element[]) =>
     }),
   );
 
-const captureAndCopyScreenshot = async (elements: Element[]) => {
+const captureAndCopyScreenshot = async (
+  elements: Element[],
+  transformScreenshot: ActionContextHooks["transformScreenshot"],
+) => {
   const captureBounds = getElementBounds(elements);
   if (captureBounds.width === 0 || captureBounds.height === 0) return false;
 
   await delay(SCREENSHOT_CAPTURE_DELAY_MS);
   const capturedBlob = await captureElementScreenshot(captureBounds);
-  return await copyImageToClipboard(capturedBlob);
+  const transformedBlob = await transformScreenshot(
+    capturedBlob,
+    elements,
+    captureBounds,
+  );
+  return await copyImageToClipboard(transformedBlob);
 };
 
 export const screenshotPlugin: Plugin = {
   name: "screenshot",
-  setup: (api) => {
+  setup: (api, hooks) => {
     let isPendingSelection = false;
 
     return {
@@ -41,7 +49,7 @@ export const screenshotPlugin: Plugin = {
           if (!isPendingSelection) return;
           isPendingSelection = false;
           api.deactivate();
-          captureAndCopyScreenshot([element]);
+          captureAndCopyScreenshot([element], hooks.transformScreenshot);
           return true;
         },
         onDeactivate: () => {
