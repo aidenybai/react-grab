@@ -262,7 +262,8 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     onActivate: () => callHook("onActivate"),
     onDeactivate: () => callHook("onDeactivate"),
     onElementHover: (element: Element) => callHook("onElementHover", element),
-    onElementSelect: (element: Element) => callHook("onElementSelect", element),
+    onElementSelect: (element: Element) =>
+      callHookWithHandled("onElementSelect", element),
     onDragStart: (startX: number, startY: number) =>
       callHook("onDragStart", startX, startY),
     onDragEnd: (elements: Element[], bounds: DragRect) =>

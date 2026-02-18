@@ -15,6 +15,7 @@ export const copyHtmlPlugin: Plugin = {
           if (element instanceof HTMLElement) {
             copyContent(element.outerHTML);
           }
+          return true;
         },
         onDeactivate: () => {
           isPendingSelection = false;

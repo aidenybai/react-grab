@@ -11,6 +11,7 @@ export const copyPlugin: Plugin = {
           if (!isPendingSelection) return;
           isPendingSelection = false;
           api.copyElement(element);
+          return true;
         },
         onDeactivate: () => {
           isPendingSelection = false;
