@@ -20,7 +20,6 @@
     "@types/react": "19.2.7",
     "@types/web": "0.0.166",
     "eslint": "9.19.0",
-    "prettier": "3.6.0",
     "typescript": "5.9.3"
   }
 }
