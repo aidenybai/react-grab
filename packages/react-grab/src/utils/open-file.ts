@@ -5,13 +5,17 @@ const tryDevServerOpen = async (
   filePath: string,
   lineNumber: number | undefined,
 ): Promise<boolean> => {
+  const isNextProject = checkIsNextProject();
   const params = new URLSearchParams({ file: filePath });
-  if (lineNumber) params.set("line", String(lineNumber));
-  params.set("column", "1");
 
-  const endpoint = checkIsNextProject()
-    ? "/__nextjs_launch-editor"
-    : "/__open-in-editor";
+  const lineKey = isNextProject ? "line1" : "line";
+  const columnKey = isNextProject ? "column1" : "column";
+  if (lineNumber) params.set(lineKey, String(lineNumber));
+  params.set(columnKey, "1");
+
+  const endpoint = isNextProject
+    ? "/__nextjs_launch-editor" // Next.js
+    : "/__open-in-editor"; // vite
   const response = await fetch(`${endpoint}?${params}`);
   return response.ok;
 };

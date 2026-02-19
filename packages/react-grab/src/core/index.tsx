@@ -25,6 +25,7 @@ import {
   checkIsSourceComponentName,
   getComponentDisplayName,
   resolveSourceFromStack,
+  checkIsNextProject,
 } from "./context.js";
 import { isSourceFile, normalizeFileName } from "bippy/source";
 import { createNoopApi } from "./noop-api.js";
@@ -4194,6 +4195,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     for (const plugin of builtInPlugins) {
       pluginRegistry.register(plugin, api);
     }
+
+    setTimeout(() => {
+      // HACK: Force revalidation of Next.js project detection
+      // since it's cached in the browser and not updated when the project is changed
+      checkIsNextProject(true);
+    }, 1000);
 
     return api;
   });

@@ -6,6 +6,7 @@
 - MUST: Use arrow functions over function declarations
 - MUST: Never comment unless absolutely necessary.
   - If the code is a hack (like a setTimeout or potentially confusing code), it must be prefixed with // HACK: reason for hack
+  - Do not delete descriptive comments >3 lines without confirming with the user
 - MUST: Use kebab-case for files
 - MUST: Use descriptive names for variables (avoid shorthands, or 1-2 character names).
   - Example: for .map(), you can use `innerX` instead of `x`

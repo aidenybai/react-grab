@@ -71,6 +71,8 @@ export const PREVIEW_PRIORITY_ATTRS: readonly string[] = [
 
 export const SCREENSHOT_CAPTURE_DELAY_MS = 50;
 
+export const SYMBOLICATION_TIMEOUT_MS = 5000;
+
 export const VIDEO_METADATA_TIMEOUT_MS = 5000;
 export const VIDEO_READY_POLL_INTERVAL_MS = 10;
 export const VIDEO_READY_TIMEOUT_MS = 2000;
