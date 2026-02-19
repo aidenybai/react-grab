@@ -69,6 +69,7 @@ import {
   DROPDOWN_HOVER_OPEN_DELAY_MS,
   PREVIEW_TEXT_MAX_LENGTH,
   DEFERRED_EXECUTION_DELAY_MS,
+  NEXTJS_REVALIDATION_DELAY_MS,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
@@ -298,12 +299,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           if (isElementConnected(reacquiredElement)) {
             reacquiredElements.push(reacquiredElement);
           }
+          // HACK: querySelector can throw on invalid selectors stored from previous sessions
         } catch {}
       }
       return reacquiredElements;
     };
 
-    const getConnectedHistoryElements = (historyItem: HistoryItem): Element[] => {
+    const getConnectedHistoryElements = (
+      historyItem: HistoryItem,
+    ): Element[] => {
       const mappedElements = getMappedHistoryElements(historyItem.id);
       const connectedMappedElements = mappedElements.filter((mappedElement) =>
         isElementConnected(mappedElement),
@@ -702,17 +706,27 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
-    const executeCopyOperation = async (
-      positionX: number,
-      positionY: number,
-      operation: () => Promise<void>,
-      bounds?: OverlayBounds,
-      tagName?: string,
-      componentName?: string,
-      element?: Element,
-      shouldDeactivateAfter?: boolean,
-      elements?: Element[],
-    ) => {
+    interface ExecuteCopyOptions {
+      positionX: number;
+      operation: () => Promise<void>;
+      bounds?: OverlayBounds;
+      tagName?: string;
+      componentName?: string;
+      element?: Element;
+      shouldDeactivateAfter?: boolean;
+      elements?: Element[];
+    }
+
+    const executeCopyOperation = async ({
+      positionX,
+      operation,
+      bounds,
+      tagName,
+      componentName,
+      element,
+      shouldDeactivateAfter,
+      elements,
+    }: ExecuteCopyOptions) => {
       inToggleFeedbackPeriod = false;
       actions.startCopy();
 
@@ -915,7 +929,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     interface CopyWithLabelOptions {
       element: Element;
       positionX: number;
-      positionY: number;
       elements?: Element[];
       extraPrompt?: string;
       shouldDeactivateAfter?: boolean;
@@ -931,7 +944,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const performCopyWithLabel = ({
       element,
       positionX,
-      positionY,
       elements,
       extraPrompt,
       shouldDeactivateAfter,
@@ -955,22 +967,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const tagName = getTagName(element);
       void getNearestComponentName(element).then((componentName) => {
-        void executeCopyOperation(
-          labelPositionX,
-          positionY,
-          () =>
+        void executeCopyOperation({
+          positionX: labelPositionX,
+          operation: () =>
             copyElementsToClipboard(
               allElements,
               extraPrompt,
               componentName ?? undefined,
             ),
-          overlayBounds,
+          bounds: overlayBounds,
           tagName,
-          componentName ?? undefined,
+          componentName: componentName ?? undefined,
           element,
           shouldDeactivateAfter,
           elements,
-        ).then(() => {
+        }).then(() => {
           onComplete?.();
         });
       });
@@ -1290,87 +1301,62 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       })),
     );
 
+    const derivedStateForHook = createMemo(() => {
+      const active = isActivated();
+      const dragging = isDragging();
+      const copying = isCopying();
+      const inputMode = isPromptMode();
+      const crosshairState = crosshairVisible();
+      const target = targetElement();
+      const drag = dragBounds();
+      const themeEnabled = pluginRegistry.store.theme.enabled;
+      const selectionBoxEnabled =
+        pluginRegistry.store.theme.selectionBox.enabled;
+      const dragBoxEnabled = pluginRegistry.store.theme.dragBox.enabled;
+      const draggingBeyondThreshold = isDraggingBeyondThreshold();
+      const effectiveTarget = effectiveElement();
+      const justCopied = didJustCopy();
+
+      const isSelectionBoxVisible = Boolean(
+        themeEnabled &&
+        selectionBoxEnabled &&
+        active &&
+        !copying &&
+        !justCopied &&
+        !dragging &&
+        effectiveTarget != null,
+      );
+      const isDragBoxVisible = Boolean(
+        themeEnabled &&
+        dragBoxEnabled &&
+        active &&
+        !copying &&
+        draggingBeyondThreshold,
+      );
+
+      return {
+        isActive: active,
+        isDragging: dragging,
+        isCopying: copying,
+        isPromptMode: inputMode,
+        isCrosshairVisible: crosshairState ?? false,
+        isSelectionBoxVisible,
+        isDragBoxVisible,
+        targetElement: target,
+        dragBounds: drag
+          ? { x: drag.x, y: drag.y, width: drag.width, height: drag.height }
+          : null,
+        grabbedBoxes: stateChangeGrabbedBoxes(),
+        labelInstances: stateChangeLabelInstances(),
+        selectionFilePath: store.selectionFilePath,
+        toolbarState: currentToolbarState(),
+      };
+    });
+
     createEffect(
-      on(
-        () =>
-          [
-            isActivated(),
-            isDragging(),
-            isCopying(),
-            isPromptMode(),
-            crosshairVisible(),
-            targetElement(),
-            dragBounds(),
-            pluginRegistry.store.theme.enabled,
-            pluginRegistry.store.theme.selectionBox.enabled,
-            pluginRegistry.store.theme.dragBox.enabled,
-            isDraggingBeyondThreshold(),
-            effectiveElement(),
-            didJustCopy(),
-            currentToolbarState(),
-            stateChangeGrabbedBoxes(),
-            stateChangeLabelInstances(),
-            store.selectionFilePath,
-          ] as const,
-        ([
-          active,
-          dragging,
-          copying,
-          inputMode,
-          isCrosshairVisible,
-          target,
-          drag,
-          themeEnabled,
-          selectionBoxEnabled,
-          dragBoxEnabled,
-          draggingBeyondThreshold,
-          effectiveTarget,
-          justCopied,
-          toolbarState,
-          grabbedBoxes,
-          labelInstances,
-          selectionFilePath,
-        ]) => {
-          const isSelectionBoxVisible = Boolean(
-            themeEnabled &&
-            selectionBoxEnabled &&
-            active &&
-            !copying &&
-            !justCopied &&
-            !dragging &&
-            effectiveTarget != null,
-          );
-          const isDragBoxVisible = Boolean(
-            themeEnabled &&
-            dragBoxEnabled &&
-            active &&
-            !copying &&
-            draggingBeyondThreshold,
-          );
-          pluginRegistry.hooks.onStateChange({
-            isActive: active,
-            isDragging: dragging,
-            isCopying: copying,
-            isPromptMode: inputMode,
-            isCrosshairVisible: isCrosshairVisible ?? false,
-            isSelectionBoxVisible,
-            isDragBoxVisible,
-            targetElement: target,
-            dragBounds: drag
-              ? {
-                  x: drag.x,
-                  y: drag.y,
-                  width: drag.width,
-                  height: drag.height,
-                }
-              : null,
-            grabbedBoxes,
-            labelInstances,
-            selectionFilePath,
-            toolbarState,
-          });
-        },
-      ),
+      on(derivedStateForHook, (state) => {
+        pluginRegistry.hooks.onStateChange(state);
+      }),
     );
 
     createEffect(
@@ -1490,6 +1476,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
+    const clearToggleFeedbackState = () => {
+      if (toggleFeedbackTimerId !== null) {
+        window.clearTimeout(toggleFeedbackTimerId);
+        toggleFeedbackTimerId = null;
+      }
+      inToggleFeedbackPeriod = false;
+    };
+
     const deactivateRenderer = () => {
       const wasDragging = isDragging();
       const previousFocused = store.previouslyFocusedElement;
@@ -1509,6 +1503,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         previousFocused.focus();
       }
       pluginRegistry.hooks.onDeactivate();
+    };
+
+    const forceDeactivateAll = () => {
+      if (isHoldingKeys()) {
+        actions.release();
+      }
+      if (isActivated()) {
+        deactivateRenderer();
+      }
+      clearToggleFeedbackState();
     };
 
     const toggleActivate = () => {
@@ -1565,10 +1569,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       transformAgentContext: pluginRegistry.hooks.transformAgentContext,
     });
 
-    const handleInputChange = (value: string) => {
-      actions.setInputText(value);
-    };
-
     const handleInputSubmit = () => {
       actions.clearLastCopied();
       const frozenElements = [...store.frozenElements];
@@ -1622,7 +1622,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       performCopyWithLabel({
         element,
         positionX: labelPositionX,
-        positionY: currentY,
         elements,
         extraPrompt: prompt || undefined,
         onComplete: deactivateRenderer,
@@ -1758,19 +1757,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setCurrentToolbarState(newState);
       toolbarStateChangeCallbacks.forEach((callback) => callback(newState));
       if (!newEnabled) {
-        if (isHoldingKeys()) {
-          actions.release();
-        }
-        if (isActivated()) {
-          deactivateRenderer();
-        }
+        forceDeactivateAll();
         dismissHistoryDropdown();
-        // Clear toggle feedback state to prevent stale state from affecting re-enable
-        if (toggleFeedbackTimerId !== null) {
-          window.clearTimeout(toggleFeedbackTimerId);
-          toggleFeedbackTimerId = null;
-        }
-        inToggleFeedbackPeriod = false;
       }
     };
 
@@ -1878,7 +1866,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       performCopyWithLabel({
         element: firstElement,
         positionX: center.x,
-        positionY: center.y,
         elements: selectedElements,
         shouldDeactivateAfter,
         dragRect,
@@ -1957,7 +1944,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       performCopyWithLabel({
         element,
         positionX,
-        positionY,
         shouldDeactivateAfter,
       });
     };
@@ -2199,7 +2185,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         lineNumber ?? undefined,
       );
       if (!wasHandled) {
-        openFile(filePath, lineNumber ?? undefined, pluginRegistry.hooks.transformOpenFileUrl);
+        openFile(
+          filePath,
+          lineNumber ?? undefined,
+          pluginRegistry.hooks.transformOpenFileUrl,
+        );
       }
       return true;
     };
@@ -2353,7 +2343,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         filePath: store.selectionFilePath ?? undefined,
         lineNumber: store.selectionLineNumber ?? undefined,
         tagName: getTagName(element) || undefined,
-        componentName: selectionComponentName(),
+        componentName: resolvedComponentName(),
         position: store.pointer,
         performWithFeedbackOptions: {
           fallbackBounds,
@@ -3068,8 +3058,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => pluginRegistry.store.theme.dragBox.enabled,
     );
     const isSelectionSuppressed = createMemo(
-      () =>
-        didJustCopy() || (isToolbarSelectHovered() && !isToggleFrozen()),
+      () => didJustCopy() || (isToolbarSelectHovered() && !isToggleFrozen()),
     );
     const hasDragPreviewBounds = createMemo(
       () => dragPreviewBounds().length > 0,
@@ -3112,8 +3101,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         },
       ),
     );
-
-    const selectionComponentName = resolvedComponentName;
 
     const selectionLabelVisible = createMemo(() => {
       if (store.contextMenuPosition !== null) return false;
@@ -3334,6 +3321,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
           scheduleLabelFade(labelInstanceId);
         } else {
+          // HACK: Fire-and-forget when no label bounds to display feedback on
           try {
             await action();
           } catch {}
@@ -3397,7 +3385,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         performCopyWithLabel({
           element,
           positionX: position.x,
-          positionY: position.y,
           elements: elements.length > 1 ? elements : undefined,
           shouldDeactivateAfter: store.wasActivatedByToggle,
         });
@@ -3953,7 +3940,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             selectionFilePath={store.selectionFilePath ?? undefined}
             selectionLineNumber={store.selectionLineNumber ?? undefined}
             selectionTagName={selectionTagName()}
-            selectionComponentName={selectionComponentName()}
+            selectionComponentName={resolvedComponentName()}
             selectionLabelVisible={selectionLabelVisible()}
             selectionLabelStatus="idle"
             selectionActionCycleState={actionCycleState()}
@@ -3986,7 +3973,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onShowContextMenuSession={handleShowContextMenuSession}
             onShowContextMenuInstance={handleShowContextMenuInstance}
             onLabelInstanceHoverChange={handleLabelInstanceHoverChange}
-            onInputChange={handleInputChange}
+            onInputChange={actions.setInputText}
             onInputSubmit={() => void handleInputSubmit()}
             onInputCancel={handleInputCancel}
             onToggleExpand={handleToggleExpand}
@@ -4143,17 +4130,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (enabled === isEnabled()) return;
         setIsEnabled(enabled);
         if (!enabled) {
-          if (isHoldingKeys()) {
-            actions.release();
-          }
-          if (isActivated()) {
-            deactivateRenderer();
-          }
-          if (toggleFeedbackTimerId !== null) {
-            window.clearTimeout(toggleFeedbackTimerId);
-            toggleFeedbackTimerId = null;
-          }
-          inToggleFeedbackPeriod = false;
+          forceDeactivateAll();
         }
       },
       getToolbarState: () => loadToolbarState(),
@@ -4241,11 +4218,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       pluginRegistry.register(plugin, api);
     }
 
+    // HACK: Force revalidation of Next.js project detection
+    // since it's cached in the browser and not updated when the project is changed
     setTimeout(() => {
-      // HACK: Force revalidation of Next.js project detection
-      // since it's cached in the browser and not updated when the project is changed
       checkIsNextProject(true);
-    }, 1000);
+    }, NEXTJS_REVALIDATION_DELAY_MS);
 
     return api;
   });

@@ -18,7 +18,11 @@ export const openPlugin: Plugin = {
         );
 
         if (!wasHandled) {
-          openFile(context.filePath, context.lineNumber, context.hooks.transformOpenFileUrl);
+          openFile(
+            context.filePath,
+            context.lineNumber,
+            context.hooks.transformOpenFileUrl,
+          );
         }
 
         context.hideContextMenu();

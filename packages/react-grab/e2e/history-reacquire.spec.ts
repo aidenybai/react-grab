@@ -16,7 +16,12 @@ const getViewportRect = async (
     const element = document.querySelector(sel);
     if (!element) return null;
     const rect = element.getBoundingClientRect();
-    return { x: rect.left, y: rect.top, width: rect.width, height: rect.height };
+    return {
+      x: rect.left,
+      y: rect.top,
+      width: rect.width,
+      height: rect.height,
+    };
   }, selector);
 };
 

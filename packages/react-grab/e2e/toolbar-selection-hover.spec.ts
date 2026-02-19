@@ -26,9 +26,7 @@ const hoverToolbar = async (page: import("@playwright/test").Page) => {
   await page.waitForTimeout(150);
 };
 
-const hoverAwayFromToolbar = async (
-  page: import("@playwright/test").Page,
-) => {
+const hoverAwayFromToolbar = async (page: import("@playwright/test").Page) => {
   await page.mouse.move(10, 10);
   await page.waitForTimeout(150);
 };

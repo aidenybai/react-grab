@@ -30,5 +30,6 @@ export const logIntro = () => {
         })
         .catch(() => null);
     }
+    // HACK: Entire intro log is best-effort; never block initialization
   } catch {}
 };
