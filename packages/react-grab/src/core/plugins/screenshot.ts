@@ -57,6 +57,9 @@ export const screenshotPlugin: Plugin = {
         onDeactivate: () => {
           isPendingSelection = false;
         },
+        cancelPendingToolbarActions: () => {
+          isPendingSelection = false;
+        },
       },
       actions: [
         {

@@ -283,6 +283,7 @@ export interface ScreenshotBounds {
 export interface PluginHooks {
   onActivate?: () => void;
   onDeactivate?: () => void;
+  cancelPendingToolbarActions?: () => void;
   onElementHover?: (element: Element) => void;
   onElementSelect?: (element: Element) => boolean | void;
   onDragStart?: (startX: number, startY: number) => void;

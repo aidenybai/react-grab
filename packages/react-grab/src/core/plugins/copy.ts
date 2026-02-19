@@ -16,6 +16,9 @@ export const copyPlugin: Plugin = {
         onDeactivate: () => {
           isPendingSelection = false;
         },
+        cancelPendingToolbarActions: () => {
+          isPendingSelection = false;
+        },
       },
       actions: [
         {

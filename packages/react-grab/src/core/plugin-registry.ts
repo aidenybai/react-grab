@@ -91,7 +91,14 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       if (config.actions) {
         for (const action of config.actions) {
           if (isToolbarAction(action)) {
-            allToolbarActions.push(action);
+            const originalOnAction = action.onAction;
+            allToolbarActions.push({
+              ...action,
+              onAction: () => {
+                callHook("cancelPendingToolbarActions");
+                originalOnAction();
+              },
+            });
           } else {
             allContextMenuActions.push(action);
           }
@@ -298,6 +305,8 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       callHook("onCrosshair", visible, context),
     onContextMenu: (element: Element, position: { x: number; y: number }) =>
       callHook("onContextMenu", element, position),
+    cancelPendingToolbarActions: () =>
+      callHook("cancelPendingToolbarActions"),
     onOpenFile: (filePath: string, lineNumber?: number) =>
       callHookWithHandled("onOpenFile", filePath, lineNumber),
     transformHtmlContent: async (html: string, elements: Element[]) =>

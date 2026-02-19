@@ -689,6 +689,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           : null;
 
       await operation().finally(() => {
+        if (store.current.state !== "copying") {
+          if (instanceId) {
+            removeLabelInstance(instanceId);
+          }
+          return;
+        }
+
         actions.completeCopy(element);
 
         if (instanceId) {
