@@ -73,7 +73,7 @@ import { isCLikeKey } from "../utils/is-c-like-key.js";
 import { isTargetKeyCombination } from "../utils/is-target-key-combination.js";
 import { parseActivationKey } from "../utils/parse-activation-key.js";
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
-import { buildOpenFileUrl } from "../utils/build-open-file-url.js";
+import { openFile } from "../utils/open-file.js";
 import {
   captureElementScreenshot,
   copyImageToClipboard,
@@ -2151,13 +2151,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         lineNumber ?? undefined,
       );
       if (!wasHandled) {
-        const rawUrl = buildOpenFileUrl(filePath, lineNumber ?? undefined);
-        const url = pluginRegistry.hooks.transformOpenFileUrl(
-          rawUrl,
-          filePath,
-          lineNumber ?? undefined,
-        );
-        window.open(url, "_blank", "noopener,noreferrer");
+        openFile(filePath, lineNumber ?? undefined, pluginRegistry.hooks.transformOpenFileUrl);
       }
       return true;
     };

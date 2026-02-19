@@ -6,7 +6,7 @@ import {
   FROZEN_GLOW_EDGE_PX,
   Z_INDEX_OVERLAY_CANVAS,
 } from "../constants.js";
-import { buildOpenFileUrl } from "../utils/build-open-file-url.js";
+import { openFile } from "../utils/open-file.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 import { OverlayCanvas } from "./overlay-canvas.js";
 import { SelectionLabel } from "./selection-label/index.js";
@@ -144,11 +144,10 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           onCancelDismiss={props.onCancelDismiss}
           onOpen={() => {
             if (props.selectionFilePath) {
-              const openFileUrl = buildOpenFileUrl(
+              openFile(
                 props.selectionFilePath,
                 props.selectionLineNumber,
               );
-              window.open(openFileUrl, "_blank");
             }
           }}
           isContextMenuOpen={props.contextMenuPosition !== null}

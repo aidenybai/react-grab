@@ -57,7 +57,7 @@ const REACT_INTERNAL_COMPONENT_NAMES = new Set([
   "SuspenseList",
 ]);
 
-const checkIsNextProject = (): boolean => {
+export const checkIsNextProject = (): boolean => {
   if (typeof document === "undefined") return false;
   return Boolean(
     document.getElementById("__NEXT_DATA__") ||

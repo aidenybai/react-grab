@@ -1,5 +1,5 @@
 import type { Plugin } from "../../types.js";
-import { buildOpenFileUrl } from "../../utils/build-open-file-url.js";
+import { openFile } from "../../utils/open-file.js";
 
 export const openPlugin: Plugin = {
   name: "open",
@@ -18,13 +18,7 @@ export const openPlugin: Plugin = {
         );
 
         if (!wasHandled) {
-          const rawUrl = buildOpenFileUrl(context.filePath, context.lineNumber);
-          const url = context.hooks.transformOpenFileUrl(
-            rawUrl,
-            context.filePath,
-            context.lineNumber,
-          );
-          window.open(url, "_blank", "noopener,noreferrer");
+          openFile(context.filePath, context.lineNumber, context.hooks.transformOpenFileUrl);
         }
 
         context.hideContextMenu();
