@@ -1632,7 +1632,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isActivated()) {
         deactivateRenderer();
       } else if (isEnabled()) {
-        actions.setPendingContextMenuMode(true);
         toggleActivate();
       }
     };
@@ -1794,12 +1793,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return;
       }
 
-      if (store.pendingContextMenuMode) {
-        actions.setPendingContextMenuMode(false);
-        openContextMenu(firstElement, center);
-        return;
-      }
-
       const shouldDeactivateAfter =
         store.wasActivatedByToggle && !hasModifierKeyHeld;
 
@@ -1859,17 +1852,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (store.pendingCommentMode) {
         enterCommentModeForElement(element, positionX, positionY);
-        return;
-      }
-
-      if (store.pendingContextMenuMode) {
-        actions.setPendingContextMenuMode(false);
-        freezeAllAnimations([element]);
-        actions.setFrozenElement(element);
-        const position = { x: positionX, y: positionY };
-        actions.setPointer(position);
-        actions.freeze();
-        openContextMenu(element, position);
         return;
       }
 
@@ -4045,7 +4027,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const api: ReactGrabAPI = {
       activate: () => {
         actions.setPendingCommentMode(false);
-        actions.setPendingContextMenuMode(false);
         if (!isActivated() && isEnabled()) {
           toggleActivate();
         }
