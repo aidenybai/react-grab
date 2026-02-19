@@ -1922,6 +1922,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
     };
 
+    const cancelActiveDrag = () => {
+      if (!isDragging()) return;
+      actions.cancelDrag();
+      autoScroller.stop();
+      document.body.style.userSelect = "";
+    };
+
     const handlePointerUp = (
       clientX: number,
       clientY: number,
@@ -2804,11 +2811,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "pointercancel",
       (event: PointerEvent) => {
         if (!event.isPrimary) return;
-        if (isDragging()) {
-          actions.cancelDrag();
-          autoScroller.stop();
-          document.body.style.userSelect = "";
-        }
+        cancelActiveDrag();
       },
     );
 
@@ -2851,7 +2854,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     });
 
+    eventListenerManager.addDocumentListener("pointerleave", cancelActiveDrag);
+
     eventListenerManager.addWindowListener("blur", () => {
+      cancelActiveDrag();
       if (isHoldingKeys()) {
         clearHoldTimer();
         actions.release();
