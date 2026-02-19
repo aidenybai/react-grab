@@ -124,6 +124,8 @@ import {
 import { copyPlugin } from "./plugins/copy.js";
 import { commentPlugin } from "./plugins/comment.js";
 import { openPlugin } from "./plugins/open.js";
+import { copyHtmlPlugin } from "./plugins/copy-html.js";
+import { screenshotPlugin } from "./plugins/screenshot.js";
 import {
   freezeAnimations,
   freezeAllAnimations,
@@ -144,7 +146,13 @@ import {
 import { copyContent } from "../utils/copy-content.js";
 import { joinSnippets } from "../utils/join-snippets.js";
 
-const builtInPlugins = [copyPlugin, commentPlugin, openPlugin];
+const builtInPlugins = [
+  copyPlugin,
+  commentPlugin,
+  copyHtmlPlugin,
+  screenshotPlugin,
+  openPlugin,
+];
 
 let hasInited = false;
 const toolbarStateChangeCallbacks = new Set<(state: ToolbarState) => void>();
@@ -478,6 +486,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         !store.isTouchMode &&
         !isToggleFrozen() &&
         !isPromptMode() &&
+        !isToolbarSelectHovered() &&
         store.contextMenuPosition === null,
     );
 
@@ -680,6 +689,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           : null;
 
       await operation().finally(() => {
+        if (store.current.state !== "copying") {
+          if (instanceId) {
+            removeLabelInstance(instanceId);
+          }
+          return;
+        }
+
         actions.completeCopy(element);
 
         if (instanceId) {
@@ -805,18 +821,23 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     ): Promise<void> => {
       if (targetElements.length === 0) return;
 
+      const unhandledElements: Element[] = [];
       for (const element of targetElements) {
-        pluginRegistry.hooks.onElementSelect(element);
+        if (!pluginRegistry.hooks.onElementSelect(element)) {
+          unhandledElements.push(element);
+        }
         if (pluginRegistry.store.theme.grabbedBoxes.enabled) {
           showTemporaryGrabbedBox(createElementBounds(element), element);
         }
       }
       await new Promise((resolve) => requestAnimationFrame(resolve));
-      await copyWithFallback(
-        targetElements,
-        extraPrompt,
-        resolvedComponentName,
-      );
+      if (unhandledElements.length > 0) {
+        await copyWithFallback(
+          unhandledElements,
+          extraPrompt,
+          resolvedComponentName,
+        );
+      }
       void notifyElementsSelected(targetElements);
     };
 
@@ -1611,6 +1632,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isActivated()) {
         deactivateRenderer();
       } else if (isEnabled()) {
+        actions.setPendingContextMenuMode(true);
         toggleActivate();
       }
     };
@@ -1623,6 +1645,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.setPendingCommentMode(false);
       actions.clearInputText();
       actions.enterPromptMode({ x: positionX, y: positionY }, element);
+    };
+
+    const openContextMenu = (
+      element: Element,
+      position: { x: number; y: number },
+    ) => {
+      actions.showContextMenu(position, element);
+      dismissHistoryDropdown();
+      dismissToolbarMenu();
+      pluginRegistry.hooks.onContextMenu(element, position);
     };
 
     const handleComment = () => {
@@ -1762,6 +1794,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return;
       }
 
+      if (store.pendingContextMenuMode) {
+        actions.setPendingContextMenuMode(false);
+        openContextMenu(firstElement, center);
+        return;
+      }
+
       const shouldDeactivateAfter =
         store.wasActivatedByToggle && !hasModifierKeyHeld;
 
@@ -1821,6 +1859,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (store.pendingCommentMode) {
         enterCommentModeForElement(element, positionX, positionY);
+        return;
+      }
+
+      if (store.pendingContextMenuMode) {
+        actions.setPendingContextMenuMode(false);
+        freezeAllAnimations([element]);
+        actions.setFrozenElement(element);
+        const position = { x: positionX, y: positionY };
+        actions.setPointer(position);
+        actions.freeze();
+        openContextMenu(element, position);
         return;
       }
 
@@ -2643,6 +2692,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.setTouchMode(event.pointerType === "touch");
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
+        if (toolbarMenuPosition() !== null) return;
 
         if (isPromptMode()) {
           const bounds = selectionBounds();
@@ -2715,10 +2765,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const position = { x: event.clientX, y: event.clientY };
         actions.setPointer(position);
         actions.freeze();
-        actions.showContextMenu(position, element);
-        dismissHistoryDropdown();
-        dismissToolbarMenu();
-        pluginRegistry.hooks.onContextMenu(element, position);
+        openContextMenu(element, position);
       },
       { capture: true },
     );
@@ -2945,7 +2992,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const isDragBoxThemeEnabled = createMemo(
       () => pluginRegistry.store.theme.dragBox.enabled,
     );
-    const isSelectionSuppressed = createMemo(() => didJustCopy());
+    const isSelectionSuppressed = createMemo(
+      () => didJustCopy() || isToolbarSelectHovered(),
+    );
     const hasDragPreviewBounds = createMemo(
       () => dragPreviewBounds().length > 0,
     );
@@ -3085,9 +3134,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const rendererActive = isRendererActive();
       const dragging = isDragging();
       const hasElement = Boolean(effectiveElement());
+      const toolbarSelectHovered = isToolbarSelectHovered();
 
       if (!themeEnabled) return false;
       if (inPromptMode) return false;
+      if (toolbarSelectHovered) return false;
       if (copying) return true;
       return rendererActive && !dragging && hasElement;
     });
@@ -3502,6 +3553,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const openHistoryDropdown = () => {
       actions.hideContextMenu();
+      dismissToolbarMenu();
       setHistoryItems(loadHistory());
       setHasUnreadHistoryItems(false);
       startTrackingToolbarPosition();
@@ -3874,9 +3926,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             theme={pluginRegistry.store.theme}
             toolbarVisible={pluginRegistry.store.theme.toolbar.enabled}
             isActive={isActivated()}
-            isCommentMode={isCommentMode()}
             onToggleActive={handleToggleActive}
-            onComment={handleComment}
             enabled={isEnabled()}
             onToggleEnabled={handleToggleEnabled}
             shakeCount={toolbarShakeCount()}
@@ -3994,6 +4044,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const api: ReactGrabAPI = {
       activate: () => {
+        actions.setPendingCommentMode(false);
+        actions.setPendingContextMenuMode(false);
         if (!isActivated() && isEnabled()) {
           toggleActivate();
         }
@@ -4010,6 +4062,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           toggleActivate();
         }
       },
+      comment: handleComment,
       isActive: () => isActivated(),
       isEnabled: () => isEnabled(),
       setEnabled: (enabled: boolean) => {

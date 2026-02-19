@@ -18,6 +18,7 @@ import {
 } from "../../constants.js";
 import { clampToViewport } from "../../utils/clamp-to-viewport.js";
 import { cn } from "../../utils/cn.js";
+import { isEventFromOverlay } from "../../utils/is-event-from-overlay.js";
 
 const DEFAULT_OFFSCREEN_POSITION = { left: -9999, top: -9999 };
 

@@ -3,32 +3,7 @@ import { copyContent } from "../../utils/copy-content.js";
 
 export const copyHtmlPlugin: Plugin = {
   name: "copy-html",
-  actions: [
-    {
-      id: "copy-html",
-      label: "Copy HTML",
-      onAction: async (context) => {
-        await context.performWithFeedback(async () => {
-          const htmlElements = context.elements.filter(
-            (element): element is HTMLElement => element instanceof HTMLElement,
-          );
-          const combinedHtml = htmlElements
-            .map((element) => element.outerHTML)
-            .join("\n\n");
-
-          const transformedHtml = await context.hooks.transformHtmlContent(
-            combinedHtml,
-            context.elements,
-          );
-
-          if (!transformedHtml) return false;
-
-          return copyContent(transformedHtml);
-        });
-      },
-    },
-  ],
-  setup: (api) => {
+  setup: (api, hooks) => {
     let isPendingSelection = false;
 
     return {
@@ -37,15 +12,44 @@ export const copyHtmlPlugin: Plugin = {
           if (!isPendingSelection) return;
           isPendingSelection = false;
           api.deactivate();
-          if (element instanceof HTMLElement) {
-            copyContent(element.outerHTML);
-          }
+          hooks
+            .transformHtmlContent(element.outerHTML, [element])
+            .then((transformedHtml) => {
+              if (transformedHtml) {
+                copyContent(transformedHtml);
+              }
+            })
+            .catch(() => {});
+          return true;
         },
         onDeactivate: () => {
           isPendingSelection = false;
         },
+        cancelPendingToolbarActions: () => {
+          isPendingSelection = false;
+        },
       },
       actions: [
+        {
+          id: "copy-html",
+          label: "Copy HTML",
+          onAction: async (context) => {
+            await context.performWithFeedback(async () => {
+              const combinedHtml = context.elements
+                .map((element) => element.outerHTML)
+                .join("\n\n");
+
+              const transformedHtml = await context.hooks.transformHtmlContent(
+                combinedHtml,
+                context.elements,
+              );
+
+              if (!transformedHtml) return false;
+
+              return copyContent(transformedHtml);
+            });
+          },
+        },
         {
           id: "copy-html-toolbar",
           label: "Copy HTML",

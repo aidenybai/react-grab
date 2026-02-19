@@ -17,9 +17,8 @@ import {
 } from "./state.js";
 import { IconSelect } from "../icons/icon-select.jsx";
 import { IconChevron } from "../icons/icon-chevron.jsx";
-import { IconComment } from "../icons/icon-comment.jsx";
 import { IconInbox, IconInboxUnread } from "../icons/icon-inbox.jsx";
-import { IconMenu } from "../icons/icon-menu.jsx";
+import { IconEllipsis } from "../icons/icon-ellipsis.jsx";
 import {
   TOOLBAR_SNAP_MARGIN_PX,
   TOOLBAR_FADE_IN_DELAY_MS,
@@ -45,19 +44,17 @@ import {
   unfreezePseudoStates,
 } from "../../utils/freeze-pseudo-states.js";
 import { Tooltip } from "../tooltip.jsx";
-import { getToolbarIconColor } from "../../utils/get-toolbar-icon-color.js";
 import {
   getExpandGridClass,
   getButtonSpacingClass,
   getMinDimensionClass,
+  getHitboxConstraintClass,
 } from "../../utils/toolbar-layout.js";
 
 interface ToolbarProps {
   isActive?: boolean;
-  isCommentMode?: boolean;
   isContextMenuOpen?: boolean;
   onToggle?: () => void;
-  onComment?: () => void;
   enabled?: boolean;
   onToggleEnabled?: () => void;
   shakeCount?: number;
@@ -80,7 +77,7 @@ interface ToolbarProps {
 
 interface FreezeHandlersOptions {
   shouldFreezeInteractions?: boolean;
-  shouldSetSelectHoverState?: boolean;
+  onHoverChange?: (isHovered: boolean) => void;
 }
 
 export const Toolbar: Component<ToolbarProps> = (props) => {
@@ -110,8 +107,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [isShaking, setIsShaking] = createSignal(false);
   const [isCollapseAnimating, setIsCollapseAnimating] = createSignal(false);
   const [isSelectTooltipVisible, setIsSelectTooltipVisible] =
-    createSignal(false);
-  const [isCommentTooltipVisible, setIsCommentTooltipVisible] =
     createSignal(false);
   const [isToggleTooltipVisible, setIsToggleTooltipVisible] =
     createSignal(false);
@@ -176,6 +171,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const buttonSpacingClass = () => getButtonSpacingClass(isVertical());
   const minDimensionClass = () => getMinDimensionClass(isVertical());
+  const hitboxConstraintClass = () => getHitboxConstraintClass(isVertical());
 
   const shakeTooltipPositionClass = (): string => {
     const tooltipSide = tooltipPosition();
@@ -196,15 +192,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const createFreezeHandlers = (
     setTooltipVisible: (visible: boolean) => void,
-    onHoverChange?: (isHovered: boolean) => void,
     options?: FreezeHandlersOptions,
   ) => ({
     onMouseEnter: () => {
       if (isDragging()) return;
       setTooltipVisible(true);
-      if (options?.shouldSetSelectHoverState !== false) {
-        props.onSelectHoverChange?.(true);
-      }
       if (
         options?.shouldFreezeInteractions !== false &&
         !unfreezeUpdatesCallback
@@ -213,13 +205,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         freezeGlobalAnimations();
         freezePseudoStates();
       }
-      onHoverChange?.(true);
+      options?.onHoverChange?.(true);
     },
     onMouseLeave: () => {
       setTooltipVisible(false);
-      if (options?.shouldSetSelectHoverState !== false) {
-        props.onSelectHoverChange?.(false);
-      }
       if (
         options?.shouldFreezeInteractions !== false &&
         !props.isActive &&
@@ -230,7 +219,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         unfreezeGlobalAnimations();
         unfreezePseudoStates();
       }
-      onHoverChange?.(false);
+      options?.onHoverChange?.(false);
     },
   });
 
@@ -609,8 +598,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     };
 
   const handleToggle = createDragAwareHandler(() => props.onToggle?.());
-
-  const handleComment = createDragAwareHandler(() => props.onComment?.());
 
   const handleHistory = createDragAwareHandler(() => props.onToggleHistory?.());
 
@@ -1406,6 +1393,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         "transform-origin": getTransformOrigin(),
       }}
       onPointerDown={handlePointerDown}
+      onMouseEnter={() => props.onSelectHoverChange?.(true)}
+      onMouseLeave={() => props.onSelectHoverChange?.(false)}
     >
       <div
         class={cn(
@@ -1482,6 +1471,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     class={cn(
                       "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
                       buttonSpacingClass(),
+                      hitboxConstraintClass(),
                     )}
                     on:pointerdown={(event) => {
                       stopEventPropagation(event);
@@ -1498,10 +1488,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                       size={14}
                       class={cn(
                         "transition-colors",
-                        getToolbarIconColor(
-                          Boolean(props.isActive) && !props.isCommentMode,
-                          Boolean(props.isCommentMode),
-                        ),
+                        props.isActive ? "text-black" : "text-black/70",
                       )}
                     />
                   </button>
@@ -1510,54 +1497,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     position={tooltipPosition()}
                   >
                     Select element
-                  </Tooltip>
-                </div>
-              </div>
-              <div
-                class={cn(
-                  "grid",
-                  !isRapidRetoggle() && gridTransitionClass(),
-                  expandGridClass(Boolean(props.enabled)),
-                )}
-              >
-                <div
-                  class={cn("relative overflow-visible", minDimensionClass())}
-                >
-                  {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
-                  <button
-                    data-react-grab-ignore-events
-                    data-react-grab-toolbar-comment
-                    class={cn(
-                      "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
-                      buttonSpacingClass(),
-                    )}
-                    on:pointerdown={(event) => {
-                      stopEventPropagation(event);
-                      handlePointerDown(event);
-                    }}
-                    on:mousedown={stopEventPropagation}
-                    onClick={(event) => {
-                      setIsCommentTooltipVisible(false);
-                      handleComment(event);
-                    }}
-                    {...createFreezeHandlers(setIsCommentTooltipVisible)}
-                  >
-                    <IconComment
-                      size={14}
-                      class={cn(
-                        "transition-colors",
-                        getToolbarIconColor(
-                          Boolean(props.isCommentMode),
-                          Boolean(props.isActive) && !props.isCommentMode,
-                        ),
-                      )}
-                    />
-                  </button>
-                  <Tooltip
-                    visible={isCommentTooltipVisible() && isTooltipAllowed()}
-                    position={tooltipPosition()}
-                  >
-                    Add comment
                   </Tooltip>
                 </div>
               </div>
@@ -1581,6 +1520,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     class={cn(
                       "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
                       buttonSpacingClass(),
+                      hitboxConstraintClass(),
                     )}
                     on:pointerdown={(event) => {
                       stopEventPropagation(event);
@@ -1596,10 +1536,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                         if (visible && props.isHistoryDropdownOpen) return;
                         setIsHistoryTooltipVisible(visible);
                       },
-                      (isHovered) => props.onHistoryButtonHover?.(isHovered),
                       {
+                        onHoverChange: (isHovered) =>
+                          props.onHistoryButtonHover?.(isHovered),
                         shouldFreezeInteractions: false,
-                        shouldSetSelectHoverState: false,
                       },
                     )}
                   >
@@ -1639,6 +1579,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     class={cn(
                       "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
                       buttonSpacingClass(),
+                      hitboxConstraintClass(),
                     )}
                     on:pointerdown={(event) => {
                       stopEventPropagation(event);
@@ -1654,14 +1595,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                         if (visible && props.isMenuOpen) return;
                         setIsMenuTooltipVisible(visible);
                       },
-                      undefined,
-                      {
-                        shouldFreezeInteractions: false,
-                        shouldSetSelectHoverState: false,
-                      },
+                      { shouldFreezeInteractions: false },
                     )}
                   >
-                    <IconMenu
+                    <IconEllipsis
                       size={14}
                       class={cn(
                         "transition-colors",
@@ -1673,7 +1610,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     visible={isMenuTooltipVisible() && isTooltipAllowed()}
                     position={tooltipPosition()}
                   >
-                    Menu
+                    More actions
                   </Tooltip>
                 </div>
               </div>

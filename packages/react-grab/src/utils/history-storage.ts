@@ -1,4 +1,7 @@
-import { MAX_HISTORY_ITEMS } from "../constants.js";
+import {
+  MAX_HISTORY_ITEMS,
+  MAX_SESSION_STORAGE_SIZE_BYTES,
+} from "../constants.js";
 import type { HistoryItem } from "../types.js";
 
 const SESSION_STORAGE_KEY = "react-grab-history-items";
@@ -20,9 +23,22 @@ const loadFromSessionStorage = (): HistoryItem[] => {
   }
 };
 
+const trimToSizeLimit = (items: HistoryItem[]): HistoryItem[] => {
+  let trimmedItems = items;
+  while (trimmedItems.length > 0) {
+    const serialized = JSON.stringify(trimmedItems);
+    if (new Blob([serialized]).size <= MAX_SESSION_STORAGE_SIZE_BYTES) {
+      return trimmedItems;
+    }
+    trimmedItems = trimmedItems.slice(0, -1);
+  }
+  return trimmedItems;
+};
+
 const saveToSessionStorage = (items: HistoryItem[]): void => {
   try {
-    sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(items));
+    const trimmedItems = trimToSizeLimit(items);
+    sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(trimmedItems));
   } catch {}
 };
 

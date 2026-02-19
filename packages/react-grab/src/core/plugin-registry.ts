@@ -91,7 +91,14 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       if (config.actions) {
         for (const action of config.actions) {
           if (isToolbarAction(action)) {
-            allToolbarActions.push(action);
+            const originalOnAction = action.onAction;
+            allToolbarActions.push({
+              ...action,
+              onAction: () => {
+                callHook("cancelPendingToolbarActions");
+                originalOnAction();
+              },
+            });
           } else {
             allContextMenuActions.push(action);
           }
@@ -125,7 +132,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       unregister(plugin.name);
     }
 
-    const config: PluginConfig = plugin.setup?.(api) ?? {};
+    const config: PluginConfig = plugin.setup?.(api, hooks) ?? {};
 
     if (plugin.theme) {
       config.theme = config.theme
@@ -262,7 +269,8 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     onActivate: () => callHook("onActivate"),
     onDeactivate: () => callHook("onDeactivate"),
     onElementHover: (element: Element) => callHook("onElementHover", element),
-    onElementSelect: (element: Element) => callHook("onElementSelect", element),
+    onElementSelect: (element: Element) =>
+      callHookWithHandled("onElementSelect", element),
     onDragStart: (startX: number, startY: number) =>
       callHook("onDragStart", startX, startY),
     onDragEnd: (elements: Element[], bounds: DragRect) =>
@@ -297,6 +305,8 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       callHook("onCrosshair", visible, context),
     onContextMenu: (element: Element, position: { x: number; y: number }) =>
       callHook("onContextMenu", element, position),
+    cancelPendingToolbarActions: () =>
+      callHook("cancelPendingToolbarActions"),
     onOpenFile: (filePath: string, lineNumber?: number) =>
       callHookWithHandled("onOpenFile", filePath, lineNumber),
     transformHtmlContent: async (html: string, elements: Element[]) =>

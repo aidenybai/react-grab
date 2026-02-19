@@ -283,8 +283,9 @@ export interface ScreenshotBounds {
 export interface PluginHooks {
   onActivate?: () => void;
   onDeactivate?: () => void;
+  cancelPendingToolbarActions?: () => void;
   onElementHover?: (element: Element) => void;
-  onElementSelect?: (element: Element) => void;
+  onElementSelect?: (element: Element) => boolean | void;
   onDragStart?: (startX: number, startY: number) => void;
   onDragEnd?: (elements: Element[], bounds: DragRect) => void;
   onBeforeCopy?: (elements: Element[]) => void | Promise<void>;
@@ -368,7 +369,10 @@ export interface Plugin {
   options?: SettableOptions;
   actions?: PluginAction[];
   hooks?: PluginHooks;
-  setup?: (api: ReactGrabAPI) => PluginConfig | void;
+  setup?: (
+    api: ReactGrabAPI,
+    hooks: ActionContextHooks,
+  ) => PluginConfig | void;
 }
 
 export interface Options {
@@ -415,6 +419,7 @@ export interface ReactGrabAPI {
   activate: () => void;
   deactivate: () => void;
   toggle: () => void;
+  comment: () => void;
   isActive: () => boolean;
   isEnabled: () => boolean;
   setEnabled: (enabled: boolean) => void;
@@ -538,9 +543,7 @@ export interface ReactGrabRendererProps {
   theme?: Required<Theme>;
   toolbarVisible?: boolean;
   isActive?: boolean;
-  isCommentMode?: boolean;
   onToggleActive?: () => void;
-  onComment?: () => void;
   enabled?: boolean;
   onToggleEnabled?: () => void;
   shakeCount?: number;
