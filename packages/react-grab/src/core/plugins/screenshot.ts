@@ -73,6 +73,7 @@ export const screenshotPlugin: Plugin = {
 
             await context.performWithFeedback(async () => {
               context.hideOverlay();
+              await delay(SCREENSHOT_CAPTURE_DELAY_MS);
               try {
                 const capturedBlob =
                   await captureElementScreenshot(captureBounds);

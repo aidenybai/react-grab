@@ -4044,6 +4044,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const api: ReactGrabAPI = {
       activate: () => {
+        actions.setPendingCommentMode(false);
         actions.setPendingContextMenuMode(false);
         if (!isActivated() && isEnabled()) {
           toggleActivate();
