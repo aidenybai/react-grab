@@ -22,30 +22,12 @@ Run this command at your project root (where `next.config.ts` or `vite.config.ts
 npx -y grab@latest init
 ```
 
-Use the `-y` flag to skip interactive prompts:
-
-```bash
-npx -y grab@latest init -y
-```
-
 ## Connect to Your Agent
 
-Connect React Grab directly to your coding agent (Cursor, Claude Code, Codex, Gemini, Amp, and more):
-
-```bash
-npx -y grab@latest add [agent]
-```
-
-Or connect via MCP:
+Connect via MCP:
 
 ```bash
 npx -y grab@latest add mcp
-```
-
-Disconnect an agent:
-
-```bash
-npx -y grab@latest remove [agent]
 ```
 
 ## Usage
