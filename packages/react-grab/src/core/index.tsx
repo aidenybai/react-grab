@@ -37,6 +37,7 @@ import { isRootElement } from "../utils/is-root-element.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
+import { createElementSelector } from "../utils/create-element-selector.js";
 import { clearAllCaches } from "../utils/clear-all-caches.js";
 import {
   createBoundsFromDragRect,
@@ -285,19 +286,53 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const getMappedHistoryElements = (historyItemId: string): Element[] =>
       historyElementMap.get(historyItemId) ?? [];
 
-    const getConnectedHistoryElements = (historyItemId: string): Element[] =>
-      getMappedHistoryElements(historyItemId).filter((mappedElement) =>
+    const reacquireHistoryElements = (historyItem: HistoryItem): Element[] => {
+      const selectors = historyItem.elementSelectors ?? [];
+      if (selectors.length === 0) return [];
+
+      const reacquiredElements: Element[] = [];
+      for (const selector of selectors) {
+        if (!selector) continue;
+        try {
+          const reacquiredElement = document.querySelector(selector);
+          if (isElementConnected(reacquiredElement)) {
+            reacquiredElements.push(reacquiredElement);
+          }
+        } catch {}
+      }
+      return reacquiredElements;
+    };
+
+    const getConnectedHistoryElements = (historyItem: HistoryItem): Element[] => {
+      const mappedElements = getMappedHistoryElements(historyItem.id);
+      const connectedMappedElements = mappedElements.filter((mappedElement) =>
         isElementConnected(mappedElement),
       );
+      const areAllMappedElementsConnected =
+        mappedElements.length > 0 &&
+        connectedMappedElements.length === mappedElements.length;
+
+      if (areAllMappedElementsConnected) {
+        return connectedMappedElements;
+      }
+
+      const reacquiredElements = reacquireHistoryElements(historyItem);
+      if (reacquiredElements.length > 0) {
+        historyElementMap.set(historyItem.id, reacquiredElements);
+        return reacquiredElements;
+      }
+
+      return connectedMappedElements;
+    };
 
     const getFirstConnectedHistoryElement = (
-      historyItemId: string,
-    ): Element | undefined => getConnectedHistoryElements(historyItemId)[0];
+      historyItem: HistoryItem,
+    ): Element | undefined => getConnectedHistoryElements(historyItem)[0];
 
     const getHistoryPreviewBounds = (
       historyItem: HistoryItem,
     ): OverlayBounds[] => {
-      const connectedElements = getConnectedHistoryElements(historyItem.id);
+      const connectedElements = getConnectedHistoryElements(historyItem);
       if (connectedElements.length > 0) {
         return connectedElements.map((element) => createElementBounds(element));
       }
@@ -310,7 +345,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         void historyDropdownPosition();
         const disconnectedIds = new Set<string>();
         for (const item of historyItems()) {
-          if (getConnectedHistoryElements(item.id).length === 0) {
+          if (getConnectedHistoryElements(item).length === 0) {
             disconnectedIds.add(item.id);
           }
         }
@@ -798,6 +833,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               }
             }
 
+            const elementSelectors = copiedElements.map((element, index) =>
+              createElementSelector(element, index === 0),
+            );
+
             const updatedHistoryItems = addHistoryItem({
               content,
               elementName: elementName ?? "element",
@@ -807,6 +846,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               previewBounds: copiedElements.map((element) =>
                 createElementBounds(element),
               ),
+              elementSelectors,
               isComment,
               commentText: extraPrompt ?? undefined,
               timestamp: Date.now(),
@@ -2750,6 +2790,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         const didHandle = handlePointerDown(event.clientX, event.clientY);
         if (didHandle) {
+          document.documentElement.setPointerCapture(event.pointerId);
           event.preventDefault();
           event.stopPropagation();
           event.stopImmediatePropagation();
@@ -2853,8 +2894,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
       }
     });
-
-    eventListenerManager.addDocumentListener("pointerleave", cancelActiveDrag);
 
     eventListenerManager.addWindowListener("blur", () => {
       cancelActiveDrag();
@@ -3519,7 +3558,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       idPrefix: string,
     ): void => {
       const previewBounds = getHistoryPreviewBounds(item);
-      const connectedElements = getConnectedHistoryElements(item.id);
+      const connectedElements = getConnectedHistoryElements(item);
       addHistoryItemPreview(item, previewBounds, connectedElements, idPrefix);
     };
 
@@ -3671,7 +3710,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         componentName: item.componentName ?? item.elementName,
         commentText: item.commentText,
       });
-      const element = getFirstConnectedHistoryElement(item.id);
+      const element = getFirstConnectedHistoryElement(item);
       if (!element) return;
 
       actions.clearLabelInstances();
@@ -3697,7 +3736,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.exitPromptMode();
         actions.clearInputText();
       }
-      const element = getFirstConnectedHistoryElement(item.id);
+      const element = getFirstConnectedHistoryElement(item);
 
       if (item.isComment && item.commentText && element) {
         const bounds = createElementBounds(element);
@@ -3747,9 +3786,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       requestAnimationFrame(() => {
         batch(() => {
           for (const historyItem of currentHistoryItems) {
-            const connectedElements = getConnectedHistoryElements(
-              historyItem.id,
-            );
+            const connectedElements = getConnectedHistoryElements(historyItem);
             for (const element of connectedElements) {
               const bounds = createElementBounds(element);
               const labelId = `label-${Date.now()}-${Math.random().toString(36).slice(2)}`;

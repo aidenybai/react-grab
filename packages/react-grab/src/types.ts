@@ -479,6 +479,7 @@ export interface HistoryItem {
   componentName?: string;
   elementsCount?: number;
   previewBounds?: OverlayBounds[];
+  elementSelectors?: string[];
   isComment: boolean;
   commentText?: string;
   timestamp: number;

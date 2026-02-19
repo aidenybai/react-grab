@@ -93,6 +93,7 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
+    "@medv/finder": "^4.0.2",
     "bippy": "^0.5.30",
     "solid-js": "^1.9.10"
   },

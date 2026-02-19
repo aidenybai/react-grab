@@ -17,6 +17,7 @@ const loadFromSessionStorage = (): HistoryItem[] => {
       ...historyItem,
       elementsCount: Math.max(1, historyItem.elementsCount ?? 1),
       previewBounds: historyItem.previewBounds ?? [],
+      elementSelectors: historyItem.elementSelectors ?? [],
     }));
   } catch {
     return [];
