@@ -22,9 +22,7 @@ Run this command at your project root (where `next.config.ts` or `vite.config.ts
 npx -y grab@latest init
 ```
 
-## Connect to Your Agent
-
-Connect via MCP:
+## Connect to MCP
 
 ```bash
 npx -y grab@latest add mcp
