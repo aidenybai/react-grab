@@ -451,6 +451,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let componentNameRequestVersion = 0;
     let componentNameDebounceTimerId: number | null = null;
     let keyboardSelectedElement: Element | null = null;
+    let isPendingContextMenuSelect = false;
     const [
       debouncedElementForComponentName,
       setDebouncedElementForComponentName,
@@ -1454,6 +1455,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.deactivate();
       arrowNavigator.clearHistory();
       keyboardSelectedElement = null;
+      isPendingContextMenuSelect = false;
       if (wasDragging) {
         document.body.style.userSelect = "";
       }
@@ -1661,6 +1663,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isActivated()) {
         deactivateRenderer();
       } else if (isEnabled()) {
+        isPendingContextMenuSelect = true;
         toggleActivate();
       }
     };
@@ -1822,6 +1825,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return;
       }
 
+      if (isPendingContextMenuSelect) {
+        isPendingContextMenuSelect = false;
+        openContextMenu(firstElement, center);
+        return;
+      }
+
       const shouldDeactivateAfter =
         store.wasActivatedByToggle && !hasModifierKeyHeld;
 
@@ -1881,6 +1890,21 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (store.pendingCommentMode) {
         enterCommentModeForElement(element, positionX, positionY);
+        return;
+      }
+
+      if (isPendingContextMenuSelect) {
+        isPendingContextMenuSelect = false;
+        const { wasIntercepted } =
+          pluginRegistry.hooks.onElementSelect(element);
+        if (wasIntercepted) return;
+
+        freezeAllAnimations([element]);
+        actions.setFrozenElement(element);
+        const position = { x: positionX, y: positionY };
+        actions.setPointer(position);
+        actions.freeze();
+        openContextMenu(element, position);
         return;
       }
 
