@@ -688,24 +688,40 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             })
           : null;
 
-      await operation().finally(() => {
-        if (store.current.state !== "copying") {
-          if (instanceId) {
-            removeLabelInstance(instanceId);
-          }
-          return;
-        }
+      let didSucceed = false;
+      let errorMessage: string | undefined;
 
-        actions.completeCopy(element);
+      try {
+        await operation();
+        didSucceed = true;
+      } catch (error) {
+        errorMessage =
+          error instanceof Error && error.message
+            ? error.message
+            : "Action failed";
+      }
 
-        if (instanceId) {
+      if (instanceId) {
+        if (didSucceed) {
           actions.updateLabelInstance(instanceId, "copied");
-          scheduleLabelFade(instanceId);
+        } else {
+          actions.updateLabelInstance(
+            instanceId,
+            "error",
+            errorMessage || "Unknown error",
+          );
+        }
+        scheduleLabelFade(instanceId);
+      }
+
+      if (store.current.state === "copying") {
+        if (didSucceed) {
+          actions.completeCopy(element);
         }
 
         if (shouldDeactivateAfter) {
           deactivateRenderer();
-        } else {
+        } else if (didSucceed) {
           actions.activate();
           inToggleFeedbackPeriod = true;
           if (toggleFeedbackTimerId !== null) {
@@ -715,8 +731,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             inToggleFeedbackPeriod = false;
             toggleFeedbackTimerId = null;
           }, FEEDBACK_DURATION_MS);
+        } else {
+          actions.unfreeze();
         }
-      });
+      }
     };
 
     const copyWithFallback = (
@@ -822,9 +840,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (targetElements.length === 0) return;
 
       const unhandledElements: Element[] = [];
+      const pendingResults: Promise<boolean>[] = [];
       for (const element of targetElements) {
-        if (!pluginRegistry.hooks.onElementSelect(element)) {
+        const { wasIntercepted, pendingResult } =
+          pluginRegistry.hooks.onElementSelect(element);
+        if (!wasIntercepted) {
           unhandledElements.push(element);
+        }
+        if (pendingResult) {
+          pendingResults.push(pendingResult);
         }
         if (pluginRegistry.store.theme.grabbedBoxes.enabled) {
           showTemporaryGrabbedBox(createElementBounds(element), element);
@@ -837,6 +861,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           extraPrompt,
           resolvedComponentName,
         );
+      } else if (pendingResults.length > 0) {
+        const results = await Promise.all(pendingResults);
+        if (!results.every(Boolean)) {
+          throw new Error("Failed to copy");
+        }
       }
       void notifyElementsSelected(targetElements);
     };

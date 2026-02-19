@@ -269,8 +269,25 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     onActivate: () => callHook("onActivate"),
     onDeactivate: () => callHook("onDeactivate"),
     onElementHover: (element: Element) => callHook("onElementHover", element),
-    onElementSelect: (element: Element) =>
-      callHookWithHandled("onElementSelect", element),
+    onElementSelect: (
+      element: Element,
+    ): { wasIntercepted: boolean; pendingResult?: Promise<boolean> } => {
+      let wasIntercepted = false;
+      let pendingResult: Promise<boolean> | undefined;
+      for (const { config } of plugins.values()) {
+        const hook = config.hooks?.onElementSelect;
+        if (hook) {
+          const result = hook(element);
+          if (result === true) {
+            wasIntercepted = true;
+          } else if (result instanceof Promise) {
+            wasIntercepted = true;
+            pendingResult = result;
+          }
+        }
+      }
+      return { wasIntercepted, pendingResult };
+    },
     onDragStart: (startX: number, startY: number) =>
       callHook("onDragStart", startX, startY),
     onDragEnd: (elements: Element[], bounds: DragRect) =>

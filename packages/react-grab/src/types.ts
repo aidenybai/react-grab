@@ -285,7 +285,7 @@ export interface PluginHooks {
   onDeactivate?: () => void;
   cancelPendingToolbarActions?: () => void;
   onElementHover?: (element: Element) => void;
-  onElementSelect?: (element: Element) => boolean | void;
+  onElementSelect?: (element: Element) => boolean | void | Promise<boolean>;
   onDragStart?: (startX: number, startY: number) => void;
   onDragEnd?: (elements: Element[], bounds: DragRect) => void;
   onBeforeCopy?: (elements: Element[]) => void | Promise<void>;
