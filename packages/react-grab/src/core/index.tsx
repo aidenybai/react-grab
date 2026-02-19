@@ -3068,7 +3068,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => pluginRegistry.store.theme.dragBox.enabled,
     );
     const isSelectionSuppressed = createMemo(
-      () => didJustCopy() || isToolbarSelectHovered(),
+      () =>
+        didJustCopy() || (isToolbarSelectHovered() && !isToggleFrozen()),
     );
     const hasDragPreviewBounds = createMemo(
       () => dragPreviewBounds().length > 0,
@@ -3210,10 +3211,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const dragging = isDragging();
       const hasElement = Boolean(effectiveElement());
       const toolbarSelectHovered = isToolbarSelectHovered();
+      const frozen = isToggleFrozen();
 
       if (!themeEnabled) return false;
       if (inPromptMode) return false;
-      if (toolbarSelectHovered) return false;
+      if (toolbarSelectHovered && !frozen) return false;
       if (copying) return true;
       return rendererActive && !dragging && hasElement;
     });
