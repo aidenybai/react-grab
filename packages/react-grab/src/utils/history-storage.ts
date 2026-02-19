@@ -40,6 +40,7 @@ const saveToSessionStorage = (items: HistoryItem[]): void => {
   try {
     const trimmedItems = trimToSizeLimit(items);
     sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(trimmedItems));
+    // HACK: sessionStorage can throw in private browsing or when quota is exceeded
   } catch {}
 };
 

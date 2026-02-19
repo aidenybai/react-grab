@@ -144,10 +144,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           onCancelDismiss={props.onCancelDismiss}
           onOpen={() => {
             if (props.selectionFilePath) {
-              openFile(
-                props.selectionFilePath,
-                props.selectionLineNumber,
-              );
+              openFile(props.selectionFilePath, props.selectionLineNumber);
             }
           }}
           isContextMenuOpen={props.contextMenuPosition !== null}

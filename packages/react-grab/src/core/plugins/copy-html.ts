@@ -18,6 +18,7 @@ export const copyHtmlPlugin: Plugin = {
                 copyContent(transformedHtml);
               }
             })
+            // HACK: Best-effort copy from element select; failure is non-critical
             .catch(() => {});
           return true;
         },

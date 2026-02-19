@@ -30,7 +30,10 @@ const PREFERRED_SELECTOR_ATTRIBUTE_NAMES = new Set<string>([
 const isPreferredAttributeValueSafe = (value: string): boolean =>
   value.length > 0 && value.length <= SELECTOR_ATTR_VALUE_MAX_LENGTH_CHARS;
 
-const isSelectorUniqueForElement = (element: Element, selector: string): boolean => {
+const isSelectorUniqueForElement = (
+  element: Element,
+  selector: string,
+): boolean => {
   try {
     const matchingElements = element.ownerDocument.querySelectorAll(selector);
     return matchingElements.length === 1 && matchingElements[0] === element;
@@ -120,6 +123,7 @@ export const createElementSelector = (
             isPreferredAttributeValueSafe(attributeValue)),
       });
       if (selector) return selector;
+      // HACK: @medv/finder can throw on edge-case DOM structures
     } catch {}
   }
 

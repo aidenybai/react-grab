@@ -262,23 +262,27 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
 
     deactivate: () => {
-      setStore("current", { state: "idle" });
-      setStore("wasActivatedByToggle", false);
-      setStore("pendingCommentMode", false);
-      setStore("inputText", "");
-      setStore("frozenElement", null);
-      setStore("frozenElements", []);
-      setStore("frozenDragRect", null);
-      setStore("pendingClickData", null);
-      setStore("replySessionId", null);
-      setStore("pendingAbortSessionId", null);
-      setStore("activationTimestamp", null);
-      setStore("previouslyFocusedElement", null);
-      setStore("contextMenuPosition", null);
-      setStore("contextMenuElement", null);
-      setStore("contextMenuClickOffset", null);
-      setStore("selectedAgent", null);
-      setStore("lastCopiedElement", null);
+      setStore(
+        produce((draft) => {
+          draft.current = { state: "idle" };
+          draft.wasActivatedByToggle = false;
+          draft.pendingCommentMode = false;
+          draft.inputText = "";
+          draft.frozenElement = null;
+          draft.frozenElements = [];
+          draft.frozenDragRect = null;
+          draft.pendingClickData = null;
+          draft.replySessionId = null;
+          draft.pendingAbortSessionId = null;
+          draft.activationTimestamp = null;
+          draft.previouslyFocusedElement = null;
+          draft.contextMenuPosition = null;
+          draft.contextMenuElement = null;
+          draft.contextMenuClickOffset = null;
+          draft.selectedAgent = null;
+          draft.lastCopiedElement = null;
+        }),
+      );
     },
 
     toggle: () => {

@@ -153,7 +153,10 @@ const symbolicateServerFrames = async (
   if (requestFrames.length === 0) return frames;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), SYMBOLICATION_TIMEOUT_MS);
+  const timeout = setTimeout(
+    () => controller.abort(),
+    SYMBOLICATION_TIMEOUT_MS,
+  );
 
   try {
     // Next.js dev server (>=15.2) exposes a batched symbolication endpoint that resolves
@@ -425,14 +428,12 @@ export const getElementContext = async (
     for (const frame of stack) {
       if (stackContext.length >= maxLines) break;
 
-      const hasResolvedSource =
-        frame.fileName && isSourceFile(frame.fileName);
+      const hasResolvedSource = frame.fileName && isSourceFile(frame.fileName);
 
       if (
         frame.isServer &&
         !hasResolvedSource &&
-        (!frame.functionName ||
-          checkIsSourceComponentName(frame.functionName))
+        (!frame.functionName || checkIsSourceComponentName(frame.functionName))
       ) {
         stackContext.push(
           `\n  in ${frame.functionName || "<anonymous>"} (at Server)`,
@@ -443,8 +444,7 @@ export const getElementContext = async (
       if (hasResolvedSource) {
         let line = "\n  in ";
         const hasComponentName =
-          frame.functionName &&
-          checkIsSourceComponentName(frame.functionName);
+          frame.functionName && checkIsSourceComponentName(frame.functionName);
 
         if (hasComponentName) {
           line += `${frame.functionName} (at `;
