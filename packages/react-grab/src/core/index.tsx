@@ -4032,7 +4032,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
       },
       deactivate: () => {
-        if (isActivated()) {
+        if (isActivated() || isCopying()) {
           deactivateRenderer();
         }
       },

@@ -305,8 +305,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       callHook("onCrosshair", visible, context),
     onContextMenu: (element: Element, position: { x: number; y: number }) =>
       callHook("onContextMenu", element, position),
-    cancelPendingToolbarActions: () =>
-      callHook("cancelPendingToolbarActions"),
+    cancelPendingToolbarActions: () => callHook("cancelPendingToolbarActions"),
     onOpenFile: (filePath: string, lineNumber?: number) =>
       callHookWithHandled("onOpenFile", filePath, lineNumber),
     transformHtmlContent: async (html: string, elements: Element[]) =>

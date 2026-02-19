@@ -369,10 +369,7 @@ export interface Plugin {
   options?: SettableOptions;
   actions?: PluginAction[];
   hooks?: PluginHooks;
-  setup?: (
-    api: ReactGrabAPI,
-    hooks: ActionContextHooks,
-  ) => PluginConfig | void;
+  setup?: (api: ReactGrabAPI, hooks: ActionContextHooks) => PluginConfig | void;
 }
 
 export interface Options {

@@ -11,8 +11,7 @@ export const copyHtmlPlugin: Plugin = {
         onElementSelect: (element) => {
           if (!isPendingSelection) return;
           isPendingSelection = false;
-          api.deactivate();
-          hooks
+          void hooks
             .transformHtmlContent(element.outerHTML, [element])
             .then((transformedHtml) => {
               if (transformedHtml) {
