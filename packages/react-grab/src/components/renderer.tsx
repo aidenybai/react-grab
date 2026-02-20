@@ -32,6 +32,9 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         grabbedBoxes={props.grabbedBoxes}
         agentSessions={props.agentSessions}
         labelInstances={props.labelInstances}
+        freeformStrokePoints={props.freeformStrokePoints}
+        freeformStrokeVisible={props.freeformStrokeVisible}
+        freeformStrokeCompletedAt={props.freeformStrokeCompletedAt}
       />
 
       <div
@@ -209,6 +212,8 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           toolbarActions={props.toolbarActions}
           onToggleMenu={props.onToggleMenu}
           isMenuOpen={Boolean(props.toolbarMenuPosition)}
+          isDrawMode={props.isDrawMode}
+          onToggleDraw={props.onToggleDraw}
         />
       </Show>
 

@@ -19,6 +19,7 @@ import { IconSelect } from "../icons/icon-select.jsx";
 import { IconChevron } from "../icons/icon-chevron.jsx";
 import { IconInbox, IconInboxUnread } from "../icons/icon-inbox.jsx";
 import { IconEllipsis } from "../icons/icon-ellipsis.jsx";
+import { IconDraw } from "../icons/icon-draw.jsx";
 import {
   TOOLBAR_SNAP_MARGIN_PX,
   TOOLBAR_FADE_IN_DELAY_MS,
@@ -73,6 +74,8 @@ interface ToolbarProps {
   toolbarActions?: ToolbarMenuAction[];
   onToggleMenu?: () => void;
   isMenuOpen?: boolean;
+  isDrawMode?: boolean;
+  onToggleDraw?: () => void;
 }
 
 interface FreezeHandlersOptions {
@@ -116,6 +119,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [isHistoryTooltipVisible, setIsHistoryTooltipVisible] =
     createSignal(false);
   const [isMenuTooltipVisible, setIsMenuTooltipVisible] = createSignal(false);
+  const [isDrawTooltipVisible, setIsDrawTooltipVisible] = createSignal(false);
 
   const hasToolbarActions = () => (props.toolbarActions ?? []).length > 0;
 
@@ -602,6 +606,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const handleHistory = createDragAwareHandler(() => props.onToggleHistory?.());
 
   const handleToggleMenu = createDragAwareHandler(() => props.onToggleMenu?.());
+
+  const handleToggleDraw = createDragAwareHandler(() => props.onToggleDraw?.());
 
   const handleToggleCollapse = createDragAwareHandler(() => {
     const rect = containerRef?.getBoundingClientRect();
@@ -1497,6 +1503,51 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     position={tooltipPosition()}
                   >
                     Select element
+                  </Tooltip>
+                </div>
+              </div>
+              <div
+                class={cn(
+                  "grid",
+                  !isRapidRetoggle() && gridTransitionClass(),
+                  expandGridClass(Boolean(props.enabled)),
+                )}
+              >
+                <div
+                  class={cn("relative overflow-visible", minDimensionClass())}
+                >
+                  <button
+                    data-react-grab-ignore-events
+                    data-react-grab-toolbar-draw
+                    class={cn(
+                      "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
+                      buttonSpacingClass(),
+                      hitboxConstraintClass(),
+                    )}
+                    on:pointerdown={(event) => {
+                      stopEventPropagation(event);
+                      handlePointerDown(event);
+                    }}
+                    on:mousedown={stopEventPropagation}
+                    onClick={(event) => {
+                      setIsDrawTooltipVisible(false);
+                      handleToggleDraw(event);
+                    }}
+                    {...createFreezeHandlers(setIsDrawTooltipVisible)}
+                  >
+                    <IconDraw
+                      size={14}
+                      class={cn(
+                        "transition-colors",
+                        props.isDrawMode ? "text-black" : "text-black/70",
+                      )}
+                    />
+                  </button>
+                  <Tooltip
+                    visible={isDrawTooltipVisible() && isTooltipAllowed()}
+                    position={tooltipPosition()}
+                  >
+                    Draw to select
                   </Tooltip>
                 </div>
               </div>
