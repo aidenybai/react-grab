@@ -501,6 +501,9 @@ export interface ReactGrabRendererProps {
   labelInstances?: SelectionLabelInstance[];
   dragVisible?: boolean;
   dragBounds?: OverlayBounds;
+  freeformStrokePoints?: StrokePoint[][];
+  freeformStrokeVisible?: boolean;
+  freeformStrokeCompletedAt?: number | null;
   grabbedBoxes?: Array<{
     id: string;
     bounds: OverlayBounds;
@@ -542,6 +545,8 @@ export interface ReactGrabRendererProps {
   toolbarVisible?: boolean;
   isActive?: boolean;
   onToggleActive?: () => void;
+  isDrawMode?: boolean;
+  onToggleDraw?: () => void;
   enabled?: boolean;
   onToggleEnabled?: () => void;
   shakeCount?: number;
@@ -602,6 +607,12 @@ export interface DragRect {
   y: number;
   width: number;
   height: number;
+}
+
+export interface StrokePoint {
+  x: number;
+  y: number;
+  pressure: number;
 }
 
 export type ArrowPosition = "bottom" | "top";

@@ -4,6 +4,7 @@ import type {
   OverlayBounds,
   SelectionLabelInstance,
   AgentSession,
+  StrokePoint,
 } from "../types.js";
 import { lerp } from "../utils/lerp.js";
 import {
@@ -19,6 +20,9 @@ import {
   OVERLAY_FILL_COLOR_DRAG,
   OVERLAY_BORDER_COLOR_DEFAULT,
   OVERLAY_FILL_COLOR_DEFAULT,
+  FREEFORM_STROKE_COLOR,
+  FREEFORM_STROKE_MIN_WIDTH_PX,
+  FREEFORM_STROKE_MAX_WIDTH_PX,
 } from "../constants.js";
 
 const LAYER_STYLES = {
@@ -44,7 +48,13 @@ const LAYER_STYLES = {
   },
 } as const;
 
-type LayerName = "crosshair" | "drag" | "selection" | "grabbed" | "processing";
+type LayerName =
+  | "crosshair"
+  | "drag"
+  | "selection"
+  | "grabbed"
+  | "processing"
+  | "freeform";
 
 interface OffscreenLayer {
   canvas: OffscreenCanvas | null;
@@ -90,6 +100,10 @@ export interface OverlayCanvasProps {
   agentSessions?: Map<string, AgentSession>;
 
   labelInstances?: SelectionLabelInstance[];
+
+  freeformStrokePoints?: StrokePoint[][];
+  freeformStrokeVisible?: boolean;
+  freeformStrokeCompletedAt?: number | null;
 }
 
 export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
@@ -106,6 +120,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     selection: { canvas: null, context: null },
     grabbed: { canvas: null, context: null },
     processing: { canvas: null, context: null },
+    freeform: { canvas: null, context: null },
   };
 
   const crosshairCurrentPosition: Position = { x: 0, y: 0 };
@@ -114,6 +129,8 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   let dragAnimation: AnimatedBounds | null = null;
   let grabbedAnimations: AnimatedBounds[] = [];
   let processingAnimations: AnimatedBounds[] = [];
+  let freeformFadeOpacity = 1;
+  let freeformCompletedAtTimestamp: number | null = null;
 
   const createOffscreenLayer = (
     layerWidth: number,
@@ -366,6 +383,46 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     }
   };
 
+  const renderFreeformLayer = () => {
+    const layer = layers.freeform;
+    if (!layer.context) return;
+
+    const context = layer.context;
+    context.clearRect(0, 0, canvasWidth, canvasHeight);
+
+    const strokes = props.freeformStrokePoints;
+    if (!strokes || strokes.length === 0) return;
+    if (freeformFadeOpacity <= 0) return;
+
+    context.lineCap = "round";
+    context.lineJoin = "round";
+    context.globalAlpha = freeformFadeOpacity;
+    context.strokeStyle = FREEFORM_STROKE_COLOR;
+
+    for (const stroke of strokes) {
+      if (stroke.length < 2) continue;
+
+      let pressureSum = 0;
+      for (const point of stroke) {
+        pressureSum += point.pressure;
+      }
+      const averagePressure = pressureSum / stroke.length;
+      context.lineWidth =
+        FREEFORM_STROKE_MIN_WIDTH_PX +
+        averagePressure *
+          (FREEFORM_STROKE_MAX_WIDTH_PX - FREEFORM_STROKE_MIN_WIDTH_PX);
+
+      context.beginPath();
+      context.moveTo(stroke[0].x, stroke[0].y);
+      for (let pointIndex = 1; pointIndex < stroke.length; pointIndex++) {
+        context.lineTo(stroke[pointIndex].x, stroke[pointIndex].y);
+      }
+      context.stroke();
+    }
+
+    context.globalAlpha = 1;
+  };
+
   const compositeAllLayers = () => {
     if (!mainContext || !canvasRef) return;
 
@@ -375,6 +432,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
     renderCrosshairLayer();
     renderDragLayer();
+    renderFreeformLayer();
     renderSelectionLayer();
     renderGrabbedLayer();
     renderProcessingLayer();
@@ -382,6 +440,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     const layerRenderOrder: LayerName[] = [
       "crosshair",
       "drag",
+      "freeform",
       "selection",
       "grabbed",
       "processing",
@@ -515,6 +574,28 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
           shouldContinueAnimating = true;
         }
       }
+    }
+
+    if (freeformCompletedAtTimestamp !== null) {
+      const freeformElapsed = Date.now() - freeformCompletedAtTimestamp;
+      const freeformFadeDeadline = FEEDBACK_DURATION_MS + FADE_OUT_BUFFER_MS;
+
+      if (freeformElapsed >= freeformFadeDeadline) {
+        freeformFadeOpacity = 0;
+      } else if (freeformElapsed > FEEDBACK_DURATION_MS) {
+        freeformFadeOpacity =
+          1 - (freeformElapsed - FEEDBACK_DURATION_MS) / FADE_OUT_BUFFER_MS;
+        shouldContinueAnimating = true;
+      } else {
+        freeformFadeOpacity = 1;
+        shouldContinueAnimating = true;
+      }
+    } else if (
+      props.freeformStrokeVisible &&
+      props.freeformStrokePoints &&
+      props.freeformStrokePoints.length > 0
+    ) {
+      shouldContinueAnimating = true;
     }
 
     compositeAllLayers();
@@ -750,6 +831,26 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
           return true;
         });
 
+        scheduleAnimationFrame();
+      },
+    ),
+  );
+
+  createEffect(
+    on(
+      () =>
+        [
+          props.freeformStrokePoints,
+          props.freeformStrokeVisible,
+          props.freeformStrokeCompletedAt,
+        ] as const,
+      ([, , completedAt]) => {
+        if (completedAt != null) {
+          freeformCompletedAtTimestamp = completedAt;
+        } else {
+          freeformCompletedAtTimestamp = null;
+          freeformFadeOpacity = 1;
+        }
         scheduleAnimationFrame();
       },
     ),

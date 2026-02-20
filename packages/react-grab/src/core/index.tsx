@@ -36,6 +36,10 @@ import { isValidGrabbableElement } from "../utils/is-valid-grabbable-element.js"
 import { isRootElement } from "../utils/is-root-element.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
+import {
+  classifyStrokeGesture,
+  computeStrokeBoundingRect,
+} from "../utils/classify-stroke-gesture.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { createElementSelector } from "../utils/create-element-selector.js";
 import { clearAllCaches } from "../utils/clear-all-caches.js";
@@ -70,6 +74,11 @@ import {
   PREVIEW_TEXT_MAX_LENGTH,
   DEFERRED_EXECUTION_DELAY_MS,
   NEXTJS_REVALIDATION_DELAY_MS,
+  FREEFORM_STROKE_DEFAULT_PRESSURE,
+  FREEFORM_CIRCLE_MIN_ANGULAR_SWEEP_RAD,
+  FREEFORM_MIN_POINTS_FOR_GESTURE,
+  FREEFORM_IDLE_TIMEOUT_MS,
+  FREEFORM_CLEANUP_GRACE_PERIOD_MS,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
@@ -105,6 +114,7 @@ import type {
   ToolbarState,
   HistoryItem,
   DropdownAnchor,
+  StrokePoint,
 } from "../types.js";
 import { DEFAULT_THEME } from "./theme.js";
 import { createPluginRegistry } from "./plugin-registry.js";
@@ -467,6 +477,29 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       x: number;
       y: number;
     } | null>(null);
+
+    const [isFreeformDrawing, setIsFreeformDrawing] = createSignal(false);
+    const [isFreeformSessionActive, setIsFreeformSessionActive] =
+      createSignal(false);
+    const [isDrawMode, setIsDrawMode] = createSignal(false);
+    const [freeformStrokes, setFreeformStrokes] = createSignal<StrokePoint[][]>(
+      [],
+    );
+    const [freeformStrokeCompletedAt, setFreeformStrokeCompletedAt] =
+      createSignal<number | null>(null);
+    let freeformCleanupTimerId: ReturnType<typeof setTimeout> | null = null;
+    let freeformIdleTimerId: ReturnType<typeof setTimeout> | null = null;
+
+    const createStrokePoint = (
+      clientX: number,
+      clientY: number,
+      pressure: number,
+    ): StrokePoint => ({
+      x: clientX,
+      y: clientY,
+      pressure: pressure || FREEFORM_STROKE_DEFAULT_PRESSURE,
+    });
+
     const scheduleDragPreviewUpdate = (clientX: number, clientY: number) => {
       if (dragPreviewDebounceTimerId !== null) {
         clearTimeout(dragPreviewDebounceTimerId);
@@ -524,6 +557,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         pluginRegistry.store.theme.crosshair.enabled &&
         isRendererActive() &&
         !isDragging() &&
+        !isFreeformSessionActive() &&
         !store.isTouchMode &&
         !isToggleFrozen() &&
         !isPromptMode() &&
@@ -1491,6 +1525,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       arrowNavigator.clearHistory();
       keyboardSelectedElement = null;
       isPendingContextMenuSelect = false;
+      setIsDrawMode(false);
       if (wasDragging) {
         document.body.style.userSelect = "";
       }
@@ -1704,6 +1739,23 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         deactivateRenderer();
       } else if (isEnabled()) {
         isPendingContextMenuSelect = true;
+        toggleActivate();
+      }
+    };
+
+    const handleToggleDraw = () => {
+      if (!isEnabled()) return;
+
+      if (isDrawMode()) {
+        setIsDrawMode(false);
+        if (isActivated()) {
+          deactivateRenderer();
+        }
+        return;
+      }
+
+      setIsDrawMode(true);
+      if (!isActivated()) {
         toggleActivate();
       }
     };
@@ -1953,6 +2005,175 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.cancelDrag();
       autoScroller.stop();
       document.body.style.userSelect = "";
+    };
+
+    const clearFreeformStrokes = () => {
+      setFreeformStrokes([]);
+      setFreeformStrokeCompletedAt(null);
+      setIsFreeformSessionActive(false);
+    };
+
+    const scheduleFreeformCleanup = () => {
+      const cleanupDelay =
+        FEEDBACK_DURATION_MS +
+        FADE_COMPLETE_BUFFER_MS +
+        FREEFORM_CLEANUP_GRACE_PERIOD_MS;
+      freeformCleanupTimerId = setTimeout(() => {
+        clearFreeformStrokes();
+        freeformCleanupTimerId = null;
+      }, cleanupDelay);
+    };
+
+    const startFreeformDraw = (
+      clientX: number,
+      clientY: number,
+      pressure: number,
+    ) => {
+      if (freeformIdleTimerId !== null) {
+        clearTimeout(freeformIdleTimerId);
+        freeformIdleTimerId = null;
+      }
+      if (freeformCleanupTimerId !== null) {
+        clearTimeout(freeformCleanupTimerId);
+        freeformCleanupTimerId = null;
+      }
+
+      setIsFreeformDrawing(true);
+      setIsFreeformSessionActive(true);
+      setFreeformStrokeCompletedAt(null);
+
+      const point = createStrokePoint(clientX, clientY, pressure);
+      setFreeformStrokes((previousStrokes) => [...previousStrokes, [point]]);
+      document.body.style.userSelect = "none";
+    };
+
+    const addFreeformPoint = (
+      clientX: number,
+      clientY: number,
+      pressure: number,
+    ) => {
+      const point = createStrokePoint(clientX, clientY, pressure);
+      setFreeformStrokes((previousStrokes) => {
+        if (previousStrokes.length === 0) return [[point]];
+        const updated = [...previousStrokes];
+        const lastStrokeIndex = updated.length - 1;
+        updated[lastStrokeIndex] = [...updated[lastStrokeIndex], point];
+        return updated;
+      });
+    };
+
+    const handleFreeformCircle = (allPoints: StrokePoint[]) => {
+      const boundingRect = computeStrokeBoundingRect(allPoints);
+      const elements = getElementsInDrag(boundingRect, isValidGrabbableElement);
+      const selectedElements =
+        elements.length > 0
+          ? elements
+          : getElementsInDrag(boundingRect, isValidGrabbableElement, false);
+
+      if (selectedElements.length === 0) {
+        clearFreeformStrokes();
+        return;
+      }
+
+      freezeAllAnimations(selectedElements);
+
+      pluginRegistry.hooks.onDragEnd(selectedElements, boundingRect);
+      const firstElement = selectedElements[0];
+      const center = getBoundsCenter(createElementBounds(firstElement));
+
+      batch(() => {
+        actions.setPointer(center);
+        actions.setFrozenElements(selectedElements);
+        const pageRect = createPageRectFromBounds(boundingRect);
+        actions.setFrozenDragRect(pageRect);
+        actions.freeze();
+        actions.setLastGrabbed(firstElement);
+
+        setFreeformStrokeCompletedAt(Date.now());
+        setIsFreeformSessionActive(false);
+        setIsDrawMode(false);
+
+        enterCommentModeForElement(firstElement, center.x, center.y);
+      });
+
+      scheduleFreeformCleanup();
+    };
+
+    const handleFreeformArrow = (allPoints: StrokePoint[]) => {
+      const endpoint = allPoints[allPoints.length - 1];
+
+      const element = getElementAtPosition(endpoint.x, endpoint.y);
+      if (!element || !isValidGrabbableElement(element)) {
+        clearFreeformStrokes();
+        return;
+      }
+
+      freezeAllAnimations([element]);
+
+      const center = getBoundsCenter(createElementBounds(element));
+
+      batch(() => {
+        actions.setPointer(center);
+        actions.setFrozenElement(element);
+        actions.freeze();
+        actions.setLastGrabbed(element);
+
+        setFreeformStrokeCompletedAt(Date.now());
+        setIsFreeformSessionActive(false);
+        setIsDrawMode(false);
+
+        enterCommentModeForElement(element, center.x, center.y);
+      });
+
+      scheduleFreeformCleanup();
+    };
+
+    const finalizeFreeformSession = () => {
+      if (freeformIdleTimerId !== null) {
+        clearTimeout(freeformIdleTimerId);
+        freeformIdleTimerId = null;
+      }
+
+      const strokes = freeformStrokes();
+      const allPoints = strokes.flat();
+
+      if (allPoints.length < FREEFORM_MIN_POINTS_FOR_GESTURE) {
+        clearFreeformStrokes();
+        return;
+      }
+
+      const gesture = classifyStrokeGesture(
+        allPoints,
+        FREEFORM_CIRCLE_MIN_ANGULAR_SWEEP_RAD,
+      );
+
+      if (gesture === "circle") {
+        handleFreeformCircle(allPoints);
+      } else {
+        handleFreeformArrow(allPoints);
+      }
+    };
+
+    const endFreeformStroke = () => {
+      setIsFreeformDrawing(false);
+      document.body.style.userSelect = "";
+
+      freeformIdleTimerId = setTimeout(() => {
+        freeformIdleTimerId = null;
+        finalizeFreeformSession();
+      }, FREEFORM_IDLE_TIMEOUT_MS);
+    };
+
+    const cancelFreeformDraw = () => {
+      if (isFreeformDrawing()) {
+        setIsFreeformDrawing(false);
+        document.body.style.userSelect = "";
+      }
+      if (freeformIdleTimerId !== null) {
+        clearTimeout(freeformIdleTimerId);
+        freeformIdleTimerId = null;
+      }
+      clearFreeformStrokes();
     };
 
     const handlePointerUp = (
@@ -2740,6 +2961,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.setTouchMode(isTouchPointer);
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
+
+        if (isFreeformDrawing()) {
+          addFreeformPoint(event.clientX, event.clientY, event.pressure);
+          return;
+        }
+
+        if (isFreeformSessionActive()) return;
+
         if (isTouchPointer && !isHoldingKeys() && !isActivated()) return;
         const isActiveState = isTouchPointer ? isHoldingKeys() : isActivated();
         if (isActiveState && !isPromptMode() && isToggleFrozen()) {
@@ -2778,6 +3007,25 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
+        const shouldStartFreeformStroke =
+          (event.altKey || isDrawMode()) &&
+          (freeformIdleTimerId !== null ||
+            (isRendererActive() && !isCopying()));
+
+        if (shouldStartFreeformStroke) {
+          startFreeformDraw(event.clientX, event.clientY, event.pressure);
+          document.documentElement.setPointerCapture(event.pointerId);
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          return;
+        }
+
+        if (freeformIdleTimerId !== null) {
+          finalizeFreeformSession();
+          return;
+        }
+
         const didHandle = handlePointerDown(event.clientX, event.clientY);
         if (didHandle) {
           document.documentElement.setPointerCapture(event.pointerId);
@@ -2796,6 +3044,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!event.isPrimary) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
+
+        if (isFreeformDrawing()) {
+          endFreeformStroke();
+          return;
+        }
+
         const hasModifierKeyHeld = event.metaKey || event.ctrlKey;
         handlePointerUp(event.clientX, event.clientY, hasModifierKeyHeld);
       },
@@ -2842,6 +3096,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "pointercancel",
       (event: PointerEvent) => {
         if (!event.isPrimary) return;
+        cancelFreeformDraw();
         cancelActiveDrag();
       },
     );
@@ -2857,7 +3112,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           event.stopPropagation();
           event.stopImmediatePropagation();
 
-          if (store.wasActivatedByToggle && !isCopying() && !isPromptMode()) {
+          if (store.wasActivatedByToggle && !isCopying() && !isPromptMode() && !isFreeformSessionActive()) {
             if (!isHoldingKeys()) {
               deactivateRenderer();
             } else {
@@ -3067,6 +3322,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const selectionVisible = createMemo(() => {
       if (!isThemeEnabled()) return false;
       if (!isSelectionBoxThemeEnabled()) return false;
+      if (isFreeformSessionActive()) return false;
       if (isSelectionSuppressed()) return false;
       if (hasDragPreviewBounds()) return true;
       return isSelectionElementVisible();
@@ -3105,6 +3361,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const selectionLabelVisible = createMemo(() => {
       if (store.contextMenuPosition !== null) return false;
       if (!isElementLabelThemeEnabled()) return false;
+      if (isFreeformSessionActive()) return false;
       if (isSelectionSuppressed()) return false;
 
       return isSelectionElementVisible();
@@ -3191,6 +3448,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const labelVisible = createMemo(() => {
       if (!isThemeEnabled()) return false;
+      if (isFreeformSessionActive()) return false;
       const themeEnabled = isElementLabelThemeEnabled();
       const inPromptMode = isPromptMode();
       const copying = isCopying();
@@ -3947,6 +4205,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             labelInstances={computedLabelInstances()}
             dragVisible={dragVisible()}
             dragBounds={dragBounds()}
+            freeformStrokePoints={freeformStrokes()}
+            freeformStrokeVisible={
+              isFreeformDrawing() || freeformStrokes().length > 0
+            }
+            freeformStrokeCompletedAt={freeformStrokeCompletedAt()}
             grabbedBoxes={computedGrabbedBoxes()}
             labelZIndex={Z_INDEX_LABEL}
             mouseX={
@@ -3991,6 +4254,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onToggleActive={handleToggleActive}
             enabled={isEnabled()}
             onToggleEnabled={handleToggleEnabled}
+            isDrawMode={isDrawMode()}
+            onToggleDraw={handleToggleDraw}
             shakeCount={toolbarShakeCount()}
             onToolbarStateChange={(state) => {
               setCurrentToolbarState(state);
