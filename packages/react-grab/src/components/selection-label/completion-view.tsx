@@ -54,6 +54,14 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
   );
   const [followUpInput, setFollowUpInput] = createSignal("");
 
+  const handleShowContextMenu = () => {
+    if (fadeTimeoutId !== undefined) window.clearTimeout(fadeTimeoutId);
+    if (dismissTimeoutId !== undefined) window.clearTimeout(dismissTimeoutId);
+    setIsFading(true);
+    props.onFadingChange?.(true);
+    props.onShowContextMenu?.();
+  };
+
   const handleAccept = () => {
     if (didCopy()) return;
     setDidCopy(true);
@@ -178,7 +186,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
           </span>
           <div class="contain-layout shrink-0 flex items-center gap-2 h-fit">
             <Show when={props.onShowContextMenu && !props.supportsFollowUp}>
-              <MoreOptionsButton onClick={() => props.onShowContextMenu?.()} />
+              <MoreOptionsButton onClick={handleShowContextMenu} />
             </Show>
             <Show when={props.supportsUndo && props.onUndo}>
               <button
@@ -219,7 +227,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
             {displayStatusText()}
           </span>
           <Show when={props.onShowContextMenu && !props.supportsFollowUp}>
-            <MoreOptionsButton onClick={() => props.onShowContextMenu?.()} />
+            <MoreOptionsButton onClick={handleShowContextMenu} />
           </Show>
         </div>
       </Show>
