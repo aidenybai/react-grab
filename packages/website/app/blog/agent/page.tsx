@@ -9,7 +9,7 @@ import { IconCopilot } from "@/components/icons/icon-copilot";
 import { IconOpenCode } from "@/components/icons/icon-opencode";
 import { IconDroid } from "@/components/icons/icon-droid";
 import { GithubButton } from "@/components/github-button";
-import { CursorInstallButton } from "@/components/cursor-install-button";
+import { ViewDocsButton } from "@/components/view-docs-button";
 import { BlogArticleLayout } from "@/components/blog-article-layout";
 import { COPY_FEEDBACK_DURATION_MS } from "@/constants";
 
@@ -514,7 +514,7 @@ const AgentPage = () => {
           </p>
           <div className="flex gap-2">
             <GithubButton />
-            <CursorInstallButton />
+            <ViewDocsButton />
           </div>
         </div>
 

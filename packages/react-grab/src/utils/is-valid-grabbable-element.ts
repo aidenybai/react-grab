@@ -6,6 +6,7 @@ import {
   VISIBILITY_CACHE_TTL_MS,
 } from "../constants.js";
 import { isElementVisible } from "./is-element-visible.js";
+import { isRootElement } from "./is-root-element.js";
 
 const isReactGrabElement = (element: Element): boolean => {
   if (element.hasAttribute("data-react-grab")) return true;
@@ -78,6 +79,10 @@ export const clearVisibilityCache = (): void => {
 };
 
 export const isValidGrabbableElement = (element: Element): boolean => {
+  if (isRootElement(element)) {
+    return false;
+  }
+
   if (isReactGrabElement(element)) {
     return false;
   }

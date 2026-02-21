@@ -28,7 +28,7 @@ import { ThoughtBlock } from "./blocks/thought-block";
 import { MessageBlock } from "./blocks/message-block";
 import { GrepSearchGroup } from "./blocks/grep-search-group";
 import { ReadToolCallBlock } from "./blocks/read-tool-call-block";
-import { CursorInstallButton } from "./cursor-install-button";
+import { ViewDocsButton } from "./view-docs-button";
 import { DemoFooter } from "./demo-footer";
 import { GithubButton } from "./github-button";
 import {
@@ -37,6 +37,7 @@ import {
 } from "./grab-element-button";
 import { HotkeyProvider } from "./hotkey-context";
 import { IconClaude } from "./icons/icon-claude";
+import { IconCodex } from "./icons/icon-codex";
 import { IconCopilot } from "./icons/icon-copilot";
 import { IconCursor } from "./icons/icon-cursor";
 import { InstallTabs } from "./install-tabs";
@@ -117,15 +118,15 @@ const ToolWithIcon = ({
 
 const ToolsList = (): ReactElement => (
   <span className="text-pretty">
-    It makes tools like{" "}
-    <ToolWithIcon
-      icon={<IconCursor width={16} height={16} className="translate-y-[2px]" />}
-      name="Cursor"
-    />
-    ,{" "}
+    It makes{" "}
     <ToolWithIcon
       icon={<IconClaude width={16} height={16} className="translate-y-[2px]" />}
       name="Claude Code"
+    />
+    ,{" "}
+    <ToolWithIcon
+      icon={<IconCodex width={16} height={16} className="translate-y-[2px]" />}
+      name="Codex"
     />
     ,{" "}
     <ToolWithIcon
@@ -133,6 +134,11 @@ const ToolsList = (): ReactElement => (
         <IconCopilot width={18} height={18} className="translate-y-[2px]" />
       }
       name="Copilot"
+    />
+    ,{" "}
+    <ToolWithIcon
+      icon={<IconCursor width={16} height={16} className="translate-y-[2px]" />}
+      name="Cursor"
     />{" "}
     run up to{" "}
     <BenchmarkTooltip
@@ -148,7 +154,7 @@ const FooterActions = (): ReactElement => (
   <div className="pt-2">
     <div className="flex gap-2">
       <GithubButton />
-      <CursorInstallButton />
+      <ViewDocsButton />
     </div>
     <DemoFooter />
   </div>

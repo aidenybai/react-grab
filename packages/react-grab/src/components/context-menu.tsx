@@ -87,7 +87,10 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     const cursorX = clickPosition.x ?? bounds.x + bounds.width / 2;
     const positionLeft = Math.max(
       LABEL_GAP_PX,
-      Math.min(cursorX - labelWidth / 2, window.innerWidth - labelWidth - LABEL_GAP_PX),
+      Math.min(
+        cursorX - labelWidth / 2,
+        window.innerWidth - labelWidth - LABEL_GAP_PX,
+      ),
     );
     const arrowLeft = Math.max(
       ARROW_HEIGHT_PX,
@@ -110,7 +113,10 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       const cursorY = clickPosition.y ?? bounds.y + bounds.height / 2;
       positionTop = Math.max(
         LABEL_GAP_PX,
-        Math.min(cursorY + LABEL_GAP_PX, window.innerHeight - labelHeight - LABEL_GAP_PX),
+        Math.min(
+          cursorY + LABEL_GAP_PX,
+          window.innerHeight - labelHeight - LABEL_GAP_PX,
+        ),
       );
       arrowPosition = "top";
     }

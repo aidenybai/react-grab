@@ -108,7 +108,6 @@ import type {
   ToolbarState,
   HistoryItem,
   DropdownAnchor,
-  ToolbarMenuAction,
 } from "../types.js";
 import { DEFAULT_THEME } from "./theme.js";
 import { createPluginRegistry } from "./plugin-registry.js";

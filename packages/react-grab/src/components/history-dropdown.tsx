@@ -411,7 +411,11 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
                         props.onSelectItem?.(item);
                       }
                     }}
-                    onMouseEnter={() => props.onItemHover?.(item.id)}
+                    onMouseEnter={() => {
+                      if (!props.disconnectedItemIds?.has(item.id)) {
+                        props.onItemHover?.(item.id);
+                      }
+                    }}
                     onMouseLeave={() => props.onItemHover?.(null)}
                   >
                     <span class="flex flex-col min-w-0 flex-1">

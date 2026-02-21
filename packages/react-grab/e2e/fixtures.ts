@@ -646,7 +646,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         textarea.focus();
       }
     }, ATTRIBUTE_NAME);
-    await page.keyboard.type(text);
+    await page.keyboard.insertText(text);
   };
 
   const getInputValue = async (): Promise<string> => {
@@ -1067,7 +1067,9 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         "[data-react-grab-toolbar-history]",
       );
       if (!historyButton) return false;
-      const unreadDot = historyButton.querySelector("[data-react-grab-unread-indicator]");
+      const unreadDot = historyButton.querySelector(
+        "[data-react-grab-unread-indicator]",
+      );
       return unreadDot !== null;
     }, ATTRIBUTE_NAME);
   };
@@ -1328,7 +1330,9 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       if (!shadowRoot) return;
       const root = shadowRoot.querySelector(`[${attrName}]`);
       if (!root) return;
-      const prompt = root.querySelector("[data-react-grab-clear-history-prompt]");
+      const prompt = root.querySelector(
+        "[data-react-grab-clear-history-prompt]",
+      );
       if (!prompt) return;
       const yesButton = prompt.querySelector<HTMLButtonElement>(
         "[data-react-grab-discard-yes]",
@@ -1344,7 +1348,9 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       if (!shadowRoot) return;
       const root = shadowRoot.querySelector(`[${attrName}]`);
       if (!root) return;
-      const prompt = root.querySelector("[data-react-grab-clear-history-prompt]");
+      const prompt = root.querySelector(
+        "[data-react-grab-clear-history-prompt]",
+      );
       if (!prompt) return;
       const noButton = prompt.querySelector<HTMLButtonElement>(
         "[data-react-grab-discard-no]",

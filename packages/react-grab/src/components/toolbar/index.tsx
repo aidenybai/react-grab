@@ -102,9 +102,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const safePolygonTracker = createSafePolygonTracker();
 
-  const getElementRect = (
-    selector: string,
-  ): TargetRect | null => {
+  const getElementRect = (selector: string): TargetRect | null => {
     if (!containerRef) return null;
     const rootNode = containerRef.getRootNode() as Document | ShadowRoot;
     const element = rootNode.querySelector<HTMLElement>(selector);
@@ -1689,23 +1687,23 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                       setIsCopyAllTooltipVisible(false);
                       handleCopyAll(event);
                     }}
-                    {...createFreezeHandlers(
-                      setIsCopyAllTooltipVisible,
-                      {
-                        onHoverChange: (isHovered) =>
-                          props.onCopyAllHover?.(isHovered),
-                        shouldFreezeInteractions: false,
-                        safePolygonTargets: () =>
-                          props.isHistoryDropdownOpen
-                            ? getSafePolygonTargets(
-                                "[data-react-grab-history-dropdown]",
-                                "[data-react-grab-toolbar-history]",
-                              )
-                            : null,
-                      },
-                    )}
+                    {...createFreezeHandlers(setIsCopyAllTooltipVisible, {
+                      onHoverChange: (isHovered) =>
+                        props.onCopyAllHover?.(isHovered),
+                      shouldFreezeInteractions: false,
+                      safePolygonTargets: () =>
+                        props.isHistoryDropdownOpen
+                          ? getSafePolygonTargets(
+                              "[data-react-grab-history-dropdown]",
+                              "[data-react-grab-toolbar-history]",
+                            )
+                          : null,
+                    })}
                   >
-                    <IconCopy size={14} class="text-[#B3B3B3] transition-colors" />
+                    <IconCopy
+                      size={14}
+                      class="text-[#B3B3B3] transition-colors"
+                    />
                   </button>
                   <Tooltip
                     visible={isCopyAllTooltipVisible() && isTooltipAllowed()}

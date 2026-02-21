@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { BenchmarkResult, TestCase } from "@/components/benchmarks/types";
 import { GithubButton } from "@/components/github-button";
-import { CursorInstallButton } from "@/components/cursor-install-button";
+import { ViewDocsButton } from "@/components/view-docs-button";
 import { Collapsible } from "@/components/ui/collapsible";
 import { BlogArticleLayout } from "@/components/blog-article-layout";
 import resultsData from "@/public/results.json";
@@ -740,7 +740,7 @@ const BlogPostPage = () => {
           </p>
           <div className="flex gap-2">
             <GithubButton />
-            <CursorInstallButton />
+            <ViewDocsButton />
           </div>
         </div>
 
