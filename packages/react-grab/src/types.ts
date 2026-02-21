@@ -570,6 +570,8 @@ export interface ReactGrabRendererProps {
   historyDropdownPosition?: DropdownAnchor | null;
   isHistoryPinned?: boolean;
   onToggleHistory?: () => void;
+  onCopyAll?: () => void;
+  onCopyAllHover?: (isHovered: boolean) => void;
   onHistoryButtonHover?: (isHovered: boolean) => void;
   onHistoryItemSelect?: (item: HistoryItem) => void;
   onHistoryItemRemove?: (item: HistoryItem) => void;
@@ -583,6 +585,9 @@ export interface ReactGrabRendererProps {
   toolbarMenuPosition?: DropdownAnchor | null;
   onToggleMenu?: () => void;
   onToolbarMenuDismiss?: () => void;
+  clearPromptPosition?: DropdownAnchor | null;
+  onClearHistoryConfirm?: () => void;
+  onClearHistoryCancel?: () => void;
 }
 
 export interface GrabbedBox {
@@ -631,6 +636,8 @@ export interface BottomSectionProps {
 }
 
 export interface DiscardPromptProps {
+  label?: string;
+  cancelOnEscape?: boolean;
   onConfirm?: () => void;
   onCancel?: () => void;
 }

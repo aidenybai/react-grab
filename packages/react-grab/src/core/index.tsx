@@ -280,6 +280,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       createSignal<DropdownAnchor | null>(null);
     const [toolbarMenuPosition, setToolbarMenuPosition] =
       createSignal<DropdownAnchor | null>(null);
+    const [clearPromptPosition, setClearPromptPosition] =
+      createSignal<DropdownAnchor | null>(null);
     let toolbarElement: HTMLDivElement | undefined;
     let dropdownTrackingFrameId: number | null = null;
     const historyElementMap = new Map<string, Element[]>();
@@ -1729,8 +1731,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       position: { x: number; y: number },
     ) => {
       actions.showContextMenu(position, element);
-      dismissHistoryDropdown();
-      dismissToolbarMenu();
+      dismissAllPopups();
       pluginRegistry.hooks.onContextMenu(element, position);
     };
 
@@ -1764,7 +1765,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       toolbarStateChangeCallbacks.forEach((callback) => callback(newState));
       if (!newEnabled) {
         forceDeactivateAll();
-        dismissHistoryDropdown();
+        dismissAllPopups();
       }
     };
 
@@ -2018,7 +2019,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         isEnterKey &&
         isOverlayActive &&
         !isPromptMode() &&
-        !store.wasActivatedByToggle;
+        !store.wasActivatedByToggle &&
+        clearPromptPosition() === null;
 
       if (shouldBlockEnter) {
         keyboardClaimer.claimedEvents.add(event);
@@ -2555,6 +2557,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           event.preventDefault();
           event.stopPropagation();
           handleInputCancel();
+          return;
+        }
+
+        if (event.key === "Escape" && clearPromptPosition() !== null) {
           return;
         }
 
@@ -3653,6 +3659,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const openHistoryDropdown = () => {
       actions.hideContextMenu();
       dismissToolbarMenu();
+      dismissClearPrompt();
       setHistoryItems(loadHistory());
       setHasUnreadHistoryItems(false);
       startTrackingDropdownPosition(() => {
@@ -3683,12 +3690,33 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setToolbarMenuPosition(null);
     };
 
+    const showClearPrompt = () => {
+      dismissHistoryDropdown();
+      dismissToolbarMenu();
+      startTrackingDropdownPosition(() => {
+        const anchor = computeDropdownAnchor();
+        if (anchor) setClearPromptPosition(anchor);
+      });
+    };
+
+    const dismissClearPrompt = () => {
+      stopTrackingDropdownPosition();
+      setClearPromptPosition(null);
+    };
+
+    const dismissAllPopups = () => {
+      dismissHistoryDropdown();
+      dismissToolbarMenu();
+      dismissClearPrompt();
+    };
+
     const handleToggleMenu = () => {
       if (toolbarMenuPosition() !== null) {
         dismissToolbarMenu();
       } else {
         actions.hideContextMenu();
         dismissHistoryDropdown();
+        dismissClearPrompt();
         startTrackingDropdownPosition(() => {
           const anchor = computeDropdownAnchor();
           if (anchor) setToolbarMenuPosition(anchor);
@@ -3789,6 +3817,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         })),
       });
 
+      showClearPrompt();
+
       actions.clearLabelInstances();
 
       // HACK: defer to next frame so idle preview labels clear visually before "copied" appears
@@ -3833,7 +3863,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       clearHistoryHoverPreviews();
       if (isHovered) {
         cancelHistoryHoverCloseTimeout();
-        if (historyDropdownPosition() === null) {
+        if (
+          historyDropdownPosition() === null &&
+          clearPromptPosition() === null
+        ) {
           showAllHistoryItemPreviews();
           historyHoverOpenTimeoutId = setTimeout(() => {
             historyHoverOpenTimeoutId = null;
@@ -4048,6 +4081,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               historyDropdownPosition() !== null && !isHistoryHoverOpen()
             }
             onToggleHistory={handleToggleHistory}
+            onCopyAll={handleHistoryCopyAll}
+            onCopyAllHover={handleHistoryCopyAllHover}
             onHistoryButtonHover={handleHistoryButtonHover}
             onHistoryItemSelect={handleHistoryItemSelect}
             onHistoryItemRemove={handleHistoryItemRemove}
@@ -4061,6 +4096,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             toolbarMenuPosition={toolbarMenuPosition()}
             onToggleMenu={handleToggleMenu}
             onToolbarMenuDismiss={dismissToolbarMenu}
+            clearPromptPosition={clearPromptPosition()}
+            onClearHistoryConfirm={() => {
+              dismissClearPrompt();
+              handleHistoryClear();
+            }}
+            onClearHistoryCancel={dismissClearPrompt}
           />
         );
       }, rendererRoot);

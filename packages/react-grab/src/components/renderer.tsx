@@ -14,6 +14,7 @@ import { Toolbar } from "./toolbar/index.js";
 import { ToolbarMenu } from "./toolbar/toolbar-menu.js";
 import { ContextMenu } from "./context-menu.js";
 import { HistoryDropdown } from "./history-dropdown.js";
+import { ClearHistoryPrompt } from "./clear-history-prompt.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
   return (
@@ -204,12 +205,15 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           clockFlashTrigger={props.clockFlashTrigger}
           hasUnreadHistoryItems={props.hasUnreadHistoryItems}
           onToggleHistory={props.onToggleHistory}
+          onCopyAll={props.onCopyAll}
+          onCopyAllHover={props.onCopyAllHover}
           onHistoryButtonHover={props.onHistoryButtonHover}
           isHistoryDropdownOpen={Boolean(props.historyDropdownPosition)}
           isHistoryPinned={props.isHistoryPinned}
           toolbarActions={props.toolbarActions}
           onToggleMenu={props.onToggleMenu}
           isMenuOpen={Boolean(props.toolbarMenuPosition)}
+          isClearPromptOpen={Boolean(props.clearPromptPosition)}
         />
       </Show>
 
@@ -229,6 +233,12 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         position={props.toolbarMenuPosition ?? null}
         actions={props.toolbarActions ?? []}
         onDismiss={props.onToolbarMenuDismiss ?? (() => {})}
+      />
+
+      <ClearHistoryPrompt
+        position={props.clearPromptPosition ?? null}
+        onConfirm={props.onClearHistoryConfirm ?? (() => {})}
+        onCancel={props.onClearHistoryCancel ?? (() => {})}
       />
 
       <HistoryDropdown

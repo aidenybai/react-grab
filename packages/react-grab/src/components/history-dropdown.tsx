@@ -13,13 +13,17 @@ import type { HistoryItem, DropdownAnchor } from "../types.js";
 import {
   DROPDOWN_ANCHOR_GAP_PX,
   DROPDOWN_ANIMATION_DURATION_MS,
+  DROPDOWN_EDGE_TRANSFORM_ORIGIN,
   DROPDOWN_ICON_SIZE_PX,
   DROPDOWN_MAX_WIDTH_PX,
   DROPDOWN_MIN_WIDTH_PX,
+  DROPDOWN_OFFSCREEN_POSITION,
   DROPDOWN_VIEWPORT_PADDING_PX,
   FEEDBACK_DURATION_MS,
+  SAFE_POLYGON_BUFFER_PX,
   PANEL_STYLES,
 } from "../constants.js";
+import { createSafePolygonTracker } from "../utils/safe-polygon.js";
 import { clampToViewport } from "../utils/clamp-to-viewport.js";
 import { cn } from "../utils/cn.js";
 import { IconTrash } from "./icons/icon-trash.jsx";
@@ -27,16 +31,8 @@ import { IconCopy } from "./icons/icon-copy.jsx";
 import { IconCheck } from "./icons/icon-check.jsx";
 import { Tooltip } from "./tooltip.jsx";
 
-const DEFAULT_OFFSCREEN_POSITION = { left: -9999, top: -9999 };
 const ITEM_ACTION_CLASS =
   "flex items-center justify-center cursor-pointer text-black/25 transition-colors press-scale";
-
-const EDGE_TO_TRANSFORM_ORIGIN: Record<DropdownAnchor["edge"], string> = {
-  left: "left center",
-  right: "right center",
-  top: "center top",
-  bottom: "center bottom",
-};
 
 interface HistoryDropdownProps {
   position: DropdownAnchor | null;
@@ -72,6 +68,26 @@ const getHistoryItemDisplayName = (item: HistoryItem): string => {
 
 export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
+
+  const safePolygonTracker = createSafePolygonTracker();
+
+  const getToolbarTargetRects = () => {
+    if (!containerRef) return null;
+    const rootNode = containerRef.getRootNode() as Document | ShadowRoot;
+    const toolbar = rootNode.querySelector<HTMLElement>(
+      "[data-react-grab-toolbar]",
+    );
+    if (!toolbar) return null;
+    const rect = toolbar.getBoundingClientRect();
+    return [
+      {
+        x: rect.x - SAFE_POLYGON_BUFFER_PX,
+        y: rect.y - SAFE_POLYGON_BUFFER_PX,
+        width: rect.width + SAFE_POLYGON_BUFFER_PX * 2,
+        height: rect.height + SAFE_POLYGON_BUFFER_PX * 2,
+      },
+    ];
+  };
 
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
@@ -144,7 +160,7 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
     const height = measuredHeight();
 
     if (!anchor || width === 0 || height === 0) {
-      return DEFAULT_OFFSCREEN_POSITION;
+      return DROPDOWN_OFFSCREEN_POSITION;
     }
 
     const { edge } = anchor;
@@ -185,12 +201,12 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
   const displayPosition = createMemo(
     (previousPosition: { left: number; top: number }) => {
       const position = computedPosition();
-      if (position.left !== DEFAULT_OFFSCREEN_POSITION.left) {
+      if (position.left !== DROPDOWN_OFFSCREEN_POSITION.left) {
         return position;
       }
       return previousPosition;
     },
-    DEFAULT_OFFSCREEN_POSITION,
+    DROPDOWN_OFFSCREEN_POSITION,
   );
 
   const clampedMaxWidth = () =>
@@ -233,6 +249,7 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
       if (enterAnimationFrameId !== undefined)
         cancelAnimationFrame(enterAnimationFrameId);
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
+      safePolygonTracker.stop();
     });
   });
 
@@ -248,7 +265,7 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
           left: `${displayPosition().left}px`,
           "z-index": "2147483647",
           "pointer-events": isAnimatedIn() ? "auto" : "none",
-          "transform-origin": EDGE_TO_TRANSFORM_ORIGIN[lastAnchorEdge()],
+          "transform-origin": DROPDOWN_EDGE_TRANSFORM_ORIGIN[lastAnchorEdge()],
           opacity: isAnimatedIn() ? "1" : "0",
           transform: isAnimatedIn() ? "scale(1)" : "scale(0.95)",
         }}
@@ -256,8 +273,22 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
         onMouseDown={handleMenuEvent}
         onClick={handleMenuEvent}
         onContextMenu={handleMenuEvent}
-        onMouseEnter={() => props.onDropdownHover?.(true)}
-        onMouseLeave={() => props.onDropdownHover?.(false)}
+        onMouseEnter={() => {
+          safePolygonTracker.stop();
+          props.onDropdownHover?.(true);
+        }}
+        onMouseLeave={(event: MouseEvent) => {
+          const targetRects = getToolbarTargetRects();
+          if (targetRects) {
+            safePolygonTracker.start(
+              { x: event.clientX, y: event.clientY },
+              targetRects,
+              () => props.onDropdownHover?.(false),
+            );
+            return;
+          }
+          props.onDropdownHover?.(false);
+        }}
       >
         <div
           class={cn(
