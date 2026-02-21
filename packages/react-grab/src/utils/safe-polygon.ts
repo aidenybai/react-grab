@@ -29,7 +29,7 @@ const isPointInTriangle = (
   const sign3 = computeTriangleSign(point, vertex3, vertex1);
   const hasNegative = sign1 < 0 || sign2 < 0 || sign3 < 0;
   const hasPositive = sign1 > 0 || sign2 > 0 || sign3 > 0;
-  return !(hasNegative && hasPositive);
+  return !hasNegative || !hasPositive;
 };
 
 const isPointInRect = (point: Point, rect: TargetRect): boolean =>
