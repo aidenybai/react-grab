@@ -283,6 +283,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let toolbarElement: HTMLDivElement | undefined;
     let dropdownTrackingFrameId: number | null = null;
     const historyElementMap = new Map<string, Element[]>();
+    const [hasUnreadHistoryItems, setHasUnreadHistoryItems] =
+      createSignal(false);
     const [clockFlashTrigger, setClockFlashTrigger] = createSignal(0);
     const [isHistoryHoverOpen, setIsHistoryHoverOpen] = createSignal(false);
     let historyHoverPreviews: { boxId: string; labelId: string | null }[] = [];
@@ -869,6 +871,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               timestamp: Date.now(),
             });
             setHistoryItems(updatedHistoryItems);
+            setHasUnreadHistoryItems(true);
             setClockFlashTrigger((previous) => previous + 1);
             const newestHistoryItem = updatedHistoryItems[0];
             if (newestHistoryItem && hasCopiedElements) {
@@ -3651,6 +3654,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.hideContextMenu();
       dismissToolbarMenu();
       setHistoryItems(loadHistory());
+      setHasUnreadHistoryItems(false);
       startTrackingDropdownPosition(() => {
         const anchor = computeDropdownAnchor();
         if (anchor) setHistoryDropdownPosition(anchor);
@@ -3760,6 +3764,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const updatedHistoryItems = removeHistoryItem(item.id);
       setHistoryItems(updatedHistoryItems);
       if (updatedHistoryItems.length === 0) {
+        setHasUnreadHistoryItems(false);
         dismissHistoryDropdown();
       }
     };
@@ -3872,6 +3877,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       historyElementMap.clear();
       const updatedHistoryItems = clearHistory();
       setHistoryItems(updatedHistoryItems);
+      setHasUnreadHistoryItems(false);
       dismissHistoryDropdown();
     };
 
@@ -4036,6 +4042,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             historyDisconnectedItemIds={historyDisconnectedItemIds()}
             historyItemCount={historyItems().length}
             clockFlashTrigger={clockFlashTrigger()}
+            hasUnreadHistoryItems={hasUnreadHistoryItems()}
             historyDropdownPosition={historyDropdownPosition()}
             isHistoryPinned={
               historyDropdownPosition() !== null && !isHistoryHoverOpen()

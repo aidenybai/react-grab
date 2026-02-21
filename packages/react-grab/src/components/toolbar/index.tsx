@@ -68,6 +68,7 @@ interface ToolbarProps {
   onContainerRef?: (element: HTMLDivElement) => void;
   historyItemCount?: number;
   clockFlashTrigger?: number;
+  hasUnreadHistoryItems?: boolean;
   onToggleHistory?: () => void;
   onHistoryButtonHover?: (isHovered: boolean) => void;
   isHistoryDropdownOpen?: boolean;
@@ -1571,8 +1572,14 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                       },
                     )}
                   >
-                    <span ref={clockFlashRef} class="inline-flex">
+                    <span ref={clockFlashRef} class="inline-flex relative">
                       <IconClock size={14} class={historyIconClass()} />
+                      <Show when={props.hasUnreadHistoryItems}>
+                        <span
+                          data-react-grab-unread-indicator
+                          class="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-[#404040]"
+                        />
+                      </Show>
                     </span>
                   </button>
                   <Tooltip
