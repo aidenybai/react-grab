@@ -122,6 +122,32 @@ Add this to your `index.html`:
 </html>
 ```
 
+#### Customizing (SSR Friendly - Vite, Next.js, Tanstack Start, React Router, etc.)
+
+If you want to customize options or have more control over the initialization, create a component that dynamically imports and initializes react-grab in a `useEffect`:
+
+```tsx
+import { useEffect } from "react";
+
+  useEffect(() => {
+function ReactGrabInit() {
+    // for Next.js and others:
+    // if (process.env.NODE_ENV === 'development')
+    if (import.meta.env.DEV) {
+      import("react-grab/core")
+        .then(({ init }) => init({
+          // Example: increase the amount of context lines copied
+          maxContextLines: 5
+        }))
+        .catch((err) => console.warn("Failed to load react-grab:", err));
+    }
+  }, []);
+  return null;
+}
+
+// Then render <ReactGrabInit /> in your app e.g: `root.tsx`, `_app.tsx`, `layout.tsx`
+```
+
 #### Webpack
 
 First, install React Grab:
