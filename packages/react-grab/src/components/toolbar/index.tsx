@@ -377,7 +377,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           inboxFlashRef?.classList.remove("animate-inbox-flash");
           setIsHistoryTooltipVisible(false);
         }, FEEDBACK_DURATION_MS);
-        onCleanup(() => clearTimeout(timerId));
+        onCleanup(() => {
+          clearTimeout(timerId);
+          setIsHistoryTooltipVisible(false);
+        });
       },
       { defer: true },
     ),
