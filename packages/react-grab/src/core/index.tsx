@@ -283,9 +283,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let toolbarElement: HTMLDivElement | undefined;
     let dropdownTrackingFrameId: number | null = null;
     const historyElementMap = new Map<string, Element[]>();
-    const [hasUnreadHistoryItems, setHasUnreadHistoryItems] =
-      createSignal(false);
-    const [inboxFlashTrigger, setInboxFlashTrigger] = createSignal(0);
+    const [clockFlashTrigger, setClockFlashTrigger] = createSignal(0);
     const [isHistoryHoverOpen, setIsHistoryHoverOpen] = createSignal(false);
     let historyHoverPreviews: { boxId: string; labelId: string | null }[] = [];
 
@@ -871,8 +869,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               timestamp: Date.now(),
             });
             setHistoryItems(updatedHistoryItems);
-            setHasUnreadHistoryItems(true);
-            setInboxFlashTrigger((previous) => previous + 1);
+            setClockFlashTrigger((previous) => previous + 1);
             const newestHistoryItem = updatedHistoryItems[0];
             if (newestHistoryItem && hasCopiedElements) {
               historyElementMap.set(newestHistoryItem.id, [...copiedElements]);
@@ -3593,12 +3590,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const startTrackingDropdownPosition = (computePosition: () => void) => {
       stopTrackingDropdownPosition();
-      computePosition();
       const updatePosition = () => {
         computePosition();
         dropdownTrackingFrameId = requestAnimationFrame(updatePosition);
       };
-      dropdownTrackingFrameId = requestAnimationFrame(updatePosition);
+      updatePosition();
     };
 
     const getNearestEdge = (rect: DOMRect): ToolbarState["edge"] => {
@@ -3655,7 +3651,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.hideContextMenu();
       dismissToolbarMenu();
       setHistoryItems(loadHistory());
-      setHasUnreadHistoryItems(false);
       startTrackingDropdownPosition(() => {
         const anchor = computeDropdownAnchor();
         if (anchor) setHistoryDropdownPosition(anchor);
@@ -3765,7 +3760,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const updatedHistoryItems = removeHistoryItem(item.id);
       setHistoryItems(updatedHistoryItems);
       if (updatedHistoryItems.length === 0) {
-        setHasUnreadHistoryItems(false);
         dismissHistoryDropdown();
       }
     };
@@ -3878,7 +3872,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       historyElementMap.clear();
       const updatedHistoryItems = clearHistory();
       setHistoryItems(updatedHistoryItems);
-      setHasUnreadHistoryItems(false);
       dismissHistoryDropdown();
     };
 
@@ -4042,8 +4035,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             historyItems={historyItems()}
             historyDisconnectedItemIds={historyDisconnectedItemIds()}
             historyItemCount={historyItems().length}
-            inboxFlashTrigger={inboxFlashTrigger()}
-            hasUnreadHistoryItems={hasUnreadHistoryItems()}
+            clockFlashTrigger={clockFlashTrigger()}
             historyDropdownPosition={historyDropdownPosition()}
             isHistoryPinned={
               historyDropdownPosition() !== null && !isHistoryHoverOpen()

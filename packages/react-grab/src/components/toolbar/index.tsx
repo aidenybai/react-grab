@@ -18,7 +18,7 @@ import {
 } from "./state.js";
 import { IconSelect } from "../icons/icon-select.jsx";
 import { IconChevron } from "../icons/icon-chevron.jsx";
-import { IconInbox, IconInboxUnread } from "../icons/icon-inbox.jsx";
+import { IconClock } from "../icons/icon-clock.jsx";
 import { IconEllipsis } from "../icons/icon-ellipsis.jsx";
 import {
   TOOLBAR_SNAP_MARGIN_PX,
@@ -67,8 +67,7 @@ interface ToolbarProps {
   onSelectHoverChange?: (isHovered: boolean) => void;
   onContainerRef?: (element: HTMLDivElement) => void;
   historyItemCount?: number;
-  inboxFlashTrigger?: number;
-  hasUnreadHistoryItems?: boolean;
+  clockFlashTrigger?: number;
   onToggleHistory?: () => void;
   onHistoryButtonHover?: (isHovered: boolean) => void;
   isHistoryDropdownOpen?: boolean;
@@ -119,7 +118,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [isHistoryTooltipVisible, setIsHistoryTooltipVisible] =
     createSignal(false);
   const [isMenuTooltipVisible, setIsMenuTooltipVisible] = createSignal(false);
-  let inboxFlashRef: HTMLSpanElement | undefined;
+  let clockFlashRef: HTMLSpanElement | undefined;
 
   const hasToolbarActions = () => (props.toolbarActions ?? []).length > 0;
 
@@ -363,18 +362,18 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   createEffect(
     on(
-      () => props.inboxFlashTrigger ?? 0,
+      () => props.clockFlashTrigger ?? 0,
       () => {
         if (props.isHistoryDropdownOpen) return;
-        if (inboxFlashRef) {
-          inboxFlashRef.classList.remove("animate-inbox-flash");
+        if (clockFlashRef) {
+          clockFlashRef.classList.remove("animate-clock-flash");
           // HACK: force reflow between class removal/addition to restart the CSS animation
-          void inboxFlashRef.offsetHeight;
-          inboxFlashRef.classList.add("animate-inbox-flash");
+          void clockFlashRef.offsetHeight;
+          clockFlashRef.classList.add("animate-clock-flash");
         }
         setIsHistoryTooltipVisible(true);
         const timerId = setTimeout(() => {
-          inboxFlashRef?.classList.remove("animate-inbox-flash");
+          clockFlashRef?.classList.remove("animate-clock-flash");
           setIsHistoryTooltipVisible(false);
         }, FEEDBACK_DURATION_MS);
         onCleanup(() => {
@@ -1572,15 +1571,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                       },
                     )}
                   >
-                    <span ref={inboxFlashRef} class="inline-flex">
-                      <Show
-                        when={props.hasUnreadHistoryItems}
-                        fallback={
-                          <IconInbox size={14} class={historyIconClass()} />
-                        }
-                      >
-                        <IconInboxUnread size={14} class={historyIconClass()} />
-                      </Show>
+                    <span ref={clockFlashRef} class="inline-flex">
+                      <IconClock size={14} class={historyIconClass()} />
                     </span>
                   </button>
                   <Tooltip

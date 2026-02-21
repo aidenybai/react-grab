@@ -227,6 +227,7 @@ export const GrabElementButton = ({
   }, [isRecordingHotkey, handleHotkeyKeyDown, handleHotkeyKeyUp]);
 
   const handleHotkeyClick = (event: ReactMouseEvent): void => {
+    if (!hasAdvanced) return;
     event.stopPropagation();
     setIsRecordingHotkey(true);
   };
@@ -341,7 +342,8 @@ export const GrabElementButton = ({
       <span
         onClick={handleHotkeyClick}
         className={cn(
-          "inline-flex cursor-pointer items-center gap-1 transition-all outline-none",
+          "inline-flex items-center gap-1 transition-all outline-none",
+          hasAdvanced && "cursor-pointer",
           isRecordingHotkey && "ring-2 ring-white/50 rounded",
         )}
       >

@@ -201,8 +201,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           onSelectHoverChange={props.onToolbarSelectHoverChange}
           onContainerRef={props.onToolbarRef}
           historyItemCount={props.historyItemCount}
-          inboxFlashTrigger={props.inboxFlashTrigger}
-          hasUnreadHistoryItems={props.hasUnreadHistoryItems}
+          clockFlashTrigger={props.clockFlashTrigger}
           onToggleHistory={props.onToggleHistory}
           onHistoryButtonHover={props.onHistoryButtonHover}
           isHistoryDropdownOpen={Boolean(props.historyDropdownPosition)}

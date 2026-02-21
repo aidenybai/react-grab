@@ -565,8 +565,7 @@ export interface ReactGrabRendererProps {
   historyItems?: HistoryItem[];
   historyDisconnectedItemIds?: Set<string>;
   historyItemCount?: number;
-  inboxFlashTrigger?: number;
-  hasUnreadHistoryItems?: boolean;
+  clockFlashTrigger?: number;
   historyDropdownPosition?: DropdownAnchor | null;
   isHistoryPinned?: boolean;
   onToggleHistory?: () => void;

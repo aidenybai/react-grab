@@ -192,7 +192,7 @@
   animation: shimmer 2.5s linear infinite;
 }
 
-@keyframes inbox-flash {
+@keyframes clock-flash {
   0% {
     transform: scale(1);
   }
@@ -210,8 +210,8 @@
   }
 }
 
-.animate-inbox-flash {
-  animation: inbox-flash 400ms ease-out;
+.animate-clock-flash {
+  animation: clock-flash 400ms ease-out;
   will-change: transform;
 }
 
