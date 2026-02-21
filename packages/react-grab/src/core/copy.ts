@@ -58,6 +58,7 @@ export const tryCopyWithFallback = async (
       entries = snippetElementPairs.map(({ snippet, element }) => ({
         tagName: element.localName,
         content: snippet,
+        commentText: extraPrompt,
       }));
     }
 
