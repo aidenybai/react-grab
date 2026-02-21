@@ -235,6 +235,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         store.current.state === "active" && store.current.phase === "frozen",
     );
 
+    createEffect(
+      on(isToggleFrozen, (frozen) => {
+        if (frozen) freezePseudoStates();
+      }),
+    );
+
     const isDragging = createMemo(
       () =>
         store.current.state === "active" && store.current.phase === "dragging",
@@ -3896,7 +3902,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handleHistoryCopyAllHover = (isHovered: boolean) => {
       clearHistoryHoverPreviews();
       if (isHovered) {
+        cancelHistoryHoverCloseTimeout();
         showAllHistoryItemPreviews();
+      } else if (isHistoryHoverOpen()) {
+        historyHoverCloseTimeoutId = setTimeout(() => {
+          historyHoverCloseTimeoutId = null;
+          dismissHistoryDropdown();
+        }, DROPDOWN_HOVER_OPEN_DELAY_MS);
       }
     };
 

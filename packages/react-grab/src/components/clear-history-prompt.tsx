@@ -19,6 +19,7 @@ import {
 import { clampToViewport } from "../utils/clamp-to-viewport.js";
 import { cn } from "../utils/cn.js";
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
+import { isKeyboardEventTriggeredByInput } from "../utils/is-keyboard-event-triggered-by-input.js";
 import { DiscardPrompt } from "./selection-label/discard-prompt.js";
 
 interface ClearHistoryPromptProps {
@@ -140,6 +141,7 @@ export const ClearHistoryPrompt: Component<ClearHistoryPromptProps> = (
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!props.position) return;
+      if (isKeyboardEventTriggeredByInput(event)) return;
       const isEnter = event.code === "Enter";
       const isEscape = event.code === "Escape";
       if (isEnter || isEscape) {
