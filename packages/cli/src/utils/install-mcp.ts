@@ -59,13 +59,6 @@ const getClients = (): ClientDefinition[] => {
 
   return [
     {
-      name: "Amp",
-      configPath: path.join(homeDir, ".config", "amp", "settings.json"),
-      configKey: "amp.mcpServers",
-      format: "json",
-      serverConfig: stdioConfig,
-    },
-    {
       name: "Claude Code",
       configPath: path.join(homeDir, ".claude.json"),
       configKey: "mcpServers",
@@ -90,13 +83,6 @@ const getClients = (): ClientDefinition[] => {
       serverConfig: stdioConfig,
     },
     {
-      name: "Droid",
-      configPath: path.join(homeDir, ".factory", "mcp.json"),
-      configKey: "mcpServers",
-      format: "json",
-      serverConfig: { type: "stdio", ...stdioConfig },
-    },
-    {
       name: "OpenCode",
       configPath: path.join(getXdgConfigHome(), "opencode", "opencode.json"),
       configKey: "mcp",
@@ -110,6 +96,20 @@ const getClients = (): ClientDefinition[] => {
       name: "VS Code",
       configPath: path.join(baseDir, "Code", "User", "mcp.json"),
       configKey: "servers",
+      format: "json",
+      serverConfig: { type: "stdio", ...stdioConfig },
+    },
+    {
+      name: "Amp",
+      configPath: path.join(homeDir, ".config", "amp", "settings.json"),
+      configKey: "amp.mcpServers",
+      format: "json",
+      serverConfig: stdioConfig,
+    },
+    {
+      name: "Droid",
+      configPath: path.join(homeDir, ".factory", "mcp.json"),
+      configKey: "mcpServers",
       format: "json",
       serverConfig: { type: "stdio", ...stdioConfig },
     },
