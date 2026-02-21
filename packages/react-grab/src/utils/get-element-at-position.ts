@@ -3,6 +3,10 @@ import {
   ELEMENT_POSITION_CACHE_DISTANCE_THRESHOLD_PX,
   ELEMENT_POSITION_THROTTLE_MS,
 } from "../constants.js";
+import {
+  suspendPointerEventsFreeze,
+  resumePointerEventsFreeze,
+} from "./freeze-pseudo-states.js";
 
 interface PositionCache {
   clientX: number;
@@ -30,7 +34,12 @@ const isWithinThreshold = (
 export const getElementsAtPoint = (
   clientX: number,
   clientY: number,
-): Element[] => document.elementsFromPoint(clientX, clientY);
+): Element[] => {
+  suspendPointerEventsFreeze();
+  const elements = document.elementsFromPoint(clientX, clientY);
+  resumePointerEventsFreeze();
+  return elements;
+};
 
 export const getElementAtPosition = (
   clientX: number,

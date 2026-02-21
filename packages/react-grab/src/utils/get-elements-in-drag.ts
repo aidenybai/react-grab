@@ -1,8 +1,8 @@
 import type { DragRect, Rect } from "../types.js";
 import {
-  enablePointerEventsOverride,
-  disablePointerEventsOverride,
-} from "./pointer-events-override.js";
+  suspendPointerEventsFreeze,
+  resumePointerEventsFreeze,
+} from "./freeze-pseudo-states.js";
 import {
   DRAG_SELECTION_COVERAGE_THRESHOLD,
   DRAG_SELECTION_SAMPLE_SPACING_PX,
@@ -153,7 +153,7 @@ const filterElementsInDrag = (
   const candidates = new Set<Element>();
   const samplePoints = createSamplePoints(dragRect);
 
-  enablePointerEventsOverride();
+  suspendPointerEventsFreeze();
   try {
     for (const point of samplePoints) {
       const elementsAtPoint = document.elementsFromPoint(point.x, point.y);
@@ -162,7 +162,7 @@ const filterElementsInDrag = (
       }
     }
   } finally {
-    disablePointerEventsOverride();
+    resumePointerEventsFreeze();
   }
 
   const matchingElements: Element[] = [];

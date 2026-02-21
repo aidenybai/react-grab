@@ -235,12 +235,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         store.current.state === "active" && store.current.phase === "frozen",
     );
 
-    createEffect(
-      on(isToggleFrozen, (frozen) => {
-        if (frozen) freezePseudoStates();
-      }),
-    );
-
     const isDragging = createMemo(
       () =>
         store.current.state === "active" && store.current.phase === "dragging",
