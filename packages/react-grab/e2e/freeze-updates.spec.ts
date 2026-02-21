@@ -266,7 +266,7 @@ test.describe("Freeze Updates", () => {
 
       for (let i = 0; i < 3; i++) {
         await reactGrab.enterPromptMode("[data-testid='dynamic-element-1']");
-        await reactGrab.pressEscape();
+        await reactGrab.deactivate();
         await reactGrab.page.waitForTimeout(100);
       }
 

@@ -2605,7 +2605,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               event.preventDefault();
               event.stopPropagation();
               actions.setPendingAbortSessionId(null);
-            } else if (store.wasActivatedByToggle && !isPromptMode()) {
+            } else if (isPromptMode()) {
+              handleInputCancel();
+            } else if (store.wasActivatedByToggle) {
               deactivateRenderer();
             }
           }
