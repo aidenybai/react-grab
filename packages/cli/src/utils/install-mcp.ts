@@ -27,6 +27,9 @@ interface InstallResult {
   error?: string;
 }
 
+const getXdgConfigHome = (): string =>
+  process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config");
+
 const getBaseDir = (): string => {
   const homeDir = os.homedir();
   if (process.platform === "win32") {
@@ -35,17 +38,14 @@ const getBaseDir = (): string => {
   if (process.platform === "darwin") {
     return path.join(homeDir, "Library", "Application Support");
   }
-  return process.env.XDG_CONFIG_HOME || path.join(homeDir, ".config");
+  return getXdgConfigHome();
 };
 
 const getZedConfigPath = (): string => {
-  const homeDir = os.homedir();
   if (process.platform === "win32") {
-    const appData =
-      process.env.APPDATA || path.join(homeDir, "AppData", "Roaming");
-    return path.join(appData, "Zed", "settings.json");
+    return path.join(getBaseDir(), "Zed", "settings.json");
   }
-  return path.join(homeDir, ".config", "zed", "settings.json");
+  return path.join(os.homedir(), ".config", "zed", "settings.json");
 };
 
 const getClients = (): ClientDefinition[] => {
@@ -59,25 +59,18 @@ const getClients = (): ClientDefinition[] => {
 
   return [
     {
+      name: "Amp",
+      configPath: path.join(homeDir, ".config", "amp", "settings.json"),
+      configKey: "amp.mcpServers",
+      format: "json",
+      serverConfig: stdioConfig,
+    },
+    {
       name: "Claude Code",
       configPath: path.join(homeDir, ".claude.json"),
       configKey: "mcpServers",
       format: "json",
       serverConfig: stdioConfig,
-    },
-    {
-      name: "Open Code",
-      configPath: path.join(
-        process.env.XDG_CONFIG_HOME || path.join(homeDir, ".config"),
-        "opencode",
-        "opencode.json",
-      ),
-      configKey: "mcp",
-      format: "json",
-      serverConfig: {
-        type: "local",
-        command: ["npx", "-y", PACKAGE_NAME, "--stdio"],
-      },
     },
     {
       name: "Codex",
@@ -97,30 +90,26 @@ const getClients = (): ClientDefinition[] => {
       serverConfig: stdioConfig,
     },
     {
-      name: "VS Code",
-      configPath: path.join(baseDir, "Code", "User", "mcp.json"),
-      configKey: "servers",
+      name: "Droid",
+      configPath: path.join(homeDir, ".factory", "mcp.json"),
+      configKey: "mcpServers",
       format: "json",
       serverConfig: { type: "stdio", ...stdioConfig },
     },
     {
-      name: "Zed",
-      configPath: getZedConfigPath(),
-      configKey: "context_servers",
+      name: "OpenCode",
+      configPath: path.join(getXdgConfigHome(), "opencode", "opencode.json"),
+      configKey: "mcp",
       format: "json",
-      serverConfig: { source: "custom", ...stdioConfig, env: {} },
+      serverConfig: {
+        type: "local",
+        command: ["npx", "-y", PACKAGE_NAME, "--stdio"],
+      },
     },
     {
-      name: "Amp",
-      configPath: path.join(homeDir, ".config", "amp", "settings.json"),
-      configKey: "amp.mcpServers",
-      format: "json",
-      serverConfig: stdioConfig,
-    },
-    {
-      name: "Droid",
-      configPath: path.join(homeDir, ".factory", "mcp.json"),
-      configKey: "mcpServers",
+      name: "VS Code",
+      configPath: path.join(baseDir, "Code", "User", "mcp.json"),
+      configKey: "servers",
       format: "json",
       serverConfig: { type: "stdio", ...stdioConfig },
     },
@@ -130,6 +119,13 @@ const getClients = (): ClientDefinition[] => {
       configKey: "mcpServers",
       format: "json",
       serverConfig: stdioConfig,
+    },
+    {
+      name: "Zed",
+      configPath: getZedConfigPath(),
+      configKey: "context_servers",
+      format: "json",
+      serverConfig: { source: "custom", ...stdioConfig, env: {} },
     },
   ];
 };
@@ -232,9 +228,8 @@ export const installMcpServers = (
   }
 
   const successCount = results.filter((result) => result.success).length;
-  const failedCount = results.length - successCount;
 
-  if (failedCount > 0) {
+  if (successCount < results.length) {
     installSpinner.warn(
       `Installed to ${successCount}/${results.length} agents.`,
     );
