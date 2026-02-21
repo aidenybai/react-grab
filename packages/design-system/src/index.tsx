@@ -6,10 +6,7 @@ import { SelectionLabel } from "react-grab/src/components/selection-label/index.
 import { ContextMenu } from "react-grab/src/components/context-menu.js";
 import { ToolbarContent } from "react-grab/src/components/toolbar/toolbar-content.js";
 import { HistoryDropdown } from "react-grab/src/components/history-dropdown.js";
-import {
-  IconInbox,
-  IconInboxUnread,
-} from "react-grab/src/components/icons/icon-inbox.js";
+import { IconClock } from "react-grab/src/components/icons/icon-clock.js";
 import type {
   OverlayBounds,
   SelectionLabelStatus,
@@ -2739,20 +2736,10 @@ const StateCard = (props: StateCardProps) => {
                   <div class="grid grid-cols-[1fr] opacity-100 transition-all duration-150 ease-out">
                     <div class="relative overflow-visible min-w-0">
                       <button class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5">
-                        <Show
-                          when={currentProps().toolbarHasUnreadHistoryItems}
-                          fallback={
-                            <IconInbox
-                              size={14}
-                              class="text-[#B3B3B3] transition-colors"
-                            />
-                          }
-                        >
-                          <IconInboxUnread
-                            size={14}
-                            class="text-[#B3B3B3] transition-colors"
-                          />
-                        </Show>
+                        <IconClock
+                          size={14}
+                          class="text-[#B3B3B3] transition-colors"
+                        />
                       </button>
                     </div>
                   </div>
@@ -2778,7 +2765,7 @@ const StateCard = (props: StateCardProps) => {
                     <div class="grid grid-cols-[1fr] opacity-100 transition-all duration-150 ease-out">
                       <div class="relative overflow-visible min-w-0">
                         <button class="contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox mr-1.5">
-                          <IconInbox
+                          <IconClock
                             size={14}
                             class="text-[#B3B3B3] transition-colors"
                           />
