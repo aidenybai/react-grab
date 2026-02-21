@@ -89,6 +89,7 @@ export const screenshotPlugin: Plugin = {
         {
           id: "screenshot-toolbar",
           label: "Screenshot",
+          shortcut: "S",
           target: "toolbar",
           enabled: isScreenshotSupported,
           onAction: () => {

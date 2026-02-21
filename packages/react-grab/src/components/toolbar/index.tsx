@@ -9,6 +9,7 @@ import {
 import type { Component } from "solid-js";
 import type { ToolbarMenuAction } from "../../types.js";
 import { cn } from "../../utils/cn.js";
+import { formatShortcut } from "../../utils/format-shortcut.js";
 import {
   loadToolbarState,
   saveToolbarState,
@@ -32,6 +33,7 @@ import {
   TOOLBAR_DEFAULT_WIDTH_PX,
   TOOLBAR_DEFAULT_HEIGHT_PX,
   TOOLBAR_SHAKE_TOOLTIP_DURATION_MS,
+  FEEDBACK_DURATION_MS,
   PANEL_STYLES,
 } from "../../constants.js";
 import { freezeUpdates } from "../../utils/freeze-updates.js";
@@ -65,6 +67,7 @@ interface ToolbarProps {
   onSelectHoverChange?: (isHovered: boolean) => void;
   onContainerRef?: (element: HTMLDivElement) => void;
   historyItemCount?: number;
+  inboxFlashTrigger?: number;
   hasUnreadHistoryItems?: boolean;
   onToggleHistory?: () => void;
   onHistoryButtonHover?: (isHovered: boolean) => void;
@@ -116,6 +119,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [isHistoryTooltipVisible, setIsHistoryTooltipVisible] =
     createSignal(false);
   const [isMenuTooltipVisible, setIsMenuTooltipVisible] = createSignal(false);
+  let inboxFlashRef: HTMLSpanElement | undefined;
 
   const hasToolbarActions = () => (props.toolbarActions ?? []).length > 0;
 
@@ -356,6 +360,28 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       });
     }
   };
+
+  createEffect(
+    on(
+      () => props.inboxFlashTrigger ?? 0,
+      () => {
+        if (props.isHistoryDropdownOpen) return;
+        if (inboxFlashRef) {
+          inboxFlashRef.classList.remove("animate-inbox-flash");
+          // HACK: force reflow between class removal/addition to restart the CSS animation
+          void inboxFlashRef.offsetHeight;
+          inboxFlashRef.classList.add("animate-inbox-flash");
+        }
+        setIsHistoryTooltipVisible(true);
+        const timerId = setTimeout(() => {
+          inboxFlashRef?.classList.remove("animate-inbox-flash");
+          setIsHistoryTooltipVisible(false);
+        }, FEEDBACK_DURATION_MS);
+        onCleanup(() => clearTimeout(timerId));
+      },
+      { defer: true },
+    ),
+  );
 
   createEffect(
     on(
@@ -1496,7 +1522,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     visible={isSelectTooltipVisible() && isTooltipAllowed()}
                     position={tooltipPosition()}
                   >
-                    Select element
+                    Select element ({formatShortcut("C")})
                   </Tooltip>
                 </div>
               </div>
@@ -1543,14 +1569,16 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                       },
                     )}
                   >
-                    <Show
-                      when={props.hasUnreadHistoryItems}
-                      fallback={
-                        <IconInbox size={14} class={historyIconClass()} />
-                      }
-                    >
-                      <IconInboxUnread size={14} class={historyIconClass()} />
-                    </Show>
+                    <span ref={inboxFlashRef} class="inline-flex">
+                      <Show
+                        when={props.hasUnreadHistoryItems}
+                        fallback={
+                          <IconInbox size={14} class={historyIconClass()} />
+                        }
+                      >
+                        <IconInboxUnread size={14} class={historyIconClass()} />
+                      </Show>
+                    </span>
                   </button>
                   <Tooltip
                     visible={isHistoryTooltipVisible() && isTooltipAllowed()}

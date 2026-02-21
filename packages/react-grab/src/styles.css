@@ -192,6 +192,29 @@
   animation: shimmer 2.5s linear infinite;
 }
 
+@keyframes inbox-flash {
+  0% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.2);
+  }
+  50% {
+    transform: scale(0.92);
+  }
+  75% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-inbox-flash {
+  animation: inbox-flash 400ms ease-out;
+  will-change: transform;
+}
+
 .animate-shake {
   animation: shake 0.3s ease-out;
   will-change: transform;

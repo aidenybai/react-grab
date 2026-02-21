@@ -15,6 +15,7 @@ export const commentPlugin: Plugin = {
       {
         id: "comment-toolbar",
         label: "Comment",
+        shortcut: "Enter",
         target: "toolbar",
         onAction: () => {
           api.comment();
