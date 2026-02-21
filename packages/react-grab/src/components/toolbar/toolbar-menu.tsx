@@ -18,7 +18,9 @@ import {
 } from "../../constants.js";
 import { clampToViewport } from "../../utils/clamp-to-viewport.js";
 import { cn } from "../../utils/cn.js";
+import { formatShortcut } from "../../utils/format-shortcut.js";
 import { isEventFromOverlay } from "../../utils/is-event-from-overlay.js";
+import { resolveToolbarActionEnabled } from "../../utils/resolve-action-enabled.js";
 
 const DEFAULT_OFFSCREEN_POSITION = { left: -9999, top: -9999 };
 
@@ -34,13 +36,6 @@ interface ToolbarMenuProps {
   actions: ToolbarMenuAction[];
   onDismiss: () => void;
 }
-
-const resolveToolbarActionEnabled = (action: ToolbarMenuAction): boolean => {
-  if (typeof action.enabled === "function") {
-    return action.enabled();
-  }
-  return action.enabled ?? true;
-};
 
 export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
@@ -259,6 +254,13 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
                     <span class="text-[13px] leading-4 font-sans font-medium text-black">
                       {action.label}
                     </span>
+                    <Show when={!isToggle() && action.shortcut}>
+                      {(shortcutKey) => (
+                        <span class="text-[11px] font-sans text-black/50 ml-4">
+                          {formatShortcut(shortcutKey())}
+                        </span>
+                      )}
+                    </Show>
                     <Show when={isToggle()}>
                       <div
                         class={cn(

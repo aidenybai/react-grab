@@ -85,8 +85,14 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     }
 
     const cursorX = clickPosition.x ?? bounds.x + bounds.width / 2;
-    const positionLeft = cursorX - labelWidth / 2;
-    const arrowLeft = labelWidth / 2;
+    const positionLeft = Math.max(
+      LABEL_GAP_PX,
+      Math.min(cursorX - labelWidth / 2, window.innerWidth - labelWidth - LABEL_GAP_PX),
+    );
+    const arrowLeft = Math.max(
+      ARROW_HEIGHT_PX,
+      Math.min(cursorX - positionLeft, labelWidth - ARROW_HEIGHT_PX),
+    );
 
     const positionBelow =
       bounds.y + bounds.height + ARROW_HEIGHT_PX + LABEL_GAP_PX;
@@ -97,8 +103,17 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     const hasSpaceAbove = positionAbove >= 0;
 
     const shouldFlipAbove = wouldOverflowBottom && hasSpaceAbove;
-    const positionTop = shouldFlipAbove ? positionAbove : positionBelow;
-    const arrowPosition: "top" | "bottom" = shouldFlipAbove ? "top" : "bottom";
+    let positionTop = shouldFlipAbove ? positionAbove : positionBelow;
+    let arrowPosition: "top" | "bottom" = shouldFlipAbove ? "top" : "bottom";
+
+    if (wouldOverflowBottom && !hasSpaceAbove) {
+      const cursorY = clickPosition.y ?? bounds.y + bounds.height / 2;
+      positionTop = Math.max(
+        LABEL_GAP_PX,
+        Math.min(cursorY + LABEL_GAP_PX, window.innerHeight - labelHeight - LABEL_GAP_PX),
+      );
+      arrowPosition = "top";
+    }
 
     return { left: positionLeft, top: positionTop, arrowLeft, arrowPosition };
   };
@@ -228,7 +243,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         ref={containerRef}
         data-react-grab-ignore-events
         data-react-grab-context-menu
-        class="fixed font-sans text-[13px] antialiased filter-[drop-shadow(0px_1px_2px_#51515140)] select-none transition-opacity duration-150 ease-out"
+        class="fixed font-sans text-[13px] antialiased filter-[drop-shadow(0px_1px_2px_#51515140)] select-none"
         style={{
           top: `${computedPosition().top}px`,
           left: `${computedPosition().left}px`,
@@ -279,7 +294,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
                   <button
                     data-react-grab-ignore-events
                     data-react-grab-menu-item={item.label.toLowerCase()}
-                    class="contain-layout flex items-center justify-between w-full px-2 py-1 cursor-pointer transition-colors hover:bg-black/5 text-left border-none bg-transparent disabled:opacity-40 disabled:cursor-default disabled:hover:bg-transparent"
+                    class="contain-layout flex items-center justify-between w-full px-2 py-1 cursor-pointer hover:bg-black/5 text-left border-none bg-transparent disabled:opacity-40 disabled:cursor-default disabled:hover:bg-transparent"
                     disabled={!item.enabled}
                     onPointerDown={(event) => event.stopPropagation()}
                     onClick={(event) => handleAction(item, event)}

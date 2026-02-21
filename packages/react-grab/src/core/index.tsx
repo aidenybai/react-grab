@@ -84,7 +84,10 @@ import {
 } from "../utils/capture-screenshot.js";
 import { isScreenshotSupported } from "../utils/is-screenshot-supported.js";
 import { delay } from "../utils/delay.js";
-import { resolveActionEnabled } from "../utils/resolve-action-enabled.js";
+import {
+  resolveActionEnabled,
+  resolveToolbarActionEnabled,
+} from "../utils/resolve-action-enabled.js";
 import type {
   Options,
   OverlayBounds,
@@ -105,6 +108,7 @@ import type {
   ToolbarState,
   HistoryItem,
   DropdownAnchor,
+  ToolbarMenuAction,
 } from "../types.js";
 import { DEFAULT_THEME } from "./theme.js";
 import { createPluginRegistry } from "./plugin-registry.js";
@@ -277,10 +281,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [toolbarMenuPosition, setToolbarMenuPosition] =
       createSignal<DropdownAnchor | null>(null);
     let toolbarElement: HTMLDivElement | undefined;
-    let historyPositionFrameId: number | null = null;
+    let dropdownTrackingFrameId: number | null = null;
     const historyElementMap = new Map<string, Element[]>();
     const [hasUnreadHistoryItems, setHasUnreadHistoryItems] =
       createSignal(false);
+    const [clockFlashTrigger, setClockFlashTrigger] = createSignal(0);
     const [isHistoryHoverOpen, setIsHistoryHoverOpen] = createSignal(false);
     let historyHoverPreviews: { boxId: string; labelId: string | null }[] = [];
 
@@ -867,6 +872,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             });
             setHistoryItems(updatedHistoryItems);
             setHasUnreadHistoryItems(true);
+            setClockFlashTrigger((previous) => previous + 1);
             const newestHistoryItem = updatedHistoryItems[0];
             if (newestHistoryItem && hasCopiedElements) {
               historyElementMap.set(newestHistoryItem.id, [...copiedElements]);
@@ -2557,6 +2563,33 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           return;
         }
 
+        if (toolbarMenuPosition() !== null) {
+          if (event.key === "Escape") {
+            dismissToolbarMenu();
+            return;
+          }
+
+          const toolbarActions = pluginRegistry.store.toolbarActions;
+          const isModifierPressed =
+            (event.metaKey || event.ctrlKey) && !event.repeat;
+          const matchedAction = toolbarActions.find((action) => {
+            if (!action.shortcut) return false;
+            if (event.key === "Enter") return action.shortcut === "Enter";
+            return (
+              isModifierPressed &&
+              event.key.toLowerCase() === action.shortcut.toLowerCase()
+            );
+          });
+
+          if (matchedAction && resolveToolbarActionEnabled(matchedAction)) {
+            event.preventDefault();
+            event.stopPropagation();
+            matchedAction.onAction();
+            dismissToolbarMenu();
+          }
+          return;
+        }
+
         const isFromOverlay =
           isEventFromOverlay(event, "data-react-grab-ignore-events") &&
           !isEnterToActivateInput;
@@ -3033,8 +3066,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (actionCycleIdleTimeoutId) {
         window.clearTimeout(actionCycleIdleTimeoutId);
       }
-      if (historyPositionFrameId !== null) {
-        cancelAnimationFrame(historyPositionFrameId);
+      if (dropdownTrackingFrameId !== null) {
+        cancelAnimationFrame(dropdownTrackingFrameId);
       }
       grabbedBoxTimeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
       grabbedBoxTimeouts.clear();
@@ -3551,11 +3584,20 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       addHistoryItemPreview(item, previewBounds, connectedElements, idPrefix);
     };
 
-    const stopTrackingToolbarPosition = () => {
-      if (historyPositionFrameId !== null) {
-        cancelAnimationFrame(historyPositionFrameId);
-        historyPositionFrameId = null;
+    const stopTrackingDropdownPosition = () => {
+      if (dropdownTrackingFrameId !== null) {
+        cancelAnimationFrame(dropdownTrackingFrameId);
+        dropdownTrackingFrameId = null;
       }
+    };
+
+    const startTrackingDropdownPosition = (computePosition: () => void) => {
+      stopTrackingDropdownPosition();
+      const updatePosition = () => {
+        computePosition();
+        dropdownTrackingFrameId = requestAnimationFrame(updatePosition);
+      };
+      updatePosition();
     };
 
     const getNearestEdge = (rect: DOMRect): ToolbarState["edge"] => {
@@ -3577,70 +3619,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return "bottom";
     };
 
-    const startTrackingToolbarPosition = () => {
-      stopTrackingToolbarPosition();
-      const updatePosition = () => {
-        if (!toolbarElement) return;
-        const toolbarRect = toolbarElement.getBoundingClientRect();
-        const edge = getNearestEdge(toolbarRect);
-
-        let anchorX: number;
-        let anchorY: number;
-
-        if (edge === "left" || edge === "right") {
-          anchorX = edge === "left" ? toolbarRect.right : toolbarRect.left;
-          anchorY = toolbarRect.top + toolbarRect.height / 2;
-        } else {
-          anchorX = toolbarRect.left + toolbarRect.width / 2;
-          anchorY = edge === "top" ? toolbarRect.bottom : toolbarRect.top;
-        }
-
-        setHistoryDropdownPosition({
-          x: anchorX,
-          y: anchorY,
-          edge,
-          toolbarWidth: toolbarRect.width,
-        });
-        historyPositionFrameId = requestAnimationFrame(updatePosition);
-      };
-      historyPositionFrameId = requestAnimationFrame(updatePosition);
-    };
-
-    const dismissHistoryDropdown = () => {
-      cancelHistoryHoverOpenTimeout();
-      cancelHistoryHoverCloseTimeout();
-      stopTrackingToolbarPosition();
-      clearHistoryHoverPreviews();
-      setHistoryDropdownPosition(null);
-      setIsHistoryHoverOpen(false);
-    };
-
-    const openHistoryDropdown = () => {
-      actions.hideContextMenu();
-      dismissToolbarMenu();
-      setHistoryItems(loadHistory());
-      setHasUnreadHistoryItems(false);
-      startTrackingToolbarPosition();
-    };
-
-    let historyHoverOpenTimeoutId: ReturnType<typeof setTimeout> | null = null;
-    let historyHoverCloseTimeoutId: ReturnType<typeof setTimeout> | null = null;
-
-    const cancelHistoryHoverOpenTimeout = () => {
-      if (historyHoverOpenTimeoutId !== null) {
-        clearTimeout(historyHoverOpenTimeoutId);
-        historyHoverOpenTimeoutId = null;
-      }
-    };
-
-    const cancelHistoryHoverCloseTimeout = () => {
-      if (historyHoverCloseTimeoutId !== null) {
-        clearTimeout(historyHoverCloseTimeoutId);
-        historyHoverCloseTimeoutId = null;
-      }
-    };
-
-    const computeToolbarMenuPosition = (): DropdownAnchor | null => {
+    const computeDropdownAnchor = (): DropdownAnchor | null => {
       if (!toolbarElement) return null;
       const toolbarRect = toolbarElement.getBoundingClientRect();
       const edge = getNearestEdge(toolbarRect);
@@ -3662,7 +3641,45 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
     };
 
+    const dismissHistoryDropdown = () => {
+      cancelHistoryHoverOpenTimeout();
+      cancelHistoryHoverCloseTimeout();
+      stopTrackingDropdownPosition();
+      clearHistoryHoverPreviews();
+      setHistoryDropdownPosition(null);
+      setIsHistoryHoverOpen(false);
+    };
+
+    const openHistoryDropdown = () => {
+      actions.hideContextMenu();
+      dismissToolbarMenu();
+      setHistoryItems(loadHistory());
+      setHasUnreadHistoryItems(false);
+      startTrackingDropdownPosition(() => {
+        const anchor = computeDropdownAnchor();
+        if (anchor) setHistoryDropdownPosition(anchor);
+      });
+    };
+
+    let historyHoverOpenTimeoutId: ReturnType<typeof setTimeout> | null = null;
+    let historyHoverCloseTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const cancelHistoryHoverOpenTimeout = () => {
+      if (historyHoverOpenTimeoutId !== null) {
+        clearTimeout(historyHoverOpenTimeoutId);
+        historyHoverOpenTimeoutId = null;
+      }
+    };
+
+    const cancelHistoryHoverCloseTimeout = () => {
+      if (historyHoverCloseTimeoutId !== null) {
+        clearTimeout(historyHoverCloseTimeoutId);
+        historyHoverCloseTimeoutId = null;
+      }
+    };
+
     const dismissToolbarMenu = () => {
+      stopTrackingDropdownPosition();
       setToolbarMenuPosition(null);
     };
 
@@ -3672,7 +3689,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       } else {
         actions.hideContextMenu();
         dismissHistoryDropdown();
-        setToolbarMenuPosition(computeToolbarMenuPosition());
+        startTrackingDropdownPosition(() => {
+          const anchor = computeDropdownAnchor();
+          if (anchor) setToolbarMenuPosition(anchor);
+        });
       }
     };
 
@@ -4021,6 +4041,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             historyItems={historyItems()}
             historyDisconnectedItemIds={historyDisconnectedItemIds()}
             historyItemCount={historyItems().length}
+            clockFlashTrigger={clockFlashTrigger()}
             hasUnreadHistoryItems={hasUnreadHistoryItems()}
             historyDropdownPosition={historyDropdownPosition()}
             isHistoryPinned={
@@ -4159,7 +4180,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         hasInited = false;
         cancelHistoryHoverOpenTimeout();
         cancelHistoryHoverCloseTimeout();
-        stopTrackingToolbarPosition();
+        stopTrackingDropdownPosition();
         toolbarStateChangeCallbacks.clear();
         dispose();
       },

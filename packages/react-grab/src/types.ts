@@ -347,6 +347,7 @@ export interface PluginHooks {
 export interface ToolbarMenuAction {
   id: string;
   label: string;
+  shortcut?: string;
   target: "toolbar";
   enabled?: boolean | (() => boolean);
   isActive?: () => boolean;
@@ -564,6 +565,7 @@ export interface ReactGrabRendererProps {
   historyItems?: HistoryItem[];
   historyDisconnectedItemIds?: Set<string>;
   historyItemCount?: number;
+  clockFlashTrigger?: number;
   hasUnreadHistoryItems?: boolean;
   historyDropdownPosition?: DropdownAnchor | null;
   isHistoryPinned?: boolean;

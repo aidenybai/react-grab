@@ -1062,7 +1062,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         "[data-react-grab-toolbar-history]",
       );
       if (!historyButton) return false;
-      const unreadDot = historyButton.querySelector('path[fill="#404040"]');
+      const unreadDot = historyButton.querySelector("[data-react-grab-unread-indicator]");
       return unreadDot !== null;
     }, ATTRIBUTE_NAME);
   };

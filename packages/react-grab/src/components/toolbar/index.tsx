@@ -9,6 +9,7 @@ import {
 import type { Component } from "solid-js";
 import type { ToolbarMenuAction } from "../../types.js";
 import { cn } from "../../utils/cn.js";
+import { formatShortcut } from "../../utils/format-shortcut.js";
 import {
   loadToolbarState,
   saveToolbarState,
@@ -17,7 +18,7 @@ import {
 } from "./state.js";
 import { IconSelect } from "../icons/icon-select.jsx";
 import { IconChevron } from "../icons/icon-chevron.jsx";
-import { IconInbox, IconInboxUnread } from "../icons/icon-inbox.jsx";
+import { IconClock } from "../icons/icon-clock.jsx";
 import { IconEllipsis } from "../icons/icon-ellipsis.jsx";
 import {
   TOOLBAR_SNAP_MARGIN_PX,
@@ -32,6 +33,7 @@ import {
   TOOLBAR_DEFAULT_WIDTH_PX,
   TOOLBAR_DEFAULT_HEIGHT_PX,
   TOOLBAR_SHAKE_TOOLTIP_DURATION_MS,
+  FEEDBACK_DURATION_MS,
   PANEL_STYLES,
 } from "../../constants.js";
 import { freezeUpdates } from "../../utils/freeze-updates.js";
@@ -65,6 +67,7 @@ interface ToolbarProps {
   onSelectHoverChange?: (isHovered: boolean) => void;
   onContainerRef?: (element: HTMLDivElement) => void;
   historyItemCount?: number;
+  clockFlashTrigger?: number;
   hasUnreadHistoryItems?: boolean;
   onToggleHistory?: () => void;
   onHistoryButtonHover?: (isHovered: boolean) => void;
@@ -116,6 +119,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [isHistoryTooltipVisible, setIsHistoryTooltipVisible] =
     createSignal(false);
   const [isMenuTooltipVisible, setIsMenuTooltipVisible] = createSignal(false);
+  let clockFlashRef: HTMLSpanElement | undefined;
 
   const hasToolbarActions = () => (props.toolbarActions ?? []).length > 0;
 
@@ -356,6 +360,31 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       });
     }
   };
+
+  createEffect(
+    on(
+      () => props.clockFlashTrigger ?? 0,
+      () => {
+        if (props.isHistoryDropdownOpen) return;
+        if (clockFlashRef) {
+          clockFlashRef.classList.remove("animate-clock-flash");
+          // HACK: force reflow between class removal/addition to restart the CSS animation
+          void clockFlashRef.offsetHeight;
+          clockFlashRef.classList.add("animate-clock-flash");
+        }
+        setIsHistoryTooltipVisible(true);
+        const timerId = setTimeout(() => {
+          clockFlashRef?.classList.remove("animate-clock-flash");
+          setIsHistoryTooltipVisible(false);
+        }, FEEDBACK_DURATION_MS);
+        onCleanup(() => {
+          clearTimeout(timerId);
+          setIsHistoryTooltipVisible(false);
+        });
+      },
+      { defer: true },
+    ),
+  );
 
   createEffect(
     on(
@@ -1496,7 +1525,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     visible={isSelectTooltipVisible() && isTooltipAllowed()}
                     position={tooltipPosition()}
                   >
-                    Select element
+                    Select element ({formatShortcut("C")})
                   </Tooltip>
                 </div>
               </div>
@@ -1543,14 +1572,15 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                       },
                     )}
                   >
-                    <Show
-                      when={props.hasUnreadHistoryItems}
-                      fallback={
-                        <IconInbox size={14} class={historyIconClass()} />
-                      }
-                    >
-                      <IconInboxUnread size={14} class={historyIconClass()} />
-                    </Show>
+                    <span ref={clockFlashRef} class="inline-flex relative">
+                      <IconClock size={14} class={historyIconClass()} />
+                      <Show when={props.hasUnreadHistoryItems}>
+                        <span
+                          data-react-grab-unread-indicator
+                          class="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-[#404040]"
+                        />
+                      </Show>
+                    </span>
                   </button>
                   <Tooltip
                     visible={isHistoryTooltipVisible() && isTooltipAllowed()}

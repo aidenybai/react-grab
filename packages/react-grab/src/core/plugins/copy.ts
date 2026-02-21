@@ -31,7 +31,8 @@ export const copyPlugin: Plugin = {
         },
         {
           id: "copy-toolbar",
-          label: "Copy",
+          label: "Copy element",
+          shortcut: "C",
           target: "toolbar",
           onAction: () => {
             isPendingSelection = true;
