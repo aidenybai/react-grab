@@ -1,5 +1,14 @@
 # @react-grab/gemini
 
+## 0.1.17
+
+### Patch Changes
+
+- fix: mcp
+- Updated dependencies
+  - react-grab@0.1.17
+  - @react-grab/relay@0.1.17
+
 ## 0.1.16
 
 ### Patch Changes

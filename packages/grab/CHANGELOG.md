@@ -1,5 +1,13 @@
 # grab
 
+## 0.1.17
+
+### Patch Changes
+
+- fix: mcp
+- Updated dependencies
+  - @react-grab/cli@0.1.17
+
 ## 0.1.16
 
 ### Patch Changes
