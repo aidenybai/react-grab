@@ -59,6 +59,37 @@ const getClients = (): ClientDefinition[] => {
 
   return [
     {
+      name: "Claude Code",
+      configPath: path.join(homeDir, ".claude.json"),
+      configKey: "mcpServers",
+      format: "json",
+      serverConfig: stdioConfig,
+    },
+    {
+      name: "Open Code",
+      configPath: path.join(
+        process.env.XDG_CONFIG_HOME || path.join(homeDir, ".config"),
+        "opencode",
+        "opencode.json",
+      ),
+      configKey: "mcp",
+      format: "json",
+      serverConfig: {
+        type: "local",
+        command: ["npx", "-y", PACKAGE_NAME, "--stdio"],
+      },
+    },
+    {
+      name: "Codex",
+      configPath: path.join(
+        process.env.CODEX_HOME || path.join(homeDir, ".codex"),
+        "config.toml",
+      ),
+      configKey: "mcp_servers",
+      format: "toml",
+      serverConfig: stdioConfig,
+    },
+    {
       name: "Cursor",
       configPath: path.join(homeDir, ".cursor", "mcp.json"),
       configKey: "mcpServers",
@@ -73,11 +104,11 @@ const getClients = (): ClientDefinition[] => {
       serverConfig: { type: "stdio", ...stdioConfig },
     },
     {
-      name: "Claude Code",
-      configPath: path.join(homeDir, ".claude.json"),
-      configKey: "mcpServers",
+      name: "Zed",
+      configPath: getZedConfigPath(),
+      configKey: "context_servers",
       format: "json",
-      serverConfig: stdioConfig,
+      serverConfig: { source: "custom", ...stdioConfig, env: {} },
     },
     {
       name: "Amp",
@@ -92,23 +123,6 @@ const getClients = (): ClientDefinition[] => {
       configKey: "mcpServers",
       format: "json",
       serverConfig: { type: "stdio", ...stdioConfig },
-    },
-    {
-      name: "Codex",
-      configPath: path.join(
-        process.env.CODEX_HOME || path.join(homeDir, ".codex"),
-        "config.toml",
-      ),
-      configKey: "mcp_servers",
-      format: "toml",
-      serverConfig: stdioConfig,
-    },
-    {
-      name: "Zed",
-      configPath: getZedConfigPath(),
-      configKey: "context_servers",
-      format: "json",
-      serverConfig: { source: "custom", ...stdioConfig, env: {} },
     },
     {
       name: "Windsurf",
