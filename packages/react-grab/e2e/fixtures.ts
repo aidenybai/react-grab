@@ -168,6 +168,11 @@ export interface ReactGrabPageObject {
   hoverHistoryItem: (index: number) => Promise<void>;
   hoverHistoryButton: () => Promise<void>;
   hoverCopyAllButton: () => Promise<void>;
+  clickToolbarCopyAll: () => Promise<void>;
+  isToolbarCopyAllVisible: () => Promise<boolean>;
+  isClearHistoryPromptVisible: () => Promise<boolean>;
+  confirmClearHistoryPrompt: () => Promise<void>;
+  cancelClearHistoryPrompt: () => Promise<void>;
   getHistoryDropdownPosition: () => Promise<{
     left: number;
     top: number;
@@ -1277,6 +1282,75 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
       );
       await page.waitForTimeout(100);
     }
+  };
+
+  const clickToolbarCopyAll = async () => {
+    await clickShadowRootButton("[data-react-grab-toolbar-copy-all]");
+  };
+
+  const isToolbarCopyAllVisible = async (): Promise<boolean> => {
+    return page.evaluate((attrName) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      if (!shadowRoot) return false;
+      const root = shadowRoot.querySelector(`[${attrName}]`);
+      if (!root) return false;
+      const copyAllButton = root.querySelector<HTMLElement>(
+        "[data-react-grab-toolbar-copy-all]",
+      );
+      if (!copyAllButton) return false;
+      const gridParent = copyAllButton.parentElement?.parentElement;
+      if (!gridParent) return false;
+      const computedStyle = window.getComputedStyle(gridParent);
+      return computedStyle.opacity !== "0";
+    }, ATTRIBUTE_NAME);
+  };
+
+  const isClearHistoryPromptVisible = async (): Promise<boolean> => {
+    return page.evaluate((attrName) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      if (!shadowRoot) return false;
+      const root = shadowRoot.querySelector(`[${attrName}]`);
+      if (!root) return false;
+      const prompt = root.querySelector<HTMLElement>(
+        "[data-react-grab-clear-history-prompt]",
+      );
+      if (!prompt) return false;
+      return getComputedStyle(prompt).pointerEvents !== "none";
+    }, ATTRIBUTE_NAME);
+  };
+
+  const confirmClearHistoryPrompt = async () => {
+    await page.evaluate((attrName) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      if (!shadowRoot) return;
+      const root = shadowRoot.querySelector(`[${attrName}]`);
+      if (!root) return;
+      const prompt = root.querySelector("[data-react-grab-clear-history-prompt]");
+      if (!prompt) return;
+      const yesButton = prompt.querySelector<HTMLButtonElement>(
+        "[data-react-grab-discard-yes]",
+      );
+      yesButton?.click();
+    }, ATTRIBUTE_NAME);
+  };
+
+  const cancelClearHistoryPrompt = async () => {
+    await page.evaluate((attrName) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      if (!shadowRoot) return;
+      const root = shadowRoot.querySelector(`[${attrName}]`);
+      if (!root) return;
+      const prompt = root.querySelector("[data-react-grab-clear-history-prompt]");
+      if (!prompt) return;
+      const noButton = prompt.querySelector<HTMLButtonElement>(
+        "[data-react-grab-discard-no]",
+      );
+      noButton?.click();
+    }, ATTRIBUTE_NAME);
   };
 
   const getHistoryDropdownPosition = async (): Promise<{
@@ -2403,6 +2477,11 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
     hoverHistoryItem,
     hoverHistoryButton,
     hoverCopyAllButton,
+    clickToolbarCopyAll,
+    isToolbarCopyAllVisible,
+    isClearHistoryPromptVisible,
+    confirmClearHistoryPrompt,
+    cancelClearHistoryPrompt,
     getHistoryDropdownPosition,
 
     getSelectionLabelInfo,

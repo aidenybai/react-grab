@@ -19,7 +19,12 @@ import {
 import { IconSelect } from "../icons/icon-select.jsx";
 import { IconChevron } from "../icons/icon-chevron.jsx";
 import { IconClock } from "../icons/icon-clock.jsx";
+import { IconCopy } from "../icons/icon-copy.jsx";
 import { IconEllipsis } from "../icons/icon-ellipsis.jsx";
+import {
+  createSafePolygonTracker,
+  type TargetRect,
+} from "../../utils/safe-polygon.js";
 import {
   TOOLBAR_SNAP_MARGIN_PX,
   TOOLBAR_FADE_IN_DELAY_MS,
@@ -34,6 +39,7 @@ import {
   TOOLBAR_DEFAULT_HEIGHT_PX,
   TOOLBAR_SHAKE_TOOLTIP_DURATION_MS,
   FEEDBACK_DURATION_MS,
+  SAFE_POLYGON_BUFFER_PX,
   PANEL_STYLES,
 } from "../../constants.js";
 import { freezeUpdates } from "../../utils/freeze-updates.js";
@@ -70,8 +76,11 @@ interface ToolbarProps {
   clockFlashTrigger?: number;
   hasUnreadHistoryItems?: boolean;
   onToggleHistory?: () => void;
+  onCopyAll?: () => void;
+  onCopyAllHover?: (isHovered: boolean) => void;
   onHistoryButtonHover?: (isHovered: boolean) => void;
   isHistoryDropdownOpen?: boolean;
+  isClearPromptOpen?: boolean;
   isHistoryPinned?: boolean;
   toolbarActions?: ToolbarMenuAction[];
   onToggleMenu?: () => void;
@@ -81,6 +90,7 @@ interface ToolbarProps {
 interface FreezeHandlersOptions {
   shouldFreezeInteractions?: boolean;
   onHoverChange?: (isHovered: boolean) => void;
+  safePolygonTargets?: () => TargetRect[] | null;
 }
 
 export const Toolbar: Component<ToolbarProps> = (props) => {
@@ -89,6 +99,35 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   let unfreezeUpdatesCallback: (() => void) | null = null;
   let lastKnownExpandableWidth = 0;
   let lastKnownExpandableHeight = 0;
+
+  const safePolygonTracker = createSafePolygonTracker();
+
+  const getElementRect = (
+    selector: string,
+  ): TargetRect | null => {
+    if (!containerRef) return null;
+    const rootNode = containerRef.getRootNode() as Document | ShadowRoot;
+    const element = rootNode.querySelector<HTMLElement>(selector);
+    if (!element) return null;
+    const rect = element.getBoundingClientRect();
+    return {
+      x: rect.x - SAFE_POLYGON_BUFFER_PX,
+      y: rect.y - SAFE_POLYGON_BUFFER_PX,
+      width: rect.width + SAFE_POLYGON_BUFFER_PX * 2,
+      height: rect.height + SAFE_POLYGON_BUFFER_PX * 2,
+    };
+  };
+
+  const getSafePolygonTargets = (
+    ...selectors: string[]
+  ): TargetRect[] | null => {
+    const rects: TargetRect[] = [];
+    for (const selector of selectors) {
+      const rect = getElementRect(selector);
+      if (rect) rects.push(rect);
+    }
+    return rects.length > 0 ? rects : null;
+  };
 
   const savedState = loadToolbarState();
 
@@ -119,6 +158,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [isHistoryTooltipVisible, setIsHistoryTooltipVisible] =
     createSignal(false);
   const [isMenuTooltipVisible, setIsMenuTooltipVisible] = createSignal(false);
+  const [isCopyAllTooltipVisible, setIsCopyAllTooltipVisible] =
+    createSignal(false);
   let clockFlashRef: HTMLSpanElement | undefined;
 
   const hasToolbarActions = () => (props.toolbarActions ?? []).length > 0;
@@ -147,7 +188,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   };
 
   const isTooltipAllowed = () =>
-    !isCollapsed() && !props.isHistoryDropdownOpen && !props.isMenuOpen;
+    !isCollapsed() &&
+    !props.isHistoryDropdownOpen &&
+    !props.isMenuOpen &&
+    !props.isClearPromptOpen;
 
   const tooltipPosition = (): "top" | "bottom" | "left" | "right" => {
     const edge = snapEdge();
@@ -200,6 +244,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   ) => ({
     onMouseEnter: () => {
       if (isDragging()) return;
+      safePolygonTracker.stop();
       setTooltipVisible(true);
       if (
         options?.shouldFreezeInteractions !== false &&
@@ -211,7 +256,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       }
       options?.onHoverChange?.(true);
     },
-    onMouseLeave: () => {
+    onMouseLeave: (event: MouseEvent) => {
       setTooltipVisible(false);
       if (
         options?.shouldFreezeInteractions !== false &&
@@ -223,6 +268,17 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         unfreezeGlobalAnimations();
         unfreezePseudoStates();
       }
+
+      const targetRects = options?.safePolygonTargets?.();
+      if (targetRects) {
+        safePolygonTracker.start(
+          { x: event.clientX, y: event.clientY },
+          targetRects,
+          () => options?.onHoverChange?.(false),
+        );
+        return;
+      }
+
       options?.onHoverChange?.(false);
     },
   });
@@ -630,6 +686,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const handleHistory = createDragAwareHandler(() => props.onToggleHistory?.());
 
+  const handleCopyAll = createDragAwareHandler(() => props.onCopyAll?.());
+
   const handleToggleMenu = createDragAwareHandler(() => props.onToggleMenu?.());
 
   const handleToggleCollapse = createDragAwareHandler(() => {
@@ -715,6 +773,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           if (!(child instanceof HTMLElement)) return false;
           if (child.querySelector("[data-react-grab-toolbar-history]")) {
             return hasHistoryItems;
+          }
+          if (child.querySelector("[data-react-grab-toolbar-copy-all]")) {
+            return Boolean(props.isHistoryDropdownOpen);
           }
           if (child.querySelector("[data-react-grab-toolbar-menu]")) {
             return hasMenuActions;
@@ -1352,6 +1413,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       cancelAnimationFrame(toggleAnimationRafId);
     }
     unfreezeUpdatesCallback?.();
+    safePolygonTracker.stop();
   });
 
   const currentPosition = () => {
@@ -1569,6 +1631,13 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                         onHoverChange: (isHovered) =>
                           props.onHistoryButtonHover?.(isHovered),
                         shouldFreezeInteractions: false,
+                        safePolygonTargets: () =>
+                          props.isHistoryDropdownOpen
+                            ? getSafePolygonTargets(
+                                "[data-react-grab-history-dropdown]",
+                                "[data-react-grab-toolbar-copy-all]",
+                              )
+                            : null,
                       },
                     )}
                   >
@@ -1587,6 +1656,62 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     position={tooltipPosition()}
                   >
                     {historyTooltipLabel()}
+                  </Tooltip>
+                </div>
+              </div>
+              <div
+                class={cn(
+                  "grid",
+                  !isRapidRetoggle() && gridTransitionClass(),
+                  expandGridClass(
+                    Boolean(props.isHistoryDropdownOpen),
+                    "pointer-events-none",
+                  ),
+                )}
+              >
+                <div
+                  class={cn("relative overflow-visible", minDimensionClass())}
+                >
+                  <button
+                    data-react-grab-ignore-events
+                    data-react-grab-toolbar-copy-all
+                    class={cn(
+                      "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
+                      buttonSpacingClass(),
+                      hitboxConstraintClass(),
+                    )}
+                    on:pointerdown={(event) => {
+                      stopEventPropagation(event);
+                      handlePointerDown(event);
+                    }}
+                    on:mousedown={stopEventPropagation}
+                    onClick={(event) => {
+                      setIsCopyAllTooltipVisible(false);
+                      handleCopyAll(event);
+                    }}
+                    {...createFreezeHandlers(
+                      setIsCopyAllTooltipVisible,
+                      {
+                        onHoverChange: (isHovered) =>
+                          props.onCopyAllHover?.(isHovered),
+                        shouldFreezeInteractions: false,
+                        safePolygonTargets: () =>
+                          props.isHistoryDropdownOpen
+                            ? getSafePolygonTargets(
+                                "[data-react-grab-history-dropdown]",
+                                "[data-react-grab-toolbar-history]",
+                              )
+                            : null,
+                      },
+                    )}
+                  >
+                    <IconCopy size={14} class="text-[#B3B3B3] transition-colors" />
+                  </button>
+                  <Tooltip
+                    visible={isCopyAllTooltipVisible() && isTooltipAllowed()}
+                    position={tooltipPosition()}
+                  >
+                    Copy all
                   </Tooltip>
                 </div>
               </div>

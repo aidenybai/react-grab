@@ -163,20 +163,26 @@ const restoreFrozenStates = (
 };
 
 export const freezePseudoStates = (): void => {
-  if (pointerEventsStyle) return;
+  const isAlreadySetup = Boolean(pointerEventsStyle);
 
-  for (const eventType of MOUSE_EVENTS_TO_BLOCK) {
-    document.addEventListener(eventType, stopEvent, true);
+  if (!isAlreadySetup) {
+    for (const eventType of MOUSE_EVENTS_TO_BLOCK) {
+      document.addEventListener(eventType, stopEvent, true);
+    }
+
+    for (const eventType of FOCUS_EVENTS_TO_BLOCK) {
+      document.addEventListener(eventType, preventFocusChange, true);
+    }
   }
 
-  for (const eventType of FOCUS_EVENTS_TO_BLOCK) {
-    document.addEventListener(eventType, preventFocusChange, true);
-  }
+  const newHoverStates = collectHoverStates().filter(
+    (state) => !frozenHoverElements.has(state.element),
+  );
+  applyFrozenStates(newHoverStates, frozenHoverElements);
 
-  const hoverStates = collectHoverStates();
+  if (isAlreadySetup) return;
+
   const focusStates = collectFocusStates();
-
-  applyFrozenStates(hoverStates, frozenHoverElements);
   applyFrozenStates(focusStates, frozenFocusElements);
 
   pointerEventsStyle = createStyleElement(
