@@ -721,6 +721,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       element?: Element;
       shouldDeactivateAfter?: boolean;
       elements?: Element[];
+      existingInstanceId?: string | null;
     }
 
     const executeCopyOperation = async ({
@@ -732,18 +733,20 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       element,
       shouldDeactivateAfter,
       elements,
+      existingInstanceId,
     }: ExecuteCopyOptions) => {
       inToggleFeedbackPeriod = false;
-      actions.startCopy();
-
-      const instanceId =
-        bounds && tagName
-          ? createLabelInstance(bounds, tagName, componentName, "copying", {
-              element,
-              mouseX: positionX,
-              elements,
-            })
-          : null;
+      if (store.current.state !== "copying") {
+        actions.startCopy();
+      }
+      let instanceId = existingInstanceId ?? null;
+      if (!instanceId && bounds && tagName) {
+        instanceId = createLabelInstance(bounds, tagName, componentName, "copying", {
+          element,
+          mouseX: positionX,
+          elements,
+        });
+      }
 
       let didSucceed = false;
       let errorMessage: string | undefined;
@@ -973,6 +976,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           : positionX;
 
       const tagName = getTagName(element);
+      inToggleFeedbackPeriod = false;
+      actions.startCopy();
+
+      const labelInstanceId = tagName
+        ? createLabelInstance(overlayBounds, tagName, undefined, "copying", {
+            element,
+            mouseX: labelPositionX,
+            elements,
+          })
+        : null;
+
       void getNearestComponentName(element).then((componentName) => {
         void executeCopyOperation({
           positionX: labelPositionX,
@@ -988,6 +1002,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           element,
           shouldDeactivateAfter,
           elements,
+          existingInstanceId: labelInstanceId,
         }).then(() => {
           onComplete?.();
         });

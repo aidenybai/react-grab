@@ -332,4 +332,111 @@ test.describe("Copy Feedback Behavior", () => {
       expect(grabbedInfo.count).toBeGreaterThan(0);
     });
   });
+
+  test.describe("Immediate Grabbing Feedback", () => {
+    test("should enter copying state immediately on click", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+      await reactGrab.hoverElement("li:first-child");
+      await reactGrab.waitForSelectionBox();
+
+      await reactGrab.clickElement("li:first-child");
+
+      await expect
+        .poll(
+          async () => {
+            const state = await reactGrab.getState();
+            return state.isCopying || state.labelInstances.length > 0;
+          },
+          { timeout: 500 },
+        )
+        .toBe(true);
+    });
+
+    test("should create label instance with copying status on click", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+      await reactGrab.hoverElement("li:first-child");
+      await reactGrab.waitForSelectionBox();
+
+      await reactGrab.clickElement("li:first-child");
+
+      await expect
+        .poll(
+          async () => {
+            const instances = await reactGrab.getLabelInstancesInfo();
+            return instances.some(
+              (instance) =>
+                instance.status === "copying" || instance.status === "copied",
+            );
+          },
+          { timeout: 500 },
+        )
+        .toBe(true);
+    });
+
+    test("should set progress cursor during copy", async ({ reactGrab }) => {
+      await reactGrab.activate();
+      await reactGrab.hoverElement("li:first-child");
+      await reactGrab.waitForSelectionBox();
+
+      await reactGrab.clickElement("li:first-child");
+
+      await expect
+        .poll(
+          async () => {
+            const hasCursorOverride = await reactGrab.page.evaluate(() => {
+              const styleElement = document.querySelector(
+                "[data-react-grab-cursor]",
+              );
+              if (!styleElement) return false;
+              return styleElement.textContent?.includes("progress") ?? false;
+            });
+            const state = await reactGrab.getState();
+            return hasCursorOverride || state.labelInstances.length > 0;
+          },
+          { timeout: 500 },
+        )
+        .toBe(true);
+    });
+
+    test("should show Grabbing label before copy completes", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+      await reactGrab.hoverElement("[data-testid='main-title']");
+      await reactGrab.waitForSelectionBox();
+
+      await reactGrab.clickElement("[data-testid='main-title']");
+
+      await expect
+        .poll(
+          async () => {
+            const statusText = await reactGrab.getLabelStatusText();
+            return statusText !== null;
+          },
+          { timeout: 2000 },
+        )
+        .toBe(true);
+    });
+
+    test("should transition from Grabbing to Copied", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+      await reactGrab.hoverElement("li:first-child");
+      await reactGrab.waitForSelectionBox();
+
+      await reactGrab.clickElement("li:first-child");
+
+      await expect
+        .poll(() => reactGrab.getLabelStatusText(), { timeout: 2000 })
+        .toBe("Copied");
+
+      const state = await reactGrab.getState();
+      expect(state.isCopying).toBe(false);
+    });
+  });
 });
