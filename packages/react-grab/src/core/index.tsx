@@ -331,15 +331,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       historyItem: HistoryItem,
     ): Element | undefined => getConnectedHistoryElements(historyItem)[0];
 
-    const getHistoryPreviewBounds = (
-      historyItem: HistoryItem,
-    ): OverlayBounds[] => {
-      const connectedElements = getConnectedHistoryElements(historyItem);
-      if (connectedElements.length > 0) {
-        return connectedElements.map((element) => createElementBounds(element));
-      }
-      return historyItem.previewBounds ?? [];
-    };
 
     const historyDisconnectedItemIds = createMemo(
       () => {
@@ -3491,8 +3482,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       item: HistoryItem,
       idPrefix: string,
     ): void => {
-      const previewBounds = getHistoryPreviewBounds(item);
       const connectedElements = getConnectedHistoryElements(item);
+      const previewBounds = connectedElements.map((element) =>
+        createElementBounds(element),
+      );
       addHistoryItemPreview(item, previewBounds, connectedElements, idPrefix);
     };
 
