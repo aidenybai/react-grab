@@ -6,8 +6,8 @@ import {
   disposeBaselineStyles,
 } from "../../utils/extract-element-css.js";
 
-export const copyCssPlugin: Plugin = {
-  name: "copy-css",
+export const copyStylesPlugin: Plugin = {
+  name: "copy-styles",
   setup: (api) => {
     let isPendingSelection = false;
 
@@ -35,8 +35,8 @@ export const copyCssPlugin: Plugin = {
       },
       actions: [
         {
-          id: "copy-css",
-          label: "Copy CSS",
+          id: "copy-styles",
+          label: "Copy styles",
           onAction: async (context) => {
             await context.performWithFeedback(async () => {
               const combinedCss = context.elements
@@ -55,8 +55,8 @@ export const copyCssPlugin: Plugin = {
           },
         },
         {
-          id: "copy-css-toolbar",
-          label: "Copy CSS",
+          id: "copy-styles-toolbar",
+          label: "Copy styles",
           target: "toolbar",
           onAction: () => {
             isPendingSelection = true;
