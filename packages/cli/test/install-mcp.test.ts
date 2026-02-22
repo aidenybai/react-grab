@@ -43,18 +43,19 @@ const makeTomlClient = (
 });
 
 describe("getMcpClientNames", () => {
-  it("should return all 8 client names", () => {
+  it("should return all 9 client names", () => {
     const names = getMcpClientNames();
 
-    expect(names).toHaveLength(8);
-    expect(names).toContain("Cursor");
-    expect(names).toContain("VS Code");
+    expect(names).toHaveLength(9);
     expect(names).toContain("Claude Code");
+    expect(names).toContain("Codex");
+    expect(names).toContain("Cursor");
+    expect(names).toContain("OpenCode");
+    expect(names).toContain("VS Code");
     expect(names).toContain("Amp");
     expect(names).toContain("Droid");
-    expect(names).toContain("Codex");
-    expect(names).toContain("Zed");
     expect(names).toContain("Windsurf");
+    expect(names).toContain("Zed");
   });
 });
 
