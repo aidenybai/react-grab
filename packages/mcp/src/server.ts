@@ -201,7 +201,7 @@ const listenWithRetry = (httpServer: Server, port: number): Promise<void> =>
       httpServer.listen(port, () => resolve());
     });
 
-    httpServer.listen(port, () => resolve());
+    httpServer.listen(port, "127.0.0.1", () => resolve());
   });
 
 const startHttpServer = async (port: number): Promise<Server> => {

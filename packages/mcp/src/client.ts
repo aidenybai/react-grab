@@ -1,5 +1,5 @@
 import type { init, ReactGrabAPI, Plugin, AgentContext } from "react-grab/core";
-import { DEFAULT_MCP_PORT } from "./constants.js";
+import { DEFAULT_MCP_PORT, HEALTH_CHECK_TIMEOUT_MS } from "./constants.js";
 
 interface McpPluginOptions {
   port?: number;
@@ -46,8 +46,18 @@ declare global {
   }
 }
 
-export const attachMcpPlugin = () => {
+const checkIfMcpServerIsReachable = (port: number): Promise<boolean> =>
+  fetch(`http://localhost:${port}/health`, {
+    signal: AbortSignal.timeout(HEALTH_CHECK_TIMEOUT_MS),
+  })
+    .then((response) => response.ok)
+    .catch(() => false);
+
+export const attachMcpPlugin = async (): Promise<void> => {
   if (typeof window === "undefined") return;
+
+  const isReachable = await checkIfMcpServerIsReachable(DEFAULT_MCP_PORT);
+  if (!isReachable) return;
 
   const plugin = createMcpPlugin();
 
