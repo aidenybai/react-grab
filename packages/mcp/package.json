@@ -1,6 +1,6 @@
 {
   "name": "@react-grab/mcp",
-  "version": "0.1.17",
+  "version": "0.1.18",
   "bin": {
     "react-grab-mcp": "./dist/cli.cjs"
   },

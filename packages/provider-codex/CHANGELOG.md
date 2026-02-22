@@ -1,5 +1,14 @@
 # @react-grab/codex
 
+## 0.1.18
+
+### Patch Changes
+
+- fix: minor issues
+- Updated dependencies
+  - react-grab@0.1.18
+  - @react-grab/relay@0.1.18
+
 ## 0.1.17
 
 ### Patch Changes
