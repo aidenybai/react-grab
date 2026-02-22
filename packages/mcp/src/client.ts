@@ -46,12 +46,23 @@ declare global {
   }
 }
 
-const checkIfMcpServerIsReachable = (port: number): Promise<boolean> =>
-  fetch(`http://localhost:${port}/health`, {
+const MCP_REACHABLE_KEY = "react-grab-mcp-reachable";
+
+const checkIfMcpServerIsReachable = async (
+  port: number,
+): Promise<boolean> => {
+  const cached = sessionStorage.getItem(MCP_REACHABLE_KEY);
+  if (cached !== null) return cached === "true";
+
+  const isReachable = await fetch(`http://localhost:${port}/health`, {
     signal: AbortSignal.timeout(HEALTH_CHECK_TIMEOUT_MS),
   })
     .then((response) => response.ok)
     .catch(() => false);
+
+  sessionStorage.setItem(MCP_REACHABLE_KEY, String(isReachable));
+  return isReachable;
+};
 
 export const attachMcpPlugin = async (): Promise<void> => {
   if (typeof window === "undefined") return;
