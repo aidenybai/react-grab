@@ -21,6 +21,7 @@ import { mountRoot } from "../utils/mount-root.js";
 import { ReactGrabRenderer } from "../components/renderer.js";
 import {
   getStack,
+  getStackContext,
   getNearestComponentName,
   checkIsSourceComponentName,
   getComponentDisplayName,
@@ -77,7 +78,6 @@ import { parseActivationKey } from "../utils/parse-activation-key.js";
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
 import { openFile } from "../utils/open-file.js";
 import { combineBounds } from "../utils/combine-bounds.js";
-import { delay } from "../utils/delay.js";
 import {
   resolveActionEnabled,
   resolveToolbarActionEnabled,
@@ -332,7 +332,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const getFirstConnectedHistoryElement = (
       historyItem: HistoryItem,
     ): Element | undefined => getConnectedHistoryElements(historyItem)[0];
-
 
     const historyDisconnectedItemIds = createMemo(
       () => {
@@ -725,11 +724,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       let instanceId = existingInstanceId ?? null;
       if (!instanceId && bounds && tagName) {
-        instanceId = createLabelInstance(bounds, tagName, componentName, "copying", {
-          element,
-          mouseX: positionX,
-          elements,
-        });
+        instanceId = createLabelInstance(
+          bounds,
+          tagName,
+          componentName,
+          "copying",
+          {
+            element,
+            mouseX: positionX,
+            elements,
+          },
+        );
       }
 
       let didSucceed = false;
@@ -4143,6 +4148,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           componentName: source.componentName,
         };
       },
+      getStackContext,
       getState: (): ReactGrabState => ({
         isActive: isActivated(),
         isDragging: isDragging(),

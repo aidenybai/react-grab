@@ -1,13 +1,10 @@
 import type { Plugin } from "../../types.js";
+import { appendStackContext } from "../../utils/append-stack-context.js";
 import { copyContent } from "../../utils/copy-content.js";
 import {
   extractElementCss,
   disposeBaselineStyles,
 } from "../../utils/extract-element-css.js";
-import {
-  formatSourceAnnotation,
-  appendSourceAnnotation,
-} from "../../utils/format-source-annotation.js";
 
 export const copyCssPlugin: Plugin = {
   name: "copy-css",
@@ -21,16 +18,9 @@ export const copyCssPlugin: Plugin = {
           isPendingSelection = false;
           const extractedCss = extractElementCss(element);
           void api
-            .getSource(element)
-            .then((sourceInfo) => {
-              const annotation = formatSourceAnnotation(
-                sourceInfo?.componentName,
-                sourceInfo?.filePath,
-                sourceInfo?.lineNumber,
-              );
-              copyContent(appendSourceAnnotation(extractedCss, annotation), {
-                componentName: sourceInfo?.componentName ?? undefined,
-              });
+            .getStackContext(element)
+            .then((stackContext) => {
+              copyContent(appendStackContext(extractedCss, stackContext));
             })
             // HACK: Best-effort copy from element select; failure is non-critical
             .catch(() => {});
@@ -53,13 +43,9 @@ export const copyCssPlugin: Plugin = {
                 .map(extractElementCss)
                 .join("\n\n");
 
-              const annotation = formatSourceAnnotation(
-                context.componentName,
-                context.filePath,
-                context.lineNumber,
-              );
+              const stackContext = await api.getStackContext(context.element);
               return copyContent(
-                appendSourceAnnotation(combinedCss, annotation),
+                appendStackContext(combinedCss, stackContext),
                 {
                   componentName: context.componentName,
                   tagName: context.tagName,

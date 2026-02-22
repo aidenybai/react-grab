@@ -422,9 +422,7 @@ test.describe("Copy Feedback Behavior", () => {
         .toBe(true);
     });
 
-    test("should transition from Grabbing to Copied", async ({
-      reactGrab,
-    }) => {
+    test("should transition from Grabbing to Copied", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("li:first-child");
       await reactGrab.waitForSelectionBox();

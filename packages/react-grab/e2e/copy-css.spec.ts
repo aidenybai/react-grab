@@ -50,7 +50,7 @@ test.describe("Copy CSS", () => {
       await reactGrab.rightClickElement("[data-testid='submit-button']");
       await reactGrab.clickContextMenuItem("Copy CSS");
 
-      const clipboardContent = await expect
+      await expect
         .poll(() => reactGrab.getClipboardContent(), { timeout: 5000 })
         .toMatch(/[\w-]+:\s*.+;/);
 
@@ -103,7 +103,7 @@ test.describe("Copy CSS", () => {
       await reactGrab.rightClickElement("[data-testid='gradient-div']");
       await reactGrab.clickContextMenuItem("Copy CSS");
 
-      const content = await expect
+      await expect
         .poll(() => reactGrab.getClipboardContent(), { timeout: 5000 })
         .toMatch(/[\w-]+:\s*.+;/);
 
@@ -134,7 +134,7 @@ test.describe("Copy CSS", () => {
       await reactGrab.rightClickElement("[data-testid='submit-button']");
       await reactGrab.clickContextMenuItem("Copy CSS");
 
-      const firstContent = await expect
+      await expect
         .poll(() => reactGrab.getClipboardContent(), { timeout: 5000 })
         .toMatch(/[\w-]+:\s*.+;/);
 

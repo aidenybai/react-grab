@@ -1,9 +1,6 @@
 import type { Plugin } from "../../types.js";
+import { appendStackContext } from "../../utils/append-stack-context.js";
 import { copyContent } from "../../utils/copy-content.js";
-import {
-  formatSourceAnnotation,
-  appendSourceAnnotation,
-} from "../../utils/format-source-annotation.js";
 
 export const copyHtmlPlugin: Plugin = {
   name: "copy-html",
@@ -17,18 +14,11 @@ export const copyHtmlPlugin: Plugin = {
           isPendingSelection = false;
           void Promise.all([
             hooks.transformHtmlContent(element.outerHTML, [element]),
-            api.getSource(element),
+            api.getStackContext(element),
           ])
-            .then(([transformedHtml, sourceInfo]) => {
+            .then(([transformedHtml, stackContext]) => {
               if (!transformedHtml) return;
-              const annotation = formatSourceAnnotation(
-                sourceInfo?.componentName,
-                sourceInfo?.filePath,
-                sourceInfo?.lineNumber,
-              );
-              copyContent(appendSourceAnnotation(transformedHtml, annotation), {
-                componentName: sourceInfo?.componentName ?? undefined,
-              });
+              copyContent(appendStackContext(transformedHtml, stackContext));
             })
             // HACK: Best-effort copy from element select; failure is non-critical
             .catch(() => {});
@@ -58,13 +48,9 @@ export const copyHtmlPlugin: Plugin = {
 
               if (!transformedHtml) return false;
 
-              const annotation = formatSourceAnnotation(
-                context.componentName,
-                context.filePath,
-                context.lineNumber,
-              );
+              const stackContext = await api.getStackContext(context.element);
               return copyContent(
-                appendSourceAnnotation(transformedHtml, annotation),
+                appendStackContext(transformedHtml, stackContext),
                 {
                   componentName: context.componentName,
                   tagName: context.tagName,

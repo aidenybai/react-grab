@@ -375,7 +375,7 @@ export const getComponentDisplayName = (element: Element): string | null => {
   return null;
 };
 
-interface GetElementContextOptions {
+interface StackContextOptions {
   maxLines?: number;
 }
 
@@ -413,67 +413,85 @@ const getComponentNamesFromFiber = (
   return componentNames;
 };
 
-export const getElementContext = async (
-  element: Element,
-  options: GetElementContextOptions = {},
-): Promise<string> => {
+export const formatStackContext = (
+  stack: StackFrame[],
+  options: StackContextOptions = {},
+): string => {
   const { maxLines = 3 } = options;
-  const stack = await getStack(element);
-  const html = getHTMLPreview(element);
+  const isNextProject = checkIsNextProject();
+  const stackContext: string[] = [];
 
-  if (stack && hasSourceFiles(stack)) {
-    const isNextProject = checkIsNextProject();
-    const stackContext: string[] = [];
+  for (const frame of stack) {
+    if (stackContext.length >= maxLines) break;
 
-    for (const frame of stack) {
-      if (stackContext.length >= maxLines) break;
+    const hasResolvedSource = frame.fileName && isSourceFile(frame.fileName);
 
-      const hasResolvedSource = frame.fileName && isSourceFile(frame.fileName);
-
-      if (
-        frame.isServer &&
-        !hasResolvedSource &&
-        (!frame.functionName || checkIsSourceComponentName(frame.functionName))
-      ) {
-        stackContext.push(
-          `\n  in ${frame.functionName || "<anonymous>"} (at Server)`,
-        );
-        continue;
-      }
-
-      if (hasResolvedSource) {
-        let line = "\n  in ";
-        const hasComponentName =
-          frame.functionName && checkIsSourceComponentName(frame.functionName);
-
-        if (hasComponentName) {
-          line += `${frame.functionName} (at `;
-        }
-
-        line += normalizeFileName(frame.fileName!);
-
-        // HACK: bundlers like vite mess up the line/column numbers, so we don't show them
-        if (isNextProject && frame.lineNumber && frame.columnNumber) {
-          line += `:${frame.lineNumber}:${frame.columnNumber}`;
-        }
-
-        if (hasComponentName) {
-          line += `)`;
-        }
-
-        stackContext.push(line);
-      }
+    if (
+      frame.isServer &&
+      !hasResolvedSource &&
+      (!frame.functionName || checkIsSourceComponentName(frame.functionName))
+    ) {
+      stackContext.push(
+        `\n  in ${frame.functionName || "<anonymous>"} (at Server)`,
+      );
+      continue;
     }
 
-    return `${html}${stackContext.join("")}`;
+    if (hasResolvedSource) {
+      let line = "\n  in ";
+      const hasComponentName =
+        frame.functionName && checkIsSourceComponentName(frame.functionName);
+
+      if (hasComponentName) {
+        line += `${frame.functionName} (at `;
+      }
+
+      line += normalizeFileName(frame.fileName!);
+
+      // HACK: bundlers like vite mess up the line/column numbers, so we don't show them
+      if (isNextProject && frame.lineNumber && frame.columnNumber) {
+        line += `:${frame.lineNumber}:${frame.columnNumber}`;
+      }
+
+      if (hasComponentName) {
+        line += `)`;
+      }
+
+      stackContext.push(line);
+    }
+  }
+
+  return stackContext.join("");
+};
+
+export const getStackContext = async (
+  element: Element,
+  options: StackContextOptions = {},
+): Promise<string> => {
+  const maxLines = options.maxLines ?? 3;
+  const stack = await getStack(element);
+
+  if (stack && hasSourceFiles(stack)) {
+    return formatStackContext(stack, options);
   }
 
   const componentNames = getComponentNamesFromFiber(element, maxLines);
   if (componentNames.length > 0) {
-    const componentContext = componentNames
-      .map((name) => `\n  in ${name}`)
-      .join("");
-    return `${html}${componentContext}`;
+    return componentNames.map((name) => `\n  in ${name}`).join("");
+  }
+
+  return "";
+};
+
+export const getElementContext = async (
+  element: Element,
+  options: StackContextOptions = {},
+): Promise<string> => {
+  const html = getHTMLPreview(element);
+  const stackContext = await getStackContext(element, options);
+
+  if (stackContext) {
+    return `${html}${stackContext}`;
   }
 
   return getFallbackContext(element);

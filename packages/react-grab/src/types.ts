@@ -408,6 +408,7 @@ export interface ReactGrabAPI {
   dispose: () => void;
   copyElement: (elements: Element | Element[]) => Promise<boolean>;
   getSource: (element: Element) => Promise<SourceInfo | null>;
+  getStackContext: (element: Element) => Promise<string>;
   getState: () => ReactGrabState;
   setOptions: (options: SettableOptions) => void;
   registerPlugin: (plugin: Plugin) => void;

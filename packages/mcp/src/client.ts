@@ -48,9 +48,7 @@ declare global {
 
 const MCP_REACHABLE_KEY = "react-grab-mcp-reachable";
 
-const checkIfMcpServerIsReachable = async (
-  port: number,
-): Promise<boolean> => {
+const checkIfMcpServerIsReachable = async (port: number): Promise<boolean> => {
   const cached = sessionStorage.getItem(MCP_REACHABLE_KEY);
   if (cached !== null) return cached === "true";
 
