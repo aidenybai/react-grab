@@ -212,11 +212,6 @@ export type ActivationMode = "toggle" | "hold";
 
 export interface ActionContextHooks {
   transformHtmlContent: (html: string, elements: Element[]) => Promise<string>;
-  transformScreenshot: (
-    blob: Blob,
-    elements: Element[],
-    bounds: ScreenshotBounds,
-  ) => Promise<Blob>;
   onOpenFile: (filePath: string, lineNumber?: number) => boolean | void;
   transformOpenFileUrl: (
     url: string,
@@ -236,8 +231,6 @@ export interface ActionContext {
   hooks: ActionContextHooks;
   performWithFeedback: (action: () => Promise<boolean>) => Promise<void>;
   hideContextMenu: () => void;
-  hideOverlay: () => void;
-  showOverlay: () => void;
   cleanup: () => void;
 }
 
@@ -271,13 +264,6 @@ export interface PerformWithFeedbackOptions {
   fallbackBounds?: OverlayBounds;
   fallbackSelectionBounds?: OverlayBounds[];
   position?: { x: number; y: number };
-}
-
-export interface ScreenshotBounds {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
 }
 
 export interface PluginHooks {
@@ -323,11 +309,6 @@ export interface PluginHooks {
     html: string,
     elements: Element[],
   ) => string | Promise<string>;
-  transformScreenshot?: (
-    blob: Blob,
-    elements: Element[],
-    bounds: ScreenshotBounds,
-  ) => Blob | Promise<Blob>;
   transformAgentContext?: (
     context: AgentContext,
     elements: Element[],

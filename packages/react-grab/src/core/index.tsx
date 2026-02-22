@@ -62,7 +62,6 @@ import {
   INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS,
   DEFAULT_KEY_HOLD_DURATION_MS,
   MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS,
-  SCREENSHOT_CAPTURE_DELAY_MS,
   ZOOM_DETECTION_THRESHOLD,
   ACTION_CYCLE_IDLE_TRIGGER_MS,
   WINDOW_REFOCUS_GRACE_PERIOD_MS,
@@ -77,12 +76,7 @@ import { isTargetKeyCombination } from "../utils/is-target-key-combination.js";
 import { parseActivationKey } from "../utils/parse-activation-key.js";
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
 import { openFile } from "../utils/open-file.js";
-import {
-  captureElementScreenshot,
-  copyImageToClipboard,
-  combineBounds,
-} from "../utils/capture-screenshot.js";
-import { isScreenshotSupported } from "../utils/is-screenshot-supported.js";
+import { combineBounds } from "../utils/combine-bounds.js";
 import { delay } from "../utils/delay.js";
 import {
   resolveActionEnabled,
@@ -131,7 +125,6 @@ import { copyPlugin } from "./plugins/copy.js";
 import { commentPlugin } from "./plugins/comment.js";
 import { openPlugin } from "./plugins/open.js";
 import { copyHtmlPlugin } from "./plugins/copy-html.js";
-import { screenshotPlugin } from "./plugins/screenshot.js";
 import {
   freezeAnimations,
   freezeAllAnimations,
@@ -156,7 +149,6 @@ const builtInPlugins = [
   copyPlugin,
   commentPlugin,
   copyHtmlPlugin,
-  screenshotPlugin,
   openPlugin,
 ];
 
@@ -488,7 +480,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let holdStartTimestamp: number | null = null;
     let copyWaitingForConfirmation = false;
     let holdTimerFiredWaitingForConfirmation = false;
-    let isScreenshotInProgress = false;
     let lastWindowFocusTimestamp = 0;
     let inToggleFeedbackPeriod = false;
     let toggleFeedbackTimerId: number | null = null;
@@ -2216,96 +2207,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return true;
     };
 
-    const handleScreenshotShortcut = (event: KeyboardEvent): boolean => {
-      if (!isScreenshotSupported()) return false;
-      if (store.contextMenuPosition !== null) return false;
-      if (event.key?.toLowerCase() !== "s" || isPromptMode()) return false;
-      if (!isActivated() || !(event.metaKey || event.ctrlKey)) return false;
-
-      const allBounds = frozenElementsBounds();
-      const singleBounds = selectionBounds();
-      const element = store.frozenElement || targetElement();
-      const bounds =
-        allBounds.length > 1 ? combineBounds(allBounds) : singleBounds;
-      if (!bounds) return false;
-
-      event.preventDefault();
-      event.stopPropagation();
-
-      const tagName = element ? getTagName(element) || "element" : "element";
-      const shouldDeactivate = store.wasActivatedByToggle;
-      const overlayBounds = createFlatOverlayBounds(bounds);
-      const selectionBoundsArray =
-        allBounds.length > 1 ? allBounds : singleBounds ? [singleBounds] : [];
-
-      const instanceId = createLabelInstance(
-        overlayBounds,
-        tagName,
-        undefined,
-        "copying",
-        {
-          element: element ?? undefined,
-          mouseX: bounds.x + bounds.width / 2,
-          boundsMultiple: selectionBoundsArray,
-        },
-      );
-
-      isScreenshotInProgress = true;
-      rendererRoot.style.visibility = "hidden";
-
-      const elementsForScreenshot =
-        store.frozenElements.length > 0
-          ? [...store.frozenElements]
-          : element
-            ? [element]
-            : [];
-
-      void (async () => {
-        await delay(SCREENSHOT_CAPTURE_DELAY_MS);
-
-        let didSucceed = false;
-        let errorMessage: string | undefined;
-
-        try {
-          const rawBlob = await captureElementScreenshot(bounds);
-          const transformedBlob =
-            await pluginRegistry.hooks.transformScreenshot(
-              rawBlob,
-              elementsForScreenshot,
-              bounds,
-            );
-          didSucceed = await copyImageToClipboard(transformedBlob);
-          if (!didSucceed) {
-            errorMessage = "Failed to copy";
-          }
-        } catch (error) {
-          errorMessage =
-            error instanceof Error && error.message
-              ? error.message
-              : "Screenshot failed";
-        }
-
-        isScreenshotInProgress = false;
-        rendererRoot.style.visibility = "";
-
-        actions.updateLabelInstance(
-          instanceId,
-          didSucceed ? "copied" : "error",
-          didSucceed ? undefined : errorMessage || "Unknown error",
-        );
-
-        scheduleLabelFade(instanceId);
-
-        if (shouldDeactivate) {
-          deactivateRenderer();
-        } else {
-          actions.unfreeze();
-        }
-      })();
-
-      return true;
-    };
-
     const clearActionCycleIdleTimeout = () => {
       if (actionCycleIdleTimeoutId !== null) {
         window.clearTimeout(actionCycleIdleTimeoutId);
@@ -2660,7 +2561,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (handleArrowNavigation(event)) return;
         if (handleEnterKeyActivation(event)) return;
         if (handleOpenFileShortcut(event)) return;
-        if (handleScreenshotShortcut(event)) return;
 
         if (!didWindowJustRegainFocus) {
           handleActivationKeys(event);
@@ -2931,7 +2831,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (
           isActivated() &&
           !isPromptMode() &&
-          !isScreenshotInProgress &&
           storeActivationTimestamp !== null &&
           Date.now() - storeActivationTimestamp > BLUR_DEACTIVATION_THRESHOLD_MS
         ) {
@@ -3473,7 +3372,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         copy: copyAction,
         hooks: {
           transformHtmlContent: pluginRegistry.hooks.transformHtmlContent,
-          transformScreenshot: pluginRegistry.hooks.transformScreenshot,
           onOpenFile: pluginRegistry.hooks.onOpenFile,
           transformOpenFileUrl: pluginRegistry.hooks.transformOpenFileUrl,
         },
@@ -3485,14 +3383,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           performWithFeedbackOptions,
         ),
         hideContextMenu: hideContextMenuAction,
-        hideOverlay: () => {
-          isScreenshotInProgress = true;
-          rendererRoot.style.visibility = "hidden";
-        },
-        showOverlay: () => {
-          isScreenshotInProgress = false;
-          rendererRoot.style.visibility = "";
-        },
         cleanup: () => {
           if (store.wasActivatedByToggle) {
             deactivateRenderer();

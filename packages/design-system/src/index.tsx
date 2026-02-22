@@ -2694,12 +2694,6 @@ const StateCard = (props: StateCardProps) => {
                   shortcut: "C",
                   onAction: () => {},
                 },
-                {
-                  id: "screenshot",
-                  label: "Screenshot",
-                  shortcut: "S",
-                  onAction: () => {},
-                },
                 { id: "copy-html", label: "Copy HTML", onAction: () => {} },
                 {
                   id: "open",

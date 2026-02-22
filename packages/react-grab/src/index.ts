@@ -8,13 +8,6 @@ export {
 export { commentPlugin } from "./core/plugins/comment.js";
 export { openPlugin } from "./core/plugins/open.js";
 export { generateSnippet } from "./utils/generate-snippet.js";
-export {
-  captureElementScreenshot,
-  copyImageToClipboard,
-  combineBounds,
-} from "./utils/capture-screenshot.js";
-export type { ElementBounds } from "./utils/capture-screenshot.js";
-export { isScreenshotSupported } from "./utils/is-screenshot-supported.js";
 export type {
   Options,
   ReactGrabAPI,

@@ -20,7 +20,6 @@ import type {
   SettableOptions,
   AgentContext,
   ActionContext,
-  ScreenshotBounds,
 } from "../types.js";
 import { DEFAULT_THEME, deepMergeTheme } from "./theme.js";
 import { DEFAULT_KEY_HOLD_DURATION_MS } from "../constants.js";
@@ -327,11 +326,6 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       callHookWithHandled("onOpenFile", filePath, lineNumber),
     transformHtmlContent: async (html: string, elements: Element[]) =>
       callHookReduce("transformHtmlContent", html, elements),
-    transformScreenshot: async (
-      blob: Blob,
-      elements: Element[],
-      bounds: ScreenshotBounds,
-    ) => callHookReduce("transformScreenshot", blob, elements, bounds),
     transformAgentContext: async (context: AgentContext, elements: Element[]) =>
       callHookReduce("transformAgentContext", context, elements),
     transformActionContext: (context: ActionContext) =>
