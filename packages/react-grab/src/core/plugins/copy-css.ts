@@ -1,13 +1,17 @@
 import type { Plugin } from "../../types.js";
 import { copyContent } from "../../utils/copy-content.js";
 import {
+  extractElementCss,
+  disposeBaselineStyles,
+} from "../../utils/extract-element-css.js";
+import {
   formatSourceAnnotation,
   appendSourceAnnotation,
 } from "../../utils/format-source-annotation.js";
 
-export const copyHtmlPlugin: Plugin = {
-  name: "copy-html",
-  setup: (api, hooks) => {
+export const copyCssPlugin: Plugin = {
+  name: "copy-css",
+  setup: (api) => {
     let isPendingSelection = false;
 
     return {
@@ -15,18 +19,16 @@ export const copyHtmlPlugin: Plugin = {
         onElementSelect: (element) => {
           if (!isPendingSelection) return;
           isPendingSelection = false;
-          void Promise.all([
-            hooks.transformHtmlContent(element.outerHTML, [element]),
-            api.getSource(element),
-          ])
-            .then(([transformedHtml, sourceInfo]) => {
-              if (!transformedHtml) return;
+          const extractedCss = extractElementCss(element);
+          void api
+            .getSource(element)
+            .then((sourceInfo) => {
               const annotation = formatSourceAnnotation(
                 sourceInfo?.componentName,
                 sourceInfo?.filePath,
                 sourceInfo?.lineNumber,
               );
-              copyContent(appendSourceAnnotation(transformedHtml, annotation), {
+              copyContent(appendSourceAnnotation(extractedCss, annotation), {
                 componentName: sourceInfo?.componentName ?? undefined,
               });
             })
@@ -43,20 +45,13 @@ export const copyHtmlPlugin: Plugin = {
       },
       actions: [
         {
-          id: "copy-html",
-          label: "Copy HTML",
+          id: "copy-css",
+          label: "Copy CSS",
           onAction: async (context) => {
             await context.performWithFeedback(async () => {
-              const combinedHtml = context.elements
-                .map((element) => element.outerHTML)
+              const combinedCss = context.elements
+                .map(extractElementCss)
                 .join("\n\n");
-
-              const transformedHtml = await context.hooks.transformHtmlContent(
-                combinedHtml,
-                context.elements,
-              );
-
-              if (!transformedHtml) return false;
 
               const annotation = formatSourceAnnotation(
                 context.componentName,
@@ -64,7 +59,7 @@ export const copyHtmlPlugin: Plugin = {
                 context.lineNumber,
               );
               return copyContent(
-                appendSourceAnnotation(transformedHtml, annotation),
+                appendSourceAnnotation(combinedCss, annotation),
                 {
                   componentName: context.componentName,
                   tagName: context.tagName,
@@ -74,8 +69,8 @@ export const copyHtmlPlugin: Plugin = {
           },
         },
         {
-          id: "copy-html-toolbar",
-          label: "Copy HTML",
+          id: "copy-css-toolbar",
+          label: "Copy CSS",
           target: "toolbar",
           onAction: () => {
             isPendingSelection = true;
@@ -83,6 +78,7 @@ export const copyHtmlPlugin: Plugin = {
           },
         },
       ],
+      cleanup: disposeBaselineStyles,
     };
   },
 };
