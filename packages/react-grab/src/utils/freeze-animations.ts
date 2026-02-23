@@ -46,9 +46,8 @@ let globalAnimationStyleElement: HTMLStyleElement | null = null;
  *
  * 2. Direct GSAP instance pause (handles case where GSAP loads BEFORE react-grab):
  *    If GSAP captured the original native rAF before our wrapper was installed,
- *    the rAF wrapper is bypassed entirely. To handle this, we detect GSAP
- *    instances at freeze time via `window.gsap` (UMD/IIFE builds) or a manually
- *    registered instance (ESM builds), then call `ticker.sleep()` and
+ *    the rAF wrapper is bypassed entirely. To handle this, we detect the GSAP
+ *    instance at freeze time via `window.gsap` and call `ticker.sleep()` and
  *    `globalTimeline.pause()` directly.
  *
  * Callbacks are tagged in WeakSets after the first stack check so the `Error()`
@@ -60,7 +59,6 @@ interface GsapLikeInstance {
   globalTimeline?: { pause: () => void; resume: () => void };
 }
 
-let registeredGsapInstance: GsapLikeInstance | null = null;
 let frozenGsapInstance: GsapLikeInstance | null = null;
 
 const hasMethod = (target: unknown, methodName: string): boolean =>
@@ -78,17 +76,10 @@ const isGsapLikeObject = (value: unknown): value is GsapLikeInstance => {
 };
 
 const findGsapInstance = (): GsapLikeInstance | null => {
-  if (registeredGsapInstance) return registeredGsapInstance;
   if (typeof window === "undefined") return null;
 
   const globalGsap = (window as unknown as Record<string, unknown>).gsap;
   return isGsapLikeObject(globalGsap) ? globalGsap : null;
-};
-
-export const registerGsap = (gsapInstance: unknown): void => {
-  if (isGsapLikeObject(gsapInstance)) {
-    registeredGsapInstance = gsapInstance;
-  }
 };
 
 let isRafFrozen = false;

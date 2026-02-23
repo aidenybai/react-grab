@@ -598,32 +598,5 @@ test.describe("Freeze Animations", () => {
 
       expect(tickCountLater).toBeGreaterThan(tickCountAfterUnfreeze);
     });
-
-    test("should freeze registered GSAP instance (ESM builds without window.gsap)", async ({
-      page,
-    }) => {
-      await injectFakeGsapTickLoop(page, {
-        windowKey: "__ESM_GSAP_INSTANCE__",
-        restartOnWake: true,
-      });
-      await navigateAndWaitForReactGrab(page);
-
-      await page.evaluate(() => {
-        const api = (window as unknown as Record<string, unknown>)
-          .__REACT_GRAB__ as { registerGsap: (instance: unknown) => void };
-        const gsapInstance = (window as unknown as Record<string, unknown>)
-          .__ESM_GSAP_INSTANCE__;
-        api.registerGsap(gsapInstance);
-      });
-
-      await activateViaApi(page);
-      await page.waitForTimeout(200);
-
-      const tickCountAtFreeze = await getTickCount(page);
-      await page.waitForTimeout(300);
-      const tickCountAfterWaiting = await getTickCount(page);
-
-      expect(tickCountAfterWaiting).toBe(tickCountAtFreeze);
-    });
   });
 });

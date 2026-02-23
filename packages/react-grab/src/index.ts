@@ -8,7 +8,6 @@ export {
 export { commentPlugin } from "./core/plugins/comment.js";
 export { openPlugin } from "./core/plugins/open.js";
 export { generateSnippet } from "./utils/generate-snippet.js";
-export { registerGsap } from "./utils/freeze-animations.js";
 export type {
   Options,
   ReactGrabAPI,
