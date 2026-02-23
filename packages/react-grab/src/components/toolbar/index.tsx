@@ -889,9 +889,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               : expandableButtonsRef.getBoundingClientRect().width;
             setPosition(computeClampedPosition(currentExpandDimension));
           }
-          toggleAnimationRafId = nativeRequestAnimationFrame(syncPositionWithGrid);
+          toggleAnimationRafId =
+            nativeRequestAnimationFrame(syncPositionWithGrid);
         };
-        toggleAnimationRafId = nativeRequestAnimationFrame(syncPositionWithGrid);
+        toggleAnimationRafId =
+          nativeRequestAnimationFrame(syncPositionWithGrid);
       }
 
       clearTimeout(toggleAnimationTimeout);

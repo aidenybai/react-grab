@@ -318,4 +318,144 @@ test.describe("Freeze Animations", () => {
       expect(hasFreezeStyle).toBe(false);
     });
   });
+
+  test.describe("rAF Interception", () => {
+    test("should wrap window.requestAnimationFrame and cancelAnimationFrame", async ({
+      reactGrab,
+    }) => {
+      const isWrapped = await reactGrab.page.evaluate(() => {
+        const rafSource = window.requestAnimationFrame.toString();
+        const cafSource = window.cancelAnimationFrame.toString();
+        return (
+          !rafSource.includes("[native code]") &&
+          !cafSource.includes("[native code]")
+        );
+      });
+      expect(isWrapped).toBe(true);
+    });
+
+    test("should execute non-animation rAF callbacks during freeze", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+      await reactGrab.page.waitForTimeout(100);
+
+      const didCallbackExecute = await reactGrab.page.evaluate(() => {
+        return new Promise<boolean>((resolve) => {
+          window.requestAnimationFrame(() => resolve(true));
+          setTimeout(() => resolve(false), 1000);
+        });
+      });
+
+      expect(didCallbackExecute).toBe(true);
+    });
+
+    test("should hold animation library callbacks during freeze", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+      await reactGrab.page.waitForTimeout(100);
+
+      const wasCallbackHeld = await reactGrab.page.evaluate(() => {
+        return new Promise<boolean>((resolve) => {
+          // HACK: function named _tick simulates GSAP's internal tick,
+          // detected via stack trace inspection in the rAF wrapper
+          const _tick = () => {
+            let didExecute = false;
+            window.requestAnimationFrame(() => {
+              didExecute = true;
+            });
+            setTimeout(() => resolve(!didExecute), 200);
+          };
+          _tick();
+        });
+      });
+
+      expect(wasCallbackHeld).toBe(true);
+    });
+
+    test("should release held callbacks after unfreeze", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+      await reactGrab.page.waitForTimeout(100);
+
+      await reactGrab.page.evaluate(() => {
+        (window as unknown as Record<string, boolean>).__GSAP_TEST_FLAG__ =
+          false;
+        // HACK: function named _tick simulates GSAP's internal tick,
+        // detected via stack trace inspection in the rAF wrapper
+        const _tick = () => {
+          window.requestAnimationFrame(() => {
+            (window as unknown as Record<string, boolean>).__GSAP_TEST_FLAG__ =
+              true;
+          });
+        };
+        _tick();
+      });
+
+      await reactGrab.page.waitForTimeout(100);
+      const wasHeldDuringFreeze = await reactGrab.page.evaluate(
+        () =>
+          !(window as unknown as Record<string, boolean>).__GSAP_TEST_FLAG__,
+      );
+      expect(wasHeldDuringFreeze).toBe(true);
+
+      await reactGrab.deactivate();
+      await reactGrab.page.waitForTimeout(200);
+
+      const wasReleasedAfterUnfreeze = await reactGrab.page.evaluate(
+        () => (window as unknown as Record<string, boolean>).__GSAP_TEST_FLAG__,
+      );
+      expect(wasReleasedAfterUnfreeze).toBe(true);
+    });
+
+    test("should cancel held callbacks via cancelAnimationFrame", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+      await reactGrab.page.waitForTimeout(100);
+
+      const wasCancelledWhileHeld = await reactGrab.page.evaluate(() => {
+        return new Promise<boolean>((resolve) => {
+          let frameIdentifier: number;
+          // HACK: function named _tick simulates GSAP's internal tick,
+          // detected via stack trace inspection in the rAF wrapper
+          const _tick = () => {
+            frameIdentifier = window.requestAnimationFrame(() => {
+              resolve(false);
+            });
+          };
+          _tick();
+          window.cancelAnimationFrame(frameIdentifier!);
+          setTimeout(() => resolve(true), 200);
+        });
+      });
+
+      expect(wasCancelledWhileHeld).toBe(true);
+    });
+
+    test("should not intercept callbacks after unfreeze", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+      await reactGrab.page.waitForTimeout(100);
+      await reactGrab.deactivate();
+      await reactGrab.page.waitForTimeout(100);
+
+      const didCallbackExecuteNormally = await reactGrab.page.evaluate(() => {
+        return new Promise<boolean>((resolve) => {
+          // HACK: function named _tick simulates GSAP's internal tick,
+          // detected via stack trace inspection in the rAF wrapper
+          const _tick = () => {
+            window.requestAnimationFrame(() => resolve(true));
+          };
+          _tick();
+          setTimeout(() => resolve(false), 1000);
+        });
+      });
+
+      expect(didCallbackExecuteNormally).toBe(true);
+    });
+  });
 });
