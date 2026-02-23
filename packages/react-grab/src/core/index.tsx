@@ -136,6 +136,7 @@ import {
   freezeAllAnimations,
   freezeGlobalAnimations,
   unfreezeGlobalAnimations,
+  registerGsap,
 } from "../utils/freeze-animations.js";
 import {
   freezePseudoStates,
@@ -4192,6 +4193,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
       getPlugins: () => pluginRegistry.getPluginNames(),
       getDisplayName: getComponentDisplayName,
+      registerGsap,
     };
 
     for (const plugin of builtInPlugins) {

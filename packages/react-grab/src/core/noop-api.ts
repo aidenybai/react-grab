@@ -40,5 +40,6 @@ export const createNoopApi = (): ReactGrabAPI => {
     unregisterPlugin: () => {},
     getPlugins: () => [],
     getDisplayName: () => null,
+    registerGsap: () => {},
   };
 };

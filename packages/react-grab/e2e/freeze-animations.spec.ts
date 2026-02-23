@@ -1,6 +1,103 @@
+import type { Page } from "@playwright/test";
 import { test, expect } from "./fixtures.js";
 
 const ATTRIBUTE_NAME = "data-react-grab";
+
+interface FakeGsapTickLoopConfig {
+  windowKey: string;
+  restartOnWake: boolean;
+}
+
+const injectFakeGsapTickLoop = async (
+  page: Page,
+  config: FakeGsapTickLoopConfig,
+): Promise<void> => {
+  await page.addInitScript(
+    ({
+      windowKey,
+      restartOnWake,
+    }: {
+      windowKey: string;
+      restartOnWake: boolean;
+    }) => {
+      const nativeRaf = window.requestAnimationFrame.bind(window);
+      let tickerRunning = true;
+      let tickLoopId: number | null = null;
+
+      const incrementTickCount = (): void => {
+        (window as unknown as Record<string, number>).__GSAP_TICK_COUNT__ =
+          ((window as unknown as Record<string, number>).__GSAP_TICK_COUNT__ ??
+            0) + 1;
+      };
+
+      // HACK: function named _tick simulates GSAP's internal tick,
+      // detected via stack trace inspection in the rAF wrapper
+      const runTickLoop = (): void => {
+        const _tick = (): void => {
+          if (!tickerRunning) return;
+          incrementTickCount();
+          tickLoopId = nativeRaf(_tick);
+        };
+        tickLoopId = nativeRaf(_tick);
+      };
+
+      const fakeGsap = {
+        ticker: {
+          sleep: () => {
+            tickerRunning = false;
+            if (tickLoopId !== null) {
+              window.cancelAnimationFrame(tickLoopId);
+              tickLoopId = null;
+            }
+          },
+          wake: () => {
+            tickerRunning = true;
+            if (restartOnWake && tickLoopId === null) {
+              runTickLoop();
+            }
+          },
+        },
+        globalTimeline: {
+          pause: () => {},
+          resume: () => {},
+        },
+      };
+
+      (window as unknown as Record<string, unknown>)[windowKey] = fakeGsap;
+      runTickLoop();
+    },
+    config,
+  );
+};
+
+const navigateAndWaitForReactGrab = async (page: Page): Promise<void> => {
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(
+    () =>
+      (window as { __REACT_GRAB__?: unknown }).__REACT_GRAB__ !== undefined,
+    { timeout: 10000 },
+  );
+};
+
+const getTickCount = (page: Page): Promise<number> =>
+  page.evaluate(
+    () =>
+      (window as unknown as Record<string, number>).__GSAP_TICK_COUNT__ ?? 0,
+  );
+
+const activateViaApi = (page: Page): Promise<void> =>
+  page.evaluate(() => {
+    (
+      window as unknown as { __REACT_GRAB__: { activate: () => void } }
+    ).__REACT_GRAB__.activate();
+  });
+
+const deactivateViaApi = (page: Page): Promise<void> =>
+  page.evaluate(() => {
+    (
+      window as unknown as { __REACT_GRAB__: { deactivate: () => void } }
+    ).__REACT_GRAB__.deactivate();
+  });
 
 test.describe("Freeze Animations", () => {
   test.describe("Page Animation Freezing", () => {
@@ -456,6 +553,77 @@ test.describe("Freeze Animations", () => {
       });
 
       expect(didCallbackExecuteNormally).toBe(true);
+    });
+  });
+
+  test.describe("GSAP Late-Load Interception", () => {
+    test("should freeze GSAP via direct instance pause when GSAP loaded before react-grab", async ({
+      page,
+    }) => {
+      await injectFakeGsapTickLoop(page, {
+        windowKey: "gsap",
+        restartOnWake: false,
+      });
+      await navigateAndWaitForReactGrab(page);
+
+      const tickCountBeforeFreeze = await getTickCount(page);
+      expect(tickCountBeforeFreeze).toBeGreaterThan(0);
+
+      await activateViaApi(page);
+      await page.waitForTimeout(200);
+
+      const tickCountAtFreeze = await getTickCount(page);
+      await page.waitForTimeout(300);
+      const tickCountAfterWaiting = await getTickCount(page);
+
+      expect(tickCountAfterWaiting).toBe(tickCountAtFreeze);
+    });
+
+    test("should resume GSAP tick loop after unfreeze", async ({ page }) => {
+      await injectFakeGsapTickLoop(page, {
+        windowKey: "gsap",
+        restartOnWake: true,
+      });
+      await navigateAndWaitForReactGrab(page);
+
+      await activateViaApi(page);
+      await page.waitForTimeout(200);
+
+      await deactivateViaApi(page);
+      await page.waitForTimeout(100);
+
+      const tickCountAfterUnfreeze = await getTickCount(page);
+      await page.waitForTimeout(300);
+      const tickCountLater = await getTickCount(page);
+
+      expect(tickCountLater).toBeGreaterThan(tickCountAfterUnfreeze);
+    });
+
+    test("should freeze registered GSAP instance (ESM builds without window.gsap)", async ({
+      page,
+    }) => {
+      await injectFakeGsapTickLoop(page, {
+        windowKey: "__ESM_GSAP_INSTANCE__",
+        restartOnWake: true,
+      });
+      await navigateAndWaitForReactGrab(page);
+
+      await page.evaluate(() => {
+        const api = (window as unknown as Record<string, unknown>)
+          .__REACT_GRAB__ as { registerGsap: (instance: unknown) => void };
+        const gsapInstance = (window as unknown as Record<string, unknown>)
+          .__ESM_GSAP_INSTANCE__;
+        api.registerGsap(gsapInstance);
+      });
+
+      await activateViaApi(page);
+      await page.waitForTimeout(200);
+
+      const tickCountAtFreeze = await getTickCount(page);
+      await page.waitForTimeout(300);
+      const tickCountAfterWaiting = await getTickCount(page);
+
+      expect(tickCountAfterWaiting).toBe(tickCountAtFreeze);
     });
   });
 });

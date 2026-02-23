@@ -34,25 +34,62 @@ let globalAnimationStyleElement: HTMLStyleElement | null = null;
  *
  * GSAP drives its entire animation engine through a single internal `_tick`
  * function scheduled via requestAnimationFrame. Unlike CSS animations (which we
- * freeze with `animation-play-state: paused`), GSAP has no CSS-level pause.
+ * freeze with `animation-play-state: paused`), GSAP has no CSS-level pause —
  * it must be stopped at the rAF scheduling layer.
  *
- * We can't use `gsap.globalTimeline.pause()` because GSAP's ES module build
- * never sets `window.gsap` (its internal `_installScope = {}` is truthy, so
- * the `||` chain short-circuits before reaching `window`), and there's no
- * reliable way to obtain the gsap instance without user registration.
+ * Two complementary strategies are used:
  *
- * Instead, we wrap `window.requestAnimationFrame` at module load time, before
- * GSAP initializes, so GSAP captures our wrapper into its internal `_raf`
- * variable. When a freeze is active, we check the call stack for GSAP's `_tick`
- * function name (which survives bundling/minification) and hold those callbacks
- * in a pending map instead of forwarding them to the native rAF. Non-GSAP rAF
- * calls (including react-grab's own UI, which uses `nativeRequestAnimationFrame`
- * from native-raf.ts) pass through unaffected.
+ * 1. rAF wrapper (handles case where react-grab loads BEFORE GSAP):
+ *    We wrap `window.requestAnimationFrame` at module load time so GSAP captures
+ *    our wrapper into its internal `_raf` variable. When frozen, we check the
+ *    call stack for GSAP's `_tick` function name and hold those callbacks.
+ *
+ * 2. Direct GSAP instance pause (handles case where GSAP loads BEFORE react-grab):
+ *    If GSAP captured the original native rAF before our wrapper was installed,
+ *    the rAF wrapper is bypassed entirely. To handle this, we detect GSAP
+ *    instances at freeze time via `window.gsap` (UMD/IIFE builds) or a manually
+ *    registered instance (ESM builds), then call `ticker.sleep()` and
+ *    `globalTimeline.pause()` directly.
  *
  * Callbacks are tagged in WeakSets after the first stack check so the `Error()`
  * cost is paid only once per unique function reference.
  */
+
+interface GsapLikeInstance {
+  ticker?: { sleep: () => void; wake: () => void };
+  globalTimeline?: { pause: () => void; resume: () => void };
+}
+
+let registeredGsapInstance: GsapLikeInstance | null = null;
+let frozenGsapInstance: GsapLikeInstance | null = null;
+
+const hasMethod = (target: unknown, methodName: string): boolean =>
+  typeof target === "object" &&
+  target !== null &&
+  typeof (target as Record<string, unknown>)[methodName] === "function";
+
+const isGsapLikeObject = (value: unknown): value is GsapLikeInstance => {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    hasMethod(candidate.ticker, "sleep") &&
+    hasMethod(candidate.globalTimeline, "pause")
+  );
+};
+
+const findGsapInstance = (): GsapLikeInstance | null => {
+  if (registeredGsapInstance) return registeredGsapInstance;
+  if (typeof window === "undefined") return null;
+
+  const globalGsap = (window as unknown as Record<string, unknown>).gsap;
+  return isGsapLikeObject(globalGsap) ? globalGsap : null;
+};
+
+export const registerGsap = (gsapInstance: unknown): void => {
+  if (isGsapLikeObject(gsapInstance)) {
+    registeredGsapInstance = gsapInstance;
+  }
+};
 
 let isRafFrozen = false;
 const pendingRafCallbacks = new Map<number, FrameRequestCallback>();
@@ -102,11 +139,24 @@ const freezeRequestAnimationFrame = (): void => {
   isRafFrozen = true;
   pendingRafCallbacks.clear();
   nextFakeRafId = -1;
+
+  const gsapInstance = findGsapInstance();
+  if (gsapInstance) {
+    gsapInstance.ticker?.sleep();
+    gsapInstance.globalTimeline?.pause();
+    frozenGsapInstance = gsapInstance;
+  }
 };
 
 const unfreezeRequestAnimationFrame = (): void => {
   if (!isRafFrozen) return;
   isRafFrozen = false;
+
+  if (frozenGsapInstance) {
+    frozenGsapInstance.globalTimeline?.resume();
+    frozenGsapInstance.ticker?.wake();
+    frozenGsapInstance = null;
+  }
 
   for (const callback of pendingRafCallbacks.values()) {
     nativeRequestAnimationFrame(callback);
