@@ -21,6 +21,10 @@ import { cn } from "../utils/cn.js";
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
 import { isKeyboardEventTriggeredByInput } from "../utils/is-keyboard-event-triggered-by-input.js";
 import { DiscardPrompt } from "./selection-label/discard-prompt.js";
+import {
+  nativeCancelAnimationFrame,
+  nativeRequestAnimationFrame,
+} from "../utils/native-raf.js";
 
 interface ClearHistoryPromptProps {
   position: DropdownAnchor | null;
@@ -57,16 +61,16 @@ export const ClearHistoryPrompt: Component<ClearHistoryPromptProps> = (
       clearTimeout(exitAnimationTimeout);
       setShouldMount(true);
       if (enterAnimationFrameId !== undefined)
-        cancelAnimationFrame(enterAnimationFrameId);
+        nativeCancelAnimationFrame(enterAnimationFrameId);
       // HACK: rAF measures then forces reflow so the browser commits the correct position before transitioning in
-      enterAnimationFrameId = requestAnimationFrame(() => {
+      enterAnimationFrameId = nativeRequestAnimationFrame(() => {
         measureContainer();
         void containerRef?.offsetHeight;
         setIsAnimatedIn(true);
       });
     } else {
       if (enterAnimationFrameId !== undefined)
-        cancelAnimationFrame(enterAnimationFrameId);
+        nativeCancelAnimationFrame(enterAnimationFrameId);
       setIsAnimatedIn(false);
       exitAnimationTimeout = setTimeout(() => {
         setShouldMount(false);
@@ -168,7 +172,7 @@ export const ClearHistoryPrompt: Component<ClearHistoryPromptProps> = (
     };
 
     // HACK: Delay mousedown listener to avoid catching the triggering click
-    const frameId = requestAnimationFrame(() => {
+    const frameId = nativeRequestAnimationFrame(() => {
       window.addEventListener("mousedown", handleClickOutside, {
         capture: true,
       });
@@ -178,10 +182,10 @@ export const ClearHistoryPrompt: Component<ClearHistoryPromptProps> = (
     });
 
     onCleanup(() => {
-      cancelAnimationFrame(frameId);
+      nativeCancelAnimationFrame(frameId);
       clearTimeout(exitAnimationTimeout);
       if (enterAnimationFrameId !== undefined)
-        cancelAnimationFrame(enterAnimationFrameId);
+        nativeCancelAnimationFrame(enterAnimationFrameId);
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
       window.removeEventListener("mousedown", handleClickOutside, {
         capture: true,

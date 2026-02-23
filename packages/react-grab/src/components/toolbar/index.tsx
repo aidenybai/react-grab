@@ -58,6 +58,10 @@ import {
   getMinDimensionClass,
   getHitboxConstraintClass,
 } from "../../utils/toolbar-layout.js";
+import {
+  nativeCancelAnimationFrame,
+  nativeRequestAnimationFrame,
+} from "../../utils/native-raf.js";
 
 interface ToolbarProps {
   isActive?: boolean;
@@ -401,8 +405,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       clampedX !== currentPos.x || clampedY !== currentPos.y;
     if (didPositionChange) {
       setIsCollapseAnimating(true);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
+      nativeRequestAnimationFrame(() => {
+        nativeRequestAnimationFrame(() => {
           setPosition({ x: clampedX, y: clampedY });
           if (collapseAnimationTimeout) {
             clearTimeout(collapseAnimationTimeout);
@@ -859,7 +863,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       };
 
       if (toggleAnimationRafId !== undefined) {
-        cancelAnimationFrame(toggleAnimationRafId);
+        nativeCancelAnimationFrame(toggleAnimationRafId);
       }
 
       if (isRapidRetoggle()) {
@@ -885,15 +889,15 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               : expandableButtonsRef.getBoundingClientRect().width;
             setPosition(computeClampedPosition(currentExpandDimension));
           }
-          toggleAnimationRafId = requestAnimationFrame(syncPositionWithGrid);
+          toggleAnimationRafId = nativeRequestAnimationFrame(syncPositionWithGrid);
         };
-        toggleAnimationRafId = requestAnimationFrame(syncPositionWithGrid);
+        toggleAnimationRafId = nativeRequestAnimationFrame(syncPositionWithGrid);
       }
 
       clearTimeout(toggleAnimationTimeout);
       toggleAnimationTimeout = setTimeout(() => {
         if (toggleAnimationRafId !== undefined) {
-          cancelAnimationFrame(toggleAnimationRafId);
+          nativeCancelAnimationFrame(toggleAnimationRafId);
           toggleAnimationRafId = undefined;
         }
         // HACK: Under heavy system load the rAF loop may not have run enough
@@ -1107,7 +1111,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     setPositionRatio(ratio);
     setIsSnapping(true);
 
-    requestAnimationFrame(() => {
+    nativeRequestAnimationFrame(() => {
       const postRenderRect = containerRef?.getBoundingClientRect();
       if (postRenderRect) {
         expandedDimensions = {
@@ -1116,7 +1120,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         };
       }
 
-      requestAnimationFrame(() => {
+      nativeRequestAnimationFrame(() => {
         const snappedPosition = getPositionFromEdgeAndRatio(
           snap.edge,
           ratio,
@@ -1408,7 +1412,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     clearTimeout(toggleAnimationTimeout);
     clearTimeout(historyItemCountTimeout);
     if (toggleAnimationRafId !== undefined) {
-      cancelAnimationFrame(toggleAnimationRafId);
+      nativeCancelAnimationFrame(toggleAnimationRafId);
     }
     unfreezeUpdatesCallback?.();
     safePolygonTracker.stop();

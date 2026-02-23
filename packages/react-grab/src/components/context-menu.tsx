@@ -21,6 +21,10 @@ import { formatShortcut } from "../utils/format-shortcut.js";
 import { getTagDisplay } from "../utils/get-tag-display.js";
 import { resolveActionEnabled } from "../utils/resolve-action-enabled.js";
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
+import {
+  nativeCancelAnimationFrame,
+  nativeRequestAnimationFrame,
+} from "../utils/native-raf.js";
 
 interface ContextMenuProps {
   position: { x: number; y: number } | null;
@@ -65,7 +69,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
 
   createEffect(() => {
     if (isVisible()) {
-      requestAnimationFrame(measureContainer);
+      nativeRequestAnimationFrame(measureContainer);
     }
   });
 
@@ -221,7 +225,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     };
 
     // HACK: Delay mousedown/touchstart listener to avoid catching the triggering right-click
-    const frameId = requestAnimationFrame(() => {
+    const frameId = nativeRequestAnimationFrame(() => {
       window.addEventListener("mousedown", handleClickOutside, {
         capture: true,
       });
@@ -232,7 +236,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     window.addEventListener("keydown", handleKeyDown, { capture: true });
 
     onCleanup(() => {
-      cancelAnimationFrame(frameId);
+      nativeCancelAnimationFrame(frameId);
       window.removeEventListener("mousedown", handleClickOutside, {
         capture: true,
       });

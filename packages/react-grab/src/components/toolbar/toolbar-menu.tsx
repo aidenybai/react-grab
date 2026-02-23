@@ -23,6 +23,10 @@ import { cn } from "../../utils/cn.js";
 import { formatShortcut } from "../../utils/format-shortcut.js";
 import { isEventFromOverlay } from "../../utils/is-event-from-overlay.js";
 import { resolveToolbarActionEnabled } from "../../utils/resolve-action-enabled.js";
+import {
+  nativeCancelAnimationFrame,
+  nativeRequestAnimationFrame,
+} from "../../utils/native-raf.js";
 
 interface ToolbarMenuProps {
   position: DropdownAnchor | null;
@@ -58,16 +62,16 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
       clearTimeout(exitAnimationTimeout);
       setShouldMount(true);
       if (enterAnimationFrameId !== undefined)
-        cancelAnimationFrame(enterAnimationFrameId);
+        nativeCancelAnimationFrame(enterAnimationFrameId);
       // HACK: rAF measures then forces reflow so the browser commits the correct position before transitioning in
-      enterAnimationFrameId = requestAnimationFrame(() => {
+      enterAnimationFrameId = nativeRequestAnimationFrame(() => {
         measureContainer();
         void containerRef?.offsetHeight;
         setIsAnimatedIn(true);
       });
     } else {
       if (enterAnimationFrameId !== undefined)
-        cancelAnimationFrame(enterAnimationFrameId);
+        nativeCancelAnimationFrame(enterAnimationFrameId);
       setIsAnimatedIn(false);
       exitAnimationTimeout = setTimeout(() => {
         setShouldMount(false);
@@ -172,7 +176,7 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
     };
 
     // HACK: Delay mousedown listener to avoid catching the triggering click
-    const frameId = requestAnimationFrame(() => {
+    const frameId = nativeRequestAnimationFrame(() => {
       window.addEventListener("mousedown", handleClickOutside, {
         capture: true,
       });
@@ -183,10 +187,10 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
     window.addEventListener("keydown", handleKeyDown, { capture: true });
 
     onCleanup(() => {
-      cancelAnimationFrame(frameId);
+      nativeCancelAnimationFrame(frameId);
       clearTimeout(exitAnimationTimeout);
       if (enterAnimationFrameId !== undefined)
-        cancelAnimationFrame(enterAnimationFrameId);
+        nativeCancelAnimationFrame(enterAnimationFrameId);
       window.removeEventListener("mousedown", handleClickOutside, {
         capture: true,
       });

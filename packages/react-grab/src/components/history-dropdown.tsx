@@ -30,6 +30,10 @@ import { IconTrash } from "./icons/icon-trash.jsx";
 import { IconCopy } from "./icons/icon-copy.jsx";
 import { IconCheck } from "./icons/icon-check.jsx";
 import { Tooltip } from "./tooltip.jsx";
+import {
+  nativeCancelAnimationFrame,
+  nativeRequestAnimationFrame,
+} from "../utils/native-raf.js";
 
 const ITEM_ACTION_CLASS =
   "flex items-center justify-center cursor-pointer text-black/25 transition-colors press-scale";
@@ -123,9 +127,9 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
       clearTimeout(exitAnimationTimeout);
       setShouldMount(true);
       if (enterAnimationFrameId !== undefined)
-        cancelAnimationFrame(enterAnimationFrameId);
+        nativeCancelAnimationFrame(enterAnimationFrameId);
       // HACK: rAF measures then forces reflow so the browser commits the correct position before transitioning in
-      enterAnimationFrameId = requestAnimationFrame(() => {
+      enterAnimationFrameId = nativeRequestAnimationFrame(() => {
         measureContainer();
         // HACK: Reading offsetHeight forces a synchronous reflow so the browser commits layout before the transition starts
         void containerRef?.offsetHeight;
@@ -133,7 +137,7 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
       });
     } else {
       if (enterAnimationFrameId !== undefined)
-        cancelAnimationFrame(enterAnimationFrameId);
+        nativeCancelAnimationFrame(enterAnimationFrameId);
       setIsAnimatedIn(false);
       exitAnimationTimeout = setTimeout(() => {
         setShouldMount(false);
@@ -247,7 +251,7 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
       clearTimeout(copyItemFeedbackTimeout);
       clearTimeout(exitAnimationTimeout);
       if (enterAnimationFrameId !== undefined)
-        cancelAnimationFrame(enterAnimationFrameId);
+        nativeCancelAnimationFrame(enterAnimationFrameId);
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
       safePolygonTracker.stop();
     });

@@ -88,6 +88,8 @@ export const ARROW_KEYS = new Set([
 ]);
 
 export const FROZEN_ELEMENT_ATTRIBUTE = "data-react-grab-frozen";
+export const GSAP_TICK_STACK_PATTERN = "_tick";
+
 export const USER_IGNORE_ATTRIBUTE = "data-react-grab-ignore";
 
 export const VIEWPORT_COVERAGE_THRESHOLD = 0.9;

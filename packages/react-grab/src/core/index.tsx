@@ -18,6 +18,11 @@ import {
   hasTextSelectionOnPage,
 } from "../utils/is-keyboard-event-triggered-by-input.js";
 import { mountRoot } from "../utils/mount-root.js";
+import {
+  nativeCancelAnimationFrame,
+  nativeRequestAnimationFrame,
+  waitUntilNextFrame,
+} from "../utils/native-raf.js";
 import { ReactGrabRenderer } from "../components/renderer.js";
 import {
   getStack,
@@ -909,7 +914,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           showTemporaryGrabbedBox(createElementBounds(element), element);
         }
       }
-      await new Promise((resolve) => requestAnimationFrame(resolve));
+      await waitUntilNextFrame();
       if (unhandledElements.length > 0) {
         await copyWithFallback(
           unhandledElements,
@@ -2924,7 +2929,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         boundsRecalcIntervalId = window.setInterval(() => {
           if (viewportChangeFrameId !== null) return;
 
-          viewportChangeFrameId = requestAnimationFrame(() => {
+          viewportChangeFrameId = nativeRequestAnimationFrame(() => {
             viewportChangeFrameId = null;
             actions.incrementViewportVersion();
             actions.updateSessionBounds();
@@ -2934,7 +2939,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         window.clearInterval(boundsRecalcIntervalId);
         boundsRecalcIntervalId = null;
         if (viewportChangeFrameId !== null) {
-          cancelAnimationFrame(viewportChangeFrameId);
+          nativeCancelAnimationFrame(viewportChangeFrameId);
           viewportChangeFrameId = null;
         }
       }
@@ -2955,7 +2960,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         window.clearInterval(boundsRecalcIntervalId);
       }
       if (viewportChangeFrameId !== null) {
-        cancelAnimationFrame(viewportChangeFrameId);
+        nativeCancelAnimationFrame(viewportChangeFrameId);
       }
     });
 
@@ -2986,7 +2991,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         window.clearTimeout(actionCycleIdleTimeoutId);
       }
       if (dropdownTrackingFrameId !== null) {
-        cancelAnimationFrame(dropdownTrackingFrameId);
+        nativeCancelAnimationFrame(dropdownTrackingFrameId);
       }
       grabbedBoxTimeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
       grabbedBoxTimeouts.clear();
@@ -3498,7 +3503,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const stopTrackingDropdownPosition = () => {
       if (dropdownTrackingFrameId !== null) {
-        cancelAnimationFrame(dropdownTrackingFrameId);
+        nativeCancelAnimationFrame(dropdownTrackingFrameId);
         dropdownTrackingFrameId = null;
       }
     };
@@ -3507,7 +3512,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       stopTrackingDropdownPosition();
       const updatePosition = () => {
         computePosition();
-        dropdownTrackingFrameId = requestAnimationFrame(updatePosition);
+        dropdownTrackingFrameId = nativeRequestAnimationFrame(updatePosition);
       };
       updatePosition();
     };
@@ -3659,7 +3664,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.clearLabelInstances();
 
       // HACK: defer to next frame so idle preview label clears visually before "copied" appears
-      requestAnimationFrame(() => {
+      nativeRequestAnimationFrame(() => {
         if (!isElementConnected(element)) return;
         const bounds = createElementBounds(element);
         const instanceId = createLabelInstance(
@@ -3728,7 +3733,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.clearLabelInstances();
 
       // HACK: defer to next frame so idle preview labels clear visually before "copied" appears
-      requestAnimationFrame(() => {
+      nativeRequestAnimationFrame(() => {
         batch(() => {
           for (const historyItem of currentHistoryItems) {
             const connectedElements = getConnectedHistoryElements(historyItem);

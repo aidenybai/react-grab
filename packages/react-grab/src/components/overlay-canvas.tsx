@@ -20,6 +20,10 @@ import {
   OVERLAY_BORDER_COLOR_DEFAULT,
   OVERLAY_FILL_COLOR_DEFAULT,
 } from "../constants.js";
+import {
+  nativeCancelAnimationFrame,
+  nativeRequestAnimationFrame,
+} from "../utils/native-raf.js";
 
 const LAYER_STYLES = {
   drag: {
@@ -520,7 +524,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     compositeAllLayers();
 
     if (shouldContinueAnimating) {
-      animationFrameId = requestAnimationFrame(runAnimationFrame);
+      animationFrameId = nativeRequestAnimationFrame(runAnimationFrame);
     } else {
       animationFrameId = null;
     }
@@ -528,7 +532,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
   const scheduleAnimationFrame = () => {
     if (animationFrameId !== null) return;
-    animationFrameId = requestAnimationFrame(runAnimationFrame);
+    animationFrameId = nativeRequestAnimationFrame(runAnimationFrame);
   };
 
   const handleWindowResize = () => {
@@ -801,7 +805,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
         );
       }
       if (animationFrameId !== null) {
-        cancelAnimationFrame(animationFrameId);
+        nativeCancelAnimationFrame(animationFrameId);
       }
     });
   });
