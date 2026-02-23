@@ -532,10 +532,13 @@ test.describe("Freeze Animations", () => {
       expect(wasCancelledWhileHeld).toBe(true);
     });
 
-    test("should cancel callbacks scheduled before freeze via native rAF id", async ({
+    test("should cancel held callbacks across evaluate calls via returned id", async ({
       reactGrab,
     }) => {
-      const nativeId = await reactGrab.page.evaluate(() => {
+      await reactGrab.activate();
+      await reactGrab.page.waitForTimeout(100);
+
+      const heldId = await reactGrab.page.evaluate(() => {
         (window as unknown as Record<string, boolean>).__RACE_CANCEL_FLAG__ =
           false;
         let capturedId: number;
@@ -549,17 +552,14 @@ test.describe("Freeze Animations", () => {
           });
         };
         _tick();
-        (
-          window as unknown as { __REACT_GRAB__: { activate: () => void } }
-        ).__REACT_GRAB__.activate();
         return capturedId!;
       });
 
-      await reactGrab.page.waitForTimeout(200);
+      await reactGrab.page.waitForTimeout(100);
 
       await reactGrab.page.evaluate((identifier: number) => {
         window.cancelAnimationFrame(identifier);
-      }, nativeId);
+      }, heldId);
 
       await reactGrab.deactivate();
       await reactGrab.page.waitForTimeout(200);

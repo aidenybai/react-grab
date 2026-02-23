@@ -50,8 +50,10 @@ let globalAnimationStyleElement: HTMLStyleElement | null = null;
  *    instance at freeze time via `window.gsap` and call `ticker.sleep()` and
  *    `globalTimeline.pause()` directly.
  *
- * Callbacks are tagged in WeakSets after the first stack check so the `Error()`
- * cost is paid only once per unique function reference.
+ * Stack trace inspection is deferred until freeze is active, so the `Error()`
+ * cost is never paid during normal (unfrozen) operation. Once a callback is
+ * identified as an animation callback it is cached in a WeakSet so subsequent
+ * checks are a simple lookup.
  */
 
 interface GsapLikeInstance {
@@ -92,6 +94,7 @@ const isAnimationLibraryCallback = (
   callback: FrameRequestCallback,
 ): boolean => {
   if (knownAnimationCallbacks.has(callback)) return true;
+  if (!isRafFrozen) return false;
 
   const stack = new Error().stack ?? "";
   const didMatchAnimationLibrary = stack.includes(GSAP_TICK_STACK_PATTERN);
