@@ -88,7 +88,6 @@ export const freezeGsap = (): void => {
   pendingRafCallbacks.clear();
   nativeIdToHeldId.clear();
   replayedFakeToNativeId.clear();
-  nextFakeRafId = -1;
 };
 
 export const unfreezeGsap = (): void => {
