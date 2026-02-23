@@ -1,12 +1,6 @@
-import {
-  FROZEN_ELEMENT_ATTRIBUTE,
-  GSAP_TICK_STACK_PATTERN,
-} from "../constants.js";
+import { FROZEN_ELEMENT_ATTRIBUTE } from "../constants.js";
 import { createStyleElement } from "./create-style-element.js";
-import {
-  nativeCancelAnimationFrame,
-  nativeRequestAnimationFrame,
-} from "./native-raf.js";
+import { freezeGsap, unfreezeGsap } from "./freeze-gsap.js";
 
 const FROZEN_STYLES = `
 [${FROZEN_ELEMENT_ATTRIBUTE}],
@@ -28,159 +22,6 @@ let frozenElements: Element[] = [];
 let lastInputElements: Element[] = [];
 
 let globalAnimationStyleElement: HTMLStyleElement | null = null;
-
-/**
- * GSAP rAF interception
- *
- * GSAP drives its entire animation engine through a single internal `_tick`
- * function scheduled via requestAnimationFrame. Unlike CSS animations (which we
- * freeze with `animation-play-state: paused`), GSAP has no CSS-level pause —
- * it must be stopped at the rAF scheduling layer.
- *
- * Two complementary strategies are used:
- *
- * 1. rAF wrapper (handles case where react-grab loads BEFORE GSAP):
- *    We wrap `window.requestAnimationFrame` at module load time so GSAP captures
- *    our wrapper into its internal `_raf` variable. When frozen, we check the
- *    call stack for GSAP's `_tick` function name and hold those callbacks.
- *
- * 2. Direct GSAP instance pause (handles case where GSAP loads BEFORE react-grab):
- *    If GSAP captured the original native rAF before our wrapper was installed,
- *    the rAF wrapper is bypassed entirely. To handle this, we detect the GSAP
- *    instance at freeze time via `window.gsap` and call `ticker.sleep()` and
- *    `globalTimeline.pause()` directly.
- *
- * Stack trace inspection is deferred until freeze is active, so the `Error()`
- * cost is never paid during normal (unfrozen) operation. Once a callback is
- * identified as an animation callback it is cached in a WeakSet so subsequent
- * checks are a simple lookup.
- */
-
-interface GsapLikeInstance {
-  ticker?: { sleep: () => void; wake: () => void };
-  globalTimeline?: { pause: () => void; resume: () => void };
-}
-
-let frozenGsapInstance: GsapLikeInstance | null = null;
-
-const hasMethod = (target: unknown, methodName: string): boolean =>
-  typeof target === "object" &&
-  target !== null &&
-  typeof (target as Record<string, unknown>)[methodName] === "function";
-
-const isGsapLikeObject = (value: unknown): value is GsapLikeInstance => {
-  if (typeof value !== "object" || value === null) return false;
-  const candidate = value as Record<string, unknown>;
-  return (
-    hasMethod(candidate.ticker, "sleep") &&
-    hasMethod(candidate.globalTimeline, "pause")
-  );
-};
-
-const findGsapInstance = (): GsapLikeInstance | null => {
-  if (typeof window === "undefined") return null;
-
-  const globalGsap = (window as unknown as Record<string, unknown>).gsap;
-  return isGsapLikeObject(globalGsap) ? globalGsap : null;
-};
-
-let isRafFrozen = false;
-const pendingRafCallbacks = new Map<number, FrameRequestCallback>();
-let nextFakeRafId = -1;
-const knownAnimationCallbacks = new WeakSet<FrameRequestCallback>();
-const nativeIdToHeldId = new Map<number, number>();
-
-const isAnimationLibraryCallback = (
-  callback: FrameRequestCallback,
-): boolean => {
-  if (knownAnimationCallbacks.has(callback)) return true;
-  if (!isRafFrozen) return false;
-
-  const stack = new Error().stack ?? "";
-  const didMatchAnimationLibrary = stack.includes(GSAP_TICK_STACK_PATTERN);
-
-  if (didMatchAnimationLibrary) {
-    knownAnimationCallbacks.add(callback);
-  }
-
-  return didMatchAnimationLibrary;
-};
-
-if (typeof window !== "undefined") {
-  window.requestAnimationFrame = (callback: FrameRequestCallback): number => {
-    const isAnimation = isAnimationLibraryCallback(callback);
-
-    if (isRafFrozen && isAnimation) {
-      const identifier = nextFakeRafId--;
-      pendingRafCallbacks.set(identifier, callback);
-      return identifier;
-    }
-
-    if (isAnimation) {
-      let nativeId: number;
-      nativeId = nativeRequestAnimationFrame(
-        (timestamp: DOMHighResTimeStamp) => {
-          if (isRafFrozen) {
-            const identifier = nextFakeRafId--;
-            pendingRafCallbacks.set(identifier, callback);
-            nativeIdToHeldId.set(nativeId, identifier);
-            return;
-          }
-          callback(timestamp);
-        },
-      );
-      return nativeId;
-    }
-
-    return nativeRequestAnimationFrame(callback);
-  };
-
-  window.cancelAnimationFrame = (identifier: number): void => {
-    if (pendingRafCallbacks.has(identifier)) {
-      pendingRafCallbacks.delete(identifier);
-      return;
-    }
-    const heldId = nativeIdToHeldId.get(identifier);
-    if (heldId !== undefined) {
-      pendingRafCallbacks.delete(heldId);
-      nativeIdToHeldId.delete(identifier);
-      return;
-    }
-    nativeCancelAnimationFrame(identifier);
-  };
-}
-
-const freezeRequestAnimationFrame = (): void => {
-  if (isRafFrozen) return;
-  isRafFrozen = true;
-  pendingRafCallbacks.clear();
-  nativeIdToHeldId.clear();
-  nextFakeRafId = -1;
-
-  const gsapInstance = findGsapInstance();
-  if (gsapInstance) {
-    gsapInstance.ticker?.sleep();
-    gsapInstance.globalTimeline?.pause();
-    frozenGsapInstance = gsapInstance;
-  }
-};
-
-const unfreezeRequestAnimationFrame = (): void => {
-  if (!isRafFrozen) return;
-  isRafFrozen = false;
-
-  if (frozenGsapInstance) {
-    frozenGsapInstance.globalTimeline?.resume();
-    frozenGsapInstance.ticker?.wake();
-    frozenGsapInstance = null;
-  }
-
-  for (const callback of pendingRafCallbacks.values()) {
-    nativeRequestAnimationFrame(callback);
-  }
-  pendingRafCallbacks.clear();
-  nativeIdToHeldId.clear();
-};
 
 const ensureStylesInjected = (): void => {
   if (styleElement) return;
@@ -235,7 +76,7 @@ export const freezeGlobalAnimations = (): void => {
     "data-react-grab-global-freeze",
     GLOBAL_FREEZE_STYLES,
   );
-  freezeRequestAnimationFrame();
+  freezeGsap();
 };
 
 export const unfreezeGlobalAnimations = (): void => {
@@ -271,5 +112,5 @@ export const unfreezeGlobalAnimations = (): void => {
 
   globalAnimationStyleElement.remove();
   globalAnimationStyleElement = null;
-  unfreezeRequestAnimationFrame();
+  unfreezeGsap();
 };
