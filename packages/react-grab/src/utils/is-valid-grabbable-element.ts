@@ -100,17 +100,26 @@ export const isValidGrabbableElement = (element: Element): boolean => {
 
   const computedStyle = window.getComputedStyle(element);
 
-  if (isDevToolsOverlay(computedStyle)) {
-    return false;
-  }
-
-  if (isFullViewportOverlay(element, computedStyle)) {
-    return false;
-  }
-
   const isVisible = isElementVisible(element, computedStyle);
+  if (!isVisible) {
+    visibilityCache.set(element, { isVisible: false, timestamp: now });
+    return false;
+  }
 
-  visibilityCache.set(element, { isVisible, timestamp: now });
+  const couldBeOverlay =
+    element.clientWidth / window.innerWidth >= VIEWPORT_COVERAGE_THRESHOLD &&
+    element.clientHeight / window.innerHeight >= VIEWPORT_COVERAGE_THRESHOLD;
 
-  return isVisible;
+  if (couldBeOverlay) {
+    if (isDevToolsOverlay(computedStyle)) {
+      return false;
+    }
+    if (isFullViewportOverlay(element, computedStyle)) {
+      return false;
+    }
+  }
+
+  visibilityCache.set(element, { isVisible: true, timestamp: now });
+
+  return true;
 };

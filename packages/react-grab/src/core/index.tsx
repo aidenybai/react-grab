@@ -457,6 +457,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     let lastElementDetectionTime = 0;
+    let hasPendingElementDetection = false;
+    let latestDetectionX = 0;
+    let latestDetectionY = 0;
     let dragPreviewDebounceTimerId: number | null = null;
     const [debouncedDragPointer, setDebouncedDragPointer] = createSignal<{
       x: number;
@@ -1788,12 +1791,25 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       actions.setPointer({ x: clientX, y: clientY });
 
+      latestDetectionX = clientX;
+      latestDetectionY = clientY;
+
       const now = performance.now();
-      if (now - lastElementDetectionTime >= ELEMENT_DETECTION_THROTTLE_MS) {
+      if (
+        now - lastElementDetectionTime >= ELEMENT_DETECTION_THROTTLE_MS &&
+        !hasPendingElementDetection
+      ) {
         lastElementDetectionTime = now;
+        hasPendingElementDetection = true;
         onIdle(() => {
-          const candidate = getElementAtPosition(clientX, clientY);
-          actions.setDetectedElement(candidate);
+          const candidate = getElementAtPosition(
+            latestDetectionX,
+            latestDetectionY,
+          );
+          if (candidate !== store.detectedElement) {
+            actions.setDetectedElement(candidate);
+          }
+          hasPendingElementDetection = false;
         });
       }
 
