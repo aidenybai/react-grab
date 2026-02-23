@@ -86,21 +86,17 @@ let isRafFrozen = false;
 const pendingRafCallbacks = new Map<number, FrameRequestCallback>();
 let nextFakeRafId = -1;
 const knownAnimationCallbacks = new WeakSet<FrameRequestCallback>();
-const knownSafeCallbacks = new WeakSet<FrameRequestCallback>();
 
 const isAnimationLibraryCallback = (
   callback: FrameRequestCallback,
 ): boolean => {
   if (knownAnimationCallbacks.has(callback)) return true;
-  if (knownSafeCallbacks.has(callback)) return false;
 
   const stack = new Error().stack ?? "";
   const didMatchAnimationLibrary = stack.includes(GSAP_TICK_STACK_PATTERN);
 
   if (didMatchAnimationLibrary) {
     knownAnimationCallbacks.add(callback);
-  } else {
-    knownSafeCallbacks.add(callback);
   }
 
   return didMatchAnimationLibrary;
@@ -108,11 +104,25 @@ const isAnimationLibraryCallback = (
 
 if (typeof window !== "undefined") {
   window.requestAnimationFrame = (callback: FrameRequestCallback): number => {
-    if (isRafFrozen && isAnimationLibraryCallback(callback)) {
+    const isAnimation = isAnimationLibraryCallback(callback);
+
+    if (isRafFrozen && isAnimation) {
       const identifier = nextFakeRafId--;
       pendingRafCallbacks.set(identifier, callback);
       return identifier;
     }
+
+    if (isAnimation) {
+      return nativeRequestAnimationFrame((timestamp: DOMHighResTimeStamp) => {
+        if (isRafFrozen) {
+          const identifier = nextFakeRafId--;
+          pendingRafCallbacks.set(identifier, callback);
+          return;
+        }
+        callback(timestamp);
+      });
+    }
+
     return nativeRequestAnimationFrame(callback);
   };
 

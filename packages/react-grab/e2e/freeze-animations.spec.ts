@@ -556,6 +556,80 @@ test.describe("Freeze Animations", () => {
     });
   });
 
+  test.describe("rAF Tick Loop Interception (ESM without window.gsap)", () => {
+    test("should stop a _tick loop scheduled before freeze via rAF guard", async ({
+      page,
+    }) => {
+      await navigateAndWaitForReactGrab(page);
+
+      await page.evaluate(() => {
+        (window as unknown as Record<string, number>).__RAF_TICK_COUNT__ = 0;
+        // HACK: function named _tick simulates GSAP's internal tick,
+        // detected via stack trace inspection in the rAF wrapper
+        const _tick = (): void => {
+          (window as unknown as Record<string, number>).__RAF_TICK_COUNT__++;
+          window.requestAnimationFrame(_tick);
+        };
+        window.requestAnimationFrame(_tick);
+      });
+
+      await page.waitForTimeout(200);
+      const tickCountBeforeFreeze = await page.evaluate(
+        () =>
+          (window as unknown as Record<string, number>).__RAF_TICK_COUNT__,
+      );
+      expect(tickCountBeforeFreeze).toBeGreaterThan(0);
+
+      await activateViaApi(page);
+      await page.waitForTimeout(200);
+
+      const tickCountAtFreeze = await page.evaluate(
+        () =>
+          (window as unknown as Record<string, number>).__RAF_TICK_COUNT__,
+      );
+      await page.waitForTimeout(300);
+      const tickCountAfterWaiting = await page.evaluate(
+        () =>
+          (window as unknown as Record<string, number>).__RAF_TICK_COUNT__,
+      );
+
+      expect(tickCountAfterWaiting).toBe(tickCountAtFreeze);
+    });
+
+    test("should resume _tick loop after unfreeze", async ({ page }) => {
+      await navigateAndWaitForReactGrab(page);
+
+      await page.evaluate(() => {
+        (window as unknown as Record<string, number>).__RAF_TICK_COUNT__ = 0;
+        // HACK: function named _tick simulates GSAP's internal tick,
+        // detected via stack trace inspection in the rAF wrapper
+        const _tick = (): void => {
+          (window as unknown as Record<string, number>).__RAF_TICK_COUNT__++;
+          window.requestAnimationFrame(_tick);
+        };
+        window.requestAnimationFrame(_tick);
+      });
+
+      await page.waitForTimeout(200);
+      await activateViaApi(page);
+      await page.waitForTimeout(200);
+      await deactivateViaApi(page);
+      await page.waitForTimeout(100);
+
+      const tickCountAfterUnfreeze = await page.evaluate(
+        () =>
+          (window as unknown as Record<string, number>).__RAF_TICK_COUNT__,
+      );
+      await page.waitForTimeout(300);
+      const tickCountLater = await page.evaluate(
+        () =>
+          (window as unknown as Record<string, number>).__RAF_TICK_COUNT__,
+      );
+
+      expect(tickCountLater).toBeGreaterThan(tickCountAfterUnfreeze);
+    });
+  });
+
   test.describe("GSAP Late-Load Interception", () => {
     test("should freeze GSAP via direct instance pause when GSAP loaded before react-grab", async ({
       page,
