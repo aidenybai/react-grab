@@ -507,6 +507,51 @@ test.describe("Freeze Animations", () => {
       expect(didCallbackRun).toBe(false);
     });
 
+    test("should cancel replayed callbacks via fake id after unfreeze", async ({
+      page,
+    }) => {
+      await navigateAndWaitForReactGrab(page);
+      await simulateGsapPresence(page);
+      await activateViaApi(page);
+      await page.waitForTimeout(100);
+
+      const heldId = await page.evaluate(() => {
+        (
+          window as unknown as Record<string, boolean>
+        ).__POST_UNFREEZE_CANCEL_FLAG__ = false;
+        let capturedId: number;
+        // HACK: function named _tick simulates GSAP's internal tick,
+        // detected via stack trace inspection in the rAF wrapper
+        const _tick = () => {
+          capturedId = window.requestAnimationFrame(() => {
+            (
+              window as unknown as Record<string, boolean>
+            ).__POST_UNFREEZE_CANCEL_FLAG__ = true;
+          });
+        };
+        _tick();
+        return capturedId!;
+      });
+
+      // HACK: Deactivate and cancel in the same evaluate to prevent the
+      // replayed rAF callback from firing between the two round-trips
+      await page.evaluate((identifier: number) => {
+        (
+          window as unknown as { __REACT_GRAB__: { deactivate: () => void } }
+        ).__REACT_GRAB__.deactivate();
+        window.cancelAnimationFrame(identifier);
+      }, heldId);
+
+      await page.waitForTimeout(200);
+
+      const didCallbackRun = await page.evaluate(
+        () =>
+          (window as unknown as Record<string, boolean>)
+            .__POST_UNFREEZE_CANCEL_FLAG__,
+      );
+      expect(didCallbackRun).toBe(false);
+    });
+
     test("should not intercept callbacks after unfreeze", async ({
       reactGrab,
     }) => {

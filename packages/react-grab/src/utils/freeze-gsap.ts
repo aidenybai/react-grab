@@ -20,6 +20,7 @@ const pendingRafCallbacks = new Map<number, FrameRequestCallback>();
 let nextFakeRafId = -1;
 const knownAnimationCallbacks = new WeakSet<FrameRequestCallback>();
 const nativeIdToHeldId = new Map<number, number>();
+const replayedFakeToNativeId = new Map<number, number>();
 
 const isAnimationLibraryCallback = (
   callback: FrameRequestCallback,
@@ -65,6 +66,12 @@ if (typeof window !== "undefined") {
       pendingRafCallbacks.delete(identifier);
       return;
     }
+    const replayedNativeId = replayedFakeToNativeId.get(identifier);
+    if (replayedNativeId !== undefined) {
+      nativeCancelAnimationFrame(replayedNativeId);
+      replayedFakeToNativeId.delete(identifier);
+      return;
+    }
     const heldId = nativeIdToHeldId.get(identifier);
     if (heldId !== undefined) {
       pendingRafCallbacks.delete(heldId);
@@ -80,6 +87,7 @@ export const freezeGsap = (): void => {
   isRafFrozen = true;
   pendingRafCallbacks.clear();
   nativeIdToHeldId.clear();
+  replayedFakeToNativeId.clear();
   nextFakeRafId = -1;
 };
 
@@ -87,8 +95,12 @@ export const unfreezeGsap = (): void => {
   if (!isRafFrozen) return;
   isRafFrozen = false;
 
-  for (const callback of pendingRafCallbacks.values()) {
-    nativeRequestAnimationFrame(callback);
+  for (const [fakeId, callback] of pendingRafCallbacks.entries()) {
+    const nativeId = nativeRequestAnimationFrame((timestamp) => {
+      replayedFakeToNativeId.delete(fakeId);
+      callback(timestamp);
+    });
+    replayedFakeToNativeId.set(fakeId, nativeId);
   }
   pendingRafCallbacks.clear();
   nativeIdToHeldId.clear();
