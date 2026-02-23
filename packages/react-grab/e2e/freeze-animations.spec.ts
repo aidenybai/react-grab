@@ -532,6 +532,45 @@ test.describe("Freeze Animations", () => {
       expect(wasCancelledWhileHeld).toBe(true);
     });
 
+    test("should cancel callbacks scheduled before freeze via native rAF id", async ({
+      reactGrab,
+    }) => {
+      const nativeId = await reactGrab.page.evaluate(() => {
+        (window as unknown as Record<string, boolean>).__RACE_CANCEL_FLAG__ =
+          false;
+        let capturedId: number;
+        // HACK: function named _tick simulates GSAP's internal tick,
+        // detected via stack trace inspection in the rAF wrapper
+        const _tick = () => {
+          capturedId = window.requestAnimationFrame(() => {
+            (
+              window as unknown as Record<string, boolean>
+            ).__RACE_CANCEL_FLAG__ = true;
+          });
+        };
+        _tick();
+        (
+          window as unknown as { __REACT_GRAB__: { activate: () => void } }
+        ).__REACT_GRAB__.activate();
+        return capturedId!;
+      });
+
+      await reactGrab.page.waitForTimeout(200);
+
+      await reactGrab.page.evaluate((identifier: number) => {
+        window.cancelAnimationFrame(identifier);
+      }, nativeId);
+
+      await reactGrab.deactivate();
+      await reactGrab.page.waitForTimeout(200);
+
+      const didCallbackRun = await reactGrab.page.evaluate(
+        () =>
+          (window as unknown as Record<string, boolean>).__RACE_CANCEL_FLAG__,
+      );
+      expect(didCallbackRun).toBe(false);
+    });
+
     test("should not intercept callbacks after unfreeze", async ({
       reactGrab,
     }) => {

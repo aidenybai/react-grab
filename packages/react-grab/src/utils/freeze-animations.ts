@@ -86,6 +86,7 @@ let isRafFrozen = false;
 const pendingRafCallbacks = new Map<number, FrameRequestCallback>();
 let nextFakeRafId = -1;
 const knownAnimationCallbacks = new WeakSet<FrameRequestCallback>();
+const nativeIdToHeldId = new Map<number, number>();
 
 const isAnimationLibraryCallback = (
   callback: FrameRequestCallback,
@@ -113,14 +114,19 @@ if (typeof window !== "undefined") {
     }
 
     if (isAnimation) {
-      return nativeRequestAnimationFrame((timestamp: DOMHighResTimeStamp) => {
-        if (isRafFrozen) {
-          const identifier = nextFakeRafId--;
-          pendingRafCallbacks.set(identifier, callback);
-          return;
-        }
-        callback(timestamp);
-      });
+      let nativeId: number;
+      nativeId = nativeRequestAnimationFrame(
+        (timestamp: DOMHighResTimeStamp) => {
+          if (isRafFrozen) {
+            const identifier = nextFakeRafId--;
+            pendingRafCallbacks.set(identifier, callback);
+            nativeIdToHeldId.set(nativeId, identifier);
+            return;
+          }
+          callback(timestamp);
+        },
+      );
+      return nativeId;
     }
 
     return nativeRequestAnimationFrame(callback);
@@ -131,6 +137,12 @@ if (typeof window !== "undefined") {
       pendingRafCallbacks.delete(identifier);
       return;
     }
+    const heldId = nativeIdToHeldId.get(identifier);
+    if (heldId !== undefined) {
+      pendingRafCallbacks.delete(heldId);
+      nativeIdToHeldId.delete(identifier);
+      return;
+    }
     nativeCancelAnimationFrame(identifier);
   };
 }
@@ -139,6 +151,7 @@ const freezeRequestAnimationFrame = (): void => {
   if (isRafFrozen) return;
   isRafFrozen = true;
   pendingRafCallbacks.clear();
+  nativeIdToHeldId.clear();
   nextFakeRafId = -1;
 
   const gsapInstance = findGsapInstance();
@@ -163,6 +176,7 @@ const unfreezeRequestAnimationFrame = (): void => {
     nativeRequestAnimationFrame(callback);
   }
   pendingRafCallbacks.clear();
+  nativeIdToHeldId.clear();
 };
 
 const ensureStylesInjected = (): void => {
