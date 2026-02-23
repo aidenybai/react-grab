@@ -46,8 +46,7 @@ if (typeof window !== "undefined") {
       return identifier;
     }
 
-    let nativeId: number;
-    nativeId = nativeRequestAnimationFrame(
+    const nativeId = nativeRequestAnimationFrame(
       (timestamp: DOMHighResTimeStamp) => {
         if (isRafFrozen) {
           const identifier = nextFakeRafId--;
