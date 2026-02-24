@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type ClientDefinition,
   upsertIntoJsonc,
@@ -18,6 +18,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   fs.rmSync(tempDir, { recursive: true, force: true });
 });
 
@@ -256,20 +257,24 @@ describe("installMcpServers with project scope", () => {
     expect(content.mcpServers["react-grab-mcp"]).toBeDefined();
   });
 
-  it("should use global paths for agents without project-level support", () => {
+  it("should exclude agents without project-level support in project scope", () => {
     const projectRoot = path.join(tempDir, "my-project");
     fs.mkdirSync(projectRoot, { recursive: true });
 
     const results = installMcpServers(["Zed"], "project", projectRoot);
 
-    expect(results).toHaveLength(1);
-    expect(results[0].configPath).not.toContain(projectRoot);
+    expect(results).toHaveLength(0);
   });
 
   it("should use global paths when scope is global", () => {
+    const fakeHome = path.join(tempDir, "fake-home");
+    fs.mkdirSync(fakeHome, { recursive: true });
+    vi.spyOn(os, "homedir").mockReturnValue(fakeHome);
+
     const results = installMcpServers(["Droid"], "global");
 
     expect(results).toHaveLength(1);
-    expect(results[0].configPath).toContain(os.homedir());
+    expect(results[0].success).toBe(true);
+    expect(results[0].configPath).toContain(fakeHome);
   });
 });

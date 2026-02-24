@@ -149,13 +149,12 @@ const getClients = (
   ];
 
   if (scope === "project" && projectRoot) {
-    return clients.map((client) => {
-      const projectPath = getProjectConfigPath(client.name, projectRoot);
-      if (projectPath) {
-        return { ...client, configPath: projectPath };
-      }
-      return client;
-    });
+    return clients
+      .filter((client) => getProjectConfigPath(client.name, projectRoot) !== null)
+      .map((client) => ({
+        ...client,
+        configPath: getProjectConfigPath(client.name, projectRoot)!,
+      }));
   }
 
   return clients;
@@ -334,12 +333,20 @@ export const promptMcpScope = async (): Promise<McpScope | undefined> => {
 export const promptMcpInstall = async (
   projectRoot?: string,
 ): Promise<boolean> => {
-  const scope = await promptMcpScope();
-  if (scope === undefined) {
-    return false;
+  let scope: McpScope = "global";
+  if (projectRoot) {
+    const selectedScope = await promptMcpScope();
+    if (selectedScope === undefined) {
+      return false;
+    }
+    scope = selectedScope;
   }
 
-  const clientNames = getMcpClientNames();
+  const clientNames = scope === "project" && projectRoot
+    ? getMcpClientNames().filter(
+        (name) => getProjectConfigPath(name, projectRoot) !== null,
+      )
+    : getMcpClientNames();
   const { selectedAgents } = await prompts({
     type: "multiselect",
     name: "selectedAgents",
