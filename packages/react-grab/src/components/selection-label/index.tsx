@@ -126,15 +126,12 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   onMount(() => {
     resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        const borderBox = entry.borderBoxSize[0];
-        if (!borderBox) continue;
-        const elementWidth = borderBox.inlineSize;
-        const elementHeight = borderBox.blockSize;
+        const rect = entry.target.getBoundingClientRect();
         if (entry.target === containerRef && !isTagCurrentlyHovered) {
-          setMeasuredWidth(elementWidth);
-          setMeasuredHeight(elementHeight);
+          setMeasuredWidth(rect.width);
+          setMeasuredHeight(rect.height);
         } else if (entry.target === panelRef) {
-          setPanelWidth(elementWidth);
+          setPanelWidth(rect.width);
         }
       }
     });
@@ -409,7 +406,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             onDismiss={props.onDismiss}
             onUndo={props.onUndo}
             onFollowUpSubmit={props.onFollowUpSubmit}
-            onCopyStateChange={() => {}}
             onFadingChange={setIsInternalFading}
             onShowContextMenu={props.onShowContextMenu}
           />
