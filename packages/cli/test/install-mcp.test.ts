@@ -8,6 +8,7 @@ import {
   installJsonClient,
   installTomlClient,
   getMcpClientNames,
+  installMcpServers,
 } from "../src/utils/install-mcp.js";
 
 let tempDir: string;
@@ -233,5 +234,42 @@ describe("installTomlClient", () => {
     installTomlClient(client);
 
     expect(fs.existsSync(client.configPath)).toBe(true);
+  });
+});
+
+describe("installMcpServers with project scope", () => {
+  it("should write config to project-level paths for supported agents", () => {
+    const projectRoot = path.join(tempDir, "my-project");
+    fs.mkdirSync(projectRoot, { recursive: true });
+
+    const results = installMcpServers(["Droid"], "project", projectRoot);
+
+    expect(results).toHaveLength(1);
+    expect(results[0].success).toBe(true);
+    expect(results[0].configPath).toBe(
+      path.join(projectRoot, ".factory", "mcp.json"),
+    );
+
+    const content = JSON.parse(
+      fs.readFileSync(results[0].configPath, "utf8"),
+    );
+    expect(content.mcpServers["react-grab-mcp"]).toBeDefined();
+  });
+
+  it("should use global paths for agents without project-level support", () => {
+    const projectRoot = path.join(tempDir, "my-project");
+    fs.mkdirSync(projectRoot, { recursive: true });
+
+    const results = installMcpServers(["Zed"], "project", projectRoot);
+
+    expect(results).toHaveLength(1);
+    expect(results[0].configPath).not.toContain(projectRoot);
+  });
+
+  it("should use global paths when scope is global", () => {
+    const results = installMcpServers(["Droid"], "global");
+
+    expect(results).toHaveLength(1);
+    expect(results[0].configPath).toContain(os.homedir());
   });
 });

@@ -48,7 +48,26 @@ const getZedConfigPath = (): string => {
   return path.join(os.homedir(), ".config", "zed", "settings.json");
 };
 
-const getClients = (): ClientDefinition[] => {
+export type McpScope = "project" | "global";
+
+const getProjectConfigPath = (
+  clientName: string,
+  projectRoot: string,
+): string | null => {
+  const projectPaths: Record<string, string> = {
+    "Claude Code": path.join(projectRoot, ".mcp.json"),
+    Cursor: path.join(projectRoot, ".cursor", "mcp.json"),
+    "VS Code": path.join(projectRoot, ".vscode", "mcp.json"),
+    Droid: path.join(projectRoot, ".factory", "mcp.json"),
+    Windsurf: path.join(projectRoot, ".windsurf", "mcp.json"),
+  };
+  return projectPaths[clientName] ?? null;
+};
+
+const getClients = (
+  scope: McpScope = "global",
+  projectRoot?: string,
+): ClientDefinition[] => {
   const homeDir = os.homedir();
   const baseDir = getBaseDir();
 
@@ -57,7 +76,7 @@ const getClients = (): ClientDefinition[] => {
     args: ["-y", PACKAGE_NAME, "--stdio"],
   };
 
-  return [
+  const clients: ClientDefinition[] = [
     {
       name: "Claude Code",
       configPath: path.join(homeDir, ".claude.json"),
@@ -128,6 +147,18 @@ const getClients = (): ClientDefinition[] => {
       serverConfig: { source: "custom", ...stdioConfig, env: {} },
     },
   ];
+
+  if (scope === "project" && projectRoot) {
+    return clients.map((client) => {
+      const projectPath = getProjectConfigPath(client.name, projectRoot);
+      if (projectPath) {
+        return { ...client, configPath: projectPath };
+      }
+      return client;
+    });
+  }
+
+  return clients;
 };
 
 const ensureDirectory = (filePath: string): void => {
@@ -195,8 +226,10 @@ export const getMcpClientNames = (): string[] =>
 
 export const installMcpServers = (
   selectedClients?: string[],
+  scope: McpScope = "global",
+  projectRoot?: string,
 ): InstallResult[] => {
-  const allClients = getClients();
+  const allClients = getClients(scope, projectRoot);
   const clients = selectedClients
     ? allClients.filter((client) => selectedClients.includes(client.name))
     : allClients;
@@ -276,7 +309,36 @@ export const promptConnectionMode = async (): Promise<
   return connectionMode as "mcp" | "legacy" | undefined;
 };
 
-export const promptMcpInstall = async (): Promise<boolean> => {
+export const promptMcpScope = async (): Promise<McpScope | undefined> => {
+  const { scope } = await prompts({
+    type: "select",
+    name: "scope",
+    message: "Where should the MCP config be installed?",
+    choices: [
+      {
+        title: `Project ${highlighter.dim("(recommended)")}`,
+        description: "Config stays with this project",
+        value: "project",
+      },
+      {
+        title: "Global",
+        description: "Available across all projects",
+        value: "global",
+      },
+    ],
+  });
+
+  return scope as McpScope | undefined;
+};
+
+export const promptMcpInstall = async (
+  projectRoot?: string,
+): Promise<boolean> => {
+  const scope = await promptMcpScope();
+  if (scope === undefined) {
+    return false;
+  }
+
   const clientNames = getMcpClientNames();
   const { selectedAgents } = await prompts({
     type: "multiselect",
@@ -294,7 +356,7 @@ export const promptMcpInstall = async (): Promise<boolean> => {
   }
 
   logger.break();
-  const results = installMcpServers(selectedAgents);
+  const results = installMcpServers(selectedAgents, scope, projectRoot);
   const hasSuccess = results.some((result) => result.success);
   return hasSuccess;
 };

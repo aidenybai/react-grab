@@ -481,7 +481,9 @@ export const init = new Command()
           let agentIntegration: AgentIntegration;
 
           if (connectionMode === "mcp") {
-            const didInstall = await promptMcpInstall();
+            const didInstall = await promptMcpInstall(
+              projectInfo.projectRoot,
+            );
             if (!didInstall) {
               logger.break();
               process.exit(0);
@@ -967,7 +969,9 @@ export const init = new Command()
           }
 
           if (connectionMode === "mcp") {
-            const didInstall = await promptMcpInstall();
+            const didInstall = await promptMcpInstall(
+              projectInfo.projectRoot,
+            );
             if (!didInstall) {
               logger.break();
               process.exit(0);

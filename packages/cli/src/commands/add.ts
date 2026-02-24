@@ -164,7 +164,7 @@ export const add = new Command()
         }
 
         if (connectionMode === "mcp") {
-          const didInstall = await promptMcpInstall();
+          const didInstall = await promptMcpInstall(projectInfo.projectRoot);
           if (!didInstall) {
             logger.break();
             process.exit(0);
