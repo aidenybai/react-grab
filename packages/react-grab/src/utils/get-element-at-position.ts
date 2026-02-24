@@ -113,5 +113,6 @@ export const getElementAtPosition = (
 
 export const clearElementPositionCache = (): void => {
   cancelScheduledResume();
+  resumePointerEventsFreeze();
   cache = null;
 };

@@ -89,20 +89,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     return false;
   };
 
-  const resizeObserver = new ResizeObserver((entries) => {
-    for (const entry of entries) {
-      const borderBox = entry.borderBoxSize[0];
-      if (!borderBox) continue;
-      const elementWidth = borderBox.inlineSize;
-      const elementHeight = borderBox.blockSize;
-      if (entry.target === containerRef && !isTagCurrentlyHovered) {
-        setMeasuredWidth(elementWidth);
-        setMeasuredHeight(elementHeight);
-      } else if (entry.target === panelRef) {
-        setPanelWidth(elementWidth);
-      }
-    }
-  });
+  let resizeObserver: ResizeObserver | undefined;
 
   const handleTagHoverChange = (hovered: boolean) => {
     isTagCurrentlyHovered = hovered;
@@ -137,6 +124,20 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   };
 
   onMount(() => {
+    resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const borderBox = entry.borderBoxSize[0];
+        if (!borderBox) continue;
+        const elementWidth = borderBox.inlineSize;
+        const elementHeight = borderBox.blockSize;
+        if (entry.target === containerRef && !isTagCurrentlyHovered) {
+          setMeasuredWidth(elementWidth);
+          setMeasuredHeight(elementHeight);
+        } else if (entry.target === panelRef) {
+          setPanelWidth(elementWidth);
+        }
+      }
+    });
     if (containerRef) {
       const rect = containerRef.getBoundingClientRect();
       setMeasuredWidth(rect.width);
@@ -153,7 +154,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   });
 
   onCleanup(() => {
-    resizeObserver.disconnect();
+    resizeObserver?.disconnect();
     window.removeEventListener("scroll", handleViewportChange, true);
     window.removeEventListener("resize", handleViewportChange);
     window.removeEventListener("keydown", handleGlobalKeyDown, {
