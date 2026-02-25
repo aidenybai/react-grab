@@ -2053,7 +2053,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (shouldBlockEnter) {
         keyboardClaimer.claimedEvents.add(event);
         event.preventDefault();
-        event.stopPropagation();
         event.stopImmediatePropagation();
         return true;
       }
@@ -2155,7 +2154,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (canActivateFromCopied) {
         event.preventDefault();
-        event.stopPropagation();
         event.stopImmediatePropagation();
 
         const center = getBoundsCenter(createElementBounds(copiedElement));
@@ -2176,7 +2174,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (canActivateFromHolding) {
         event.preventDefault();
-        event.stopPropagation();
         event.stopImmediatePropagation();
 
         const element = store.frozenElement || targetElement();
@@ -2407,7 +2404,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if ((isActivated() || isHoldingKeys()) && !isPromptMode()) {
         event.preventDefault();
         if (isEnterCode(event.code)) {
-          event.stopPropagation();
           event.stopImmediatePropagation();
         }
       }
@@ -2760,7 +2756,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (didHandle) {
           document.documentElement.setPointerCapture(event.pointerId);
           event.preventDefault();
-          event.stopPropagation();
           event.stopImmediatePropagation();
         }
       },
@@ -2832,7 +2827,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         if (isRendererActive() || isCopying() || didJustDrag()) {
           event.preventDefault();
-          event.stopPropagation();
           event.stopImmediatePropagation();
 
           if (store.wasActivatedByToggle && !isCopying() && !isPromptMode()) {

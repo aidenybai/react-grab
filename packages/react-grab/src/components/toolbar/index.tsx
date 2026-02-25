@@ -236,7 +236,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   };
 
   const stopEventPropagation = (event: Event) => {
-    event.stopPropagation();
     event.stopImmediatePropagation();
   };
 
@@ -675,7 +674,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const createDragAwareHandler =
     (callback: () => void) => (event: MouseEvent) => {
-      event.stopPropagation();
       event.stopImmediatePropagation();
       if (didDragOccur) {
         didDragOccur = false;

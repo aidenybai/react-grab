@@ -112,12 +112,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
     if (isEnterToExpand) {
       event.preventDefault();
-      event.stopPropagation();
       event.stopImmediatePropagation();
       props.onToggleExpand?.();
     } else if (isCtrlCToAbort) {
       event.preventDefault();
-      event.stopPropagation();
       event.stopImmediatePropagation();
       props.onAbort?.();
     }
@@ -292,7 +290,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       return;
     }
 
-    event.stopPropagation();
     event.stopImmediatePropagation();
 
     const isEnterWithoutShift = event.code === "Enter" && !event.shiftKey;
@@ -329,7 +326,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const isActionCycleVisible = () => Boolean(props.actionCycleState?.isVisible);
 
   const handleTagClick = (event: MouseEvent) => {
-    event.stopPropagation();
     event.stopImmediatePropagation();
     if (props.filePath && props.onOpen) {
       props.onOpen();
@@ -339,7 +335,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const isTagClickable = () => Boolean(props.filePath && props.onOpen);
 
   const handleContainerPointerDown = (event: PointerEvent) => {
-    event.stopPropagation();
     event.stopImmediatePropagation();
     const isEditableInputVisible =
       canInteract() &&
@@ -378,7 +373,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         }}
         onPointerDown={handleContainerPointerDown}
         onClick={(event) => {
-          event.stopPropagation();
           event.stopImmediatePropagation();
         }}
         onMouseEnter={() => props.onHoverChange?.(true)}

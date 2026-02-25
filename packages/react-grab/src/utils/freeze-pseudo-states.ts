@@ -45,84 +45,65 @@ const FOCUS_STYLE_PROPERTIES = [
   "ring-width",
 ] as const;
 
-const ANIMATION_CONTROLLED_PROPERTIES = [
-  "opacity",
-  "transform",
-  "scale",
-  "translate",
-  "rotate",
-] as const;
-
 interface FrozenPseudoState {
   element: HTMLElement;
-  originalCssText: string;
   frozenStyles: string;
+  originalPropertyValues: Map<string, string>;
 }
 
-const frozenHoverElements = new Map<HTMLElement, string>();
-const frozenFocusElements = new Map<HTMLElement, string>();
+const frozenHoverElements = new Map<HTMLElement, Map<string, string>>();
+const frozenFocusElements = new Map<HTMLElement, Map<string, string>>();
 let pointerEventsStyle: HTMLStyleElement | null = null;
 
 const stopEvent = (event: Event): void => {
-  event.stopPropagation();
   event.stopImmediatePropagation();
 };
 
 const preventFocusChange = (event: Event): void => {
   event.preventDefault();
-  event.stopPropagation();
   event.stopImmediatePropagation();
 };
 
-const hasAnimationControlledProperty = (cssText: string): boolean => {
-  const lowerCssText = cssText.toLowerCase();
-  return ANIMATION_CONTROLLED_PROPERTIES.some((prop) =>
-    lowerCssText.includes(prop),
-  );
-};
-
-const collectHoverStates = (): FrozenPseudoState[] => {
-  const elementsToFreeze: FrozenPseudoState[] = [];
-
-  for (const element of document.querySelectorAll(":hover")) {
-    if (!(element instanceof HTMLElement)) continue;
-
-    const originalCssText = element.style.cssText;
-    const computed = getComputedStyle(element);
-    let frozenStyles = originalCssText;
-
-    for (const prop of HOVER_STYLE_PROPERTIES) {
-      const computedValue = computed.getPropertyValue(prop);
-      if (computedValue) {
-        frozenStyles += `${prop}: ${computedValue} !important; `;
-      }
+const collectOriginalPropertyValues = (
+  element: HTMLElement,
+  properties: readonly string[],
+): Map<string, string> => {
+  const originalPropertyValues = new Map<string, string>();
+  for (const prop of properties) {
+    const inlineValue = element.style.getPropertyValue(prop);
+    if (inlineValue) {
+      originalPropertyValues.set(prop, inlineValue);
     }
-
-    elementsToFreeze.push({ element, originalCssText, frozenStyles });
   }
-
-  return elementsToFreeze;
+  return originalPropertyValues;
 };
 
-const collectFocusStates = (): FrozenPseudoState[] => {
+const collectPseudoStates = (
+  selector: string,
+  properties: readonly string[],
+  alreadyFrozen?: Map<HTMLElement, Map<string, string>>,
+): FrozenPseudoState[] => {
   const elementsToFreeze: FrozenPseudoState[] = [];
 
-  for (const element of document.querySelectorAll(":focus, :focus-visible")) {
+  for (const element of document.querySelectorAll(selector)) {
     if (!(element instanceof HTMLElement)) continue;
-    if (frozenFocusElements.has(element)) continue;
+    if (alreadyFrozen?.has(element)) continue;
 
-    const originalCssText = element.style.cssText;
     const computed = getComputedStyle(element);
-    let frozenStyles = originalCssText;
+    let frozenStyles = element.style.cssText;
+    const originalPropertyValues = collectOriginalPropertyValues(
+      element,
+      properties,
+    );
 
-    for (const prop of FOCUS_STYLE_PROPERTIES) {
+    for (const prop of properties) {
       const computedValue = computed.getPropertyValue(prop);
       if (computedValue) {
         frozenStyles += `${prop}: ${computedValue} !important; `;
       }
     }
 
-    elementsToFreeze.push({ element, originalCssText, frozenStyles });
+    elementsToFreeze.push({ element, frozenStyles, originalPropertyValues });
   }
 
   return elementsToFreeze;
@@ -130,29 +111,26 @@ const collectFocusStates = (): FrozenPseudoState[] => {
 
 const applyFrozenStates = (
   states: FrozenPseudoState[],
-  storageMap: Map<HTMLElement, string>,
+  storageMap: Map<HTMLElement, Map<string, string>>,
 ): void => {
-  for (const { element, originalCssText, frozenStyles } of states) {
-    storageMap.set(element, originalCssText);
+  for (const { element, frozenStyles, originalPropertyValues } of states) {
+    storageMap.set(element, originalPropertyValues);
     element.style.cssText = frozenStyles;
   }
 };
 
 const restoreFrozenStates = (
-  storageMap: Map<HTMLElement, string>,
+  storageMap: Map<HTMLElement, Map<string, string>>,
   styleProperties: readonly string[],
 ): void => {
-  for (const [element, originalCssText] of storageMap) {
-    // HACK: For elements with animation-controlled properties (opacity, transform, etc.),
-    // only remove the style properties we added, don't restore original cssText.
-    // Animation libraries (Framer Motion, etc.) use inline styles that change over time.
-    // Restoring old cssText would reset animation progress and cause visual flash.
-    if (hasAnimationControlledProperty(originalCssText)) {
-      for (const prop of styleProperties) {
+  for (const [element, originalPropertyValues] of storageMap) {
+    for (const prop of styleProperties) {
+      const originalValue = originalPropertyValues.get(prop);
+      if (originalValue) {
+        element.style.setProperty(prop, originalValue);
+      } else {
         element.style.removeProperty(prop);
       }
-    } else {
-      element.style.cssText = originalCssText;
     }
   }
   storageMap.clear();
@@ -177,8 +155,12 @@ export const freezePseudoStates = (): void => {
     document.addEventListener(eventType, preventFocusChange, true);
   }
 
-  const hoverStates = collectHoverStates();
-  const focusStates = collectFocusStates();
+  const hoverStates = collectPseudoStates(":hover", HOVER_STYLE_PROPERTIES);
+  const focusStates = collectPseudoStates(
+    ":focus, :focus-visible",
+    FOCUS_STYLE_PROPERTIES,
+    frozenFocusElements,
+  );
 
   applyFrozenStates(hoverStates, frozenHoverElements);
   applyFrozenStates(focusStates, frozenFocusElements);

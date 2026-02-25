@@ -150,7 +150,6 @@ export const ClearHistoryPrompt: Component<ClearHistoryPromptProps> = (
       const isEscape = event.code === "Escape";
       if (isEnter || isEscape) {
         event.preventDefault();
-        event.stopPropagation();
         event.stopImmediatePropagation();
         if (isEscape) {
           props.onCancel();

@@ -28,11 +28,9 @@ const MoreOptionsButton: Component<MoreOptionsButtonProps> = (props) => {
       class="flex items-center justify-center size-[18px] rounded-sm cursor-pointer bg-transparent hover:bg-black/10 text-black/30 hover:text-black border-none outline-none p-0 shrink-0 press-scale"
       // HACK: Native events with stopImmediatePropagation needed to block document-level handlers in the overlay system
       on:pointerdown={(event) => {
-        event.stopPropagation();
         event.stopImmediatePropagation();
       }}
       on:click={(event) => {
-        event.stopPropagation();
         event.stopImmediatePropagation();
         props.onClick();
       }}
@@ -94,7 +92,6 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
     const isEscape = event.code === "Escape";
 
     if (!isUndoRedo) {
-      event.stopPropagation();
       event.stopImmediatePropagation();
     }
 
