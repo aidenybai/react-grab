@@ -11,8 +11,7 @@ const simulateGsapPresence = (page: Page): Promise<void> =>
 const navigateAndWaitForReactGrab = async (page: Page): Promise<void> => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(
-    () =>
-      (window as { __REACT_GRAB__?: unknown }).__REACT_GRAB__ !== undefined,
+    () => (window as { __REACT_GRAB__?: unknown }).__REACT_GRAB__ !== undefined,
     { timeout: 10000 },
   );
 };
@@ -597,8 +596,7 @@ test.describe("Freeze Animations", () => {
 
       await page.waitForTimeout(200);
       const tickCountBeforeFreeze = await page.evaluate(
-        () =>
-          (window as unknown as Record<string, number>).__RAF_TICK_COUNT__,
+        () => (window as unknown as Record<string, number>).__RAF_TICK_COUNT__,
       );
       expect(tickCountBeforeFreeze).toBeGreaterThan(0);
 
@@ -606,13 +604,11 @@ test.describe("Freeze Animations", () => {
       await page.waitForTimeout(200);
 
       const tickCountAtFreeze = await page.evaluate(
-        () =>
-          (window as unknown as Record<string, number>).__RAF_TICK_COUNT__,
+        () => (window as unknown as Record<string, number>).__RAF_TICK_COUNT__,
       );
       await page.waitForTimeout(300);
       const tickCountAfterWaiting = await page.evaluate(
-        () =>
-          (window as unknown as Record<string, number>).__RAF_TICK_COUNT__,
+        () => (window as unknown as Record<string, number>).__RAF_TICK_COUNT__,
       );
 
       expect(tickCountAfterWaiting).toBe(tickCountAtFreeze);
@@ -640,17 +636,14 @@ test.describe("Freeze Animations", () => {
       await page.waitForTimeout(100);
 
       const tickCountAfterUnfreeze = await page.evaluate(
-        () =>
-          (window as unknown as Record<string, number>).__RAF_TICK_COUNT__,
+        () => (window as unknown as Record<string, number>).__RAF_TICK_COUNT__,
       );
       await page.waitForTimeout(300);
       const tickCountLater = await page.evaluate(
-        () =>
-          (window as unknown as Record<string, number>).__RAF_TICK_COUNT__,
+        () => (window as unknown as Record<string, number>).__RAF_TICK_COUNT__,
       );
 
       expect(tickCountLater).toBeGreaterThan(tickCountAfterUnfreeze);
     });
   });
-
 });

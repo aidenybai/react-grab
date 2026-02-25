@@ -639,7 +639,6 @@ export interface CompletionViewProps {
   onDismiss?: () => void;
   onUndo?: () => void;
   onFollowUpSubmit?: (prompt: string) => void;
-  onCopyStateChange?: () => void;
   onFadingChange?: (isFading: boolean) => void;
   onShowContextMenu?: () => void;
 }

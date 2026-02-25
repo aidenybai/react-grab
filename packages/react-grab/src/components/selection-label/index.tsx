@@ -167,7 +167,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     }
   });
 
-
   createEffect(() => {
     if (props.isPromptMode && inputRef && props.onSubmit) {
       // HACK: Defer focus one tick so the textarea is fully mounted.

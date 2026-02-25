@@ -66,7 +66,6 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
     if (didCopy()) return;
     setDidCopy(true);
     setDisplayStatusText("Copied");
-    props.onCopyStateChange?.();
     fadeTimeoutId = window.setTimeout(() => {
       setIsFading(true);
       props.onFadingChange?.(true);

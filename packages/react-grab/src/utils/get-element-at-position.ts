@@ -94,7 +94,10 @@ export const getElementAtPosition = (
   } else {
     const elementsAtPoint = document.elementsFromPoint(clientX, clientY);
     for (const candidateElement of elementsAtPoint) {
-      if (candidateElement !== topElement && isValidGrabbableElement(candidateElement)) {
+      if (
+        candidateElement !== topElement &&
+        isValidGrabbableElement(candidateElement)
+      ) {
         result = candidateElement;
         break;
       }
