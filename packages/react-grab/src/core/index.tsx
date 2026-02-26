@@ -1008,6 +1008,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const targetElement = createMemo(() => {
+      void store.viewportVersion;
       if (!isRendererActive() || isDragging()) return null;
       const element = store.detectedElement;
       if (!isElementConnected(element)) return null;
