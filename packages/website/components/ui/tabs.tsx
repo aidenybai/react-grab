@@ -4,7 +4,9 @@ import * as TabsPrimitive from "@radix-ui/react-tabs";
 import type { ComponentProps, ReactElement } from "react";
 import { cn } from "@/utils/cn";
 
-interface TabsProps extends ComponentProps<typeof TabsPrimitive.Root> {}
+interface TabsProps extends ComponentProps<typeof TabsPrimitive.Root> {
+  className?: string;
+}
 
 export const Tabs = ({ className, ...props }: TabsProps): ReactElement => (
   <TabsPrimitive.Root className={cn("flex flex-col gap-4", className)} {...props} />
@@ -12,7 +14,9 @@ export const Tabs = ({ className, ...props }: TabsProps): ReactElement => (
 
 Tabs.displayName = "Tabs";
 
-interface TabsListProps extends ComponentProps<typeof TabsPrimitive.List> {}
+interface TabsListProps extends ComponentProps<typeof TabsPrimitive.List> {
+  className?: string;
+}
 
 export const TabsList = ({
   className,
@@ -29,7 +33,9 @@ export const TabsList = ({
 
 TabsList.displayName = "TabsList";
 
-interface TabsTriggerProps extends ComponentProps<typeof TabsPrimitive.Trigger> {}
+interface TabsTriggerProps extends ComponentProps<typeof TabsPrimitive.Trigger> {
+  className?: string;
+}
 
 export const TabsTrigger = ({
   className,
@@ -46,7 +52,9 @@ export const TabsTrigger = ({
 
 TabsTrigger.displayName = "TabsTrigger";
 
-interface TabsContentProps extends ComponentProps<typeof TabsPrimitive.Content> {}
+interface TabsContentProps extends ComponentProps<typeof TabsPrimitive.Content> {
+  className?: string;
+}
 
 export const TabsContent = ({
   className,

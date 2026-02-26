@@ -3,7 +3,9 @@
 import type { ComponentProps, ReactElement } from "react";
 import { cn } from "@/utils/cn";
 
-interface CardProps extends ComponentProps<"div"> {}
+interface CardProps extends ComponentProps<"div"> {
+  className?: string;
+}
 
 export const Card = ({ className, ...props }: CardProps): ReactElement => (
   <div
@@ -17,7 +19,9 @@ export const Card = ({ className, ...props }: CardProps): ReactElement => (
 
 Card.displayName = "Card";
 
-interface CardHeaderProps extends ComponentProps<"div"> {}
+interface CardHeaderProps extends ComponentProps<"div"> {
+  className?: string;
+}
 
 export const CardHeader = ({
   className,
@@ -28,29 +32,41 @@ export const CardHeader = ({
 
 CardHeader.displayName = "CardHeader";
 
-interface CardTitleProps extends ComponentProps<"h3"> {}
+interface CardTitleProps extends ComponentProps<"h3"> {
+  className?: string;
+}
 
 export const CardTitle = ({
   className,
+  children,
   ...props
 }: CardTitleProps): ReactElement => (
-  <h3 className={cn("text-lg font-semibold", className)} {...props} />
+  <h3 className={cn("text-lg font-semibold", className)} {...props}>
+    {children}
+  </h3>
 );
 
 CardTitle.displayName = "CardTitle";
 
-interface CardDescriptionProps extends ComponentProps<"p"> {}
+interface CardDescriptionProps extends ComponentProps<"p"> {
+  className?: string;
+}
 
 export const CardDescription = ({
   className,
+  children,
   ...props
 }: CardDescriptionProps): ReactElement => (
-  <p className={cn("text-sm text-white/55", className)} {...props} />
+  <p className={cn("text-sm text-white/55", className)} {...props}>
+    {children}
+  </p>
 );
 
 CardDescription.displayName = "CardDescription";
 
-interface CardContentProps extends ComponentProps<"div"> {}
+interface CardContentProps extends ComponentProps<"div"> {
+  className?: string;
+}
 
 export const CardContent = ({
   className,
@@ -61,7 +77,9 @@ export const CardContent = ({
 
 CardContent.displayName = "CardContent";
 
-interface CardFooterProps extends ComponentProps<"div"> {}
+interface CardFooterProps extends ComponentProps<"div"> {
+  className?: string;
+}
 
 export const CardFooter = ({
   className,

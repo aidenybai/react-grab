@@ -1,6 +1,7 @@
 "use client";
 
 import { type ReactElement } from "react";
+import Link from "next/link";
 import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -30,11 +31,11 @@ export const DemoFooter = (): ReactElement => {
       </Button>
       <span className="hidden sm:inline"> &middot; </span>
       <Button asChild variant="link" size="sm" className="h-auto px-0 py-0 text-sm text-white/60 hover:text-white/80 sm:text-base">
-        <a href="/blog">blog</a>
+        <Link href="/blog">blog</Link>
       </Button>{" "}
       &middot;{" "}
       <Button asChild variant="link" size="sm" className="h-auto px-0 py-0 text-sm text-white/60 hover:text-white/80 sm:text-base">
-        <a href="/changelog">changelog</a>
+        <Link href="/changelog">changelog</Link>
       </Button>
     </div>
   );

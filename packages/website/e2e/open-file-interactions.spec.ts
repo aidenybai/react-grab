@@ -12,21 +12,23 @@ test.describe("Open File Page Hover & Focus States", () => {
     const editorDropdownTrigger = page.getByRole("button", {
       name: /cursor/i,
     });
-    const openButton = page.getByRole("button", { name: /open/i });
+    const openButton = page.getByRole("button", { name: "Open", exact: true });
 
     await expect(editorDropdownTrigger).toBeVisible();
     await expect(openButton).toBeVisible();
 
-    const openButtonColorBeforeHover = await getStyleProperty(
+    const openButtonBackgroundBeforeHover = await getStyleProperty(
       openButton,
-      "color",
+      "background-color",
     );
     await openButton.hover();
-    const openButtonColorAfterHover = await getStyleProperty(
+    const openButtonBackgroundAfterHover = await getStyleProperty(
       openButton,
-      "color",
+      "background-color",
     );
-    expect(openButtonColorAfterHover).not.toBe(openButtonColorBeforeHover);
+    expect(openButtonBackgroundAfterHover).not.toBe(
+      openButtonBackgroundBeforeHover,
+    );
 
     await expectVisibleFocusRing(editorDropdownTrigger);
     await expectVisibleFocusRing(openButton);
@@ -42,7 +44,16 @@ test.describe("Open File Page Hover & Focus States", () => {
 
     const vsCodeOption = page.getByRole("menuitem", { name: /vs code/i });
     await expect(vsCodeOption).toBeVisible();
-    await expectVisibleFocusRing(vsCodeOption);
+    const optionBackgroundBeforeFocus = await getStyleProperty(
+      vsCodeOption,
+      "background-color",
+    );
+    await vsCodeOption.focus();
+    const optionBackgroundAfterFocus = await getStyleProperty(
+      vsCodeOption,
+      "background-color",
+    );
+    expect(optionBackgroundAfterFocus).not.toBe(optionBackgroundBeforeFocus);
     await vsCodeOption.click();
 
     await expect(

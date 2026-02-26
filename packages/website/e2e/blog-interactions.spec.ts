@@ -10,17 +10,18 @@ test.describe("Blog Hover & Focus States", () => {
     });
     await expect(introPostLink).toBeVisible();
 
-    const linkBackgroundBeforeHover = await getStyleProperty(
-      introPostLink,
-      "background-color",
+    const postTitleText = introPostLink.getByText("React Grab Is Now 1.0");
+    const titleColorBeforeHover = await getStyleProperty(
+      postTitleText,
+      "color",
     );
     await introPostLink.hover();
-    const linkBackgroundAfterHover = await getStyleProperty(
-      introPostLink,
-      "background-color",
+    const titleColorAfterHover = await getStyleProperty(
+      postTitleText,
+      "color",
     );
 
-    expect(linkBackgroundAfterHover).not.toBe(linkBackgroundBeforeHover);
+    expect(titleColorAfterHover).not.toBe(titleColorBeforeHover);
     await expectVisibleFocusRing(introPostLink);
   });
 

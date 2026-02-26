@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { cn } from "@/utils/cn";
 
 interface TocHeading {
@@ -47,7 +48,7 @@ export const TableOfContents = ({ headings }: TableOfContentsProps) => {
   }, [headings]);
 
   const handleClick = (
-    event: React.MouseEvent<HTMLAnchorElement>,
+    event: React.MouseEvent<HTMLAnchorElement | HTMLSpanElement>,
     id: string,
   ) => {
     event.preventDefault();
@@ -75,7 +76,7 @@ export const TableOfContents = ({ headings }: TableOfContentsProps) => {
 
             return (
               <li key={heading.id}>
-                <a
+                <Link
                   href={`#${heading.id}`}
                   onClick={(event) => handleClick(event, heading.id)}
                   className={cn(
@@ -87,7 +88,7 @@ export const TableOfContents = ({ headings }: TableOfContentsProps) => {
                   )}
                 >
                   {heading.text}
-                </a>
+                </Link>
               </li>
             );
           })}

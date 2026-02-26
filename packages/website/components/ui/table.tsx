@@ -3,7 +3,9 @@
 import type { ComponentProps, ReactElement } from "react";
 import { cn } from "@/utils/cn";
 
-interface TableProps extends ComponentProps<"table"> {}
+interface TableProps extends ComponentProps<"table"> {
+  className?: string;
+}
 
 export const Table = ({ className, ...props }: TableProps): ReactElement => (
   <div className="relative w-full overflow-x-auto">
@@ -13,7 +15,9 @@ export const Table = ({ className, ...props }: TableProps): ReactElement => (
 
 Table.displayName = "Table";
 
-interface TableHeaderProps extends ComponentProps<"thead"> {}
+interface TableHeaderProps extends ComponentProps<"thead"> {
+  className?: string;
+}
 
 export const TableHeader = ({
   className,
@@ -24,7 +28,9 @@ export const TableHeader = ({
 
 TableHeader.displayName = "TableHeader";
 
-interface TableBodyProps extends ComponentProps<"tbody"> {}
+interface TableBodyProps extends ComponentProps<"tbody"> {
+  className?: string;
+}
 
 export const TableBody = ({ className, ...props }: TableBodyProps): ReactElement => (
   <tbody className={cn("[&_tr:last-child]:border-0", className)} {...props} />
@@ -32,7 +38,9 @@ export const TableBody = ({ className, ...props }: TableBodyProps): ReactElement
 
 TableBody.displayName = "TableBody";
 
-interface TableRowProps extends ComponentProps<"tr"> {}
+interface TableRowProps extends ComponentProps<"tr"> {
+  className?: string;
+}
 
 export const TableRow = ({ className, ...props }: TableRowProps): ReactElement => (
   <tr
@@ -46,7 +54,9 @@ export const TableRow = ({ className, ...props }: TableRowProps): ReactElement =
 
 TableRow.displayName = "TableRow";
 
-interface TableHeadProps extends ComponentProps<"th"> {}
+interface TableHeadProps extends ComponentProps<"th"> {
+  className?: string;
+}
 
 export const TableHead = ({ className, ...props }: TableHeadProps): ReactElement => (
   <th
@@ -60,7 +70,9 @@ export const TableHead = ({ className, ...props }: TableHeadProps): ReactElement
 
 TableHead.displayName = "TableHead";
 
-interface TableCellProps extends ComponentProps<"td"> {}
+interface TableCellProps extends ComponentProps<"td"> {
+  className?: string;
+}
 
 export const TableCell = ({ className, ...props }: TableCellProps): ReactElement => (
   <td className={cn("px-2 py-2 align-middle", className)} {...props} />
@@ -68,7 +80,9 @@ export const TableCell = ({ className, ...props }: TableCellProps): ReactElement
 
 TableCell.displayName = "TableCell";
 
-interface TableCaptionProps extends ComponentProps<"caption"> {}
+interface TableCaptionProps extends ComponentProps<"caption"> {
+  className?: string;
+}
 
 export const TableCaption = ({
   className,

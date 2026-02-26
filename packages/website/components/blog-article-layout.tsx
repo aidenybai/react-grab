@@ -81,14 +81,14 @@ export const BlogArticleLayout = ({
                 By{" "}
                 {authors.map((author, index) => (
                   <span key={author.name}>
-                    <a
+                    <Link
                       href={author.url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="rounded-sm text-neutral-300 underline underline-offset-4 transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-[#ff4fff]/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                     >
                       {author.name}
-                    </a>
+                    </Link>
                     {index < authors.length - 1 && ", "}
                   </span>
                 ))}

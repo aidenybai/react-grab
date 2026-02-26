@@ -8,7 +8,9 @@ export const HoverCard = HoverCardPrimitive.Root;
 export const HoverCardTrigger = HoverCardPrimitive.Trigger;
 
 interface HoverCardContentProps
-  extends ComponentProps<typeof HoverCardPrimitive.Content> {}
+  extends ComponentProps<typeof HoverCardPrimitive.Content> {
+  className?: string;
+}
 
 export const HoverCardContent = ({
   className,

@@ -39,7 +39,9 @@ export const DropdownMenuSubTrigger = ({
 DropdownMenuSubTrigger.displayName = "DropdownMenuSubTrigger";
 
 interface DropdownMenuSubContentProps
-  extends ComponentProps<typeof DropdownMenuPrimitive.SubContent> {}
+  extends ComponentProps<typeof DropdownMenuPrimitive.SubContent> {
+  className?: string;
+}
 
 export const DropdownMenuSubContent = ({
   className,
@@ -57,7 +59,9 @@ export const DropdownMenuSubContent = ({
 DropdownMenuSubContent.displayName = "DropdownMenuSubContent";
 
 interface DropdownMenuContentProps
-  extends ComponentProps<typeof DropdownMenuPrimitive.Content> {}
+  extends ComponentProps<typeof DropdownMenuPrimitive.Content> {
+  className?: string;
+}
 
 export const DropdownMenuContent = ({
   className,
@@ -90,7 +94,7 @@ export const DropdownMenuItem = ({
 }: DropdownMenuItemProps): ReactElement => (
   <DropdownMenuPrimitive.Item
     className={cn(
-      "relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-white/70 outline-none transition-colors focus:bg-white/10 focus:text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      "relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-white/70 outline-none transition-colors focus:bg-white/10 focus:text-white focus-visible:ring-2 focus-visible:ring-[#ff4fff]/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0d0d0d] data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       inset && "pl-8",
       className,
     )}
@@ -101,7 +105,9 @@ export const DropdownMenuItem = ({
 DropdownMenuItem.displayName = "DropdownMenuItem";
 
 interface DropdownMenuCheckboxItemProps
-  extends ComponentProps<typeof DropdownMenuPrimitive.CheckboxItem> {}
+  extends ComponentProps<typeof DropdownMenuPrimitive.CheckboxItem> {
+  className?: string;
+}
 
 export const DropdownMenuCheckboxItem = ({
   className,
@@ -111,7 +117,7 @@ export const DropdownMenuCheckboxItem = ({
 }: DropdownMenuCheckboxItemProps): ReactElement => (
   <DropdownMenuPrimitive.CheckboxItem
     className={cn(
-      "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm text-white/70 outline-none transition-colors focus:bg-white/10 focus:text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm text-white/70 outline-none transition-colors focus:bg-white/10 focus:text-white focus-visible:ring-2 focus-visible:ring-[#ff4fff]/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0d0d0d] data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       className,
     )}
     checked={checked}
@@ -147,7 +153,9 @@ export const DropdownMenuLabel = ({
 DropdownMenuLabel.displayName = "DropdownMenuLabel";
 
 interface DropdownMenuSeparatorProps
-  extends ComponentProps<typeof DropdownMenuPrimitive.Separator> {}
+  extends ComponentProps<typeof DropdownMenuPrimitive.Separator> {
+  className?: string;
+}
 
 export const DropdownMenuSeparator = ({
   className,
@@ -158,7 +166,9 @@ export const DropdownMenuSeparator = ({
 
 DropdownMenuSeparator.displayName = "DropdownMenuSeparator";
 
-interface DropdownMenuShortcutProps extends ComponentProps<"span"> {}
+interface DropdownMenuShortcutProps extends ComponentProps<"span"> {
+  className?: string;
+}
 
 export const DropdownMenuShortcut = ({
   className,

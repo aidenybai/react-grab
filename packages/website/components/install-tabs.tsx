@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, type ReactElement } from "react";
+import Link from "next/link";
 import { Copy, Check } from "lucide-react";
 import { COPY_FEEDBACK_DURATION_MS } from "@/constants";
 import { cn } from "@/utils/cn";
@@ -457,7 +458,7 @@ export const InstallTabs = ({
         <span className="mt-2 block text-sm text-white/50 sm:text-base">
           Want to connect directly to your coding agent?{" "}
           <Button asChild variant="link" size="sm" className="h-auto px-0 py-0 text-sm text-white/70 hover:text-white">
-            <a href="/blog/agent">See our agent connection guide</a>
+            <Link href="/blog/agent">See our agent connection guide</Link>
           </Button>
         </span>
       )}
