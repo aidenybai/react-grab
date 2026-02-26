@@ -6,6 +6,8 @@ import { COPY_FEEDBACK_DURATION_MS } from "@/constants";
 import { cn } from "@/utils/cn";
 import { detectMobile } from "@/utils/detect-mobile";
 import { hotkeyToString } from "@/utils/hotkey-to-string";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { RecordedHotkey } from "./grab-element-button";
 import { useHotkey } from "./hotkey-context";
 import { highlightCode } from "../lib/shiki";
@@ -366,45 +368,45 @@ export const InstallTabs = ({
         <span className="hidden sm:inline text-white">
           {headingText}
           {activeTabId === "cli" && (
-            <button
+            <Button
               type="button"
               onClick={() => setActiveTabId("next-app")}
-              className="ml-3 text-xs italic text-white/40 hover:text-white/60 hover:underline transition-colors sm:text-sm"
+              variant="link"
+              size="sm"
+              className="ml-3 h-auto px-0 py-0 text-xs italic text-white/40 hover:text-white/60 sm:text-sm"
             >
               Prefer manual install?
-            </button>
+            </Button>
           )}
         </span>
       )}
-      <div className="mt-4 overflow-hidden rounded-lg border border-white/10 bg-white/5 text-white shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
-        <div className="flex items-center gap-4 overflow-x-auto border-b border-white/10 px-4 pt-2">
-          {installTabsData.map((tab) => {
-            const isActive = tab.id === activeTab.id;
-
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                className={cn(
-                  "shrink-0 whitespace-nowrap border-b pb-2 font-sans text-sm transition-colors sm:text-base",
-                  isActive
-                    ? "border-white text-white"
-                    : "border-transparent text-white/60 hover:text-white",
-                )}
-                onClick={() => setActiveTabId(tab.id)}
-              >
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
+      <Tabs
+        value={activeTabId}
+        onValueChange={(value) => setActiveTabId(value)}
+        className="mt-4 overflow-hidden rounded-lg border border-white/10 bg-white/5 text-white shadow-[0_8px_30px_rgb(0,0,0,0.3)]"
+      >
+        <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-none border-b border-white/10 bg-transparent px-4 pt-2 pb-0">
+          {installTabsData.map((tab) => (
+            <TabsTrigger
+              key={tab.id}
+              value={tab.id}
+              className={cn(
+                "h-auto shrink-0 rounded-none border-b pb-2 font-sans text-sm data-[state=active]:border-white data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-white sm:text-base",
+                "border-transparent text-white/60 hover:text-white",
+              )}
+            >
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
         <div className="bg-black/60 relative">
           <div className="relative">
             {activeTabId === "cli" ? (
-              <button
+              <Button
                 type="button"
                 onClick={handleCopyClick}
-                className="group flex w-full items-center justify-between gap-4 px-4 py-6 transition-colors hover:bg-white/5"
+                variant="ghost"
+                className="group h-auto w-full justify-between rounded-none px-4 py-6 hover:bg-white/5"
               >
                 {highlightedCode ? (
                   <div
@@ -419,16 +421,18 @@ export const InstallTabs = ({
                 <span className="shrink-0 text-white/50 transition-colors group-hover:text-white">
                   {didCopy ? <Check size={16} /> : <Copy size={16} />}
                 </span>
-              </button>
+              </Button>
             ) : (
               <div className="group relative">
-                <button
+                <Button
                   type="button"
                   onClick={handleCopyClick}
-                  className="touch-hitbox absolute! right-4 top-4 text-white/50 opacity-0 transition-opacity hover:text-white group-hover:opacity-100 z-10"
+                  variant="ghost"
+                  size="icon"
+                  className="touch-hitbox absolute! right-4 top-4 z-10 text-white/50 opacity-0 transition-opacity hover:text-white group-hover:opacity-100"
                 >
                   {didCopy ? <Check size={16} /> : <Copy size={16} />}
-                </button>
+                </Button>
                 {highlightedCode ? (
                   <div
                     className="overflow-x-auto p-4 font-mono text-[13px] leading-relaxed highlighted-code"
@@ -443,7 +447,7 @@ export const InstallTabs = ({
             )}
           </div>
         </div>
-      </div>
+      </Tabs>
       {activeTabId !== "cli" && (
         <span className="mt-4 block text-sm text-white/50 sm:text-base">
           {activeTab.description}
@@ -452,9 +456,9 @@ export const InstallTabs = ({
       {showAgentNote && activeTabId !== "cli" && (
         <span className="mt-2 block text-sm text-white/50 sm:text-base">
           Want to connect directly to your coding agent?{" "}
-          <a href="/blog/agent" className="underline hover:text-white/70">
-            See our agent connection guide
-          </a>
+          <Button asChild variant="link" size="sm" className="h-auto px-0 py-0 text-sm text-white/70 hover:text-white">
+            <a href="/blog/agent">See our agent connection guide</a>
+          </Button>
         </span>
       )}
     </div>

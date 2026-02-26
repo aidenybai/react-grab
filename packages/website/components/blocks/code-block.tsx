@@ -8,6 +8,7 @@ import {
 } from "@/constants";
 import { type StreamRenderedBlock } from "@/hooks/use-stream";
 import { highlightCode } from "@/lib/shiki";
+import { Button } from "@/components/ui/button";
 import { StreamingText } from "./streaming-text";
 
 interface CodeBlockProps {
@@ -75,17 +76,19 @@ export const CodeBlock = ({ block }: CodeBlockProps): ReactElement => {
       )}
 
       {shouldShowExpandButton && (
-        <button
+        <Button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="relative w-full py-2 flex items-center justify-center gap-1 text-xs text-white/50 hover:text-white/90 transition-colors bg-[#0d0d0d]"
           type="button"
+          variant="ghost"
+          size="sm"
+          className="relative w-full rounded-none bg-[#0d0d0d] py-2 text-xs text-white/50 hover:bg-[#0d0d0d] hover:text-white/90"
         >
           <span>{isExpanded ? "Show less" : "Show more"}</span>
           <ChevronDown
             size={14}
             className={`transition-transform ${isExpanded ? "rotate-180" : ""}`}
           />
-        </button>
+        </Button>
       )}
     </div>
   );
