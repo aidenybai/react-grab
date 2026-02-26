@@ -25,6 +25,7 @@ import {
   nativeCancelAnimationFrame,
   nativeRequestAnimationFrame,
 } from "../utils/native-raf.js";
+import { createMenuHighlight } from "../utils/create-menu-highlight.js";
 
 interface ContextMenuProps {
   position: { x: number; y: number } | null;
@@ -47,6 +48,12 @@ interface MenuItem {
 
 export const ContextMenu: Component<ContextMenuProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
+  const {
+    containerRef: highlightContainerRef,
+    highlightRef,
+    updateHighlight,
+    clearHighlight,
+  } = createMenuHighlight();
 
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
@@ -298,15 +305,25 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
             />
           </div>
           <BottomSection>
-            <div class="flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5">
+            <div ref={highlightContainerRef} class="relative flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5">
+              <div
+                ref={highlightRef}
+                class="pointer-events-none absolute bg-black/5 opacity-0 transition-[top,left,width,height,opacity] duration-75 ease-out"
+              />
               <For each={menuItems()}>
                 {(item) => (
                   <button
                     data-react-grab-ignore-events
                     data-react-grab-menu-item={item.label.toLowerCase()}
-                    class="contain-layout flex items-center justify-between w-full px-2 py-1 cursor-pointer hover:bg-black/5 text-left border-none bg-transparent disabled:opacity-40 disabled:cursor-default disabled:hover:bg-transparent"
+                    class="relative z-1 contain-layout flex items-center justify-between w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent disabled:opacity-40 disabled:cursor-default"
                     disabled={!item.enabled}
                     onPointerDown={(event) => event.stopPropagation()}
+                    onPointerEnter={(event) => {
+                      if (item.enabled) {
+                        updateHighlight(event.currentTarget);
+                      }
+                    }}
+                    onPointerLeave={clearHighlight}
                     onClick={(event) => handleAction(item, event)}
                   >
                     <span class="text-[13px] leading-4 font-sans font-medium text-black">

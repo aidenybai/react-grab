@@ -34,6 +34,7 @@ import {
   nativeCancelAnimationFrame,
   nativeRequestAnimationFrame,
 } from "../utils/native-raf.js";
+import { createMenuHighlight } from "../utils/create-menu-highlight.js";
 
 const ITEM_ACTION_CLASS =
   "flex items-center justify-center cursor-pointer text-black/25 transition-colors press-scale";
@@ -72,6 +73,12 @@ const getHistoryItemDisplayName = (item: HistoryItem): string => {
 
 export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
+  const {
+    containerRef: highlightContainerRef,
+    highlightRef,
+    updateHighlight,
+    clearHighlight,
+  } = createMenuHighlight();
 
   const safePolygonTracker = createSafePolygonTracker();
 
@@ -345,15 +352,20 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
 
           <div class="min-h-0 [border-top-width:0.5px] border-t-solid border-t-[#D9D9D9] px-2 py-1.5">
             <div
-              class="flex flex-col max-h-[240px] overflow-y-auto -mx-2 -my-1.5"
+              ref={highlightContainerRef}
+              class="relative flex flex-col max-h-[240px] overflow-y-auto -mx-2 -my-1.5"
               style={{ "scrollbar-color": "rgba(0,0,0,0.15) transparent" }}
             >
+              <div
+                ref={highlightRef}
+                class="pointer-events-none absolute bg-black/5 opacity-0 transition-[top,left,width,height,opacity] duration-75 ease-out"
+              />
               <For each={props.items}>
                 {(item) => (
                   <div
                     data-react-grab-ignore-events
                     data-react-grab-history-item
-                    class="group contain-layout flex items-start justify-between w-full px-2 py-1 cursor-pointer hover:bg-black/5 focus-within:bg-black/5 text-left gap-2"
+                    class="group relative z-1 contain-layout flex items-start justify-between w-full px-2 py-1 cursor-pointer text-left gap-2"
                     classList={{
                       "opacity-40 hover:opacity-100": Boolean(
                         props.disconnectedItemIds?.has(item.id),
@@ -380,12 +392,18 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
                         props.onSelectItem?.(item);
                       }
                     }}
-                    onMouseEnter={() => {
+                    onMouseEnter={(event) => {
                       if (!props.disconnectedItemIds?.has(item.id)) {
                         props.onItemHover?.(item.id);
                       }
+                      updateHighlight(event.currentTarget);
                     }}
-                    onMouseLeave={() => props.onItemHover?.(null)}
+                    onMouseLeave={() => {
+                      props.onItemHover?.(null);
+                      clearHighlight();
+                    }}
+                    onFocus={(event) => updateHighlight(event.currentTarget)}
+                    onBlur={clearHighlight}
                   >
                     <span class="flex flex-col min-w-0 flex-1">
                       <span class="text-[12px] leading-4 font-sans font-medium text-black truncate">

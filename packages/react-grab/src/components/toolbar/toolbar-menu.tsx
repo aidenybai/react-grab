@@ -27,6 +27,7 @@ import {
   nativeCancelAnimationFrame,
   nativeRequestAnimationFrame,
 } from "../../utils/native-raf.js";
+import { createMenuHighlight } from "../../utils/create-menu-highlight.js";
 
 interface ToolbarMenuProps {
   position: DropdownAnchor | null;
@@ -36,6 +37,12 @@ interface ToolbarMenuProps {
 
 export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
+  const {
+    containerRef: highlightContainerRef,
+    highlightRef,
+    updateHighlight,
+    clearHighlight,
+  } = createMenuHighlight();
 
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
@@ -43,7 +50,7 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
   const [isAnimatedIn, setIsAnimatedIn] = createSignal(false);
   const [lastAnchorEdge, setLastAnchorEdge] =
     createSignal<DropdownAnchor["edge"]>("bottom");
-  const [toggleTrigger, setToggleTrigger] = createSignal(0);
+  const [toggleRefreshCounter, setToggleRefreshCounter] = createSignal(0);
 
   let exitAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
   let enterAnimationFrameId: number | undefined;
@@ -113,7 +120,7 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
     action.onAction();
 
     if (action.isActive !== undefined) {
-      setToggleTrigger((previous) => previous + 1);
+      setToggleRefreshCounter((previous) => previous + 1);
     } else {
       props.onDismiss();
     }
@@ -194,13 +201,17 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
           )}
           style={{ "min-width": `${TOOLBAR_MENU_MIN_WIDTH_PX}px` }}
         >
-          <div class="flex flex-col py-1">
+          <div ref={highlightContainerRef} class="relative flex flex-col py-1">
+            <div
+              ref={highlightRef}
+              class="pointer-events-none absolute bg-black/5 opacity-0 transition-[top,left,width,height,opacity] duration-75 ease-out"
+            />
             <For each={props.actions}>
               {(action) => {
                 const isEnabled = () => resolveToolbarActionEnabled(action);
                 const isToggle = () => action.isActive !== undefined;
                 const toggleActive = () => {
-                  void toggleTrigger();
+                  void toggleRefreshCounter();
                   return Boolean(action.isActive?.());
                 };
 
@@ -208,9 +219,15 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
                   <button
                     data-react-grab-ignore-events
                     data-react-grab-menu-item={action.id}
-                    class="contain-layout flex items-center justify-between w-full px-2 py-1 cursor-pointer transition-colors hover:bg-black/5 text-left border-none bg-transparent disabled:opacity-40 disabled:cursor-default disabled:hover:bg-transparent"
+                    class="relative z-1 contain-layout flex items-center justify-between w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent disabled:opacity-40 disabled:cursor-default"
                     disabled={!isEnabled()}
                     onPointerDown={(event) => event.stopPropagation()}
+                    onPointerEnter={(event) => {
+                      if (isEnabled()) {
+                        updateHighlight(event.currentTarget);
+                      }
+                    }}
+                    onPointerLeave={clearHighlight}
                     onClick={(event) => handleActionClick(action, event)}
                   >
                     <span class="text-[13px] leading-4 font-sans font-medium text-black">
