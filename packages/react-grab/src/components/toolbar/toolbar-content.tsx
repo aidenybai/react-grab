@@ -69,6 +69,8 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
 
   const defaultSelectButton = () => (
     <button
+      aria-label={props.isActive ? "Stop selecting element" : "Select element"}
+      aria-pressed={Boolean(props.isActive)}
       class={cn(
         "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
         buttonSpacingClass(),
@@ -87,6 +89,8 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
 
   const defaultToggleButton = () => (
     <button
+      aria-label={props.enabled ? "Disable React Grab" : "Enable React Grab"}
+      aria-pressed={Boolean(props.enabled)}
       class={cn(
         "contain-layout flex items-center justify-center cursor-pointer interactive-scale outline-none",
         isVertical() ? "my-0.5" : "mx-0.5",
@@ -112,7 +116,10 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
   );
 
   const defaultCollapseButton = () => (
-    <button class="contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale">
+    <button
+      aria-label={props.isCollapsed ? "Expand toolbar" : "Collapse toolbar"}
+      class="contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale"
+    >
       <IconChevron
         class={cn(
           "text-[#B3B3B3] transition-transform duration-150",

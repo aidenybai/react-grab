@@ -274,8 +274,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     };
   });
 
-  const computedPosition = () => positionComputation().position;
-
   createEffect(() => {
     const result = positionComputation();
     if (result.computedArrowPosition !== null) {
@@ -364,9 +362,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           "fixed font-sans text-[13px] antialiased filter-[drop-shadow(0px_1px_2px_#51515140)] select-none transition-opacity duration-100 ease-out",
         )}
         style={{
-          top: `${computedPosition().top}px`,
-          left: `${computedPosition().left}px`,
-          transform: `translateX(calc(-50% + ${computedPosition().edgeOffsetX}px))`,
+          top: `${positionComputation().position.top}px`,
+          left: `${positionComputation().position.left}px`,
+          transform: `translateX(calc(-50% + ${positionComputation().position.edgeOffsetX}px))`,
           "z-index": "2147483647",
           "pointer-events": shouldEnablePointerEvents() ? "auto" : "none",
           opacity: props.status === "fading" || isInternalFading() ? 0 : 1,
@@ -381,8 +379,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         <Show when={!props.hideArrow}>
           <Arrow
             position={arrowPosition()}
-            leftPercent={computedPosition().arrowLeftPercent}
-            leftOffsetPx={computedPosition().arrowLeftOffset}
+            leftPercent={positionComputation().position.arrowLeftPercent}
+            leftOffsetPx={positionComputation().position.arrowLeftOffset}
             labelWidth={panelWidth()}
           />
         </Show>

@@ -1561,6 +1561,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                   <button
                     data-react-grab-ignore-events
                     data-react-grab-toolbar-toggle
+                    aria-label={
+                      props.isActive ? "Stop selecting element" : "Select element"
+                    }
+                    aria-pressed={Boolean(props.isActive)}
                     class={cn(
                       "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
                       buttonSpacingClass(),
@@ -1610,6 +1614,13 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                   <button
                     data-react-grab-ignore-events
                     data-react-grab-toolbar-history
+                    aria-label={`Open history${
+                      (props.historyItemCount ?? 0) > 0
+                        ? ` (${props.historyItemCount ?? 0} items)`
+                        : ""
+                    }`}
+                    aria-haspopup="menu"
+                    aria-expanded={Boolean(props.isHistoryDropdownOpen)}
                     class={cn(
                       "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
                       buttonSpacingClass(),
@@ -1677,6 +1688,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                   <button
                     data-react-grab-ignore-events
                     data-react-grab-toolbar-copy-all
+                    aria-label="Copy all history items"
                     class={cn(
                       "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
                       buttonSpacingClass(),
@@ -1733,6 +1745,13 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                   <button
                     data-react-grab-ignore-events
                     data-react-grab-toolbar-menu
+                    aria-label={
+                      props.isMenuOpen
+                        ? "Close more actions menu"
+                        : "Open more actions menu"
+                    }
+                    aria-haspopup="menu"
+                    aria-expanded={Boolean(props.isMenuOpen)}
                     class={cn(
                       "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
                       buttonSpacingClass(),
@@ -1776,6 +1795,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               <button
                 data-react-grab-ignore-events
                 data-react-grab-toolbar-enabled
+                aria-label={
+                  props.enabled ? "Disable React Grab" : "Enable React Grab"
+                }
+                aria-pressed={Boolean(props.enabled)}
                 class={cn(
                   "contain-layout flex items-center justify-center cursor-pointer interactive-scale outline-none",
                   isVertical() ? "my-0.5" : "mx-0.5",
@@ -1816,6 +1839,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         <button
           data-react-grab-ignore-events
           data-react-grab-toolbar-collapse
+          aria-label={isCollapsed() ? "Expand toolbar" : "Collapse toolbar"}
           class="contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale"
           onClick={handleToggleCollapse}
         >

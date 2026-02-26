@@ -18,7 +18,7 @@ import {
   TOOLBAR_MENU_MIN_WIDTH_PX,
   PANEL_STYLES,
 } from "../../constants.js";
-import { clampToViewport } from "../../utils/clamp-to-viewport.js";
+import { getAnchoredDropdownPosition } from "../../utils/get-anchored-dropdown-position.js";
 import { cn } from "../../utils/cn.js";
 import { formatShortcut } from "../../utils/format-shortcut.js";
 import { isEventFromOverlay } from "../../utils/is-event-from-overlay.js";
@@ -79,53 +79,18 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
     }
   });
 
-  const computedPosition = () => {
-    const anchor = props.position;
-    const width = measuredWidth();
-    const height = measuredHeight();
-
-    if (!anchor || width === 0 || height === 0) {
-      return DROPDOWN_OFFSCREEN_POSITION;
-    }
-
-    const { edge } = anchor;
-
-    let rawLeft: number;
-    let rawTop: number;
-
-    if (edge === "left" || edge === "right") {
-      rawLeft =
-        edge === "left"
-          ? anchor.x + DROPDOWN_ANCHOR_GAP_PX
-          : anchor.x - width - DROPDOWN_ANCHOR_GAP_PX;
-      rawTop = anchor.y - height / 2;
-    } else {
-      rawLeft = anchor.x - width / 2;
-      rawTop =
-        edge === "top"
-          ? anchor.y + DROPDOWN_ANCHOR_GAP_PX
-          : anchor.y - height - DROPDOWN_ANCHOR_GAP_PX;
-    }
-
-    return {
-      left: clampToViewport(
-        rawLeft,
-        width,
-        window.innerWidth,
-        DROPDOWN_VIEWPORT_PADDING_PX,
-      ),
-      top: clampToViewport(
-        rawTop,
-        height,
-        window.innerHeight,
-        DROPDOWN_VIEWPORT_PADDING_PX,
-      ),
-    };
-  };
-
   const displayPosition = createMemo(
     (previousPosition: { left: number; top: number }) => {
-      const position = computedPosition();
+      const position = getAnchoredDropdownPosition({
+        anchor: props.position,
+        measuredWidth: measuredWidth(),
+        measuredHeight: measuredHeight(),
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
+        anchorGapPx: DROPDOWN_ANCHOR_GAP_PX,
+        viewportPaddingPx: DROPDOWN_VIEWPORT_PADDING_PX,
+        offscreenPosition: DROPDOWN_OFFSCREEN_POSITION,
+      });
       if (position.left !== DROPDOWN_OFFSCREEN_POSITION.left) {
         return position;
       }

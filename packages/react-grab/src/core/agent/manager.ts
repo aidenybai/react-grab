@@ -18,6 +18,7 @@ import {
 import { createElementBounds } from "../../utils/create-element-bounds.js";
 import { isElementConnected } from "../../utils/is-element-connected.js";
 import { generateSnippet } from "../../utils/generate-snippet.js";
+import { recalculateSessionPosition } from "../../utils/recalculate-session-position.js";
 import { getNearestComponentName } from "../context.js";
 import {
   DISMISS_ANIMATION_BUFFER_MS,
@@ -689,20 +690,11 @@ export const createAgentManager = (
         if (newBounds.length > 0) {
           const oldFirstBounds = session.selectionBounds[0];
           const newFirstBounds = newBounds[0];
-          let updatedPosition = session.position;
-
-          if (oldFirstBounds && newFirstBounds) {
-            const oldCenterX = oldFirstBounds.x + oldFirstBounds.width / 2;
-            const oldHalfWidth = oldFirstBounds.width / 2;
-            const offsetX = session.position.x - oldCenterX;
-            const offsetRatio = oldHalfWidth > 0 ? offsetX / oldHalfWidth : 0;
-            const newCenterX = newFirstBounds.x + newFirstBounds.width / 2;
-            const newHalfWidth = newFirstBounds.width / 2;
-            updatedPosition = {
-              ...session.position,
-              x: newCenterX + offsetRatio * newHalfWidth,
-            };
-          }
+          const updatedPosition = recalculateSessionPosition({
+            currentPosition: session.position,
+            previousBounds: oldFirstBounds,
+            nextBounds: newFirstBounds,
+          });
 
           updatedSessions.set(sessionId, {
             ...session,
