@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryState, parseAsStringLiteral } from "nuqs";
-import { useState, useEffect, useCallback, Suspense, useRef } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { ReactGrabLogo } from "@/components/react-grab-logo";
 import { cn } from "@/utils/cn";
 import { IconCursor } from "@/components/icons/icon-cursor";
@@ -10,6 +10,16 @@ import { IconZed } from "@/components/icons/icon-zed";
 import { IconWebStorm } from "@/components/icons/icon-webstorm";
 import { ChevronDown, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Separator } from "@/components/ui/separator";
 
 const EDITOR_OPTIONS = ["cursor", "vscode", "zed", "webstorm"] as const;
 type Editor = (typeof EDITOR_OPTIONS)[number];
@@ -28,6 +38,9 @@ const EDITORS: EditorOption[] = [
 ];
 
 const STORAGE_KEY = "react-grab-preferred-editor";
+
+const isEditorOption = (value: string): value is Editor =>
+  EDITORS.some((editorOption) => editorOption.id === value);
 
 const getEditorUrl = (
   editor: Editor,
@@ -61,8 +74,8 @@ const OpenFileContent = () => {
     const params = new URLSearchParams(window.location.search);
     if (params.has("raw")) return { editor: "cursor", hasSaved: false };
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved && EDITORS.some((e) => e.id === saved)) {
-      return { editor: saved as Editor, hasSaved: true };
+    if (saved && isEditorOption(saved)) {
+      return { editor: saved, hasSaved: true };
     }
     return { editor: "cursor", hasSaved: false };
   };
@@ -76,21 +89,6 @@ const OpenFileContent = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [hasSavedPreference] = useState(() => getInitialEditor().hasSaved);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   const handleOpen = useCallback(() => {
     if (!resolvedFilePath) return;
@@ -139,7 +137,7 @@ const OpenFileContent = () => {
   if (!resolvedFilePath) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-black p-4">
-        <div className="w-full max-w-md rounded-lg border border-white/10 bg-[#0d0d0d] p-8 text-center shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
+        <Card className="w-full max-w-md p-8 text-center">
           <div className="mb-6 flex justify-center">
             <ReactGrabLogo width={100} height={40} />
           </div>
@@ -150,7 +148,7 @@ const OpenFileContent = () => {
             </code>{" "}
             to the URL.
           </div>
-        </div>
+        </Card>
       </div>
     );
   }
@@ -167,18 +165,18 @@ const OpenFileContent = () => {
         </Link>
       </div>
 
-      <div className="w-full max-w-lg rounded-lg border border-white/10 bg-[#0d0d0d] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
+      <Card className="w-full max-w-lg p-8">
         <div className="mb-2 flex flex-wrap items-center gap-2 text-lg text-white/80">
           <span>Opening</span>
-          <span className="inline-flex items-center rounded bg-white/10 px-2 py-0.5 font-mono text-sm text-white/90">
+          <Badge variant="default" className="rounded bg-white/10 px-2 py-0.5 font-mono text-sm text-white/90">
             {fileName}
-          </span>
+          </Badge>
           {lineNumber && (
             <>
               <span>at line</span>
-              <span className="inline-flex items-center rounded bg-white/10 px-2 py-0.5 font-mono text-sm text-white/90">
+              <Badge variant="default" className="rounded bg-white/10 px-2 py-0.5 font-mono text-sm text-white/90">
                 {lineNumber}
-              </span>
+              </Badge>
             </>
           )}
         </div>
@@ -188,79 +186,82 @@ const OpenFileContent = () => {
         </div>
 
         <div className="mb-6 inline-flex items-stretch rounded-lg border border-white/10 bg-white/5">
-          <div className="relative" ref={dropdownRef}>
-            <button
-              type="button"
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex h-full items-center gap-2 rounded-l-lg px-4 py-2.5 text-sm text-white/80 transition-colors hover:bg-white/10"
+          <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-full rounded-r-none px-4 py-2.5 text-sm text-white/80 hover:bg-white/10"
+              >
+                <span className="opacity-70">{selectedEditor?.icon}</span>
+                <span>{selectedEditor?.name}</span>
+                <ChevronDown
+                  size={14}
+                  className={cn(
+                    "opacity-40 transition-transform",
+                    isDropdownOpen && "rotate-180",
+                  )}
+                />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="start"
+              className="min-w-[160px] border-white/10 bg-[#0d0d0d]"
             >
-              <span className="opacity-70">{selectedEditor?.icon}</span>
-              <span>{selectedEditor?.name}</span>
-              <ChevronDown
-                size={14}
-                className={cn(
-                  "opacity-40 transition-transform",
-                  isDropdownOpen && "rotate-180",
-                )}
-              />
-            </button>
+              {EDITORS.map((editor) => (
+                <DropdownMenuItem
+                  key={editor.id}
+                  onSelect={() => handleEditorChange(editor.id)}
+                  className={cn(
+                    preferredEditor === editor.id
+                      ? "bg-white/10 text-white"
+                      : "text-white/60 hover:bg-white/10 hover:text-white/90",
+                  )}
+                >
+                  <span className="opacity-70">{editor.icon}</span>
+                  <span>{editor.name}</span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-            {isDropdownOpen && (
-              <div className="absolute left-0 top-full z-10 mt-1 min-w-[160px] overflow-hidden rounded-lg border border-white/10 bg-[#0d0d0d] shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
-                {EDITORS.map((editor) => (
-                  <button
-                    key={editor.id}
-                    type="button"
-                    onClick={() => handleEditorChange(editor.id)}
-                    className={cn(
-                      "flex w-full items-center gap-2.5 px-4 py-2.5 text-sm transition-colors",
-                      preferredEditor === editor.id
-                        ? "bg-white/10 text-white"
-                        : "text-white/60 hover:bg-white/10 hover:text-white/90",
-                    )}
-                  >
-                    <span className="opacity-70">{editor.icon}</span>
-                    <span>{editor.name}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <Separator orientation="vertical" className="bg-white/10" />
 
-          <div className="w-px bg-white/10" />
-
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={handleOpen}
-            className="flex items-center gap-1.5 rounded-r-lg px-4 py-2.5 text-sm text-white/80 transition-colors hover:bg-white/10"
+            className="h-full rounded-l-none px-4 py-2.5 text-sm text-white/80 hover:bg-white/10"
           >
             <span>Open</span>
             <ArrowUpRight size={14} className="opacity-50" />
-          </button>
+          </Button>
         </div>
 
         <div className="space-y-1 text-xs text-white/40">
           <p>Your preference will be saved for future use.</p>
           <p>Only open files from trusted sources.</p>
         </div>
-      </div>
+      </Card>
 
-      <button
+      <Button
         type="button"
         onClick={() => setIsInfoOpen(!isInfoOpen)}
-        className="mt-8 flex items-center gap-1.5 text-xs text-white/25 transition-colors hover:text-white/40 focus:outline-none"
+        variant="ghost"
+        size="sm"
+        className="mt-8 h-auto gap-1.5 px-0 py-0 text-xs text-white/25 hover:bg-transparent hover:text-white/40"
       >
         <span>What is React Grab?</span>
         <ChevronDown
           size={10}
           className={cn("transition-transform", isInfoOpen && "rotate-180")}
         />
-      </button>
+      </Button>
 
       {isInfoOpen && (
         <p className="mt-2 text-center text-xs text-white/30">
           Select any element in your React app and copy its context to AI tools.{" "}
-          <Link href="/" className="underline hover:text-white/50">
+          <Link href="/" className="rounded-sm underline hover:text-white/50 focus-visible:ring-2 focus-visible:ring-[#ff4fff]/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black">
             Learn more
           </Link>
         </p>

@@ -5,6 +5,16 @@ import { useState, useMemo } from "react";
 import { ChevronDown, ChevronUp, Search, ArrowUpDown } from "lucide-react";
 import Image from "next/image";
 import { BENCHMARK_TREATMENT_COLOR } from "@/constants";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface BenchmarkDetailedTableProps {
   results: BenchmarkResult[];
@@ -38,6 +48,43 @@ const SortIcon = ({ field, sortField, sortDirection }: SortIconProps) => {
 };
 
 SortIcon.displayName = "SortIcon";
+
+interface SortButtonProps {
+  field: SortField;
+  label: string;
+  sortField: SortField;
+  sortDirection: SortDirection;
+  onSort: (field: SortField) => void;
+  className?: string;
+}
+
+const SortButton = ({
+  field,
+  label,
+  sortField,
+  sortDirection,
+  onSort,
+  className,
+}: SortButtonProps) => (
+  <Button
+    type="button"
+    variant="ghost"
+    size="sm"
+    onClick={() => onSort(field)}
+    className={`h-auto justify-start px-0 py-0 text-left text-xs font-medium uppercase tracking-wider text-neutral-400 hover:bg-transparent hover:text-neutral-200 ${className ?? ""}`}
+  >
+    <span className="flex items-center">
+      {label}
+      <SortIcon
+        field={field}
+        sortField={sortField}
+        sortDirection={sortDirection}
+      />
+    </span>
+  </Button>
+);
+
+SortButton.displayName = "SortButton";
 
 export const BenchmarkDetailedTable = ({
   results,
@@ -143,199 +190,168 @@ export const BenchmarkDetailedTable = ({
             size={14}
             className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500"
           />
-          <input
+          <Input
             type="text"
             placeholder="Filter tests..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-md py-1.5 pl-9 pr-3 text-xs text-neutral-200 placeholder:text-neutral-600 focus:outline-none focus:border-[#404040] w-full sm:w-[200px]"
+            className="h-auto w-full border-[#2a2a2a] bg-[#1a1a1a] py-1.5 pr-3 pl-9 text-xs text-neutral-200 placeholder:text-neutral-600 sm:w-[200px]"
           />
         </div>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-[#2a2a2a]">
-              <th
-                rowSpan={2}
-                className="text-left py-2 px-3 text-xs font-medium text-neutral-400 uppercase tracking-wider cursor-pointer hover:text-neutral-200 transition-colors group"
-                onClick={() => handleSort("testName")}
-              >
-                <div className="flex items-center">
-                  Test Name
-                  <SortIcon
-                    field="testName"
-                    sortField={sortField}
-                    sortDirection={sortDirection}
-                  />
-                </div>
-              </th>
-              <th
-                colSpan={2}
-                className="text-left py-2 px-3 text-xs font-medium text-neutral-400 uppercase tracking-wider cursor-pointer hover:text-neutral-200 transition-colors group"
-                onClick={() => handleSort("inputTokens")}
-              >
-                <div className="flex items-center">
-                  Input Tokens
-                  <SortIcon
-                    field="inputTokens"
-                    sortField={sortField}
-                    sortDirection={sortDirection}
-                  />
-                </div>
-              </th>
-              <th
-                colSpan={2}
-                className="text-left py-2 px-3 text-xs font-medium text-neutral-400 uppercase tracking-wider cursor-pointer hover:text-neutral-200 transition-colors group"
-                onClick={() => handleSort("outputTokens")}
-              >
-                <div className="flex items-center">
-                  Output Tokens
-                  <SortIcon
-                    field="outputTokens"
-                    sortField={sortField}
-                    sortDirection={sortDirection}
-                  />
-                </div>
-              </th>
-              <th
-                colSpan={2}
-                className="text-left py-2 px-3 text-xs font-medium text-neutral-400 uppercase tracking-wider cursor-pointer hover:text-neutral-200 transition-colors group"
-                onClick={() => handleSort("cost")}
-              >
-                <div className="flex items-center">
-                  Cost
-                  <SortIcon
-                    field="cost"
-                    sortField={sortField}
-                    sortDirection={sortDirection}
-                  />
-                </div>
-              </th>
-              <th
-                colSpan={2}
-                className="text-left py-2 px-3 text-xs font-medium text-neutral-400 uppercase tracking-wider cursor-pointer hover:text-neutral-200 transition-colors group"
-                onClick={() => handleSort("duration")}
-              >
-                <div className="flex items-center">
-                  Duration
-                  <SortIcon
-                    field="duration"
-                    sortField={sortField}
-                    sortDirection={sortDirection}
-                  />
-                </div>
-              </th>
-              <th
-                colSpan={2}
-                className="text-left py-2 px-3 text-xs font-medium text-neutral-400 uppercase tracking-wider cursor-pointer hover:text-neutral-200 transition-colors group"
-                onClick={() => handleSort("toolCalls")}
-              >
-                <div className="flex items-center">
-                  Tool Calls
-                  <SortIcon
-                    field="toolCalls"
-                    sortField={sortField}
-                    sortDirection={sortDirection}
-                  />
-                </div>
-              </th>
-            </tr>
-            <tr className="border-b border-[#2a2a2a] bg-[#0d0d0d]">
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-neutral-600 uppercase tracking-wide">
-                Control
-              </th>
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-neutral-600 uppercase tracking-wide bg-[#111111]">
-                <div className="flex items-center gap-1.5">
-                  <Image
-                    src="/logo.svg"
-                    alt="React Grab"
-                    width={10}
-                    height={10}
-                    className="w-2.5 h-2.5"
-                  />
-                  <span style={{ color: BENCHMARK_TREATMENT_COLOR }}>
-                    React Grab
-                  </span>
-                </div>
-              </th>
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-neutral-600 uppercase tracking-wide">
-                Control
-              </th>
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-neutral-600 uppercase tracking-wide bg-[#111111]">
-                <div className="flex items-center gap-1.5">
-                  <Image
-                    src="/logo.svg"
-                    alt="React Grab"
-                    width={10}
-                    height={10}
-                    className="w-2.5 h-2.5"
-                  />
-                  <span style={{ color: BENCHMARK_TREATMENT_COLOR }}>
-                    React Grab
-                  </span>
-                </div>
-              </th>
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-neutral-600 uppercase tracking-wide">
-                Control
-              </th>
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-neutral-600 uppercase tracking-wide bg-[#111111]">
-                <div className="flex items-center gap-1.5">
-                  <Image
-                    src="/logo.svg"
-                    alt="React Grab"
-                    width={10}
-                    height={10}
-                    className="w-2.5 h-2.5"
-                  />
-                  <span style={{ color: BENCHMARK_TREATMENT_COLOR }}>
-                    React Grab
-                  </span>
-                </div>
-              </th>
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-neutral-600 uppercase tracking-wide">
-                Control
-              </th>
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-neutral-600 uppercase tracking-wide bg-[#111111]">
-                <div className="flex items-center gap-1.5">
-                  <Image
-                    src="/logo.svg"
-                    alt="React Grab"
-                    width={10}
-                    height={10}
-                    className="w-2.5 h-2.5"
-                  />
-                  <span style={{ color: BENCHMARK_TREATMENT_COLOR }}>
-                    React Grab
-                  </span>
-                </div>
-              </th>
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-neutral-600 uppercase tracking-wide">
-                Control
-              </th>
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-neutral-600 uppercase tracking-wide bg-[#111111]">
-                <div className="flex items-center gap-1.5">
-                  <Image
-                    src="/logo.svg"
-                    alt="React Grab"
-                    width={10}
-                    height={10}
-                    className="w-2.5 h-2.5"
-                  />
-                  <span style={{ color: BENCHMARK_TREATMENT_COLOR }}>
-                    React Grab
-                  </span>
-                </div>
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#2a2a2a]">
+      <Table className="text-sm">
+        <TableHeader>
+          <TableRow className="border-[#2a2a2a]">
+            <TableHead rowSpan={2} className="px-3 py-2 align-middle">
+              <SortButton
+                field="testName"
+                label="Test Name"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+            </TableHead>
+            <TableHead colSpan={2} className="px-3 py-2 align-middle">
+              <SortButton
+                field="inputTokens"
+                label="Input Tokens"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+            </TableHead>
+            <TableHead colSpan={2} className="px-3 py-2 align-middle">
+              <SortButton
+                field="outputTokens"
+                label="Output Tokens"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+            </TableHead>
+            <TableHead colSpan={2} className="px-3 py-2 align-middle">
+              <SortButton
+                field="cost"
+                label="Cost"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+            </TableHead>
+            <TableHead colSpan={2} className="px-3 py-2 align-middle">
+              <SortButton
+                field="duration"
+                label="Duration"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+            </TableHead>
+            <TableHead colSpan={2} className="px-3 py-2 align-middle">
+              <SortButton
+                field="toolCalls"
+                label="Tool Calls"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+            </TableHead>
+          </TableRow>
+          <TableRow className="border-[#2a2a2a] bg-[#0d0d0d]">
+            <TableHead className="px-3 py-1.5 text-[10px] font-normal text-neutral-600">
+              Control
+            </TableHead>
+            <TableHead className="bg-[#111111] px-3 py-1.5 text-[10px] font-normal text-neutral-600">
+              <div className="flex items-center gap-1.5">
+                <Image
+                  src="/logo.svg"
+                  alt="React Grab"
+                  width={10}
+                  height={10}
+                  className="size-2.5"
+                />
+                <span style={{ color: BENCHMARK_TREATMENT_COLOR }}>
+                  React Grab
+                </span>
+              </div>
+            </TableHead>
+            <TableHead className="px-3 py-1.5 text-[10px] font-normal text-neutral-600">
+              Control
+            </TableHead>
+            <TableHead className="bg-[#111111] px-3 py-1.5 text-[10px] font-normal text-neutral-600">
+              <div className="flex items-center gap-1.5">
+                <Image
+                  src="/logo.svg"
+                  alt="React Grab"
+                  width={10}
+                  height={10}
+                  className="size-2.5"
+                />
+                <span style={{ color: BENCHMARK_TREATMENT_COLOR }}>
+                  React Grab
+                </span>
+              </div>
+            </TableHead>
+            <TableHead className="px-3 py-1.5 text-[10px] font-normal text-neutral-600">
+              Control
+            </TableHead>
+            <TableHead className="bg-[#111111] px-3 py-1.5 text-[10px] font-normal text-neutral-600">
+              <div className="flex items-center gap-1.5">
+                <Image
+                  src="/logo.svg"
+                  alt="React Grab"
+                  width={10}
+                  height={10}
+                  className="size-2.5"
+                />
+                <span style={{ color: BENCHMARK_TREATMENT_COLOR }}>
+                  React Grab
+                </span>
+              </div>
+            </TableHead>
+            <TableHead className="px-3 py-1.5 text-[10px] font-normal text-neutral-600">
+              Control
+            </TableHead>
+            <TableHead className="bg-[#111111] px-3 py-1.5 text-[10px] font-normal text-neutral-600">
+              <div className="flex items-center gap-1.5">
+                <Image
+                  src="/logo.svg"
+                  alt="React Grab"
+                  width={10}
+                  height={10}
+                  className="size-2.5"
+                />
+                <span style={{ color: BENCHMARK_TREATMENT_COLOR }}>
+                  React Grab
+                </span>
+              </div>
+            </TableHead>
+            <TableHead className="px-3 py-1.5 text-[10px] font-normal text-neutral-600">
+              Control
+            </TableHead>
+            <TableHead className="bg-[#111111] px-3 py-1.5 text-[10px] font-normal text-neutral-600">
+              <div className="flex items-center gap-1.5">
+                <Image
+                  src="/logo.svg"
+                  alt="React Grab"
+                  width={10}
+                  height={10}
+                  className="size-2.5"
+                />
+                <span style={{ color: BENCHMARK_TREATMENT_COLOR }}>
+                  React Grab
+                </span>
+              </div>
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody className="divide-y divide-[#2a2a2a]">
             {filteredAndSortedResults.length === 0 ? (
-              <tr>
-                <td colSpan={11} className="py-8 text-center text-neutral-500">
+              <TableRow>
+                <TableCell colSpan={11} className="py-8 text-center text-neutral-500">
                   No results found matching &quot;{searchQuery}&quot;
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
               filteredAndSortedResults.map(([testName, results]) => {
                 const control = results.control || ({} as BenchmarkResult);
@@ -365,23 +381,23 @@ export const BenchmarkDetailedTable = ({
                 const prompt = testCaseMap[testName] || "";
 
                 return (
-                  <tr
+                  <TableRow
                     key={testName}
                     className="hover:bg-[#1a1a1a] transition-colors"
                   >
-                    <td
-                      className="py-2 px-3 font-medium text-neutral-300 cursor-help max-w-[200px] truncate"
+                    <TableCell
+                      className="max-w-[200px] cursor-help truncate px-3 py-2 font-medium text-neutral-300"
                       title={prompt}
                     >
                       {testName}
-                    </td>
-                    <td className="py-2 px-3 text-neutral-400 tabular-nums text-xs">
+                    </TableCell>
+                    <TableCell className="px-3 py-2 text-xs tabular-nums text-neutral-400">
                       {control.inputTokens
                         ? control.inputTokens.toLocaleString()
                         : "-"}
-                    </td>
-                    <td
-                      className="py-2 px-3 text-neutral-300 tabular-nums text-xs"
+                    </TableCell>
+                    <TableCell
+                      className="px-3 py-2 text-xs tabular-nums text-neutral-300"
                       style={{
                         backgroundColor:
                           inputChange.bgColor !== "transparent"
@@ -397,14 +413,14 @@ export const BenchmarkDetailedTable = ({
                           {inputChange.change}
                         </span>
                       )}
-                    </td>
-                    <td className="py-2 px-3 text-neutral-400 tabular-nums text-xs">
+                    </TableCell>
+                    <TableCell className="px-3 py-2 text-xs tabular-nums text-neutral-400">
                       {control.outputTokens
                         ? control.outputTokens.toLocaleString()
                         : "-"}
-                    </td>
-                    <td
-                      className="py-2 px-3 text-neutral-300 tabular-nums text-xs"
+                    </TableCell>
+                    <TableCell
+                      className="px-3 py-2 text-xs tabular-nums text-neutral-300"
                       style={{
                         backgroundColor:
                           outputChange.bgColor !== "transparent"
@@ -420,14 +436,14 @@ export const BenchmarkDetailedTable = ({
                           {outputChange.change}
                         </span>
                       )}
-                    </td>
-                    <td className="py-2 px-3 text-neutral-400 tabular-nums text-xs">
+                    </TableCell>
+                    <TableCell className="px-3 py-2 text-xs tabular-nums text-neutral-400">
                       {control.costUsd !== undefined
                         ? "$" + control.costUsd.toFixed(2)
                         : "-"}
-                    </td>
-                    <td
-                      className="py-2 px-3 text-neutral-300 tabular-nums text-xs"
+                    </TableCell>
+                    <TableCell
+                      className="px-3 py-2 text-xs tabular-nums text-neutral-300"
                       style={{
                         backgroundColor:
                           costChange.bgColor !== "transparent"
@@ -443,12 +459,12 @@ export const BenchmarkDetailedTable = ({
                           {costChange.change}
                         </span>
                       )}
-                    </td>
-                    <td className="py-2 px-3 text-neutral-400 tabular-nums text-xs">
+                    </TableCell>
+                    <TableCell className="px-3 py-2 text-xs tabular-nums text-neutral-400">
                       {control.durationMs ? prettyMs(control.durationMs) : "-"}
-                    </td>
-                    <td
-                      className="py-2 px-3 text-neutral-300 tabular-nums text-xs"
+                    </TableCell>
+                    <TableCell
+                      className="px-3 py-2 text-xs tabular-nums text-neutral-300"
                       style={{
                         backgroundColor:
                           durationChange.bgColor !== "transparent"
@@ -464,14 +480,14 @@ export const BenchmarkDetailedTable = ({
                           {durationChange.change}
                         </span>
                       )}
-                    </td>
-                    <td className="py-2 px-3 text-neutral-400 tabular-nums text-xs">
+                    </TableCell>
+                    <TableCell className="px-3 py-2 text-xs tabular-nums text-neutral-400">
                       {control.toolCalls !== undefined
                         ? control.toolCalls
                         : "-"}
-                    </td>
-                    <td
-                      className="py-2 px-3 text-neutral-300 tabular-nums text-xs"
+                    </TableCell>
+                    <TableCell
+                      className="px-3 py-2 text-xs tabular-nums text-neutral-300"
                       style={{
                         backgroundColor:
                           toolCallsChange.bgColor !== "transparent"
@@ -487,14 +503,13 @@ export const BenchmarkDetailedTable = ({
                           {toolCallsChange.change}
                         </span>
                       )}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 );
               })
             )}
-          </tbody>
-        </table>
-      </div>
+        </TableBody>
+      </Table>
     </div>
   );
 };

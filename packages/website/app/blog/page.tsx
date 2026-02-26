@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import ReactGrabLogo from "@/public/logo.svg";
+import { Button } from "@/components/ui/button";
 
 interface BlogPost {
   slug: string;
@@ -38,16 +39,20 @@ const BlogPage = () => {
   return (
     <div className="min-h-screen bg-black px-4 py-6 sm:px-8 sm:py-8">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 pt-4 text-base sm:pt-8">
-        <Link
-          href="/"
-          className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-all mb-4 underline underline-offset-4 opacity-50 hover:opacity-100"
+        <Button
+          asChild
+          variant="link"
+          size="sm"
+          className="mb-4 h-auto px-0 py-0 text-sm text-neutral-400 opacity-50 hover:text-white hover:opacity-100"
         >
-          <ArrowLeft size={16} />
-          Back to home
-        </Link>
+          <Link href="/" className="flex items-center gap-2">
+            <ArrowLeft size={16} />
+            Back to home
+          </Link>
+        </Button>
 
         <div className="inline-flex" style={{ padding: "2px" }}>
-          <Link href="/" className="transition-opacity hover:opacity-80">
+          <Link href="/" className="rounded-sm transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-[#ff4fff]/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black">
             <Image
               src={ReactGrabLogo}
               alt="React Grab"
@@ -79,7 +84,7 @@ const BlogPage = () => {
                 )}
                 <Link
                   href={`/blog/${post.slug}`}
-                  className="group grid grid-cols-[1fr] sm:grid-cols-[80px_1fr] sm:gap-8 py-2 sm:py-3 sm:-mx-3 sm:px-3 rounded-lg transition-colors hover:bg-[#0f0f0f]"
+                  className="group grid grid-cols-[1fr] rounded-lg py-2 transition-colors hover:bg-[#0f0f0f] focus-visible:ring-2 focus-visible:ring-[#ff4fff]/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:-mx-3 sm:grid-cols-[80px_1fr] sm:gap-8 sm:px-3 sm:py-3"
                 >
                   <span className="hidden sm:block text-neutral-500 text-base tabular-nums">
                     {showYear ? post.year : ""}

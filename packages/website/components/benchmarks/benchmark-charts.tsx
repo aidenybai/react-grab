@@ -16,6 +16,14 @@ import { calculateStats } from "./utils";
 import prettyMs from "pretty-ms";
 import Image from "next/image";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   BENCHMARK_GRID_INTERVAL_SECONDS,
   BENCHMARK_CHART_HEIGHT_PX,
   BENCHMARK_BAR_SIZE_PX,
@@ -260,7 +268,7 @@ export const BenchmarkChartsTweet = ({ results }: BenchmarkChartsProps) => {
           href="https://ui.shadcn.com"
           target="_blank"
           rel="noopener noreferrer"
-          className="underline underline-offset-2 hover:text-neutral-400"
+          className="rounded-sm underline underline-offset-2 hover:text-neutral-400 focus-visible:ring-2 focus-visible:ring-[#ff4fff]/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
         >
           shadcn/ui
         </a>{" "}
@@ -269,7 +277,7 @@ export const BenchmarkChartsTweet = ({ results }: BenchmarkChartsProps) => {
           href="https://github.com/aidenybai/react-grab/tree/main/packages/benchmarks"
           target="_blank"
           rel="noopener noreferrer"
-          className="underline underline-offset-2 hover:text-neutral-400"
+          className="rounded-sm underline underline-offset-2 hover:text-neutral-400 focus-visible:ring-2 focus-visible:ring-[#ff4fff]/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
         >
           More info
         </a>
@@ -566,55 +574,55 @@ export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
         </div>
 
         <div className="overflow-x-auto flex justify-center">
-          <table className="text-sm border-collapse max-w-2xl w-full">
-            <thead>
-              <tr className="border-b border-[#2a2a2a]">
-                <th className="text-left py-2 px-4 text-xs font-medium text-neutral-500 uppercase tracking-wider">
+          <Table className="max-w-2xl border-collapse text-sm">
+            <TableHeader>
+              <TableRow className="border-[#2a2a2a]">
+                <TableHead className="px-4 py-2 text-xs font-medium text-neutral-500">
                   Metric
-                </th>
-                <th className="text-left py-2 px-4 text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-4 py-2 text-xs font-medium text-neutral-500">
                   Control
-                </th>
-                <th className="text-left py-2 px-4 text-xs font-medium text-neutral-500 uppercase tracking-wider bg-[#1f1f1f]/50 rounded-tr-md">
+                </TableHead>
+                <TableHead className="rounded-tr-md bg-[#1f1f1f]/50 px-4 py-2 text-xs font-medium text-neutral-500">
                   <div className="flex items-center gap-1.5">
                     <Image
                       src="/logo.svg"
                       alt="React Grab"
                       width={12}
                       height={12}
-                      className="w-3 h-3"
+                      className="size-3"
                     />
                     <span style={{ color: BENCHMARK_TREATMENT_COLOR }}>
                       React Grab
                     </span>
                   </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#2a2a2a]">
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-[#2a2a2a]">
               {metrics.map((metric) => (
-                <tr
+                <TableRow
                   key={metric.name}
                   className="hover:bg-[#1a1a1a] transition-colors group"
                 >
-                  <td className="py-2 px-4 font-medium text-neutral-300 text-sm group-hover:text-white transition-colors">
+                  <TableCell className="px-4 py-2 text-sm font-medium text-neutral-300 transition-colors group-hover:text-white">
                     {metric.name}
-                  </td>
-                  <td className="py-2 px-4 text-neutral-400 tabular-nums text-sm">
+                  </TableCell>
+                  <TableCell className="px-4 py-2 text-sm tabular-nums text-neutral-400">
                     {metric.control}
-                  </td>
-                  <td className="py-2 px-4 text-neutral-300 tabular-nums bg-[#1f1f1f]/50 text-sm group-hover:bg-[#1f1f1f] transition-colors">
+                  </TableCell>
+                  <TableCell className="bg-[#1f1f1f]/50 px-4 py-2 text-sm tabular-nums text-neutral-300 transition-colors group-hover:bg-[#1f1f1f]">
                     {metric.treatment}
                     <span
                       className={`ml-2 text-xs font-medium ${metric.isImprovement ? "text-green-400" : "text-red-400"}`}
                     >
                       {metric.isImprovement ? "↓" : "↑"} {metric.change}
                     </span>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </div>
     </div>
