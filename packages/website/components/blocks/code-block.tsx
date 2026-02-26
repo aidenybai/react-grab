@@ -6,6 +6,7 @@ import {
   CODE_BLOCK_COLLAPSE_LINE_THRESHOLD,
   CODE_BLOCK_MAX_HEIGHT_PX,
 } from "@/constants";
+import { Button } from "@/components/ui/button";
 import { type StreamRenderedBlock } from "@/hooks/use-stream";
 import { highlightCode } from "@/lib/shiki";
 import { StreamingText } from "./streaming-text";
@@ -75,9 +76,10 @@ export const CodeBlock = ({ block }: CodeBlockProps): ReactElement => {
       )}
 
       {shouldShowExpandButton && (
-        <button
+        <Button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="relative w-full py-2 flex items-center justify-center gap-1 text-xs text-white/50 hover:text-white/90 transition-colors bg-[#0d0d0d]"
+          variant="ghost"
+          className="relative h-auto w-full rounded-none bg-[#0d0d0d] py-2 text-xs text-white/50 transition-colors hover:bg-[#0d0d0d] hover:text-white/90"
           type="button"
         >
           <span>{isExpanded ? "Show less" : "Show more"}</span>
@@ -85,7 +87,7 @@ export const CodeBlock = ({ block }: CodeBlockProps): ReactElement => {
             size={14}
             className={`transition-transform ${isExpanded ? "rotate-180" : ""}`}
           />
-        </button>
+        </Button>
       )}
     </div>
   );
