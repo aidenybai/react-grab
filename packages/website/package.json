@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "pnpm --filter react-grab build && pnpm --filter react-grab exec cp dist/index.global.js ../website/public/script.js && pnpm --filter @react-grab/design-system build && next build",
     "start": "next start",
-    "lint": "oxlint"
+    "lint": "oxlint",
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test -c playwright.config.ts"
   },
   "dependencies": {
     "@radix-ui/react-collapsible": "^1.1.12",
@@ -35,6 +37,7 @@
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
