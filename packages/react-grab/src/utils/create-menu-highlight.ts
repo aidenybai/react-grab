@@ -44,9 +44,13 @@ export const createAnimatedBoundsFollower = (
     }
     const containerRect = containerElement.getBoundingClientRect();
     const targetRect = targetElement.getBoundingClientRect();
+    const targetTopWithinContainer =
+      targetRect.top - containerRect.top + containerElement.scrollTop;
+    const targetLeftWithinContainer =
+      targetRect.left - containerRect.left + containerElement.scrollLeft;
     followerElement.style.opacity = visibleOpacity;
-    followerElement.style.top = `${targetRect.top - containerRect.top}px`;
-    followerElement.style.left = `${targetRect.left - containerRect.left}px`;
+    followerElement.style.top = `${targetTopWithinContainer}px`;
+    followerElement.style.left = `${targetLeftWithinContainer}px`;
     followerElement.style.width = `${targetRect.width}px`;
     followerElement.style.height = `${targetRect.height}px`;
   };
