@@ -510,6 +510,23 @@ export const getElementContext = async (
   return getFallbackContext(element);
 };
 
+export const getTextNodeContext = async (
+  textNode: Text,
+  options: StackContextOptions = {},
+): Promise<string> => {
+  const parentElement = textNode.parentElement;
+  const textContent = textNode.textContent?.trim() ?? "";
+
+  if (!parentElement) return textContent;
+
+  const stackContext = await getStackContext(parentElement, options);
+  if (stackContext) {
+    return `${textContent}${stackContext}`;
+  }
+
+  return textContent;
+};
+
 const getFallbackContext = (element: Element): string => {
   const tagName = getTagName(element);
 
