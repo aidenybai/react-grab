@@ -54,6 +54,7 @@ import {
   createPageRectFromBounds,
 } from "../utils/create-bounds-from-drag-rect.js";
 import { getTagName } from "../utils/get-tag-name.js";
+import { truncateString } from "../utils/truncate-string.js";
 import {
   ARROW_KEYS,
   FEEDBACK_DURATION_MS,
@@ -77,6 +78,7 @@ import {
   WINDOW_REFOCUS_GRACE_PERIOD_MS,
   DROPDOWN_HOVER_OPEN_DELAY_MS,
   PREVIEW_TEXT_MAX_LENGTH,
+  TEXT_NODE_TAG_DISPLAY_MAX_LENGTH,
   DEFERRED_EXECUTION_DELAY_MS,
   NEXTJS_REVALIDATION_DELAY_MS,
 } from "../constants.js";
@@ -500,7 +502,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [resolvedComponentName, setResolvedComponentName] = createSignal<
       string | undefined
     >(undefined);
-    const TEXT_NODE_TAG_NAME = "#text";
+    const getTextNodeTagName = (textNode: Text): string => {
+      const content = textNode.textContent?.trim() ?? "";
+      return `"${truncateString(content, TEXT_NODE_TAG_DISPLAY_MAX_LENGTH)}"`;
+    };
+
     const [detectedTextNode, setDetectedTextNode] = createSignal<Text | null>(
       null,
     );
@@ -541,14 +547,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const showTemporaryGrabbedBox = (
       bounds: OverlayBounds,
-      element: Element,
+      element?: Element,
     ) => {
       const boxId = `grabbed-${Date.now()}-${Math.random()}`;
       const createdAt = Date.now();
       const newBox: GrabbedBox = { id: boxId, bounds, createdAt, element };
 
       actions.addGrabbedBox(newBox);
-      pluginRegistry.hooks.onGrabbedBox(bounds, element);
+      if (element) {
+        pluginRegistry.hooks.onGrabbedBox(bounds, element);
+      }
 
       const timeoutId = window.setTimeout(() => {
         grabbedBoxTimeouts.delete(boxId);
@@ -910,7 +918,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       extraPrompt?: string,
     ): Promise<void> => {
       if (pluginRegistry.store.theme.grabbedBoxes.enabled) {
-        showTemporaryGrabbedBox(createTextNodeBounds(textNode), parentElement);
+        showTemporaryGrabbedBox(createTextNodeBounds(textNode));
       }
 
       await waitUntilNextFrame();
@@ -926,7 +934,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         componentName: getComponentDisplayName(parentElement) ?? undefined,
         entries: [
           {
-            tagName: TEXT_NODE_TAG_NAME,
+            tagName: getTextNodeTagName(textNode),
             content: context,
             commentText: extraPrompt,
           },
@@ -1024,16 +1032,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           : positionX;
 
       const tagName = isTextNodeSelection
-        ? TEXT_NODE_TAG_NAME
+        ? getTextNodeTagName(selectedTextNode!)
         : getTagName(element);
       inToggleFeedbackPeriod = false;
       actions.startCopy();
 
+      const labelInstanceElement = isTextNodeSelection ? undefined : element;
+
       const labelInstanceId = tagName
         ? createLabelInstance(overlayBounds, tagName, undefined, "copying", {
-            element,
+            element: labelInstanceElement,
             mouseX: labelPositionX,
-            elements,
+            elements: isTextNodeSelection ? undefined : elements,
           })
         : null;
 
@@ -1054,7 +1064,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           bounds: overlayBounds,
           tagName,
           componentName: componentName ?? undefined,
-          element,
+          element: labelInstanceElement,
           shouldDeactivateAfter,
           elements,
           existingInstanceId: labelInstanceId,
@@ -3152,7 +3162,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const selectionTagName = createMemo(() => {
-      if (activeTextNode()) return TEXT_NODE_TAG_NAME;
+      const currentTextNode = activeTextNode();
+      if (currentTextNode) return getTextNodeTagName(currentTextNode);
       const element = selectionElement();
       if (!element) return undefined;
       return getTagName(element) || undefined;
@@ -3305,7 +3316,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const contextMenuTagName = createMemo(() => {
       const element = store.contextMenuElement;
       if (!element) return undefined;
-      if (frozenTextNode()) return TEXT_NODE_TAG_NAME;
+      const currentFrozenTextNode = frozenTextNode();
+      if (currentFrozenTextNode)
+        return getTextNodeTagName(currentFrozenTextNode);
       const frozenCount = store.frozenElements.length;
       if (frozenCount > 1) {
         return `${frozenCount} elements`;
