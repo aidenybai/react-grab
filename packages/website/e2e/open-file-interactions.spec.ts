@@ -40,7 +40,8 @@ test.describe("Open File Page Hover & Focus States", () => {
     const editorDropdownTrigger = page.getByRole("button", {
       name: /cursor/i,
     });
-    await editorDropdownTrigger.click();
+    await editorDropdownTrigger.focus();
+    await page.keyboard.press("Enter");
 
     const vsCodeOption = page.getByRole("menuitem", { name: /vs code/i });
     await expect(vsCodeOption).toBeVisible();
@@ -54,7 +55,7 @@ test.describe("Open File Page Hover & Focus States", () => {
       "background-color",
     );
     expect(optionBackgroundAfterFocus).not.toBe(optionBackgroundBeforeFocus);
-    await vsCodeOption.click();
+    await page.keyboard.press("Enter");
 
     await expect(
       page.getByRole("button", {

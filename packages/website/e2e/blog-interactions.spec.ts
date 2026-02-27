@@ -16,12 +16,17 @@ test.describe("Blog Hover & Focus States", () => {
       "color",
     );
     await introPostLink.hover();
-    const titleColorAfterHover = await getStyleProperty(
-      postTitleText,
-      "color",
-    );
+    await expect
+      .poll(
+        async () =>
+          getStyleProperty(
+            postTitleText,
+            "color",
+          ),
+        { timeout: 2000 },
+      )
+      .not.toBe(titleColorBeforeHover);
 
-    expect(titleColorAfterHover).not.toBe(titleColorBeforeHover);
     await expectVisibleFocusRing(introPostLink);
   });
 

@@ -374,7 +374,7 @@ export const InstallTabs = ({
               onClick={() => setActiveTabId("next-app")}
               variant="link"
               size="sm"
-              className="ml-3 h-auto px-0 py-0 text-xs italic text-white/40 hover:text-white/60 sm:text-sm"
+              className="ml-3 h-auto px-0 py-0 text-xs italic text-white/40 underline underline-offset-4 hover:text-white/60 sm:text-sm"
             >
               Prefer manual install?
             </Button>
@@ -384,7 +384,7 @@ export const InstallTabs = ({
       <Tabs
         value={activeTabId}
         onValueChange={(value) => setActiveTabId(value)}
-        className="mt-4 overflow-hidden rounded-lg border border-white/10 bg-white/5 text-white shadow-[0_8px_30px_rgb(0,0,0,0.3)]"
+        className="mt-4 gap-0 overflow-hidden rounded-lg border border-white/10 bg-white/5 text-white shadow-[0_8px_30px_rgb(0,0,0,0.3)]"
       >
         <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-none border-b border-white/10 bg-transparent px-4 pt-2 pb-0">
           {installTabsData.map((tab) => (
@@ -392,7 +392,7 @@ export const InstallTabs = ({
               key={tab.id}
               value={tab.id}
               className={cn(
-                "h-auto shrink-0 rounded-none border-b pb-2 font-sans text-sm data-[state=active]:border-white data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-white sm:text-base",
+                "h-auto shrink-0 rounded-none border-b px-0 pt-0 pb-2 font-sans text-sm data-[state=active]:border-white data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-white sm:text-base",
                 "border-transparent text-white/60 hover:text-white",
               )}
             >
@@ -457,7 +457,7 @@ export const InstallTabs = ({
       {showAgentNote && activeTabId !== "cli" && (
         <span className="mt-2 block text-sm text-white/50 sm:text-base">
           Want to connect directly to your coding agent?{" "}
-          <Button asChild variant="link" size="sm" className="h-auto px-0 py-0 text-sm text-white/70 hover:text-white">
+          <Button asChild variant="link" size="sm" className="h-auto px-0 py-0 text-sm text-white/70 underline underline-offset-4 hover:text-white">
             <Link href="/blog/agent">See our agent connection guide</Link>
           </Button>
         </span>

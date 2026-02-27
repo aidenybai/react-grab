@@ -44,7 +44,7 @@ export const ReadToolCallBlock = ({
         variant="link"
         size="sm"
         onClick={handleClick}
-        className="h-auto max-w-full break-all px-0 py-0 text-left transition-colors duration-300"
+        className="h-auto max-w-full break-all whitespace-normal px-0 py-0 text-left transition-colors duration-300"
         style={{
           color: isClicked ? "#ffffff" : "#5b5b5b",
         }}

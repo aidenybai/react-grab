@@ -216,6 +216,7 @@ export const BenchmarkTooltip = ({
         </HoverCardTrigger>
       </span>
       <HoverCardContent
+        forceMount
         className="z-50 border-neutral-800 bg-[#0a0a0a] p-0"
         align="center"
         sideOffset={8}

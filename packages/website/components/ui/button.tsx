@@ -13,7 +13,7 @@ const buttonVariants = cva(
         default: "bg-white text-black hover:bg-white/90",
         secondary: "border border-white/20 bg-white/5 text-white hover:bg-white/10",
         ghost: "text-white/70 hover:bg-white/10 hover:text-white",
-        link: "text-white underline underline-offset-4 hover:text-white/80",
+        link: "text-white/70 hover:text-white",
         destructive:
           "bg-red-500 text-white hover:bg-red-500/90 focus-visible:ring-red-400/80",
       },
@@ -44,12 +44,19 @@ export const Button = ({
   asChild = false,
   ...props
 }: ButtonProps): ReactElement => {
-  const Component = asChild ? Slot : "button";
+  if (asChild) {
+    return (
+      <Slot className={cn(buttonVariants({ variant, size }), className)} {...props} />
+    );
+  }
+
+  const { type = "button", ...buttonProps } = props;
 
   return (
-    <Component
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
+    <button
+      type={type}
+      className={cn(buttonVariants({ variant, size }), className)}
+      {...buttonProps}
     />
   );
 };
