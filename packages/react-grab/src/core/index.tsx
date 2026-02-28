@@ -76,6 +76,9 @@ import {
   PREVIEW_TEXT_MAX_LENGTH,
   DEFERRED_EXECUTION_DELAY_MS,
   NEXTJS_REVALIDATION_DELAY_MS,
+  AMBIENT_HOVER_DWELL_MS,
+  AMBIENT_COPY_FEEDBACK_MS,
+  AMBIENT_BADGE_DISMISS_GRACE_MS,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
@@ -108,6 +111,7 @@ import type {
   ToolbarState,
   HistoryItem,
   DropdownAnchor,
+  EventContextEntry,
 } from "../types.js";
 import { DEFAULT_THEME } from "./theme.js";
 import { createPluginRegistry } from "./plugin-registry.js";
@@ -151,6 +155,7 @@ import {
 } from "../utils/history-storage.js";
 import { copyContent } from "../utils/copy-content.js";
 import { joinSnippets } from "../utils/join-snippets.js";
+import { createEventContextStore } from "../utils/event-context-store.js";
 
 const builtInPlugins = [
   copyPlugin,
@@ -289,6 +294,245 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [clockFlashTrigger, setClockFlashTrigger] = createSignal(0);
     const [isHistoryHoverOpen, setIsHistoryHoverOpen] = createSignal(false);
     let historyHoverPreviews: { boxId: string; labelId: string | null }[] = [];
+
+    const eventContextStore = createEventContextStore();
+    const [ambientElement, setAmbientElement] =
+      createSignal<Element | null>(null);
+    const [ambientBounds, setAmbientBounds] =
+      createSignal<OverlayBounds | null>(null);
+    const [ambientComponentName, setAmbientComponentName] =
+      createSignal<string | null>(null);
+    const [ambientFilePath, setAmbientFilePath] =
+      createSignal<string | null>(null);
+    const [ambientLineNumber, setAmbientLineNumber] =
+      createSignal<number | null>(null);
+    const [ambientTagName, setAmbientTagName] = createSignal("");
+    const [ambientBadgeVisible, setAmbientBadgeVisible] = createSignal(false);
+    const [ambientBadgeCopyStatus, setAmbientBadgeCopyStatus] =
+      createSignal<"idle" | "copied">("idle");
+    const [ambientTrailCount, setAmbientTrailCount] = createSignal(0);
+    let ambientHoverTimer: ReturnType<typeof setTimeout> | null = null;
+    let ambientDismissTimer: ReturnType<typeof setTimeout> | null = null;
+    let ambientCopyFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
+    let lastAmbientElement: Element | null = null;
+    let isAmbientBadgeHovered = false;
+
+    const clearAmbientHoverTimer = () => {
+      if (ambientHoverTimer !== null) {
+        clearTimeout(ambientHoverTimer);
+        ambientHoverTimer = null;
+      }
+    };
+
+    const clearAmbientDismissTimer = () => {
+      if (ambientDismissTimer !== null) {
+        clearTimeout(ambientDismissTimer);
+        ambientDismissTimer = null;
+      }
+    };
+
+    const hideAmbientBadge = () => {
+      setAmbientBadgeVisible(false);
+      setAmbientElement(null);
+      lastAmbientElement = null;
+    };
+
+    const hideAmbientBadgeWithGrace = () => {
+      if (isAmbientBadgeHovered) return;
+      clearAmbientDismissTimer();
+      ambientDismissTimer = setTimeout(() => {
+        if (!isAmbientBadgeHovered) {
+          hideAmbientBadge();
+        }
+      }, AMBIENT_BADGE_DISMISS_GRACE_MS);
+    };
+
+    const resolveAndShowAmbientBadge = (element: Element) => {
+      const bounds = createElementBounds(element);
+      const tagName = getTagName(element);
+      setAmbientBounds(bounds);
+      setAmbientTagName(tagName);
+      setAmbientElement(element);
+      setAmbientBadgeVisible(true);
+
+      setAmbientComponentName(null);
+      setAmbientFilePath(null);
+      setAmbientLineNumber(null);
+
+      void getNearestComponentName(element).then(
+        (resolvedComponentName) => {
+          if (ambientElement() !== element) return;
+          setAmbientComponentName(resolvedComponentName);
+        },
+      );
+
+      void getStack(element).then((stack) => {
+        if (ambientElement() !== element) return;
+        const source = resolveSourceFromStack(stack);
+        if (source) {
+          setAmbientFilePath(source.filePath);
+          setAmbientLineNumber(source.lineNumber ?? null);
+          if (source.componentName) {
+            setAmbientComponentName(source.componentName);
+          }
+        }
+      });
+    };
+
+    const addAmbientTrailEntry = (
+      element: Element,
+      interactionType: EventContextEntry["interactionType"],
+    ) => {
+      const tagName = getTagName(element);
+      const selector = createElementSelector(element, true);
+
+      const entry: Omit<EventContextEntry, "id"> = {
+        interactionType,
+        tagName,
+        componentName: ambientComponentName(),
+        filePath: ambientFilePath(),
+        lineNumber: ambientLineNumber(),
+        selector,
+        timestamp: Date.now(),
+      };
+
+      const updatedEntries = eventContextStore.addEntry(entry);
+      setAmbientTrailCount(updatedEntries.length);
+
+      void getNearestComponentName(element).then(
+        (resolvedComponentName) => {
+          if (!resolvedComponentName) return;
+          const currentEntries = eventContextStore.getEntries();
+          const latestEntry = currentEntries[0];
+          if (
+            latestEntry &&
+            latestEntry.selector === selector &&
+            latestEntry.componentName === null
+          ) {
+            latestEntry.componentName = resolvedComponentName;
+          }
+        },
+      );
+
+      void getStack(element).then((stack) => {
+        const source = resolveSourceFromStack(stack);
+        if (!source) return;
+        const currentEntries = eventContextStore.getEntries();
+        const latestEntry = currentEntries[0];
+        if (latestEntry && latestEntry.selector === selector) {
+          if (latestEntry.filePath === null) {
+            latestEntry.filePath = source.filePath;
+            latestEntry.lineNumber = source.lineNumber ?? null;
+          }
+          if (latestEntry.componentName === null && source.componentName) {
+            latestEntry.componentName = source.componentName;
+          }
+        }
+      });
+    };
+
+    const handleAmbientPointerMove = (
+      clientX: number,
+      clientY: number,
+    ) => {
+      if (isActivated() || !isEnabled()) return;
+
+      const candidate = getElementAtPosition(clientX, clientY);
+
+      if (candidate === lastAmbientElement) return;
+
+      clearAmbientHoverTimer();
+
+      if (
+        !candidate ||
+        isRootElement(candidate) ||
+        isEventFromOverlay(
+          { target: candidate } as unknown as Event,
+          "data-react-grab-ignore-events",
+        )
+      ) {
+        lastAmbientElement = null;
+        hideAmbientBadgeWithGrace();
+        return;
+      }
+
+      lastAmbientElement = candidate;
+      clearAmbientDismissTimer();
+
+      ambientHoverTimer = setTimeout(() => {
+        if (lastAmbientElement !== candidate) return;
+        resolveAndShowAmbientBadge(candidate);
+        addAmbientTrailEntry(candidate, "hover");
+      }, AMBIENT_HOVER_DWELL_MS);
+    };
+
+    const handleAmbientClick = (
+      clientX: number,
+      clientY: number,
+    ) => {
+      if (isActivated() || !isEnabled()) return;
+
+      const candidate = getElementAtPosition(clientX, clientY);
+
+      if (
+        !candidate ||
+        isRootElement(candidate) ||
+        isEventFromOverlay(
+          { target: candidate } as unknown as Event,
+          "data-react-grab-ignore-events",
+        )
+      ) {
+        return;
+      }
+
+      clearAmbientHoverTimer();
+      clearAmbientDismissTimer();
+      lastAmbientElement = candidate;
+      resolveAndShowAmbientBadge(candidate);
+      addAmbientTrailEntry(candidate, "click");
+    };
+
+    const handleAmbientBadgeCopy = () => {
+      const trailText = eventContextStore.formatTrailForCopy();
+      if (!trailText) return;
+      copyContent(trailText, {
+        componentName:
+          ambientComponentName() ?? ambientTagName() ?? "interactions",
+      });
+      setAmbientBadgeCopyStatus("copied");
+      if (ambientCopyFeedbackTimer !== null) {
+        clearTimeout(ambientCopyFeedbackTimer);
+      }
+      ambientCopyFeedbackTimer = setTimeout(() => {
+        setAmbientBadgeCopyStatus("idle");
+      }, AMBIENT_COPY_FEEDBACK_MS);
+    };
+
+    const handleAmbientBadgeOpenFile = () => {
+      const filePath = ambientFilePath();
+      if (filePath) {
+        openFile(
+          filePath,
+          ambientLineNumber() ?? undefined,
+          pluginRegistry.hooks,
+        );
+      }
+    };
+
+    const handleAmbientBadgeHoverChange = (isHovered: boolean) => {
+      isAmbientBadgeHovered = isHovered;
+      if (!isHovered) {
+        hideAmbientBadgeWithGrace();
+      } else {
+        clearAmbientDismissTimer();
+      }
+    };
+
+    const clearAmbientState = () => {
+      clearAmbientHoverTimer();
+      clearAmbientDismissTimer();
+      hideAmbientBadge();
+    };
 
     const getMappedHistoryElements = (historyItemId: string): Element[] =>
       historyElementMap.get(historyItemId) ?? [];
@@ -1487,6 +1731,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const activateRenderer = () => {
+      clearAmbientState();
       const wasInHoldingState = isHoldingKeys();
       actions.activate();
       // HACK: Only call onActivate if we weren't in holding state.
@@ -2715,13 +2960,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.setTouchMode(isTouchPointer);
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
-        if (isTouchPointer && !isHoldingKeys() && !isActivated()) return;
+        if (isTouchPointer && !isHoldingKeys() && !isActivated()) {
+          handleAmbientPointerMove(event.clientX, event.clientY);
+          return;
+        }
         const isActiveState = isTouchPointer ? isHoldingKeys() : isActivated();
         if (isActiveState && !isPromptMode() && isToggleFrozen()) {
           actions.unfreeze();
           arrowNavigator.clearHistory();
         }
         handlePointerMove(event.clientX, event.clientY);
+        if (!isActiveState) {
+          handleAmbientPointerMove(event.clientX, event.clientY);
+        }
       },
       { passive: true },
     );
@@ -2774,6 +3025,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         handlePointerUp(event.clientX, event.clientY, hasModifierKeyHeld);
       },
       { capture: true },
+    );
+
+    eventListenerManager.addWindowListener(
+      "click",
+      (event: MouseEvent) => {
+        handleAmbientClick(event.clientX, event.clientY);
+      },
+      { passive: true },
     );
 
     eventListenerManager.addWindowListener(
@@ -2863,6 +3122,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         clearHoldTimer();
         actions.release();
         resetCopyConfirmation();
+      }
+
+      if (isEnabled() && eventContextStore.getEntries().length > 0) {
+        const trailText = eventContextStore.formatTrailForCopy();
+        if (trailText) {
+          copyContent(trailText, { componentName: "interactions" });
+        }
       }
     });
 
@@ -4034,6 +4300,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               handleHistoryClear();
             }}
             onClearHistoryCancel={dismissClearPrompt}
+            ambientBadgeVisible={ambientBadgeVisible()}
+            ambientBadgeBounds={ambientBounds() ?? undefined}
+            ambientBadgeTagName={ambientTagName()}
+            ambientBadgeComponentName={ambientComponentName() ?? undefined}
+            ambientBadgeHasFilePath={Boolean(ambientFilePath())}
+            ambientBadgeTrailCount={ambientTrailCount()}
+            ambientBadgeCopyStatus={ambientBadgeCopyStatus()}
+            onAmbientBadgeCopy={handleAmbientBadgeCopy}
+            onAmbientBadgeOpenFile={handleAmbientBadgeOpenFile}
+            onAmbientBadgeHoverChange={handleAmbientBadgeHoverChange}
           />
         );
       }, rendererRoot);
@@ -4155,6 +4431,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         cancelHistoryHoverCloseTimeout();
         stopTrackingDropdownPosition();
         toolbarStateChangeCallbacks.clear();
+        clearAmbientState();
+        eventContextStore.clear();
+        if (ambientCopyFeedbackTimer !== null) {
+          clearTimeout(ambientCopyFeedbackTimer);
+        }
         dispose();
       },
       copyElement: copyElementAPI,
