@@ -432,6 +432,26 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
     };
 
+    const isOverlayElement = (element: Element): boolean => {
+      let current: Element | null = element;
+      while (current) {
+        if (
+          current instanceof HTMLElement &&
+          current.hasAttribute("data-react-grab-ignore-events")
+        ) {
+          return true;
+        }
+        current =
+          current.parentElement ??
+          (current.getRootNode() as ShadowRoot).host ??
+          null;
+      }
+      return false;
+    };
+
+    const isAmbientTrackable = (element: Element | null): element is Element =>
+      element !== null && !isRootElement(element) && !isOverlayElement(element);
+
     const handleAmbientPointerMove = (clientX: number, clientY: number) => {
       if (isActivated() || !isEnabled()) return;
 
@@ -441,14 +461,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       clearAmbientHoverTimer();
 
-      if (
-        !candidate ||
-        isRootElement(candidate) ||
-        isEventFromOverlay(
-          { target: candidate } as unknown as Event,
-          "data-react-grab-ignore-events",
-        )
-      ) {
+      if (!isAmbientTrackable(candidate)) {
         lastAmbientElement = null;
         hideAmbientBadgeWithGrace();
         return;
@@ -469,16 +482,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const candidate = getElementAtPosition(clientX, clientY);
 
-      if (
-        !candidate ||
-        isRootElement(candidate) ||
-        isEventFromOverlay(
-          { target: candidate } as unknown as Event,
-          "data-react-grab-ignore-events",
-        )
-      ) {
-        return;
-      }
+      if (!isAmbientTrackable(candidate)) return;
 
       clearAmbientHoverTimer();
       clearAmbientDismissTimer();
