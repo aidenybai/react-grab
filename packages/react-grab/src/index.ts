@@ -38,6 +38,7 @@ export type {
   PluginAction,
   ActionContext,
   ActionContextHooks,
+  EventContextEntry,
   Plugin,
   PluginConfig,
   PluginHooks,
