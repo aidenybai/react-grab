@@ -8,10 +8,7 @@ import type { EventContextEntry } from "../types.js";
 const generateEntryId = (): string =>
   `event-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
-const formatEntryLine = (
-  entry: EventContextEntry,
-  index: number,
-): string => {
+const formatEntryLine = (entry: EventContextEntry, index: number): string => {
   let line = `${index + 1}. [${entry.interactionType}] <${entry.tagName}>`;
 
   if (entry.componentName) {
@@ -32,9 +29,7 @@ const formatEntryLine = (
 export const createEventContextStore = () => {
   let entries: EventContextEntry[] = [];
 
-  const isDuplicate = (
-    incoming: Omit<EventContextEntry, "id">,
-  ): boolean => {
+  const isDuplicate = (incoming: Omit<EventContextEntry, "id">): boolean => {
     if (entries.length === 0) return false;
     const mostRecent = entries[0];
     const timeDelta = incoming.timestamp - mostRecent.timestamp;

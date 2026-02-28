@@ -1486,9 +1486,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         "transform-origin": getTransformOrigin(),
       }}
       onPointerDown={handlePointerDown}
-      onMouseEnter={() =>
-        !isCollapsed() && props.onSelectHoverChange?.(true)
-      }
+      onMouseEnter={() => !isCollapsed() && props.onSelectHoverChange?.(true)}
       onMouseLeave={() => props.onSelectHoverChange?.(false)}
     >
       <div
@@ -1564,7 +1562,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     data-react-grab-ignore-events
                     data-react-grab-toolbar-toggle
                     aria-label={
-                      props.isActive ? "Stop selecting element" : "Select element"
+                      props.isActive
+                        ? "Stop selecting element"
+                        : "Select element"
                     }
                     aria-pressed={Boolean(props.isActive)}
                     class={cn(

@@ -296,20 +296,25 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let historyHoverPreviews: { boxId: string; labelId: string | null }[] = [];
 
     const eventContextStore = createEventContextStore();
-    const [ambientElement, setAmbientElement] =
-      createSignal<Element | null>(null);
+    const [ambientElement, setAmbientElement] = createSignal<Element | null>(
+      null,
+    );
     const [ambientBounds, setAmbientBounds] =
       createSignal<OverlayBounds | null>(null);
-    const [ambientComponentName, setAmbientComponentName] =
-      createSignal<string | null>(null);
-    const [ambientFilePath, setAmbientFilePath] =
-      createSignal<string | null>(null);
-    const [ambientLineNumber, setAmbientLineNumber] =
-      createSignal<number | null>(null);
+    const [ambientComponentName, setAmbientComponentName] = createSignal<
+      string | null
+    >(null);
+    const [ambientFilePath, setAmbientFilePath] = createSignal<string | null>(
+      null,
+    );
+    const [ambientLineNumber, setAmbientLineNumber] = createSignal<
+      number | null
+    >(null);
     const [ambientTagName, setAmbientTagName] = createSignal("");
     const [ambientBadgeVisible, setAmbientBadgeVisible] = createSignal(false);
-    const [ambientBadgeCopyStatus, setAmbientBadgeCopyStatus] =
-      createSignal<"idle" | "copied">("idle");
+    const [ambientBadgeCopyStatus, setAmbientBadgeCopyStatus] = createSignal<
+      "idle" | "copied"
+    >("idle");
     const [ambientTrailCount, setAmbientTrailCount] = createSignal(0);
     let ambientHoverTimer: ReturnType<typeof setTimeout> | null = null;
     let ambientDismissTimer: ReturnType<typeof setTimeout> | null = null;
@@ -359,12 +364,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setAmbientFilePath(null);
       setAmbientLineNumber(null);
 
-      void getNearestComponentName(element).then(
-        (resolvedComponentName) => {
-          if (ambientElement() !== element) return;
-          setAmbientComponentName(resolvedComponentName);
-        },
-      );
+      void getNearestComponentName(element).then((resolvedComponentName) => {
+        if (ambientElement() !== element) return;
+        setAmbientComponentName(resolvedComponentName);
+      });
 
       void getStack(element).then((stack) => {
         if (ambientElement() !== element) return;
@@ -399,20 +402,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const updatedEntries = eventContextStore.addEntry(entry);
       setAmbientTrailCount(updatedEntries.length);
 
-      void getNearestComponentName(element).then(
-        (resolvedComponentName) => {
-          if (!resolvedComponentName) return;
-          const currentEntries = eventContextStore.getEntries();
-          const latestEntry = currentEntries[0];
-          if (
-            latestEntry &&
-            latestEntry.selector === selector &&
-            latestEntry.componentName === null
-          ) {
-            latestEntry.componentName = resolvedComponentName;
-          }
-        },
-      );
+      void getNearestComponentName(element).then((resolvedComponentName) => {
+        if (!resolvedComponentName) return;
+        const currentEntries = eventContextStore.getEntries();
+        const latestEntry = currentEntries[0];
+        if (
+          latestEntry &&
+          latestEntry.selector === selector &&
+          latestEntry.componentName === null
+        ) {
+          latestEntry.componentName = resolvedComponentName;
+        }
+      });
 
       void getStack(element).then((stack) => {
         const source = resolveSourceFromStack(stack);
@@ -431,10 +432,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
     };
 
-    const handleAmbientPointerMove = (
-      clientX: number,
-      clientY: number,
-    ) => {
+    const handleAmbientPointerMove = (clientX: number, clientY: number) => {
       if (isActivated() || !isEnabled()) return;
 
       const candidate = getElementAtPosition(clientX, clientY);
@@ -466,10 +464,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, AMBIENT_HOVER_DWELL_MS);
     };
 
-    const handleAmbientClick = (
-      clientX: number,
-      clientY: number,
-    ) => {
+    const handleAmbientClick = (clientX: number, clientY: number) => {
       if (isActivated() || !isEnabled()) return;
 
       const candidate = getElementAtPosition(clientX, clientY);
@@ -514,7 +509,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         openFile(
           filePath,
           ambientLineNumber() ?? undefined,
-          pluginRegistry.hooks,
+          pluginRegistry.hooks.transformOpenFileUrl,
         );
       }
     };
