@@ -166,8 +166,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [isMenuTooltipVisible, setIsMenuTooltipVisible] = createSignal(false);
   const [isCopyAllTooltipVisible, setIsCopyAllTooltipVisible] =
     createSignal(false);
-  const [isTrailTooltipVisible, setIsTrailTooltipVisible] =
-    createSignal(false);
+  const [isTrailTooltipVisible, setIsTrailTooltipVisible] = createSignal(false);
   let clockFlashRef: HTMLSpanElement | undefined;
 
   const hasToolbarActions = () => (props.toolbarActions ?? []).length > 0;
@@ -699,8 +698,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const handleCopyAll = createDragAwareHandler(() => props.onCopyAll?.());
 
-  const handleCopyTrail = createDragAwareHandler(
-    () => props.onCopyEventContext?.(),
+  const handleCopyTrail = createDragAwareHandler(() =>
+    props.onCopyEventContext?.(),
   );
 
   const handleToggleMenu = createDragAwareHandler(() => props.onToggleMenu?.());

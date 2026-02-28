@@ -322,7 +322,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
         current =
           current.parentElement ??
-          ((current.getRootNode() as ShadowRoot).host ?? null);
+          (current.getRootNode() as ShadowRoot).host ??
+          null;
       }
       return false;
     };
