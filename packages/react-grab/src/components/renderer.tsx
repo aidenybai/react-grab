@@ -15,7 +15,6 @@ import { ToolbarMenu } from "./toolbar/toolbar-menu.js";
 import { ContextMenu } from "./context-menu.js";
 import { HistoryDropdown } from "./history-dropdown.js";
 import { ClearHistoryPrompt } from "./clear-history-prompt.js";
-import { AmbientCopyBadge } from "./ambient-copy-badge.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
   return (
@@ -52,19 +51,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           transform: "translateZ(0)",
           "box-shadow": `inset 0 0 ${FROZEN_GLOW_EDGE_PX}px ${FROZEN_GLOW_COLOR}`,
         }}
-      />
-
-      <AmbientCopyBadge
-        visible={props.ambientBadgeVisible}
-        bounds={props.ambientBadgeBounds}
-        tagName={props.ambientBadgeTagName}
-        componentName={props.ambientBadgeComponentName}
-        hasFilePath={props.ambientBadgeHasFilePath}
-        trailCount={props.ambientBadgeTrailCount}
-        copyStatus={props.ambientBadgeCopyStatus}
-        onCopy={props.onAmbientBadgeCopy}
-        onOpenFile={props.onAmbientBadgeOpenFile}
-        onHoverChange={props.onAmbientBadgeHoverChange}
       />
 
       <Index
@@ -228,6 +214,9 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           onToggleMenu={props.onToggleMenu}
           isMenuOpen={Boolean(props.toolbarMenuPosition)}
           isClearPromptOpen={Boolean(props.clearPromptPosition)}
+          eventContextTrailCount={props.eventContextTrailCount}
+          eventContextCopyStatus={props.eventContextCopyStatus}
+          onCopyEventContext={props.onCopyEventContext}
         />
       </Show>
 

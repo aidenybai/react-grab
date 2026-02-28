@@ -581,16 +581,9 @@ export interface ReactGrabRendererProps {
   clearPromptPosition?: DropdownAnchor | null;
   onClearHistoryConfirm?: () => void;
   onClearHistoryCancel?: () => void;
-  ambientBadgeVisible?: boolean;
-  ambientBadgeBounds?: OverlayBounds;
-  ambientBadgeTagName?: string;
-  ambientBadgeComponentName?: string;
-  ambientBadgeHasFilePath?: boolean;
-  ambientBadgeTrailCount?: number;
-  ambientBadgeCopyStatus?: "idle" | "copied";
-  onAmbientBadgeCopy?: () => void;
-  onAmbientBadgeOpenFile?: () => void;
-  onAmbientBadgeHoverChange?: (isHovered: boolean) => void;
+  eventContextTrailCount?: number;
+  eventContextCopyStatus?: "idle" | "copied";
+  onCopyEventContext?: () => void;
 }
 
 export interface GrabbedBox {
