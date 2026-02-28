@@ -468,6 +468,17 @@ export interface HistoryItem {
   timestamp: number;
 }
 
+export interface EventContextEntry {
+  id: string;
+  interactionType: "hover" | "click";
+  tagName: string;
+  componentName: string | null;
+  filePath: string | null;
+  lineNumber: number | null;
+  selector: string | null;
+  timestamp: number;
+}
+
 export interface ReactGrabRendererProps {
   selectionVisible?: boolean;
   selectionBounds?: OverlayBounds;
@@ -570,6 +581,16 @@ export interface ReactGrabRendererProps {
   clearPromptPosition?: DropdownAnchor | null;
   onClearHistoryConfirm?: () => void;
   onClearHistoryCancel?: () => void;
+  ambientBadgeVisible?: boolean;
+  ambientBadgeBounds?: OverlayBounds;
+  ambientBadgeTagName?: string;
+  ambientBadgeComponentName?: string;
+  ambientBadgeHasFilePath?: boolean;
+  ambientBadgeTrailCount?: number;
+  ambientBadgeCopyStatus?: "idle" | "copied";
+  onAmbientBadgeCopy?: () => void;
+  onAmbientBadgeOpenFile?: () => void;
+  onAmbientBadgeHoverChange?: (isHovered: boolean) => void;
 }
 
 export interface GrabbedBox {

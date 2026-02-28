@@ -163,6 +163,15 @@ export const NEXTJS_REVALIDATION_DELAY_MS = 1000;
 export const IME_COMPOSING_KEY_CODE = 229;
 export const SELECTION_LABEL_OFFSCREEN_PX = -9999;
 
+export const MAX_EVENT_CONTEXT_ENTRIES = 10;
+export const AMBIENT_HOVER_DWELL_MS = 400;
+export const AMBIENT_DEDUP_THRESHOLD_MS = 100;
+export const AMBIENT_BADGE_OFFSET_PX = 6;
+export const AMBIENT_BADGE_FADE_MS = 150;
+export const AMBIENT_TRAIL_STALENESS_MS = 60_000;
+export const AMBIENT_COPY_FEEDBACK_MS = 1500;
+export const AMBIENT_BADGE_DISMISS_GRACE_MS = 200;
+
 export const RELEVANT_CSS_PROPERTIES = new Set([
   "display",
   "position",
