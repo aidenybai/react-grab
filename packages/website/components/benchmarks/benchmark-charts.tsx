@@ -25,6 +25,14 @@ import {
   BENCHMARK_TREATMENT_COLOR,
   BENCHMARK_LIVE_COUNTER_INTERVAL_MS,
 } from "@/constants";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const formatMetricValue = (
   value: number,
@@ -566,16 +574,16 @@ export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
         </div>
 
         <div className="overflow-x-auto flex justify-center">
-          <table className="text-sm border-collapse max-w-2xl w-full">
-            <thead>
-              <tr className="border-b border-[#2a2a2a]">
-                <th className="text-left py-2 px-4 text-xs font-medium text-neutral-500 uppercase tracking-wider">
+          <Table className="max-w-2xl border-collapse text-sm">
+            <TableHeader>
+              <TableRow className="border-b border-[#2a2a2a]">
+                <TableHead className="text-left py-2 px-4 text-xs font-medium text-neutral-500 uppercase tracking-wider">
                   Metric
-                </th>
-                <th className="text-left py-2 px-4 text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="text-left py-2 px-4 text-xs font-medium text-neutral-500 uppercase tracking-wider">
                   Control
-                </th>
-                <th className="text-left py-2 px-4 text-xs font-medium text-neutral-500 uppercase tracking-wider bg-[#1f1f1f]/50 rounded-tr-md">
+                </TableHead>
+                <TableHead className="rounded-tr-md bg-[#1f1f1f]/50 py-2 px-4 text-left text-xs font-medium uppercase tracking-wider text-neutral-500">
                   <div className="flex items-center gap-1.5">
                     <Image
                       src="/logo.svg"
@@ -588,33 +596,33 @@ export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
                       React Grab
                     </span>
                   </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#2a2a2a]">
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-[#2a2a2a]">
               {metrics.map((metric) => (
-                <tr
+                <TableRow
                   key={metric.name}
                   className="hover:bg-[#1a1a1a] transition-colors group"
                 >
-                  <td className="py-2 px-4 font-medium text-neutral-300 text-sm group-hover:text-white transition-colors">
+                  <TableCell className="py-2 px-4 text-sm font-medium text-neutral-300 transition-colors group-hover:text-white">
                     {metric.name}
-                  </td>
-                  <td className="py-2 px-4 text-neutral-400 tabular-nums text-sm">
+                  </TableCell>
+                  <TableCell className="py-2 px-4 text-sm text-neutral-400 tabular-nums">
                     {metric.control}
-                  </td>
-                  <td className="py-2 px-4 text-neutral-300 tabular-nums bg-[#1f1f1f]/50 text-sm group-hover:bg-[#1f1f1f] transition-colors">
+                  </TableCell>
+                  <TableCell className="bg-[#1f1f1f]/50 py-2 px-4 text-sm text-neutral-300 tabular-nums transition-colors group-hover:bg-[#1f1f1f]">
                     {metric.treatment}
                     <span
                       className={`ml-2 text-xs font-medium ${metric.isImprovement ? "text-green-400" : "text-red-400"}`}
                     >
                       {metric.isImprovement ? "↓" : "↑"} {metric.change}
                     </span>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </div>
     </div>

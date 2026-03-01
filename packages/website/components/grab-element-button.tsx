@@ -11,6 +11,7 @@ import {
 } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { HOTKEY_KEYUP_DELAY_MS } from "@/constants";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/cn";
 import { detectMobile } from "@/utils/detect-mobile";
 import { getKeyFromCode } from "@/utils/get-key-from-code";
@@ -398,10 +399,11 @@ export const GrabElementButton = ({
             }
           />
         )}
-        <button
+        <Button
           onClick={toggleReactGrab}
+          variant={hasAdvanced ? "outline" : "default"}
           className={cn(
-            "relative flex h-12 w-full items-center justify-center gap-2 rounded-lg px-3 text-sm text-white transition-all active:scale-[0.98] sm:w-auto sm:text-base",
+            "relative h-12 w-full px-3 text-sm text-white transition-all active:scale-[0.98] sm:w-auto sm:text-base",
             hasAdvanced
               ? "border border-white/20 bg-white/5 hover:bg-white/10"
               : "border border-[#d75fcb] bg-[#330039] hover:bg-[#4a0052] shadow-[0_0_12px_rgba(215,95,203,0.4)]",
@@ -415,7 +417,7 @@ export const GrabElementButton = ({
               Click to select an element
             </span>
           )}
-        </button>
+        </Button>
         {!hasAdvanced && !isActivated && (
           <motion.div
             initial={shouldReduceMotion ? false : { opacity: 0 }}
@@ -496,13 +498,14 @@ export const GrabElementButton = ({
         )}
       </div>
       {!hideSkip && showSkip && (
-        <button
+        <Button
           onClick={handleSkip}
-          className="px-3 py-2 text-white/50 hover:text-white/90 text-sm transition-colors"
+          variant="ghost"
+          className="px-3 py-2 text-sm text-white/50 transition-colors hover:text-white/90"
           type="button"
         >
           Skip
-        </button>
+        </Button>
       )}
     </motion.div>
   );

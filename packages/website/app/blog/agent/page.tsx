@@ -12,6 +12,7 @@ import { GithubButton } from "@/components/github-button";
 import { ViewDocsButton } from "@/components/view-docs-button";
 import { BlogArticleLayout } from "@/components/blog-article-layout";
 import { COPY_FEEDBACK_DURATION_MS } from "@/constants";
+import { Button } from "@/components/ui/button";
 
 interface HighlightedCodeBlockProps {
   code: string;
@@ -43,13 +44,15 @@ const HighlightedCodeBlock = ({ code, lang }: HighlightedCodeBlockProps) => {
 
   return (
     <div className="group relative">
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="sm"
         onClick={handleCopy}
-        className="absolute right-0 top-0 text-[11px] text-white/50 opacity-0 transition-opacity hover:text-white group-hover:opacity-100 z-10"
+        className="absolute right-0 top-0 z-10 h-auto px-1.5 py-1 text-[11px] text-white/50 opacity-0 transition-opacity hover:bg-transparent hover:text-white group-hover:opacity-100"
       >
         {didCopy ? "Copied" : "Copy"}
-      </button>
+      </Button>
       {highlightedHtml ? (
         <div
           className="overflow-x-auto font-mono text-[13px] leading-relaxed"

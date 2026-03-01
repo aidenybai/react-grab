@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryState, parseAsStringLiteral } from "nuqs";
-import { useState, useEffect, useCallback, Suspense, useRef } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { ReactGrabLogo } from "@/components/react-grab-logo";
 import { cn } from "@/utils/cn";
 import { IconCursor } from "@/components/icons/icon-cursor";
@@ -9,6 +9,15 @@ import { IconVSCode } from "@/components/icons/icon-vscode";
 import { IconZed } from "@/components/icons/icon-zed";
 import { IconWebStorm } from "@/components/icons/icon-webstorm";
 import { ChevronDown, ArrowUpRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import Link from "next/link";
 
 const EDITOR_OPTIONS = ["cursor", "vscode", "zed", "webstorm"] as const;
@@ -28,6 +37,13 @@ const EDITORS: EditorOption[] = [
 ];
 
 const STORAGE_KEY = "react-grab-preferred-editor";
+
+const parseEditorFromValue = (value: string): Editor => {
+  const matchingEditor = EDITOR_OPTIONS.find(
+    (innerEditorValue) => innerEditorValue === value,
+  );
+  return matchingEditor ?? "cursor";
+};
 
 const getEditorUrl = (
   editor: Editor,
@@ -73,24 +89,9 @@ const OpenFileContent = () => {
     return getInitialEditor().editor;
   });
   const [didAttemptOpen, setDidAttemptOpen] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isEditorSelectOpen, setIsEditorSelectOpen] = useState(false);
   const [hasSavedPreference] = useState(() => getInitialEditor().hasSaved);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   const handleOpen = useCallback(() => {
     if (!resolvedFilePath) return;
@@ -115,14 +116,14 @@ const OpenFileContent = () => {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Enter" && !isDropdownOpen) {
+      if (event.key === "Enter" && !isEditorSelectOpen) {
         handleOpen();
       }
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [handleOpen, isDropdownOpen]);
+  }, [handleOpen, isEditorSelectOpen]);
 
   const handleEditorChange = (editor: Editor) => {
     setPreferredEditor(editor);
@@ -130,16 +131,15 @@ const OpenFileContent = () => {
       localStorage.setItem(STORAGE_KEY, editor);
     }
     setEditorParam(editor);
-    setIsDropdownOpen(false);
   };
 
   const fileName = resolvedFilePath.split("/").pop() ?? "file";
-  const selectedEditor = EDITORS.find((e) => e.id === preferredEditor);
+  const selectedEditor = EDITORS.find((innerEditor) => innerEditor.id === preferredEditor);
 
   if (!resolvedFilePath) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-black p-4">
-        <div className="w-full max-w-md rounded-lg border border-white/10 bg-[#0d0d0d] p-8 text-center shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
+        <Card className="w-full max-w-md border-white/10 bg-[#0d0d0d] p-8 text-center text-card-foreground shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
           <div className="mb-6 flex justify-center">
             <ReactGrabLogo width={100} height={40} />
           </div>
@@ -150,7 +150,7 @@ const OpenFileContent = () => {
             </code>{" "}
             to the URL.
           </div>
-        </div>
+        </Card>
       </div>
     );
   }
@@ -167,7 +167,7 @@ const OpenFileContent = () => {
         </Link>
       </div>
 
-      <div className="w-full max-w-lg rounded-lg border border-white/10 bg-[#0d0d0d] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
+      <Card className="w-full max-w-lg border-white/10 bg-[#0d0d0d] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
         <div className="mb-2 flex flex-wrap items-center gap-2 text-lg text-white/80">
           <span>Opening</span>
           <span className="inline-flex items-center rounded bg-white/10 px-2 py-0.5 font-mono text-sm text-white/90">
@@ -187,75 +187,63 @@ const OpenFileContent = () => {
           {resolvedFilePath}
         </div>
 
-        <div className="mb-6 inline-flex items-stretch rounded-lg border border-white/10 bg-white/5">
-          <div className="relative" ref={dropdownRef}>
-            <button
-              type="button"
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex h-full items-center gap-2 rounded-l-lg px-4 py-2.5 text-sm text-white/80 transition-colors hover:bg-white/10"
-            >
+        <div className="mb-6 inline-flex items-center gap-2">
+          <Select
+            value={preferredEditor}
+            onValueChange={(value) => handleEditorChange(parseEditorFromValue(value))}
+            onOpenChange={setIsEditorSelectOpen}
+          >
+            <SelectTrigger className="h-10 min-w-[160px] border-white/10 bg-white/5 text-sm text-white/80 hover:bg-white/10">
               <span className="opacity-70">{selectedEditor?.icon}</span>
-              <span>{selectedEditor?.name}</span>
-              <ChevronDown
-                size={14}
-                className={cn(
-                  "opacity-40 transition-transform",
-                  isDropdownOpen && "rotate-180",
-                )}
-              />
-            </button>
-
-            {isDropdownOpen && (
-              <div className="absolute left-0 top-full z-10 mt-1 min-w-[160px] overflow-hidden rounded-lg border border-white/10 bg-[#0d0d0d] shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
-                {EDITORS.map((editor) => (
-                  <button
-                    key={editor.id}
-                    type="button"
-                    onClick={() => handleEditorChange(editor.id)}
-                    className={cn(
-                      "flex w-full items-center gap-2.5 px-4 py-2.5 text-sm transition-colors",
-                      preferredEditor === editor.id
-                        ? "bg-white/10 text-white"
-                        : "text-white/60 hover:bg-white/10 hover:text-white/90",
-                    )}
-                  >
+              <SelectValue placeholder="Select editor" />
+            </SelectTrigger>
+            <SelectContent className="border-white/10 bg-[#0d0d0d] text-white">
+              {EDITORS.map((editor) => (
+                <SelectItem
+                  key={editor.id}
+                  value={editor.id}
+                  className="text-sm text-white/80 focus:bg-white/10 focus:text-white"
+                >
+                  <span className="flex items-center gap-2.5">
                     <span className="opacity-70">{editor.icon}</span>
                     <span>{editor.name}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <div className="w-px bg-white/10" />
 
-          <button
+          <Button
             type="button"
             onClick={handleOpen}
-            className="flex items-center gap-1.5 rounded-r-lg px-4 py-2.5 text-sm text-white/80 transition-colors hover:bg-white/10"
+            variant="outline"
+            className="h-10 border-white/10 bg-white/5 text-sm text-white/80 hover:bg-white/10 hover:text-white"
           >
             <span>Open</span>
             <ArrowUpRight size={14} className="opacity-50" />
-          </button>
+          </Button>
         </div>
 
         <div className="space-y-1 text-xs text-white/40">
           <p>Your preference will be saved for future use.</p>
           <p>Only open files from trusted sources.</p>
         </div>
-      </div>
+      </Card>
 
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="sm"
         onClick={() => setIsInfoOpen(!isInfoOpen)}
-        className="mt-8 flex items-center gap-1.5 text-xs text-white/25 transition-colors hover:text-white/40 focus:outline-none"
+        className="mt-8 h-auto gap-1.5 px-0 py-0 text-xs text-white/25 transition-colors hover:bg-transparent hover:text-white/40"
       >
         <span>What is React Grab?</span>
         <ChevronDown
           size={10}
           className={cn("transition-transform", isInfoOpen && "rotate-180")}
         />
-      </button>
+      </Button>
 
       {isInfoOpen && (
         <p className="mt-2 text-center text-xs text-white/30">
