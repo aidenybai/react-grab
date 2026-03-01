@@ -571,6 +571,10 @@ export interface ReactGrabRendererProps {
   onClearHistoryConfirm?: () => void;
   onClearHistoryCancel?: () => void;
   onActivateForCopy?: () => void;
+  onLatestCopyHtml?: () => void;
+  onLatestCopyStyles?: () => void;
+  latestGrabbedElement?: Element;
+
 }
 
 export interface GrabbedBox {

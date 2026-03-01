@@ -261,6 +261,9 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         copyCount={props.clockFlashTrigger}
         historyItems={props.historyItems}
         onActivateForCopy={props.onActivateForCopy}
+        onCopyHtml={props.onLatestCopyHtml}
+        onCopyStyles={props.onLatestCopyStyles}
+        latestGrabbedElement={props.latestGrabbedElement}
       />
     </>
   );

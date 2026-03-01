@@ -331,6 +331,18 @@
   }
 }
 
+.commit-widget-spotlight {
+  position: fixed;
+  z-index: 2147483644;
+  pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.85);
+  transition:
+    top 150ms ease-out,
+    left 150ms ease-out,
+    width 150ms ease-out,
+    height 150ms ease-out;
+}
+
 .commit-widget-container {
   display: flex;
   align-items: center;
@@ -393,6 +405,78 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
+.commit-widget-button-disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.commit-widget-dropdown {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  min-width: 140px;
+  border-radius: 10px;
+  border: 0.5px solid color(display-p3 0.143 0.143 0.143);
+  background: color(display-p3 0.11 0.11 0.11);
+  padding: 4px;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.2),
+    0 4px 8px rgba(0, 0, 0, 0.2),
+    0 12px 24px rgba(0, 0, 0, 0.25);
+  animation: commit-widget-dropdown-enter 150ms ease-out;
+}
+
+@keyframes commit-widget-dropdown-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.commit-widget-dropdown-list {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.commit-widget-dropdown-highlight {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  opacity: 0;
+  transition:
+    top 75ms ease-out,
+    left 75ms ease-out,
+    width 75ms ease-out,
+    height 75ms ease-out,
+    opacity 75ms ease-out;
+}
+
+.commit-widget-dropdown-item {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 28px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #e5e5e5;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
 .commit-widget-prompt-input-wrapper {
   overflow: hidden;
   transition:
@@ -414,4 +498,57 @@
 
 .commit-widget-prompt-input::placeholder {
   color: #737373;
+}
+
+@media (prefers-color-scheme: light) {
+  .commit-widget-container {
+    border-color: color(display-p3 0.878 0.878 0.878);
+    background: color(display-p3 0.98 0.98 0.98);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.06),
+      0 4px 8px rgba(0, 0, 0, 0.06),
+      0 12px 24px rgba(0, 0, 0, 0.08),
+      0 24px 48px rgba(0, 0, 0, 0.1);
+  }
+
+  .commit-widget-button {
+    color: #1a1a1a;
+  }
+
+  .commit-widget-button-ghost:hover {
+    background: rgba(0, 0, 0, 0.06);
+  }
+
+  .commit-widget-kbd {
+    color: #a3a3a3;
+  }
+
+  .commit-widget-divider {
+    background: rgba(0, 0, 0, 0.1);
+  }
+
+  .commit-widget-dropdown {
+    border-color: color(display-p3 0.878 0.878 0.878);
+    background: color(display-p3 0.98 0.98 0.98);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.06),
+      0 4px 8px rgba(0, 0, 0, 0.06),
+      0 12px 24px rgba(0, 0, 0, 0.08);
+  }
+
+  .commit-widget-dropdown-highlight {
+    background: rgba(0, 0, 0, 0.06);
+  }
+
+  .commit-widget-dropdown-item {
+    color: #1a1a1a;
+  }
+
+  .commit-widget-prompt-input {
+    color: #1a1a1a;
+  }
+
+  .commit-widget-prompt-input::placeholder {
+    color: #a3a3a3;
+  }
 }

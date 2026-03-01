@@ -151,6 +151,8 @@ import {
 } from "../utils/history-storage.js";
 import { copyContent } from "../utils/copy-content.js";
 import { joinSnippets } from "../utils/join-snippets.js";
+import { appendStackContext } from "../utils/append-stack-context.js";
+import { extractElementCss } from "../utils/extract-element-css.js";
 
 const builtInPlugins = [
   copyPlugin,
@@ -1734,6 +1736,39 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         toggleActivate();
       }
     };
+
+    const handleLatestCopyHtml = () => {
+      const latestItem = historyItems()[0];
+      if (!latestItem) return;
+      const element = getFirstConnectedHistoryElement(latestItem);
+      if (!element) return;
+
+      void Promise.all([
+        pluginRegistry.hooks.transformHtmlContent(element.outerHTML, [element]),
+        getStackContext(element),
+      ])
+        .then(([transformedHtml, stackContext]) => {
+          if (!transformedHtml) return;
+          copyContent(appendStackContext(transformedHtml, stackContext));
+        })
+        .catch(() => {});
+    };
+
+    const handleLatestCopyStyles = () => {
+      const latestItem = historyItems()[0];
+      if (!latestItem) return;
+      const element = getFirstConnectedHistoryElement(latestItem);
+      if (!element) return;
+
+      const extractedCss = extractElementCss(element);
+      void getStackContext(element)
+        .then((stackContext) => {
+          copyContent(appendStackContext(extractedCss, stackContext));
+        })
+        .catch(() => {});
+    };
+
+
 
     const enterCommentModeForElement = (
       element: Element,
@@ -4041,6 +4076,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             }}
             onClearHistoryCancel={dismissClearPrompt}
             onActivateForCopy={handleActivateForCopy}
+            onLatestCopyHtml={handleLatestCopyHtml}
+            onLatestCopyStyles={handleLatestCopyStyles}
+            latestGrabbedElement={
+              historyItems()[0]
+                ? getFirstConnectedHistoryElement(historyItems()[0])
+                : undefined
+            }
+
           />
         );
       }, rendererRoot);
