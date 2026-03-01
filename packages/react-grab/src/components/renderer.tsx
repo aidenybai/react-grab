@@ -15,6 +15,7 @@ import { ToolbarMenu } from "./toolbar/toolbar-menu.js";
 import { ContextMenu } from "./context-menu.js";
 import { HistoryDropdown } from "./history-dropdown.js";
 import { ClearHistoryPrompt } from "./clear-history-prompt.js";
+import { CommitWidget } from "./commit-widget.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
   return (
@@ -255,6 +256,8 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         onDismiss={props.onHistoryDismiss}
         onDropdownHover={props.onHistoryDropdownHover}
       />
+
+      <CommitWidget labelInstances={props.labelInstances} />
     </>
   );
 };

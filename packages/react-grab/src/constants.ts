@@ -250,3 +250,6 @@ export const RELEVANT_CSS_PROPERTIES = new Set([
   "object-fit",
   "object-position",
 ]);
+
+export const COMMIT_WIDGET_FEEDBACK_DURATION_MS = 1500;
+export const COMMIT_WIDGET_PROMPT_WIDTH_PX = 192;
