@@ -37,7 +37,10 @@ import { isSourceFile, normalizeFileName } from "bippy/source";
 import { createNoopApi } from "./noop-api.js";
 import { createEventListenerManager } from "./events.js";
 import { tryCopyWithFallback } from "./copy.js";
-import { getElementAtPosition } from "../utils/get-element-at-position.js";
+import {
+  getElementAtPosition,
+  getElementsAtPoint,
+} from "../utils/get-element-at-position.js";
 import { isValidGrabbableElement } from "../utils/is-valid-grabbable-element.js";
 import { isRootElement } from "../utils/is-root-element.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
@@ -101,6 +104,8 @@ import type {
   ContextMenuAction,
   ActionCycleItem,
   ActionCycleState,
+  ArrowNavigationItem,
+  ArrowNavigationState,
   PerformWithFeedbackOptions,
   SettableOptions,
   SourceInfo,
@@ -503,6 +508,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [actionCycleActiveIndex, setActionCycleActiveIndex] = createSignal<
       number | null
     >(null);
+
+    const [arrowNavigationItems, setArrowNavigationItems] = createSignal<
+      ArrowNavigationItem[]
+    >([]);
+    const [arrowNavigationActiveIndex, setArrowNavigationActiveIndex] =
+      createSignal<number>(0);
+    const [arrowNavigationElements, setArrowNavigationElements] = createSignal<
+      Element[]
+    >([]);
 
     const arrowNavigator = createArrowNavigator(
       isValidGrabbableElement,
@@ -1510,6 +1524,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const previousFocused = store.previouslyFocusedElement;
       actions.deactivate();
       arrowNavigator.clearHistory();
+      clearArrowNavigation();
       keyboardSelectedElement = null;
       isPendingContextMenuSelect = false;
       if (wasDragging) {
@@ -1744,6 +1759,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       position: { x: number; y: number },
     ) => {
       actions.showContextMenu(position, element);
+      clearArrowNavigation();
       dismissAllPopups();
       pluginRegistry.hooks.onContextMenu(element, position);
     };
@@ -2099,9 +2115,44 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return false;
     };
 
+    const buildArrowNavigationItems = (
+      elementsAtPoint: Element[],
+    ): ArrowNavigationItem[] =>
+      elementsAtPoint.map((element) => ({
+        tagName: getTagName(element) || "element",
+        componentName: getComponentDisplayName(element) ?? undefined,
+      }));
+
+    const clearArrowNavigation = () => {
+      setArrowNavigationItems([]);
+      setArrowNavigationActiveIndex(0);
+      setArrowNavigationElements([]);
+    };
+
+    const handleArrowNavigationSelect = (index: number) => {
+      const elements = arrowNavigationElements();
+      const targetElement = elements[index];
+      if (!targetElement) return;
+
+      setArrowNavigationActiveIndex(index);
+      actions.setFrozenElement(targetElement);
+      actions.freeze();
+      keyboardSelectedElement = targetElement;
+
+      const selectedBounds = createElementBounds(targetElement);
+      const selectedCenter = getBoundsCenter(selectedBounds);
+      actions.setPointer(selectedCenter);
+
+      if (store.contextMenuPosition !== null) {
+        actions.showContextMenu(selectedCenter, targetElement);
+      }
+    };
+
     const handleArrowNavigation = (event: KeyboardEvent): boolean => {
       if (!isActivated() || isPromptMode()) return false;
       if (!ARROW_KEYS.has(event.key)) return false;
+
+      const isVertical = event.key === "ArrowUp" || event.key === "ArrowDown";
 
       let currentElement = effectiveElement();
       const isInitialSelection = !currentElement;
@@ -2113,6 +2164,50 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       if (!currentElement) return false;
+
+      if (isVertical) {
+        const isMenuAlreadyVisible = arrowNavigationItems().length > 0;
+
+        if (!isMenuAlreadyVisible) {
+          const currentBounds = createElementBounds(currentElement);
+          const elementsAtPoint = getElementsAtPoint(
+            currentBounds.x + currentBounds.width / 2,
+            currentBounds.y + currentBounds.height / 2,
+          ).filter(isValidGrabbableElement);
+
+          const currentIndex = elementsAtPoint.indexOf(currentElement);
+          setArrowNavigationElements(elementsAtPoint);
+          setArrowNavigationItems(buildArrowNavigationItems(elementsAtPoint));
+          setArrowNavigationActiveIndex(currentIndex !== -1 ? currentIndex : 0);
+        }
+
+        const nextElement = arrowNavigator.findNext(event.key, currentElement);
+        const elementToSelect = nextElement ?? currentElement;
+
+        event.preventDefault();
+        event.stopPropagation();
+        actions.setFrozenElement(elementToSelect);
+        actions.freeze();
+        keyboardSelectedElement = elementToSelect;
+
+        const elementBounds = createElementBounds(elementToSelect);
+        const elementCenter = getBoundsCenter(elementBounds);
+        actions.setPointer(elementCenter);
+
+        const storedElements = arrowNavigationElements();
+        const newIndex = storedElements.indexOf(elementToSelect);
+        if (newIndex !== -1) {
+          setArrowNavigationActiveIndex(newIndex);
+        }
+
+        if (store.contextMenuPosition !== null) {
+          actions.showContextMenu(elementCenter, elementToSelect);
+        }
+
+        return true;
+      }
+
+      clearArrowNavigation();
 
       const nextElement = arrowNavigator.findNext(event.key, currentElement);
 
@@ -2257,6 +2352,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       activeIndex: actionCycleActiveIndex(),
       isVisible:
         actionCycleActiveIndex() !== null && actionCycleItems().length > 0,
+    }));
+
+    const arrowNavigationState = createMemo<ArrowNavigationState>(() => ({
+      items: arrowNavigationItems(),
+      activeIndex: arrowNavigationActiveIndex(),
+      isVisible: arrowNavigationItems().length > 0,
     }));
 
     createEffect(
@@ -2720,6 +2821,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (isActiveState && !isPromptMode() && isToggleFrozen()) {
           actions.unfreeze();
           arrowNavigator.clearHistory();
+          clearArrowNavigation();
         }
         handlePointerMove(event.clientX, event.clientY);
       },
@@ -2780,7 +2882,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       "contextmenu",
       (event: MouseEvent) => {
         if (!isRendererActive() || isCopying() || isPromptMode()) return;
-        if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
+
+        const isFromOverlay = isEventFromOverlay(
+          event,
+          "data-react-grab-ignore-events",
+        );
+        if (isFromOverlay && arrowNavigationItems().length > 0) {
+          clearArrowNavigation();
+        } else if (isFromOverlay) {
+          return;
+        }
+
         if (store.contextMenuPosition !== null) {
           event.preventDefault();
           return;
@@ -3929,6 +4041,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             selectionLabelVisible={selectionLabelVisible()}
             selectionLabelStatus="idle"
             selectionActionCycleState={actionCycleState()}
+            selectionArrowNavigationState={arrowNavigationState()}
+            onArrowNavigationSelect={handleArrowNavigationSelect}
             labelInstances={computedLabelInstances()}
             dragVisible={dragVisible()}
             dragBounds={dragBounds()}

@@ -260,6 +260,17 @@ export interface ActionCycleState {
   isVisible: boolean;
 }
 
+export interface ArrowNavigationItem {
+  tagName: string;
+  componentName?: string;
+}
+
+export interface ArrowNavigationState {
+  items: ArrowNavigationItem[];
+  activeIndex: number;
+  isVisible: boolean;
+}
+
 export interface PerformWithFeedbackOptions {
   fallbackBounds?: OverlayBounds;
   fallbackSelectionBounds?: OverlayBounds[];
@@ -481,6 +492,8 @@ export interface ReactGrabRendererProps {
   selectionLabelVisible?: boolean;
   selectionLabelStatus?: SelectionLabelStatus;
   selectionActionCycleState?: ActionCycleState;
+  selectionArrowNavigationState?: ArrowNavigationState;
+  onArrowNavigationSelect?: (index: number) => void;
   labelInstances?: SelectionLabelInstance[];
   dragVisible?: boolean;
   dragBounds?: OverlayBounds;
@@ -665,6 +678,8 @@ export interface SelectionLabelProps {
   supportsFollowUp?: boolean;
   dismissButtonText?: string;
   actionCycleState?: ActionCycleState;
+  arrowNavigationState?: ArrowNavigationState;
+  onArrowNavigationSelect?: (index: number) => void;
   onInputChange?: (value: string) => void;
   onSubmit?: () => void;
   onCancel?: () => void;
