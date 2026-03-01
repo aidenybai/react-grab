@@ -27,6 +27,7 @@ let lastInputElements: Element[] = [];
 let globalAnimationStyleElement: HTMLStyleElement | null = null;
 let globalFrozenSvgElements: SVGSVGElement[] = [];
 const svgFreezeDepthMap = new Map<SVGSVGElement, number>();
+let frozenWaapiAnimations: Animation[] = [];
 
 const ensureStylesInjected = (): void => {
   if (styleElement) return;
@@ -99,6 +100,28 @@ const resumeSvgAnimations = (svgElements: SVGSVGElement[]): void => {
   }
 };
 
+const collectWaapiAnimations = (elements: Element[]): Animation[] => {
+  const animations: Animation[] = [];
+  for (const element of elements) {
+    for (const animation of element.getAnimations({ subtree: true })) {
+      if (animation.playState === "running") {
+        animations.push(animation);
+      }
+    }
+  }
+  return animations;
+};
+
+const finishAnimations = (animations: Iterable<Animation>): void => {
+  for (const animation of animations) {
+    try {
+      animation.finish();
+    } catch {
+      // finish() throws for infinite animations or zero playback rate
+    }
+  }
+};
+
 export const freezeAllAnimations = (elements: Element[]): void => {
   if (elements.length === 0) return;
   if (areElementsSame(elements, lastInputElements)) return;
@@ -113,18 +136,31 @@ export const freezeAllAnimations = (elements: Element[]): void => {
   for (const element of frozenElements) {
     element.setAttribute(FROZEN_ELEMENT_ATTRIBUTE, "");
   }
+
+  frozenWaapiAnimations = collectWaapiAnimations(frozenElements);
+  for (const animation of frozenWaapiAnimations) {
+    animation.pause();
+  }
 };
 
 const unfreezeAllAnimations = (): void => {
-  if (frozenElements.length === 0 && frozenSvgElements.length === 0) return;
+  if (
+    frozenElements.length === 0 &&
+    frozenSvgElements.length === 0 &&
+    frozenWaapiAnimations.length === 0
+  )
+    return;
 
   for (const element of frozenElements) {
     element.removeAttribute(FROZEN_ELEMENT_ATTRIBUTE);
   }
   resumeSvgAnimations(frozenSvgElements);
 
+  finishAnimations(frozenWaapiAnimations);
+
   frozenElements = [];
   frozenSvgElements = [];
+  frozenWaapiAnimations = [];
   lastInputElements = [];
 };
 
@@ -165,6 +201,7 @@ export const unfreezeGlobalAnimations = (): void => {
 }
 `;
 
+  const animations: Animation[] = [];
   for (const animation of document.getAnimations()) {
     if (animation.effect instanceof KeyframeEffect) {
       const target = animation.effect.target;
@@ -175,13 +212,9 @@ export const unfreezeGlobalAnimations = (): void => {
         }
       }
     }
-
-    try {
-      animation.finish();
-    } catch {
-      // HACK: finish() throws for infinite animations or zero playback rate
-    }
+    animations.push(animation);
   }
+  finishAnimations(animations);
 
   globalAnimationStyleElement.remove();
   globalAnimationStyleElement = null;
