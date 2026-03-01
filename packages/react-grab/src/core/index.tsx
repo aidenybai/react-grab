@@ -1729,6 +1729,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
+    const handleActivateForCopy = () => {
+      if (!isActivated() && isEnabled()) {
+        toggleActivate();
+      }
+    };
+
     const enterCommentModeForElement = (
       element: Element,
       positionX: number,
@@ -4034,6 +4040,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               handleHistoryClear();
             }}
             onClearHistoryCancel={dismissClearPrompt}
+            onActivateForCopy={handleActivateForCopy}
           />
         );
       }, rendererRoot);

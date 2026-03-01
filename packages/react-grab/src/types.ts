@@ -570,6 +570,7 @@ export interface ReactGrabRendererProps {
   clearPromptPosition?: DropdownAnchor | null;
   onClearHistoryConfirm?: () => void;
   onClearHistoryCancel?: () => void;
+  onActivateForCopy?: () => void;
 }
 
 export interface GrabbedBox {

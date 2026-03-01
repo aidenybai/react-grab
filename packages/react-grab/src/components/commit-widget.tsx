@@ -1,6 +1,6 @@
 import { createSignal, createEffect, on, onCleanup } from "solid-js";
 import type { Component } from "solid-js";
-import type { SelectionLabelInstance } from "../types.js";
+import type { HistoryItem } from "../types.js";
 import { TextMorph } from "./text-morph.js";
 import {
   COMMIT_WIDGET_FEEDBACK_DURATION_MS,
@@ -11,50 +11,52 @@ import {
 const UNDO_CLIPBOARD_PROMPT =
   "Undo the latest change you just made. Revert the most recent modification to the file(s) you last edited. Do not ask for confirmation — just undo it.";
 
-const COMMIT_CLIPBOARD_PROMPT =
-  "Commit all current changes with a concise, descriptive commit message and push to the current remote branch. If no remote branch exists, create one. Do not ask for confirmation — just commit and push.";
+const DEFAULT_HISTORY_LABEL = "History";
+
+const formatElementLabel = (item: HistoryItem): string => {
+  if (item.componentName) return item.componentName;
+  return `<${item.tagName}>`;
+};
 
 interface CommitWidgetProps {
-  labelInstances?: SelectionLabelInstance[];
+  copyCount?: number;
+  historyItems?: HistoryItem[];
+  onActivateForCopy?: () => void;
 }
 
 export const CommitWidget: Component<CommitWidgetProps> = (props) => {
-  const [undoLabel, setUndoLabel] = createSignal("Undo");
-  const [commitLabel, setCommitLabel] = createSignal("Commit");
+  const [historyLabel, setHistoryLabel] = createSignal(DEFAULT_HISTORY_LABEL);
   const [isPromptOpen, setIsPromptOpen] = createSignal(false);
   const [promptText, setPromptText] = createSignal("");
   const [promptLabel, setPromptLabel] = createSignal("Prompt");
 
   let promptInputRef: HTMLInputElement | undefined;
-  let previousCopiedCount = 0;
 
   createEffect(
     on(
-      () =>
-        (props.labelInstances ?? []).filter(
-          (instance) => instance.status === "copied",
-        ).length,
-      (copiedCount) => {
-        if (copiedCount > previousCopiedCount) {
-          setIsPromptOpen(true);
-          requestAnimationFrame(() => promptInputRef?.focus());
+      () => props.copyCount ?? 0,
+      () => {
+        const latestItem = props.historyItems?.[0];
+        if (latestItem) {
+          setHistoryLabel(formatElementLabel(latestItem));
         }
-        previousCopiedCount = copiedCount;
+        setIsPromptOpen(true);
+        requestAnimationFrame(() => promptInputRef?.focus());
       },
+      { defer: true },
     ),
   );
 
-  const handleUndo = () => {
+  const handleHistoryClick = () => {
     void navigator.clipboard.writeText(UNDO_CLIPBOARD_PROMPT);
-    setUndoLabel("Prompt copied");
-    setTimeout(() => setUndoLabel("Undo"), COMMIT_WIDGET_FEEDBACK_DURATION_MS);
-  };
-
-  const handleCommit = () => {
-    void navigator.clipboard.writeText(COMMIT_CLIPBOARD_PROMPT);
-    setCommitLabel("Prompt copied");
+    setHistoryLabel("Prompt copied");
     setTimeout(
-      () => setCommitLabel("Commit"),
+      () => {
+        const latestItem = props.historyItems?.[0];
+        setHistoryLabel(
+          latestItem ? formatElementLabel(latestItem) : DEFAULT_HISTORY_LABEL,
+        );
+      },
       COMMIT_WIDGET_FEEDBACK_DURATION_MS,
     );
   };
@@ -76,27 +78,27 @@ export const CommitWidget: Component<CommitWidgetProps> = (props) => {
   const handlePromptButtonClick = () => {
     if (isPromptOpen() && promptText().trim()) {
       handlePromptSubmit();
-    } else {
-      setIsPromptOpen(!isPromptOpen());
-      requestAnimationFrame(() => promptInputRef?.focus());
+      return;
     }
+
+    if (isPromptOpen()) {
+      setIsPromptOpen(false);
+      setPromptText("");
+      return;
+    }
+
+    props.onActivateForCopy?.();
   };
 
   const handleWindowKeyDown = (event: KeyboardEvent) => {
     if (event.ctrlKey && event.key === "z") {
       event.preventDefault();
-      handleUndo();
-    }
-    if (event.ctrlKey && event.key === "c") {
-      event.preventDefault();
-      handleCommit();
+      handleHistoryClick();
     }
   };
 
   window.addEventListener("keydown", handleWindowKeyDown);
   onCleanup(() => window.removeEventListener("keydown", handleWindowKeyDown));
-
-  const isCommitLabelActive = () => commitLabel() === "Prompt copied";
 
   const computedPromptLabel = () => {
     if (promptLabel() !== "Prompt") return promptLabel();
@@ -118,32 +120,12 @@ export const CommitWidget: Component<CommitWidgetProps> = (props) => {
       <div class="commit-widget-container font-sans">
         <button
           class="commit-widget-button commit-widget-button-ghost"
-          onClick={handleUndo}
+          onClick={handleHistoryClick}
         >
-          <TextMorph>{undoLabel()}</TextMorph>
-          <kbd class="commit-widget-kbd">⌃Z</kbd>
-        </button>
-
-        <div class="commit-widget-divider" />
-
-        <button
-          class={`commit-widget-button ${
-            isCommitLabelActive()
-              ? "commit-widget-button-active"
-              : "commit-widget-button-commit"
-          }`}
-          onClick={handleCommit}
-        >
-          <TextMorph>{commitLabel()}</TextMorph>
-          <kbd
-            class={`commit-widget-kbd ${
-              isCommitLabelActive()
-                ? "commit-widget-kbd-active"
-                : "commit-widget-kbd-commit"
-            }`}
-          >
-            ⌃C
-          </kbd>
+          <TextMorph>{historyLabel()}</TextMorph>
+          {historyLabel() === DEFAULT_HISTORY_LABEL && (
+            <kbd class="commit-widget-kbd">⌃Z</kbd>
+          )}
         </button>
 
         <div class="commit-widget-divider" />

@@ -370,16 +370,6 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
-.commit-widget-button-commit:hover {
-  background: color(display-p3 0.161 0.382 0.964);
-  color: white;
-}
-
-.commit-widget-button-active {
-  background: color(display-p3 0.161 0.382 0.964);
-  color: white;
-}
-
 .commit-widget-kbd {
   display: inline-flex;
   align-items: center;
@@ -395,18 +385,6 @@
   user-select: none;
   background: transparent;
   color: #737373;
-}
-
-.commit-widget-kbd-commit {
-  color: #737373;
-}
-
-.commit-widget-button-commit:hover .commit-widget-kbd-commit {
-  color: white;
-}
-
-.commit-widget-kbd-active {
-  color: white;
 }
 
 .commit-widget-divider {

@@ -257,7 +257,11 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         onDropdownHover={props.onHistoryDropdownHover}
       />
 
-      <CommitWidget labelInstances={props.labelInstances} />
+      <CommitWidget
+        copyCount={props.clockFlashTrigger}
+        historyItems={props.historyItems}
+        onActivateForCopy={props.onActivateForCopy}
+      />
     </>
   );
 };
