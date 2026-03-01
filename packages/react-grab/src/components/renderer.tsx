@@ -135,7 +135,9 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           status={props.selectionLabelStatus}
           actionCycleState={props.selectionActionCycleState}
           arrowNavigationState={props.selectionArrowNavigationState}
+          arrowNavigationActions={props.actions}
           onArrowNavigationSelect={props.onArrowNavigationSelect}
+          onArrowNavigationAction={props.onArrowNavigationAction}
           filePath={props.selectionFilePath}
           lineNumber={props.selectionLineNumber}
           onInputChange={props.onInputChange}

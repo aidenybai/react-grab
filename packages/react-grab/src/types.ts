@@ -494,6 +494,7 @@ export interface ReactGrabRendererProps {
   selectionActionCycleState?: ActionCycleState;
   selectionArrowNavigationState?: ArrowNavigationState;
   onArrowNavigationSelect?: (index: number) => void;
+  onArrowNavigationAction?: (actionId: string) => void;
   labelInstances?: SelectionLabelInstance[];
   dragVisible?: boolean;
   dragBounds?: OverlayBounds;
@@ -679,7 +680,9 @@ export interface SelectionLabelProps {
   dismissButtonText?: string;
   actionCycleState?: ActionCycleState;
   arrowNavigationState?: ArrowNavigationState;
+  arrowNavigationActions?: ContextMenuAction[];
   onArrowNavigationSelect?: (index: number) => void;
+  onArrowNavigationAction?: (actionId: string) => void;
   onInputChange?: (value: string) => void;
   onSubmit?: () => void;
   onCancel?: () => void;

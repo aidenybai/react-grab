@@ -2148,6 +2148,36 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
+    const handleArrowNavigationAction = (actionId: string) => {
+      const element = store.frozenElement;
+      if (!element) return;
+
+      const action = pluginRegistry.store.actions.find(
+        (innerAction) => innerAction.id === actionId,
+      );
+      if (!action) return;
+
+      const tagName = getTagName(element) || undefined;
+      const componentName = getComponentDisplayName(element) ?? undefined;
+
+      const context = buildActionContext({
+        element,
+        filePath: store.selectionFilePath ?? undefined,
+        lineNumber: store.selectionLineNumber ?? undefined,
+        tagName,
+        componentName,
+        position: store.pointer,
+        shouldDeferHideContextMenu: false,
+        onBeforePrompt: clearArrowNavigation,
+        onBeforeCopy: clearArrowNavigation,
+      });
+
+      if (!resolveActionEnabled(action, context)) return;
+
+      clearArrowNavigation();
+      action.onAction(context);
+    };
+
     const handleArrowNavigation = (event: KeyboardEvent): boolean => {
       if (!isActivated() || isPromptMode()) return false;
       if (!ARROW_KEYS.has(event.key)) return false;
@@ -4043,6 +4073,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             selectionActionCycleState={actionCycleState()}
             selectionArrowNavigationState={arrowNavigationState()}
             onArrowNavigationSelect={handleArrowNavigationSelect}
+            onArrowNavigationAction={handleArrowNavigationAction}
             labelInstances={computedLabelInstances()}
             dragVisible={dragVisible()}
             dragBounds={dragBounds()}
