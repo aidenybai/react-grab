@@ -1,4 +1,4 @@
-import { Show, Index } from "solid-js";
+import { Show, Index, createSignal } from "solid-js";
 import type { Component } from "solid-js";
 import type { ReactGrabRendererProps } from "../types.js";
 import {
@@ -6,8 +6,6 @@ import {
   FROZEN_GLOW_EDGE_PX,
   Z_INDEX_OVERLAY_CANVAS,
 } from "../constants.js";
-import { openFile } from "../utils/open-file.js";
-import { isElementConnected } from "../utils/is-element-connected.js";
 import { OverlayCanvas } from "./overlay-canvas.js";
 import { SelectionLabel } from "./selection-label/index.js";
 import { Toolbar } from "./toolbar/index.js";
@@ -18,8 +16,11 @@ import { ClearHistoryPrompt } from "./clear-history-prompt.js";
 import { CommitWidget } from "./commit-widget.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
+  const [isCommitPromptOpen, setIsCommitPromptOpen] = createSignal(false);
+
   return (
     <>
+      <Show when={!isCommitPromptOpen()}>
       <OverlayCanvas
         crosshairVisible={props.crosshairVisible}
         mouseX={props.mouseX}
@@ -53,7 +54,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           "box-shadow": `inset 0 0 ${FROZEN_GLOW_EDGE_PX}px ${FROZEN_GLOW_COLOR}`,
         }}
       />
-
       <Index
         each={
           props.agentSessions ? Array.from(props.agentSessions.values()) : []
@@ -117,76 +117,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
               />
             </Show>
           </>
-        )}
-      </Index>
-
-      <Show when={props.selectionLabelVisible && props.selectionBounds}>
-        <SelectionLabel
-          tagName={props.selectionTagName}
-          componentName={props.selectionComponentName}
-          elementsCount={props.selectionElementsCount}
-          selectionBounds={props.selectionBounds}
-          mouseX={props.mouseX}
-          visible={props.selectionLabelVisible}
-          isPromptMode={props.isPromptMode}
-          inputValue={props.inputValue}
-          replyToPrompt={props.replyToPrompt}
-          hasAgent={props.hasAgent}
-          isAgentConnected={props.isAgentConnected}
-          status={props.selectionLabelStatus}
-          actionCycleState={props.selectionActionCycleState}
-          filePath={props.selectionFilePath}
-          lineNumber={props.selectionLineNumber}
-          onInputChange={props.onInputChange}
-          onSubmit={props.onInputSubmit}
-          onCancel={props.onInputCancel}
-          onToggleExpand={props.onToggleExpand}
-          isPendingDismiss={props.isPendingDismiss}
-          onConfirmDismiss={props.onConfirmDismiss}
-          onCancelDismiss={props.onCancelDismiss}
-          onOpen={() => {
-            if (props.selectionFilePath) {
-              openFile(props.selectionFilePath, props.selectionLineNumber);
-            }
-          }}
-          isContextMenuOpen={props.contextMenuPosition !== null}
-        />
-      </Show>
-
-      <Index each={props.labelInstances ?? []}>
-        {(instance) => (
-          <SelectionLabel
-            tagName={instance().tagName}
-            componentName={instance().componentName}
-            elementsCount={instance().elementsCount}
-            selectionBounds={instance().bounds}
-            mouseX={instance().mouseX}
-            visible={true}
-            status={instance().status}
-            statusText={instance().statusText}
-            hasAgent={Boolean(instance().statusText)}
-            isPromptMode={instance().isPromptMode}
-            inputValue={instance().inputValue}
-            error={instance().errorMessage}
-            hideArrow={instance().hideArrow}
-            onShowContextMenu={(() => {
-              const currentInstance = instance();
-              const hasCompletedStatus =
-                currentInstance.status === "copied" ||
-                currentInstance.status === "fading";
-              if (
-                !hasCompletedStatus ||
-                !isElementConnected(currentInstance.element)
-              ) {
-                return undefined;
-              }
-              return () =>
-                props.onShowContextMenuInstance?.(currentInstance.id);
-            })()}
-            onHoverChange={(isHovered) =>
-              props.onLabelInstanceHoverChange?.(instance().id, isHovered)
-            }
-          />
         )}
       </Index>
 
@@ -257,13 +187,14 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         onDropdownHover={props.onHistoryDropdownHover}
       />
 
+      </Show>
+
       <CommitWidget
         copyCount={props.clockFlashTrigger}
         historyItems={props.historyItems}
         onActivateForCopy={props.onActivateForCopy}
-        onCopyHtml={props.onLatestCopyHtml}
-        onCopyStyles={props.onLatestCopyStyles}
         latestGrabbedElement={props.latestGrabbedElement}
+        onPromptOpenChange={setIsCommitPromptOpen}
       />
     </>
   );

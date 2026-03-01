@@ -1,8 +1,7 @@
-import { createSignal, createEffect, on, onCleanup, Show } from "solid-js";
+import { createSignal, createEffect, on, onCleanup } from "solid-js";
 import type { Component } from "solid-js";
 import type { HistoryItem } from "../types.js";
 import { TextMorph } from "./text-morph.js";
-import { createMenuHighlight } from "../utils/create-menu-highlight.js";
 import {
   COMMIT_WIDGET_FEEDBACK_DURATION_MS,
   COMMIT_WIDGET_PROMPT_WIDTH_PX,
@@ -19,23 +18,45 @@ const formatElementLabel = (item: HistoryItem): string => {
   return item.tagName;
 };
 
+const HIDDEN_MEDIA_TAGS = new Set(["IMG", "SVG", "PICTURE", "VIDEO", "CANVAS"]);
+
 interface ModifiedElement {
-  element: HTMLElement;
+  element: HTMLElement | SVGElement;
   previousColor: string;
+  previousTextFillColor: string;
+  previousTextShadow: string;
+  previousVisibility: string;
+  didHideVisibility: boolean;
 }
 
+const isStylableElement = (
+  element: Element,
+): element is HTMLElement | SVGElement =>
+  element instanceof HTMLElement || element instanceof SVGElement;
+
 const hideTextInSubtree = (
-  element: HTMLElement,
+  element: HTMLElement | SVGElement,
   modifiedElements: ModifiedElement[],
 ) => {
   modifiedElements.push({
     element,
     previousColor: element.style.color,
+    previousTextFillColor: element.style.getPropertyValue(
+      "-webkit-text-fill-color",
+    ),
+    previousTextShadow: element.style.textShadow,
+    previousVisibility: element.style.visibility,
+    didHideVisibility: HIDDEN_MEDIA_TAGS.has(element.tagName),
   });
   element.style.color = "transparent";
+  element.style.setProperty("-webkit-text-fill-color", "transparent");
+  element.style.textShadow = "none";
+  if (HIDDEN_MEDIA_TAGS.has(element.tagName)) {
+    element.style.visibility = "hidden";
+  }
 
   for (const child of Array.from(element.children)) {
-    if (child instanceof HTMLElement) {
+    if (isStylableElement(child)) {
       hideTextInSubtree(child, modifiedElements);
     }
   }
@@ -54,7 +75,7 @@ const hidePageTextExcept = (
 
     for (const sibling of Array.from(parent.children)) {
       if (sibling === current || sibling === shadowHost) continue;
-      if (sibling instanceof HTMLElement) {
+      if (isStylableElement(sibling)) {
         hideTextInSubtree(sibling, modifiedElements);
       }
     }
@@ -66,8 +87,27 @@ const hidePageTextExcept = (
 };
 
 const restorePageText = (modifiedElements: ModifiedElement[]) => {
-  for (const { element, previousColor } of modifiedElements) {
+  for (const {
+    element,
+    previousColor,
+    previousTextFillColor,
+    previousTextShadow,
+    previousVisibility,
+    didHideVisibility,
+  } of modifiedElements) {
     element.style.color = previousColor;
+    if (previousTextFillColor) {
+      element.style.setProperty(
+        "-webkit-text-fill-color",
+        previousTextFillColor,
+      );
+    } else {
+      element.style.removeProperty("-webkit-text-fill-color");
+    }
+    element.style.textShadow = previousTextShadow;
+    if (didHideVisibility) {
+      element.style.visibility = previousVisibility;
+    }
   }
 };
 
@@ -75,9 +115,8 @@ interface CommitWidgetProps {
   copyCount?: number;
   historyItems?: HistoryItem[];
   onActivateForCopy?: () => void;
-  onCopyHtml?: () => void;
-  onCopyStyles?: () => void;
   latestGrabbedElement?: Element;
+  onPromptOpenChange?: (isOpen: boolean) => void;
 }
 
 export const CommitWidget: Component<CommitWidgetProps> = (props) => {
@@ -85,21 +124,16 @@ export const CommitWidget: Component<CommitWidgetProps> = (props) => {
   const [isPromptOpen, setIsPromptOpen] = createSignal(false);
   const [promptText, setPromptText] = createSignal("");
   const [promptLabel, setPromptLabel] = createSignal("Prompt");
-  const [isDropdownOpen, setIsDropdownOpen] = createSignal(false);
-
-  const {
-    containerRef: dropdownContainerRef,
-    highlightRef: dropdownHighlightRef,
-    updateHighlight: updateDropdownHighlight,
-    clearHighlight: clearDropdownHighlight,
-  } = createMenuHighlight();
 
   let promptInputRef: HTMLInputElement | undefined;
   let widgetRef: HTMLDivElement | undefined;
 
-  const hasSelectedElement = () =>
-    historyLabel() !== DEFAULT_HISTORY_LABEL &&
-    historyLabel() !== "Prompt copied";
+  createEffect(
+    on(
+      () => isPromptOpen(),
+      (isOpen) => props.onPromptOpenChange?.(isOpen),
+    ),
+  );
 
   const getShadowHost = (): Element | null => {
     if (!widgetRef) return null;
@@ -116,7 +150,30 @@ export const CommitWidget: Component<CommitWidgetProps> = (props) => {
       getShadowHost(),
     );
 
-    onCleanup(() => restorePageText(modifiedElements));
+    const overlay = document.createElement("div");
+    overlay.style.cssText =
+      "position:fixed;border-radius:8px;box-shadow:0 0 0 9999px rgba(0,0,0,0.08);z-index:2147483644;pointer-events:none";
+    document.body.appendChild(overlay);
+
+    const updateOverlayPosition = () => {
+      const rect = props.latestGrabbedElement?.getBoundingClientRect();
+      if (!rect) return;
+      overlay.style.top = `${rect.top - 4}px`;
+      overlay.style.left = `${rect.left - 4}px`;
+      overlay.style.width = `${rect.width + 8}px`;
+      overlay.style.height = `${rect.height + 8}px`;
+    };
+
+    updateOverlayPosition();
+    window.addEventListener("scroll", updateOverlayPosition, true);
+    window.addEventListener("resize", updateOverlayPosition);
+
+    onCleanup(() => {
+      restorePageText(modifiedElements);
+      overlay.remove();
+      window.removeEventListener("scroll", updateOverlayPosition, true);
+      window.removeEventListener("resize", updateOverlayPosition);
+    });
   });
 
   createEffect(
@@ -134,26 +191,16 @@ export const CommitWidget: Component<CommitWidgetProps> = (props) => {
     ),
   );
 
-  const handleHistoryClick = () => {
-    if (!hasSelectedElement()) return;
-    setIsDropdownOpen(!isDropdownOpen());
-  };
-
-  const handleDropdownAction = (action: () => void) => {
-    action();
-    setIsDropdownOpen(false);
-  };
-
   const handlePromptSubmit = () => {
     const trimmedPromptText = promptText().trim();
     if (!trimmedPromptText) return;
 
     void navigator.clipboard.writeText(trimmedPromptText);
     setPromptLabel("Copied");
-    setIsPromptOpen(false);
     setPromptText("");
     setTimeout(() => {
       setPromptLabel("Prompt");
+      setIsPromptOpen(false);
     }, COMMIT_WIDGET_FEEDBACK_DURATION_MS);
   };
 
@@ -186,23 +233,9 @@ export const CommitWidget: Component<CommitWidgetProps> = (props) => {
     }
   };
 
-  const handleWindowPointerDown = (event: MouseEvent) => {
-    if (!isDropdownOpen()) return;
-    const isInsideWidget = event.composedPath().some(
-      (node) =>
-        node instanceof HTMLElement &&
-        (node.hasAttribute("data-commit-dropdown") ||
-          node.hasAttribute("data-commit-history-button")),
-    );
-    if (isInsideWidget) return;
-    setIsDropdownOpen(false);
-  };
-
   window.addEventListener("keydown", handleWindowKeyDown);
-  window.addEventListener("pointerdown", handleWindowPointerDown, true);
   onCleanup(() => {
     window.removeEventListener("keydown", handleWindowKeyDown);
-    window.removeEventListener("pointerdown", handleWindowPointerDown, true);
   });
 
   const computedPromptLabel = () => {
@@ -223,62 +256,18 @@ export const CommitWidget: Component<CommitWidgetProps> = (props) => {
         "pointer-events": "auto",
       }}
     >
-      <Show when={isDropdownOpen()}>
-        <div
-          data-commit-dropdown
-          class="commit-widget-dropdown font-sans"
-        >
-          <div
-            ref={dropdownContainerRef}
-            class="commit-widget-dropdown-list"
-          >
-            <div
-              ref={dropdownHighlightRef}
-              class="commit-widget-dropdown-highlight"
-            />
-            <button
-              class="commit-widget-dropdown-item"
-              onPointerEnter={(event) =>
-                updateDropdownHighlight(event.currentTarget)
-              }
-              onPointerLeave={clearDropdownHighlight}
-              onClick={() =>
-                handleDropdownAction(() => props.onCopyHtml?.())
-              }
-            >
-              Copy HTML
-            </button>
-            <button
-              class="commit-widget-dropdown-item"
-              onPointerEnter={(event) =>
-                updateDropdownHighlight(event.currentTarget)
-              }
-              onPointerLeave={clearDropdownHighlight}
-              onClick={() =>
-                handleDropdownAction(() => props.onCopyStyles?.())
-              }
-            >
-              Copy styles
-            </button>
-          </div>
-        </div>
-      </Show>
-
-      <div class="commit-widget-container font-sans">
-        <button
-          data-commit-history-button
-          class={`commit-widget-button ${
-            hasSelectedElement()
-              ? "commit-widget-button-ghost"
-              : "commit-widget-button-disabled"
-          }`}
-          onClick={handleHistoryClick}
-        >
+      <div
+        class="commit-widget-container font-sans"
+        style={{
+          transform: isPromptOpen() ? "scale(1.2)" : "scale(1)",
+        }}
+      >
+        <div class="commit-widget-button commit-widget-button-disabled">
           <TextMorph>{historyLabel()}</TextMorph>
           {historyLabel() === DEFAULT_HISTORY_LABEL && (
             <kbd class="commit-widget-kbd">⌃Z</kbd>
           )}
-        </button>
+        </div>
 
         <div class="commit-widget-divider" />
 
