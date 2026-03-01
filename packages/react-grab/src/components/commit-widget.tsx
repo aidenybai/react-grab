@@ -26,6 +26,7 @@ interface ModifiedElement {
   previousTextFillColor: string;
   previousTextShadow: string;
   previousVisibility: string;
+  previousFilter: string;
   didHideVisibility: boolean;
 }
 
@@ -46,11 +47,13 @@ const hideTextInSubtree = (
     ),
     previousTextShadow: element.style.textShadow,
     previousVisibility: element.style.visibility,
+    previousFilter: element.style.filter,
     didHideVisibility: HIDDEN_MEDIA_TAGS.has(element.tagName),
   });
   element.style.color = "transparent";
   element.style.setProperty("-webkit-text-fill-color", "transparent");
   element.style.textShadow = "none";
+  element.style.filter = "grayscale(1)";
   if (HIDDEN_MEDIA_TAGS.has(element.tagName)) {
     element.style.visibility = "hidden";
   }
@@ -105,6 +108,7 @@ const restorePageText = (modifiedElements: ModifiedElement[]) => {
       element.style.removeProperty("-webkit-text-fill-color");
     }
     element.style.textShadow = previousTextShadow;
+    element.style.filter = previousFilter;
     if (didHideVisibility) {
       element.style.visibility = previousVisibility;
     }
