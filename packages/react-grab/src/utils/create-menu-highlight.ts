@@ -20,12 +20,10 @@ interface MenuHighlightController {
 const DEFAULT_HIDDEN_OPACITY = "0";
 const DEFAULT_VISIBLE_OPACITY = "1";
 
-export const createAnimatedBoundsFollower = (
-  {
-    hiddenOpacity = DEFAULT_HIDDEN_OPACITY,
-    visibleOpacity = DEFAULT_VISIBLE_OPACITY,
-  }: AnimatedBoundsFollowerOptions = {},
-): AnimatedBoundsFollowerController => {
+export const createAnimatedBoundsFollower = ({
+  hiddenOpacity = DEFAULT_HIDDEN_OPACITY,
+  visibleOpacity = DEFAULT_VISIBLE_OPACITY,
+}: AnimatedBoundsFollowerOptions = {}): AnimatedBoundsFollowerController => {
   let containerElement: HTMLElement | undefined;
   let followerElement: HTMLElement | undefined;
 
@@ -34,9 +32,7 @@ export const createAnimatedBoundsFollower = (
     followerElement.style.opacity = hiddenOpacity;
   };
 
-  const followElement = (
-    targetElement: HTMLElement | undefined,
-  ): void => {
+  const followElement = (targetElement: HTMLElement | undefined): void => {
     if (!followerElement || !containerElement) return;
     if (!targetElement) {
       hideFollower();

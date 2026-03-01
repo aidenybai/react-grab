@@ -305,7 +305,10 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
             />
           </div>
           <BottomSection>
-            <div ref={highlightContainerRef} class="relative flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5">
+            <div
+              ref={highlightContainerRef}
+              class="relative flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5"
+            >
               <div
                 ref={highlightRef}
                 class="pointer-events-none absolute bg-black/5 opacity-0 transition-[top,left,width,height,opacity] duration-75 ease-out"
