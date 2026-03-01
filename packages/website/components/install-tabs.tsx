@@ -55,10 +55,10 @@ const installTabsData: InstallTab[] = [
     description: "Paste this prompt in your coding agent's chat",
     lang: "text",
     getCode: (hotkey) => {
-      if (hotkey) {
-        return `Install React Grab in this project by running \`npx -y grab@latest init --key "${hotkeyToString(hotkey)}"\` in the terminal`;
-      }
-      return "Install React Grab in this project by running `npx -y grab@latest init` in the terminal";
+      const command = hotkey
+        ? `npx -y grab@latest init --key "${hotkeyToString(hotkey)}"`
+        : "npx -y grab@latest init";
+      return `Find the React project in this workspace (look for package.json with a react dependency). If there are multiple, ask me which one. Then run \`${command}\` in that project's root directory to install React Grab.`;
     },
     getChangedLines: () => [],
   },
