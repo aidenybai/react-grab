@@ -551,4 +551,8 @@
   .commit-widget-prompt-input::placeholder {
     color: #a3a3a3;
   }
+
+  .commit-widget-spotlight {
+    box-shadow: 0 0 0 9999px rgba(255, 255, 255, 0.85);
+  }
 }
