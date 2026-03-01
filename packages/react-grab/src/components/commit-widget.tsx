@@ -8,6 +8,27 @@ import {
   Z_INDEX_HOST,
 } from "../constants.js";
 
+const parseRgbLuminance = (color: string): number | null => {
+  const match = color.match(
+    /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/,
+  );
+  if (!match) return null;
+  const red = Number(match[1]) / 255;
+  const green = Number(match[2]) / 255;
+  const blue = Number(match[3]) / 255;
+  return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+};
+
+const isPageBackgroundLight = (): boolean => {
+  for (const element of [document.body, document.documentElement]) {
+    const backgroundColor = getComputedStyle(element).backgroundColor;
+    if (backgroundColor === "transparent" || backgroundColor === "rgba(0, 0, 0, 0)") continue;
+    const luminance = parseRgbLuminance(backgroundColor);
+    if (luminance !== null) return luminance > 0.5;
+  }
+  return true;
+};
+
 const UNDO_CLIPBOARD_PROMPT =
   "Undo the latest change you just made. Revert the most recent modification to the file(s) you last edited. Do not ask for confirmation — just undo it.";
 
@@ -20,12 +41,15 @@ const formatElementLabel = (item: HistoryItem): string => {
 
 const HIDDEN_MEDIA_TAGS = new Set(["IMG", "SVG", "PICTURE", "VIDEO", "CANVAS"]);
 
+const DIMMED_OPACITY = "0.65";
+
 interface ModifiedElement {
   element: HTMLElement | SVGElement;
   previousColor: string;
   previousTextFillColor: string;
   previousTextShadow: string;
   previousBoxShadow: string;
+  previousOpacity: string;
   previousVisibility: string;
   previousFilter: string;
   didHideVisibility: boolean;
@@ -48,6 +72,7 @@ const hideTextInSubtree = (
     ),
     previousTextShadow: element.style.textShadow,
     previousBoxShadow: element.style.boxShadow,
+    previousOpacity: element.style.opacity,
     previousVisibility: element.style.visibility,
     previousFilter: element.style.filter,
     didHideVisibility: HIDDEN_MEDIA_TAGS.has(element.tagName),
@@ -56,6 +81,7 @@ const hideTextInSubtree = (
   element.style.setProperty("-webkit-text-fill-color", "transparent");
   element.style.textShadow = "none";
   element.style.boxShadow = "none";
+  element.style.opacity = DIMMED_OPACITY;
   element.style.filter = "grayscale(1)";
   if (HIDDEN_MEDIA_TAGS.has(element.tagName)) {
     element.style.visibility = "hidden";
@@ -99,6 +125,7 @@ const restorePageText = (modifiedElements: ModifiedElement[]) => {
     previousTextFillColor,
     previousTextShadow,
     previousBoxShadow,
+    previousOpacity,
     previousVisibility,
     previousFilter,
     didHideVisibility,
@@ -114,6 +141,7 @@ const restorePageText = (modifiedElements: ModifiedElement[]) => {
     }
     element.style.textShadow = previousTextShadow;
     element.style.boxShadow = previousBoxShadow;
+    element.style.opacity = previousOpacity;
     element.style.filter = previousFilter;
     if (didHideVisibility) {
       element.style.visibility = previousVisibility;
@@ -134,6 +162,7 @@ export const CommitWidget: Component<CommitWidgetProps> = (props) => {
   const [isPromptOpen, setIsPromptOpen] = createSignal(false);
   const [promptText, setPromptText] = createSignal("");
   const [promptLabel, setPromptLabel] = createSignal("Prompt");
+  const [isLightMode, setIsLightMode] = createSignal(isPageBackgroundLight());
 
   let promptInputRef: HTMLInputElement | undefined;
   let widgetRef: HTMLDivElement | undefined;
@@ -153,21 +182,10 @@ export const CommitWidget: Component<CommitWidgetProps> = (props) => {
   };
 
   let activeModifiedElements: ModifiedElement[] = [];
-  let activeOverlay: HTMLDivElement | null = null;
-  let activeScrollHandler: (() => void) | null = null;
 
   const cleanupDimming = () => {
     restorePageText(activeModifiedElements);
     activeModifiedElements = [];
-    if (activeOverlay) {
-      activeOverlay.remove();
-      activeOverlay = null;
-    }
-    if (activeScrollHandler) {
-      window.removeEventListener("scroll", activeScrollHandler, true);
-      window.removeEventListener("resize", activeScrollHandler);
-      activeScrollHandler = null;
-    }
   };
 
   const applyDimming = () => {
@@ -177,24 +195,6 @@ export const CommitWidget: Component<CommitWidgetProps> = (props) => {
     cleanupDimming();
 
     activeModifiedElements = hidePageTextExcept(element, getShadowHost());
-
-    activeOverlay = document.createElement("div");
-    activeOverlay.style.cssText =
-      "position:fixed;box-shadow:0 0 0 9999px rgba(0,0,0,0.08);z-index:2147483644;pointer-events:none";
-    document.body.appendChild(activeOverlay);
-
-    const overlay = activeOverlay;
-    activeScrollHandler = () => {
-      const rect = element.getBoundingClientRect();
-      overlay.style.top = `${rect.top}px`;
-      overlay.style.left = `${rect.left}px`;
-      overlay.style.width = `${rect.width}px`;
-      overlay.style.height = `${rect.height}px`;
-    };
-
-    activeScrollHandler();
-    window.addEventListener("scroll", activeScrollHandler, true);
-    window.addEventListener("resize", activeScrollHandler);
   };
 
   createEffect(
@@ -220,6 +220,7 @@ export const CommitWidget: Component<CommitWidgetProps> = (props) => {
         if (latestItem) {
           setHistoryLabel(formatElementLabel(latestItem));
         }
+        setIsLightMode(isPageBackgroundLight());
         setIsPromptOpen(true);
         requestAnimationFrame(() => promptInputRef?.focus());
       },
@@ -283,6 +284,7 @@ export const CommitWidget: Component<CommitWidgetProps> = (props) => {
   return (
     <div
       ref={widgetRef}
+      class={isLightMode() ? "commit-widget-light" : ""}
       style={{
         position: "fixed",
         bottom: "16px",
