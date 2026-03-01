@@ -26,7 +26,7 @@ interface InstallTab {
   id: string;
   label: string;
   description: React.ReactNode;
-  lang?: "tsx" | "bash";
+  lang?: "tsx" | "bash" | "text";
   getCode: (hotkey: RecordedHotkey | null) => string;
   getChangedLines: (hotkey: RecordedHotkey | null) => number[];
 }
@@ -46,6 +46,19 @@ const installTabsData: InstallTab[] = [
         return `npx -y grab@latest init --key "${hotkeyToString(hotkey)}"`;
       }
       return `npx -y grab@latest init`;
+    },
+    getChangedLines: () => [],
+  },
+  {
+    id: "prompt",
+    label: "Prompt",
+    description: "Paste this prompt in your coding agent's chat",
+    lang: "text",
+    getCode: (hotkey) => {
+      if (hotkey) {
+        return `Install React Grab in this project by running \`npx -y grab@latest init --key "${hotkeyToString(hotkey)}"\` in the terminal`;
+      }
+      return "Install React Grab in this project by running `npx -y grab@latest init` in the terminal";
     },
     getChangedLines: () => [],
   },
@@ -308,11 +321,14 @@ export const InstallTabs = ({
       const results = await Promise.all(
         installTabsData.map(async (tab) => ({
           id: tab.id,
-          html: await highlightCode({
-            code: tab.getCode(hotkey),
-            lang: tab.lang ?? "tsx",
-            changedLines: tab.getChangedLines(hotkey),
-          }),
+          html:
+            tab.lang === "text"
+              ? ""
+              : await highlightCode({
+                  code: tab.getCode(hotkey),
+                  lang: tab.lang ?? "tsx",
+                  changedLines: tab.getChangedLines(hotkey),
+                }),
         })),
       );
       const codes: Record<string, string> = {};
@@ -355,17 +371,21 @@ export const InstallTabs = ({
     return null;
   }
 
+  const hasSimpleLayout = activeTabId === "cli" || activeTabId === "prompt";
+
   const headingText =
-    activeTabId === "cli"
-      ? "Run this command to get started:"
-      : "It takes 1 script tag to get started:";
+    activeTabId === "prompt"
+      ? "Copy this to your agent:"
+      : activeTabId === "cli"
+        ? "Run this command to get started:"
+        : "It takes 1 script tag to get started:";
 
   return (
     <div>
       {showHeading && (
         <span className="hidden sm:inline text-white">
           {headingText}
-          {activeTabId === "cli" && (
+          {hasSimpleLayout && (
             <button
               type="button"
               onClick={() => setActiveTabId("next-app")}
@@ -400,13 +420,17 @@ export const InstallTabs = ({
         </div>
         <div className="bg-black/60 relative">
           <div className="relative">
-            {activeTabId === "cli" ? (
+            {hasSimpleLayout ? (
               <button
                 type="button"
                 onClick={handleCopyClick}
                 className="group flex w-full items-center justify-between gap-4 px-4 py-6 transition-colors hover:bg-white/5"
               >
-                {highlightedCode ? (
+                {activeTabId === "prompt" ? (
+                  <p className="text-left text-base leading-relaxed text-white/80 text-pretty">
+                    {activeCode}
+                  </p>
+                ) : highlightedCode ? (
                   <div
                     className="overflow-x-auto font-mono text-base leading-relaxed highlighted-code"
                     dangerouslySetInnerHTML={{ __html: highlightedCode }}
@@ -444,12 +468,12 @@ export const InstallTabs = ({
           </div>
         </div>
       </div>
-      {activeTabId !== "cli" && (
+      {!hasSimpleLayout && (
         <span className="mt-4 block text-sm text-white/50 sm:text-base">
           {activeTab.description}
         </span>
       )}
-      {showAgentNote && activeTabId !== "cli" && (
+      {showAgentNote && !hasSimpleLayout && (
         <span className="mt-2 block text-sm text-white/50 sm:text-base">
           Want to connect directly to your coding agent?{" "}
           <a href="/blog/agent" className="underline hover:text-white/70">
