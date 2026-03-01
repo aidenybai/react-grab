@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import ReactGrabLogo from "@/public/logo.svg";
 import { TableOfContents } from "@/components/table-of-contents";
+import { Button } from "@/components/ui/button";
 
 interface TocHeading {
   id: string;
@@ -42,20 +43,26 @@ export const BlogArticleLayout = ({
 
           <div className="w-full max-w-2xl flex flex-col gap-6">
             <div className="flex items-center gap-2 text-sm text-neutral-400 opacity-50 hover:opacity-100 transition-opacity">
-              <Link
-                href="/"
-                className="hover:text-white transition-colors flex items-center gap-2 underline underline-offset-4"
+              <Button
+                asChild
+                variant="link"
+                size="sm"
+                className="h-auto px-0 py-0 text-sm text-neutral-400 hover:text-white"
               >
-                <ArrowLeft size={16} />
-                Back to home
-              </Link>
+                <Link href="/" className="flex items-center gap-2">
+                  <ArrowLeft size={16} />
+                  Back to home
+                </Link>
+              </Button>
               <span>·</span>
-              <Link
-                href="/blog"
-                className="hover:text-white transition-colors underline underline-offset-4"
+              <Button
+                asChild
+                variant="link"
+                size="sm"
+                className="h-auto px-0 py-0 text-sm text-neutral-400 hover:text-white"
               >
-                Read more posts
-              </Link>
+                <Link href="/blog">Read more posts</Link>
+              </Button>
             </div>
 
             <div className="flex flex-col gap-2">
@@ -74,14 +81,14 @@ export const BlogArticleLayout = ({
                 By{" "}
                 {authors.map((author, index) => (
                   <span key={author.name}>
-                    <a
+                    <Link
                       href={author.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-neutral-300 hover:text-white underline underline-offset-4"
+                      className="rounded-sm text-neutral-300 underline underline-offset-4 transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-[#ff4fff]/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                     >
                       {author.name}
-                    </a>
+                    </Link>
                     {index < authors.length - 1 && ", "}
                   </span>
                 ))}

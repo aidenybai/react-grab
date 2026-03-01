@@ -6,6 +6,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import ReactGrabLogo from "@/public/logo.svg";
 import { parseChangelog } from "@/utils/parse-changelog";
+import { Button } from "@/components/ui/button";
 
 const title = "Changelog";
 const description = "Release notes and version history for React Grab";
@@ -50,16 +51,20 @@ const ChangelogPage = () => {
   return (
     <div className="min-h-screen bg-black px-4 py-6 sm:px-8 sm:py-8">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 pt-4 text-base sm:pt-8">
-        <Link
-          href="/"
-          className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-colors mb-4"
+        <Button
+          asChild
+          variant="link"
+          size="sm"
+          className="mb-4 h-auto px-0 py-0 text-sm text-neutral-400 hover:text-white"
         >
-          <ArrowLeft size={16} />
-          Back to home
-        </Link>
+          <Link href="/" className="flex items-center gap-2">
+            <ArrowLeft size={16} />
+            Back to home
+          </Link>
+        </Button>
 
         <div className="inline-flex" style={{ padding: "2px" }}>
-          <Link href="/" className="transition-opacity hover:opacity-80">
+          <Link href="/" className="rounded-sm transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-[#ff4fff]/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black">
             <Image
               src={ReactGrabLogo}
               alt="React Grab"

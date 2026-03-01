@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useMemo, type ReactElement, type ReactNode } from "react";
+import * as CollapsiblePrimitive from "@radix-ui/react-collapsible";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface CollapsibleProps {
   header: ReactNode;
@@ -31,44 +33,47 @@ export const Collapsible = ({
     return defaultExpanded;
   }, [manualExpanded, isStreaming, defaultExpanded, autoExpandOnStreaming]);
 
-  const handleToggle = () => {
-    setManualExpanded(!isExpanded);
-  };
-
   return (
-    <div>
-      <button
-        onClick={handleToggle}
-        className="w-full text-left group relative"
-      >
-        <div className="flex items-center text-[#818181]">
+    <CollapsiblePrimitive.Root
+      open={isExpanded}
+      onOpenChange={setManualExpanded}
+    >
+      <CollapsiblePrimitive.Trigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="group relative h-auto w-full justify-start px-0 py-0 text-left text-[#818181] hover:bg-transparent hover:text-[#a4a4a4]"
+        >
           {header}
           {isExpanded ? (
             <span className="ml-2 opacity-50">
-              <ChevronDown className="w-3 h-3" />
+              <ChevronDown className="size-3" />
             </span>
           ) : (
-            <span className="ml-2 opacity-0 group-hover:opacity-50 transition-opacity">
-              <ChevronRight className="w-3 h-3" />
+            <span className="ml-2 opacity-0 transition-opacity group-hover:opacity-50">
+              <ChevronRight className="size-3" />
             </span>
           )}
-        </div>
-      </button>
+        </Button>
+      </CollapsiblePrimitive.Trigger>
 
       <AnimatePresence initial={false}>
         {isExpanded && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="overflow-hidden"
-          >
-            {children}
-          </motion.div>
+          <CollapsiblePrimitive.Content forceMount asChild>
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="overflow-hidden"
+            >
+              {children}
+            </motion.div>
+          </CollapsiblePrimitive.Content>
         )}
       </AnimatePresence>
-    </div>
+    </CollapsiblePrimitive.Root>
   );
 };
 

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, type ReactElement } from "react";
 import { CLICK_FEEDBACK_DURATION_MS } from "@/constants";
+import { Button } from "@/components/ui/button";
 
 interface ReadToolCallBlockProps {
   parameter: string;
@@ -38,15 +39,18 @@ export const ReadToolCallBlock = ({
   return (
     <div className="flex flex-wrap gap-1 text-[#818181]">
       <span className={isStreaming ? "shimmer-text" : ""}>{displayName}</span>
-      <button
+      <Button
+        type="button"
+        variant="link"
+        size="sm"
         onClick={handleClick}
-        className="max-w-full break-all text-left transition-colors duration-300"
+        className="h-auto max-w-full break-all whitespace-normal px-0 py-0 text-left transition-colors duration-300"
         style={{
           color: isClicked ? "#ffffff" : "#5b5b5b",
         }}
       >
         {parameter}
-      </button>
+      </Button>
     </div>
   );
 };

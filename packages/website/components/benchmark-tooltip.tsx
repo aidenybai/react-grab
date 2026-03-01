@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, type ReactElement } from "react";
+import { useState, type ReactElement } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import {
@@ -12,6 +12,11 @@ import {
   BENCHMARK_TOOLTIP_SPEEDUP_FACTOR,
   TOOLTIP_HOVER_DELAY_MS,
 } from "@/constants";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 
 interface BenchmarkTooltipProps {
   href: string;
@@ -192,69 +197,59 @@ export const BenchmarkTooltip = ({
   const shouldReduceMotion = Boolean(useReducedMotion());
   const [isHovered, setIsHovered] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const handleMouseEnter = () => {
-    timeoutRef.current = setTimeout(() => {
-      setIsHovered(true);
-      setIsVisible(true);
-    }, TOOLTIP_HOVER_DELAY_MS);
+  const handleOpenChange = (open: boolean) => {
+    setIsHovered(open);
+    setIsVisible(open);
   };
-
-  const handleMouseLeave = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    setIsHovered(false);
-    setIsVisible(false);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
 
   return (
-    <span
-      className="relative inline-block"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+    <HoverCard
+      openDelay={TOOLTIP_HOVER_DELAY_MS}
+      closeDelay={0}
+      onOpenChange={handleOpenChange}
     >
-      <Link href={href} rel="noreferrer" className={className}>
-        {children}
-      </Link>
-      <AnimatePresence>
-        {isHovered && (
-          <motion.div
-            initial={
-              shouldReduceMotion ? false : { opacity: 0, y: 8, scale: 0.96 }
-            }
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={
-              shouldReduceMotion ? undefined : { opacity: 0, y: 4, scale: 0.98 }
-            }
-            transition={
-              shouldReduceMotion
-                ? { duration: 0 }
-                : { duration: 0.15, ease: "easeOut" }
-            }
-            style={{ transformOrigin: "top center" }}
-            className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-50 pointer-events-none"
-          >
-            <div className="absolute left-1/2 -translate-x-1/2 -top-1.5 w-3 h-3 bg-[#0a0a0a] border-l border-t border-neutral-800 rotate-45" />
-            <div className="bg-[#0a0a0a] border border-neutral-800 rounded-lg shadow-2xl overflow-hidden">
+      <span className="relative inline-block">
+        <HoverCardTrigger asChild>
+          <Link href={href} rel="noreferrer" className={className}>
+            {children}
+          </Link>
+        </HoverCardTrigger>
+      </span>
+      <HoverCardContent
+        forceMount
+        className="z-50 border-neutral-800 bg-[#0a0a0a] p-0"
+        align="center"
+        sideOffset={8}
+      >
+        <AnimatePresence>
+          {isHovered && (
+            <motion.div
+              initial={
+                shouldReduceMotion ? false : { opacity: 0, y: 8, scale: 0.96 }
+              }
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={
+                shouldReduceMotion
+                  ? undefined
+                  : { opacity: 0, y: 4, scale: 0.98 }
+              }
+              transition={
+                shouldReduceMotion
+                  ? { duration: 0 }
+                  : { duration: 0.15, ease: "easeOut" }
+              }
+              style={{ transformOrigin: "top center" }}
+              className="overflow-hidden rounded-lg border border-neutral-800"
+            >
               <MiniChart
                 isVisible={isVisible}
                 shouldReduceMotion={shouldReduceMotion}
               />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </HoverCardContent>
+    </HoverCard>
   );
 };
 
