@@ -152,16 +152,16 @@ export const CommitWidget: Component<CommitWidgetProps> = (props) => {
 
     const overlay = document.createElement("div");
     overlay.style.cssText =
-      "position:fixed;border-radius:8px;box-shadow:0 0 0 9999px rgba(0,0,0,0.08);z-index:2147483644;pointer-events:none";
+      "position:fixed;box-shadow:0 0 0 9999px rgba(0,0,0,0.08);z-index:2147483644;pointer-events:none";
     document.body.appendChild(overlay);
 
     const updateOverlayPosition = () => {
       const rect = props.latestGrabbedElement?.getBoundingClientRect();
       if (!rect) return;
-      overlay.style.top = `${rect.top - 4}px`;
-      overlay.style.left = `${rect.left - 4}px`;
-      overlay.style.width = `${rect.width + 8}px`;
-      overlay.style.height = `${rect.height + 8}px`;
+      overlay.style.top = `${rect.top}px`;
+      overlay.style.left = `${rect.left}px`;
+      overlay.style.width = `${rect.width}px`;
+      overlay.style.height = `${rect.height}px`;
     };
 
     updateOverlayPosition();
