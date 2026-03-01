@@ -152,6 +152,7 @@ import {
 import { copyContent } from "../utils/copy-content.js";
 import { joinSnippets } from "../utils/join-snippets.js";
 
+
 const builtInPlugins = [
   copyPlugin,
   commentPlugin,
@@ -1728,6 +1729,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         toggleActivate();
       }
     };
+
+    const handleActivateForCopy = () => {
+      if (!isActivated() && isEnabled()) {
+        toggleActivate();
+      }
+    };
+
+
+
 
     const enterCommentModeForElement = (
       element: Element,
@@ -4034,6 +4044,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               handleHistoryClear();
             }}
             onClearHistoryCancel={dismissClearPrompt}
+            onActivateForCopy={handleActivateForCopy}
+            latestGrabbedElement={
+              historyItems()[0]
+                ? getFirstConnectedHistoryElement(historyItems()[0])
+                : undefined
+            }
+
           />
         );
       }, rendererRoot);

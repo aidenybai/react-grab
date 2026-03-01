@@ -95,7 +95,8 @@
   "dependencies": {
     "@medv/finder": "^4.0.2",
     "bippy": "^0.5.30",
-    "solid-js": "^1.9.10"
+    "solid-js": "^1.9.10",
+    "torph": "^0.0.5"
   },
   "devDependencies": {
     "@babel/core": "^7.28.5",

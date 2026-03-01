@@ -567,6 +567,9 @@ importers:
       solid-js:
         specifier: ^1.9.10
         version: 1.9.10
+      torph:
+        specifier: ^0.0.5
+        version: 0.0.5(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
     devDependencies:
       '@babel/core':
         specifier: ^7.28.5
@@ -3423,8 +3426,8 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
-  '@sourcegraph/amp@0.0.1772107648-gbe4328':
-    resolution: {integrity: sha512-ekkK4vs/AWgEYVRanF6bZ7T0XrlF2jTEyIzDQaJVU/mugZ6dZsQ/d+8GX6si9DuvPXnelOh6cku74WcN198zmg==}
+  '@sourcegraph/amp@0.0.1772323326-g24a24e':
+    resolution: {integrity: sha512-YVE/3NTpu+JPxeOuaLdMKHeq2G58bM1I9Tsxk7NqGkbrWASmY0Cg8mbhX/OmlSgl9H8Bwi18gHCrHYsVeBpV0Q==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -10425,14 +10428,14 @@ snapshots:
 
   '@sourcegraph/amp-sdk@0.1.0-20251210081226-g90e3892':
     dependencies:
-      '@sourcegraph/amp': 0.0.1772107648-gbe4328
+      '@sourcegraph/amp': 0.0.1772323326-g24a24e
       zod: 3.25.76
 
   '@sourcegraph/amp@0.0.1767830505-ga62310':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
-  '@sourcegraph/amp@0.0.1772107648-gbe4328':
+  '@sourcegraph/amp@0.0.1772323326-g24a24e':
     dependencies:
       '@napi-rs/keyring': 1.1.9
 
@@ -12306,7 +12309,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.12.1(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1)(eslint@9.37.0(jiti@2.6.1)):
+  eslint-module-utils@2.12.1(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1)):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
@@ -12328,7 +12331,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 9.37.0(jiti@2.6.1)
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1)(eslint@9.37.0(jiti@2.6.1))
+      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.46.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@9.37.0(jiti@2.6.1)))(eslint@9.37.0(jiti@2.6.1))
       hasown: 2.0.2
       is-core-module: 2.16.1
       is-glob: 4.0.3
@@ -14977,6 +14980,11 @@ snapshots:
     optionalDependencies:
       react: 19.2.1
       react-dom: 19.2.1(react@19.2.1)
+
+  torph@0.0.5(react-dom@19.2.3(react@19.2.3))(react@19.2.3):
+    optionalDependencies:
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
 
   tr46@1.0.1:
     dependencies:
