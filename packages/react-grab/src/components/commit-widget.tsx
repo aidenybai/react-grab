@@ -14,8 +14,8 @@ const UNDO_CLIPBOARD_PROMPT =
 const DEFAULT_HISTORY_LABEL = "History";
 
 const formatElementLabel = (item: HistoryItem): string => {
-  if (item.componentName) return item.componentName;
-  return `<${item.tagName}>`;
+  if (item.componentName) return `${item.componentName}.${item.tagName}`;
+  return item.tagName;
 };
 
 interface CommitWidgetProps {
