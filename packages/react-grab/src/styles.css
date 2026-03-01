@@ -331,18 +331,6 @@
   }
 }
 
-.commit-widget-spotlight {
-  position: fixed;
-  z-index: 2147483644;
-  pointer-events: none;
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.85);
-  transition:
-    top 150ms ease-out,
-    left 150ms ease-out,
-    width 150ms ease-out,
-    height 150ms ease-out;
-}
-
 .commit-widget-container {
   display: flex;
   align-items: center;
@@ -552,7 +540,4 @@
     color: #a3a3a3;
   }
 
-  .commit-widget-spotlight {
-    box-shadow: 0 0 0 9999px rgba(255, 255, 255, 0.85);
-  }
 }
