@@ -248,6 +248,12 @@ export interface ContextMenuAction {
   agent?: AgentOptions;
 }
 
+export interface ContextMenuStackItem {
+  element: Element;
+  tagName: string;
+  componentName?: string;
+}
+
 export interface ActionCycleItem {
   id: string;
   label: string;
@@ -542,6 +548,8 @@ export interface ReactGrabRendererProps {
   actions?: ContextMenuAction[];
   toolbarActions?: ToolbarMenuAction[];
   actionContext?: ActionContext;
+  contextMenuElementStack?: ContextMenuStackItem[];
+  onSwitchContextMenuElement?: (element: Element) => void;
   onContextMenuDismiss?: () => void;
   onContextMenuHide?: () => void;
   historyItems?: HistoryItem[];

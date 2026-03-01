@@ -228,6 +228,7 @@ interface GrabActions {
   showContextMenu: (position: Position, element: Element) => void;
   hideContextMenu: () => void;
   updateContextMenuPosition: () => void;
+  switchContextMenuElement: (element: Element) => void;
   setSelectedAgent: (agent: AgentOptions | null) => void;
 }
 
@@ -764,6 +765,23 @@ const createGrabStore = (input: GrabStoreInput) => {
       setStore("contextMenuPosition", {
         x: newCenterX + clickOffset.x,
         y: newCenterY + clickOffset.y,
+      });
+    },
+
+    switchContextMenuElement: (element: Element) => {
+      const currentPosition = store.contextMenuPosition;
+      if (!currentPosition) return;
+
+      setStore("contextMenuElement", element);
+      setStore("frozenElement", element);
+      setStore("frozenElements", [element]);
+
+      const bounds = createElementBounds(element);
+      const centerX = bounds.x + bounds.width / 2;
+      const centerY = bounds.y + bounds.height / 2;
+      setStore("contextMenuClickOffset", {
+        x: currentPosition.x - centerX,
+        y: currentPosition.y - centerY,
       });
     },
 

@@ -37,7 +37,10 @@ import { isSourceFile, normalizeFileName } from "bippy/source";
 import { createNoopApi } from "./noop-api.js";
 import { createEventListenerManager } from "./events.js";
 import { tryCopyWithFallback } from "./copy.js";
-import { getElementAtPosition } from "../utils/get-element-at-position.js";
+import {
+  getElementAtPosition,
+  getElementsAtPoint,
+} from "../utils/get-element-at-position.js";
 import { isValidGrabbableElement } from "../utils/is-valid-grabbable-element.js";
 import { isRootElement } from "../utils/is-root-element.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
@@ -2808,6 +2811,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.setPointer(position);
         actions.freeze();
         openContextMenu(element, position);
+
+        if (existingFrozenElements.length <= 1) {
+          const allElements = getElementsAtPoint(
+            event.clientX,
+            event.clientY,
+          ).filter(isValidGrabbableElement);
+          setContextMenuRawStack(allElements);
+        } else {
+          setContextMenuRawStack([]);
+        }
       },
       { capture: true },
     );
@@ -3223,6 +3236,33 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
     );
 
+    const [contextMenuRawStack, setContextMenuRawStack] = createSignal<
+      Element[]
+    >([]);
+
+    const [contextMenuElementStack] = createResource(
+      contextMenuRawStack,
+      async (elements) => {
+        if (elements.length <= 1) return [];
+        const items = await Promise.all(
+          elements.map(async (el) => {
+            const name = await getNearestComponentName(el);
+            return {
+              element: el,
+              tagName: getTagName(el) || el.tagName.toLowerCase(),
+              componentName: name ?? undefined,
+            };
+          }),
+        );
+        return items;
+      },
+    );
+
+    const handleContextMenuElementSwitch = (element: Element) => {
+      actions.switchContextMenuElement(element);
+      freezeAllAnimations([element]);
+    };
+
     const createPerformWithFeedback = (
       element: Element,
       elements: Element[],
@@ -3311,6 +3351,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const deferHideContextMenu = () => {
       setTimeout(() => {
         actions.hideContextMenu();
+        setContextMenuRawStack([]);
       }, DEFERRED_EXECUTION_DELAY_MS);
     };
 
@@ -3449,6 +3490,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const handleContextMenuDismiss = () => {
       setTimeout(() => {
         actions.hideContextMenu();
+        setContextMenuRawStack([]);
         deactivateRenderer();
       }, DEFERRED_EXECUTION_DELAY_MS);
     };
@@ -3998,6 +4040,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             contextMenuTagName={contextMenuTagName()}
             contextMenuComponentName={contextMenuComponentName()}
             contextMenuHasFilePath={Boolean(contextMenuFilePath()?.filePath)}
+            contextMenuElementStack={contextMenuElementStack() ?? []}
+            onSwitchContextMenuElement={handleContextMenuElementSwitch}
             actions={pluginRegistry.store.actions}
             toolbarActions={pluginRegistry.store.toolbarActions}
             actionContext={contextMenuActionContext()}

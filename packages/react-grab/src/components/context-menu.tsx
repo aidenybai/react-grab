@@ -11,6 +11,7 @@ import type {
   OverlayBounds,
   ContextMenuAction,
   ContextMenuActionContext,
+  ContextMenuStackItem,
 } from "../types.js";
 import { ARROW_HEIGHT_PX, LABEL_GAP_PX, PANEL_STYLES } from "../constants.js";
 import { cn } from "../utils/cn.js";
@@ -33,6 +34,8 @@ interface ContextMenuProps {
   tagName?: string;
   componentName?: string;
   hasFilePath: boolean;
+  elementStack?: ContextMenuStackItem[];
+  onSwitchElement?: (element: Element) => void;
   actions?: ContextMenuAction[];
   actionContext?: ContextMenuActionContext;
   onDismiss: () => void;
@@ -55,10 +58,22 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     clearHighlight,
   } = createMenuHighlight();
 
+  const {
+    containerRef: stackContainerRef,
+    highlightRef: stackHighlightRef,
+    updateHighlight: updateStackHighlight,
+    clearHighlight: clearStackHighlight,
+  } = createMenuHighlight();
+
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
+  const [frozenBounds, setFrozenBounds] = createSignal<OverlayBounds | null>(
+    null,
+  );
 
   const isVisible = () => props.position !== null;
+
+  const showStack = () => (props.elementStack?.length ?? 0) > 1;
 
   const tagDisplayResult = () =>
     getTagDisplay({
@@ -77,11 +92,30 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
   createEffect(() => {
     if (isVisible()) {
       nativeRequestAnimationFrame(measureContainer);
+    } else {
+      setFrozenBounds(null);
+    }
+  });
+
+  // Freeze positioning bounds on open so the menu doesn't jump when switching elements
+  createEffect(() => {
+    if (isVisible() && props.selectionBounds && !frozenBounds()) {
+      setFrozenBounds(props.selectionBounds);
+    }
+  });
+
+  // Re-measure when stack or header content changes
+  createEffect(() => {
+    props.elementStack;
+    props.tagName;
+    props.componentName;
+    if (isVisible()) {
+      nativeRequestAnimationFrame(measureContainer);
     }
   });
 
   const computedPosition = () => {
-    const bounds = props.selectionBounds;
+    const bounds = frozenBounds() ?? props.selectionBounds;
     const clickPosition = props.position;
     const labelWidth = measuredWidth();
     const labelHeight = measuredHeight();
@@ -304,8 +338,58 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
               forceShowIcon={props.hasFilePath}
             />
           </div>
+          <Show when={showStack()}>
+            <div class="[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start px-2 py-1.5 w-auto h-fit self-stretch [border-top-width:0.5px] border-t-solid border-t-[#D9D9D9] antialiased">
+              <div
+                ref={stackContainerRef}
+                class="relative flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5"
+              >
+                <div
+                  ref={stackHighlightRef}
+                  class="pointer-events-none absolute bg-black/5 opacity-0 transition-[top,left,width,height,opacity] duration-75 ease-out"
+                />
+                <For each={props.elementStack}>
+                  {(item) => {
+                    const display = () =>
+                      getTagDisplay({
+                        tagName: item.tagName,
+                        componentName: item.componentName,
+                      });
+                    return (
+                      <button
+                        data-react-grab-ignore-events
+                        class="relative z-1 contain-layout flex items-center gap-1 w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent"
+                        onPointerDown={(event) => event.stopPropagation()}
+                        onPointerEnter={(event) => {
+                          clearHighlight();
+                          updateStackHighlight(event.currentTarget);
+                          props.onSwitchElement?.(item.element);
+                        }}
+                        onPointerLeave={clearStackHighlight}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          props.onSwitchElement?.(item.element);
+                        }}
+                      >
+                        <TagBadge
+                          tagName={display().tagName}
+                          componentName={display().componentName}
+                          isClickable={false}
+                          onClick={() => {}}
+                          shrink
+                        />
+                      </button>
+                    );
+                  }}
+                </For>
+              </div>
+            </div>
+          </Show>
           <BottomSection>
-            <div ref={highlightContainerRef} class="relative flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5">
+            <div
+              ref={highlightContainerRef}
+              class="relative flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5"
+            >
               <div
                 ref={highlightRef}
                 class="pointer-events-none absolute bg-black/5 opacity-0 transition-[top,left,width,height,opacity] duration-75 ease-out"
@@ -319,6 +403,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
                     disabled={!item.enabled}
                     onPointerDown={(event) => event.stopPropagation()}
                     onPointerEnter={(event) => {
+                      clearStackHighlight();
                       if (item.enabled) {
                         updateHighlight(event.currentTarget);
                       }

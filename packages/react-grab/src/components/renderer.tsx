@@ -223,6 +223,8 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         tagName={props.contextMenuTagName}
         componentName={props.contextMenuComponentName}
         hasFilePath={props.contextMenuHasFilePath ?? false}
+        elementStack={props.contextMenuElementStack}
+        onSwitchElement={props.onSwitchContextMenuElement}
         actions={props.actions}
         actionContext={props.actionContext}
         onDismiss={props.onContextMenuDismiss ?? (() => {})}
