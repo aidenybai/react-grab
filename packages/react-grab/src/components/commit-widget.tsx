@@ -25,6 +25,7 @@ interface ModifiedElement {
   previousColor: string;
   previousTextFillColor: string;
   previousTextShadow: string;
+  previousBoxShadow: string;
   previousVisibility: string;
   previousFilter: string;
   didHideVisibility: boolean;
@@ -46,6 +47,7 @@ const hideTextInSubtree = (
       "-webkit-text-fill-color",
     ),
     previousTextShadow: element.style.textShadow,
+    previousBoxShadow: element.style.boxShadow,
     previousVisibility: element.style.visibility,
     previousFilter: element.style.filter,
     didHideVisibility: HIDDEN_MEDIA_TAGS.has(element.tagName),
@@ -53,6 +55,7 @@ const hideTextInSubtree = (
   element.style.color = "transparent";
   element.style.setProperty("-webkit-text-fill-color", "transparent");
   element.style.textShadow = "none";
+  element.style.boxShadow = "none";
   element.style.filter = "grayscale(1)";
   if (HIDDEN_MEDIA_TAGS.has(element.tagName)) {
     element.style.visibility = "hidden";
@@ -95,7 +98,9 @@ const restorePageText = (modifiedElements: ModifiedElement[]) => {
     previousColor,
     previousTextFillColor,
     previousTextShadow,
+    previousBoxShadow,
     previousVisibility,
+    previousFilter,
     didHideVisibility,
   } of modifiedElements) {
     element.style.color = previousColor;
@@ -108,6 +113,7 @@ const restorePageText = (modifiedElements: ModifiedElement[]) => {
       element.style.removeProperty("-webkit-text-fill-color");
     }
     element.style.textShadow = previousTextShadow;
+    element.style.boxShadow = previousBoxShadow;
     element.style.filter = previousFilter;
     if (didHideVisibility) {
       element.style.visibility = previousVisibility;
@@ -146,39 +152,65 @@ export const CommitWidget: Component<CommitWidgetProps> = (props) => {
     return null;
   };
 
-  createEffect(() => {
-    if (!isPromptOpen() || !props.latestGrabbedElement) return;
+  let activeModifiedElements: ModifiedElement[] = [];
+  let activeOverlay: HTMLDivElement | null = null;
+  let activeScrollHandler: (() => void) | null = null;
 
-    const modifiedElements = hidePageTextExcept(
-      props.latestGrabbedElement,
-      getShadowHost(),
-    );
+  const cleanupDimming = () => {
+    restorePageText(activeModifiedElements);
+    activeModifiedElements = [];
+    if (activeOverlay) {
+      activeOverlay.remove();
+      activeOverlay = null;
+    }
+    if (activeScrollHandler) {
+      window.removeEventListener("scroll", activeScrollHandler, true);
+      window.removeEventListener("resize", activeScrollHandler);
+      activeScrollHandler = null;
+    }
+  };
 
-    const overlay = document.createElement("div");
-    overlay.style.cssText =
+  const applyDimming = () => {
+    const element = props.latestGrabbedElement;
+    if (!element) return;
+
+    cleanupDimming();
+
+    activeModifiedElements = hidePageTextExcept(element, getShadowHost());
+
+    activeOverlay = document.createElement("div");
+    activeOverlay.style.cssText =
       "position:fixed;box-shadow:0 0 0 9999px rgba(0,0,0,0.08);z-index:2147483644;pointer-events:none";
-    document.body.appendChild(overlay);
+    document.body.appendChild(activeOverlay);
 
-    const updateOverlayPosition = () => {
-      const rect = props.latestGrabbedElement?.getBoundingClientRect();
-      if (!rect) return;
+    const overlay = activeOverlay;
+    activeScrollHandler = () => {
+      const rect = element.getBoundingClientRect();
       overlay.style.top = `${rect.top}px`;
       overlay.style.left = `${rect.left}px`;
       overlay.style.width = `${rect.width}px`;
       overlay.style.height = `${rect.height}px`;
     };
 
-    updateOverlayPosition();
-    window.addEventListener("scroll", updateOverlayPosition, true);
-    window.addEventListener("resize", updateOverlayPosition);
+    activeScrollHandler();
+    window.addEventListener("scroll", activeScrollHandler, true);
+    window.addEventListener("resize", activeScrollHandler);
+  };
 
-    onCleanup(() => {
-      restorePageText(modifiedElements);
-      overlay.remove();
-      window.removeEventListener("scroll", updateOverlayPosition, true);
-      window.removeEventListener("resize", updateOverlayPosition);
-    });
-  });
+  createEffect(
+    on(
+      () => isPromptOpen(),
+      (isOpen) => {
+        if (isOpen) {
+          applyDimming();
+        } else {
+          cleanupDimming();
+        }
+      },
+    ),
+  );
+
+  onCleanup(cleanupDimming);
 
   createEffect(
     on(
