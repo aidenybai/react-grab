@@ -24,7 +24,6 @@ import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-t
 import { cn } from "../../utils/cn.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
 import { formatShortcut } from "../../utils/format-shortcut.js";
-import { createMenuHighlight } from "../../utils/create-menu-highlight.js";
 import { IconReply } from "../icons/icon-reply.jsx";
 import { IconSubmit } from "../icons/icon-submit.jsx";
 import { IconLoader } from "../icons/icon-loader.jsx";
@@ -34,6 +33,7 @@ import { BottomSection } from "./bottom-section.js";
 import { DiscardPrompt } from "./discard-prompt.js";
 import { ErrorView } from "./error-view.js";
 import { CompletionView } from "./completion-view.js";
+import { ArrowNavigationMenu } from "./arrow-navigation-menu.js";
 
 const DEFAULT_OFFSCREEN_POSITION = {
   left: SELECTION_LABEL_OFFSCREEN_PX,
@@ -325,20 +325,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const actionCycleActiveIndex = () => props.actionCycleState?.activeIndex ?? 0;
   const isActionCycleVisible = () => Boolean(props.actionCycleState?.isVisible);
 
-  const arrowNavigationItems = () => props.arrowNavigationState?.items ?? [];
-  const arrowNavigationActiveIndex = () =>
-    props.arrowNavigationState?.activeIndex ?? 0;
   const isArrowNavigationVisible = () =>
     Boolean(props.arrowNavigationState?.isVisible);
-
-  const {
-    containerRef: arrowNavHighlightContainerRef,
-    highlightRef: arrowNavHighlightRef,
-    updateHighlight: updateArrowNavHighlight,
-    clearHighlight: clearArrowNavHighlight,
-  } = createMenuHighlight();
-
-  let arrowNavItemRefs: (HTMLButtonElement | undefined)[] = [];
 
   const handleTagClick = (event: MouseEvent) => {
     event.stopImmediatePropagation();
@@ -348,18 +336,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   };
 
   const isTagClickable = () => Boolean(props.filePath && props.onOpen);
-
-  createEffect(() => {
-    if (!isArrowNavigationVisible()) {
-      arrowNavItemRefs = [];
-      clearArrowNavHighlight();
-      return;
-    }
-    const itemRef = arrowNavItemRefs[arrowNavigationActiveIndex()];
-    if (itemRef) {
-      updateArrowNavHighlight(itemRef);
-    }
-  });
 
   const handleContainerPointerDown = (event: PointerEvent) => {
     event.stopImmediatePropagation();
@@ -525,50 +501,12 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   }
                 />
               </div>
-              <Show when={isArrowNavigationVisible()}>
-                <BottomSection>
-                  <div
-                    ref={arrowNavHighlightContainerRef}
-                    class="relative flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5"
-                  >
-                    <div
-                      ref={arrowNavHighlightRef}
-                      class="pointer-events-none absolute bg-black/5 opacity-0 transition-[top,left,width,height,opacity] duration-75 ease-out"
-                    />
-                    <For each={arrowNavigationItems()}>
-                      {(item, itemIndex) => (
-                        <button
-                          ref={(element) => {
-                            arrowNavItemRefs[itemIndex()] = element;
-                          }}
-                          data-react-grab-ignore-events
-                          data-react-grab-arrow-nav-item={item.tagName}
-                          class="relative z-1 contain-layout flex items-center w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent"
-                          onPointerDown={(event) => event.stopPropagation()}
-                          onPointerEnter={(event) => {
-                            updateArrowNavHighlight(event.currentTarget);
-                            props.onArrowNavigationSelect?.(itemIndex());
-                          }}
-                          onPointerLeave={clearArrowNavHighlight}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            props.onArrowNavigationSelect?.(itemIndex());
-                          }}
-                        >
-                          <span class="text-[13px] leading-4 h-fit font-medium overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
-                            <Show when={item.componentName}>
-                              <span class="text-black">
-                                {item.componentName}
-                              </span>
-                              <span class="text-black/40">.</span>
-                            </Show>
-                            <span class="text-black">{item.tagName}</span>
-                          </span>
-                        </button>
-                      )}
-                    </For>
-                  </div>
-                </BottomSection>
+              <Show when={props.arrowNavigationState?.isVisible}>
+                <ArrowNavigationMenu
+                  items={props.arrowNavigationState!.items}
+                  activeIndex={props.arrowNavigationState!.activeIndex}
+                  onSelect={(index) => props.onArrowNavigationSelect?.(index)}
+                />
               </Show>
               <Show
                 when={!isArrowNavigationVisible() && isActionCycleVisible()}
