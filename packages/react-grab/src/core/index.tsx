@@ -2798,7 +2798,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const isActiveState = isTouchPointer ? isHoldingKeys() : isActivated();
         if (isActiveState && !isPromptMode() && isToggleFrozen()) {
           actions.unfreeze();
-          arrowNavigator.clearHistory();
           clearArrowNavigation();
         }
         handlePointerMove(event.clientX, event.clientY);

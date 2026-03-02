@@ -53,7 +53,14 @@ export const ArrowNavigationMenu: Component<ArrowNavigationMenuProps> = (
                 updateHighlight(event.currentTarget);
                 props.onSelect(itemIndex());
               }}
-              onPointerLeave={clearHighlight}
+              onPointerLeave={() => {
+                const activeRef = itemRefs[props.activeIndex];
+                if (activeRef) {
+                  updateHighlight(activeRef);
+                } else {
+                  clearHighlight();
+                }
+              }}
               onClick={(event) => {
                 event.stopPropagation();
                 props.onSelect(itemIndex());
