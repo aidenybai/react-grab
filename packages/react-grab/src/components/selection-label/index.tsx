@@ -24,7 +24,7 @@ import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-t
 import { cn } from "../../utils/cn.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
 import { formatShortcut } from "../../utils/format-shortcut.js";
-import { resolveActionEnabled } from "../../utils/resolve-action-enabled.js";
+import { createMenuHighlight } from "../../utils/create-menu-highlight.js";
 import { IconReply } from "../icons/icon-reply.jsx";
 import { IconSubmit } from "../icons/icon-submit.jsx";
 import { IconLoader } from "../icons/icon-loader.jsx";
@@ -331,6 +331,15 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const isArrowNavigationVisible = () =>
     Boolean(props.arrowNavigationState?.isVisible);
 
+  const {
+    containerRef: arrowNavHighlightContainerRef,
+    highlightRef: arrowNavHighlightRef,
+    updateHighlight: updateArrowNavHighlight,
+    clearHighlight: clearArrowNavHighlight,
+  } = createMenuHighlight();
+
+  let arrowNavItemRefs: (HTMLButtonElement | undefined)[] = [];
+
   const handleTagClick = (event: MouseEvent) => {
     event.stopImmediatePropagation();
     if (props.filePath && props.onOpen) {
@@ -339,6 +348,21 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   };
 
   const isTagClickable = () => Boolean(props.filePath && props.onOpen);
+
+  createEffect(() => {
+    const activeIndex = arrowNavigationActiveIndex();
+    const itemRef = arrowNavItemRefs[activeIndex];
+    if (itemRef && isArrowNavigationVisible()) {
+      updateArrowNavHighlight(itemRef);
+    }
+  });
+
+  createEffect(() => {
+    if (!isArrowNavigationVisible()) {
+      arrowNavItemRefs = [];
+      clearArrowNavHighlight();
+    }
+  });
 
   const handleContainerPointerDown = (event: PointerEvent) => {
     event.stopImmediatePropagation();
@@ -539,7 +563,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   />
                 </div>
                 <BottomSection>
-                  <div class="flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5">
+                  <div
+                    ref={arrowNavHighlightContainerRef}
+                    class="relative flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5"
+                  >
+                    <div
+                      ref={arrowNavHighlightRef}
+                      class="pointer-events-none absolute bg-black/5 opacity-0 transition-[top,left,width,height,opacity] duration-75 ease-out"
+                    />
                     <For each={arrowNavigationItems()}>
                       {(item, itemIndex) => {
                         const itemTagDisplay = () =>
@@ -548,19 +579,20 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                             componentName: item.componentName,
                           });
 
-                        const isActive = () =>
-                          itemIndex() === arrowNavigationActiveIndex();
-
                         return (
                           <button
+                            ref={(element) => {
+                              arrowNavItemRefs[itemIndex()] = element;
+                            }}
                             data-react-grab-ignore-events
                             data-react-grab-arrow-nav-item={item.tagName}
-                            class="contain-layout flex items-center w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent transition-colors"
-                            classList={{ "bg-black/5": isActive() }}
+                            class="relative z-1 contain-layout flex items-center w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent"
                             onPointerDown={(event) => event.stopPropagation()}
-                            onPointerEnter={() => {
+                            onPointerEnter={(event) => {
+                              updateArrowNavHighlight(event.currentTarget);
                               props.onArrowNavigationSelect?.(itemIndex());
                             }}
+                            onPointerLeave={clearArrowNavHighlight}
                             onClick={(event) => {
                               event.stopPropagation();
                               props.onArrowNavigationSelect?.(itemIndex());
@@ -568,12 +600,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                           >
                             <span class="text-[13px] leading-4 h-fit font-medium overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
                               <Show when={itemTagDisplay().componentName}>
-                                <span
-                                  classList={{
-                                    "text-black": isActive(),
-                                    "text-black/70": !isActive(),
-                                  }}
-                                >
+                                <span class="text-black">
                                   {itemTagDisplay().componentName}
                                 </span>
                                 <span class="text-black/40">
@@ -581,12 +608,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                                 </span>
                               </Show>
                               <Show when={!itemTagDisplay().componentName}>
-                                <span
-                                  classList={{
-                                    "text-black": isActive(),
-                                    "text-black/70": !isActive(),
-                                  }}
-                                >
+                                <span class="text-black">
                                   {itemTagDisplay().tagName}
                                 </span>
                               </Show>
@@ -595,45 +617,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                         );
                       }}
                     </For>
-                    <Show
-                      when={
-                        props.arrowNavigationActions &&
-                        props.arrowNavigationActions.length > 0
-                      }
-                    >
-                      <div class="w-full my-0.5 [border-top-width:0.5px] border-t-solid border-t-[#D9D9D9]" />
-                      <For each={props.arrowNavigationActions ?? []}>
-                        {(action) => {
-                          const isActionEnabled = () =>
-                            resolveActionEnabled(action, undefined);
-
-                          return (
-                            <button
-                              data-react-grab-ignore-events
-                              data-react-grab-menu-item={action.label.toLowerCase()}
-                              class="contain-layout flex items-center justify-between w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent disabled:opacity-40 disabled:cursor-default"
-                              disabled={!isActionEnabled()}
-                              onPointerDown={(event) => event.stopPropagation()}
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                if (isActionEnabled()) {
-                                  props.onArrowNavigationAction?.(action.id);
-                                }
-                              }}
-                            >
-                              <span class="text-[13px] leading-4 font-sans font-medium text-black">
-                                {action.label}
-                              </span>
-                              <Show when={action.shortcut}>
-                                <span class="text-[11px] font-sans text-black/50 ml-4">
-                                  {formatShortcut(action.shortcut!)}
-                                </span>
-                              </Show>
-                            </button>
-                          );
-                        }}
-                      </For>
-                    </Show>
                   </div>
                 </BottomSection>
               </div>
