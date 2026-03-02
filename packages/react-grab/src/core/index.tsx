@@ -508,13 +508,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       number | null
     >(null);
 
-    interface ArrowNavigationMenu {
-      elements: Element[];
-      activeIndex: number;
-    }
-
-    const [arrowNavigationMenu, setArrowNavigationMenu] =
-      createSignal<ArrowNavigationMenu | null>(null);
+    const [arrowNavigationElements, setArrowNavigationElements] = createSignal<
+      Element[]
+    >([]);
+    const [arrowNavigationActiveIndex, setArrowNavigationActiveIndex] =
+      createSignal(0);
 
     const arrowNavigator = createArrowNavigator(
       isValidGrabbableElement,
@@ -2114,7 +2112,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const clearArrowNavigation = () => {
-      setArrowNavigationMenu(null);
+      setArrowNavigationElements([]);
+      setArrowNavigationActiveIndex(0);
     };
 
     const selectAndFocusElement = (element: Element) => {
@@ -2140,18 +2139,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         .filter(isValidGrabbableElement)
         .reverse();
 
-      setArrowNavigationMenu({
-        elements: elementsAtPoint,
-        activeIndex: Math.max(0, elementsAtPoint.indexOf(anchorElement)),
-      });
+      setArrowNavigationElements(elementsAtPoint);
+      setArrowNavigationActiveIndex(
+        Math.max(0, elementsAtPoint.indexOf(anchorElement)),
+      );
     };
 
     const handleArrowNavigationSelect = (index: number) => {
-      const menu = arrowNavigationMenu();
-      const targetElement = menu?.elements[index];
-      if (!menu || !targetElement) return;
+      const targetElement = arrowNavigationElements()[index];
+      if (!targetElement) return;
 
-      setArrowNavigationMenu({ ...menu, activeIndex: index });
+      setArrowNavigationActiveIndex(index);
       selectAndFocusElement(targetElement);
     };
 
@@ -2183,7 +2181,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return true;
       }
 
-      if (!arrowNavigationMenu()) {
+      if (arrowNavigationElements().length === 0) {
         openArrowNavigationMenu(currentElement);
       }
 
@@ -2194,12 +2192,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       event.stopPropagation();
       selectAndFocusElement(elementToSelect);
 
-      const menu = arrowNavigationMenu();
-      if (menu) {
-        const newIndex = menu.elements.indexOf(elementToSelect);
-        if (newIndex !== -1) {
-          setArrowNavigationMenu({ ...menu, activeIndex: newIndex });
-        }
+      const newIndex = arrowNavigationElements().indexOf(elementToSelect);
+      if (newIndex !== -1) {
+        setArrowNavigationActiveIndex(newIndex);
       }
 
       return true;
@@ -2327,18 +2322,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actionCycleActiveIndex() !== null && actionCycleItems().length > 0,
     }));
 
-    const arrowNavigationState = createMemo<ArrowNavigationState>(() => {
-      const menu = arrowNavigationMenu();
-      if (!menu) return { items: [], activeIndex: 0, isVisible: false };
-      return {
-        items: menu.elements.map((element) => ({
-          tagName: getTagName(element) || "element",
-          componentName: getComponentDisplayName(element) ?? undefined,
-        })),
-        activeIndex: menu.activeIndex,
-        isVisible: true,
-      };
-    });
+    const arrowNavigationItems = createMemo(() =>
+      arrowNavigationElements().map((element) => ({
+        tagName: getTagName(element) || "element",
+        componentName: getComponentDisplayName(element) ?? undefined,
+      })),
+    );
+
+    const arrowNavigationState = createMemo<ArrowNavigationState>(() => ({
+      items: arrowNavigationItems(),
+      activeIndex: arrowNavigationActiveIndex(),
+      isVisible: arrowNavigationElements().length > 0,
+    }));
 
     createEffect(
       on(selectionElement, () => {
@@ -2867,7 +2862,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           event,
           "data-react-grab-ignore-events",
         );
-        if (isFromOverlay && arrowNavigationMenu() !== null) {
+        if (isFromOverlay && arrowNavigationElements().length > 0) {
           clearArrowNavigation();
         } else if (isFromOverlay) {
           return;
