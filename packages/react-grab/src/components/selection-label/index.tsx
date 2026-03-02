@@ -500,65 +500,32 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           </Show>
 
           <Show when={canInteract() && !props.isPromptMode}>
-            <Show
-              when={isArrowNavigationVisible()}
-              fallback={
-                <div class="contain-layout shrink-0 flex flex-col items-start w-fit h-fit">
-                  <div class="contain-layout shrink-0 flex items-center gap-1 py-1.5 w-fit h-fit px-2">
-                    <TagBadge
-                      tagName={tagDisplay()}
-                      componentName={componentNameDisplay()}
-                      isClickable={isTagClickable()}
-                      onClick={handleTagClick}
-                      onHoverChange={handleTagHoverChange}
-                      shrink
-                      forceShowIcon={Boolean(props.isContextMenuOpen)}
-                    />
-                  </div>
-                  <Show when={isActionCycleVisible()}>
-                    <BottomSection>
-                      <div class="flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5">
-                        <For each={actionCycleItems()}>
-                          {(item, itemIndex) => (
-                            <div
-                              data-react-grab-action-cycle-item={item.label.toLowerCase()}
-                              class="contain-layout flex items-center justify-between w-full px-2 py-1 transition-colors"
-                              classList={{
-                                "bg-black/5":
-                                  itemIndex() === actionCycleActiveIndex(),
-                                "rounded-b-[6px]":
-                                  itemIndex() === actionCycleItems().length - 1,
-                              }}
-                            >
-                              <span class="text-[13px] leading-4 font-sans font-medium text-black">
-                                {item.label}
-                              </span>
-                              <Show when={item.shortcut}>
-                                <span class="text-[11px] font-sans text-black/50 ml-4">
-                                  {formatShortcut(item.shortcut!)}
-                                </span>
-                              </Show>
-                            </div>
-                          )}
-                        </For>
-                      </div>
-                    </BottomSection>
-                  </Show>
-                </div>
-              }
+            <div
+              class="contain-layout shrink-0 flex flex-col items-start w-fit h-fit"
+              classList={{ "min-w-[100px]": isArrowNavigationVisible() }}
             >
-              <div class="contain-layout shrink-0 flex flex-col items-start w-fit h-fit min-w-[100px]">
-                <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 w-fit h-fit px-2">
-                  <TagBadge
-                    tagName={tagDisplay()}
-                    componentName={componentNameDisplay()}
-                    isClickable={isTagClickable()}
-                    onClick={handleTagClick}
-                    onHoverChange={handleTagHoverChange}
-                    shrink
-                    forceShowIcon={isTagClickable()}
-                  />
-                </div>
+              <div
+                class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit px-2"
+                classList={{
+                  "py-1.5": !isArrowNavigationVisible(),
+                  "pt-1.5 pb-1": isArrowNavigationVisible(),
+                }}
+              >
+                <TagBadge
+                  tagName={tagDisplay()}
+                  componentName={componentNameDisplay()}
+                  isClickable={isTagClickable()}
+                  onClick={handleTagClick}
+                  onHoverChange={handleTagHoverChange}
+                  shrink
+                  forceShowIcon={
+                    isArrowNavigationVisible()
+                      ? isTagClickable()
+                      : Boolean(props.isContextMenuOpen)
+                  }
+                />
+              </div>
+              <Show when={isArrowNavigationVisible()}>
                 <BottomSection>
                   <div
                     ref={arrowNavHighlightContainerRef}
@@ -616,8 +583,39 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     </For>
                   </div>
                 </BottomSection>
-              </div>
-            </Show>
+              </Show>
+              <Show
+                when={!isArrowNavigationVisible() && isActionCycleVisible()}
+              >
+                <BottomSection>
+                  <div class="flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5">
+                    <For each={actionCycleItems()}>
+                      {(item, itemIndex) => (
+                        <div
+                          data-react-grab-action-cycle-item={item.label.toLowerCase()}
+                          class="contain-layout flex items-center justify-between w-full px-2 py-1 transition-colors"
+                          classList={{
+                            "bg-black/5":
+                              itemIndex() === actionCycleActiveIndex(),
+                            "rounded-b-[6px]":
+                              itemIndex() === actionCycleItems().length - 1,
+                          }}
+                        >
+                          <span class="text-[13px] leading-4 font-sans font-medium text-black">
+                            {item.label}
+                          </span>
+                          <Show when={item.shortcut}>
+                            <span class="text-[11px] font-sans text-black/50 ml-4">
+                              {formatShortcut(item.shortcut!)}
+                            </span>
+                          </Show>
+                        </div>
+                      )}
+                    </For>
+                  </div>
+                </BottomSection>
+              </Show>
+            </div>
           </Show>
 
           <Show
