@@ -1,7 +1,7 @@
 import { clearElementPositionCache } from "./get-element-at-position.js";
 import { createStyleElement } from "./create-style-element.js";
 
-const POINTER_EVENTS_STYLES = "* { pointer-events: none !important; }";
+const POINTER_EVENTS_STYLES = "html { pointer-events: none !important; }";
 
 const MOUSE_EVENTS_TO_BLOCK = [
   "mouseenter",
