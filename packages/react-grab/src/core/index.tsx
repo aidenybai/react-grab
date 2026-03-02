@@ -1519,7 +1519,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const wasDragging = isDragging();
       const previousFocused = store.previouslyFocusedElement;
       actions.deactivate();
-      arrowNavigator.clearHistory();
       clearArrowNavigation();
       keyboardSelectedElement = null;
       isPendingContextMenuSelect = false;
@@ -2197,6 +2196,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const newIndex = arrowNavigationElements().indexOf(elementToSelect);
       if (newIndex !== -1) {
         setArrowNavigationActiveIndex(newIndex);
+      } else {
+        openArrowNavigationMenu(elementToSelect);
       }
 
       return true;
