@@ -2185,22 +2185,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         openArrowNavigationMenu(currentElement);
       }
 
-      // Use the menu's own element list for vertical navigation to keep UI in sync
-      const isArrowUp = event.key === "ArrowUp";
-      const nextIndex = isArrowUp
-        ? Math.max(0, arrowNavigationActiveIndex() - 1)
-        : Math.min(
-            arrowNavigationElements().length - 1,
-            arrowNavigationActiveIndex() + 1,
-          );
-
-      const elementToSelect = arrowNavigationElements()[nextIndex];
-      if (!elementToSelect) return false;
+      const nextElement = arrowNavigator.findNext(event.key, currentElement);
+      const elementToSelect = nextElement ?? currentElement;
 
       event.preventDefault();
       event.stopPropagation();
       selectAndFocusElement(elementToSelect);
-      setArrowNavigationActiveIndex(nextIndex);
+
+      const newIndex = arrowNavigationElements().indexOf(elementToSelect);
+      if (newIndex !== -1) {
+        setArrowNavigationActiveIndex(newIndex);
+      }
 
       return true;
     };
