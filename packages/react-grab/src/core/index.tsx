@@ -104,7 +104,6 @@ import type {
   ContextMenuAction,
   ActionCycleItem,
   ActionCycleState,
-  ArrowNavigationItem,
   ArrowNavigationState,
   PerformWithFeedbackOptions,
   SettableOptions,
@@ -511,7 +510,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     interface ArrowNavigationMenu {
       elements: Element[];
-      items: ArrowNavigationItem[];
       activeIndex: number;
     }
 
@@ -2144,10 +2142,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       setArrowNavigationMenu({
         elements: elementsAtPoint,
-        items: elementsAtPoint.map((innerElement) => ({
-          tagName: getTagName(innerElement) || "element",
-          componentName: getComponentDisplayName(innerElement) ?? undefined,
-        })),
         activeIndex: Math.max(0, elementsAtPoint.indexOf(anchorElement)),
       });
     };
@@ -2335,10 +2329,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const arrowNavigationState = createMemo<ArrowNavigationState>(() => {
       const menu = arrowNavigationMenu();
+      if (!menu) return { items: [], activeIndex: 0, isVisible: false };
       return {
-        items: menu?.items ?? [],
-        activeIndex: menu?.activeIndex ?? 0,
-        isVisible: menu !== null,
+        items: menu.elements.map((element) => ({
+          tagName: getTagName(element) || "element",
+          componentName: getComponentDisplayName(element) ?? undefined,
+        })),
+        activeIndex: menu.activeIndex,
+        isVisible: true,
       };
     });
 

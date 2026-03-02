@@ -536,50 +536,36 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                       class="pointer-events-none absolute bg-black/5 opacity-0 transition-[top,left,width,height,opacity] duration-75 ease-out"
                     />
                     <For each={arrowNavigationItems()}>
-                      {(item, itemIndex) => {
-                        const itemTagDisplay = () =>
-                          getTagDisplay({
-                            tagName: item.tagName,
-                            componentName: item.componentName,
-                          });
-
-                        return (
-                          <button
-                            ref={(element) => {
-                              arrowNavItemRefs[itemIndex()] = element;
-                            }}
-                            data-react-grab-ignore-events
-                            data-react-grab-arrow-nav-item={item.tagName}
-                            class="relative z-1 contain-layout flex items-center w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent"
-                            onPointerDown={(event) => event.stopPropagation()}
-                            onPointerEnter={(event) => {
-                              updateArrowNavHighlight(event.currentTarget);
-                              props.onArrowNavigationSelect?.(itemIndex());
-                            }}
-                            onPointerLeave={clearArrowNavHighlight}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              props.onArrowNavigationSelect?.(itemIndex());
-                            }}
-                          >
-                            <span class="text-[13px] leading-4 h-fit font-medium overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
-                              <Show when={itemTagDisplay().componentName}>
-                                <span class="text-black">
-                                  {itemTagDisplay().componentName}
-                                </span>
-                                <span class="text-black/40">
-                                  .{itemTagDisplay().tagName}
-                                </span>
-                              </Show>
-                              <Show when={!itemTagDisplay().componentName}>
-                                <span class="text-black">
-                                  {itemTagDisplay().tagName}
-                                </span>
-                              </Show>
-                            </span>
-                          </button>
-                        );
-                      }}
+                      {(item, itemIndex) => (
+                        <button
+                          ref={(element) => {
+                            arrowNavItemRefs[itemIndex()] = element;
+                          }}
+                          data-react-grab-ignore-events
+                          data-react-grab-arrow-nav-item={item.tagName}
+                          class="relative z-1 contain-layout flex items-center w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent"
+                          onPointerDown={(event) => event.stopPropagation()}
+                          onPointerEnter={(event) => {
+                            updateArrowNavHighlight(event.currentTarget);
+                            props.onArrowNavigationSelect?.(itemIndex());
+                          }}
+                          onPointerLeave={clearArrowNavHighlight}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            props.onArrowNavigationSelect?.(itemIndex());
+                          }}
+                        >
+                          <span class="text-[13px] leading-4 h-fit font-medium overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
+                            <Show when={item.componentName}>
+                              <span class="text-black">
+                                {item.componentName}
+                              </span>
+                              <span class="text-black/40">.</span>
+                            </Show>
+                            <span class="text-black">{item.tagName}</span>
+                          </span>
+                        </button>
+                      )}
                     </For>
                   </div>
                 </BottomSection>
