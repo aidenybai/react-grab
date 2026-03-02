@@ -350,17 +350,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const isTagClickable = () => Boolean(props.filePath && props.onOpen);
 
   createEffect(() => {
-    const activeIndex = arrowNavigationActiveIndex();
-    const itemRef = arrowNavItemRefs[activeIndex];
-    if (itemRef && isArrowNavigationVisible()) {
-      updateArrowNavHighlight(itemRef);
-    }
-  });
-
-  createEffect(() => {
     if (!isArrowNavigationVisible()) {
       arrowNavItemRefs = [];
       clearArrowNavHighlight();
+      return;
+    }
+    const itemRef = arrowNavItemRefs[arrowNavigationActiveIndex()];
+    if (itemRef) {
+      updateArrowNavHighlight(itemRef);
     }
   });
 

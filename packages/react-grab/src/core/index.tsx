@@ -509,14 +509,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       number | null
     >(null);
 
-    const [arrowNavigationItems, setArrowNavigationItems] = createSignal<
-      ArrowNavigationItem[]
-    >([]);
-    const [arrowNavigationActiveIndex, setArrowNavigationActiveIndex] =
-      createSignal<number>(0);
-    const [arrowNavigationElements, setArrowNavigationElements] = createSignal<
-      Element[]
-    >([]);
+    interface ArrowNavigationMenu {
+      elements: Element[];
+      items: ArrowNavigationItem[];
+      activeIndex: number;
+    }
+
+    const [arrowNavigationMenu, setArrowNavigationMenu] =
+      createSignal<ArrowNavigationMenu | null>(null);
 
     const arrowNavigator = createArrowNavigator(
       isValidGrabbableElement,
@@ -2115,119 +2115,97 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return false;
     };
 
-    const buildArrowNavigationItems = (
-      elementsAtPoint: Element[],
-    ): ArrowNavigationItem[] =>
-      elementsAtPoint.map((element) => ({
-        tagName: getTagName(element) || "element",
-        componentName: getComponentDisplayName(element) ?? undefined,
-      }));
-
     const clearArrowNavigation = () => {
-      setArrowNavigationItems([]);
-      setArrowNavigationActiveIndex(0);
-      setArrowNavigationElements([]);
+      setArrowNavigationMenu(null);
+    };
+
+    const selectAndFocusElement = (element: Element) => {
+      actions.setFrozenElement(element);
+      actions.freeze();
+      keyboardSelectedElement = element;
+
+      const bounds = createElementBounds(element);
+      const center = getBoundsCenter(bounds);
+      actions.setPointer(center);
+
+      if (store.contextMenuPosition !== null) {
+        actions.showContextMenu(center, element);
+      }
+    };
+
+    const openArrowNavigationMenu = (anchorElement: Element) => {
+      const bounds = createElementBounds(anchorElement);
+      const elementsAtPoint = getElementsAtPoint(
+        bounds.x + bounds.width / 2,
+        bounds.y + bounds.height / 2,
+      )
+        .filter(isValidGrabbableElement)
+        .reverse();
+
+      setArrowNavigationMenu({
+        elements: elementsAtPoint,
+        items: elementsAtPoint.map((innerElement) => ({
+          tagName: getTagName(innerElement) || "element",
+          componentName: getComponentDisplayName(innerElement) ?? undefined,
+        })),
+        activeIndex: Math.max(0, elementsAtPoint.indexOf(anchorElement)),
+      });
     };
 
     const handleArrowNavigationSelect = (index: number) => {
-      const elements = arrowNavigationElements();
-      const targetElement = elements[index];
-      if (!targetElement) return;
+      const menu = arrowNavigationMenu();
+      const targetElement = menu?.elements[index];
+      if (!menu || !targetElement) return;
 
-      setArrowNavigationActiveIndex(index);
-      actions.setFrozenElement(targetElement);
-      actions.freeze();
-      keyboardSelectedElement = targetElement;
-
-      const selectedBounds = createElementBounds(targetElement);
-      const selectedCenter = getBoundsCenter(selectedBounds);
-      actions.setPointer(selectedCenter);
-
-      if (store.contextMenuPosition !== null) {
-        actions.showContextMenu(selectedCenter, targetElement);
-      }
+      setArrowNavigationMenu({ ...menu, activeIndex: index });
+      selectAndFocusElement(targetElement);
     };
 
     const handleArrowNavigation = (event: KeyboardEvent): boolean => {
       if (!isActivated() || isPromptMode()) return false;
       if (!ARROW_KEYS.has(event.key)) return false;
 
-      const isVertical = event.key === "ArrowUp" || event.key === "ArrowDown";
-
       let currentElement = effectiveElement();
       const isInitialSelection = !currentElement;
 
       if (!currentElement) {
-        const viewportCenterX = window.innerWidth / 2;
-        const viewportCenterY = window.innerHeight / 2;
-        currentElement = getElementAtPosition(viewportCenterX, viewportCenterY);
+        currentElement = getElementAtPosition(
+          window.innerWidth / 2,
+          window.innerHeight / 2,
+        );
       }
 
       if (!currentElement) return false;
 
-      if (isVertical) {
-        const isMenuAlreadyVisible = arrowNavigationItems().length > 0;
+      const isVertical = event.key === "ArrowUp" || event.key === "ArrowDown";
 
-        if (!isMenuAlreadyVisible) {
-          const currentBounds = createElementBounds(currentElement);
-          const elementsAtPoint = getElementsAtPoint(
-            currentBounds.x + currentBounds.width / 2,
-            currentBounds.y + currentBounds.height / 2,
-          ).filter(isValidGrabbableElement);
-
-          const reversedElements = [...elementsAtPoint].reverse();
-          const currentIndex = reversedElements.indexOf(currentElement);
-          setArrowNavigationElements(reversedElements);
-          setArrowNavigationItems(buildArrowNavigationItems(reversedElements));
-          setArrowNavigationActiveIndex(currentIndex !== -1 ? currentIndex : 0);
-        }
-
+      if (!isVertical) {
+        clearArrowNavigation();
         const nextElement = arrowNavigator.findNext(event.key, currentElement);
-        const elementToSelect = nextElement ?? currentElement;
-
+        if (!nextElement && !isInitialSelection) return false;
         event.preventDefault();
         event.stopPropagation();
-        actions.setFrozenElement(elementToSelect);
-        actions.freeze();
-        keyboardSelectedElement = elementToSelect;
-
-        const elementBounds = createElementBounds(elementToSelect);
-        const elementCenter = getBoundsCenter(elementBounds);
-        actions.setPointer(elementCenter);
-
-        const storedElements = arrowNavigationElements();
-        const newIndex = storedElements.indexOf(elementToSelect);
-        if (newIndex !== -1) {
-          setArrowNavigationActiveIndex(newIndex);
-        }
-
-        if (store.contextMenuPosition !== null) {
-          actions.showContextMenu(elementCenter, elementToSelect);
-        }
-
+        selectAndFocusElement(nextElement ?? currentElement);
         return true;
       }
 
-      clearArrowNavigation();
+      if (!arrowNavigationMenu()) {
+        openArrowNavigationMenu(currentElement);
+      }
 
       const nextElement = arrowNavigator.findNext(event.key, currentElement);
-
-      if (!nextElement && !isInitialSelection) return false;
-
       const elementToSelect = nextElement ?? currentElement;
 
       event.preventDefault();
       event.stopPropagation();
-      actions.setFrozenElement(elementToSelect);
-      actions.freeze();
-      keyboardSelectedElement = elementToSelect;
+      selectAndFocusElement(elementToSelect);
 
-      const selectionBounds = createElementBounds(elementToSelect);
-      const selectionCenter = getBoundsCenter(selectionBounds);
-      actions.setPointer(selectionCenter);
-
-      if (store.contextMenuPosition !== null) {
-        actions.showContextMenu(selectionCenter, elementToSelect);
+      const menu = arrowNavigationMenu();
+      if (menu) {
+        const newIndex = menu.elements.indexOf(elementToSelect);
+        if (newIndex !== -1) {
+          setArrowNavigationMenu({ ...menu, activeIndex: newIndex });
+        }
       }
 
       return true;
@@ -2355,11 +2333,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actionCycleActiveIndex() !== null && actionCycleItems().length > 0,
     }));
 
-    const arrowNavigationState = createMemo<ArrowNavigationState>(() => ({
-      items: arrowNavigationItems(),
-      activeIndex: arrowNavigationActiveIndex(),
-      isVisible: arrowNavigationItems().length > 0,
-    }));
+    const arrowNavigationState = createMemo<ArrowNavigationState>(() => {
+      const menu = arrowNavigationMenu();
+      return {
+        items: menu?.items ?? [],
+        activeIndex: menu?.activeIndex ?? 0,
+        isVisible: menu !== null,
+      };
+    });
 
     createEffect(
       on(selectionElement, () => {
@@ -2888,7 +2869,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           event,
           "data-react-grab-ignore-events",
         );
-        if (isFromOverlay && arrowNavigationItems().length > 0) {
+        if (isFromOverlay && arrowNavigationMenu() !== null) {
           clearArrowNavigation();
         } else if (isFromOverlay) {
           return;
