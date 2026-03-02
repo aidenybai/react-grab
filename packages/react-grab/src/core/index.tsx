@@ -2114,6 +2114,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const clearArrowNavigation = () => {
       setArrowNavigationElements([]);
       setArrowNavigationActiveIndex(0);
+      arrowNavigator.clearHistory();
     };
 
     const selectAndFocusElement = (element: Element) => {
@@ -2150,6 +2151,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!targetElement) return;
 
       setArrowNavigationActiveIndex(index);
+      arrowNavigator.clearHistory();
       selectAndFocusElement(targetElement);
     };
 
