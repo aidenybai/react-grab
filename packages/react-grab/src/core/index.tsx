@@ -2175,9 +2175,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             currentBounds.y + currentBounds.height / 2,
           ).filter(isValidGrabbableElement);
 
-          const currentIndex = elementsAtPoint.indexOf(currentElement);
-          setArrowNavigationElements(elementsAtPoint);
-          setArrowNavigationItems(buildArrowNavigationItems(elementsAtPoint));
+          const reversedElements = [...elementsAtPoint].reverse();
+          const currentIndex = reversedElements.indexOf(currentElement);
+          setArrowNavigationElements(reversedElements);
+          setArrowNavigationItems(buildArrowNavigationItems(reversedElements));
           setArrowNavigationActiveIndex(currentIndex !== -1 ? currentIndex : 0);
         }
 
