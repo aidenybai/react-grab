@@ -8,7 +8,6 @@ import {
   suspendPointerEventsFreeze,
   resumePointerEventsFreeze,
 } from "./freeze-pseudo-states.js";
-import { createElementBounds } from "./create-element-bounds.js";
 
 interface PositionCache {
   clientX: number;
@@ -102,10 +101,6 @@ export const getElementAtPosition = (
         break;
       }
     }
-  }
-
-  if (result) {
-    createElementBounds(result);
   }
 
   scheduleResume();
