@@ -3,8 +3,6 @@
 import { useState, useMemo, type ReactElement, type ReactNode } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/utils/cn";
 
 interface CollapsibleProps {
   header: ReactNode;
@@ -39,10 +37,10 @@ export const Collapsible = ({
 
   return (
     <div>
-      <Button
-        variant="ghost"
+      <button
+        type="button"
         onClick={handleToggle}
-        className="h-auto w-full justify-start p-0 text-left group relative"
+        className="w-full text-left group relative focus:outline-none"
       >
         <div className="flex items-center text-muted-foreground">
           {header}
@@ -51,12 +49,12 @@ export const Collapsible = ({
               <ChevronDown className="w-3 h-3" />
             </span>
           ) : (
-            <span className="ml-2 opacity-0 group-hover:opacity-50 transition-opacity">
+            <span className="ml-2 opacity-0">
               <ChevronRight className="w-3 h-3" />
             </span>
           )}
         </div>
-      </Button>
+      </button>
 
       <AnimatePresence initial={false}>
         {isExpanded && (
