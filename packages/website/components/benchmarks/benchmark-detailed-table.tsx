@@ -126,11 +126,11 @@ export const BenchmarkDetailedTable = ({
   };
 
   return (
-    <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
-      <div className="p-4 border-b border-[#2a2a2a] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="bg-card border border-border rounded-lg overflow-hidden shadow-lg">
+      <div className="p-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h3 className="text-sm font-medium text-neutral-200">Results</h3>
-          <p className="text-xs text-neutral-500 mt-1">
+          <h3 className="text-sm font-medium text-foreground/80">Results</h3>
+          <p className="text-xs text-muted-foreground mt-1">
             Performance metrics per test: tokens, cost (USD), duration, and tool
             calls. React Grab shows % change vs. Control.
             {lastRunDate && (
@@ -141,24 +141,24 @@ export const BenchmarkDetailedTable = ({
         <div className="relative">
           <Search
             size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
           />
           <input
             type="text"
             placeholder="Filter tests..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-md py-1.5 pl-9 pr-3 text-xs text-neutral-200 placeholder:text-neutral-600 focus:outline-none focus:border-[#404040] w-full sm:w-[200px]"
+            className="bg-popover border border-border rounded-md py-1.5 pl-9 pr-3 text-xs text-foreground/80 placeholder:text-muted-foreground/60 focus:outline-none focus:border-ring w-full sm:w-[200px]"
           />
         </div>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[#2a2a2a]">
+            <tr className="border-b border-border">
               <th
                 rowSpan={2}
-                className="text-left py-2 px-3 text-xs font-medium text-neutral-400 uppercase tracking-wider cursor-pointer hover:text-neutral-200 transition-colors group"
+                className="text-left py-2 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors group"
                 onClick={() => handleSort("testName")}
               >
                 <div className="flex items-center">
@@ -172,7 +172,7 @@ export const BenchmarkDetailedTable = ({
               </th>
               <th
                 colSpan={2}
-                className="text-left py-2 px-3 text-xs font-medium text-neutral-400 uppercase tracking-wider cursor-pointer hover:text-neutral-200 transition-colors group"
+                className="text-left py-2 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors group"
                 onClick={() => handleSort("inputTokens")}
               >
                 <div className="flex items-center">
@@ -186,7 +186,7 @@ export const BenchmarkDetailedTable = ({
               </th>
               <th
                 colSpan={2}
-                className="text-left py-2 px-3 text-xs font-medium text-neutral-400 uppercase tracking-wider cursor-pointer hover:text-neutral-200 transition-colors group"
+                className="text-left py-2 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors group"
                 onClick={() => handleSort("outputTokens")}
               >
                 <div className="flex items-center">
@@ -200,7 +200,7 @@ export const BenchmarkDetailedTable = ({
               </th>
               <th
                 colSpan={2}
-                className="text-left py-2 px-3 text-xs font-medium text-neutral-400 uppercase tracking-wider cursor-pointer hover:text-neutral-200 transition-colors group"
+                className="text-left py-2 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors group"
                 onClick={() => handleSort("cost")}
               >
                 <div className="flex items-center">
@@ -214,7 +214,7 @@ export const BenchmarkDetailedTable = ({
               </th>
               <th
                 colSpan={2}
-                className="text-left py-2 px-3 text-xs font-medium text-neutral-400 uppercase tracking-wider cursor-pointer hover:text-neutral-200 transition-colors group"
+                className="text-left py-2 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors group"
                 onClick={() => handleSort("duration")}
               >
                 <div className="flex items-center">
@@ -228,7 +228,7 @@ export const BenchmarkDetailedTable = ({
               </th>
               <th
                 colSpan={2}
-                className="text-left py-2 px-3 text-xs font-medium text-neutral-400 uppercase tracking-wider cursor-pointer hover:text-neutral-200 transition-colors group"
+                className="text-left py-2 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors group"
                 onClick={() => handleSort("toolCalls")}
               >
                 <div className="flex items-center">
@@ -241,11 +241,11 @@ export const BenchmarkDetailedTable = ({
                 </div>
               </th>
             </tr>
-            <tr className="border-b border-[#2a2a2a] bg-[#0d0d0d]">
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-neutral-600 uppercase tracking-wide">
+            <tr className="border-b border-border bg-card">
+              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-muted-foreground/60 uppercase tracking-wide">
                 Control
               </th>
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-neutral-600 uppercase tracking-wide bg-[#111111]">
+              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-muted-foreground/60 uppercase tracking-wide bg-popover/30">
                 <div className="flex items-center gap-1.5">
                   <Image
                     src="/logo.svg"
@@ -259,10 +259,10 @@ export const BenchmarkDetailedTable = ({
                   </span>
                 </div>
               </th>
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-neutral-600 uppercase tracking-wide">
+              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-muted-foreground/60 uppercase tracking-wide">
                 Control
               </th>
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-neutral-600 uppercase tracking-wide bg-[#111111]">
+              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-muted-foreground/60 uppercase tracking-wide bg-popover/30">
                 <div className="flex items-center gap-1.5">
                   <Image
                     src="/logo.svg"
@@ -276,10 +276,10 @@ export const BenchmarkDetailedTable = ({
                   </span>
                 </div>
               </th>
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-neutral-600 uppercase tracking-wide">
+              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-muted-foreground/60 uppercase tracking-wide">
                 Control
               </th>
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-neutral-600 uppercase tracking-wide bg-[#111111]">
+              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-muted-foreground/60 uppercase tracking-wide bg-popover/30">
                 <div className="flex items-center gap-1.5">
                   <Image
                     src="/logo.svg"
@@ -293,10 +293,10 @@ export const BenchmarkDetailedTable = ({
                   </span>
                 </div>
               </th>
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-neutral-600 uppercase tracking-wide">
+              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-muted-foreground/60 uppercase tracking-wide">
                 Control
               </th>
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-neutral-600 uppercase tracking-wide bg-[#111111]">
+              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-muted-foreground/60 uppercase tracking-wide bg-popover/30">
                 <div className="flex items-center gap-1.5">
                   <Image
                     src="/logo.svg"
@@ -310,10 +310,10 @@ export const BenchmarkDetailedTable = ({
                   </span>
                 </div>
               </th>
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-neutral-600 uppercase tracking-wide">
+              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-muted-foreground/60 uppercase tracking-wide">
                 Control
               </th>
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-neutral-600 uppercase tracking-wide bg-[#111111]">
+              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-muted-foreground/60 uppercase tracking-wide bg-popover/30">
                 <div className="flex items-center gap-1.5">
                   <Image
                     src="/logo.svg"
@@ -329,10 +329,10 @@ export const BenchmarkDetailedTable = ({
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#2a2a2a]">
+          <tbody className="divide-y divide-border">
             {filteredAndSortedResults.length === 0 ? (
               <tr>
-                <td colSpan={11} className="py-8 text-center text-neutral-500">
+                <td colSpan={11} className="py-8 text-center text-muted-foreground">
                   No results found matching &quot;{searchQuery}&quot;
                 </td>
               </tr>
@@ -367,21 +367,21 @@ export const BenchmarkDetailedTable = ({
                 return (
                   <tr
                     key={testName}
-                    className="hover:bg-[#1a1a1a] transition-colors"
+                    className="hover:bg-popover transition-colors"
                   >
                     <td
-                      className="py-2 px-3 font-medium text-neutral-300 cursor-help max-w-[200px] truncate"
+                      className="py-2 px-3 font-medium text-foreground/80 cursor-help max-w-[200px] truncate"
                       title={prompt}
                     >
                       {testName}
                     </td>
-                    <td className="py-2 px-3 text-neutral-400 tabular-nums text-xs">
+                    <td className="py-2 px-3 text-muted-foreground tabular-nums text-xs">
                       {control.inputTokens
                         ? control.inputTokens.toLocaleString()
                         : "-"}
                     </td>
                     <td
-                      className="py-2 px-3 text-neutral-300 tabular-nums text-xs"
+                      className="py-2 px-3 text-foreground/80 tabular-nums text-xs"
                       style={{
                         backgroundColor:
                           inputChange.bgColor !== "transparent"
@@ -398,13 +398,13 @@ export const BenchmarkDetailedTable = ({
                         </span>
                       )}
                     </td>
-                    <td className="py-2 px-3 text-neutral-400 tabular-nums text-xs">
+                    <td className="py-2 px-3 text-muted-foreground tabular-nums text-xs">
                       {control.outputTokens
                         ? control.outputTokens.toLocaleString()
                         : "-"}
                     </td>
                     <td
-                      className="py-2 px-3 text-neutral-300 tabular-nums text-xs"
+                      className="py-2 px-3 text-foreground/80 tabular-nums text-xs"
                       style={{
                         backgroundColor:
                           outputChange.bgColor !== "transparent"
@@ -421,13 +421,13 @@ export const BenchmarkDetailedTable = ({
                         </span>
                       )}
                     </td>
-                    <td className="py-2 px-3 text-neutral-400 tabular-nums text-xs">
+                    <td className="py-2 px-3 text-muted-foreground tabular-nums text-xs">
                       {control.costUsd !== undefined
                         ? "$" + control.costUsd.toFixed(2)
                         : "-"}
                     </td>
                     <td
-                      className="py-2 px-3 text-neutral-300 tabular-nums text-xs"
+                      className="py-2 px-3 text-foreground/80 tabular-nums text-xs"
                       style={{
                         backgroundColor:
                           costChange.bgColor !== "transparent"
@@ -444,11 +444,11 @@ export const BenchmarkDetailedTable = ({
                         </span>
                       )}
                     </td>
-                    <td className="py-2 px-3 text-neutral-400 tabular-nums text-xs">
+                    <td className="py-2 px-3 text-muted-foreground tabular-nums text-xs">
                       {control.durationMs ? prettyMs(control.durationMs) : "-"}
                     </td>
                     <td
-                      className="py-2 px-3 text-neutral-300 tabular-nums text-xs"
+                      className="py-2 px-3 text-foreground/80 tabular-nums text-xs"
                       style={{
                         backgroundColor:
                           durationChange.bgColor !== "transparent"
@@ -465,13 +465,13 @@ export const BenchmarkDetailedTable = ({
                         </span>
                       )}
                     </td>
-                    <td className="py-2 px-3 text-neutral-400 tabular-nums text-xs">
+                    <td className="py-2 px-3 text-muted-foreground tabular-nums text-xs">
                       {control.toolCalls !== undefined
                         ? control.toolCalls
                         : "-"}
                     </td>
                     <td
-                      className="py-2 px-3 text-neutral-300 tabular-nums text-xs"
+                      className="py-2 px-3 text-foreground/80 tabular-nums text-xs"
                       style={{
                         backgroundColor:
                           toolCallsChange.bgColor !== "transparent"

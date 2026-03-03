@@ -63,8 +63,8 @@ export const TableOfContents = ({ headings }: TableOfContentsProps) => {
 
   return (
     <nav className="hidden lg:block w-48 shrink-0">
-      <div className="sticky top-24 bg-black py-4 -my-4 px-2 -mx-2 rounded-lg opacity-50 hover:opacity-100 transition-opacity">
-        <div className="text-sm font-medium text-neutral-300 mb-4">
+      <div className="sticky top-24 bg-background py-4 -my-4 px-2 -mx-2 rounded-lg opacity-50 hover:opacity-100 transition-opacity">
+        <div className="text-sm font-medium text-muted-foreground mb-4">
           On this page
         </div>
         <ul className="flex flex-col gap-2">
@@ -80,7 +80,7 @@ export const TableOfContents = ({ headings }: TableOfContentsProps) => {
                   className={`block text-sm border-l-2 pl-3 -ml-0.5 ${indentClass} ${
                     isActive
                       ? "text-neutral-200 border-[#ff4fff]"
-                      : "text-neutral-500 border-transparent hover:text-neutral-300 hover:border-neutral-700"
+                      : "text-neutral-500 border-transparent hover:text-muted-foreground hover:border-neutral-700"
                   }`}
                 >
                   {heading.text}

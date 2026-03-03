@@ -10,6 +10,7 @@ import { IconZed } from "@/components/icons/icon-zed";
 import { IconWebStorm } from "@/components/icons/icon-webstorm";
 import { ChevronDown, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 const EDITOR_OPTIONS = ["cursor", "vscode", "zed", "webstorm"] as const;
 type Editor = (typeof EDITOR_OPTIONS)[number];
@@ -138,14 +139,14 @@ const OpenFileContent = () => {
 
   if (!resolvedFilePath) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-black p-4">
-        <div className="w-full max-w-md rounded-lg border border-white/10 bg-[#0d0d0d] p-8 text-center shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <div className="w-full max-w-md rounded-lg border border-border bg-card p-8 text-center shadow-lg">
           <div className="mb-6 flex justify-center">
             <ReactGrabLogo width={100} height={40} />
           </div>
-          <div className="text-white/60 text-sm">
+          <div className="text-muted-foreground text-sm">
             No file specified. Add{" "}
-            <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-xs">
+            <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
               ?url=path/to/file
             </code>{" "}
             to the URL.
@@ -156,7 +157,7 @@ const OpenFileContent = () => {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-black p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <div className="mb-8">
         <Link href="/">
           <ReactGrabLogo
@@ -167,32 +168,33 @@ const OpenFileContent = () => {
         </Link>
       </div>
 
-      <div className="w-full max-w-lg rounded-lg border border-white/10 bg-[#0d0d0d] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
-        <div className="mb-2 flex flex-wrap items-center gap-2 text-lg text-white/80">
+      <div className="w-full max-w-lg rounded-lg border border-border bg-card p-8 shadow-lg">
+        <div className="mb-2 flex flex-wrap items-center gap-2 text-lg text-foreground/80">
           <span>Opening</span>
-          <span className="inline-flex items-center rounded bg-white/10 px-2 py-0.5 font-mono text-sm text-white/90">
+          <span className="inline-flex items-center rounded bg-muted px-2 py-0.5 font-mono text-sm text-foreground/80">
             {fileName}
           </span>
           {lineNumber && (
             <>
               <span>at line</span>
-              <span className="inline-flex items-center rounded bg-white/10 px-2 py-0.5 font-mono text-sm text-white/90">
+              <span className="inline-flex items-center rounded bg-muted px-2 py-0.5 font-mono text-sm text-foreground/80">
                 {lineNumber}
               </span>
             </>
           )}
         </div>
 
-        <div className="mb-6 font-mono text-sm text-white/40 break-all">
+        <div className="mb-6 break-all font-mono text-sm text-muted-foreground">
           {resolvedFilePath}
         </div>
 
-        <div className="mb-6 inline-flex items-stretch rounded-lg border border-white/10 bg-white/5">
+        <div className="mb-6 inline-flex items-stretch rounded-lg border border-border bg-muted/50">
           <div className="relative" ref={dropdownRef}>
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex h-full items-center gap-2 rounded-l-lg px-4 py-2.5 text-sm text-white/80 transition-colors hover:bg-white/10"
+              className="h-auto rounded-l-lg rounded-r-none px-4 py-2.5"
             >
               <span className="opacity-70">{selectedEditor?.icon}</span>
               <span>{selectedEditor?.name}</span>
@@ -203,64 +205,71 @@ const OpenFileContent = () => {
                   isDropdownOpen && "rotate-180",
                 )}
               />
-            </button>
+            </Button>
 
             {isDropdownOpen && (
-              <div className="absolute left-0 top-full z-10 mt-1 min-w-[160px] overflow-hidden rounded-lg border border-white/10 bg-[#0d0d0d] shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
+              <div className="absolute left-0 top-full z-10 mt-1 min-w-[160px] overflow-hidden rounded-lg border border-border bg-card shadow-lg">
                 {EDITORS.map((editor) => (
-                  <button
+                  <Button
                     key={editor.id}
                     type="button"
+                    variant="ghost"
                     onClick={() => handleEditorChange(editor.id)}
                     className={cn(
-                      "flex w-full items-center gap-2.5 px-4 py-2.5 text-sm transition-colors",
+                      "h-auto w-full justify-start rounded-none gap-2.5 px-4 py-2.5",
                       preferredEditor === editor.id
-                        ? "bg-white/10 text-white"
-                        : "text-white/60 hover:bg-white/10 hover:text-white/90",
+                        ? "bg-muted text-foreground"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground/80",
                     )}
                   >
                     <span className="opacity-70">{editor.icon}</span>
                     <span>{editor.name}</span>
-                  </button>
+                  </Button>
                 ))}
               </div>
             )}
           </div>
 
-          <div className="w-px bg-white/10" />
+          <div className="w-px bg-border" />
 
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={handleOpen}
-            className="flex items-center gap-1.5 rounded-r-lg px-4 py-2.5 text-sm text-white/80 transition-colors hover:bg-white/10"
+            className="h-auto rounded-l-none rounded-r-lg px-4 py-2.5"
           >
             <span>Open</span>
             <ArrowUpRight size={14} className="opacity-50" />
-          </button>
+          </Button>
         </div>
 
-        <div className="space-y-1 text-xs text-white/40">
+        <div className="space-y-1 text-xs text-muted-foreground">
           <p>Your preference will be saved for future use.</p>
           <p>Only open files from trusted sources.</p>
         </div>
       </div>
 
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="sm"
         onClick={() => setIsInfoOpen(!isInfoOpen)}
-        className="mt-8 flex items-center gap-1.5 text-xs text-white/25 transition-colors hover:text-white/40 focus:outline-none"
+        className="mt-8 gap-1.5 text-muted-foreground/50 hover:text-muted-foreground"
       >
         <span>What is React Grab?</span>
         <ChevronDown
           size={10}
           className={cn("transition-transform", isInfoOpen && "rotate-180")}
         />
-      </button>
+      </Button>
 
       {isInfoOpen && (
-        <p className="mt-2 text-center text-xs text-white/30">
+        <p className="mt-2 text-center text-xs text-muted-foreground/60">
           Select any element in your React app and copy its context to AI tools.{" "}
-          <Link href="/" className="underline hover:text-white/50">
+          <Link
+            href="/"
+            className="underline hover:text-muted-foreground"
+          >
             Learn more
           </Link>
         </p>
@@ -273,7 +282,7 @@ const OpenFilePage = () => {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-black p-4">
+        <div className="flex min-h-screen items-center justify-center bg-background p-4">
           <ReactGrabLogo width={160} height={60} className="animate-pulse" />
         </div>
       }

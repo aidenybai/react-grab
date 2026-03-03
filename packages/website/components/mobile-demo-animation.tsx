@@ -102,7 +102,7 @@ const SubmitIcon = (): ReactElement => (
     height="10"
     viewBox="0 0 24 24"
     fill="none"
-    className="shrink-0 text-white"
+    className="shrink-0 text-background"
   >
     <path
       d="M5 12h14M12 5l7 7-7 7"
@@ -643,18 +643,18 @@ export const MobileDemoAnimation = (): ReactElement => {
         }
       `}</style>
 
-      <div className="overflow-hidden rounded-xl border border-white/10 bg-neutral-900 shadow-lg shadow-black/20">
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-lg shadow-black/20">
         <div ref={containerRef} className="relative p-4 pb-14">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <div className="text-[13px] font-semibold text-white">
+              <div className="text-[13px] font-semibold text-foreground">
                 Overview
               </div>
-              <div className="text-[11px] text-white/40">Last 30 days</div>
+              <div className="text-[11px] text-muted-foreground">Last 30 days</div>
             </div>
             <div
               ref={exportButtonRef}
-              className="rounded-md bg-white/20 px-3 py-1.5 text-[11px] font-medium text-white/70"
+              className="rounded-md bg-muted px-3 py-1.5 text-[11px] font-medium text-muted-foreground"
             >
               Export
             </div>
@@ -663,48 +663,48 @@ export const MobileDemoAnimation = (): ReactElement => {
           <div className="mb-4 grid grid-cols-3 gap-2.5">
             <div
               ref={metricCardRef}
-              className="rounded-lg border border-white/10 bg-white/5 p-2.5"
+              className="rounded-lg border border-border bg-muted/50 p-2.5"
             >
-              <div className="mb-1 text-[10px] font-medium text-white/50">
+              <div className="mb-1 text-[10px] font-medium text-muted-foreground">
                 Revenue
               </div>
               <div
                 ref={metricValueRef}
-                className="text-[18px] font-semibold tabular-nums text-white"
+                className="text-[18px] font-semibold tabular-nums text-foreground"
               >
                 $12.4k
               </div>
-              <div className="mt-1 text-[10px] text-white/50">+12.5%</div>
+              <div className="mt-1 text-[10px] text-muted-foreground">+12.5%</div>
             </div>
 
-            <div className="rounded-lg border border-white/10 bg-white/5 p-2.5">
-              <div className="mb-1 text-[10px] font-medium text-white/50">
+            <div className="rounded-lg border border-border bg-muted/50 p-2.5">
+              <div className="mb-1 text-[10px] font-medium text-muted-foreground">
                 Users
               </div>
-              <div className="text-[18px] font-semibold tabular-nums text-white">
+              <div className="text-[18px] font-semibold tabular-nums text-foreground">
                 2,847
               </div>
-              <div className="mt-1 text-[10px] text-white/50">+8.2%</div>
+              <div className="mt-1 text-[10px] text-muted-foreground">+8.2%</div>
             </div>
 
-            <div className="rounded-lg border border-white/10 bg-white/5 p-2.5">
-              <div className="mb-1 text-[10px] font-medium text-white/50">
+            <div className="rounded-lg border border-border bg-muted/50 p-2.5">
+              <div className="mb-1 text-[10px] font-medium text-muted-foreground">
                 Orders
               </div>
-              <div className="text-[18px] font-semibold tabular-nums text-white">
+              <div className="text-[18px] font-semibold tabular-nums text-foreground">
                 384
               </div>
-              <div className="mt-1 text-[10px] text-white/50">-2.1%</div>
+              <div className="mt-1 text-[10px] text-muted-foreground">-2.1%</div>
             </div>
           </div>
 
-          <div className="rounded-lg border border-white/10">
-            <div className="border-b border-white/10 px-3 py-2">
-              <div className="text-[11px] font-medium text-white/70">
+          <div className="rounded-lg border border-border">
+            <div className="border-b border-border px-3 py-2">
+              <div className="text-[11px] font-medium text-muted-foreground">
                 Recent Activity
               </div>
             </div>
-            <div className="divide-y divide-white/10">
+            <div className="divide-y divide-border">
               {ACTIVITY_DATA.map((activity, i) => (
                 <div
                   key={activity.label}
@@ -714,12 +714,12 @@ export const MobileDemoAnimation = (): ReactElement => {
                   className="flex items-center justify-between px-3 py-2"
                 >
                   <div className="flex items-center gap-2">
-                    <div className="h-5 w-5 rounded-full bg-white/10" />
-                    <span className="text-[11px] text-white/70">
+                    <div className="h-5 w-5 rounded-full bg-muted/50" />
+                    <span className="text-[11px] text-muted-foreground">
                       {activity.label}
                     </span>
                   </div>
-                  <span className="text-[10px] text-white/40">
+                  <span className="text-[10px] text-muted-foreground">
                     {activity.time}
                   </span>
                 </div>
@@ -856,7 +856,7 @@ export const MobileDemoAnimation = (): ReactElement => {
                   >
                     {commentText || "Add context"}
                   </span>
-                  <div className="shrink-0 flex items-center justify-center size-4 rounded-full bg-black">
+                  <div className="shrink-0 flex items-center justify-center size-4 rounded-full bg-foreground">
                     <SubmitIcon />
                   </div>
                 </div>
@@ -882,7 +882,7 @@ export const MobileDemoAnimation = (): ReactElement => {
         </div>
       </div>
 
-      <p className="mt-1.5 text-sm text-white/30">
+      <p className="mt-1.5 text-sm text-muted-foreground/60">
         This website is best viewed on desktop
       </p>
     </div>

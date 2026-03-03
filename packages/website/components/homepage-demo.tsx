@@ -88,7 +88,7 @@ const GrepErrorContent = (): ReactElement => (
   </span>
 );
 
-const Divider = (): ReactElement => <hr className="my-4 border-white/10" />;
+const Divider = (): ReactElement => <hr className="my-4 border-border" />;
 
 const ReactGrabIntro = (): ReactElement => (
   <div className="flex flex-col gap-2">
@@ -235,9 +235,9 @@ const TooltipRow = ({
   truncate?: boolean;
 }): ReactElement => (
   <span className="flex justify-between gap-3">
-    <span className="text-white/40">{label}</span>
+    <span className="text-muted-foreground">{label}</span>
     <span
-      className={`font-mono text-white/90 text-right ${truncate ? "truncate max-w-[120px]" : ""}`}
+      className={`font-mono text-foreground text-right ${truncate ? "truncate max-w-[120px]" : ""}`}
     >
       {value}
     </span>
@@ -270,8 +270,8 @@ const ElementSelectContent = ({
       <span className="relative group">
         <ElementTag>{`<${tagName}>`}</ElementTag>
         {hasMetadata && (
-          <span className="absolute left-0 top-full mt-1 z-50 hidden group-hover:block min-w-[180px] rounded-lg border border-white/10 bg-[#1a1a1a] px-2.5 py-2 text-xs shadow-xl">
-            <span className="absolute -top-1.5 left-3 h-3 w-3 rotate-45 border-l border-t border-white/10 bg-[#1a1a1a]" />
+          <span className="absolute left-0 top-full mt-1 z-50 hidden group-hover:block min-w-[180px] rounded-lg border border-border bg-popover px-2.5 py-2 text-xs shadow-xl">
+            <span className="absolute -top-1.5 left-3 h-3 w-3 rotate-45 border-l border-t border-border bg-popover" />
             <span className="flex flex-col gap-1">
               {componentName && (
                 <TooltipRow label="Component" value={componentName} />
@@ -545,7 +545,7 @@ export const HomepageDemo = (): ReactElement => {
 
   return (
     <HotkeyProvider>
-      <div className="min-h-screen bg-black px-4 py-6 sm:px-8 sm:py-8">
+      <div className="min-h-screen bg-background px-4 py-6 sm:px-8 sm:py-8">
         <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 pt-4 text-base sm:pt-8 sm:text-lg">
           {blockConfigs.map((config, index) => {
             const block = stream.blocks[index];

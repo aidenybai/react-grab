@@ -28,7 +28,7 @@ const BenchmarkCharts = dynamic(
 );
 
 const BenchmarkChartsTweetSkeleton = () => (
-  <div className="border border-neutral-800 rounded-lg p-6 min-h-[197px]">
+  <div className="border border-border rounded-lg p-6 min-h-[197px]">
     <div className="space-y-2">
       <div className="flex items-center gap-3">
         <div className="w-20 h-4 bg-neutral-800 rounded shrink-0" />
@@ -68,7 +68,7 @@ const BenchmarkDetailedTable = dynamic(
 );
 
 const StaticCodeBlock = ({ children }: { children: React.ReactNode }) => (
-  <pre className="text-neutral-300 whitespace-pre font-mono text-xs leading-relaxed">
+  <pre className="text-foreground/80 whitespace-pre font-mono text-xs leading-relaxed">
     {children}
   </pre>
 );
@@ -151,8 +151,8 @@ const TimeComparisonChart = () => {
     <div className="rounded-lg">
       <div className="flex flex-wrap items-center justify-end gap-4 mb-4 text-xs">
         <div className="flex items-center gap-2">
-          <div className="w-3 h-0.5 bg-[#525252]" />
-          <span className="text-neutral-400">
+          <div className="w-3 h-0.5 bg-muted-foreground" />
+          <span className="text-muted-foreground">
             Without React Grab ~ {controlAverage.toFixed(1)}s
           </span>
         </div>
@@ -274,10 +274,10 @@ const BlogPostPage = () => {
         </div>
       </Collapsible>
 
-      <div className="flex flex-col gap-4 text-neutral-400">
+      <div className="flex flex-col gap-4 text-muted-foreground">
         <p>
           Coding agents suck at frontend because{" "}
-          <span className="font-medium text-neutral-300">
+          <span className="font-medium text-foreground/80">
             translating intent
           </span>{" "}
           (from UI → prompt → code → UI) is lossy.
@@ -311,12 +311,12 @@ const BlogPostPage = () => {
 
         <ul className="list-disc list-inside space-y-2 pl-2">
           <li>
-            <span className="text-neutral-300 font-medium">Prompt better:</span>{" "}
+            <span className="text-foreground/80 font-medium">Prompt better:</span>{" "}
             Use @ to add additional context, write longer and more specific
             prompts (this is something YOU control)
           </li>
           <li>
-            <span className="text-neutral-300 font-medium">
+            <span className="text-foreground/80 font-medium">
               Make the agent better at codebase search
             </span>{" "}
             (this is something model/agent PROVIDERS control)
@@ -330,7 +330,7 @@ const BlogPostPage = () => {
             href="https://cursor.com/changelog/2-1"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-neutral-300 hover:text-white underline underline-offset-4"
+            className="text-foreground/80 hover:text-foreground underline underline-offset-4"
           >
             Instant Grep
           </a>
@@ -339,7 +339,7 @@ const BlogPostPage = () => {
             href="https://cognition.ai/blog/swe-grep"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-neutral-300 hover:text-white underline underline-offset-4"
+            className="text-foreground/80 hover:text-foreground underline underline-offset-4"
           >
             SWE-grep
           </a>
@@ -356,25 +356,25 @@ const BlogPostPage = () => {
         <div className="flex flex-col gap-3">
           <h3
             id="digging-through-react-internals"
-            className="text-lg font-medium text-neutral-200 mt-4 scroll-mt-24"
+            className="text-lg font-medium text-foreground/80 mt-4 scroll-mt-24"
           >
             Digging through React internals
           </h3>
           <p>
             In my ad-hoc tests, I noticed that referencing the file path (e.g.{" "}
-            <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+            <code className="text-foreground/80 bg-card border border-border rounded-lg px-1 py-0.5 text-xs">
               path/to/component.tsx
             </code>
             ) or something to{" "}
-            <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+            <code className="text-foreground/80 bg-card border border-border rounded-lg px-1 py-0.5 text-xs">
               grep
             </code>{" "}
             (e.g.{" "}
-            <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+            <code className="text-foreground/80 bg-card border border-border rounded-lg px-1 py-0.5 text-xs">
               className=&quot;flex flex-col gap-5 text-shimmer&quot;
             </code>
             ) made the coding agent{" "}
-            <span className="text-neutral-300 font-medium">much</span> faster at
+            <span className="text-foreground/80 font-medium">much</span> faster at
             finding what I was referencing. In short - there are shortcuts to
             reduce the number of steps needed to search!
           </p>
@@ -387,7 +387,7 @@ const BlogPostPage = () => {
             (file path + line number), and formats that into a readable stack.
           </p>
           <p>It looks something like this:</p>
-          <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden">
+          <div className="bg-card border border-border rounded-lg overflow-hidden">
             <div className="px-3 py-2">
               <div className="font-mono text-xs overflow-x-auto">
                 <StaticCodeBlock>
@@ -429,7 +429,7 @@ const BlogPostPage = () => {
         <div className="flex flex-col gap-3">
           <h3
             id="benchmarking-for-speed"
-            className="text-lg font-medium text-neutral-200 mt-4 scroll-mt-24"
+            className="text-lg font-medium text-foreground/80 mt-4 scroll-mt-24"
           >
             Benchmarking for speed
           </h3>
@@ -439,7 +439,7 @@ const BlogPostPage = () => {
               href="https://github.com/shadcn-ui/ui"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-neutral-300 hover:text-white underline underline-offset-4"
+              className="text-foreground/80 hover:text-foreground underline underline-offset-4"
             >
               shadcn/ui dashboard
             </a>{" "}
@@ -452,7 +452,7 @@ const BlogPostPage = () => {
               href="https://github.com/aidenybai/react-grab/blob/main/packages/benchmarks/test-cases.json"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-neutral-300 hover:text-white underline underline-offset-4"
+              className="text-foreground/80 hover:text-foreground underline underline-offset-4"
             >
               20 test cases
             </a>{" "}
@@ -473,10 +473,10 @@ const BlogPostPage = () => {
         <div className="max-w-4xl">
           <div className="grid gap-6 lg:grid-cols-2">
             <div className="flex flex-col gap-3">
-              <div className="text-xs font-medium text-neutral-400">
+              <div className="text-xs font-medium text-muted-foreground">
                 Without React Grab:
               </div>
-              <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-neutral-300">
+              <div className="bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground/80">
                 &quot;Find the forgot password link in the login form&quot;
               </div>
               <div className="flex flex-col gap-1.5">
@@ -513,12 +513,12 @@ const BlogPostPage = () => {
             </div>
 
             <div className="flex flex-col gap-3">
-              <div className="text-xs font-medium text-neutral-300">
+              <div className="text-xs font-medium text-foreground/80">
                 With React Grab:
               </div>
-              <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden">
+              <div className="bg-card border border-border rounded-lg overflow-hidden">
                 <div className="px-3 py-2 flex flex-col gap-2">
-                  <div className="text-sm text-neutral-300">
+                  <div className="text-sm text-foreground/80">
                     &quot;Find the forgot password link in the login form&quot;
                   </div>
                   <div className="font-mono text-xs overflow-x-auto">
@@ -567,7 +567,7 @@ const BlogPostPage = () => {
         </div>
       </div>
 
-      <div className="flex flex-col gap-6 text-neutral-400">
+      <div className="flex flex-col gap-6 text-muted-foreground">
         <p>
           Without React Grab, the agent must search through the codebase to find
           the right component. Since language models predict tokens
@@ -586,7 +586,7 @@ const BlogPostPage = () => {
 
         <p>
           …and turns out, Claude Code becomes ~
-          <span className="font-medium text-neutral-300">
+          <span className="font-medium text-foreground/80">
             3× faster with React Grab
           </span>
           !<sup className="text-neutral-500 text-[10px] ml-0.5">3</sup>
@@ -605,7 +605,7 @@ const BlogPostPage = () => {
         <BenchmarkCharts results={resultsData as BenchmarkResult[]} />
       </div>
 
-      <div className="flex flex-col gap-6 text-neutral-400 mb-16">
+      <div className="flex flex-col gap-6 text-muted-foreground mb-16">
         <p>
           Below are the latest measurement results from all 20 test cases. The
           table below shows a detailed breakdown comparing performance metrics
@@ -631,7 +631,7 @@ const BlogPostPage = () => {
               href="https://github.com/aidenybai/react-grab/tree/main/packages/benchmarks"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-neutral-300 hover:text-white underline underline-offset-4"
+              className="text-foreground/80 hover:text-foreground underline underline-offset-4"
             >
               benchmarks directory
             </a>{" "}
@@ -640,11 +640,11 @@ const BlogPostPage = () => {
         </div>
       </div>
 
-      <div className="pt-16 flex flex-col gap-6 text-neutral-400">
+      <div className="pt-16 flex flex-col gap-6 text-muted-foreground">
         <div className="flex flex-col gap-4">
           <h3
             id="how-it-impacts-you"
-            className="text-lg font-medium text-neutral-200 scroll-mt-24"
+            className="text-lg font-medium text-foreground/80 scroll-mt-24"
           >
             How it impacts you
           </h3>
@@ -659,7 +659,7 @@ const BlogPostPage = () => {
           </p>
           <p>
             React Grab works with{" "}
-            <span className="font-medium text-neutral-300">any</span> IDE or
+            <span className="font-medium text-foreground/80">any</span> IDE or
             coding tool: Cursor, Claude Code, Copilot, Codex, Zed, Windsurf, you
             name it. At its core, it just adds extra context to your prompt that
             helps the agent locate the right code faster.
@@ -671,7 +671,7 @@ const BlogPostPage = () => {
               href="https://youtu.be/PUv66718DII?t=390"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-neutral-300 hover:text-white underline underline-offset-4"
+              className="text-foreground/80 hover:text-foreground underline underline-offset-4"
             >
               Inventing on Principle
             </a>
@@ -682,7 +682,7 @@ const BlogPostPage = () => {
         <div className="flex flex-col gap-4 mt-4">
           <h3
             id="whats-next"
-            className="text-lg font-medium text-neutral-200 scroll-mt-24"
+            className="text-lg font-medium text-foreground/80 scroll-mt-24"
           >
             What&apos;s next
           </h3>
@@ -714,7 +714,7 @@ const BlogPostPage = () => {
               href="https://x.com/aidenybai"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-neutral-300 hover:text-white underline underline-offset-4"
+              className="text-foreground/80 hover:text-foreground underline underline-offset-4"
             >
               Twitter
             </a>{" "}
@@ -725,7 +725,7 @@ const BlogPostPage = () => {
         <div className="flex flex-col gap-4">
           <h3
             id="try-it-out"
-            className="text-lg font-medium text-neutral-200 scroll-mt-24"
+            className="text-lg font-medium text-foreground/80 scroll-mt-24"
           >
             Try it out
           </h3>
@@ -733,7 +733,7 @@ const BlogPostPage = () => {
             React Grab is free and open source.{" "}
             <Link
               href="/"
-              className="text-neutral-300 hover:text-white underline underline-offset-4 transition-colors"
+              className="text-foreground/80 hover:text-foreground underline underline-offset-4 transition-colors"
             >
               Go try it out!
             </Link>
@@ -744,10 +744,10 @@ const BlogPostPage = () => {
           </div>
         </div>
 
-        <div className="flex flex-col gap-4 mt-12 pt-8 border-t border-neutral-800">
+        <div className="flex flex-col gap-4 mt-12 pt-8 border-t border-border">
           <h4
             id="footnotes"
-            className="text-sm font-medium text-neutral-400 scroll-mt-24"
+            className="text-sm font-medium text-muted-foreground scroll-mt-24"
           >
             Footnotes
           </h4>
@@ -772,7 +772,7 @@ const BlogPostPage = () => {
               the benchmarks. If you spot anything off, please{" "}
               <a
                 href="mailto:aiden@million.dev"
-                className="text-neutral-400 hover:text-white underline underline-offset-4"
+                className="text-muted-foreground hover:text-foreground underline underline-offset-4"
               >
                 email me
               </a>{" "}
@@ -781,7 +781,7 @@ const BlogPostPage = () => {
                 href="https://x.com/aidenybai"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-neutral-400 hover:text-white underline underline-offset-4"
+                className="text-muted-foreground hover:text-foreground underline underline-offset-4"
               >
                 DM me on Twitter
               </a>

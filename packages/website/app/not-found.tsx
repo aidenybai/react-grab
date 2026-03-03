@@ -4,11 +4,11 @@ import { ReactGrabLogo } from "@/components/react-grab-logo";
 
 const NotFound = () => {
   return (
-    <div className="min-h-screen bg-black px-4 py-6 sm:px-8 sm:py-8">
+    <div className="min-h-screen bg-background px-4 py-6 sm:px-8 sm:py-8">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 pt-4 text-base sm:pt-8 sm:text-lg">
         <Link
           href="/"
-          className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-all mb-4 underline underline-offset-4 opacity-50 hover:opacity-100"
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-all mb-4 underline underline-offset-4 opacity-50 hover:opacity-100"
         >
           <ArrowLeft size={16} />
           Back to home
@@ -24,7 +24,7 @@ const NotFound = () => {
           </Link>
         </div>
 
-        <div className="text-white mt-4">
+        <div className="text-foreground mt-4">
           <span className="font-bold shimmer-text-pink">404</span> &middot;
           Couldn&apos;t grab this page.
         </div>

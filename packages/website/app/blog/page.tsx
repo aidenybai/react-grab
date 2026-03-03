@@ -36,11 +36,11 @@ const blogPosts: BlogPost[] = [
 
 const BlogPage = () => {
   return (
-    <div className="min-h-screen bg-black px-4 py-6 sm:px-8 sm:py-8">
+    <div className="min-h-screen bg-background px-4 py-6 sm:px-8 sm:py-8">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 pt-4 text-base sm:pt-8">
         <Link
           href="/"
-          className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-all mb-4 underline underline-offset-4 opacity-50 hover:opacity-100"
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-all mb-4 underline underline-offset-4 opacity-50 hover:opacity-100"
         >
           <ArrowLeft size={16} />
           Back to home
@@ -59,7 +59,7 @@ const BlogPage = () => {
         </div>
 
         <div className="flex flex-col gap-1">
-          <div className="text-white font-bold">Blog</div>
+          <div className="text-foreground font-bold">Blog</div>
           <div className="text-sm text-neutral-500">
             Posts from the React Grab team
           </div>
@@ -79,12 +79,12 @@ const BlogPage = () => {
                 )}
                 <Link
                   href={`/blog/${post.slug}`}
-                  className="group grid grid-cols-[1fr] sm:grid-cols-[80px_1fr] sm:gap-8 py-2 sm:py-3 sm:-mx-3 sm:px-3 rounded-lg transition-colors hover:bg-[#0f0f0f]"
+                  className="group grid grid-cols-[1fr] sm:grid-cols-[80px_1fr] sm:gap-8 py-2 sm:py-3 sm:-mx-3 sm:px-3 rounded-lg hover:bg-card"
                 >
                   <span className="hidden sm:block text-neutral-500 text-base tabular-nums">
                     {showYear ? post.year : ""}
                   </span>
-                  <span className="text-white group-hover:text-neutral-200 transition-colors text-sm sm:text-base">
+                  <span className="text-foreground text-sm sm:text-base">
                     {post.title}
                   </span>
                 </Link>

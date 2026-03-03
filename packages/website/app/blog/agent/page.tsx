@@ -11,6 +11,7 @@ import { IconDroid } from "@/components/icons/icon-droid";
 import { GithubButton } from "@/components/github-button";
 import { ViewDocsButton } from "@/components/view-docs-button";
 import { BlogArticleLayout } from "@/components/blog-article-layout";
+import { Button } from "@/components/ui/button";
 import { COPY_FEEDBACK_DURATION_MS } from "@/constants";
 
 interface HighlightedCodeBlockProps {
@@ -43,20 +44,21 @@ const HighlightedCodeBlock = ({ code, lang }: HighlightedCodeBlockProps) => {
 
   return (
     <div className="group relative">
-      <button
+      <Button
+        variant="ghost"
         type="button"
         onClick={handleCopy}
-        className="absolute right-0 top-0 text-[11px] text-white/50 opacity-0 transition-opacity hover:text-white group-hover:opacity-100 z-10"
+        className="absolute right-0 top-0 text-[11px] text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100 z-10"
       >
         {didCopy ? "Copied" : "Copy"}
-      </button>
+      </Button>
       {highlightedHtml ? (
         <div
           className="overflow-x-auto font-mono text-[13px] leading-relaxed"
           dangerouslySetInnerHTML={{ __html: highlightedHtml }}
         />
       ) : (
-        <pre className="text-neutral-300 whitespace-pre font-mono text-xs leading-relaxed">
+        <pre className="text-foreground/70 whitespace-pre font-mono text-xs leading-relaxed">
           {code}
         </pre>
       )}
@@ -96,7 +98,7 @@ const AgentPage = () => {
             href="https://www.youtube.com/watch?v=3CRs8kusyhE"
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-neutral-300 underline underline-offset-4"
+            className="hover:text-foreground/80 underline underline-offset-4"
           >
             Prefer a video breakdown?
           </a>
@@ -138,7 +140,7 @@ const AgentPage = () => {
               <IconCursor
                 width={12}
                 height={12}
-                className="inline -translate-y-px mx-0.5 text-white"
+                className="inline -translate-y-px mx-0.5 text-foreground"
               />
               Cursor,{" "}
               <IconOpenCode
@@ -150,13 +152,13 @@ const AgentPage = () => {
               <IconDroid
                 width={12}
                 height={12}
-                className="inline -translate-y-px mx-0.5 text-white"
+                className="inline -translate-y-px mx-0.5 text-foreground"
               />
               Factory Droid,{" "}
               <IconCopilot
                 width={12}
                 height={12}
-                className="inline -translate-y-px mx-0.5 text-white"
+                className="inline -translate-y-px mx-0.5 text-foreground"
               />
               Copilot, etc.)
             </li>
@@ -227,7 +229,7 @@ const AgentPage = () => {
             I built the first version of React Grab
             <sup className="text-neutral-500 text-[10px] ml-0.5">2</sup> to
             solve this: press{" "}
-            <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+            <code className="text-foreground/70 bg-card border border-border rounded-lg px-1 py-0.5 text-xs">
               ⌘C
             </code>
             , click an element, and React Grab gives you the component stack
@@ -282,7 +284,7 @@ const AgentPage = () => {
           <p>
             The browser had the best view of your intent. The agent had the
             power to edit the code. Why not put the agent{" "}
-            <span className="text-neutral-300 font-medium">in the browser</span>
+            <span className="text-foreground/70 font-medium">in the browser</span>
             ?
           </p>
           <p className="text-sm text-neutral-500 mt-2">
@@ -313,16 +315,16 @@ const AgentPage = () => {
           <p>The idea is simple.</p>
           <p>
             You hold{" "}
-            <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+            <code className="text-foreground/70 bg-card border border-border rounded-lg px-1 py-0.5 text-xs">
               ⌘C
             </code>
             , click an element, and a small label appears showing the component
             name and tag. Press{" "}
-            <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+            <code className="text-foreground/70 bg-card border border-border rounded-lg px-1 py-0.5 text-xs">
               Enter
             </code>{" "}
             to expand the prompt input. Type what you want to change, press{" "}
-            <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+            <code className="text-foreground/70 bg-card border border-border rounded-lg px-1 py-0.5 text-xs">
               Enter
             </code>{" "}
             again, and the agent starts working.
@@ -355,7 +357,7 @@ const AgentPage = () => {
             Run this command at your project root to automatically install React
             Grab:
           </p>
-          <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden">
+          <div className="bg-card border border-border rounded-lg overflow-hidden">
             <div className="px-3 py-2">
               <HighlightedCodeBlock
                 lang="bash"
@@ -402,11 +404,11 @@ const AgentPage = () => {
             coding agent. When you submit a prompt, React Grab sends the context
             and your message to a local server. The server passes this to the
             actual CLI (
-            <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+            <code className="text-foreground/70 bg-card border border-border rounded-lg px-1 py-0.5 text-xs">
               claude
             </code>{" "}
             or{" "}
-            <code className="text-neutral-300 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-1 py-0.5 text-xs">
+            <code className="text-foreground/70 bg-card border border-border rounded-lg px-1 py-0.5 text-xs">
               cursor-agent
             </code>
             ) which edits your codebase directly. Status updates stream back to
@@ -419,7 +421,7 @@ const AgentPage = () => {
               href="https://github.com/aidenybai/react-grab/tree/main/packages/provider-claude-code"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-neutral-300 hover:text-white underline underline-offset-4"
+              className="text-foreground/80 hover:text-foreground underline underline-offset-4"
             >
               @react-grab/claude-code
             </a>
@@ -428,7 +430,7 @@ const AgentPage = () => {
               href="https://github.com/aidenybai/react-grab/tree/main/packages/provider-cursor"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-neutral-300 hover:text-white underline underline-offset-4"
+              className="text-foreground/80 hover:text-foreground underline underline-offset-4"
             >
               @react-grab/cursor
             </a>
@@ -437,7 +439,7 @@ const AgentPage = () => {
               href="https://github.com/aidenybai/react-grab/tree/main/packages/provider-opencode"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-neutral-300 hover:text-white underline underline-offset-4"
+              className="text-foreground/80 hover:text-foreground underline underline-offset-4"
             >
               @react-grab/opencode
             </a>
@@ -446,7 +448,7 @@ const AgentPage = () => {
               href="https://github.com/aidenybai/react-grab/tree/main/packages/provider-codex"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-neutral-300 hover:text-white underline underline-offset-4"
+              className="text-foreground/80 hover:text-foreground underline underline-offset-4"
             >
               @react-grab/codex
             </a>
@@ -455,7 +457,7 @@ const AgentPage = () => {
               href="https://github.com/aidenybai/react-grab/tree/main/packages/provider-gemini"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-neutral-300 hover:text-white underline underline-offset-4"
+              className="text-foreground/80 hover:text-foreground underline underline-offset-4"
             >
               @react-grab/gemini
             </a>
@@ -464,7 +466,7 @@ const AgentPage = () => {
               href="https://github.com/aidenybai/react-grab/tree/main/packages/provider-amp"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-neutral-300 hover:text-white underline underline-offset-4"
+              className="text-foreground/80 hover:text-foreground underline underline-offset-4"
             >
               @react-grab/amp
             </a>
@@ -473,7 +475,7 @@ const AgentPage = () => {
               href="https://github.com/aidenybai/react-grab/tree/main/packages/provider-droid"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-neutral-300 hover:text-white underline underline-offset-4"
+              className="text-foreground/80 hover:text-foreground underline underline-offset-4"
             >
               @react-grab/droid
             </a>
@@ -507,7 +509,7 @@ const AgentPage = () => {
             React Grab is free and open source.{" "}
             <Link
               href="/"
-              className="text-neutral-300 hover:text-white underline underline-offset-4 transition-colors"
+              className="text-foreground/80 hover:text-foreground underline underline-offset-4 transition-colors"
             >
               Go try it out!
             </Link>
@@ -518,7 +520,7 @@ const AgentPage = () => {
           </div>
         </div>
 
-        <div className="flex flex-col gap-4 mt-12 pt-8 border-t border-neutral-800">
+        <div className="flex flex-col gap-4 mt-12 pt-8 border-t border-border">
           <h4
             id="footnotes"
             className="text-sm font-medium text-neutral-400 scroll-mt-24"
@@ -531,7 +533,7 @@ const AgentPage = () => {
               See the{" "}
               <Link
                 href="/blog/intro"
-                className="text-neutral-400 hover:text-white underline underline-offset-4"
+                className="text-muted-foreground hover:text-foreground underline underline-offset-4"
               >
                 full benchmark writeup
               </Link>

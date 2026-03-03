@@ -51,7 +51,7 @@ const BlogPostPage = () => {
                 <IconCursor
                   width={16}
                   height={16}
-                  className="translate-y-[2px] text-white"
+                  className="translate-y-[2px] text-foreground"
                 />
               }
               name="Cursor"
@@ -73,7 +73,7 @@ const BlogPostPage = () => {
                 <IconCopilot
                   width={18}
                   height={18}
-                  className="translate-y-[2px] text-white"
+                  className="translate-y-[2px] text-foreground"
                 />
               }
               name="Copilot"

@@ -9,6 +9,7 @@
     "lint": "oxlint"
   },
   "dependencies": {
+    "@base-ui/react": "^1.2.0",
     "@react-grab/design-system": "workspace:*",
     "@vercel/analytics": "^1.5.0",
     "@vercel/firewall": "^1.1.1",

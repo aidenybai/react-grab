@@ -14,7 +14,7 @@ export const MessageBlock = ({
   animationDelay,
 }: MessageBlockProps): ReactElement => {
   return (
-    <div className="text-white">
+    <div className="text-foreground">
       <StreamingText
         content={block.content}
         chunks={block.chunks || []}

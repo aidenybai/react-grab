@@ -1,10 +1,11 @@
 "use client";
 
 import { type ReactElement } from "react";
+import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
 
 export const DemoFooter = (): ReactElement => {
-  const handleRestartClick = () => {
+  const handleRestartClick = (): void => {
     if (typeof window === "undefined") return;
 
     try {
@@ -16,26 +17,28 @@ export const DemoFooter = (): ReactElement => {
   };
 
   return (
-    <div className="pt-4 text-sm text-white/50 sm:text-base">
-      <button
+    <div className="pt-4 text-sm text-muted-foreground sm:text-base">
+      <Button
+        variant="ghost"
+        size="sm"
         type="button"
         onClick={handleRestartClick}
-        className="hidden items-center gap-1 hover:text-white/80 sm:inline-flex"
+        className="hidden h-auto items-center gap-1 p-0 text-sm text-muted-foreground hover:bg-transparent hover:text-foreground sm:inline-flex sm:text-base"
       >
         <span className="underline underline-offset-4">restart demo</span>
         <RotateCcw size={13} className="align-middle" />
-      </button>
+      </Button>
       <span className="hidden sm:inline"> &middot; </span>
       <a
         href="/blog"
-        className="underline underline-offset-4 hover:text-white/80"
+        className="underline underline-offset-4 hover:text-foreground"
       >
         blog
       </a>{" "}
       &middot;{" "}
       <a
         href="/changelog"
-        className="underline underline-offset-4 hover:text-white/80"
+        className="underline underline-offset-4 hover:text-foreground"
       >
         changelog
       </a>

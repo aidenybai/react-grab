@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, type ReactElement } from "react";
-import { Copy, Check, Terminal, MessageSquare } from "lucide-react";
+import { Copy, Check, Terminal } from "lucide-react";
 import { COPY_FEEDBACK_DURATION_MS } from "@/constants";
 import { cn } from "@/utils/cn";
 import { detectMobile } from "@/utils/detect-mobile";
@@ -15,7 +15,7 @@ interface InlineCodeProps {
 }
 
 const InlineCode = ({ children }: InlineCodeProps): ReactElement => (
-  <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-xs text-white/70">
+  <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
     {children}
   </code>
 );
@@ -298,21 +298,21 @@ export const InstallTabs = ({
   return (
     <div>
       {showHeading && (
-        <span className="hidden sm:inline text-white">
+        <span className="hidden sm:inline text-foreground">
           {headingText}
           {activeTab.variant !== "code" && (
             <button
               type="button"
               onClick={() => setActiveTabId("next-app")}
-              className="ml-3 text-xs italic text-white/40 hover:text-white/60 hover:underline transition-colors sm:text-sm"
+              className="ml-3 text-xs italic text-muted-foreground hover:text-foreground/60 hover:underline transition-colors sm:text-sm"
             >
               Prefer manual install?
             </button>
           )}
         </span>
       )}
-      <div className="mt-4 overflow-hidden rounded-lg border border-white/10 bg-white/5 text-white shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
-        <div className="flex items-center gap-4 overflow-x-auto border-b border-white/10 px-4 pt-2">
+      <div className="mt-4 overflow-hidden rounded-lg border border-border bg-card text-foreground shadow-lg">
+        <div className="flex items-center gap-4 overflow-x-auto border-b border-border px-4 pt-2">
           {installTabsData.map((tab) => {
             const isActive = tab.id === activeTab.id;
 
@@ -323,30 +323,29 @@ export const InstallTabs = ({
                 className={cn(
                   "shrink-0 whitespace-nowrap border-b pb-2 font-sans text-sm transition-colors sm:text-base",
                   isActive
-                    ? "border-white text-white"
-                    : "border-transparent text-white/60 hover:text-white",
+                    ? "border-foreground text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground",
                 )}
                 onClick={() => setActiveTabId(tab.id)}
               >
                 <span className="inline-flex items-center gap-1.5">
                   {tab.id === "cli" && <Terminal size={14} />}
-                  {tab.id === "prompt" && <MessageSquare size={14} />}
                   {tab.label}
                 </span>
               </button>
             );
           })}
         </div>
-        <div className="bg-black/60 relative">
+        <div className="bg-background/60 relative">
           <div className="relative">
             {activeTab.variant !== "code" ? (
               <button
                 type="button"
                 onClick={handleCopyClick}
-                className="group flex w-full items-center justify-between gap-4 px-4 py-6 transition-colors hover:bg-white/5"
+                className="group flex w-full items-center justify-between gap-4 px-4 py-6 transition-colors hover:bg-muted/50"
               >
                 {activeTab.variant === "prompt" ? (
-                  <p className="text-left text-base leading-relaxed text-white/80 text-pretty">
+                  <p className="text-left text-base leading-relaxed text-foreground/80 text-pretty">
                     {activeCode}
                   </p>
                 ) : highlightedCode ? (
@@ -355,11 +354,11 @@ export const InstallTabs = ({
                     dangerouslySetInnerHTML={{ __html: highlightedCode }}
                   />
                 ) : (
-                  <pre className="overflow-x-auto font-mono text-base leading-relaxed text-white/80">
+                  <pre className="overflow-x-auto font-mono text-base leading-relaxed text-foreground/80">
                     <code>{activeCode}</code>
                   </pre>
                 )}
-                <span className="shrink-0 text-white/50 transition-colors group-hover:text-white">
+                <span className="shrink-0 text-muted-foreground transition-colors group-hover:text-foreground">
                   {didCopy ? <Check size={16} /> : <Copy size={16} />}
                 </span>
               </button>
@@ -368,7 +367,7 @@ export const InstallTabs = ({
                 <button
                   type="button"
                   onClick={handleCopyClick}
-                  className="touch-hitbox absolute! right-4 top-4 text-white/50 opacity-0 transition-opacity hover:text-white group-hover:opacity-100 z-10"
+                  className="touch-hitbox absolute! right-4 top-4 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100 z-10"
                 >
                   {didCopy ? <Check size={16} /> : <Copy size={16} />}
                 </button>
@@ -378,7 +377,7 @@ export const InstallTabs = ({
                     dangerouslySetInnerHTML={{ __html: highlightedCode }}
                   />
                 ) : (
-                  <pre className="overflow-x-auto p-4 font-mono text-[13px] leading-relaxed text-white/80">
+                  <pre className="overflow-x-auto p-4 font-mono text-[13px] leading-relaxed text-foreground/80">
                     <code>{activeCode}</code>
                   </pre>
                 )}
@@ -388,14 +387,14 @@ export const InstallTabs = ({
         </div>
       </div>
       {activeTab.variant === "code" && (
-        <span className="mt-4 block text-sm text-white/50 sm:text-base">
+        <span className="mt-4 block text-sm text-muted-foreground sm:text-base">
           {activeTab.description}
         </span>
       )}
       {showAgentNote && activeTab.variant === "code" && (
-        <span className="mt-2 block text-sm text-white/50 sm:text-base">
+        <span className="mt-2 block text-sm text-muted-foreground sm:text-base">
           Want to connect directly to your coding agent?{" "}
-          <a href="/blog/agent" className="underline hover:text-white/70">
+          <a href="/blog/agent" className="underline hover:text-foreground/70">
             See our agent connection guide
           </a>
         </span>

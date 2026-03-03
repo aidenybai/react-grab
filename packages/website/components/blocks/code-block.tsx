@@ -2,6 +2,7 @@
 
 import { useState, useEffect, type ReactElement } from "react";
 import { ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   CODE_BLOCK_COLLAPSE_LINE_THRESHOLD,
   CODE_BLOCK_MAX_HEIGHT_PX,
@@ -51,16 +52,16 @@ export const CodeBlock = ({ block }: CodeBlockProps): ReactElement => {
     : {};
 
   return (
-    <div className="relative bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
+    <div className="relative bg-card border border-border rounded-lg overflow-hidden shadow-lg">
       <div className="overflow-hidden" style={maxHeightStyle}>
-        <div className="p-4 font-mono text-sm text-white overflow-x-auto">
+        <div className="p-4 font-mono text-sm text-foreground overflow-x-auto">
           {highlightedCode ? (
             <div
               dangerouslySetInnerHTML={{ __html: highlightedCode }}
               className="highlighted-code"
             />
           ) : (
-            <pre className="text-[#d4d4d4]">
+            <pre className="text-foreground/80">
               <StreamingText
                 content={block.content}
                 chunks={block.chunks || []}
@@ -71,13 +72,14 @@ export const CodeBlock = ({ block }: CodeBlockProps): ReactElement => {
       </div>
 
       {shouldShowExpandButton && !isExpanded && (
-        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#0d0d0d] via-[#0d0d0d]/95 to-transparent pointer-events-none" />
+        <div className="absolute bottom-0 left-0 right-0 h-24 bg-linear-to-t from-card via-card/95 to-transparent pointer-events-none" />
       )}
 
       {shouldShowExpandButton && (
-        <button
+        <Button
+          variant="ghost"
           onClick={() => setIsExpanded(!isExpanded)}
-          className="relative w-full py-2 flex items-center justify-center gap-1 text-xs text-white/50 hover:text-white/90 transition-colors bg-[#0d0d0d]"
+          className="relative h-auto w-full rounded-none py-2 flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors bg-card"
           type="button"
         >
           <span>{isExpanded ? "Show less" : "Show more"}</span>
@@ -85,7 +87,7 @@ export const CodeBlock = ({ block }: CodeBlockProps): ReactElement => {
             size={14}
             className={`transition-transform ${isExpanded ? "rotate-180" : ""}`}
           />
-        </button>
+        </Button>
       )}
     </div>
   );

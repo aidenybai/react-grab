@@ -48,11 +48,11 @@ const ChangelogPage = () => {
   const entries = getChangelog();
 
   return (
-    <div className="min-h-screen bg-black px-4 py-6 sm:px-8 sm:py-8">
+    <div className="min-h-screen bg-background px-4 py-6 sm:px-8 sm:py-8">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 pt-4 text-base sm:pt-8">
         <Link
           href="/"
-          className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-colors mb-4"
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
         >
           <ArrowLeft size={16} />
           Back to home
@@ -71,7 +71,7 @@ const ChangelogPage = () => {
         </div>
 
         <div className="flex flex-col gap-1">
-          <div className="text-white font-bold">Changelog</div>
+          <div className="text-foreground font-bold">Changelog</div>
           <div className="text-sm text-neutral-500">
             Release notes and version history
           </div>
@@ -81,7 +81,7 @@ const ChangelogPage = () => {
           {entries.map((entry) => (
             <div key={entry.version} className="flex flex-col gap-2">
               <div className="flex items-center gap-3">
-                <span className="text-white font-mono text-sm font-medium">
+                <span className="text-foreground font-mono text-sm font-medium">
                   {entry.version}
                 </span>
                 <span className="text-neutral-600 text-xs">
@@ -92,7 +92,7 @@ const ChangelogPage = () => {
                 {entry.changes.map((change, changeIndex) => (
                   <li
                     key={changeIndex}
-                    className="text-neutral-400 text-sm flex items-start gap-2"
+                    className="text-muted-foreground text-sm flex items-start gap-2"
                   >
                     <span className="text-neutral-600 select-none">•</span>
                     <span>{change}</span>

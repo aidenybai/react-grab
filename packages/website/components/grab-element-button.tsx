@@ -11,6 +11,7 @@ import {
 } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { HOTKEY_KEYUP_DELAY_MS } from "@/constants";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/cn";
 import { detectMobile } from "@/utils/detect-mobile";
 import { getKeyFromCode } from "@/utils/get-key-from-code";
@@ -297,7 +298,7 @@ export const GrabElementButton = ({
   const renderHotkeyDisplay = (): ReactElement => {
     if (isRecordingHotkey) {
       return (
-        <span className="text-sm text-white/60 animate-pulse px-2 py-1">
+        <span className="text-sm text-muted-foreground animate-pulse px-2 py-1">
           Press keys
         </span>
       );
@@ -337,14 +338,14 @@ export const GrabElementButton = ({
   };
 
   const renderActivationPrompt = (): ReactElement => (
-    <span className="flex items-center gap-1.5 text-white">
+    <span className="flex items-center gap-1.5 text-foreground">
       <span>Hold</span>
       <span
         onClick={handleHotkeyClick}
         className={cn(
           "inline-flex items-center gap-1 transition-all outline-none",
           hasAdvanced && "cursor-pointer",
-          isRecordingHotkey && "ring-2 ring-white/50 rounded",
+          isRecordingHotkey && "ring-2 ring-ring rounded",
         )}
       >
         {renderHotkeyDisplay()}
@@ -398,13 +399,13 @@ export const GrabElementButton = ({
             }
           />
         )}
-        <button
+        <Button
           onClick={toggleReactGrab}
+          variant={hasAdvanced ? "outline" : "default"}
           className={cn(
-            "relative flex h-12 w-full items-center justify-center gap-2 rounded-lg px-3 text-sm text-white transition-all active:scale-[0.98] sm:w-auto sm:text-base",
-            hasAdvanced
-              ? "border border-white/20 bg-white/5 hover:bg-white/10"
-              : "border border-[#d75fcb] bg-[#330039] hover:bg-[#4a0052] shadow-[0_0_12px_rgba(215,95,203,0.4)]",
+            "relative flex h-12 w-full items-center justify-center gap-2 rounded-lg px-3 text-sm transition-all active:scale-[0.98] sm:w-auto sm:text-base",
+            !hasAdvanced &&
+              "border border-[#d75fcb] bg-[#330039] text-white hover:bg-[#4a0052] shadow-[0_0_12px_rgba(215,95,203,0.4)]",
           )}
           type="button"
         >
@@ -415,7 +416,7 @@ export const GrabElementButton = ({
               Click to select an element
             </span>
           )}
-        </button>
+        </Button>
         {!hasAdvanced && !isActivated && (
           <motion.div
             initial={shouldReduceMotion ? false : { opacity: 0 }}
@@ -432,7 +433,7 @@ export const GrabElementButton = ({
             className="absolute top-1/2 right-full -translate-y-1/2 mr-2 flex items-center gap-1 pointer-events-none select-none"
           >
             <motion.span
-              className="font-(family-name:--font-caveat) text-white/40 text-lg -rotate-3"
+              className="font-(family-name:--font-caveat) text-muted-foreground text-lg -rotate-3"
               initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={
@@ -452,7 +453,7 @@ export const GrabElementButton = ({
               height="16"
               viewBox="0 0 32 16"
               fill="none"
-              className="text-white/40 shrink-0"
+              className="text-muted-foreground shrink-0"
             >
               <motion.path
                 d="M2 10 Q14 12 24 8"
@@ -496,13 +497,9 @@ export const GrabElementButton = ({
         )}
       </div>
       {!hideSkip && showSkip && (
-        <button
-          onClick={handleSkip}
-          className="px-3 py-2 text-white/50 hover:text-white/90 text-sm transition-colors"
-          type="button"
-        >
+        <Button onClick={handleSkip} variant="ghost" type="button">
           Skip
-        </button>
+        </Button>
       )}
     </motion.div>
   );

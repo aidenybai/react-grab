@@ -35,7 +35,7 @@ export const BlogArticleLayout = ({
   subtitle,
 }: BlogArticleLayoutProps) => {
   return (
-    <div className="min-h-screen bg-black font-sans text-white">
+    <div className="min-h-screen bg-background font-sans text-foreground">
       <div className="px-4 sm:px-8 pt-12 sm:pt-16 pb-56">
         <div className="mx-auto max-w-5xl flex justify-center gap-12">
           <TableOfContents headings={headings} />
@@ -44,7 +44,7 @@ export const BlogArticleLayout = ({
             <div className="flex items-center gap-2 text-sm text-neutral-400 opacity-50 hover:opacity-100 transition-opacity">
               <Link
                 href="/"
-                className="hover:text-white transition-colors flex items-center gap-2 underline underline-offset-4"
+                className="hover:text-foreground transition-colors flex items-center gap-2 underline underline-offset-4"
               >
                 <ArrowLeft size={16} />
                 Back to home
@@ -52,7 +52,7 @@ export const BlogArticleLayout = ({
               <span>·</span>
               <Link
                 href="/blog"
-                className="hover:text-white transition-colors underline underline-offset-4"
+                className="hover:text-foreground transition-colors underline underline-offset-4"
               >
                 Read more posts
               </Link>
@@ -67,7 +67,7 @@ export const BlogArticleLayout = ({
                     className="w-10 h-10"
                   />
                 </Link>
-                <h1 className="text-xl font-medium text-white">{title}</h1>
+                <h1 className="text-xl font-medium text-foreground">{title}</h1>
               </div>
 
               <div className="text-sm text-neutral-500">
@@ -78,7 +78,7 @@ export const BlogArticleLayout = ({
                       href={author.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-neutral-300 hover:text-white underline underline-offset-4"
+                      className="text-foreground/80 hover:text-foreground underline underline-offset-4"
                     >
                       {author.name}
                     </a>

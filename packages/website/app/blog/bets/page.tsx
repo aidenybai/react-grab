@@ -64,7 +64,7 @@ const BetsPage = () => {
               href="https://www.youtube.com/watch?v=P1FLEnKZTAE"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-neutral-300 hover:text-white underline underline-offset-4"
+              className="text-foreground/80 hover:text-foreground underline underline-offset-4"
             >
               the last framework
             </a>
@@ -87,7 +87,7 @@ const BetsPage = () => {
               href="https://cursor.com/blog/tab-rl"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-neutral-300 hover:text-white underline underline-offset-4"
+              className="text-foreground/80 hover:text-foreground underline underline-offset-4"
             >
               RL
             </a>
@@ -115,7 +115,7 @@ const BetsPage = () => {
               href="https://x.com/polynoamial/status/1994439121243169176"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-neutral-300 hover:text-white underline underline-offset-4"
+              className="text-foreground/80 hover:text-foreground underline underline-offset-4"
             >
               5-20 years
             </a>
@@ -143,7 +143,7 @@ const BetsPage = () => {
               href="https://cognition.ai/blog/swe-grep"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-neutral-300 hover:text-white underline underline-offset-4"
+              className="text-foreground/80 hover:text-foreground underline underline-offset-4"
             >
               well-spec{"'"}d feature
             </a>
@@ -171,7 +171,7 @@ const BetsPage = () => {
               href="https://x.com/aidenybai"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-neutral-300 hover:text-white underline underline-offset-4"
+              className="text-foreground/80 hover:text-foreground underline underline-offset-4"
             >
               we should chat
             </a>
@@ -190,7 +190,7 @@ const BetsPage = () => {
             React Grab is free and open source.{" "}
             <Link
               href="/"
-              className="text-neutral-300 hover:text-white underline underline-offset-4 transition-colors"
+              className="text-foreground/80 hover:text-foreground underline underline-offset-4 transition-colors"
             >
               Go try it out!
             </Link>
@@ -201,7 +201,7 @@ const BetsPage = () => {
           </div>
         </div>
 
-        <div className="flex flex-col gap-4 mt-12 pt-8 border-t border-neutral-800">
+        <div className="flex flex-col gap-4 mt-12 pt-8 border-t border-border">
           <h4
             id="footnotes"
             className="text-sm font-medium text-neutral-400 scroll-mt-24"
