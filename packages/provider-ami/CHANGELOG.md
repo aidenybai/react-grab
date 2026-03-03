@@ -1,5 +1,13 @@
 # @react-grab/ami
 
+## 0.1.21
+
+### Patch Changes
+
+- fix: up and down selection
+- Updated dependencies
+  - react-grab@0.1.21
+
 ## 0.1.20
 
 ### Patch Changes

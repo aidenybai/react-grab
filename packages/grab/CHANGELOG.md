@@ -1,5 +1,13 @@
 # grab
 
+## 0.1.21
+
+### Patch Changes
+
+- fix: up and down selection
+- Updated dependencies
+  - @react-grab/cli@0.1.21
+
 ## 0.1.20
 
 ### Patch Changes

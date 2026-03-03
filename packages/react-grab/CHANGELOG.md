@@ -1,5 +1,11 @@
 # react-grab
 
+## 0.1.21
+
+### Patch Changes
+
+- fix: up and down selection
+
 ## 0.1.20
 
 ### Patch Changes
