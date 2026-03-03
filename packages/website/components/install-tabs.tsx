@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, type ReactElement } from "react";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, Terminal, MessageSquare } from "lucide-react";
 import { COPY_FEEDBACK_DURATION_MS } from "@/constants";
 import { cn } from "@/utils/cn";
 import { detectMobile } from "@/utils/detect-mobile";
@@ -419,7 +419,11 @@ export const InstallTabs = ({
                 )}
                 onClick={() => setActiveTabId(tab.id)}
               >
-                <span>{tab.label}</span>
+                <span className="inline-flex items-center gap-1.5">
+                  {tab.id === "cli" && <Terminal size={14} />}
+                  {tab.id === "prompt" && <MessageSquare size={14} />}
+                  {tab.label}
+                </span>
               </button>
             );
           })}
