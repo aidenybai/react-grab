@@ -33,6 +33,7 @@ import { BottomSection } from "./bottom-section.js";
 import { DiscardPrompt } from "./discard-prompt.js";
 import { ErrorView } from "./error-view.js";
 import { CompletionView } from "./completion-view.js";
+import { ArrowNavigationMenu } from "./arrow-navigation-menu.js";
 
 const DEFAULT_OFFSCREEN_POSITION = {
   left: SELECTION_LABEL_OFFSCREEN_PX,
@@ -86,6 +87,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     ) {
       return true;
     }
+    if (props.arrowNavigationState?.isVisible) return true;
     return false;
   };
 
@@ -323,6 +325,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const actionCycleActiveIndex = () => props.actionCycleState?.activeIndex ?? 0;
   const isActionCycleVisible = () => Boolean(props.actionCycleState?.isVisible);
 
+  const isArrowNavigationVisible = () =>
+    Boolean(props.arrowNavigationState?.isVisible);
+
   const handleTagClick = (event: MouseEvent) => {
     event.stopImmediatePropagation();
     if (props.filePath && props.onOpen) {
@@ -471,8 +476,17 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           </Show>
 
           <Show when={canInteract() && !props.isPromptMode}>
-            <div class="contain-layout shrink-0 flex flex-col items-start w-fit h-fit">
-              <div class="contain-layout shrink-0 flex items-center gap-1 py-1.5 w-fit h-fit px-2">
+            <div
+              class="contain-layout shrink-0 flex flex-col items-start w-fit h-fit"
+              classList={{ "min-w-[100px]": isArrowNavigationVisible() }}
+            >
+              <div
+                class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit px-2"
+                classList={{
+                  "py-1.5": !isArrowNavigationVisible(),
+                  "pt-1.5 pb-1": isArrowNavigationVisible(),
+                }}
+              >
                 <TagBadge
                   tagName={tagDisplay()}
                   componentName={componentNameDisplay()}
@@ -480,10 +494,23 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   onClick={handleTagClick}
                   onHoverChange={handleTagHoverChange}
                   shrink
-                  forceShowIcon={Boolean(props.isContextMenuOpen)}
+                  forceShowIcon={
+                    isArrowNavigationVisible()
+                      ? isTagClickable()
+                      : Boolean(props.isContextMenuOpen)
+                  }
                 />
               </div>
-              <Show when={isActionCycleVisible()}>
+              <Show when={props.arrowNavigationState?.isVisible}>
+                <ArrowNavigationMenu
+                  items={props.arrowNavigationState!.items}
+                  activeIndex={props.arrowNavigationState!.activeIndex}
+                  onSelect={(index) => props.onArrowNavigationSelect?.(index)}
+                />
+              </Show>
+              <Show
+                when={!isArrowNavigationVisible() && isActionCycleVisible()}
+              >
                 <BottomSection>
                   <div class="flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5">
                     <For each={actionCycleItems()}>
