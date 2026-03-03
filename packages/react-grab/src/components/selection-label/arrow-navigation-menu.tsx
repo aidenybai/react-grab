@@ -47,7 +47,10 @@ export const ArrowNavigationMenu: Component<ArrowNavigationMenuProps> = (
               }}
               data-react-grab-ignore-events
               data-react-grab-arrow-nav-item={item.tagName}
-              class="relative z-1 contain-layout flex items-center w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent"
+              class="relative z-1 contain-layout flex items-center w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent transition-opacity"
+              classList={{
+                "opacity-40": itemIndex() !== props.activeIndex,
+              }}
               onPointerDown={(event) => event.stopPropagation()}
               onPointerEnter={(event) => {
                 updateHighlight(event.currentTarget);
