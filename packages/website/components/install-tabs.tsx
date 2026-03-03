@@ -66,7 +66,7 @@ const installTabsData: InstallTab[] = [
   },
   {
     id: "next-app",
-    label: "Next.js (App)",
+    label: "Next.js",
     description: (
       <>
         Add this inside of your <InlineCode>app/layout.tsx</InlineCode>
@@ -100,47 +100,6 @@ export default function RootLayout({ children }) {
     },
     getChangedLines: (hotkey) =>
       hotkey ? [7, 8, 9, 10, 11, 12, 13, 14] : [7, 8, 9, 10, 11, 12, 13],
-  },
-  {
-    id: "next-pages",
-    label: "Next.js (Pages)",
-    description: (
-      <>
-        Add this into your <InlineCode>pages/_document.tsx</InlineCode>
-      </>
-    ),
-    variant: "code",
-    getCode: (hotkey) => {
-      const dataOptionsAttr = hotkey
-        ? `\n            data-options='{"activationKey":"${hotkeyToString(
-            hotkey,
-          )}"}'`
-        : "";
-      return `import { Html, Head, Main, NextScript } from "next/document";
-import Script from "next/script";
-
-export default function Document() {
-  return (
-    <Html lang="en">
-      <Head>
-        {process.env.NODE_ENV === "development" && (
-          <Script
-            src="//unpkg.com/react-grab/dist/index.global.js"
-            crossOrigin="anonymous"
-            strategy="beforeInteractive"${dataOptionsAttr}
-          />
-        )}
-      </Head>
-      <body>
-        <Main />
-        <NextScript />
-      </body>
-    </Html>
-  );
-}`;
-    },
-    getChangedLines: (hotkey) =>
-      hotkey ? [8, 9, 10, 11, 12, 13, 14, 15] : [8, 9, 10, 11, 12, 13, 14],
   },
   {
     id: "vite",
@@ -191,56 +150,6 @@ export default function Document() {
     },
     getChangedLines: (hotkey) =>
       hotkey ? [4, 5, 6, 7, 8, 9, 10, 11] : [4, 5, 6, 7, 8, 9, 10],
-  },
-  {
-    id: "webpack",
-    label: "Webpack",
-    description: (
-      <>
-        First <InlineCode>npm install react-grab</InlineCode>, then add this at
-        the top of your main entry file
-      </>
-    ),
-    variant: "code",
-    getCode: (hotkey) => {
-      if (hotkey) {
-        return `import React from "react";
-import ReactDOM from "react-dom/client";
-import App from "./App";
-
-if (process.env.NODE_ENV === "development") {
-  import("react-grab/core").then(({ init }) => {
-    init(${formatInitOptions(hotkey)});
-  });
-}
-
-const root = ReactDOM.createRoot(
-  document.getElementById("root") as HTMLElement
-);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);`;
-      }
-      return `import React from "react";
-import ReactDOM from "react-dom/client";
-import App from "./App";
-
-if (process.env.NODE_ENV === "development") {
-  import("react-grab");
-}
-
-const root = ReactDOM.createRoot(
-  document.getElementById("root") as HTMLElement
-);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);`;
-    },
-    getChangedLines: (hotkey) => (hotkey ? [5, 6, 7, 8, 9] : [5, 6, 7]),
   },
   {
     id: "tanstack",
