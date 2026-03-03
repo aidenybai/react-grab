@@ -415,9 +415,7 @@ export const InstallTabs = ({
                   "shrink-0 whitespace-nowrap border-b pb-2 font-sans text-sm transition-colors sm:text-base",
                   isActive
                     ? "border-white text-white"
-                    : tab.variant === "code"
-                      ? "border-transparent text-white/20 hover:text-white/40"
-                      : "border-transparent text-white/60 hover:text-white",
+                    : "border-transparent text-white/60 hover:text-white",
                 )}
                 onClick={() => setActiveTabId(tab.id)}
               >
