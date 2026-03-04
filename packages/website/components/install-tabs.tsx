@@ -4,6 +4,9 @@ import { useEffect, useState, useCallback, type ReactElement } from "react";
 import { Copy, Check, Terminal } from "lucide-react";
 import { COPY_FEEDBACK_DURATION_MS } from "@/constants";
 import { cn } from "@/utils/cn";
+import { IconNextjs } from "./icons/icon-nextjs";
+import { IconVite } from "./icons/icon-vite";
+import { IconTanstack } from "./icons/icon-tanstack";
 import { detectMobile } from "@/utils/detect-mobile";
 import { hotkeyToString } from "@/utils/hotkey-to-string";
 import type { RecordedHotkey } from "./grab-element-button";
@@ -330,6 +333,21 @@ export const InstallTabs = ({
               >
                 <span className="inline-flex items-center gap-1.5">
                   {tab.id === "cli" && <Terminal size={14} />}
+                  {tab.id === "next-app" && (
+                    <IconNextjs
+                      className={isActive ? "grayscale-0 opacity-100" : ""}
+                    />
+                  )}
+                  {tab.id === "vite" && (
+                    <IconVite
+                      className={isActive ? "grayscale-0 opacity-100" : ""}
+                    />
+                  )}
+                  {tab.id === "tanstack" && (
+                    <IconTanstack
+                      className={isActive ? "grayscale-0 opacity-100" : ""}
+                    />
+                  )}
                   {tab.label}
                 </span>
               </button>

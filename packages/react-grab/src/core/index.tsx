@@ -2849,8 +2849,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (!event.isPrimary) return;
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
+        const isActive = isRendererActive() || isCopying() || isDragging();
         const hasModifierKeyHeld = event.metaKey || event.ctrlKey;
         handlePointerUp(event.clientX, event.clientY, hasModifierKeyHeld);
+        if (isActive) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        }
       },
       { capture: true },
     );

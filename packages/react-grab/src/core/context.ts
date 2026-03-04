@@ -289,6 +289,16 @@ const enrichServerFrameLocations = (
   });
 };
 
+const findNearestFiberElement = (element: Element): Element => {
+  if (!isInstrumentationActive()) return element;
+  let current: Element | null = element;
+  while (current) {
+    if (getFiberFromHostInstance(current)) return current;
+    current = current.parentElement;
+  }
+  return element;
+};
+
 const stackCache = new WeakMap<Element, Promise<StackFrame[] | null>>();
 
 const fetchStackForElement = async (
@@ -314,11 +324,12 @@ const fetchStackForElement = async (
 export const getStack = (element: Element): Promise<StackFrame[] | null> => {
   if (!isInstrumentationActive()) return Promise.resolve([]);
 
-  const cached = stackCache.get(element);
+  const resolvedElement = findNearestFiberElement(element);
+  const cached = stackCache.get(resolvedElement);
   if (cached) return cached;
 
-  const promise = fetchStackForElement(element);
-  stackCache.set(element, promise);
+  const promise = fetchStackForElement(resolvedElement);
+  stackCache.set(resolvedElement, promise);
   return promise;
 };
 
@@ -371,7 +382,8 @@ const isUsefulComponentName = (name: string): boolean => {
 
 export const getComponentDisplayName = (element: Element): string | null => {
   if (!isInstrumentationActive()) return null;
-  const fiber = getFiberFromHostInstance(element);
+  const resolvedElement = findNearestFiberElement(element);
+  const fiber = getFiberFromHostInstance(resolvedElement);
   if (!fiber) return null;
 
   let currentFiber = fiber.return;
@@ -500,14 +512,15 @@ export const getElementContext = async (
   element: Element,
   options: StackContextOptions = {},
 ): Promise<string> => {
-  const html = getHTMLPreview(element);
-  const stackContext = await getStackContext(element, options);
+  const resolvedElement = findNearestFiberElement(element);
+  const html = getHTMLPreview(resolvedElement);
+  const stackContext = await getStackContext(resolvedElement, options);
 
   if (stackContext) {
     return `${html}${stackContext}`;
   }
 
-  return getFallbackContext(element);
+  return getFallbackContext(resolvedElement);
 };
 
 const getFallbackContext = (element: Element): string => {

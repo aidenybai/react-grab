@@ -20,6 +20,7 @@ interface PendingUpdate {
 
 interface HookQueue {
   pending?: unknown;
+  dispatch?: ((...args: unknown[]) => void) | null;
   getSnapshot?: () => unknown;
 }
 
@@ -177,17 +178,39 @@ const pauseHookQueue = (queue: HookQueue): void => {
   Object.defineProperty(queue, "pending", {
     configurable: true,
     enumerable: true,
-    get: () =>
-      isUpdatesPaused ? pauseState.bufferedPending : currentPendingValue,
+    get: () => (isUpdatesPaused ? null : currentPendingValue),
     set: (newValue: PendingUpdate | null) => {
       if (isUpdatesPaused) {
-        pauseState.bufferedPending = newValue;
+        if (newValue !== null) {
+          pauseState.bufferedPending = mergePendingChains(
+            pauseState.bufferedPending ?? null,
+            newValue,
+          );
+        }
+        return;
       }
       currentPendingValue = newValue;
     },
   });
 
   pausedQueueStates.set(queue, pauseState);
+};
+
+const extractActionsFromChain = (
+  pending: PendingUpdate | null,
+): unknown[] => {
+  if (!pending) return [];
+  const actions: unknown[] = [];
+  const first = pending.next;
+  if (!first) return [];
+  let current: PendingUpdate | null = first;
+  do {
+    if (current) {
+      actions.push(current.action);
+      current = current.next;
+    }
+  } while (current && current !== first);
+  return actions;
 };
 
 const resumeHookQueue = (queue: HookQueue): void => {
@@ -197,11 +220,6 @@ const resumeHookQueue = (queue: HookQueue): void => {
   if (pauseState.originalGetSnapshot) {
     queue.getSnapshot = pauseState.originalGetSnapshot;
   }
-
-  const mergedPending = mergePendingChains(
-    pauseState.pendingValueAtPause ?? null,
-    pauseState.bufferedPending ?? null,
-  );
 
   if (pauseState.originalPendingDescriptor) {
     Object.defineProperty(
@@ -213,7 +231,21 @@ const resumeHookQueue = (queue: HookQueue): void => {
     delete (queue as Record<string, unknown>).pending;
   }
 
-  queue.pending = mergedPending;
+  queue.pending = null;
+
+  const dispatch = queue.dispatch;
+  if (typeof dispatch === "function") {
+    const pendingActions = extractActionsFromChain(
+      pauseState.pendingValueAtPause ?? null,
+    );
+    const bufferedActions = extractActionsFromChain(
+      pauseState.bufferedPending ?? null,
+    );
+    for (const action of [...pendingActions, ...bufferedActions]) {
+      pendingStateUpdates.push(() => dispatch(action));
+    }
+  }
+
   pausedQueueStates.delete(queue);
 };
 

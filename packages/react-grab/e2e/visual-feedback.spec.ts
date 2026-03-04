@@ -276,19 +276,21 @@ test.describe("Visual Feedback", () => {
       await reactGrab.waitForSelectionBox();
       await reactGrab.waitForSelectionLabel();
 
-      const bounds = await reactGrab.getSelectionLabelBounds();
-      expect(bounds).not.toBeNull();
-      expect(bounds?.arrow).not.toBeNull();
-      if (bounds?.arrow) {
-        expect(bounds.label.x).toBeGreaterThanOrEqual(0);
-        expect(bounds.label.x + bounds.label.width).toBeLessThanOrEqual(
-          bounds.viewport.width,
-        );
-        expect(bounds.arrow.x).toBeGreaterThanOrEqual(bounds.label.x);
-        expect(bounds.arrow.x + bounds.arrow.width).toBeLessThanOrEqual(
-          bounds.label.x + bounds.label.width,
-        );
-      }
+      await expect(async () => {
+        const bounds = await reactGrab.getSelectionLabelBounds();
+        expect(bounds).not.toBeNull();
+        expect(bounds?.arrow).not.toBeNull();
+        if (bounds?.arrow) {
+          expect(bounds.label.x).toBeGreaterThanOrEqual(0);
+          expect(bounds.label.x + bounds.label.width).toBeLessThanOrEqual(
+            bounds.viewport.width,
+          );
+          expect(bounds.arrow.x).toBeGreaterThanOrEqual(bounds.label.x);
+          expect(bounds.arrow.x + bounds.arrow.width).toBeLessThanOrEqual(
+            bounds.label.x + bounds.label.width,
+          );
+        }
+      }).toPass({ timeout: 2000 });
     });
 
     test("label and arrow should stay within bounds at bottom-left edge", async ({

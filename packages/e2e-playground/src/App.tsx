@@ -470,6 +470,189 @@ const DropdownSection = () => {
   );
 };
 
+const ModalDialogSection = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [dismissCount, setDismissCount] = useState(0);
+  const [dismissReason, setDismissReason] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (
+        dialogRef.current &&
+        !dialogRef.current.contains(event.target as Node)
+      ) {
+        setDismissCount((previous) => previous + 1);
+        setDismissReason("pointerdown outside (capture)");
+        setIsOpen(false);
+      }
+    };
+
+    window.addEventListener("pointerdown", handlePointerDown, {
+      capture: true,
+    });
+
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown, {
+        capture: true,
+      });
+    };
+  }, [isOpen]);
+
+  return (
+    <section
+      className="border rounded-lg p-4"
+      data-testid="modal-dialog-section"
+    >
+      <h2 className="text-lg font-bold mb-4">
+        Modal Dialog (pointerdown dismiss)
+      </h2>
+      <button
+        onClick={() => setIsOpen(true)}
+        className="bg-indigo-500 text-white px-4 py-2 rounded"
+        data-testid="modal-trigger"
+      >
+        Open Modal
+      </button>
+      <div className="mt-2 text-sm text-gray-600" data-testid="dismiss-info">
+        Dismiss count: {dismissCount}
+        {dismissReason && ` (last: ${dismissReason})`}
+      </div>
+      {isOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+          <div
+            className="fixed inset-0 bg-black/50"
+            data-testid="modal-backdrop"
+          />
+          <div
+            ref={dialogRef}
+            className="relative bg-white rounded-lg shadow-xl p-6 w-96 z-10"
+            data-testid="modal-content"
+          >
+            <h3 className="text-lg font-bold mb-2">Modal Title</h3>
+            <p className="mb-4">
+              Click inside here while React Grab is active. The modal should NOT
+              close.
+            </p>
+            <button
+              className="bg-blue-500 text-white px-3 py-1 rounded"
+              data-testid="modal-inner-button"
+            >
+              Button Inside Modal
+            </button>
+            <button
+              onClick={() => setIsOpen(false)}
+              className="ml-2 bg-gray-300 px-3 py-1 rounded"
+              data-testid="modal-close-button"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+};
+
+const PointerUpModalSection = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [dismissCount, setDismissCount] = useState(0);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const pointerDownTargetRef = useRef<EventTarget | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      pointerDownTargetRef.current = event.composedPath?.()[0] ?? event.target;
+    };
+
+    const handlePointerUp = (event: PointerEvent) => {
+      const downTarget = pointerDownTargetRef.current;
+      pointerDownTargetRef.current = null;
+      if (!downTarget) return;
+
+      if (
+        dialogRef.current &&
+        !dialogRef.current.contains(downTarget as Node)
+      ) {
+        setDismissCount((previous) => previous + 1);
+        setIsOpen(false);
+      }
+    };
+
+    window.addEventListener("pointerdown", handlePointerDown, {
+      capture: true,
+    });
+    window.addEventListener("pointerup", handlePointerUp, { capture: true });
+
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown, {
+        capture: true,
+      });
+      window.removeEventListener("pointerup", handlePointerUp, {
+        capture: true,
+      });
+    };
+  }, [isOpen]);
+
+  return (
+    <section
+      className="border rounded-lg p-4"
+      data-testid="pointerup-modal-section"
+    >
+      <h2 className="text-lg font-bold mb-4">
+        Modal Dialog (pointerdown+pointerup dismiss, Headless UI style)
+      </h2>
+      <button
+        onClick={() => setIsOpen(true)}
+        className="bg-teal-500 text-white px-4 py-2 rounded"
+        data-testid="pointerup-modal-trigger"
+      >
+        Open Modal
+      </button>
+      <div
+        className="mt-2 text-sm text-gray-600"
+        data-testid="pointerup-dismiss-info"
+      >
+        Dismiss count: {dismissCount}
+      </div>
+      {isOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/50" />
+          <div
+            ref={dialogRef}
+            className="relative bg-white rounded-lg shadow-xl p-6 w-96 z-10"
+            data-testid="pointerup-modal-content"
+          >
+            <h3 className="text-lg font-bold mb-2">
+              Headless UI Style Modal
+            </h3>
+            <p className="mb-4">
+              Uses pointerdown+pointerup pair for outside detection.
+            </p>
+            <button
+              className="bg-blue-500 text-white px-3 py-1 rounded"
+              data-testid="pointerup-modal-inner-button"
+            >
+              Button Inside Modal
+            </button>
+            <button
+              onClick={() => setIsOpen(false)}
+              className="ml-2 bg-gray-300 px-3 py-1 rounded"
+              data-testid="pointerup-modal-close-button"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+};
+
 const HiddenToggleSection = () => {
   const [isVisible, setIsVisible] = useState(true);
   const elementRef = useRef<HTMLDivElement>(null);
@@ -531,6 +714,10 @@ export default function App() {
       <ZeroDimensionElements />
 
       <DropdownSection />
+
+      <ModalDialogSection />
+
+      <PointerUpModalSection />
 
       <HiddenToggleSection />
 
