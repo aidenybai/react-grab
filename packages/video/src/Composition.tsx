@@ -1,10 +1,12 @@
 import type React from "react";
-import { AbsoluteFill, useCurrentFrame } from "remotion";
+import { AbsoluteFill, useCurrentFrame, interpolate } from "remotion";
 import { BACKGROUND_COLOR } from "./constants";
 import { Cursor } from "./components/Cursor";
 import type { CursorType } from "./components/Cursor";
 import { SelectionBox } from "./components/SelectionBox";
 import { SuccessFlash } from "./components/SuccessFlash";
+import { SelectionLabel } from "./components/selection-label/SelectionLabel";
+import type { SelectionLabelStatus } from "./components/selection-label/SelectionLabel";
 import { createCursorTimeline } from "./utils/createCursorTimeline";
 import { geistFontFamily } from "./utils/fonts";
 
@@ -30,6 +32,34 @@ const isCursorVisible = (frame: number): boolean => {
   return frame >= 0;
 };
 
+// Label status — pure function of frame, no useState
+const getLabelStatus = (frame: number): SelectionLabelStatus => {
+  if (frame < 40) return "idle";
+  if (frame < 80) return "idle";
+  if (frame < 120) return "copying";
+  if (frame < 160) return "copied";
+  return "idle";
+};
+
+// Label visibility — pure function of frame
+const isLabelVisible = (frame: number): boolean => {
+  return frame >= 40 && frame < 200;
+};
+
+// Label opacity — pure function of frame via interpolate()
+const getLabelOpacity = (frame: number): number => {
+  if (frame < 40) return 0;
+  const fadeIn = interpolate(frame, [40, 44], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const fadeOut = interpolate(frame, [195, 200], [1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  return Math.min(fadeIn, fadeOut);
+};
+
 export const MainComposition: React.FC = () => {
   const frame = useCurrentFrame();
 
@@ -37,6 +67,9 @@ export const MainComposition: React.FC = () => {
   const cursorPos = getCursorPosition(frame);
   const cursorType = getCursorType(frame);
   const cursorVisible = isCursorVisible(frame);
+  const labelStatus = getLabelStatus(frame);
+  const labelVisible = isLabelVisible(frame);
+  const labelOpacity = getLabelOpacity(frame);
 
   return (
     <AbsoluteFill
@@ -64,6 +97,20 @@ export const MainComposition: React.FC = () => {
         triggerAt={100}
         duration={12}
       />
+
+      {/* Label — status, visibility, opacity all pure functions of frame */}
+      {labelVisible && (
+        <SelectionLabel
+          x={450}
+          y={360}
+          tagName="div"
+          componentName="MetricCard"
+          status={labelStatus}
+          statusText={labelStatus === "copying" ? "Grabbing\u2026" : "Copied"}
+          shimmerStartFrame={80}
+          opacity={labelOpacity}
+        />
+      )}
 
       {/* Cursor — position, type, visibility all pure functions of frame */}
       <Cursor
