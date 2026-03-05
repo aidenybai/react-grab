@@ -16,6 +16,7 @@ interface CopyContentOptions {
   tagName?: string;
   commentText?: string;
   entries?: ReactGrabEntry[];
+  paperHtml?: string;
 }
 
 interface ReactGrabMetadata {
@@ -97,6 +98,7 @@ interface ClipboardData {
 const createClipboardData = (
   content: string,
   elementName: string,
+  paperHtml?: string,
 ): ClipboardData => {
   const mentionKey = String(Math.floor(Math.random() * 10000));
   const namespaceUuid = generateUuid();
@@ -126,7 +128,9 @@ const createClipboardData = (
 
   return {
     plainText: `@${displayName}\n\n${content}\n`,
-    htmlContent: `<meta charset='utf-8'><pre><code>${escapeHtml(content)}</code></pre>`,
+    htmlContent: paperHtml
+      ? `<meta charset='utf-8'><meta charset="utf-8">${paperHtml}<span style="white-space:pre-wrap;"></span>`
+      : `<meta charset='utf-8'><pre><code>${escapeHtml(content)}</code></pre>`,
     lexicalData: JSON.stringify({
       namespace: `chat-input${namespaceUuid}-pane`,
       nodes: [
@@ -150,6 +154,7 @@ export const copyContent = (
   const { plainText, htmlContent, lexicalData } = createClipboardData(
     content,
     elementName,
+    options?.paperHtml,
   );
   const entries = options?.entries ?? [
     {

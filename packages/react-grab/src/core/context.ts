@@ -576,6 +576,8 @@ const formatPriorityAttrs = (
   return priorityAttrs.length > 0 ? ` ${priorityAttrs.join(" ")}` : "";
 };
 
+
+
 const getHTMLPreview = (element: Element): string => {
   const tagName = getTagName(element);
   if (!(element instanceof HTMLElement)) {

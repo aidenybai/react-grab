@@ -1,6 +1,36 @@
+import {
+  getFiberFromHostInstance,
+  isCompositeFiber,
+  getDisplayName,
+} from "bippy";
+import { domToPaper } from "@react-grab/paper";
 import { copyContent, type ReactGrabEntry } from "../utils/copy-content.js";
 import { generateSnippet } from "../utils/generate-snippet.js";
 import { joinSnippets } from "../utils/join-snippets.js";
+
+const getReactComponentName = (element: Element): string | null => {
+  try {
+    const fiber = getFiberFromHostInstance(element);
+    if (!fiber) return null;
+
+    const parentFiber = fiber.return;
+    if (!parentFiber || !isCompositeFiber(parentFiber)) return null;
+
+    const componentName = getDisplayName(parentFiber);
+    if (!componentName) return null;
+
+    if (
+      element.parentElement &&
+      getFiberFromHostInstance(element.parentElement)?.return === parentFiber
+    ) {
+      return null;
+    }
+
+    return componentName;
+  } catch {
+    return null;
+  }
+};
 
 interface CopyOptions {
   maxContextLines?: number;
@@ -72,9 +102,18 @@ export const tryCopyWithFallback = async (
         ? `${extraPrompt}\n\n${transformedContent}`
         : transformedContent;
 
+      let paperHtml: string | undefined;
+      try {
+        paperHtml = domToPaper(elements, {
+          getComponentName: getReactComponentName,
+        }) || undefined;
+      } catch (paperError) {
+        console.error("[react-grab] Paper conversion failed:", paperError);
+      }
       didCopy = copyContent(copiedContent, {
         componentName: options.componentName,
         entries,
+        paperHtml,
       });
     }
   } catch (error) {

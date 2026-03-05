@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head><title>Paper Paste Test</title></head>
+<body>
+<p>Click the button, then paste (Cmd+V) into Paper. You should see a dark frame with "Hello Paper!" text.</p>
+<button id="copy-btn" style="padding: 12px 24px; font-size: 16px; cursor: pointer;">Copy test embed to clipboard</button>
+<pre id="output" style="margin-top: 20px; padding: 12px; background: #f0f0f0; white-space: pre-wrap; max-width: 800px; overflow: auto;"></pre>
+<script>
+document.getElementById('copy-btn').addEventListener('click', () => {
+  const testEmbed = {
+    id: "01TEST000000000000000000T1",
+    fileId: "01TEST000000000000000000F1",
+    topLevelNodeIds: ["1-0"],
+    nodes: {
+      "1-0": {
+        id: "1-0",
+        label: "Test Frame",
+        textValue: "",
+        component: "Frame",
+        styles: {
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "start",
+          alignItems: "start",
+          gap: 16,
+          paddingBlock: "20px",
+          paddingInline: "20px",
+          width: "300px",
+          height: "fit-content",
+          borderRadius: "12px"
+        },
+        "~": false,
+        styleMeta: {
+          fill: [{
+            type: "solid",
+            color: { gamut: "rgb", mode: "hex", value: { mode: "oklch", l: 0.2, c: 0, h: 0 } },
+            isVisible: true
+          }]
+        }
+      },
+      "2-0": {
+        id: "2-0",
+        label: "Text",
+        textValue: "Hello Paper!",
+        component: "Text",
+        styles: {
+          fontSize: "24px",
+          lineHeight: "150%",
+          whiteSpace: "pre",
+          width: "fit-content",
+          height: "fit-content",
+          flexShrink: "0"
+        },
+        "~": false,
+        styleMeta: {
+          fill: [{
+            type: "solid",
+            color: { gamut: "rgb", mode: "hex", value: { mode: "oklch", l: 0.95, c: 0, h: 0 } },
+            isVisible: true
+          }],
+          font: { family: "System Sans-Serif", style: "Regular", weight: 400, isItalic: false }
+        }
+      },
+      "3-0": {
+        id: "3-0",
+        label: "Text",
+        textValue: "This is a subtitle with smaller text.",
+        component: "Text",
+        styles: {
+          fontSize: "14px",
+          lineHeight: "150%",
+          whiteSpace: "pre",
+          width: "fit-content",
+          height: "fit-content",
+          flexShrink: "0"
+        },
+        "~": false,
+        styleMeta: {
+          fill: [{
+            type: "solid",
+            color: { gamut: "rgb", mode: "hex", value: { mode: "oklch", l: 0.65, c: 0, h: 0 } },
+            isVisible: true
+          }],
+          font: { family: "System Sans-Serif", style: "Regular", weight: 400, isItalic: false }
+        }
+      },
+      "4-0": {
+        id: "4-0",
+        label: "Button",
+        textValue: "",
+        component: "Frame",
+        styles: {
+          display: "flex",
+          flexDirection: "row",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: 0,
+          paddingBlock: "8px",
+          paddingInline: "16px",
+          width: "fit-content",
+          height: "fit-content",
+          borderRadius: "6px",
+          flexShrink: "0"
+        },
+        "~": false,
+        styleMeta: {
+          fill: [{
+            type: "solid",
+            color: { gamut: "rgb", mode: "hex", value: { mode: "oklch", l: 0.55, c: 0.15, h: 260 } },
+            isVisible: true
+          }]
+        }
+      },
+      "5-0": {
+        id: "5-0",
+        label: "Text",
+        textValue: "Click me",
+        component: "Text",
+        styles: {
+          fontSize: "14px",
+          lineHeight: "150%",
+          whiteSpace: "pre",
+          width: "fit-content",
+          height: "fit-content",
+          flexShrink: "0"
+        },
+        "~": false,
+        styleMeta: {
+          fill: [{
+            type: "solid",
+            color: { gamut: "rgb", mode: "hex", value: { mode: "oklch", l: 0.95, c: 0, h: 0 } },
+            isVisible: true
+          }],
+          font: { family: "System Sans-Serif", style: "Medium", weight: 500, isItalic: false }
+        }
+      }
+    },
+    images: {},
+    parentToChildrenIndex: {
+      "1-0": ["2-0", "3-0", "4-0"],
+      "4-0": ["5-0"]
+    },
+    oldIdToNewIdMap: {
+      "01TEST000000000000000000M1": "1-0"
+    }
+  };
+
+  const json = JSON.stringify(testEmbed);
+  const htmlContent = '<meta charset=\'utf-8\'><meta charset="utf-8"><!--<paper-paste-start data-embed="' + json + '"></paper-paste-start>--><span style="white-space:pre-wrap;"></span>';
+
+  const handler = (e) => {
+    e.preventDefault();
+    e.clipboardData.setData('text/html', htmlContent);
+    e.clipboardData.setData('text/plain', 'Hello Paper!');
+  };
+  document.addEventListener('copy', handler);
+  document.execCommand('copy');
+  document.removeEventListener('copy', handler);
+
+  document.getElementById('output').textContent = 'Copied! HTML length: ' + htmlContent.length + '\n\nFirst 500 chars:\n' + htmlContent.slice(0, 500);
+});
+</script>
+</body>
+</html>
