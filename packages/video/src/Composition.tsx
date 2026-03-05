@@ -10,7 +10,9 @@ import type { SelectionLabelStatus } from "./components/selection-label/Selectio
 import { createCursorTimeline } from "./utils/createCursorTimeline";
 import { geistFontFamily } from "./utils/fonts";
 
-// Demo cursor timeline — pure function of frame
+// --- All state below is a pure function of frame, no useState anywhere ---
+
+// Cursor position — interpolated via createCursorTimeline with Easing.inOut(Easing.cubic)
 const getCursorPosition = createCursorTimeline([
   { frame: 0, x: 960, y: 540 },
   { frame: 40, x: 400, y: 300 },
@@ -19,7 +21,7 @@ const getCursorPosition = createCursorTimeline([
   { frame: 300, x: 960, y: 540 },
 ]);
 
-// Cursor type — pure function of frame, no useState
+// Cursor type — pure function of frame
 const getCursorType = (frame: number): CursorType => {
   if (frame < 40) return "default";
   if (frame < 120) return "crosshair";
@@ -27,28 +29,42 @@ const getCursorType = (frame: number): CursorType => {
   return "default";
 };
 
-// Cursor visibility — pure function of frame
-const isCursorVisible = (frame: number): boolean => {
-  return frame >= 0;
+// Cursor opacity — driven by interpolate(), fades in at frame 10 and out at frame 280
+const getCursorOpacity = (frame: number): number => {
+  const fadeIn = interpolate(frame, [10, 14], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const fadeOut = interpolate(frame, [280, 285], [1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  return Math.min(fadeIn, fadeOut);
 };
 
-// Label status — pure function of frame, no useState
+// Selection box state — pure function of frame
+const getSelectionBoxOpacity = (frame: number): number => {
+  const fadeIn = interpolate(frame, [40, 44], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const fadeOut = interpolate(frame, [120, 125], [1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  return Math.min(fadeIn, fadeOut);
+};
+
+// Label status — pure function of frame
 const getLabelStatus = (frame: number): SelectionLabelStatus => {
-  if (frame < 40) return "idle";
   if (frame < 80) return "idle";
   if (frame < 120) return "copying";
   if (frame < 160) return "copied";
   return "idle";
 };
 
-// Label visibility — pure function of frame
-const isLabelVisible = (frame: number): boolean => {
-  return frame >= 40 && frame < 200;
-};
-
-// Label opacity — pure function of frame via interpolate()
+// Label opacity — driven entirely by interpolate()
 const getLabelOpacity = (frame: number): number => {
-  if (frame < 40) return 0;
   const fadeIn = interpolate(frame, [40, 44], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
@@ -63,12 +79,12 @@ const getLabelOpacity = (frame: number): number => {
 export const MainComposition: React.FC = () => {
   const frame = useCurrentFrame();
 
-  // All state derived from useCurrentFrame() — no useState
+  // All state derived purely from useCurrentFrame() — no useState
   const cursorPos = getCursorPosition(frame);
   const cursorType = getCursorType(frame);
-  const cursorVisible = isCursorVisible(frame);
+  const cursorOpacity = getCursorOpacity(frame);
+  const selectionBoxOpacity = getSelectionBoxOpacity(frame);
   const labelStatus = getLabelStatus(frame);
-  const labelVisible = isLabelVisible(frame);
   const labelOpacity = getLabelOpacity(frame);
 
   return (
@@ -78,15 +94,17 @@ export const MainComposition: React.FC = () => {
         fontFamily: geistFontFamily,
       }}
     >
-      {/* Selection box — visibility driven by frame via interpolate() */}
-      <SelectionBox
-        x={350}
-        y={250}
-        width={200}
-        height={100}
-        showAt={40}
-        hideAt={120}
-      />
+      {/* Selection box — opacity derived from frame via interpolate() */}
+      {selectionBoxOpacity > 0 && (
+        <SelectionBox
+          x={350}
+          y={250}
+          width={200}
+          height={100}
+          showAt={40}
+          hideAt={120}
+        />
+      )}
 
       {/* Success flash — pulse driven by frame via interpolate() */}
       <SuccessFlash
@@ -98,8 +116,8 @@ export const MainComposition: React.FC = () => {
         duration={12}
       />
 
-      {/* Label — status, visibility, opacity all pure functions of frame */}
-      {labelVisible && (
+      {/* Label — status and opacity all pure functions of frame */}
+      {labelOpacity > 0 && (
         <SelectionLabel
           x={450}
           y={360}
@@ -112,12 +130,12 @@ export const MainComposition: React.FC = () => {
         />
       )}
 
-      {/* Cursor — position, type, visibility all pure functions of frame */}
+      {/* Cursor — position, type, opacity all pure functions of frame */}
       <Cursor
         x={cursorPos.x}
         y={cursorPos.y}
         type={cursorType}
-        visible={cursorVisible}
+        opacity={cursorOpacity}
       />
     </AbsoluteFill>
   );

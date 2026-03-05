@@ -126,16 +126,17 @@ export interface CursorProps {
   x: number;
   y: number;
   type: CursorType;
-  visible: boolean;
+  /** Opacity value (0-1), driven by interpolate() from the parent composition */
+  opacity: number;
 }
 
-export const Cursor: React.FC<CursorProps> = ({ x, y, type, visible }) => {
-  const opacity = visible ? 1 : 0;
+export const Cursor: React.FC<CursorProps> = ({ x, y, type, opacity }) => {
+  if (opacity <= 0) return null;
 
   return (
     <>
       {/* Crosshair lines — full viewport */}
-      {type === "crosshair" && visible && (
+      {type === "crosshair" && (
         <div
           style={{
             position: "absolute",
