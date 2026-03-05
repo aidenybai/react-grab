@@ -1,3 +1,4 @@
+import type React from "react";
 import { Composition } from "remotion";
 import { MainComposition } from "./Composition";
 import {

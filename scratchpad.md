@@ -33,3 +33,8 @@
 - The worktree needs `pnpm install` run to populate node_modules — without it, root typecheck/lint fail
 - Root `pnpm typecheck` runs only `react-grab` typecheck (not video); root `pnpm lint` runs `oxlint` on react-grab
 - `pnpm test` runs turbo test on react-grab and @react-grab/cli (not video)
+
+## Environment Limitations (sandbox)
+- `pnpm test` fails with `Operation not permitted` due to Turbo cache write restrictions — not a code issue, CI passes
+- `pnpm --filter @react-grab/video dev` fails with `listen EPERM` because sandbox blocks network port binding — not a code issue
+- CI e2e tests may show as `pending` during review but complete successfully — all CI checks pass as of 2026-03-05

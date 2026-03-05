@@ -1,3 +1,4 @@
+import type React from "react";
 import { AbsoluteFill } from "remotion";
 import { BACKGROUND_COLOR } from "./constants";
 import { geistFontFamily } from "./utils/fonts";
