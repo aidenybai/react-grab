@@ -3,6 +3,12 @@ import { AbsoluteFill, useCurrentFrame, interpolate } from "remotion";
 import { BACKGROUND_COLOR } from "./constants";
 import { Cursor } from "./components/Cursor";
 import type { CursorType } from "./components/Cursor";
+import { Dashboard } from "./components/Dashboard";
+import {
+  METRIC_CARD_REVENUE,
+  EXPORT_BUTTON,
+  ACTIVITY_ROW_SIGNUP,
+} from "./components/Dashboard";
 import { SelectionBox } from "./components/SelectionBox";
 import { SuccessFlash } from "./components/SuccessFlash";
 import { SelectionLabel } from "./components/selection-label/SelectionLabel";
@@ -13,11 +19,12 @@ import { geistFontFamily } from "./utils/fonts";
 // --- All state below is a pure function of frame, no useState anywhere ---
 
 // Cursor position — interpolated via createCursorTimeline with Easing.inOut(Easing.cubic)
+// Uses exported dashboard bounding-box constants for waypoints
 const getCursorPosition = createCursorTimeline([
   { frame: 0, x: 960, y: 540 },
-  { frame: 40, x: 400, y: 300 },
-  { frame: 120, x: 800, y: 400 },
-  { frame: 200, x: 1200, y: 600 },
+  { frame: 40, x: METRIC_CARD_REVENUE.x + METRIC_CARD_REVENUE.width / 2, y: METRIC_CARD_REVENUE.y + METRIC_CARD_REVENUE.height / 2 },
+  { frame: 120, x: EXPORT_BUTTON.x + EXPORT_BUTTON.width / 2, y: EXPORT_BUTTON.y + EXPORT_BUTTON.height / 2 },
+  { frame: 200, x: ACTIVITY_ROW_SIGNUP.x + ACTIVITY_ROW_SIGNUP.width / 2, y: ACTIVITY_ROW_SIGNUP.y + ACTIVITY_ROW_SIGNUP.height / 2 },
   { frame: 300, x: 960, y: 540 },
 ]);
 
@@ -94,33 +101,36 @@ export const MainComposition: React.FC = () => {
         fontFamily: geistFontFamily,
       }}
     >
-      {/* Selection box — opacity derived from frame via interpolate() */}
+      {/* Dashboard backdrop — static, no animation */}
+      <Dashboard />
+
+      {/* Selection box — opacity derived from frame via interpolate(), positioned on Revenue card */}
       {selectionBoxOpacity > 0 && (
         <SelectionBox
-          x={350}
-          y={250}
-          width={200}
-          height={100}
+          x={METRIC_CARD_REVENUE.x}
+          y={METRIC_CARD_REVENUE.y}
+          width={METRIC_CARD_REVENUE.width}
+          height={METRIC_CARD_REVENUE.height}
           showAt={40}
           hideAt={120}
         />
       )}
 
-      {/* Success flash — pulse driven by frame via interpolate() */}
+      {/* Success flash — pulse driven by frame via interpolate(), on Revenue card */}
       <SuccessFlash
-        x={350}
-        y={250}
-        width={200}
-        height={100}
+        x={METRIC_CARD_REVENUE.x}
+        y={METRIC_CARD_REVENUE.y}
+        width={METRIC_CARD_REVENUE.width}
+        height={METRIC_CARD_REVENUE.height}
         triggerAt={100}
         duration={12}
       />
 
-      {/* Label — status and opacity all pure functions of frame */}
+      {/* Label — status and opacity all pure functions of frame, below Revenue card */}
       {labelOpacity > 0 && (
         <SelectionLabel
-          x={450}
-          y={360}
+          x={METRIC_CARD_REVENUE.x + METRIC_CARD_REVENUE.width / 2}
+          y={METRIC_CARD_REVENUE.y + METRIC_CARD_REVENUE.height + 10}
           tagName="div"
           componentName="MetricCard"
           status={labelStatus}
