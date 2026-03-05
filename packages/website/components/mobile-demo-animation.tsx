@@ -3,31 +3,29 @@
 import { useState, useEffect, useRef, useCallback, type ReactElement } from "react";
 import { useWebHaptics } from "web-haptics/react";
 import { cn } from "@/utils/cn";
-
-const ANIMATION_RESTART_DELAY_MS = 200;
-const SELECTION_PADDING_PX = 4;
-const CURSOR_OFFSET_PX = 16;
-const VIBRATION_DURATION_MS = 100;
-const TAP_FEEDBACK_DISPLAY_MS = 800;
-const TAP_FEEDBACK_FADE_MS = 300;
-const LABEL_OFFSET_BELOW_PX = 10;
+import {
+  VIBRATION_DURATION_MS,
+  TAP_FEEDBACK_DISPLAY_MS,
+  TAP_FEEDBACK_FADE_MS,
+  LABEL_OFFSET_BELOW_PX,
+  ANIMATION_RESTART_DELAY_MS,
+  SELECTION_PADDING_PX,
+  CURSOR_OFFSET_PX,
+  HINT_OVERLAY_DELAY_MS,
+} from "@/constants";
 
 const wait = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
-
-interface BoxState {
-  visible: boolean;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
 
 interface Position {
   x: number;
   y: number;
   width: number;
   height: number;
+}
+
+interface BoxState extends Position {
+  visible: boolean;
 }
 
 const HIDDEN_BOX: BoxState = {
@@ -44,7 +42,6 @@ interface LabelState {
   y: number;
   componentName: string;
   tagName: string;
-  above?: boolean;
 }
 
 const HIDDEN_LABEL: LabelState = {
@@ -53,7 +50,6 @@ const HIDDEN_LABEL: LabelState = {
   y: 0,
   componentName: "",
   tagName: "",
-  above: false,
 };
 
 type LabelMode =
@@ -64,7 +60,7 @@ type LabelMode =
   | "commenting"
   | "submitted"
   | "fading";
-type CursorType = "default" | "crosshair" | "drag" | "grabbing";
+type CursorType = "default" | "crosshair" | "grabbing";
 
 interface HitElement {
   position: Position;
@@ -87,6 +83,8 @@ const createSelectionBox = (position: Position, padding: number): BoxState => ({
   width: position.width + padding * 2,
   height: position.height + padding * 2,
 });
+
+const INITIAL_CURSOR_POSITION = { x: 150, y: 80 };
 
 const getElementCenter = (position: Position): { x: number; y: number } => ({
   x: position.x + position.width / 2,
@@ -114,10 +112,10 @@ const SubmitIcon = (): ReactElement => (
     height="10"
     viewBox="0 0 24 24"
     fill="none"
-    className="shrink-0 text-background"
+    className="shrink-0 text-white"
   >
     <path
-      d="M5 12h14M12 5l7 7-7 7"
+      d="M12 19V5M5 12l7-7 7 7"
       stroke="currentColor"
       strokeWidth="2.5"
       strokeLinecap="round"
@@ -296,14 +294,14 @@ const GrabbingCursor = (): ReactElement => (
 
 const CursorIcon = ({ type }: { type: CursorType }): ReactElement | null => {
   if (type === "default") return <DefaultCursor />;
-  if (type === "crosshair" || type === "drag") return <CrosshairCursor />;
+  if (type === "crosshair") return <CrosshairCursor />;
   if (type === "grabbing") return <GrabbingCursor />;
   return null;
 };
 
 export const MobileDemoAnimation = (): ReactElement => {
   const { trigger: triggerHaptic } = useWebHaptics();
-  const [cursorPos, setCursorPos] = useState({ x: 150, y: 80 });
+  const [cursorPos, setCursorPos] = useState(INITIAL_CURSOR_POSITION);
   const [isCursorVisible, setIsCursorVisible] = useState(false);
   const [selectionBox, setSelectionBox] = useState<BoxState>(HIDDEN_BOX);
   const [successFlash, setSuccessFlash] = useState<BoxState>(HIDDEN_BOX);
@@ -311,13 +309,14 @@ export const MobileDemoAnimation = (): ReactElement => {
   const [labelMode, setLabelMode] = useState<LabelMode>("idle");
   const [cursorType, setCursorType] = useState<CursorType>("default");
   const [commentText, setCommentText] = useState("");
+  const [isHintVisible, setIsHintVisible] = useState(false);
+  const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const metricCardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const metricValueRef = useRef<HTMLDivElement>(null);
   const exportButtonRef = useRef<HTMLDivElement>(null);
   const activityRowRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const fadingLabelTextRef = useRef<"Copied" | "Sent">("Sent");
   const isCancelledRef = useRef(false);
   const animationLoopRef = useRef<(() => void) | null>(null);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -361,27 +360,22 @@ export const MobileDemoAnimation = (): ReactElement => {
     measureRelativePosition(metricValueRef.current, metricValuePosition);
     measureRelativePosition(exportButtonRef.current, exportButtonPosition);
 
-    metricCardPositions.current = metricCardRefs.current.map((ref) => {
-      if (!ref) return null;
-      const rect = ref.getBoundingClientRect();
-      return {
-        x: rect.left - containerRect.left,
-        y: rect.top - containerRect.top,
-        width: rect.width,
-        height: rect.height,
-      };
-    });
+    const measureRefArray = (
+      refs: (HTMLElement | null)[],
+    ): (Position | null)[] =>
+      refs.map((ref) => {
+        if (!ref) return null;
+        const rect = ref.getBoundingClientRect();
+        return {
+          x: rect.left - containerRect.left,
+          y: rect.top - containerRect.top,
+          width: rect.width,
+          height: rect.height,
+        };
+      });
 
-    activityRowPositions.current = activityRowRefs.current.map((ref) => {
-      if (!ref) return null;
-      const rect = ref.getBoundingClientRect();
-      return {
-        x: rect.left - containerRect.left,
-        y: rect.top - containerRect.top,
-        width: rect.width,
-        height: rect.height,
-      };
-    });
+    metricCardPositions.current = measureRefArray(metricCardRefs.current);
+    activityRowPositions.current = measureRefArray(activityRowRefs.current);
   };
 
   useEffect(() => {
@@ -398,8 +392,17 @@ export const MobileDemoAnimation = (): ReactElement => {
     };
   }, []);
 
+  useEffect(() => {
+    hintTimerRef.current = setTimeout(() => {
+      setIsHintVisible(true);
+    }, HINT_OVERLAY_DELAY_MS);
+    return () => {
+      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+    };
+  }, []);
+
   const resetAnimationState = useCallback((): void => {
-    setCursorPos({ x: 150, y: 80 });
+    setCursorPos(INITIAL_CURSOR_POSITION);
     setIsCursorVisible(false);
     setCursorType("default");
     setSelectionBox(HIDDEN_BOX);
@@ -415,16 +418,12 @@ export const MobileDemoAnimation = (): ReactElement => {
       y: number,
       componentName: string,
       tagName: string,
-      above = false,
     ): void => {
-      setLabel({ visible: true, x, y, componentName, tagName, above });
+      setLabel({ visible: true, x, y, componentName, tagName });
       setLabelMode("selecting");
     };
 
-    const fadeOutSelectionLabel = async (
-      text: "Copied" | "Sent",
-    ): Promise<void> => {
-      fadingLabelTextRef.current = text;
+    const fadeOutSelectionLabel = async (): Promise<void> => {
       setLabelMode("fading");
       await wait(300);
       setLabel(HIDDEN_LABEL);
@@ -444,7 +443,7 @@ export const MobileDemoAnimation = (): ReactElement => {
       if (isCancelledRef.current) return;
 
       setSuccessFlash(HIDDEN_BOX);
-      await fadeOutSelectionLabel("Copied");
+      await fadeOutSelectionLabel();
       setCursorType("crosshair");
     };
 
@@ -460,9 +459,9 @@ export const MobileDemoAnimation = (): ReactElement => {
       await wait(200);
       if (isCancelledRef.current) return;
 
-      for (let j = 0; j <= comment.length; j++) {
+      for (let charIndex = 0; charIndex <= comment.length; charIndex++) {
         if (isCancelledRef.current) return;
-        setCommentText(comment.slice(0, j));
+        setCommentText(comment.slice(0, charIndex));
         await wait(50);
       }
       await wait(300);
@@ -475,7 +474,7 @@ export const MobileDemoAnimation = (): ReactElement => {
 
       setSuccessFlash(HIDDEN_BOX);
       setSelectionBox(HIDDEN_BOX);
-      await fadeOutSelectionLabel("Sent");
+      await fadeOutSelectionLabel();
       setCommentText("");
     };
 
@@ -492,7 +491,6 @@ export const MobileDemoAnimation = (): ReactElement => {
       await wait(300);
       if (isCancelledRef.current) return;
 
-      // 1. Export button - comment
       const buttonPos = exportButtonPosition.current;
       const buttonCenter = getElementCenter(buttonPos);
       setCursorPos(buttonCenter);
@@ -502,15 +500,15 @@ export const MobileDemoAnimation = (): ReactElement => {
       setSelectionBox(createSelectionBox(buttonPos, SELECTION_PADDING_PX));
       displaySelectionLabel(
         buttonCenter.x,
-        buttonPos.y + buttonPos.height + 10,
+        buttonPos.y + buttonPos.height + LABEL_OFFSET_BELOW_PX,
         "ExportBtn",
         "button",
       );
-      await simulateComment(buttonPos, "add CSV option");
+      await simulateClickAndCopy(buttonPos);
       if (isCancelledRef.current) return;
 
-      // 2. MetricCard - comment
-      const cardPos = metricCardPositions.current[0]!;
+      const cardPos = metricCardPositions.current[0];
+      if (!cardPos) return;
       const cardCenter = getElementCenter(cardPos);
       setCursorPos(cardCenter);
       await wait(400);
@@ -519,14 +517,13 @@ export const MobileDemoAnimation = (): ReactElement => {
       setSelectionBox(createSelectionBox(cardPos, SELECTION_PADDING_PX));
       displaySelectionLabel(
         cardPos.x + cardPos.width / 2,
-        cardPos.y - 10,
+        cardPos.y + cardPos.height + LABEL_OFFSET_BELOW_PX,
         "MetricCard",
         "div",
       );
       await simulateComment(cardPos, "show graph");
       if (isCancelledRef.current) return;
 
-      // 3. StatValue - comment
       const valuePos = metricValuePosition.current;
       const valueCenter = getElementCenter(valuePos);
       setCursorPos(valueCenter);
@@ -535,15 +532,14 @@ export const MobileDemoAnimation = (): ReactElement => {
 
       setSelectionBox(createSelectionBox(valuePos, SELECTION_PADDING_PX));
       displaySelectionLabel(
-        valuePos.x + valuePos.width + 10,
-        valueCenter.y - 10,
+        valuePos.x + valuePos.width / 2,
+        valuePos.y + valuePos.height + LABEL_OFFSET_BELOW_PX,
         "StatValue",
         "span",
       );
       await simulateComment(valuePos, "format as USD");
       if (isCancelledRef.current) return;
 
-      // 4. SignupRow - comment
       const signupRowPos = activityRowPositions.current[0];
       if (signupRowPos) {
         const signupCenter = getElementCenter(signupRowPos);
@@ -553,8 +549,8 @@ export const MobileDemoAnimation = (): ReactElement => {
 
         setSelectionBox(createSelectionBox(signupRowPos, SELECTION_PADDING_PX));
         displaySelectionLabel(
-          signupRowPos.x + 60,
-          signupRowPos.y + signupRowPos.height + 8,
+          signupCenter.x,
+          signupRowPos.y + signupRowPos.height + LABEL_OFFSET_BELOW_PX,
           "SignupRow",
           "div",
         );
@@ -562,7 +558,6 @@ export const MobileDemoAnimation = (): ReactElement => {
         if (isCancelledRef.current) return;
       }
 
-      // 5. OrderRow - grab/copy (last one)
       const orderRowPos = activityRowPositions.current[1];
       if (orderRowPos) {
         const orderCenter = getElementCenter(orderRowPos);
@@ -572,8 +567,8 @@ export const MobileDemoAnimation = (): ReactElement => {
 
         setSelectionBox(createSelectionBox(orderRowPos, SELECTION_PADDING_PX));
         displaySelectionLabel(
-          orderRowPos.x + 60,
-          orderRowPos.y + orderRowPos.height + 8,
+          orderCenter.x,
+          orderRowPos.y + orderRowPos.height + LABEL_OFFSET_BELOW_PX,
           "OrderRow",
           "div",
         );
@@ -633,6 +628,11 @@ export const MobileDemoAnimation = (): ReactElement => {
       triggerHaptic(VIBRATION_DURATION_MS);
 
       setIsCursorVisible(false);
+      setIsHintVisible(false);
+      if (hintTimerRef.current) {
+        clearTimeout(hintTimerRef.current);
+        hintTimerRef.current = null;
+      }
       setCursorType("default");
       setCommentText("");
 
@@ -698,7 +698,6 @@ export const MobileDemoAnimation = (): ReactElement => {
 
       tapTimerRef.current = setTimeout(() => {
         if (isCancelledRef.current) {
-          fadingLabelTextRef.current = "Copied";
           setLabelMode("fading");
           setSuccessFlash(HIDDEN_BOX);
 
@@ -714,7 +713,7 @@ export const MobileDemoAnimation = (): ReactElement => {
         }
       }, TAP_FEEDBACK_DISPLAY_MS);
     },
-    [resetAnimationState, triggerHaptic],
+    [triggerHaptic],
   );
 
   const isLabelVisible = label.visible && labelMode !== "fading";
@@ -812,11 +811,11 @@ export const MobileDemoAnimation = (): ReactElement => {
               </div>
             </div>
             <div className="divide-y divide-border">
-              {ACTIVITY_DATA.map((activity, i) => (
+              {ACTIVITY_DATA.map((activity, activityIndex) => (
                 <div
                   key={activity.label}
                   ref={(el) => {
-                    activityRowRefs.current[i] = el;
+                    activityRowRefs.current[activityIndex] = el;
                   }}
                   className="flex items-center justify-between px-3 py-2"
                 >
@@ -832,6 +831,17 @@ export const MobileDemoAnimation = (): ReactElement => {
                 </div>
               ))}
             </div>
+          </div>
+
+          <div
+            className={cn(
+              "absolute inset-x-0 bottom-0 z-[70] flex items-center justify-center bg-gradient-to-t from-card via-card/90 to-card/0 pb-3 pt-8 transition-opacity duration-700",
+              isHintVisible ? "opacity-100" : "opacity-0 pointer-events-none",
+            )}
+          >
+            <span className="rounded-full bg-foreground/10 px-3 py-1.5 text-[12px] font-medium text-muted-foreground">
+              👆 Tap any element to copy
+            </span>
           </div>
 
           <div
@@ -901,13 +911,20 @@ export const MobileDemoAnimation = (): ReactElement => {
             style={{
               left: label.x,
               top: label.y,
-              transform: label.above
-                ? "translateX(-50%) translateY(-100%)"
-                : "translateX(-50%)",
+              transform: "translateX(-50%)",
             }}
           >
+            <div
+              className="absolute left-1/2 h-0 w-0 -translate-x-1/2"
+              style={{
+                top: -5,
+                borderLeft: "5px solid transparent",
+                borderRight: "5px solid transparent",
+                borderBottom: "5px solid white",
+              }}
+            />
             {labelMode === "selecting" && (
-              <div className="flex items-center gap-[5px] py-1.5 px-2">
+              <div className="flex items-center py-1.5 px-2">
                 <span className="text-[13px] leading-4 font-medium text-black">
                   {label.componentName}
                 </span>
@@ -924,7 +941,7 @@ export const MobileDemoAnimation = (): ReactElement => {
                 </span>
               </div>
             )}
-            {labelMode === "copied" && (
+            {(labelMode === "copied" || labelMode === "submitted" || labelMode === "fading") && (
               <div className="flex items-center gap-[5px] py-1.5 px-2">
                 <CheckIcon />
                 <span className="text-[13px] leading-4 font-medium text-black">
@@ -934,7 +951,7 @@ export const MobileDemoAnimation = (): ReactElement => {
             )}
             {labelMode === "commenting" && (
               <div className="flex flex-col min-w-[140px]">
-                <div className="flex items-center gap-[5px] pt-1.5 pb-1 px-2">
+                <div className="flex items-center pt-1.5 pb-1 px-2">
                   <span className="text-[13px] leading-4 font-medium text-black">
                     {label.componentName}
                   </span>
@@ -951,26 +968,10 @@ export const MobileDemoAnimation = (): ReactElement => {
                   >
                     {commentText || "Add context"}
                   </span>
-                  <div className="shrink-0 flex items-center justify-center size-4 rounded-full bg-foreground">
+                  <div className="shrink-0 flex items-center justify-center size-4 rounded-full bg-black">
                     <SubmitIcon />
                   </div>
                 </div>
-              </div>
-            )}
-            {labelMode === "submitted" && (
-              <div className="flex items-center gap-[5px] py-1.5 px-2">
-                <CheckIcon />
-                <span className="text-[13px] leading-4 font-medium text-black">
-                  Sent
-                </span>
-              </div>
-            )}
-            {labelMode === "fading" && (
-              <div className="flex items-center gap-[5px] py-1.5 px-2">
-                <CheckIcon />
-                <span className="text-[13px] leading-4 font-medium text-black">
-                  {fadingLabelTextRef.current}
-                </span>
               </div>
             )}
           </div>
