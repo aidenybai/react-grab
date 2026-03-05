@@ -365,11 +365,16 @@ export const MobileDemoAnimation = (): ReactElement => {
   };
 
   useEffect(() => {
+    const visualViewport = window.visualViewport;
     const measurementTimer = setTimeout(measureElementPositions, 100);
     window.addEventListener("resize", measureElementPositions);
+    visualViewport?.addEventListener("resize", measureElementPositions);
+    visualViewport?.addEventListener("scroll", measureElementPositions);
     return () => {
       clearTimeout(measurementTimer);
       window.removeEventListener("resize", measureElementPositions);
+      visualViewport?.removeEventListener("resize", measureElementPositions);
+      visualViewport?.removeEventListener("scroll", measureElementPositions);
     };
   }, []);
 

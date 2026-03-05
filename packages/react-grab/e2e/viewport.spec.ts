@@ -231,6 +231,38 @@ test.describe("Viewport and Scroll Handling", () => {
     expect(isVisible).toBe(true);
   });
 
+  test("should recalculate bounds after visual viewport change", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+
+    const heading = reactGrab.page.locator("[data-testid='main-title']");
+    const headingBox = await heading.boundingBox();
+    expect(headingBox).not.toBeNull();
+
+    await reactGrab.page.mouse.move(
+      headingBox!.x + headingBox!.width / 2,
+      headingBox!.y + headingBox!.height / 2,
+    );
+    await reactGrab.page.waitForTimeout(150);
+    await reactGrab.waitForSelectionBox();
+
+    const initialBounds = await reactGrab.getSelectionBoxBounds();
+    expect(initialBounds).not.toBeNull();
+
+    await reactGrab.page.evaluate(() => {
+      window.visualViewport?.dispatchEvent(new Event("resize"));
+      window.visualViewport?.dispatchEvent(new Event("scroll"));
+    });
+    await reactGrab.page.waitForTimeout(200);
+
+    const isVisible = await reactGrab.isOverlayVisible();
+    expect(isVisible).toBe(true);
+
+    const boundsAfter = await reactGrab.getSelectionBoxBounds();
+    expect(boundsAfter).not.toBeNull();
+  });
+
   test("should copy element after resize using click", async ({
     reactGrab,
   }) => {

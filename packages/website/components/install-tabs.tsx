@@ -324,7 +324,7 @@ export const InstallTabs = ({
                 key={tab.id}
                 type="button"
                 className={cn(
-                  "shrink-0 whitespace-nowrap border-b pb-2 font-sans text-sm transition-colors sm:text-base",
+                  "group/tab shrink-0 whitespace-nowrap border-b pb-2 font-sans text-sm transition-colors sm:text-base",
                   isActive
                     ? "border-foreground text-foreground"
                     : "border-transparent text-muted-foreground hover:text-foreground",
@@ -335,17 +335,17 @@ export const InstallTabs = ({
                   {tab.id === "cli" && <Terminal size={14} />}
                   {tab.id === "next-app" && (
                     <IconNextjs
-                      className={isActive ? "grayscale-0 opacity-100" : ""}
+                      className={isActive ? "grayscale-0 opacity-100" : "group-hover/tab:grayscale-0 group-hover/tab:opacity-100 transition-all"}
                     />
                   )}
                   {tab.id === "vite" && (
                     <IconVite
-                      className={isActive ? "grayscale-0 opacity-100" : ""}
+                      className={isActive ? "grayscale-0 opacity-100" : "group-hover/tab:grayscale-0 group-hover/tab:opacity-100 transition-all"}
                     />
                   )}
                   {tab.id === "tanstack" && (
                     <IconTanstack
-                      className={isActive ? "grayscale-0 opacity-100" : ""}
+                      className={isActive ? "grayscale-0 opacity-100" : "group-hover/tab:grayscale-0 group-hover/tab:opacity-100 transition-all"}
                     />
                   )}
                   {tab.label}

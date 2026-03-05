@@ -3022,6 +3022,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       handleViewportChange();
     });
 
+    const visualViewport = window.visualViewport;
+    if (visualViewport) {
+      const { signal } = eventListenerManager;
+      visualViewport.addEventListener("resize", handleViewportChange, {
+        signal,
+      });
+      visualViewport.addEventListener("scroll", handleViewportChange, {
+        signal,
+      });
+    }
+
     let boundsRecalcIntervalId: number | null = null;
     let viewportChangeFrameId: number | null = null;
 

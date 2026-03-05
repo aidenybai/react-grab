@@ -195,8 +195,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       };
     }
 
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+    const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
 
     const isSelectionVisibleInViewport =
       bounds.x + bounds.width > 0 &&
