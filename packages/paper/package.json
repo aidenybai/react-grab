@@ -15,7 +15,7 @@
   },
   "scripts": {
     "dev": "tsup --watch",
-    "build": "rm -rf dist && NODE_ENV=production tsup"
+    "build": "tsup"
   },
   "devDependencies": {
     "tsup": "^8.4.0"
