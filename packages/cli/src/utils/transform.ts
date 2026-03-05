@@ -404,6 +404,7 @@ const transformNextAppRouter = (
   projectRoot: string,
   agent: AgentIntegration,
   reactGrabAlreadyConfigured: boolean,
+  force: boolean = false,
 ): TransformResult => {
   const layoutPath = findLayoutFile(projectRoot);
 
@@ -421,11 +422,11 @@ const transformNextAppRouter = (
   const hasReactGrabInInstrumentationFile =
     hasReactGrabInInstrumentation(projectRoot);
 
-  if (hasReactGrabInFile && reactGrabAlreadyConfigured) {
+  if (!force && hasReactGrabInFile && reactGrabAlreadyConfigured) {
     return addAgentToExistingNextApp(originalContent, agent, layoutPath);
   }
 
-  if (hasReactGrabInFile || hasReactGrabInInstrumentationFile) {
+  if (!force && (hasReactGrabInFile || hasReactGrabInInstrumentationFile)) {
     return {
       success: true,
       filePath: layoutPath,
@@ -482,6 +483,7 @@ const transformNextPagesRouter = (
   projectRoot: string,
   agent: AgentIntegration,
   reactGrabAlreadyConfigured: boolean,
+  force: boolean = false,
 ): TransformResult => {
   const documentPath = findDocumentFile(projectRoot);
 
@@ -518,11 +520,11 @@ const transformNextPagesRouter = (
   const hasReactGrabInInstrumentationFile =
     hasReactGrabInInstrumentation(projectRoot);
 
-  if (hasReactGrabInFile && reactGrabAlreadyConfigured) {
+  if (!force && hasReactGrabInFile && reactGrabAlreadyConfigured) {
     return addAgentToExistingNextApp(originalContent, agent, documentPath);
   }
 
-  if (hasReactGrabInFile || hasReactGrabInInstrumentationFile) {
+  if (!force && (hasReactGrabInFile || hasReactGrabInInstrumentationFile)) {
     return {
       success: true,
       filePath: documentPath,
@@ -569,6 +571,7 @@ const transformVite = (
   projectRoot: string,
   agent: AgentIntegration,
   reactGrabAlreadyConfigured: boolean,
+  force: boolean = false,
 ): TransformResult => {
   const indexPath = findIndexHtml(projectRoot);
 
@@ -584,11 +587,11 @@ const transformVite = (
   let newContent = originalContent;
   const hasReactGrabInFile = hasReactGrabCode(originalContent);
 
-  if (hasReactGrabInFile && reactGrabAlreadyConfigured) {
+  if (!force && hasReactGrabInFile && reactGrabAlreadyConfigured) {
     return addAgentToExistingVite(originalContent, agent, indexPath);
   }
 
-  if (hasReactGrabInFile) {
+  if (!force && hasReactGrabInFile) {
     return {
       success: true,
       filePath: indexPath,
@@ -621,6 +624,7 @@ const transformWebpack = (
   projectRoot: string,
   agent: AgentIntegration,
   reactGrabAlreadyConfigured: boolean,
+  force: boolean = false,
 ): TransformResult => {
   const entryPath = findEntryFile(projectRoot);
 
@@ -635,11 +639,11 @@ const transformWebpack = (
   const originalContent = readFileSync(entryPath, "utf-8");
   const hasReactGrabInFile = hasReactGrabCode(originalContent);
 
-  if (hasReactGrabInFile && reactGrabAlreadyConfigured) {
+  if (!force && hasReactGrabInFile && reactGrabAlreadyConfigured) {
     return addAgentToExistingWebpack(originalContent, agent, entryPath);
   }
 
-  if (hasReactGrabInFile) {
+  if (!force && hasReactGrabInFile) {
     return {
       success: true,
       filePath: entryPath,
@@ -665,6 +669,7 @@ const transformTanStack = (
   projectRoot: string,
   agent: AgentIntegration,
   reactGrabAlreadyConfigured: boolean,
+  force: boolean = false,
 ): TransformResult => {
   const rootPath = findTanStackRootFile(projectRoot);
 
@@ -688,11 +693,11 @@ const transformTanStack = (
   let newContent = originalContent;
   const hasReactGrabInFile = hasReactGrabCode(originalContent);
 
-  if (hasReactGrabInFile && reactGrabAlreadyConfigured) {
+  if (!force && hasReactGrabInFile && reactGrabAlreadyConfigured) {
     return addAgentToExistingTanStack(originalContent, agent, rootPath);
   }
 
-  if (hasReactGrabInFile) {
+  if (!force && hasReactGrabInFile) {
     return {
       success: true,
       filePath: rootPath,
@@ -762,6 +767,7 @@ export const previewTransform = (
   nextRouterType: NextRouterType,
   agent: AgentIntegration,
   reactGrabAlreadyConfigured: boolean = false,
+  force: boolean = false,
 ): TransformResult => {
   switch (framework) {
     case "next":
@@ -770,22 +776,24 @@ export const previewTransform = (
           projectRoot,
           agent,
           reactGrabAlreadyConfigured,
+          force,
         );
       }
       return transformNextPagesRouter(
         projectRoot,
         agent,
         reactGrabAlreadyConfigured,
+        force,
       );
 
     case "vite":
-      return transformVite(projectRoot, agent, reactGrabAlreadyConfigured);
+      return transformVite(projectRoot, agent, reactGrabAlreadyConfigured, force);
 
     case "tanstack":
-      return transformTanStack(projectRoot, agent, reactGrabAlreadyConfigured);
+      return transformTanStack(projectRoot, agent, reactGrabAlreadyConfigured, force);
 
     case "webpack":
-      return transformWebpack(projectRoot, agent, reactGrabAlreadyConfigured);
+      return transformWebpack(projectRoot, agent, reactGrabAlreadyConfigured, force);
 
     default:
       return {

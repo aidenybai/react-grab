@@ -1009,6 +1009,7 @@ export const init = new Command()
         finalNextRouterType,
         agentIntegration,
         false,
+        opts.force,
       );
 
       const packageJsonResult = previewPackageJsonTransform(
