@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, type ReactElement } from "react";
-import "ios-vibrator-pro-max";
+import { useWebHaptics } from "web-haptics/react";
 import { cn } from "@/utils/cn";
 
 const ANIMATION_RESTART_DELAY_MS = 200;
@@ -10,10 +10,7 @@ const CURSOR_OFFSET_PX = 16;
 const VIBRATION_DURATION_MS = 100;
 const TAP_FEEDBACK_DISPLAY_MS = 800;
 const TAP_FEEDBACK_FADE_MS = 300;
-const FALLBACK_SELECTION_WIDTH_PX = 60;
-const FALLBACK_SELECTION_HEIGHT_PX = 30;
 const LABEL_OFFSET_BELOW_PX = 10;
-const FALLBACK_LABEL_OFFSET_BELOW_PX = 25;
 
 const wait = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
@@ -74,6 +71,8 @@ interface HitElement {
   name: string;
   tag: string;
 }
+
+const METRIC_CARD_NAMES = ["RevenueCard", "UsersCard", "OrdersCard"];
 
 const ACTIVITY_DATA = [
   { label: "New signup", time: "2m ago", component: "SignupRow" },
@@ -303,6 +302,7 @@ const CursorIcon = ({ type }: { type: CursorType }): ReactElement | null => {
 };
 
 export const MobileDemoAnimation = (): ReactElement => {
+  const { trigger: triggerHaptic } = useWebHaptics();
   const [cursorPos, setCursorPos] = useState({ x: 150, y: 80 });
   const [isCursorVisible, setIsCursorVisible] = useState(false);
   const [selectionBox, setSelectionBox] = useState<BoxState>(HIDDEN_BOX);
@@ -313,7 +313,7 @@ export const MobileDemoAnimation = (): ReactElement => {
   const [commentText, setCommentText] = useState("");
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const metricCardRef = useRef<HTMLDivElement>(null);
+  const metricCardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const metricValueRef = useRef<HTMLDivElement>(null);
   const exportButtonRef = useRef<HTMLDivElement>(null);
   const activityRowRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -323,12 +323,7 @@ export const MobileDemoAnimation = (): ReactElement => {
   const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tapTimerInnerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const metricCardPosition = useRef<Position>({
-    x: 0,
-    y: 0,
-    width: 0,
-    height: 0,
-  });
+  const metricCardPositions = useRef<(Position | null)[]>([]);
   const metricValuePosition = useRef<Position>({
     x: 0,
     y: 0,
@@ -363,9 +358,19 @@ export const MobileDemoAnimation = (): ReactElement => {
       };
     };
 
-    measureRelativePosition(metricCardRef.current, metricCardPosition);
     measureRelativePosition(metricValueRef.current, metricValuePosition);
     measureRelativePosition(exportButtonRef.current, exportButtonPosition);
+
+    metricCardPositions.current = metricCardRefs.current.map((ref) => {
+      if (!ref) return null;
+      const rect = ref.getBoundingClientRect();
+      return {
+        x: rect.left - containerRect.left,
+        y: rect.top - containerRect.top,
+        width: rect.width,
+        height: rect.height,
+      };
+    });
 
     activityRowPositions.current = activityRowRefs.current.map((ref) => {
       if (!ref) return null;
@@ -505,7 +510,7 @@ export const MobileDemoAnimation = (): ReactElement => {
       if (isCancelledRef.current) return;
 
       // 2. MetricCard - comment
-      const cardPos = metricCardPosition.current;
+      const cardPos = metricCardPositions.current[0]!;
       const cardCenter = getElementCenter(cardPos);
       setCursorPos(cardCenter);
       await wait(400);
@@ -621,50 +626,63 @@ export const MobileDemoAnimation = (): ReactElement => {
       const container = containerRef.current;
       if (!container) return;
 
-      navigator.vibrate?.(VIBRATION_DURATION_MS);
-
       if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
       if (tapTimerInnerRef.current) clearTimeout(tapTimerInnerRef.current);
       isCancelledRef.current = true;
-      resetAnimationState();
+
+      triggerHaptic(VIBRATION_DURATION_MS);
+
+      setIsCursorVisible(false);
+      setCursorType("default");
+      setCommentText("");
 
       const containerRect = container.getBoundingClientRect();
       const tapX = event.clientX - containerRect.left;
       const tapY = event.clientY - containerRect.top;
 
-      const isPointInPosition = (position: Position): boolean =>
-        tapX >= position.x &&
-        tapX <= position.x + position.width &&
-        tapY >= position.y &&
-        tapY <= position.y + position.height;
+      const distanceToPosition = (position: Position): number => {
+        const clampedX = Math.max(position.x, Math.min(tapX, position.x + position.width));
+        const clampedY = Math.max(position.y, Math.min(tapY, position.y + position.height));
+        return Math.hypot(tapX - clampedX, tapY - clampedY);
+      };
 
-      // HACK: test children before parents so StatValue matches before MetricCard
-      let hitElement: HitElement | null = null;
+      const allElements: HitElement[] = [
+        { position: exportButtonPosition.current, name: "ExportBtn", tag: "button" },
+        { position: metricValuePosition.current, name: "StatValue", tag: "span" },
+        ...metricCardPositions.current
+          .map((cardPosition, index) =>
+            cardPosition
+              ? { position: cardPosition, name: METRIC_CARD_NAMES[index], tag: "div" }
+              : null,
+          )
+          .filter((element): element is HitElement => element !== null),
+        ...activityRowPositions.current
+          .map((rowPosition, index) =>
+            rowPosition
+              ? { position: rowPosition, name: ACTIVITY_DATA[index].component, tag: "div" }
+              : null,
+          )
+          .filter((element): element is HitElement => element !== null),
+      ];
 
-      if (isPointInPosition(exportButtonPosition.current)) {
-        hitElement = { position: exportButtonPosition.current, name: "ExportBtn", tag: "button" };
-      } else if (isPointInPosition(metricValuePosition.current)) {
-        hitElement = { position: metricValuePosition.current, name: "StatValue", tag: "span" };
-      } else if (isPointInPosition(metricCardPosition.current)) {
-        hitElement = { position: metricCardPosition.current, name: "MetricCard", tag: "div" };
-      } else {
-        for (let index = 0; index < activityRowPositions.current.length; index++) {
-          const rowPosition = activityRowPositions.current[index];
-          if (rowPosition && isPointInPosition(rowPosition)) {
-            hitElement = { position: rowPosition, name: ACTIVITY_DATA[index].component, tag: "div" };
-            break;
-          }
+      let closestElement = allElements[0];
+      let closestDistance = distanceToPosition(closestElement.position);
+
+      const areaOf = (position: Position): number => position.width * position.height;
+
+      for (let index = 1; index < allElements.length; index++) {
+        const distance = distanceToPosition(allElements[index].position);
+        const isSameDistance = distance === closestDistance;
+        const isSmallerElement = isSameDistance && areaOf(allElements[index].position) < areaOf(closestElement.position);
+        if (distance < closestDistance || isSmallerElement) {
+          closestDistance = distance;
+          closestElement = allElements[index];
         }
       }
 
-      const targetPosition = hitElement?.position ?? {
-        x: tapX - FALLBACK_SELECTION_WIDTH_PX / 2,
-        y: tapY - FALLBACK_SELECTION_HEIGHT_PX / 2,
-        width: FALLBACK_SELECTION_WIDTH_PX,
-        height: FALLBACK_SELECTION_HEIGHT_PX,
-      };
-      const labelX = hitElement ? getElementCenter(targetPosition).x : tapX;
-      const labelY = hitElement ? targetPosition.y + targetPosition.height + LABEL_OFFSET_BELOW_PX : tapY + FALLBACK_LABEL_OFFSET_BELOW_PX;
+      const targetPosition = closestElement.position;
+      const labelX = getElementCenter(targetPosition).x;
+      const labelY = targetPosition.y + targetPosition.height + LABEL_OFFSET_BELOW_PX;
       const selectionBounds = createSelectionBox(targetPosition, SELECTION_PADDING_PX);
 
       setSelectionBox(selectionBounds);
@@ -673,8 +691,8 @@ export const MobileDemoAnimation = (): ReactElement => {
         visible: true,
         x: labelX,
         y: labelY,
-        componentName: hitElement?.name ?? "Element",
-        tagName: hitElement?.tag ?? "div",
+        componentName: closestElement.name,
+        tagName: closestElement.tag,
       });
       setLabelMode("copied");
 
@@ -696,7 +714,7 @@ export const MobileDemoAnimation = (): ReactElement => {
         }
       }, TAP_FEEDBACK_DISPLAY_MS);
     },
-    [resetAnimationState],
+    [resetAnimationState, triggerHaptic],
   );
 
   const isLabelVisible = label.visible && labelMode !== "fading";
@@ -745,7 +763,7 @@ export const MobileDemoAnimation = (): ReactElement => {
 
           <div className="mb-4 grid grid-cols-3 gap-2.5">
             <div
-              ref={metricCardRef}
+              ref={(el) => { metricCardRefs.current[0] = el; }}
               className="rounded-lg border border-border bg-muted/50 p-2.5"
             >
               <div className="mb-1 text-[10px] font-medium text-muted-foreground">
@@ -760,7 +778,10 @@ export const MobileDemoAnimation = (): ReactElement => {
               <div className="mt-1 text-[10px] text-muted-foreground">+12.5%</div>
             </div>
 
-            <div className="rounded-lg border border-border bg-muted/50 p-2.5">
+            <div
+              ref={(el) => { metricCardRefs.current[1] = el; }}
+              className="rounded-lg border border-border bg-muted/50 p-2.5"
+            >
               <div className="mb-1 text-[10px] font-medium text-muted-foreground">
                 Users
               </div>
@@ -770,7 +791,10 @@ export const MobileDemoAnimation = (): ReactElement => {
               <div className="mt-1 text-[10px] text-muted-foreground">+8.2%</div>
             </div>
 
-            <div className="rounded-lg border border-border bg-muted/50 p-2.5">
+            <div
+              ref={(el) => { metricCardRefs.current[2] = el; }}
+              className="rounded-lg border border-border bg-muted/50 p-2.5"
+            >
               <div className="mb-1 text-[10px] font-medium text-muted-foreground">
                 Orders
               </div>

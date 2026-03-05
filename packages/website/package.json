@@ -17,7 +17,6 @@
     "botid": "^1.5.10",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "ios-vibrator-pro-max": "^1.3.2",
     "lucide-react": "^0.553.0",
     "motion": "^12.23.24",
     "next": "16.0.10",
@@ -29,7 +28,8 @@
     "recharts": "^3.4.1",
     "shiki": "^1.24.3",
     "tailwind-merge": "^3.4.0",
-    "torph": "^0.0.5"
+    "torph": "^0.0.5",
+    "web-haptics": "^0.0.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
