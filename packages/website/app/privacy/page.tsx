@@ -93,7 +93,9 @@ const PrivacyPage = () => {
           </section>
 
           <section>
-            <p className="text-foreground font-bold mb-2">How React Grab Works</p>
+            <p className="text-foreground font-bold mb-2">
+              How React Grab Works
+            </p>
             <p className="mb-2">
               React Grab operates entirely locally in your browser. When you use
               the extension:
@@ -124,8 +126,8 @@ const PrivacyPage = () => {
                 webpage you visit.
               </li>
               <li>
-                <span className="text-foreground">Storage:</span> Used only to store
-                your extension preferences locally on your device.
+                <span className="text-foreground">Storage:</span> Used only to
+                store your extension preferences locally on your device.
               </li>
               <li>
                 <span className="text-foreground">Active Tab:</span> Needed to
@@ -150,7 +152,9 @@ const PrivacyPage = () => {
           </section>
 
           <section>
-            <p className="text-foreground font-bold mb-2">Third-Party Services</p>
+            <p className="text-foreground font-bold mb-2">
+              Third-Party Services
+            </p>
             <p>
               React Grab does not integrate with any third-party analytics,
               tracking, or advertising services. The extension operates entirely
@@ -176,7 +180,9 @@ const PrivacyPage = () => {
           </section>
 
           <section>
-            <p className="text-foreground font-bold mb-2">Changes to This Policy</p>
+            <p className="text-foreground font-bold mb-2">
+              Changes to This Policy
+            </p>
             <p>
               We may update this privacy policy from time to time. Any changes
               will be posted on this page with an updated revision date.

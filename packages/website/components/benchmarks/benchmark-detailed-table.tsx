@@ -332,7 +332,10 @@ export const BenchmarkDetailedTable = ({
           <tbody className="divide-y divide-border">
             {filteredAndSortedResults.length === 0 ? (
               <tr>
-                <td colSpan={11} className="py-8 text-center text-muted-foreground">
+                <td
+                  colSpan={11}
+                  className="py-8 text-center text-muted-foreground"
+                >
                   No results found matching &quot;{searchQuery}&quot;
                 </td>
               </tr>

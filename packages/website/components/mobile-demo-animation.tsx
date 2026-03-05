@@ -650,7 +650,9 @@ export const MobileDemoAnimation = (): ReactElement => {
               <div className="text-[13px] font-semibold text-foreground">
                 Overview
               </div>
-              <div className="text-[11px] text-muted-foreground">Last 30 days</div>
+              <div className="text-[11px] text-muted-foreground">
+                Last 30 days
+              </div>
             </div>
             <div
               ref={exportButtonRef}
@@ -674,7 +676,9 @@ export const MobileDemoAnimation = (): ReactElement => {
               >
                 $12.4k
               </div>
-              <div className="mt-1 text-[10px] text-muted-foreground">+12.5%</div>
+              <div className="mt-1 text-[10px] text-muted-foreground">
+                +12.5%
+              </div>
             </div>
 
             <div className="rounded-lg border border-border bg-muted/50 p-2.5">
@@ -684,7 +688,9 @@ export const MobileDemoAnimation = (): ReactElement => {
               <div className="text-[18px] font-semibold tabular-nums text-foreground">
                 2,847
               </div>
-              <div className="mt-1 text-[10px] text-muted-foreground">+8.2%</div>
+              <div className="mt-1 text-[10px] text-muted-foreground">
+                +8.2%
+              </div>
             </div>
 
             <div className="rounded-lg border border-border bg-muted/50 p-2.5">
@@ -694,7 +700,9 @@ export const MobileDemoAnimation = (): ReactElement => {
               <div className="text-[18px] font-semibold tabular-nums text-foreground">
                 384
               </div>
-              <div className="mt-1 text-[10px] text-muted-foreground">-2.1%</div>
+              <div className="mt-1 text-[10px] text-muted-foreground">
+                -2.1%
+              </div>
             </div>
           </div>
 
