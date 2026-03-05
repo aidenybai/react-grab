@@ -37,4 +37,10 @@
 ## Environment Limitations (sandbox)
 - `pnpm test` fails with `Operation not permitted` due to Turbo cache write restrictions — not a code issue, CI passes
 - `pnpm --filter @react-grab/video dev` fails with `listen EPERM` because sandbox blocks network port binding — not a code issue
+- **Workaround:** Use `pnpm --filter @react-grab/video validate` (runs `remotion bundle --log=verbose`) to prove the full webpack config, Tailwind, fonts, and composition work without needing port binding
 - CI e2e tests may show as `pending` during review but complete successfully — all CI checks pass as of 2026-03-05
+
+## Validation Evidence
+- `remotion bundle` completes with zero warnings/errors — proves webpack config, Tailwind CSS v4, PostCSS pipeline, Geist font loading, and Composition registration all work correctly
+- `eslint src && tsc` passes — proves all TypeScript compiles and ESLint rules are satisfied
+- All CI jobs (Test Build, Test CLI, Test E2E, Publish Any Commit) completed with success on gem/promo-video branch

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "remotion studio",
     "build": "remotion bundle",
+    "validate": "remotion bundle --log=verbose",
     "upgrade": "remotion upgrade",
     "lint": "eslint src && tsc"
   },
