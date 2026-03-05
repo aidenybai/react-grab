@@ -16,7 +16,9 @@
     "clsx": "^2.1.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "remotion": "4.0.424"
+    "remotion": "4.0.424",
+    "tailwindcss": "^4.1.0",
+    "zod": "3.22.3"
   },
   "devDependencies": {
     "@remotion/eslint-config-flat": "4.0.424",
@@ -26,7 +28,6 @@
     "eslint": "9.19.0",
     "postcss": "^8.5.0",
     "postcss-loader": "^8.1.0",
-    "tailwindcss": "^4.1.0",
     "typescript": "5.9.3"
   }
 }
