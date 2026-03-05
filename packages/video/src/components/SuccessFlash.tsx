@@ -1,6 +1,6 @@
 import type React from "react";
 import { interpolate, useCurrentFrame } from "remotion";
-import { GRAB_PURPLE } from "../constants";
+import { GRAB_PINK } from "../constants";
 
 export interface SuccessFlashProps {
   x: number;
@@ -47,8 +47,8 @@ export const SuccessFlash: React.FC<SuccessFlashProps> = ({
         width,
         height,
         borderRadius: 8,
-        border: `2px solid ${GRAB_PURPLE}`,
-        backgroundColor: `${GRAB_PURPLE}26`,
+        border: `2px solid ${GRAB_PINK}`,
+        backgroundColor: `${GRAB_PINK}40`,
         opacity,
       }}
     />

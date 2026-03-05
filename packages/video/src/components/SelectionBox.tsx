@@ -1,6 +1,6 @@
 import type React from "react";
 import { interpolate, useCurrentFrame } from "remotion";
-import { GRAB_PURPLE } from "../constants";
+import { GRAB_PINK } from "../constants";
 
 export interface SelectionBoxProps {
   x: number;
@@ -23,16 +23,24 @@ export const SelectionBox: React.FC<SelectionBoxProps> = ({
 }) => {
   const frame = useCurrentFrame();
 
-  // Appear: instant at showAt
-  let opacity = frame >= showAt ? 1 : 0;
+  // Appear: quick fade in over 4 frames via interpolate()
+  const appearOpacity = interpolate(
+    frame,
+    [showAt, showAt + 4],
+    [0, 1],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
+  );
 
   // Disappear: fade out over 5 frames starting at hideAt
-  if (hideAt !== undefined && frame >= hideAt) {
-    opacity = interpolate(frame, [hideAt, hideAt + 5], [1, 0], {
-      extrapolateLeft: "clamp",
-      extrapolateRight: "clamp",
-    });
-  }
+  const disappearOpacity =
+    hideAt !== undefined
+      ? interpolate(frame, [hideAt, hideAt + 5], [1, 0], {
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+        })
+      : 1;
+
+  const opacity = Math.min(appearOpacity, disappearOpacity);
 
   if (opacity <= 0) return null;
 
@@ -47,8 +55,8 @@ export const SelectionBox: React.FC<SelectionBoxProps> = ({
         width,
         height,
         borderRadius: 8,
-        border: `2px solid ${GRAB_PURPLE}80`,
-        backgroundColor: `${GRAB_PURPLE}14`,
+        border: `2px solid ${GRAB_PINK}cc`,
+        backgroundColor: `${GRAB_PINK}1a`,
         opacity,
       }}
     />
