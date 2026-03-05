@@ -1,5 +1,13 @@
 # @react-grab/mcp
 
+## 0.1.22
+
+### Patch Changes
+
+- fix: freezing
+- Updated dependencies
+  - react-grab@0.1.22
+
 ## 0.1.21
 
 ### Patch Changes

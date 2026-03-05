@@ -1,5 +1,13 @@
 # grab
 
+## 0.1.22
+
+### Patch Changes
+
+- fix: freezing
+- Updated dependencies
+  - @react-grab/cli@0.1.22
+
 ## 0.1.21
 
 ### Patch Changes

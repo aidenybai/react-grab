@@ -1,5 +1,13 @@
 # @react-grab/relay
 
+## 0.1.22
+
+### Patch Changes
+
+- fix: freezing
+- Updated dependencies
+  - @react-grab/utils@0.1.22
+
 ## 0.1.21
 
 ### Patch Changes
