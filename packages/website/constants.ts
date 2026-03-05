@@ -37,3 +37,4 @@ export const ANIMATION_RESTART_DELAY_MS = 200;
 export const SELECTION_PADDING_PX = 4;
 export const CURSOR_OFFSET_PX = 16;
 export const HINT_OVERLAY_DELAY_MS = 3000;
+export const IDLE_RESTART_DELAY_MS = 5000;

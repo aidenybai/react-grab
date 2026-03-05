@@ -12,6 +12,7 @@ import {
   SELECTION_PADDING_PX,
   CURSOR_OFFSET_PX,
   HINT_OVERLAY_DELAY_MS,
+  IDLE_RESTART_DELAY_MS,
 } from "@/constants";
 
 const wait = (ms: number): Promise<void> =>
@@ -321,6 +322,7 @@ export const MobileDemoAnimation = (): ReactElement => {
   const animationLoopRef = useRef<(() => void) | null>(null);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tapTimerInnerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const idleRestartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const metricCardPositions = useRef<(Position | null)[]>([]);
   const metricValuePosition = useRef<Position>({
@@ -612,6 +614,7 @@ export const MobileDemoAnimation = (): ReactElement => {
       isCancelledRef.current = true;
       if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
       if (tapTimerInnerRef.current) clearTimeout(tapTimerInnerRef.current);
+      if (idleRestartTimerRef.current) clearTimeout(idleRestartTimerRef.current);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [resetAnimationState]);
@@ -623,6 +626,7 @@ export const MobileDemoAnimation = (): ReactElement => {
 
       if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
       if (tapTimerInnerRef.current) clearTimeout(tapTimerInnerRef.current);
+      if (idleRestartTimerRef.current) clearTimeout(idleRestartTimerRef.current);
       isCancelledRef.current = true;
 
       triggerHaptic(VIBRATION_DURATION_MS);
@@ -705,6 +709,12 @@ export const MobileDemoAnimation = (): ReactElement => {
             setSelectionBox(HIDDEN_BOX);
             setLabel(HIDDEN_LABEL);
             setLabelMode("idle");
+
+            idleRestartTimerRef.current = setTimeout(() => {
+              if (animationLoopRef.current) {
+                animationLoopRef.current();
+              }
+            }, IDLE_RESTART_DELAY_MS);
           }, TAP_FEEDBACK_FADE_MS);
         }
       }, TAP_FEEDBACK_DISPLAY_MS);
