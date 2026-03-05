@@ -705,10 +705,6 @@ export const MobileDemoAnimation = (): ReactElement => {
             setSelectionBox(HIDDEN_BOX);
             setLabel(HIDDEN_LABEL);
             setLabelMode("idle");
-
-            if (animationLoopRef.current) {
-              animationLoopRef.current();
-            }
           }, TAP_FEEDBACK_FADE_MS);
         }
       }, TAP_FEEDBACK_DISPLAY_MS);
