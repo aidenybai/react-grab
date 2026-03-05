@@ -73,8 +73,6 @@ interface Position {
 
 export interface OverlayCanvasProps {
   crosshairVisible?: boolean;
-  mouseX?: number;
-  mouseY?: number;
 
   selectionVisible?: boolean;
   selectionBounds?: OverlayBounds;
@@ -542,20 +540,6 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
   createEffect(
     on(
-      () => [props.mouseX, props.mouseY] as const,
-      ([mouseX, mouseY]) => {
-        const targetX = mouseX ?? 0;
-        const targetY = mouseY ?? 0;
-
-        crosshairCurrentPosition.x = targetX;
-        crosshairCurrentPosition.y = targetY;
-        scheduleAnimationFrame();
-      },
-    ),
-  );
-
-  createEffect(
-    on(
       () => props.crosshairVisible,
       () => {
         scheduleAnimationFrame();
@@ -763,6 +747,16 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     initializeCanvas();
     scheduleAnimationFrame();
 
+    const handlePointerMove = (event: PointerEvent) => {
+      if (!event.isPrimary) return;
+      crosshairCurrentPosition.x = event.clientX;
+      crosshairCurrentPosition.y = event.clientY;
+      scheduleAnimationFrame();
+    };
+
+    window.addEventListener("pointermove", handlePointerMove, {
+      passive: true,
+    });
     window.addEventListener("resize", handleWindowResize);
 
     let currentDprMediaQuery: MediaQueryList | null = null;
@@ -797,6 +791,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     setupDprMediaQuery();
 
     onCleanup(() => {
+      window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("resize", handleWindowResize);
       if (currentDprMediaQuery) {
         currentDprMediaQuery.removeEventListener(
