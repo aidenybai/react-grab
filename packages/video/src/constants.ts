@@ -37,3 +37,13 @@ export const LABEL_SUCCESS_TEXT = "#006e3b";
 export const LABEL_DIVIDER = "#dedede";
 export const LABEL_MUTED = "#767676";
 export const PANEL_WHITE = "#ffffff";
+
+// Component constants (from react-grab/src/constants.ts)
+export const PANEL_STYLES = "bg-white";
+export const ARROW_HEIGHT_PX = 8;
+export const ARROW_MIN_SIZE_PX = 4;
+export const ARROW_MAX_LABEL_WIDTH_RATIO = 0.2;
+export const ARROW_CENTER_PERCENT = 50;
+export const ARROW_LABEL_MARGIN_PX = 16;
+export const LABEL_GAP_PX = 4;
+export const DROPDOWN_ICON_SIZE_PX = 11;
