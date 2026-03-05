@@ -4041,10 +4041,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             dragBounds={dragBounds()}
             grabbedBoxes={computedGrabbedBoxes()}
             labelZIndex={Z_INDEX_LABEL}
-            mouseX={
-              store.frozenElements.length > 1 ? undefined : cursorPosition().x
-            }
-            mouseY={cursorPosition().y}
+            mouseX={store.pointer.x}
+            mouseY={store.pointer.y}
             crosshairVisible={crosshairVisible()}
             isFrozen={
               isToggleFrozen() || isActivated() || isToolbarSelectHovered()

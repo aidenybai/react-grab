@@ -424,6 +424,7 @@ const createGrabStore = (input: GrabStoreInput) => {
         const shouldReturnToActive =
           store.current.wasActive && !store.wasActivatedByToggle;
         if (shouldReturnToActive) {
+          actions.clearFrozenElement();
           setStore("current", {
             state: "active",
             phase: "hovering",
