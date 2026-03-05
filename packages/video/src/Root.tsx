@@ -1,6 +1,6 @@
 import type React from "react";
 import { Composition } from "remotion";
-import { MainComposition } from "./Composition";
+import { MainComposition } from "./compositions/main";
 import {
   VIDEO_WIDTH_PX,
   VIDEO_HEIGHT_PX,

@@ -47,3 +47,40 @@ export const ARROW_CENTER_PERCENT = 50;
 export const ARROW_LABEL_MARGIN_PX = 16;
 export const LABEL_GAP_PX = 4;
 export const DROPDOWN_ICON_SIZE_PX = 11;
+
+// ---- Scene 1 internal timing (relative to scene start, 0-80) ----
+export const S1_TOOLBAR_ENTER_FRAME = 20;
+
+// ---- Scene 2 internal timing (relative to scene start, 0-160) ----
+export const S2_CURSOR_APPEAR = 0;
+export const S2_CURSOR_ARRIVE = 30;
+export const S2_SELECTION_SHOW = 30;
+export const S2_LABEL_SHOW = 35;
+export const S2_COPYING_START = 70;
+export const S2_COPIED_START = 110;
+export const S2_FADE_OUT = 140;
+export const S2_FADE_DURATION = 5;
+
+// ---- Scene 3 internal timing (relative to scene start, 0-200) ----
+export const S3_CURSOR_ARRIVE = 25;
+export const S3_SELECTION_SHOW = 25;
+export const S3_LABEL_SHOW = 30;
+export const S3_PROMPT_MODE = 50;
+export const S3_TYPING_START = 55;
+export const S3_TYPING_CHARS = 3; // frames per character
+export const S3_COMMENT_TEXT = "add CSV option";
+export const S3_SUBMIT_FRAME = 55 + 14 * 3 + 5; // after typing + small pause
+export const S3_THINKING_START = 55 + 14 * 3 + 5;
+export const S3_COMPLETION_START = 155;
+
+// ---- Scene 4 internal timing (relative to scene start, 0-80) ----
+export const S4_CURSOR_ARRIVE = 20;
+export const S4_SELECTION_SHOW = 20;
+export const S4_CONTEXT_MENU_SHOW = 30;
+
+// ---- Scene 5 internal timing (relative to scene start, 0-80) ----
+export const S5_DROPDOWN_SHOW = 10;
+
+// ---- Toolbar position ----
+export const TOOLBAR_X = 960;
+export const TOOLBAR_Y = 1020;
