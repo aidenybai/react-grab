@@ -1,5 +1,4 @@
 import { init } from "react-grab/core";
-import { detectMobile } from "@/utils/detect-mobile";
 
 declare global {
   interface Window {
@@ -28,7 +27,8 @@ if (typeof window !== "undefined" && !window.__REACT_GRAB__) {
     },
   });
 
-  if (detectMobile()) {
+  const isMobile = navigator.maxTouchPoints > 0 || matchMedia("(pointer: coarse)").matches;
+  if (isMobile) {
     api.registerPlugin({
       name: "mobile-no-toolbar",
       theme: { toolbar: { enabled: false } },
