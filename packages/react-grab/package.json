@@ -1,6 +1,6 @@
 {
   "name": "react-grab",
-  "version": "0.1.22",
+  "version": "0.1.23",
   "description": "Select context for coding agents directly from your website",
   "keywords": [
     "agent",
@@ -22,7 +22,11 @@
     "type": "git",
     "url": "git+https://github.com/aidenybai/react-grab.git"
   },
+  "bin": {
+    "react-grab": "./bin/cli.js"
+  },
   "files": [
+    "bin",
     "dist",
     "package.json",
     "README.md",
@@ -94,6 +98,7 @@
   },
   "dependencies": {
     "@medv/finder": "^4.0.2",
+    "@react-grab/cli": "workspace:*",
     "bippy": "^0.5.30",
     "solid-js": "^1.9.10"
   },

@@ -1,5 +1,11 @@
 # @react-grab/cli
 
+## 0.1.23
+
+### Patch Changes
+
+- fix: npx command
+
 ## 0.1.22
 
 ### Patch Changes

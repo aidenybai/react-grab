@@ -31,7 +31,6 @@
     "@react-grab/web-extension",
     "@react-grab/benchmarks",
     "@react-grab/gym",
-    "@react-grab/design-system",
-    "@react-grab/video"
+    "@react-grab/design-system"
   ]
 }

@@ -1,5 +1,14 @@
 # @react-grab/amp
 
+## 0.1.23
+
+### Patch Changes
+
+- fix: npx command
+- Updated dependencies
+  - react-grab@0.1.23
+  - @react-grab/relay@0.1.23
+
 ## 0.1.22
 
 ### Patch Changes
