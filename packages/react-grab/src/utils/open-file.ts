@@ -32,15 +32,19 @@ export const openFile = async (
   lineNumber: number | undefined,
   transformUrl?: (url: string, filePath: string, lineNumber?: number) => string,
 ): Promise<void> => {
+  const normalizedPath = checkIsNextProject()
+    ? stripAppRouterVirtualSegments(filePath)
+    : filePath;
+
   const wasOpenedByDevServer = await tryDevServerOpen(
-    filePath,
+    normalizedPath,
     lineNumber,
   ).catch(() => false);
   if (wasOpenedByDevServer) return;
 
-  const rawUrl = buildOpenFileUrl(filePath, lineNumber);
+  const rawUrl = buildOpenFileUrl(normalizedPath, lineNumber);
   const url = transformUrl
-    ? transformUrl(rawUrl, filePath, lineNumber)
+    ? transformUrl(rawUrl, normalizedPath, lineNumber)
     : rawUrl;
   window.open(url, "_blank", "noopener,noreferrer");
 };
