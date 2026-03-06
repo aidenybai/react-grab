@@ -269,6 +269,7 @@ import {
   freeze,
   unfreeze,
   isFreezeActive,
+  openFile,
 } from "react-grab/primitives";
 ```
 
@@ -327,6 +328,15 @@ Returns whether the page is currently in a frozen state.
 if (isFreezeActive()) {
   console.log("Page is frozen, skipping update");
 }
+```
+
+#### openFile(filePath, lineNumber?)
+
+Opens a source file in the user's editor. Tries the dev-server endpoint first (Vite's `/__open-in-editor` or Next.js's `/__nextjs_launch-editor`), then falls back to a protocol URL (e.g. `vscode://file/…`).
+
+```typescript
+await openFile("/src/components/Button.tsx");
+await openFile("/src/components/Button.tsx", 42);
 ```
 
 ## SettableOptions Type
