@@ -1,5 +1,11 @@
 # @react-grab/cli
 
+## 0.1.24
+
+### Patch Changes
+
+- primitives
+
 ## 0.1.23
 
 ### Patch Changes

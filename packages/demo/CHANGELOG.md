@@ -1,5 +1,13 @@
 # @react-grab/demo
 
+## 0.1.3
+
+### Patch Changes
+
+- primitives
+- Updated dependencies
+  - react-grab@0.1.24
+
 ## 0.1.2
 
 ### Patch Changes

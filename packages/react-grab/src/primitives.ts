@@ -14,6 +14,7 @@ import {
 import { Fiber, getFiberFromHostInstance } from "bippy";
 import { createElementSelector } from "./utils/create-element-selector.js";
 import { extractElementCss } from "./utils/extract-element-css.js";
+import { openFile as openFileAsync } from "./utils/open-file.js";
 
 export interface ReactGrabElementContext {
   element: Element;
@@ -105,4 +106,20 @@ export const unfreeze = (): void => {
  */
 export const isFreezeActive = (): boolean => {
   return _isFreezeActive;
+};
+
+/**
+ * Opens the source file at the given path in the user's editor.
+ * Tries the dev-server endpoint first (Vite / Next.js), then falls back
+ * to a protocol URL (e.g. vscode://file/…).
+ *
+ * @example
+ * openFile("/src/components/Button.tsx");
+ * openFile("/src/components/Button.tsx", 42);
+ */
+export const openFile = async (
+  filePath: string,
+  lineNumber?: number,
+): Promise<void> => {
+  await openFileAsync(filePath, lineNumber);
 };
