@@ -20,6 +20,7 @@ import { IconSelect } from "../icons/icon-select.jsx";
 import { IconChevron } from "../icons/icon-chevron.jsx";
 import { IconClock } from "../icons/icon-clock.jsx";
 import { IconCopy } from "../icons/icon-copy.jsx";
+import { IconCheck } from "../icons/icon-check.jsx";
 import { IconEllipsis } from "../icons/icon-ellipsis.jsx";
 import {
   createSafePolygonTracker,
@@ -89,6 +90,9 @@ interface ToolbarProps {
   toolbarActions?: ToolbarMenuAction[];
   onToggleMenu?: () => void;
   isMenuOpen?: boolean;
+  eventContextTrailCount?: number;
+  eventContextCopyStatus?: "idle" | "copied";
+  onCopyEventContext?: () => void;
 }
 
 interface FreezeHandlersOptions {
@@ -162,6 +166,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [isMenuTooltipVisible, setIsMenuTooltipVisible] = createSignal(false);
   const [isCopyAllTooltipVisible, setIsCopyAllTooltipVisible] =
     createSignal(false);
+  const [isTrailTooltipVisible, setIsTrailTooltipVisible] = createSignal(false);
   let clockFlashRef: HTMLSpanElement | undefined;
 
   const hasToolbarActions = () => (props.toolbarActions ?? []).length > 0;
@@ -169,6 +174,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const historyTooltipLabel = () => {
     const count = props.historyItemCount ?? 0;
     return count > 0 ? `History (${count})` : "History";
+  };
+
+  const trailTooltipLabel = () => {
+    const count = props.eventContextTrailCount ?? 0;
+    return count > 0 ? `Copy trail (${count})` : "Copy trail";
   };
 
   const historyIconClass = () =>
@@ -688,6 +698,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const handleCopyAll = createDragAwareHandler(() => props.onCopyAll?.());
 
+  const handleCopyTrail = createDragAwareHandler(() =>
+    props.onCopyEventContext?.(),
+  );
+
   const handleToggleMenu = createDragAwareHandler(() => props.onToggleMenu?.());
 
   const handleToggleCollapse = createDragAwareHandler(() => {
@@ -776,6 +790,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           }
           if (child.querySelector("[data-react-grab-toolbar-copy-all]")) {
             return Boolean(props.isHistoryDropdownOpen);
+          }
+          if (child.querySelector("[data-react-grab-toolbar-trail]")) {
+            return (props.eventContextTrailCount ?? 0) > 0;
           }
           if (child.querySelector("[data-react-grab-toolbar-menu]")) {
             return hasMenuActions;
@@ -1728,6 +1745,74 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     position={tooltipPosition()}
                   >
                     Copy all
+                  </Tooltip>
+                </div>
+              </div>
+              <div
+                class={cn(
+                  "grid",
+                  !isRapidRetoggle() && gridTransitionClass(),
+                  expandGridClass(
+                    Boolean(props.enabled) &&
+                      (props.eventContextTrailCount ?? 0) > 0,
+                    "pointer-events-none",
+                  ),
+                )}
+              >
+                <div
+                  class={cn("relative overflow-visible", minDimensionClass())}
+                >
+                  <button
+                    data-react-grab-ignore-events
+                    data-react-grab-toolbar-trail
+                    aria-label={`Copy interaction trail (${props.eventContextTrailCount ?? 0} items)`}
+                    class={cn(
+                      "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
+                      buttonSpacingClass(),
+                      hitboxConstraintClass(),
+                    )}
+                    on:pointerdown={(event) => {
+                      stopEventPropagation(event);
+                      handlePointerDown(event);
+                    }}
+                    on:mousedown={stopEventPropagation}
+                    onClick={(event) => {
+                      setIsTrailTooltipVisible(false);
+                      handleCopyTrail(event);
+                    }}
+                    {...createFreezeHandlers(setIsTrailTooltipVisible, {
+                      shouldFreezeInteractions: false,
+                    })}
+                  >
+                    <span class="inline-flex relative">
+                      <Show
+                        when={props.eventContextCopyStatus === "copied"}
+                        fallback={
+                          <IconCopy
+                            size={14}
+                            class="text-[#B3B3B3] transition-colors"
+                          />
+                        }
+                      >
+                        <IconCheck size={14} class="text-black" />
+                      </Show>
+                      <Show
+                        when={
+                          (props.eventContextTrailCount ?? 0) > 0 &&
+                          props.eventContextCopyStatus !== "copied"
+                        }
+                      >
+                        <span class="absolute -top-0.5 -right-1.5 text-[8px] font-medium text-black/40 tabular-nums leading-none">
+                          {props.eventContextTrailCount}
+                        </span>
+                      </Show>
+                    </span>
+                  </button>
+                  <Tooltip
+                    visible={isTrailTooltipVisible() && isTooltipAllowed()}
+                    position={tooltipPosition()}
+                  >
+                    {trailTooltipLabel()}
                   </Tooltip>
                 </div>
               </div>

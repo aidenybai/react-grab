@@ -214,6 +214,9 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           onToggleMenu={props.onToggleMenu}
           isMenuOpen={Boolean(props.toolbarMenuPosition)}
           isClearPromptOpen={Boolean(props.clearPromptPosition)}
+          eventContextTrailCount={props.eventContextTrailCount}
+          eventContextCopyStatus={props.eventContextCopyStatus}
+          onCopyEventContext={props.onCopyEventContext}
         />
       </Show>
 

@@ -479,6 +479,17 @@ export interface HistoryItem {
   timestamp: number;
 }
 
+export interface EventContextEntry {
+  id: string;
+  interactionType: "hover" | "click";
+  tagName: string;
+  componentName: string | null;
+  filePath: string | null;
+  lineNumber: number | null;
+  selector: string | null;
+  timestamp: number;
+}
+
 export interface ReactGrabRendererProps {
   selectionVisible?: boolean;
   selectionBounds?: OverlayBounds;
@@ -583,6 +594,9 @@ export interface ReactGrabRendererProps {
   clearPromptPosition?: DropdownAnchor | null;
   onClearHistoryConfirm?: () => void;
   onClearHistoryCancel?: () => void;
+  eventContextTrailCount?: number;
+  eventContextCopyStatus?: "idle" | "copied";
+  onCopyEventContext?: () => void;
 }
 
 export interface GrabbedBox {

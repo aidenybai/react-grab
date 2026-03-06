@@ -79,6 +79,8 @@ import {
   PREVIEW_TEXT_MAX_LENGTH,
   DEFERRED_EXECUTION_DELAY_MS,
   NEXTJS_REVALIDATION_DELAY_MS,
+  AMBIENT_HOVER_DWELL_MS,
+  AMBIENT_COPY_FEEDBACK_MS,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
@@ -112,6 +114,7 @@ import type {
   ToolbarState,
   HistoryItem,
   DropdownAnchor,
+  EventContextEntry,
 } from "../types.js";
 import { DEFAULT_THEME } from "./theme.js";
 import { createPluginRegistry } from "./plugin-registry.js";
@@ -155,6 +158,7 @@ import {
 } from "../utils/history-storage.js";
 import { copyContent } from "../utils/copy-content.js";
 import { joinSnippets } from "../utils/join-snippets.js";
+import { createEventContextStore } from "../utils/event-context-store.js";
 
 const builtInPlugins = [
   copyPlugin,
@@ -293,6 +297,142 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [clockFlashTrigger, setClockFlashTrigger] = createSignal(0);
     const [isHistoryHoverOpen, setIsHistoryHoverOpen] = createSignal(false);
     let historyHoverPreviews: { boxId: string; labelId: string | null }[] = [];
+
+    const eventContextStore = createEventContextStore();
+    const [eventContextTrailCount, setEventContextTrailCount] = createSignal(0);
+    const [eventContextCopyStatus, setEventContextCopyStatus] = createSignal<
+      "idle" | "copied"
+    >("idle");
+    let ambientHoverTimer: ReturnType<typeof setTimeout> | null = null;
+    let eventContextCopyFeedbackTimer: ReturnType<typeof setTimeout> | null =
+      null;
+    let lastAmbientElement: Element | null = null;
+
+    const clearAmbientHoverTimer = () => {
+      if (ambientHoverTimer !== null) {
+        clearTimeout(ambientHoverTimer);
+        ambientHoverTimer = null;
+      }
+    };
+
+    const isOverlayElement = (element: Element): boolean => {
+      let current: Element | null = element;
+      while (current) {
+        if (
+          current instanceof HTMLElement &&
+          current.hasAttribute("data-react-grab-ignore-events")
+        ) {
+          return true;
+        }
+        current =
+          current.parentElement ??
+          (current.getRootNode() as ShadowRoot).host ??
+          null;
+      }
+      return false;
+    };
+
+    const isAmbientTrackable = (element: Element | null): element is Element =>
+      element !== null && !isRootElement(element) && !isOverlayElement(element);
+
+    const addAmbientTrailEntry = (
+      element: Element,
+      interactionType: EventContextEntry["interactionType"],
+    ) => {
+      const tagName = getTagName(element);
+      const selector = createElementSelector(element, true);
+
+      const entry: Omit<EventContextEntry, "id"> = {
+        interactionType,
+        tagName,
+        componentName: null,
+        filePath: null,
+        lineNumber: null,
+        selector,
+        timestamp: Date.now(),
+      };
+
+      const updatedEntries = eventContextStore.addEntry(entry);
+      setEventContextTrailCount(updatedEntries.length);
+
+      void getNearestComponentName(element).then((resolvedComponentName) => {
+        if (!resolvedComponentName) return;
+        const currentEntries = eventContextStore.getEntries();
+        const matchingEntry = currentEntries.find(
+          (storedEntry) =>
+            storedEntry.selector === selector &&
+            storedEntry.componentName === null,
+        );
+        if (matchingEntry) {
+          matchingEntry.componentName = resolvedComponentName;
+        }
+      });
+
+      void getStack(element).then((stack) => {
+        const source = resolveSourceFromStack(stack);
+        if (!source) return;
+        const currentEntries = eventContextStore.getEntries();
+        const matchingEntry = currentEntries.find(
+          (storedEntry) => storedEntry.selector === selector,
+        );
+        if (matchingEntry) {
+          if (matchingEntry.filePath === null) {
+            matchingEntry.filePath = source.filePath;
+            matchingEntry.lineNumber = source.lineNumber ?? null;
+          }
+          if (matchingEntry.componentName === null && source.componentName) {
+            matchingEntry.componentName = source.componentName;
+          }
+        }
+      });
+    };
+
+    const handleAmbientPointerMove = (clientX: number, clientY: number) => {
+      if (isActivated() || !isEnabled()) return;
+
+      const candidate = getElementAtPosition(clientX, clientY);
+
+      if (candidate === lastAmbientElement) return;
+
+      clearAmbientHoverTimer();
+
+      if (!isAmbientTrackable(candidate)) {
+        lastAmbientElement = null;
+        return;
+      }
+
+      lastAmbientElement = candidate;
+
+      ambientHoverTimer = setTimeout(() => {
+        if (lastAmbientElement !== candidate) return;
+        addAmbientTrailEntry(candidate, "hover");
+      }, AMBIENT_HOVER_DWELL_MS);
+    };
+
+    const handleAmbientClick = (clientX: number, clientY: number) => {
+      if (isActivated() || !isEnabled()) return;
+
+      const candidate = getElementAtPosition(clientX, clientY);
+
+      if (!isAmbientTrackable(candidate)) return;
+
+      clearAmbientHoverTimer();
+      lastAmbientElement = candidate;
+      addAmbientTrailEntry(candidate, "click");
+    };
+
+    const handleCopyEventContext = () => {
+      const trailText = eventContextStore.formatTrailForCopy();
+      if (!trailText) return;
+      copyContent(trailText, { componentName: "interactions" });
+      setEventContextCopyStatus("copied");
+      if (eventContextCopyFeedbackTimer !== null) {
+        clearTimeout(eventContextCopyFeedbackTimer);
+      }
+      eventContextCopyFeedbackTimer = setTimeout(() => {
+        setEventContextCopyStatus("idle");
+      }, AMBIENT_COPY_FEEDBACK_MS);
+    };
 
     const getMappedHistoryElements = (historyItemId: string): Element[] =>
       historyElementMap.get(historyItemId) ?? [];
@@ -1497,6 +1637,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const activateRenderer = () => {
+      clearAmbientHoverTimer();
       const wasInHoldingState = isHoldingKeys();
       actions.activate();
       // HACK: Only call onActivate if we weren't in holding state.
@@ -2794,13 +2935,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.setTouchMode(isTouchPointer);
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
         if (store.contextMenuPosition !== null) return;
-        if (isTouchPointer && !isHoldingKeys() && !isActivated()) return;
+        if (isTouchPointer && !isHoldingKeys() && !isActivated()) {
+          handleAmbientPointerMove(event.clientX, event.clientY);
+          return;
+        }
         const isActiveState = isTouchPointer ? isHoldingKeys() : isActivated();
         if (isActiveState && !isPromptMode() && isToggleFrozen()) {
           actions.unfreeze();
           clearArrowNavigation();
         }
         handlePointerMove(event.clientX, event.clientY);
+        if (!isActiveState) {
+          handleAmbientPointerMove(event.clientX, event.clientY);
+        }
       },
       { passive: true },
     );
@@ -2858,6 +3005,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
       },
       { capture: true },
+    );
+
+    eventListenerManager.addWindowListener(
+      "click",
+      (event: MouseEvent) => {
+        handleAmbientClick(event.clientX, event.clientY);
+      },
+      { passive: true },
     );
 
     eventListenerManager.addWindowListener(
@@ -2957,6 +3112,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         clearHoldTimer();
         actions.release();
         resetCopyConfirmation();
+      }
+
+      if (isEnabled() && eventContextStore.getEntries().length > 0) {
+        const trailText = eventContextStore.formatTrailForCopy();
+        if (trailText) {
+          copyContent(trailText, { componentName: "interactions" });
+        }
       }
     });
 
@@ -4141,6 +4303,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               handleHistoryClear();
             }}
             onClearHistoryCancel={dismissClearPrompt}
+            eventContextTrailCount={eventContextTrailCount()}
+            eventContextCopyStatus={eventContextCopyStatus()}
+            onCopyEventContext={handleCopyEventContext}
           />
         );
       }, rendererRoot);
@@ -4262,6 +4427,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         cancelHistoryHoverCloseTimeout();
         stopTrackingDropdownPosition();
         toolbarStateChangeCallbacks.clear();
+        clearAmbientHoverTimer();
+        eventContextStore.clear();
+        if (eventContextCopyFeedbackTimer !== null) {
+          clearTimeout(eventContextCopyFeedbackTimer);
+        }
         dispose();
       },
       copyElement: copyElementAPI,
