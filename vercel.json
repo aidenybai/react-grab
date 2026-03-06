@@ -1,18 +1,7 @@
 {
   "buildCommand": "pnpm --filter react-grab build && pnpm --filter react-grab exec cp dist/index.global.js ../website/public/script.js && pnpm --filter @react-grab/website build",
   "installCommand": "pnpm install",
-  "redirects": [
-    {
-      "source": "/docs",
-      "destination": "https://github.com/aidenybai/react-grab#readme",
-      "permanent": false
-    },
-    {
-      "source": "/primitives",
-      "destination": "https://github.com/aidenybai/react-grab/tree/main?tab=readme-ov-file#primitives",
-      "permanent": false
-    }
-  ],
+  "redirects": [],
   "headers": [
     {
       "source": "/script.js",
