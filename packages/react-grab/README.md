@@ -203,13 +203,68 @@ actions: [
 
 A plugin can provide any combination of:
 
-- **`actions`** — context menu and/or toolbar items in a single array (use `target: "toolbar"` for toolbar items)
-- **`hooks`** — lifecycle callbacks like `onActivate`, `onElementSelect`, `onCopySuccess`, `transformCopyContent`, etc. (see `PluginHooks`)
-- **`theme`** — partial theme overrides (see `Theme`)
-- **`options`** — override default options like `activationMode` or `keyHoldDuration`
-- **`setup(api)`** — a function that receives the full `ReactGrabAPI` and can return additional config or a `cleanup` function
+- **`actions`** - context menu and/or toolbar items in a single array (use `target: "toolbar"` for toolbar items)
+- **`hooks`** - lifecycle callbacks like `onActivate`, `onElementSelect`, `onCopySuccess`, `transformCopyContent`, etc. (see `PluginHooks`)
+- **`theme`** - partial theme overrides (see `Theme`)
+- **`options`** - override default options like `activationMode` or `keyHoldDuration`
+- **`setup(api)`** - a function that receives the full `ReactGrabAPI` and can return additional config or a `cleanup` function
 
 See [`packages/react-grab/src/types.ts`](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) for the full `Plugin`, `PluginHooks`, and `PluginConfig` interfaces.
+
+## API Primitives
+
+Use these lower-level building blocks from `react-grab/primitives` to build your own React Grab alternatives, custom copy flows, browser extensions, or agent integrations.
+
+```typescript
+import {
+  getElementContext,
+  freeze,
+  unfreeze,
+  isFreezeActive,
+} from "react-grab/primitives";
+```
+
+#### `getElementContext(element)`
+
+Gathers comprehensive context for a DOM element, including its React component name, source stack, HTML preview, CSS selector, and computed styles.
+
+```typescript
+const context = await getElementContext(document.querySelector(".my-button")!);
+context.componentName; // "SubmitButton"
+context.selector;      // "button.my-button"
+context.stackContext;  // "SubmitButton > Form > App"
+context.htmlPreview;   // '<button class="my-button">Submit</button>'
+context.styles;        // "color: white; background: blue; ..."
+```
+
+#### `freeze(elements?)`
+
+Freezes the page by halting React updates, pausing CSS/JS animations, and preserving pseudo-states (`:hover`, `:focus`). This ensures the DOM stays stable while you inspect or copy element context, preventing re-renders or animations from changing the element between reads. Defaults to `document.body`.
+
+```typescript
+freeze();                                     // freeze the entire page
+freeze([document.querySelector(".modal")!]);  // freeze only the modal subtree
+```
+
+#### `unfreeze()`
+
+Restores normal page behavior by re-enabling React updates, resuming animations, and releasing preserved pseudo-states.
+
+```typescript
+freeze();
+const context = await getElementContext(targetElement);
+unfreeze();
+```
+
+#### `isFreezeActive()`
+
+Returns whether the page is currently in a frozen state.
+
+```typescript
+if (isFreezeActive()) {
+  console.log("Page is frozen, skipping update");
+}
+```
 
 ## Resources & Contributing Back
 

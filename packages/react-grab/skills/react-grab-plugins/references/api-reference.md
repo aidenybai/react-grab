@@ -257,6 +257,78 @@ interface ToolbarState {
 }
 ```
 
+## Extending
+
+### API Primitives
+
+Lower-level building blocks exported from `react-grab/primitives` for advanced use cases like custom tooling, browser extensions, or agent integrations.
+
+```typescript
+import {
+  getElementContext,
+  freeze,
+  unfreeze,
+  isFreezeActive,
+} from "react-grab/primitives";
+```
+
+#### getElementContext(element)
+
+Gathers comprehensive context for a DOM element, including its React fiber, component name, source stack, HTML preview, CSS selector, and computed styles.
+
+```typescript
+const context = await getElementContext(document.querySelector(".my-button")!);
+console.log(context.componentName); // "SubmitButton"
+console.log(context.selector);      // "button.my-button"
+console.log(context.stackContext);  // "SubmitButton > Form > App"
+console.log(context.htmlPreview);   // '<button class="my-button">Submit</button>'
+console.log(context.styles);        // "color: white; background: blue; ..."
+```
+
+Returns:
+
+```typescript
+interface ReactGrabElementContext {
+  element: Element;
+  htmlPreview: string;
+  stackContext: string;
+  componentName: string | null;
+  fiber: Fiber | null;
+  selector: string | null;
+  styles: string;
+}
+```
+
+#### freeze(elements?)
+
+Freezes the page by halting React updates, pausing CSS/JS animations, and preserving pseudo-states (e.g. `:hover`, `:focus`). Accepts an optional array of root elements to freeze animations on; defaults to `document.body`.
+
+```typescript
+freeze(); // freezes the entire page
+freeze([document.querySelector(".modal")!]); // freezes only the modal subtree
+```
+
+#### unfreeze()
+
+Restores normal page behavior by re-enabling React updates, resuming animations, and releasing preserved pseudo-states.
+
+```typescript
+freeze();
+const context = await getElementContext(targetElement);
+// ... process the frozen state ...
+unfreeze(); // page resumes normal behavior
+```
+
+#### isFreezeActive()
+
+Returns whether the page is currently in a frozen state.
+
+```typescript
+if (isFreezeActive()) {
+  console.log("Page is frozen, skipping update");
+}
+```
+
 ## SettableOptions Type
 
 ```typescript
