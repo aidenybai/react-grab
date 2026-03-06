@@ -203,13 +203,35 @@ actions: [
 
 A plugin can provide any combination of:
 
-- **`actions`** — context menu and/or toolbar items in a single array (use `target: "toolbar"` for toolbar items)
-- **`hooks`** — lifecycle callbacks like `onActivate`, `onElementSelect`, `onCopySuccess`, `transformCopyContent`, etc. (see `PluginHooks`)
-- **`theme`** — partial theme overrides (see `Theme`)
-- **`options`** — override default options like `activationMode` or `keyHoldDuration`
-- **`setup(api)`** — a function that receives the full `ReactGrabAPI` and can return additional config or a `cleanup` function
+- **`actions`** context menu and/or toolbar items in a single array (use `target: "toolbar"` for toolbar items)
+- **`hooks`** lifecycle callbacks like `onActivate`, `onElementSelect`, `onCopySuccess`, `transformCopyContent`, etc. (see `PluginHooks`)
+- **`theme`** partial theme overrides (see `Theme`)
+- **`options`** override default options like `activationMode` or `keyHoldDuration`
+- **`setup(api)`** a function that receives the full `ReactGrabAPI` and can return additional config or a `cleanup` function
 
 See [`packages/react-grab/src/types.ts`](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) for the full `Plugin`, `PluginHooks`, and `PluginConfig` interfaces.
+
+## Primitives
+
+Lower-level building blocks for custom tooling, browser extensions, or agent integrations:
+
+```typescript
+import {
+  getElementContext,
+  freeze,
+  unfreeze,
+  isFreezeActive,
+  openFile,
+} from "react-grab/primitives";
+```
+
+- **`getElementContext(element)`** gathers React fiber, component name, source stack, HTML preview, CSS selector, and computed styles for a DOM element
+- **`freeze(elements?)`** halts React updates, pauses animations, and preserves pseudo-states (`:hover`, `:focus`)
+- **`unfreeze()`** restores normal page behavior
+- **`isFreezeActive()`** returns whether the page is currently frozen
+- **`openFile(filePath, lineNumber?)`** opens a source file in the user's editor via the dev server or a protocol URL
+
+See the full [API reference](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/skills/react-grab-plugins/references/api-reference.md#api-primitives) for details.
 
 ## Resources & Contributing Back
 
