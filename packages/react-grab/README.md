@@ -303,6 +303,8 @@ const ElementSelector = () => {
 };
 ```
 
+See [`packages/react-grab/src/primitives.ts`](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/primitives.ts) for the full `ReactGrabElementContext`, `getElementContext`, `freeze`, `unfreeze`, and `openFile` primitives.
+
 ## Resources & Contributing Back
 
 Want to try it out? Check out [our demo](https://react-grab.com).
