@@ -201,14 +201,6 @@ actions: [
 ];
 ```
 
-A plugin can provide any combination of:
-
-- **`actions`** context menu and/or toolbar items in a single array (use `target: "toolbar"` for toolbar items)
-- **`hooks`** lifecycle callbacks like `onActivate`, `onElementSelect`, `onCopySuccess`, `transformCopyContent`, etc. (see `PluginHooks`)
-- **`theme`** partial theme overrides (see `Theme`)
-- **`options`** override default options like `activationMode` or `keyHoldDuration`
-- **`setup(api)`** a function that receives the full `ReactGrabAPI` and can return additional config or a `cleanup` function
-
 See [`packages/react-grab/src/types.ts`](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) for the full `Plugin`, `PluginHooks`, and `PluginConfig` interfaces.
 
 ## Primitives
@@ -222,6 +214,7 @@ npm install react-grab@latest
 ```
 
 Then, put this in your React app:
+
 ```tsx
 import { useState } from "react";
 import { getElementContext, freeze, unfreeze, openFile, type ReactGrabElementContext } from "react-grab/primitives";
@@ -267,21 +260,15 @@ const useElementSelector = (onSelect: (context: ReactGrabElementContext) => void
       unfreeze();
     };
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") teardown();
-    };
-
     const teardown = () => {
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("click", handleClick, true);
-      document.removeEventListener("keydown", handleKeyDown);
       highlightOverlay.remove();
       setIsActive(false);
     };
 
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("click", handleClick, true);
-    document.addEventListener("keydown", handleKeyDown);
   };
 
   return { isActive, startSelecting };
