@@ -1,12 +1,19 @@
 import { checkIsNextProject } from "../core/context.js";
 import { buildOpenFileUrl } from "./build-open-file-url.js";
 
+// Next.js App Router dev server injects a virtual path segment into stack frames.
+// Strip it before passing the path to the launch-editor endpoint.
+const stripAppRouterVirtualSegments = (filePath: string): string =>
+  filePath.replace(/\/\(app-pages-browser\)\//g, "/");
+
 const tryDevServerOpen = async (
   filePath: string,
   lineNumber: number | undefined,
 ): Promise<boolean> => {
   const isNextProject = checkIsNextProject();
-  const params = new URLSearchParams({ file: filePath });
+  const params = new URLSearchParams({
+    file: isNextProject ? stripAppRouterVirtualSegments(filePath) : filePath,
+  });
 
   const lineKey = isNextProject ? "line1" : "line";
   const columnKey = isNextProject ? "column1" : "column";
