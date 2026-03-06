@@ -213,25 +213,108 @@ See [`packages/react-grab/src/types.ts`](https://github.com/aidenybai/react-grab
 
 ## Primitives
 
-Lower-level building blocks for custom tooling, browser extensions, or agent integrations:
+React Grab provides a set of primitives for building your own mini React Grab.
 
-```typescript
-import {
-  getElementContext,
-  freeze,
-  unfreeze,
-  isFreezeActive,
-  openFile,
-} from "react-grab/primitives";
+Here's a simple example of how to build your own element selector with hover highlight and one-click inspection:
+
+```bash
+npm install react-grab@latest
 ```
 
-- **`getElementContext(element)`** gathers React fiber, component name, source stack, HTML preview, CSS selector, and computed styles for a DOM element
-- **`freeze(elements?)`** halts React updates, pauses animations, and preserves pseudo-states (`:hover`, `:focus`)
-- **`unfreeze()`** restores normal page behavior
-- **`isFreezeActive()`** returns whether the page is currently frozen
-- **`openFile(filePath, lineNumber?)`** opens a source file in the user's editor via the dev server or a protocol URL
+Then, put this in your React app:
+```tsx
+import { useState } from "react";
+import { getElementContext, freeze, unfreeze, openFile, type ReactGrabElementContext } from "react-grab/primitives";
 
-See the full [API reference](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/skills/react-grab-plugins/references/api-reference.md#api-primitives) for details.
+const useElementSelector = (onSelect: (context: ReactGrabElementContext) => void) => {
+  const [isActive, setIsActive] = useState(false);
+
+  const startSelecting = () => {
+    setIsActive(true);
+
+    const highlightOverlay = document.createElement("div");
+    Object.assign(highlightOverlay.style, {
+      position: "fixed",
+      pointerEvents: "none",
+      zIndex: "999999",
+      border: "2px solid #3b82f6",
+      transition: "all 75ms ease-out",
+      display: "none",
+    });
+    document.body.appendChild(highlightOverlay);
+
+    const handleMouseMove = ({ clientX, clientY }: MouseEvent) => {
+      highlightOverlay.style.display = "none";
+      const target = document.elementFromPoint(clientX, clientY);
+      if (!target) return;
+      const { top, left, width, height } = target.getBoundingClientRect();
+      Object.assign(highlightOverlay.style, {
+        top: `${top}px`,
+        left: `${left}px`,
+        width: `${width}px`,
+        height: `${height}px`,
+        display: "block",
+      });
+    };
+
+    const handleClick = async ({ clientX, clientY }: MouseEvent) => {
+      highlightOverlay.style.display = "none";
+      const target = document.elementFromPoint(clientX, clientY);
+      teardown();
+      if (!target) return;
+      freeze();
+      onSelect(await getElementContext(target));
+      unfreeze();
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") teardown();
+    };
+
+    const teardown = () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("click", handleClick, true);
+      document.removeEventListener("keydown", handleKeyDown);
+      highlightOverlay.remove();
+      setIsActive(false);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("click", handleClick, true);
+    document.addEventListener("keydown", handleKeyDown);
+  };
+
+  return { isActive, startSelecting };
+};
+
+const ElementSelector = () => {
+  const [context, setContext] = useState<ReactGrabElementContext | null>(null);
+  const selector = useElementSelector(setContext);
+
+  return (
+    <div>
+      <button onClick={selector.startSelecting} disabled={selector.isActive}>
+        {selector.isActive ? "Selecting…" : "Select Element"}
+      </button>
+      {context && (
+        <div>
+          <p>Component: {context.componentName}</p>
+          <p>Selector: {context.selector}</p>
+          <pre>{context.stackString}</pre>
+          <button
+            onClick={() => {
+              const frame = context.stack[0];
+              if (frame?.fileName) openFile(frame.fileName, frame.lineNumber);
+            }}
+          >
+            Open in Editor
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+```
 
 ## Resources & Contributing Back
 

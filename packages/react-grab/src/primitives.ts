@@ -9,9 +9,12 @@ import { unfreezePseudoStates } from "./utils/freeze-pseudo-states.js";
 import {
   getComponentDisplayName,
   getHTMLPreview,
+  getStack,
   getStackContext,
 } from "./core/context.js";
 import { Fiber, getFiberFromHostInstance } from "bippy";
+import type { StackFrame } from "bippy/source";
+export type { StackFrame };
 import { createElementSelector } from "./utils/create-element-selector.js";
 import { extractElementCss } from "./utils/extract-element-css.js";
 import { openFile as openFileAsync } from "./utils/open-file.js";
@@ -19,7 +22,8 @@ import { openFile as openFileAsync } from "./utils/open-file.js";
 export interface ReactGrabElementContext {
   element: Element;
   htmlPreview: string;
-  stackContext: string;
+  stackString: string;
+  stack: StackFrame[];
   componentName: string | null;
   fiber: Fiber | null;
   selector: string | null;
@@ -34,12 +38,14 @@ export interface ReactGrabElementContext {
  * const context = await getElementContext(document.querySelector('.my-button')!);
  * console.log(context.componentName); // "SubmitButton"
  * console.log(context.selector);      // "button.my-button"
- * console.log(context.stackContext);  // "SubmitButton > Form > App"
+ * console.log(context.stackString);   // "\n  in SubmitButton (at Button.tsx:12:5)"
+ * console.log(context.stack[0]);      // { functionName: "SubmitButton", fileName: "Button.tsx", lineNumber: 12, columnNumber: 5 }
  */
 export const getElementContext = async (
   element: Element,
 ): Promise<ReactGrabElementContext> => {
-  const stackContext = await getStackContext(element);
+  const stack = (await getStack(element)) ?? [];
+  const stackString = await getStackContext(element);
   const htmlPreview = getHTMLPreview(element);
   const componentName = getComponentDisplayName(element);
   const fiber = getFiberFromHostInstance(element);
@@ -49,7 +55,8 @@ export const getElementContext = async (
   return {
     element,
     htmlPreview,
-    stackContext,
+    stackString,
+    stack,
     componentName,
     fiber,
     selector,
@@ -70,7 +77,7 @@ let _isFreezeActive = false;
  */
 export const freeze = (elements?: Element[]): void => {
   _isFreezeActive = true;
-  freezeUpdates();
+  freezeCleanupFns.add(freezeUpdates());
   freezeCleanupFns.add(freezeAnimations(elements ?? [document.body]));
   freezeGlobalAnimations();
   freezePseudoStates();
