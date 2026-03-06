@@ -1,5 +1,13 @@
 # @react-grab/relay
 
+## 0.1.25
+
+### Patch Changes
+
+- fix: primtiives
+- Updated dependencies
+  - @react-grab/utils@0.1.25
+
 ## 0.1.24
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # grab
 
+## 0.1.25
+
+### Patch Changes
+
+- fix: primtiives
+- Updated dependencies
+  - @react-grab/cli@0.1.25
+
 ## 0.1.24
 
 ### Patch Changes

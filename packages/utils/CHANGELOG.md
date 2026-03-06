@@ -1,5 +1,11 @@
 # @react-grab/utils
 
+## 0.1.25
+
+### Patch Changes
+
+- fix: primtiives
+
 ## 0.1.24
 
 ### Patch Changes

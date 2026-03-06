@@ -201,15 +201,109 @@ actions: [
 ];
 ```
 
-A plugin can provide any combination of:
-
-- **`actions`** — context menu and/or toolbar items in a single array (use `target: "toolbar"` for toolbar items)
-- **`hooks`** — lifecycle callbacks like `onActivate`, `onElementSelect`, `onCopySuccess`, `transformCopyContent`, etc. (see `PluginHooks`)
-- **`theme`** — partial theme overrides (see `Theme`)
-- **`options`** — override default options like `activationMode` or `keyHoldDuration`
-- **`setup(api)`** — a function that receives the full `ReactGrabAPI` and can return additional config or a `cleanup` function
-
 See [`packages/react-grab/src/types.ts`](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) for the full `Plugin`, `PluginHooks`, and `PluginConfig` interfaces.
+
+## Primitives
+
+React Grab provides a set of primitives for building your own mini React Grab.
+
+Here's a simple example of how to build your own element selector with hover highlight and one-click inspection:
+
+```bash
+npm install grab@latest
+```
+
+Then, put this in your React app:
+
+```tsx
+import { useState } from "react";
+import { getElementContext, freeze, unfreeze, openFile, type ReactGrabElementContext } from "react-grab/primitives";
+
+const useElementSelector = (onSelect: (context: ReactGrabElementContext) => void) => {
+  const [isActive, setIsActive] = useState(false);
+
+  const startSelecting = () => {
+    setIsActive(true);
+
+    const highlightOverlay = document.createElement("div");
+    Object.assign(highlightOverlay.style, {
+      position: "fixed",
+      pointerEvents: "none",
+      zIndex: "999999",
+      border: "2px solid #3b82f6",
+      transition: "all 75ms ease-out",
+      display: "none",
+    });
+    document.body.appendChild(highlightOverlay);
+
+    const handleMouseMove = ({ clientX, clientY }: MouseEvent) => {
+      highlightOverlay.style.display = "none";
+      const target = document.elementFromPoint(clientX, clientY);
+      if (!target) return;
+      const { top, left, width, height } = target.getBoundingClientRect();
+      Object.assign(highlightOverlay.style, {
+        top: `${top}px`,
+        left: `${left}px`,
+        width: `${width}px`,
+        height: `${height}px`,
+        display: "block",
+      });
+    };
+
+    const handleClick = async ({ clientX, clientY }: MouseEvent) => {
+      highlightOverlay.style.display = "none";
+      const target = document.elementFromPoint(clientX, clientY);
+      teardown();
+      if (!target) return;
+      freeze();
+      onSelect(await getElementContext(target));
+      unfreeze();
+    };
+
+    const teardown = () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("click", handleClick, true);
+      highlightOverlay.remove();
+      setIsActive(false);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("click", handleClick, true);
+  };
+
+  return { isActive, startSelecting };
+};
+
+const ElementSelector = () => {
+  const [context, setContext] = useState<ReactGrabElementContext | null>(null);
+  const selector = useElementSelector(setContext);
+
+  return (
+    <div>
+      <button onClick={selector.startSelecting} disabled={selector.isActive}>
+        {selector.isActive ? "Selecting…" : "Select Element"}
+      </button>
+      {context && (
+        <div>
+          <p>Component: {context.componentName}</p>
+          <p>Selector: {context.selector}</p>
+          <pre>{context.stackString}</pre>
+          <button
+            onClick={() => {
+              const frame = context.stack[0];
+              if (frame?.fileName) openFile(frame.fileName, frame.lineNumber);
+            }}
+          >
+            Open in Editor
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+```
+
+See [`packages/react-grab/src/primitives.ts`](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/primitives.ts) for the full `ReactGrabElementContext`, `getElementContext`, `freeze`, `unfreeze`, and `openFile` primitives.
 
 ## Resources & Contributing Back
 
