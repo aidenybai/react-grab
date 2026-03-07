@@ -217,9 +217,17 @@ Then, put this in your React app:
 
 ```tsx
 import { useState } from "react";
-import { getElementContext, freeze, unfreeze, openFile, type ReactGrabElementContext } from "react-grab/primitives";
+import {
+  getElementContext,
+  freeze,
+  unfreeze,
+  openFile,
+  type ReactGrabElementContext,
+} from "react-grab/primitives";
 
-const useElementSelector = (onSelect: (context: ReactGrabElementContext) => void) => {
+const useElementSelector = (
+  onSelect: (context: ReactGrabElementContext) => void,
+) => {
   const [isActive, setIsActive] = useState(false);
 
   const startSelecting = () => {

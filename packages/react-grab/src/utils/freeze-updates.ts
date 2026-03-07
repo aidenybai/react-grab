@@ -196,9 +196,7 @@ const pauseHookQueue = (queue: HookQueue): void => {
   pausedQueueStates.set(queue, pauseState);
 };
 
-const extractActionsFromChain = (
-  pending: PendingUpdate | null,
-): unknown[] => {
+const extractActionsFromChain = (pending: PendingUpdate | null): unknown[] => {
   if (!pending) return [];
   const actions: unknown[] = [];
   const first = pending.next;

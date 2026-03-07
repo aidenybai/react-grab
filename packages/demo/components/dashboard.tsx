@@ -118,7 +118,14 @@ export function Dashboard() {
             </SelectContent>
           </Select>
           {/* BUG: Export button uses ghost variant — nearly invisible in dark mode */}
-          <Button size="sm" variant="ghost" className="" onClick={() => { throw new Error("exportDashboard is not a function"); }}>
+          <Button
+            size="sm"
+            variant="ghost"
+            className=""
+            onClick={() => {
+              throw new Error("exportDashboard is not a function");
+            }}
+          >
             Export
           </Button>
         </div>

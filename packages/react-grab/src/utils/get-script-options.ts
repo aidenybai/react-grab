@@ -12,7 +12,10 @@ const parseOptionsFromJson = (rawValue: unknown): Partial<Options> | null => {
   if (typeof rawValue.enabled === "boolean") {
     parsedOptions.enabled = rawValue.enabled;
   }
-  if (rawValue.activationMode === "toggle" || rawValue.activationMode === "hold") {
+  if (
+    rawValue.activationMode === "toggle" ||
+    rawValue.activationMode === "hold"
+  ) {
     parsedOptions.activationMode = rawValue.activationMode;
   }
   if (
@@ -22,7 +25,8 @@ const parseOptionsFromJson = (rawValue: unknown): Partial<Options> | null => {
     parsedOptions.keyHoldDuration = rawValue.keyHoldDuration;
   }
   if (typeof rawValue.allowActivationInsideInput === "boolean") {
-    parsedOptions.allowActivationInsideInput = rawValue.allowActivationInsideInput;
+    parsedOptions.allowActivationInsideInput =
+      rawValue.allowActivationInsideInput;
   }
   if (
     typeof rawValue.maxContextLines === "number" &&

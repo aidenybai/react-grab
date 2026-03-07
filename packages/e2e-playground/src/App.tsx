@@ -627,9 +627,7 @@ const PointerUpModalSection = () => {
             className="relative bg-white rounded-lg shadow-xl p-6 w-96 z-10"
             data-testid="pointerup-modal-content"
           >
-            <h3 className="text-lg font-bold mb-2">
-              Headless UI Style Modal
-            </h3>
+            <h3 className="text-lg font-bold mb-2">Headless UI Style Modal</h3>
             <p className="mb-4">
               Uses pointerdown+pointerup pair for outside detection.
             </p>

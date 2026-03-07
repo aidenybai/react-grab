@@ -112,7 +112,4 @@ const libraryBuildConfig: Options = {
   ],
 };
 
-export default defineConfig([
-  browserBuildConfig,
-  libraryBuildConfig,
-]);
+export default defineConfig([browserBuildConfig, libraryBuildConfig]);

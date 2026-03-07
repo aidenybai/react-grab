@@ -38,6 +38,8 @@ import {
   TOOLBAR_DEFAULT_HEIGHT_PX,
   TOOLBAR_DEFAULT_POSITION_RATIO,
   TOOLBAR_SHAKE_TOOLTIP_DURATION_MS,
+  SELECTION_HINT_CYCLE_INTERVAL_MS,
+  SELECTION_HINT_COUNT,
   FEEDBACK_DURATION_MS,
   SAFE_POLYGON_BUFFER_PX,
   PANEL_STYLES,
@@ -162,6 +164,24 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [isCopyAllTooltipVisible, setIsCopyAllTooltipVisible] =
     createSignal(false);
   let clockFlashRef: HTMLSpanElement | undefined;
+  const [selectionHintIndex, setSelectionHintIndex] = createSignal(0);
+
+  createEffect(
+    on(
+      () => props.isActive,
+      (isActive) => {
+        setSelectionHintIndex(0);
+        if (!isActive) return;
+        const intervalId = setInterval(() => {
+          setSelectionHintIndex(
+            (previous) => (previous + 1) % SELECTION_HINT_COUNT,
+          );
+        }, SELECTION_HINT_CYCLE_INTERVAL_MS);
+        onCleanup(() => clearInterval(intervalId));
+      },
+      { defer: true },
+    ),
+  );
 
   const hasToolbarActions = () => (props.toolbarActions ?? []).length > 0;
 
@@ -1502,9 +1522,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               data-react-grab-ignore-events
               data-react-grab-toolbar-toggle
               aria-label={
-                props.isActive
-                  ? "Stop selecting element"
-                  : "Select element"
+                props.isActive ? "Stop selecting element" : "Select element"
               }
               aria-pressed={Boolean(props.isActive)}
               class={cn(
@@ -1624,8 +1642,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                 handleCopyAll(event);
               }}
               {...createFreezeHandlers(setIsCopyAllTooltipVisible, {
-                onHoverChange: (isHovered) =>
-                  props.onCopyAllHover?.(isHovered),
+                onHoverChange: (isHovered) => props.onCopyAllHover?.(isHovered),
                 shouldFreezeInteractions: false,
                 safePolygonTargets: () =>
                   props.isHistoryDropdownOpen
@@ -1636,10 +1653,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     : null,
               })}
             >
-              <IconCopy
-                size={14}
-                class="text-[#B3B3B3] transition-colors"
-              />
+              <IconCopy size={14} class="text-[#B3B3B3] transition-colors" />
             </button>
             <Tooltip
               visible={isCopyAllTooltipVisible() && isTooltipAllowed()}
@@ -1745,18 +1759,59 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           </>
         }
         shakeTooltip={
-          <Show when={isShakeTooltipVisible()}>
-            <div
-              class={cn(
-                "absolute whitespace-nowrap px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none animate-tooltip-fade-in [corner-shape:superellipse(1.25)]",
-                PANEL_STYLES,
-                shakeTooltipPositionClass(),
-              )}
-              style={{ "z-index": "2147483647" }}
-            >
-              Enable to continue
-            </div>
-          </Show>
+          <>
+            <Show when={props.isActive}>
+              <div
+                class={cn(
+                  "absolute whitespace-nowrap flex items-center gap-1 px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none animate-tooltip-fade-in [animation-fill-mode:backwards] overflow-hidden [corner-shape:superellipse(1.25)]",
+                  PANEL_STYLES,
+                  shakeTooltipPositionClass(),
+                )}
+                style={{ "z-index": "2147483647" }}
+              >
+                <Show when={selectionHintIndex() === 0}>
+                  <span class="flex items-center gap-1 animate-[hint-flip-in_var(--transition-normal)_ease-out]">
+                    Click or
+                    <span class="inline-flex items-center justify-center px-[3px] h-3.5 rounded-sm [border-width:0.5px] border-solid border-[#B3B3B3] text-black/70 text-[10px] font-medium leading-none">
+                      ↵
+                    </span>
+                    to capture
+                  </span>
+                </Show>
+                <Show when={selectionHintIndex() === 1}>
+                  <span class="flex items-center gap-1 animate-[hint-flip-in_var(--transition-normal)_ease-out]">
+                    <span class="inline-flex items-center justify-center px-[3px] h-3.5 rounded-sm [border-width:0.5px] border-solid border-[#B3B3B3] text-black/70 text-[10px] font-medium leading-none">
+                      ↑
+                    </span>
+                    <span class="inline-flex items-center justify-center px-[3px] h-3.5 rounded-sm [border-width:0.5px] border-solid border-[#B3B3B3] text-black/70 text-[10px] font-medium leading-none">
+                      ↓
+                    </span>
+                    to fine-tune target
+                  </span>
+                </Show>
+                <Show when={selectionHintIndex() === 2}>
+                  <span class="flex items-center gap-1 animate-[hint-flip-in_var(--transition-normal)_ease-out]">
+                    <span class="inline-flex items-center justify-center px-[3px] h-3.5 rounded-sm [border-width:0.5px] border-solid border-[#B3B3B3] text-black/70 text-[10px] font-medium leading-none">
+                      esc
+                    </span>
+                    to cancel
+                  </span>
+                </Show>
+              </div>
+            </Show>
+            <Show when={isShakeTooltipVisible()}>
+              <div
+                class={cn(
+                  "absolute whitespace-nowrap px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none animate-tooltip-fade-in [corner-shape:superellipse(1.25)]",
+                  PANEL_STYLES,
+                  shakeTooltipPositionClass(),
+                )}
+                style={{ "z-index": "2147483647" }}
+              >
+                Enable to continue
+              </div>
+            </Show>
+          </>
         }
       />
     </div>

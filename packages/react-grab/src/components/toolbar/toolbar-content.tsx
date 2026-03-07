@@ -48,12 +48,13 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
     collapsedExtra?: string,
   ): string => getExpandGridClass(isVertical(), isExpanded, collapsedExtra);
 
-  const gridTransitionClass = () =>
-    props.disableGridTransitions
-      ? ""
-      : isVertical()
-        ? "transition-[grid-template-rows,opacity] duration-150 ease-out"
-        : "transition-[grid-template-columns,opacity] duration-150 ease-out";
+  const gridTransitionClass = (): string => {
+    if (props.disableGridTransitions) return "";
+    if (isVertical()) {
+      return "transition-[grid-template-rows,opacity] duration-150 ease-out";
+    }
+    return "transition-[grid-template-columns,opacity] duration-150 ease-out";
+  };
 
   const buttonSpacingClass = () => getButtonSpacingClass(isVertical());
   const minDimensionClass = () => getMinDimensionClass(isVertical());
@@ -257,9 +258,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
                 expandGridClass(Boolean(props.enabled)),
               )}
             >
-              <div
-                class={cn("relative overflow-visible", minDimensionClass())}
-              >
+              <div class={cn("relative overflow-visible", minDimensionClass())}>
                 {props.selectButton ?? defaultSelectButton()}
               </div>
             </div>
@@ -273,9 +272,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
                 ),
               )}
             >
-              <div
-                class={cn("relative overflow-visible", minDimensionClass())}
-              >
+              <div class={cn("relative overflow-visible", minDimensionClass())}>
                 {props.historyButton ?? defaultHistoryButton()}
               </div>
             </div>
@@ -289,9 +286,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
                 ),
               )}
             >
-              <div
-                class={cn("relative overflow-visible", minDimensionClass())}
-              >
+              <div class={cn("relative overflow-visible", minDimensionClass())}>
                 {props.copyAllButton ?? defaultCopyAllButton()}
               </div>
             </div>
@@ -305,9 +300,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
                 ),
               )}
             >
-              <div
-                class={cn("relative overflow-visible", minDimensionClass())}
-              >
+              <div class={cn("relative overflow-visible", minDimensionClass())}>
                 {props.menuButton ?? defaultMenuButton()}
               </div>
             </div>

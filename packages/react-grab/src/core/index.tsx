@@ -3518,9 +3518,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         },
       };
 
-      const transformedContext = pluginRegistry.hooks.transformActionContext(
-        context,
-      );
+      const transformedContext =
+        pluginRegistry.hooks.transformActionContext(context);
       return { ...context, ...transformedContext };
     };
 

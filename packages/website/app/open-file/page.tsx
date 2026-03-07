@@ -266,10 +266,7 @@ const OpenFileContent = () => {
       {isInfoOpen && (
         <p className="mt-2 text-center text-xs text-muted-foreground/60">
           Select any element in your React app and copy its context to AI tools.{" "}
-          <Link
-            href="/"
-            className="underline hover:text-muted-foreground"
-          >
+          <Link href="/" className="underline hover:text-muted-foreground">
             Learn more
           </Link>
         </p>

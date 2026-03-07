@@ -284,7 +284,9 @@ const AgentPage = () => {
           <p>
             The browser had the best view of your intent. The agent had the
             power to edit the code. Why not put the agent{" "}
-            <span className="text-foreground/70 font-medium">in the browser</span>
+            <span className="text-foreground/70 font-medium">
+              in the browser
+            </span>
             ?
           </p>
           <p className="text-sm text-neutral-500 mt-2">
