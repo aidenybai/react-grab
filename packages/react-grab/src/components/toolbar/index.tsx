@@ -17,7 +17,6 @@ import {
   type ToolbarState,
 } from "./state.js";
 import { IconSelect } from "../icons/icon-select.jsx";
-import { IconChevron } from "../icons/icon-chevron.jsx";
 import { IconClock } from "../icons/icon-clock.jsx";
 import { IconCopy } from "../icons/icon-copy.jsx";
 import { IconEllipsis } from "../icons/icon-ellipsis.jsx";
@@ -54,11 +53,10 @@ import {
 } from "../../utils/freeze-pseudo-states.js";
 import { Tooltip } from "../tooltip.jsx";
 import {
-  getExpandGridClass,
   getButtonSpacingClass,
-  getMinDimensionClass,
   getHitboxConstraintClass,
 } from "../../utils/toolbar-layout.js";
+import { ToolbarContent } from "./toolbar-content.js";
 import {
   nativeCancelAnimationFrame,
   nativeRequestAnimationFrame,
@@ -210,18 +208,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     }
   };
 
-  const expandGridClass = (
-    isExpanded: boolean,
-    collapsedExtra?: string,
-  ): string => getExpandGridClass(isVertical(), isExpanded, collapsedExtra);
-
-  const gridTransitionClass = () =>
-    isVertical()
-      ? "transition-[grid-template-rows,opacity] duration-150 ease-out"
-      : "transition-[grid-template-columns,opacity] duration-150 ease-out";
-
   const buttonSpacingClass = () => getButtonSpacingClass(isVertical());
-  const minDimensionClass = () => getMinDimensionClass(isVertical());
   const hitboxConstraintClass = () => getHitboxConstraintClass(isVertical());
 
   const shakeTooltipPositionClass = (): string => {
@@ -284,19 +271,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       options?.onHoverChange?.(false);
     },
   });
-
-  const collapsedEdgeClasses = () => {
-    if (!isCollapsed()) return "";
-    const edge = snapEdge();
-    const roundedClass = {
-      top: "rounded-t-none rounded-b-[10px]",
-      bottom: "rounded-b-none rounded-t-[10px]",
-      left: "rounded-l-none rounded-r-[10px]",
-      right: "rounded-r-none rounded-l-[10px]",
-    }[edge];
-    const paddingClass = isVertical() ? "px-0.25 py-2" : "px-2 py-0.25";
-    return `${roundedClass} ${paddingClass}`;
-  };
 
   let shakeTooltipTimeout: ReturnType<typeof setTimeout> | undefined;
   const clearShakeTooltipTimeout = () => {
@@ -1225,24 +1199,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     }
   };
 
-  const chevronRotation = () => {
-    const edge = snapEdge();
-    const collapsed = isCollapsed();
-
-    switch (edge) {
-      case "top":
-        return collapsed ? "rotate-180" : "rotate-0";
-      case "bottom":
-        return collapsed ? "rotate-0" : "rotate-180";
-      case "left":
-        return collapsed ? "rotate-90" : "-rotate-90";
-      case "right":
-        return collapsed ? "-rotate-90" : "rotate-90";
-      default:
-        return "rotate-0";
-    }
-  };
-
   let resizeTimeout: ReturnType<typeof setTimeout> | undefined;
   let collapseAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
   let snapAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -1477,7 +1433,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       data-react-grab-ignore-events
       data-react-grab-toolbar
       class={cn(
-        "fixed left-0 top-0 font-sans text-[13px] antialiased filter-[drop-shadow(0px_1px_2px_#51515140)] select-none",
+        "fixed left-0 top-0 font-sans text-[13px] antialiased select-none",
         getCursorClass(),
         getTransitionClass(),
         isVisible()
@@ -1495,19 +1451,25 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       onMouseEnter={() => !isCollapsed() && props.onSelectHoverChange?.(true)}
       onMouseLeave={() => props.onSelectHoverChange?.(false)}
     >
-      <div
-        class={cn(
-          "flex items-center justify-center rounded-[10px] antialiased relative overflow-visible [font-synthesis:none] [corner-shape:superellipse(1.25)]",
-          isVertical() && "flex-col",
-          PANEL_STYLES,
-          !isCollapsed() &&
-            (isVertical() ? "px-1.5 gap-1.5 py-2" : "py-1.5 gap-1.5 px-2"),
-          collapsedEdgeClasses(),
-          isShaking() && "animate-shake",
-        )}
-        style={{ "transform-origin": getTransformOrigin() }}
+      <ToolbarContent
+        isActive={props.isActive}
+        enabled={props.enabled}
+        isCollapsed={isCollapsed()}
+        snapEdge={snapEdge()}
+        isShaking={isShaking()}
+        isHistoryExpanded={(props.historyItemCount ?? 0) > 0}
+        isCopyAllExpanded={Boolean(props.isHistoryDropdownOpen)}
+        isMenuExpanded={hasToolbarActions()}
+        isMenuOpen={props.isMenuOpen}
+        isHistoryPinned={props.isHistoryPinned}
+        disableGridTransitions={isRapidRetoggle()}
+        transformOrigin={getTransformOrigin()}
         onAnimationEnd={() => setIsShaking(false)}
-        onClick={(event) => {
+        onCollapseClick={handleToggleCollapse}
+        onExpandableButtonsRef={(element) => {
+          expandableButtonsRef = element;
+        }}
+        onPanelClick={(event) => {
           if (isCollapsed()) {
             event.stopPropagation();
             const { position: newPos, ratio: newRatio } =
@@ -1533,345 +1495,270 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
           }
         }}
-      >
-        <div
-          class={cn(
-            "grid",
-            !isRapidRetoggle() && gridTransitionClass(),
-            expandGridClass(!isCollapsed(), "pointer-events-none"),
-          )}
-        >
-          <div
-            class={cn(
-              "flex",
-              isVertical()
-                ? "flex-col items-center min-h-0"
-                : "items-center min-w-0",
-            )}
-          >
-            <div
-              ref={expandableButtonsRef}
-              class={cn("flex items-center", isVertical() && "flex-col")}
+        selectButton={
+          <>
+            {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
+            <button
+              data-react-grab-ignore-events
+              data-react-grab-toolbar-toggle
+              aria-label={
+                props.isActive
+                  ? "Stop selecting element"
+                  : "Select element"
+              }
+              aria-pressed={Boolean(props.isActive)}
+              class={cn(
+                "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
+                buttonSpacingClass(),
+                hitboxConstraintClass(),
+              )}
+              on:pointerdown={(event) => {
+                stopEventPropagation(event);
+                handlePointerDown(event);
+              }}
+              on:mousedown={stopEventPropagation}
+              onClick={(event) => {
+                setIsSelectTooltipVisible(false);
+                handleToggle(event);
+              }}
+              {...createFreezeHandlers(setIsSelectTooltipVisible)}
+            >
+              <IconSelect
+                size={14}
+                class={cn(
+                  "transition-colors",
+                  props.isActive ? "text-black" : "text-black/70",
+                )}
+              />
+            </button>
+            <Tooltip
+              visible={isSelectTooltipVisible() && isTooltipAllowed()}
+              position={tooltipPosition()}
+            >
+              Select element ({formatShortcut("C")})
+            </Tooltip>
+          </>
+        }
+        historyButton={
+          <>
+            {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
+            <button
+              data-react-grab-ignore-events
+              data-react-grab-toolbar-history
+              aria-label={`Open history${
+                (props.historyItemCount ?? 0) > 0
+                  ? ` (${props.historyItemCount ?? 0} items)`
+                  : ""
+              }`}
+              aria-haspopup="menu"
+              aria-expanded={Boolean(props.isHistoryDropdownOpen)}
+              class={cn(
+                "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
+                buttonSpacingClass(),
+                hitboxConstraintClass(),
+              )}
+              on:pointerdown={(event) => {
+                stopEventPropagation(event);
+                handlePointerDown(event);
+              }}
+              on:mousedown={stopEventPropagation}
+              onClick={(event) => {
+                setIsHistoryTooltipVisible(false);
+                handleHistory(event);
+              }}
+              {...createFreezeHandlers(
+                (visible) => {
+                  if (visible && props.isHistoryDropdownOpen) return;
+                  setIsHistoryTooltipVisible(visible);
+                },
+                {
+                  onHoverChange: (isHovered) =>
+                    props.onHistoryButtonHover?.(isHovered),
+                  shouldFreezeInteractions: false,
+                  safePolygonTargets: () =>
+                    props.isHistoryDropdownOpen
+                      ? getSafePolygonTargets(
+                          "[data-react-grab-history-dropdown]",
+                          "[data-react-grab-toolbar-copy-all]",
+                        )
+                      : null,
+                },
+              )}
+            >
+              <span ref={clockFlashRef} class="inline-flex relative">
+                <IconClock size={14} class={historyIconClass()} />
+                <Show when={props.hasUnreadHistoryItems}>
+                  <span
+                    data-react-grab-unread-indicator
+                    class="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-[#404040]"
+                  />
+                </Show>
+              </span>
+            </button>
+            <Tooltip
+              visible={isHistoryTooltipVisible() && isTooltipAllowed()}
+              position={tooltipPosition()}
+            >
+              {historyTooltipLabel()}
+            </Tooltip>
+          </>
+        }
+        copyAllButton={
+          <>
+            <button
+              data-react-grab-ignore-events
+              data-react-grab-toolbar-copy-all
+              aria-label="Copy all history items"
+              class={cn(
+                "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
+                buttonSpacingClass(),
+                hitboxConstraintClass(),
+              )}
+              on:pointerdown={(event) => {
+                stopEventPropagation(event);
+                handlePointerDown(event);
+              }}
+              on:mousedown={stopEventPropagation}
+              onClick={(event) => {
+                setIsCopyAllTooltipVisible(false);
+                handleCopyAll(event);
+              }}
+              {...createFreezeHandlers(setIsCopyAllTooltipVisible, {
+                onHoverChange: (isHovered) =>
+                  props.onCopyAllHover?.(isHovered),
+                shouldFreezeInteractions: false,
+                safePolygonTargets: () =>
+                  props.isHistoryDropdownOpen
+                    ? getSafePolygonTargets(
+                        "[data-react-grab-history-dropdown]",
+                        "[data-react-grab-toolbar-history]",
+                      )
+                    : null,
+              })}
+            >
+              <IconCopy
+                size={14}
+                class="text-[#B3B3B3] transition-colors"
+              />
+            </button>
+            <Tooltip
+              visible={isCopyAllTooltipVisible() && isTooltipAllowed()}
+              position={tooltipPosition()}
+            >
+              Copy all
+            </Tooltip>
+          </>
+        }
+        menuButton={
+          <>
+            <button
+              data-react-grab-ignore-events
+              data-react-grab-toolbar-menu
+              aria-label={
+                props.isMenuOpen
+                  ? "Close more actions menu"
+                  : "Open more actions menu"
+              }
+              aria-haspopup="menu"
+              aria-expanded={Boolean(props.isMenuOpen)}
+              class={cn(
+                "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
+                buttonSpacingClass(),
+                hitboxConstraintClass(),
+              )}
+              on:pointerdown={(event) => {
+                stopEventPropagation(event);
+                handlePointerDown(event);
+              }}
+              on:mousedown={stopEventPropagation}
+              onClick={(event) => {
+                setIsMenuTooltipVisible(false);
+                handleToggleMenu(event);
+              }}
+              {...createFreezeHandlers(
+                (visible) => {
+                  if (visible && props.isMenuOpen) return;
+                  setIsMenuTooltipVisible(visible);
+                },
+                { shouldFreezeInteractions: false },
+              )}
+            >
+              <IconEllipsis
+                size={14}
+                class={cn(
+                  "transition-colors",
+                  props.isMenuOpen ? "text-black/80" : "text-[#B3B3B3]",
+                )}
+              />
+            </button>
+            <Tooltip
+              visible={isMenuTooltipVisible() && isTooltipAllowed()}
+              position={tooltipPosition()}
+            >
+              More actions
+            </Tooltip>
+          </>
+        }
+        toggleButton={
+          <>
+            <button
+              data-react-grab-ignore-events
+              data-react-grab-toolbar-enabled
+              aria-label={
+                props.enabled ? "Disable React Grab" : "Enable React Grab"
+              }
+              aria-pressed={Boolean(props.enabled)}
+              class={cn(
+                "contain-layout flex items-center justify-center cursor-pointer interactive-scale outline-none",
+                isVertical() ? "my-0.5" : "mx-0.5",
+              )}
+              onClick={(event) => {
+                setIsToggleTooltipVisible(false);
+                handleToggleEnabled(event);
+              }}
+              onMouseEnter={() => setIsToggleTooltipVisible(true)}
+              onMouseLeave={() => setIsToggleTooltipVisible(false)}
             >
               <div
                 class={cn(
-                  "grid",
-                  !isRapidRetoggle() && gridTransitionClass(),
-                  expandGridClass(Boolean(props.enabled)),
+                  "relative rounded-full transition-colors",
+                  isVertical() ? "w-3.5 h-2.5" : "w-5 h-3",
+                  props.enabled ? "bg-black" : "bg-black/25",
                 )}
-              >
-                <div
-                  class={cn("relative overflow-visible", minDimensionClass())}
-                >
-                  {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
-                  <button
-                    data-react-grab-ignore-events
-                    data-react-grab-toolbar-toggle
-                    aria-label={
-                      props.isActive
-                        ? "Stop selecting element"
-                        : "Select element"
-                    }
-                    aria-pressed={Boolean(props.isActive)}
-                    class={cn(
-                      "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
-                      buttonSpacingClass(),
-                      hitboxConstraintClass(),
-                    )}
-                    on:pointerdown={(event) => {
-                      stopEventPropagation(event);
-                      handlePointerDown(event);
-                    }}
-                    on:mousedown={stopEventPropagation}
-                    onClick={(event) => {
-                      setIsSelectTooltipVisible(false);
-                      handleToggle(event);
-                    }}
-                    {...createFreezeHandlers(setIsSelectTooltipVisible)}
-                  >
-                    <IconSelect
-                      size={14}
-                      class={cn(
-                        "transition-colors",
-                        props.isActive ? "text-black" : "text-black/70",
-                      )}
-                    />
-                  </button>
-                  <Tooltip
-                    visible={isSelectTooltipVisible() && isTooltipAllowed()}
-                    position={tooltipPosition()}
-                  >
-                    Select element ({formatShortcut("C")})
-                  </Tooltip>
-                </div>
-              </div>
-              <div
-                class={cn(
-                  "grid",
-                  !isRapidRetoggle() && gridTransitionClass(),
-                  expandGridClass(
-                    Boolean(props.enabled) && (props.historyItemCount ?? 0) > 0,
-                    "pointer-events-none",
-                  ),
-                )}
-              >
-                <div
-                  class={cn("relative overflow-visible", minDimensionClass())}
-                >
-                  {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
-                  <button
-                    data-react-grab-ignore-events
-                    data-react-grab-toolbar-history
-                    aria-label={`Open history${
-                      (props.historyItemCount ?? 0) > 0
-                        ? ` (${props.historyItemCount ?? 0} items)`
-                        : ""
-                    }`}
-                    aria-haspopup="menu"
-                    aria-expanded={Boolean(props.isHistoryDropdownOpen)}
-                    class={cn(
-                      "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
-                      buttonSpacingClass(),
-                      hitboxConstraintClass(),
-                    )}
-                    on:pointerdown={(event) => {
-                      stopEventPropagation(event);
-                      handlePointerDown(event);
-                    }}
-                    on:mousedown={stopEventPropagation}
-                    onClick={(event) => {
-                      setIsHistoryTooltipVisible(false);
-                      handleHistory(event);
-                    }}
-                    {...createFreezeHandlers(
-                      (visible) => {
-                        if (visible && props.isHistoryDropdownOpen) return;
-                        setIsHistoryTooltipVisible(visible);
-                      },
-                      {
-                        onHoverChange: (isHovered) =>
-                          props.onHistoryButtonHover?.(isHovered),
-                        shouldFreezeInteractions: false,
-                        safePolygonTargets: () =>
-                          props.isHistoryDropdownOpen
-                            ? getSafePolygonTargets(
-                                "[data-react-grab-history-dropdown]",
-                                "[data-react-grab-toolbar-copy-all]",
-                              )
-                            : null,
-                      },
-                    )}
-                  >
-                    <span ref={clockFlashRef} class="inline-flex relative">
-                      <IconClock size={14} class={historyIconClass()} />
-                      <Show when={props.hasUnreadHistoryItems}>
-                        <span
-                          data-react-grab-unread-indicator
-                          class="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-[#404040]"
-                        />
-                      </Show>
-                    </span>
-                  </button>
-                  <Tooltip
-                    visible={isHistoryTooltipVisible() && isTooltipAllowed()}
-                    position={tooltipPosition()}
-                  >
-                    {historyTooltipLabel()}
-                  </Tooltip>
-                </div>
-              </div>
-              <div
-                class={cn(
-                  "grid",
-                  !isRapidRetoggle() && gridTransitionClass(),
-                  expandGridClass(
-                    Boolean(props.isHistoryDropdownOpen),
-                    "pointer-events-none",
-                  ),
-                )}
-              >
-                <div
-                  class={cn("relative overflow-visible", minDimensionClass())}
-                >
-                  <button
-                    data-react-grab-ignore-events
-                    data-react-grab-toolbar-copy-all
-                    aria-label="Copy all history items"
-                    class={cn(
-                      "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
-                      buttonSpacingClass(),
-                      hitboxConstraintClass(),
-                    )}
-                    on:pointerdown={(event) => {
-                      stopEventPropagation(event);
-                      handlePointerDown(event);
-                    }}
-                    on:mousedown={stopEventPropagation}
-                    onClick={(event) => {
-                      setIsCopyAllTooltipVisible(false);
-                      handleCopyAll(event);
-                    }}
-                    {...createFreezeHandlers(setIsCopyAllTooltipVisible, {
-                      onHoverChange: (isHovered) =>
-                        props.onCopyAllHover?.(isHovered),
-                      shouldFreezeInteractions: false,
-                      safePolygonTargets: () =>
-                        props.isHistoryDropdownOpen
-                          ? getSafePolygonTargets(
-                              "[data-react-grab-history-dropdown]",
-                              "[data-react-grab-toolbar-history]",
-                            )
-                          : null,
-                    })}
-                  >
-                    <IconCopy
-                      size={14}
-                      class="text-[#B3B3B3] transition-colors"
-                    />
-                  </button>
-                  <Tooltip
-                    visible={isCopyAllTooltipVisible() && isTooltipAllowed()}
-                    position={tooltipPosition()}
-                  >
-                    Copy all
-                  </Tooltip>
-                </div>
-              </div>
-              <div
-                class={cn(
-                  "grid",
-                  !isRapidRetoggle() && gridTransitionClass(),
-                  expandGridClass(
-                    Boolean(props.enabled) && hasToolbarActions(),
-                    "pointer-events-none",
-                  ),
-                )}
-              >
-                <div
-                  class={cn("relative overflow-visible", minDimensionClass())}
-                >
-                  <button
-                    data-react-grab-ignore-events
-                    data-react-grab-toolbar-menu
-                    aria-label={
-                      props.isMenuOpen
-                        ? "Close more actions menu"
-                        : "Open more actions menu"
-                    }
-                    aria-haspopup="menu"
-                    aria-expanded={Boolean(props.isMenuOpen)}
-                    class={cn(
-                      "contain-layout flex items-center justify-center cursor-pointer interactive-scale touch-hitbox",
-                      buttonSpacingClass(),
-                      hitboxConstraintClass(),
-                    )}
-                    on:pointerdown={(event) => {
-                      stopEventPropagation(event);
-                      handlePointerDown(event);
-                    }}
-                    on:mousedown={stopEventPropagation}
-                    onClick={(event) => {
-                      setIsMenuTooltipVisible(false);
-                      handleToggleMenu(event);
-                    }}
-                    {...createFreezeHandlers(
-                      (visible) => {
-                        if (visible && props.isMenuOpen) return;
-                        setIsMenuTooltipVisible(visible);
-                      },
-                      { shouldFreezeInteractions: false },
-                    )}
-                  >
-                    <IconEllipsis
-                      size={14}
-                      class={cn(
-                        "transition-colors",
-                        props.isMenuOpen ? "text-black/80" : "text-[#B3B3B3]",
-                      )}
-                    />
-                  </button>
-                  <Tooltip
-                    visible={isMenuTooltipVisible() && isTooltipAllowed()}
-                    position={tooltipPosition()}
-                  >
-                    More actions
-                  </Tooltip>
-                </div>
-              </div>
-            </div>
-            <div class="relative shrink-0 overflow-visible">
-              <button
-                data-react-grab-ignore-events
-                data-react-grab-toolbar-enabled
-                aria-label={
-                  props.enabled ? "Disable React Grab" : "Enable React Grab"
-                }
-                aria-pressed={Boolean(props.enabled)}
-                class={cn(
-                  "contain-layout flex items-center justify-center cursor-pointer interactive-scale outline-none",
-                  isVertical() ? "my-0.5" : "mx-0.5",
-                )}
-                onClick={(event) => {
-                  setIsToggleTooltipVisible(false);
-                  handleToggleEnabled(event);
-                }}
-                onMouseEnter={() => setIsToggleTooltipVisible(true)}
-                onMouseLeave={() => setIsToggleTooltipVisible(false)}
               >
                 <div
                   class={cn(
-                    "relative rounded-full transition-colors",
-                    isVertical() ? "w-3.5 h-2.5" : "w-5 h-3",
-                    props.enabled ? "bg-black" : "bg-black/25",
+                    "absolute top-0.5 rounded-full bg-white transition-transform",
+                    isVertical() ? "w-1.5 h-1.5" : "w-2 h-2",
+                    !props.enabled && "left-0.5",
+                    props.enabled && (isVertical() ? "left-1.5" : "left-2.5"),
                   )}
-                >
-                  <div
-                    class={cn(
-                      "absolute top-0.5 rounded-full bg-white transition-transform",
-                      isVertical() ? "w-1.5 h-1.5" : "w-2 h-2",
-                      !props.enabled && "left-0.5",
-                      props.enabled && (isVertical() ? "left-1.5" : "left-2.5"),
-                    )}
-                  />
-                </div>
-              </button>
-              <Tooltip
-                visible={isToggleTooltipVisible() && isTooltipAllowed()}
-                position={tooltipPosition()}
-              >
-                {props.enabled ? "Disable" : "Enable"}
-              </Tooltip>
+                />
+              </div>
+            </button>
+            <Tooltip
+              visible={isToggleTooltipVisible() && isTooltipAllowed()}
+              position={tooltipPosition()}
+            >
+              {props.enabled ? "Disable" : "Enable"}
+            </Tooltip>
+          </>
+        }
+        shakeTooltip={
+          <Show when={isShakeTooltipVisible()}>
+            <div
+              class={cn(
+                "absolute whitespace-nowrap px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none animate-tooltip-fade-in [corner-shape:superellipse(1.25)]",
+                PANEL_STYLES,
+                shakeTooltipPositionClass(),
+              )}
+              style={{ "z-index": "2147483647" }}
+            >
+              Enable to continue
             </div>
-          </div>
-        </div>
-        <button
-          data-react-grab-ignore-events
-          data-react-grab-toolbar-collapse
-          aria-label={isCollapsed() ? "Expand toolbar" : "Collapse toolbar"}
-          class="contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale"
-          onClick={handleToggleCollapse}
-        >
-          <IconChevron
-            size={14}
-            class={cn(
-              "text-[#B3B3B3] transition-transform duration-150",
-              chevronRotation(),
-            )}
-          />
-        </button>
-        <Show when={isShakeTooltipVisible()}>
-          <div
-            class={cn(
-              "absolute whitespace-nowrap px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none animate-tooltip-fade-in [corner-shape:superellipse(1.25)]",
-              PANEL_STYLES,
-              shakeTooltipPositionClass(),
-            )}
-            style={{ "z-index": "2147483647" }}
-          >
-            Enable to continue
-          </div>
-        </Show>
-      </div>
+          </Show>
+        }
+      />
     </div>
   );
 };

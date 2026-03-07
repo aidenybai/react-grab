@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
-import { ReactGrab } from "react-grab/react";
+import "react-grab";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -35,7 +35,6 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <ReactGrab />
           {children}
         </ThemeProvider>
       </body>
