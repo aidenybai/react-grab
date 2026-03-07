@@ -99,7 +99,7 @@
   "dependencies": {
     "@medv/finder": "^4.0.2",
     "@react-grab/cli": "workspace:*",
-    "bippy": "^0.5.30",
+    "bippy": "^0.5.31",
     "solid-js": "^1.9.10"
   },
   "devDependencies": {

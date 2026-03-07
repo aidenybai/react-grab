@@ -1,3 +1,4 @@
+import { normalizeFileName } from "bippy/source";
 import { checkIsNextProject } from "../core/context.js";
 import { buildOpenFileUrl } from "./build-open-file-url.js";
 
@@ -25,6 +26,8 @@ export const openFile = async (
   lineNumber: number | undefined,
   transformUrl?: (url: string, filePath: string, lineNumber?: number) => string,
 ): Promise<void> => {
+  filePath = normalizeFileName(filePath);
+
   const wasOpenedByDevServer = await tryDevServerOpen(
     filePath,
     lineNumber,
