@@ -160,6 +160,8 @@ export const LOGO_SVG = `<svg width="294" height="294" viewBox="0 0 294 294" fil
 
 export const NEXTJS_REVALIDATION_DELAY_MS = 1000;
 
+export const TEXTAREA_MAX_HEIGHT_PX = 95;
+
 export const IME_COMPOSING_KEY_CODE = 229;
 export const SELECTION_LABEL_OFFSCREEN_PX = -9999;
 

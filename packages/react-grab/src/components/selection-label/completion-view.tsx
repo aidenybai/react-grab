@@ -5,7 +5,9 @@ import {
   FEEDBACK_DURATION_MS,
   FADE_DURATION_MS,
   PANEL_STYLES,
+  TEXTAREA_MAX_HEIGHT_PX,
 } from "../../constants.js";
+import { autoResizeTextarea } from "../../utils/auto-resize-textarea.js";
 import { confirmationFocusManager } from "../../utils/confirmation-focus-manager.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
 import { IconReply } from "../icons/icon-reply.jsx";
@@ -252,11 +254,14 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
               style={{
                 "field-sizing": "content",
                 "min-height": "16px",
-                "max-height": "95px",
+                "max-height": `${TEXTAREA_MAX_HEIGHT_PX}px`,
                 "scrollbar-width": "none",
               }}
               value={followUpInput()}
-              onInput={(event) => setFollowUpInput(event.target.value)}
+              onInput={(event) => {
+                autoResizeTextarea(event.target, TEXTAREA_MAX_HEIGHT_PX);
+                setFollowUpInput(event.target.value);
+              }}
               onKeyDown={handleInputKeyDown}
               placeholder="follow-up"
               rows={1}

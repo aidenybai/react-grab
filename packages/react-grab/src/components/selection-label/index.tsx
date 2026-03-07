@@ -18,7 +18,9 @@ import {
   LABEL_GAP_PX,
   PANEL_STYLES,
   SELECTION_LABEL_OFFSCREEN_PX,
+  TEXTAREA_MAX_HEIGHT_PX,
 } from "../../constants.js";
+import { autoResizeTextarea } from "../../utils/auto-resize-textarea.js";
 import { getArrowSize } from "../../utils/get-arrow-size.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
 import { cn } from "../../utils/cn.js";
@@ -171,7 +173,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     if (props.isPromptMode && inputRef && props.onSubmit) {
       // HACK: Defer focus one tick so the textarea is fully mounted.
       const focusTimeout = setTimeout(() => {
-        inputRef?.focus();
+        if (inputRef) {
+          inputRef.focus();
+          autoResizeTextarea(inputRef, TEXTAREA_MAX_HEIGHT_PX);
+        }
       }, DEFERRED_EXECUTION_DELAY_MS);
       onCleanup(() => {
         clearTimeout(focusTimeout);
@@ -309,6 +314,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     if (!(inputTarget instanceof HTMLTextAreaElement)) {
       return;
     }
+    autoResizeTextarea(inputTarget, TEXTAREA_MAX_HEIGHT_PX);
     props.onInputChange?.(inputTarget.value);
   };
 
@@ -440,7 +446,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                       style={{
                         "field-sizing": "content",
                         "min-height": "16px",
-                        "max-height": "95px",
+                        "max-height": `${TEXTAREA_MAX_HEIGHT_PX}px`,
                         "scrollbar-width": "none",
                       }}
                       value={props.inputValue ?? ""}
@@ -579,7 +585,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     style={{
                       "field-sizing": "content",
                       "min-height": "16px",
-                      "max-height": "95px",
+                      "max-height": `${TEXTAREA_MAX_HEIGHT_PX}px`,
                       "scrollbar-width": "none",
                     }}
                     value={props.inputValue ?? ""}
