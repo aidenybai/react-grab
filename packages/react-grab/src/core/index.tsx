@@ -47,6 +47,7 @@ import { isElementConnected } from "../utils/is-element-connected.js";
 import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { createElementSelector } from "../utils/create-element-selector.js";
+import { getVisibleBoundsCenter } from "../utils/get-visible-bounds-center.js";
 import { clearAllCaches } from "../utils/clear-all-caches.js";
 import {
   createBoundsFromDragRect,
@@ -71,6 +72,7 @@ import {
   INPUT_FOCUS_ACTIVATION_DELAY_MS,
   INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS,
   DEFAULT_KEY_HOLD_DURATION_MS,
+  DEFAULT_MAX_CONTEXT_LINES,
   MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS,
   ZOOM_DETECTION_THRESHOLD,
   ACTION_CYCLE_IDLE_TRIGGER_MS,
@@ -79,6 +81,7 @@ import {
   PREVIEW_TEXT_MAX_LENGTH,
   DEFERRED_EXECUTION_DELAY_MS,
   NEXTJS_REVALIDATION_DELAY_MS,
+  TOOLBAR_DEFAULT_POSITION_RATIO,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
@@ -179,7 +182,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     activationMode: "toggle",
     keyHoldDuration: DEFAULT_KEY_HOLD_DURATION_MS,
     allowActivationInsideInput: true,
-    maxContextLines: 3,
+    maxContextLines: DEFAULT_MAX_CONTEXT_LINES,
     ...scriptOptions,
     ...rawOptions,
   };
@@ -1780,7 +1783,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const currentState = loadToolbarState();
       const newState = {
         edge: currentState?.edge ?? "bottom",
-        ratio: currentState?.ratio ?? 0.5,
+        ratio: currentState?.ratio ?? TOOLBAR_DEFAULT_POSITION_RATIO,
         collapsed: currentState?.collapsed ?? false,
         enabled: newEnabled,
       };
@@ -2132,10 +2135,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const openArrowNavigationMenu = (anchorElement: Element) => {
       const bounds = createElementBounds(anchorElement);
-      const elementsAtPoint = getElementsAtPoint(
-        bounds.x + bounds.width / 2,
-        bounds.y + bounds.height / 2,
-      )
+      const probePoint = getVisibleBoundsCenter(bounds);
+      const elementsAtPoint = getElementsAtPoint(probePoint.x, probePoint.y)
         .filter(isValidGrabbableElement)
         .reverse();
 
@@ -3122,7 +3123,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       keyboardClaimer.restore();
     });
 
-    const rendererRoot = mountRoot(cssText as string);
+    const resolvedCssText = typeof cssText === "string" ? cssText : "";
+    const rendererRoot = mountRoot(resolvedCssText);
 
     const isThemeEnabled = createMemo(() => pluginRegistry.store.theme.enabled);
     const isSelectionBoxThemeEnabled = createMemo(
@@ -3515,9 +3517,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         },
       };
 
-      return pluginRegistry.hooks.transformActionContext(
-        context,
-      ) as ContextMenuActionContext;
+      const transformedContext =
+        pluginRegistry.hooks.transformActionContext(context);
+      return { ...context, ...transformedContext };
     };
 
     const contextMenuActionContext = createMemo(
@@ -4239,7 +4241,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         const currentState = loadToolbarState();
         const newState = {
           edge: state.edge ?? currentState?.edge ?? "bottom",
-          ratio: state.ratio ?? currentState?.ratio ?? 0.5,
+          ratio:
+            state.ratio ??
+            currentState?.ratio ??
+            TOOLBAR_DEFAULT_POSITION_RATIO,
           collapsed: state.collapsed ?? currentState?.collapsed ?? false,
           enabled: state.enabled ?? currentState?.enabled ?? true,
         };

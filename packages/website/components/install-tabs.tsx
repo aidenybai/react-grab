@@ -335,17 +335,29 @@ export const InstallTabs = ({
                   {tab.id === "cli" && <Terminal size={14} />}
                   {tab.id === "next-app" && (
                     <IconNextjs
-                      className={isActive ? "grayscale-0 opacity-100" : "group-hover/tab:grayscale-0 group-hover/tab:opacity-100 transition-all"}
+                      className={
+                        isActive
+                          ? "grayscale-0 opacity-100"
+                          : "group-hover/tab:grayscale-0 group-hover/tab:opacity-100 transition-all"
+                      }
                     />
                   )}
                   {tab.id === "vite" && (
                     <IconVite
-                      className={isActive ? "grayscale-0 opacity-100" : "group-hover/tab:grayscale-0 group-hover/tab:opacity-100 transition-all"}
+                      className={
+                        isActive
+                          ? "grayscale-0 opacity-100"
+                          : "group-hover/tab:grayscale-0 group-hover/tab:opacity-100 transition-all"
+                      }
                     />
                   )}
                   {tab.id === "tanstack" && (
                     <IconTanstack
-                      className={isActive ? "grayscale-0 opacity-100" : "group-hover/tab:grayscale-0 group-hover/tab:opacity-100 transition-all"}
+                      className={
+                        isActive
+                          ? "grayscale-0 opacity-100"
+                          : "group-hover/tab:grayscale-0 group-hover/tab:opacity-100 transition-all"
+                      }
                     />
                   )}
                   {tab.label}

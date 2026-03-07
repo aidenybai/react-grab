@@ -28,6 +28,7 @@ import {
   nativeRequestAnimationFrame,
 } from "../../utils/native-raf.js";
 import { createMenuHighlight } from "../../utils/create-menu-highlight.js";
+import { suppressMenuEvent } from "../../utils/suppress-menu-event.js";
 
 interface ToolbarMenuProps {
   position: DropdownAnchor | null;
@@ -54,6 +55,13 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
 
   let exitAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
   let enterAnimationFrameId: number | undefined;
+  const clearMenuAnimationHandles = () => {
+    clearTimeout(exitAnimationTimeout);
+    if (enterAnimationFrameId !== undefined) {
+      nativeCancelAnimationFrame(enterAnimationFrameId);
+      enterAnimationFrameId = undefined;
+    }
+  };
 
   const measureContainer = () => {
     if (containerRef) {
@@ -84,6 +92,9 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
         setShouldMount(false);
       }, DROPDOWN_ANIMATION_DURATION_MS);
     }
+    onCleanup(() => {
+      clearMenuAnimationHandles();
+    });
   });
 
   const displayPosition = createMemo(
@@ -105,13 +116,6 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
     },
     DROPDOWN_OFFSCREEN_POSITION,
   );
-
-  const handleMenuEvent = (event: Event) => {
-    if (event.type === "contextmenu") {
-      event.preventDefault();
-    }
-    event.stopImmediatePropagation();
-  };
 
   const handleActionClick = (action: ToolbarMenuAction, event: Event) => {
     event.stopPropagation();
@@ -160,9 +164,7 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
 
     onCleanup(() => {
       nativeCancelAnimationFrame(frameId);
-      clearTimeout(exitAnimationTimeout);
-      if (enterAnimationFrameId !== undefined)
-        nativeCancelAnimationFrame(enterAnimationFrameId);
+      clearMenuAnimationHandles();
       window.removeEventListener("mousedown", handleClickOutside, {
         capture: true,
       });
@@ -189,10 +191,10 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
           opacity: isAnimatedIn() ? "1" : "0",
           transform: isAnimatedIn() ? "scale(1)" : "scale(0.95)",
         }}
-        onPointerDown={handleMenuEvent}
-        onMouseDown={handleMenuEvent}
-        onClick={handleMenuEvent}
-        onContextMenu={handleMenuEvent}
+        onPointerDown={suppressMenuEvent}
+        onMouseDown={suppressMenuEvent}
+        onClick={suppressMenuEvent}
+        onContextMenu={suppressMenuEvent}
       >
         <div
           class={cn(

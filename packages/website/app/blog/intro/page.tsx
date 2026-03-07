@@ -311,7 +311,9 @@ const BlogPostPage = () => {
 
         <ul className="list-disc list-inside space-y-2 pl-2">
           <li>
-            <span className="text-foreground/80 font-medium">Prompt better:</span>{" "}
+            <span className="text-foreground/80 font-medium">
+              Prompt better:
+            </span>{" "}
             Use @ to add additional context, write longer and more specific
             prompts (this is something YOU control)
           </li>
@@ -374,8 +376,8 @@ const BlogPostPage = () => {
               className=&quot;flex flex-col gap-5 text-shimmer&quot;
             </code>
             ) made the coding agent{" "}
-            <span className="text-foreground/80 font-medium">much</span> faster at
-            finding what I was referencing. In short - there are shortcuts to
+            <span className="text-foreground/80 font-medium">much</span> faster
+            at finding what I was referencing. In short - there are shortcuts to
             reduce the number of steps needed to search!
           </p>
           <p>

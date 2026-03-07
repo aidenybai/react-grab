@@ -5,6 +5,7 @@ import {
   onCleanup,
   createSignal,
   createEffect,
+  createMemo,
 } from "solid-js";
 import type { Component } from "solid-js";
 import type {
@@ -26,6 +27,7 @@ import {
   nativeRequestAnimationFrame,
 } from "../utils/native-raf.js";
 import { createMenuHighlight } from "../utils/create-menu-highlight.js";
+import { suppressMenuEvent } from "../utils/suppress-menu-event.js";
 
 interface ContextMenuProps {
   position: { x: number; y: number } | null;
@@ -60,11 +62,12 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
 
   const isVisible = () => props.position !== null;
 
-  const tagDisplayResult = () =>
+  const tagDisplayResult = createMemo(() =>
     getTagDisplay({
       tagName: props.tagName,
       componentName: props.componentName,
-    });
+    }),
+  );
 
   const measureContainer = () => {
     if (containerRef) {
@@ -80,7 +83,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     }
   });
 
-  const computedPosition = () => {
+  const computedPosition = createMemo(() => {
     const bounds = props.selectionBounds;
     const clickPosition = props.position;
     const labelWidth = measuredWidth();
@@ -133,9 +136,9 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     }
 
     return { left: positionLeft, top: positionTop, arrowLeft, arrowPosition };
-  };
+  });
 
-  const menuItems = (): MenuItem[] => {
+  const menuItems = createMemo<MenuItem[]>(() => {
     const pluginActions = props.actions ?? [];
     const context = props.actionContext;
 
@@ -149,14 +152,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       enabled: resolveActionEnabled(action, context),
       shortcut: action.shortcut,
     }));
-  };
-
-  const handleMenuEvent = (event: Event) => {
-    if (event.type === "contextmenu") {
-      event.preventDefault();
-    }
-    event.stopImmediatePropagation();
-  };
+  });
 
   const handleAction = (item: MenuItem, event: Event) => {
     event.stopPropagation();
@@ -267,13 +263,11 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
           "z-index": "2147483647",
           "pointer-events": "auto",
         }}
-        onPointerDown={handleMenuEvent}
-        onMouseDown={handleMenuEvent}
-        onClick={handleMenuEvent}
-        onContextMenu={handleMenuEvent}
+        onPointerDown={suppressMenuEvent}
+        onMouseDown={suppressMenuEvent}
+        onClick={suppressMenuEvent}
+        onContextMenu={suppressMenuEvent}
       >
-        {/* Arrow positioned from left edge (leftPercent=0) using computed pixel offset,
-            unlike SelectionLabel which centers (leftPercent=50) then applies offset */}
         <Arrow
           position={computedPosition().arrowPosition}
           leftPercent={0}
@@ -333,9 +327,11 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
                       {item.label}
                     </span>
                     <Show when={item.shortcut}>
-                      <span class="text-[11px] font-sans text-black/50 ml-4">
-                        {formatShortcut(item.shortcut!)}
-                      </span>
+                      {(shortcut) => (
+                        <span class="text-[11px] font-sans text-black/50 ml-4">
+                          {formatShortcut(shortcut())}
+                        </span>
+                      )}
                     </Show>
                   </button>
                 )}

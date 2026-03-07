@@ -25,6 +25,7 @@ import {
   nativeCancelAnimationFrame,
   nativeRequestAnimationFrame,
 } from "../utils/native-raf.js";
+import { suppressMenuEvent } from "../utils/suppress-menu-event.js";
 
 interface ClearHistoryPromptProps {
   position: DropdownAnchor | null;
@@ -98,13 +99,6 @@ export const ClearHistoryPrompt: Component<ClearHistoryPromptProps> = (
     DROPDOWN_OFFSCREEN_POSITION,
   );
 
-  const handlePromptEvent = (event: Event) => {
-    if (event.type === "contextmenu") {
-      event.preventDefault();
-    }
-    event.stopImmediatePropagation();
-  };
-
   onMount(() => {
     measureContainer();
 
@@ -176,10 +170,10 @@ export const ClearHistoryPrompt: Component<ClearHistoryPromptProps> = (
           opacity: isAnimatedIn() ? "1" : "0",
           transform: isAnimatedIn() ? "scale(1)" : "scale(0.95)",
         }}
-        onPointerDown={handlePromptEvent}
-        onMouseDown={handlePromptEvent}
-        onClick={handlePromptEvent}
-        onContextMenu={handlePromptEvent}
+        onPointerDown={suppressMenuEvent}
+        onMouseDown={suppressMenuEvent}
+        onClick={suppressMenuEvent}
+        onContextMenu={suppressMenuEvent}
       >
         <div
           class={cn(

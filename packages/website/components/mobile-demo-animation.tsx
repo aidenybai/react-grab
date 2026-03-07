@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, type ReactElement } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  type ReactElement,
+} from "react";
 import { useWebHaptics } from "web-haptics/react";
 import { cn } from "@/utils/cn";
 import {
@@ -322,7 +328,9 @@ export const MobileDemoAnimation = (): ReactElement => {
   const animationLoopRef = useRef<(() => void) | null>(null);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tapTimerInnerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const idleRestartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const idleRestartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const metricCardPositions = useRef<(Position | null)[]>([]);
   const metricValuePosition = useRef<Position>({
@@ -614,7 +622,8 @@ export const MobileDemoAnimation = (): ReactElement => {
       isCancelledRef.current = true;
       if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
       if (tapTimerInnerRef.current) clearTimeout(tapTimerInnerRef.current);
-      if (idleRestartTimerRef.current) clearTimeout(idleRestartTimerRef.current);
+      if (idleRestartTimerRef.current)
+        clearTimeout(idleRestartTimerRef.current);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [resetAnimationState]);
@@ -626,7 +635,8 @@ export const MobileDemoAnimation = (): ReactElement => {
 
       if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
       if (tapTimerInnerRef.current) clearTimeout(tapTimerInnerRef.current);
-      if (idleRestartTimerRef.current) clearTimeout(idleRestartTimerRef.current);
+      if (idleRestartTimerRef.current)
+        clearTimeout(idleRestartTimerRef.current);
       isCancelledRef.current = true;
 
       triggerHaptic(VIBRATION_DURATION_MS);
@@ -645,25 +655,47 @@ export const MobileDemoAnimation = (): ReactElement => {
       const tapY = event.clientY - containerRect.top;
 
       const distanceToPosition = (position: Position): number => {
-        const clampedX = Math.max(position.x, Math.min(tapX, position.x + position.width));
-        const clampedY = Math.max(position.y, Math.min(tapY, position.y + position.height));
+        const clampedX = Math.max(
+          position.x,
+          Math.min(tapX, position.x + position.width),
+        );
+        const clampedY = Math.max(
+          position.y,
+          Math.min(tapY, position.y + position.height),
+        );
         return Math.hypot(tapX - clampedX, tapY - clampedY);
       };
 
       const allElements: HitElement[] = [
-        { position: exportButtonPosition.current, name: "ExportBtn", tag: "button" },
-        { position: metricValuePosition.current, name: "StatValue", tag: "span" },
+        {
+          position: exportButtonPosition.current,
+          name: "ExportBtn",
+          tag: "button",
+        },
+        {
+          position: metricValuePosition.current,
+          name: "StatValue",
+          tag: "span",
+        },
         ...metricCardPositions.current
           .map((cardPosition, index) =>
             cardPosition
-              ? { position: cardPosition, name: METRIC_CARD_NAMES[index], tag: "div" }
+              ? {
+                  position: cardPosition,
+                  name: METRIC_CARD_NAMES[index],
+                  tag: "div",
+                }
               : null,
           )
           .filter((element): element is HitElement => element !== null),
         ...activityRowPositions.current
           .map((rowPosition, index) =>
             rowPosition
-              ? { position: rowPosition, name: ACTIVITY_DATA[index].component, tag: "div" }
+              ? {
+                  position: rowPosition,
+                  name: ACTIVITY_DATA[index].component,
+                  tag: "div",
+                }
               : null,
           )
           .filter((element): element is HitElement => element !== null),
@@ -672,12 +704,15 @@ export const MobileDemoAnimation = (): ReactElement => {
       let closestElement = allElements[0];
       let closestDistance = distanceToPosition(closestElement.position);
 
-      const areaOf = (position: Position): number => position.width * position.height;
+      const areaOf = (position: Position): number =>
+        position.width * position.height;
 
       for (let index = 1; index < allElements.length; index++) {
         const distance = distanceToPosition(allElements[index].position);
         const isSameDistance = distance === closestDistance;
-        const isSmallerElement = isSameDistance && areaOf(allElements[index].position) < areaOf(closestElement.position);
+        const isSmallerElement =
+          isSameDistance &&
+          areaOf(allElements[index].position) < areaOf(closestElement.position);
         if (distance < closestDistance || isSmallerElement) {
           closestDistance = distance;
           closestElement = allElements[index];
@@ -686,8 +721,12 @@ export const MobileDemoAnimation = (): ReactElement => {
 
       const targetPosition = closestElement.position;
       const labelX = getElementCenter(targetPosition).x;
-      const labelY = targetPosition.y + targetPosition.height + LABEL_OFFSET_BELOW_PX;
-      const selectionBounds = createSelectionBox(targetPosition, SELECTION_PADDING_PX);
+      const labelY =
+        targetPosition.y + targetPosition.height + LABEL_OFFSET_BELOW_PX;
+      const selectionBounds = createSelectionBox(
+        targetPosition,
+        SELECTION_PADDING_PX,
+      );
 
       setSelectionBox(selectionBounds);
       setSuccessFlash(selectionBounds);
@@ -750,13 +789,19 @@ export const MobileDemoAnimation = (): ReactElement => {
       `}</style>
 
       <div className="overflow-hidden rounded-xl border border-border bg-card shadow-lg shadow-black/20">
-        <div ref={containerRef} onClick={handleTap} className="relative p-4 pb-14">
+        <div
+          ref={containerRef}
+          onClick={handleTap}
+          className="relative p-4 pb-14"
+        >
           <div className="mb-4 flex items-center justify-between">
             <div>
               <div className="text-[13px] font-semibold text-foreground">
                 Overview
               </div>
-              <div className="text-[11px] text-muted-foreground">Last 30 days</div>
+              <div className="text-[11px] text-muted-foreground">
+                Last 30 days
+              </div>
             </div>
             <div
               ref={exportButtonRef}
@@ -768,7 +813,9 @@ export const MobileDemoAnimation = (): ReactElement => {
 
           <div className="mb-4 grid grid-cols-3 gap-2.5">
             <div
-              ref={(el) => { metricCardRefs.current[0] = el; }}
+              ref={(el) => {
+                metricCardRefs.current[0] = el;
+              }}
               className="rounded-lg border border-border bg-muted/50 p-2.5"
             >
               <div className="mb-1 text-[10px] font-medium text-muted-foreground">
@@ -780,11 +827,15 @@ export const MobileDemoAnimation = (): ReactElement => {
               >
                 $12.4k
               </div>
-              <div className="mt-1 text-[10px] text-muted-foreground">+12.5%</div>
+              <div className="mt-1 text-[10px] text-muted-foreground">
+                +12.5%
+              </div>
             </div>
 
             <div
-              ref={(el) => { metricCardRefs.current[1] = el; }}
+              ref={(el) => {
+                metricCardRefs.current[1] = el;
+              }}
               className="rounded-lg border border-border bg-muted/50 p-2.5"
             >
               <div className="mb-1 text-[10px] font-medium text-muted-foreground">
@@ -793,11 +844,15 @@ export const MobileDemoAnimation = (): ReactElement => {
               <div className="text-[18px] font-semibold tabular-nums text-foreground">
                 2,847
               </div>
-              <div className="mt-1 text-[10px] text-muted-foreground">+8.2%</div>
+              <div className="mt-1 text-[10px] text-muted-foreground">
+                +8.2%
+              </div>
             </div>
 
             <div
-              ref={(el) => { metricCardRefs.current[2] = el; }}
+              ref={(el) => {
+                metricCardRefs.current[2] = el;
+              }}
               className="rounded-lg border border-border bg-muted/50 p-2.5"
             >
               <div className="mb-1 text-[10px] font-medium text-muted-foreground">
@@ -806,7 +861,9 @@ export const MobileDemoAnimation = (): ReactElement => {
               <div className="text-[18px] font-semibold tabular-nums text-foreground">
                 384
               </div>
-              <div className="mt-1 text-[10px] text-muted-foreground">-2.1%</div>
+              <div className="mt-1 text-[10px] text-muted-foreground">
+                -2.1%
+              </div>
             </div>
           </div>
 
@@ -947,7 +1004,9 @@ export const MobileDemoAnimation = (): ReactElement => {
                 </span>
               </div>
             )}
-            {(labelMode === "copied" || labelMode === "submitted" || labelMode === "fading") && (
+            {(labelMode === "copied" ||
+              labelMode === "submitted" ||
+              labelMode === "fading") && (
               <div className="flex items-center gap-[5px] py-1.5 px-2">
                 <CheckIcon />
                 <span className="text-[13px] leading-4 font-medium text-black">

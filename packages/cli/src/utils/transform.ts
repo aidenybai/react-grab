@@ -787,13 +787,28 @@ export const previewTransform = (
       );
 
     case "vite":
-      return transformVite(projectRoot, agent, reactGrabAlreadyConfigured, force);
+      return transformVite(
+        projectRoot,
+        agent,
+        reactGrabAlreadyConfigured,
+        force,
+      );
 
     case "tanstack":
-      return transformTanStack(projectRoot, agent, reactGrabAlreadyConfigured, force);
+      return transformTanStack(
+        projectRoot,
+        agent,
+        reactGrabAlreadyConfigured,
+        force,
+      );
 
     case "webpack":
-      return transformWebpack(projectRoot, agent, reactGrabAlreadyConfigured, force);
+      return transformWebpack(
+        projectRoot,
+        agent,
+        reactGrabAlreadyConfigured,
+        force,
+      );
 
     default:
       return {

@@ -188,6 +188,9 @@ export const copyContent = (
   textarea.select();
 
   try {
+    if (typeof document.execCommand !== "function") {
+      return false;
+    }
     const didCopySucceed = document.execCommand("copy");
     if (didCopySucceed) {
       options?.onSuccess?.();

@@ -7,10 +7,10 @@ import {
   PANEL_STYLES,
 } from "../constants.js";
 
-let tooltipCloseTimestamp = 0;
+let lastCloseTimestamp = 0;
 
 const wasTooltipRecentlyVisible = () => {
-  return Date.now() - tooltipCloseTimestamp < TOOLTIP_GRACE_PERIOD_MS;
+  return Date.now() - lastCloseTimestamp < TOOLTIP_GRACE_PERIOD_MS;
 };
 
 interface TooltipProps {
@@ -45,7 +45,7 @@ export const Tooltip: Component<TooltipProps> = (props) => {
           }
         } else {
           if (delayedVisible()) {
-            tooltipCloseTimestamp = Date.now();
+            lastCloseTimestamp = Date.now();
           }
           setDelayedVisible(false);
         }
@@ -58,7 +58,7 @@ export const Tooltip: Component<TooltipProps> = (props) => {
       clearTimeout(delayTimeoutId);
     }
     if (delayedVisible()) {
-      tooltipCloseTimestamp = Date.now();
+      lastCloseTimestamp = Date.now();
     }
   });
 

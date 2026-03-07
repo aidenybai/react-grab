@@ -1,4 +1,5 @@
 import type { ToolbarState } from "../../types.js";
+import { TOOLBAR_DEFAULT_POSITION_RATIO } from "../../constants.js";
 
 export type { ToolbarState };
 export type SnapEdge = "top" | "bottom" | "left" | "right";
@@ -10,14 +11,24 @@ export const loadToolbarState = (): ToolbarState | null => {
     const serializedToolbarState = localStorage.getItem(STORAGE_KEY);
     if (!serializedToolbarState) return null;
 
-    const partialToolbarState = JSON.parse(
-      serializedToolbarState,
-    ) as Partial<ToolbarState>;
+    const parsed: unknown = JSON.parse(serializedToolbarState);
+    if (typeof parsed !== "object" || parsed === null) return null;
+    const record = parsed as Record<string, unknown>;
     return {
-      edge: partialToolbarState.edge ?? "bottom",
-      ratio: partialToolbarState.ratio ?? 0.5,
-      collapsed: partialToolbarState.collapsed ?? false,
-      enabled: partialToolbarState.enabled ?? true,
+      edge:
+        record.edge === "top" ||
+        record.edge === "bottom" ||
+        record.edge === "left" ||
+        record.edge === "right"
+          ? record.edge
+          : "bottom",
+      ratio:
+        typeof record.ratio === "number"
+          ? record.ratio
+          : TOOLBAR_DEFAULT_POSITION_RATIO,
+      collapsed:
+        typeof record.collapsed === "boolean" ? record.collapsed : false,
+      enabled: typeof record.enabled === "boolean" ? record.enabled : true,
     };
   } catch (error) {
     console.warn(

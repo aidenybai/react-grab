@@ -1,6 +1,7 @@
 import { MAX_ARROW_NAVIGATION_HISTORY } from "../constants.js";
 import type { OverlayBounds } from "../types.js";
 import { getElementsAtPoint } from "../utils/get-element-at-position.js";
+import { getVisibleBoundsCenter } from "../utils/get-visible-bounds-center.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 
 interface ElementValidator {
@@ -27,9 +28,10 @@ export const createArrowNavigator = (
     direction: 1 | -1,
   ): Element | null => {
     const bounds = createElementBounds(currentElement);
+    const probePoint = getVisibleBoundsCenter(bounds);
     const elementsAtPoint = getElementsAtPoint(
-      bounds.x + bounds.width / 2,
-      bounds.y + bounds.height / 2,
+      probePoint.x,
+      probePoint.y,
     ).filter(isValidGrabbableElement);
 
     const currentIndex = elementsAtPoint.indexOf(currentElement);
