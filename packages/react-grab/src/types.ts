@@ -157,8 +157,7 @@ export interface AgentSession {
   error?: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface AgentProvider<T = any> {
+export interface AgentProvider<T = unknown> {
   send: (
     context: AgentContext<T>,
     signal: AbortSignal,
@@ -190,8 +189,7 @@ export interface AgentCompleteResult {
   error?: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface AgentOptions<T = any> {
+export interface AgentOptions<T = unknown> {
   provider?: AgentProvider<T>;
   storage?: AgentSessionStorage | null;
   getOptions?: () => T;

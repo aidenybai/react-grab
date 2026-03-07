@@ -20,19 +20,31 @@ export const ArrowNavigationMenu: Component<ArrowNavigationMenuProps> = (
     clearHighlight,
   } = createMenuHighlight();
 
-  let itemRefs: (HTMLButtonElement | undefined)[] = [];
+  let menuItemsRef: HTMLDivElement | undefined;
+  const getMenuItemByIndex = (
+    itemIndex: number,
+  ): HTMLButtonElement | undefined => {
+    if (!menuItemsRef) return undefined;
+    const activeMenuButton = menuItemsRef.querySelector<HTMLButtonElement>(
+      `[data-react-grab-arrow-nav-index="${itemIndex}"]`,
+    );
+    return activeMenuButton ?? undefined;
+  };
 
   createEffect(() => {
-    const itemRef = itemRefs[props.activeIndex];
-    if (itemRef) {
-      updateHighlight(itemRef);
+    const activeMenuItem = getMenuItemByIndex(props.activeIndex);
+    if (activeMenuItem) {
+      updateHighlight(activeMenuItem);
     }
   });
 
   return (
     <BottomSection>
       <div
-        ref={highlightContainerRef}
+        ref={(element) => {
+          menuItemsRef = element;
+          highlightContainerRef(element);
+        }}
         class="relative flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5"
       >
         <div
@@ -42,11 +54,9 @@ export const ArrowNavigationMenu: Component<ArrowNavigationMenuProps> = (
         <For each={props.items}>
           {(item, itemIndex) => (
             <button
-              ref={(element) => {
-                itemRefs[itemIndex()] = element;
-              }}
               data-react-grab-ignore-events
               data-react-grab-arrow-nav-item={item.tagName}
+              data-react-grab-arrow-nav-index={itemIndex()}
               class="relative z-1 contain-layout flex items-center w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent"
               onPointerDown={(event) => event.stopPropagation()}
               onPointerEnter={(event) => {
@@ -54,9 +64,9 @@ export const ArrowNavigationMenu: Component<ArrowNavigationMenuProps> = (
                 props.onSelect(itemIndex());
               }}
               onPointerLeave={() => {
-                const activeRef = itemRefs[props.activeIndex];
-                if (activeRef) {
-                  updateHighlight(activeRef);
+                const activeMenuItem = getMenuItemByIndex(props.activeIndex);
+                if (activeMenuItem) {
+                  updateHighlight(activeMenuItem);
                 } else {
                   clearHighlight();
                 }

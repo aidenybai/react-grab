@@ -7,12 +7,6 @@ import {
   PANEL_STYLES,
 } from "../constants.js";
 
-let tooltipCloseTimestamp = 0;
-
-const wasTooltipRecentlyVisible = () => {
-  return Date.now() - tooltipCloseTimestamp < TOOLTIP_GRACE_PERIOD_MS;
-};
-
 interface TooltipProps {
   visible: boolean;
   position: "top" | "bottom" | "left" | "right";
@@ -23,6 +17,11 @@ export const Tooltip: Component<TooltipProps> = (props) => {
   const [delayedVisible, setDelayedVisible] = createSignal(false);
   const [shouldAnimate, setShouldAnimate] = createSignal(true);
   let delayTimeoutId: ReturnType<typeof setTimeout> | undefined;
+  let lastCloseTimestamp = 0;
+
+  const wasTooltipRecentlyVisible = () => {
+    return Date.now() - lastCloseTimestamp < TOOLTIP_GRACE_PERIOD_MS;
+  };
 
   createEffect(
     on(
@@ -45,7 +44,7 @@ export const Tooltip: Component<TooltipProps> = (props) => {
           }
         } else {
           if (delayedVisible()) {
-            tooltipCloseTimestamp = Date.now();
+            lastCloseTimestamp = Date.now();
           }
           setDelayedVisible(false);
         }
@@ -58,7 +57,7 @@ export const Tooltip: Component<TooltipProps> = (props) => {
       clearTimeout(delayTimeoutId);
     }
     if (delayedVisible()) {
-      tooltipCloseTimestamp = Date.now();
+      lastCloseTimestamp = Date.now();
     }
   });
 

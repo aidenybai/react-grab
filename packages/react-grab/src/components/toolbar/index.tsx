@@ -37,6 +37,7 @@ import {
   TOGGLE_ANIMATION_BUFFER_MS,
   TOOLBAR_DEFAULT_WIDTH_PX,
   TOOLBAR_DEFAULT_HEIGHT_PX,
+  TOOLBAR_DEFAULT_POSITION_RATIO,
   TOOLBAR_SHAKE_TOOLTIP_DURATION_MS,
   FEEDBACK_DURATION_MS,
   SAFE_POLYGON_BUFFER_PX,
@@ -142,7 +143,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     savedState?.edge ?? "bottom",
   );
   const [positionRatio, setPositionRatio] = createSignal(
-    savedState?.ratio ?? 0.5,
+    savedState?.ratio ?? TOOLBAR_DEFAULT_POSITION_RATIO,
   );
   const [position, setPosition] = createSignal({ x: 0, y: 0 });
   const [dragOffset, setDragOffset] = createSignal({ x: 0, y: 0 });
@@ -298,6 +299,12 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   };
 
   let shakeTooltipTimeout: ReturnType<typeof setTimeout> | undefined;
+  const clearShakeTooltipTimeout = () => {
+    if (shakeTooltipTimeout !== undefined) {
+      clearTimeout(shakeTooltipTimeout);
+      shakeTooltipTimeout = undefined;
+    }
+  };
 
   createEffect(
     on(
@@ -307,12 +314,13 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           setIsShaking(true);
           setIsShakeTooltipVisible(true);
 
-          if (shakeTooltipTimeout) {
-            clearTimeout(shakeTooltipTimeout);
-          }
+          clearShakeTooltipTimeout();
           shakeTooltipTimeout = setTimeout(() => {
             setIsShakeTooltipVisible(false);
           }, TOOLBAR_SHAKE_TOOLTIP_DURATION_MS);
+          onCleanup(() => {
+            clearShakeTooltipTimeout();
+          });
         }
       },
     ),
@@ -324,9 +332,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       (enabled) => {
         if (enabled && isShakeTooltipVisible()) {
           setIsShakeTooltipVisible(false);
-          if (shakeTooltipTimeout) {
-            clearTimeout(shakeTooltipTimeout);
-          }
+          clearShakeTooltipTimeout();
         }
       },
     ),
@@ -637,7 +643,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     if (edge === "top" || edge === "bottom") {
       const availableWidth =
         viewportWidth - elementWidth - TOOLBAR_SNAP_MARGIN_PX * 2;
-      if (availableWidth <= 0) return 0.5;
+      if (availableWidth <= 0) return TOOLBAR_DEFAULT_POSITION_RATIO;
       return Math.max(
         0,
         Math.min(
@@ -649,7 +655,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     }
     const availableHeight =
       viewportHeight - elementHeight - TOOLBAR_SNAP_MARGIN_PX * 2;
-    if (availableHeight <= 0) return 0.5;
+    if (availableHeight <= 0) return TOOLBAR_DEFAULT_POSITION_RATIO;
     return Math.max(
       0,
       Math.min(
@@ -1323,11 +1329,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           rect.height -
           TOOLBAR_SNAP_MARGIN_PX,
       });
-      setPositionRatio(0.5);
+      setPositionRatio(TOOLBAR_DEFAULT_POSITION_RATIO);
     } else {
       const defaultPosition = getPositionFromEdgeAndRatio(
         "bottom",
-        0.5,
+        TOOLBAR_DEFAULT_POSITION_RATIO,
         expandedDimensions.width,
         expandedDimensions.height,
       );
@@ -1407,7 +1413,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     window.removeEventListener("pointerup", handleWindowPointerUp);
     clearTimeout(resizeTimeout);
     clearTimeout(collapseAnimationTimeout);
-    clearTimeout(shakeTooltipTimeout);
+    clearShakeTooltipTimeout();
     clearTimeout(snapAnimationTimeout);
     clearTimeout(toggleAnimationTimeout);
     clearTimeout(historyItemCountTimeout);

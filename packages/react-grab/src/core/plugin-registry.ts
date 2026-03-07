@@ -22,7 +22,10 @@ import type {
   ActionContext,
 } from "../types.js";
 import { DEFAULT_THEME, deepMergeTheme } from "./theme.js";
-import { DEFAULT_KEY_HOLD_DURATION_MS } from "../constants.js";
+import {
+  DEFAULT_KEY_HOLD_DURATION_MS,
+  DEFAULT_MAX_CONTEXT_LINES,
+} from "../constants.js";
 
 interface RegisteredPlugin {
   plugin: Plugin;
@@ -43,7 +46,7 @@ const DEFAULT_OPTIONS: OptionsState = {
   activationMode: "toggle",
   keyHoldDuration: DEFAULT_KEY_HOLD_DURATION_MS,
   allowActivationInsideInput: true,
-  maxContextLines: 3,
+  maxContextLines: DEFAULT_MAX_CONTEXT_LINES,
   activationKey: undefined,
   getContent: undefined,
   freezeReactUpdates: true,
@@ -113,16 +116,38 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     setStore("toolbarActions", allToolbarActions);
   };
 
+  const setOption = <OptionKey extends keyof OptionsState>(
+    optionKey: OptionKey,
+    optionValue: OptionsState[OptionKey],
+  ) => {
+    directOptionOverrides[optionKey] = optionValue;
+    setStore("options", optionKey, optionValue);
+  };
+
   const setOptions = (optionUpdates: SettableOptions) => {
-    for (const [optionKey, optionValue] of Object.entries(optionUpdates)) {
-      if (optionValue === undefined) continue;
-      (directOptionOverrides as Record<string, unknown>)[optionKey] =
-        optionValue;
-      setStore(
-        "options",
-        optionKey as keyof OptionsState,
-        optionValue as OptionsState[keyof OptionsState],
+    if (optionUpdates.activationMode !== undefined) {
+      setOption("activationMode", optionUpdates.activationMode);
+    }
+    if (optionUpdates.keyHoldDuration !== undefined) {
+      setOption("keyHoldDuration", optionUpdates.keyHoldDuration);
+    }
+    if (optionUpdates.allowActivationInsideInput !== undefined) {
+      setOption(
+        "allowActivationInsideInput",
+        optionUpdates.allowActivationInsideInput,
       );
+    }
+    if (optionUpdates.maxContextLines !== undefined) {
+      setOption("maxContextLines", optionUpdates.maxContextLines);
+    }
+    if (optionUpdates.activationKey !== undefined) {
+      setOption("activationKey", optionUpdates.activationKey);
+    }
+    if (optionUpdates.getContent !== undefined) {
+      setOption("getContent", optionUpdates.getContent);
+    }
+    if (optionUpdates.freezeReactUpdates !== undefined) {
+      setOption("freezeReactUpdates", optionUpdates.freezeReactUpdates);
     }
   };
 

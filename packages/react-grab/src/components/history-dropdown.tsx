@@ -35,6 +35,7 @@ import {
   nativeRequestAnimationFrame,
 } from "../utils/native-raf.js";
 import { createMenuHighlight } from "../utils/create-menu-highlight.js";
+import { suppressMenuEvent } from "../utils/suppress-menu-event.js";
 
 const ITEM_ACTION_CLASS =
   "flex items-center justify-center cursor-pointer text-black/25 transition-colors press-scale";
@@ -114,6 +115,13 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
   let copyItemFeedbackTimeout: ReturnType<typeof setTimeout> | undefined;
   let exitAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
   let enterAnimationFrameId: number | undefined;
+  const clearDropdownAnimationHandles = () => {
+    clearTimeout(exitAnimationTimeout);
+    if (enterAnimationFrameId !== undefined) {
+      nativeCancelAnimationFrame(enterAnimationFrameId);
+      enterAnimationFrameId = undefined;
+    }
+  };
 
   const isVisible = () => props.position !== null;
   const [shouldMount, setShouldMount] = createSignal(false);
@@ -150,12 +158,15 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
         setShouldMount(false);
       }, DROPDOWN_ANIMATION_DURATION_MS);
     }
+    onCleanup(() => {
+      clearDropdownAnimationHandles();
+    });
   });
 
   // HACK: mouseenter doesn't fire when an element appears under the cursor, so we check :hover after the enter animation commits
   createEffect(
     on(
-      isAnimatedIn,
+      () => isAnimatedIn(),
       (animatedIn) => {
         if (animatedIn && containerRef?.matches(":hover")) {
           props.onDropdownHover?.(true);
@@ -197,13 +208,6 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
   const panelMinWidth = () =>
     Math.max(DROPDOWN_MIN_WIDTH_PX, props.position?.toolbarWidth ?? 0);
 
-  const handleMenuEvent = (event: Event) => {
-    if (event.type === "contextmenu") {
-      event.preventDefault();
-    }
-    event.stopImmediatePropagation();
-  };
-
   onMount(() => {
     measureContainer();
 
@@ -221,9 +225,7 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
     onCleanup(() => {
       clearTimeout(copyAllFeedbackTimeout);
       clearTimeout(copyItemFeedbackTimeout);
-      clearTimeout(exitAnimationTimeout);
-      if (enterAnimationFrameId !== undefined)
-        nativeCancelAnimationFrame(enterAnimationFrameId);
+      clearDropdownAnimationHandles();
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
       safePolygonTracker.stop();
     });
@@ -245,10 +247,10 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
           opacity: isAnimatedIn() ? "1" : "0",
           transform: isAnimatedIn() ? "scale(1)" : "scale(0.95)",
         }}
-        onPointerDown={handleMenuEvent}
-        onMouseDown={handleMenuEvent}
-        onClick={handleMenuEvent}
-        onContextMenu={handleMenuEvent}
+        onPointerDown={suppressMenuEvent}
+        onMouseDown={suppressMenuEvent}
+        onClick={suppressMenuEvent}
+        onContextMenu={suppressMenuEvent}
         onMouseEnter={() => {
           safePolygonTracker.stop();
           props.onDropdownHover?.(true);
