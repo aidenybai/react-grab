@@ -1,5 +1,11 @@
 # @react-grab/cli
 
+## 0.1.26
+
+### Patch Changes
+
+- fix: minor tweaks
+
 ## 0.1.25
 
 ### Patch Changes

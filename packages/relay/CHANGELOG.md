@@ -1,5 +1,13 @@
 # @react-grab/relay
 
+## 0.1.26
+
+### Patch Changes
+
+- fix: minor tweaks
+- Updated dependencies
+  - @react-grab/utils@0.1.26
+
 ## 0.1.25
 
 ### Patch Changes

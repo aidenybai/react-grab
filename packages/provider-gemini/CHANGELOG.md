@@ -1,5 +1,14 @@
 # @react-grab/gemini
 
+## 0.1.26
+
+### Patch Changes
+
+- fix: minor tweaks
+- Updated dependencies
+  - react-grab@0.1.26
+  - @react-grab/relay@0.1.26
+
 ## 0.1.25
 
 ### Patch Changes
