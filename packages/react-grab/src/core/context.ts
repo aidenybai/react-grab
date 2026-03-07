@@ -102,7 +102,7 @@ export const checkIsSourceComponentName = (name: string): boolean => {
   if (checkIsInternalComponentName(name)) return false;
   if (!isCapitalized(name)) return false;
   if (name.startsWith("Primitive.")) return false;
-  if (name.includes("Provider") && name.includes("Context")) return false;
+  if (name.includes("Provider") || name.includes("Context")) return false;
   return true;
 };
 
