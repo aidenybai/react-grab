@@ -47,6 +47,7 @@ import { isElementConnected } from "../utils/is-element-connected.js";
 import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { createElementSelector } from "../utils/create-element-selector.js";
+import { getVisibleBoundsCenter } from "../utils/get-visible-bounds-center.js";
 import { clearAllCaches } from "../utils/clear-all-caches.js";
 import {
   createBoundsFromDragRect,
@@ -2134,10 +2135,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const openArrowNavigationMenu = (anchorElement: Element) => {
       const bounds = createElementBounds(anchorElement);
-      const elementsAtPoint = getElementsAtPoint(
-        bounds.x + bounds.width / 2,
-        bounds.y + bounds.height / 2,
-      )
+      const probePoint = getVisibleBoundsCenter(bounds);
+      const elementsAtPoint = getElementsAtPoint(probePoint.x, probePoint.y)
         .filter(isValidGrabbableElement)
         .reverse();
 

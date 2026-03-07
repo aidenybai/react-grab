@@ -21,6 +21,8 @@ export const ArrowNavigationMenu: Component<ArrowNavigationMenuProps> = (
   } = createMenuHighlight();
 
   let menuItemsRef: HTMLDivElement | undefined;
+  let didPointerMove = false;
+
   const getMenuItemByIndex = (
     itemIndex: number,
   ): HTMLButtonElement | undefined => {
@@ -30,6 +32,11 @@ export const ArrowNavigationMenu: Component<ArrowNavigationMenuProps> = (
     );
     return activeMenuButton ?? undefined;
   };
+
+  createEffect(() => {
+    void props.items;
+    didPointerMove = false;
+  });
 
   createEffect(() => {
     const activeMenuItem = getMenuItemByIndex(props.activeIndex);
@@ -46,6 +53,9 @@ export const ArrowNavigationMenu: Component<ArrowNavigationMenuProps> = (
           highlightContainerRef(element);
         }}
         class="relative flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5"
+        onPointerMove={() => {
+          didPointerMove = true;
+        }}
       >
         <div
           ref={highlightRef}
@@ -61,7 +71,9 @@ export const ArrowNavigationMenu: Component<ArrowNavigationMenuProps> = (
               onPointerDown={(event) => event.stopPropagation()}
               onPointerEnter={(event) => {
                 updateHighlight(event.currentTarget);
-                props.onSelect(itemIndex());
+                if (didPointerMove) {
+                  props.onSelect(itemIndex());
+                }
               }}
               onPointerLeave={() => {
                 const activeMenuItem = getMenuItemByIndex(props.activeIndex);

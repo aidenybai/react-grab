@@ -236,3 +236,108 @@ test.describe("Navigation History and Wrapping", () => {
     expect(labelAfter.isVisible).toBe(true);
   });
 });
+
+test.describe("ArrowUp Vertical Traversal", () => {
+  test("ArrowUp should reach parent element from child", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    const initialLabel = await reactGrab.getSelectionLabelInfo();
+
+    await reactGrab.pressArrowUp();
+    await reactGrab.waitForSelectionBox();
+
+    const afterUpLabel = await reactGrab.getSelectionLabelInfo();
+
+    expect(initialLabel.tagName).toBe("li");
+    expect(afterUpLabel.tagName).not.toBe("li");
+    expect(afterUpLabel.isVisible).toBe(true);
+  });
+
+  test("repeated ArrowUp should not oscillate between elements", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    const visitedTags: string[] = [];
+    for (let step = 0; step < 8; step++) {
+      await reactGrab.pressArrowUp();
+      await reactGrab.page.waitForTimeout(50);
+      const labelInfo = await reactGrab.getSelectionLabelInfo();
+      if (!labelInfo.isVisible) break;
+      visitedTags.push(labelInfo.tagName ?? "unknown");
+    }
+
+    let oscillationCount = 0;
+    for (let index = 2; index < visitedTags.length; index++) {
+      const isRepeatingTwoStepPattern =
+        visitedTags[index] === visitedTags[index - 2] &&
+        visitedTags[index] !== visitedTags[index - 1];
+      if (isRepeatingTwoStepPattern) {
+        oscillationCount++;
+      }
+    }
+    expect(oscillationCount).toBeLessThan(2);
+  });
+
+  test("ArrowUp bounds should never shrink", async ({ reactGrab }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    let previousBounds = await reactGrab.getSelectionBoxBounds();
+    expect(previousBounds).not.toBeNull();
+    let boundsShrunk = false;
+
+    for (let step = 0; step < 5; step++) {
+      await reactGrab.pressArrowUp();
+      await reactGrab.page.waitForTimeout(50);
+      const currentBounds = await reactGrab.getSelectionBoxBounds();
+      if (!currentBounds) break;
+
+      const previousArea = previousBounds!.width * previousBounds!.height;
+      const currentArea = currentBounds.width * currentBounds.height;
+      if (currentArea < previousArea - 1) {
+        boundsShrunk = true;
+        break;
+      }
+      previousBounds = currentBounds;
+    }
+
+    expect(boundsShrunk).toBe(false);
+  });
+
+  test("ArrowDown should reverse ArrowUp and maintain selection", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+    await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
+    await reactGrab.waitForSelectionBox();
+
+    await reactGrab.pressArrowUp();
+    await reactGrab.waitForSelectionBox();
+    await reactGrab.pressArrowUp();
+    await reactGrab.waitForSelectionBox();
+
+    const afterUpVisible = await reactGrab.isSelectionBoxVisible();
+    expect(afterUpVisible).toBe(true);
+
+    await reactGrab.pressArrowDown();
+    await reactGrab.waitForSelectionBox();
+    await reactGrab.pressArrowDown();
+    await reactGrab.waitForSelectionBox();
+
+    const afterDownVisible = await reactGrab.isSelectionBoxVisible();
+    expect(afterDownVisible).toBe(true);
+
+    const afterDownBounds = await reactGrab.getSelectionBoxBounds();
+    expect(afterDownBounds).not.toBeNull();
+    expect(afterDownBounds!.width).toBeGreaterThan(0);
+    expect(afterDownBounds!.height).toBeGreaterThan(0);
+  });
+});
