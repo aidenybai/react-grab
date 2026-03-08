@@ -48,6 +48,16 @@ const getZedConfigPath = (): string => {
   return path.join(os.homedir(), ".config", "zed", "settings.json");
 };
 
+export const getOpenCodeConfigPath = (): string => {
+  const configDir = path.join(getXdgConfigHome(), "opencode");
+  const jsoncPath = path.join(configDir, "opencode.jsonc");
+  const jsonPath = path.join(configDir, "opencode.json");
+
+  if (fs.existsSync(jsoncPath)) return jsoncPath;
+  if (fs.existsSync(jsonPath)) return jsonPath;
+  return jsoncPath;
+};
+
 const getClients = (): ClientDefinition[] => {
   const homeDir = os.homedir();
   const baseDir = getBaseDir();
@@ -84,7 +94,7 @@ const getClients = (): ClientDefinition[] => {
     },
     {
       name: "OpenCode",
-      configPath: path.join(getXdgConfigHome(), "opencode", "opencode.json"),
+      configPath: getOpenCodeConfigPath(),
       configKey: "mcp",
       format: "json",
       serverConfig: {

@@ -8,6 +8,7 @@ import {
   installJsonClient,
   installTomlClient,
   getMcpClientNames,
+  getOpenCodeConfigPath,
 } from "../src/utils/install-mcp.js";
 
 let tempDir: string;
@@ -182,6 +183,50 @@ describe("upsertIntoJsonc", () => {
     const result = fs.readFileSync(filePath, "utf8");
     expect(result).toContain('"command": "new"');
     expect(result).not.toContain('"old"');
+  });
+});
+
+describe("getOpenCodeConfigPath", () => {
+  let originalXdgConfigHome: string | undefined;
+
+  beforeEach(() => {
+    originalXdgConfigHome = process.env.XDG_CONFIG_HOME;
+    process.env.XDG_CONFIG_HOME = tempDir;
+  });
+
+  afterEach(() => {
+    if (originalXdgConfigHome === undefined) {
+      delete process.env.XDG_CONFIG_HOME;
+    } else {
+      process.env.XDG_CONFIG_HOME = originalXdgConfigHome;
+    }
+  });
+
+  it("should prefer opencode.jsonc when both files exist", () => {
+    const opencodeDir = path.join(tempDir, "opencode");
+    fs.mkdirSync(opencodeDir, { recursive: true });
+    fs.writeFileSync(path.join(opencodeDir, "opencode.json"), "{}");
+    fs.writeFileSync(path.join(opencodeDir, "opencode.jsonc"), "{}");
+
+    const result = getOpenCodeConfigPath();
+
+    expect(result).toBe(path.join(opencodeDir, "opencode.jsonc"));
+  });
+
+  it("should use opencode.json when only it exists", () => {
+    const opencodeDir = path.join(tempDir, "opencode");
+    fs.mkdirSync(opencodeDir, { recursive: true });
+    fs.writeFileSync(path.join(opencodeDir, "opencode.json"), "{}");
+
+    const result = getOpenCodeConfigPath();
+
+    expect(result).toBe(path.join(opencodeDir, "opencode.json"));
+  });
+
+  it("should default to opencode.jsonc when neither file exists", () => {
+    const result = getOpenCodeConfigPath();
+
+    expect(result).toBe(path.join(tempDir, "opencode", "opencode.jsonc"));
   });
 });
 
