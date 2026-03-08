@@ -422,7 +422,7 @@ export const InstallTabs = ({
                         : undefined
                     }
                   >
-                    <p className="text-left text-base leading-relaxed text-foreground/80 whitespace-pre-wrap pr-8">
+                    <p className="text-left text-base leading-relaxed text-foreground/80 whitespace-pre-wrap pr-10 pb-10">
                       {activeCode}
                     </p>
                   </div>
@@ -433,7 +433,7 @@ export const InstallTabs = ({
                     <button
                       type="button"
                       onClick={() => setIsPromptExpanded((previous) => !previous)}
-                      className="relative flex h-auto w-full items-center justify-center gap-1 border-t border-border bg-card py-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                      className="absolute bottom-3 right-4 z-10 inline-flex items-center gap-1 rounded-md border border-border bg-card/90 px-2 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
                     >
                       <span>
                         {isPromptExpanded ? "Show less" : "Show full prompt"}
