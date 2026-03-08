@@ -275,6 +275,17 @@ export interface PerformWithFeedbackOptions {
   position?: { x: number; y: number };
 }
 
+export interface ElementStackContextOptions {
+  maxLines?: number;
+}
+
+export interface ElementSourceInfo {
+  filePath: string;
+  lineNumber: number | null;
+  columnNumber: number | null;
+  componentName: string | null;
+}
+
 export interface PluginHooks {
   onActivate?: () => void;
   onDeactivate?: () => void;
@@ -328,6 +339,16 @@ export interface PluginHooks {
     filePath: string,
     lineNumber?: number,
   ) => string;
+  resolveElementSource?: (
+    element: Element,
+  ) => ElementSourceInfo | null | Promise<ElementSourceInfo | null>;
+  resolveElementComponentName?: (
+    element: Element,
+  ) => string | null | Promise<string | null>;
+  resolveElementStackContext?: (
+    element: Element,
+    options?: ElementStackContextOptions,
+  ) => string | null | Promise<string | null>;
   transformSnippet?: (
     snippet: string,
     element: Element,
