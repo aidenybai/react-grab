@@ -39,6 +39,31 @@ const formatInitOptions = (hotkey: RecordedHotkey): string => {
   return `{ activationKey: "${hotkeyToString(hotkey)}" }`;
 };
 
+const createPromptInstallInstructions = (
+  hotkey: RecordedHotkey | null,
+): string => {
+  const activationKeyInstruction = hotkey
+    ? `Set the activation key to "${hotkeyToString(hotkey)}". For Next.js Script tags, set data-options='{"activationKey":"${hotkeyToString(
+        hotkey,
+      )}"}'. For Vite & TanStack Start, use react-grab/core and call init(${formatInitOptions(
+        hotkey,
+      )}).`
+    : "Keep the default activation key.";
+
+  return `Set up React Grab in this workspace without using the React Grab CLI.
+
+1. Find the React app package in this workspace. If multiple React apps exist, ask me which one to configure.
+2. Detect the package manager from lockfiles and install react-grab@latest in the selected package.
+3. Detect the framework and apply manual integration:
+- Next.js App Router: in app/layout.tsx, add next/script and include a development-only Script tag with src="//unpkg.com/react-grab/dist/index.global.js", crossOrigin="anonymous", and strategy="beforeInteractive".
+- Next.js Pages Router: in pages/_document.tsx, add the same development-only Script tag inside <Head>.
+- Vite: in index.html <head>, add <script type="module">if (import.meta.env.DEV) { import("react-grab"); }</script>.
+- TanStack Start: in src/routes/__root.tsx, inside useEffect and an import.meta.env.DEV check, run void import("react-grab").
+4. ${activationKeyInstruction}
+5. Keep all React Grab setup development-only.
+6. Show me the edited files and the exact install command you ran.`;
+};
+
 const installTabsData: InstallTab[] = [
   {
     id: "cli",
@@ -57,14 +82,9 @@ const installTabsData: InstallTab[] = [
   {
     id: "prompt",
     label: "Prompt",
-    description: "Paste this prompt in your coding agent's chat",
+    description: "Paste this full setup prompt in your coding agent's chat",
     variant: "prompt",
-    getCode: (hotkey) => {
-      const command = hotkey
-        ? `npx -y grab@latest init --key "${hotkeyToString(hotkey)}"`
-        : "npx -y grab@latest init";
-      return `Find the React project in this workspace (look for package.json with a react dependency). If there are multiple, ask me which one. Then run \`${command}\` in that project's root directory to install React Grab.`;
-    },
+    getCode: (hotkey) => createPromptInstallInstructions(hotkey),
     getChangedLines: () => [],
   },
   {
@@ -375,7 +395,7 @@ export const InstallTabs = ({
                 className="group flex w-full items-center justify-between gap-4 px-4 py-6 transition-colors hover:bg-muted/50"
               >
                 {activeTab.variant === "prompt" ? (
-                  <p className="text-left text-base leading-relaxed text-foreground/80 text-pretty">
+                  <p className="text-left text-base leading-relaxed text-foreground/80 whitespace-pre-wrap">
                     {activeCode}
                   </p>
                 ) : highlightedCode ? (
