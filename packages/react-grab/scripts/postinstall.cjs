@@ -16,15 +16,12 @@ const isEnvironmentVariableSet = (environmentVariableName) =>
 const getDetectedAgentEnvironmentVariableNames = () =>
   AGENT_ENVIRONMENT_VARIABLE_NAMES.filter(isEnvironmentVariableSet);
 
-const createInstallMessage = () => {
-  const detectedAgentEnvironmentVariableNames =
-    getDetectedAgentEnvironmentVariableNames();
-  const automatedEnvironmentMessage =
-    detectedAgentEnvironmentVariableNames.length > 0
-      ? ` Automated environment detected (${detectedAgentEnvironmentVariableNames.join(", ")}).`
-      : "";
+const hasAutomatedEnvironment = () =>
+  getDetectedAgentEnvironmentVariableNames().length > 0;
 
-  return `[react-grab] Package installed.${automatedEnvironmentMessage} This does not initialize your project. Run \`${REACT_GRAB_INIT_COMMAND}\` to set up React Grab.`;
-};
+const createInstallMessage = () =>
+  `[react-grab] Package installed via automation. This step only installs the package. Run \`${REACT_GRAB_INIT_COMMAND}\` to complete setup.`;
 
-console.log(createInstallMessage());
+if (hasAutomatedEnvironment()) {
+  console.log(createInstallMessage());
+}
