@@ -58,7 +58,9 @@ const resolveFromInspectorAttribute = (
   const sourceElement = element.closest(VUE_INSPECTOR_SELECTOR);
   if (!sourceElement) return null;
 
-  const sourceLocation = sourceElement.getAttribute(VUE_INSPECTOR_ATTRIBUTE_NAME);
+  const sourceLocation = sourceElement.getAttribute(
+    VUE_INSPECTOR_ATTRIBUTE_NAME,
+  );
   if (!sourceLocation) return null;
 
   const parsedLocation = parseSourceLocation(sourceLocation);
@@ -92,7 +94,9 @@ const resolveFromVueRuntimeMetadata = (
   };
 };
 
-export const getVueSourceInfo = (element: Element): ElementSourceInfo | null => {
+export const getVueSourceInfo = (
+  element: Element,
+): ElementSourceInfo | null => {
   const inspectorInfo = resolveFromInspectorAttribute(element);
   if (inspectorInfo) return inspectorInfo;
   return resolveFromVueRuntimeMetadata(element);

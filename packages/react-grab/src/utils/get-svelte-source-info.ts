@@ -12,7 +12,9 @@ const readString = (value: unknown): string | null =>
 const readNumber = (value: unknown): number | null =>
   typeof value === "number" && Number.isFinite(value) ? value : null;
 
-const getNearestSvelteMeta = (element: Element): Record<string, unknown> | null => {
+const getNearestSvelteMeta = (
+  element: Element,
+): Record<string, unknown> | null => {
   let currentElement: Element | null = element;
   while (currentElement) {
     const svelteMeta = Reflect.get(currentElement, SVELTE_META_PROPERTY_NAME);
@@ -41,7 +43,9 @@ const readSvelteLocation = (
   };
 };
 
-const readComponentNameFromParentMeta = (svelteMeta: Record<string, unknown>) => {
+const readComponentNameFromParentMeta = (
+  svelteMeta: Record<string, unknown>,
+) => {
   let currentParent = svelteMeta.parent;
   while (isRecord(currentParent)) {
     const componentTag = readString(currentParent.componentTag);

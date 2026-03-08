@@ -16,45 +16,48 @@ test.describe("Framework Source Metadata", () => {
   }) => {
     const solidFilePath = "/workspace/solid/src/components/counter.tsx";
 
-    await reactGrab.page.evaluate(({ filePath, targetStyle }) => {
-      const element = document.createElement("button");
-      element.id = "solid-metadata-target";
-      element.textContent = "Solid Metadata Target";
-      element.setAttribute("data-locatorjs-id", `${filePath}::0`);
-      Object.assign(element.style, targetStyle);
-      document.body.appendChild(element);
+    await reactGrab.page.evaluate(
+      ({ filePath, targetStyle }) => {
+        const element = document.createElement("button");
+        element.id = "solid-metadata-target";
+        element.textContent = "Solid Metadata Target";
+        element.setAttribute("data-locatorjs-id", `${filePath}::0`);
+        Object.assign(element.style, targetStyle);
+        document.body.appendChild(element);
 
-      (
-        window as {
-          __LOCATOR_DATA__?: Record<string, unknown>;
-        }
-      ).__LOCATOR_DATA__ = {
-        [filePath]: {
-          filePath,
-          projectPath: "/workspace/solid",
-          expressions: [
-            {
-              name: "button",
-              loc: {
-                start: { line: 12, column: 6 },
-                end: { line: 12, column: 28 },
+        (
+          window as {
+            __LOCATOR_DATA__?: Record<string, unknown>;
+          }
+        ).__LOCATOR_DATA__ = {
+          [filePath]: {
+            filePath,
+            projectPath: "/workspace/solid",
+            expressions: [
+              {
+                name: "button",
+                loc: {
+                  start: { line: 12, column: 6 },
+                  end: { line: 12, column: 28 },
+                },
+                wrappingComponentId: 0,
               },
-              wrappingComponentId: 0,
-            },
-          ],
-          styledDefinitions: [],
-          components: [
-            {
-              name: "SolidCounter",
-              loc: {
-                start: { line: 4, column: 0 },
-                end: { line: 18, column: 1 },
+            ],
+            styledDefinitions: [],
+            components: [
+              {
+                name: "SolidCounter",
+                loc: {
+                  start: { line: 4, column: 0 },
+                  end: { line: 18, column: 1 },
+                },
               },
-            },
-          ],
-        },
-      };
-    }, { filePath: solidFilePath, targetStyle: PLACEHOLDER_TARGET_STYLE });
+            ],
+          },
+        };
+      },
+      { filePath: solidFilePath, targetStyle: PLACEHOLDER_TARGET_STYLE },
+    );
 
     const source = await reactGrab.page.evaluate(async () => {
       const api = (
@@ -96,8 +99,17 @@ test.describe("Framework Source Metadata", () => {
     await reactGrab.waitForSelectionBox();
     await reactGrab.waitForSelectionSource();
 
-    const state = await reactGrab.getState();
-    expect(state.selectionFilePath).toBe(solidFilePath);
+    const selectionFilePath = await reactGrab.page.evaluate(() => {
+      const api = (
+        window as {
+          __REACT_GRAB__?: {
+            getState: () => { selectionFilePath: string | null };
+          };
+        }
+      ).__REACT_GRAB__;
+      return api?.getState().selectionFilePath ?? null;
+    });
+    expect(selectionFilePath).toBe(solidFilePath);
 
     await reactGrab.clickElement("#solid-metadata-target");
 
@@ -169,23 +181,26 @@ test.describe("Framework Source Metadata", () => {
   }) => {
     const vueRuntimeFilePath = "/workspace/vue/src/components/Fallback.vue";
 
-    await reactGrab.page.evaluate(({ filePath, targetStyle }) => {
-      const element = document.createElement("div");
-      element.id = "vue-runtime-target";
-      element.textContent = "Vue Runtime Target";
-      Object.assign(element.style, targetStyle);
-      (
-        element as {
-          __vueParentComponent?: Record<string, unknown>;
-        }
-      ).__vueParentComponent = {
-        type: {
-          __file: filePath,
-          __name: "VueFallback",
-        },
-      };
-      document.body.appendChild(element);
-    }, { filePath: vueRuntimeFilePath, targetStyle: PLACEHOLDER_TARGET_STYLE });
+    await reactGrab.page.evaluate(
+      ({ filePath, targetStyle }) => {
+        const element = document.createElement("div");
+        element.id = "vue-runtime-target";
+        element.textContent = "Vue Runtime Target";
+        Object.assign(element.style, targetStyle);
+        (
+          element as {
+            __vueParentComponent?: Record<string, unknown>;
+          }
+        ).__vueParentComponent = {
+          type: {
+            __file: filePath,
+            __name: "VueFallback",
+          },
+        };
+        document.body.appendChild(element);
+      },
+      { filePath: vueRuntimeFilePath, targetStyle: PLACEHOLDER_TARGET_STYLE },
+    );
 
     const source = await reactGrab.page.evaluate(async () => {
       const api = (

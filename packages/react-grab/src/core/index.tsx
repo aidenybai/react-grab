@@ -4295,7 +4295,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           componentName: source.componentName,
         };
       },
-      getStackContext: (element: Element) => resolveElementStackContext(element),
+      getStackContext: (element: Element) =>
+        resolveElementStackContext(element),
       getState: (): ReactGrabState => ({
         isActive: isActivated(),
         isDragging: isDragging(),

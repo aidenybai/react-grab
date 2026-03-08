@@ -10,7 +10,8 @@ export const frameworkSourcePlugin: Plugin = {
   name: "framework-source",
   hooks: {
     resolveElementSource: (element) => getFrameworkSourceInfo(element),
-    resolveElementComponentName: (element) => getFrameworkComponentName(element),
+    resolveElementComponentName: (element) =>
+      getFrameworkComponentName(element),
     resolveElementStackContext: (element, options) =>
       getFrameworkStackContext(element, options),
     transformSnippet: async (snippet, element) => {

@@ -103,7 +103,10 @@ const findExpressionByLocation = (
   for (const expression of expressionList) {
     const start = getExpressionStart(expression);
     if (!start) continue;
-    if (start.lineNumber === lineNumber && start.columnNumber === columnNumber) {
+    if (
+      start.lineNumber === lineNumber &&
+      start.columnNumber === columnNumber
+    ) {
       return expression;
     }
   }
@@ -164,7 +167,9 @@ const resolveFromLocatorId = (locatorId: string): ElementSourceInfo | null => {
   const expression = expressionList[parsedLocatorId.expressionId];
   const expressionStart = getExpressionStart(expression);
   const componentName =
-    fileData && expression ? getWrappingComponentName(fileData, expression) : null;
+    fileData && expression
+      ? getWrappingComponentName(fileData, expression)
+      : null;
 
   return {
     filePath: parsedLocatorId.filePath,
@@ -188,7 +193,9 @@ const resolveFromSolidDevtoolsLocation = (
   };
 };
 
-export const getSolidSourceInfo = (element: Element): ElementSourceInfo | null => {
+export const getSolidSourceInfo = (
+  element: Element,
+): ElementSourceInfo | null => {
   const sourceElement = element.closest(LOCATOR_ATTRIBUTE_SELECTOR);
   if (!sourceElement) return null;
 
@@ -208,8 +215,9 @@ export const getSolidSourceInfo = (element: Element): ElementSourceInfo | null =
     SOLID_DEVTOOLS_LOCATION_ATTRIBUTE_NAME,
   );
   if (solidDevtoolsLocation) {
-    const solidDevtoolsInfo =
-      resolveFromSolidDevtoolsLocation(solidDevtoolsLocation);
+    const solidDevtoolsInfo = resolveFromSolidDevtoolsLocation(
+      solidDevtoolsLocation,
+    );
     if (solidDevtoolsInfo) return solidDevtoolsInfo;
   }
 
