@@ -50,18 +50,21 @@ const createPromptInstallInstructions = (
       )}).`
     : "Keep the default activation key.";
 
-  return `Set up React Grab in this workspace without using the React Grab CLI.
+  return `Set up React Grab in this workspace. If this is a monorepo, ask me which package to install it in.
 
-1. Find the React app package in this workspace. If multiple React apps exist, ask me which one to configure.
-2. Detect the package manager from lockfiles and install react-grab@latest in the selected package.
-3. Detect the framework and apply manual integration:
+1. Find the React app package in this workspace.
+2. If this is a monorepo, ask me which package to configure before making changes.
+3. Detect the package manager from lockfiles and install react-grab@latest in the selected package.
+4. Detect the framework and apply manual integration:
 - Next.js App Router: in app/layout.tsx, add next/script and include a development-only Script tag with src="//unpkg.com/react-grab/dist/index.global.js", crossOrigin="anonymous", and strategy="beforeInteractive".
 - Next.js Pages Router: in pages/_document.tsx, add the same development-only Script tag inside <Head>.
 - Vite: in index.html <head>, add <script type="module">if (import.meta.env.DEV) { import("react-grab"); }</script>.
 - TanStack Start: in src/routes/__root.tsx, inside useEffect and an import.meta.env.DEV check, run void import("react-grab").
-4. ${activationKeyInstruction}
-5. Keep all React Grab setup development-only.
-6. Show me the edited files and the exact install command you ran.`;
+5. ${activationKeyInstruction}
+6. Keep all React Grab setup development-only.
+7. Show me the edited files and the exact install command you ran.
+8. If the setup does not work, suggest running the React Grab CLI:
+\`npx -y grab@latest init\`.`;
 };
 
 const installTabsData: InstallTab[] = [
