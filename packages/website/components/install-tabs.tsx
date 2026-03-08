@@ -1,8 +1,12 @@
 "use client";
 
 import { useEffect, useState, useCallback, type ReactElement } from "react";
-import { Copy, Check, Terminal } from "lucide-react";
-import { COPY_FEEDBACK_DURATION_MS } from "@/constants";
+import { Copy, Check, Terminal, ChevronDown } from "lucide-react";
+import {
+  COPY_FEEDBACK_DURATION_MS,
+  PROMPT_INSTALL_COLLAPSE_LINE_THRESHOLD,
+  PROMPT_INSTALL_MAX_HEIGHT_PX,
+} from "@/constants";
 import { cn } from "@/utils/cn";
 import { IconNextjs } from "./icons/icon-nextjs";
 import { IconVite } from "./icons/icon-vite";
@@ -249,6 +253,7 @@ export const InstallTabs = ({
     installTabsData[0]?.id,
   );
   const [didCopy, setDidCopy] = useState(false);
+  const [isPromptExpanded, setIsPromptExpanded] = useState(false);
   const [highlightedCodes, setHighlightedCodes] = useState<
     Record<string, string>
   >({});
@@ -258,6 +263,10 @@ export const InstallTabs = ({
     installTabsData.find((tab) => tab.id === activeTabId) ?? installTabsData[0];
   const activeCode = activeTab.getCode(customHotkey ?? null);
   const activeChangedLines = activeTab.getChangedLines(customHotkey ?? null);
+  const isPromptTab = activeTab.variant === "prompt";
+  const shouldShowPromptExpandButton =
+    isPromptTab &&
+    activeCode.split("\n").length > PROMPT_INSTALL_COLLAPSE_LINE_THRESHOLD;
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -292,6 +301,10 @@ export const InstallTabs = ({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     updateHighlightedCodes(customHotkey ?? null);
   }, [customHotkey, updateHighlightedCodes]);
+
+  useEffect(() => {
+    setIsPromptExpanded(false);
+  }, [activeTab.id, activeCode]);
 
   const handleCopyClick = () => {
     if (typeof navigator === "undefined" || !navigator.clipboard) return;
@@ -392,16 +405,56 @@ export const InstallTabs = ({
         <div className="bg-background/60 relative">
           <div className="relative">
             {activeTab.variant !== "code" ? (
-              <button
-                type="button"
-                onClick={handleCopyClick}
-                className="group flex w-full items-center justify-between gap-4 px-4 py-6 transition-colors hover:bg-muted/50"
-              >
-                {activeTab.variant === "prompt" ? (
-                  <p className="text-left text-base leading-relaxed text-foreground/80 whitespace-pre-wrap">
-                    {activeCode}
-                  </p>
-                ) : highlightedCode ? (
+              activeTab.variant === "prompt" ? (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={handleCopyClick}
+                    className="touch-hitbox absolute! right-4 top-4 text-muted-foreground transition-colors hover:text-foreground z-10"
+                  >
+                    {didCopy ? <Check size={16} /> : <Copy size={16} />}
+                  </button>
+                  <div
+                    className="overflow-hidden px-4 py-6 transition-[max-height] duration-200 ease-out"
+                    style={
+                      !isPromptExpanded && shouldShowPromptExpandButton
+                        ? { maxHeight: `${PROMPT_INSTALL_MAX_HEIGHT_PX}px` }
+                        : undefined
+                    }
+                  >
+                    <p className="text-left text-base leading-relaxed text-foreground/80 whitespace-pre-wrap pr-8">
+                      {activeCode}
+                    </p>
+                  </div>
+                  {shouldShowPromptExpandButton && !isPromptExpanded && (
+                    <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-24 bg-linear-to-t from-card via-card/95 to-transparent" />
+                  )}
+                  {shouldShowPromptExpandButton && (
+                    <button
+                      type="button"
+                      onClick={() => setIsPromptExpanded((previous) => !previous)}
+                      className="relative flex h-auto w-full items-center justify-center gap-1 border-t border-border bg-card py-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      <span>
+                        {isPromptExpanded ? "Show less" : "Show full prompt"}
+                      </span>
+                      <ChevronDown
+                        size={14}
+                        className={cn(
+                          "transition-transform",
+                          isPromptExpanded && "rotate-180",
+                        )}
+                      />
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleCopyClick}
+                  className="group flex w-full items-center justify-between gap-4 px-4 py-6 transition-colors hover:bg-muted/50"
+                >
+                  {highlightedCode ? (
                   <div
                     className="overflow-x-auto font-mono text-base leading-relaxed highlighted-code"
                     dangerouslySetInnerHTML={{ __html: highlightedCode }}
@@ -414,7 +467,8 @@ export const InstallTabs = ({
                 <span className="shrink-0 text-muted-foreground transition-colors group-hover:text-foreground">
                   {didCopy ? <Check size={16} /> : <Copy size={16} />}
                 </span>
-              </button>
+                </button>
+              )
             ) : (
               <div className="group relative">
                 <button
