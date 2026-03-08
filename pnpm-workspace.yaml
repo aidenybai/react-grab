@@ -1,3 +1,10 @@
 packages:
-  - "packages/*"
-  - "packages/benchmarks/next-app"
+  - packages/*
+  - packages/benchmarks/next-app
+
+ignoredBuiltDependencies:
+  - "@parcel/watcher"
+  - esbuild
+  - sharp
+  - spawn-sync
+  - unrs-resolver
