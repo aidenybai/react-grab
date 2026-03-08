@@ -28,12 +28,10 @@ import {
   getStack,
   getStackContext,
   getNearestComponentName,
-  checkIsSourceComponentName,
   getComponentDisplayName,
   resolveSourceFromStack,
   checkIsNextProject,
 } from "./context.js";
-import { isSourceFile, normalizeFileName } from "bippy/source";
 import { createNoopApi } from "./noop-api.js";
 import { createEventListenerManager } from "./events.js";
 import { tryCopyWithFallback } from "./copy.js";
@@ -111,6 +109,8 @@ import type {
   PerformWithFeedbackOptions,
   SettableOptions,
   SourceInfo,
+  ElementSourceInfo,
+  ElementStackContextOptions,
   Plugin,
   ToolbarState,
   HistoryItem,
@@ -529,6 +529,48 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => isDragging(),
     );
 
+    const resolveElementSourceInfo = async (
+      element: Element,
+    ): Promise<ElementSourceInfo | null> => {
+      const stack = await getStack(element);
+      const sourceFromStack = resolveSourceFromStack(stack);
+      if (sourceFromStack) {
+        return {
+          filePath: sourceFromStack.filePath,
+          lineNumber: sourceFromStack.lineNumber ?? null,
+          columnNumber: null,
+          componentName: sourceFromStack.componentName,
+        };
+      }
+
+      return pluginRegistry.hooks.resolveElementSource(element);
+    };
+
+    const resolveElementComponentName = async (
+      element: Element,
+    ): Promise<string | null> => {
+      const sourceComponentName = await getNearestComponentName(element);
+      if (sourceComponentName) return sourceComponentName;
+
+      const pluginComponentName =
+        await pluginRegistry.hooks.resolveElementComponentName(element);
+      if (pluginComponentName) return pluginComponentName;
+
+      return getComponentDisplayName(element);
+    };
+
+    const resolveElementStackContext = async (
+      element: Element,
+      options: ElementStackContextOptions = {},
+    ): Promise<string> => {
+      const stackContext = await getStackContext(element, options);
+      if (stackContext) return stackContext;
+
+      const pluginStackContext =
+        await pluginRegistry.hooks.resolveElementStackContext(element, options);
+      return pluginStackContext ?? "";
+    };
+
     const isRendererActive = createMemo(() => isActivated() && !isCopying());
 
     const crosshairVisible = createMemo(
@@ -569,38 +611,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     ): Promise<void> => {
       const elementsPayload = await Promise.all(
         elements.map(async (element) => {
-          const stack = await getStack(element);
-
-          let componentName: string | null = null;
-          let filePath: string | undefined;
-          let lineNumber: number | undefined;
-          let columnNumber: number | undefined;
-
-          if (stack && stack.length > 0) {
-            for (const frame of stack) {
-              const hasSourceComponentName =
-                frame.functionName &&
-                checkIsSourceComponentName(frame.functionName);
-              const hasSourceFile =
-                frame.fileName && isSourceFile(frame.fileName);
-
-              if (hasSourceComponentName && !componentName) {
-                componentName = frame.functionName!;
-              }
-
-              if (hasSourceFile && !filePath) {
-                filePath = normalizeFileName(frame.fileName!);
-                lineNumber = frame.lineNumber || undefined;
-                columnNumber = frame.columnNumber || undefined;
-              }
-
-              if (componentName && filePath) break;
-            }
-          }
-
-          if (!componentName) {
-            componentName = getComponentDisplayName(element);
-          }
+          const sourceInfo = await resolveElementSourceInfo(element);
+          const componentName =
+            (await resolveElementComponentName(element)) ??
+            sourceInfo?.componentName ??
+            null;
+          const filePath = sourceInfo?.filePath;
+          const lineNumber = sourceInfo?.lineNumber ?? undefined;
+          const columnNumber = sourceInfo?.columnNumber ?? undefined;
 
           const textContent =
             element instanceof HTMLElement
@@ -1000,7 +1018,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           })
         : null;
 
-      void getNearestComponentName(element).then((componentName) => {
+      void resolveElementComponentName(element).then((componentName) => {
         void executeCopyOperation({
           positionX: labelPositionX,
           operation: () =>
@@ -1288,18 +1306,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             return;
           }
 
-          getStack(element)
-            .then((stack) => {
+          resolveElementSourceInfo(element)
+            .then((sourceInfo) => {
               if (selectionSourceRequestVersion !== currentVersion) return;
-              if (!stack) return;
-              for (const frame of stack) {
-                if (frame.fileName && isSourceFile(frame.fileName)) {
-                  actions.setSelectionSource(
-                    normalizeFileName(frame.fileName),
-                    frame.lineNumber ?? null,
-                  );
-                  return;
-                }
+              if (sourceInfo?.filePath) {
+                actions.setSelectionSource(
+                  sourceInfo.filePath,
+                  sourceInfo.lineNumber,
+                );
+                return;
               }
               clearSource();
             })
@@ -3170,7 +3185,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             return;
           }
 
-          getNearestComponentName(element)
+          resolveElementComponentName(element)
             .then((name) => {
               if (componentNameRequestVersion !== currentVersion) return;
               setResolvedComponentName(name ?? undefined);
@@ -3318,7 +3333,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       async ({ element, frozenCount }) => {
         if (!element) return undefined;
         if (frozenCount > 1) return undefined;
-        const name = await getNearestComponentName(element);
+        const name = await resolveElementComponentName(element);
         return name ?? undefined;
       },
     );
@@ -3327,8 +3342,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => store.contextMenuElement,
       async (element) => {
         if (!element) return null;
-        const stack = await getStack(element);
-        return resolveSourceFromStack(stack);
+        return resolveElementSourceInfo(element);
       },
     );
 
@@ -3534,7 +3548,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return buildActionContext({
           element,
           filePath: fileInfo?.filePath,
-          lineNumber: fileInfo?.lineNumber,
+          lineNumber: fileInfo?.lineNumber ?? undefined,
           tagName: contextMenuTagName(),
           componentName: contextMenuComponentName(),
           position,
@@ -4273,16 +4287,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
       copyElement: copyElementAPI,
       getSource: async (element: Element): Promise<SourceInfo | null> => {
-        const stack = await getStack(element);
-        const source = resolveSourceFromStack(stack);
+        const source = await resolveElementSourceInfo(element);
         if (!source) return null;
         return {
           filePath: source.filePath,
-          lineNumber: source.lineNumber ?? null,
+          lineNumber: source.lineNumber,
           componentName: source.componentName,
         };
       },
-      getStackContext,
+      getStackContext: (element: Element) => resolveElementStackContext(element),
       getState: (): ReactGrabState => ({
         isActive: isActivated(),
         isDragging: isDragging(),
