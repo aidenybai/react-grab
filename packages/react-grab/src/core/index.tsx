@@ -139,6 +139,7 @@ import { commentPlugin } from "./plugins/comment.js";
 import { openPlugin } from "./plugins/open.js";
 import { copyHtmlPlugin } from "./plugins/copy-html.js";
 import { copyStylesPlugin } from "./plugins/copy-styles.js";
+import { frameworkSourcePlugin } from "./plugins/framework-source.js";
 import {
   freezeAnimations,
   freezeAllAnimations,
@@ -165,6 +166,7 @@ const builtInPlugins = [
   copyHtmlPlugin,
   copyStylesPlugin,
   openPlugin,
+  frameworkSourcePlugin,
 ];
 
 let hasInited = false;
