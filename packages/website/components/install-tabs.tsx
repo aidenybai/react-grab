@@ -1,8 +1,18 @@
 "use client";
 
-import { useEffect, useState, useCallback, type ReactElement } from "react";
-import { Copy, Check, Terminal } from "lucide-react";
-import { COPY_FEEDBACK_DURATION_MS } from "@/constants";
+import {
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  type ReactElement,
+} from "react";
+import { Copy, Check, Terminal, ChevronDown } from "lucide-react";
+import {
+  COPY_FEEDBACK_DURATION_MS,
+  PROMPT_INSTALL_COLLAPSE_LINE_THRESHOLD,
+  PROMPT_INSTALL_MAX_HEIGHT_PX,
+} from "@/constants";
 import { cn } from "@/utils/cn";
 import { IconNextjs } from "./icons/icon-nextjs";
 import { IconVite } from "./icons/icon-vite";
@@ -39,6 +49,34 @@ const formatInitOptions = (hotkey: RecordedHotkey): string => {
   return `{ activationKey: "${hotkeyToString(hotkey)}" }`;
 };
 
+const createPromptInstallInstructions = (
+  hotkey: RecordedHotkey | null,
+): string => {
+  const activationKeyInstruction = hotkey
+    ? `Set the activation key to "${hotkeyToString(hotkey)}". For Next.js Script tags, set data-options='{"activationKey":"${hotkeyToString(
+        hotkey,
+      )}"}'. For Vite & TanStack Start, use react-grab/core and call init(${formatInitOptions(
+        hotkey,
+      )}).`
+    : "Keep the default activation key.";
+
+  return `Set up React Grab in this workspace. If this is a monorepo, ask me which package to install it in.
+
+1. Find the React app package in this workspace.
+2. If this is a monorepo, ask me which package to configure before making changes.
+3. Detect the package manager from lockfiles and install react-grab@latest in the selected package.
+4. Detect the framework and apply manual integration:
+- Next.js App Router: in app/layout.tsx, add next/script and include a development-only Script tag with src="//unpkg.com/react-grab/dist/index.global.js", crossOrigin="anonymous", and strategy="beforeInteractive".
+- Next.js Pages Router: in pages/_document.tsx, add the same development-only Script tag inside <Head>.
+- Vite: in index.html <head>, add <script type="module">if (import.meta.env.DEV) { import("react-grab"); }</script>.
+- TanStack Start: in src/routes/__root.tsx, inside useEffect and an import.meta.env.DEV check, run void import("react-grab").
+5. ${activationKeyInstruction}
+6. Keep all React Grab setup development-only.
+7. Show me the edited files and the exact install command you ran.
+8. If the setup does not work, suggest running the React Grab CLI:
+\`npx -y grab@latest init\`.`;
+};
+
 const installTabsData: InstallTab[] = [
   {
     id: "cli",
@@ -57,14 +95,9 @@ const installTabsData: InstallTab[] = [
   {
     id: "prompt",
     label: "Prompt",
-    description: "Paste this prompt in your coding agent's chat",
+    description: "Paste this full setup prompt in your coding agent's chat",
     variant: "prompt",
-    getCode: (hotkey) => {
-      const command = hotkey
-        ? `npx -y grab@latest init --key "${hotkeyToString(hotkey)}"`
-        : "npx -y grab@latest init";
-      return `Find the React project in this workspace (look for package.json with a react dependency). If there are multiple, ask me which one. Then run \`${command}\` in that project's root directory to install React Grab.`;
-    },
+    getCode: (hotkey) => createPromptInstallInstructions(hotkey),
     getChangedLines: () => [],
   },
   {
@@ -226,15 +259,24 @@ export const InstallTabs = ({
     installTabsData[0]?.id,
   );
   const [didCopy, setDidCopy] = useState(false);
+  const [isPromptExpanded, setIsPromptExpanded] = useState(false);
+  const [promptExpandedMaxHeightPx, setPromptExpandedMaxHeightPx] = useState(
+    PROMPT_INSTALL_MAX_HEIGHT_PX,
+  );
   const [highlightedCodes, setHighlightedCodes] = useState<
     Record<string, string>
   >({});
   const [isMobile, setIsMobile] = useState(false);
+  const promptContentContainerRef = useRef<HTMLDivElement | null>(null);
 
   const activeTab =
     installTabsData.find((tab) => tab.id === activeTabId) ?? installTabsData[0];
   const activeCode = activeTab.getCode(customHotkey ?? null);
   const activeChangedLines = activeTab.getChangedLines(customHotkey ?? null);
+  const isPromptTab = activeTab.variant === "prompt";
+  const shouldShowPromptExpandButton =
+    isPromptTab &&
+    activeCode.split("\n").length > PROMPT_INSTALL_COLLAPSE_LINE_THRESHOLD;
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -269,6 +311,30 @@ export const InstallTabs = ({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     updateHighlightedCodes(customHotkey ?? null);
   }, [customHotkey, updateHighlightedCodes]);
+
+  useEffect(() => {
+    setIsPromptExpanded(false);
+  }, [activeTab.id, activeCode]);
+
+  useEffect(() => {
+    if (!isPromptTab || !promptContentContainerRef.current) {
+      return;
+    }
+
+    const promptContentContainerElement = promptContentContainerRef.current;
+    const updatePromptExpandedMaxHeightPx = () => {
+      setPromptExpandedMaxHeightPx(promptContentContainerElement.scrollHeight);
+    };
+
+    updatePromptExpandedMaxHeightPx();
+
+    const resizeObserver = new ResizeObserver(updatePromptExpandedMaxHeightPx);
+    resizeObserver.observe(promptContentContainerElement);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [activeCode, isPromptTab]);
 
   const handleCopyClick = () => {
     if (typeof navigator === "undefined" || !navigator.clipboard) return;
@@ -369,29 +435,75 @@ export const InstallTabs = ({
         <div className="bg-background/60 relative">
           <div className="relative">
             {activeTab.variant !== "code" ? (
-              <button
-                type="button"
-                onClick={handleCopyClick}
-                className="group flex w-full items-center justify-between gap-4 px-4 py-6 transition-colors hover:bg-muted/50"
-              >
-                {activeTab.variant === "prompt" ? (
-                  <p className="text-left text-base leading-relaxed text-foreground/80 text-pretty">
-                    {activeCode}
-                  </p>
-                ) : highlightedCode ? (
+              activeTab.variant === "prompt" ? (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={handleCopyClick}
+                    className="touch-hitbox absolute! right-4 top-4 text-muted-foreground transition-colors hover:text-foreground z-10"
+                  >
+                    {didCopy ? <Check size={16} /> : <Copy size={16} />}
+                  </button>
                   <div
-                    className="overflow-x-auto font-mono text-base leading-relaxed highlighted-code"
-                    dangerouslySetInnerHTML={{ __html: highlightedCode }}
-                  />
-                ) : (
-                  <pre className="overflow-x-auto font-mono text-base leading-relaxed text-foreground/80">
-                    <code>{activeCode}</code>
-                  </pre>
-                )}
-                <span className="shrink-0 text-muted-foreground transition-colors group-hover:text-foreground">
-                  {didCopy ? <Check size={16} /> : <Copy size={16} />}
-                </span>
-              </button>
+                    ref={promptContentContainerRef}
+                    className="overflow-hidden px-4 py-6 transition-[max-height] duration-200 ease-out"
+                    style={
+                      shouldShowPromptExpandButton
+                        ? {
+                            maxHeight: isPromptExpanded
+                              ? `${promptExpandedMaxHeightPx}px`
+                              : `${PROMPT_INSTALL_MAX_HEIGHT_PX}px`,
+                          }
+                        : undefined
+                    }
+                  >
+                    <p className="text-left text-base leading-relaxed text-foreground/80 whitespace-pre-wrap pr-10 pb-10">
+                      {activeCode}
+                    </p>
+                  </div>
+                  {shouldShowPromptExpandButton && !isPromptExpanded && (
+                    <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-24 bg-linear-to-t from-card via-card/95 to-transparent" />
+                  )}
+                  {shouldShowPromptExpandButton && (
+                    <button
+                      type="button"
+                      onClick={() => setIsPromptExpanded((previous) => !previous)}
+                      className="absolute bottom-3 right-4 z-10 inline-flex items-center gap-1 rounded-md border border-border bg-card/90 px-2 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      <span>
+                        {isPromptExpanded ? "Show less" : "Show full prompt"}
+                      </span>
+                      <ChevronDown
+                        size={14}
+                        className={cn(
+                          "transition-transform",
+                          isPromptExpanded && "rotate-180",
+                        )}
+                      />
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleCopyClick}
+                  className="group flex w-full items-center justify-between gap-4 px-4 py-6 transition-colors hover:bg-muted/50"
+                >
+                  {highlightedCode ? (
+                    <div
+                      className="overflow-x-auto font-mono text-base leading-relaxed highlighted-code"
+                      dangerouslySetInnerHTML={{ __html: highlightedCode }}
+                    />
+                  ) : (
+                    <pre className="overflow-x-auto font-mono text-base leading-relaxed text-foreground/80">
+                      <code>{activeCode}</code>
+                    </pre>
+                  )}
+                  <span className="shrink-0 text-muted-foreground transition-colors group-hover:text-foreground">
+                    {didCopy ? <Check size={16} /> : <Copy size={16} />}
+                  </span>
+                </button>
+              )
             ) : (
               <div className="group relative">
                 <button
