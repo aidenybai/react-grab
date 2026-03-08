@@ -54,6 +54,7 @@ import {
   unfreezePseudoStates,
 } from "../../utils/freeze-pseudo-states.js";
 import { Tooltip } from "../tooltip.jsx";
+import { Kbd } from "../kbd.jsx";
 import {
   getButtonSpacingClass,
   getHitboxConstraintClass,
@@ -1553,7 +1554,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               visible={isSelectTooltipVisible() && isTooltipAllowed()}
               position={tooltipPosition()}
             >
-              Select element ({formatShortcut("C")})
+              Select element <Kbd>{formatShortcut("C")}</Kbd>
             </Tooltip>
           </>
         }
@@ -1772,28 +1773,20 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                 <Show when={selectionHintIndex() === 0}>
                   <span class="flex items-center gap-1 animate-[hint-flip-in_var(--transition-normal)_ease-out]">
                     Click or
-                    <span class="inline-flex items-center justify-center px-[3px] h-3.5 rounded-sm [border-width:0.5px] border-solid border-[#B3B3B3] text-black/70 text-[10px] font-medium leading-none">
-                      ↵
-                    </span>
+                    <Kbd>↵</Kbd>
                     to capture
                   </span>
                 </Show>
                 <Show when={selectionHintIndex() === 1}>
                   <span class="flex items-center gap-1 animate-[hint-flip-in_var(--transition-normal)_ease-out]">
-                    <span class="inline-flex items-center justify-center px-[3px] h-3.5 rounded-sm [border-width:0.5px] border-solid border-[#B3B3B3] text-black/70 text-[10px] font-medium leading-none">
-                      ↑
-                    </span>
-                    <span class="inline-flex items-center justify-center px-[3px] h-3.5 rounded-sm [border-width:0.5px] border-solid border-[#B3B3B3] text-black/70 text-[10px] font-medium leading-none">
-                      ↓
-                    </span>
+                    <Kbd>↑</Kbd>
+                    <Kbd>↓</Kbd>
                     to fine-tune target
                   </span>
                 </Show>
                 <Show when={selectionHintIndex() === 2}>
                   <span class="flex items-center gap-1 animate-[hint-flip-in_var(--transition-normal)_ease-out]">
-                    <span class="inline-flex items-center justify-center px-[3px] h-3.5 rounded-sm [border-width:0.5px] border-solid border-[#B3B3B3] text-black/70 text-[10px] font-medium leading-none">
-                      esc
-                    </span>
+                    <Kbd>esc</Kbd>
                     to cancel
                   </span>
                 </Show>
