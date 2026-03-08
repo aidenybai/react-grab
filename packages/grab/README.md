@@ -140,12 +140,14 @@ if (process.env.NODE_ENV === "development") {
 
 ## Plugins
 
-React Grab can be extended with plugins. A plugin can add context menu actions, toolbar menu items, lifecycle hooks, and theme overrides.
+Use plugins to extend React Grab's built-in UI with context menu actions, toolbar menu items, lifecycle hooks, and theme overrides. Plugins run within React Grab.
 
-Register a plugin via `window.__REACT_GRAB__`:
+Register a plugin using the `registerPlugin` and `unregisterPlugin` exports:
 
 ```js
-window.__REACT_GRAB__.registerPlugin({
+import { registerPlugin } from "grab";
+
+registerPlugin({
   name: "my-plugin",
   hooks: {
     onElementSelect: (element) => {
@@ -155,14 +157,13 @@ window.__REACT_GRAB__.registerPlugin({
 });
 ```
 
-In React, register inside a `useEffect` after React Grab loads:
+In React, register inside a `useEffect`:
 
 ```jsx
-useEffect(() => {
-  const api = window.__REACT_GRAB__;
-  if (!api) return;
+import { registerPlugin, unregisterPlugin } from "grab";
 
-  api.registerPlugin({
+useEffect(() => {
+  registerPlugin({
     name: "my-plugin",
     actions: [
       {
@@ -177,7 +178,7 @@ useEffect(() => {
     ],
   });
 
-  return () => api.unregisterPlugin("my-plugin");
+  return () => unregisterPlugin("my-plugin");
 }, []);
 ```
 
@@ -205,15 +206,21 @@ See [`packages/react-grab/src/types.ts`](https://github.com/aidenybai/react-grab
 
 ## Primitives
 
-React Grab provides a set of primitives for building your own mini React Grab.
+Use primitives to build your own element selector from scratch. Unlike plugins, primitives are standalone utility functions that don't depend on React Grab being initialized.
+
+If you're using primitives to build a custom UI and don't want the default React Grab overlay, disable auto-initialization before importing `grab`:
+
+```html
+<script>
+  window.__REACT_GRAB_DISABLED__ = true;
+</script>
+```
 
 Here's a simple example of how to build your own element selector with hover highlight and one-click inspection:
 
 ```bash
 npm install grab@latest
 ```
-
-Then, put this in your React app:
 
 ```tsx
 import { useState } from "react";
@@ -223,7 +230,7 @@ import {
   unfreeze,
   openFile,
   type ReactGrabElementContext,
-} from "react-grab/primitives";
+} from "grab/primitives";
 
 const useElementSelector = (
   onSelect: (context: ReactGrabElementContext) => void,
