@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback, type ReactElement } from "react";
+import {
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  type ReactElement,
+} from "react";
 import { Copy, Check, Terminal, ChevronDown } from "lucide-react";
 import {
   COPY_FEEDBACK_DURATION_MS,
@@ -254,10 +260,14 @@ export const InstallTabs = ({
   );
   const [didCopy, setDidCopy] = useState(false);
   const [isPromptExpanded, setIsPromptExpanded] = useState(false);
+  const [promptExpandedMaxHeightPx, setPromptExpandedMaxHeightPx] = useState(
+    PROMPT_INSTALL_MAX_HEIGHT_PX,
+  );
   const [highlightedCodes, setHighlightedCodes] = useState<
     Record<string, string>
   >({});
   const [isMobile, setIsMobile] = useState(false);
+  const promptContentContainerRef = useRef<HTMLDivElement | null>(null);
 
   const activeTab =
     installTabsData.find((tab) => tab.id === activeTabId) ?? installTabsData[0];
@@ -305,6 +315,26 @@ export const InstallTabs = ({
   useEffect(() => {
     setIsPromptExpanded(false);
   }, [activeTab.id, activeCode]);
+
+  useEffect(() => {
+    if (!isPromptTab || !promptContentContainerRef.current) {
+      return;
+    }
+
+    const promptContentContainerElement = promptContentContainerRef.current;
+    const updatePromptExpandedMaxHeightPx = () => {
+      setPromptExpandedMaxHeightPx(promptContentContainerElement.scrollHeight);
+    };
+
+    updatePromptExpandedMaxHeightPx();
+
+    const resizeObserver = new ResizeObserver(updatePromptExpandedMaxHeightPx);
+    resizeObserver.observe(promptContentContainerElement);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [activeCode, isPromptTab]);
 
   const handleCopyClick = () => {
     if (typeof navigator === "undefined" || !navigator.clipboard) return;
@@ -415,10 +445,15 @@ export const InstallTabs = ({
                     {didCopy ? <Check size={16} /> : <Copy size={16} />}
                   </button>
                   <div
+                    ref={promptContentContainerRef}
                     className="overflow-hidden px-4 py-6 transition-[max-height] duration-200 ease-out"
                     style={
-                      !isPromptExpanded && shouldShowPromptExpandButton
-                        ? { maxHeight: `${PROMPT_INSTALL_MAX_HEIGHT_PX}px` }
+                      shouldShowPromptExpandButton
+                        ? {
+                            maxHeight: isPromptExpanded
+                              ? `${promptExpandedMaxHeightPx}px`
+                              : `${PROMPT_INSTALL_MAX_HEIGHT_PX}px`,
+                          }
                         : undefined
                     }
                   >
@@ -455,18 +490,18 @@ export const InstallTabs = ({
                   className="group flex w-full items-center justify-between gap-4 px-4 py-6 transition-colors hover:bg-muted/50"
                 >
                   {highlightedCode ? (
-                  <div
-                    className="overflow-x-auto font-mono text-base leading-relaxed highlighted-code"
-                    dangerouslySetInnerHTML={{ __html: highlightedCode }}
-                  />
-                ) : (
-                  <pre className="overflow-x-auto font-mono text-base leading-relaxed text-foreground/80">
-                    <code>{activeCode}</code>
-                  </pre>
-                )}
-                <span className="shrink-0 text-muted-foreground transition-colors group-hover:text-foreground">
-                  {didCopy ? <Check size={16} /> : <Copy size={16} />}
-                </span>
+                    <div
+                      className="overflow-x-auto font-mono text-base leading-relaxed highlighted-code"
+                      dangerouslySetInnerHTML={{ __html: highlightedCode }}
+                    />
+                  ) : (
+                    <pre className="overflow-x-auto font-mono text-base leading-relaxed text-foreground/80">
+                      <code>{activeCode}</code>
+                    </pre>
+                  )}
+                  <span className="shrink-0 text-muted-foreground transition-colors group-hover:text-foreground">
+                    {didCopy ? <Check size={16} /> : <Copy size={16} />}
+                  </span>
                 </button>
               )
             ) : (
