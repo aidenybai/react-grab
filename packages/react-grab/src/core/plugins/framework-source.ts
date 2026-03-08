@@ -15,7 +15,7 @@ export const frameworkSourcePlugin: Plugin = {
     resolveElementStackContext: (element, options) =>
       getFrameworkStackContext(element, options),
     transformSnippet: async (snippet, element) => {
-      const stackContext = getFrameworkStackContext(element);
+      const stackContext = await getFrameworkStackContext(element);
       if (!stackContext) return snippet;
       if (snippet.includes(stackContext)) return snippet;
       return appendStackContext(snippet, stackContext);

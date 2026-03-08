@@ -1,21 +1,38 @@
 import type { ElementSourceInfo } from "../types.js";
 import { parseSourceLocation } from "./parse-source-location.js";
 
-interface LocatorExpressionStart {
-  lineNumber: number;
-  columnNumber: number;
+interface SolidRuntimeModuleRecord {
+  url: string;
+  content: string;
 }
 
-const LOCATOR_ID_SEPARATOR = "::";
-const LOCATOR_PATH_ATTRIBUTE_NAME = "data-locatorjs";
-const LOCATOR_ID_ATTRIBUTE_NAME = "data-locatorjs-id";
-const SOLID_DEVTOOLS_LOCATION_ATTRIBUTE_NAME = "data-source-loc";
-const SOLID_DEVTOOLS_PROJECT_PATH_GLOBAL_NAME = "$sdt_projectPath";
-const LOCATOR_DATA_GLOBAL_NAME = "__LOCATOR_DATA__";
-const ABSOLUTE_UNIX_PREFIX = "/";
-const RELATIVE_CURRENT_PREFIX = "./";
-const ABSOLUTE_WINDOWS_PATTERN = /^[a-zA-Z]:\\/;
-const LOCATOR_ATTRIBUTE_SELECTOR = `[${LOCATOR_PATH_ATTRIBUTE_NAME}], [${LOCATOR_ID_ATTRIBUTE_NAME}], [${SOLID_DEVTOOLS_LOCATION_ATTRIBUTE_NAME}]`;
+interface SolidHandlerCandidate {
+  source: string;
+}
+
+interface SolidHandlerSourceMatch {
+  moduleUrl: string;
+  moduleContent: string;
+  handlerSourceIndex: number;
+}
+
+const SOLID_RUNTIME_MODULES_GLOBAL_NAME =
+  "__REACT_GRAB_SOLID_RUNTIME_MODULES__";
+const SOLID_HANDLER_PREFIX = "$$";
+const SOURCE_LOCATION_PATTERN = /location:\s*["']([^"']+:\d+:\d+)["']/g;
+const MAX_SOURCE_CONTEXT_WINDOW_CHARS = 4000;
+const SOURCE_CONTEXT_HALF_WINDOW_CHARS = MAX_SOURCE_CONTEXT_WINDOW_CHARS / 2;
+const SOURCE_CONTEXT_WINDOW_START_CHARS = 0;
+const SOURCE_LINE_START_COLUMN = 1;
+const SOURCE_MODULE_PATH_PREFIX = "/src/";
+const CSS_FILE_EXTENSION = ".css";
+const IMAGE_IMPORT_SUFFIX = "?import";
+const MODULE_SOURCE_CACHE = new Map<string, Promise<string | null>>();
+const SOLID_HANDLER_SOURCE_CACHE = new Map<
+  string,
+  Promise<ElementSourceInfo | null>
+>();
+const SOLID_HANDLER_SOURCE_LENGTH_MIN_CHARS = 3;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -23,203 +40,249 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const readString = (value: unknown): string | null =>
   typeof value === "string" ? value : null;
 
-const readNumber = (value: unknown): number | null =>
-  typeof value === "number" && Number.isFinite(value) ? value : null;
-
-const readArray = (value: unknown): unknown[] =>
-  Array.isArray(value) ? value : [];
-
-const isAbsoluteFilePath = (filePath: string): boolean =>
-  filePath.startsWith(ABSOLUTE_UNIX_PREFIX) ||
-  ABSOLUTE_WINDOWS_PATTERN.test(filePath);
-
-const normalizeSolidDevtoolsFilePath = (filePath: string): string => {
-  if (typeof window === "undefined") return filePath;
-  if (isAbsoluteFilePath(filePath)) return filePath;
-
-  const projectPath = readString(
-    Reflect.get(window, SOLID_DEVTOOLS_PROJECT_PATH_GLOBAL_NAME),
+const readRuntimeModulesFromWindow = (): SolidRuntimeModuleRecord[] => {
+  if (typeof window === "undefined") return [];
+  const rawRuntimeModules = Reflect.get(
+    window,
+    SOLID_RUNTIME_MODULES_GLOBAL_NAME,
   );
-  if (!projectPath) return filePath;
+  if (!Array.isArray(rawRuntimeModules)) return [];
 
-  const normalizedProjectPath = projectPath.endsWith(ABSOLUTE_UNIX_PREFIX)
-    ? projectPath.slice(0, -1)
-    : projectPath;
-  const normalizedFilePath = filePath.startsWith(RELATIVE_CURRENT_PREFIX)
-    ? filePath.slice(2)
-    : filePath;
-
-  return `${normalizedProjectPath}/${normalizedFilePath}`;
+  return rawRuntimeModules
+    .map((rawRuntimeModule) => {
+      if (!isRecord(rawRuntimeModule)) return null;
+      const url = readString(rawRuntimeModule.url);
+      const content = readString(rawRuntimeModule.content);
+      if (!url || !content) return null;
+      return { url, content };
+    })
+    .filter((runtimeModule): runtimeModule is SolidRuntimeModuleRecord =>
+      Boolean(runtimeModule),
+    );
 };
 
-const getLocatorDataRecord = (): Record<string, unknown> | null => {
-  if (typeof window === "undefined") return null;
-  const locatorData = Reflect.get(window, LOCATOR_DATA_GLOBAL_NAME);
-  return isRecord(locatorData) ? locatorData : null;
+const shouldIncludeSourceModule = (resourceUrl: string): boolean => {
+  if (resourceUrl.includes(IMAGE_IMPORT_SUFFIX)) return false;
+  const resourcePath = new URL(resourceUrl, window.location.href).pathname;
+  if (resourcePath.endsWith(CSS_FILE_EXTENSION)) return false;
+  return resourcePath.includes(SOURCE_MODULE_PATH_PREFIX);
 };
 
-const getLocatorFileData = (
-  filePath: string,
-): Record<string, unknown> | null => {
-  const locatorData = getLocatorDataRecord();
-  if (!locatorData) return null;
-  const fileData = locatorData[filePath];
-  return isRecord(fileData) ? fileData : null;
+const readSourceModuleUrlsFromPerformance = (): string[] => {
+  if (typeof window === "undefined") return [];
+  const resourceEntries = performance.getEntriesByType("resource");
+  const uniqueModuleUrls = new Set<string>();
+
+  for (const resourceEntry of resourceEntries) {
+    const resourceUrl = resourceEntry.name;
+    if (!resourceUrl) continue;
+    if (!shouldIncludeSourceModule(resourceUrl)) continue;
+    uniqueModuleUrls.add(resourceUrl);
+  }
+
+  return Array.from(uniqueModuleUrls);
 };
 
-const getExpressionStart = (
-  expression: unknown,
-): LocatorExpressionStart | null => {
-  if (!isRecord(expression)) return null;
-  const location = expression.loc;
-  if (!isRecord(location)) return null;
-  const start = location.start;
-  if (!isRecord(start)) return null;
-  const lineNumber = readNumber(start.line);
-  const columnNumber = readNumber(start.column);
-  if (lineNumber === null || columnNumber === null) return null;
-  return { lineNumber, columnNumber };
+const getSourceModuleContent = async (
+  moduleUrl: string,
+): Promise<string | null> => {
+  const cachedSource = MODULE_SOURCE_CACHE.get(moduleUrl);
+  if (cachedSource) return cachedSource;
+
+  const sourcePromise = fetch(moduleUrl)
+    .then((response) => {
+      if (!response.ok) return null;
+      return response.text();
+    })
+    .catch(() => null);
+
+  MODULE_SOURCE_CACHE.set(moduleUrl, sourcePromise);
+  return sourcePromise;
 };
 
-const getWrappingComponentName = (
-  fileData: Record<string, unknown>,
-  expression: unknown,
-): string | null => {
-  if (!isRecord(expression)) return null;
-  const wrappingComponentId = readNumber(expression.wrappingComponentId);
-  if (wrappingComponentId === null) return null;
-  if (!Number.isInteger(wrappingComponentId)) return null;
-  const componentList = readArray(fileData.components);
-  const component = componentList[wrappingComponentId];
-  if (!isRecord(component)) return null;
-  return readString(component.name);
-};
-
-const findExpressionByLocation = (
-  expressionList: unknown[],
-  lineNumber: number,
-  columnNumber: number,
-): unknown | null => {
-  for (const expression of expressionList) {
-    const start = getExpressionStart(expression);
-    if (!start) continue;
-    if (
-      start.lineNumber === lineNumber &&
-      start.columnNumber === columnNumber
-    ) {
-      return expression;
+const resolveHandlerSourceMatch = async (
+  handlerSource: string,
+): Promise<SolidHandlerSourceMatch | null> => {
+  const runtimeModules = readRuntimeModulesFromWindow();
+  if (runtimeModules.length > 0) {
+    for (const runtimeModule of runtimeModules) {
+      const handlerSourceIndex = runtimeModule.content.indexOf(handlerSource);
+      if (handlerSourceIndex === -1) continue;
+      return {
+        moduleUrl: runtimeModule.url,
+        moduleContent: runtimeModule.content,
+        handlerSourceIndex,
+      };
     }
   }
+
+  const sourceModuleUrls = readSourceModuleUrlsFromPerformance();
+  for (const sourceModuleUrl of sourceModuleUrls) {
+    const sourceModuleContent = await getSourceModuleContent(sourceModuleUrl);
+    if (!sourceModuleContent) continue;
+    const handlerSourceIndex = sourceModuleContent.indexOf(handlerSource);
+    if (handlerSourceIndex === -1) continue;
+    return {
+      moduleUrl: sourceModuleUrl,
+      moduleContent: sourceModuleContent,
+      handlerSourceIndex,
+    };
+  }
+
   return null;
 };
 
-const parseLocatorId = (
-  locatorId: string,
-): { filePath: string; expressionId: number } | null => {
-  const separatorIndex = locatorId.lastIndexOf(LOCATOR_ID_SEPARATOR);
-  if (separatorIndex === -1) return null;
-
-  const filePath = locatorId.slice(0, separatorIndex);
-  const rawExpressionId = locatorId.slice(
-    separatorIndex + LOCATOR_ID_SEPARATOR.length,
+const parseNearestLocationLiteral = (
+  moduleContent: string,
+  handlerSourceIndex: number,
+): { filePath: string; lineNumber: number; columnNumber: number } | null => {
+  const contextWindowStartIndex = Math.max(
+    SOURCE_CONTEXT_WINDOW_START_CHARS,
+    handlerSourceIndex - SOURCE_CONTEXT_HALF_WINDOW_CHARS,
   );
-  const expressionId = Number.parseInt(rawExpressionId, 10);
-
-  if (!filePath) return null;
-  if (Number.isNaN(expressionId)) return null;
-  if (expressionId < 0) return null;
-
-  return { filePath, expressionId };
-};
-
-const resolveFromLocatorPath = (
-  locatorPath: string,
-): ElementSourceInfo | null => {
-  const parsedLocation = parseSourceLocation(locatorPath);
-  if (!parsedLocation) return null;
-
-  const fileData = getLocatorFileData(parsedLocation.filePath);
-  const expressionList = fileData ? readArray(fileData.expressions) : [];
-  const matchedExpression = findExpressionByLocation(
-    expressionList,
-    parsedLocation.lineNumber,
-    parsedLocation.columnNumber,
+  const contextWindowEndIndex = Math.min(
+    moduleContent.length,
+    handlerSourceIndex + SOURCE_CONTEXT_HALF_WINDOW_CHARS,
   );
-  const componentName =
-    fileData && matchedExpression
-      ? getWrappingComponentName(fileData, matchedExpression)
-      : null;
+  const contextWindowText = moduleContent.slice(
+    contextWindowStartIndex,
+    contextWindowEndIndex,
+  );
+
+  let nearestLocation: {
+    filePath: string;
+    lineNumber: number;
+    columnNumber: number;
+  } | null = null;
+  let nearestLocationDistance = Number.POSITIVE_INFINITY;
+
+  for (const locationMatch of contextWindowText.matchAll(
+    SOURCE_LOCATION_PATTERN,
+  )) {
+    const rawLocation = locationMatch[1];
+    if (!rawLocation) continue;
+    const parsedLocation = parseSourceLocation(rawLocation);
+    if (!parsedLocation) continue;
+
+    const matchIndex = locationMatch.index;
+    if (matchIndex === undefined) continue;
+    const absoluteMatchIndex = contextWindowStartIndex + matchIndex;
+    const locationDistance = Math.abs(absoluteMatchIndex - handlerSourceIndex);
+
+    if (locationDistance >= nearestLocationDistance) continue;
+    nearestLocationDistance = locationDistance;
+    nearestLocation = parsedLocation;
+  }
+
+  return nearestLocation;
+};
+
+const toProjectRelativeModulePath = (moduleUrl: string): string | null => {
+  try {
+    const parsedUrl = new URL(moduleUrl, window.location.href);
+    const sourceModulePath = decodeURIComponent(parsedUrl.pathname);
+    if (!sourceModulePath.includes(SOURCE_MODULE_PATH_PREFIX)) return null;
+    return sourceModulePath.startsWith("/")
+      ? sourceModulePath.slice(1)
+      : sourceModulePath;
+  } catch {
+    return null;
+  }
+};
+
+const getGeneratedLocationFromModule = (
+  moduleContent: string,
+  handlerSourceIndex: number,
+): { lineNumber: number; columnNumber: number } => {
+  const prefixContent = moduleContent.slice(
+    SOURCE_CONTEXT_WINDOW_START_CHARS,
+    handlerSourceIndex,
+  );
+  const sourceLines = prefixContent.split("\n");
+  const lineNumber = sourceLines.length;
+  const previousLine = sourceLines[sourceLines.length - 1] ?? "";
+  const columnNumber = previousLine.length + SOURCE_LINE_START_COLUMN;
 
   return {
-    filePath: parsedLocation.filePath,
-    lineNumber: parsedLocation.lineNumber,
-    columnNumber: parsedLocation.columnNumber,
-    componentName,
+    lineNumber,
+    columnNumber,
   };
 };
 
-const resolveFromLocatorId = (locatorId: string): ElementSourceInfo | null => {
-  const parsedLocatorId = parseLocatorId(locatorId);
-  if (!parsedLocatorId) return null;
+const findSolidHandlerCandidate = (
+  element: Element,
+): SolidHandlerCandidate | null => {
+  let currentElement: Element | null = element;
 
-  const fileData = getLocatorFileData(parsedLocatorId.filePath);
-  const expressionList = fileData ? readArray(fileData.expressions) : [];
-  const expression = expressionList[parsedLocatorId.expressionId];
-  const expressionStart = getExpressionStart(expression);
-  const componentName =
-    fileData && expression
-      ? getWrappingComponentName(fileData, expression)
-      : null;
+  while (currentElement) {
+    const ownPropertyNames = Object.getOwnPropertyNames(currentElement);
+    for (const ownPropertyName of ownPropertyNames) {
+      if (!ownPropertyName.startsWith(SOLID_HANDLER_PREFIX)) continue;
+      const ownPropertyValue = Reflect.get(currentElement, ownPropertyName);
+      if (typeof ownPropertyValue !== "function") continue;
+      const handlerSource = String(ownPropertyValue).trim();
+      if (handlerSource.length < SOLID_HANDLER_SOURCE_LENGTH_MIN_CHARS) {
+        continue;
+      }
+      return {
+        source: handlerSource,
+      };
+    }
+    currentElement = currentElement.parentElement;
+  }
 
-  return {
-    filePath: parsedLocatorId.filePath,
-    lineNumber: expressionStart?.lineNumber ?? null,
-    columnNumber: expressionStart?.columnNumber ?? null,
-    componentName,
-  };
+  return null;
 };
 
-const resolveFromSolidDevtoolsLocation = (
-  solidDevtoolsLocation: string,
-): ElementSourceInfo | null => {
-  const parsedLocation = parseSourceLocation(solidDevtoolsLocation);
-  if (!parsedLocation) return null;
+const resolveSolidSourceFromHandler = async (
+  handlerSource: string,
+): Promise<ElementSourceInfo | null> => {
+  const cachedSourceInfo = SOLID_HANDLER_SOURCE_CACHE.get(handlerSource);
+  if (cachedSourceInfo) return cachedSourceInfo;
 
-  return {
-    filePath: normalizeSolidDevtoolsFilePath(parsedLocation.filePath),
-    lineNumber: parsedLocation.lineNumber,
-    columnNumber: parsedLocation.columnNumber,
-    componentName: null,
-  };
+  const sourceInfoPromise = (async () => {
+    const handlerSourceMatch = await resolveHandlerSourceMatch(handlerSource);
+    if (!handlerSourceMatch) return null;
+
+    const nearestLocationLiteral = parseNearestLocationLiteral(
+      handlerSourceMatch.moduleContent,
+      handlerSourceMatch.handlerSourceIndex,
+    );
+    if (nearestLocationLiteral) {
+      return {
+        filePath: nearestLocationLiteral.filePath,
+        lineNumber: nearestLocationLiteral.lineNumber,
+        columnNumber: nearestLocationLiteral.columnNumber,
+        componentName: null,
+      };
+    }
+
+    const modulePath = toProjectRelativeModulePath(
+      handlerSourceMatch.moduleUrl,
+    );
+    if (!modulePath) return null;
+
+    const generatedLocation = getGeneratedLocationFromModule(
+      handlerSourceMatch.moduleContent,
+      handlerSourceMatch.handlerSourceIndex,
+    );
+
+    return {
+      filePath: modulePath,
+      lineNumber: generatedLocation.lineNumber,
+      columnNumber: generatedLocation.columnNumber,
+      componentName: null,
+    };
+  })();
+
+  SOLID_HANDLER_SOURCE_CACHE.set(handlerSource, sourceInfoPromise);
+  return sourceInfoPromise;
 };
 
 export const getSolidSourceInfo = (
   element: Element,
-): ElementSourceInfo | null => {
-  const sourceElement = element.closest(LOCATOR_ATTRIBUTE_SELECTOR);
-  if (!sourceElement) return null;
-
-  const locatorPath = sourceElement.getAttribute(LOCATOR_PATH_ATTRIBUTE_NAME);
-  if (locatorPath) {
-    const locatorPathInfo = resolveFromLocatorPath(locatorPath);
-    if (locatorPathInfo) return locatorPathInfo;
-  }
-
-  const locatorId = sourceElement.getAttribute(LOCATOR_ID_ATTRIBUTE_NAME);
-  if (locatorId) {
-    const locatorIdInfo = resolveFromLocatorId(locatorId);
-    if (locatorIdInfo) return locatorIdInfo;
-  }
-
-  const solidDevtoolsLocation = sourceElement.getAttribute(
-    SOLID_DEVTOOLS_LOCATION_ATTRIBUTE_NAME,
-  );
-  if (solidDevtoolsLocation) {
-    const solidDevtoolsInfo = resolveFromSolidDevtoolsLocation(
-      solidDevtoolsLocation,
-    );
-    if (solidDevtoolsInfo) return solidDevtoolsInfo;
-  }
-
-  return null;
+): Promise<ElementSourceInfo | null> => {
+  const solidHandlerCandidate = findSolidHandlerCandidate(element);
+  if (!solidHandlerCandidate) return Promise.resolve(null);
+  return resolveSolidSourceFromHandler(solidHandlerCandidate.source);
 };

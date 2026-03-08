@@ -7,9 +7,9 @@ import { getSolidSourceInfo } from "./get-solid-source-info.js";
 import { getSvelteSourceInfo } from "./get-svelte-source-info.js";
 import { getVueSourceInfo } from "./get-vue-source-info.js";
 
-const getResolvedFrameworkSourceInfo = (
+const getResolvedFrameworkSourceInfo = async (
   element: Element,
-): ElementSourceInfo | null => {
+): Promise<ElementSourceInfo | null> => {
   const resolvers = [
     getSvelteSourceInfo,
     getVueSourceInfo,
@@ -17,7 +17,7 @@ const getResolvedFrameworkSourceInfo = (
   ] as const;
 
   for (const resolveSourceInfo of resolvers) {
-    const sourceInfo = resolveSourceInfo(element);
+    const sourceInfo = await resolveSourceInfo(element);
     if (!sourceInfo) continue;
     if (!sourceInfo.filePath) continue;
     return sourceInfo;
@@ -39,42 +39,42 @@ const formatSourceLocation = (sourceInfo: ElementSourceInfo): string => {
 
 export const getFrameworkSourceInfo = (
   element: Element,
-): ElementSourceInfo | null => {
-  return getResolvedFrameworkSourceInfo(element);
-};
+): Promise<ElementSourceInfo | null> => getResolvedFrameworkSourceInfo(element);
 
 export const getFrameworkSourceInfoForApi = (
   element: Element,
-): SourceInfo | null => {
-  const sourceInfo = getResolvedFrameworkSourceInfo(element);
-  if (!sourceInfo) return null;
-  return {
-    filePath: sourceInfo.filePath,
-    lineNumber: sourceInfo.lineNumber,
-    componentName: sourceInfo.componentName,
-  };
-};
+): Promise<SourceInfo | null> =>
+  getResolvedFrameworkSourceInfo(element).then((sourceInfo) => {
+    if (!sourceInfo) return null;
+    return {
+      filePath: sourceInfo.filePath,
+      lineNumber: sourceInfo.lineNumber,
+      componentName: sourceInfo.componentName,
+    };
+  });
 
-export const getFrameworkComponentName = (element: Element): string | null => {
-  const sourceInfo = getResolvedFrameworkSourceInfo(element);
-  if (!sourceInfo) return null;
-  return sourceInfo.componentName;
-};
+export const getFrameworkComponentName = (
+  element: Element,
+): Promise<string | null> =>
+  getResolvedFrameworkSourceInfo(element).then((sourceInfo) => {
+    if (!sourceInfo) return null;
+    return sourceInfo.componentName;
+  });
 
 export const getFrameworkStackContext = (
   element: Element,
   options: ElementStackContextOptions = {},
-): string => {
-  const { maxLines = 3 } = options;
-  if (maxLines < 1) return "";
+): Promise<string> =>
+  getResolvedFrameworkSourceInfo(element).then((sourceInfo) => {
+    const { maxLines = 3 } = options;
+    if (maxLines < 1) return "";
 
-  const sourceInfo = getResolvedFrameworkSourceInfo(element);
-  if (!sourceInfo) return "";
+    if (!sourceInfo) return "";
 
-  const sourceLocation = formatSourceLocation(sourceInfo);
-  if (sourceInfo.componentName) {
-    return `\n  in ${sourceInfo.componentName} (at ${sourceLocation})`;
-  }
+    const sourceLocation = formatSourceLocation(sourceInfo);
+    if (sourceInfo.componentName) {
+      return `\n  in ${sourceInfo.componentName} (at ${sourceLocation})`;
+    }
 
-  return `\n  in ${sourceLocation}`;
-};
+    return `\n  in ${sourceLocation}`;
+  });

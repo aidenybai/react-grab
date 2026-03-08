@@ -50,7 +50,7 @@ Grab supports framework metadata fallbacks when React stack traces are unavailab
 
 - **Svelte**: uses `__svelte_meta` (file, line, column) out of the box in dev.
 - **Vue**: uses `__vueParentComponent.type.__file` by default (file-level). For line & column metadata, use `vite-plugin-vue-inspector` (`data-v-inspector`).
-- **Solid**: requires location metadata injection (for example `@locator/babel-jsx` with `vite-plugin-solid`) so elements expose `data-locatorjs-id` / `data-locatorjs`.
+- **Solid**: uses runtime delegated handler internals (`$$click`, etc.) and scans loaded Vite source modules for the matching handler body, then infers source from nearby compiler location literals.
 
 When available, these sources are used for selection file paths, copied stack context, `Cmd/Ctrl+O` open-file actions, and `api.getSource` / `api.getStackContext`.
 

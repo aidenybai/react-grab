@@ -11,50 +11,48 @@ const PLACEHOLDER_TARGET_STYLE = {
 };
 
 test.describe("Framework Source Metadata", () => {
-  test("should resolve Solid locator metadata to source information", async ({
+  test("should resolve Solid runtime handler source without build plugins", async ({
     reactGrab,
   }) => {
-    const solidFilePath = "/workspace/solid/src/components/counter.tsx";
+    const solidFilePath = "src/components/counter.tsx";
 
     await reactGrab.page.evaluate(
       ({ filePath, targetStyle }) => {
         const element = document.createElement("button");
         element.id = "solid-metadata-target";
         element.textContent = "Solid Metadata Target";
-        element.setAttribute("data-locatorjs-id", `${filePath}::0`);
         Object.assign(element.style, targetStyle);
+        let count = 0;
+        const setCount = (
+          updater: (currentValue: number) => number,
+        ): number => {
+          count = updater(count);
+          return count;
+        };
+        const solidHandler = () => setCount((countValue) => countValue + 1);
+        Reflect.set(element, "$$click", solidHandler);
         document.body.appendChild(element);
 
         (
           window as {
-            __LOCATOR_DATA__?: Record<string, unknown>;
+            __REACT_GRAB_SOLID_RUNTIME_MODULES__?: Array<{
+              url: string;
+              content: string;
+            }>;
           }
-        ).__LOCATOR_DATA__ = {
-          [filePath]: {
-            filePath,
-            projectPath: "/workspace/solid",
-            expressions: [
-              {
-                name: "button",
-                loc: {
-                  start: { line: 12, column: 6 },
-                  end: { line: 12, column: 28 },
-                },
-                wrappingComponentId: 0,
-              },
-            ],
-            styledDefinitions: [],
-            components: [
-              {
-                name: "SolidCounter",
-                loc: {
-                  start: { line: 4, column: 0 },
-                  end: { line: 18, column: 1 },
-                },
-              },
-            ],
+        ).__REACT_GRAB_SOLID_RUNTIME_MODULES__ = [
+          {
+            url: `http://127.0.0.1:5175/${filePath}`,
+            content: `
+              const template = () => {
+                const element = document.createElement("button");
+                element.$$click = ${String(solidHandler)};
+                return element;
+              };
+              createComponent(template, { location: "${filePath}:14:2" });
+            `,
           },
-        };
+        ];
       },
       { filePath: solidFilePath, targetStyle: PLACEHOLDER_TARGET_STYLE },
     );
@@ -74,8 +72,8 @@ test.describe("Framework Source Metadata", () => {
 
     expect(source).toEqual({
       filePath: solidFilePath,
-      lineNumber: 12,
-      componentName: "SolidCounter",
+      lineNumber: 14,
+      componentName: null,
     });
 
     const stackContext = await reactGrab.page.evaluate(async () => {
@@ -91,8 +89,7 @@ test.describe("Framework Source Metadata", () => {
       return api.getStackContext(element);
     });
 
-    expect(stackContext).toContain("SolidCounter");
-    expect(stackContext).toContain(`${solidFilePath}:12:6`);
+    expect(stackContext).toContain(`${solidFilePath}:14:2`);
 
     await reactGrab.activate();
     await reactGrab.hoverElement("#solid-metadata-target");
@@ -114,8 +111,7 @@ test.describe("Framework Source Metadata", () => {
     await reactGrab.clickElement("#solid-metadata-target");
 
     const clipboard = await reactGrab.getClipboardContent();
-    expect(clipboard).toContain("SolidCounter");
-    expect(clipboard).toContain(`${solidFilePath}:12:6`);
+    expect(clipboard).toContain(`${solidFilePath}:14:2`);
   });
 
   test("should resolve Vue inspector metadata with line and column", async ({
