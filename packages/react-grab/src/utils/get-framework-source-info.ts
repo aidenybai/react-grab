@@ -3,15 +3,9 @@ import type {
   ElementStackContextOptions,
   SourceInfo,
 } from "../types.js";
-import {
-  getSolidSourceInfo,
-  getSolidStackFrames,
-} from "./get-solid-source-info.js";
-import {
-  getSvelteSourceInfo,
-  getSvelteStackFrames,
-} from "./get-svelte-source-info.js";
-import { getVueSourceInfo, getVueStackFrames } from "./get-vue-source-info.js";
+import { getSolidStackFrames } from "./get-solid-source-info.js";
+import { getSvelteStackFrames } from "./get-svelte-source-info.js";
+import { getVueStackFrames } from "./get-vue-source-info.js";
 
 const formatSourceLocation = (sourceInfo: ElementSourceInfo): string => {
   const locationParts = [sourceInfo.filePath];
@@ -22,25 +16,6 @@ const formatSourceLocation = (sourceInfo: ElementSourceInfo): string => {
     locationParts.push(String(sourceInfo.columnNumber));
   }
   return locationParts.join(":");
-};
-
-const getResolvedFrameworkSourceInfo = async (
-  element: Element,
-): Promise<ElementSourceInfo | null> => {
-  const resolvers = [
-    getSvelteSourceInfo,
-    getVueSourceInfo,
-    getSolidSourceInfo,
-  ] as const;
-
-  for (const resolveSourceInfo of resolvers) {
-    const sourceInfo = await resolveSourceInfo(element);
-    if (!sourceInfo) continue;
-    if (!sourceInfo.filePath) continue;
-    return sourceInfo;
-  }
-
-  return null;
 };
 
 const getResolvedFrameworkStackFrames = async (
@@ -64,6 +39,13 @@ const getResolvedFrameworkStackFrames = async (
 
   return [];
 };
+
+const getResolvedFrameworkSourceInfo = (
+  element: Element,
+): Promise<ElementSourceInfo | null> =>
+  getResolvedFrameworkStackFrames(element).then(
+    (frameworkStackFrames) => frameworkStackFrames[0] ?? null,
+  );
 
 const formatStackFrame = (stackFrame: ElementSourceInfo): string => {
   const sourceLocation = formatSourceLocation(stackFrame);

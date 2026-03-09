@@ -310,8 +310,3 @@ export const getSolidStackFrames = (
   if (!solidHandlerCandidate) return Promise.resolve([]);
   return resolveSolidStackFramesFromHandler(solidHandlerCandidate.source);
 };
-
-export const getSolidSourceInfo = (
-  element: Element,
-): Promise<ElementSourceInfo | null> =>
-  getSolidStackFrames(element).then((stackFrames) => stackFrames[0] ?? null);

@@ -118,13 +118,6 @@ const resolveFromInspectorAttribute = (
   };
 };
 
-const resolveFromVueRuntimeMetadata = (
-  element: Element,
-): ElementSourceInfo | null => {
-  const runtimeStackFrames = getVueRuntimeStackFrames(element);
-  return runtimeStackFrames[0] ?? null;
-};
-
 export const getVueStackFrames = (element: Element): ElementSourceInfo[] => {
   const combinedStackFrames: ElementSourceInfo[] = [];
   const seenFrameIdentities = new Set<string>();
@@ -146,6 +139,3 @@ export const getVueStackFrames = (element: Element): ElementSourceInfo[] => {
 
   return combinedStackFrames;
 };
-
-export const getVueSourceInfo = (element: Element): ElementSourceInfo | null =>
-  getVueStackFrames(element)[0] ?? resolveFromVueRuntimeMetadata(element);

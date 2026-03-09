@@ -111,7 +111,3 @@ export const getSvelteStackFrames = (element: Element): ElementSourceInfo[] => {
 
   return stackFrames;
 };
-
-export const getSvelteSourceInfo = (
-  element: Element,
-): ElementSourceInfo | null => getSvelteStackFrames(element)[0] ?? null;
