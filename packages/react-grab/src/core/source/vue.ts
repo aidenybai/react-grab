@@ -1,5 +1,5 @@
-import type { ElementSourceInfo } from "../types.js";
-import { parseSourceLocation } from "./parse-source-location.js";
+import type { ElementSourceInfo } from "../../types.js";
+import { parseSourceLocation } from "./parse-location.js";
 
 const VUE_INSPECTOR_ATTRIBUTE_NAME = "data-v-inspector";
 const VUE_INSPECTOR_SELECTOR = `[${VUE_INSPECTOR_ATTRIBUTE_NAME}]`;

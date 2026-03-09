@@ -6,12 +6,13 @@ import {
 import { freezePseudoStates } from "./utils/freeze-pseudo-states.js";
 import { freezeUpdates } from "./utils/freeze-updates.js";
 import { unfreezePseudoStates } from "./utils/freeze-pseudo-states.js";
+import { getHTMLPreview } from "./core/context.js";
+import { getReactStack } from "./core/source/react.js";
 import {
-  getComponentDisplayName,
-  getHTMLPreview,
-  getStack,
-  getStackContext,
-} from "./core/context.js";
+  resolveElementComponentName,
+  resolveElementStack,
+} from "./core/source/index.js";
+import { formatElementStack } from "./utils/format-element-stack.js";
 import { Fiber, getFiberFromHostInstance } from "bippy";
 import type { StackFrame } from "bippy/source";
 export type { StackFrame };
@@ -31,23 +32,24 @@ export interface ReactGrabElementContext {
 }
 
 /**
- * Gathers comprehensive context for a DOM element, including its React fiber,
- * component name, source stack, HTML preview, CSS selector, and computed styles.
+ * Gathers comprehensive context for a DOM element across all supported frameworks
+ * (React, Vue, Svelte, Solid), including component name, source stack, HTML preview,
+ * CSS selector, and computed styles. The `fiber` field is React-specific.
  *
  * @example
  * const context = await getElementContext(document.querySelector('.my-button')!);
  * console.log(context.componentName); // "SubmitButton"
  * console.log(context.selector);      // "button.my-button"
  * console.log(context.stackString);   // "\n  in SubmitButton (at Button.tsx:12:5)"
- * console.log(context.stack[0]);      // { functionName: "SubmitButton", fileName: "Button.tsx", lineNumber: 12, columnNumber: 5 }
  */
 export const getElementContext = async (
   element: Element,
 ): Promise<ReactGrabElementContext> => {
-  const stack = (await getStack(element)) ?? [];
-  const stackString = await getStackContext(element);
+  const stack = (await getReactStack(element)) ?? [];
+  const elementStack = await resolveElementStack(element);
+  const stackString = formatElementStack(elementStack);
   const htmlPreview = getHTMLPreview(element);
-  const componentName = getComponentDisplayName(element);
+  const componentName = await resolveElementComponentName(element);
   const fiber = getFiberFromHostInstance(element);
   const selector = createElementSelector(element);
   const styles = extractElementCss(element);

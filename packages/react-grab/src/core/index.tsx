@@ -24,14 +24,18 @@ import {
   waitUntilNextFrame,
 } from "../utils/native-raf.js";
 import { ReactGrabRenderer } from "../components/renderer.js";
+import { checkIsNextProject } from "./context.js";
 import {
-  getStack,
-  getStackContext,
-  getNearestComponentName,
-  getComponentDisplayName,
-  resolveSourceFromStack,
-  checkIsNextProject,
-} from "./context.js";
+  resolveElementSourceInfo,
+  resolveElementComponentName,
+  resolveElementStack,
+} from "./source/index.js";
+import {
+  getReactDisplayName as getComponentDisplayName,
+  getReactStackContext,
+} from "./source/react.js";
+import { formatElementStack } from "../utils/format-element-stack.js";
+import { mergeStackContext } from "../utils/merge-stack-context.js";
 import { createNoopApi } from "./noop-api.js";
 import { createEventListenerManager } from "./events.js";
 import { tryCopyWithFallback } from "./copy.js";
@@ -88,7 +92,6 @@ import { parseActivationKey } from "../utils/parse-activation-key.js";
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
 import { openFile } from "../utils/open-file.js";
 import { combineBounds } from "../utils/combine-bounds.js";
-import { mergeStackContext } from "../utils/merge-stack-context.js";
 import {
   resolveActionEnabled,
   resolveToolbarActionEnabled,
@@ -110,8 +113,6 @@ import type {
   PerformWithFeedbackOptions,
   SettableOptions,
   SourceInfo,
-  ElementSourceInfo,
-  ElementStackContextOptions,
   Plugin,
   ToolbarState,
   HistoryItem,
@@ -529,60 +530,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => store.pointer,
       () => isDragging(),
     );
-
-    const resolveElementSourceInfo = async (
-      element: Element,
-    ): Promise<ElementSourceInfo | null> => {
-      const stack = await getStack(element);
-      const sourceFromStack = resolveSourceFromStack(stack);
-      if (sourceFromStack) {
-        return {
-          filePath: sourceFromStack.filePath,
-          lineNumber: sourceFromStack.lineNumber ?? null,
-          columnNumber: null,
-          componentName: sourceFromStack.componentName,
-        };
-      }
-
-      return pluginRegistry.hooks.resolveElementSource(element);
-    };
-
-    const resolveElementComponentName = async (
-      element: Element,
-    ): Promise<string | null> => {
-      const sourceComponentName = await getNearestComponentName(element);
-      if (sourceComponentName) return sourceComponentName;
-
-      const pluginComponentName =
-        await pluginRegistry.hooks.resolveElementComponentName(element);
-      if (pluginComponentName) return pluginComponentName;
-
-      return getComponentDisplayName(element);
-    };
-
-    const resolveElementStackContext = async (
-      element: Element,
-      options: ElementStackContextOptions = {},
-    ): Promise<string> => {
-      const maxLines = options.maxLines ?? DEFAULT_MAX_CONTEXT_LINES;
-      if (maxLines < 1) return "";
-
-      const reactStackContext = await getStackContext(element, {
-        ...options,
-        maxLines,
-      });
-
-      const pluginStackContext =
-        await pluginRegistry.hooks.resolveElementStackContext(element, {
-          ...options,
-          maxLines,
-        });
-
-      if (!reactStackContext) return pluginStackContext ?? "";
-      if (!pluginStackContext) return reactStackContext;
-
-      return mergeStackContext(reactStackContext, pluginStackContext, maxLines);
-    };
 
     const isRendererActive = createMemo(() => isActivated() && !isCopying());
 
@@ -4308,8 +4255,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           componentName: source.componentName,
         };
       },
-      getStackContext: (element: Element) =>
-        resolveElementStackContext(element),
+      getStackContext: async (element: Element) => {
+        const maxLines = 3;
+        const reactStackContext = await getReactStackContext(element, {
+          maxLines,
+        });
+        const stack = await resolveElementStack(element);
+        const frameworkStackContext = formatElementStack(stack, { maxLines });
+
+        if (!reactStackContext) return frameworkStackContext;
+        if (!frameworkStackContext) return reactStackContext;
+        return mergeStackContext(
+          reactStackContext,
+          frameworkStackContext,
+          maxLines,
+        );
+      },
       getState: (): ReactGrabState => ({
         isActive: isActivated(),
         isDragging: isDragging(),

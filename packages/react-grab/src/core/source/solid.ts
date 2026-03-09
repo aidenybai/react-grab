@@ -1,5 +1,5 @@
-import type { ElementSourceInfo } from "../types.js";
-import { parseSourceLocation } from "./parse-source-location.js";
+import type { ElementSourceInfo } from "../../types.js";
+import { parseSourceLocation } from "./parse-location.js";
 
 interface SolidRuntimeModuleRecord {
   url: string;

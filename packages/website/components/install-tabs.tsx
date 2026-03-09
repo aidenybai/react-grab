@@ -467,7 +467,9 @@ export const InstallTabs = ({
                   {shouldShowPromptExpandButton && (
                     <button
                       type="button"
-                      onClick={() => setIsPromptExpanded((previous) => !previous)}
+                      onClick={() =>
+                        setIsPromptExpanded((previous) => !previous)
+                      }
                       className="absolute bottom-3 right-4 z-10 inline-flex items-center gap-1 rounded-md border border-border bg-card/90 px-2 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
                     >
                       <span>

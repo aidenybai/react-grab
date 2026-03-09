@@ -10,7 +10,41 @@ import SvelteLogoCard from "./svelte-logo-card.svelte";
 import "./styles.css";
 
 if (import.meta.env.DEV) {
-  import("react-grab");
+  import("react-grab").then(({ registerPlugin }) => {
+    const sourceBar = document.getElementById("source-bar");
+
+    registerPlugin({
+      name: "source-bar",
+      hooks: {
+        onCopySuccess: async (elements) => {
+          if (!sourceBar || elements.length < 1) return;
+          const api = window.__REACT_GRAB__;
+          if (!api) return;
+
+          const source = await api.getSource(elements[0]);
+          const stackContext = await api.getStackContext(elements[0]);
+
+          if (source) {
+            const location = source.lineNumber
+              ? `${source.filePath}:${source.lineNumber}`
+              : source.filePath;
+
+            sourceBar.textContent = source.componentName
+              ? `${source.componentName} → ${location}`
+              : location;
+          } else if (stackContext) {
+            sourceBar.textContent = stackContext.replace(/^\n\s*in\s*/, "");
+          } else {
+            sourceBar.textContent = "";
+            sourceBar.classList.remove("source-bar--visible");
+            return;
+          }
+
+          sourceBar.classList.add("source-bar--visible");
+        },
+      },
+    });
+  });
 }
 
 const APPLICATION_MOUNT_ELEMENT_ID = "app";
@@ -31,16 +65,13 @@ if (!applicationMountElement) {
 
 applicationMountElement.innerHTML = `
   <main class="framework-playground">
-    <header class="framework-playground__header">
-      <h1>Framework Playground</h1>
-      <p>Select each framework logo and verify source mapping.</p>
-    </header>
     <section class="framework-playground__grid">
-      <article class="framework-card"><div id="${FRAMEWORK_MOUNT_IDS.react}"></div></article>
-      <article class="framework-card"><div id="${FRAMEWORK_MOUNT_IDS.vue}"></div></article>
-      <article class="framework-card"><div id="${FRAMEWORK_MOUNT_IDS.solid}"></div></article>
-      <article class="framework-card"><div id="${FRAMEWORK_MOUNT_IDS.svelte}"></div></article>
+      <div id="${FRAMEWORK_MOUNT_IDS.react}"></div>
+      <div id="${FRAMEWORK_MOUNT_IDS.vue}"></div>
+      <div id="${FRAMEWORK_MOUNT_IDS.solid}"></div>
+      <div id="${FRAMEWORK_MOUNT_IDS.svelte}"></div>
     </section>
+    <div id="source-bar" class="source-bar"></div>
   </main>
 `;
 
@@ -66,3 +97,4 @@ render(
 mount(SvelteLogoCard, {
   target: getRequiredMountElement(FRAMEWORK_MOUNT_IDS.svelte),
 });
+

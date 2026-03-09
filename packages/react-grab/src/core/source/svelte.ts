@@ -1,4 +1,4 @@
-import type { ElementSourceInfo } from "../types.js";
+import type { ElementSourceInfo } from "../../types.js";
 
 const SVELTE_META_PROPERTY_NAME = "__svelte_meta";
 const SVELTE_COLUMN_OFFSET = 1;

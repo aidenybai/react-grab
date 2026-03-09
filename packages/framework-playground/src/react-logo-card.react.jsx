@@ -1,14 +1,9 @@
-import { useState } from "react";
-
 export const ReactLogoCard = () => {
-  const [selectionCount, setSelectionCount] = useState(0);
-
   return (
     <button
       id="react-logo-button"
       type="button"
       className="framework-logo-button"
-      onClick={() => setSelectionCount((previousCount) => previousCount + 1)}
     >
       <svg
         viewBox="0 0 100 100"
@@ -34,10 +29,6 @@ export const ReactLogoCard = () => {
         </g>
         <circle cx="50" cy="50" r="7" fill="#61dafb" />
       </svg>
-      <span className="framework-logo__name">React</span>
-      <span className="framework-logo__count">
-        Selections: {selectionCount}
-      </span>
     </button>
   );
 };

@@ -19,7 +19,7 @@ import { createElementBounds } from "../../utils/create-element-bounds.js";
 import { isElementConnected } from "../../utils/is-element-connected.js";
 import { generateSnippet } from "../../utils/generate-snippet.js";
 import { recalculateSessionPosition } from "../../utils/recalculate-session-position.js";
-import { getNearestComponentName } from "../context.js";
+import { resolveElementComponentName } from "../source/index.js";
 import {
   DISMISS_ANIMATION_BUFFER_MS,
   FADE_DURATION_MS,
@@ -405,7 +405,7 @@ export const createAgentManager = (
       const componentName =
         elements.length > 1
           ? undefined
-          : (await getNearestComponentName(firstElement)) || undefined;
+          : (await resolveElementComponentName(firstElement)) || undefined;
 
       session = createSession(
         context,
