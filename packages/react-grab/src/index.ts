@@ -7,6 +7,7 @@ export {
 } from "./core/index.js";
 export { commentPlugin } from "./core/plugins/comment.js";
 export { openPlugin } from "./core/plugins/open.js";
+export { frameworkSourcePlugin } from "./core/plugins/framework-source.js";
 export { generateSnippet } from "./utils/generate-snippet.js";
 export type {
   Options,

@@ -1,0 +1,18 @@
+{
+  "name": "@react-grab/solid-vite-playground",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react-grab": "workspace:*",
+    "solid-js": "latest"
+  },
+  "devDependencies": {
+    "vite": "latest",
+    "vite-plugin-solid": "latest"
+  }
+}

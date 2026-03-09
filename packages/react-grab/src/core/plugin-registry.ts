@@ -20,6 +20,8 @@ import type {
   SettableOptions,
   AgentContext,
   ActionContext,
+  ElementSourceInfo,
+  ElementStackContextOptions,
 } from "../types.js";
 import { DEFAULT_THEME, deepMergeTheme } from "./theme.js";
 import {
@@ -60,6 +62,10 @@ interface PluginStoreState {
 }
 
 type HookName = keyof PluginHooks;
+
+const isDefinedValue = <ValueType>(
+  value: ValueType | null | undefined,
+): value is ValueType => value !== null && value !== undefined;
 
 const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
   const plugins = new Map<string, RegisteredPlugin>();
@@ -289,6 +295,25 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     return result;
   };
 
+  const callHookResolveAsync = async <T>(
+    hookName: HookName,
+    ...extraArgs: unknown[]
+  ): Promise<T | null> => {
+    for (const { config } of plugins.values()) {
+      const hook = config.hooks?.[hookName] as
+        | ((
+            ...hookArgs: unknown[]
+          ) => T | null | undefined | Promise<T | null | undefined>)
+        | undefined;
+      if (!hook) continue;
+      const result = await hook(...extraArgs);
+      if (isDefinedValue(result)) {
+        return result;
+      }
+    }
+    return null;
+  };
+
   const hooks = {
     onActivate: () => callHook("onActivate"),
     onDeactivate: () => callHook("onDeactivate"),
@@ -360,6 +385,19 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
       filePath: string,
       lineNumber?: number,
     ) => callHookReduceSync("transformOpenFileUrl", url, filePath, lineNumber),
+    resolveElementSource: async (element: Element) =>
+      callHookResolveAsync<ElementSourceInfo>("resolveElementSource", element),
+    resolveElementComponentName: async (element: Element) =>
+      callHookResolveAsync<string>("resolveElementComponentName", element),
+    resolveElementStackContext: async (
+      element: Element,
+      options?: ElementStackContextOptions,
+    ) =>
+      callHookResolveAsync<string>(
+        "resolveElementStackContext",
+        element,
+        options,
+      ),
     transformSnippet: async (snippet: string, element: Element) =>
       callHookReduce("transformSnippet", snippet, element),
   };
