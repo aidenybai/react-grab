@@ -1,10 +1,11 @@
 import prettyMs from "pretty-ms";
-import { BenchmarkResult, GroupedResult } from "./types";
+import { BenchmarkResult, ChangeInfo, GroupedResult } from "./types";
 import { calculateChange } from "./utils";
 import { useState, useMemo } from "react";
 import { ChevronDown, ChevronUp, Search, ArrowUpDown } from "lucide-react";
 import Image from "next/image";
 import { BENCHMARK_TREATMENT_COLOR } from "@/constants";
+import { DataTableCard } from "@/components/ui/data-table-card";
 
 interface BenchmarkDetailedTableProps {
   results: BenchmarkResult[];
@@ -27,6 +28,80 @@ interface SortIconProps {
   sortDirection: SortDirection;
 }
 
+interface MetricColumn {
+  label: string;
+  sortField: SortField;
+  controlValue: (result?: BenchmarkResult) => string;
+  treatmentValue: (result?: BenchmarkResult) => string;
+  change: (control?: BenchmarkResult, treatment?: BenchmarkResult) => ChangeInfo;
+  sortValue: (result?: BenchmarkResult) => number;
+}
+
+const METRIC_COLUMNS: MetricColumn[] = [
+  {
+    label: "Input Tokens",
+    sortField: "inputTokens",
+    controlValue: (result) =>
+      result?.inputTokens ? result.inputTokens.toLocaleString() : "-",
+    treatmentValue: (result) =>
+      result?.inputTokens ? result.inputTokens.toLocaleString() : "-",
+    change: (control, treatment) =>
+      calculateChange(control?.inputTokens, treatment?.inputTokens),
+    sortValue: (result) => result?.inputTokens ?? 0,
+  },
+  {
+    label: "Output Tokens",
+    sortField: "outputTokens",
+    controlValue: (result) =>
+      result?.outputTokens ? result.outputTokens.toLocaleString() : "-",
+    treatmentValue: (result) =>
+      result?.outputTokens ? result.outputTokens.toLocaleString() : "-",
+    change: (control, treatment) =>
+      calculateChange(control?.outputTokens, treatment?.outputTokens),
+    sortValue: (result) => result?.outputTokens ?? 0,
+  },
+  {
+    label: "Cost",
+    sortField: "cost",
+    controlValue: (result) =>
+      result?.costUsd !== undefined ? "$" + result.costUsd.toFixed(2) : "-",
+    treatmentValue: (result) =>
+      result?.costUsd !== undefined ? "$" + result.costUsd.toFixed(2) : "-",
+    change: (control, treatment) =>
+      calculateChange(control?.costUsd, treatment?.costUsd),
+    sortValue: (result) => result?.costUsd ?? 0,
+  },
+  {
+    label: "Duration",
+    sortField: "duration",
+    controlValue: (result) =>
+      result?.durationMs ? prettyMs(result.durationMs) : "-",
+    treatmentValue: (result) =>
+      result?.durationMs ? prettyMs(result.durationMs) : "-",
+    change: (control, treatment) =>
+      calculateChange(control?.durationMs, treatment?.durationMs),
+    sortValue: (result) => result?.durationMs ?? 0,
+  },
+  {
+    label: "Tool Calls",
+    sortField: "toolCalls",
+    controlValue: (result) =>
+      result?.toolCalls !== undefined ? String(result.toolCalls) : "-",
+    treatmentValue: (result) =>
+      result?.toolCalls !== undefined ? String(result.toolCalls) : "-",
+    change: (control, treatment) =>
+      calculateChange(control?.toolCalls, treatment?.toolCalls),
+    sortValue: (result) => result?.toolCalls ?? 0,
+  },
+];
+
+const HEADER_CLASS =
+  "text-left py-2 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors group";
+const CONTROL_SUBHEADER_CLASS =
+  "text-left py-1.5 px-3 text-[10px] font-normal text-muted-foreground/60 uppercase tracking-wide";
+const TREATMENT_SUBHEADER_CLASS =
+  "text-left py-1.5 px-3 text-[10px] font-normal text-muted-foreground/60 uppercase tracking-wide bg-popover/30";
+
 const SortIcon = ({ field, sortField, sortDirection }: SortIconProps) => {
   if (sortField !== field)
     return <ArrowUpDown size={12} className="ml-1 opacity-30" />;
@@ -39,6 +114,21 @@ const SortIcon = ({ field, sortField, sortDirection }: SortIconProps) => {
 
 SortIcon.displayName = "SortIcon";
 
+const TreatmentLabel = () => (
+  <div className="flex items-center gap-1.5">
+    <Image
+      src="/logo.svg"
+      alt="React Grab"
+      width={10}
+      height={10}
+      className="w-2.5 h-2.5"
+    />
+    <span style={{ color: BENCHMARK_TREATMENT_COLOR }}>React Grab</span>
+  </div>
+);
+
+TreatmentLabel.displayName = "TreatmentLabel";
+
 export const BenchmarkDetailedTable = ({
   results,
   testCaseMap,
@@ -49,23 +139,18 @@ export const BenchmarkDetailedTable = ({
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   const groupedByTest = useMemo(() => {
-    const grouped = results.reduce<Record<string, GroupedResult>>(
-      (acc, result) => {
-        if (!acc[result.testName]) {
-          acc[result.testName] = {};
-        }
-        acc[result.testName][result.type] = result;
-        return acc;
-      },
-      {},
-    );
-    return grouped;
+    return results.reduce<Record<string, GroupedResult>>((acc, result) => {
+      if (!acc[result.testName]) {
+        acc[result.testName] = {};
+      }
+      acc[result.testName][result.type] = result;
+      return acc;
+    }, {});
   }, [results]);
 
   const filteredAndSortedResults = useMemo(() => {
     let entries = Object.entries(groupedByTest);
 
-    // Filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       entries = entries.filter(([testName]) =>
@@ -73,43 +158,25 @@ export const BenchmarkDetailedTable = ({
       );
     }
 
-    // Sort
     entries.sort(([nameA, resultsA], [nameB, resultsB]) => {
-      const treatmentA = resultsA.treatment || ({} as BenchmarkResult);
-      const treatmentB = resultsB.treatment || ({} as BenchmarkResult);
+      let valueA: number | string = 0;
+      let valueB: number | string = 0;
 
-      let valA: number | string = 0;
-      let valB: number | string = 0;
-
-      switch (sortField) {
-        case "testName":
-          valA = nameA;
-          valB = nameB;
-          break;
-        case "inputTokens":
-          valA = treatmentA.inputTokens || 0;
-          valB = treatmentB.inputTokens || 0;
-          break;
-        case "outputTokens":
-          valA = treatmentA.outputTokens || 0;
-          valB = treatmentB.outputTokens || 0;
-          break;
-        case "cost":
-          valA = treatmentA.costUsd || 0;
-          valB = treatmentB.costUsd || 0;
-          break;
-        case "duration":
-          valA = treatmentA.durationMs || 0;
-          valB = treatmentB.durationMs || 0;
-          break;
-        case "toolCalls":
-          valA = treatmentA.toolCalls || 0;
-          valB = treatmentB.toolCalls || 0;
-          break;
+      if (sortField === "testName") {
+        valueA = nameA;
+        valueB = nameB;
+      } else {
+        const column = METRIC_COLUMNS.find(
+          (col) => col.sortField === sortField,
+        );
+        if (column) {
+          valueA = column.sortValue(resultsA.treatment);
+          valueB = column.sortValue(resultsB.treatment);
+        }
       }
 
-      if (valA < valB) return sortDirection === "asc" ? -1 : 1;
-      if (valA > valB) return sortDirection === "asc" ? 1 : -1;
+      if (valueA < valueB) return sortDirection === "asc" ? -1 : 1;
+      if (valueA > valueB) return sortDirection === "asc" ? 1 : -1;
       return 0;
     });
 
@@ -126,18 +193,18 @@ export const BenchmarkDetailedTable = ({
   };
 
   return (
-    <div className="bg-card border border-border rounded-lg overflow-hidden shadow-lg">
-      <div className="p-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h3 className="text-sm font-medium text-foreground/80">Results</h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            Performance metrics per test: tokens, cost (USD), duration, and tool
-            calls. React Grab shows % change vs. Control.
-            {lastRunDate && (
-              <span className="ml-2">Last run: {lastRunDate}</span>
-            )}
-          </p>
-        </div>
+    <DataTableCard
+      title="Results"
+      description={
+        <>
+          Performance metrics per test: tokens, cost (USD), duration, and tool
+          calls. React Grab shows % change vs. Control.
+          {lastRunDate && (
+            <span className="ml-2">Last run: {lastRunDate}</span>
+          )}
+        </>
+      }
+      actions={
         <div className="relative">
           <Search
             size={14}
@@ -151,354 +218,114 @@ export const BenchmarkDetailedTable = ({
             className="bg-popover border border-border rounded-md py-1.5 pl-9 pr-3 text-xs text-foreground/80 placeholder:text-muted-foreground/60 focus:outline-none focus:border-ring w-full sm:w-[200px]"
           />
         </div>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border">
+      }
+    >
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-border">
+            <th
+              rowSpan={2}
+              className={HEADER_CLASS}
+              onClick={() => handleSort("testName")}
+            >
+              <div className="flex items-center">
+                Test Name
+                <SortIcon
+                  field="testName"
+                  sortField={sortField}
+                  sortDirection={sortDirection}
+                />
+              </div>
+            </th>
+            {METRIC_COLUMNS.map((column) => (
               <th
-                rowSpan={2}
-                className="text-left py-2 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors group"
-                onClick={() => handleSort("testName")}
-              >
-                <div className="flex items-center">
-                  Test Name
-                  <SortIcon
-                    field="testName"
-                    sortField={sortField}
-                    sortDirection={sortDirection}
-                  />
-                </div>
-              </th>
-              <th
+                key={column.sortField}
                 colSpan={2}
-                className="text-left py-2 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors group"
-                onClick={() => handleSort("inputTokens")}
+                className={HEADER_CLASS}
+                onClick={() => handleSort(column.sortField)}
               >
                 <div className="flex items-center">
-                  Input Tokens
+                  {column.label}
                   <SortIcon
-                    field="inputTokens"
+                    field={column.sortField}
                     sortField={sortField}
                     sortDirection={sortDirection}
                   />
                 </div>
               </th>
-              <th
-                colSpan={2}
-                className="text-left py-2 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors group"
-                onClick={() => handleSort("outputTokens")}
+            ))}
+          </tr>
+          <tr className="border-b border-border bg-card">
+            {METRIC_COLUMNS.map((column) => (
+              <>
+                <th key={`${column.sortField}-control`} className={CONTROL_SUBHEADER_CLASS}>
+                  Control
+                </th>
+                <th key={`${column.sortField}-treatment`} className={TREATMENT_SUBHEADER_CLASS}>
+                  <TreatmentLabel />
+                </th>
+              </>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {filteredAndSortedResults.length === 0 ? (
+            <tr>
+              <td
+                colSpan={1 + METRIC_COLUMNS.length * 2}
+                className="py-8 text-center text-muted-foreground"
               >
-                <div className="flex items-center">
-                  Output Tokens
-                  <SortIcon
-                    field="outputTokens"
-                    sortField={sortField}
-                    sortDirection={sortDirection}
-                  />
-                </div>
-              </th>
-              <th
-                colSpan={2}
-                className="text-left py-2 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors group"
-                onClick={() => handleSort("cost")}
-              >
-                <div className="flex items-center">
-                  Cost
-                  <SortIcon
-                    field="cost"
-                    sortField={sortField}
-                    sortDirection={sortDirection}
-                  />
-                </div>
-              </th>
-              <th
-                colSpan={2}
-                className="text-left py-2 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors group"
-                onClick={() => handleSort("duration")}
-              >
-                <div className="flex items-center">
-                  Duration
-                  <SortIcon
-                    field="duration"
-                    sortField={sortField}
-                    sortDirection={sortDirection}
-                  />
-                </div>
-              </th>
-              <th
-                colSpan={2}
-                className="text-left py-2 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors group"
-                onClick={() => handleSort("toolCalls")}
-              >
-                <div className="flex items-center">
-                  Tool Calls
-                  <SortIcon
-                    field="toolCalls"
-                    sortField={sortField}
-                    sortDirection={sortDirection}
-                  />
-                </div>
-              </th>
+                No results found matching &quot;{searchQuery}&quot;
+              </td>
             </tr>
-            <tr className="border-b border-border bg-card">
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-muted-foreground/60 uppercase tracking-wide">
-                Control
-              </th>
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-muted-foreground/60 uppercase tracking-wide bg-popover/30">
-                <div className="flex items-center gap-1.5">
-                  <Image
-                    src="/logo.svg"
-                    alt="React Grab"
-                    width={10}
-                    height={10}
-                    className="w-2.5 h-2.5"
-                  />
-                  <span style={{ color: BENCHMARK_TREATMENT_COLOR }}>
-                    React Grab
-                  </span>
-                </div>
-              </th>
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-muted-foreground/60 uppercase tracking-wide">
-                Control
-              </th>
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-muted-foreground/60 uppercase tracking-wide bg-popover/30">
-                <div className="flex items-center gap-1.5">
-                  <Image
-                    src="/logo.svg"
-                    alt="React Grab"
-                    width={10}
-                    height={10}
-                    className="w-2.5 h-2.5"
-                  />
-                  <span style={{ color: BENCHMARK_TREATMENT_COLOR }}>
-                    React Grab
-                  </span>
-                </div>
-              </th>
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-muted-foreground/60 uppercase tracking-wide">
-                Control
-              </th>
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-muted-foreground/60 uppercase tracking-wide bg-popover/30">
-                <div className="flex items-center gap-1.5">
-                  <Image
-                    src="/logo.svg"
-                    alt="React Grab"
-                    width={10}
-                    height={10}
-                    className="w-2.5 h-2.5"
-                  />
-                  <span style={{ color: BENCHMARK_TREATMENT_COLOR }}>
-                    React Grab
-                  </span>
-                </div>
-              </th>
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-muted-foreground/60 uppercase tracking-wide">
-                Control
-              </th>
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-muted-foreground/60 uppercase tracking-wide bg-popover/30">
-                <div className="flex items-center gap-1.5">
-                  <Image
-                    src="/logo.svg"
-                    alt="React Grab"
-                    width={10}
-                    height={10}
-                    className="w-2.5 h-2.5"
-                  />
-                  <span style={{ color: BENCHMARK_TREATMENT_COLOR }}>
-                    React Grab
-                  </span>
-                </div>
-              </th>
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-muted-foreground/60 uppercase tracking-wide">
-                Control
-              </th>
-              <th className="text-left py-1.5 px-3 text-[10px] font-normal text-muted-foreground/60 uppercase tracking-wide bg-popover/30">
-                <div className="flex items-center gap-1.5">
-                  <Image
-                    src="/logo.svg"
-                    alt="React Grab"
-                    width={10}
-                    height={10}
-                    className="w-2.5 h-2.5"
-                  />
-                  <span style={{ color: BENCHMARK_TREATMENT_COLOR }}>
-                    React Grab
-                  </span>
-                </div>
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {filteredAndSortedResults.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={11}
-                  className="py-8 text-center text-muted-foreground"
+          ) : (
+            filteredAndSortedResults.map(([testName, groupedResults]) => {
+              const { control, treatment } = groupedResults;
+              const prompt = testCaseMap[testName] || "";
+
+              return (
+                <tr
+                  key={testName}
+                  className="hover:bg-popover transition-colors"
                 >
-                  No results found matching &quot;{searchQuery}&quot;
-                </td>
-              </tr>
-            ) : (
-              filteredAndSortedResults.map(([testName, results]) => {
-                const control = results.control || ({} as BenchmarkResult);
-                const treatment = results.treatment || ({} as BenchmarkResult);
-
-                const inputChange = calculateChange(
-                  control.inputTokens,
-                  treatment.inputTokens,
-                );
-                const outputChange = calculateChange(
-                  control.outputTokens,
-                  treatment.outputTokens,
-                );
-                const costChange = calculateChange(
-                  control.costUsd,
-                  treatment.costUsd,
-                );
-                const durationChange = calculateChange(
-                  control.durationMs,
-                  treatment.durationMs,
-                );
-                const toolCallsChange = calculateChange(
-                  control.toolCalls,
-                  treatment.toolCalls,
-                );
-
-                const prompt = testCaseMap[testName] || "";
-
-                return (
-                  <tr
-                    key={testName}
-                    className="hover:bg-popover transition-colors"
+                  <td
+                    className="py-2 px-3 font-medium text-foreground/80 cursor-help max-w-[200px] truncate"
+                    title={prompt}
                   >
-                    <td
-                      className="py-2 px-3 font-medium text-foreground/80 cursor-help max-w-[200px] truncate"
-                      title={prompt}
-                    >
-                      {testName}
-                    </td>
-                    <td className="py-2 px-3 text-muted-foreground tabular-nums text-xs">
-                      {control.inputTokens
-                        ? control.inputTokens.toLocaleString()
-                        : "-"}
-                    </td>
-                    <td
-                      className="py-2 px-3 text-foreground/80 tabular-nums text-xs"
-                      style={{
-                        backgroundColor:
-                          inputChange.bgColor !== "transparent"
-                            ? inputChange.bgColor
-                            : "transparent",
-                      }}
-                    >
-                      {treatment.inputTokens
-                        ? treatment.inputTokens.toLocaleString()
-                        : "-"}
-                      {inputChange.change && (
-                        <span className="ml-1.5 text-[10px] opacity-70">
-                          {inputChange.change}
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-2 px-3 text-muted-foreground tabular-nums text-xs">
-                      {control.outputTokens
-                        ? control.outputTokens.toLocaleString()
-                        : "-"}
-                    </td>
-                    <td
-                      className="py-2 px-3 text-foreground/80 tabular-nums text-xs"
-                      style={{
-                        backgroundColor:
-                          outputChange.bgColor !== "transparent"
-                            ? outputChange.bgColor
-                            : "transparent",
-                      }}
-                    >
-                      {treatment.outputTokens
-                        ? treatment.outputTokens.toLocaleString()
-                        : "-"}
-                      {outputChange.change && (
-                        <span className="ml-1.5 text-[10px] opacity-70">
-                          {outputChange.change}
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-2 px-3 text-muted-foreground tabular-nums text-xs">
-                      {control.costUsd !== undefined
-                        ? "$" + control.costUsd.toFixed(2)
-                        : "-"}
-                    </td>
-                    <td
-                      className="py-2 px-3 text-foreground/80 tabular-nums text-xs"
-                      style={{
-                        backgroundColor:
-                          costChange.bgColor !== "transparent"
-                            ? costChange.bgColor
-                            : "transparent",
-                      }}
-                    >
-                      {treatment.costUsd !== undefined
-                        ? "$" + treatment.costUsd.toFixed(2)
-                        : "-"}
-                      {costChange.change && (
-                        <span className="ml-1.5 text-[10px] opacity-70">
-                          {costChange.change}
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-2 px-3 text-muted-foreground tabular-nums text-xs">
-                      {control.durationMs ? prettyMs(control.durationMs) : "-"}
-                    </td>
-                    <td
-                      className="py-2 px-3 text-foreground/80 tabular-nums text-xs"
-                      style={{
-                        backgroundColor:
-                          durationChange.bgColor !== "transparent"
-                            ? durationChange.bgColor
-                            : "transparent",
-                      }}
-                    >
-                      {treatment.durationMs
-                        ? prettyMs(treatment.durationMs)
-                        : "-"}
-                      {durationChange.change && (
-                        <span className="ml-1.5 text-[10px] opacity-70">
-                          {durationChange.change}
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-2 px-3 text-muted-foreground tabular-nums text-xs">
-                      {control.toolCalls !== undefined
-                        ? control.toolCalls
-                        : "-"}
-                    </td>
-                    <td
-                      className="py-2 px-3 text-foreground/80 tabular-nums text-xs"
-                      style={{
-                        backgroundColor:
-                          toolCallsChange.bgColor !== "transparent"
-                            ? toolCallsChange.bgColor
-                            : "transparent",
-                      }}
-                    >
-                      {treatment.toolCalls !== undefined
-                        ? treatment.toolCalls
-                        : "-"}
-                      {toolCallsChange.change && (
-                        <span className="ml-1.5 text-[10px] opacity-70">
-                          {toolCallsChange.change}
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+                    {testName}
+                  </td>
+                  {METRIC_COLUMNS.map((column) => {
+                    const changeInfo = column.change(control, treatment);
+                    return (
+                      <>
+                        <td
+                          key={`${column.sortField}-control`}
+                          className="py-2 px-3 text-muted-foreground tabular-nums text-xs"
+                        >
+                          {column.controlValue(control)}
+                        </td>
+                        <td
+                          key={`${column.sortField}-treatment`}
+                          className="py-2 px-3 text-foreground/80 tabular-nums text-xs"
+                          style={{ backgroundColor: changeInfo.bgColor }}
+                        >
+                          {column.treatmentValue(treatment)}
+                          {changeInfo.change && (
+                            <span className="ml-1.5 text-[10px] opacity-70">
+                              {changeInfo.change}
+                            </span>
+                          )}
+                        </td>
+                      </>
+                    );
+                  })}
+                </tr>
+              );
+            })
+          )}
+        </tbody>
+      </table>
+    </DataTableCard>
   );
 };
 

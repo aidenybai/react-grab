@@ -30,5 +30,10 @@
     "node": ">=18",
     "pnpm": ">=8"
   },
-  "packageManager": "pnpm@10.24.0"
+  "packageManager": "pnpm@10.24.0",
+  "pnpm": {
+    "patchedDependencies": {
+      "agentation@2.3.0": "patches/agentation@2.3.0.patch"
+    }
+  }
 }

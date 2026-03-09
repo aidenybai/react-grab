@@ -1,0 +1,22 @@
+.container {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.header {
+  border-bottom: 1px solid var(--border);
+}
+
+.headerTitle {
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.listItem {
+  transition: background 0.1s;
+}
+
+.listItem:hover {
+  background: var(--muted);
+}

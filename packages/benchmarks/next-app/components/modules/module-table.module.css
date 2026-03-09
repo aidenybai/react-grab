@@ -1,0 +1,66 @@
+.tableWrapper {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.thead {
+  background: var(--muted);
+}
+
+.th {
+  text-align: left;
+  padding: 10px 16px;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+}
+
+.tr {
+  border-top: 1px solid var(--border);
+  transition: background 0.1s;
+}
+
+.tr:hover {
+  background: var(--muted);
+}
+
+.td {
+  padding: 10px 16px;
+  color: var(--foreground);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.badgeGreen {
+  composes: badge;
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badgeRed {
+  composes: badge;
+  background: #fecaca;
+  color: #991b1b;
+}
+
+.badgeYellow {
+  composes: badge;
+  background: #fef9c3;
+  color: #854d0e;
+}

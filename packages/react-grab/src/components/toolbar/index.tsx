@@ -40,9 +40,11 @@ import {
   TOOLBAR_SHAKE_TOOLTIP_DURATION_MS,
   SELECTION_HINT_CYCLE_INTERVAL_MS,
   SELECTION_HINT_COUNT,
+  HINT_FLIP_IN_ANIMATION,
   FEEDBACK_DURATION_MS,
   SAFE_POLYGON_BUFFER_PX,
   PANEL_STYLES,
+  Z_INDEX_HOST,
 } from "../../constants.js";
 import { freezeUpdates } from "../../utils/freeze-updates.js";
 import {
@@ -166,6 +168,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     createSignal(false);
   let clockFlashRef: HTMLSpanElement | undefined;
   const [selectionHintIndex, setSelectionHintIndex] = createSignal(0);
+  const [hasHintCycled, setHasHintCycled] = createSignal(false);
 
   const hasLearnedSelectionHints = () => (props.clockFlashTrigger ?? 0) > 0;
 
@@ -174,8 +177,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       () => [props.isActive, hasLearnedSelectionHints()] as const,
       ([isActive, hasLearned]) => {
         setSelectionHintIndex(0);
+        setHasHintCycled(false);
         if (!isActive || hasLearned) return;
         const intervalId = setInterval(() => {
+          if (!hasHintCycled()) setHasHintCycled(true);
           setSelectionHintIndex(
             (previous) => (previous + 1) % SELECTION_HINT_COUNT,
           );
@@ -1464,7 +1469,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           : "opacity-0 pointer-events-none",
       )}
       style={{
-        "z-index": "2147483647",
+        "z-index": String(Z_INDEX_HOST),
         transform: `translate(${currentPosition().x}px, ${
           currentPosition().y
         }px)`,
@@ -1770,24 +1775,24 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                   PANEL_STYLES,
                   shakeTooltipPositionClass(),
                 )}
-                style={{ "z-index": "2147483647" }}
+                style={{ "z-index": String(Z_INDEX_HOST) }}
               >
                 <Show when={selectionHintIndex() === 0}>
-                  <span class="flex items-center gap-1 animate-[hint-flip-in_var(--transition-normal)_ease-out]">
+                  <span class={cn("flex items-center gap-1", hasHintCycled() && HINT_FLIP_IN_ANIMATION)}>
                     Click or
                     <Kbd>↵</Kbd>
                     to capture
                   </span>
                 </Show>
                 <Show when={selectionHintIndex() === 1}>
-                  <span class="flex items-center gap-1 animate-[hint-flip-in_var(--transition-normal)_ease-out]">
+                  <span class={cn("flex items-center gap-1", HINT_FLIP_IN_ANIMATION)}>
                     <Kbd>↑</Kbd>
                     <Kbd>↓</Kbd>
                     to fine-tune target
                   </span>
                 </Show>
                 <Show when={selectionHintIndex() === 2}>
-                  <span class="flex items-center gap-1 animate-[hint-flip-in_var(--transition-normal)_ease-out]">
+                  <span class={cn("flex items-center gap-1", HINT_FLIP_IN_ANIMATION)}>
                     <Kbd>esc</Kbd>
                     to cancel
                   </span>
@@ -1801,7 +1806,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                   PANEL_STYLES,
                   shakeTooltipPositionClass(),
                 )}
-                style={{ "z-index": "2147483647" }}
+                style={{ "z-index": String(Z_INDEX_HOST) }}
               >
                 Enable to continue
               </div>

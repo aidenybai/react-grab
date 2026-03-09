@@ -22,6 +22,7 @@ import {
   PREVIEW_MAX_ATTRS,
   PREVIEW_PRIORITY_ATTRS,
   SYMBOLICATION_TIMEOUT_MS,
+  DEFAULT_MAX_CONTEXT_LINES,
 } from "../constants.js";
 import { getTagName } from "../utils/get-tag-name.js";
 import { truncateString } from "../utils/truncate-string.js";
@@ -101,8 +102,7 @@ export const checkIsSourceComponentName = (name: string): boolean => {
   if (name.length <= 1) return false;
   if (checkIsInternalComponentName(name)) return false;
   if (!isCapitalized(name)) return false;
-  if (name.startsWith("Primitive.")) return false;
-  if (name.includes("Provider") || name.includes("Context")) return false;
+  if (name.endsWith("Provider") || name.endsWith("Context")) return false;
   return true;
 };
 
@@ -357,25 +357,34 @@ export const resolveSourceFromStack = (
   componentName: string | null;
 } | null => {
   if (!stack || stack.length === 0) return null;
-  for (const frame of stack) {
-    if (frame.fileName && isSourceFile(frame.fileName)) {
-      return {
-        filePath: normalizeFileName(frame.fileName),
-        lineNumber: frame.lineNumber,
-        componentName:
-          frame.functionName && checkIsSourceComponentName(frame.functionName)
-            ? frame.functionName
-            : null,
-      };
-    }
-  }
-  return null;
+
+  const sourceFrames = stack.filter(
+    (frame) => frame.fileName && isSourceFile(frame.fileName),
+  );
+
+  const namedFrame = sourceFrames.find(
+    (frame) =>
+      frame.functionName &&
+      checkIsSourceComponentName(frame.functionName),
+  );
+
+  const resolvedFrame = namedFrame ?? sourceFrames[0];
+  if (!resolvedFrame?.fileName) return null;
+
+  return {
+    filePath: normalizeFileName(resolvedFrame.fileName),
+    lineNumber: resolvedFrame.lineNumber,
+    componentName:
+      resolvedFrame.functionName &&
+      checkIsSourceComponentName(resolvedFrame.functionName)
+        ? resolvedFrame.functionName
+        : null,
+  };
 };
 
 const isUsefulComponentName = (name: string): boolean => {
   if (!name) return false;
   if (checkIsInternalComponentName(name)) return false;
-  if (name.startsWith("Primitive.")) return false;
   if (name === "SlotClone" || name === "Slot") return false;
   return true;
 };
@@ -442,7 +451,7 @@ export const formatStackContext = (
   stack: StackFrame[],
   options: StackContextOptions = {},
 ): string => {
-  const { maxLines = 3 } = options;
+  const { maxLines = DEFAULT_MAX_CONTEXT_LINES } = options;
   const isNextProject = checkIsNextProject();
   const stackContext: string[] = [];
 
@@ -493,7 +502,7 @@ export const getStackContext = async (
   element: Element,
   options: StackContextOptions = {},
 ): Promise<string> => {
-  const maxLines = options.maxLines ?? 3;
+  const maxLines = options.maxLines ?? DEFAULT_MAX_CONTEXT_LINES;
   const stack = await getStack(element);
 
   if (stack && hasSourceFiles(stack)) {

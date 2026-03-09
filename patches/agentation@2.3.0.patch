@@ -1,0 +1,83 @@
+diff --git a/dist/index.d.mts b/dist/index.d.mts
+index 7d4dc1f0b903c61738e6a780c4a61a212bd28a3c..21c84c949013fe82d4cb691ab1688b663459c2c0 100644
+--- a/dist/index.d.mts
++++ b/dist/index.d.mts
+@@ -284,4 +284,20 @@ declare function getStorageKey(pathname: string): string;
+ declare function loadAnnotations<T = Annotation>(pathname: string): T[];
+ declare function saveAnnotations<T = Annotation>(pathname: string, annotations: T[]): void;
+ 
+-export { PageFeedbackToolbarCSS as Agentation, type AgentationProps, AnimatedBunny, type Annotation, AnnotationPopupCSS, type AnnotationPopupCSSHandle, type AnnotationPopupCSSProps, type DemoAnnotation, IconChatEllipsis, IconCheck, IconCheckSmall, IconCheckSmallAnimated, IconCheckmark, IconCheckmarkCircle, IconCheckmarkLarge, IconChevronLeft, IconChevronRight, IconClose, IconCopyAlt, IconCopyAnimated, IconEdit, IconEye, IconEyeAlt, IconEyeAnimated, IconEyeClosed, IconEyeMinus, IconGear, IconHelp, IconListSparkle, IconMoon, IconPause, IconPauseAlt, IconPausePlayAnimated, IconPlayAlt, IconPlus, IconSendAnimated, IconSendArrow, IconSun, IconTrash, IconTrashAlt, IconXmark, IconXmarkLarge, PageFeedbackToolbarCSS, closestCrossingShadow, getElementClasses, getElementPath, getNearbyText, getShadowHost, getStorageKey, identifyAnimationElement, identifyElement, isInShadowDOM, loadAnnotations, saveAnnotations };
++interface SourceLocationResult {
++    found: boolean;
++    source?: {
++        fileName: string;
++        lineNumber: number;
++        columnNumber?: number;
++        componentName?: string;
++    };
++    reason?: string;
++    isReactApp: boolean;
++    isProduction: boolean;
++}
++declare function getSourceLocation(element: HTMLElement): SourceLocationResult;
++declare function findNearestComponentSource(element: HTMLElement, maxAncestors?: number): SourceLocationResult;
++declare function detectSourceFile(element: HTMLElement): string | undefined;
++
++export { PageFeedbackToolbarCSS as Agentation, type AgentationProps, AnimatedBunny, type Annotation, AnnotationPopupCSS, type AnnotationPopupCSSHandle, type AnnotationPopupCSSProps, type DemoAnnotation, IconChatEllipsis, IconCheck, IconCheckSmall, IconCheckSmallAnimated, IconCheckmark, IconCheckmarkCircle, IconCheckmarkLarge, IconChevronLeft, IconChevronRight, IconClose, IconCopyAlt, IconCopyAnimated, IconEdit, IconEye, IconEyeAlt, IconEyeAnimated, IconEyeClosed, IconEyeMinus, IconGear, IconHelp, IconListSparkle, IconMoon, IconPause, IconPauseAlt, IconPausePlayAnimated, IconPlayAlt, IconPlus, IconSendAnimated, IconSendArrow, IconSun, IconTrash, IconTrashAlt, IconXmark, IconXmarkLarge, PageFeedbackToolbarCSS, closestCrossingShadow, getElementClasses, getElementPath, getNearbyText, getShadowHost, getStorageKey, identifyAnimationElement, identifyElement, isInShadowDOM, loadAnnotations, saveAnnotations, getSourceLocation, findNearestComponentSource, detectSourceFile, type SourceLocationResult };
+diff --git a/dist/index.d.ts b/dist/index.d.ts
+index 7d4dc1f0b903c61738e6a780c4a61a212bd28a3c..21c84c949013fe82d4cb691ab1688b663459c2c0 100644
+--- a/dist/index.d.ts
++++ b/dist/index.d.ts
+@@ -284,4 +284,20 @@ declare function getStorageKey(pathname: string): string;
+ declare function loadAnnotations<T = Annotation>(pathname: string): T[];
+ declare function saveAnnotations<T = Annotation>(pathname: string, annotations: T[]): void;
+ 
+-export { PageFeedbackToolbarCSS as Agentation, type AgentationProps, AnimatedBunny, type Annotation, AnnotationPopupCSS, type AnnotationPopupCSSHandle, type AnnotationPopupCSSProps, type DemoAnnotation, IconChatEllipsis, IconCheck, IconCheckSmall, IconCheckSmallAnimated, IconCheckmark, IconCheckmarkCircle, IconCheckmarkLarge, IconChevronLeft, IconChevronRight, IconClose, IconCopyAlt, IconCopyAnimated, IconEdit, IconEye, IconEyeAlt, IconEyeAnimated, IconEyeClosed, IconEyeMinus, IconGear, IconHelp, IconListSparkle, IconMoon, IconPause, IconPauseAlt, IconPausePlayAnimated, IconPlayAlt, IconPlus, IconSendAnimated, IconSendArrow, IconSun, IconTrash, IconTrashAlt, IconXmark, IconXmarkLarge, PageFeedbackToolbarCSS, closestCrossingShadow, getElementClasses, getElementPath, getNearbyText, getShadowHost, getStorageKey, identifyAnimationElement, identifyElement, isInShadowDOM, loadAnnotations, saveAnnotations };
++interface SourceLocationResult {
++    found: boolean;
++    source?: {
++        fileName: string;
++        lineNumber: number;
++        columnNumber?: number;
++        componentName?: string;
++    };
++    reason?: string;
++    isReactApp: boolean;
++    isProduction: boolean;
++}
++declare function getSourceLocation(element: HTMLElement): SourceLocationResult;
++declare function findNearestComponentSource(element: HTMLElement, maxAncestors?: number): SourceLocationResult;
++declare function detectSourceFile(element: HTMLElement): string | undefined;
++
++export { PageFeedbackToolbarCSS as Agentation, type AgentationProps, AnimatedBunny, type Annotation, AnnotationPopupCSS, type AnnotationPopupCSSHandle, type AnnotationPopupCSSProps, type DemoAnnotation, IconChatEllipsis, IconCheck, IconCheckSmall, IconCheckSmallAnimated, IconCheckmark, IconCheckmarkCircle, IconCheckmarkLarge, IconChevronLeft, IconChevronRight, IconClose, IconCopyAlt, IconCopyAnimated, IconEdit, IconEye, IconEyeAlt, IconEyeAnimated, IconEyeClosed, IconEyeMinus, IconGear, IconHelp, IconListSparkle, IconMoon, IconPause, IconPauseAlt, IconPausePlayAnimated, IconPlayAlt, IconPlus, IconSendAnimated, IconSendArrow, IconSun, IconTrash, IconTrashAlt, IconXmark, IconXmarkLarge, PageFeedbackToolbarCSS, closestCrossingShadow, getElementClasses, getElementPath, getNearbyText, getShadowHost, getStorageKey, identifyAnimationElement, identifyElement, isInShadowDOM, loadAnnotations, saveAnnotations, getSourceLocation, findNearestComponentSource, detectSourceFile, type SourceLocationResult };
+diff --git a/dist/index.js b/dist/index.js
+index f624c46d52c98b636f5002c287c7864d7ed59563..5f49f29af4e98b096e42b5f8e0ca6ea0c5d4746e 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -79,7 +79,10 @@ __export(index_exports, {
+   identifyElement: () => identifyElement,
+   isInShadowDOM: () => isInShadowDOM,
+   loadAnnotations: () => loadAnnotations,
+-  saveAnnotations: () => saveAnnotations
++  saveAnnotations: () => saveAnnotations,
++  getSourceLocation: () => getSourceLocation,
++  findNearestComponentSource: () => findNearestComponentSource,
++  detectSourceFile: () => detectSourceFile
+ });
+ module.exports = __toCommonJS(index_exports);
+ 
+diff --git a/dist/index.mjs b/dist/index.mjs
+index 123cbee79ccfe949a213bcd2d6ed7fec61202bdf..3196bf3dfa8421e3a69abee096ebec2391e9ce4b 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -6058,6 +6058,9 @@ export {
+   identifyElement,
+   isInShadowDOM,
+   loadAnnotations,
+-  saveAnnotations
++  saveAnnotations,
++  getSourceLocation,
++  findNearestComponentSource,
++  detectSourceFile
+ };
+ //# sourceMappingURL=index.mjs.map
