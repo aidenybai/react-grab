@@ -1,0 +1,14 @@
+.wrapper {
+  position: relative;
+}
+
+.inner {
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}

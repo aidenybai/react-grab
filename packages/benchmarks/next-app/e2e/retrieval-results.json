@@ -1,0 +1,142 @@
+[
+  {
+    "id": 1,
+    "testId": "plain-styled-card",
+    "difficulty": "easy",
+    "expected": "components/styled/styled-card.tsx",
+    "actual": "components/styled/styled-card.tsx",
+    "correct": true,
+    "wallMs": 15028,
+    "confidence": "high"
+  },
+  {
+    "id": 2,
+    "testId": "plain-styled-button",
+    "difficulty": "easy",
+    "expected": "components/styled/styled-button.tsx",
+    "actual": "components/styled/styled-button.tsx",
+    "correct": true,
+    "wallMs": 15796,
+    "confidence": "high"
+  },
+  {
+    "id": 7,
+    "testId": "plain-tw-card",
+    "difficulty": "easy",
+    "expected": "components/tailwind/tw-card.tsx",
+    "actual": "components/tailwind/tw-card.tsx",
+    "correct": true,
+    "wallMs": 21318,
+    "confidence": "high"
+  },
+  {
+    "id": 8,
+    "testId": "plain-tw-button",
+    "difficulty": "easy",
+    "expected": "components/tailwind/tw-button.tsx",
+    "actual": "components/tailwind/tw-button.tsx",
+    "correct": true,
+    "wallMs": 15096,
+    "confidence": "high"
+  },
+  {
+    "id": 13,
+    "testId": "tracked-styled-card",
+    "difficulty": "medium",
+    "expected": "components/styled/styled-card.tsx",
+    "actual": "components/styled/styled-card.tsx",
+    "correct": true,
+    "wallMs": 27947,
+    "confidence": "high"
+  },
+  {
+    "id": 19,
+    "testId": "radix-popover-content",
+    "difficulty": "medium",
+    "expected": "components/radix/radix-popover.tsx",
+    "actual": "components/radix/radix-popover.tsx",
+    "correct": true,
+    "wallMs": 16968,
+    "confidence": "high"
+  },
+  {
+    "id": 25,
+    "testId": "tw-stat-revenue",
+    "difficulty": "medium",
+    "expected": "components/tailwind/tw-dashboard.tsx",
+    "actual": "components/tailwind/tw-dashboard.tsx",
+    "correct": true,
+    "wallMs": 16080,
+    "confidence": "high"
+  },
+  {
+    "id": 29,
+    "testId": "inline-list-first-item",
+    "difficulty": "medium",
+    "expected": "components/mixed/inline-list.tsx",
+    "actual": "components/mixed/inline-list.tsx",
+    "correct": true,
+    "wallMs": 16034,
+    "confidence": "high"
+  },
+  {
+    "id": 30,
+    "testId": "shadcn-input-name",
+    "difficulty": "medium",
+    "expected": "components/shadcn/shadcn-form.tsx",
+    "actual": "components/shadcn/shadcn-form.tsx",
+    "correct": true,
+    "wallMs": 17190,
+    "confidence": "high"
+  },
+  {
+    "id": 33,
+    "testId": "fractal-innermost",
+    "difficulty": "hard",
+    "expected": "components/recursive/fractal-layout.tsx",
+    "actual": "components/recursive/fractal-layout.tsx",
+    "correct": true,
+    "wallMs": 20086,
+    "confidence": "high"
+  },
+  {
+    "id": 35,
+    "testId": "tooltip-hoc-styled-button",
+    "difficulty": "hard",
+    "expected": "components/styled/styled-button.tsx",
+    "actual": "components/styled/styled-button.tsx",
+    "correct": true,
+    "wallMs": 29722,
+    "confidence": "high"
+  },
+  {
+    "id": 45,
+    "testId": "gauntlet-button",
+    "difficulty": "nightmare",
+    "expected": "components/challenge/the-gauntlet.tsx",
+    "actual": "components/challenge/the-gauntlet.tsx",
+    "correct": true,
+    "wallMs": 13669,
+    "confidence": "high"
+  },
+  {
+    "id": 50,
+    "testId": "identity-depth-1",
+    "difficulty": "nightmare",
+    "expected": "components/challenge/identity-crisis.tsx",
+    "actual": "components/challenge/identity-crisis.tsx",
+    "correct": true,
+    "wallMs": 14328,
+    "confidence": "high"
+  },
+  {
+    "id": 55,
+    "testId": "tw-mini-table",
+    "difficulty": "nightmare",
+    "expected": "components/tailwind/tw-dashboard.tsx",
+    "actual": "components/tailwind/tw-dashboard.tsx",
+    "correct": true,
+    "wallMs": 15786,
+    "confidence": "high"
+  }
+]

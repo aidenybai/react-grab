@@ -25,7 +25,7 @@
     "react": "19.2.1",
     "react-dom": "19.2.1",
     "react-grab": "workspace:*",
-    "recharts": "^3.4.1",
+    "recharts": "^2.15.4",
     "shiki": "^1.24.3",
     "tailwind-merge": "^3.4.0",
     "torph": "^0.0.5",

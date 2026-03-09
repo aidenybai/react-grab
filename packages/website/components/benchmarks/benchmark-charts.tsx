@@ -57,31 +57,31 @@ interface CustomTooltipProps {
 
 const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
-    const data = payload[0].payload;
+    const tooltipData = payload[0].payload;
     return (
       <div className="rounded-lg border border-border bg-card p-3 shadow-xl">
         <p className="mb-2 text-sm font-medium text-foreground/80">{label}</p>
-        {payload.map((entry, index) => {
-          const isControl = entry.name === "Control";
-          const rawValue = isControl ? data.ControlRaw : data.TreatmentRaw;
-          const unit = data.unit;
+        {payload.map((payloadEntry) => {
+          const isControl = payloadEntry.name === "Control";
+          const rawValue = isControl ? tooltipData.ControlRaw : tooltipData.TreatmentRaw;
+          const unit = tooltipData.unit;
           const formattedValue =
             typeof rawValue === "number"
               ? formatMetricValue(rawValue, unit)
               : rawValue;
 
           return (
-            <div key={index} className="flex items-center gap-2 text-xs">
+            <div key={payloadEntry.name} className="flex items-center gap-2 text-xs">
               <div
                 className="h-2 w-2 rounded-full"
-                style={{ backgroundColor: entry.fill }}
+                style={{ backgroundColor: payloadEntry.fill }}
               />
-              <span className="text-muted-foreground">{entry.name}:</span>
+              <span className="text-muted-foreground">{payloadEntry.name}:</span>
               <span className="font-mono text-foreground/80">
                 {formattedValue}
               </span>
               <span className="text-muted-foreground ml-1">
-                ({entry.value.toFixed(0)}%)
+                ({payloadEntry.value.toFixed(0)}%)
               </span>
             </div>
           );
@@ -140,8 +140,8 @@ const AnimatedBar = ({
 AnimatedBar.displayName = "AnimatedBar";
 
 export const BenchmarkChartsTweet = ({ results }: BenchmarkChartsProps) => {
-  const controlResults = results.filter((r) => r.type === "control");
-  const treatmentResults = results.filter((r) => r.type === "treatment");
+  const controlResults = results.filter((result) => result.type === "control");
+  const treatmentResults = results.filter((result) => result.type === "treatment");
 
   if (controlResults.length === 0 || treatmentResults.length === 0) {
     return null;
@@ -151,11 +151,11 @@ export const BenchmarkChartsTweet = ({ results }: BenchmarkChartsProps) => {
   const treatmentStats = calculateStats(treatmentResults);
 
   const controlTotalCost = controlResults.reduce(
-    (sum, r) => sum + r.costUsd,
+    (sum, result) => sum + result.costUsd,
     0,
   );
   const treatmentTotalCost = treatmentResults.reduce(
-    (sum, r) => sum + r.costUsd,
+    (sum, result) => sum + result.costUsd,
     0,
   );
 
@@ -266,7 +266,7 @@ export const BenchmarkChartsTweet = ({ results }: BenchmarkChartsProps) => {
         </a>{" "}
         dashboard.{" "}
         <a
-          href="https://github.com/aidenybai/react-grab/tree/main/packages/benchmarks"
+          href="https://github.com/aidenybai/react-grab/tree/main/packages/benchmarks/_archived"
           target="_blank"
           rel="noopener noreferrer"
           className="underline underline-offset-2 hover:text-muted-foreground"
@@ -379,8 +379,8 @@ const LiveCounter = ({ targetSeconds, maxSeconds }: LiveCounterProps) => {
 LiveCounter.displayName = "LiveCounter";
 
 export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
-  const controlResults = results.filter((r) => r.type === "control");
-  const treatmentResults = results.filter((r) => r.type === "treatment");
+  const controlResults = results.filter((result) => result.type === "control");
+  const treatmentResults = results.filter((result) => result.type === "treatment");
 
   if (controlResults.length === 0 || treatmentResults.length === 0) {
     return null;
@@ -390,11 +390,11 @@ export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
   const treatmentStats = calculateStats(treatmentResults);
 
   const controlTotalCost = controlResults.reduce(
-    (sum, r) => sum + r.costUsd,
+    (sum, result) => sum + result.costUsd,
     0,
   );
   const treatmentTotalCost = treatmentResults.reduce(
-    (sum, r) => sum + r.costUsd,
+    (sum, result) => sum + result.costUsd,
     0,
   );
 
@@ -499,13 +499,13 @@ export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
                 wrapperStyle={{ paddingBottom: "10px", fontSize: "12px" }}
                 content={({ payload }) => (
                   <div className="flex items-center justify-center gap-4">
-                    {payload?.map((entry, index) => (
-                      <div key={index} className="flex items-center gap-2">
+                    {payload?.map((legendEntry) => (
+                      <div key={String(legendEntry.value)} className="flex items-center gap-2">
                         <div
                           className="h-2 w-2 rounded-full"
-                          style={{ backgroundColor: entry.color }}
+                          style={{ backgroundColor: legendEntry.color }}
                         />
-                        {entry.value === "React Grab" ? (
+                        {legendEntry.value === "React Grab" ? (
                           <div className="flex items-center gap-1.5">
                             <Image
                               src="/logo.svg"
@@ -518,11 +518,11 @@ export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
                               className="text-xs"
                               style={{ color: BENCHMARK_TREATMENT_COLOR }}
                             >
-                              {entry.value}
+                              {legendEntry.value}
                             </span>
                           </div>
                         ) : (
-                          <span className="text-xs">{entry.value}</span>
+                          <span className="text-xs">{legendEntry.value}</span>
                         )}
                       </div>
                     ))}

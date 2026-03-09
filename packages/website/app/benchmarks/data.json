@@ -1,0 +1,1552 @@
+{
+  "lastBenchmarked": "2026-03-09",
+  "control": "claude-code",
+  "resolvers": [
+    {
+      "key": "claude-code",
+      "label": "Control (Claude Code)"
+    },
+    {
+      "key": "agentation+claude",
+      "label": "Agentation + Claude Code"
+    },
+    {
+      "key": "react-grab+claude",
+      "label": "React Grab + Claude Code"
+    }
+  ],
+  "scenarios": [
+    {
+      "label": "overall",
+      "cases": 75,
+      "results": {
+        "claude-code": {
+          "speed": 22.2,
+          "accuracy": 77,
+          "correct": 58
+        },
+        "agentation+claude": {
+          "speed": 19.2,
+          "accuracy": 93,
+          "correct": 70
+        },
+        "react-grab+claude": {
+          "speed": 11.8,
+          "accuracy": 95,
+          "correct": 71
+        }
+      }
+    },
+    {
+      "label": "plain components",
+      "cases": 12,
+      "results": {
+        "claude-code": {
+          "speed": 18,
+          "accuracy": 50,
+          "correct": 6
+        },
+        "agentation+claude": {
+          "speed": 18.8,
+          "accuracy": 92,
+          "correct": 11
+        },
+        "react-grab+claude": {
+          "speed": 8.6,
+          "accuracy": 92,
+          "correct": 11
+        }
+      }
+    },
+    {
+      "label": "HOCs, portals, compound",
+      "cases": 21,
+      "results": {
+        "claude-code": {
+          "speed": 20.1,
+          "accuracy": 71,
+          "correct": 15
+        },
+        "agentation+claude": {
+          "speed": 20.3,
+          "accuracy": 90,
+          "correct": 19
+        },
+        "react-grab+claude": {
+          "speed": 12.8,
+          "accuracy": 90,
+          "correct": 19
+        }
+      }
+    },
+    {
+      "label": "nested HOCs + Radix + Motion",
+      "cases": 18,
+      "results": {
+        "claude-code": {
+          "speed": 28.9,
+          "accuracy": 89,
+          "correct": 16
+        },
+        "agentation+claude": {
+          "speed": 17.3,
+          "accuracy": 100,
+          "correct": 18
+        },
+        "react-grab+claude": {
+          "speed": 10.7,
+          "accuracy": 100,
+          "correct": 18
+        }
+      }
+    },
+    {
+      "label": "recursive trees, triple portals, factories",
+      "cases": 24,
+      "results": {
+        "claude-code": {
+          "speed": 19.9,
+          "accuracy": 88,
+          "correct": 21
+        },
+        "agentation+claude": {
+          "speed": 20,
+          "accuracy": 92,
+          "correct": 22
+        },
+        "react-grab+claude": {
+          "speed": 13.2,
+          "accuracy": 96,
+          "correct": 23
+        }
+      }
+    }
+  ],
+  "testCases": [
+    {
+      "id": 1,
+      "testId": "plain-styled-card",
+      "difficulty": "easy",
+      "results": {
+        "claude-code": {
+          "speed": 9.8,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 13.7,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 10,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 2,
+      "testId": "plain-styled-button",
+      "difficulty": "easy",
+      "results": {
+        "claude-code": {
+          "speed": 13.8,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 21.5,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 9.6,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 3,
+      "testId": "plain-styled-badge",
+      "difficulty": "easy",
+      "results": {
+        "claude-code": {
+          "speed": 14.1,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 15,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 11.6,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 4,
+      "testId": "radix-tabs-trigger",
+      "difficulty": "easy",
+      "results": {
+        "claude-code": {
+          "speed": 11.6,
+          "correct": false
+        },
+        "agentation+claude": {
+          "speed": 18,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 7.9,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 5,
+      "testId": "plain-animated-card",
+      "difficulty": "easy",
+      "results": {
+        "claude-code": {
+          "speed": 14.1,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 25.2,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 7.3,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 6,
+      "testId": "provider-child",
+      "difficulty": "easy",
+      "results": {
+        "claude-code": {
+          "speed": 46.1,
+          "correct": false
+        },
+        "agentation+claude": {
+          "speed": 13.6,
+          "correct": false
+        },
+        "react-grab+claude": {
+          "speed": 10.9,
+          "correct": false
+        }
+      }
+    },
+    {
+      "id": 7,
+      "testId": "plain-tw-card",
+      "difficulty": "easy",
+      "results": {
+        "claude-code": {
+          "speed": 7.4,
+          "correct": false
+        },
+        "agentation+claude": {
+          "speed": 14.8,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 7.6,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 8,
+      "testId": "plain-tw-button",
+      "difficulty": "easy",
+      "results": {
+        "claude-code": {
+          "speed": 31.9,
+          "correct": false
+        },
+        "agentation+claude": {
+          "speed": 18.8,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 7.5,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 9,
+      "testId": "plain-tw-badge",
+      "difficulty": "easy",
+      "results": {
+        "claude-code": {
+          "speed": 15.9,
+          "correct": false
+        },
+        "agentation+claude": {
+          "speed": 15.5,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 9.6,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 10,
+      "testId": "plain-module-card",
+      "difficulty": "easy",
+      "results": {
+        "claude-code": {
+          "speed": 20,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 11.2,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 7.7,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 11,
+      "testId": "plain-inline-card",
+      "difficulty": "easy",
+      "results": {
+        "claude-code": {
+          "speed": 33.3,
+          "correct": false
+        },
+        "agentation+claude": {
+          "speed": 38.7,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 7.1,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 12,
+      "testId": "shadcn-profile-card",
+      "difficulty": "easy",
+      "results": {
+        "claude-code": {
+          "speed": 36,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 14.4,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 8.7,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 13,
+      "testId": "tracked-styled-card",
+      "difficulty": "medium",
+      "results": {
+        "claude-code": {
+          "speed": 18,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 17.2,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 18.1,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 14,
+      "testId": "memo-forwardref-button",
+      "difficulty": "medium",
+      "results": {
+        "claude-code": {
+          "speed": 24.3,
+          "correct": false
+        },
+        "agentation+claude": {
+          "speed": 27.7,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 12.4,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 15,
+      "testId": "radix-dialog-trigger",
+      "difficulty": "medium",
+      "results": {
+        "claude-code": {
+          "speed": 18.4,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 15.1,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 13.6,
+          "correct": false
+        }
+      }
+    },
+    {
+      "id": 16,
+      "testId": "radix-dropdown-item",
+      "difficulty": "medium",
+      "results": {
+        "claude-code": {
+          "speed": 9.6,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 50.3,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 13.5,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 17,
+      "testId": "radix-accordion-content",
+      "difficulty": "medium",
+      "results": {
+        "claude-code": {
+          "speed": 12.9,
+          "correct": false
+        },
+        "agentation+claude": {
+          "speed": 14.3,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 11.3,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 18,
+      "testId": "animated-list-item",
+      "difficulty": "medium",
+      "results": {
+        "claude-code": {
+          "speed": 14.2,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 15.3,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 9.8,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 19,
+      "testId": "radix-popover-content",
+      "difficulty": "medium",
+      "results": {
+        "claude-code": {
+          "speed": 0,
+          "correct": false
+        },
+        "agentation+claude": {
+          "speed": 0,
+          "correct": false
+        },
+        "react-grab+claude": {
+          "speed": 0,
+          "correct": false
+        }
+      }
+    },
+    {
+      "id": 20,
+      "testId": "fragment-tree-avatar",
+      "difficulty": "medium",
+      "results": {
+        "claude-code": {
+          "speed": 63.8,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 19.8,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 8,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 21,
+      "testId": "suspense-lazy-content",
+      "difficulty": "medium",
+      "results": {
+        "claude-code": {
+          "speed": 12,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 13,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 12.4,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 22,
+      "testId": "stagger-grid-child",
+      "difficulty": "medium",
+      "results": {
+        "claude-code": {
+          "speed": 17.9,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 27.7,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 11.8,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 23,
+      "testId": "radix-tabs-panel-content",
+      "difficulty": "medium",
+      "results": {
+        "claude-code": {
+          "speed": 16,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 24.7,
+          "correct": false
+        },
+        "react-grab+claude": {
+          "speed": 13.5,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 24,
+      "testId": "styled-data-cell",
+      "difficulty": "medium",
+      "results": {
+        "claude-code": {
+          "speed": 10,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 16.9,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 10.1,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 25,
+      "testId": "tw-stat-revenue",
+      "difficulty": "medium",
+      "results": {
+        "claude-code": {
+          "speed": 30,
+          "correct": false
+        },
+        "agentation+claude": {
+          "speed": 22.4,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 7.9,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 26,
+      "testId": "tw-nav-active",
+      "difficulty": "medium",
+      "results": {
+        "claude-code": {
+          "speed": 43.2,
+          "correct": false
+        },
+        "agentation+claude": {
+          "speed": 17.2,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 20.3,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 27,
+      "testId": "module-table-badge",
+      "difficulty": "medium",
+      "results": {
+        "claude-code": {
+          "speed": 32.2,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 26.9,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 14.5,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 28,
+      "testId": "module-nav-active",
+      "difficulty": "medium",
+      "results": {
+        "claude-code": {
+          "speed": 26.5,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 15.8,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 19.4,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 29,
+      "testId": "inline-list-first-item",
+      "difficulty": "medium",
+      "results": {
+        "claude-code": {
+          "speed": 19.1,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 21.3,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 11.2,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 30,
+      "testId": "shadcn-input-name",
+      "difficulty": "medium",
+      "results": {
+        "claude-code": {
+          "speed": 15.7,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 20.3,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 25,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 31,
+      "testId": "recursive-tree-leaf",
+      "difficulty": "hard",
+      "results": {
+        "claude-code": {
+          "speed": 21.1,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 13.9,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 12.1,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 32,
+      "testId": "recursive-menu-deepest",
+      "difficulty": "hard",
+      "results": {
+        "claude-code": {
+          "speed": 26.2,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 32.3,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 9.5,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 33,
+      "testId": "fractal-innermost",
+      "difficulty": "hard",
+      "results": {
+        "claude-code": {
+          "speed": 39.6,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 27.4,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 8.1,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 34,
+      "testId": "hoc-motion-styled-card",
+      "difficulty": "hard",
+      "results": {
+        "claude-code": {
+          "speed": 37.7,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 29.5,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 10.8,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 35,
+      "testId": "tooltip-hoc-styled-button",
+      "difficulty": "hard",
+      "results": {
+        "claude-code": {
+          "speed": 13.9,
+          "correct": false
+        },
+        "agentation+claude": {
+          "speed": 18.4,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 11.3,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 36,
+      "testId": "portal-motion-modal",
+      "difficulty": "hard",
+      "results": {
+        "claude-code": {
+          "speed": 21.4,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 18.4,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 11,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 37,
+      "testId": "dynamic-renderer",
+      "difficulty": "hard",
+      "results": {
+        "claude-code": {
+          "speed": 98.7,
+          "correct": false
+        },
+        "agentation+claude": {
+          "speed": 15,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 11.1,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 38,
+      "testId": "conditional-tree-leaf",
+      "difficulty": "hard",
+      "results": {
+        "claude-code": {
+          "speed": 29,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 22.7,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 12.5,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 39,
+      "testId": "animated-tab-indicator",
+      "difficulty": "hard",
+      "results": {
+        "claude-code": {
+          "speed": 12,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 9.2,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 11.1,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 40,
+      "testId": "button-in-dialog-in-motion",
+      "difficulty": "hard",
+      "results": {
+        "claude-code": {
+          "speed": 51.3,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 17.5,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 12,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 41,
+      "testId": "style-clash-button",
+      "difficulty": "hard",
+      "results": {
+        "claude-code": {
+          "speed": 35.9,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 13.1,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 11,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 42,
+      "testId": "tw-styled-hybrid-button",
+      "difficulty": "hard",
+      "results": {
+        "claude-code": {
+          "speed": 22.7,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 15.4,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 11.1,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 43,
+      "testId": "module-tw-hybrid-item",
+      "difficulty": "hard",
+      "results": {
+        "claude-code": {
+          "speed": 33,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 15.3,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 10.9,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 44,
+      "testId": "inline-motion-button",
+      "difficulty": "hard",
+      "results": {
+        "claude-code": {
+          "speed": 23.7,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 15.5,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 11.7,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 45,
+      "testId": "gauntlet-button",
+      "difficulty": "nightmare",
+      "results": {
+        "claude-code": {
+          "speed": 23.5,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 13,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 10,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 46,
+      "testId": "russian-doll-button",
+      "difficulty": "nightmare",
+      "results": {
+        "claude-code": {
+          "speed": 23.2,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 10.4,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 9.7,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 47,
+      "testId": "portal-inception-badge",
+      "difficulty": "nightmare",
+      "results": {
+        "claude-code": {
+          "speed": 0,
+          "correct": false
+        },
+        "agentation+claude": {
+          "speed": 0,
+          "correct": false
+        },
+        "react-grab+claude": {
+          "speed": 0,
+          "correct": false
+        }
+      }
+    },
+    {
+      "id": 48,
+      "testId": "animation-maze-content",
+      "difficulty": "nightmare",
+      "results": {
+        "claude-code": {
+          "speed": 25.3,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 17.8,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 11.2,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 49,
+      "testId": "identity-depth-11",
+      "difficulty": "nightmare",
+      "results": {
+        "claude-code": {
+          "speed": 25.9,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 14.4,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 13.7,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 50,
+      "testId": "identity-depth-1",
+      "difficulty": "nightmare",
+      "results": {
+        "claude-code": {
+          "speed": 24.9,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 13.4,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 13.3,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 51,
+      "testId": "shapeshifter",
+      "difficulty": "nightmare",
+      "results": {
+        "claude-code": {
+          "speed": 9,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 12.4,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 11,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 52,
+      "testId": "style-clash-badge",
+      "difficulty": "nightmare",
+      "results": {
+        "claude-code": {
+          "speed": 31.3,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 21.5,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 17.5,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 53,
+      "testId": "shadcn-tooltip-button",
+      "difficulty": "nightmare",
+      "results": {
+        "claude-code": {
+          "speed": 32.3,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 29,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 32.6,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 54,
+      "testId": "shadcn-skeleton",
+      "difficulty": "nightmare",
+      "results": {
+        "claude-code": {
+          "speed": 20.9,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 21.4,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 22.4,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 55,
+      "testId": "tw-mini-table",
+      "difficulty": "nightmare",
+      "results": {
+        "claude-code": {
+          "speed": 17.8,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 17.7,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 12.6,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 56,
+      "testId": "factory-revenue-widget",
+      "difficulty": "nightmare",
+      "results": {
+        "claude-code": {
+          "speed": 12.5,
+          "correct": false
+        },
+        "agentation+claude": {
+          "speed": 15.9,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 12.7,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 57,
+      "testId": "factory-users-widget",
+      "difficulty": "nightmare",
+      "results": {
+        "claude-code": {
+          "speed": 14,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 19.2,
+          "correct": false
+        },
+        "react-grab+claude": {
+          "speed": 9.3,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 58,
+      "testId": "hook-confirm-dialog",
+      "difficulty": "nightmare",
+      "results": {
+        "claude-code": {
+          "speed": 14.1,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 15.3,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 8.5,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 59,
+      "testId": "provider-status-badge",
+      "difficulty": "nightmare",
+      "results": {
+        "claude-code": {
+          "speed": 14.1,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 35.3,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 6.3,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 60,
+      "testId": "barrel-primary-action",
+      "difficulty": "nightmare",
+      "results": {
+        "claude-code": {
+          "speed": 40,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 42.2,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 14.1,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 61,
+      "testId": "deep-confirm-booking",
+      "difficulty": "nightmare",
+      "results": {
+        "claude-code": {
+          "speed": 12.7,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 23.8,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 13,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 62,
+      "testId": "deep-display-name-field",
+      "difficulty": "nightmare",
+      "results": {
+        "claude-code": {
+          "speed": 11.2,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 32.5,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 14.2,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 63,
+      "testId": "deep-metric-chart",
+      "difficulty": "nightmare",
+      "results": {
+        "claude-code": {
+          "speed": 15.7,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 13.6,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 7.3,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 64,
+      "testId": "deep-rich-text-block",
+      "difficulty": "nightmare",
+      "results": {
+        "claude-code": {
+          "speed": 13,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 13.1,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 12.3,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 65,
+      "testId": "deep-system-banner",
+      "difficulty": "nightmare",
+      "results": {
+        "claude-code": {
+          "speed": 12.9,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 22.3,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 17.9,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 66,
+      "testId": "util-status-indicator",
+      "difficulty": "nightmare",
+      "results": {
+        "claude-code": {
+          "speed": 13.4,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 12.9,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 10.7,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 67,
+      "testId": "util-formatted-currency",
+      "difficulty": "nightmare",
+      "results": {
+        "claude-code": {
+          "speed": 21.9,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 14,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 13,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 68,
+      "testId": "generated-integration-card",
+      "difficulty": "nightmare",
+      "results": {
+        "claude-code": {
+          "speed": 29,
+          "correct": false
+        },
+        "agentation+claude": {
+          "speed": 27,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 10.6,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 69,
+      "testId": "server-hero",
+      "difficulty": "medium",
+      "results": {
+        "claude-code": {
+          "speed": 23.4,
+          "correct": false
+        },
+        "agentation+claude": {
+          "speed": 17.1,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 8.4,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 70,
+      "testId": "server-stats",
+      "difficulty": "medium",
+      "results": {
+        "claude-code": {
+          "speed": 14.7,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 14.5,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 7.6,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 71,
+      "testId": "server-stat-users",
+      "difficulty": "hard",
+      "results": {
+        "claude-code": {
+          "speed": 12,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 12.8,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 9.2,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 72,
+      "testId": "server-feature-list",
+      "difficulty": "medium",
+      "results": {
+        "claude-code": {
+          "speed": 13.7,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 12.1,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 9,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 73,
+      "testId": "server-feature-item",
+      "difficulty": "hard",
+      "results": {
+        "claude-code": {
+          "speed": 10.3,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 9.6,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 8.8,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 74,
+      "testId": "server-with-client-island",
+      "difficulty": "hard",
+      "results": {
+        "claude-code": {
+          "speed": 33.9,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 11.5,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 10.1,
+          "correct": true
+        }
+      }
+    },
+    {
+      "id": 75,
+      "testId": "client-island-button",
+      "difficulty": "hard",
+      "results": {
+        "claude-code": {
+          "speed": 52.8,
+          "correct": true
+        },
+        "agentation+claude": {
+          "speed": 13.2,
+          "correct": true
+        },
+        "react-grab+claude": {
+          "speed": 10.5,
+          "correct": true
+        }
+      }
+    }
+  ]
+}

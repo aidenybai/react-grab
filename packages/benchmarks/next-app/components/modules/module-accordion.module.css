@@ -1,0 +1,49 @@
+.accordion {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.item {
+  border-bottom: 1px solid var(--border);
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+.trigger {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--foreground);
+  transition: background 0.15s;
+}
+
+.trigger:hover {
+  background: var(--muted);
+}
+
+.arrow {
+  transition: transform 0.2s;
+  font-size: 12px;
+}
+
+.arrowOpen {
+  composes: arrow;
+  transform: rotate(180deg);
+}
+
+.content {
+  padding: 0 16px 14px;
+  font-size: 14px;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+}
