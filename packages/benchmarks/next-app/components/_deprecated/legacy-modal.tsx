@@ -19,8 +19,11 @@ interface LegacyModalState {
   animating: boolean;
 }
 
+const ANIMATION_DURATION_MS = 300;
+
 export class LegacyModal extends Component<LegacyModalProps, LegacyModalState> {
   private overlayRef = createRef<HTMLDivElement>();
+  private animationTimer: ReturnType<typeof setTimeout> | null = null;
 
   static defaultProps = {
     width: 520,
@@ -36,8 +39,20 @@ export class LegacyModal extends Component<LegacyModalProps, LegacyModalState> {
 
   componentDidUpdate(prevProps: LegacyModalProps) {
     if (prevProps.visible !== this.props.visible) {
+      if (this.animationTimer) {
+        clearTimeout(this.animationTimer);
+      }
       this.setState({ animating: true });
-      setTimeout(() => this.setState({ animating: false }), 300);
+      this.animationTimer = setTimeout(() => {
+        this.animationTimer = null;
+        this.setState({ animating: false });
+      }, ANIMATION_DURATION_MS);
+    }
+  }
+
+  componentWillUnmount() {
+    if (this.animationTimer) {
+      clearTimeout(this.animationTimer);
     }
   }
 
@@ -77,7 +92,7 @@ export class LegacyModal extends Component<LegacyModalProps, LegacyModalState> {
     return (
       <div ref={this.overlayRef} style={overlayStyle} onClick={this.handleOverlayClick}>
         <div style={modalStyle}>
-          {title && (
+          {(title || closable) && (
             <div style={{ padding: "16px 24px", borderBottom: "1px solid #f0f0f0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <span style={{ fontSize: "16px", fontWeight: 600 }}>{title}</span>
               {closable && (

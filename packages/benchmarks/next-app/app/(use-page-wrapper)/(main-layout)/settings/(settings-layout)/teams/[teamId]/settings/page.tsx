@@ -3,7 +3,7 @@ export default function TeamSettingsPage() {
   return (
     <div>
       <h1>Team Settings</h1>
-      <p>Manage your team settings settings and preferences.</p>
+      <p>Manage your team settings and preferences.</p>
     </div>
   );
 }

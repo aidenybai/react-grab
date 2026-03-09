@@ -1,5 +1,4 @@
 import { test as base, expect } from "@playwright/test";
-import { TEST_MANIFEST } from "../test-manifest";
 
 function normalizeFilePath(filePath: string | null): string | null {
   if (!filePath) return null;
