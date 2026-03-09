@@ -1,6 +1,6 @@
 import { execSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { basename, dirname, join, parse } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { detect } from "@antfu/ni";
 import ignore from "ignore";
 
@@ -346,8 +346,7 @@ export const findReactProjects = (projectRoot: string): WorkspaceProject[] => {
   }
 
   let currentDirectory = dirname(projectRoot);
-  const { root } = parse(projectRoot);
-  while (currentDirectory !== root) {
+  while (currentDirectory !== dirname(currentDirectory)) {
     const parentProject = buildReactProject(currentDirectory);
     if (parentProject) {
       return [parentProject];
