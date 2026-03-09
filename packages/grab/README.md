@@ -44,18 +44,6 @@ This copies the element's context (file name, React component, and HTML source c
 in LoginForm at components/login-form.tsx:46:19
 ```
 
-## Framework Source Metadata (Development)
-
-Grab supports framework metadata fallbacks when React stack traces are unavailable:
-
-- **Svelte**: uses `__svelte_meta` (file, line, column) out of the box in dev.
-- **Vue**: uses `__vueParentComponent.type.__file` by default (file-level). For line & column metadata, use `vite-plugin-vue-inspector` (`data-v-inspector`).
-- **Solid**: uses runtime delegated handler internals (`$$click`, etc.) and scans loaded Vite source modules for the matching handler body, then infers source from nearby compiler location literals.
-
-When available, these sources are used for selection file paths, copied stack context, `Cmd/Ctrl+O` open-file actions, and `api.getSource` / `api.getStackContext`.
-
-These metadata channels are development-only and are usually stripped in production builds.
-
 ## Manual Installation
 
 If you're using a React framework or build tool, view instructions below:
