@@ -6,7 +6,7 @@ settings:
 
 patchedDependencies:
   agentation@2.3.0:
-    hash: 4ovhpssfozxkq7dxfodxzkfoju
+    hash: 2f515221d66c07e46b6712dd46b310b48292d86ecf30035a189c71fc7e909c1f
     path: patches/agentation@2.3.0.patch
 
 importers:
@@ -65,7 +65,7 @@ importers:
         version: 1.2.8(@types/react-dom@19.2.2(@types/react@19.2.11))(@types/react@19.2.11)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
       agentation:
         specifier: ^2.3.0
-        version: 2.3.0(patch_hash=4ovhpssfozxkq7dxfodxzkfoju)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+        version: 2.3.0(patch_hash=2f515221d66c07e46b6712dd46b310b48292d86ecf30035a189c71fc7e909c1f)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -10813,7 +10813,7 @@ snapshots:
 
   adm-zip@0.5.16: {}
 
-  agentation@2.3.0(patch_hash=4ovhpssfozxkq7dxfodxzkfoju)(react-dom@19.2.1(react@19.2.1))(react@19.2.1):
+  agentation@2.3.0(patch_hash=2f515221d66c07e46b6712dd46b310b48292d86ecf30035a189c71fc7e909c1f)(react-dom@19.2.1(react@19.2.1))(react@19.2.1):
     optionalDependencies:
       react: 19.2.1
       react-dom: 19.2.1(react@19.2.1)

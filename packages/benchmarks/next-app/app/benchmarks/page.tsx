@@ -37,13 +37,13 @@ const RESOLVER_COLORS: Record<string, string> = {
 };
 const CLI_RESOLVERS = ["claude-code", "agentation+claude", "react-grab+claude"];
 
-const fmt = (ms: number) =>
+const formatDuration = (ms: number) =>
   ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms.toFixed(0)}ms`;
 
-const normPath = (fp: string) =>
-  fp.match(/components\/.*|app\/.*|lib\/.*/)?.[0] ?? fp;
+const normalizeFilePath = (filePath: string) =>
+  filePath.match(/components\/.*|app\/.*|lib\/.*/)?.[0] ?? filePath;
 
-export default function BenchmarksPage() {
+const BenchmarksPage = () => {
   const [data, setData] = useState<BenchData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,23 +60,23 @@ export default function BenchmarksPage() {
   if (error) return <div style={styles.empty}>{error}</div>;
   if (!data) return <div style={styles.empty}>Loading...</div>;
 
-  const resolvers = data.resolverNames.filter((n) => CLI_RESOLVERS.includes(n));
+  const resolvers = data.resolverNames.filter((resolverName) => CLI_RESOLVERS.includes(resolverName));
   if (resolvers.length === 0) return <div style={styles.empty}>No CLI resolver results found.</div>;
 
   const getStats = (name: string) => {
-    const all = data.results.map((e) => e.resolvers[name]).filter(Boolean);
-    const correct = all.filter((r) => r.correct);
-    const avgMs = correct.length
-      ? correct.reduce((s, r) => s + r.ms, 0) / correct.length
+    const allResolverResults = data.results.map((entry) => entry.resolvers[name]).filter(Boolean);
+    const correctResults = allResolverResults.filter((resolverResult) => resolverResult.correct);
+    const avgMs = correctResults.length
+      ? correctResults.reduce((sum, resolverResult) => sum + resolverResult.ms, 0) / correctResults.length
       : null;
-    return { correct: correct.length, total: data.results.length, avgMs };
+    return { correct: correctResults.length, total: data.results.length, avgMs };
   };
 
   const sorted = resolvers
     .map((name) => ({ name, ...getStats(name) }))
     .sort((a, b) => b.correct / b.total - a.correct / a.total);
 
-  const maxPct = Math.max(...sorted.map((s) => s.correct / s.total));
+  const maxPct = Math.max(...sorted.map((stat) => stat.correct / stat.total));
 
   return (
     <div style={styles.page}>
@@ -90,13 +90,13 @@ export default function BenchmarksPage() {
 
       {/* Horizontal bars */}
       <div style={styles.barsSection}>
-        {sorted.map((s) => {
-          const pct = s.correct / s.total;
+        {sorted.map((resolverStat) => {
+          const pct = resolverStat.correct / resolverStat.total;
           const width = maxPct === 0 ? "0%" : `${(pct / maxPct) * 100}%`;
-          const color = RESOLVER_COLORS[s.name] ?? "#888";
+          const color = RESOLVER_COLORS[resolverStat.name] ?? "#888";
           return (
-            <div key={s.name} style={styles.barRow}>
-              <div style={{ ...styles.barLabel, color }}>{s.name}</div>
+            <div key={resolverStat.name} style={styles.barRow}>
+              <div style={{ ...styles.barLabel, color }}>{resolverStat.name}</div>
               <div style={styles.barTrack}>
                 <div
                   style={{
@@ -106,8 +106,8 @@ export default function BenchmarksPage() {
                   }}
                 >
                   <span style={styles.barDetail}>
-                    {s.correct}/{s.total}
-                    {s.avgMs !== null ? ` · ${fmt(s.avgMs)}` : ""}
+                    {resolverStat.correct}/{resolverStat.total}
+                    {resolverStat.avgMs !== null ? ` · ${formatDuration(resolverStat.avgMs)}` : ""}
                   </span>
                 </div>
                 <span style={styles.barPct}>
@@ -125,7 +125,7 @@ export default function BenchmarksPage() {
           <div style={styles.heatCorner} />
           {TIERS.map((tier) => {
             const count = data.results.filter(
-              (e) => e.difficulty === tier
+              (entry) => entry.difficulty === tier
             ).length;
             return (
               <div
@@ -136,28 +136,28 @@ export default function BenchmarksPage() {
               </div>
             );
           })}
-          {sorted.map((s) => {
-            const color = RESOLVER_COLORS[s.name] ?? "#888";
+          {sorted.map((resolverStat) => {
+            const color = RESOLVER_COLORS[resolverStat.name] ?? "#888";
             return [
               <div
-                key={`${s.name}-label`}
+                key={`${resolverStat.name}-label`}
                 style={{ ...styles.heatLabel, color }}
               >
-                {s.name}
+                {resolverStat.name}
               </div>,
               ...TIERS.map((tier) => {
                 const tierEntries = data.results.filter(
-                  (e) => e.difficulty === tier
+                  (entry) => entry.difficulty === tier
                 );
                 const correct = tierEntries.filter(
-                  (e) => e.resolvers[s.name]?.correct
+                  (entry) => entry.resolvers[resolverStat.name]?.correct
                 ).length;
                 const count = tierEntries.length;
                 const pct = count ? correct / count : 0;
                 const opacity = 0.15 + pct * 0.7;
                 return (
                   <div
-                    key={`${s.name}-${tier}`}
+                    key={`${resolverStat.name}-${tier}`}
                     style={{
                       ...styles.heatCell,
                       backgroundColor: `${color}${Math.round(opacity * 255)
@@ -183,7 +183,7 @@ export default function BenchmarksPage() {
       <div style={styles.detailSection}>
         {TIERS.map((tier) => {
           const tierEntries = data.results.filter(
-            (e) => e.difficulty === tier
+            (entry) => entry.difficulty === tier
           );
           if (tierEntries.length === 0) return null;
           return (
@@ -197,12 +197,12 @@ export default function BenchmarksPage() {
               >
                 {tier.toUpperCase()} ({tierEntries.length} cases)
               </div>
-              {tierEntries.map((entry, idx) => {
+              {tierEntries.map((entry, entryIndex) => {
                 const allCorrect = resolvers.every(
-                  (n) => entry.resolvers[n]?.correct
+                  (resolverName) => entry.resolvers[resolverName]?.correct
                 );
                 const allWrong = resolvers.every(
-                  (n) => !entry.resolvers[n]?.correct
+                  (resolverName) => !entry.resolvers[resolverName]?.correct
                 );
                 return (
                   <div
@@ -210,7 +210,7 @@ export default function BenchmarksPage() {
                     style={{
                       ...styles.entryRow,
                       backgroundColor:
-                        idx % 2 === 0 ? "#161b22" : "transparent",
+                        entryIndex % 2 === 0 ? "#161b22" : "transparent",
                     }}
                   >
                     <div style={styles.entryHeader}>
@@ -237,9 +237,9 @@ export default function BenchmarksPage() {
                       <span style={styles.entryExpected}>{entry.expected}</span>
                     </div>
                     {resolvers.map((name) => {
-                      const res = entry.resolvers[name];
+                      const resolverResult = entry.resolvers[name];
                       const color = RESOLVER_COLORS[name] ?? "#8b949e";
-                      if (!res?.found && !res?.filePath) {
+                      if (!resolverResult?.found && !resolverResult?.filePath) {
                         return (
                           <div key={name} style={styles.resolverRow}>
                             <span style={{ color: "#484f58" }}>
@@ -251,20 +251,20 @@ export default function BenchmarksPage() {
                           </div>
                         );
                       }
-                      const path = res.filePath
-                        ? normPath(res.filePath)
+                      const path = resolverResult.filePath
+                        ? normalizeFilePath(resolverResult.filePath)
                         : "(null)";
                       return (
                         <div key={name} style={styles.resolverRow}>
                           <span>
                             <span
                               style={{
-                                color: res.correct ? "#3fb950" : "#f85149",
+                                color: resolverResult.correct ? "#3fb950" : "#f85149",
                                 fontWeight: 600,
                                 marginRight: 6,
                               }}
                             >
-                              {res.correct ? "✓" : "✗"}
+                              {resolverResult.correct ? "✓" : "✗"}
                             </span>
                             <span style={{ color, fontWeight: 500 }}>
                               {name}
@@ -273,16 +273,16 @@ export default function BenchmarksPage() {
                           <span style={styles.resolverDetail}>
                             <span
                               style={{
-                                color: res.correct ? "#8b949e" : "#484f58",
+                                color: resolverResult.correct ? "#8b949e" : "#484f58",
                               }}
                             >
                               {path}
                             </span>
-                            {!res.correct && res.found && (
+                            {!resolverResult.correct && resolverResult.found && (
                               <span style={styles.wrongBadge}>WRONG</span>
                             )}
                             <span style={{ color: "#484f58", fontSize: 11 }}>
-                              {fmt(res.ms)}
+                              {formatDuration(resolverResult.ms)}
                             </span>
                           </span>
                         </div>
@@ -442,3 +442,5 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 3,
   },
 };
+
+export default BenchmarksPage;

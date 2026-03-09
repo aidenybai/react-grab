@@ -33,15 +33,14 @@ const COLORS: Record<string, string> = {
 };
 
 const chartConfig = Object.fromEntries(
-  benchData.resolvers.map((r) => [
-    r.key,
-    { label: r.label, color: COLORS[r.key] ?? "#888" },
+  benchData.resolvers.map((resolver) => [
+    resolver.key,
+    { label: resolver.label, color: COLORS[resolver.key] ?? "#888" },
   ]),
 ) as ChartConfig;
 
-const resolverKeys = benchData.resolvers.map((r) => r.key);
+const resolverKeys = benchData.resolvers.map((resolver) => resolver.key);
 const controlKey = (benchData as { control?: string }).control;
-const treatmentKeys = resolverKeys.filter((k) => k !== controlKey);
 
 const getChangeInfo = (
   controlVal: number,
@@ -64,19 +63,19 @@ const getChangeInfo = (
   };
 };
 
-const speedChartData = benchData.scenarios.map((s) => ({
-  label: s.label,
+const speedChartData = benchData.scenarios.map((scenario) => ({
+  label: scenario.label,
   ...Object.fromEntries(
-    resolverKeys.map((k) => [k, s.results[k as keyof typeof s.results].speed]),
+    resolverKeys.map((key) => [key, scenario.results[key as keyof typeof scenario.results].speed]),
   ),
 }));
 
-const accuracyChartData = benchData.scenarios.map((s) => ({
-  label: s.label,
+const accuracyChartData = benchData.scenarios.map((scenario) => ({
+  label: scenario.label,
   ...Object.fromEntries(
-    resolverKeys.map((k) => [
-      k,
-      s.results[k as keyof typeof s.results].accuracy,
+    resolverKeys.map((key) => [
+      key,
+      scenario.results[key as keyof typeof scenario.results].accuracy,
     ]),
   ),
 }));
@@ -96,20 +95,20 @@ const ResultsSection = () => {
         aria-label="Metric"
         className="flex gap-1 mb-4 bg-muted rounded-lg p-1 w-fit"
       >
-        {TABS.map((t) => (
+        {TABS.map((tabKey) => (
           <button
-            key={t}
+            key={tabKey}
             role="tab"
-            aria-selected={tab === t}
+            aria-selected={tab === tabKey}
             aria-controls={panelId}
-            onClick={() => setTab(t)}
+            onClick={() => setTab(tabKey)}
             className={`min-h-8 px-3.5 py-1.5 text-sm rounded-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
-              tab === t
+              tab === tabKey
                 ? "bg-background text-foreground font-medium shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t === "speed" ? "Speed" : "Accuracy"}
+            {tabKey === "speed" ? "Speed" : "Accuracy"}
           </button>
         ))}
       </div>
@@ -170,17 +169,17 @@ const ResultsSection = () => {
               content={<ChartTooltipContent />}
             />
             <ChartLegend content={<ChartLegendContent />} />
-            {resolverKeys.map((key) => (
+            {resolverKeys.map((resolverKey) => (
               <Bar
-                key={key}
-                dataKey={key}
-                fill={COLORS[key] ?? "#888"}
+                key={resolverKey}
+                dataKey={resolverKey}
+                fill={COLORS[resolverKey] ?? "#888"}
                 radius={[0, 3, 3, 0]}
               >
                 <LabelList
-                  dataKey={key}
+                  dataKey={resolverKey}
                   position="right"
-                  formatter={(v: number) => (isSpeed ? `${v}s` : `${v}%`)}
+                  formatter={(value: number) => (isSpeed ? `${value}s` : `${value}%`)}
                   style={{ fontSize: 10, fill: "var(--muted-foreground)" }}
                 />
               </Bar>
@@ -207,47 +206,47 @@ const ResultsSection = () => {
                   >
                     Test Case
                   </th>
-                  {resolverKeys.map((k) => {
-                    const r = benchData.resolvers.find((r) => r.key === k);
+                  {resolverKeys.map((resolverKey) => {
+                    const resolver = benchData.resolvers.find((innerResolver) => innerResolver.key === resolverKey);
                     return (
                       <th
-                        key={k}
+                        key={resolverKey}
                         scope="col"
                         className="text-right py-2 px-3 text-xs font-medium text-muted-foreground"
                       >
-                        {r?.label ?? k}
+                        {resolver?.label ?? resolverKey}
                       </th>
                     );
                   })}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {benchData.testCases.map((tc) => {
+                {benchData.testCases.map((testCase) => {
                   const controlResult = controlKey
-                    ? tc.results[controlKey as keyof typeof tc.results]
+                    ? testCase.results[controlKey as keyof typeof testCase.results]
                     : null;
                   return (
                     <tr
-                      key={tc.id}
+                      key={testCase.id}
                       className="hover:bg-popover transition-colors"
                     >
                       <td
                         className="py-2 px-3 text-foreground font-medium max-w-[200px] truncate cursor-help"
-                        title={tc.difficulty}
+                        title={testCase.difficulty}
                       >
-                        {tc.testId}
+                        {testCase.testId}
                       </td>
-                      {resolverKeys.map((k) => {
-                        const r = tc.results[k as keyof typeof tc.results];
-                        const isControl = k === controlKey;
+                      {resolverKeys.map((resolverKey) => {
+                        const result = testCase.results[resolverKey as keyof typeof testCase.results];
+                        const isControl = resolverKey === controlKey;
 
                         if (isSpeed) {
                           const info = !isControl && controlResult
-                            ? getChangeInfo(controlResult.speed, r.speed, true)
+                            ? getChangeInfo(controlResult.speed, result.speed, true)
                             : { change: "", bgColor: "transparent" };
                           return (
                             <td
-                              key={k}
+                              key={resolverKey}
                               className="py-2 px-3 text-right tabular-nums text-xs"
                               style={{
                                 color: isControl
@@ -256,7 +255,7 @@ const ResultsSection = () => {
                                 backgroundColor: info.bgColor,
                               }}
                             >
-                              {r.speed ? `${r.speed}s` : "\u2014"}
+                              {result.speed ? `${result.speed}s` : "\u2014"}
                               {info.change && (
                                 <span className="ml-1.5 text-[10px] opacity-70">
                                   {info.change}
@@ -267,25 +266,25 @@ const ResultsSection = () => {
                         }
 
                         const controlCorrect = controlResult?.correct ?? false;
-                        const improved = !isControl && r.correct && !controlCorrect;
-                        const regressed = !isControl && !r.correct && controlCorrect;
-                        const bgColor = improved
+                        const didImproveOverControl = !isControl && result.correct && !controlCorrect;
+                        const didRegressFromControl = !isControl && !result.correct && controlCorrect;
+                        const bgColor = didImproveOverControl
                           ? "rgba(100, 200, 150, 0.2)"
-                          : regressed
+                          : didRegressFromControl
                             ? "rgba(240, 120, 120, 0.2)"
                             : "transparent";
                         return (
                           <td
-                            key={k}
+                            key={resolverKey}
                             className="py-2 px-3 text-right tabular-nums text-xs"
                             style={{
-                              color: r.correct
+                              color: result.correct
                                 ? "var(--foreground)"
                                 : "var(--muted-foreground)",
                               backgroundColor: bgColor,
                             }}
                           >
-                            {r.correct ? "\u2713" : "\u2717"}
+                            {result.correct ? "\u2713" : "\u2717"}
                           </td>
                         );
                       })}

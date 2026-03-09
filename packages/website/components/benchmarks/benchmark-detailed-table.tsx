@@ -1,7 +1,7 @@
 import prettyMs from "pretty-ms";
 import { BenchmarkResult, ChangeInfo, GroupedResult } from "./types";
 import { calculateChange } from "./utils";
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { ChevronDown, ChevronUp, Search, ArrowUpDown } from "lucide-react";
 import Image from "next/image";
 import { BENCHMARK_TREATMENT_COLOR } from "@/constants";
@@ -139,12 +139,12 @@ export const BenchmarkDetailedTable = ({
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   const groupedByTest = useMemo(() => {
-    return results.reduce<Record<string, GroupedResult>>((acc, result) => {
-      if (!acc[result.testName]) {
-        acc[result.testName] = {};
+    return results.reduce<Record<string, GroupedResult>>((grouped, result) => {
+      if (!grouped[result.testName]) {
+        grouped[result.testName] = {};
       }
-      acc[result.testName][result.type] = result;
-      return acc;
+      grouped[result.testName][result.type] = result;
+      return grouped;
     }, {});
   }, [results]);
 
@@ -257,14 +257,14 @@ export const BenchmarkDetailedTable = ({
           </tr>
           <tr className="border-b border-border bg-card">
             {METRIC_COLUMNS.map((column) => (
-              <>
-                <th key={`${column.sortField}-control`} className={CONTROL_SUBHEADER_CLASS}>
+              <React.Fragment key={column.sortField}>
+                <th className={CONTROL_SUBHEADER_CLASS}>
                   Control
                 </th>
-                <th key={`${column.sortField}-treatment`} className={TREATMENT_SUBHEADER_CLASS}>
+                <th className={TREATMENT_SUBHEADER_CLASS}>
                   <TreatmentLabel />
                 </th>
-              </>
+              </React.Fragment>
             ))}
           </tr>
         </thead>
@@ -297,15 +297,13 @@ export const BenchmarkDetailedTable = ({
                   {METRIC_COLUMNS.map((column) => {
                     const changeInfo = column.change(control, treatment);
                     return (
-                      <>
+                      <React.Fragment key={column.sortField}>
                         <td
-                          key={`${column.sortField}-control`}
                           className="py-2 px-3 text-muted-foreground tabular-nums text-xs"
                         >
                           {column.controlValue(control)}
                         </td>
                         <td
-                          key={`${column.sortField}-treatment`}
                           className="py-2 px-3 text-foreground/80 tabular-nums text-xs"
                           style={{ backgroundColor: changeInfo.bgColor }}
                         >
@@ -316,7 +314,7 @@ export const BenchmarkDetailedTable = ({
                             </span>
                           )}
                         </td>
-                      </>
+                      </React.Fragment>
                     );
                   })}
                 </tr>
