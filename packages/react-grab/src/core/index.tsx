@@ -88,6 +88,7 @@ import { parseActivationKey } from "../utils/parse-activation-key.js";
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
 import { openFile } from "../utils/open-file.js";
 import { combineBounds } from "../utils/combine-bounds.js";
+import { mergeStackContext } from "../utils/merge-stack-context.js";
 import {
   resolveActionEnabled,
   resolveToolbarActionEnabled,
@@ -563,12 +564,24 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       element: Element,
       options: ElementStackContextOptions = {},
     ): Promise<string> => {
-      const stackContext = await getStackContext(element, options);
-      if (stackContext) return stackContext;
+      const maxLines = options.maxLines ?? DEFAULT_MAX_CONTEXT_LINES;
+      if (maxLines < 1) return "";
+
+      const reactStackContext = await getStackContext(element, {
+        ...options,
+        maxLines,
+      });
 
       const pluginStackContext =
-        await pluginRegistry.hooks.resolveElementStackContext(element, options);
-      return pluginStackContext ?? "";
+        await pluginRegistry.hooks.resolveElementStackContext(element, {
+          ...options,
+          maxLines,
+        });
+
+      if (!reactStackContext) return pluginStackContext ?? "";
+      if (!pluginStackContext) return reactStackContext;
+
+      return mergeStackContext(reactStackContext, pluginStackContext, maxLines);
     };
 
     const isRendererActive = createMemo(() => isActivated() && !isCopying());

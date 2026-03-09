@@ -11,6 +11,69 @@ const PLACEHOLDER_TARGET_STYLE = {
 };
 
 test.describe("Framework Source Metadata", () => {
+  test("should preserve React source and merge framework fallback stack frames", async ({
+    reactGrab,
+  }) => {
+    const stackCapture = await reactGrab.page.evaluate(async () => {
+      const api = (
+        window as {
+          __REACT_GRAB__?: {
+            getSource: (element: Element) => Promise<{
+              filePath: string;
+              lineNumber: number | null;
+              componentName: string | null;
+            } | null>;
+            getStackContext: (element: Element) => Promise<string>;
+            copyElement: (element: Element) => Promise<boolean>;
+          };
+        }
+      ).__REACT_GRAB__;
+      const targetElement = document.querySelector(
+        '[data-testid="nested-button"]',
+      );
+      if (!api || !targetElement) return null;
+
+      const sourceBefore = await api.getSource(targetElement);
+      Reflect.set(targetElement, "__svelte_meta", {
+        parent: {
+          type: "component",
+          file: "src/FakeParent.svelte",
+          line: 2,
+          column: 0,
+          parent: null,
+          componentTag: "FakeParent",
+        },
+        loc: {
+          file: "src/FakeChild.svelte",
+          line: 10,
+          column: 4,
+        },
+      });
+
+      const sourceAfter = await api.getSource(targetElement);
+      const stackContext = await api.getStackContext(targetElement);
+      await api.copyElement(targetElement);
+      const clipboard = await navigator.clipboard.readText();
+      Reflect.deleteProperty(targetElement, "__svelte_meta");
+
+      return {
+        sourceBefore,
+        sourceAfter,
+        stackContext,
+        clipboard,
+      };
+    });
+
+    expect(stackCapture).not.toBeNull();
+    expect(stackCapture?.sourceBefore).not.toBeNull();
+    expect(stackCapture?.sourceAfter).toEqual(stackCapture?.sourceBefore);
+    expect(stackCapture?.sourceAfter?.filePath).toContain("/src/App.tsx");
+    expect(stackCapture?.stackContext).toContain("/src/App.tsx");
+    expect(stackCapture?.stackContext).toContain("src/FakeChild.svelte:10:5");
+    expect(stackCapture?.clipboard).toContain("/src/App.tsx");
+    expect(stackCapture?.clipboard).toContain("src/FakeChild.svelte:10:5");
+  });
+
   test("should resolve Solid runtime handler source without build plugins", async ({
     reactGrab,
   }) => {
