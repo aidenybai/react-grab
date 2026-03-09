@@ -1,4 +1,4 @@
-import { OTPForm } from "@/components/otp-form"
+import { OTPForm } from "@/components/otp-form";
 
 export default function OTPPage() {
   return (
@@ -7,5 +7,5 @@ export default function OTPPage() {
         <OTPForm />
       </div>
     </div>
-  )
+  );
 }

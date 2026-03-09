@@ -22,8 +22,13 @@ const statusColors: Record<string, string> = {
   skipped: "#9ca3af",
 };
 
-export function WorkflowHistory({ runs, isLoading, onViewDetails }: WorkflowHistoryProps) {
-  if (isLoading) return <div className="workflow-history--loading">Loading history...</div>;
+export function WorkflowHistory({
+  runs,
+  isLoading,
+  onViewDetails,
+}: WorkflowHistoryProps) {
+  if (isLoading)
+    return <div className="workflow-history--loading">Loading history...</div>;
 
   return (
     <div className="workflow-history">
@@ -42,13 +47,18 @@ export function WorkflowHistory({ runs, isLoading, onViewDetails }: WorkflowHist
           {runs.map((run) => (
             <tr key={run.id}>
               <td>
-                <span style={{ color: statusColors[run.status] }}>{run.status}</span>
+                <span style={{ color: statusColors[run.status] }}>
+                  {run.status}
+                </span>
               </td>
               <td>{run.startedAt}</td>
               <td>{run.duration}ms</td>
               <td>{run.triggeredBy}</td>
               <td>
-                <button className="btn btn-sm" onClick={() => onViewDetails?.(run.id)}>
+                <button
+                  className="btn btn-sm"
+                  onClick={() => onViewDetails?.(run.id)}
+                >
                   Details
                 </button>
               </td>

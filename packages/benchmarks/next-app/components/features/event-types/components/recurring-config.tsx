@@ -7,7 +7,12 @@ interface RecurringConfigProps {
   frequency?: "daily" | "weekly" | "monthly";
   interval?: number;
   count?: number;
-  onChange?: (config: { enabled: boolean; frequency: string; interval: number; count: number }) => void;
+  onChange?: (config: {
+    enabled: boolean;
+    frequency: string;
+    interval: number;
+    count: number;
+  }) => void;
 }
 
 export function RecurringConfig({
@@ -38,7 +43,10 @@ export function RecurringConfig({
         <div className="recurring-config__options">
           <div className="recurring-config__field">
             <label>Frequency</label>
-            <select value={freq} onChange={(e) => setFreq(e.target.value as typeof freq)}>
+            <select
+              value={freq}
+              onChange={(e) => setFreq(e.target.value as typeof freq)}
+            >
               <option value="daily">Daily</option>
               <option value="weekly">Weekly</option>
               <option value="monthly">Monthly</option>
@@ -46,11 +54,23 @@ export function RecurringConfig({
           </div>
           <div className="recurring-config__field">
             <label>Every</label>
-            <input type="number" value={intv} onChange={(e) => setIntv(Number(e.target.value))} min={1} max={30} />
+            <input
+              type="number"
+              value={intv}
+              onChange={(e) => setIntv(Number(e.target.value))}
+              min={1}
+              max={30}
+            />
           </div>
           <div className="recurring-config__field">
             <label>Occurrences</label>
-            <input type="number" value={cnt} onChange={(e) => setCnt(Number(e.target.value))} min={1} max={365} />
+            <input
+              type="number"
+              value={cnt}
+              onChange={(e) => setCnt(Number(e.target.value))}
+              min={1}
+              max={365}
+            />
           </div>
         </div>
       )}

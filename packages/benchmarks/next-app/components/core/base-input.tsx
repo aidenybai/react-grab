@@ -39,8 +39,14 @@ export function BaseInput({
           alignItems: "center",
           height: 56,
           borderRadius: variant === "filled" ? "4px 4px 0 0" : 4,
-          border: variant === "outlined" ? `${focused ? 2 : 1}px solid ${borderColor}` : "none",
-          borderBottom: variant === "filled" ? `${focused ? 2 : 1}px solid ${borderColor}` : undefined,
+          border:
+            variant === "outlined"
+              ? `${focused ? 2 : 1}px solid ${borderColor}`
+              : "none",
+          borderBottom:
+            variant === "filled"
+              ? `${focused ? 2 : 1}px solid ${borderColor}`
+              : undefined,
           backgroundColor: variant === "filled" ? "#E7E0EC" : "transparent",
           padding: "0 16px",
           gap: 12,
@@ -82,7 +88,13 @@ export function BaseInput({
         {trailingIcon}
       </div>
       {(supportingText || errorText) && (
-        <div style={{ padding: "4px 16px 0", fontSize: 12, color: hasError ? "#B3261E" : "#49454F" }}>
+        <div
+          style={{
+            padding: "4px 16px 0",
+            fontSize: 12,
+            color: hasError ? "#B3261E" : "#49454F",
+          }}
+        >
           {errorText || supportingText}
         </div>
       )}

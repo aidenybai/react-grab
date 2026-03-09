@@ -18,22 +18,26 @@ const StyledBadge = styled.span`
   font-weight: 600;
 `;
 
-export function StyleClash({ "data-testid": testId }: { "data-testid"?: string }) {
+export function StyleClash({
+  "data-testid": testId,
+}: {
+  "data-testid"?: string;
+}) {
   return (
     <StyledOuter className={`${styles.wrapper} shadow-md`} data-testid={testId}>
-
       <StyledInner
         className={`${styles.inner} flex flex-col gap-3`}
         style={{ borderTop: "3px solid #8b5cf6" }}
       >
-
-        <span className={`${styles.label} text-[var(--muted-foreground)] font-medium`}>
+        <span
+          className={`${styles.label} text-[var(--muted-foreground)] font-medium`}
+        >
           Style Clash Zone
         </span>
 
         <p className="text-sm text-[var(--foreground)] leading-relaxed">
-          This component mixes styled-components, Tailwind, CSS Modules, and inline styles.
-          Good luck finding it from the DOM!
+          This component mixes styled-components, Tailwind, CSS Modules, and
+          inline styles. Good luck finding it from the DOM!
         </p>
 
         <div className="flex items-center gap-2">

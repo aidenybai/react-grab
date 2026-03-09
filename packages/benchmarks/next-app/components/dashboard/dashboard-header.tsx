@@ -15,7 +15,13 @@ interface DashboardHeaderProps {
   className?: string;
 }
 
-export function DashboardHeader({ title, description, breadcrumbs, actions, className }: DashboardHeaderProps) {
+export function DashboardHeader({
+  title,
+  description,
+  breadcrumbs,
+  actions,
+  className,
+}: DashboardHeaderProps) {
   return (
     <div className={`border-b bg-white px-6 py-4 ${className ?? ""}`}>
       {breadcrumbs && breadcrumbs.length > 0 && (
@@ -24,7 +30,10 @@ export function DashboardHeader({ title, description, breadcrumbs, actions, clas
             <React.Fragment key={index}>
               {index > 0 && <span className="mx-1">/</span>}
               {crumb.href ? (
-                <a href={crumb.href} className="hover:text-gray-700 hover:underline">
+                <a
+                  href={crumb.href}
+                  className="hover:text-gray-700 hover:underline"
+                >
                   {crumb.label}
                 </a>
               ) : (
@@ -36,7 +45,9 @@ export function DashboardHeader({ title, description, breadcrumbs, actions, clas
       )}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900">{title}</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+            {title}
+          </h1>
           {description && (
             <p className="mt-1 text-sm text-gray-500">{description}</p>
           )}

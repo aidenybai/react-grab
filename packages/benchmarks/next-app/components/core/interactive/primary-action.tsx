@@ -16,7 +16,11 @@ interface PrimaryActionProps {
 const variantStyles: Record<Variant, React.CSSProperties> = {
   default: { background: "#2563eb", color: "#fff", border: "none" },
   destructive: { background: "#dc2626", color: "#fff", border: "none" },
-  outline: { background: "transparent", color: "#374151", border: "1px solid #d1d5db" },
+  outline: {
+    background: "transparent",
+    color: "#374151",
+    border: "1px solid #d1d5db",
+  },
   ghost: { background: "transparent", color: "#374151", border: "none" },
 };
 

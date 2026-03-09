@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo } from "react";
 
 export function useTimezone(initialTimezone?: string) {
   const [timezone, setTimezone] = useState(
-    initialTimezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
+    initialTimezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
   );
 
   const offset = useMemo(() => {
@@ -21,7 +21,7 @@ export function useTimezone(initialTimezone?: string) {
     (date: Date): string => {
       return date.toLocaleString("en-US", { timeZone: timezone });
     },
-    [timezone]
+    [timezone],
   );
 
   return { timezone, setTimezone, offset, convertToTimezone };

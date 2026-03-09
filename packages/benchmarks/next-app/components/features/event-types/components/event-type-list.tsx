@@ -17,7 +17,11 @@ interface EventTypeListProps {
   onReorder?: (ids: string[]) => void;
 }
 
-export function EventTypeList({ eventTypes, onSelect, onReorder }: EventTypeListProps) {
+export function EventTypeList({
+  eventTypes,
+  onSelect,
+  onReorder,
+}: EventTypeListProps) {
   const [filter, setFilter] = useState<"all" | "active" | "inactive">("all");
 
   const filtered = useMemo(() => {
@@ -29,9 +33,24 @@ export function EventTypeList({ eventTypes, onSelect, onReorder }: EventTypeList
   return (
     <div className="event-type-list">
       <div className="event-type-list__filters">
-        <button className={filter === "all" ? "active" : ""} onClick={() => setFilter("all")}>All</button>
-        <button className={filter === "active" ? "active" : ""} onClick={() => setFilter("active")}>Active</button>
-        <button className={filter === "inactive" ? "active" : ""} onClick={() => setFilter("inactive")}>Inactive</button>
+        <button
+          className={filter === "all" ? "active" : ""}
+          onClick={() => setFilter("all")}
+        >
+          All
+        </button>
+        <button
+          className={filter === "active" ? "active" : ""}
+          onClick={() => setFilter("active")}
+        >
+          Active
+        </button>
+        <button
+          className={filter === "inactive" ? "active" : ""}
+          onClick={() => setFilter("inactive")}
+        >
+          Inactive
+        </button>
       </div>
       <div className="event-type-list__items">
         {filtered.map((et) => (
@@ -39,11 +58,19 @@ export function EventTypeList({ eventTypes, onSelect, onReorder }: EventTypeList
             key={et.id}
             className="event-type-list__item"
             onClick={() => onSelect?.(et.id)}
-            style={{ borderLeftColor: et.color, borderLeftWidth: 3, borderLeftStyle: "solid" }}
+            style={{
+              borderLeftColor: et.color,
+              borderLeftWidth: 3,
+              borderLeftStyle: "solid",
+            }}
           >
             <span className="event-type-list__item-title">{et.title}</span>
-            <span className="event-type-list__item-duration">{et.duration}m</span>
-            <span className={`event-type-list__item-status ${et.isActive ? "active" : "inactive"}`}>
+            <span className="event-type-list__item-duration">
+              {et.duration}m
+            </span>
+            <span
+              className={`event-type-list__item-status ${et.isActive ? "active" : "inactive"}`}
+            >
               {et.isActive ? "Active" : "Inactive"}
             </span>
           </div>

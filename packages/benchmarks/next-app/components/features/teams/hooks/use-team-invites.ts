@@ -29,8 +29,7 @@ export function useTeamInvites(teamId: string) {
     setInvites((prev) => prev.filter((i) => i.id !== inviteId));
   }, []);
 
-  const resendInvite = useCallback((inviteId: string) => {
-  }, []);
+  const resendInvite = useCallback((inviteId: string) => {}, []);
 
   return { invites, isLoading, sendInvite, revokeInvite, resendInvite };
 }

@@ -13,7 +13,14 @@ interface SectionProps {
 
 const spacingMap = { sm: 16, md: 24, lg: 40 };
 
-export function Section({ title, description, children, bordered = false, spacing = "md", action }: SectionProps) {
+export function Section({
+  title,
+  description,
+  children,
+  bordered = false,
+  spacing = "md",
+  action,
+}: SectionProps) {
   return (
     <section
       style={{
@@ -23,10 +30,32 @@ export function Section({ title, description, children, bordered = false, spacin
       }}
     >
       {(title || action) && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 16,
+          }}
+        >
           <div>
-            {title && <h2 style={{ fontSize: 18, fontWeight: 600, color: "#111827", margin: 0 }}>{title}</h2>}
-            {description && <p style={{ fontSize: 14, color: "#6B7280", marginTop: 4 }}>{description}</p>}
+            {title && (
+              <h2
+                style={{
+                  fontSize: 18,
+                  fontWeight: 600,
+                  color: "#111827",
+                  margin: 0,
+                }}
+              >
+                {title}
+              </h2>
+            )}
+            {description && (
+              <p style={{ fontSize: 14, color: "#6B7280", marginTop: 4 }}>
+                {description}
+              </p>
+            )}
           </div>
           {action}
         </div>

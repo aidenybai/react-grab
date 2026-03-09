@@ -12,7 +12,10 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export const Card = React.forwardRef<HTMLDivElement, CardProps>(
-  ({ className, elevated = false, bordered = true, children, ...props }, ref) => {
+  (
+    { className, elevated = false, bordered = true, children, ...props },
+    ref,
+  ) => {
     return (
       <div
         ref={ref}
@@ -36,7 +39,11 @@ interface CardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 export const CardHeader = React.forwardRef<HTMLDivElement, CardHeaderProps>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("flex flex-col space-y-1.5 p-6", className)} {...props} />
+    <div
+      ref={ref}
+      className={cn("flex flex-col space-y-1.5 p-6", className)}
+      {...props}
+    />
   ),
 );
 

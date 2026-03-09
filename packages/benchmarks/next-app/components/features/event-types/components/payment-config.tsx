@@ -7,7 +7,12 @@ interface PaymentConfigProps {
   amount?: number;
   currency?: string;
   collectOnBooking?: boolean;
-  onChange?: (config: { enabled: boolean; amount: number; currency: string; collectOnBooking: boolean }) => void;
+  onChange?: (config: {
+    enabled: boolean;
+    amount: number;
+    currency: string;
+    collectOnBooking: boolean;
+  }) => void;
 }
 
 const CURRENCIES = ["USD", "EUR", "GBP", "CAD", "AUD", "JPY"];
@@ -27,7 +32,12 @@ export function PaymentConfig({
   const handleToggle = () => {
     const next = !isEnabled;
     setIsEnabled(next);
-    onChange?.({ enabled: next, amount: payAmount, currency: payCurrency, collectOnBooking: collect });
+    onChange?.({
+      enabled: next,
+      amount: payAmount,
+      currency: payCurrency,
+      collectOnBooking: collect,
+    });
   };
 
   return (
@@ -40,16 +50,33 @@ export function PaymentConfig({
         <div className="payment-config__options">
           <div className="payment-config__field">
             <label>Amount</label>
-            <input type="number" value={payAmount} onChange={(e) => setPayAmount(Number(e.target.value))} min={0} step={0.01} />
+            <input
+              type="number"
+              value={payAmount}
+              onChange={(e) => setPayAmount(Number(e.target.value))}
+              min={0}
+              step={0.01}
+            />
           </div>
           <div className="payment-config__field">
             <label>Currency</label>
-            <select value={payCurrency} onChange={(e) => setPayCurrency(e.target.value)}>
-              {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            <select
+              value={payCurrency}
+              onChange={(e) => setPayCurrency(e.target.value)}
+            >
+              {CURRENCIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
             </select>
           </div>
           <label>
-            <input type="checkbox" checked={collect} onChange={(e) => setCollect(e.target.checked)} />
+            <input
+              type="checkbox"
+              checked={collect}
+              onChange={(e) => setCollect(e.target.checked)}
+            />
             Collect payment during booking
           </label>
         </div>

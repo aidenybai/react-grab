@@ -18,41 +18,48 @@ export type Permission =
 
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   admin: [
-    "users.read", "users.write", "users.delete",
-    "analytics.read", "analytics.export",
-    "settings.read", "settings.write",
-    "billing.read", "billing.write",
-    "integrations.manage", "api-keys.manage",
-    "bookings.read", "bookings.write", "bookings.delete",
+    "users.read",
+    "users.write",
+    "users.delete",
+    "analytics.read",
+    "analytics.export",
+    "settings.read",
+    "settings.write",
+    "billing.read",
+    "billing.write",
+    "integrations.manage",
+    "api-keys.manage",
+    "bookings.read",
+    "bookings.write",
+    "bookings.delete",
   ],
   editor: [
     "users.read",
-    "analytics.read", "analytics.export",
-    "settings.read",
-    "bookings.read", "bookings.write",
-  ],
-  viewer: [
-    "users.read",
     "analytics.read",
+    "analytics.export",
     "settings.read",
     "bookings.read",
+    "bookings.write",
   ],
-  member: [
-    "analytics.read",
-    "settings.read",
-    "bookings.read",
-  ],
+  viewer: ["users.read", "analytics.read", "settings.read", "bookings.read"],
+  member: ["analytics.read", "settings.read", "bookings.read"],
 };
 
 export function hasPermission(role: UserRole, permission: Permission): boolean {
   return ROLE_PERMISSIONS[role]?.includes(permission) ?? false;
 }
 
-export function hasAnyPermission(role: UserRole, permissions: Permission[]): boolean {
+export function hasAnyPermission(
+  role: UserRole,
+  permissions: Permission[],
+): boolean {
   return permissions.some((p) => hasPermission(role, p));
 }
 
-export function hasAllPermissions(role: UserRole, permissions: Permission[]): boolean {
+export function hasAllPermissions(
+  role: UserRole,
+  permissions: Permission[],
+): boolean {
   return permissions.every((p) => hasPermission(role, p));
 }
 

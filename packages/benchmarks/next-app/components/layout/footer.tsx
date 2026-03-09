@@ -14,7 +14,12 @@ interface FooterProps {
   bordered?: boolean;
 }
 
-export function Footer({ copyright, links, children, bordered = true }: FooterProps) {
+export function Footer({
+  copyright,
+  links,
+  children,
+  bordered = true,
+}: FooterProps) {
   return (
     <footer
       style={{
@@ -44,7 +49,11 @@ export function Footer({ copyright, links, children, bordered = true }: FooterPr
               <a
                 key={link.href}
                 href={link.href}
-                style={{ fontSize: 13, color: "#6B7280", textDecoration: "none" }}
+                style={{
+                  fontSize: 13,
+                  color: "#6B7280",
+                  textDecoration: "none",
+                }}
               >
                 {link.label}
               </a>

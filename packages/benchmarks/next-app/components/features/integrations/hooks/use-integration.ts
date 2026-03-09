@@ -10,13 +10,17 @@ interface IntegrationConfig {
 }
 
 export function useIntegration(integrationId: string) {
-  const [integration, setIntegration] = useState<IntegrationConfig | null>(null);
+  const [integration, setIntegration] = useState<IntegrationConfig | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   const connect = useCallback(async () => {
     setIsLoading(true);
     try {
-      setIntegration((prev) => prev ? { ...prev, status: "connected" } : null);
+      setIntegration((prev) =>
+        prev ? { ...prev, status: "connected" } : null,
+      );
     } finally {
       setIsLoading(false);
     }
@@ -25,14 +29,16 @@ export function useIntegration(integrationId: string) {
   const disconnect = useCallback(async () => {
     setIsLoading(true);
     try {
-      setIntegration((prev) => prev ? { ...prev, status: "disconnected" } : null);
+      setIntegration((prev) =>
+        prev ? { ...prev, status: "disconnected" } : null,
+      );
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   const updateConfig = useCallback((config: Record<string, string>) => {
-    setIntegration((prev) => prev ? { ...prev, config } : null);
+    setIntegration((prev) => (prev ? { ...prev, config } : null));
   }, []);
 
   return { integration, isLoading, connect, disconnect, updateConfig };

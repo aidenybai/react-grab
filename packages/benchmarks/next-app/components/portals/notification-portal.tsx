@@ -34,6 +34,6 @@ export function NotificationPortal({
     >
       {message}
     </div>,
-    document.body
+    document.body,
   );
 }

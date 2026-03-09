@@ -20,14 +20,20 @@ const defaultSettings: Settings = {
 };
 
 export const useSettings = (initial?: Partial<Settings>) => {
-  const [settings, setSettings] = useState<Settings>({ ...defaultSettings, ...initial });
+  const [settings, setSettings] = useState<Settings>({
+    ...defaultSettings,
+    ...initial,
+  });
   const [isDirty, setIsDirty] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const updateSetting = useCallback(<K extends keyof Settings>(key: K, value: Settings[K]) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
-    setIsDirty(true);
-  }, []);
+  const updateSetting = useCallback(
+    <K extends keyof Settings>(key: K, value: Settings[K]) => {
+      setSettings((prev) => ({ ...prev, [key]: value }));
+      setIsDirty(true);
+    },
+    [],
+  );
 
   const save = useCallback(async () => {
     setSaving(true);

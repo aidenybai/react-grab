@@ -22,7 +22,12 @@ interface SettingsFormProps {
   className?: string;
 }
 
-export function SettingsForm({ sections, onSave, isSaving = false, className }: SettingsFormProps) {
+export function SettingsForm({
+  sections,
+  onSave,
+  isSaving = false,
+  className,
+}: SettingsFormProps) {
   const [values, setValues] = useState<Record<string, string | boolean>>(() => {
     const initial: Record<string, string | boolean> = {};
     sections.forEach((section) => {
@@ -53,7 +58,9 @@ export function SettingsForm({ sections, onSave, isSaving = false, className }: 
           <div className="mt-6 space-y-4">
             {section.fields.map((field) => (
               <div key={field.name} className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">{field.label}</label>
+                <label className="text-sm font-medium text-gray-700">
+                  {field.label}
+                </label>
                 {field.type === "toggle" ? (
                   <button
                     type="button"
@@ -75,7 +82,9 @@ export function SettingsForm({ sections, onSave, isSaving = false, className }: 
                     className="rounded-md border border-gray-300 px-3 py-2 text-sm"
                   >
                     {field.options?.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
                     ))}
                   </select>
                 ) : (

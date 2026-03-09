@@ -21,7 +21,11 @@ interface AuthState {
 interface UseAuthReturn extends AuthState {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  register: (data: { email: string; password: string; name: string }) => Promise<void>;
+  register: (data: {
+    email: string;
+    password: string;
+    name: string;
+  }) => Promise<void>;
   hasRole: (role: string) => boolean;
 }
 
@@ -43,12 +47,27 @@ export function useAuth(): UseAuthReturn {
     if (token && userJson) {
       try {
         const user = JSON.parse(userJson) as User;
-        setState({ user, isAuthenticated: true, isLoading: false, error: null });
+        setState({
+          user,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null,
+        });
       } catch {
-        setState({ user: null, isAuthenticated: false, isLoading: false, error: null });
+        setState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+          error: null,
+        });
       }
     } else {
-      setState({ user: null, isAuthenticated: false, isLoading: false, error: null });
+      setState({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: null,
+      });
     }
   }, []);
 
@@ -78,32 +97,40 @@ export function useAuth(): UseAuthReturn {
   const logout = useCallback(() => {
     localStorage.removeItem(AUTH_STORAGE_KEY);
     localStorage.removeItem(USER_STORAGE_KEY);
-    setState({ user: null, isAuthenticated: false, isLoading: false, error: null });
+    setState({
+      user: null,
+      isAuthenticated: false,
+      isLoading: false,
+      error: null,
+    });
   }, []);
 
-  const register = useCallback(async (data: { email: string; password: string; name: string }) => {
-    setState((prev) => ({ ...prev, isLoading: true, error: null }));
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    const user: User = {
-      id: "usr_" + Math.random().toString(36).slice(2),
-      email: data.email,
-      name: data.name,
-      role: "user",
-      createdAt: new Date().toISOString(),
-    };
-    localStorage.setItem(AUTH_STORAGE_KEY, "fake_token_" + Date.now());
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
-    setState({ user, isAuthenticated: true, isLoading: false, error: null });
-  }, []);
+  const register = useCallback(
+    async (data: { email: string; password: string; name: string }) => {
+      setState((prev) => ({ ...prev, isLoading: true, error: null }));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const user: User = {
+        id: "usr_" + Math.random().toString(36).slice(2),
+        email: data.email,
+        name: data.name,
+        role: "user",
+        createdAt: new Date().toISOString(),
+      };
+      localStorage.setItem(AUTH_STORAGE_KEY, "fake_token_" + Date.now());
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+      setState({ user, isAuthenticated: true, isLoading: false, error: null });
+    },
+    [],
+  );
 
   const hasRole = useCallback(
     (role: string) => state.user?.role === role,
-    [state.user]
+    [state.user],
   );
 
   return useMemo(
     () => ({ ...state, login, logout, register, hasRole }),
-    [state, login, logout, register, hasRole]
+    [state, login, logout, register, hasRole],
   );
 }
 

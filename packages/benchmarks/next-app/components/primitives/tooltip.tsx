@@ -13,7 +13,12 @@ interface TooltipProps {
   children: React.ReactNode;
 }
 
-export function Tooltip({ content, side = "top", delayMs = 200, children }: TooltipProps) {
+export function Tooltip({
+  content,
+  side = "top",
+  delayMs = 200,
+  children,
+}: TooltipProps) {
   const [visible, setVisible] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -34,7 +39,11 @@ export function Tooltip({ content, side = "top", delayMs = 200, children }: Tool
   };
 
   return (
-    <div className="relative inline-block" onMouseEnter={show} onMouseLeave={hide}>
+    <div
+      className="relative inline-block"
+      onMouseEnter={show}
+      onMouseLeave={hide}
+    >
       {children}
       {visible && (
         <div

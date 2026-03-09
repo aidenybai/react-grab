@@ -18,7 +18,7 @@ export function usePagination({
 
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(totalItems / pageSize)),
-    [totalItems, pageSize]
+    [totalItems, pageSize],
   );
 
   const hasNextPage = currentPage < totalPages;
@@ -28,7 +28,7 @@ export function usePagination({
     (page: number) => {
       setCurrentPage(Math.max(1, Math.min(page, totalPages)));
     },
-    [totalPages]
+    [totalPages],
   );
 
   const nextPage = useCallback(() => {

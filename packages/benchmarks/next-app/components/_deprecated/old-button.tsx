@@ -68,7 +68,16 @@ export function OldButton({
 
   return (
     <button style={buttonStyle} disabled={disabled || loading} {...props}>
-      {loading && <span style={{ display: "inline-block", animation: "spin 1s linear infinite" }}>&#8987;</span>}
+      {loading && (
+        <span
+          style={{
+            display: "inline-block",
+            animation: "spin 1s linear infinite",
+          }}
+        >
+          &#8987;
+        </span>
+      )}
       {children}
     </button>
   );

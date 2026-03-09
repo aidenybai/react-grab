@@ -1,4 +1,3 @@
-
 export type IntegrationProvider =
   | "google-calendar"
   | "outlook"
@@ -9,7 +8,11 @@ export type IntegrationProvider =
   | "hubspot"
   | "salesforce";
 
-export type IntegrationStatus = "connected" | "disconnected" | "error" | "pending";
+export type IntegrationStatus =
+  | "connected"
+  | "disconnected"
+  | "error"
+  | "pending";
 
 export interface Integration {
   id: string;
@@ -25,7 +28,13 @@ export interface Integration {
   error?: string;
 }
 
-export type IntegrationCategory = "calendar" | "video" | "communication" | "payment" | "automation" | "crm";
+export type IntegrationCategory =
+  | "calendar"
+  | "video"
+  | "communication"
+  | "payment"
+  | "automation"
+  | "crm";
 
 export interface IntegrationConnection {
   provider: IntegrationProvider;

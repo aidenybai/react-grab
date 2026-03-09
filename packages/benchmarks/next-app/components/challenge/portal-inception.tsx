@@ -39,11 +39,9 @@ function DeepestPortalContent({
       animate={{ opacity: 1, y: 0 }}
       style={{ position: "fixed", bottom: 80, left: 20, zIndex: 60 }}
     >
-      <InceptionBadge data-testid={testId}>
-        Inception Badge
-      </InceptionBadge>
+      <InceptionBadge data-testid={testId}>Inception Badge</InceptionBadge>
     </motion.div>,
-    portalTarget
+    portalTarget,
   );
 }
 

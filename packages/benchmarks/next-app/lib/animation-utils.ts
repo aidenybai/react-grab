@@ -1,4 +1,3 @@
-
 export const DURATION = {
   instant: 0,
   fast: 100,
@@ -22,7 +21,7 @@ export type EasingKey = keyof typeof EASING;
 export function transition(
   property: string | string[],
   duration: DurationKey = "normal",
-  easing: EasingKey = "easeInOut"
+  easing: EasingKey = "easeInOut",
 ): string {
   const props = Array.isArray(property) ? property : [property];
   return props

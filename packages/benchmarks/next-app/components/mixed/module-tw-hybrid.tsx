@@ -9,12 +9,20 @@ const items = [
   { label: "Billing", desc: "Payment management", icon: "💳" },
 ];
 
-export function ModuleTwHybrid({ "data-testid": testId }: { "data-testid"?: string }) {
+export function ModuleTwHybrid({
+  "data-testid": testId,
+}: {
+  "data-testid"?: string;
+}) {
   return (
     <div className={styles.container} data-testid={testId}>
       <div className={`${styles.header} p-4 bg-[var(--muted)]`}>
-        <h3 className={`${styles.headerTitle} text-base`}>CSS Modules + Tailwind</h3>
-        <p className="text-xs text-[var(--muted-foreground)] mt-1">Combined styling approaches</p>
+        <h3 className={`${styles.headerTitle} text-base`}>
+          CSS Modules + Tailwind
+        </h3>
+        <p className="text-xs text-[var(--muted-foreground)] mt-1">
+          Combined styling approaches
+        </p>
       </div>
       <div className="divide-y divide-[var(--border)]">
         {items.map((item, i) => (
@@ -25,8 +33,12 @@ export function ModuleTwHybrid({ "data-testid": testId }: { "data-testid"?: stri
           >
             <span className="text-xl">{item.icon}</span>
             <div>
-              <div className="text-sm font-medium text-[var(--foreground)]">{item.label}</div>
-              <div className="text-xs text-[var(--muted-foreground)]">{item.desc}</div>
+              <div className="text-sm font-medium text-[var(--foreground)]">
+                {item.label}
+              </div>
+              <div className="text-xs text-[var(--muted-foreground)]">
+                {item.desc}
+              </div>
             </div>
           </div>
         ))}

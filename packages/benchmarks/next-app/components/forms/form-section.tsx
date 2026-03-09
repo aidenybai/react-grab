@@ -26,20 +26,22 @@ export function FormSection({
         onClick={collapsible ? () => setCollapsed(!collapsed) : undefined}
       >
         <div>
-          <legend className="text-base font-semibold text-gray-900">{title}</legend>
+          <legend className="text-base font-semibold text-gray-900">
+            {title}
+          </legend>
           {description && (
             <p className="text-sm text-gray-500 mt-1">{description}</p>
           )}
         </div>
         {collapsible && (
-          <span className={`text-gray-400 transition-transform ${collapsed ? "" : "rotate-180"}`}>
+          <span
+            className={`text-gray-400 transition-transform ${collapsed ? "" : "rotate-180"}`}
+          >
             &#9660;
           </span>
         )}
       </div>
-      {!collapsed && (
-        <div className="mt-6 space-y-6">{children}</div>
-      )}
+      {!collapsed && <div className="mt-6 space-y-6">{children}</div>}
     </fieldset>
   );
 }

@@ -34,7 +34,11 @@ export const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
         {...props}
       >
         {src ? (
-          <img src={src} alt={alt || ""} className="aspect-square h-full w-full object-cover" />
+          <img
+            src={src}
+            alt={alt || ""}
+            className="aspect-square h-full w-full object-cover"
+          />
         ) : (
           <span className="font-medium text-muted-foreground">
             {fallback || alt?.charAt(0)?.toUpperCase() || "?"}

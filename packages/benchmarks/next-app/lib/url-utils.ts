@@ -1,5 +1,6 @@
-
-export function buildQueryString(params: Record<string, string | number | boolean | undefined>): string {
+export function buildQueryString(
+  params: Record<string, string | number | boolean | undefined>,
+): string {
   const searchParams = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== "") {
@@ -22,7 +23,7 @@ export function parseQueryString(search: string): Record<string, string> {
 export function updateQueryParam(
   url: string,
   key: string,
-  value: string | null
+  value: string | null,
 ): string {
   const urlObj = new URL(url, "https://placeholder.com");
   if (value === null) {
@@ -42,7 +43,13 @@ export function getPathSegments(pathname: string): string[] {
 }
 
 export function joinPath(...segments: string[]): string {
-  return "/" + segments.map((s) => s.replace(/^\/|\/$/g, "")).filter(Boolean).join("/");
+  return (
+    "/" +
+    segments
+      .map((s) => s.replace(/^\/|\/$/g, ""))
+      .filter(Boolean)
+      .join("/")
+  );
 }
 
 export function getBasePath(pathname: string): string {
@@ -55,6 +62,6 @@ export function matchRoute(pattern: string, pathname: string): boolean {
   const pathParts = pathname.split("/").filter(Boolean);
   if (patternParts.length !== pathParts.length) return false;
   return patternParts.every((part, i) =>
-    part.startsWith("[") && part.endsWith("]") ? true : part === pathParts[i]
+    part.startsWith("[") && part.endsWith("]") ? true : part === pathParts[i],
   );
 }

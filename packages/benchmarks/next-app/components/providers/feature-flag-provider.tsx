@@ -17,7 +17,10 @@ export function FeatureFlagProvider({ children }: { children: ReactNode }) {
   const flags = { darkMode: true, newDashboard: true, betaFeatures: false };
   return (
     <FeatureFlagContext.Provider
-      value={{ flags, isEnabled: (flag) => flags[flag as keyof typeof flags] ?? false }}
+      value={{
+        flags,
+        isEnabled: (flag) => flags[flag as keyof typeof flags] ?? false,
+      }}
     >
       {children}
     </FeatureFlagContext.Provider>

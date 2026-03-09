@@ -4,7 +4,11 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 
 function StatRow({
@@ -19,7 +23,10 @@ function StatRow({
   testId?: string;
 }) {
   return (
-    <div className="flex items-center justify-between py-2" data-testid={testId}>
+    <div
+      className="flex items-center justify-between py-2"
+      data-testid={testId}
+    >
       <span className="text-sm text-muted-foreground">{label}</span>
       <div className="flex items-center gap-2">
         <span className="text-sm font-medium">{value}</span>
@@ -29,7 +36,11 @@ function StatRow({
   );
 }
 
-export function ShadcnDataDisplay({ "data-testid": testId }: { "data-testid"?: string }) {
+export function ShadcnDataDisplay({
+  "data-testid": testId,
+}: {
+  "data-testid"?: string;
+}) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,13 +55,15 @@ export function ShadcnDataDisplay({ "data-testid": testId }: { "data-testid"?: s
           <CardTitle>Performance Metrics</CardTitle>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" data-testid="shadcn-tooltip-button">
+              <Button
+                variant="ghost"
+                size="sm"
+                data-testid="shadcn-tooltip-button"
+              >
                 ?
               </Button>
             </TooltipTrigger>
-            <TooltipContent>
-              Last 30 days of performance data
-            </TooltipContent>
+            <TooltipContent>Last 30 days of performance data</TooltipContent>
           </Tooltip>
         </div>
       </CardHeader>
@@ -63,7 +76,12 @@ export function ShadcnDataDisplay({ "data-testid": testId }: { "data-testid"?: s
           </div>
         ) : (
           <div>
-            <StatRow label="Response Time" value="142ms" badge="-12%" testId="shadcn-stat-row" />
+            <StatRow
+              label="Response Time"
+              value="142ms"
+              badge="-12%"
+              testId="shadcn-stat-row"
+            />
             <Separator />
             <StatRow label="Uptime" value="99.97%" badge="SLA" />
             <Separator />

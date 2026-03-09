@@ -11,7 +11,14 @@ interface DialogProps {
   footer?: React.ReactNode;
 }
 
-export function Dialog({ isOpen, onClose, title, width = 480, children, footer }: DialogProps) {
+export function Dialog({
+  isOpen,
+  onClose,
+  title,
+  width = 480,
+  children,
+  footer,
+}: DialogProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -50,13 +57,25 @@ export function Dialog({ isOpen, onClose, title, width = 480, children, footer }
         }}
       >
         {title && (
-          <div style={{ padding: "16px 20px", borderBottom: "1px solid #E5E7EB" }}>
-            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{title}</h3>
+          <div
+            style={{ padding: "16px 20px", borderBottom: "1px solid #E5E7EB" }}
+          >
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>
+              {title}
+            </h3>
           </div>
         )}
         <div style={{ padding: 20, overflowY: "auto" }}>{children}</div>
         {footer && (
-          <div style={{ padding: "12px 20px", borderTop: "1px solid #E5E7EB", display: "flex", justifyContent: "flex-end", gap: 8 }}>
+          <div
+            style={{
+              padding: "12px 20px",
+              borderTop: "1px solid #E5E7EB",
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: 8,
+            }}
+          >
             {footer}
           </div>
         )}

@@ -28,11 +28,19 @@ export function WorkflowActionConfig({
           <>
             <label>
               Subject
-              <input type="text" value={localConfig.subject ?? ""} onChange={(e) => handleFieldChange("subject", e.target.value)} />
+              <input
+                type="text"
+                value={localConfig.subject ?? ""}
+                onChange={(e) => handleFieldChange("subject", e.target.value)}
+              />
             </label>
             <label>
               Body
-              <textarea value={localConfig.body ?? ""} onChange={(e) => handleFieldChange("body", e.target.value)} rows={4} />
+              <textarea
+                value={localConfig.body ?? ""}
+                onChange={(e) => handleFieldChange("body", e.target.value)}
+                rows={4}
+              />
             </label>
           </>
         );
@@ -40,7 +48,11 @@ export function WorkflowActionConfig({
         return (
           <label>
             Message
-            <textarea value={localConfig.message ?? ""} onChange={(e) => handleFieldChange("message", e.target.value)} rows={3} />
+            <textarea
+              value={localConfig.message ?? ""}
+              onChange={(e) => handleFieldChange("message", e.target.value)}
+              rows={3}
+            />
           </label>
         );
       default:

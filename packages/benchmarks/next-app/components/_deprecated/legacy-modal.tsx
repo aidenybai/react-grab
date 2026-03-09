@@ -63,7 +63,17 @@ export class LegacyModal extends Component<LegacyModalProps, LegacyModalState> {
   };
 
   render() {
-    const { visible, title, width, onOk, onCancel, okText, cancelText, closable, children } = this.props;
+    const {
+      visible,
+      title,
+      width,
+      onOk,
+      onCancel,
+      okText,
+      cancelText,
+      closable,
+      children,
+    } = this.props;
 
     if (!visible && !this.state.animating) return null;
 
@@ -90,27 +100,75 @@ export class LegacyModal extends Component<LegacyModalProps, LegacyModalState> {
     };
 
     return (
-      <div ref={this.overlayRef} style={overlayStyle} onClick={this.handleOverlayClick}>
+      <div
+        ref={this.overlayRef}
+        style={overlayStyle}
+        onClick={this.handleOverlayClick}
+      >
         <div style={modalStyle}>
           {(title || closable) && (
-            <div style={{ padding: "16px 24px", borderBottom: "1px solid #f0f0f0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div
+              style={{
+                padding: "16px 24px",
+                borderBottom: "1px solid #f0f0f0",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
               <span style={{ fontSize: "16px", fontWeight: 600 }}>{title}</span>
               {closable && (
-                <button onClick={onCancel} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "18px", color: "#999" }}>
+                <button
+                  onClick={onCancel}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: "18px",
+                    color: "#999",
+                  }}
+                >
                   &times;
                 </button>
               )}
             </div>
           )}
           <div style={{ padding: "24px" }}>{children}</div>
-          <div style={{ padding: "10px 16px", borderTop: "1px solid #f0f0f0", display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+          <div
+            style={{
+              padding: "10px 16px",
+              borderTop: "1px solid #f0f0f0",
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: "8px",
+            }}
+          >
             {onCancel && (
-              <button onClick={onCancel} style={{ padding: "4px 16px", border: "1px solid #d9d9d9", borderRadius: "6px", background: "#fff", cursor: "pointer" }}>
+              <button
+                onClick={onCancel}
+                style={{
+                  padding: "4px 16px",
+                  border: "1px solid #d9d9d9",
+                  borderRadius: "6px",
+                  background: "#fff",
+                  cursor: "pointer",
+                }}
+              >
                 {cancelText}
               </button>
             )}
             {onOk && (
-              <button onClick={onOk} style={{ padding: "4px 16px", border: "none", borderRadius: "6px", background: "#1677ff", color: "#fff", cursor: "pointer" }}>
+              <button
+                onClick={onOk}
+                style={{
+                  padding: "4px 16px",
+                  border: "none",
+                  borderRadius: "6px",
+                  background: "#1677ff",
+                  color: "#fff",
+                  cursor: "pointer",
+                }}
+              >
                 {okText}
               </button>
             )}

@@ -13,8 +13,15 @@ interface AvailabilityPreviewProps {
   timezone: string;
 }
 
-export function AvailabilityPreview({ date, slots, timezone }: AvailabilityPreviewProps) {
-  const availableCount = useMemo(() => slots.filter((s) => s.available).length, [slots]);
+export function AvailabilityPreview({
+  date,
+  slots,
+  timezone,
+}: AvailabilityPreviewProps) {
+  const availableCount = useMemo(
+    () => slots.filter((s) => s.available).length,
+    [slots],
+  );
 
   return (
     <div className="availability-preview">

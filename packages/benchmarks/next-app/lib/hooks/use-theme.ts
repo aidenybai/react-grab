@@ -17,7 +17,9 @@ const THEME_STORAGE_KEY = "app_theme";
 
 function getSystemTheme(): ResolvedTheme {
   if (typeof window === "undefined") return "light";
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
 }
 
 function resolveTheme(theme: Theme): ResolvedTheme {
@@ -70,7 +72,7 @@ export function useTheme(): UseThemeReturn {
       toggleTheme,
       isDark: resolvedTheme === "dark",
     }),
-    [theme, resolvedTheme, setTheme, toggleTheme]
+    [theme, resolvedTheme, setTheme, toggleTheme],
   );
 }
 

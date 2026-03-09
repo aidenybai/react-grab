@@ -1,4 +1,3 @@
-
 type ClassInput = string | undefined | null | false | Record<string, boolean>;
 
 function processInput(input: ClassInput): string {
@@ -25,7 +24,8 @@ export function mergeClasses(base: string, overrides?: string | null): string {
 export function createClassNameBuilder(prefix: string) {
   return {
     root: (className?: string) => cn(prefix, className),
-    element: (element: string, className?: string) => cn(`${prefix}__${element}`, className),
+    element: (element: string, className?: string) =>
+      cn(`${prefix}__${element}`, className),
     modifier: (modifier: string, active: boolean = true) =>
       active ? `${prefix}--${modifier}` : "",
   };

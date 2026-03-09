@@ -7,7 +7,13 @@ function cn(...classes: (string | undefined | false)[]) {
 }
 
 interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-  variant?: "default" | "secondary" | "destructive" | "outline" | "success" | "warning";
+  variant?:
+    | "default"
+    | "secondary"
+    | "destructive"
+    | "outline"
+    | "success"
+    | "warning";
 }
 
 export const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
@@ -19,7 +25,8 @@ export const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
           "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors",
           variant === "default" && "bg-primary text-primary-foreground",
           variant === "secondary" && "bg-secondary text-secondary-foreground",
-          variant === "destructive" && "bg-destructive text-destructive-foreground",
+          variant === "destructive" &&
+            "bg-destructive text-destructive-foreground",
           variant === "outline" && "border text-foreground",
           variant === "success" && "bg-green-100 text-green-800",
           variant === "warning" && "bg-yellow-100 text-yellow-800",

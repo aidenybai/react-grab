@@ -11,7 +11,12 @@ interface CalendarGridProps {
 
 const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export function CalendarGrid({ year, month, selectedDate, onCellClick }: CalendarGridProps) {
+export function CalendarGrid({
+  year,
+  month,
+  selectedDate,
+  onCellClick,
+}: CalendarGridProps) {
   const daysInMonth = useMemo(() => {
     return new Date(year, month + 1, 0).getDate();
   }, [year, month]);
@@ -24,7 +29,11 @@ export function CalendarGrid({ year, month, selectedDate, onCellClick }: Calenda
     <div className="calendar-grid" role="grid">
       <div className="calendar-grid__header" role="row">
         {DAYS_OF_WEEK.map((day) => (
-          <div key={day} className="calendar-grid__day-label" role="columnheader">
+          <div
+            key={day}
+            className="calendar-grid__day-label"
+            role="columnheader"
+          >
             {day}
           </div>
         ))}
@@ -32,7 +41,8 @@ export function CalendarGrid({ year, month, selectedDate, onCellClick }: Calenda
       <div className="calendar-grid__body">
         {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
           const date = new Date(year, month, day);
-          const isSelected = selectedDate?.toDateString() === date.toDateString();
+          const isSelected =
+            selectedDate?.toDateString() === date.toDateString();
           return (
             <button
               key={day}

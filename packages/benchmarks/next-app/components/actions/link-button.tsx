@@ -36,7 +36,14 @@ export function LinkButton({
       {icon}
       {children}
       {external && (
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 12 12"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+        >
           <path d="M3.5 3h5.5v5.5M9 3L3 9" />
         </svg>
       )}

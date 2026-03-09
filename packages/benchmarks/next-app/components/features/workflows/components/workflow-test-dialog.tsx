@@ -23,7 +23,10 @@ export function WorkflowTestDialog({
 
   return (
     <div className="workflow-test-dialog__overlay" onClick={onClose}>
-      <div className="workflow-test-dialog" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="workflow-test-dialog"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h2>Test Workflow: {workflowName}</h2>
         <label>
           Test Payload (JSON)
@@ -35,13 +38,19 @@ export function WorkflowTestDialog({
           />
         </label>
         {testResult && (
-          <div className={`workflow-test-dialog__result ${testResult.success ? "workflow-test-dialog__result--success" : "workflow-test-dialog__result--error"}`}>
+          <div
+            className={`workflow-test-dialog__result ${testResult.success ? "workflow-test-dialog__result--success" : "workflow-test-dialog__result--error"}`}
+          >
             {testResult.message}
           </div>
         )}
         <div className="workflow-test-dialog__actions">
-          <button className="btn btn-outline" onClick={onClose}>Close</button>
-          <button className="btn btn-primary" onClick={() => onTest(payload)}>Run Test</button>
+          <button className="btn btn-outline" onClick={onClose}>
+            Close
+          </button>
+          <button className="btn btn-primary" onClick={() => onTest(payload)}>
+            Run Test
+          </button>
         </div>
       </div>
     </div>

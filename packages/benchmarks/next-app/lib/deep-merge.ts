@@ -1,4 +1,3 @@
-
 type PlainObject = Record<string, unknown>;
 
 function isPlainObject(value: unknown): value is PlainObject {
@@ -16,7 +15,10 @@ export function deepMerge<T extends PlainObject>(...sources: Partial<T>[]): T {
       const targetValue = result[key];
 
       if (isPlainObject(sourceValue) && isPlainObject(targetValue)) {
-        result[key] = deepMerge(targetValue as PlainObject, sourceValue as PlainObject);
+        result[key] = deepMerge(
+          targetValue as PlainObject,
+          sourceValue as PlainObject,
+        );
       } else if (Array.isArray(sourceValue)) {
         result[key] = [...sourceValue];
       } else {
@@ -50,6 +52,6 @@ export function deepEqual(a: unknown, b: unknown): boolean {
   if (keysA.length !== keysB.length) return false;
 
   return keysA.every((key) =>
-    deepEqual((a as PlainObject)[key], (b as PlainObject)[key])
+    deepEqual((a as PlainObject)[key], (b as PlainObject)[key]),
   );
 }

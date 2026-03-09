@@ -41,6 +41,9 @@ export function getPermissions(role: TeamRole): TeamPermissions {
   }
 }
 
-export function canPerformAction(role: TeamRole, action: keyof TeamPermissions): boolean {
+export function canPerformAction(
+  role: TeamRole,
+  action: keyof TeamPermissions,
+): boolean {
   return getPermissions(role)[action];
 }

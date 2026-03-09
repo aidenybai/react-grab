@@ -1,4 +1,3 @@
-
 export interface HSL {
   h: number;
   s: number;
@@ -39,7 +38,11 @@ export function rgbToHsl({ r, g, b }: RGB): HSL {
   if (max === rn) h = ((gn - bn) / d + (gn < bn ? 6 : 0)) / 6;
   else if (max === gn) h = ((bn - rn) / d + 2) / 6;
   else h = ((rn - gn) / d + 4) / 6;
-  return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+  return {
+    h: Math.round(h * 360),
+    s: Math.round(s * 100),
+    l: Math.round(l * 100),
+  };
 }
 
 export function withOpacity(hex: string, opacity: number): string {

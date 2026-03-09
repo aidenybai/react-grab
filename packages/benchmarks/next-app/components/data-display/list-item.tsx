@@ -30,10 +30,18 @@ export function ListItem({
     >
       {leading && <div className="flex-shrink-0">{leading}</div>}
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium truncate ${selected ? "text-blue-700" : "text-gray-900"}`}>{title}</p>
-        {description && <p className="text-xs text-gray-500 truncate mt-0.5">{description}</p>}
+        <p
+          className={`text-sm font-medium truncate ${selected ? "text-blue-700" : "text-gray-900"}`}
+        >
+          {title}
+        </p>
+        {description && (
+          <p className="text-xs text-gray-500 truncate mt-0.5">{description}</p>
+        )}
       </div>
-      {trailing && <div className="flex-shrink-0 text-gray-400">{trailing}</div>}
+      {trailing && (
+        <div className="flex-shrink-0 text-gray-400">{trailing}</div>
+      )}
     </div>
   );
 }

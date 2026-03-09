@@ -1,4 +1,3 @@
-
 export function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
@@ -16,12 +15,20 @@ export function slugify(str: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-export function truncate(str: string, maxLength: number, suffix = "..."): string {
+export function truncate(
+  str: string,
+  maxLength: number,
+  suffix = "...",
+): string {
   if (str.length <= maxLength) return str;
   return str.slice(0, maxLength - suffix.length) + suffix;
 }
 
-export function pluralize(count: number, singular: string, plural?: string): string {
+export function pluralize(
+  count: number,
+  singular: string,
+  plural?: string,
+): string {
   const p = plural ?? `${singular}s`;
   return count === 1 ? `1 ${singular}` : `${count} ${p}`;
 }
@@ -61,8 +68,9 @@ export function kebabToCamel(str: string): string {
 export function maskEmail(email: string): string {
   const [local, domain] = email.split("@");
   if (!domain) return email;
-  const masked = local.length > 2
-    ? local[0] + "*".repeat(local.length - 2) + local[local.length - 1]
-    : local[0] + "*";
+  const masked =
+    local.length > 2
+      ? local[0] + "*".repeat(local.length - 2) + local[local.length - 1]
+      : local[0] + "*";
   return `${masked}@${domain}`;
 }

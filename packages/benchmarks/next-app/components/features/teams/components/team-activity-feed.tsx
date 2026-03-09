@@ -29,9 +29,16 @@ function formatActivity(item: ActivityItem): string {
   }
 }
 
-export function TeamActivityFeed({ activities, isLoading }: TeamActivityFeedProps) {
+export function TeamActivityFeed({
+  activities,
+  isLoading,
+}: TeamActivityFeedProps) {
   if (isLoading) {
-    return <div className="team-activity-feed team-activity-feed--loading">Loading...</div>;
+    return (
+      <div className="team-activity-feed team-activity-feed--loading">
+        Loading...
+      </div>
+    );
   }
 
   return (

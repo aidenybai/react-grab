@@ -31,14 +31,34 @@ export function InteractiveElement({
   href,
   style,
 }: InteractiveElementProps) {
-  const [state, setState] = useState<InteractionState>(disabled ? "disabled" : "idle");
+  const [state, setState] = useState<InteractionState>(
+    disabled ? "disabled" : "idle",
+  );
 
-  const handleMouseEnter = useCallback(() => !disabled && setState("hovered"), [disabled]);
-  const handleMouseLeave = useCallback(() => !disabled && setState("idle"), [disabled]);
-  const handleMouseDown = useCallback(() => !disabled && setState("pressed"), [disabled]);
-  const handleMouseUp = useCallback(() => !disabled && setState("hovered"), [disabled]);
-  const handleFocus = useCallback(() => !disabled && setState("focused"), [disabled]);
-  const handleBlur = useCallback(() => !disabled && setState("idle"), [disabled]);
+  const handleMouseEnter = useCallback(
+    () => !disabled && setState("hovered"),
+    [disabled],
+  );
+  const handleMouseLeave = useCallback(
+    () => !disabled && setState("idle"),
+    [disabled],
+  );
+  const handleMouseDown = useCallback(
+    () => !disabled && setState("pressed"),
+    [disabled],
+  );
+  const handleMouseUp = useCallback(
+    () => !disabled && setState("hovered"),
+    [disabled],
+  );
+  const handleFocus = useCallback(
+    () => !disabled && setState("focused"),
+    [disabled],
+  );
+  const handleBlur = useCallback(
+    () => !disabled && setState("idle"),
+    [disabled],
+  );
 
   const opacity = stateLayerOpacity[state];
 

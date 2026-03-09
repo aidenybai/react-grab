@@ -1,4 +1,3 @@
-
 export class AppError extends Error {
   public readonly code: string;
   public readonly statusCode: number;
@@ -8,7 +7,7 @@ export class AppError extends Error {
     message: string,
     code: string,
     statusCode = 500,
-    isOperational = true
+    isOperational = true,
   ) {
     super(message);
     this.name = "AppError";
@@ -87,7 +86,10 @@ export function formatErrorForDisplay(error: unknown): {
     return { title: "Access Denied", message: error.message };
   }
   if (error instanceof ValidationError) {
-    return { title: "Validation Error", message: "Please check your input and try again." };
+    return {
+      title: "Validation Error",
+      message: "Please check your input and try again.",
+    };
   }
   return { title: "Error", message: getErrorMessage(error) };
 }

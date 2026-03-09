@@ -15,9 +15,11 @@ export function useDebounce<T>(value: T, delayMs: number): T {
 
 export function useDebouncedCallback<T extends (...args: unknown[]) => void>(
   callback: T,
-  delayMs: number
+  delayMs: number,
 ): T {
-  const [timeoutId, setTimeoutId] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [timeoutId, setTimeoutId] = useState<ReturnType<
+    typeof setTimeout
+  > | null>(null);
 
   useEffect(() => {
     return () => {

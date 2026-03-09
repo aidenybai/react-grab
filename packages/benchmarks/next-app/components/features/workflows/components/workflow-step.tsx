@@ -13,15 +13,26 @@ interface WorkflowStepProps {
 }
 
 export const WorkflowStep = forwardRef<HTMLDivElement, WorkflowStepProps>(
-  function WorkflowStep({ stepNumber, type, title, description, isActive, isError, onClick }, ref) {
+  function WorkflowStep(
+    { stepNumber, type, title, description, isActive, isError, onClick },
+    ref,
+  ) {
     const className = [
       "workflow-step",
       isActive && "workflow-step--active",
       isError && "workflow-step--error",
-    ].filter(Boolean).join(" ");
+    ]
+      .filter(Boolean)
+      .join(" ");
 
     return (
-      <div ref={ref} className={className} onClick={onClick} role="button" tabIndex={0}>
+      <div
+        ref={ref}
+        className={className}
+        onClick={onClick}
+        role="button"
+        tabIndex={0}
+      >
         <div className="workflow-step__badge">{stepNumber}</div>
         <div className="workflow-step__content">
           <span className="workflow-step__type">{type}</span>
@@ -30,5 +41,5 @@ export const WorkflowStep = forwardRef<HTMLDivElement, WorkflowStepProps>(
         </div>
       </div>
     );
-  }
+  },
 );

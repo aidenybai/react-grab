@@ -6,7 +6,15 @@ export const ClientIsland = () => {
   const [count, setCount] = useState(0);
 
   return (
-    <div data-testid="client-island-in-server" style={{ marginTop: 8, padding: 12, borderRadius: 6, background: "var(--muted)" }}>
+    <div
+      data-testid="client-island-in-server"
+      style={{
+        marginTop: 8,
+        padding: 12,
+        borderRadius: 6,
+        background: "var(--muted)",
+      }}
+    >
       <button
         data-testid="client-island-button"
         onClick={() => setCount((previous) => previous + 1)}

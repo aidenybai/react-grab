@@ -19,7 +19,12 @@ export interface WorkflowStep {
   conditions?: WorkflowCondition[];
 }
 
-export type WorkflowStepType = "email" | "sms" | "webhook" | "delay" | "condition";
+export type WorkflowStepType =
+  | "email"
+  | "sms"
+  | "webhook"
+  | "delay"
+  | "condition";
 
 export type WorkflowTrigger =
   | "booking_created"
@@ -33,7 +38,14 @@ export type WorkflowTrigger =
 export interface WorkflowCondition {
   id: string;
   field: string;
-  operator: "equals" | "not_equals" | "contains" | "starts_with" | "ends_with" | "gt" | "lt";
+  operator:
+    | "equals"
+    | "not_equals"
+    | "contains"
+    | "starts_with"
+    | "ends_with"
+    | "gt"
+    | "lt";
   value: string;
 }
 

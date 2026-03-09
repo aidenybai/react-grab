@@ -68,7 +68,9 @@ interface BenchAPI {
   resolveAll: (
     testId: string,
   ) => Promise<Record<string, SourceResult & { ms: number }>>;
-  identify: (el: HTMLElement) => Record<string, ReturnType<NonNullable<Resolver["identify"]>>>;
+  identify: (
+    el: HTMLElement,
+  ) => Record<string, ReturnType<NonNullable<Resolver["identify"]>>>;
   list: () => string[];
   utils: {
     identifyElement: typeof identifyElement;
@@ -105,7 +107,11 @@ function createBenchAPI(): BenchAPI {
         try {
           results[r.name] = await r.resolve(el);
         } catch {
-          results[r.name] = { filePath: null, componentName: null, found: false };
+          results[r.name] = {
+            filePath: null,
+            componentName: null,
+            found: false,
+          };
         }
       }
       return results;
@@ -136,7 +142,10 @@ function createBenchAPI(): BenchAPI {
     },
 
     identify(el) {
-      const results: Record<string, ReturnType<NonNullable<Resolver["identify"]>>> = {};
+      const results: Record<
+        string,
+        ReturnType<NonNullable<Resolver["identify"]>>
+      > = {};
       for (const r of resolvers.values()) {
         results[r.name] = r.identify?.(el) ?? null;
       }

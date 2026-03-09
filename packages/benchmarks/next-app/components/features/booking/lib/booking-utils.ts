@@ -14,7 +14,10 @@ export const formatBookingDate = (date: Date): string => {
   }).format(date);
 };
 
-export const calculateEndTime = (startDate: Date, durationMinutes: number): Date => {
+export const calculateEndTime = (
+  startDate: Date,
+  durationMinutes: number,
+): Date => {
   return new Date(startDate.getTime() + durationMinutes * 60000);
 };
 

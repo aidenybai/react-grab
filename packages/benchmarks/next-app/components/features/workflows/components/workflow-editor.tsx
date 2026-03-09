@@ -44,8 +44,12 @@ export function WorkflowEditor({
       <div className="workflow-editor__toolbar">
         {!isReadOnly && (
           <>
-            <button className="btn btn-sm" onClick={addStep}>Add Step</button>
-            <button className="btn btn-primary btn-sm" onClick={handleSave}>Save</button>
+            <button className="btn btn-sm" onClick={addStep}>
+              Add Step
+            </button>
+            <button className="btn btn-primary btn-sm" onClick={handleSave}>
+              Save
+            </button>
           </>
         )}
       </div>
@@ -59,7 +63,10 @@ export function WorkflowEditor({
             <span className="workflow-editor__step-number">{index + 1}</span>
             <span className="workflow-editor__step-type">{step.type}</span>
             {!isReadOnly && (
-              <button onClick={() => removeStep(step.id)} className="workflow-editor__step-remove">
+              <button
+                onClick={() => removeStep(step.id)}
+                className="workflow-editor__step-remove"
+              >
                 Remove
               </button>
             )}

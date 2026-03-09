@@ -17,10 +17,30 @@ interface NotificationCardProps {
 }
 
 const typeStyles = {
-  info: { bg: "bg-blue-50", border: "border-blue-200", icon: "text-blue-500", dot: "bg-blue-500" },
-  success: { bg: "bg-green-50", border: "border-green-200", icon: "text-green-500", dot: "bg-green-500" },
-  warning: { bg: "bg-yellow-50", border: "border-yellow-200", icon: "text-yellow-500", dot: "bg-yellow-500" },
-  error: { bg: "bg-red-50", border: "border-red-200", icon: "text-red-500", dot: "bg-red-500" },
+  info: {
+    bg: "bg-blue-50",
+    border: "border-blue-200",
+    icon: "text-blue-500",
+    dot: "bg-blue-500",
+  },
+  success: {
+    bg: "bg-green-50",
+    border: "border-green-200",
+    icon: "text-green-500",
+    dot: "bg-green-500",
+  },
+  warning: {
+    bg: "bg-yellow-50",
+    border: "border-yellow-200",
+    icon: "text-yellow-500",
+    dot: "bg-yellow-500",
+  },
+  error: {
+    bg: "bg-red-50",
+    border: "border-red-200",
+    icon: "text-red-500",
+    dot: "bg-red-500",
+  },
 };
 
 function formatTimestamp(ts: string): string {
@@ -57,12 +77,16 @@ export function NotificationCard({
     >
       <div className="flex items-start gap-3">
         {!read && (
-          <span className={`mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ${styles.dot}`} />
+          <span
+            className={`mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ${styles.dot}`}
+          />
         )}
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <h4 className="text-sm font-semibold text-gray-900">{title}</h4>
-            <span className="flex-shrink-0 text-xs text-gray-400">{formatTimestamp(timestamp)}</span>
+            <span className="flex-shrink-0 text-xs text-gray-400">
+              {formatTimestamp(timestamp)}
+            </span>
           </div>
           <p className="mt-1 text-sm text-gray-600">{message}</p>
           <div className="mt-2 flex items-center gap-2">
@@ -75,7 +99,10 @@ export function NotificationCard({
               </button>
             )}
             {!read && onMarkRead && (
-              <button onClick={onMarkRead} className="text-xs text-gray-400 hover:text-gray-600">
+              <button
+                onClick={onMarkRead}
+                className="text-xs text-gray-400 hover:text-gray-600"
+              >
                 Mark as read
               </button>
             )}
@@ -87,7 +114,13 @@ export function NotificationCard({
             className="flex-shrink-0 rounded p-1 text-gray-300 hover:bg-gray-100 hover:text-gray-500"
             aria-label="Dismiss"
           >
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              className="h-4 w-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </button>

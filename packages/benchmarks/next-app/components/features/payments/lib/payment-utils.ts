@@ -1,5 +1,7 @@
 export function formatCurrency(amount: number, currency: string): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amount / 100);
+  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(
+    amount / 100,
+  );
 }
 
 export function centsToDecimal(cents: number): number {
@@ -14,7 +16,7 @@ export function calculateProratedAmount(
   currentPlanPrice: number,
   newPlanPrice: number,
   daysRemaining: number,
-  totalDays: number
+  totalDays: number,
 ): number {
   const dailyDifference = (newPlanPrice - currentPlanPrice) / totalDays;
   return Math.max(0, Math.round(dailyDifference * daysRemaining));

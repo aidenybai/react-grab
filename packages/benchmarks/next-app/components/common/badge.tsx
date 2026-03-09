@@ -2,7 +2,13 @@
 
 import React from "react";
 
-type BadgeVariant = "default" | "success" | "warning" | "error" | "info" | "outline";
+type BadgeVariant =
+  | "default"
+  | "success"
+  | "warning"
+  | "error"
+  | "info"
+  | "outline";
 type BadgeSize = "sm" | "md" | "lg";
 
 interface BadgeProps {
@@ -55,7 +61,13 @@ export function Badge({
           className="ml-0.5 inline-flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-black/10"
           aria-label="Remove"
         >
-          <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+          <svg
+            className="h-2.5 w-2.5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+          >
             <path d="M18 6L6 18M6 6l12 12" />
           </svg>
         </button>
@@ -64,8 +76,18 @@ export function Badge({
   );
 }
 
-export function BadgeGroup({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={`flex flex-wrap gap-1.5 ${className ?? ""}`}>{children}</div>;
+export function BadgeGroup({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`flex flex-wrap gap-1.5 ${className ?? ""}`}>
+      {children}
+    </div>
+  );
 }
 
 export default Badge;

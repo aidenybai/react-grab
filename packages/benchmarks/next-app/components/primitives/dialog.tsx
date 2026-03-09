@@ -35,7 +35,11 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
         className="fixed inset-0 bg-black/50 backdrop-blur-sm"
         onClick={() => onOpenChange?.(false)}
       />
-      <div className={cn("relative z-50 w-full max-w-lg rounded-lg bg-white p-6 shadow-xl")}>
+      <div
+        className={cn(
+          "relative z-50 w-full max-w-lg rounded-lg bg-white p-6 shadow-xl",
+        )}
+      >
         {children}
       </div>
     </div>
@@ -44,9 +48,19 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
 
 interface DialogTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {}
 
-export function DialogTitle({ className, children, ...props }: DialogTitleProps) {
+export function DialogTitle({
+  className,
+  children,
+  ...props
+}: DialogTitleProps) {
   return (
-    <h2 className={cn("text-lg font-semibold leading-none tracking-tight", className)} {...props}>
+    <h2
+      className={cn(
+        "text-lg font-semibold leading-none tracking-tight",
+        className,
+      )}
+      {...props}
+    >
       {children}
     </h2>
   );

@@ -364,8 +364,7 @@ export const resolveSourceFromStack = (
 
   const namedFrame = sourceFrames.find(
     (frame) =>
-      frame.functionName &&
-      checkIsSourceComponentName(frame.functionName),
+      frame.functionName && checkIsSourceComponentName(frame.functionName),
   );
 
   const resolvedFrame = namedFrame ?? sourceFrames[0];

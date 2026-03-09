@@ -54,22 +54,38 @@ const BenchmarksPage = () => {
         return r.json();
       })
       .then(setData)
-      .catch(() => setError("No benchmark results found. Run the bench first."));
+      .catch(() =>
+        setError("No benchmark results found. Run the bench first."),
+      );
   }, []);
 
   if (error) return <div style={styles.empty}>{error}</div>;
   if (!data) return <div style={styles.empty}>Loading...</div>;
 
-  const resolvers = data.resolverNames.filter((resolverName) => CLI_RESOLVERS.includes(resolverName));
-  if (resolvers.length === 0) return <div style={styles.empty}>No CLI resolver results found.</div>;
+  const resolvers = data.resolverNames.filter((resolverName) =>
+    CLI_RESOLVERS.includes(resolverName),
+  );
+  if (resolvers.length === 0)
+    return <div style={styles.empty}>No CLI resolver results found.</div>;
 
   const getStats = (name: string) => {
-    const allResolverResults = data.results.map((entry) => entry.resolvers[name]).filter(Boolean);
-    const correctResults = allResolverResults.filter((resolverResult) => resolverResult.correct);
+    const allResolverResults = data.results
+      .map((entry) => entry.resolvers[name])
+      .filter(Boolean);
+    const correctResults = allResolverResults.filter(
+      (resolverResult) => resolverResult.correct,
+    );
     const avgMs = correctResults.length
-      ? correctResults.reduce((sum, resolverResult) => sum + resolverResult.ms, 0) / correctResults.length
+      ? correctResults.reduce(
+          (sum, resolverResult) => sum + resolverResult.ms,
+          0,
+        ) / correctResults.length
       : null;
-    return { correct: correctResults.length, total: data.results.length, avgMs };
+    return {
+      correct: correctResults.length,
+      total: data.results.length,
+      avgMs,
+    };
   };
 
   const sorted = resolvers
@@ -96,7 +112,9 @@ const BenchmarksPage = () => {
           const color = RESOLVER_COLORS[resolverStat.name] ?? "#888";
           return (
             <div key={resolverStat.name} style={styles.barRow}>
-              <div style={{ ...styles.barLabel, color }}>{resolverStat.name}</div>
+              <div style={{ ...styles.barLabel, color }}>
+                {resolverStat.name}
+              </div>
               <div style={styles.barTrack}>
                 <div
                   style={{
@@ -107,12 +125,12 @@ const BenchmarksPage = () => {
                 >
                   <span style={styles.barDetail}>
                     {resolverStat.correct}/{resolverStat.total}
-                    {resolverStat.avgMs !== null ? ` · ${formatDuration(resolverStat.avgMs)}` : ""}
+                    {resolverStat.avgMs !== null
+                      ? ` · ${formatDuration(resolverStat.avgMs)}`
+                      : ""}
                   </span>
                 </div>
-                <span style={styles.barPct}>
-                  {(pct * 100).toFixed(0)}%
-                </span>
+                <span style={styles.barPct}>{(pct * 100).toFixed(0)}%</span>
               </div>
             </div>
           );
@@ -125,7 +143,7 @@ const BenchmarksPage = () => {
           <div style={styles.heatCorner} />
           {TIERS.map((tier) => {
             const count = data.results.filter(
-              (entry) => entry.difficulty === tier
+              (entry) => entry.difficulty === tier,
             ).length;
             return (
               <div
@@ -147,10 +165,10 @@ const BenchmarksPage = () => {
               </div>,
               ...TIERS.map((tier) => {
                 const tierEntries = data.results.filter(
-                  (entry) => entry.difficulty === tier
+                  (entry) => entry.difficulty === tier,
                 );
                 const correct = tierEntries.filter(
-                  (entry) => entry.resolvers[resolverStat.name]?.correct
+                  (entry) => entry.resolvers[resolverStat.name]?.correct,
                 ).length;
                 const count = tierEntries.length;
                 const pct = count ? correct / count : 0;
@@ -183,7 +201,7 @@ const BenchmarksPage = () => {
       <div style={styles.detailSection}>
         {TIERS.map((tier) => {
           const tierEntries = data.results.filter(
-            (entry) => entry.difficulty === tier
+            (entry) => entry.difficulty === tier,
           );
           if (tierEntries.length === 0) return null;
           return (
@@ -199,10 +217,10 @@ const BenchmarksPage = () => {
               </div>
               {tierEntries.map((entry, entryIndex) => {
                 const allCorrect = resolvers.every(
-                  (resolverName) => entry.resolvers[resolverName]?.correct
+                  (resolverName) => entry.resolvers[resolverName]?.correct,
                 );
                 const allWrong = resolvers.every(
-                  (resolverName) => !entry.resolvers[resolverName]?.correct
+                  (resolverName) => !entry.resolvers[resolverName]?.correct,
                 );
                 return (
                   <div
@@ -242,9 +260,7 @@ const BenchmarksPage = () => {
                       if (!resolverResult?.found && !resolverResult?.filePath) {
                         return (
                           <div key={name} style={styles.resolverRow}>
-                            <span style={{ color: "#484f58" }}>
-                              ✗ {name}
-                            </span>
+                            <span style={{ color: "#484f58" }}>✗ {name}</span>
                             <span style={{ color: "#484f58" }}>
                               (no result)
                             </span>
@@ -259,7 +275,9 @@ const BenchmarksPage = () => {
                           <span>
                             <span
                               style={{
-                                color: resolverResult.correct ? "#3fb950" : "#f85149",
+                                color: resolverResult.correct
+                                  ? "#3fb950"
+                                  : "#f85149",
                                 fontWeight: 600,
                                 marginRight: 6,
                               }}
@@ -273,14 +291,17 @@ const BenchmarksPage = () => {
                           <span style={styles.resolverDetail}>
                             <span
                               style={{
-                                color: resolverResult.correct ? "#8b949e" : "#484f58",
+                                color: resolverResult.correct
+                                  ? "#8b949e"
+                                  : "#484f58",
                               }}
                             >
                               {path}
                             </span>
-                            {!resolverResult.correct && resolverResult.found && (
-                              <span style={styles.wrongBadge}>WRONG</span>
-                            )}
+                            {!resolverResult.correct &&
+                              resolverResult.found && (
+                                <span style={styles.wrongBadge}>WRONG</span>
+                              )}
                             <span style={{ color: "#484f58", fontSize: 11 }}>
                               {formatDuration(resolverResult.ms)}
                             </span>
@@ -297,7 +318,7 @@ const BenchmarksPage = () => {
       </div>
     </div>
   );
-}
+};
 
 const styles: Record<string, React.CSSProperties> = {
   page: {
@@ -349,7 +370,11 @@ const styles: Record<string, React.CSSProperties> = {
     paddingLeft: 10,
     transition: "width 0.5s ease",
   },
-  barDetail: { fontSize: 11, color: "rgba(255,255,255,0.85)", whiteSpace: "nowrap" },
+  barDetail: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.85)",
+    whiteSpace: "nowrap",
+  },
   barPct: {
     fontSize: 15,
     fontWeight: 700,

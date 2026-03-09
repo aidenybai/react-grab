@@ -8,11 +8,16 @@ const DynamicBox = styled.div<{ $type: string }>`
   border: 1px solid var(--border);
   background: ${({ $type }) => {
     switch ($type) {
-      case "info": return "#dbeafe";
-      case "success": return "#dcfce7";
-      case "warning": return "#fef9c3";
-      case "error": return "#fecaca";
-      default: return "var(--muted)";
+      case "info":
+        return "#dbeafe";
+      case "success":
+        return "#dcfce7";
+      case "warning":
+        return "#fef9c3";
+      case "error":
+        return "#fecaca";
+      default:
+        return "var(--muted)";
     }
   }};
 `;

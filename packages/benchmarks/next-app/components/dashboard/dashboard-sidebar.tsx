@@ -19,7 +19,12 @@ interface DashboardSidebarProps {
   className?: string;
 }
 
-export function DashboardSidebar({ sections, collapsed: controlledCollapsed, onToggle, className }: DashboardSidebarProps) {
+export function DashboardSidebar({
+  sections,
+  collapsed: controlledCollapsed,
+  onToggle,
+  className,
+}: DashboardSidebarProps) {
   const [internalCollapsed, setInternalCollapsed] = useState(false);
   const collapsed = controlledCollapsed ?? internalCollapsed;
 
@@ -59,7 +64,9 @@ export function DashboardSidebar({ sections, collapsed: controlledCollapsed, onT
                 className="flex items-center px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 title={collapsed ? item.label : undefined}
               >
-                {item.icon && <span className="mr-3 text-base">{item.icon}</span>}
+                {item.icon && (
+                  <span className="mr-3 text-base">{item.icon}</span>
+                )}
                 {!collapsed && (
                   <>
                     <span className="flex-1">{item.label}</span>

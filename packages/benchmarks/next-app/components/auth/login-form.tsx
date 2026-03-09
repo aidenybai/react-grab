@@ -10,7 +10,13 @@ interface LoginFormProps {
   className?: string;
 }
 
-export function LoginForm({ onSubmit, onForgotPassword, isLoading = false, error, className }: LoginFormProps) {
+export function LoginForm({
+  onSubmit,
+  onForgotPassword,
+  isLoading = false,
+  error,
+  className,
+}: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -24,15 +30,22 @@ export function LoginForm({ onSubmit, onForgotPassword, isLoading = false, error
     <form onSubmit={handleSubmit} className={`space-y-4 ${className ?? ""}`}>
       <div className="space-y-2">
         <h2 className="text-2xl font-bold tracking-tight">Welcome back</h2>
-        <p className="text-sm text-gray-500">Enter your credentials to access your account</p>
+        <p className="text-sm text-gray-500">
+          Enter your credentials to access your account
+        </p>
       </div>
 
       {error && (
-        <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>
+        <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </div>
       )}
 
       <div className="space-y-1">
-        <label htmlFor="login-email" className="text-sm font-medium text-gray-700">
+        <label
+          htmlFor="login-email"
+          className="text-sm font-medium text-gray-700"
+        >
           Email
         </label>
         <input
@@ -47,7 +60,10 @@ export function LoginForm({ onSubmit, onForgotPassword, isLoading = false, error
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="login-password" className="text-sm font-medium text-gray-700">
+        <label
+          htmlFor="login-password"
+          className="text-sm font-medium text-gray-700"
+        >
           Password
         </label>
         <div className="relative">
@@ -75,7 +91,11 @@ export function LoginForm({ onSubmit, onForgotPassword, isLoading = false, error
           Remember me
         </label>
         {onForgotPassword && (
-          <button type="button" onClick={onForgotPassword} className="text-sm text-indigo-600 hover:underline">
+          <button
+            type="button"
+            onClick={onForgotPassword}
+            className="text-sm text-indigo-600 hover:underline"
+          >
             Forgot password?
           </button>
         )}

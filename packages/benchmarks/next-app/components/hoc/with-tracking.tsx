@@ -3,11 +3,14 @@ import React, { ComponentType } from "react";
 
 export function withTracking<P extends object>(
   WrappedComponent: ComponentType<P>,
-  trackingId?: string
+  trackingId?: string,
 ) {
   const WithTracking = (props: P) => {
     return (
-      <div data-tracking={trackingId || "unknown"} style={{ display: "contents" }}>
+      <div
+        data-tracking={trackingId || "unknown"}
+        style={{ display: "contents" }}
+      >
         <WrappedComponent {...props} />
       </div>
     );

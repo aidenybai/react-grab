@@ -21,7 +21,10 @@ export function OrgBillingCard({
   onUpgrade,
   onManage,
 }: OrgBillingCardProps) {
-  const formatted = new Intl.NumberFormat("en-US", { style: "currency", currency }).format(monthlyTotal);
+  const formatted = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+  }).format(monthlyTotal);
 
   return (
     <div className="org-billing-card">
@@ -32,7 +35,9 @@ export function OrgBillingCard({
       <div className="org-billing-card__stats">
         <div className="org-billing-card__stat">
           <span className="org-billing-card__stat-label">Seats</span>
-          <span className="org-billing-card__stat-value">{usedSeats} / {totalSeats}</span>
+          <span className="org-billing-card__stat-value">
+            {usedSeats} / {totalSeats}
+          </span>
         </div>
         <div className="org-billing-card__stat">
           <span className="org-billing-card__stat-label">Monthly Total</span>
@@ -40,12 +45,22 @@ export function OrgBillingCard({
         </div>
         <div className="org-billing-card__stat">
           <span className="org-billing-card__stat-label">Next Billing</span>
-          <span className="org-billing-card__stat-value">{nextBillingDate}</span>
+          <span className="org-billing-card__stat-value">
+            {nextBillingDate}
+          </span>
         </div>
       </div>
       <div className="org-billing-card__actions">
-        {onUpgrade && <button className="btn btn-primary" onClick={onUpgrade}>Upgrade Plan</button>}
-        {onManage && <button className="btn btn-outline" onClick={onManage}>Manage Billing</button>}
+        {onUpgrade && (
+          <button className="btn btn-primary" onClick={onUpgrade}>
+            Upgrade Plan
+          </button>
+        )}
+        {onManage && (
+          <button className="btn btn-outline" onClick={onManage}>
+            Manage Billing
+          </button>
+        )}
       </div>
     </div>
   );

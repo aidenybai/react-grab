@@ -27,7 +27,16 @@ export const MetricChart = ({
   return (
     <div data-testid="deep-metric-chart" style={{ width: "100%" }}>
       {title && (
-        <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#374151", marginBottom: "12px" }}>{title}</h3>
+        <h3
+          style={{
+            fontSize: "14px",
+            fontWeight: 600,
+            color: "#374151",
+            marginBottom: "12px",
+          }}
+        >
+          {title}
+        </h3>
       )}
       <svg
         width="100%"
@@ -78,9 +87,23 @@ export const MetricChart = ({
         })}
       </svg>
       {showLabels && (
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginTop: "4px",
+          }}
+        >
           {data.map((point) => (
-            <span key={point.label} style={{ fontSize: "10px", color: "#9ca3af", flex: 1, textAlign: "center" }}>
+            <span
+              key={point.label}
+              style={{
+                fontSize: "10px",
+                color: "#9ca3af",
+                flex: 1,
+                textAlign: "center",
+              }}
+            >
               {point.label}
             </span>
           ))}

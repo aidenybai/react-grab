@@ -18,9 +18,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <StyledComponentsRegistry>
-          <ProviderStack>
-            {children}
-          </ProviderStack>
+          <ProviderStack>{children}</ProviderStack>
         </StyledComponentsRegistry>
         <BenchHarness />
         <div id="portal-root" />

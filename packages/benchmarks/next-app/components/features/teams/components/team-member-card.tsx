@@ -12,12 +12,19 @@ interface TeamMemberCardProps {
 }
 
 export const TeamMemberCard = forwardRef<HTMLDivElement, TeamMemberCardProps>(
-  function TeamMemberCard({ name, email, role, avatarUrl, isOnline, onMessage }, ref) {
+  function TeamMemberCard(
+    { name, email, role, avatarUrl, isOnline, onMessage },
+    ref,
+  ) {
     return (
       <div ref={ref} className="team-member-card">
         <div className="team-member-card__avatar-wrapper">
           {avatarUrl ? (
-            <img src={avatarUrl} alt={name} className="team-member-card__avatar" />
+            <img
+              src={avatarUrl}
+              alt={name}
+              className="team-member-card__avatar"
+            />
           ) : (
             <span className="team-member-card__avatar-fallback">{name[0]}</span>
           )}
@@ -33,5 +40,5 @@ export const TeamMemberCard = forwardRef<HTMLDivElement, TeamMemberCardProps>(
         )}
       </div>
     );
-  }
+  },
 );

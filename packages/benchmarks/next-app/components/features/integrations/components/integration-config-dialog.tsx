@@ -33,9 +33,17 @@ export function IntegrationConfigDialog({
 
   return (
     <div className="integration-config-dialog__overlay" onClick={onClose}>
-      <div className="integration-config-dialog" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="integration-config-dialog"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h2>Configure {integrationName}</h2>
-        <form onSubmit={(e) => { e.preventDefault(); onSave(values); }}>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            onSave(values);
+          }}
+        >
           {fields.map((field) => (
             <div key={field.key} className="integration-config-dialog__field">
               <label htmlFor={field.key}>{field.label}</label>
@@ -43,10 +51,14 @@ export function IntegrationConfigDialog({
                 <select
                   id={field.key}
                   value={values[field.key] ?? ""}
-                  onChange={(e) => setValues({ ...values, [field.key]: e.target.value })}
+                  onChange={(e) =>
+                    setValues({ ...values, [field.key]: e.target.value })
+                  }
                 >
                   {field.options?.map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
                   ))}
                 </select>
               ) : (
@@ -54,15 +66,21 @@ export function IntegrationConfigDialog({
                   id={field.key}
                   type={field.type}
                   value={values[field.key] ?? ""}
-                  onChange={(e) => setValues({ ...values, [field.key]: e.target.value })}
+                  onChange={(e) =>
+                    setValues({ ...values, [field.key]: e.target.value })
+                  }
                   required={field.required}
                 />
               )}
             </div>
           ))}
           <div className="integration-config-dialog__actions">
-            <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary">Save</button>
+            <button type="button" className="btn btn-outline" onClick={onClose}>
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary">
+              Save
+            </button>
           </div>
         </form>
       </div>

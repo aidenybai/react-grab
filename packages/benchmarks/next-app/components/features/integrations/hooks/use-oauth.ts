@@ -20,7 +20,11 @@ export function useOAuth(provider: string) {
   const authorize = useCallback(async () => {
     setState((prev) => ({ ...prev, isAuthorizing: true, error: null }));
     try {
-      setState((prev) => ({ ...prev, isAuthorizing: false, isAuthorized: true }));
+      setState((prev) => ({
+        ...prev,
+        isAuthorizing: false,
+        isAuthorized: true,
+      }));
     } catch (err) {
       setState((prev) => ({
         ...prev,
@@ -31,7 +35,12 @@ export function useOAuth(provider: string) {
   }, [provider]);
 
   const revoke = useCallback(() => {
-    setState({ isAuthorizing: false, isAuthorized: false, error: null, accessToken: null });
+    setState({
+      isAuthorizing: false,
+      isAuthorized: false,
+      error: null,
+      accessToken: null,
+    });
   }, []);
 
   return { ...state, authorize, revoke };

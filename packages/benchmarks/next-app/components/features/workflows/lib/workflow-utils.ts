@@ -1,6 +1,10 @@
-export function validateWorkflowName(name: string): { valid: boolean; error?: string } {
+export function validateWorkflowName(name: string): {
+  valid: boolean;
+  error?: string;
+} {
   if (!name.trim()) return { valid: false, error: "Name is required" };
-  if (name.length > 100) return { valid: false, error: "Name must be 100 characters or less" };
+  if (name.length > 100)
+    return { valid: false, error: "Name must be 100 characters or less" };
   return { valid: true };
 }
 

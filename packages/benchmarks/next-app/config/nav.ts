@@ -44,7 +44,11 @@ export const sidebarNavItems: NavItem[] = [
     children: [
       { title: "Overview", href: "/dashboard/analytics" },
       { title: "Reports", href: "/dashboard/analytics/reports" },
-      { title: "Real-time", href: "/dashboard/analytics/realtime", badge: "Live" },
+      {
+        title: "Real-time",
+        href: "/dashboard/analytics/realtime",
+        badge: "Live",
+      },
     ],
   },
   {
@@ -83,7 +87,10 @@ export const footerNavItems: NavItem[] = [
   { title: "Terms", href: "/terms" },
 ];
 
-export function findActiveNavItem(pathname: string, items: NavItem[]): NavItem | undefined {
+export function findActiveNavItem(
+  pathname: string,
+  items: NavItem[],
+): NavItem | undefined {
   for (const item of items) {
     if (item.href === pathname) return item;
     if (item.children) {

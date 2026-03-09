@@ -18,7 +18,12 @@ function validatePassword(password: string): string[] {
   return errors;
 }
 
-export function SignupForm({ onSubmit, isLoading = false, error, className }: SignupFormProps) {
+export function SignupForm({
+  onSubmit,
+  isLoading = false,
+  error,
+  className,
+}: SignupFormProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,15 +43,24 @@ export function SignupForm({ onSubmit, isLoading = false, error, className }: Si
     <form onSubmit={handleSubmit} className={`space-y-4 ${className ?? ""}`}>
       <div className="space-y-2">
         <h2 className="text-2xl font-bold tracking-tight">Create an account</h2>
-        <p className="text-sm text-gray-500">Enter your details to get started</p>
+        <p className="text-sm text-gray-500">
+          Enter your details to get started
+        </p>
       </div>
 
       {error && (
-        <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>
+        <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </div>
       )}
 
       <div className="space-y-1">
-        <label htmlFor="signup-name" className="text-sm font-medium text-gray-700">Full name</label>
+        <label
+          htmlFor="signup-name"
+          className="text-sm font-medium text-gray-700"
+        >
+          Full name
+        </label>
         <input
           id="signup-name"
           type="text"
@@ -59,7 +73,12 @@ export function SignupForm({ onSubmit, isLoading = false, error, className }: Si
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="signup-email" className="text-sm font-medium text-gray-700">Email</label>
+        <label
+          htmlFor="signup-email"
+          className="text-sm font-medium text-gray-700"
+        >
+          Email
+        </label>
         <input
           id="signup-email"
           type="email"
@@ -72,7 +91,12 @@ export function SignupForm({ onSubmit, isLoading = false, error, className }: Si
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="signup-password" className="text-sm font-medium text-gray-700">Password</label>
+        <label
+          htmlFor="signup-password"
+          className="text-sm font-medium text-gray-700"
+        >
+          Password
+        </label>
         <input
           id="signup-password"
           type="password"
@@ -83,13 +107,20 @@ export function SignupForm({ onSubmit, isLoading = false, error, className }: Si
         />
         {passwordErrors.length > 0 && (
           <ul className="mt-1 space-y-0.5 text-xs text-red-500">
-            {passwordErrors.map((err) => <li key={err}>- {err}</li>)}
+            {passwordErrors.map((err) => (
+              <li key={err}>- {err}</li>
+            ))}
           </ul>
         )}
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="signup-confirm" className="text-sm font-medium text-gray-700">Confirm password</label>
+        <label
+          htmlFor="signup-confirm"
+          className="text-sm font-medium text-gray-700"
+        >
+          Confirm password
+        </label>
         <input
           id="signup-confirm"
           type="password"

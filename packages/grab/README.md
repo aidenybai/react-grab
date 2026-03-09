@@ -208,7 +208,7 @@ See [`packages/react-grab/src/types.ts`](https://github.com/aidenybai/react-grab
 
 Use primitives to build your own element selector from scratch. Unlike plugins, primitives are standalone utility functions that don't depend on React Grab being initialized.
 
-If you're using primitives to build a custom UI and don't want the default React Grab overlay, disable auto-initialization before importing `grab`:
+If you're using primitives to build a custom UI and don't want the default React Grab overlay, disable auto-initialization before importing `react-grab`:
 
 ```html
 <script>

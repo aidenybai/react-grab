@@ -9,7 +9,13 @@ interface BookingCardProps {
   host: string;
 }
 
-export const BookingCard = ({ title, date, duration, status, host }: BookingCardProps) => {
+export const BookingCard = ({
+  title,
+  date,
+  duration,
+  status,
+  host,
+}: BookingCardProps) => {
   const statusColors = {
     pending: "#f59e0b",
     confirmed: "#10b981",
@@ -27,8 +33,16 @@ export const BookingCard = ({ title, date, duration, status, host }: BookingCard
         gap: "8px",
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h3 style={{ fontSize: "16px", fontWeight: 600, margin: 0 }}>{title}</h3>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <h3 style={{ fontSize: "16px", fontWeight: 600, margin: 0 }}>
+          {title}
+        </h3>
         <span
           style={{
             padding: "2px 8px",
@@ -45,7 +59,9 @@ export const BookingCard = ({ title, date, duration, status, host }: BookingCard
       <p style={{ fontSize: "13px", color: "#6b7280", margin: 0 }}>
         {date} &middot; {duration}
       </p>
-      <p style={{ fontSize: "13px", color: "#9ca3af", margin: 0 }}>with {host}</p>
+      <p style={{ fontSize: "13px", color: "#9ca3af", margin: 0 }}>
+        with {host}
+      </p>
     </div>
   );
 };

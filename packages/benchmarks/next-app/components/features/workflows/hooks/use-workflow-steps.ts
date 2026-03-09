@@ -20,7 +20,9 @@ export function useWorkflowSteps(initialSteps: WorkflowStep[] = []) {
   }, []);
 
   const removeStep = useCallback((stepId: string) => {
-    setSteps((prev) => prev.filter((s) => s.id !== stepId).map((s, i) => ({ ...s, order: i })));
+    setSteps((prev) =>
+      prev.filter((s) => s.id !== stepId).map((s, i) => ({ ...s, order: i })),
+    );
   }, []);
 
   const reorderSteps = useCallback((fromIndex: number, toIndex: number) => {
@@ -32,9 +34,14 @@ export function useWorkflowSteps(initialSteps: WorkflowStep[] = []) {
     });
   }, []);
 
-  const updateStepConfig = useCallback((stepId: string, config: Record<string, unknown>) => {
-    setSteps((prev) => prev.map((s) => (s.id === stepId ? { ...s, config } : s)));
-  }, []);
+  const updateStepConfig = useCallback(
+    (stepId: string, config: Record<string, unknown>) => {
+      setSteps((prev) =>
+        prev.map((s) => (s.id === stepId ? { ...s, config } : s)),
+      );
+    },
+    [],
+  );
 
   return { steps, addStep, removeStep, reorderSteps, updateStepConfig };
 }

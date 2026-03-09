@@ -30,18 +30,31 @@ export function InlineList({
           data-testid={i === 0 ? "inline-list-first-item" : undefined}
           style={{
             padding: "12px 16px",
-            borderBottom: i < items.length - 1 ? "1px solid var(--border)" : "none",
+            borderBottom:
+              i < items.length - 1 ? "1px solid var(--border)" : "none",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
           }}
         >
           <div>
-            <div style={{ fontSize: 14, fontWeight: 500, color: "var(--foreground)" }}>
+            <div
+              style={{
+                fontSize: 14,
+                fontWeight: 500,
+                color: "var(--foreground)",
+              }}
+            >
               {item.label}
             </div>
             {item.description && (
-              <div style={{ fontSize: 12, color: "var(--muted-foreground)", marginTop: 2 }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "var(--muted-foreground)",
+                  marginTop: 2,
+                }}
+              >
                 {item.description}
               </div>
             )}

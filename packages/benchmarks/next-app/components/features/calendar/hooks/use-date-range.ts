@@ -9,7 +9,7 @@ interface DateRange {
 
 export function useDateRange(initialRange?: DateRange) {
   const [range, setRange] = useState<DateRange>(
-    initialRange ?? { start: new Date(), end: new Date() }
+    initialRange ?? { start: new Date(), end: new Date() },
   );
 
   const setStart = useCallback((date: Date) => {

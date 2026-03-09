@@ -22,7 +22,9 @@ export function Field({
   horizontal = false,
 }: FieldProps) {
   return (
-    <div className={`${horizontal ? "flex items-start gap-4" : "flex flex-col gap-1.5"}`}>
+    <div
+      className={`${horizontal ? "flex items-start gap-4" : "flex flex-col gap-1.5"}`}
+    >
       <div className={horizontal ? "w-1/3 pt-2" : ""}>
         <label
           htmlFor={htmlFor}

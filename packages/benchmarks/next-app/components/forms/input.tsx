@@ -2,7 +2,10 @@
 
 import React from "react";
 
-interface FormInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "size"> {
+interface FormInputProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  "size"
+> {
   label: string;
   error?: string;
   hint?: string;
@@ -12,7 +15,21 @@ interface FormInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement
 }
 
 export const Input = React.forwardRef<HTMLInputElement, FormInputProps>(
-  ({ label, error, hint, size = "md", startAdornment, endAdornment, id, required, className, ...props }, ref) => {
+  (
+    {
+      label,
+      error,
+      hint,
+      size = "md",
+      startAdornment,
+      endAdornment,
+      id,
+      required,
+      className,
+      ...props
+    },
+    ref,
+  ) => {
     const inputId = id || label.toLowerCase().replace(/\s+/g, "-");
     const sizeClasses = {
       sm: "h-8 text-xs px-2",
@@ -27,20 +44,40 @@ export const Input = React.forwardRef<HTMLInputElement, FormInputProps>(
           {required && <span className="text-red-500 ml-0.5">*</span>}
         </label>
         <div className="relative flex items-center">
-          {startAdornment && <div className="absolute left-3 text-gray-400">{startAdornment}</div>}
+          {startAdornment && (
+            <div className="absolute left-3 text-gray-400">
+              {startAdornment}
+            </div>
+          )}
           <input
             ref={ref}
             id={inputId}
             className={`w-full rounded-md border ${error ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"} focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:bg-gray-50 disabled:text-gray-400 ${sizeClasses[size]} ${startAdornment ? "pl-9" : ""} ${endAdornment ? "pr-9" : ""}`}
             aria-invalid={!!error}
-            aria-describedby={error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
+            aria-describedby={
+              error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined
+            }
             required={required}
             {...props}
           />
-          {endAdornment && <div className="absolute right-3 text-gray-400">{endAdornment}</div>}
+          {endAdornment && (
+            <div className="absolute right-3 text-gray-400">{endAdornment}</div>
+          )}
         </div>
-        {error && <p id={`${inputId}-error`} className="text-xs text-red-500" role="alert">{error}</p>}
-        {hint && !error && <p id={`${inputId}-hint`} className="text-xs text-gray-500">{hint}</p>}
+        {error && (
+          <p
+            id={`${inputId}-error`}
+            className="text-xs text-red-500"
+            role="alert"
+          >
+            {error}
+          </p>
+        )}
+        {hint && !error && (
+          <p id={`${inputId}-hint`} className="text-xs text-gray-500">
+            {hint}
+          </p>
+        )}
       </div>
     );
   },

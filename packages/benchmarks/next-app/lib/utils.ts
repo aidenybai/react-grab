@@ -1,11 +1,14 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export const cn = (...inputs: ClassValue[]): string => {
-  return twMerge(clsx(inputs))
-}
+  return twMerge(clsx(inputs));
+};
 
-export function formatDate(date: Date | string, options?: Intl.DateTimeFormatOptions): string {
+export function formatDate(
+  date: Date | string,
+  options?: Intl.DateTimeFormatOptions,
+): string {
   const d = typeof date === "string" ? new Date(date) : date;
   return d.toLocaleDateString("en-US", {
     year: "numeric",
@@ -47,7 +50,7 @@ export function slugify(str: string): string {
 
 export function debounce<T extends (...args: unknown[]) => unknown>(
   fn: T,
-  delay: number
+  delay: number,
 ): (...args: Parameters<T>) => void {
   let timeoutId: ReturnType<typeof setTimeout>;
   return (...args: Parameters<T>) => {
@@ -61,13 +64,16 @@ export function generateId(prefix = ""): string {
   return prefix ? `${prefix}_${random}` : random;
 }
 
-export function groupBy<T>(arr: T[], keyFn: (item: T) => string): Record<string, T[]> {
+export function groupBy<T>(
+  arr: T[],
+  keyFn: (item: T) => string,
+): Record<string, T[]> {
   return arr.reduce(
     (acc, item) => {
       const key = keyFn(item);
       (acc[key] = acc[key] || []).push(item);
       return acc;
     },
-    {} as Record<string, T[]>
+    {} as Record<string, T[]>,
   );
 }

@@ -21,12 +21,18 @@ export function OrgInviteDialog({
   const [role, setRole] = useState("member");
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
 
-  const handleSubmit = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    const emailList = emails.split(",").map((e) => e.trim()).filter(Boolean);
-    onInvite(emailList, role, selectedTeams);
-    setEmails("");
-  }, [emails, role, selectedTeams, onInvite]);
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      const emailList = emails
+        .split(",")
+        .map((e) => e.trim())
+        .filter(Boolean);
+      onInvite(emailList, role, selectedTeams);
+      setEmails("");
+    },
+    [emails, role, selectedTeams, onInvite],
+  );
 
   if (!isOpen) return null;
 
@@ -37,7 +43,12 @@ export function OrgInviteDialog({
         <form onSubmit={handleSubmit}>
           <div className="org-invite-dialog__field">
             <label>Email addresses (comma separated)</label>
-            <textarea value={emails} onChange={(e) => setEmails(e.target.value)} rows={3} placeholder="email1@example.com, email2@example.com" />
+            <textarea
+              value={emails}
+              onChange={(e) => setEmails(e.target.value)}
+              rows={3}
+              placeholder="email1@example.com, email2@example.com"
+            />
           </div>
           <div className="org-invite-dialog__field">
             <label>Role</label>
@@ -55,7 +66,9 @@ export function OrgInviteDialog({
                   checked={selectedTeams.includes(team.id)}
                   onChange={(e) => {
                     setSelectedTeams((prev) =>
-                      e.target.checked ? [...prev, team.id] : prev.filter((id) => id !== team.id)
+                      e.target.checked
+                        ? [...prev, team.id]
+                        : prev.filter((id) => id !== team.id),
                     );
                   }}
                 />
@@ -64,8 +77,12 @@ export function OrgInviteDialog({
             ))}
           </div>
           <div className="org-invite-dialog__actions">
-            <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary">Send Invites</button>
+            <button type="button" className="btn btn-outline" onClick={onClose}>
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary">
+              Send Invites
+            </button>
           </div>
         </form>
       </div>

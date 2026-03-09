@@ -1,4 +1,3 @@
-
 export interface AnalyticsOverview {
   totalBookings: number;
   totalUsers: number;

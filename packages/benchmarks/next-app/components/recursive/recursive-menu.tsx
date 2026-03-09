@@ -43,13 +43,22 @@ function MenuNode({
       {expanded &&
         hasChildren &&
         item.children!.map((child, i) => (
-          <MenuNode key={i} item={child} level={level + 1} data-testid={testId} />
+          <MenuNode
+            key={i}
+            item={child}
+            level={level + 1}
+            data-testid={testId}
+          />
         ))}
     </div>
   );
 }
 
-function generateMenu(depth: number, breadth: number = 2, prefix: string = "Item"): MenuItem[] {
+function generateMenu(
+  depth: number,
+  breadth: number = 2,
+  prefix: string = "Item",
+): MenuItem[] {
   if (depth <= 0) return [];
   return Array.from({ length: breadth }, (_, i) => ({
     label: `${prefix} ${i + 1}`,
@@ -66,9 +75,17 @@ export function RecursiveMenu({
 }) {
   const menu = generateMenu(depth);
   return (
-    <div data-testid={testId} style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 8 }}>
+    <div
+      data-testid={testId}
+      style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 8 }}
+    >
       {menu.map((item, i) => (
-        <MenuNode key={i} item={item} level={0} data-testid="recursive-menu-deepest" />
+        <MenuNode
+          key={i}
+          item={item}
+          level={0}
+          data-testid="recursive-menu-deepest"
+        />
       ))}
     </div>
   );

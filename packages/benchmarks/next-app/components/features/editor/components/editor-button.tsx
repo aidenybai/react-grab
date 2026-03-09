@@ -18,7 +18,11 @@ export const EditorButton = ({
 }: EditorButtonProps) => {
   const styles: Record<string, React.CSSProperties> = {
     primary: { background: "#2563eb", color: "#fff", border: "none" },
-    secondary: { background: "#f3f4f6", color: "#374151", border: "1px solid #e5e7eb" },
+    secondary: {
+      background: "#f3f4f6",
+      color: "#374151",
+      border: "1px solid #e5e7eb",
+    },
     ghost: { background: "transparent", color: "#6b7280", border: "none" },
   };
 

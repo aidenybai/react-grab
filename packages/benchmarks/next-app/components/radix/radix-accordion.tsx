@@ -6,7 +6,12 @@ export function RadixAccordion({
   items,
   "data-testid": testId,
 }: {
-  items: { value: string; title: string; content: React.ReactNode; testId?: string }[];
+  items: {
+    value: string;
+    title: string;
+    content: React.ReactNode;
+    testId?: string;
+  }[];
   "data-testid"?: string;
 }) {
   return (

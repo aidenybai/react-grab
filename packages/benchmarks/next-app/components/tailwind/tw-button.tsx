@@ -6,10 +6,8 @@ const variants = {
     "bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-90",
   secondary:
     "bg-[var(--muted)] text-[var(--foreground)] border border-[var(--border)] hover:bg-[var(--accent)]",
-  ghost:
-    "bg-transparent text-[var(--foreground)] hover:bg-[var(--muted)]",
-  destructive:
-    "bg-red-500 text-white hover:bg-red-600",
+  ghost: "bg-transparent text-[var(--foreground)] hover:bg-[var(--muted)]",
+  destructive: "bg-red-500 text-white hover:bg-red-600",
   outline:
     "bg-transparent border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--accent)]",
 };

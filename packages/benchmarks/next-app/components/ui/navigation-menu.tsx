@@ -9,25 +9,47 @@ interface NavigationMenuProps {
 
 export function NavigationMenu({ className, children }: NavigationMenuProps) {
   return (
-    <nav className={`relative z-10 flex max-w-max flex-1 items-center justify-center ${className ?? ""}`}>
+    <nav
+      className={`relative z-10 flex max-w-max flex-1 items-center justify-center ${className ?? ""}`}
+    >
       {children}
     </nav>
   );
 }
 
-export function NavigationMenuList({ className, children }: { className?: string; children: React.ReactNode }) {
+export function NavigationMenuList({
+  className,
+  children,
+}: {
+  className?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <ul className={`group flex flex-1 list-none items-center justify-center space-x-1 ${className ?? ""}`}>
+    <ul
+      className={`group flex flex-1 list-none items-center justify-center space-x-1 ${className ?? ""}`}
+    >
       {children}
     </ul>
   );
 }
 
-export function NavigationMenuItem({ className, children }: { className?: string; children: React.ReactNode }) {
+export function NavigationMenuItem({
+  className,
+  children,
+}: {
+  className?: string;
+  children: React.ReactNode;
+}) {
   return <li className={className}>{children}</li>;
 }
 
-export function NavigationMenuTrigger({ className, children }: { className?: string; children: React.ReactNode }) {
+export function NavigationMenuTrigger({
+  className,
+  children,
+}: {
+  className?: string;
+  children: React.ReactNode;
+}) {
   const [isOpen, setIsOpen] = React.useState(false);
 
   return (
@@ -52,9 +74,17 @@ export function NavigationMenuTrigger({ className, children }: { className?: str
   );
 }
 
-export function NavigationMenuContent({ className, children }: { className?: string; children: React.ReactNode }) {
+export function NavigationMenuContent({
+  className,
+  children,
+}: {
+  className?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className={`absolute left-0 top-full w-full md:w-auto ${className ?? ""}`}>
+    <div
+      className={`absolute left-0 top-full w-full md:w-auto ${className ?? ""}`}
+    >
       <div className="rounded-md border bg-white p-4 shadow-lg">{children}</div>
     </div>
   );

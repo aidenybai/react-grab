@@ -2,7 +2,7 @@ export function buildOAuthUrl(
   provider: string,
   clientId: string,
   redirectUri: string,
-  scopes: string[]
+  scopes: string[],
 ): string {
   const baseUrls: Record<string, string> = {
     google: "https://accounts.google.com/o/oauth2/v2/auth",
@@ -29,7 +29,11 @@ export function generateState(): string {
   return Math.random().toString(36).slice(2, 15);
 }
 
-export function parseOAuthCallback(url: string): { code?: string; error?: string; state?: string } {
+export function parseOAuthCallback(url: string): {
+  code?: string;
+  error?: string;
+  state?: string;
+} {
   const params = new URLSearchParams(new URL(url).search);
   return {
     code: params.get("code") ?? undefined,

@@ -16,7 +16,10 @@ function formatValue(value: string | number, format: string): string {
   if (typeof value === "string") return value;
   switch (format) {
     case "currency":
-      return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+      }).format(value);
     case "percentage":
       return `${value.toFixed(1)}%`;
     default:
@@ -24,7 +27,10 @@ function formatValue(value: string | number, format: string): string {
   }
 }
 
-function calculateChange(current: string | number, previous: string | number): number | null {
+function calculateChange(
+  current: string | number,
+  previous: string | number,
+): number | null {
   const curr = typeof current === "string" ? parseFloat(current) : current;
   const prev = typeof previous === "string" ? parseFloat(previous) : previous;
   if (isNaN(curr) || isNaN(prev) || prev === 0) return null;
@@ -40,10 +46,13 @@ export function AnalyticsCard({
   sparkline,
   className,
 }: AnalyticsCardProps) {
-  const change = previousValue !== undefined ? calculateChange(value, previousValue) : null;
+  const change =
+    previousValue !== undefined ? calculateChange(value, previousValue) : null;
 
   return (
-    <div className={`rounded-xl border bg-white p-5 shadow-sm ${className ?? ""}`}>
+    <div
+      className={`rounded-xl border bg-white p-5 shadow-sm ${className ?? ""}`}
+    >
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm font-medium text-gray-500">{title}</p>
@@ -51,13 +60,17 @@ export function AnalyticsCard({
             {formatValue(value, format)}
           </p>
         </div>
-        {icon && <div className="rounded-lg bg-gray-50 p-2 text-gray-500">{icon}</div>}
+        {icon && (
+          <div className="rounded-lg bg-gray-50 p-2 text-gray-500">{icon}</div>
+        )}
       </div>
       {change !== null && (
         <div className="mt-3 flex items-center gap-1.5">
           <span
             className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-              change >= 0 ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
+              change >= 0
+                ? "bg-emerald-50 text-emerald-700"
+                : "bg-red-50 text-red-700"
             }`}
           >
             {change >= 0 ? "\u2191" : "\u2193"} {Math.abs(change).toFixed(1)}%

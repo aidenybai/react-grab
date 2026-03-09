@@ -25,7 +25,10 @@ export function Popover({
   useEffect(() => {
     if (!open || !closeOnClickOutside) return;
     const handler = (e: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+      if (
+        popoverRef.current &&
+        !popoverRef.current.contains(e.target as Node)
+      ) {
         setOpen(false);
       }
     };
@@ -42,14 +45,29 @@ export function Popover({
     ...(side === "right" ? { left: `calc(100% + ${offset}px)`, top: 0 } : {}),
     ...(align === "start" ? { left: 0 } : {}),
     ...(align === "end" ? { right: 0 } : {}),
-    ...(align === "center" && (side === "top" || side === "bottom") ? { left: "50%", transform: "translateX(-50%)" } : {}),
+    ...(align === "center" && (side === "top" || side === "bottom")
+      ? { left: "50%", transform: "translateX(-50%)" }
+      : {}),
   };
 
   return (
-    <div ref={popoverRef} style={{ position: "relative", display: "inline-block" }}>
+    <div
+      ref={popoverRef}
+      style={{ position: "relative", display: "inline-block" }}
+    >
       <div onClick={() => setOpen(!open)}>{trigger}</div>
       {open && (
-        <div style={{ ...positionStyle, minWidth: 200, backgroundColor: "#FFFFFF", borderRadius: 8, border: "1px solid #E5E7EB", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", padding: 12 }}>
+        <div
+          style={{
+            ...positionStyle,
+            minWidth: 200,
+            backgroundColor: "#FFFFFF",
+            borderRadius: 8,
+            border: "1px solid #E5E7EB",
+            boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+            padding: 12,
+          }}
+        >
           {children}
         </div>
       )}

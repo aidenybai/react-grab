@@ -60,7 +60,12 @@ export const NotificationStatusBadge = ({
           width: "6px",
           height: "6px",
           borderRadius: "50%",
-          background: status === "active" ? "#22c55e" : status === "error" ? "#ef4444" : "#9ca3af",
+          background:
+            status === "active"
+              ? "#22c55e"
+              : status === "error"
+                ? "#ef4444"
+                : "#9ca3af",
         }}
       />
       {count !== undefined ? `${count} pending` : status}
@@ -77,7 +82,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         addNotification: (msg, type = "info") =>
           setNotifications((prev) => [
             ...prev,
-            { id: crypto.randomUUID(), message: msg, type, timestamp: Date.now() },
+            {
+              id: crypto.randomUUID(),
+              message: msg,
+              type,
+              timestamp: Date.now(),
+            },
           ]),
         clearNotifications: () => setNotifications([]),
         unreadCount: notifications.length,

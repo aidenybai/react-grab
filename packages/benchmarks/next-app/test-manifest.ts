@@ -61,7 +61,8 @@ export const TEST_MANIFEST: TestEntry[] = [
     componentName: "BenchmarkPage",
     difficulty: "easy",
     description: "Simple div rendered inside 6 providers",
-    lazyDescription: "the main page content that says 'Content rendered inside 6 providers'",
+    lazyDescription:
+      "the main page content that says 'Content rendered inside 6 providers'",
   },
   {
     id: 7,
@@ -133,7 +134,8 @@ export const TEST_MANIFEST: TestEntry[] = [
     filePath: "components/styled/styled-button.tsx",
     componentName: "StyledButton",
     difficulty: "medium",
-    description: "Styled-components button inside memo + forwardRef (withTooltip HOC)",
+    description:
+      "Styled-components button inside memo + forwardRef (withTooltip HOC)",
     lazyDescription: "that button with the tooltip",
   },
   {
@@ -341,7 +343,8 @@ export const TEST_MANIFEST: TestEntry[] = [
     filePath: "components/computed/dynamic-renderer.tsx",
     componentName: "DynamicRenderer",
     difficulty: "hard",
-    description: "Dynamic renderer with computed component selection via styled-components",
+    description:
+      "Dynamic renderer with computed component selection via styled-components",
     lazyDescription: "the dynamic component thing",
   },
   {
@@ -377,7 +380,8 @@ export const TEST_MANIFEST: TestEntry[] = [
     filePath: "components/mixed/style-clash.tsx",
     componentName: "StyleClash",
     difficulty: "hard",
-    description: "Button with styled-components + Tailwind + CSS Modules + inline styles on same elements",
+    description:
+      "Button with styled-components + Tailwind + CSS Modules + inline styles on same elements",
     lazyDescription: "the button that uses like 4 different styling approaches",
   },
   {
@@ -386,7 +390,8 @@ export const TEST_MANIFEST: TestEntry[] = [
     filePath: "components/mixed/tw-styled-hybrid.tsx",
     componentName: "TwStyledHybrid",
     difficulty: "hard",
-    description: "Button with Tailwind classes AND styled-components hover/active behavior",
+    description:
+      "Button with Tailwind classes AND styled-components hover/active behavior",
     lazyDescription: "the hybrid button with tailwind and styled-components",
   },
   {
@@ -395,7 +400,8 @@ export const TEST_MANIFEST: TestEntry[] = [
     filePath: "components/mixed/module-tw-hybrid.tsx",
     componentName: "ModuleTwHybrid",
     difficulty: "hard",
-    description: "List item with CSS Module transition class AND Tailwind layout classes",
+    description:
+      "List item with CSS Module transition class AND Tailwind layout classes",
     lazyDescription: "list item that mixes css modules and tailwind",
   },
   {
@@ -404,7 +410,8 @@ export const TEST_MANIFEST: TestEntry[] = [
     filePath: "components/mixed/inline-motion-hybrid.tsx",
     componentName: "InlineMotionHybrid",
     difficulty: "hard",
-    description: "motion.button with whileHover/whileTap and pure inline styles",
+    description:
+      "motion.button with whileHover/whileTap and pure inline styles",
     lazyDescription: "the animated button with inline styles",
   },
 
@@ -525,7 +532,8 @@ export const TEST_MANIFEST: TestEntry[] = [
     filePath: "lib/create-widget.tsx",
     componentName: "Widget",
     difficulty: "nightmare",
-    description: "Factory-generated revenue metric widget created by createWidget() in a lib file",
+    description:
+      "Factory-generated revenue metric widget created by createWidget() in a lib file",
     lazyDescription: "the revenue card",
   },
   {
@@ -534,7 +542,8 @@ export const TEST_MANIFEST: TestEntry[] = [
     filePath: "lib/create-widget.tsx",
     componentName: "Widget",
     difficulty: "nightmare",
-    description: "Factory-generated active users widget created by createWidget() in a lib file",
+    description:
+      "Factory-generated active users widget created by createWidget() in a lib file",
     lazyDescription: "the users metric",
   },
   {
@@ -543,7 +552,8 @@ export const TEST_MANIFEST: TestEntry[] = [
     filePath: "hooks/use-confirm-dialog.tsx",
     componentName: "ConfirmDialogContent",
     difficulty: "nightmare",
-    description: "Confirmation dialog component defined inside a React hook file",
+    description:
+      "Confirmation dialog component defined inside a React hook file",
     lazyDescription: "the confirmation popup",
   },
   {
@@ -552,7 +562,8 @@ export const TEST_MANIFEST: TestEntry[] = [
     filePath: "components/providers/notification-provider.tsx",
     componentName: "NotificationStatusBadge",
     difficulty: "nightmare",
-    description: "Status badge component exported from a context provider file alongside the provider itself",
+    description:
+      "Status badge component exported from a context provider file alongside the provider itself",
     lazyDescription: "the notification badge",
   },
   {
@@ -561,7 +572,8 @@ export const TEST_MANIFEST: TestEntry[] = [
     filePath: "components/core/interactive/primary-action.tsx",
     componentName: "PrimaryAction",
     difficulty: "nightmare",
-    description: "Primary action button re-exported through 3 barrel index.ts files",
+    description:
+      "Primary action button re-exported through 3 barrel index.ts files",
     lazyDescription: "the primary button",
   },
   {
@@ -570,16 +582,19 @@ export const TEST_MANIFEST: TestEntry[] = [
     filePath: "components/features/booking/actions/confirm-booking-button.tsx",
     componentName: "ConfirmBookingButton",
     difficulty: "nightmare",
-    description: "Booking confirmation button deeply nested in features/booking/actions/ directory",
+    description:
+      "Booking confirmation button deeply nested in features/booking/actions/ directory",
     lazyDescription: "the confirm button",
   },
   {
     id: 62,
     testId: "deep-display-name-field",
-    filePath: "components/features/settings/profile/fields/display-name-field.tsx",
+    filePath:
+      "components/features/settings/profile/fields/display-name-field.tsx",
     componentName: "DisplayNameField",
     difficulty: "nightmare",
-    description: "Display name input field at features/settings/profile/fields/ — 5 directories deep",
+    description:
+      "Display name input field at features/settings/profile/fields/ — 5 directories deep",
     lazyDescription: "the name input",
   },
   {
@@ -606,7 +621,8 @@ export const TEST_MANIFEST: TestEntry[] = [
     filePath: "components/features/notifications/banners/system-banner.tsx",
     componentName: "SystemBanner",
     difficulty: "nightmare",
-    description: "System notification banner in features/notifications/banners/",
+    description:
+      "System notification banner in features/notifications/banners/",
     lazyDescription: "the warning banner",
   },
   {
@@ -615,7 +631,8 @@ export const TEST_MANIFEST: TestEntry[] = [
     filePath: "lib/render-utils.tsx",
     componentName: "StatusIndicator",
     difficulty: "nightmare",
-    description: "Status indicator component defined inside lib/render-utils.tsx among utility functions",
+    description:
+      "Status indicator component defined inside lib/render-utils.tsx among utility functions",
     lazyDescription: "the status dot",
   },
   {
@@ -624,7 +641,8 @@ export const TEST_MANIFEST: TestEntry[] = [
     filePath: "lib/data-formatters.tsx",
     componentName: "FormattedCurrency",
     difficulty: "nightmare",
-    description: "Formatted currency component defined inside lib/data-formatters.tsx among formatting utilities",
+    description:
+      "Formatted currency component defined inside lib/data-formatters.tsx among formatting utilities",
     lazyDescription: "the price display",
   },
   {
@@ -633,7 +651,8 @@ export const TEST_MANIFEST: TestEntry[] = [
     filePath: "components/generated/integration-registry.tsx",
     componentName: "IntegrationCard",
     difficulty: "nightmare",
-    description: "Integration card from auto-generated registry file with component lookup by slug",
+    description:
+      "Integration card from auto-generated registry file with component lookup by slug",
     lazyDescription: "the integration card",
   },
   {
@@ -642,7 +661,8 @@ export const TEST_MANIFEST: TestEntry[] = [
     filePath: "components/server/server-hero.tsx",
     componentName: "ServerHero",
     difficulty: "medium",
-    description: "Top-level server component section with nested server children, no 'use client' directive",
+    description:
+      "Top-level server component section with nested server children, no 'use client' directive",
     lazyDescription: "the server hero section",
   },
   {
@@ -651,7 +671,8 @@ export const TEST_MANIFEST: TestEntry[] = [
     filePath: "components/server/server-stats.tsx",
     componentName: "ServerStats",
     difficulty: "medium",
-    description: "Server component grid rendered inside another server component (ServerHero → ServerStats)",
+    description:
+      "Server component grid rendered inside another server component (ServerHero → ServerStats)",
     lazyDescription: "the server stats grid",
   },
   {
@@ -660,7 +681,8 @@ export const TEST_MANIFEST: TestEntry[] = [
     filePath: "components/server/server-stat-card.tsx",
     componentName: "ServerStatCard",
     difficulty: "hard",
-    description: "Server stat card at 3 levels deep in server component tree (ServerHero → ServerStats → ServerStatCard)",
+    description:
+      "Server stat card at 3 levels deep in server component tree (ServerHero → ServerStats → ServerStatCard)",
     lazyDescription: "the users stat card",
   },
   {
@@ -669,7 +691,8 @@ export const TEST_MANIFEST: TestEntry[] = [
     filePath: "components/server/server-feature-list.tsx",
     componentName: "ServerFeatureList",
     difficulty: "medium",
-    description: "Server component list rendered inside ServerHero, iterating over data with nested ServerFeatureItem children",
+    description:
+      "Server component list rendered inside ServerHero, iterating over data with nested ServerFeatureItem children",
     lazyDescription: "the feature list",
   },
   {
@@ -678,7 +701,8 @@ export const TEST_MANIFEST: TestEntry[] = [
     filePath: "components/server/server-feature-item.tsx",
     componentName: "ServerFeatureItem",
     difficulty: "hard",
-    description: "Server component list item at 3 levels deep (ServerHero → ServerFeatureList → ServerFeatureItem)",
+    description:
+      "Server component list item at 3 levels deep (ServerHero → ServerFeatureList → ServerFeatureItem)",
     lazyDescription: "the first feature list item",
   },
   {
@@ -687,7 +711,8 @@ export const TEST_MANIFEST: TestEntry[] = [
     filePath: "components/server/server-with-client-island.tsx",
     componentName: "ServerWithClientIsland",
     difficulty: "hard",
-    description: "Server component that wraps a client island component across the server/client boundary",
+    description:
+      "Server component that wraps a client island component across the server/client boundary",
     lazyDescription: "the server wrapper with a client island",
   },
   {
@@ -696,7 +721,8 @@ export const TEST_MANIFEST: TestEntry[] = [
     filePath: "components/server/client-island.tsx",
     componentName: "ClientIsland",
     difficulty: "hard",
-    description: "Client component button rendered inside a server component wrapper (server → client boundary crossing)",
+    description:
+      "Client component button rendered inside a server component wrapper (server → client boundary crossing)",
     lazyDescription: "the counter button inside the server wrapper",
   },
 ];

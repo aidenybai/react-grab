@@ -24,7 +24,9 @@ export const CalendarView = memo(function CalendarView({
   };
 
   return (
-    <div className={`calendar-view calendar-view--${currentView} ${className ?? ""}`}>
+    <div
+      className={`calendar-view calendar-view--${currentView} ${className ?? ""}`}
+    >
       <div className="calendar-view__header">
         <button onClick={() => setCurrentView("month")}>Month</button>
         <button onClick={() => setCurrentView("week")}>Week</button>

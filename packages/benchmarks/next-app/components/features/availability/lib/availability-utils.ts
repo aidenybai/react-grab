@@ -15,18 +15,26 @@ export function minutesToTime(minutes: number): string {
 }
 
 export function doRangesOverlap(a: TimeRange, b: TimeRange): boolean {
-  return timeToMinutes(a.start) < timeToMinutes(b.end) && timeToMinutes(b.start) < timeToMinutes(a.end);
+  return (
+    timeToMinutes(a.start) < timeToMinutes(b.end) &&
+    timeToMinutes(b.start) < timeToMinutes(a.end)
+  );
 }
 
 export function mergeRanges(ranges: TimeRange[]): TimeRange[] {
   if (ranges.length <= 1) return ranges;
-  const sorted = [...ranges].sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
+  const sorted = [...ranges].sort(
+    (a, b) => timeToMinutes(a.start) - timeToMinutes(b.start),
+  );
   const merged: TimeRange[] = [sorted[0]];
 
   for (let i = 1; i < sorted.length; i++) {
     const last = merged[merged.length - 1];
     if (timeToMinutes(sorted[i].start) <= timeToMinutes(last.end)) {
-      last.end = timeToMinutes(sorted[i].end) > timeToMinutes(last.end) ? sorted[i].end : last.end;
+      last.end =
+        timeToMinutes(sorted[i].end) > timeToMinutes(last.end)
+          ? sorted[i].end
+          : last.end;
     } else {
       merged.push(sorted[i]);
     }

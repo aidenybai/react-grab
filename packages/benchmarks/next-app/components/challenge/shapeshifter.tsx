@@ -34,7 +34,10 @@ function ShapeB({ "data-testid": testId }: { "data-testid"?: string }) {
   return (
     <div style={{ display: "flex", gap: 4 }}>
       <ShapeBox $shape={1}>B1</ShapeBox>
-      <motion.div animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 1 }}>
+      <motion.div
+        animate={{ y: [0, -5, 0] }}
+        transition={{ repeat: Infinity, duration: 1 }}
+      >
         <ShapeBox $shape={2} data-testid={testId}>
           B2
         </ShapeBox>
@@ -50,7 +53,10 @@ function ShapeC({ "data-testid": testId }: { "data-testid"?: string }) {
         <ShapeBox $shape={3}>C1</ShapeBox>
         <ShapeBox $shape={4}>C2</ShapeBox>
       </div>
-      <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ repeat: Infinity, duration: 1.5 }}>
+      <motion.div
+        animate={{ scale: [1, 1.05, 1] }}
+        transition={{ repeat: Infinity, duration: 1.5 }}
+      >
         <ShapeBox $shape={5} data-testid={testId}>
           C3
         </ShapeBox>
@@ -78,7 +84,9 @@ export function Shapeshifter({
   const ShapeComponent = shapes[shapeIndex];
 
   return (
-    <div style={{ minHeight: 100, display: "flex", alignItems: "center", gap: 12 }}>
+    <div
+      style={{ minHeight: 100, display: "flex", alignItems: "center", gap: 12 }}
+    >
       <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
         Shape {shapeIndex + 1}/{shapes.length}
       </span>

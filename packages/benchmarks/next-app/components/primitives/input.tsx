@@ -29,7 +29,12 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           {...props}
         />
         {helperText && (
-          <p className={cn("mt-1 text-xs", error ? "text-red-500" : "text-muted-foreground")}>
+          <p
+            className={cn(
+              "mt-1 text-xs",
+              error ? "text-red-500" : "text-muted-foreground",
+            )}
+          >
             {helperText}
           </p>
         )}

@@ -23,7 +23,9 @@ export function VirtualListItem({
 }) {
   return (
     <VirtualRow $index={index} data-testid={testId}>
-      <span style={{ width: 40, color: "var(--muted-foreground)" }}>#{index}</span>
+      <span style={{ width: 40, color: "var(--muted-foreground)" }}>
+        #{index}
+      </span>
       <span>{label}</span>
     </VirtualRow>
   );

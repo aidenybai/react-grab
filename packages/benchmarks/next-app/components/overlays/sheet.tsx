@@ -10,10 +10,18 @@ interface SheetProps {
   className?: string;
 }
 
-export function Sheet({ open, onOpenChange, side = "right", children, className }: SheetProps) {
+export function Sheet({
+  open,
+  onOpenChange,
+  side = "right",
+  children,
+  className,
+}: SheetProps) {
   useEffect(() => {
     if (!open) return;
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onOpenChange(false); };
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onOpenChange(false);
+    };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [open, onOpenChange]);
@@ -45,9 +53,7 @@ export function Sheet({ open, onOpenChange, side = "right", children, className 
               <span className="text-xl">&times;</span>
             </button>
           </div>
-          <div className="flex-1 overflow-auto px-6 pb-6">
-            {children}
-          </div>
+          <div className="flex-1 overflow-auto px-6 pb-6">{children}</div>
         </div>
       </div>
     </>

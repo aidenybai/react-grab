@@ -27,7 +27,7 @@ export function useClipboard(resetAfterMs = 2000): {
         setCopied(false);
       }
     },
-    [resetAfterMs]
+    [resetAfterMs],
   );
 
   return { copied, copy, error };

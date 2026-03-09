@@ -1,4 +1,3 @@
-
 import type { AnalyticsEvent } from "@/lib/types";
 import { logger } from "@/lib/logger";
 
@@ -18,7 +17,7 @@ export function registerProvider(provider: AnalyticsProvider): void {
 
 export function trackEvent(
   name: string,
-  properties?: Record<string, string | number | boolean>
+  properties?: Record<string, string | number | boolean>,
 ): void {
   const event: AnalyticsEvent = {
     name,
@@ -39,7 +38,7 @@ export function trackEvent(
 
 export function identifyUser(
   userId: string,
-  traits?: Record<string, unknown>
+  traits?: Record<string, unknown>,
 ): void {
   for (const provider of providers) {
     try {
@@ -52,7 +51,7 @@ export function identifyUser(
 
 export function trackPageView(
   pageName: string,
-  properties?: Record<string, unknown>
+  properties?: Record<string, unknown>,
 ): void {
   for (const provider of providers) {
     try {

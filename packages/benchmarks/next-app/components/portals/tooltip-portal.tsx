@@ -57,7 +57,7 @@ export function TooltipPortal({
           >
             {content}
           </div>,
-          document.body
+          document.body,
         )}
     </>
   );

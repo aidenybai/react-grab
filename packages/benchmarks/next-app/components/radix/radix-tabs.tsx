@@ -7,12 +7,20 @@ export function RadixTabs({
   defaultValue,
   "data-testid": testId,
 }: {
-  tabs: { value: string; label: string; content: React.ReactNode; testId?: string }[];
+  tabs: {
+    value: string;
+    label: string;
+    content: React.ReactNode;
+    testId?: string;
+  }[];
   defaultValue?: string;
   "data-testid"?: string;
 }) {
   return (
-    <Tabs.Root defaultValue={defaultValue || tabs[0]?.value} data-testid={testId}>
+    <Tabs.Root
+      defaultValue={defaultValue || tabs[0]?.value}
+      data-testid={testId}
+    >
       <Tabs.List
         style={{
           display: "flex",

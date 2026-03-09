@@ -2,8 +2,10 @@ export const APP_NAME = "Acme Dashboard";
 export const APP_VERSION = "2.4.1";
 export const APP_DESCRIPTION = "Enterprise analytics and management platform";
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.acme.dev/v1";
-export const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_URL || "wss://ws.acme.dev";
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "https://api.acme.dev/v1";
+export const WS_BASE_URL =
+  process.env.NEXT_PUBLIC_WS_URL || "wss://ws.acme.dev";
 
 export const AUTH_TOKEN_KEY = "acme_auth_token";
 export const REFRESH_TOKEN_KEY = "acme_refresh_token";

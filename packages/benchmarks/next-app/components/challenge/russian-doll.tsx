@@ -31,11 +31,14 @@ const InnerButton = memo(
           Russian Doll Button
         </StyledMotionButton>
       );
-    }
-  )
+    },
+  ),
 );
 
-const Layer1 = withPermissions(InnerButton as React.ComponentType<{ "data-testid"?: string }>, "read");
+const Layer1 = withPermissions(
+  InnerButton as React.ComponentType<{ "data-testid"?: string }>,
+  "read",
+);
 const Layer2 = withErrorBoundary(Layer1);
 const Layer3 = withTracking(Layer2, "russian-doll-1");
 const Layer4 = withPermissions(Layer3, "write");

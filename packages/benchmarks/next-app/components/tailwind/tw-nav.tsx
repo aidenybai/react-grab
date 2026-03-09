@@ -12,7 +12,10 @@ export function TwNav({ "data-testid": testId }: { "data-testid"?: string }) {
   const [active, setActive] = useState("Dashboard");
 
   return (
-    <nav data-testid={testId} className="flex items-center gap-1 rounded-lg bg-[var(--muted)] p-1">
+    <nav
+      data-testid={testId}
+      className="flex items-center gap-1 rounded-lg bg-[var(--muted)] p-1"
+    >
       {navItems.map((item) => (
         <button
           key={item.label}

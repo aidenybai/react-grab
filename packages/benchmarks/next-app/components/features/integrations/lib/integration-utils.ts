@@ -5,15 +5,33 @@ export interface IntegrationCategory {
 }
 
 export const INTEGRATION_CATEGORIES: IntegrationCategory[] = [
-  { id: "calendar", name: "Calendar", description: "Calendar sync integrations" },
-  { id: "video", name: "Video Conferencing", description: "Video meeting integrations" },
-  { id: "payment", name: "Payment", description: "Payment processing integrations" },
+  {
+    id: "calendar",
+    name: "Calendar",
+    description: "Calendar sync integrations",
+  },
+  {
+    id: "video",
+    name: "Video Conferencing",
+    description: "Video meeting integrations",
+  },
+  {
+    id: "payment",
+    name: "Payment",
+    description: "Payment processing integrations",
+  },
   { id: "crm", name: "CRM", description: "Customer relationship management" },
-  { id: "messaging", name: "Messaging", description: "Messaging and chat integrations" },
+  {
+    id: "messaging",
+    name: "Messaging",
+    description: "Messaging and chat integrations",
+  },
   { id: "analytics", name: "Analytics", description: "Analytics and tracking" },
 ];
 
-export function getIntegrationCategory(categoryId: string): IntegrationCategory | undefined {
+export function getIntegrationCategory(
+  categoryId: string,
+): IntegrationCategory | undefined {
   return INTEGRATION_CATEGORIES.find((c) => c.id === categoryId);
 }
 

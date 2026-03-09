@@ -21,7 +21,8 @@ export function BaseBadge({
 }: BaseBadgeProps) {
   if (!visible) return <>{children}</>;
 
-  const displayCount = count !== undefined && count > maxCount ? `${maxCount}+` : count;
+  const displayCount =
+    count !== undefined && count > maxCount ? `${maxCount}+` : count;
   const isSmall = size === "small" || count === undefined;
 
   const badge = (

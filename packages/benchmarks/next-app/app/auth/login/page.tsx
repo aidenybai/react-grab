@@ -37,16 +37,26 @@ export default function LoginPage() {
             <span className="text-xl font-bold text-white">A</span>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
-          <p className="mt-1 text-sm text-gray-500">Sign in to your account to continue</p>
+          <p className="mt-1 text-sm text-gray-500">
+            Sign in to your account to continue
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 rounded-lg border bg-white p-6 shadow-sm">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-4 rounded-lg border bg-white p-6 shadow-sm"
+        >
           {error && (
-            <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>
+            <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
+              {error}
+            </div>
           )}
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700"
+            >
               Email address
             </label>
             <input
@@ -62,7 +72,10 @@ export default function LoginPage() {
 
           <div>
             <div className="flex items-center justify-between">
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Password
               </label>
               <a href="#" className="text-xs text-indigo-600 hover:underline">
@@ -89,7 +102,9 @@ export default function LoginPage() {
 
           <p className="text-center text-xs text-gray-500">
             Don&apos;t have an account?{" "}
-            <a href="#" className="text-indigo-600 hover:underline">Sign up</a>
+            <a href="#" className="text-indigo-600 hover:underline">
+              Sign up
+            </a>
           </p>
         </form>
       </div>

@@ -44,7 +44,11 @@ export function Modal({
     >
       <div
         onClick={preventClose ? undefined : onRequestClose}
-        style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.5)" }}
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundColor: "rgba(0,0,0,0.5)",
+        }}
       />
       <div
         style={{
@@ -60,10 +64,28 @@ export function Modal({
           boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid #F3F4F6" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "16px 20px",
+            borderBottom: "1px solid #F3F4F6",
+          }}
+        >
           <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{title}</h3>
           {!preventClose && (
-            <button onClick={onRequestClose} style={{ border: "none", background: "none", fontSize: 20, color: "#9CA3AF", cursor: "pointer", padding: 4 }}>
+            <button
+              onClick={onRequestClose}
+              style={{
+                border: "none",
+                background: "none",
+                fontSize: 20,
+                color: "#9CA3AF",
+                cursor: "pointer",
+                padding: 4,
+              }}
+            >
               &times;
             </button>
           )}

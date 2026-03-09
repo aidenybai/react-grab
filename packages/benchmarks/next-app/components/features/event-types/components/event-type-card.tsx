@@ -26,7 +26,14 @@ export const EventTypeCard = memo(function EventTypeCard({
   onDuplicate,
 }: EventTypeCardProps) {
   return (
-    <div className="event-type-card" style={{ borderLeftColor: color, borderLeftWidth: 4, borderLeftStyle: "solid" }}>
+    <div
+      className="event-type-card"
+      style={{
+        borderLeftColor: color,
+        borderLeftWidth: 4,
+        borderLeftStyle: "solid",
+      }}
+    >
       <div className="event-type-card__header">
         <h3 className="event-type-card__title">{title}</h3>
         <button
@@ -40,8 +47,12 @@ export const EventTypeCard = memo(function EventTypeCard({
       <p className="event-type-card__duration">{duration} min</p>
       {description && <p className="event-type-card__desc">{description}</p>}
       <div className="event-type-card__actions">
-        <button className="btn btn-sm" onClick={onEdit}>Edit</button>
-        <button className="btn btn-sm btn-outline" onClick={onDuplicate}>Duplicate</button>
+        <button className="btn btn-sm" onClick={onEdit}>
+          Edit
+        </button>
+        <button className="btn btn-sm btn-outline" onClick={onDuplicate}>
+          Duplicate
+        </button>
       </div>
     </div>
   );

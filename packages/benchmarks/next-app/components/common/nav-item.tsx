@@ -51,7 +51,11 @@ export function NavItem({
         style={{ paddingLeft: `${12 + indent * 16}px` }}
         title={collapsed ? label : undefined}
       >
-        {icon && <span className="flex h-5 w-5 items-center justify-center text-current">{icon}</span>}
+        {icon && (
+          <span className="flex h-5 w-5 items-center justify-center text-current">
+            {icon}
+          </span>
+        )}
         {!collapsed && (
           <>
             <span className="flex-1 truncate">{label}</span>

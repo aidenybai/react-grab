@@ -22,23 +22,42 @@ export function ScheduleCopyDialog({
 
   return (
     <div className="schedule-copy-dialog__overlay" onClick={onClose}>
-      <div className="schedule-copy-dialog" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="schedule-copy-dialog"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h2>Copy Schedule</h2>
         <div className="schedule-copy-dialog__field">
           <label>Copy from</label>
-          <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)}>
+          <select
+            value={selectedId}
+            onChange={(e) => setSelectedId(e.target.value)}
+          >
             {schedules.map((s) => (
-              <option key={s.id} value={s.id}>{s.name}</option>
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
             ))}
           </select>
         </div>
         <div className="schedule-copy-dialog__field">
           <label>New schedule name</label>
-          <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="My Schedule (Copy)" />
+          <input
+            type="text"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder="My Schedule (Copy)"
+          />
         </div>
         <div className="schedule-copy-dialog__actions">
-          <button className="btn btn-outline" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" onClick={() => onCopy(selectedId, newName)} disabled={!newName.trim()}>
+          <button className="btn btn-outline" onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={() => onCopy(selectedId, newName)}
+            disabled={!newName.trim()}
+          >
             Copy
           </button>
         </div>

@@ -22,7 +22,8 @@ function useAuthState(): AuthState {
   });
 
   useEffect(() => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
     if (token) {
       setState({
         isAuthenticated: true,
@@ -39,7 +40,7 @@ function useAuthState(): AuthState {
 
 export function withAuthGuard<P extends object>(
   WrappedComponent: ComponentType<P>,
-  options: AuthGuardOptions = {}
+  options: AuthGuardOptions = {},
 ) {
   const { redirectTo = "/auth/login", fallback } = options;
 
@@ -47,10 +48,12 @@ export function withAuthGuard<P extends object>(
     const { isAuthenticated, isLoading } = useAuthState();
 
     if (isLoading) {
-      return fallback ?? (
-        <div className="flex h-screen items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
-        </div>
+      return (
+        fallback ?? (
+          <div className="flex h-screen items-center justify-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
+          </div>
+        )
       );
     }
 
@@ -69,11 +72,25 @@ export function withAuthGuard<P extends object>(
   return AuthGuardedComponent;
 }
 
-export function AuthGuard({ children, fallback }: { children: React.ReactNode; fallback?: React.ReactNode }) {
+export function AuthGuard({
+  children,
+  fallback,
+}: {
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+}) {
   const { isAuthenticated, isLoading } = useAuthState();
 
   if (isLoading) {
-    return <>{fallback ?? <div className="flex h-screen items-center justify-center"><p>Loading...</p></div>}</>;
+    return (
+      <>
+        {fallback ?? (
+          <div className="flex h-screen items-center justify-center">
+            <p>Loading...</p>
+          </div>
+        )}
+      </>
+    );
   }
 
   if (!isAuthenticated) {

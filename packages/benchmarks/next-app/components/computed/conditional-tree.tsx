@@ -43,11 +43,26 @@ function Branch({
   return (
     <div style={{ display: "flex", gap: 4, paddingLeft: 8 }}>
       {value % 3 === 0 ? (
-        <Branch value={left} depth={depth + 1} maxDepth={maxDepth} leafTestId={leafTestId} />
+        <Branch
+          value={left}
+          depth={depth + 1}
+          maxDepth={maxDepth}
+          leafTestId={leafTestId}
+        />
       ) : (
         <>
-          <Branch value={left} depth={depth + 1} maxDepth={maxDepth} leafTestId={leafTestId} />
-          <Branch value={right} depth={depth + 1} maxDepth={maxDepth} leafTestId={leafTestId} />
+          <Branch
+            value={left}
+            depth={depth + 1}
+            maxDepth={maxDepth}
+            leafTestId={leafTestId}
+          />
+          <Branch
+            value={right}
+            depth={depth + 1}
+            maxDepth={maxDepth}
+            leafTestId={leafTestId}
+          />
         </>
       )}
     </div>
@@ -66,7 +81,12 @@ export function ConditionalTree({
   const rootValue = hashCode(seed);
   return (
     <div data-testid={testId} style={{ overflow: "auto" }}>
-      <Branch value={rootValue} depth={0} maxDepth={depth} leafTestId="conditional-tree-leaf" />
+      <Branch
+        value={rootValue}
+        depth={0}
+        maxDepth={depth}
+        leafTestId="conditional-tree-leaf"
+      />
     </div>
   );
 }

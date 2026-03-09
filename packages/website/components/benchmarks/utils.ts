@@ -48,7 +48,14 @@ export const calculateChange = (
 export const calculateStats = (results: BenchmarkResult[]): Stats => {
   const count = results.length;
   if (count === 0) {
-    return { successRate: 0, avgCost: 0, avgDuration: 0, avgToolCalls: 0, avgInputTokens: 0, avgOutputTokens: 0 };
+    return {
+      successRate: 0,
+      avgCost: 0,
+      avgDuration: 0,
+      avgToolCalls: 0,
+      avgInputTokens: 0,
+      avgOutputTokens: 0,
+    };
   }
 
   const successCount = results.filter((result) => result.success).length;

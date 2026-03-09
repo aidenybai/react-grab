@@ -1,4 +1,3 @@
-
 import { API_BASE_URL } from "@/lib/constants";
 
 export const API_ENDPOINTS = {
@@ -33,8 +32,10 @@ export const API_ENDPOINTS = {
   integrations: {
     list: `${API_BASE_URL}/integrations`,
     byId: (id: string) => `${API_BASE_URL}/integrations/${id}`,
-    connect: (provider: string) => `${API_BASE_URL}/integrations/${provider}/connect`,
-    disconnect: (provider: string) => `${API_BASE_URL}/integrations/${provider}/disconnect`,
+    connect: (provider: string) =>
+      `${API_BASE_URL}/integrations/${provider}/connect`,
+    disconnect: (provider: string) =>
+      `${API_BASE_URL}/integrations/${provider}/disconnect`,
   },
   notifications: {
     list: `${API_BASE_URL}/notifications`,

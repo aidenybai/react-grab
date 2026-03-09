@@ -11,12 +11,22 @@ interface SettingsCardProps {
   className?: string;
 }
 
-export function SettingsCard({ title, description, children, footer, variant = "default", className }: SettingsCardProps) {
-  const borderColor = variant === "danger" ? "border-red-200" : "border-gray-200";
+export function SettingsCard({
+  title,
+  description,
+  children,
+  footer,
+  variant = "default",
+  className,
+}: SettingsCardProps) {
+  const borderColor =
+    variant === "danger" ? "border-red-200" : "border-gray-200";
   const headerColor = variant === "danger" ? "text-red-900" : "text-gray-900";
 
   return (
-    <div className={`overflow-hidden rounded-lg border ${borderColor} bg-white ${className ?? ""}`}>
+    <div
+      className={`overflow-hidden rounded-lg border ${borderColor} bg-white ${className ?? ""}`}
+    >
       <div className="px-6 py-4">
         <h3 className={`text-base font-semibold ${headerColor}`}>{title}</h3>
         {description && (
@@ -33,7 +43,13 @@ export function SettingsCard({ title, description, children, footer, variant = "
   );
 }
 
-export function SettingsCardGroup({ children, className }: { children: React.ReactNode; className?: string }) {
+export function SettingsCardGroup({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return <div className={`space-y-6 ${className ?? ""}`}>{children}</div>;
 }
 

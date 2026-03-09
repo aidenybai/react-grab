@@ -10,7 +10,10 @@ export function AnimatedList({
   "data-testid"?: string;
 }) {
   return (
-    <ul data-testid={testId} style={{ listStyle: "none", padding: 0, margin: 0 }}>
+    <ul
+      data-testid={testId}
+      style={{ listStyle: "none", padding: 0, margin: 0 }}
+    >
       <AnimatePresence>
         {items.map((item, i) => (
           <motion.li

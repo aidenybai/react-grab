@@ -5,7 +5,10 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-class ErrorBoundaryInner extends Component<{ children: ReactNode; fallback?: ReactNode }, ErrorBoundaryState> {
+class ErrorBoundaryInner extends Component<
+  { children: ReactNode; fallback?: ReactNode },
+  ErrorBoundaryState
+> {
   state: ErrorBoundaryState = { hasError: false };
 
   static getDerivedStateFromError(): ErrorBoundaryState {
@@ -26,7 +29,7 @@ class ErrorBoundaryInner extends Component<{ children: ReactNode; fallback?: Rea
 
 export function withErrorBoundary<P extends object>(
   WrappedComponent: ComponentType<P>,
-  fallback?: ReactNode
+  fallback?: ReactNode,
 ) {
   const WithErrorBoundary = (props: P) => (
     <ErrorBoundaryInner fallback={fallback}>

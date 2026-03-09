@@ -19,7 +19,13 @@ interface TabsProps {
   fullWidth?: boolean;
 }
 
-export function Tabs({ tabs, defaultTab, onChange, variant = "underline", fullWidth = false }: TabsProps) {
+export function Tabs({
+  tabs,
+  defaultTab,
+  onChange,
+  variant = "underline",
+  fullWidth = false,
+}: TabsProps) {
   const [activeTab, setActiveTab] = useState(defaultTab || tabs[0]?.id);
 
   const handleChange = (tabId: string) => {
@@ -35,7 +41,12 @@ export function Tabs({ tabs, defaultTab, onChange, variant = "underline", fullWi
         style={{
           display: "flex",
           gap: variant === "pills" ? 4 : 0,
-          borderBottom: variant === "underline" ? "1px solid #E5E7EB" : variant === "enclosed" ? "1px solid #E5E7EB" : "none",
+          borderBottom:
+            variant === "underline"
+              ? "1px solid #E5E7EB"
+              : variant === "enclosed"
+                ? "1px solid #E5E7EB"
+                : "none",
         }}
       >
         {tabs.map((tab) => (
@@ -56,29 +67,50 @@ export function Tabs({ tabs, defaultTab, onChange, variant = "underline", fullWi
               cursor: tab.disabled ? "not-allowed" : "pointer",
               opacity: tab.disabled ? 0.5 : 1,
               transition: "all 150ms ease",
-              ...(variant === "underline" ? {
-                background: "none",
-                color: activeTab === tab.id ? "#111827" : "#6B7280",
-                borderBottom: activeTab === tab.id ? "2px solid #3B82F6" : "2px solid transparent",
-                marginBottom: -1,
-              } : variant === "pills" ? {
-                backgroundColor: activeTab === tab.id ? "#111827" : "transparent",
-                color: activeTab === tab.id ? "#FFFFFF" : "#6B7280",
-                borderRadius: 6,
-              } : {
-                background: activeTab === tab.id ? "#FFFFFF" : "#F9FAFB",
-                color: activeTab === tab.id ? "#111827" : "#6B7280",
-                borderRadius: "6px 6px 0 0",
-                border: activeTab === tab.id ? "1px solid #E5E7EB" : "1px solid transparent",
-                borderBottom: activeTab === tab.id ? "1px solid #FFFFFF" : "none",
-                marginBottom: -1,
-              }),
+              ...(variant === "underline"
+                ? {
+                    background: "none",
+                    color: activeTab === tab.id ? "#111827" : "#6B7280",
+                    borderBottom:
+                      activeTab === tab.id
+                        ? "2px solid #3B82F6"
+                        : "2px solid transparent",
+                    marginBottom: -1,
+                  }
+                : variant === "pills"
+                  ? {
+                      backgroundColor:
+                        activeTab === tab.id ? "#111827" : "transparent",
+                      color: activeTab === tab.id ? "#FFFFFF" : "#6B7280",
+                      borderRadius: 6,
+                    }
+                  : {
+                      background: activeTab === tab.id ? "#FFFFFF" : "#F9FAFB",
+                      color: activeTab === tab.id ? "#111827" : "#6B7280",
+                      borderRadius: "6px 6px 0 0",
+                      border:
+                        activeTab === tab.id
+                          ? "1px solid #E5E7EB"
+                          : "1px solid transparent",
+                      borderBottom:
+                        activeTab === tab.id ? "1px solid #FFFFFF" : "none",
+                      marginBottom: -1,
+                    }),
             }}
           >
             {tab.icon}
             {tab.label}
             {tab.badge !== undefined && (
-              <span style={{ fontSize: 11, backgroundColor: activeTab === tab.id ? "rgba(255,255,255,0.2)" : "#E5E7EB", padding: "1px 6px", borderRadius: 10, fontWeight: 600 }}>
+              <span
+                style={{
+                  fontSize: 11,
+                  backgroundColor:
+                    activeTab === tab.id ? "rgba(255,255,255,0.2)" : "#E5E7EB",
+                  padding: "1px 6px",
+                  borderRadius: 10,
+                  fontWeight: 600,
+                }}
+              >
                 {tab.badge}
               </span>
             )}

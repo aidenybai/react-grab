@@ -30,14 +30,26 @@ export const PaymentCard = memo(function PaymentCard({
   customerName,
   onRefund,
 }: PaymentCardProps) {
-  const formatted = new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amount / 100);
+  const formatted = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+  }).format(amount / 100);
   const style = statusStyles[status] ?? statusStyles.pending;
 
   return (
     <div className="payment-card">
       <div className="payment-card__header">
         <span className="payment-card__amount">{formatted}</span>
-        <span className="payment-card__status" style={{ color: style.color, backgroundColor: style.bg, padding: "2px 8px", borderRadius: 9999, fontSize: 12 }}>
+        <span
+          className="payment-card__status"
+          style={{
+            color: style.color,
+            backgroundColor: style.bg,
+            padding: "2px 8px",
+            borderRadius: 9999,
+            fontSize: 12,
+          }}
+        >
           {status}
         </span>
       </div>
@@ -45,7 +57,9 @@ export const PaymentCard = memo(function PaymentCard({
       {customerName && <p className="payment-card__customer">{customerName}</p>}
       <p className="payment-card__date">{date}</p>
       {status === "paid" && onRefund && (
-        <button className="btn btn-sm btn-outline" onClick={onRefund}>Refund</button>
+        <button className="btn btn-sm btn-outline" onClick={onRefund}>
+          Refund
+        </button>
       )}
     </div>
   );

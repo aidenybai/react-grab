@@ -1,4 +1,3 @@
-
 import { BREAKPOINTS } from "@/lib/constants";
 
 export type Breakpoint = keyof typeof BREAKPOINTS;
@@ -31,7 +30,7 @@ export function getCurrentBreakpoint(width: number): Breakpoint {
 export function getResponsiveValue<T>(
   width: number,
   values: Partial<Record<Breakpoint, T>>,
-  defaultValue: T
+  defaultValue: T,
 ): T {
   const entries = Object.entries(BREAKPOINTS) as [Breakpoint, number][];
   const sorted = entries.sort((a, b) => b[1] - a[1]);

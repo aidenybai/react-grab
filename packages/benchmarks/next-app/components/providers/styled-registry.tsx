@@ -3,7 +3,11 @@ import React, { useState } from "react";
 import { useServerInsertedHTML } from "next/navigation";
 import { ServerStyleSheet, StyleSheetManager } from "styled-components";
 
-export function StyledComponentsRegistry({ children }: { children: React.ReactNode }) {
+export function StyledComponentsRegistry({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [styledComponentsStyleSheet] = useState(() => new ServerStyleSheet());
 
   useServerInsertedHTML(() => {

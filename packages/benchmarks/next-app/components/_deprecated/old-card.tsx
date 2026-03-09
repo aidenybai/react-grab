@@ -39,7 +39,14 @@ export function OldCard({
     <div style={cardStyle} onClick={onClick} className={className}>
       {title && (
         <div style={{ marginBottom: "12px" }}>
-          <h3 style={{ fontSize: "16px", fontWeight: 600, color: "#111827", margin: 0 }}>
+          <h3
+            style={{
+              fontSize: "16px",
+              fontWeight: 600,
+              color: "#111827",
+              margin: 0,
+            }}
+          >
             {title}
           </h3>
           {subtitle && (

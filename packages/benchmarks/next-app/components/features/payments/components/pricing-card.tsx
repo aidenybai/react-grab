@@ -23,7 +23,10 @@ export const PricingCard = memo(function PricingCard({
   isCurrentPlan,
   onSelect,
 }: PricingCardProps) {
-  const formatted = new Intl.NumberFormat("en-US", { style: "currency", currency }).format(price);
+  const formatted = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+  }).format(price);
 
   return (
     <div className={`pricing-card ${isPopular ? "pricing-card--popular" : ""}`}>
@@ -31,11 +34,15 @@ export const PricingCard = memo(function PricingCard({
       <h3 className="pricing-card__name">{name}</h3>
       <div className="pricing-card__price">
         <span className="pricing-card__amount">{formatted}</span>
-        <span className="pricing-card__period">/{period === "monthly" ? "mo" : "yr"}</span>
+        <span className="pricing-card__period">
+          /{period === "monthly" ? "mo" : "yr"}
+        </span>
       </div>
       <ul className="pricing-card__features">
         {features.map((feature, i) => (
-          <li key={i} className="pricing-card__feature">{feature}</li>
+          <li key={i} className="pricing-card__feature">
+            {feature}
+          </li>
         ))}
       </ul>
       <button

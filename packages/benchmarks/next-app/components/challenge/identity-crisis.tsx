@@ -14,11 +14,7 @@ const IdentityButtonStyled = styled.button`
   color: var(--foreground);
 `;
 
-function IdentityButton({
-  "data-testid": testId,
-}: {
-  "data-testid"?: string;
-}) {
+function IdentityButton({ "data-testid": testId }: { "data-testid"?: string }) {
   return (
     <IdentityButtonStyled className="identity-btn" data-testid={testId}>
       Click
@@ -120,23 +116,42 @@ function Depth11Inner() {
   );
 }
 const Depth11 = withErrorBoundary(
-  withTracking(withErrorBoundary(Depth11Inner), "identity-11")
+  withTracking(withErrorBoundary(Depth11Inner), "identity-11"),
 );
 
 export function IdentityCrisis() {
   return (
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-      <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>d1:</span>
+    <div
+      style={{
+        display: "flex",
+        gap: 8,
+        flexWrap: "wrap",
+        alignItems: "center",
+      }}
+    >
+      <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
+        d1:
+      </span>
       <Depth1 />
-      <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>d3:</span>
+      <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
+        d3:
+      </span>
       <Depth3 />
-      <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>d5:</span>
+      <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
+        d5:
+      </span>
       <Depth5 />
-      <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>d7:</span>
+      <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
+        d7:
+      </span>
       <Depth7 />
-      <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>d9:</span>
+      <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
+        d9:
+      </span>
       <Depth9 />
-      <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>d11:</span>
+      <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
+        d11:
+      </span>
       <Depth11 />
     </div>
   );

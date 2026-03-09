@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useCallback } from "react";
-import { parseKeyCombo, matchesKeyCombo, isInputElement } from "@/lib/keyboard-utils";
+import {
+  parseKeyCombo,
+  matchesKeyCombo,
+  isInputElement,
+} from "@/lib/keyboard-utils";
 
 interface UseKeyboardShortcutOptions {
   enabled?: boolean;
@@ -12,9 +16,13 @@ interface UseKeyboardShortcutOptions {
 export function useKeyboardShortcut(
   shortcut: string,
   callback: () => void,
-  options: UseKeyboardShortcutOptions = {}
+  options: UseKeyboardShortcutOptions = {},
 ): void {
-  const { enabled = true, preventDefault = true, ignoreInputFields = true } = options;
+  const {
+    enabled = true,
+    preventDefault = true,
+    ignoreInputFields = true,
+  } = options;
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
@@ -27,7 +35,7 @@ export function useKeyboardShortcut(
         callback();
       }
     },
-    [shortcut, callback, enabled, preventDefault, ignoreInputFields]
+    [shortcut, callback, enabled, preventDefault, ignoreInputFields],
   );
 
   useEffect(() => {

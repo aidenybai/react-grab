@@ -46,10 +46,32 @@ export function MenuItem({
         textAlign: "left",
       }}
     >
-      {icon && <span style={{ width: 16, height: 16, flexShrink: 0, display: "flex", alignItems: "center" }}>{icon}</span>}
+      {icon && (
+        <span
+          style={{
+            width: 16,
+            height: 16,
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          {icon}
+        </span>
+      )}
       <span style={{ flex: 1 }}>{label}</span>
       {shortcut && (
-        <kbd style={{ fontSize: 11, color: "#9CA3AF", fontFamily: "monospace", backgroundColor: "#F3F4F6", padding: "1px 4px", borderRadius: 3, border: "1px solid #E5E7EB" }}>
+        <kbd
+          style={{
+            fontSize: 11,
+            color: "#9CA3AF",
+            fontFamily: "monospace",
+            backgroundColor: "#F3F4F6",
+            padding: "1px 4px",
+            borderRadius: 3,
+            border: "1px solid #E5E7EB",
+          }}
+        >
           {shortcut}
         </kbd>
       )}

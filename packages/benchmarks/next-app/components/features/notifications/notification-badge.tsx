@@ -35,7 +35,9 @@ export function NotificationBadge({
 
     if (variant === "dot") {
       return (
-        <span className={`inline-block h-2.5 w-2.5 rounded-full bg-red-500 ${className ?? ""}`} />
+        <span
+          className={`inline-block h-2.5 w-2.5 rounded-full bg-red-500 ${className ?? ""}`}
+        />
       );
     }
 
@@ -51,8 +53,8 @@ export function NotificationBadge({
   return (
     <div className={`relative inline-flex ${className ?? ""}`}>
       {children}
-      {shouldShow && (
-        variant === "dot" ? (
+      {shouldShow &&
+        (variant === "dot" ? (
           <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-red-500" />
         ) : (
           <span
@@ -60,8 +62,7 @@ export function NotificationBadge({
           >
             {displayCount}
           </span>
-        )
-      )}
+        ))}
     </div>
   );
 }

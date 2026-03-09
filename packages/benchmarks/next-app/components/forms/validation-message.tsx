@@ -11,11 +11,22 @@ interface ValidationMessageProps {
   className?: string;
 }
 
-const severityConfig: Record<ValidationSeverity, { color: string; bgColor: string; symbol: string }> = {
+const severityConfig: Record<
+  ValidationSeverity,
+  { color: string; bgColor: string; symbol: string }
+> = {
   error: { color: "text-red-600", bgColor: "bg-red-50", symbol: "\u2716" },
-  warning: { color: "text-amber-600", bgColor: "bg-amber-50", symbol: "\u26A0" },
+  warning: {
+    color: "text-amber-600",
+    bgColor: "bg-amber-50",
+    symbol: "\u26A0",
+  },
   info: { color: "text-blue-600", bgColor: "bg-blue-50", symbol: "\u2139" },
-  success: { color: "text-green-600", bgColor: "bg-green-50", symbol: "\u2714" },
+  success: {
+    color: "text-green-600",
+    bgColor: "bg-green-50",
+    symbol: "\u2714",
+  },
 };
 
 export function ValidationMessage({

@@ -11,7 +11,14 @@ interface NavButtonProps {
   onClick?: (e: React.MouseEvent) => void;
 }
 
-export function Button({ href, active = false, icon, badge, children, onClick }: NavButtonProps) {
+export function Button({
+  href,
+  active = false,
+  icon,
+  badge,
+  children,
+  onClick,
+}: NavButtonProps) {
   return (
     <a
       href={href}

@@ -14,7 +14,10 @@ interface V1BadgeProps {
   className?: string;
 }
 
-const colorMap: Record<V1BadgeColor, { bg: string; text: string; border: string; dot: string }> = {
+const colorMap: Record<
+  V1BadgeColor,
+  { bg: string; text: string; border: string; dot: string }
+> = {
   blue: { bg: "#dbeafe", text: "#1e40af", border: "#93c5fd", dot: "#3b82f6" },
   green: { bg: "#dcfce7", text: "#166534", border: "#86efac", dot: "#22c55e" },
   red: { bg: "#fee2e2", text: "#991b1b", border: "#fca5a5", dot: "#ef4444" },
@@ -29,7 +32,15 @@ const sizeMap: Record<string, React.CSSProperties> = {
   md: { fontSize: "14px", padding: "3px 10px" },
 };
 
-export function V1Badge({ color = "gray", text, size = "sm", pill = true, dot = false, outline = false, className }: V1BadgeProps) {
+export function V1Badge({
+  color = "gray",
+  text,
+  size = "sm",
+  pill = true,
+  dot = false,
+  outline = false,
+  className,
+}: V1BadgeProps) {
   const colors = colorMap[color];
   const sizeStyle = sizeMap[size];
 

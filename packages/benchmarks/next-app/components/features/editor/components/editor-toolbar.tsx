@@ -14,7 +14,11 @@ interface EditorToolbarProps {
   onRedo?: () => void;
 }
 
-export const EditorToolbar = ({ actions, onUndo, onRedo }: EditorToolbarProps) => (
+export const EditorToolbar = ({
+  actions,
+  onUndo,
+  onRedo,
+}: EditorToolbarProps) => (
   <div
     style={{
       display: "flex",
@@ -28,7 +32,13 @@ export const EditorToolbar = ({ actions, onUndo, onRedo }: EditorToolbarProps) =
     {onUndo && (
       <button
         onClick={onUndo}
-        style={{ padding: "4px 8px", border: "none", background: "transparent", cursor: "pointer", fontSize: "13px" }}
+        style={{
+          padding: "4px 8px",
+          border: "none",
+          background: "transparent",
+          cursor: "pointer",
+          fontSize: "13px",
+        }}
       >
         Undo
       </button>
@@ -36,12 +46,25 @@ export const EditorToolbar = ({ actions, onUndo, onRedo }: EditorToolbarProps) =
     {onRedo && (
       <button
         onClick={onRedo}
-        style={{ padding: "4px 8px", border: "none", background: "transparent", cursor: "pointer", fontSize: "13px" }}
+        style={{
+          padding: "4px 8px",
+          border: "none",
+          background: "transparent",
+          cursor: "pointer",
+          fontSize: "13px",
+        }}
       >
         Redo
       </button>
     )}
-    <div style={{ width: "1px", height: "20px", background: "#e5e7eb", margin: "0 4px" }} />
+    <div
+      style={{
+        width: "1px",
+        height: "20px",
+        background: "#e5e7eb",
+        margin: "0 4px",
+      }}
+    />
     {actions.map((action) => (
       <button
         key={action.label}

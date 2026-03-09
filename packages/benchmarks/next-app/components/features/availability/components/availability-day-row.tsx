@@ -27,7 +27,9 @@ export const AvailabilityDayRow = memo(function AvailabilityDayRow({
   onChangeRange,
 }: AvailabilityDayRowProps) {
   return (
-    <div className={`availability-day-row ${!isEnabled ? "availability-day-row--disabled" : ""}`}>
+    <div
+      className={`availability-day-row ${!isEnabled ? "availability-day-row--disabled" : ""}`}
+    >
       <div className="availability-day-row__header">
         <label>
           <input type="checkbox" checked={isEnabled} onChange={onToggle} />
@@ -41,15 +43,21 @@ export const AvailabilityDayRow = memo(function AvailabilityDayRow({
               <input
                 type="time"
                 value={range.start}
-                onChange={(e) => onChangeRange?.(i, { ...range, start: e.target.value })}
+                onChange={(e) =>
+                  onChangeRange?.(i, { ...range, start: e.target.value })
+                }
               />
               <span>to</span>
               <input
                 type="time"
                 value={range.end}
-                onChange={(e) => onChangeRange?.(i, { ...range, end: e.target.value })}
+                onChange={(e) =>
+                  onChangeRange?.(i, { ...range, end: e.target.value })
+                }
               />
-              <button className="btn btn-sm" onClick={() => onRemoveRange?.(i)}>Remove</button>
+              <button className="btn btn-sm" onClick={() => onRemoveRange?.(i)}>
+                Remove
+              </button>
             </div>
           ))}
           <button className="btn btn-sm btn-outline" onClick={onAddRange}>

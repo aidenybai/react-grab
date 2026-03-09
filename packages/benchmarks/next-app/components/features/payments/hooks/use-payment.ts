@@ -15,26 +15,29 @@ export function usePayment() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const processPayment = useCallback(async (amount: number, currency: string, paymentMethodId: string) => {
-    setIsProcessing(true);
-    setError(null);
-    try {
-      setPayment({
-        id: `pay_${Date.now()}`,
-        amount,
-        currency,
-        status: "paid",
-        description: "Payment processed",
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Payment failed");
-    } finally {
-      setIsProcessing(false);
-    }
-  }, []);
+  const processPayment = useCallback(
+    async (amount: number, currency: string, paymentMethodId: string) => {
+      setIsProcessing(true);
+      setError(null);
+      try {
+        setPayment({
+          id: `pay_${Date.now()}`,
+          amount,
+          currency,
+          status: "paid",
+          description: "Payment processed",
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Payment failed");
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [],
+  );
 
   const refund = useCallback(async (amount: number) => {
-    setPayment((prev) => prev ? { ...prev, status: "refunded" } : null);
+    setPayment((prev) => (prev ? { ...prev, status: "refunded" } : null));
   }, []);
 
   return { payment, isProcessing, error, processPayment, refund };

@@ -1,9 +1,8 @@
-
 const DEFAULT_LOCALE = "en-US";
 
 export function formatDate(
   date: Date | string,
-  options?: Intl.DateTimeFormatOptions
+  options?: Intl.DateTimeFormatOptions,
 ): string {
   const d = typeof date === "string" ? new Date(date) : date;
   return new Intl.DateTimeFormat(DEFAULT_LOCALE, {

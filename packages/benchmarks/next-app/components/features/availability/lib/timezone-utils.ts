@@ -1,14 +1,19 @@
 export function getTimezoneAbbreviation(timezone: string): string {
   try {
-    const parts = new Intl.DateTimeFormat("en", { timeZone: timezone, timeZoneName: "short" })
-      .formatToParts(new Date());
+    const parts = new Intl.DateTimeFormat("en", {
+      timeZone: timezone,
+      timeZoneName: "short",
+    }).formatToParts(new Date());
     return parts.find((p) => p.type === "timeZoneName")?.value ?? timezone;
   } catch {
     return timezone;
   }
 }
 
-export function getTimezoneOffset(timezone: string, date: Date = new Date()): number {
+export function getTimezoneOffset(
+  timezone: string,
+  date: Date = new Date(),
+): number {
   const utcDate = new Date(date.toLocaleString("en-US", { timeZone: "UTC" }));
   const tzDate = new Date(date.toLocaleString("en-US", { timeZone: timezone }));
   return (tzDate.getTime() - utcDate.getTime()) / (1000 * 60);

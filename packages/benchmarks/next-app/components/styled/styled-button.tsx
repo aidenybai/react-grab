@@ -1,7 +1,9 @@
 "use client";
 import styled from "styled-components";
 
-const ButtonBase = styled.button<{ $variant?: "primary" | "secondary" | "ghost" }>`
+const ButtonBase = styled.button<{
+  $variant?: "primary" | "secondary" | "ghost";
+}>`
   display: inline-flex;
   align-items: center;
   justify-content: center;

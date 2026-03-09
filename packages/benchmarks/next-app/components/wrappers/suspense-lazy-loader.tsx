@@ -3,22 +3,39 @@ import React, { Suspense, lazy, useState, useEffect } from "react";
 
 const LazyContent = lazy(
   () =>
-    new Promise<{ default: React.ComponentType<{ "data-testid"?: string }> }>((resolve) => {
-      setTimeout(() => {
-        resolve({
-          default: function LazyLoadedContent({ "data-testid": testId }: { "data-testid"?: string }) {
-            return (
-              <div data-testid={testId} style={{ padding: 16, border: "1px dashed var(--border)", borderRadius: 8 }}>
-                Lazy-loaded content
-              </div>
-            );
-          },
-        });
-      }, 100);
-    })
+    new Promise<{ default: React.ComponentType<{ "data-testid"?: string }> }>(
+      (resolve) => {
+        setTimeout(() => {
+          resolve({
+            default: function LazyLoadedContent({
+              "data-testid": testId,
+            }: {
+              "data-testid"?: string;
+            }) {
+              return (
+                <div
+                  data-testid={testId}
+                  style={{
+                    padding: 16,
+                    border: "1px dashed var(--border)",
+                    borderRadius: 8,
+                  }}
+                >
+                  Lazy-loaded content
+                </div>
+              );
+            },
+          });
+        }, 100);
+      },
+    ),
 );
 
-export function SuspenseLazyLoader({ "data-testid": testId }: { "data-testid"?: string }) {
+export function SuspenseLazyLoader({
+  "data-testid": testId,
+}: {
+  "data-testid"?: string;
+}) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 

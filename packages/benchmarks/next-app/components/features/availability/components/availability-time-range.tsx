@@ -18,7 +18,9 @@ export function AvailabilityTimeRange({
   error,
 }: AvailabilityTimeRangeProps) {
   return (
-    <div className={`availability-time-range ${error ? "availability-time-range--error" : ""}`}>
+    <div
+      className={`availability-time-range ${error ? "availability-time-range--error" : ""}`}
+    >
       <input
         type="time"
         value={start}

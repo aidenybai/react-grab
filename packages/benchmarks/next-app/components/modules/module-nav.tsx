@@ -4,7 +4,11 @@ import styles from "./module-nav.module.css";
 
 const items = ["Overview", "Metrics", "Logs", "Alerts"];
 
-export function ModuleNav({ "data-testid": testId }: { "data-testid"?: string }) {
+export function ModuleNav({
+  "data-testid": testId,
+}: {
+  "data-testid"?: string;
+}) {
   const [active, setActive] = useState("Overview");
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -30,7 +34,10 @@ export function ModuleNav({ "data-testid": testId }: { "data-testid"?: string })
           </button>
           {dropdownOpen && (
             <div className={styles.dropdownMenu}>
-              <button className={styles.dropdownItem} data-testid="module-nav-dropdown-item">
+              <button
+                className={styles.dropdownItem}
+                data-testid="module-nav-dropdown-item"
+              >
                 Settings
               </button>
               <button className={styles.dropdownItem}>Export</button>

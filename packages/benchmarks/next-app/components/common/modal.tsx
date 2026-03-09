@@ -41,7 +41,7 @@ export function Modal({
         onClose();
       }
     },
-    [onClose, closeOnEsc]
+    [onClose, closeOnEsc],
   );
 
   useEffect(() => {
@@ -73,15 +73,28 @@ export function Modal({
         {title && (
           <div className="flex items-center justify-between border-b px-6 py-4">
             <div>
-              <h2 id="modal-title" className="text-lg font-semibold text-gray-900">{title}</h2>
-              {description && <p className="mt-0.5 text-sm text-gray-500">{description}</p>}
+              <h2
+                id="modal-title"
+                className="text-lg font-semibold text-gray-900"
+              >
+                {title}
+              </h2>
+              {description && (
+                <p className="mt-0.5 text-sm text-gray-500">{description}</p>
+              )}
             </div>
             <button
               onClick={onClose}
               className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
               aria-label="Close"
             >
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                className="h-5 w-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <path d="M18 6L6 18M6 6l12 12" />
               </svg>
             </button>
@@ -89,7 +102,9 @@ export function Modal({
         )}
         <div className="px-6 py-4">{children}</div>
         {footer && (
-          <div className="flex items-center justify-end gap-2 border-t px-6 py-3">{footer}</div>
+          <div className="flex items-center justify-end gap-2 border-t px-6 py-3">
+            {footer}
+          </div>
         )}
       </div>
     </div>

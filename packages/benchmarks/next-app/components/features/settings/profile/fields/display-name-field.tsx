@@ -46,7 +46,10 @@ export const DisplayNameField = ({
   }, [value]);
 
   return (
-    <div data-testid="deep-display-name-field" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+    <div
+      data-testid="deep-display-name-field"
+      style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+    >
       <label
         style={{
           fontSize: "14px",
@@ -76,13 +79,26 @@ export const DisplayNameField = ({
           background: error && touched ? "#fef2f2" : "#fff",
         }}
       />
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
         {error && touched ? (
           <span style={{ fontSize: "12px", color: "#ef4444" }}>{error}</span>
         ) : (
-          <span style={{ fontSize: "12px", color: "#9ca3af" }}>How others will see your name</span>
+          <span style={{ fontSize: "12px", color: "#9ca3af" }}>
+            How others will see your name
+          </span>
         )}
-        <span style={{ fontSize: "11px", color: value.length > maxLength * 0.9 ? "#f59e0b" : "#9ca3af" }}>
+        <span
+          style={{
+            fontSize: "11px",
+            color: value.length > maxLength * 0.9 ? "#f59e0b" : "#9ca3af",
+          }}
+        >
           {value.length}/{maxLength}
         </span>
       </div>

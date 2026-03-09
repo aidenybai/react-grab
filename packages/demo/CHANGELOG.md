@@ -1,5 +1,13 @@
 # @react-grab/demo
 
+## 0.1.6
+
+### Patch Changes
+
+- fix: install instructions
+- Updated dependencies
+  - react-grab@0.1.27
+
 ## 0.1.5
 
 ### Patch Changes

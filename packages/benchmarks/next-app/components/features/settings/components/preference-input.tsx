@@ -29,7 +29,11 @@ export const PreferenceInput = ({
   >
     <div>
       <p style={{ fontSize: "14px", fontWeight: 500, margin: 0 }}>{label}</p>
-      {description && <p style={{ fontSize: "12px", color: "#9ca3af", margin: "2px 0 0" }}>{description}</p>}
+      {description && (
+        <p style={{ fontSize: "12px", color: "#9ca3af", margin: "2px 0 0" }}>
+          {description}
+        </p>
+      )}
     </div>
     {type === "text" && (
       <input
@@ -84,7 +88,9 @@ export const PreferenceInput = ({
         }}
       >
         {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
         ))}
       </select>
     )}

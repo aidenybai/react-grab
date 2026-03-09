@@ -65,9 +65,10 @@ export function AnimationMaze({
                 >
                   <MazeInnerWrap>
                     <MazeContent data-testid={testId}>
-                      You navigated the animation maze! This content is wrapped in:
-                      AnimatePresence → motion.div → styled → Radix Accordion.Item →
-                      Accordion.Content (forceMount) → motion.div → styled → styled content.
+                      You navigated the animation maze! This content is wrapped
+                      in: AnimatePresence → motion.div → styled → Radix
+                      Accordion.Item → Accordion.Content (forceMount) →
+                      motion.div → styled → styled content.
                     </MazeContent>
                   </MazeInnerWrap>
                 </motion.div>

@@ -36,7 +36,7 @@ export function useTheme(): {
     (newTheme: Theme) => {
       setThemeValue(newTheme);
     },
-    [setThemeValue]
+    [setThemeValue],
   );
 
   return { theme, resolvedTheme, setTheme };

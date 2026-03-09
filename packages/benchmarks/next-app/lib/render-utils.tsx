@@ -35,8 +35,17 @@ const statusColors: Record<StatusType, string> = {
   busy: "#ef4444",
 };
 
-export const StatusIndicator = ({ status, label }: { status: StatusType; label?: string }) => (
-  <div data-testid="util-status-indicator" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+export const StatusIndicator = ({
+  status,
+  label,
+}: {
+  status: StatusType;
+  label?: string;
+}) => (
+  <div
+    data-testid="util-status-indicator"
+    style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+  >
     <span
       style={{
         width: "8px",
@@ -46,7 +55,9 @@ export const StatusIndicator = ({ status, label }: { status: StatusType; label?:
         display: "inline-block",
       }}
     />
-    {label && <span style={{ fontSize: "13px", color: "#374151" }}>{label}</span>}
+    {label && (
+      <span style={{ fontSize: "13px", color: "#374151" }}>{label}</span>
+    )}
   </div>
 );
 
@@ -54,7 +65,10 @@ export const clamp = (value: number, min: number, max: number): number => {
   return Math.min(Math.max(value, min), max);
 };
 
-export const debounce = <T extends (...args: unknown[]) => unknown>(fn: T, delay: number) => {
+export const debounce = <T extends (...args: unknown[]) => unknown>(
+  fn: T,
+  delay: number,
+) => {
   let timeoutId: ReturnType<typeof setTimeout>;
   return (...args: Parameters<T>) => {
     clearTimeout(timeoutId);

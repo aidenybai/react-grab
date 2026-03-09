@@ -27,7 +27,7 @@ export function TeamInviteDialog({
         setRole("member");
       }
     },
-    [email, role, onInvite]
+    [email, role, onInvite],
   );
 
   if (!isOpen) return null;

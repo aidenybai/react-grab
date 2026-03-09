@@ -19,19 +19,26 @@ export function useEventType(eventTypeId?: string) {
   const update = useCallback(async (data: Partial<EventType>) => {
     setIsLoading(true);
     try {
-      setEventType((prev) => prev ? { ...prev, ...data } : null);
+      setEventType((prev) => (prev ? { ...prev, ...data } : null));
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   const toggleActive = useCallback(() => {
-    setEventType((prev) => prev ? { ...prev, isActive: !prev.isActive } : null);
+    setEventType((prev) =>
+      prev ? { ...prev, isActive: !prev.isActive } : null,
+    );
   }, []);
 
   const duplicate = useCallback((): EventType | null => {
     if (!eventType) return null;
-    return { ...eventType, id: `et-${Date.now()}`, title: `${eventType.title} (Copy)`, slug: `${eventType.slug}-copy` };
+    return {
+      ...eventType,
+      id: `et-${Date.now()}`,
+      title: `${eventType.title} (Copy)`,
+      slug: `${eventType.slug}-copy`,
+    };
   }, [eventType]);
 
   return { eventType, isLoading, update, toggleActive, duplicate };

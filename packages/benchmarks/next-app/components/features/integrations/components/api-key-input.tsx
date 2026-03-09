@@ -40,11 +40,24 @@ export function ApiKeyInput({
         <button className="btn btn-sm" onClick={() => setRevealed(!revealed)}>
           {revealed ? "Hide" : "Show"}
         </button>
-        <button className="btn btn-sm" onClick={handleCopy}>Copy</button>
+        <button className="btn btn-sm" onClick={handleCopy}>
+          Copy
+        </button>
       </div>
       <div className="api-key-input__actions">
-        {!value && <button className="btn btn-primary btn-sm" onClick={() => onSave(key)}>Save</button>}
-        {value && onRevoke && <button className="btn btn-danger btn-sm" onClick={onRevoke}>Revoke</button>}
+        {!value && (
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={() => onSave(key)}
+          >
+            Save
+          </button>
+        )}
+        {value && onRevoke && (
+          <button className="btn btn-danger btn-sm" onClick={onRevoke}>
+            Revoke
+          </button>
+        )}
       </div>
     </div>
   );

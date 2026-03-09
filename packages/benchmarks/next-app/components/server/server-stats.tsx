@@ -8,9 +8,22 @@ export const ServerStats = () => {
   ];
 
   return (
-    <div data-testid="server-stats" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginTop: 16 }}>
+    <div
+      data-testid="server-stats"
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(3, 1fr)",
+        gap: 12,
+        marginTop: 16,
+      }}
+    >
       {stats.map((stat) => (
-        <ServerStatCard key={stat.label} label={stat.label} value={stat.value} data-testid={stat.testId} />
+        <ServerStatCard
+          key={stat.label}
+          label={stat.label}
+          value={stat.value}
+          data-testid={stat.testId}
+        />
       ))}
     </div>
   );

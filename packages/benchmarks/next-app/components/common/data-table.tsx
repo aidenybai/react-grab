@@ -50,7 +50,9 @@ export function DataTable<T extends Record<string, unknown>>({
 
   const handleSort = (key: string) => {
     if (sortKey === key) {
-      setSortDir(sortDir === "asc" ? "desc" : sortDir === "desc" ? null : "asc");
+      setSortDir(
+        sortDir === "asc" ? "desc" : sortDir === "desc" ? null : "asc",
+      );
       if (sortDir === "desc") setSortKey(null);
     } else {
       setSortKey(key);
@@ -96,7 +98,9 @@ export function DataTable<T extends Record<string, unknown>>({
               <th
                 key={col.key}
                 className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 ${
-                  col.sortable ? "cursor-pointer select-none hover:text-gray-700" : ""
+                  col.sortable
+                    ? "cursor-pointer select-none hover:text-gray-700"
+                    : ""
                 }`}
                 style={col.width ? { width: col.width } : undefined}
                 onClick={col.sortable ? () => handleSort(col.key) : undefined}
@@ -114,7 +118,10 @@ export function DataTable<T extends Record<string, unknown>>({
         <tbody className="divide-y divide-gray-200 bg-white">
           {sortedData.length === 0 ? (
             <tr>
-              <td colSpan={columns.length + (selectable ? 1 : 0)} className="px-4 py-8 text-center text-sm text-gray-500">
+              <td
+                colSpan={columns.length + (selectable ? 1 : 0)}
+                className="px-4 py-8 text-center text-sm text-gray-500"
+              >
                 {emptyMessage}
               </td>
             </tr>
@@ -130,7 +137,10 @@ export function DataTable<T extends Record<string, unknown>>({
                   onClick={() => onRowClick?.(item)}
                 >
                   {selectable && (
-                    <td className="w-12 px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                    <td
+                      className="w-12 px-3 py-3"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <input
                         type="checkbox"
                         checked={selected.has(key)}
@@ -140,8 +150,13 @@ export function DataTable<T extends Record<string, unknown>>({
                     </td>
                   )}
                   {columns.map((col) => (
-                    <td key={col.key} className="whitespace-nowrap px-4 py-3 text-sm text-gray-700">
-                      {col.render ? col.render(item) : String(item[col.key] ?? "")}
+                    <td
+                      key={col.key}
+                      className="whitespace-nowrap px-4 py-3 text-sm text-gray-700"
+                    >
+                      {col.render
+                        ? col.render(item)
+                        : String(item[col.key] ?? "")}
                     </td>
                   ))}
                 </tr>

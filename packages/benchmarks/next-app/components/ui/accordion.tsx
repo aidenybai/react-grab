@@ -21,8 +21,15 @@ interface AccordionProps {
   children: React.ReactNode;
 }
 
-export function Accordion({ type = "single", defaultValue = [], className, children }: AccordionProps) {
-  const [openItems, setOpenItems] = React.useState<Set<string>>(new Set(defaultValue));
+export function Accordion({
+  type = "single",
+  defaultValue = [],
+  className,
+  children,
+}: AccordionProps) {
+  const [openItems, setOpenItems] = React.useState<Set<string>>(
+    new Set(defaultValue),
+  );
 
   const toggleItem = React.useCallback(
     (value: string) => {
@@ -37,7 +44,7 @@ export function Accordion({ type = "single", defaultValue = [], className, child
         return next;
       });
     },
-    [type]
+    [type],
   );
 
   return (
@@ -47,11 +54,31 @@ export function Accordion({ type = "single", defaultValue = [], className, child
   );
 }
 
-export function AccordionItem({ value, className, children }: { value: string; className?: string; children: React.ReactNode }) {
-  return <div className={`border-b ${className ?? ""}`} data-value={value}>{children}</div>;
+export function AccordionItem({
+  value,
+  className,
+  children,
+}: {
+  value: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={`border-b ${className ?? ""}`} data-value={value}>
+      {children}
+    </div>
+  );
 }
 
-export function AccordionTrigger({ value, className, children }: { value: string; className?: string; children: React.ReactNode }) {
+export function AccordionTrigger({
+  value,
+  className,
+  children,
+}: {
+  value: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
   const { openItems, toggleItem } = React.useContext(AccordionContext);
   const isOpen = openItems.has(value);
 
@@ -76,7 +103,15 @@ export function AccordionTrigger({ value, className, children }: { value: string
   );
 }
 
-export function AccordionContent({ value, className, children }: { value: string; className?: string; children: React.ReactNode }) {
+export function AccordionContent({
+  value,
+  className,
+  children,
+}: {
+  value: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
   const { openItems } = React.useContext(AccordionContext);
   if (!openItems.has(value)) return null;
 

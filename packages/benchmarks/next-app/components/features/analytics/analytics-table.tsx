@@ -24,7 +24,12 @@ function formatDuration(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
-export function AnalyticsTable({ data, title, pageSize = 10, className }: AnalyticsTableProps) {
+export function AnalyticsTable({
+  data,
+  title,
+  pageSize = 10,
+  className,
+}: AnalyticsTableProps) {
   const [sortKey, setSortKey] = useState<keyof AnalyticsRow>("views");
   const [sortDesc, setSortDesc] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
@@ -42,21 +47,28 @@ export function AnalyticsTable({ data, title, pageSize = 10, className }: Analyt
     });
   }, [data, sortKey, sortDesc]);
 
-  const paginatedData = sortedData.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+  const paginatedData = sortedData.slice(
+    currentPage * pageSize,
+    (currentPage + 1) * pageSize,
+  );
   const totalPages = Math.ceil(data.length / pageSize);
 
   const handleSort = (key: keyof AnalyticsRow) => {
     if (sortKey === key) setSortDesc(!sortDesc);
-    else { setSortKey(key); setSortDesc(true); }
+    else {
+      setSortKey(key);
+      setSortDesc(true);
+    }
   };
 
-  const columns: { key: keyof AnalyticsRow; label: string; align?: string }[] = [
-    { key: "page", label: "Page" },
-    { key: "views", label: "Views", align: "right" },
-    { key: "uniqueVisitors", label: "Visitors", align: "right" },
-    { key: "bounceRate", label: "Bounce Rate", align: "right" },
-    { key: "avgDuration", label: "Avg. Duration", align: "right" },
-  ];
+  const columns: { key: keyof AnalyticsRow; label: string; align?: string }[] =
+    [
+      { key: "page", label: "Page" },
+      { key: "views", label: "Views", align: "right" },
+      { key: "uniqueVisitors", label: "Visitors", align: "right" },
+      { key: "bounceRate", label: "Bounce Rate", align: "right" },
+      { key: "avgDuration", label: "Avg. Duration", align: "right" },
+    ];
 
   return (
     <div className={`rounded-lg border bg-white ${className ?? ""}`}>
@@ -77,7 +89,8 @@ export function AnalyticsTable({ data, title, pageSize = 10, className }: Analyt
                   }`}
                   onClick={() => handleSort(col.key)}
                 >
-                  {col.label} {sortKey === col.key && (sortDesc ? "\u2193" : "\u2191")}
+                  {col.label}{" "}
+                  {sortKey === col.key && (sortDesc ? "\u2193" : "\u2191")}
                 </th>
               ))}
             </tr>
@@ -85,11 +98,21 @@ export function AnalyticsTable({ data, title, pageSize = 10, className }: Analyt
           <tbody className="divide-y">
             {paginatedData.map((row) => (
               <tr key={row.id} className="hover:bg-gray-50">
-                <td className="px-4 py-2.5 font-medium text-gray-900">{row.page}</td>
-                <td className="px-4 py-2.5 text-right text-gray-600">{row.views.toLocaleString()}</td>
-                <td className="px-4 py-2.5 text-right text-gray-600">{row.uniqueVisitors.toLocaleString()}</td>
-                <td className="px-4 py-2.5 text-right text-gray-600">{row.bounceRate.toFixed(1)}%</td>
-                <td className="px-4 py-2.5 text-right text-gray-600">{formatDuration(row.avgDuration)}</td>
+                <td className="px-4 py-2.5 font-medium text-gray-900">
+                  {row.page}
+                </td>
+                <td className="px-4 py-2.5 text-right text-gray-600">
+                  {row.views.toLocaleString()}
+                </td>
+                <td className="px-4 py-2.5 text-right text-gray-600">
+                  {row.uniqueVisitors.toLocaleString()}
+                </td>
+                <td className="px-4 py-2.5 text-right text-gray-600">
+                  {row.bounceRate.toFixed(1)}%
+                </td>
+                <td className="px-4 py-2.5 text-right text-gray-600">
+                  {formatDuration(row.avgDuration)}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -109,7 +132,9 @@ export function AnalyticsTable({ data, title, pageSize = 10, className }: Analyt
               Previous
             </button>
             <button
-              onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
+              onClick={() =>
+                setCurrentPage(Math.min(totalPages - 1, currentPage + 1))
+              }
               disabled={currentPage >= totalPages - 1}
               className="rounded px-2 py-1 text-xs hover:bg-gray-100 disabled:opacity-50"
             >

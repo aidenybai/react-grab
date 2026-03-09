@@ -1,4 +1,3 @@
-
 type LogLevel = "debug" | "info" | "warn" | "error";
 
 interface LogEntry {
@@ -22,7 +21,11 @@ function shouldLog(level: LogLevel): boolean {
   return LOG_LEVELS[level] >= LOG_LEVELS[currentLevel];
 }
 
-function createEntry(level: LogLevel, message: string, context?: Record<string, unknown>): LogEntry {
+function createEntry(
+  level: LogLevel,
+  message: string,
+  context?: Record<string, unknown>,
+): LogEntry {
   return {
     level,
     message,
@@ -57,7 +60,10 @@ export const logger = {
     if (!shouldLog("error")) return;
     const entry = createEntry("error", message, {
       ...context,
-      error: error instanceof Error ? { name: error.name, message: error.message } : error,
+      error:
+        error instanceof Error
+          ? { name: error.name, message: error.message }
+          : error,
     });
     console.error(formatEntry(entry));
   },

@@ -3,7 +3,12 @@
 import { useState } from "react";
 
 interface CalendarSidebarProps {
-  calendars: Array<{ id: string; name: string; color: string; enabled: boolean }>;
+  calendars: Array<{
+    id: string;
+    name: string;
+    color: string;
+    enabled: boolean;
+  }>;
   onToggleCalendar?: (calendarId: string) => void;
   onCreateCalendar?: () => void;
 }
@@ -16,7 +21,9 @@ export function CalendarSidebar({
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <aside className={`calendar-sidebar ${collapsed ? "calendar-sidebar--collapsed" : ""}`}>
+    <aside
+      className={`calendar-sidebar ${collapsed ? "calendar-sidebar--collapsed" : ""}`}
+    >
       <div className="calendar-sidebar__header">
         <h3>Calendars</h3>
         <button onClick={() => setCollapsed(!collapsed)}>

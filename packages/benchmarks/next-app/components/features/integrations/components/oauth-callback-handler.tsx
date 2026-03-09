@@ -13,7 +13,9 @@ export function OAuthCallbackHandler({
   onSuccess,
   onError,
 }: OAuthCallbackHandlerProps) {
-  const [status, setStatus] = useState<"processing" | "success" | "error">("processing");
+  const [status, setStatus] = useState<"processing" | "success" | "error">(
+    "processing",
+  );
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

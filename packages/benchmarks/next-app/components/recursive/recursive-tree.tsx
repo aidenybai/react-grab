@@ -32,16 +32,37 @@ function TreeNode({
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ delay: Math.random() * 0.5 }}
-          style={{ width: 8, height: 8, borderRadius: "50%", background: "white" }}
+          style={{
+            width: 8,
+            height: 8,
+            borderRadius: "50%",
+            background: "white",
+          }}
         />
       </TreeLeaf>
     );
   }
 
   return (
-    <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center" }}>
-      <TreeNode depth={depth + 1} maxDepth={maxDepth} path={path + "L"} leafTestId={leafTestId} />
-      <TreeNode depth={depth + 1} maxDepth={maxDepth} path={path + "R"} leafTestId={leafTestId} />
+    <div
+      style={{
+        display: "inline-flex",
+        flexDirection: "column",
+        alignItems: "center",
+      }}
+    >
+      <TreeNode
+        depth={depth + 1}
+        maxDepth={maxDepth}
+        path={path + "L"}
+        leafTestId={leafTestId}
+      />
+      <TreeNode
+        depth={depth + 1}
+        maxDepth={maxDepth}
+        path={path + "R"}
+        leafTestId={leafTestId}
+      />
     </div>
   );
 }
@@ -55,7 +76,12 @@ export function RecursiveTree({
 }) {
   return (
     <div data-testid={testId} style={{ overflow: "auto", padding: 8 }}>
-      <TreeNode depth={0} maxDepth={depth} path="" leafTestId="recursive-tree-leaf" />
+      <TreeNode
+        depth={0}
+        maxDepth={depth}
+        path=""
+        leafTestId="recursive-tree-leaf"
+      />
     </div>
   );
 }

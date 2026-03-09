@@ -1,4 +1,3 @@
-
 export interface FeatureToggle {
   id: string;
   name: string;

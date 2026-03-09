@@ -16,11 +16,17 @@ interface DashboardNavProps {
   className?: string;
 }
 
-export function DashboardNav({ items, orientation = "horizontal", className }: DashboardNavProps) {
+export function DashboardNav({
+  items,
+  orientation = "horizontal",
+  className,
+}: DashboardNavProps) {
   const isVertical = orientation === "vertical";
 
   return (
-    <nav className={`${isVertical ? "flex flex-col space-y-1" : "flex items-center space-x-4"} ${className ?? ""}`}>
+    <nav
+      className={`${isVertical ? "flex flex-col space-y-1" : "flex items-center space-x-4"} ${className ?? ""}`}
+    >
       {items.map((item, index) => (
         <a
           key={index}

@@ -40,8 +40,12 @@ export function TeamMemberList({
           <span className="team-member-list__role">{member.role}</span>
           {isAdmin && member.role !== "owner" && (
             <div className="team-member-list__actions">
-              <button onClick={() => onChangeRole?.(member.id, "admin")}>Change Role</button>
-              <button onClick={() => onRemoveMember?.(member.id)}>Remove</button>
+              <button onClick={() => onChangeRole?.(member.id, "admin")}>
+                Change Role
+              </button>
+              <button onClick={() => onRemoveMember?.(member.id)}>
+                Remove
+              </button>
             </div>
           )}
         </div>

@@ -1,4 +1,3 @@
-
 export type Locale = "en" | "es" | "fr" | "de" | "ja";
 
 const DEFAULT_LOCALE: Locale = "en";
@@ -45,7 +44,10 @@ export function getLocale(): Locale {
   return currentLocale;
 }
 
-export function t(key: string, params?: Record<string, string | number>): string {
+export function t(
+  key: string,
+  params?: Record<string, string | number>,
+): string {
   const map = translations[currentLocale] ?? translations[DEFAULT_LOCALE];
   let value = map?.[key] ?? key;
 

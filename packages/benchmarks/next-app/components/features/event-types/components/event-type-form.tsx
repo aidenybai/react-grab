@@ -18,7 +18,11 @@ interface EventTypeFormProps {
   isLoading?: boolean;
 }
 
-export function EventTypeForm({ initialData, onSubmit, isLoading }: EventTypeFormProps) {
+export function EventTypeForm({
+  initialData,
+  onSubmit,
+  isLoading,
+}: EventTypeFormProps) {
   const [form, setForm] = useState<EventTypeFormData>({
     title: initialData?.title ?? "",
     slug: initialData?.slug ?? "",
@@ -29,40 +33,74 @@ export function EventTypeForm({ initialData, onSubmit, isLoading }: EventTypeFor
     requiresConfirmation: initialData?.requiresConfirmation ?? false,
   });
 
-  const handleChange = useCallback((field: keyof EventTypeFormData, value: unknown) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  }, []);
+  const handleChange = useCallback(
+    (field: keyof EventTypeFormData, value: unknown) => {
+      setForm((prev) => ({ ...prev, [field]: value }));
+    },
+    [],
+  );
 
-  const handleSubmit = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(form);
-  }, [form, onSubmit]);
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      onSubmit(form);
+    },
+    [form, onSubmit],
+  );
 
   return (
     <form className="event-type-form" onSubmit={handleSubmit}>
       <div className="event-type-form__field">
         <label>Title</label>
-        <input type="text" value={form.title} onChange={(e) => handleChange("title", e.target.value)} required />
+        <input
+          type="text"
+          value={form.title}
+          onChange={(e) => handleChange("title", e.target.value)}
+          required
+        />
       </div>
       <div className="event-type-form__field">
         <label>URL Slug</label>
-        <input type="text" value={form.slug} onChange={(e) => handleChange("slug", e.target.value)} />
+        <input
+          type="text"
+          value={form.slug}
+          onChange={(e) => handleChange("slug", e.target.value)}
+        />
       </div>
       <div className="event-type-form__field">
         <label>Description</label>
-        <textarea value={form.description} onChange={(e) => handleChange("description", e.target.value)} rows={3} />
+        <textarea
+          value={form.description}
+          onChange={(e) => handleChange("description", e.target.value)}
+          rows={3}
+        />
       </div>
       <div className="event-type-form__field">
         <label>Duration (minutes)</label>
-        <input type="number" value={form.duration} onChange={(e) => handleChange("duration", Number(e.target.value))} min={5} />
+        <input
+          type="number"
+          value={form.duration}
+          onChange={(e) => handleChange("duration", Number(e.target.value))}
+          min={5}
+        />
       </div>
       <div className="event-type-form__field">
         <label>Color</label>
-        <input type="color" value={form.color} onChange={(e) => handleChange("color", e.target.value)} />
+        <input
+          type="color"
+          value={form.color}
+          onChange={(e) => handleChange("color", e.target.value)}
+        />
       </div>
       <div className="event-type-form__field">
         <label>
-          <input type="checkbox" checked={form.requiresConfirmation} onChange={(e) => handleChange("requiresConfirmation", e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={form.requiresConfirmation}
+            onChange={(e) =>
+              handleChange("requiresConfirmation", e.target.checked)
+            }
+          />
           Requires confirmation
         </label>
       </div>

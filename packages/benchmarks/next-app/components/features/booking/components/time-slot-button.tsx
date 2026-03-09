@@ -8,7 +8,12 @@ interface TimeSlotButtonProps {
   onSelect: (time: string) => void;
 }
 
-export const TimeSlotButton = ({ time, available, selected, onSelect }: TimeSlotButtonProps) => (
+export const TimeSlotButton = ({
+  time,
+  available,
+  selected,
+  onSelect,
+}: TimeSlotButtonProps) => (
   <button
     disabled={!available}
     onClick={() => available && onSelect(time)}

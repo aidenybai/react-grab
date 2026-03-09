@@ -19,7 +19,7 @@ export function useOrganization(orgId?: string) {
   const updateOrg = useCallback(async (data: Partial<Organization>) => {
     setIsLoading(true);
     try {
-      setOrg((prev) => prev ? { ...prev, ...data } : null);
+      setOrg((prev) => (prev ? { ...prev, ...data } : null));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update");
     } finally {

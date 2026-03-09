@@ -47,7 +47,14 @@ export function BaseDialog({
         justifyContent: "center",
       }}
     >
-      <div onClick={onDismiss} style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.32)" }} />
+      <div
+        onClick={onDismiss}
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundColor: "rgba(0,0,0,0.32)",
+        }}
+      />
       <div
         role="dialog"
         style={{
@@ -59,24 +66,65 @@ export function BaseDialog({
           padding: 24,
         }}
       >
-        {icon && <div style={{ textAlign: "center", marginBottom: 16, color: "#6750A4" }}>{icon}</div>}
-        <h2 style={{ fontSize: 24, fontWeight: 400, color: "#1C1B1F", textAlign: icon ? "center" : "left", margin: 0 }}>
+        {icon && (
+          <div
+            style={{ textAlign: "center", marginBottom: 16, color: "#6750A4" }}
+          >
+            {icon}
+          </div>
+        )}
+        <h2
+          style={{
+            fontSize: 24,
+            fontWeight: 400,
+            color: "#1C1B1F",
+            textAlign: icon ? "center" : "left",
+            margin: 0,
+          }}
+        >
           {headline}
         </h2>
         {supportingText && (
-          <p style={{ fontSize: 14, color: "#49454F", marginTop: 16 }}>{supportingText}</p>
+          <p style={{ fontSize: 14, color: "#49454F", marginTop: 16 }}>
+            {supportingText}
+          </p>
         )}
         {children && <div style={{ marginTop: 16 }}>{children}</div>}
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 24 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: 8,
+            marginTop: 24,
+          }}
+        >
           <button
             onClick={onDismiss}
-            style={{ padding: "10px 12px", border: "none", background: "none", color: "#6750A4", fontSize: 14, fontWeight: 500, cursor: "pointer", borderRadius: 20 }}
+            style={{
+              padding: "10px 12px",
+              border: "none",
+              background: "none",
+              color: "#6750A4",
+              fontSize: 14,
+              fontWeight: 500,
+              cursor: "pointer",
+              borderRadius: 20,
+            }}
           >
             {dismissLabel}
           </button>
           <button
             onClick={onConfirm || onDismiss}
-            style={{ padding: "10px 12px", border: "none", background: "none", color: "#6750A4", fontSize: 14, fontWeight: 500, cursor: "pointer", borderRadius: 20 }}
+            style={{
+              padding: "10px 12px",
+              border: "none",
+              background: "none",
+              color: "#6750A4",
+              fontSize: 14,
+              fontWeight: 500,
+              cursor: "pointer",
+              borderRadius: 20,
+            }}
           >
             {confirmLabel}
           </button>

@@ -44,7 +44,13 @@ function FractalCell({
       }}
     >
       {Array.from({ length: 4 }, (_, i) => (
-        <FractalCell key={i} depth={depth + 1} maxDepth={maxDepth} index={i} leafTestId={leafTestId} />
+        <FractalCell
+          key={i}
+          depth={depth + 1}
+          maxDepth={maxDepth}
+          index={i}
+          leafTestId={leafTestId}
+        />
       ))}
     </div>
   );
@@ -59,7 +65,12 @@ export function FractalLayout({
 }) {
   return (
     <div data-testid={testId} style={{ maxWidth: 400 }}>
-      <FractalCell depth={0} maxDepth={depth} index={0} leafTestId="fractal-innermost" />
+      <FractalCell
+        depth={0}
+        maxDepth={depth}
+        index={0}
+        leafTestId="fractal-innermost"
+      />
     </div>
   );
 }

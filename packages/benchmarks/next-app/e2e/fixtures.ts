@@ -50,7 +50,8 @@ export const test = base.extend<{ grab: GrabFixture }>({
       grabByTestId: async (testId: string) => {
         const copySuccess = await page.evaluate(async (tid) => {
           const el = document.querySelector(`[data-testid="${tid}"]`);
-          if (!el) throw new Error(`Element with data-testid="${tid}" not found`);
+          if (!el)
+            throw new Error(`Element with data-testid="${tid}" not found`);
           const api = (window as any).__REACT_GRAB__;
           if (!api) throw new Error("react-grab not initialized");
           return api.copyElement(el);

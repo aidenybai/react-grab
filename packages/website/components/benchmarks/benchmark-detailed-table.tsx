@@ -33,7 +33,10 @@ interface MetricColumn {
   sortField: SortField;
   controlValue: (result?: BenchmarkResult) => string;
   treatmentValue: (result?: BenchmarkResult) => string;
-  change: (control?: BenchmarkResult, treatment?: BenchmarkResult) => ChangeInfo;
+  change: (
+    control?: BenchmarkResult,
+    treatment?: BenchmarkResult,
+  ) => ChangeInfo;
   sortValue: (result?: BenchmarkResult) => number;
 }
 
@@ -199,9 +202,7 @@ export const BenchmarkDetailedTable = ({
         <>
           Performance metrics per test: tokens, cost (USD), duration, and tool
           calls. React Grab shows % change vs. Control.
-          {lastRunDate && (
-            <span className="ml-2">Last run: {lastRunDate}</span>
-          )}
+          {lastRunDate && <span className="ml-2">Last run: {lastRunDate}</span>}
         </>
       }
       actions={
@@ -258,9 +259,7 @@ export const BenchmarkDetailedTable = ({
           <tr className="border-b border-border bg-card">
             {METRIC_COLUMNS.map((column) => (
               <React.Fragment key={column.sortField}>
-                <th className={CONTROL_SUBHEADER_CLASS}>
-                  Control
-                </th>
+                <th className={CONTROL_SUBHEADER_CLASS}>Control</th>
                 <th className={TREATMENT_SUBHEADER_CLASS}>
                   <TreatmentLabel />
                 </th>
@@ -298,9 +297,7 @@ export const BenchmarkDetailedTable = ({
                     const changeInfo = column.change(control, treatment);
                     return (
                       <React.Fragment key={column.sortField}>
-                        <td
-                          className="py-2 px-3 text-muted-foreground tabular-nums text-xs"
-                        >
+                        <td className="py-2 px-3 text-muted-foreground tabular-nums text-xs">
                           {column.controlValue(control)}
                         </td>
                         <td

@@ -45,13 +45,27 @@ export const Checkbox = memo(function Checkbox({
           transition: "all 150ms ease",
         }}
       >
-        {checked && <span style={{ color: "#FFFFFF", fontSize: 12, lineHeight: 1 }}>&#10003;</span>}
-        {indeterminate && !checked && <span style={{ color: "#FFFFFF", fontSize: 14 }}>&mdash;</span>}
+        {checked && (
+          <span style={{ color: "#FFFFFF", fontSize: 12, lineHeight: 1 }}>
+            &#10003;
+          </span>
+        )}
+        {indeterminate && !checked && (
+          <span style={{ color: "#FFFFFF", fontSize: 14 }}>&mdash;</span>
+        )}
       </div>
       {(label || description) && (
         <div>
-          {label && <span style={{ fontSize: 14, fontWeight: 500, color: "#111827" }}>{label}</span>}
-          {description && <p style={{ fontSize: 12, color: "#6B7280", margin: "2px 0 0" }}>{description}</p>}
+          {label && (
+            <span style={{ fontSize: 14, fontWeight: 500, color: "#111827" }}>
+              {label}
+            </span>
+          )}
+          {description && (
+            <p style={{ fontSize: 12, color: "#6B7280", margin: "2px 0 0" }}>
+              {description}
+            </p>
+          )}
         </div>
       )}
     </label>

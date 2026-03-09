@@ -19,16 +19,21 @@ export const MiniCalendar = memo(function MiniCalendar({
   return (
     <div className="mini-calendar">
       <div className="mini-calendar__header">
-        <button onClick={() => setViewDate(new Date(year, month - 1, 1))}>‹</button>
+        <button onClick={() => setViewDate(new Date(year, month - 1, 1))}>
+          ‹
+        </button>
         <span>
           {viewDate.toLocaleString("default", { month: "long" })} {year}
         </span>
-        <button onClick={() => setViewDate(new Date(year, month + 1, 1))}>›</button>
+        <button onClick={() => setViewDate(new Date(year, month + 1, 1))}>
+          ›
+        </button>
       </div>
       <div className="mini-calendar__grid">
         {Array.from({ length: daysInMonth }, (_, i) => {
           const date = new Date(year, month, i + 1);
-          const isSelected = selectedDate?.toDateString() === date.toDateString();
+          const isSelected =
+            selectedDate?.toDateString() === date.toDateString();
           return (
             <button
               key={i}

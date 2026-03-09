@@ -21,7 +21,10 @@ export function useAvailability(scheduleId?: string) {
   const toggleDay = useCallback((dayIndex: number) => {
     setSchedule((prev) => {
       const updated = [...prev];
-      updated[dayIndex] = { ...updated[dayIndex], enabled: !updated[dayIndex].enabled };
+      updated[dayIndex] = {
+        ...updated[dayIndex],
+        enabled: !updated[dayIndex].enabled,
+      };
       return updated;
     });
   }, []);
@@ -48,5 +51,13 @@ export function useAvailability(scheduleId?: string) {
     });
   }, []);
 
-  return { schedule, isLoading, isSaving, toggleDay, addRange, removeRange, setSchedule };
+  return {
+    schedule,
+    isLoading,
+    isSaving,
+    toggleDay,
+    addRange,
+    removeRange,
+    setSchedule,
+  };
 }

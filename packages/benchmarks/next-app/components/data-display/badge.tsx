@@ -11,15 +11,48 @@ interface StatusBadgeProps {
   className?: string;
 }
 
-const statusConfig: Record<StatusType, { bg: string; text: string; dot: string; defaultLabel: string }> = {
-  active: { bg: "bg-green-50", text: "text-green-700", dot: "bg-green-500", defaultLabel: "Active" },
-  inactive: { bg: "bg-gray-50", text: "text-gray-600", dot: "bg-gray-400", defaultLabel: "Inactive" },
-  pending: { bg: "bg-yellow-50", text: "text-yellow-700", dot: "bg-yellow-500", defaultLabel: "Pending" },
-  error: { bg: "bg-red-50", text: "text-red-700", dot: "bg-red-500", defaultLabel: "Error" },
-  archived: { bg: "bg-slate-50", text: "text-slate-600", dot: "bg-slate-400", defaultLabel: "Archived" },
+const statusConfig: Record<
+  StatusType,
+  { bg: string; text: string; dot: string; defaultLabel: string }
+> = {
+  active: {
+    bg: "bg-green-50",
+    text: "text-green-700",
+    dot: "bg-green-500",
+    defaultLabel: "Active",
+  },
+  inactive: {
+    bg: "bg-gray-50",
+    text: "text-gray-600",
+    dot: "bg-gray-400",
+    defaultLabel: "Inactive",
+  },
+  pending: {
+    bg: "bg-yellow-50",
+    text: "text-yellow-700",
+    dot: "bg-yellow-500",
+    defaultLabel: "Pending",
+  },
+  error: {
+    bg: "bg-red-50",
+    text: "text-red-700",
+    dot: "bg-red-500",
+    defaultLabel: "Error",
+  },
+  archived: {
+    bg: "bg-slate-50",
+    text: "text-slate-600",
+    dot: "bg-slate-400",
+    defaultLabel: "Archived",
+  },
 };
 
-export function Badge({ status, label, withDot = true, className }: StatusBadgeProps) {
+export function Badge({
+  status,
+  label,
+  withDot = true,
+  className,
+}: StatusBadgeProps) {
   const config = statusConfig[status];
   const displayLabel = label || config.defaultLabel;
 

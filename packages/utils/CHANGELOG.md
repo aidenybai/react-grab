@@ -1,5 +1,11 @@
 # @react-grab/utils
 
+## 0.1.27
+
+### Patch Changes
+
+- fix: install instructions
+
 ## 0.1.26
 
 ### Patch Changes

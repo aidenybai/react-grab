@@ -1,4 +1,3 @@
-
 export type ValidationResult = string | null;
 export type Validator<T = string> = (value: T) => ValidationResult;
 
@@ -10,14 +9,20 @@ export const email: Validator = (value) => {
   return pattern.test(value) ? null : "Please enter a valid email address";
 };
 
-export const minLength = (min: number): Validator => (value) =>
-  value.length >= min ? null : `Must be at least ${min} characters`;
+export const minLength =
+  (min: number): Validator =>
+  (value) =>
+    value.length >= min ? null : `Must be at least ${min} characters`;
 
-export const maxLength = (max: number): Validator => (value) =>
-  value.length <= max ? null : `Must be no more than ${max} characters`;
+export const maxLength =
+  (max: number): Validator =>
+  (value) =>
+    value.length <= max ? null : `Must be no more than ${max} characters`;
 
-export const pattern = (regex: RegExp, message: string): Validator => (value) =>
-  regex.test(value) ? null : message;
+export const pattern =
+  (regex: RegExp, message: string): Validator =>
+  (value) =>
+    regex.test(value) ? null : message;
 
 export const url: Validator = (value) => {
   try {
@@ -48,7 +53,7 @@ export function compose(...validators: Validator[]): Validator {
 
 export function validateForm<T extends Record<string, string>>(
   values: T,
-  rules: Partial<Record<keyof T, Validator>>
+  rules: Partial<Record<keyof T, Validator>>,
 ): Partial<Record<keyof T, string>> {
   const errors: Partial<Record<keyof T, string>> = {};
   for (const [field, validator] of Object.entries(rules)) {

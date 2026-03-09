@@ -3,14 +3,21 @@ import React from "react";
 
 type BadgeVariant = "upcoming" | "past" | "recurring" | "rescheduled";
 
-const badgeConfig: Record<BadgeVariant, { bg: string; text: string; label: string }> = {
+const badgeConfig: Record<
+  BadgeVariant,
+  { bg: string; text: string; label: string }
+> = {
   upcoming: { bg: "#dbeafe", text: "#1e40af", label: "Upcoming" },
   past: { bg: "#f3f4f6", text: "#6b7280", label: "Past" },
   recurring: { bg: "#ede9fe", text: "#7c3aed", label: "Recurring" },
   rescheduled: { bg: "#fef3c7", text: "#92400e", label: "Rescheduled" },
 };
 
-export const BookingBadge = ({ variant = "upcoming" }: { variant?: BadgeVariant }) => {
+export const BookingBadge = ({
+  variant = "upcoming",
+}: {
+  variant?: BadgeVariant;
+}) => {
   const config = badgeConfig[variant];
   return (
     <span

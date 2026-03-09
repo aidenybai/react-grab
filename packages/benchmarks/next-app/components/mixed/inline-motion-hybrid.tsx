@@ -2,7 +2,11 @@
 import React from "react";
 import { motion } from "motion/react";
 
-export function InlineMotionHybrid({ "data-testid": testId }: { "data-testid"?: string }) {
+export function InlineMotionHybrid({
+  "data-testid": testId,
+}: {
+  "data-testid"?: string;
+}) {
   return (
     <motion.div
       data-testid={testId}
@@ -20,7 +24,12 @@ export function InlineMotionHybrid({ "data-testid": testId }: { "data-testid"?: 
       <motion.h3
         initial={{ x: -10 }}
         animate={{ x: 0 }}
-        style={{ fontSize: 16, fontWeight: 600, margin: "0 0 8px", color: "var(--foreground)" }}
+        style={{
+          fontSize: 16,
+          fontWeight: 600,
+          margin: "0 0 8px",
+          color: "var(--foreground)",
+        }}
       >
         Inline + Motion
       </motion.h3>
@@ -28,7 +37,11 @@ export function InlineMotionHybrid({ "data-testid": testId }: { "data-testid"?: 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2 }}
-        style={{ fontSize: 14, color: "var(--muted-foreground)", lineHeight: 1.5 }}
+        style={{
+          fontSize: 14,
+          color: "var(--muted-foreground)",
+          lineHeight: 1.5,
+        }}
       >
         Pure inline styles combined with motion animations. No CSS classes.
       </motion.p>

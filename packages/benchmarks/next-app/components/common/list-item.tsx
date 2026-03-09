@@ -38,14 +38,18 @@ export function ListItem({
     >
       {avatar && <div className="flex-shrink-0">{avatar}</div>}
       <div className="min-w-0 flex-1">
-        <p className={`truncate text-sm font-medium ${selected ? "text-indigo-900" : "text-gray-900"}`}>
+        <p
+          className={`truncate text-sm font-medium ${selected ? "text-indigo-900" : "text-gray-900"}`}
+        >
           {title}
         </p>
         {description && (
           <p className="mt-0.5 truncate text-xs text-gray-500">{description}</p>
         )}
       </div>
-      {meta && <span className="flex-shrink-0 text-xs text-gray-400">{meta}</span>}
+      {meta && (
+        <span className="flex-shrink-0 text-xs text-gray-400">{meta}</span>
+      )}
       {actions && <div className="flex-shrink-0">{actions}</div>}
     </div>
   );
@@ -53,7 +57,9 @@ export function ListItem({
 
 export function ListItemSkeleton({ className }: { className?: string }) {
   return (
-    <div className={`flex items-center gap-3 border-b px-4 py-3 last:border-b-0 ${className ?? ""}`}>
+    <div
+      className={`flex items-center gap-3 border-b px-4 py-3 last:border-b-0 ${className ?? ""}`}
+    >
       <div className="h-10 w-10 animate-pulse rounded-full bg-gray-200" />
       <div className="flex-1 space-y-1.5">
         <div className="h-3 w-1/3 animate-pulse rounded bg-gray-200" />

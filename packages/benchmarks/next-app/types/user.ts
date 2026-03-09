@@ -1,4 +1,3 @@
-
 export interface UserProfile {
   id: string;
   email: string;
@@ -46,7 +45,17 @@ export interface UserInvitation {
 }
 
 export type UpdateProfilePayload = Partial<
-  Pick<UserProfile, "name" | "username" | "bio" | "timezone" | "locale" | "phone" | "company" | "jobTitle">
+  Pick<
+    UserProfile,
+    | "name"
+    | "username"
+    | "bio"
+    | "timezone"
+    | "locale"
+    | "phone"
+    | "company"
+    | "jobTitle"
+  >
 >;
 
 export type UpdatePreferencesPayload = Partial<UserPreferences>;

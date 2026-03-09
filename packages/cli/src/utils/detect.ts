@@ -1,6 +1,6 @@
 import { execSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { basename, join } from "node:path";
+import { basename, dirname, join, parse } from "node:path";
 import { detect } from "@antfu/ni";
 import ignore from "ignore";
 
@@ -329,10 +329,33 @@ const MAX_SCAN_DEPTH = 2;
 
 export const findReactProjects = (projectRoot: string): WorkspaceProject[] => {
   if (detectMonorepo(projectRoot)) {
-    return findWorkspaceProjects(projectRoot);
+    const workspaceProjects = findWorkspaceProjects(projectRoot);
+    if (workspaceProjects.length > 0) {
+      return workspaceProjects;
+    }
   }
+
   const ignorer = loadGitignore(projectRoot);
-  return scanDirectoryForProjects(projectRoot, ignorer, MAX_SCAN_DEPTH);
+  const scannedProjects = scanDirectoryForProjects(
+    projectRoot,
+    ignorer,
+    MAX_SCAN_DEPTH,
+  );
+  if (scannedProjects.length > 0) {
+    return scannedProjects;
+  }
+
+  let currentDirectory = dirname(projectRoot);
+  const { root } = parse(projectRoot);
+  while (currentDirectory !== root) {
+    const parentProject = buildReactProject(currentDirectory);
+    if (parentProject) {
+      return [parentProject];
+    }
+    currentDirectory = dirname(currentDirectory);
+  }
+
+  return [];
 };
 
 const hasReactGrabInFile = (filePath: string): boolean => {

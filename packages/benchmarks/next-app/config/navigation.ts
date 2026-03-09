@@ -1,4 +1,3 @@
-
 import type { UserRole } from "@/lib/types";
 
 export interface NavigationGroup {

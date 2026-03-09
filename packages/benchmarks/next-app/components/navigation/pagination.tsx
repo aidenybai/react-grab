@@ -11,7 +11,11 @@ interface PaginationProps {
   size?: "sm" | "md";
 }
 
-function getPageNumbers(current: number, total: number, siblings: number): (number | "...")[] {
+function getPageNumbers(
+  current: number,
+  total: number,
+  siblings: number,
+): (number | "...")[] {
   const pages: (number | "...")[] = [];
   const start = Math.max(2, current - siblings);
   const end = Math.min(total - 1, current + siblings);
@@ -37,7 +41,17 @@ export function Pagination({
   const buttonSize = size === "sm" ? 28 : 36;
   const fontSize = size === "sm" ? 12 : 14;
 
-  const PageButton = ({ page, active, disabled, children }: { page?: number; active?: boolean; disabled?: boolean; children: React.ReactNode }) => (
+  const PageButton = ({
+    page,
+    active,
+    disabled,
+    children,
+  }: {
+    page?: number;
+    active?: boolean;
+    disabled?: boolean;
+    children: React.ReactNode;
+  }) => (
     <button
       onClick={page !== undefined ? () => onPageChange(page) : undefined}
       disabled={disabled}
@@ -62,18 +76,40 @@ export function Pagination({
   );
 
   return (
-    <nav aria-label="Pagination" style={{ display: "flex", alignItems: "center", gap: 4 }}>
-      {showFirstLast && <PageButton page={1} disabled={currentPage === 1}>&laquo;</PageButton>}
-      <PageButton page={currentPage - 1} disabled={currentPage === 1}>&lsaquo;</PageButton>
+    <nav
+      aria-label="Pagination"
+      style={{ display: "flex", alignItems: "center", gap: 4 }}
+    >
+      {showFirstLast && (
+        <PageButton page={1} disabled={currentPage === 1}>
+          &laquo;
+        </PageButton>
+      )}
+      <PageButton page={currentPage - 1} disabled={currentPage === 1}>
+        &lsaquo;
+      </PageButton>
       {pages.map((p, i) =>
         p === "..." ? (
-          <span key={`dots-${i}`} style={{ padding: "0 4px", color: "#9CA3AF" }}>&hellip;</span>
+          <span
+            key={`dots-${i}`}
+            style={{ padding: "0 4px", color: "#9CA3AF" }}
+          >
+            &hellip;
+          </span>
         ) : (
-          <PageButton key={p} page={p} active={p === currentPage}>{p}</PageButton>
+          <PageButton key={p} page={p} active={p === currentPage}>
+            {p}
+          </PageButton>
         ),
       )}
-      <PageButton page={currentPage + 1} disabled={currentPage === totalPages}>&rsaquo;</PageButton>
-      {showFirstLast && <PageButton page={totalPages} disabled={currentPage === totalPages}>&raquo;</PageButton>}
+      <PageButton page={currentPage + 1} disabled={currentPage === totalPages}>
+        &rsaquo;
+      </PageButton>
+      {showFirstLast && (
+        <PageButton page={totalPages} disabled={currentPage === totalPages}>
+          &raquo;
+        </PageButton>
+      )}
     </nav>
   );
 }

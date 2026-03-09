@@ -45,7 +45,11 @@ export function ModalPortal({
           >
             <div
               onClick={() => setOpen(false)}
-              style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.4)" }}
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: "rgba(0,0,0,0.4)",
+              }}
             />
             <div
               data-testid={testId}
@@ -75,7 +79,7 @@ export function ModalPortal({
               {children}
             </div>
           </div>,
-          document.body
+          document.body,
         )}
     </>
   );

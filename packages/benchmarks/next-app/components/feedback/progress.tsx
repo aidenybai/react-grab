@@ -35,11 +35,19 @@ export function Progress({
     <div>
       {(showLabel || label) && (
         <div className="flex justify-between mb-1">
-          {label && <span className="text-xs font-medium text-gray-600">{label}</span>}
-          {showLabel && <span className="text-xs font-medium text-gray-500">{Math.round(percentage)}%</span>}
+          {label && (
+            <span className="text-xs font-medium text-gray-600">{label}</span>
+          )}
+          {showLabel && (
+            <span className="text-xs font-medium text-gray-500">
+              {Math.round(percentage)}%
+            </span>
+          )}
         </div>
       )}
-      <div className={`w-full ${heightClasses[size]} rounded-full bg-gray-200 overflow-hidden`}>
+      <div
+        className={`w-full ${heightClasses[size]} rounded-full bg-gray-200 overflow-hidden`}
+      >
         <div
           className={`${heightClasses[size]} rounded-full ${colorClasses[color]} transition-all duration-500 ease-out ${striped ? "bg-gradient-to-r from-transparent via-white/20 to-transparent bg-[length:20px_100%] animate-[shimmer_1s_linear_infinite]" : ""}`}
           style={{ width: `${percentage}%` }}

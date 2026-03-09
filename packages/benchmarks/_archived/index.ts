@@ -56,7 +56,11 @@ ${reactGrabOutput}`,
 
   await fs.writeFile(outputPath, JSON.stringify(results, null, 2));
 
-  for (let batchIndex = 0; batchIndex < allTests.length; batchIndex += BATCH_SIZE) {
+  for (
+    let batchIndex = 0;
+    batchIndex < allTests.length;
+    batchIndex += BATCH_SIZE
+  ) {
     const batch = allTests.slice(batchIndex, batchIndex + BATCH_SIZE);
 
     const batchResults = await Promise.all(

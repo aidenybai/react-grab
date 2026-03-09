@@ -5,7 +5,10 @@ interface IntegrationStatusBadgeProps {
   className?: string;
 }
 
-const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
+const statusConfig: Record<
+  string,
+  { label: string; color: string; bg: string }
+> = {
   connected: { label: "Connected", color: "#065f46", bg: "#d1fae5" },
   disconnected: { label: "Disconnected", color: "#6b7280", bg: "#f3f4f6" },
   error: { label: "Error", color: "#991b1b", bg: "#fee2e2" },

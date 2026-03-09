@@ -20,7 +20,11 @@ function formatChange(change: number): string {
   return `${sign}${change.toFixed(1)}%`;
 }
 
-export function DashboardStats({ stats, columns = 4, className }: DashboardStatsProps) {
+export function DashboardStats({
+  stats,
+  columns = 4,
+  className,
+}: DashboardStatsProps) {
   const gridClass = {
     2: "grid-cols-2",
     3: "grid-cols-3",
@@ -34,7 +38,9 @@ export function DashboardStats({ stats, columns = 4, className }: DashboardStats
           key={index}
           className="rounded-lg border bg-white p-4 transition-shadow hover:shadow-md"
         >
-          <dt className="truncate text-sm font-medium text-gray-500">{stat.label}</dt>
+          <dt className="truncate text-sm font-medium text-gray-500">
+            {stat.label}
+          </dt>
           <dd className="mt-1 flex items-baseline justify-between md:block lg:flex">
             <div className="flex items-baseline text-2xl font-semibold text-indigo-600">
               {stat.value}

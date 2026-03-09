@@ -15,7 +15,8 @@ export function useSort<T extends Record<string, unknown>>({
   initialDirection = "asc",
 }: UseSortOptions<T>) {
   const [sortKey, setSortKey] = useState<keyof T | undefined>(initialKey);
-  const [sortDirection, setSortDirection] = useState<SortDirection>(initialDirection);
+  const [sortDirection, setSortDirection] =
+    useState<SortDirection>(initialDirection);
 
   const toggleSort = useCallback(
     (key: keyof T) => {
@@ -26,7 +27,7 @@ export function useSort<T extends Record<string, unknown>>({
         setSortDirection("asc");
       }
     },
-    [sortKey]
+    [sortKey],
   );
 
   const sorted = useMemo(() => {

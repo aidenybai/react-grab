@@ -39,7 +39,12 @@ export interface TeamInvite {
 export interface TeamActivity {
   id: string;
   teamId: string;
-  type: "member_joined" | "member_left" | "role_changed" | "settings_updated" | "invite_sent";
+  type:
+    | "member_joined"
+    | "member_left"
+    | "role_changed"
+    | "settings_updated"
+    | "invite_sent";
   actorId: string;
   actorName: string;
   targetId?: string;

@@ -33,14 +33,36 @@ export function Tooltip({
   }, []);
 
   const positionStyles: Record<string, React.CSSProperties> = {
-    top: { bottom: "calc(100% + 6px)", left: "50%", transform: "translateX(-50%)" },
-    bottom: { top: "calc(100% + 6px)", left: "50%", transform: "translateX(-50%)" },
-    left: { right: "calc(100% + 6px)", top: "50%", transform: "translateY(-50%)" },
-    right: { left: "calc(100% + 6px)", top: "50%", transform: "translateY(-50%)" },
+    top: {
+      bottom: "calc(100% + 6px)",
+      left: "50%",
+      transform: "translateX(-50%)",
+    },
+    bottom: {
+      top: "calc(100% + 6px)",
+      left: "50%",
+      transform: "translateX(-50%)",
+    },
+    left: {
+      right: "calc(100% + 6px)",
+      top: "50%",
+      transform: "translateY(-50%)",
+    },
+    right: {
+      left: "calc(100% + 6px)",
+      top: "50%",
+      transform: "translateY(-50%)",
+    },
   };
 
   return (
-    <span style={{ position: "relative", display: "inline-flex" }} onMouseEnter={show} onMouseLeave={hide} onFocus={show} onBlur={hide}>
+    <span
+      style={{ position: "relative", display: "inline-flex" }}
+      onMouseEnter={show}
+      onMouseLeave={hide}
+      onFocus={show}
+      onBlur={hide}
+    >
       {children}
       {visible && (
         <span

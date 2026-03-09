@@ -36,13 +36,19 @@ export function NotificationList({
 
   const filteredNotifications = useMemo(() => {
     switch (activeFilter) {
-      case "unread": return notifications.filter((n) => !n.read);
-      case "read": return notifications.filter((n) => n.read);
-      default: return notifications;
+      case "unread":
+        return notifications.filter((n) => !n.read);
+      case "read":
+        return notifications.filter((n) => n.read);
+      default:
+        return notifications;
     }
   }, [notifications, activeFilter]);
 
-  const unreadCount = useMemo(() => notifications.filter((n) => !n.read).length, [notifications]);
+  const unreadCount = useMemo(
+    () => notifications.filter((n) => !n.read).length,
+    [notifications],
+  );
 
   const typeIcons: Record<string, string> = {
     info: "\u2139\uFE0F",
@@ -64,12 +70,18 @@ export function NotificationList({
         </div>
         <div className="flex items-center gap-2">
           {onMarkAllRead && unreadCount > 0 && (
-            <button onClick={onMarkAllRead} className="text-xs text-indigo-600 hover:underline">
+            <button
+              onClick={onMarkAllRead}
+              className="text-xs text-indigo-600 hover:underline"
+            >
               Mark all read
             </button>
           )}
           {onClearAll && (
-            <button onClick={onClearAll} className="text-xs text-gray-400 hover:text-gray-600">
+            <button
+              onClick={onClearAll}
+              className="text-xs text-gray-400 hover:text-gray-600"
+            >
               Clear all
             </button>
           )}
@@ -82,7 +94,9 @@ export function NotificationList({
             key={f}
             onClick={() => setActiveFilter(f)}
             className={`rounded-md px-2.5 py-1 text-xs font-medium capitalize ${
-              activeFilter === f ? "bg-gray-100 text-gray-900" : "text-gray-500 hover:text-gray-700"
+              activeFilter === f
+                ? "bg-gray-100 text-gray-900"
+                : "text-gray-500 hover:text-gray-700"
             }`}
           >
             {f}
@@ -92,18 +106,28 @@ export function NotificationList({
 
       <div className="max-h-96 divide-y overflow-y-auto">
         {filteredNotifications.length === 0 ? (
-          <div className="px-4 py-8 text-center text-sm text-gray-400">{emptyMessage}</div>
+          <div className="px-4 py-8 text-center text-sm text-gray-400">
+            {emptyMessage}
+          </div>
         ) : (
           filteredNotifications.map((notification) => (
             <div
               key={notification.id}
               className={`flex items-start gap-3 px-4 py-3 ${notification.read ? "" : "bg-blue-50/50"}`}
             >
-              <span className="mt-0.5 text-sm">{typeIcons[notification.type]}</span>
+              <span className="mt-0.5 text-sm">
+                {typeIcons[notification.type]}
+              </span>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-900">{notification.title}</p>
-                <p className="mt-0.5 text-xs text-gray-500">{notification.message}</p>
-                <p className="mt-1 text-[10px] text-gray-400">{new Date(notification.timestamp).toLocaleString()}</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {notification.title}
+                </p>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  {notification.message}
+                </p>
+                <p className="mt-1 text-[10px] text-gray-400">
+                  {new Date(notification.timestamp).toLocaleString()}
+                </p>
               </div>
               <div className="flex items-center gap-1">
                 {!notification.read && onMarkRead && (
@@ -121,7 +145,13 @@ export function NotificationList({
                     className="rounded p-1 text-gray-300 hover:bg-gray-100 hover:text-gray-500"
                     title="Dismiss"
                   >
-                    <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg
+                      className="h-3 w-3"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
                       <path d="M18 6L6 18M6 6l12 12" />
                     </svg>
                   </button>

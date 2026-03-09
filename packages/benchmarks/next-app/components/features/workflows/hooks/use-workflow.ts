@@ -16,13 +16,15 @@ export function useWorkflow(workflowId?: string) {
   const [isSaving, setIsSaving] = useState(false);
 
   const toggleActive = useCallback(() => {
-    setWorkflow((prev) => prev ? { ...prev, isActive: !prev.isActive } : null);
+    setWorkflow((prev) =>
+      prev ? { ...prev, isActive: !prev.isActive } : null,
+    );
   }, []);
 
   const save = useCallback(async (data: Partial<Workflow>) => {
     setIsSaving(true);
     try {
-      setWorkflow((prev) => prev ? { ...prev, ...data } : null);
+      setWorkflow((prev) => (prev ? { ...prev, ...data } : null));
     } finally {
       setIsSaving(false);
     }

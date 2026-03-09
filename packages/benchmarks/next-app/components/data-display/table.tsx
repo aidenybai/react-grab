@@ -48,7 +48,10 @@ export function Table<T extends Record<string, unknown>>({
         <tbody className="divide-y divide-gray-100">
           {data.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="px-4 py-8 text-center text-gray-400">
+              <td
+                colSpan={columns.length}
+                className="px-4 py-8 text-center text-gray-400"
+              >
                 {emptyMessage}
               </td>
             </tr>
@@ -59,8 +62,13 @@ export function Table<T extends Record<string, unknown>>({
                 className={`${striped && i % 2 ? "bg-gray-50" : "bg-white"} ${hoverable ? "hover:bg-gray-50" : ""}`}
               >
                 {columns.map((col) => (
-                  <td key={String(col.key)} className={`${cellPadding} text-${col.align || "left"} text-gray-900`}>
-                    {col.render ? col.render(row[col.key], row) : String(row[col.key] ?? "")}
+                  <td
+                    key={String(col.key)}
+                    className={`${cellPadding} text-${col.align || "left"} text-gray-900`}
+                  >
+                    {col.render
+                      ? col.render(row[col.key], row)
+                      : String(row[col.key] ?? "")}
                   </td>
                 ))}
               </tr>

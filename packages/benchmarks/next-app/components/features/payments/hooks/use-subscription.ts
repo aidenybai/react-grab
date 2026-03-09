@@ -17,18 +17,22 @@ export function useSubscription() {
   const changePlan = useCallback(async (planId: string) => {
     setIsLoading(true);
     try {
-      setSubscription((prev) => prev ? { ...prev, plan: planId } : null);
+      setSubscription((prev) => (prev ? { ...prev, plan: planId } : null));
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   const cancel = useCallback(async () => {
-    setSubscription((prev) => prev ? { ...prev, cancelAtPeriodEnd: true } : null);
+    setSubscription((prev) =>
+      prev ? { ...prev, cancelAtPeriodEnd: true } : null,
+    );
   }, []);
 
   const resume = useCallback(async () => {
-    setSubscription((prev) => prev ? { ...prev, cancelAtPeriodEnd: false } : null);
+    setSubscription((prev) =>
+      prev ? { ...prev, cancelAtPeriodEnd: false } : null,
+    );
   }, []);
 
   return { subscription, isLoading, changePlan, cancel, resume };

@@ -21,7 +21,11 @@ export function parseDuration(formatted: string): number {
   return hours * 60 + mins;
 }
 
-export function getBookingUrl(baseUrl: string, username: string, slug: string): string {
+export function getBookingUrl(
+  baseUrl: string,
+  username: string,
+  slug: string,
+): string {
   return `${baseUrl}/${username}/${slug}`;
 }
 

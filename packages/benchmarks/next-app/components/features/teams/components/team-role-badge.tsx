@@ -11,7 +11,10 @@ const roleStyles: Record<string, { bg: string; text: string }> = {
   member: { bg: "#f3f4f6", text: "#374151" },
 };
 
-export const TeamRoleBadge = memo(function TeamRoleBadge({ role, className }: TeamRoleBadgeProps) {
+export const TeamRoleBadge = memo(function TeamRoleBadge({
+  role,
+  className,
+}: TeamRoleBadgeProps) {
   const style = roleStyles[role] ?? roleStyles.member;
   return (
     <span

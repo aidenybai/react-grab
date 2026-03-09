@@ -54,7 +54,11 @@ test.describe("Bench harness", () => {
       const b = (window as any).__BENCH__;
       b.register({
         name: "test-resolver",
-        resolve: () => ({ filePath: "test.tsx", componentName: "Test", found: true }),
+        resolve: () => ({
+          filePath: "test.tsx",
+          componentName: "Test",
+          found: true,
+        }),
       });
       const list = b.list();
       b.unregister("test-resolver");
@@ -69,17 +73,23 @@ test.describe("Bench harness", () => {
 test.describe("Agentation utilities via __BENCH__.utils", () => {
   test("identifyElement", async ({ page }) => {
     const result = await page.evaluate(() => {
-      const el = document.querySelector('[data-testid="plain-tw-card"]') as HTMLElement;
+      const el = document.querySelector(
+        '[data-testid="plain-tw-card"]',
+      ) as HTMLElement;
       return el ? (window as any).__BENCH__.utils.identifyElement(el) : null;
     });
     expect(result).not.toBeNull();
     expect(result!.name).toBeTruthy();
-    console.log(`identifyElement: name="${result!.name}" path="${result!.path}"`);
+    console.log(
+      `identifyElement: name="${result!.name}" path="${result!.path}"`,
+    );
   });
 
   test("getNearbyText", async ({ page }) => {
     const result = await page.evaluate(() => {
-      const el = document.querySelector('[data-testid="plain-styled-card"]') as HTMLElement;
+      const el = document.querySelector(
+        '[data-testid="plain-styled-card"]',
+      ) as HTMLElement;
       return el ? (window as any).__BENCH__.utils.getNearbyText(el) : null;
     });
     expect(result).toBeTruthy();
@@ -89,7 +99,9 @@ test.describe("Agentation utilities via __BENCH__.utils", () => {
 
   test("getElementPath", async ({ page }) => {
     const result = await page.evaluate(() => {
-      const el = document.querySelector('[data-testid="plain-styled-badge"]') as HTMLElement;
+      const el = document.querySelector(
+        '[data-testid="plain-styled-badge"]',
+      ) as HTMLElement;
       return el ? (window as any).__BENCH__.utils.getElementPath(el) : null;
     });
     expect(result).toBeTruthy();
@@ -99,7 +111,9 @@ test.describe("Agentation utilities via __BENCH__.utils", () => {
 
   test("getElementClasses", async ({ page }) => {
     const result = await page.evaluate(() => {
-      const el = document.querySelector('[data-testid="plain-styled-card"]') as HTMLElement;
+      const el = document.querySelector(
+        '[data-testid="plain-styled-card"]',
+      ) as HTMLElement;
       return el ? (window as any).__BENCH__.utils.getElementClasses(el) : null;
     });
     expect(result).toBeTruthy();
@@ -110,7 +124,9 @@ test.describe("Agentation utilities via __BENCH__.utils", () => {
 test.describe("Source resolution via __BENCH__", () => {
   test("getSourceLocation returns structured result", async ({ page }) => {
     const result = await page.evaluate(() => {
-      const el = document.querySelector('[data-testid="plain-styled-card"]') as HTMLElement;
+      const el = document.querySelector(
+        '[data-testid="plain-styled-card"]',
+      ) as HTMLElement;
       return el ? (window as any).__BENCH__.utils.getSourceLocation(el) : null;
     });
     expect(result).not.toBeNull();
@@ -121,8 +137,12 @@ test.describe("Source resolution via __BENCH__", () => {
 
   test("findNearestComponentSource walks ancestors", async ({ page }) => {
     const result = await page.evaluate(() => {
-      const el = document.querySelector('[data-testid="plain-tw-card"]') as HTMLElement;
-      return el ? (window as any).__BENCH__.utils.findNearestComponentSource(el) : null;
+      const el = document.querySelector(
+        '[data-testid="plain-tw-card"]',
+      ) as HTMLElement;
+      return el
+        ? (window as any).__BENCH__.utils.findNearestComponentSource(el)
+        : null;
     });
     expect(result).not.toBeNull();
     expect(result).toHaveProperty("found");
@@ -134,31 +154,72 @@ test.describe("Head-to-head: all resolvers", () => {
   test.setTimeout(120_000);
 
   const testCases = [
-    { testId: "plain-styled-card", expected: "components/styled/styled-card.tsx" },
+    {
+      testId: "plain-styled-card",
+      expected: "components/styled/styled-card.tsx",
+    },
     { testId: "plain-tw-card", expected: "components/tailwind/tw-card.tsx" },
-    { testId: "plain-animated-card", expected: "components/motion/animated-card.tsx" },
-    { testId: "plain-inline-card", expected: "components/mixed/inline-card.tsx" },
-    { testId: "plain-module-card", expected: "components/modules/module-card.tsx" },
-    { testId: "shadcn-profile-card", expected: "components/shadcn/shadcn-profile-card.tsx" },
-    { testId: "recursive-tree-leaf", expected: "components/recursive/recursive-tree.tsx" },
-    { testId: "hoc-motion-styled-card", expected: "components/motion/animated-card.tsx" },
-    { testId: "style-clash-button", expected: "components/mixed/style-clash.tsx" },
-    { testId: "gauntlet-button", expected: "components/challenge/the-gauntlet.tsx" },
-    { testId: "russian-doll-button", expected: "components/challenge/russian-doll.tsx" },
-    { testId: "identity-depth-11", expected: "components/challenge/identity-crisis.tsx" },
-    { testId: "shapeshifter", expected: "components/challenge/shapeshifter.tsx" },
+    {
+      testId: "plain-animated-card",
+      expected: "components/motion/animated-card.tsx",
+    },
+    {
+      testId: "plain-inline-card",
+      expected: "components/mixed/inline-card.tsx",
+    },
+    {
+      testId: "plain-module-card",
+      expected: "components/modules/module-card.tsx",
+    },
+    {
+      testId: "shadcn-profile-card",
+      expected: "components/shadcn/shadcn-profile-card.tsx",
+    },
+    {
+      testId: "recursive-tree-leaf",
+      expected: "components/recursive/recursive-tree.tsx",
+    },
+    {
+      testId: "hoc-motion-styled-card",
+      expected: "components/motion/animated-card.tsx",
+    },
+    {
+      testId: "style-clash-button",
+      expected: "components/mixed/style-clash.tsx",
+    },
+    {
+      testId: "gauntlet-button",
+      expected: "components/challenge/the-gauntlet.tsx",
+    },
+    {
+      testId: "russian-doll-button",
+      expected: "components/challenge/russian-doll.tsx",
+    },
+    {
+      testId: "identity-depth-11",
+      expected: "components/challenge/identity-crisis.tsx",
+    },
+    {
+      testId: "shapeshifter",
+      expected: "components/challenge/shapeshifter.tsx",
+    },
   ];
 
   test("compare all resolvers across test cases", async ({ page }) => {
     await page.waitForFunction(
-      () => (window as any).__REACT_GRAB__ && typeof (window as any).__REACT_GRAB__.getSource === "function",
+      () =>
+        (window as any).__REACT_GRAB__ &&
+        typeof (window as any).__REACT_GRAB__.getSource === "function",
       { timeout: 15_000 },
     );
 
-    const resolverNames: string[] = await page.evaluate(() => (window as any).__BENCH__.list());
+    const resolverNames: string[] = await page.evaluate(() =>
+      (window as any).__BENCH__.list(),
+    );
 
     const scores: Record<string, { resolved: number; correct: number }> = {};
-    for (const name of resolverNames) scores[name] = { resolved: 0, correct: 0 };
+    for (const name of resolverNames)
+      scores[name] = { resolved: 0, correct: 0 };
 
     console.log(`\n  Resolvers: ${resolverNames.join(", ")}\n`);
 
@@ -173,7 +234,10 @@ test.describe("Head-to-head: all resolvers", () => {
 
       for (const name of resolverNames) {
         const r = results[name];
-        if (!r) { cols.push(`${name}: —`); continue; }
+        if (!r) {
+          cols.push(`${name}: —`);
+          continue;
+        }
 
         const norm = normalizeFilePath(r.filePath);
         const isCorrect = norm?.includes(expectedSuffix) ?? false;
@@ -192,7 +256,9 @@ test.describe("Head-to-head: all resolvers", () => {
     console.log();
     for (const name of resolverNames) {
       const s = scores[name];
-      console.log(`  ${name.padEnd(15)} ${s.resolved}/${total} resolved, ${s.correct}/${total} correct (${((s.correct / total) * 100).toFixed(0)}%)`);
+      console.log(
+        `  ${name.padEnd(15)} ${s.resolved}/${total} resolved, ${s.correct}/${total} correct (${((s.correct / total) * 100).toFixed(0)}%)`,
+      );
     }
     console.log();
 

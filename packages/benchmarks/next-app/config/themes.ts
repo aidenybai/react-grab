@@ -1,4 +1,3 @@
-
 export interface ThemeColors {
   background: string;
   foreground: string;

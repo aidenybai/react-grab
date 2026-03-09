@@ -51,13 +51,24 @@ export function Sidebar({
         flexShrink: 0,
       }}
     >
-      {header && <div style={{ padding: 16, borderBottom: "1px solid #E5E7EB" }}>{header}</div>}
+      {header && (
+        <div style={{ padding: 16, borderBottom: "1px solid #E5E7EB" }}>
+          {header}
+        </div>
+      )}
       <nav style={{ flex: 1, overflowY: "auto", padding: 8 }}>
         {items.map((item) => (
           <div key={item.label}>
             <a
               href={item.href || "#"}
-              onClick={item.children ? (e) => { e.preventDefault(); toggleGroup(item.label); } : undefined}
+              onClick={
+                item.children
+                  ? (e) => {
+                      e.preventDefault();
+                      toggleGroup(item.label);
+                    }
+                  : undefined
+              }
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -77,7 +88,18 @@ export function Sidebar({
             {item.children && expandedGroups.has(item.label) && !collapsed && (
               <div style={{ paddingLeft: 28 }}>
                 {item.children.map((child) => (
-                  <a key={child.label} href={child.href || "#"} style={{ display: "block", padding: "6px 12px", fontSize: 13, color: "#6B7280", textDecoration: "none", borderRadius: 4 }}>
+                  <a
+                    key={child.label}
+                    href={child.href || "#"}
+                    style={{
+                      display: "block",
+                      padding: "6px 12px",
+                      fontSize: 13,
+                      color: "#6B7280",
+                      textDecoration: "none",
+                      borderRadius: 4,
+                    }}
+                  >
                     {child.label}
                   </a>
                 ))}
@@ -86,9 +108,24 @@ export function Sidebar({
           </div>
         ))}
       </nav>
-      {footer && <div style={{ padding: 16, borderTop: "1px solid #E5E7EB" }}>{footer}</div>}
+      {footer && (
+        <div style={{ padding: 16, borderTop: "1px solid #E5E7EB" }}>
+          {footer}
+        </div>
+      )}
       {onToggle && (
-        <button onClick={onToggle} style={{ padding: 12, border: "none", background: "none", cursor: "pointer", borderTop: "1px solid #E5E7EB", color: "#9CA3AF", fontSize: 12 }}>
+        <button
+          onClick={onToggle}
+          style={{
+            padding: 12,
+            border: "none",
+            background: "none",
+            cursor: "pointer",
+            borderTop: "1px solid #E5E7EB",
+            color: "#9CA3AF",
+            fontSize: 12,
+          }}
+        >
           {collapsed ? "\u00BB" : "\u00AB"} {!collapsed && "Collapse"}
         </button>
       )}

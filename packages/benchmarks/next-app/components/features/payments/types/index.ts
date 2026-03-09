@@ -12,7 +12,12 @@ export interface Payment {
   refundAmount?: number;
 }
 
-export type PaymentStatus = "paid" | "pending" | "failed" | "refunded" | "partially_refunded";
+export type PaymentStatus =
+  | "paid"
+  | "pending"
+  | "failed"
+  | "refunded"
+  | "partially_refunded";
 
 export interface PaymentMethod {
   id: string;

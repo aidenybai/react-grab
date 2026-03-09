@@ -4,7 +4,11 @@ interface ServerStatCardProps {
   "data-testid"?: string;
 }
 
-export const ServerStatCard = ({ label, value, "data-testid": testId }: ServerStatCardProps) => {
+export const ServerStatCard = ({
+  label,
+  value,
+  "data-testid": testId,
+}: ServerStatCardProps) => {
   return (
     <div
       data-testid={testId}
@@ -15,8 +19,12 @@ export const ServerStatCard = ({ label, value, "data-testid": testId }: ServerSt
         background: "var(--background)",
       }}
     >
-      <p style={{ fontSize: 12, color: "var(--muted-foreground)", margin: 0 }}>{label}</p>
-      <p style={{ fontSize: 24, fontWeight: 700, margin: "4px 0 0" }}>{value}</p>
+      <p style={{ fontSize: 12, color: "var(--muted-foreground)", margin: 0 }}>
+        {label}
+      </p>
+      <p style={{ fontSize: 24, fontWeight: 700, margin: "4px 0 0" }}>
+        {value}
+      </p>
     </div>
   );
 };

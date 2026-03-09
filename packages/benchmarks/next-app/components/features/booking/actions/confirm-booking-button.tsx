@@ -63,7 +63,13 @@ export const ConfirmBookingButton = ({
           }}
         />
       )}
-      {confirmed ? "Booking Confirmed" : loading ? "Confirming..." : requiresPayment ? "Confirm & Pay" : "Confirm Booking"}
+      {confirmed
+        ? "Booking Confirmed"
+        : loading
+          ? "Confirming..."
+          : requiresPayment
+            ? "Confirm & Pay"
+            : "Confirm Booking"}
     </button>
   );
 };

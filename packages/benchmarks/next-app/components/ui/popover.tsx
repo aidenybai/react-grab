@@ -24,7 +24,10 @@ export function Popover({ children }: PopoverProps) {
 
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (triggerRef.current && !triggerRef.current.contains(event.target as Node)) {
+      if (
+        triggerRef.current &&
+        !triggerRef.current.contains(event.target as Node)
+      ) {
         setOpen(false);
       }
     };
@@ -41,7 +44,13 @@ export function Popover({ children }: PopoverProps) {
   );
 }
 
-export function PopoverTrigger({ children, className }: { children: React.ReactNode; className?: string }) {
+export function PopoverTrigger({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   const { setOpen, open, triggerRef } = React.useContext(PopoverContext);
   return (
     <button
@@ -69,7 +78,12 @@ export function PopoverContent({
   const { open } = React.useContext(PopoverContext);
   if (!open) return null;
 
-  const alignClass = align === "start" ? "left-0" : align === "end" ? "right-0" : "left-1/2 -translate-x-1/2";
+  const alignClass =
+    align === "start"
+      ? "left-0"
+      : align === "end"
+        ? "right-0"
+        : "left-1/2 -translate-x-1/2";
 
   return (
     <div

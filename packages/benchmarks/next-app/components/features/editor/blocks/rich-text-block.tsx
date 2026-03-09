@@ -11,7 +11,12 @@ interface RichTextBlockProps {
 const toolbarButtons = [
   { label: "B", style: "fontWeight", value: "bold", title: "Bold" },
   { label: "I", style: "fontStyle", value: "italic", title: "Italic" },
-  { label: "U", style: "textDecoration", value: "underline", title: "Underline" },
+  {
+    label: "U",
+    style: "textDecoration",
+    value: "underline",
+    title: "Underline",
+  },
 ] as const;
 
 export const RichTextBlock = ({
@@ -69,7 +74,9 @@ export const RichTextBlock = ({
                 justifyContent: "center",
                 borderRadius: "4px",
                 border: "none",
-                background: activeStyles.has(btn.style) ? "#e5e7eb" : "transparent",
+                background: activeStyles.has(btn.style)
+                  ? "#e5e7eb"
+                  : "transparent",
                 cursor: "pointer",
                 fontSize: "13px",
                 fontWeight: btn.label === "B" ? 700 : 400,
@@ -119,7 +126,9 @@ export const RichTextBlock = ({
           fontFamily: "inherit",
           fontWeight: activeStyles.has("fontWeight") ? 700 : 400,
           fontStyle: activeStyles.has("fontStyle") ? "italic" : "normal",
-          textDecoration: activeStyles.has("textDecoration") ? "underline" : "none",
+          textDecoration: activeStyles.has("textDecoration")
+            ? "underline"
+            : "none",
           background: readOnly ? "#f9fafb" : "#fff",
         }}
       />

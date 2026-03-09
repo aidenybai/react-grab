@@ -77,13 +77,21 @@ import { StatusIndicator } from "@/lib/render-utils";
 import { FormattedCurrency } from "@/lib/data-formatters";
 import { IntegrationCard } from "@/components/generated/integration-registry";
 
-const RevenueWidget = createWidget({ title: "Revenue", icon: "$", testId: "factory-revenue-widget" });
-const UsersWidget = createWidget({ title: "Active Users", icon: "U", testId: "factory-users-widget" });
+const RevenueWidget = createWidget({
+  title: "Revenue",
+  icon: "$",
+  testId: "factory-revenue-widget",
+});
+const UsersWidget = createWidget({
+  title: "Active Users",
+  icon: "U",
+  testId: "factory-users-widget",
+});
 
 const TrackedCard = withTracking(StyledCard, "tracked-card");
 const MemoForwardRefButton = withTooltip(
   StyledButton,
-  "Memo + ForwardRef Button"
+  "Memo + ForwardRef Button",
 );
 
 export function ClientBenchmarks() {
@@ -95,8 +103,9 @@ export function ClientBenchmarks() {
         React Grab Benchmark
       </h1>
       <p style={{ color: "var(--muted-foreground)", marginBottom: 32 }}>
-        Deeply nested Next.js app with styled-components, Tailwind, CSS Modules, shadcn/ui,
-        inline styles, motion, Radix UI, recursive components, HOCs, portals, fragments, and suspense.
+        Deeply nested Next.js app with styled-components, Tailwind, CSS Modules,
+        shadcn/ui, inline styles, motion, Radix UI, recursive components, HOCs,
+        portals, fragments, and suspense.
       </p>
 
       <StyledSection title="Easy: Baselines">
@@ -149,7 +158,9 @@ export function ClientBenchmarks() {
           </div>
 
           <div>
-            <TwBadge data-testid="plain-tw-badge" color="blue">Tailwind</TwBadge>
+            <TwBadge data-testid="plain-tw-badge" color="blue">
+              Tailwind
+            </TwBadge>
           </div>
 
           <ModuleCard title="Module Card" data-testid="plain-module-card">
@@ -166,11 +177,7 @@ export function ClientBenchmarks() {
 
       <StyledSection title="Medium: Moderate Nesting">
         <StyledGrid columns={2}>
-
-          <TrackedCard
-            title="Tracked Card"
-            data-testid="tracked-styled-card"
-          >
+          <TrackedCard title="Tracked Card" data-testid="tracked-styled-card">
             Card wrapped in withTracking HOC
           </TrackedCard>
 
@@ -244,10 +251,7 @@ export function ClientBenchmarks() {
           </RadixPopover>
 
           <FragmentTree>
-            <StyledAvatar
-              initials="AB"
-              data-testid="fragment-tree-avatar"
-            />
+            <StyledAvatar initials="AB" data-testid="fragment-tree-avatar" />
           </FragmentTree>
 
           <SuspenseLazyLoader data-testid="suspense-lazy-content" />
@@ -305,17 +309,39 @@ export function ClientBenchmarks() {
           <ModuleAccordion
             data-testid="module-accordion"
             items={[
-              { id: "ma1", title: "What is CSS Modules?", content: "CSS Modules scope styles locally by default." },
-              { id: "ma2", title: "How does it work?", content: "Class names are transformed at build time." },
-              { id: "ma3", title: "Why use it?", content: "Prevents style collisions in large apps." },
+              {
+                id: "ma1",
+                title: "What is CSS Modules?",
+                content: "CSS Modules scope styles locally by default.",
+              },
+              {
+                id: "ma2",
+                title: "How does it work?",
+                content: "Class names are transformed at build time.",
+              },
+              {
+                id: "ma3",
+                title: "Why use it?",
+                content: "Prevents style collisions in large apps.",
+              },
             ]}
           />
 
           <InlineList
             data-testid="inline-list"
             items={[
-              { id: "1", label: "Feature A", description: "Core functionality", tag: "New" },
-              { id: "2", label: "Feature B", description: "Enhancement", tag: "Beta" },
+              {
+                id: "1",
+                label: "Feature A",
+                description: "Core functionality",
+                tag: "New",
+              },
+              {
+                id: "2",
+                label: "Feature B",
+                description: "Enhancement",
+                tag: "Beta",
+              },
               { id: "3", label: "Feature C", description: "Experimental" },
             ]}
           />
@@ -327,7 +353,6 @@ export function ClientBenchmarks() {
 
       <StyledSection title="Hard: Deep Nesting">
         <StyledGrid columns={2}>
-
           <div>
             <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
               Recursive Tree (depth=8, 256 leaves)
@@ -429,9 +454,21 @@ export function ClientBenchmarks() {
             <AnimatedTabs
               data-testid="animated-tabs"
               tabs={[
-                { id: "at1", label: "Overview", content: <div>Overview content</div> },
-                { id: "at2", label: "Details", content: <div>Details content</div> },
-                { id: "at3", label: "Settings", content: <div>Settings content</div> },
+                {
+                  id: "at1",
+                  label: "Overview",
+                  content: <div>Overview content</div>,
+                },
+                {
+                  id: "at2",
+                  label: "Details",
+                  content: <div>Details content</div>,
+                },
+                {
+                  id: "at3",
+                  label: "Settings",
+                  content: <div>Settings content</div>,
+                },
               ]}
             />
           </div>
@@ -552,10 +589,7 @@ export function ClientBenchmarks() {
             onConfirm={() => Promise.resolve()}
           />
 
-          <DisplayNameField
-            initialValue="Aiden Bai"
-            onChange={() => {}}
-          />
+          <DisplayNameField initialValue="Aiden Bai" onChange={() => {}} />
 
           <MetricChart
             data={[
@@ -568,10 +602,7 @@ export function ClientBenchmarks() {
             title="Monthly Revenue"
           />
 
-          <RichTextBlock
-            initialContent="Hello world"
-            readOnly={true}
-          />
+          <RichTextBlock initialContent="Hello world" readOnly={true} />
 
           <SystemBanner
             message="System maintenance scheduled for March 20th, 2026."

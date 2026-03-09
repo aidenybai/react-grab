@@ -26,18 +26,28 @@ export function TeamSettingsForm({
       e.preventDefault();
       onSave({ name, slug, description });
     },
-    [name, slug, description, onSave]
+    [name, slug, description, onSave],
   );
 
   return (
     <form className="team-settings-form" onSubmit={handleSubmit}>
       <div className="team-settings-form__field">
         <label htmlFor="team-name">Team Name</label>
-        <input id="team-name" type="text" value={name} onChange={(e) => setName(e.target.value)} />
+        <input
+          id="team-name"
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
       </div>
       <div className="team-settings-form__field">
         <label htmlFor="team-slug">URL Slug</label>
-        <input id="team-slug" type="text" value={slug} onChange={(e) => setSlug(e.target.value)} />
+        <input
+          id="team-slug"
+          type="text"
+          value={slug}
+          onChange={(e) => setSlug(e.target.value)}
+        />
       </div>
       <div className="team-settings-form__field">
         <label htmlFor="team-desc">Description</label>

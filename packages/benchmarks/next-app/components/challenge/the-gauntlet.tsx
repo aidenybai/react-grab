@@ -101,10 +101,10 @@ function GauntletCore({ "data-testid": testId }: { "data-testid"?: string }) {
 const Wrapped = withTracking(
   withErrorBoundary(
     withPermissions(
-      withTooltip(GauntletCore, "The ultimate gauntlet challenge")
-    )
+      withTooltip(GauntletCore, "The ultimate gauntlet challenge"),
+    ),
   ),
-  "gauntlet"
+  "gauntlet",
 );
 
 export function TheGauntlet() {

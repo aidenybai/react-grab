@@ -15,7 +15,10 @@ interface UserAvatarProps {
   onClick?: () => void;
 }
 
-const sizeMap: Record<AvatarSize, { container: string; text: string; status: string }> = {
+const sizeMap: Record<
+  AvatarSize,
+  { container: string; text: string; status: string }
+> = {
   xs: { container: "h-6 w-6", text: "text-[10px]", status: "h-1.5 w-1.5" },
   sm: { container: "h-8 w-8", text: "text-xs", status: "h-2 w-2" },
   md: { container: "h-10 w-10", text: "text-sm", status: "h-2.5 w-2.5" },
@@ -44,8 +47,14 @@ function hashColor(name: string): string {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
   const colors = [
-    "bg-blue-500", "bg-emerald-500", "bg-amber-500", "bg-rose-500",
-    "bg-purple-500", "bg-cyan-500", "bg-indigo-500", "bg-pink-500",
+    "bg-blue-500",
+    "bg-emerald-500",
+    "bg-amber-500",
+    "bg-rose-500",
+    "bg-purple-500",
+    "bg-cyan-500",
+    "bg-indigo-500",
+    "bg-pink-500",
   ];
   return colors[Math.abs(hash) % colors.length];
 }

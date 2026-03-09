@@ -23,17 +23,26 @@ export function useEventTypeForm(initialValues?: Partial<EventTypeFormState>) {
     requiresConfirmation: initialValues?.requiresConfirmation ?? false,
   });
 
-  const [errors, setErrors] = useState<Partial<Record<keyof EventTypeFormState, string>>>({});
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof EventTypeFormState, string>>
+  >({});
 
-  const setField = useCallback(<K extends keyof EventTypeFormState>(field: K, value: EventTypeFormState[K]) => {
-    setValues((prev) => ({ ...prev, [field]: value }));
-    setErrors((prev) => ({ ...prev, [field]: undefined }));
-  }, []);
+  const setField = useCallback(
+    <K extends keyof EventTypeFormState>(
+      field: K,
+      value: EventTypeFormState[K],
+    ) => {
+      setValues((prev) => ({ ...prev, [field]: value }));
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+    },
+    [],
+  );
 
   const validate = useCallback((): boolean => {
     const newErrors: typeof errors = {};
     if (!values.title.trim()) newErrors.title = "Title is required";
-    if (values.duration < 5) newErrors.duration = "Duration must be at least 5 minutes";
+    if (values.duration < 5)
+      newErrors.duration = "Duration must be at least 5 minutes";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }, [values]);

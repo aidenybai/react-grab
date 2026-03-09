@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 
 export function useLocalStorage<T>(
   key: string,
-  initialValue: T
+  initialValue: T,
 ): [T, (value: T | ((prev: T) => T)) => void, () => void] {
   const [storedValue, setStoredValue] = useState<T>(() => {
     if (typeof window === "undefined") return initialValue;
@@ -22,20 +22,18 @@ export function useLocalStorage<T>(
         const nextValue = value instanceof Function ? value(prev) : value;
         try {
           window.localStorage.setItem(key, JSON.stringify(nextValue));
-        } catch {
-        }
+        } catch {}
         return nextValue;
       });
     },
-    [key]
+    [key],
   );
 
   const removeValue = useCallback(() => {
     setStoredValue(initialValue);
     try {
       window.localStorage.removeItem(key);
-    } catch {
-    }
+    } catch {}
   }, [key, initialValue]);
 
   useEffect(() => {
@@ -43,8 +41,7 @@ export function useLocalStorage<T>(
       if (e.key === key && e.newValue !== null) {
         try {
           setStoredValue(JSON.parse(e.newValue) as T);
-        } catch {
-        }
+        } catch {}
       }
     };
     window.addEventListener("storage", handleStorageChange);

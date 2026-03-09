@@ -13,11 +13,19 @@ interface SystemBannerProps {
   };
 }
 
-const variantStyles: Record<BannerVariant, { bg: string; border: string; text: string; icon: string }> = {
+const variantStyles: Record<
+  BannerVariant,
+  { bg: string; border: string; text: string; icon: string }
+> = {
   info: { bg: "#eff6ff", border: "#bfdbfe", text: "#1e40af", icon: "i" },
   warning: { bg: "#fffbeb", border: "#fde68a", text: "#92400e", icon: "!" },
   error: { bg: "#fef2f2", border: "#fecaca", text: "#991b1b", icon: "x" },
-  success: { bg: "#f0fdf4", border: "#bbf7d0", text: "#166534", icon: "\u2713" },
+  success: {
+    bg: "#f0fdf4",
+    border: "#bbf7d0",
+    text: "#166534",
+    icon: "\u2713",
+  },
 };
 
 export const SystemBanner = ({

@@ -10,7 +10,14 @@ interface ContainerProps {
   as?: "div" | "main" | "section" | "article";
 }
 
-const maxWidthMap = { sm: 640, md: 768, lg: 1024, xl: 1280, "2xl": 1536, full: "100%" };
+const maxWidthMap = {
+  sm: 640,
+  md: 768,
+  lg: 1024,
+  xl: 1280,
+  "2xl": 1536,
+  full: "100%",
+};
 
 export function Container({
   children,

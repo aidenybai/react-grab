@@ -1,4 +1,5 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.example.com/v1";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "https://api.example.com/v1";
 
 interface ApiRequestOptions {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -30,7 +31,10 @@ function getAuthToken(): string | null {
   return localStorage.getItem("auth_token");
 }
 
-async function apiRequest<T>(endpoint: string, options: ApiRequestOptions = {}): Promise<ApiResponse<T>> {
+async function apiRequest<T>(
+  endpoint: string,
+  options: ApiRequestOptions = {},
+): Promise<ApiResponse<T>> {
   const { method = "GET", body, headers = {}, signal } = options;
   const token = getAuthToken();
 
@@ -55,7 +59,7 @@ async function apiRequest<T>(endpoint: string, options: ApiRequestOptions = {}):
     throw new ApiError(
       `API request failed: ${response.statusText}`,
       response.status,
-      errorBody
+      errorBody,
     );
   }
 

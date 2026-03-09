@@ -15,13 +15,33 @@ interface BaseButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> 
 const variantStyles: Record<BaseButtonVariant, React.CSSProperties> = {
   filled: { backgroundColor: "#6750A4", color: "#FFFFFF", border: "none" },
   tonal: { backgroundColor: "#E8DEF8", color: "#1D192B", border: "none" },
-  outlined: { backgroundColor: "transparent", color: "#6750A4", border: "1px solid #79747E" },
+  outlined: {
+    backgroundColor: "transparent",
+    color: "#6750A4",
+    border: "1px solid #79747E",
+  },
   text: { backgroundColor: "transparent", color: "#6750A4", border: "none" },
-  elevated: { backgroundColor: "#F7F2FA", color: "#6750A4", border: "none", boxShadow: "0 1px 3px 1px rgba(0,0,0,0.15)" },
+  elevated: {
+    backgroundColor: "#F7F2FA",
+    color: "#6750A4",
+    border: "none",
+    boxShadow: "0 1px 3px 1px rgba(0,0,0,0.15)",
+  },
 };
 
 export const BaseButton = React.forwardRef<HTMLButtonElement, BaseButtonProps>(
-  ({ variant = "filled", compact = false, startIcon, endIcon, children, style, ...props }, ref) => {
+  (
+    {
+      variant = "filled",
+      compact = false,
+      startIcon,
+      endIcon,
+      children,
+      style,
+      ...props
+    },
+    ref,
+  ) => {
     return (
       <button
         ref={ref}

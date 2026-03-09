@@ -50,5 +50,13 @@ export const useNotificationsList = () => {
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  return { notifications, add, markRead, markAllRead, remove, clearAll, unreadCount };
+  return {
+    notifications,
+    add,
+    markRead,
+    markAllRead,
+    remove,
+    clearAll,
+    unreadCount,
+  };
 };

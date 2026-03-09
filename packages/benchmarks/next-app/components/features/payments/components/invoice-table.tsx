@@ -16,7 +16,11 @@ interface InvoiceTableProps {
   onDownload?: (id: string) => void;
 }
 
-export function InvoiceTable({ invoices, onView, onDownload }: InvoiceTableProps) {
+export function InvoiceTable({
+  invoices,
+  onView,
+  onDownload,
+}: InvoiceTableProps) {
   return (
     <div className="invoice-table">
       <table>
@@ -32,17 +36,36 @@ export function InvoiceTable({ invoices, onView, onDownload }: InvoiceTableProps
         </thead>
         <tbody>
           {invoices.map((inv) => {
-            const formatted = new Intl.NumberFormat("en-US", { style: "currency", currency: inv.currency }).format(inv.amount / 100);
+            const formatted = new Intl.NumberFormat("en-US", {
+              style: "currency",
+              currency: inv.currency,
+            }).format(inv.amount / 100);
             return (
               <tr key={inv.id}>
                 <td>{inv.number}</td>
                 <td>{inv.date}</td>
                 <td>{inv.dueDate}</td>
                 <td>{formatted}</td>
-                <td><span className={`invoice-table__status invoice-table__status--${inv.status}`}>{inv.status}</span></td>
                 <td>
-                  <button className="btn btn-sm" onClick={() => onView?.(inv.id)}>View</button>
-                  <button className="btn btn-sm" onClick={() => onDownload?.(inv.id)}>Download</button>
+                  <span
+                    className={`invoice-table__status invoice-table__status--${inv.status}`}
+                  >
+                    {inv.status}
+                  </span>
+                </td>
+                <td>
+                  <button
+                    className="btn btn-sm"
+                    onClick={() => onView?.(inv.id)}
+                  >
+                    View
+                  </button>
+                  <button
+                    className="btn btn-sm"
+                    onClick={() => onDownload?.(inv.id)}
+                  >
+                    Download
+                  </button>
                 </td>
               </tr>
             );

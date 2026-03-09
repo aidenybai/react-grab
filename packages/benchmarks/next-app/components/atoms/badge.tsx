@@ -11,7 +11,10 @@ interface BadgeProps {
   children: React.ReactNode;
 }
 
-const colorPalette: Record<BadgeColor, { bg: string; text: string; dot: string }> = {
+const colorPalette: Record<
+  BadgeColor,
+  { bg: string; text: string; dot: string }
+> = {
   gray: { bg: "#F3F4F6", text: "#4B5563", dot: "#9CA3AF" },
   blue: { bg: "#DBEAFE", text: "#1D4ED8", dot: "#3B82F6" },
   green: { bg: "#D1FAE5", text: "#065F46", dot: "#10B981" },

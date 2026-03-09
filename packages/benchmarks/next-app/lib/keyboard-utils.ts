@@ -1,4 +1,3 @@
-
 export interface KeyCombo {
   key: string;
   ctrl?: boolean;
@@ -8,7 +7,10 @@ export interface KeyCombo {
 }
 
 export function parseKeyCombo(shortcut: string): KeyCombo {
-  const parts = shortcut.toLowerCase().split("+").map((s) => s.trim());
+  const parts = shortcut
+    .toLowerCase()
+    .split("+")
+    .map((s) => s.trim());
   return {
     key: parts[parts.length - 1],
     ctrl: parts.includes("ctrl"),
@@ -18,7 +20,10 @@ export function parseKeyCombo(shortcut: string): KeyCombo {
   };
 }
 
-export function matchesKeyCombo(event: KeyboardEvent, combo: KeyCombo): boolean {
+export function matchesKeyCombo(
+  event: KeyboardEvent,
+  combo: KeyCombo,
+): boolean {
   const key = event.key.toLowerCase();
   return (
     key === combo.key &&
@@ -30,7 +35,8 @@ export function matchesKeyCombo(event: KeyboardEvent, combo: KeyCombo): boolean 
 }
 
 export function formatKeyCombo(combo: KeyCombo): string {
-  const isMac = typeof navigator !== "undefined" && /Mac/.test(navigator.userAgent);
+  const isMac =
+    typeof navigator !== "undefined" && /Mac/.test(navigator.userAgent);
   const parts: string[] = [];
 
   if (combo.ctrl) parts.push(isMac ? "\u2303" : "Ctrl");
@@ -57,5 +63,10 @@ export const COMMON_SHORTCUTS = {
 export function isInputElement(target: EventTarget | null): boolean {
   if (!target || !(target instanceof HTMLElement)) return false;
   const tagName = target.tagName.toLowerCase();
-  return tagName === "input" || tagName === "textarea" || tagName === "select" || target.isContentEditable;
+  return (
+    tagName === "input" ||
+    tagName === "textarea" ||
+    tagName === "select" ||
+    target.isContentEditable
+  );
 }

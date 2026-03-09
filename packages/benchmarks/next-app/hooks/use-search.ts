@@ -31,7 +31,7 @@ export function useSearch<T extends Record<string, unknown>>({
           return String(value).includes(lowerQuery);
         }
         return false;
-      })
+      }),
     );
   }, [items, searchKeys, debouncedQuery]);
 

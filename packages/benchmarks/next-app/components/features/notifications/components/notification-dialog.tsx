@@ -41,31 +41,61 @@ export const NotificationDialog = ({
           alignItems: "center",
         }}
       >
-        <h3 style={{ fontSize: "14px", fontWeight: 600, margin: 0 }}>Notifications</h3>
+        <h3 style={{ fontSize: "14px", fontWeight: 600, margin: 0 }}>
+          Notifications
+        </h3>
         <div style={{ display: "flex", gap: "8px" }}>
           {onClearAll && (
             <button
               onClick={onClearAll}
-              style={{ fontSize: "12px", color: "#6b7280", border: "none", background: "none", cursor: "pointer" }}
+              style={{
+                fontSize: "12px",
+                color: "#6b7280",
+                border: "none",
+                background: "none",
+                cursor: "pointer",
+              }}
             >
               Clear all
             </button>
           )}
           <button
             onClick={onClose}
-            style={{ fontSize: "16px", border: "none", background: "none", cursor: "pointer", color: "#9ca3af" }}
+            style={{
+              fontSize: "16px",
+              border: "none",
+              background: "none",
+              cursor: "pointer",
+              color: "#9ca3af",
+            }}
           >
             x
           </button>
         </div>
       </div>
       {notifications.length === 0 ? (
-        <p style={{ padding: "24px", textAlign: "center", color: "#9ca3af", fontSize: "13px" }}>No notifications</p>
+        <p
+          style={{
+            padding: "24px",
+            textAlign: "center",
+            color: "#9ca3af",
+            fontSize: "13px",
+          }}
+        >
+          No notifications
+        </p>
       ) : (
         notifications.map((n) => (
-          <div key={n.id} style={{ padding: "12px 16px", borderBottom: "1px solid #f3f4f6" }}>
-            <p style={{ fontSize: "13px", fontWeight: 500, margin: "0 0 2px" }}>{n.title}</p>
-            <p style={{ fontSize: "12px", color: "#6b7280", margin: 0 }}>{n.message}</p>
+          <div
+            key={n.id}
+            style={{ padding: "12px 16px", borderBottom: "1px solid #f3f4f6" }}
+          >
+            <p style={{ fontSize: "13px", fontWeight: 500, margin: "0 0 2px" }}>
+              {n.title}
+            </p>
+            <p style={{ fontSize: "12px", color: "#6b7280", margin: 0 }}>
+              {n.message}
+            </p>
           </div>
         ))
       )}

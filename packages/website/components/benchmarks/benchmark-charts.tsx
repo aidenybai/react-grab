@@ -63,7 +63,9 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
         <p className="mb-2 text-sm font-medium text-foreground/80">{label}</p>
         {payload.map((payloadEntry) => {
           const isControl = payloadEntry.name === "Control";
-          const rawValue = isControl ? tooltipData.ControlRaw : tooltipData.TreatmentRaw;
+          const rawValue = isControl
+            ? tooltipData.ControlRaw
+            : tooltipData.TreatmentRaw;
           const unit = tooltipData.unit;
           const formattedValue =
             typeof rawValue === "number"
@@ -71,12 +73,17 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
               : rawValue;
 
           return (
-            <div key={payloadEntry.name} className="flex items-center gap-2 text-xs">
+            <div
+              key={payloadEntry.name}
+              className="flex items-center gap-2 text-xs"
+            >
               <div
                 className="h-2 w-2 rounded-full"
                 style={{ backgroundColor: payloadEntry.fill }}
               />
-              <span className="text-muted-foreground">{payloadEntry.name}:</span>
+              <span className="text-muted-foreground">
+                {payloadEntry.name}:
+              </span>
               <span className="font-mono text-foreground/80">
                 {formattedValue}
               </span>
@@ -141,7 +148,9 @@ AnimatedBar.displayName = "AnimatedBar";
 
 export const BenchmarkChartsTweet = ({ results }: BenchmarkChartsProps) => {
   const controlResults = results.filter((result) => result.type === "control");
-  const treatmentResults = results.filter((result) => result.type === "treatment");
+  const treatmentResults = results.filter(
+    (result) => result.type === "treatment",
+  );
 
   if (controlResults.length === 0 || treatmentResults.length === 0) {
     return null;
@@ -380,7 +389,9 @@ LiveCounter.displayName = "LiveCounter";
 
 export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
   const controlResults = results.filter((result) => result.type === "control");
-  const treatmentResults = results.filter((result) => result.type === "treatment");
+  const treatmentResults = results.filter(
+    (result) => result.type === "treatment",
+  );
 
   if (controlResults.length === 0 || treatmentResults.length === 0) {
     return null;
@@ -500,7 +511,10 @@ export const BenchmarkCharts = ({ results }: BenchmarkChartsProps) => {
                 content={({ payload }) => (
                   <div className="flex items-center justify-center gap-4">
                     {payload?.map((legendEntry) => (
-                      <div key={String(legendEntry.value)} className="flex items-center gap-2">
+                      <div
+                        key={String(legendEntry.value)}
+                        className="flex items-center gap-2"
+                      >
                         <div
                           className="h-2 w-2 rounded-full"
                           style={{ backgroundColor: legendEntry.color }}

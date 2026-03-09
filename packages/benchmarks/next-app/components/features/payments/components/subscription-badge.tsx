@@ -6,7 +6,10 @@ interface SubscriptionBadgeProps {
   className?: string;
 }
 
-const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
+const statusConfig: Record<
+  string,
+  { label: string; color: string; bg: string }
+> = {
   active: { label: "Active", color: "#065f46", bg: "#d1fae5" },
   past_due: { label: "Past Due", color: "#991b1b", bg: "#fee2e2" },
   cancelled: { label: "Cancelled", color: "#6b7280", bg: "#f3f4f6" },

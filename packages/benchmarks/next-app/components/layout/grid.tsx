@@ -11,7 +11,14 @@ interface GridProps {
   className?: string;
 }
 
-export function Grid({ children, columns = 3, gap = 16, rowGap, colGap, className }: GridProps) {
+export function Grid({
+  children,
+  columns = 3,
+  gap = 16,
+  rowGap,
+  colGap,
+  className,
+}: GridProps) {
   const cols = typeof columns === "number" ? columns : columns.md || 3;
 
   return (

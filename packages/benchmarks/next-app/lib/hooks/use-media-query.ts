@@ -47,7 +47,7 @@ export function useIsPortrait(): boolean {
 
 export function useMediaQueryCallback(
   query: string,
-  callback: (matches: boolean) => void
+  callback: (matches: boolean) => void,
 ): boolean {
   const matches = useMediaQuery(query);
 

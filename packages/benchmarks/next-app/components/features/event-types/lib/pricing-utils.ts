@@ -17,5 +17,14 @@ export function isValidPrice(amount: number): boolean {
   return amount >= 0 && Number.isFinite(amount);
 }
 
-export const SUPPORTED_CURRENCIES = ["USD", "EUR", "GBP", "CAD", "AUD", "JPY", "INR", "BRL"] as const;
+export const SUPPORTED_CURRENCIES = [
+  "USD",
+  "EUR",
+  "GBP",
+  "CAD",
+  "AUD",
+  "JPY",
+  "INR",
+  "BRL",
+] as const;
 export type SupportedCurrency = (typeof SUPPORTED_CURRENCIES)[number];

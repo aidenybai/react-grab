@@ -3,7 +3,7 @@ import React, { ComponentType } from "react";
 
 export function withPermissions<P extends object>(
   WrappedComponent: ComponentType<P>,
-  _requiredPermission?: string
+  _requiredPermission?: string,
 ) {
   const WithPermissions = (props: P) => {
     return <WrappedComponent {...props} />;

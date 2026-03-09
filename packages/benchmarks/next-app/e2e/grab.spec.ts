@@ -233,11 +233,7 @@ test.describe("Nightmare — extreme nesting, portals, dynamic trees", () => {
 });
 
 test.describe("Clipboard format validation", () => {
-  const sampleEntries = [
-    TEST_MANIFEST[0],
-    TEST_MANIFEST[6],
-    TEST_MANIFEST[12],
-  ];
+  const sampleEntries = [TEST_MANIFEST[0], TEST_MANIFEST[6], TEST_MANIFEST[12]];
 
   for (const entry of sampleEntries) {
     test(`[${entry.id}] clipboard format for ${entry.testId}`, async ({
@@ -256,11 +252,7 @@ test.describe("Clipboard format validation", () => {
 });
 
 test.describe("UI-driven grab (hover + click)", () => {
-  const uiTestEntries = [
-    TEST_MANIFEST[0],
-    TEST_MANIFEST[6],
-    TEST_MANIFEST[10],
-  ];
+  const uiTestEntries = [TEST_MANIFEST[0], TEST_MANIFEST[6], TEST_MANIFEST[10]];
 
   for (const entry of uiTestEntries) {
     test(`[${entry.id}] hover+click grab for ${entry.testId}`, async ({
@@ -306,9 +298,7 @@ test.describe("Scoring summary", () => {
           await NEEDS_INTERACTION[entry.testId](grab.page);
         }
 
-        const el = grab.page
-          .locator(`[data-testid="${entry.testId}"]`)
-          .first();
+        const el = grab.page.locator(`[data-testid="${entry.testId}"]`).first();
         const isVisible = await el.isVisible().catch(() => false);
 
         if (!isVisible) {
@@ -349,9 +339,7 @@ test.describe("Scoring summary", () => {
           ? normalizeFilePath(result.source!.filePath)
           : null;
         const correctFile = actualPath
-          ? actualPath.includes(
-              entry.filePath.split("/").slice(1).join("/"),
-            )
+          ? actualPath.includes(entry.filePath.split("/").slice(1).join("/"))
           : false;
         const hasDisplayName =
           result.displayName !== null && result.displayName.length > 0;
@@ -410,11 +398,7 @@ test.describe("Scoring summary", () => {
       console.log(`  Clipboard:      ${withClip}/${tier.length}`);
 
       for (const r of tier) {
-        const status = r.correctFile
-          ? "✓"
-          : r.sourceResolved
-            ? "~"
-            : "✗";
+        const status = r.correctFile ? "✓" : r.sourceResolved ? "~" : "✗";
         const line = `    ${status} [${r.id}] ${r.testId}`;
         if (r.error) {
           console.log(`${line}: ERROR ${r.error}`);
@@ -425,9 +409,7 @@ test.describe("Scoring summary", () => {
             `${line}: WRONG FILE\n        expected: ${r.expected}\n        actual:   ${r.actualSource}`,
           );
         } else {
-          console.log(
-            `${line}: ${r.actualName ?? "?"} → ${r.actualSource}`,
-          );
+          console.log(`${line}: ${r.actualName ?? "?"} → ${r.actualSource}`);
         }
       }
       console.log();

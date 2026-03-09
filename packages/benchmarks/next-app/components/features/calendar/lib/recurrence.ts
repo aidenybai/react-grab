@@ -8,7 +8,10 @@ export interface RecurrenceRule {
   byDay?: number[];
 }
 
-export function generateOccurrences(startDate: Date, rule: RecurrenceRule): Date[] {
+export function generateOccurrences(
+  startDate: Date,
+  rule: RecurrenceRule,
+): Date[] {
   const occurrences: Date[] = [];
   let current = new Date(startDate);
   const maxOccurrences = rule.count ?? 365;

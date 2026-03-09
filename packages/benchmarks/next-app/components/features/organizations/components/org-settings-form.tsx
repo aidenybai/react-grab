@@ -23,10 +23,13 @@ export function OrgSettingsForm({
   const [slug, setSlug] = useState(initialSlug);
   const [description, setDescription] = useState(initialDescription);
 
-  const handleSubmit = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    onSave({ name, slug, description });
-  }, [name, slug, description, onSave]);
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      onSave({ name, slug, description });
+    },
+    [name, slug, description, onSave],
+  );
 
   return (
     <form className="org-settings-form" onSubmit={handleSubmit}>
@@ -39,15 +42,29 @@ export function OrgSettingsForm({
       </div>
       <div className="org-settings-form__field">
         <label>Organization Name</label>
-        <input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+        />
       </div>
       <div className="org-settings-form__field">
         <label>URL Slug</label>
-        <input type="text" value={slug} onChange={(e) => setSlug(e.target.value)} required />
+        <input
+          type="text"
+          value={slug}
+          onChange={(e) => setSlug(e.target.value)}
+          required
+        />
       </div>
       <div className="org-settings-form__field">
         <label>Description</label>
-        <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={3}
+        />
       </div>
       <button type="submit" className="btn btn-primary" disabled={isLoading}>
         {isLoading ? "Saving..." : "Save Changes"}

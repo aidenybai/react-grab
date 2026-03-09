@@ -1,7 +1,6 @@
-
 export function debounce<T extends (...args: unknown[]) => unknown>(
   fn: T,
-  delay: number
+  delay: number,
 ): T & { cancel: () => void } {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
@@ -25,7 +24,7 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
 
 export function throttle<T extends (...args: unknown[]) => unknown>(
   fn: T,
-  limit: number
+  limit: number,
 ): T & { cancel: () => void } {
   let inThrottle = false;
   let lastArgs: unknown[] | null = null;

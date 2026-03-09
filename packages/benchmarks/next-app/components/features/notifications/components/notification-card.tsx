@@ -43,8 +43,25 @@ export const NotificationCard = ({
       />
     )}
     <div style={{ flex: 1, minWidth: 0 }}>
-      <p style={{ fontSize: "14px", fontWeight: read ? 400 : 600, margin: "0 0 2px 0" }}>{title}</p>
-      <p style={{ fontSize: "13px", color: "#6b7280", margin: "0 0 4px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+      <p
+        style={{
+          fontSize: "14px",
+          fontWeight: read ? 400 : 600,
+          margin: "0 0 2px 0",
+        }}
+      >
+        {title}
+      </p>
+      <p
+        style={{
+          fontSize: "13px",
+          color: "#6b7280",
+          margin: "0 0 4px 0",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
         {message}
       </p>
       <span style={{ fontSize: "11px", color: "#9ca3af" }}>{timestamp}</span>

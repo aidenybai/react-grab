@@ -33,11 +33,15 @@ export function TeamBillingCard({
       <div className="team-billing-card__details">
         <div className="team-billing-card__row">
           <span>Seats</span>
-          <span>{usedSeats} / {seats} ({usagePercent}%)</span>
+          <span>
+            {usedSeats} / {seats} ({usagePercent}%)
+          </span>
         </div>
         <div className="team-billing-card__row">
           <span>Cost</span>
-          <span>${totalCost}/{billingCycle === "monthly" ? "mo" : "yr"}</span>
+          <span>
+            ${totalCost}/{billingCycle === "monthly" ? "mo" : "yr"}
+          </span>
         </div>
         <div className="team-billing-card__row">
           <span>Next billing</span>
@@ -46,10 +50,14 @@ export function TeamBillingCard({
       </div>
       <div className="team-billing-card__actions">
         {onUpgrade && (
-          <button className="btn btn-primary" onClick={onUpgrade}>Upgrade</button>
+          <button className="btn btn-primary" onClick={onUpgrade}>
+            Upgrade
+          </button>
         )}
         {onManageBilling && (
-          <button className="btn btn-outline" onClick={onManageBilling}>Manage Billing</button>
+          <button className="btn btn-outline" onClick={onManageBilling}>
+            Manage Billing
+          </button>
         )}
       </div>
     </div>

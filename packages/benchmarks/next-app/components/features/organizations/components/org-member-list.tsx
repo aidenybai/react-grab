@@ -40,11 +40,23 @@ export function OrgMemberList({
             </div>
           </div>
           <span className="org-member-list__role">{member.role}</span>
-          <span className="org-member-list__teams">{member.teams.join(", ")}</span>
+          <span className="org-member-list__teams">
+            {member.teams.join(", ")}
+          </span>
           {canManage && member.role !== "owner" && (
             <div className="org-member-list__actions">
-              <button className="btn btn-sm" onClick={() => onChangeRole?.(member.id, "admin")}>Change Role</button>
-              <button className="btn btn-sm btn-danger" onClick={() => onRemove?.(member.id)}>Remove</button>
+              <button
+                className="btn btn-sm"
+                onClick={() => onChangeRole?.(member.id, "admin")}
+              >
+                Change Role
+              </button>
+              <button
+                className="btn btn-sm btn-danger"
+                onClick={() => onRemove?.(member.id)}
+              >
+                Remove
+              </button>
             </div>
           )}
         </div>

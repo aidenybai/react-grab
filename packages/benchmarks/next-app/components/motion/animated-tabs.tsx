@@ -13,7 +13,14 @@ export function AnimatedTabs({
 
   return (
     <div data-testid={testId}>
-      <div style={{ display: "flex", gap: 0, borderBottom: "1px solid var(--border)", position: "relative" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 0,
+          borderBottom: "1px solid var(--border)",
+          position: "relative",
+        }}
+      >
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -25,7 +32,10 @@ export function AnimatedTabs({
               cursor: "pointer",
               fontSize: 14,
               fontWeight: 500,
-              color: activeTab === tab.id ? "var(--foreground)" : "var(--muted-foreground)",
+              color:
+                activeTab === tab.id
+                  ? "var(--foreground)"
+                  : "var(--muted-foreground)",
               position: "relative",
             }}
           >

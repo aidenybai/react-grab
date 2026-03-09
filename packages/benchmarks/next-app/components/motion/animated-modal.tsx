@@ -56,6 +56,6 @@ export function AnimatedModal({
         </>
       )}
     </AnimatePresence>,
-    document.body
+    document.body,
   );
 }

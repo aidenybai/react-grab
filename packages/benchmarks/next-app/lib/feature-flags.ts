@@ -1,4 +1,3 @@
-
 import { FEATURE_FLAGS } from "@/lib/constants";
 
 export type FeatureFlag = keyof typeof FEATURE_FLAGS;
@@ -10,14 +9,38 @@ interface FeatureFlagConfig {
 }
 
 const featureRegistry: Record<string, FeatureFlagConfig> = {
-  ENABLE_DARK_MODE: { enabled: true, description: "Dark mode toggle in settings" },
-  ENABLE_NOTIFICATIONS: { enabled: true, description: "In-app notification system" },
+  ENABLE_DARK_MODE: {
+    enabled: true,
+    description: "Dark mode toggle in settings",
+  },
+  ENABLE_NOTIFICATIONS: {
+    enabled: true,
+    description: "In-app notification system",
+  },
   ENABLE_ANALYTICS: { enabled: true, description: "Analytics dashboard" },
-  ENABLE_EXPORT: { enabled: false, description: "Data export to CSV/PDF", rolloutPercentage: 25 },
-  ENABLE_BETA_FEATURES: { enabled: false, description: "Experimental features for testing" },
-  ENABLE_AI_ASSISTANT: { enabled: false, description: "AI-powered assistant sidebar", rolloutPercentage: 10 },
-  ENABLE_COLLABORATIVE_EDITING: { enabled: false, description: "Real-time collaborative document editing" },
-  ENABLE_WEBHOOKS: { enabled: false, description: "Custom webhook configuration", rolloutPercentage: 50 },
+  ENABLE_EXPORT: {
+    enabled: false,
+    description: "Data export to CSV/PDF",
+    rolloutPercentage: 25,
+  },
+  ENABLE_BETA_FEATURES: {
+    enabled: false,
+    description: "Experimental features for testing",
+  },
+  ENABLE_AI_ASSISTANT: {
+    enabled: false,
+    description: "AI-powered assistant sidebar",
+    rolloutPercentage: 10,
+  },
+  ENABLE_COLLABORATIVE_EDITING: {
+    enabled: false,
+    description: "Real-time collaborative document editing",
+  },
+  ENABLE_WEBHOOKS: {
+    enabled: false,
+    description: "Custom webhook configuration",
+    rolloutPercentage: 50,
+  },
 };
 
 export function isFeatureEnabled(flag: string): boolean {

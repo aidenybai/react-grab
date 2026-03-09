@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 
 export function useToggle(
-  initialValue = false
+  initialValue = false,
 ): [boolean, () => void, (value: boolean) => void] {
   const [value, setValue] = useState(initialValue);
 
@@ -15,7 +15,7 @@ export function useToggle(
 
 export function useMultiToggle<K extends string>(
   keys: K[],
-  initialState?: Partial<Record<K, boolean>>
+  initialState?: Partial<Record<K, boolean>>,
 ): {
   state: Record<K, boolean>;
   toggle: (key: K) => void;

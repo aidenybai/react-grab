@@ -31,8 +31,20 @@ export function useCalendar(initialDate?: Date) {
   const goToToday = useCallback(() => setCurrentDate(new Date()), []);
 
   const title = useMemo(() => {
-    return currentDate.toLocaleDateString("default", { month: "long", year: "numeric" });
+    return currentDate.toLocaleDateString("default", {
+      month: "long",
+      year: "numeric",
+    });
   }, [currentDate]);
 
-  return { currentDate, setCurrentDate, view, setView, goToNext, goToPrevious, goToToday, title };
+  return {
+    currentDate,
+    setCurrentDate,
+    view,
+    setView,
+    goToNext,
+    goToPrevious,
+    goToToday,
+    title,
+  };
 }

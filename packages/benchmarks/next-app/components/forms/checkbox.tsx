@@ -28,10 +28,14 @@ export const Checkbox = React.forwardRef<HTMLInputElement, FormCheckboxProps>(
           />
         </div>
         <div className="ml-3">
-          <label className={`text-sm font-medium ${disabled ? "text-gray-400" : "text-gray-700"}`}>
+          <label
+            className={`text-sm font-medium ${disabled ? "text-gray-400" : "text-gray-700"}`}
+          >
             {label}
           </label>
-          {description && <p className="text-xs text-gray-500">{description}</p>}
+          {description && (
+            <p className="text-xs text-gray-500">{description}</p>
+          )}
           {error && <p className="text-xs text-red-500 mt-0.5">{error}</p>}
         </div>
       </div>

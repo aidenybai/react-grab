@@ -1,7 +1,9 @@
-
 const DEFAULT_LOCALE = "en-US";
 
-export function formatNumber(value: number, options?: Intl.NumberFormatOptions): string {
+export function formatNumber(
+  value: number,
+  options?: Intl.NumberFormatOptions,
+): string {
   return new Intl.NumberFormat(DEFAULT_LOCALE, options).format(value);
 }
 

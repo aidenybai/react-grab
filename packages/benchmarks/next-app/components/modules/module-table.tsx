@@ -11,10 +11,34 @@ interface Row {
 }
 
 const data: Row[] = [
-  { id: "1", name: "Alice Johnson", email: "alice@example.com", role: "Admin", status: "active" },
-  { id: "2", name: "Bob Smith", email: "bob@example.com", role: "Editor", status: "active" },
-  { id: "3", name: "Carol White", email: "carol@example.com", role: "Viewer", status: "inactive" },
-  { id: "4", name: "Dan Brown", email: "dan@example.com", role: "Editor", status: "pending" },
+  {
+    id: "1",
+    name: "Alice Johnson",
+    email: "alice@example.com",
+    role: "Admin",
+    status: "active",
+  },
+  {
+    id: "2",
+    name: "Bob Smith",
+    email: "bob@example.com",
+    role: "Editor",
+    status: "active",
+  },
+  {
+    id: "3",
+    name: "Carol White",
+    email: "carol@example.com",
+    role: "Viewer",
+    status: "inactive",
+  },
+  {
+    id: "4",
+    name: "Dan Brown",
+    email: "dan@example.com",
+    role: "Editor",
+    status: "pending",
+  },
 ];
 
 const statusStyles: Record<string, string> = {
@@ -23,7 +47,11 @@ const statusStyles: Record<string, string> = {
   pending: styles.badgeYellow,
 };
 
-export function ModuleTable({ "data-testid": testId }: { "data-testid"?: string }) {
+export function ModuleTable({
+  "data-testid": testId,
+}: {
+  "data-testid"?: string;
+}) {
   return (
     <div className={styles.tableWrapper} data-testid={testId}>
       <table className={styles.table}>
@@ -44,7 +72,9 @@ export function ModuleTable({ "data-testid": testId }: { "data-testid"?: string 
               <td className={styles.td}>
                 <span
                   className={statusStyles[row.status]}
-                  data-testid={row.id === "1" ? "module-table-badge" : undefined}
+                  data-testid={
+                    row.id === "1" ? "module-table-badge" : undefined
+                  }
                 >
                   {row.status}
                 </span>

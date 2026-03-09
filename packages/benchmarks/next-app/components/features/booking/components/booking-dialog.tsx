@@ -8,7 +8,12 @@ interface BookingDialogProps {
   children: React.ReactNode;
 }
 
-export const BookingDialog = ({ isOpen, onClose, title, children }: BookingDialogProps) => {
+export const BookingDialog = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+}: BookingDialogProps) => {
   if (!isOpen) return null;
 
   return (
@@ -33,9 +38,25 @@ export const BookingDialog = ({ isOpen, onClose, title, children }: BookingDialo
           boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "16px" }}>
-          <h2 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>{title}</h2>
-          <button onClick={onClose} style={{ border: "none", background: "none", cursor: "pointer", fontSize: "18px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: "16px",
+          }}
+        >
+          <h2 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>
+            {title}
+          </h2>
+          <button
+            onClick={onClose}
+            style={{
+              border: "none",
+              background: "none",
+              cursor: "pointer",
+              fontSize: "18px",
+            }}
+          >
             x
           </button>
         </div>

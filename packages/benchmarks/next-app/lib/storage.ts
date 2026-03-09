@@ -1,4 +1,3 @@
-
 function isLocalStorageAvailable(): boolean {
   try {
     const key = "__storage_test__";
@@ -17,7 +16,7 @@ export const storage = {
     try {
       const raw = isLocalStorageAvailable()
         ? localStorage.getItem(key)
-        : memoryStore.get(key) ?? null;
+        : (memoryStore.get(key) ?? null);
       if (raw === null) return defaultValue;
       return JSON.parse(raw) as T;
     } catch {
@@ -33,8 +32,7 @@ export const storage = {
       } else {
         memoryStore.set(key, raw);
       }
-    } catch {
-    }
+    } catch {}
   },
 
   remove(key: string): void {

@@ -26,10 +26,21 @@ export function ModuleAccordion({
             onClick={() => setOpenId(openId === item.id ? null : item.id)}
           >
             {item.title}
-            <span className={openId === item.id ? styles.arrowOpen : styles.arrow}>▼</span>
+            <span
+              className={openId === item.id ? styles.arrowOpen : styles.arrow}
+            >
+              ▼
+            </span>
           </button>
           {openId === item.id && (
-            <div className={styles.content} data-testid={item.id === items[0]?.id ? "module-accordion-content" : undefined}>
+            <div
+              className={styles.content}
+              data-testid={
+                item.id === items[0]?.id
+                  ? "module-accordion-content"
+                  : undefined
+              }
+            >
               {item.content}
             </div>
           )}

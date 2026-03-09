@@ -23,12 +23,19 @@ export function TimeSlotPicker({
   selectedSlot,
   onSlotSelect,
 }: TimeSlotPickerProps) {
-  const availableSlots = useMemo(() => slots.filter((s) => s.available), [slots]);
+  const availableSlots = useMemo(
+    () => slots.filter((s) => s.available),
+    [slots],
+  );
 
   return (
     <div className="time-slot-picker">
       <h3 className="time-slot-picker__title">
-        {date.toLocaleDateString("default", { weekday: "long", month: "long", day: "numeric" })}
+        {date.toLocaleDateString("default", {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+        })}
       </h3>
       <p className="time-slot-picker__duration">{duration} min</p>
       <div className="time-slot-picker__grid">
@@ -39,7 +46,9 @@ export function TimeSlotPicker({
             <button
               key={slot.start}
               className={`time-slot-picker__slot ${
-                selectedSlot === slot.start ? "time-slot-picker__slot--selected" : ""
+                selectedSlot === slot.start
+                  ? "time-slot-picker__slot--selected"
+                  : ""
               }`}
               onClick={() => onSlotSelect?.(slot.start)}
             >

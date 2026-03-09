@@ -1,7 +1,10 @@
 "use client";
 import React, { createContext, useContext, useState, ReactNode } from "react";
 
-const ThemeContext = createContext<{ theme: string; setTheme: (t: string) => void }>({
+const ThemeContext = createContext<{
+  theme: string;
+  setTheme: (t: string) => void;
+}>({
   theme: "light",
   setTheme: () => {},
 });

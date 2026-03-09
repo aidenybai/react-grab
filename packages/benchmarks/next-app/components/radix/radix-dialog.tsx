@@ -60,7 +60,13 @@ export function RadixDialog({
             {title}
           </Dialog.Title>
           {description && (
-            <Dialog.Description style={{ fontSize: 14, color: "var(--muted-foreground)", marginTop: 8 }}>
+            <Dialog.Description
+              style={{
+                fontSize: 14,
+                color: "var(--muted-foreground)",
+                marginTop: 8,
+              }}
+            >
               {description}
             </Dialog.Description>
           )}

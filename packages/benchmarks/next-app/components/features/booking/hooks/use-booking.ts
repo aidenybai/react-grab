@@ -10,7 +10,9 @@ interface Booking {
 }
 
 export const useBooking = (initialBooking?: Booking) => {
-  const [booking, setBooking] = useState<Booking | null>(initialBooking ?? null);
+  const [booking, setBooking] = useState<Booking | null>(
+    initialBooking ?? null,
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

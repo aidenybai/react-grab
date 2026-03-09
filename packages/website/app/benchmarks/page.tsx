@@ -66,7 +66,10 @@ const getChangeInfo = (
 const speedChartData = benchData.scenarios.map((scenario) => ({
   label: scenario.label,
   ...Object.fromEntries(
-    resolverKeys.map((key) => [key, scenario.results[key as keyof typeof scenario.results].speed]),
+    resolverKeys.map((key) => [
+      key,
+      scenario.results[key as keyof typeof scenario.results].speed,
+    ]),
   ),
 }));
 
@@ -124,7 +127,10 @@ const ResultsSection = () => {
             : "Correct resolutions in % (higher is better)"}
         </p>
 
-        <ChartContainer config={chartConfig} className="aspect-[2/1] w-full mb-8">
+        <ChartContainer
+          config={chartConfig}
+          className="aspect-[2/1] w-full mb-8"
+        >
           <BarChart
             data={isSpeed ? speedChartData : accuracyChartData}
             layout="vertical"
@@ -155,9 +161,7 @@ const ResultsSection = () => {
               type="number"
               domain={isSpeed ? [0, 30] : [0, 100]}
               ticks={
-                isSpeed
-                  ? [0, 5, 10, 15, 20, 25, 30]
-                  : [0, 25, 50, 75, 100]
+                isSpeed ? [0, 5, 10, 15, 20, 25, 30] : [0, 25, 50, 75, 100]
               }
               tickFormatter={(v) => (isSpeed ? `${v}s` : `${v}%`)}
               tickLine={false}
@@ -179,7 +183,9 @@ const ResultsSection = () => {
                 <LabelList
                   dataKey={resolverKey}
                   position="right"
-                  formatter={(value: number) => (isSpeed ? `${value}s` : `${value}%`)}
+                  formatter={(value: number) =>
+                    isSpeed ? `${value}s` : `${value}%`
+                  }
                   style={{ fontSize: 10, fill: "var(--muted-foreground)" }}
                 />
               </Bar>
@@ -207,7 +213,9 @@ const ResultsSection = () => {
                     Test Case
                   </th>
                   {resolverKeys.map((resolverKey) => {
-                    const resolver = benchData.resolvers.find((innerResolver) => innerResolver.key === resolverKey);
+                    const resolver = benchData.resolvers.find(
+                      (innerResolver) => innerResolver.key === resolverKey,
+                    );
                     return (
                       <th
                         key={resolverKey}
@@ -223,7 +231,9 @@ const ResultsSection = () => {
               <tbody className="divide-y divide-border">
                 {benchData.testCases.map((testCase) => {
                   const controlResult = controlKey
-                    ? testCase.results[controlKey as keyof typeof testCase.results]
+                    ? testCase.results[
+                        controlKey as keyof typeof testCase.results
+                      ]
                     : null;
                   return (
                     <tr
@@ -237,13 +247,21 @@ const ResultsSection = () => {
                         {testCase.testId}
                       </td>
                       {resolverKeys.map((resolverKey) => {
-                        const result = testCase.results[resolverKey as keyof typeof testCase.results];
+                        const result =
+                          testCase.results[
+                            resolverKey as keyof typeof testCase.results
+                          ];
                         const isControl = resolverKey === controlKey;
 
                         if (isSpeed) {
-                          const info = !isControl && controlResult
-                            ? getChangeInfo(controlResult.speed, result.speed, true)
-                            : { change: "", bgColor: "transparent" };
+                          const info =
+                            !isControl && controlResult
+                              ? getChangeInfo(
+                                  controlResult.speed,
+                                  result.speed,
+                                  true,
+                                )
+                              : { change: "", bgColor: "transparent" };
                           return (
                             <td
                               key={resolverKey}
@@ -266,8 +284,10 @@ const ResultsSection = () => {
                         }
 
                         const controlCorrect = controlResult?.correct ?? false;
-                        const didImproveOverControl = !isControl && result.correct && !controlCorrect;
-                        const didRegressFromControl = !isControl && !result.correct && controlCorrect;
+                        const didImproveOverControl =
+                          !isControl && result.correct && !controlCorrect;
+                        const didRegressFromControl =
+                          !isControl && !result.correct && controlCorrect;
                         const bgColor = didImproveOverControl
                           ? "rgba(100, 200, 150, 0.2)"
                           : didRegressFromControl
@@ -326,93 +346,127 @@ const BenchmarksPage = () => {
             file of a React component, given only a description of what the user
             sees on screen.
           </p>
-          <p>Each scenario groups test cases by the structural complexity
-            of the React tree the resolver must navigate:</p>
+          <p>
+            Each scenario groups test cases by the structural complexity of the
+            React tree the resolver must navigate:
+          </p>
           <ul className="space-y-3 list-disc pl-5">
-            <li><Collapsible
-              defaultExpanded={false}
-              header={
-                <span className="text-foreground/80">
-                  <span className="font-semibold">plain components</span>
-                  {": "}12 components with a single owner and no indirection.
-                </span>
-              }
-            >
-              <ul className="list-disc pl-7 mt-1.5 mb-2 space-y-1 text-foreground/70">
-                <li>styled-components (card, button, badge)</li>
-                <li>Tailwind utility classes (card, button, badge)</li>
-                <li>CSS Modules with scoped class names</li>
-                <li>inline React styles (zero class names)</li>
-                <li>shadcn/ui composite (Card + Avatar + Badge)</li>
-                <li>one Radix Tabs trigger, one Motion animated card</li>
-                <li>a div rendered inside 6 context providers</li>
-              </ul>
-            </Collapsible></li>
-            <li><Collapsible
-              defaultExpanded={false}
-              header={
-                <span className="text-foreground/80">
-                  <span className="font-semibold">HOCs, portals, compound</span>
-                  {": "}18 components where the DOM parent no longer maps directly
-                  to the React owner.
-                </span>
-              }
-            >
-              <ul className="list-disc pl-7 mt-1.5 mb-2 space-y-1 text-foreground/70">
-                <li>memo / forwardRef wrappers and HOCs (tracking, tooltip)</li>
-                <li>Radix portals (Dialog, Dropdown, Popover, Accordion)</li>
-                <li>10+ nested Fragment layers (zero DOM wrappers)</li>
-                <li>Suspense boundaries with lazy-loaded children</li>
-                <li>AnimatePresence list items and stagger grids</li>
-                <li>compound table structures and shadcn/ui form inputs</li>
-                <li>Tailwind dashboard stats, CSS Module table badges</li>
-              </ul>
-            </Collapsible></li>
-            <li><Collapsible
-              defaultExpanded={false}
-              header={
-                <span className="text-foreground/80">
-                  <span className="font-semibold">nested HOCs + Radix + Motion</span>
-                  {": "}14 components combining multiple abstraction layers in a
-                  single tree.
-                </span>
-              }
-            >
-              <ul className="list-disc pl-7 mt-1.5 mb-2 space-y-1 text-foreground/70">
-                <li>depth-8 binary tree with 256 identical styled leaves</li>
-                <li>10-level recursive menu</li>
-                <li>fractal subdividing grid</li>
-                <li>HOC-wrapped Motion cards inside styled layouts</li>
-                <li>portal modals with Motion enter/exit animations</li>
-                <li>dynamic renderers with computed component selection</li>
-                <li>conditional trees branching on prop hash</li>
-                <li>Motion layoutId tab indicators</li>
-                <li>elements styled by 2-4 systems simultaneously (styled-components + Tailwind + CSS Modules + inline)</li>
-              </ul>
-            </Collapsible></li>
-            <li><Collapsible
-              defaultExpanded={false}
-              header={
-                <span className="text-foreground/80">
-                  <span className="font-semibold">recursive trees, triple portals, factories</span>
-                  {": "}24 adversarial cases.
-                </span>
-              }
-            >
-              <ul className="list-disc pl-7 mt-1.5 mb-2 space-y-1 text-foreground/70">
-                <li>25-layer Fiber trees (providers, HOCs, styled, Motion, fragments, Suspense, Radix portal)</li>
-                <li>15+ nested HOC wrappers around a single button</li>
-                <li>triple-nested portals (Dialog, Popover, createPortal)</li>
-                <li>AnimatePresence, Motion, styled-components, and Radix Accordion in one tree</li>
-                <li>same component rendered at 6 different depths with identical DOM output</li>
-                <li>components that change tree shape on a timer</li>
-                <li>factory-generated widgets via createWidget()</li>
-                <li>components defined inside hook files or utility modules</li>
-                <li>barrel re-exports through 3 index files</li>
-                <li>directory nesting 5 levels deep</li>
-                <li>auto-generated component registries with slug-based lookup</li>
-              </ul>
-            </Collapsible></li>
+            <li>
+              <Collapsible
+                defaultExpanded={false}
+                header={
+                  <span className="text-foreground/80">
+                    <span className="font-semibold">plain components</span>
+                    {": "}12 components with a single owner and no indirection.
+                  </span>
+                }
+              >
+                <ul className="list-disc pl-7 mt-1.5 mb-2 space-y-1 text-foreground/70">
+                  <li>styled-components (card, button, badge)</li>
+                  <li>Tailwind utility classes (card, button, badge)</li>
+                  <li>CSS Modules with scoped class names</li>
+                  <li>inline React styles (zero class names)</li>
+                  <li>shadcn/ui composite (Card + Avatar + Badge)</li>
+                  <li>one Radix Tabs trigger, one Motion animated card</li>
+                  <li>a div rendered inside 6 context providers</li>
+                </ul>
+              </Collapsible>
+            </li>
+            <li>
+              <Collapsible
+                defaultExpanded={false}
+                header={
+                  <span className="text-foreground/80">
+                    <span className="font-semibold">
+                      HOCs, portals, compound
+                    </span>
+                    {": "}18 components where the DOM parent no longer maps
+                    directly to the React owner.
+                  </span>
+                }
+              >
+                <ul className="list-disc pl-7 mt-1.5 mb-2 space-y-1 text-foreground/70">
+                  <li>
+                    memo / forwardRef wrappers and HOCs (tracking, tooltip)
+                  </li>
+                  <li>Radix portals (Dialog, Dropdown, Popover, Accordion)</li>
+                  <li>10+ nested Fragment layers (zero DOM wrappers)</li>
+                  <li>Suspense boundaries with lazy-loaded children</li>
+                  <li>AnimatePresence list items and stagger grids</li>
+                  <li>compound table structures and shadcn/ui form inputs</li>
+                  <li>Tailwind dashboard stats, CSS Module table badges</li>
+                </ul>
+              </Collapsible>
+            </li>
+            <li>
+              <Collapsible
+                defaultExpanded={false}
+                header={
+                  <span className="text-foreground/80">
+                    <span className="font-semibold">
+                      nested HOCs + Radix + Motion
+                    </span>
+                    {": "}14 components combining multiple abstraction layers in
+                    a single tree.
+                  </span>
+                }
+              >
+                <ul className="list-disc pl-7 mt-1.5 mb-2 space-y-1 text-foreground/70">
+                  <li>depth-8 binary tree with 256 identical styled leaves</li>
+                  <li>10-level recursive menu</li>
+                  <li>fractal subdividing grid</li>
+                  <li>HOC-wrapped Motion cards inside styled layouts</li>
+                  <li>portal modals with Motion enter/exit animations</li>
+                  <li>dynamic renderers with computed component selection</li>
+                  <li>conditional trees branching on prop hash</li>
+                  <li>Motion layoutId tab indicators</li>
+                  <li>
+                    elements styled by 2-4 systems simultaneously
+                    (styled-components + Tailwind + CSS Modules + inline)
+                  </li>
+                </ul>
+              </Collapsible>
+            </li>
+            <li>
+              <Collapsible
+                defaultExpanded={false}
+                header={
+                  <span className="text-foreground/80">
+                    <span className="font-semibold">
+                      recursive trees, triple portals, factories
+                    </span>
+                    {": "}24 adversarial cases.
+                  </span>
+                }
+              >
+                <ul className="list-disc pl-7 mt-1.5 mb-2 space-y-1 text-foreground/70">
+                  <li>
+                    25-layer Fiber trees (providers, HOCs, styled, Motion,
+                    fragments, Suspense, Radix portal)
+                  </li>
+                  <li>15+ nested HOC wrappers around a single button</li>
+                  <li>triple-nested portals (Dialog, Popover, createPortal)</li>
+                  <li>
+                    AnimatePresence, Motion, styled-components, and Radix
+                    Accordion in one tree
+                  </li>
+                  <li>
+                    same component rendered at 6 different depths with identical
+                    DOM output
+                  </li>
+                  <li>components that change tree shape on a timer</li>
+                  <li>factory-generated widgets via createWidget()</li>
+                  <li>
+                    components defined inside hook files or utility modules
+                  </li>
+                  <li>barrel re-exports through 3 index files</li>
+                  <li>directory nesting 5 levels deep</li>
+                  <li>
+                    auto-generated component registries with slug-based lookup
+                  </li>
+                </ul>
+              </Collapsible>
+            </li>
           </ul>
           <p>
             All runs use{" "}

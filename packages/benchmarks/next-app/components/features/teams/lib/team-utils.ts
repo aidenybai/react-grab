@@ -19,7 +19,9 @@ export function formatMemberCount(count: number): string {
   return `${count} members`;
 }
 
-export function sortMembers<T extends { role: string; name: string }>(members: T[]): T[] {
+export function sortMembers<T extends { role: string; name: string }>(
+  members: T[],
+): T[] {
   const roleOrder: Record<string, number> = { owner: 0, admin: 1, member: 2 };
   return [...members].sort((a, b) => {
     const roleA = roleOrder[a.role] ?? 3;

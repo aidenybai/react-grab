@@ -29,7 +29,10 @@ export const WorkflowCard = memo(function WorkflowCard({
         <h3 className="workflow-card__name">{name}</h3>
         <button
           className={`workflow-card__toggle ${isActive ? "workflow-card__toggle--active" : ""}`}
-          onClick={(e) => { e.stopPropagation(); onToggle?.(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle?.();
+          }}
         >
           {isActive ? "Active" : "Inactive"}
         </button>

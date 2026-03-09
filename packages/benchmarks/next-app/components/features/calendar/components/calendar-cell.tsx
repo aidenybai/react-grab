@@ -36,7 +36,11 @@ export const CalendarCell = memo(function CalendarCell({
     .join(" ");
 
   return (
-    <div className={cellClasses} onClick={() => onClick?.(date)} role="gridcell">
+    <div
+      className={cellClasses}
+      onClick={() => onClick?.(date)}
+      role="gridcell"
+    >
       <span className="calendar-cell__date">{date.getDate()}</span>
       <div className="calendar-cell__events">
         {events.slice(0, 3).map((event) => (

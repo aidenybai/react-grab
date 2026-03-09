@@ -12,7 +12,13 @@ export interface Integration {
   webhooks?: IntegrationWebhook[];
 }
 
-export type IntegrationCategory = "calendar" | "video" | "payment" | "crm" | "messaging" | "analytics";
+export type IntegrationCategory =
+  | "calendar"
+  | "video"
+  | "payment"
+  | "crm"
+  | "messaging"
+  | "analytics";
 
 export interface IntegrationCredentials {
   type: "oauth" | "api_key" | "webhook";

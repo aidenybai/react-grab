@@ -11,7 +11,8 @@ export function useFilter<T extends Record<string, unknown>>({
   items,
   initialFilters = {},
 }: UseFilterOptions<T>) {
-  const [filters, setFilters] = useState<Record<string, unknown>>(initialFilters);
+  const [filters, setFilters] =
+    useState<Record<string, unknown>>(initialFilters);
 
   const setFilter = useCallback((key: string, value: unknown) => {
     setFilters((prev) => {
@@ -37,7 +38,7 @@ export function useFilter<T extends Record<string, unknown>>({
           return filterValue.includes(itemValue);
         }
         return itemValue === filterValue;
-      })
+      }),
     );
   }, [items, filters]);
 

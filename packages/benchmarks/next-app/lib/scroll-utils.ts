@@ -1,7 +1,6 @@
-
 export function scrollToElement(
   elementOrSelector: HTMLElement | string,
-  options?: ScrollIntoViewOptions
+  options?: ScrollIntoViewOptions,
 ): void {
   const element =
     typeof elementOrSelector === "string"

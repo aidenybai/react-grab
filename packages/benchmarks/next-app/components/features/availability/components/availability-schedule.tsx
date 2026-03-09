@@ -14,7 +14,15 @@ interface AvailabilityScheduleProps {
   isReadOnly?: boolean;
 }
 
-const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const DAYS = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
 
 export function AvailabilitySchedule({
   schedule,
@@ -24,7 +32,10 @@ export function AvailabilitySchedule({
   const toggleDay = (dayIndex: number) => {
     if (isReadOnly) return;
     const updated = [...schedule];
-    updated[dayIndex] = { ...updated[dayIndex], enabled: !updated[dayIndex].enabled };
+    updated[dayIndex] = {
+      ...updated[dayIndex],
+      enabled: !updated[dayIndex].enabled,
+    };
     onChange?.(updated);
   };
 

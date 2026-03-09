@@ -25,7 +25,9 @@ export function IntegrationList({
 
   const filtered = useMemo(() => {
     return integrations.filter((i) => {
-      const matchesSearch = i.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = i.name
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
       const matchesCategory = !filterCategory || i.category === filterCategory;
       return matchesSearch && matchesCategory;
     });
@@ -54,7 +56,9 @@ export function IntegrationList({
           >
             <h4>{integration.name}</h4>
             <p>{integration.description}</p>
-            <span className="integration-list__category">{integration.category}</span>
+            <span className="integration-list__category">
+              {integration.category}
+            </span>
           </div>
         ))}
       </div>

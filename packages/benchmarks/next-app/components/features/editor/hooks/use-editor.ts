@@ -18,7 +18,10 @@ export const useEditor = (initialContent = "") => {
 
   const setContent = useCallback((content: string) => {
     setState((prev) => ({ ...prev, content }));
-    historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1);
+    historyRef.current = historyRef.current.slice(
+      0,
+      historyIndexRef.current + 1,
+    );
     historyRef.current.push(content);
     historyIndexRef.current = historyRef.current.length - 1;
   }, []);
@@ -26,14 +29,20 @@ export const useEditor = (initialContent = "") => {
   const undo = useCallback(() => {
     if (historyIndexRef.current > 0) {
       historyIndexRef.current--;
-      setState((prev) => ({ ...prev, content: historyRef.current[historyIndexRef.current] }));
+      setState((prev) => ({
+        ...prev,
+        content: historyRef.current[historyIndexRef.current],
+      }));
     }
   }, []);
 
   const redo = useCallback(() => {
     if (historyIndexRef.current < historyRef.current.length - 1) {
       historyIndexRef.current++;
-      setState((prev) => ({ ...prev, content: historyRef.current[historyIndexRef.current] }));
+      setState((prev) => ({
+        ...prev,
+        content: historyRef.current[historyIndexRef.current],
+      }));
     }
   }, []);
 

@@ -7,12 +7,28 @@ interface OrgRoleSelectProps {
 }
 
 const ROLES = [
-  { value: "owner", label: "Owner", description: "Full access, can delete organization" },
-  { value: "admin", label: "Admin", description: "Can manage members, teams, and settings" },
-  { value: "member", label: "Member", description: "Can access assigned features" },
+  {
+    value: "owner",
+    label: "Owner",
+    description: "Full access, can delete organization",
+  },
+  {
+    value: "admin",
+    label: "Admin",
+    description: "Can manage members, teams, and settings",
+  },
+  {
+    value: "member",
+    label: "Member",
+    description: "Can access assigned features",
+  },
 ];
 
-export function OrgRoleSelect({ value, onChange, disabled }: OrgRoleSelectProps) {
+export function OrgRoleSelect({
+  value,
+  onChange,
+  disabled,
+}: OrgRoleSelectProps) {
   return (
     <div className="org-role-select">
       <label className="org-role-select__label">Role</label>

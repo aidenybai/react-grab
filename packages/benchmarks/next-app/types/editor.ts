@@ -1,4 +1,3 @@
-
 export type BlockType =
   | "paragraph"
   | "heading"
@@ -50,7 +49,11 @@ export type EditorAction =
   | { type: "delete_block"; blockId: string }
   | { type: "update_block"; blockId: string; content: string }
   | { type: "move_block"; blockId: string; afterId: string }
-  | { type: "update_properties"; blockId: string; properties: Partial<BlockProperties> };
+  | {
+      type: "update_properties";
+      blockId: string;
+      properties: Partial<BlockProperties>;
+    };
 
 export interface EditorConfig {
   placeholder: string;
