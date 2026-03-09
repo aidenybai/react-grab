@@ -92,7 +92,7 @@ export default function BenchmarksPage() {
       <div style={styles.barsSection}>
         {sorted.map((s) => {
           const pct = s.correct / s.total;
-          const width = `${(pct / maxPct) * 100}%`;
+          const width = maxPct === 0 ? "0%" : `${(pct / maxPct) * 100}%`;
           const color = RESOLVER_COLORS[s.name] ?? "#888";
           return (
             <div key={s.name} style={styles.barRow}>

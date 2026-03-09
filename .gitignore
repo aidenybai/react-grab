@@ -16,5 +16,6 @@ bench-checkpoint.json
 bench-results.json
 bench-results.svg
 bench-detail.svg
+.vercel
 .cursor/debug.log
 .cursor
