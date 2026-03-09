@@ -44,10 +44,16 @@ jobs:
           BENCH_CLAUDE: "1"
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
-      - name: Commit updated data
+      - name: Commit and push updated data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add packages/website/app/benchmarks/data.json
-          git diff --cached --quiet || git commit -m "Update benchmark data [skip ci]"
-          git push
+          git diff --cached --quiet && exit 0
+          git commit -m "Update benchmark data [skip ci]"
+          for attempt in 1 2 3; do
+            git pull --rebase && git push && exit 0
+            sleep 5
+          done
+          echo "Failed to push after 3 attempts"
+          exit 1
