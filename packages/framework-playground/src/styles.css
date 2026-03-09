@@ -1,0 +1,82 @@
+:root {
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    sans-serif;
+  color: #111827;
+  background: #f3f4f6;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.framework-playground {
+  min-height: 100vh;
+  padding: 32px;
+}
+
+.framework-playground__header h1 {
+  margin: 0;
+  font-size: 32px;
+}
+
+.framework-playground__header p {
+  margin-top: 8px;
+  margin-bottom: 24px;
+  color: #4b5563;
+}
+
+.framework-playground__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.framework-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: white;
+  padding: 18px;
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.08);
+}
+
+.framework-logo-button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #f9fafb;
+  padding: 14px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.framework-logo-button:hover {
+  border-color: #9ca3af;
+}
+
+.framework-logo {
+  width: 72px;
+  height: 72px;
+}
+
+.framework-logo__name {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.framework-logo__count {
+  font-size: 13px;
+  color: #6b7280;
+}
