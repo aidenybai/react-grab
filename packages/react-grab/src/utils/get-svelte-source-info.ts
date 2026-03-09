@@ -55,19 +55,63 @@ const readComponentNameFromParentMeta = (
   return null;
 };
 
-export const getSvelteSourceInfo = (
-  element: Element,
-): ElementSourceInfo | null => {
+const readSvelteParentStackFrames = (
+  svelteMeta: Record<string, unknown>,
+): ElementSourceInfo[] => {
+  const parentStackFrames: ElementSourceInfo[] = [];
+  let currentParent = svelteMeta.parent;
+
+  while (isRecord(currentParent)) {
+    const filePath = readString(currentParent.file);
+    const lineNumber = readNumber(currentParent.line);
+    const rawColumnNumber = readNumber(currentParent.column);
+    const componentName = readString(currentParent.componentTag);
+
+    if (filePath && lineNumber !== null && rawColumnNumber !== null) {
+      parentStackFrames.push({
+        filePath,
+        lineNumber,
+        columnNumber: rawColumnNumber + SVELTE_COLUMN_OFFSET,
+        componentName,
+      });
+    }
+
+    currentParent = currentParent.parent;
+  }
+
+  return parentStackFrames;
+};
+
+export const getSvelteStackFrames = (element: Element): ElementSourceInfo[] => {
   const svelteMeta = getNearestSvelteMeta(element);
-  if (!svelteMeta) return null;
+  if (!svelteMeta) return [];
 
   const sourceLocation = readSvelteLocation(svelteMeta);
-  if (!sourceLocation) return null;
+  if (!sourceLocation) return [];
 
-  return {
-    filePath: sourceLocation.filePath,
-    lineNumber: sourceLocation.lineNumber,
-    columnNumber: sourceLocation.columnNumber,
-    componentName: readComponentNameFromParentMeta(svelteMeta),
-  };
+  const stackFrames: ElementSourceInfo[] = [
+    {
+      filePath: sourceLocation.filePath,
+      lineNumber: sourceLocation.lineNumber,
+      columnNumber: sourceLocation.columnNumber,
+      componentName: readComponentNameFromParentMeta(svelteMeta),
+    },
+  ];
+  const seenFrameIdentities = new Set<string>([
+    `${sourceLocation.filePath}:${sourceLocation.lineNumber}:${sourceLocation.columnNumber}`,
+  ]);
+
+  const parentStackFrames = readSvelteParentStackFrames(svelteMeta);
+  for (const parentStackFrame of parentStackFrames) {
+    const frameIdentity = `${parentStackFrame.filePath}:${parentStackFrame.lineNumber ?? ""}:${parentStackFrame.columnNumber ?? ""}`;
+    if (seenFrameIdentities.has(frameIdentity)) continue;
+    seenFrameIdentities.add(frameIdentity);
+    stackFrames.push(parentStackFrame);
+  }
+
+  return stackFrames;
 };
+
+export const getSvelteSourceInfo = (
+  element: Element,
+): ElementSourceInfo | null => getSvelteStackFrames(element)[0] ?? null;

@@ -18,6 +18,7 @@ test.describe("Framework Source Metadata", () => {
 
     await reactGrab.page.evaluate(
       ({ filePath, targetStyle }) => {
+        const parentSolidFilePath = "src/app-root.tsx";
         const element = document.createElement("button");
         element.id = "solid-metadata-target";
         element.textContent = "Solid Metadata Target";
@@ -49,6 +50,7 @@ test.describe("Framework Source Metadata", () => {
                 element.$$click = ${String(solidHandler)};
                 return element;
               };
+              createComponent(AppRoot, { location: "${parentSolidFilePath}:4:1" });
               createComponent(template, { location: "${filePath}:14:2" });
             `,
           },
@@ -90,6 +92,7 @@ test.describe("Framework Source Metadata", () => {
     });
 
     expect(stackContext).toContain(`${solidFilePath}:14:2`);
+    expect(stackContext).toContain("src/app-root.tsx:4:1");
 
     await reactGrab.activate();
     await reactGrab.hoverElement("#solid-metadata-target");
@@ -112,6 +115,7 @@ test.describe("Framework Source Metadata", () => {
 
     const clipboard = await reactGrab.getClipboardContent();
     expect(clipboard).toContain(`${solidFilePath}:14:2`);
+    expect(clipboard).toContain("src/app-root.tsx:4:1");
   });
 
   test("should resolve Vue inspector metadata with line and column", async ({
@@ -179,6 +183,7 @@ test.describe("Framework Source Metadata", () => {
 
     await reactGrab.page.evaluate(
       ({ filePath, targetStyle }) => {
+        const vueParentFilePath = "/workspace/vue/src/App.vue";
         const element = document.createElement("div");
         element.id = "vue-runtime-target";
         element.textContent = "Vue Runtime Target";
@@ -191,6 +196,13 @@ test.describe("Framework Source Metadata", () => {
           type: {
             __file: filePath,
             __name: "VueFallback",
+          },
+          parent: {
+            type: {
+              __file: vueParentFilePath,
+              __name: "AppRoot",
+            },
+            parent: null,
           },
         };
         document.body.appendChild(element);
@@ -232,6 +244,8 @@ test.describe("Framework Source Metadata", () => {
 
     expect(stackContext).toContain("VueFallback");
     expect(stackContext).toContain(vueRuntimeFilePath);
+    expect(stackContext).toContain("AppRoot");
+    expect(stackContext).toContain("/workspace/vue/src/App.vue");
   });
 
   test("should resolve Svelte metadata from __svelte_meta", async ({
@@ -252,7 +266,14 @@ test.describe("Framework Source Metadata", () => {
           file: "src/App.svelte",
           line: 19,
           column: 4,
-          parent: null,
+          parent: {
+            type: "component",
+            file: "src/routes/+layout.svelte",
+            line: 3,
+            column: 1,
+            parent: null,
+            componentTag: "Shell",
+          },
           componentTag: "Counter",
         },
         loc: {
@@ -298,5 +319,8 @@ test.describe("Framework Source Metadata", () => {
 
     expect(stackContext).toContain("Counter");
     expect(stackContext).toContain("src/lib/Counter.svelte:8:1");
+    expect(stackContext).toContain("src/App.svelte:19:5");
+    expect(stackContext).toContain("Shell");
+    expect(stackContext).toContain("src/routes/+layout.svelte:3:2");
   });
 });

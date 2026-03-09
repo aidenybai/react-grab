@@ -16,6 +16,11 @@ interface SolidHandlerSourceMatch {
   handlerSourceIndex: number;
 }
 
+interface SolidLocationMatch {
+  sourceInfo: ElementSourceInfo;
+  distance: number;
+}
+
 const SOLID_RUNTIME_MODULES_GLOBAL_NAME =
   "__REACT_GRAB_SOLID_RUNTIME_MODULES__";
 const SOLID_HANDLER_PREFIX = "$$";
@@ -28,9 +33,9 @@ const SOURCE_MODULE_PATH_PREFIX = "/src/";
 const CSS_FILE_EXTENSION = ".css";
 const IMAGE_IMPORT_SUFFIX = "?import";
 const MODULE_SOURCE_CACHE = new Map<string, Promise<string | null>>();
-const SOLID_HANDLER_SOURCE_CACHE = new Map<
+const SOLID_HANDLER_STACK_CACHE = new Map<
   string,
-  Promise<ElementSourceInfo | null>
+  Promise<ElementSourceInfo[]>
 >();
 const SOLID_HANDLER_SOURCE_LENGTH_MIN_CHARS = 3;
 
@@ -132,10 +137,10 @@ const resolveHandlerSourceMatch = async (
   return null;
 };
 
-const parseNearestLocationLiteral = (
+const parseLocationLiteralsByDistance = (
   moduleContent: string,
   handlerSourceIndex: number,
-): { filePath: string; lineNumber: number; columnNumber: number } | null => {
+): ElementSourceInfo[] => {
   const contextWindowStartIndex = Math.max(
     SOURCE_CONTEXT_WINDOW_START_CHARS,
     handlerSourceIndex - SOURCE_CONTEXT_HALF_WINDOW_CHARS,
@@ -148,13 +153,7 @@ const parseNearestLocationLiteral = (
     contextWindowStartIndex,
     contextWindowEndIndex,
   );
-
-  let nearestLocation: {
-    filePath: string;
-    lineNumber: number;
-    columnNumber: number;
-  } | null = null;
-  let nearestLocationDistance = Number.POSITIVE_INFINITY;
+  const locationMatches: SolidLocationMatch[] = [];
 
   for (const locationMatch of contextWindowText.matchAll(
     SOURCE_LOCATION_PATTERN,
@@ -168,13 +167,37 @@ const parseNearestLocationLiteral = (
     if (matchIndex === undefined) continue;
     const absoluteMatchIndex = contextWindowStartIndex + matchIndex;
     const locationDistance = Math.abs(absoluteMatchIndex - handlerSourceIndex);
-
-    if (locationDistance >= nearestLocationDistance) continue;
-    nearestLocationDistance = locationDistance;
-    nearestLocation = parsedLocation;
+    locationMatches.push({
+      sourceInfo: {
+        filePath: parsedLocation.filePath,
+        lineNumber: parsedLocation.lineNumber,
+        columnNumber: parsedLocation.columnNumber,
+        componentName: null,
+      },
+      distance: locationDistance,
+    });
   }
 
-  return nearestLocation;
+  locationMatches.sort((leftLocationMatch, rightLocationMatch) => {
+    const leftLineNumber = leftLocationMatch.sourceInfo.lineNumber ?? 0;
+    const rightLineNumber = rightLocationMatch.sourceInfo.lineNumber ?? 0;
+    if (rightLineNumber !== leftLineNumber) {
+      return rightLineNumber - leftLineNumber;
+    }
+    return leftLocationMatch.distance - rightLocationMatch.distance;
+  });
+
+  const seenLocations = new Set<string>();
+  const uniqueLocationFrames: ElementSourceInfo[] = [];
+
+  for (const locationMatch of locationMatches) {
+    const locationIdentity = `${locationMatch.sourceInfo.filePath}:${locationMatch.sourceInfo.lineNumber}:${locationMatch.sourceInfo.columnNumber}`;
+    if (seenLocations.has(locationIdentity)) continue;
+    seenLocations.add(locationIdentity);
+    uniqueLocationFrames.push(locationMatch.sourceInfo);
+  }
+
+  return uniqueLocationFrames;
 };
 
 const toProjectRelativeModulePath = (moduleUrl: string): string | null => {
@@ -234,55 +257,61 @@ const findSolidHandlerCandidate = (
   return null;
 };
 
-const resolveSolidSourceFromHandler = async (
+const buildGeneratedFrameFromModuleMatch = (
+  handlerSourceMatch: SolidHandlerSourceMatch,
+): ElementSourceInfo | null => {
+  const modulePath = toProjectRelativeModulePath(handlerSourceMatch.moduleUrl);
+  if (!modulePath) return null;
+
+  const generatedLocation = getGeneratedLocationFromModule(
+    handlerSourceMatch.moduleContent,
+    handlerSourceMatch.handlerSourceIndex,
+  );
+
+  return {
+    filePath: modulePath,
+    lineNumber: generatedLocation.lineNumber,
+    columnNumber: generatedLocation.columnNumber,
+    componentName: null,
+  };
+};
+
+const resolveSolidStackFramesFromHandler = async (
   handlerSource: string,
-): Promise<ElementSourceInfo | null> => {
-  const cachedSourceInfo = SOLID_HANDLER_SOURCE_CACHE.get(handlerSource);
-  if (cachedSourceInfo) return cachedSourceInfo;
+): Promise<ElementSourceInfo[]> => {
+  const cachedStackFrames = SOLID_HANDLER_STACK_CACHE.get(handlerSource);
+  if (cachedStackFrames) return cachedStackFrames;
 
-  const sourceInfoPromise = (async () => {
+  const stackFramesPromise = (async () => {
     const handlerSourceMatch = await resolveHandlerSourceMatch(handlerSource);
-    if (!handlerSourceMatch) return null;
+    if (!handlerSourceMatch) return [];
 
-    const nearestLocationLiteral = parseNearestLocationLiteral(
+    const locationLiteralStackFrames = parseLocationLiteralsByDistance(
       handlerSourceMatch.moduleContent,
       handlerSourceMatch.handlerSourceIndex,
     );
-    if (nearestLocationLiteral) {
-      return {
-        filePath: nearestLocationLiteral.filePath,
-        lineNumber: nearestLocationLiteral.lineNumber,
-        columnNumber: nearestLocationLiteral.columnNumber,
-        componentName: null,
-      };
-    }
+    if (locationLiteralStackFrames.length > 0)
+      return locationLiteralStackFrames;
 
-    const modulePath = toProjectRelativeModulePath(
-      handlerSourceMatch.moduleUrl,
-    );
-    if (!modulePath) return null;
-
-    const generatedLocation = getGeneratedLocationFromModule(
-      handlerSourceMatch.moduleContent,
-      handlerSourceMatch.handlerSourceIndex,
-    );
-
-    return {
-      filePath: modulePath,
-      lineNumber: generatedLocation.lineNumber,
-      columnNumber: generatedLocation.columnNumber,
-      componentName: null,
-    };
+    const generatedStackFrame =
+      buildGeneratedFrameFromModuleMatch(handlerSourceMatch);
+    if (!generatedStackFrame) return [];
+    return [generatedStackFrame];
   })();
 
-  SOLID_HANDLER_SOURCE_CACHE.set(handlerSource, sourceInfoPromise);
-  return sourceInfoPromise;
+  SOLID_HANDLER_STACK_CACHE.set(handlerSource, stackFramesPromise);
+  return stackFramesPromise;
+};
+
+export const getSolidStackFrames = (
+  element: Element,
+): Promise<ElementSourceInfo[]> => {
+  const solidHandlerCandidate = findSolidHandlerCandidate(element);
+  if (!solidHandlerCandidate) return Promise.resolve([]);
+  return resolveSolidStackFramesFromHandler(solidHandlerCandidate.source);
 };
 
 export const getSolidSourceInfo = (
   element: Element,
-): Promise<ElementSourceInfo | null> => {
-  const solidHandlerCandidate = findSolidHandlerCandidate(element);
-  if (!solidHandlerCandidate) return Promise.resolve(null);
-  return resolveSolidSourceFromHandler(solidHandlerCandidate.source);
-};
+): Promise<ElementSourceInfo | null> =>
+  getSolidStackFrames(element).then((stackFrames) => stackFrames[0] ?? null);

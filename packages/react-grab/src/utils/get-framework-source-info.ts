@@ -3,9 +3,26 @@ import type {
   ElementStackContextOptions,
   SourceInfo,
 } from "../types.js";
-import { getSolidSourceInfo } from "./get-solid-source-info.js";
-import { getSvelteSourceInfo } from "./get-svelte-source-info.js";
-import { getVueSourceInfo } from "./get-vue-source-info.js";
+import {
+  getSolidSourceInfo,
+  getSolidStackFrames,
+} from "./get-solid-source-info.js";
+import {
+  getSvelteSourceInfo,
+  getSvelteStackFrames,
+} from "./get-svelte-source-info.js";
+import { getVueSourceInfo, getVueStackFrames } from "./get-vue-source-info.js";
+
+const formatSourceLocation = (sourceInfo: ElementSourceInfo): string => {
+  const locationParts = [sourceInfo.filePath];
+  if (sourceInfo.lineNumber !== null) {
+    locationParts.push(String(sourceInfo.lineNumber));
+  }
+  if (sourceInfo.columnNumber !== null) {
+    locationParts.push(String(sourceInfo.columnNumber));
+  }
+  return locationParts.join(":");
+};
 
 const getResolvedFrameworkSourceInfo = async (
   element: Element,
@@ -26,15 +43,34 @@ const getResolvedFrameworkSourceInfo = async (
   return null;
 };
 
-const formatSourceLocation = (sourceInfo: ElementSourceInfo): string => {
-  const locationParts = [sourceInfo.filePath];
-  if (sourceInfo.lineNumber !== null) {
-    locationParts.push(String(sourceInfo.lineNumber));
+const getResolvedFrameworkStackFrames = async (
+  element: Element,
+): Promise<ElementSourceInfo[]> => {
+  const stackResolvers = [
+    getSvelteStackFrames,
+    getVueStackFrames,
+    getSolidStackFrames,
+  ] as const;
+
+  for (const resolveStackFrames of stackResolvers) {
+    const stackFrames = await resolveStackFrames(element);
+    if (stackFrames.length < 1) continue;
+    const validStackFrames = stackFrames.filter(
+      (stackFrame) => stackFrame.filePath.length > 0,
+    );
+    if (validStackFrames.length < 1) continue;
+    return validStackFrames;
   }
-  if (sourceInfo.columnNumber !== null) {
-    locationParts.push(String(sourceInfo.columnNumber));
+
+  return [];
+};
+
+const formatStackFrame = (stackFrame: ElementSourceInfo): string => {
+  const sourceLocation = formatSourceLocation(stackFrame);
+  if (stackFrame.componentName) {
+    return `\n  in ${stackFrame.componentName} (at ${sourceLocation})`;
   }
-  return locationParts.join(":");
+  return `\n  in ${sourceLocation}`;
 };
 
 export const getFrameworkSourceInfo = (
@@ -65,16 +101,13 @@ export const getFrameworkStackContext = (
   element: Element,
   options: ElementStackContextOptions = {},
 ): Promise<string> =>
-  getResolvedFrameworkSourceInfo(element).then((sourceInfo) => {
+  getResolvedFrameworkStackFrames(element).then((stackFrames) => {
     const { maxLines = 3 } = options;
     if (maxLines < 1) return "";
+    if (stackFrames.length < 1) return "";
 
-    if (!sourceInfo) return "";
-
-    const sourceLocation = formatSourceLocation(sourceInfo);
-    if (sourceInfo.componentName) {
-      return `\n  in ${sourceInfo.componentName} (at ${sourceLocation})`;
-    }
-
-    return `\n  in ${sourceLocation}`;
+    return stackFrames
+      .slice(0, maxLines)
+      .map((stackFrame) => formatStackFrame(stackFrame))
+      .join("");
   });
