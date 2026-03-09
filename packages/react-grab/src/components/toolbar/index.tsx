@@ -1475,7 +1475,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         }px)`,
         "transform-origin": getTransformOrigin(),
       }}
-      onPointerDown={handlePointerDown}
+      on:pointerdown={(event) => {
+        stopEventPropagation(event);
+        handlePointerDown(event);
+      }}
+      on:mousedown={stopEventPropagation}
       onMouseEnter={() => !isCollapsed() && props.onSelectHoverChange?.(true)}
       onMouseLeave={() => props.onSelectHoverChange?.(false)}
     >
@@ -1525,7 +1529,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         }}
         selectButton={
           <>
-            {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
             <button
               data-react-grab-ignore-events
               data-react-grab-toolbar-toggle
@@ -1538,11 +1541,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                 buttonSpacingClass(),
                 hitboxConstraintClass(),
               )}
-              on:pointerdown={(event) => {
-                stopEventPropagation(event);
-                handlePointerDown(event);
-              }}
-              on:mousedown={stopEventPropagation}
               onClick={(event) => {
                 setIsSelectTooltipVisible(false);
                 handleToggle(event);
@@ -1567,7 +1565,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         }
         historyButton={
           <>
-            {/* HACK: Native events with stopImmediatePropagation prevent page-level dropdowns from closing */}
             <button
               data-react-grab-ignore-events
               data-react-grab-toolbar-history
@@ -1583,11 +1580,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                 buttonSpacingClass(),
                 hitboxConstraintClass(),
               )}
-              on:pointerdown={(event) => {
-                stopEventPropagation(event);
-                handlePointerDown(event);
-              }}
-              on:mousedown={stopEventPropagation}
               onClick={(event) => {
                 setIsHistoryTooltipVisible(false);
                 handleHistory(event);
@@ -1640,11 +1632,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                 buttonSpacingClass(),
                 hitboxConstraintClass(),
               )}
-              on:pointerdown={(event) => {
-                stopEventPropagation(event);
-                handlePointerDown(event);
-              }}
-              on:mousedown={stopEventPropagation}
               onClick={(event) => {
                 setIsCopyAllTooltipVisible(false);
                 handleCopyAll(event);
@@ -1688,11 +1675,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                 buttonSpacingClass(),
                 hitboxConstraintClass(),
               )}
-              on:pointerdown={(event) => {
-                stopEventPropagation(event);
-                handlePointerDown(event);
-              }}
-              on:mousedown={stopEventPropagation}
               onClick={(event) => {
                 setIsMenuTooltipVisible(false);
                 handleToggleMenu(event);
