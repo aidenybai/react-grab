@@ -35,6 +35,7 @@ export const installPackages = (
   execSync(fullCommand, {
     cwd: projectRoot,
     stdio: "inherit",
+    env: { ...process.env, REACT_GRAB_INIT: "1" },
   });
 };
 
