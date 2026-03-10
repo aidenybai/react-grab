@@ -49,7 +49,6 @@ packages/
 ├── provider-codex/      # OpenAI Codex integration
 ├── provider-gemini/     # Google Gemini CLI integration
 ├── provider-amp/        # Amp SDK integration
-├── provider-ami/        # AMI client
 ├── website/             # Documentation site (react-grab.com)
 ├── vite-playground/     # Vite development playground
 ├── next-playground/     # Next.js development playground

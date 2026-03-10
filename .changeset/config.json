@@ -8,7 +8,6 @@
       "react-grab",
       "grab",
       "@react-grab/claude-code",
-      "@react-grab/ami",
       "@react-grab/cursor",
       "@react-grab/opencode",
       "@react-grab/codex",

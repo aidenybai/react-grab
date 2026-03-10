@@ -30,7 +30,6 @@ jobs:
             ./packages/grab \
             ./packages/relay \
             ./packages/utils \
-            ./packages/provider-ami \
             ./packages/provider-amp \
             ./packages/provider-claude-code \
             ./packages/provider-codex \

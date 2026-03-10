@@ -8,7 +8,6 @@ const PACKAGES_DIR = join(import.meta.dir, "../packages");
 
 const DIST_MAPPINGS: Record<string, string> = {
   "react-grab": join(PACKAGES_DIR, "react-grab/dist"),
-  "provider-ami": join(PACKAGES_DIR, "provider-ami/dist"),
   "provider-cursor": join(PACKAGES_DIR, "provider-cursor/dist"),
   "provider-claude-code": join(PACKAGES_DIR, "provider-claude-code/dist"),
   "provider-opencode": join(PACKAGES_DIR, "provider-opencode/dist"),

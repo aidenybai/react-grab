@@ -6,7 +6,6 @@ const PROVIDER_MAP: Record<string, string> = {
   "claude-code": "provider-claude-code",
   cursor: "provider-cursor",
   opencode: "provider-opencode",
-  ami: "provider-ami",
   amp: "provider-amp",
   codex: "provider-codex",
   gemini: "provider-gemini",

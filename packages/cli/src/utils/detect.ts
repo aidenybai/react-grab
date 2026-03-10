@@ -425,7 +425,6 @@ const AGENT_PACKAGES = [
   "@react-grab/codex",
   "@react-grab/gemini",
   "@react-grab/amp",
-  "@react-grab/ami",
   "@react-grab/droid",
   "@react-grab/copilot",
   "@react-grab/mcp",
