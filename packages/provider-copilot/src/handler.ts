@@ -63,6 +63,7 @@ const runCopilotAgent = async function* (
     const messageQueue: AgentMessage[] = [];
     let resolveWait: (() => void) | null = null;
     let processEnded = false;
+    let capturedCopilotSessionId: string | undefined;
 
     const enqueueMessage = (message: AgentMessage) => {
       messageQueue.push(message);
@@ -87,9 +88,9 @@ const runCopilotAgent = async function* (
         activeProcesses.delete(sessionId);
       }
 
-      if (sessionId && !childProcess.killed) {
-        copilotSessionMap.set(sessionId, sessionId);
-        lastCopilotSessionId = sessionId;
+      if (sessionId && !childProcess.killed && capturedCopilotSessionId) {
+        copilotSessionMap.set(sessionId, capturedCopilotSessionId);
+        lastCopilotSessionId = capturedCopilotSessionId;
       }
 
       processEnded = true;
