@@ -586,11 +586,10 @@ const formatPriorityAttrs = (
 
 export const getHTMLPreview = (element: Element): string => {
   const tagName = getTagName(element);
-  if (!(element instanceof HTMLElement)) {
-    const attrsHint = formatPriorityAttrs(element);
-    return `<${tagName}${attrsHint} />`;
-  }
-  const text = element.innerText?.trim() ?? element.textContent?.trim() ?? "";
+  const text =
+    element instanceof HTMLElement
+      ? (element.innerText?.trim() ?? element.textContent?.trim() ?? "")
+      : (element.textContent?.trim() ?? "");
 
   let attrsText = "";
   for (const { name, value } of element.attributes) {

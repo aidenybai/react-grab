@@ -1,8 +1,7 @@
 {
   "private": true,
   "workspaces": [
-    "packages/*",
-    "packages/benchmarks/next-app"
+    "packages/*"
   ],
   "type": "module",
   "scripts": {
@@ -31,9 +30,6 @@
     "pnpm": ">=8"
   },
   "packageManager": "pnpm@10.24.0",
-  "pnpm": {
-    "patchedDependencies": {
-      "agentation@2.3.0": "patches/agentation@2.3.0.patch"
-    }
-  }
+  "pnpm": {}
+
 }

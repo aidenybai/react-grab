@@ -451,7 +451,7 @@ const BlogPostPage = () => {
           <p>
             The benchmark consists of{" "}
             <a
-              href="https://github.com/aidenybai/react-grab/blob/main/packages/benchmarks/_archived/test-cases.json"
+              href="https://github.com/aidenybai/react-bench/tree/2c2702f/test-cases.json"
               target="_blank"
               rel="noopener noreferrer"
               className="text-foreground/80 hover:text-foreground underline underline-offset-4"
@@ -630,12 +630,12 @@ const BlogPostPage = () => {
           <p>
             To run the benchmark yourself, check out the{" "}
             <a
-              href="https://github.com/aidenybai/react-grab/tree/main/packages/benchmarks/_archived"
+              href="https://github.com/aidenybai/react-bench/tree/2c2702f"
               target="_blank"
               rel="noopener noreferrer"
               className="text-foreground/80 hover:text-foreground underline underline-offset-4"
             >
-              benchmarks directory
+              benchmarks repository
             </a>{" "}
             on GitHub.
           </p>
@@ -805,6 +805,6 @@ const BlogPostPage = () => {
   );
 };
 
-BlogPostPage.displayName = "BenchmarksPage";
+BlogPostPage.displayName = "BlogPostPage";
 
 export default BlogPostPage;

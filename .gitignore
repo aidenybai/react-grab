@@ -12,10 +12,6 @@ tsup.config.bundled_*.mjs
 packages/website/public/react-grab.global.js
 test-results
 playwright-report
-bench-checkpoint.json
-bench-results.json
-bench-results.svg
-bench-detail.svg
 .vercel
 .cursor/debug.log
 .cursor

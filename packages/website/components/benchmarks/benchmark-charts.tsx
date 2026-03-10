@@ -275,7 +275,7 @@ export const BenchmarkChartsTweet = ({ results }: BenchmarkChartsProps) => {
         </a>{" "}
         dashboard.{" "}
         <a
-          href="https://github.com/aidenybai/react-grab/tree/main/packages/benchmarks/_archived"
+          href="https://github.com/aidenybai/react-bench"
           target="_blank"
           rel="noopener noreferrer"
           className="underline underline-offset-2 hover:text-muted-foreground"
