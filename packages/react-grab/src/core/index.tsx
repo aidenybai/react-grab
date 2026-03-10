@@ -1528,7 +1528,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (wasDragging) {
         document.body.style.userSelect = "";
       }
-      if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
+      if (keydownSpamTimerId !== null) window.clearTimeout(keydownSpamTimerId);
       autoScroller.stop();
       if (
         previousFocused instanceof HTMLElement &&
@@ -3106,9 +3106,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (dragPreviewDebounceTimerId !== null) {
         window.clearTimeout(dragPreviewDebounceTimerId);
       }
-      if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
-      if (toggleFeedbackTimerId) window.clearTimeout(toggleFeedbackTimerId);
-      if (actionCycleIdleTimeoutId) {
+      if (keydownSpamTimerId !== null) window.clearTimeout(keydownSpamTimerId);
+      if (toggleFeedbackTimerId !== null) window.clearTimeout(toggleFeedbackTimerId);
+      if (actionCycleIdleTimeoutId !== null) {
         window.clearTimeout(actionCycleIdleTimeoutId);
       }
       if (dropdownTrackingFrameId !== null) {
