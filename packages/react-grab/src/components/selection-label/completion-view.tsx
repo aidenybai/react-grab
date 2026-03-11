@@ -1,4 +1,4 @@
-import { Show, createSignal, createEffect, onMount, onCleanup } from "solid-js";
+import { Show, createSignal, onMount, onCleanup } from "solid-js";
 import type { Component } from "solid-js";
 import type { CompletionViewProps } from "../../types.js";
 import {
@@ -49,9 +49,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
   let dismissTimeoutId: number | undefined;
   const [didCopy, setDidCopy] = createSignal(false);
   const [isFading, setIsFading] = createSignal(false);
-  const [displayStatusText, setDisplayStatusText] = createSignal(
-    props.statusText,
-  );
+  const displayStatusText = () => (didCopy() ? "Copied" : props.statusText);
   const [followUpInput, setFollowUpInput] = createSignal("");
 
   const handleShowContextMenu = () => {
@@ -65,7 +63,6 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
   const handleAccept = () => {
     if (didCopy()) return;
     setDidCopy(true);
-    setDisplayStatusText("Copied");
     props.onCopyStateChange?.();
     fadeTimeoutId = window.setTimeout(() => {
       setIsFading(true);
@@ -144,12 +141,6 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
   const handleFocus = () => {
     confirmationFocusManager.claim(instanceId);
   };
-
-  createEffect(() => {
-    if (!didCopy()) {
-      setDisplayStatusText(props.statusText);
-    }
-  });
 
   onMount(() => {
     confirmationFocusManager.claim(instanceId);

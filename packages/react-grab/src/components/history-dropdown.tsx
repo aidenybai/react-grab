@@ -5,37 +5,29 @@ import {
   onCleanup,
   createSignal,
   createEffect,
-  createMemo,
   on,
 } from "solid-js";
 import type { Component } from "solid-js";
 import type { HistoryItem, DropdownAnchor } from "../types.js";
 import {
-  DROPDOWN_ANCHOR_GAP_PX,
-  DROPDOWN_ANIMATION_DURATION_MS,
   DROPDOWN_EDGE_TRANSFORM_ORIGIN,
   DROPDOWN_ICON_SIZE_PX,
   DROPDOWN_MAX_WIDTH_PX,
   DROPDOWN_MIN_WIDTH_PX,
-  DROPDOWN_OFFSCREEN_POSITION,
   DROPDOWN_VIEWPORT_PADDING_PX,
   FEEDBACK_DURATION_MS,
   SAFE_POLYGON_BUFFER_PX,
   PANEL_STYLES,
 } from "../constants.js";
 import { createSafePolygonTracker } from "../utils/safe-polygon.js";
-import { getAnchoredDropdownPosition } from "../utils/get-anchored-dropdown-position.js";
 import { cn } from "../utils/cn.js";
 import { IconTrash } from "./icons/icon-trash.jsx";
 import { IconCopy } from "./icons/icon-copy.jsx";
 import { IconCheck } from "./icons/icon-check.jsx";
 import { Tooltip } from "./tooltip.jsx";
-import {
-  nativeCancelAnimationFrame,
-  nativeRequestAnimationFrame,
-} from "../utils/native-raf.js";
 import { createMenuHighlight } from "../utils/create-menu-highlight.js";
 import { suppressMenuEvent } from "../utils/suppress-menu-event.js";
+import { createAnchoredDropdown } from "../utils/create-anchored-dropdown.js";
 
 const ITEM_ACTION_CLASS =
   "flex items-center justify-center cursor-pointer text-black/25 transition-colors press-scale";
@@ -101,8 +93,11 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
     ];
   };
 
-  const [measuredWidth, setMeasuredWidth] = createSignal(0);
-  const [measuredHeight, setMeasuredHeight] = createSignal(0);
+  const dropdown = createAnchoredDropdown(
+    () => containerRef,
+    () => props.position,
+  );
+
   const [activeHeaderTooltip, setActiveHeaderTooltip] = createSignal<
     "clear" | "copy" | null
   >(null);
@@ -113,60 +108,11 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
 
   let copyAllFeedbackTimeout: ReturnType<typeof setTimeout> | undefined;
   let copyItemFeedbackTimeout: ReturnType<typeof setTimeout> | undefined;
-  let exitAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
-  let enterAnimationFrameId: number | undefined;
-  const clearDropdownAnimationHandles = () => {
-    clearTimeout(exitAnimationTimeout);
-    if (enterAnimationFrameId !== undefined) {
-      nativeCancelAnimationFrame(enterAnimationFrameId);
-      enterAnimationFrameId = undefined;
-    }
-  };
-
-  const isVisible = () => props.position !== null;
-  const [shouldMount, setShouldMount] = createSignal(false);
-  const [isAnimatedIn, setIsAnimatedIn] = createSignal(false);
-  const [lastAnchorEdge, setLastAnchorEdge] =
-    createSignal<DropdownAnchor["edge"]>("bottom");
-
-  const measureContainer = () => {
-    if (containerRef) {
-      setMeasuredWidth(containerRef.offsetWidth);
-      setMeasuredHeight(containerRef.offsetHeight);
-    }
-  };
-
-  createEffect(() => {
-    if (isVisible()) {
-      if (props.position) setLastAnchorEdge(props.position.edge);
-      clearTimeout(exitAnimationTimeout);
-      setShouldMount(true);
-      if (enterAnimationFrameId !== undefined)
-        nativeCancelAnimationFrame(enterAnimationFrameId);
-      // HACK: rAF measures then forces reflow so the browser commits the correct position before transitioning in
-      enterAnimationFrameId = nativeRequestAnimationFrame(() => {
-        measureContainer();
-        // HACK: Reading offsetHeight forces a synchronous reflow so the browser commits layout before the transition starts
-        void containerRef?.offsetHeight;
-        setIsAnimatedIn(true);
-      });
-    } else {
-      if (enterAnimationFrameId !== undefined)
-        nativeCancelAnimationFrame(enterAnimationFrameId);
-      setIsAnimatedIn(false);
-      exitAnimationTimeout = setTimeout(() => {
-        setShouldMount(false);
-      }, DROPDOWN_ANIMATION_DURATION_MS);
-    }
-    onCleanup(() => {
-      clearDropdownAnimationHandles();
-    });
-  });
 
   // HACK: mouseenter doesn't fire when an element appears under the cursor, so we check :hover after the enter animation commits
   createEffect(
     on(
-      () => isAnimatedIn(),
+      () => dropdown.isAnimatedIn(),
       (animatedIn) => {
         if (animatedIn && containerRef?.matches(":hover")) {
           props.onDropdownHover?.(true);
@@ -176,43 +122,27 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
     ),
   );
 
-  const displayPosition = createMemo(
-    (previousPosition: { left: number; top: number }) => {
-      const position = getAnchoredDropdownPosition({
-        anchor: props.position,
-        measuredWidth: measuredWidth(),
-        measuredHeight: measuredHeight(),
-        viewportWidth: window.innerWidth,
-        viewportHeight: window.innerHeight,
-        anchorGapPx: DROPDOWN_ANCHOR_GAP_PX,
-        viewportPaddingPx: DROPDOWN_VIEWPORT_PADDING_PX,
-        offscreenPosition: DROPDOWN_OFFSCREEN_POSITION,
-      });
-      if (position.left !== DROPDOWN_OFFSCREEN_POSITION.left) {
-        return position;
-      }
-      return previousPosition;
-    },
-    DROPDOWN_OFFSCREEN_POSITION,
-  );
-
   const clampedMaxWidth = () =>
     Math.min(
       DROPDOWN_MAX_WIDTH_PX,
-      window.innerWidth - displayPosition().left - DROPDOWN_VIEWPORT_PADDING_PX,
+      window.innerWidth -
+        dropdown.displayPosition().left -
+        DROPDOWN_VIEWPORT_PADDING_PX,
     );
 
   const clampedMaxHeight = () =>
-    window.innerHeight - displayPosition().top - DROPDOWN_VIEWPORT_PADDING_PX;
+    window.innerHeight -
+    dropdown.displayPosition().top -
+    DROPDOWN_VIEWPORT_PADDING_PX;
 
   const panelMinWidth = () =>
     Math.max(DROPDOWN_MIN_WIDTH_PX, props.position?.toolbarWidth ?? 0);
 
   onMount(() => {
-    measureContainer();
+    dropdown.measure();
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!isVisible()) return;
+      if (!props.position) return;
       if (event.code === "Escape") {
         event.preventDefault();
         event.stopPropagation();
@@ -225,27 +155,28 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
     onCleanup(() => {
       clearTimeout(copyAllFeedbackTimeout);
       clearTimeout(copyItemFeedbackTimeout);
-      clearDropdownAnimationHandles();
+      dropdown.clearAnimationHandles();
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
       safePolygonTracker.stop();
     });
   });
 
   return (
-    <Show when={shouldMount()}>
+    <Show when={dropdown.shouldMount()}>
       <div
         ref={containerRef}
         data-react-grab-ignore-events
         data-react-grab-history-dropdown
         class="fixed font-sans text-[13px] antialiased filter-[drop-shadow(0px_1px_2px_#51515140)] select-none transition-[opacity,transform] duration-100 ease-out will-change-[opacity,transform]"
         style={{
-          top: `${displayPosition().top}px`,
-          left: `${displayPosition().left}px`,
+          top: `${dropdown.displayPosition().top}px`,
+          left: `${dropdown.displayPosition().left}px`,
           "z-index": "2147483647",
-          "pointer-events": isAnimatedIn() ? "auto" : "none",
-          "transform-origin": DROPDOWN_EDGE_TRANSFORM_ORIGIN[lastAnchorEdge()],
-          opacity: isAnimatedIn() ? "1" : "0",
-          transform: isAnimatedIn() ? "scale(1)" : "scale(0.95)",
+          "pointer-events": dropdown.isAnimatedIn() ? "auto" : "none",
+          "transform-origin":
+            DROPDOWN_EDGE_TRANSFORM_ORIGIN[dropdown.lastAnchorEdge()],
+          opacity: dropdown.isAnimatedIn() ? "1" : "0",
+          transform: dropdown.isAnimatedIn() ? "scale(1)" : "scale(0.95)",
         }}
         onPointerDown={suppressMenuEvent}
         onMouseDown={suppressMenuEvent}
