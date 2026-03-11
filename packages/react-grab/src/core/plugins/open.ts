@@ -18,7 +18,7 @@ export const openPlugin: Plugin = {
         );
 
         if (!wasHandled) {
-          openFile(
+          void openFile(
             context.filePath,
             context.lineNumber,
             context.hooks.transformOpenFileUrl,
