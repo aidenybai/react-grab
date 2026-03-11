@@ -25,15 +25,12 @@ import {
 } from "../utils/native-raf.js";
 import { ReactGrabRenderer } from "../components/renderer.js";
 import {
-  getStack,
   getStackContext,
   getNearestComponentName,
-  checkIsSourceComponentName,
   getComponentDisplayName,
-  resolveSourceFromStack,
   checkIsNextProject,
 } from "./context.js";
-import { isSourceFile, normalizeFileName } from "bippy/source";
+import { resolveSource } from "element-source";
 import { createNoopApi } from "./noop-api.js";
 import { createEventListenerManager } from "./events.js";
 import { tryCopyWithFallback } from "./copy.js";
@@ -573,34 +570,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     ): Promise<void> => {
       const elementsPayload = await Promise.all(
         elements.map(async (element) => {
-          const stack = await getStack(element);
-
-          let componentName: string | null = null;
-          let filePath: string | undefined;
-          let lineNumber: number | undefined;
-          let columnNumber: number | undefined;
-
-          if (stack && stack.length > 0) {
-            for (const frame of stack) {
-              const hasSourceComponentName =
-                frame.functionName &&
-                checkIsSourceComponentName(frame.functionName);
-              const hasSourceFile =
-                frame.fileName && isSourceFile(frame.fileName);
-
-              if (hasSourceComponentName && !componentName) {
-                componentName = frame.functionName!;
-              }
-
-              if (hasSourceFile && !filePath) {
-                filePath = normalizeFileName(frame.fileName!);
-                lineNumber = frame.lineNumber || undefined;
-                columnNumber = frame.columnNumber || undefined;
-              }
-
-              if (componentName && filePath) break;
-            }
-          }
+          const source = await resolveSource(element);
+          let componentName = source?.componentName ?? null;
+          const filePath = source?.filePath;
+          const lineNumber = source?.lineNumber ?? undefined;
+          const columnNumber = source?.columnNumber ?? undefined;
 
           if (!componentName) {
             componentName = getComponentDisplayName(element);
@@ -1292,20 +1266,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             return;
           }
 
-          getStack(element)
-            .then((stack) => {
+          resolveSource(element)
+            .then((source) => {
               if (selectionSourceRequestVersion !== currentVersion) return;
-              if (!stack) return;
-              for (const frame of stack) {
-                if (frame.fileName && isSourceFile(frame.fileName)) {
-                  actions.setSelectionSource(
-                    normalizeFileName(frame.fileName),
-                    frame.lineNumber ?? null,
-                  );
-                  return;
-                }
+              if (!source) {
+                clearSource();
+                return;
               }
-              clearSource();
+              actions.setSelectionSource(
+                source.filePath,
+                source.lineNumber,
+              );
             })
             .catch(() => {
               if (selectionSourceRequestVersion === currentVersion) {
@@ -3332,8 +3303,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => store.contextMenuElement,
       async (element) => {
         if (!element) return null;
-        const stack = await getStack(element);
-        return resolveSourceFromStack(stack);
+        return resolveSource(element);
       },
     );
 
@@ -3539,7 +3509,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return buildActionContext({
           element,
           filePath: fileInfo?.filePath,
-          lineNumber: fileInfo?.lineNumber,
+          lineNumber: fileInfo?.lineNumber ?? undefined,
           tagName: contextMenuTagName(),
           componentName: contextMenuComponentName(),
           position,
@@ -4276,12 +4246,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
       copyElement: copyElementAPI,
       getSource: async (element: Element): Promise<SourceInfo | null> => {
-        const stack = await getStack(element);
-        const source = resolveSourceFromStack(stack);
+        const source = await resolveSource(element);
         if (!source) return null;
         return {
           filePath: source.filePath,
-          lineNumber: source.lineNumber ?? null,
+          lineNumber: source.lineNumber,
           componentName: source.componentName,
         };
       },
