@@ -22,6 +22,7 @@ export const openPlugin: Plugin = {
             context.filePath,
             context.lineNumber,
             context.hooks.transformOpenFileUrl,
+            context.hooks.allowExternalCommunication ?? true,
           );
         }
 

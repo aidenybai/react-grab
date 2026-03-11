@@ -210,6 +210,7 @@ export type ActivationMode = "toggle" | "hold";
 
 export interface ActionContextHooks {
   transformHtmlContent: (html: string, elements: Element[]) => Promise<string>;
+  allowExternalCommunication?: boolean;
   onOpenFile: (filePath: string, lineNumber?: number) => boolean | void;
   transformOpenFileUrl: (
     url: string,
@@ -368,6 +369,13 @@ export interface Options {
   activationMode?: ActivationMode;
   keyHoldDuration?: number;
   allowActivationInsideInput?: boolean;
+  /**
+   * Whether React Grab can make remote network requests or load remote assets.
+   * When disabled, React Grab skips version checks, remote font loading, and
+   * remote open-file fallbacks.
+   * @default true
+   */
+  allowExternalCommunication?: boolean;
   maxContextLines?: number;
   activationKey?: ActivationKey;
   getContent?: (elements: Element[]) => Promise<string> | string;

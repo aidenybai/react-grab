@@ -182,6 +182,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     activationMode: "toggle",
     keyHoldDuration: DEFAULT_KEY_HOLD_DURATION_MS,
     allowActivationInsideInput: true,
+    allowExternalCommunication: true,
     maxContextLines: DEFAULT_MAX_CONTEXT_LINES,
     ...scriptOptions,
     ...rawOptions,
@@ -192,7 +193,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   }
   hasInited = true;
 
-  logIntro();
+  logIntro(initialOptions.allowExternalCommunication ?? true);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- need to omit enabled from settableOptions to avoid circular dependency
   const { enabled: _enabled, ...settableOptions } = initialOptions;
@@ -2297,6 +2298,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           filePath,
           lineNumber ?? undefined,
           pluginRegistry.hooks.transformOpenFileUrl,
+          pluginRegistry.store.options.allowExternalCommunication,
         );
       }
       return true;
@@ -3131,7 +3133,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const resolvedCssText = typeof cssText === "string" ? cssText : "";
-    const rendererRoot = mountRoot(resolvedCssText);
+    const rendererRoot = mountRoot(
+      resolvedCssText,
+      pluginRegistry.store.options.allowExternalCommunication,
+    );
 
     const isThemeEnabled = createMemo(() => pluginRegistry.store.theme.enabled);
     const isSelectionBoxThemeEnabled = createMemo(
@@ -3504,6 +3509,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         copy: copyAction,
         hooks: {
           transformHtmlContent: pluginRegistry.hooks.transformHtmlContent,
+          allowExternalCommunication:
+            pluginRegistry.store.options.allowExternalCommunication,
           onOpenFile: pluginRegistry.hooks.onOpenFile,
           transformOpenFileUrl: pluginRegistry.hooks.transformOpenFileUrl,
         },
