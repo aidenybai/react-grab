@@ -182,6 +182,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     activationMode: "toggle",
     keyHoldDuration: DEFAULT_KEY_HOLD_DURATION_MS,
     allowActivationInsideInput: true,
+    allowExternalCommunication: true,
     maxContextLines: DEFAULT_MAX_CONTEXT_LINES,
     ...scriptOptions,
     ...rawOptions,
@@ -192,7 +193,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   }
   hasInited = true;
 
-  logIntro();
+  logIntro(initialOptions.allowExternalCommunication ?? true);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- need to omit enabled from settableOptions to avoid circular dependency
   const { enabled: _enabled, ...settableOptions } = initialOptions;
@@ -2277,28 +2278,35 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return false;
     };
 
-    const handleOpenFileShortcut = (event: KeyboardEvent): boolean => {
-      if (event.key?.toLowerCase() !== "o" || isPromptMode()) return false;
-      if (!isActivated() || !(event.metaKey || event.ctrlKey)) return false;
-
+    const openSelectionFile = (): boolean => {
       const filePath = store.selectionFilePath;
       const lineNumber = store.selectionLineNumber;
       if (!filePath) return false;
-
-      event.preventDefault();
-      event.stopPropagation();
 
       const wasHandled = pluginRegistry.hooks.onOpenFile(
         filePath,
         lineNumber ?? undefined,
       );
       if (!wasHandled) {
-        openFile(
+        void openFile(
           filePath,
           lineNumber ?? undefined,
           pluginRegistry.hooks.transformOpenFileUrl,
+          pluginRegistry.store.options.allowExternalCommunication,
         );
       }
+      return true;
+    };
+
+    const handleOpenFileShortcut = (event: KeyboardEvent): boolean => {
+      if (event.key?.toLowerCase() !== "o" || isPromptMode()) return false;
+      if (!isActivated() || !(event.metaKey || event.ctrlKey)) return false;
+
+      const didOpenSelectionFile = openSelectionFile();
+      if (!didOpenSelectionFile) return false;
+
+      event.preventDefault();
+      event.stopPropagation();
       return true;
     };
 
@@ -3131,7 +3139,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const resolvedCssText = typeof cssText === "string" ? cssText : "";
-    const rendererRoot = mountRoot(resolvedCssText);
+    const rendererRoot = mountRoot(
+      resolvedCssText,
+      pluginRegistry.store.options.allowExternalCommunication,
+    );
 
     const isThemeEnabled = createMemo(() => pluginRegistry.store.theme.enabled);
     const isSelectionBoxThemeEnabled = createMemo(
@@ -3500,6 +3511,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         lineNumber,
         componentName,
         tagName,
+        allowExternalCommunication:
+          pluginRegistry.store.options.allowExternalCommunication,
         enterPromptMode: customEnterPromptMode ?? defaultEnterPromptMode,
         copy: copyAction,
         hooks: {
@@ -4036,6 +4049,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             selectionElementsCount={frozenElementsCount()}
             selectionFilePath={store.selectionFilePath ?? undefined}
             selectionLineNumber={store.selectionLineNumber ?? undefined}
+            onOpenSelectionFile={openSelectionFile}
             selectionTagName={selectionTagName()}
             selectionComponentName={resolvedComponentName()}
             selectionLabelVisible={selectionLabelVisible()}

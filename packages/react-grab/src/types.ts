@@ -225,6 +225,7 @@ export interface ActionContext {
   lineNumber?: number;
   componentName?: string;
   tagName?: string;
+  allowExternalCommunication: boolean;
   enterPromptMode?: (agent?: AgentOptions) => void;
   hooks: ActionContextHooks;
   performWithFeedback: (action: () => Promise<boolean>) => Promise<void>;
@@ -368,6 +369,13 @@ export interface Options {
   activationMode?: ActivationMode;
   keyHoldDuration?: number;
   allowActivationInsideInput?: boolean;
+  /**
+   * Whether React Grab can make remote network requests or load remote assets.
+   * When disabled, React Grab skips version checks, remote font loading, and
+   * remote open-file fallbacks.
+   * @default true
+   */
+  allowExternalCommunication?: boolean;
   maxContextLines?: number;
   activationKey?: ActivationKey;
   getContent?: (elements: Element[]) => Promise<string> | string;
@@ -485,6 +493,7 @@ export interface ReactGrabRendererProps {
   selectionElementsCount?: number;
   selectionFilePath?: string;
   selectionLineNumber?: number;
+  onOpenSelectionFile?: () => void;
   selectionTagName?: string;
   selectionComponentName?: string;
   selectionLabelVisible?: boolean;

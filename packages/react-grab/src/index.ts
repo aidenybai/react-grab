@@ -44,12 +44,13 @@ export type {
 } from "./types.js";
 
 import { init } from "./core/index.js";
-import type { Plugin, ReactGrabAPI } from "./types.js";
+import type { Options, Plugin, ReactGrabAPI } from "./types.js";
 
 declare global {
   interface Window {
     __REACT_GRAB__?: ReactGrabAPI;
     __REACT_GRAB_DISABLED__?: boolean;
+    __REACT_GRAB_OPTIONS__?: Options;
   }
 }
 
@@ -109,7 +110,7 @@ if (typeof window !== "undefined" && !window.__REACT_GRAB_DISABLED__) {
   if (window.__REACT_GRAB__) {
     globalApi = window.__REACT_GRAB__;
   } else {
-    globalApi = init();
+    globalApi = init(window.__REACT_GRAB_OPTIONS__);
     window.__REACT_GRAB__ = globalApi;
   }
   flushPendingPlugins(globalApi);

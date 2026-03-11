@@ -26,6 +26,7 @@ export const openFile = async (
   filePath: string,
   lineNumber: number | undefined,
   transformUrl?: (url: string, filePath: string, lineNumber?: number) => string,
+  allowExternalCommunication = true,
 ): Promise<void> => {
   filePath = normalizeFileName(filePath);
 
@@ -39,5 +40,18 @@ export const openFile = async (
   const url = transformUrl
     ? transformUrl(rawUrl, filePath, lineNumber)
     : rawUrl;
+  if (!allowExternalCommunication) {
+    let targetUrl: URL;
+    try {
+      targetUrl = new URL(url, window.location.href);
+    } catch {
+      return;
+    }
+    const isHttpProtocol =
+      targetUrl.protocol === "http:" || targetUrl.protocol === "https:";
+    if (isHttpProtocol && targetUrl.origin !== window.location.origin) {
+      return;
+    }
+  }
   window.open(url, "_blank", "noopener,noreferrer");
 };
