@@ -11,6 +11,9 @@ const getGoogleFontUrl = (fontFamily: string, weight: number) =>
 const fetchFont = async (fontFamily: string, weight: number) => {
   const cssUrl = getGoogleFontUrl(fontFamily, weight);
   const cssResponse = await fetch(cssUrl);
+  if (!cssResponse.ok) {
+    throw new Error(`Failed to fetch font CSS: ${cssResponse.status}`);
+  }
   const cssText = await cssResponse.text();
 
   const fontUrlMatch = cssText.match(/src: url\(([^)]+)\)/);
@@ -20,6 +23,9 @@ const fetchFont = async (fontFamily: string, weight: number) => {
 
   const fontUrl = fontUrlMatch[1];
   const fontResponse = await fetch(fontUrl);
+  if (!fontResponse.ok) {
+    throw new Error(`Failed to fetch font: ${fontResponse.status}`);
+  }
   return fontResponse.arrayBuffer();
 };
 
