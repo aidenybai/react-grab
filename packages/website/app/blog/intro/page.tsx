@@ -268,6 +268,20 @@ const BlogPostPage = () => {
       date="November 24, 2025"
       headings={headings}
     >
+      <Link
+        href="https://react-bench.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-2 rounded-lg border border-[#ff4fff]/20 bg-[#ff4fff]/5 px-4 py-3 text-sm text-foreground/80 transition-colors hover:border-[#ff4fff]/40 hover:bg-[#ff4fff]/10 mb-6"
+      >
+        <span className="shrink-0 text-[#ff4fff]">&#x2192;</span>
+        <span>
+          <span className="font-medium text-foreground/90">Update:</span> Full
+          benchmarks against similar tools (298 test cases) are now live
+          at&nbsp;react-bench.com
+        </span>
+      </Link>
+
       <Collapsible header={<span className="text-sm font-medium">TL;DR</span>}>
         <div className="pt-4">
           <BenchmarkChartsTweet results={resultsData as BenchmarkResult[]} />
@@ -578,21 +592,6 @@ const BlogPostPage = () => {
           attempts. This unpredictability adds latency, increases token
           consumption, and degrades overall performance.
         </p>
-
-        <p>
-          With React Grab, the search phase is eliminated entirely. The
-          component stack with exact file paths and line numbers is embedded
-          directly in the DOM. The agent can jump straight to the correct file
-          and locate what it needs in O(1) time complexity.
-        </p>
-
-        <p>
-          …and turns out, Claude Code becomes ~
-          <span className="font-medium text-foreground/80">
-            3× faster with React Grab
-          </span>
-          !<sup className="text-neutral-500 text-[10px] ml-0.5">3</sup>
-        </p>
         <div className="py-4">
           <TimeComparisonChart />
         </div>
@@ -608,6 +607,21 @@ const BlogPostPage = () => {
       </div>
 
       <div className="flex flex-col gap-6 text-muted-foreground mb-16">
+        <p>
+          With React Grab, the search phase is eliminated entirely. The
+          component stack with exact file paths and line numbers is embedded
+          directly in the DOM. The agent can jump straight to the correct file
+          and locate what it needs in O(1) time complexity.
+        </p>
+
+        <p>
+          …and turns out, Claude Code becomes ~
+          <span className="font-medium text-foreground/80">
+            3× faster with React Grab
+          </span>
+          !<sup className="text-neutral-500 text-[10px] ml-0.5">3</sup>
+        </p>
+
         <p>
           Below are the latest measurement results from all 20 test cases. The
           table below shows a detailed breakdown comparing performance metrics
@@ -697,11 +711,11 @@ const BlogPostPage = () => {
               happens with different frameworks/sizes/patterns? Need to run it
               on more repos.
             </li>
-            <li>Different agents/model providers</li>
             <li>
               Multiple trials and sampling - decrease variance, since agents are
               non-deterministic
             </li>
+            <li>Different agents/model providers</li>
           </ul>
           <p>
             On the React Grab side - there&apos;s also a bunch of stuff that
