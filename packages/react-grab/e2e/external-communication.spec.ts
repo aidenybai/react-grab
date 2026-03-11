@@ -146,15 +146,11 @@ test.describe("External Communication", () => {
       { timeout: 5000 },
     );
 
-    await page.evaluate(() => {
-      const host = document.querySelector("[data-react-grab]");
-      const shadowRoot = host?.shadowRoot;
-      const root = shadowRoot?.querySelector("[data-react-grab]");
-      const clickableTagBadge = root?.querySelector<HTMLDivElement>(
-        "[data-react-grab-selection-label] .cursor-pointer",
-      );
-      clickableTagBadge?.click();
-    });
+    const selectionLabelOpenButton = page.locator(
+      "[data-react-grab-selection-label] .cursor-pointer",
+    );
+    await expect(selectionLabelOpenButton).toBeVisible();
+    await selectionLabelOpenButton.click({ force: true });
     await page.waitForTimeout(200);
 
     const openUrls = await page.evaluate(() => {
