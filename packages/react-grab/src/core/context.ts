@@ -26,6 +26,7 @@ import {
 } from "../constants.js";
 import { getTagName } from "../utils/get-tag-name.js";
 import { truncateString } from "../utils/truncate-string.js";
+import { getNextBasePath } from "../utils/get-next-base-path.js";
 
 const NON_COMPONENT_PREFIXES = new Set([
   "_",
@@ -191,17 +192,20 @@ const symbolicateServerFrames = async (
     // Introduced by vercel/next.js#75557 (batched POST, replaces legacy per-frame GET).
     // Handler: packages/next/src/client/components/react-dev-overlay/server/middleware-webpack.ts
     // Types:   packages/next/src/client/components/react-dev-overlay/server/shared.ts
-    const response = await fetch("/__nextjs_original-stack-frames", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        frames: requestFrames,
-        isServer: true,
-        isEdgeServer: false,
-        isAppDirectory: true,
-      }),
-      signal: controller.signal,
-    });
+    const response = await fetch(
+      `${getNextBasePath()}/__nextjs_original-stack-frames`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          frames: requestFrames,
+          isServer: true,
+          isEdgeServer: false,
+          isAppDirectory: true,
+        }),
+        signal: controller.signal,
+      },
+    );
 
     if (!response.ok) return frames;
 

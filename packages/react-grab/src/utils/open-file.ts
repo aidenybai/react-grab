@@ -1,5 +1,6 @@
 import { normalizeFileName } from "bippy/source";
 import { checkIsNextProject } from "../core/context.js";
+import { getNextBasePath } from "./get-next-base-path.js";
 import { buildOpenFileUrl } from "./build-open-file-url.js";
 
 const tryDevServerOpen = async (
@@ -15,8 +16,8 @@ const tryDevServerOpen = async (
   params.set(columnKey, "1");
 
   const endpoint = isNextProject
-    ? "/__nextjs_launch-editor" // Next.js
-    : "/__open-in-editor"; // vite
+    ? `${getNextBasePath()}/__nextjs_launch-editor`
+    : "/__open-in-editor";
   const response = await fetch(`${endpoint}?${params}`);
   return response.ok;
 };
