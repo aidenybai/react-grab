@@ -44,11 +44,9 @@ test.describe("External Communication", () => {
     expect(hasFontLink).toBe(false);
   });
 
-  test("should not open a remote open-file fallback when disabled", async ({
+  test("should not open a remote open-file fallback from the selection label when disabled", async ({
     page,
   }) => {
-    const modifierKey = process.platform === "darwin" ? "Meta" : "Control";
-
     await page.addInitScript(() => {
       (
         window as {
@@ -148,9 +146,15 @@ test.describe("External Communication", () => {
       { timeout: 5000 },
     );
 
-    await page.keyboard.down(modifierKey);
-    await page.keyboard.press("o");
-    await page.keyboard.up(modifierKey);
+    await page.evaluate(() => {
+      const host = document.querySelector("[data-react-grab]");
+      const shadowRoot = host?.shadowRoot;
+      const root = shadowRoot?.querySelector("[data-react-grab]");
+      const clickableTagBadge = root?.querySelector<HTMLDivElement>(
+        "[data-react-grab-selection-label] .cursor-pointer",
+      );
+      clickableTagBadge?.click();
+    });
     await page.waitForTimeout(200);
 
     const openUrls = await page.evaluate(() => {

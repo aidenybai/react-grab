@@ -210,7 +210,6 @@ export type ActivationMode = "toggle" | "hold";
 
 export interface ActionContextHooks {
   transformHtmlContent: (html: string, elements: Element[]) => Promise<string>;
-  allowExternalCommunication?: boolean;
   onOpenFile: (filePath: string, lineNumber?: number) => boolean | void;
   transformOpenFileUrl: (
     url: string,
@@ -226,6 +225,7 @@ export interface ActionContext {
   lineNumber?: number;
   componentName?: string;
   tagName?: string;
+  allowExternalCommunication: boolean;
   enterPromptMode?: (agent?: AgentOptions) => void;
   hooks: ActionContextHooks;
   performWithFeedback: (action: () => Promise<boolean>) => Promise<void>;
@@ -493,6 +493,7 @@ export interface ReactGrabRendererProps {
   selectionElementsCount?: number;
   selectionFilePath?: string;
   selectionLineNumber?: number;
+  onOpenSelectionFile?: () => void;
   selectionTagName?: string;
   selectionComponentName?: string;
   selectionLabelVisible?: boolean;

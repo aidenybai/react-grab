@@ -2278,29 +2278,35 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return false;
     };
 
-    const handleOpenFileShortcut = (event: KeyboardEvent): boolean => {
-      if (event.key?.toLowerCase() !== "o" || isPromptMode()) return false;
-      if (!isActivated() || !(event.metaKey || event.ctrlKey)) return false;
-
+    const openSelectionFile = (): boolean => {
       const filePath = store.selectionFilePath;
       const lineNumber = store.selectionLineNumber;
       if (!filePath) return false;
-
-      event.preventDefault();
-      event.stopPropagation();
 
       const wasHandled = pluginRegistry.hooks.onOpenFile(
         filePath,
         lineNumber ?? undefined,
       );
       if (!wasHandled) {
-        openFile(
+        void openFile(
           filePath,
           lineNumber ?? undefined,
           pluginRegistry.hooks.transformOpenFileUrl,
           pluginRegistry.store.options.allowExternalCommunication,
         );
       }
+      return true;
+    };
+
+    const handleOpenFileShortcut = (event: KeyboardEvent): boolean => {
+      if (event.key?.toLowerCase() !== "o" || isPromptMode()) return false;
+      if (!isActivated() || !(event.metaKey || event.ctrlKey)) return false;
+
+      const didOpenSelectionFile = openSelectionFile();
+      if (!didOpenSelectionFile) return false;
+
+      event.preventDefault();
+      event.stopPropagation();
       return true;
     };
 
@@ -3505,12 +3511,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         lineNumber,
         componentName,
         tagName,
+        allowExternalCommunication:
+          pluginRegistry.store.options.allowExternalCommunication,
         enterPromptMode: customEnterPromptMode ?? defaultEnterPromptMode,
         copy: copyAction,
         hooks: {
           transformHtmlContent: pluginRegistry.hooks.transformHtmlContent,
-          allowExternalCommunication:
-            pluginRegistry.store.options.allowExternalCommunication,
           onOpenFile: pluginRegistry.hooks.onOpenFile,
           transformOpenFileUrl: pluginRegistry.hooks.transformOpenFileUrl,
         },
@@ -4043,6 +4049,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             selectionElementsCount={frozenElementsCount()}
             selectionFilePath={store.selectionFilePath ?? undefined}
             selectionLineNumber={store.selectionLineNumber ?? undefined}
+            onOpenSelectionFile={openSelectionFile}
             selectionTagName={selectionTagName()}
             selectionComponentName={resolvedComponentName()}
             selectionLabelVisible={selectionLabelVisible()}
