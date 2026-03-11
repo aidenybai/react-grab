@@ -375,16 +375,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const hasAgentProvider = createMemo(() => store.hasAgentProvider);
 
     const clearHoldTimer = () => {
-      if (holdTimerId !== null) {
-        clearTimeout(holdTimerId);
-        holdTimerId = null;
+      if (holdState.timerId !== null) {
+        clearTimeout(holdState.timerId);
+        holdState.timerId = null;
       }
     };
 
     const resetCopyConfirmation = () => {
-      copyWaitingForConfirmation = false;
-      holdTimerFiredWaitingForConfirmation = false;
-      holdStartTimestamp = null;
+      holdState.copyWaiting = false;
+      holdState.holdTimerFired = false;
+      holdState.startTimestamp = null;
     };
 
     createEffect(() => {
@@ -392,11 +392,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         clearHoldTimer();
         return;
       }
-      holdStartTimestamp = Date.now();
-      holdTimerId = window.setTimeout(() => {
-        holdTimerId = null;
-        if (copyWaitingForConfirmation) {
-          holdTimerFiredWaitingForConfirmation = true;
+      holdState.startTimestamp = Date.now();
+      holdState.timerId = window.setTimeout(() => {
+        holdState.timerId = null;
+        if (holdState.copyWaiting) {
+          holdState.holdTimerFired = true;
           return;
         }
         actions.activate();
@@ -464,10 +464,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return createElementBounds(element);
     };
 
-    let lastElementDetectionTime = 0;
-    let pendingDetectionScheduledAt = 0;
-    let latestDetectionX = 0;
-    let latestDetectionY = 0;
+    const detectionState = {
+      lastTime: 0,
+      pendingScheduledAt: 0,
+      latestX: 0,
+      latestY: 0,
+    };
     let dragPreviewDebounceTimerId: number | null = null;
     const [debouncedDragPointer, setDebouncedDragPointer] = createSignal<{
       x: number;
@@ -484,13 +486,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, DRAG_PREVIEW_DEBOUNCE_MS);
     };
     let keydownSpamTimerId: number | null = null;
-    let holdTimerId: number | null = null;
-    let holdStartTimestamp: number | null = null;
-    let copyWaitingForConfirmation = false;
-    let holdTimerFiredWaitingForConfirmation = false;
+    const holdState = {
+      timerId: null as number | null,
+      startTimestamp: null as number | null,
+      copyWaiting: false,
+      holdTimerFired: false,
+    };
     let lastWindowFocusTimestamp = 0;
-    let inToggleFeedbackPeriod = false;
-    let toggleFeedbackTimerId: number | null = null;
+    const feedbackState = {
+      inTogglePeriod: false,
+      timerId: null as number | null,
+    };
     let actionCycleIdleTimeoutId: number | null = null;
     let selectionSourceRequestVersion = 0;
     let componentNameRequestVersion = 0;
@@ -740,7 +746,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       elements,
       existingInstanceId,
     }: ExecuteCopyOptions) => {
-      inToggleFeedbackPeriod = false;
+      feedbackState.inTogglePeriod = false;
       if (store.current.state !== "copying") {
         actions.startCopy();
       }
@@ -794,13 +800,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           deactivateRenderer();
         } else if (didSucceed) {
           actions.activate();
-          inToggleFeedbackPeriod = true;
-          if (toggleFeedbackTimerId !== null) {
-            window.clearTimeout(toggleFeedbackTimerId);
+          feedbackState.inTogglePeriod = true;
+          if (feedbackState.timerId !== null) {
+            window.clearTimeout(feedbackState.timerId);
           }
-          toggleFeedbackTimerId = window.setTimeout(() => {
-            inToggleFeedbackPeriod = false;
-            toggleFeedbackTimerId = null;
+          feedbackState.timerId = window.setTimeout(() => {
+            feedbackState.inTogglePeriod = false;
+            feedbackState.timerId = null;
           }, FEEDBACK_DURATION_MS);
         } else {
           actions.unfreeze();
@@ -987,7 +993,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           : positionX;
 
       const tagName = getTagName(element);
-      inToggleFeedbackPeriod = false;
+      feedbackState.inTogglePeriod = false;
       actions.startCopy();
 
       const labelInstanceId = tagName
@@ -1511,11 +1517,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const clearToggleFeedbackState = () => {
-      if (toggleFeedbackTimerId !== null) {
-        window.clearTimeout(toggleFeedbackTimerId);
-        toggleFeedbackTimerId = null;
+      if (feedbackState.timerId !== null) {
+        window.clearTimeout(feedbackState.timerId);
+        feedbackState.timerId = null;
       }
-      inToggleFeedbackPeriod = false;
+      feedbackState.inTogglePeriod = false;
     };
 
     const deactivateRenderer = () => {
@@ -1807,28 +1813,29 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       actions.setPointer({ x: clientX, y: clientY });
 
-      latestDetectionX = clientX;
-      latestDetectionY = clientY;
+      detectionState.latestX = clientX;
+      detectionState.latestY = clientY;
 
       const now = performance.now();
       const isDetectionPending =
-        pendingDetectionScheduledAt > 0 &&
-        now - pendingDetectionScheduledAt < PENDING_DETECTION_STALENESS_MS;
+        detectionState.pendingScheduledAt > 0 &&
+        now - detectionState.pendingScheduledAt <
+          PENDING_DETECTION_STALENESS_MS;
       if (
-        now - lastElementDetectionTime >= ELEMENT_DETECTION_THROTTLE_MS &&
+        now - detectionState.lastTime >= ELEMENT_DETECTION_THROTTLE_MS &&
         !isDetectionPending
       ) {
-        lastElementDetectionTime = now;
-        pendingDetectionScheduledAt = now;
+        detectionState.lastTime = now;
+        detectionState.pendingScheduledAt = now;
         onIdle(() => {
           const candidate = getElementAtPosition(
-            latestDetectionX,
-            latestDetectionY,
+            detectionState.latestX,
+            detectionState.latestY,
           );
           if (candidate !== store.detectedElement) {
             actions.setDetectedElement(candidate);
           }
-          pendingDetectionScheduledAt = 0;
+          detectionState.pendingScheduledAt = 0;
         });
       }
 
@@ -2507,8 +2514,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       if (isHoldingKeys() && event.repeat) {
-        if (copyWaitingForConfirmation) {
-          const shouldActivate = holdTimerFiredWaitingForConfirmation;
+        if (holdState.copyWaiting) {
+          const shouldActivate = holdState.holdTimerFired;
           resetCopyConfirmation();
           if (shouldActivate) {
             actions.activate();
@@ -2694,9 +2701,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               )
           : isCLikeKey(event.key, event.code);
 
-        if (didJustCopy() || inToggleFeedbackPeriod) {
+        if (didJustCopy() || feedbackState.inTogglePeriod) {
           if (isReleasingActivationKey || isReleasingModifier) {
-            inToggleFeedbackPeriod = false;
+            feedbackState.inTogglePeriod = false;
             deactivateRenderer();
           }
           return;
@@ -2749,17 +2756,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
           const shouldRelease =
             isHoldingKeys() ||
-            (holdTimerFiredWaitingForConfirmation && isReleasingModifier);
+            (holdState.holdTimerFired && isReleasingModifier);
 
           if (shouldRelease) {
             clearHoldTimer();
-            const elapsedSinceHoldStart = holdStartTimestamp
-              ? Date.now() - holdStartTimestamp
+            const elapsedSinceHoldStart = holdState.startTimestamp
+              ? Date.now() - holdState.startTimestamp
               : 0;
             const heldLongEnoughForActivation =
               elapsedSinceHoldStart >= MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS;
             const shouldActivateAfterCopy =
-              holdTimerFiredWaitingForConfirmation &&
+              holdState.holdTimerFired &&
               heldLongEnoughForActivation &&
               (pluginRegistry.store.options.allowActivationInsideInput ||
                 !isKeyboardEventTriggeredByInput(event));
@@ -2779,7 +2786,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     eventListenerManager.addDocumentListener("copy", () => {
       if (isHoldingKeys()) {
-        copyWaitingForConfirmation = true;
+        holdState.copyWaiting = true;
       }
     });
 
@@ -3107,7 +3114,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         window.clearTimeout(dragPreviewDebounceTimerId);
       }
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
-      if (toggleFeedbackTimerId) window.clearTimeout(toggleFeedbackTimerId);
+      if (feedbackState.timerId) window.clearTimeout(feedbackState.timerId);
       if (actionCycleIdleTimeoutId) {
         window.clearTimeout(actionCycleIdleTimeoutId);
       }
@@ -3718,6 +3725,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     };
 
+    const scheduleHistoryHoverClose = () => {
+      historyHoverCloseTimeoutId = setTimeout(() => {
+        historyHoverCloseTimeoutId = null;
+        dismissHistoryDropdown();
+      }, DROPDOWN_HOVER_OPEN_DELAY_MS);
+    };
+
     const dismissToolbarMenu = () => {
       stopTrackingDropdownPosition();
       setToolbarMenuPosition(null);
@@ -3908,10 +3922,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           }, DROPDOWN_HOVER_OPEN_DELAY_MS);
         }
       } else if (isHistoryHoverOpen()) {
-        historyHoverCloseTimeoutId = setTimeout(() => {
-          historyHoverCloseTimeoutId = null;
-          dismissHistoryDropdown();
-        }, DROPDOWN_HOVER_OPEN_DELAY_MS);
+        scheduleHistoryHoverClose();
       }
     };
 
@@ -3919,10 +3930,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isHovered) {
         cancelHistoryHoverCloseTimeout();
       } else if (isHistoryHoverOpen()) {
-        historyHoverCloseTimeoutId = setTimeout(() => {
-          historyHoverCloseTimeoutId = null;
-          dismissHistoryDropdown();
-        }, DROPDOWN_HOVER_OPEN_DELAY_MS);
+        scheduleHistoryHoverClose();
       }
     };
 
@@ -3932,10 +3940,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         cancelHistoryHoverCloseTimeout();
         showAllHistoryItemPreviews();
       } else if (isHistoryHoverOpen()) {
-        historyHoverCloseTimeoutId = setTimeout(() => {
-          historyHoverCloseTimeoutId = null;
-          dismissHistoryDropdown();
-        }, DROPDOWN_HOVER_OPEN_DELAY_MS);
+        scheduleHistoryHoverClose();
       }
     };
 
@@ -4291,18 +4296,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         isDragBoxVisible: dragVisible() ?? false,
         targetElement: targetElement(),
         dragBounds: dragBounds() ?? null,
-        grabbedBoxes: store.grabbedBoxes.map((box) => ({
-          id: box.id,
-          bounds: box.bounds,
-          createdAt: box.createdAt,
-        })),
-        labelInstances: store.labelInstances.map((instance) => ({
-          id: instance.id,
-          status: instance.status,
-          tagName: instance.tagName,
-          componentName: instance.componentName,
-          createdAt: instance.createdAt,
-        })),
+        grabbedBoxes: stateChangeGrabbedBoxes(),
+        labelInstances: stateChangeLabelInstances(),
         selectionFilePath: store.selectionFilePath,
         toolbarState: currentToolbarState(),
       }),

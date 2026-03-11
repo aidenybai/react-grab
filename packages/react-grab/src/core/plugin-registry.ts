@@ -124,30 +124,21 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     setStore("options", optionKey, optionValue);
   };
 
+  const SETTABLE_OPTION_KEYS: Array<keyof OptionsState> = [
+    "activationMode",
+    "keyHoldDuration",
+    "allowActivationInsideInput",
+    "maxContextLines",
+    "activationKey",
+    "getContent",
+    "freezeReactUpdates",
+  ];
+
   const setOptions = (optionUpdates: SettableOptions) => {
-    if (optionUpdates.activationMode !== undefined) {
-      setOption("activationMode", optionUpdates.activationMode);
-    }
-    if (optionUpdates.keyHoldDuration !== undefined) {
-      setOption("keyHoldDuration", optionUpdates.keyHoldDuration);
-    }
-    if (optionUpdates.allowActivationInsideInput !== undefined) {
-      setOption(
-        "allowActivationInsideInput",
-        optionUpdates.allowActivationInsideInput,
-      );
-    }
-    if (optionUpdates.maxContextLines !== undefined) {
-      setOption("maxContextLines", optionUpdates.maxContextLines);
-    }
-    if (optionUpdates.activationKey !== undefined) {
-      setOption("activationKey", optionUpdates.activationKey);
-    }
-    if (optionUpdates.getContent !== undefined) {
-      setOption("getContent", optionUpdates.getContent);
-    }
-    if (optionUpdates.freezeReactUpdates !== undefined) {
-      setOption("freezeReactUpdates", optionUpdates.freezeReactUpdates);
+    for (const optionKey of SETTABLE_OPTION_KEYS) {
+      if (optionUpdates[optionKey] !== undefined) {
+        setOption(optionKey, optionUpdates[optionKey]!);
+      }
     }
   };
 

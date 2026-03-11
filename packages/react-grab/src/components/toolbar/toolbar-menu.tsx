@@ -1,24 +1,11 @@
-import {
-  Show,
-  For,
-  onMount,
-  onCleanup,
-  createSignal,
-  createEffect,
-  createMemo,
-} from "solid-js";
+import { Show, For, onMount, onCleanup, createSignal } from "solid-js";
 import type { Component } from "solid-js";
 import type { ToolbarMenuAction, DropdownAnchor } from "../../types.js";
 import {
-  DROPDOWN_ANCHOR_GAP_PX,
-  DROPDOWN_ANIMATION_DURATION_MS,
   DROPDOWN_EDGE_TRANSFORM_ORIGIN,
-  DROPDOWN_OFFSCREEN_POSITION,
-  DROPDOWN_VIEWPORT_PADDING_PX,
   TOOLBAR_MENU_MIN_WIDTH_PX,
   PANEL_STYLES,
 } from "../../constants.js";
-import { getAnchoredDropdownPosition } from "../../utils/get-anchored-dropdown-position.js";
 import { cn } from "../../utils/cn.js";
 import { formatShortcut } from "../../utils/format-shortcut.js";
 import { isEventFromOverlay } from "../../utils/is-event-from-overlay.js";
@@ -29,6 +16,7 @@ import {
 } from "../../utils/native-raf.js";
 import { createMenuHighlight } from "../../utils/create-menu-highlight.js";
 import { suppressMenuEvent } from "../../utils/suppress-menu-event.js";
+import { createAnchoredDropdown } from "../../utils/create-anchored-dropdown.js";
 
 interface ToolbarMenuProps {
   position: DropdownAnchor | null;
@@ -45,77 +33,12 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
     clearHighlight,
   } = createMenuHighlight();
 
-  const [measuredWidth, setMeasuredWidth] = createSignal(0);
-  const [measuredHeight, setMeasuredHeight] = createSignal(0);
-  const [shouldMount, setShouldMount] = createSignal(false);
-  const [isAnimatedIn, setIsAnimatedIn] = createSignal(false);
-  const [lastAnchorEdge, setLastAnchorEdge] =
-    createSignal<DropdownAnchor["edge"]>("bottom");
-  const [toggleRefreshCounter, setToggleRefreshCounter] = createSignal(0);
-
-  let exitAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
-  let enterAnimationFrameId: number | undefined;
-  const clearMenuAnimationHandles = () => {
-    clearTimeout(exitAnimationTimeout);
-    if (enterAnimationFrameId !== undefined) {
-      nativeCancelAnimationFrame(enterAnimationFrameId);
-      enterAnimationFrameId = undefined;
-    }
-  };
-
-  const measureContainer = () => {
-    if (containerRef) {
-      setMeasuredWidth(containerRef.offsetWidth);
-      setMeasuredHeight(containerRef.offsetHeight);
-    }
-  };
-
-  createEffect(() => {
-    const anchor = props.position;
-    if (anchor) {
-      setLastAnchorEdge(anchor.edge);
-      clearTimeout(exitAnimationTimeout);
-      setShouldMount(true);
-      if (enterAnimationFrameId !== undefined)
-        nativeCancelAnimationFrame(enterAnimationFrameId);
-      // HACK: rAF measures then forces reflow so the browser commits the correct position before transitioning in
-      enterAnimationFrameId = nativeRequestAnimationFrame(() => {
-        measureContainer();
-        void containerRef?.offsetHeight;
-        setIsAnimatedIn(true);
-      });
-    } else {
-      if (enterAnimationFrameId !== undefined)
-        nativeCancelAnimationFrame(enterAnimationFrameId);
-      setIsAnimatedIn(false);
-      exitAnimationTimeout = setTimeout(() => {
-        setShouldMount(false);
-      }, DROPDOWN_ANIMATION_DURATION_MS);
-    }
-    onCleanup(() => {
-      clearMenuAnimationHandles();
-    });
-  });
-
-  const displayPosition = createMemo(
-    (previousPosition: { left: number; top: number }) => {
-      const position = getAnchoredDropdownPosition({
-        anchor: props.position,
-        measuredWidth: measuredWidth(),
-        measuredHeight: measuredHeight(),
-        viewportWidth: window.innerWidth,
-        viewportHeight: window.innerHeight,
-        anchorGapPx: DROPDOWN_ANCHOR_GAP_PX,
-        viewportPaddingPx: DROPDOWN_VIEWPORT_PADDING_PX,
-        offscreenPosition: DROPDOWN_OFFSCREEN_POSITION,
-      });
-      if (position.left !== DROPDOWN_OFFSCREEN_POSITION.left) {
-        return position;
-      }
-      return previousPosition;
-    },
-    DROPDOWN_OFFSCREEN_POSITION,
+  const dropdown = createAnchoredDropdown(
+    () => containerRef,
+    () => props.position,
   );
+
+  const [toggleRefreshCounter, setToggleRefreshCounter] = createSignal(0);
 
   const handleActionClick = (action: ToolbarMenuAction, event: Event) => {
     event.stopPropagation();
@@ -131,7 +54,7 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
   };
 
   onMount(() => {
-    measureContainer();
+    dropdown.measure();
 
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (
@@ -164,7 +87,7 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
 
     onCleanup(() => {
       nativeCancelAnimationFrame(frameId);
-      clearMenuAnimationHandles();
+      dropdown.clearAnimationHandles();
       window.removeEventListener("mousedown", handleClickOutside, {
         capture: true,
       });
@@ -176,20 +99,21 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
   });
 
   return (
-    <Show when={shouldMount()}>
+    <Show when={dropdown.shouldMount()}>
       <div
         ref={containerRef}
         data-react-grab-ignore-events
         data-react-grab-toolbar-menu
         class="fixed font-sans text-[13px] antialiased filter-[drop-shadow(0px_1px_2px_#51515140)] select-none transition-[opacity,transform] duration-100 ease-out will-change-[opacity,transform]"
         style={{
-          top: `${displayPosition().top}px`,
-          left: `${displayPosition().left}px`,
+          top: `${dropdown.displayPosition().top}px`,
+          left: `${dropdown.displayPosition().left}px`,
           "z-index": "2147483647",
-          "pointer-events": isAnimatedIn() ? "auto" : "none",
-          "transform-origin": DROPDOWN_EDGE_TRANSFORM_ORIGIN[lastAnchorEdge()],
-          opacity: isAnimatedIn() ? "1" : "0",
-          transform: isAnimatedIn() ? "scale(1)" : "scale(0.95)",
+          "pointer-events": dropdown.isAnimatedIn() ? "auto" : "none",
+          "transform-origin":
+            DROPDOWN_EDGE_TRANSFORM_ORIGIN[dropdown.lastAnchorEdge()],
+          opacity: dropdown.isAnimatedIn() ? "1" : "0",
+          transform: dropdown.isAnimatedIn() ? "scale(1)" : "scale(0.95)",
         }}
         onPointerDown={suppressMenuEvent}
         onMouseDown={suppressMenuEvent}

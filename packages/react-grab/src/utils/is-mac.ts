@@ -21,8 +21,8 @@ export const isMac = (): boolean => {
     }
 
     const platform =
-      getPlatformFromUserAgentData() ??
       navigator.platform ??
+      getPlatformFromUserAgentData() ??
       navigator.userAgent;
     cachedIsMac = /Mac|iPhone|iPad|iPod/i.test(platform);
   }

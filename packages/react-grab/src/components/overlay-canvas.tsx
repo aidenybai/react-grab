@@ -320,40 +320,19 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     }
   };
 
-  const renderGrabbedLayer = () => {
-    const layer = layers.grabbed;
+  const renderBoundsLayer = (
+    layerName: keyof typeof LAYER_STYLES,
+    animations: AnimatedBounds[],
+  ) => {
+    const layer = layers[layerName];
     if (!layer.context) return;
 
     const context = layer.context;
     context.clearRect(0, 0, canvasWidth, canvasHeight);
 
-    const style = LAYER_STYLES.grabbed;
+    const style = LAYER_STYLES[layerName];
 
-    for (const animation of grabbedAnimations) {
-      drawRoundedRectangle(
-        context,
-        animation.current.x,
-        animation.current.y,
-        animation.current.width,
-        animation.current.height,
-        animation.borderRadius,
-        style.fillColor,
-        style.borderColor,
-        animation.opacity,
-      );
-    }
-  };
-
-  const renderProcessingLayer = () => {
-    const layer = layers.processing;
-    if (!layer.context) return;
-
-    const context = layer.context;
-    context.clearRect(0, 0, canvasWidth, canvasHeight);
-
-    const style = LAYER_STYLES.processing;
-
-    for (const animation of processingAnimations) {
+    for (const animation of animations) {
       drawRoundedRectangle(
         context,
         animation.current.x,
@@ -378,8 +357,8 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     renderCrosshairLayer();
     renderDragLayer();
     renderSelectionLayer();
-    renderGrabbedLayer();
-    renderProcessingLayer();
+    renderBoundsLayer("grabbed", grabbedAnimations);
+    renderBoundsLayer("processing", processingAnimations);
 
     const layerRenderOrder: LayerName[] = [
       "crosshair",
