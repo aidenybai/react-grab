@@ -8,11 +8,12 @@ export const AGENTS = [
   "ami",
   "droid",
   "copilot",
+  "mcp",
 ] as const;
 
 export type Agent = (typeof AGENTS)[number];
 
-export type AgentIntegration = Agent | "mcp" | "none";
+export type AgentIntegration = Agent | "none";
 
 export const AGENT_NAMES: Record<Agent, string> = {
   "claude-code": "Claude Code",
@@ -24,17 +25,17 @@ export const AGENT_NAMES: Record<Agent, string> = {
   ami: "Ami",
   droid: "Droid",
   copilot: "Copilot",
+  mcp: "MCP",
 };
 
 export const getAgentDisplayName = (agent: string): string => {
-  if (agent === "mcp") return "MCP";
   if (agent in AGENT_NAMES) {
     return AGENT_NAMES[agent as Agent];
   }
   return agent;
 };
 
-export const PROVIDERS = AGENTS.filter((agent) => agent !== "ami").map(
+export const PROVIDERS = AGENTS.filter((agent) => agent !== "ami" && agent !== "mcp").map(
   (agent) => `@react-grab/${agent}` as const,
 );
 
@@ -49,7 +50,7 @@ export const NEXT_APP_ROUTER_SCRIPT = `{process.env.NODE_ENV === "development" &
 export const NEXT_APP_ROUTER_SCRIPT_WITH_AGENT = (
   agent: AgentIntegration,
 ): string => {
-  if (agent === "none") return NEXT_APP_ROUTER_SCRIPT;
+  if (agent === "none" || agent === "mcp") return NEXT_APP_ROUTER_SCRIPT;
 
   return `{process.env.NODE_ENV === "development" && (
           <Script
@@ -77,7 +78,7 @@ export const NEXT_PAGES_ROUTER_SCRIPT = `{process.env.NODE_ENV === "development"
 export const NEXT_PAGES_ROUTER_SCRIPT_WITH_AGENT = (
   agent: AgentIntegration,
 ): string => {
-  if (agent === "none") return NEXT_PAGES_ROUTER_SCRIPT;
+  if (agent === "none" || agent === "mcp") return NEXT_PAGES_ROUTER_SCRIPT;
 
   return `{process.env.NODE_ENV === "development" && (
           <Script
@@ -101,7 +102,7 @@ export const VITE_SCRIPT = `<script type="module">
     </script>`;
 
 export const VITE_SCRIPT_WITH_AGENT = (agent: AgentIntegration): string => {
-  if (agent === "none") return VITE_SCRIPT;
+  if (agent === "none" || agent === "mcp") return VITE_SCRIPT;
 
   return `<script type="module">
       if (import.meta.env.DEV) {
@@ -116,7 +117,7 @@ export const WEBPACK_IMPORT = `if (process.env.NODE_ENV === "development") {
 }`;
 
 export const WEBPACK_IMPORT_WITH_AGENT = (agent: AgentIntegration): string => {
-  if (agent === "none") return WEBPACK_IMPORT;
+  if (agent === "none" || agent === "mcp") return WEBPACK_IMPORT;
 
   return `if (process.env.NODE_ENV === "development") {
   import("react-grab");
@@ -131,7 +132,7 @@ export const TANSTACK_EFFECT = `useEffect(() => {
   }, []);`;
 
 export const TANSTACK_EFFECT_WITH_AGENT = (agent: AgentIntegration): string => {
-  if (agent === "none") return TANSTACK_EFFECT;
+  if (agent === "none" || agent === "mcp") return TANSTACK_EFFECT;
 
   return `useEffect(() => {
     if (import.meta.env.DEV) {
