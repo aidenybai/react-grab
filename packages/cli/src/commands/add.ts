@@ -82,8 +82,7 @@ export const add = new Command()
 
       if (availableAgents.length === 0 && isNonInteractive && !agentArg) {
         logger.break();
-        logger.success("All legacy agents are already installed.");
-        logger.log("Run without -y to add MCP.");
+        logger.success("All agents are already installed.");
         logger.break();
         process.exit(0);
       }
@@ -110,6 +109,25 @@ export const add = new Command()
         }
 
         agentIntegration = validAgent;
+
+        // Handle MCP specially - it needs server configuration, not package installation
+        if (validAgent === "mcp") {
+          const mcpSpinner = spinner("Installing MCP server.").start();
+          const didInstall = await promptMcpInstall();
+          if (!didInstall) {
+            mcpSpinner.fail();
+            logger.break();
+            process.exit(1);
+          }
+          mcpSpinner.succeed();
+          logger.break();
+          logger.log(
+            `${highlighter.success("Success!")} MCP server has been configured.`,
+          );
+          logger.log("Restart your agents to activate.");
+          logger.break();
+          projectInfo.installedAgents = [...projectInfo.installedAgents, "mcp"];
+        }
 
         if (projectInfo.installedAgents.length > 0 && !isNonInteractive) {
           const installedNames = formatInstalledAgentNames(
