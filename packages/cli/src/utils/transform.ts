@@ -816,7 +816,8 @@ const addAgentToExistingAstro = (
     const hasSemicolon = matchedText.endsWith(";");
     const newContent = originalContent.replace(
       matchedText,
-      `${hasSemicolon ? matchedText.slice(0, -1) : matchedText};\n        ${agentImport}`,
+      `${hasSemicolon ? matchedText.slice(0, -1) : matchedText};
+        ${agentImport}`,
     );
     return {
       success: true,
@@ -876,7 +877,7 @@ const transformAstro = (
       };
     }
 
-    if (reactGrabAlreadyConfigured) {
+    if (!force && reactGrabAlreadyConfigured) {
       continue;
     }
 
