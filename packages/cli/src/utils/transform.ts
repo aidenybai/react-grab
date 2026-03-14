@@ -14,6 +14,7 @@ import {
   TANSTACK_EFFECT_WITH_AGENT,
   VITE_SCRIPT_WITH_AGENT,
   WEBPACK_IMPORT_WITH_AGENT,
+  ASTRO_EFFECT_WITH_AGENT,
   type AgentIntegration,
 } from "./templates.js";
 
@@ -168,6 +169,26 @@ const findTanStackRootFile = (projectRoot: string): string | null => {
   }
 
   return null;
+};
+
+const findAllAstroLayoutFiles = (projectRoot: string): string[] => {
+  const possiblePaths = [
+    join(projectRoot, "src", "layouts", "Layout.astro"),
+    join(projectRoot, "src", "layouts", "_BaseLayout.astro"),
+    join(projectRoot, "src", "layouts", "_Layout.astro"),
+    join(projectRoot, "src", "layouts", "BaseLayout.astro"),
+    join(projectRoot, "src", "pages", "index.astro"),
+    join(projectRoot, "src", "pages", "_layout.astro"),
+    join(projectRoot, "layouts", "Layout.astro"),
+    join(projectRoot, "layouts", "_BaseLayout.astro"),
+    join(projectRoot, "layouts", "_Layout.astro"),
+    join(projectRoot, "layouts", "BaseLayout.astro"),
+    join(projectRoot, "pages", "index.astro"),
+    join(projectRoot, "Layout.astro"),
+    join(projectRoot, "index.astro"),
+  ];
+
+  return possiblePaths.filter((filePath) => existsSync(filePath));
 };
 
 const addAgentToExistingNextApp = (
@@ -761,6 +782,133 @@ const transformTanStack = (
   };
 };
 
+const addAgentToExistingAstro = (
+  originalContent: string,
+  agent: AgentIntegration,
+  filePath: string,
+): TransformResult => {
+  if (agent === "none") {
+    return {
+      success: true,
+      filePath,
+      message: "React Grab is already configured",
+      noChanges: true,
+    };
+  }
+
+  const agentPackage = `@react-grab/${agent}`;
+  if (originalContent.includes(agentPackage)) {
+    return {
+      success: true,
+      filePath,
+      message: `Agent ${agent} is already configured`,
+      noChanges: true,
+    };
+  }
+
+  const agentImport = `import("@react-grab/${agent}/client");`;
+  const reactGrabImportMatch = originalContent.match(
+    /import\s*\(\s*["']react-grab["']\s*\);?/,
+  );
+
+  if (reactGrabImportMatch) {
+    const matchedText = reactGrabImportMatch[0];
+    const hasSemicolon = matchedText.endsWith(";");
+    const newContent = originalContent.replace(
+      matchedText,
+      `${hasSemicolon ? matchedText.slice(0, -1) : matchedText};
+        ${agentImport}`,
+    );
+    return {
+      success: true,
+      filePath,
+      message: `Add ${agent} agent`,
+      originalContent,
+      newContent,
+    };
+  }
+
+  return {
+    success: false,
+    filePath,
+    message: "Could not find React Grab import in the Astro file",
+  };
+};
+
+const transformAstro = (
+  projectRoot: string,
+  agent: AgentIntegration,
+  reactGrabAlreadyConfigured: boolean,
+  force: boolean = false,
+): TransformResult => {
+  const layoutFiles = findAllAstroLayoutFiles(projectRoot);
+
+  if (layoutFiles.length === 0) {
+    return {
+      success: false,
+      filePath: "",
+      message:
+        "Could not find an Astro layout file.\n\n" +
+        "To set up React Grab with Astro, add this to your Layout.astro <head>:\n\n" +
+        '  {import.meta.env.DEV && (\n    <script>\n      if (import.meta.env.DEV) {\n        import("react-grab");\n      }\n    </script>\n  )}',
+    };
+  }
+
+  for (const layoutPath of layoutFiles) {
+    const originalContent = readFileSync(layoutPath, "utf-8");
+    const headMatch = originalContent.match(/<head[^>]*>/i);
+    if (!headMatch) {
+      continue;
+    }
+
+    let newContent = originalContent;
+    const hasReactGrabInFile = hasReactGrabCode(originalContent);
+
+    if (!force && hasReactGrabInFile && reactGrabAlreadyConfigured) {
+      return addAgentToExistingAstro(originalContent, agent, layoutPath);
+    }
+
+    if (!force && hasReactGrabInFile) {
+      return {
+        success: true,
+        filePath: layoutPath,
+        message: "React Grab is already installed in this file",
+        noChanges: true,
+      };
+    }
+
+    if (!force && reactGrabAlreadyConfigured) {
+      continue;
+    }
+
+    const scriptBlock = ASTRO_EFFECT_WITH_AGENT(agent);
+    const indentation = "        ";
+
+    newContent = originalContent.replace(
+      headMatch[0],
+      `${headMatch[0]}\n${indentation}${scriptBlock}`,
+    );
+
+    return {
+      success: true,
+      filePath: layoutPath,
+      message:
+        "Add React Grab" + (agent !== "none" ? ` with ${agent} agent` : ""),
+      originalContent,
+      newContent,
+    };
+  }
+
+  return {
+    success: false,
+    filePath: "",
+    message:
+      "Could not find an Astro layout file with a <head> tag.\n\n" +
+      "To set up React Grab with Astro, add this to your Layout.astro <head>:\n\n" +
+      '  {import.meta.env.DEV && (\n    <script>\n      if (import.meta.env.DEV) {\n        import("react-grab");\n      }\n    </script>\n  )}',
+  };
+};
+
 export const previewTransform = (
   projectRoot: string,
   framework: Framework,
@@ -804,6 +952,14 @@ export const previewTransform = (
 
     case "webpack":
       return transformWebpack(
+        projectRoot,
+        agent,
+        reactGrabAlreadyConfigured,
+        force,
+      );
+
+    case "astro":
+      return transformAstro(
         projectRoot,
         agent,
         reactGrabAlreadyConfigured,
@@ -1132,6 +1288,15 @@ const findReactGrabFile = (
       return findTanStackRootFile(projectRoot);
     case "webpack":
       return findEntryFile(projectRoot);
+    case "astro":
+      const astroFiles = findAllAstroLayoutFiles(projectRoot);
+      for (const file of astroFiles) {
+        const content = readFileSync(file, "utf-8");
+        if (hasReactGrabCode(content)) {
+          return file;
+        }
+      }
+      return astroFiles.length > 0 ? astroFiles[0] : null;
     default:
       return null;
   }
@@ -1287,6 +1452,39 @@ const addOptionsToTanStackImport = (
   };
 };
 
+const addOptionsToAstroScript = (
+  originalContent: string,
+  options: ReactGrabOptions,
+  filePath: string,
+): TransformResult => {
+  const reactGrabImportWithInitMatch = originalContent.match(
+    /import\s*\(\s*["']react-grab["']\s*\)(?:\.then\s*\(\s*\(m\)\s*=>\s*m\.init\s*\([^)]*\)\s*\))?/,
+  );
+
+  if (!reactGrabImportWithInitMatch) {
+    return {
+      success: false,
+      filePath,
+      message: "Could not find React Grab import",
+    };
+  }
+
+  const optionsJson = formatOptionsAsJson(options);
+  const newImport = `import("react-grab").then((m) => m.init(${optionsJson}))`;
+  const newContent = originalContent.replace(
+    reactGrabImportWithInitMatch[0],
+    newImport,
+  );
+
+  return {
+    success: true,
+    filePath,
+    message: "Update React Grab options",
+    originalContent,
+    newContent,
+  };
+};
+
 export const previewOptionsTransform = (
   projectRoot: string,
   framework: Framework,
@@ -1322,6 +1520,8 @@ export const previewOptionsTransform = (
       return addOptionsToTanStackImport(originalContent, options, filePath);
     case "webpack":
       return addOptionsToWebpackImport(originalContent, options, filePath);
+    case "astro":
+      return addOptionsToAstroScript(originalContent, options, filePath);
     default:
       return {
         success: false,
@@ -1466,6 +1666,46 @@ const removeAgentFromWebpack = (
   };
 };
 
+const removeAgentFromAstro = (
+  originalContent: string,
+  agent: string,
+  filePath: string,
+): TransformResult => {
+  const agentPackage = `@react-grab/${agent}`;
+
+  if (!originalContent.includes(agentPackage)) {
+    return {
+      success: true,
+      filePath,
+      message: `Agent ${agent} is not configured in this file`,
+      noChanges: true,
+    };
+  }
+
+  const agentImportPattern = new RegExp(
+    `\\s*import\\s*\\(\\s*["']${agentPackage.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/client["']\\s*\\);?`,
+    "g",
+  );
+
+  const newContent = originalContent.replace(agentImportPattern, "");
+
+  if (newContent === originalContent) {
+    return {
+      success: false,
+      filePath,
+      message: `Could not find agent ${agent} import to remove`,
+    };
+  }
+
+  return {
+    success: true,
+    filePath,
+    message: `Remove ${agent} agent`,
+    originalContent,
+    newContent,
+  };
+};
+
 const removeAgentFromTanStack = (
   originalContent: string,
   agent: string,
@@ -1534,6 +1774,8 @@ export const previewAgentRemoval = (
       return removeAgentFromTanStack(originalContent, agent, filePath);
     case "webpack":
       return removeAgentFromWebpack(originalContent, agent, filePath);
+    case "astro":
+      return removeAgentFromAstro(originalContent, agent, filePath);
     default:
       return {
         success: false,

@@ -5,14 +5,15 @@ import { detect } from "@antfu/ni";
 import ignore from "ignore";
 
 export type PackageManager = "npm" | "yarn" | "pnpm" | "bun";
-export type Framework = "next" | "vite" | "tanstack" | "webpack" | "unknown";
-export type NextRouterType = "app" | "pages" | "unknown";
-export type UnsupportedFramework =
-  | "remix"
+export type Framework =
+  | "next"
+  | "vite"
+  | "tanstack"
+  | "webpack"
   | "astro"
-  | "sveltekit"
-  | "gatsby"
-  | null;
+  | "unknown";
+export type NextRouterType = "app" | "pages" | "unknown";
+export type UnsupportedFramework = "remix" | "sveltekit" | "gatsby" | null;
 
 export interface ProjectInfo {
   packageManager: PackageManager;
@@ -66,6 +67,10 @@ export const detectFramework = (projectRoot: string): Framework => {
 
     if (allDependencies["@tanstack/react-start"]) {
       return "tanstack";
+    }
+
+    if (allDependencies["astro"]) {
+      return "astro";
     }
 
     if (allDependencies["vite"]) {
@@ -413,6 +418,19 @@ export const detectReactGrab = (projectRoot: string): boolean => {
     join(projectRoot, "src", "routes", "__root.jsx"),
     join(projectRoot, "app", "routes", "__root.tsx"),
     join(projectRoot, "app", "routes", "__root.jsx"),
+    join(projectRoot, "src", "layouts", "Layout.astro"),
+    join(projectRoot, "src", "layouts", "_BaseLayout.astro"),
+    join(projectRoot, "src", "layouts", "_Layout.astro"),
+    join(projectRoot, "src", "layouts", "BaseLayout.astro"),
+    join(projectRoot, "layouts", "Layout.astro"),
+    join(projectRoot, "layouts", "_BaseLayout.astro"),
+    join(projectRoot, "layouts", "_Layout.astro"),
+    join(projectRoot, "layouts", "BaseLayout.astro"),
+    join(projectRoot, "src", "pages", "index.astro"),
+    join(projectRoot, "src", "pages", "_layout.astro"),
+    join(projectRoot, "pages", "index.astro"),
+    join(projectRoot, "Layout.astro"),
+    join(projectRoot, "index.astro"),
   ];
 
   return filesToCheck.some(hasReactGrabInFile);
@@ -448,10 +466,6 @@ export const detectUnsupportedFramework = (
 
     if (allDependencies["@remix-run/react"] || allDependencies["remix"]) {
       return "remix";
-    }
-
-    if (allDependencies["astro"]) {
-      return "astro";
     }
 
     if (allDependencies["@sveltejs/kit"]) {

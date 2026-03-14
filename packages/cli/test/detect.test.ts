@@ -33,7 +33,9 @@ describe("detectFramework", () => {
   it("should detect Next.js", () => {
     mockExistsSync.mockReturnValue(true);
     mockReadFileSync.mockReturnValue(
-      JSON.stringify({ dependencies: { next: "14.0.0", react: "18.0.0" } }),
+      JSON.stringify({
+        dependencies: { next: "14.0.0", react: "18.0.0" },
+      }),
     );
 
     expect(detectFramework("/test")).toBe("next");
@@ -46,6 +48,24 @@ describe("detectFramework", () => {
     );
 
     expect(detectFramework("/test")).toBe("vite");
+  });
+
+  it("should detect Astro", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(
+      JSON.stringify({ devDependencies: { astro: "4.0.0" } }),
+    );
+
+    expect(detectFramework("/test")).toBe("astro");
+  });
+
+  it("should prioritize Astro over Vite when both are present", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(
+      JSON.stringify({ devDependencies: { astro: "4.0.0", vite: "5.0.0" } }),
+    );
+
+    expect(detectFramework("/test")).toBe("astro");
   });
 
   it("should detect Webpack", () => {
@@ -297,15 +317,6 @@ describe("detectUnsupportedFramework", () => {
     );
 
     expect(detectUnsupportedFramework("/test")).toBe("remix");
-  });
-
-  it("should detect Astro", () => {
-    mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(
-      JSON.stringify({ devDependencies: { astro: "4.0.0" } }),
-    );
-
-    expect(detectUnsupportedFramework("/test")).toBe("astro");
   });
 
   it("should detect SvelteKit", () => {
