@@ -69,12 +69,12 @@ export const detectFramework = (projectRoot: string): Framework => {
       return "tanstack";
     }
 
-    if (allDependencies["vite"]) {
-      return "vite";
-    }
-
     if (allDependencies["astro"]) {
       return "astro";
+    }
+
+    if (allDependencies["vite"]) {
+      return "vite";
     }
 
     if (allDependencies["webpack"]) {

@@ -806,30 +806,31 @@ const addAgentToExistingAstro = (
     };
   }
 
-  const scriptBlock = ASTRO_EFFECT_WITH_AGENT(agent);
-  const headMatch = originalContent.match(/<head[^>]*>/i);
+  const agentImport = `import("@react-grab/${agent}/client");`;
+  const reactGrabImportMatch = originalContent.match(
+    /import\s*\(\s*["']react-grab["']\s*\);?/,
+  );
 
-  if (!headMatch) {
+  if (reactGrabImportMatch) {
+    const matchedText = reactGrabImportMatch[0];
+    const hasSemicolon = matchedText.endsWith(";");
+    const newContent = originalContent.replace(
+      matchedText,
+      `${hasSemicolon ? matchedText.slice(0, -1) : matchedText};\n        ${agentImport}`,
+    );
     return {
-      success: false,
+      success: true,
       filePath,
-      message: "Could not find <head> tag in the Astro file",
+      message: `Add ${agent} agent`,
+      originalContent,
+      newContent,
     };
   }
 
-  const indentation = "        ";
-
-  const newContent = originalContent.replace(
-    headMatch[0],
-    `${headMatch[0]}\n${indentation}${scriptBlock}`,
-  );
-
   return {
-    success: true,
+    success: false,
     filePath,
-    message: `Add ${agent} agent to existing React Grab configuration`,
-    originalContent,
-    newContent,
+    message: "Could not find React Grab import in the Astro file",
   };
 };
 
@@ -873,6 +874,10 @@ const transformAstro = (
         message: "React Grab is already installed in this file",
         noChanges: true,
       };
+    }
+
+    if (reactGrabAlreadyConfigured) {
+      continue;
     }
 
     const scriptBlock = ASTRO_EFFECT_WITH_AGENT(agent);
@@ -1284,6 +1289,12 @@ const findReactGrabFile = (
       return findEntryFile(projectRoot);
     case "astro":
       const astroFiles = findAllAstroLayoutFiles(projectRoot);
+      for (const file of astroFiles) {
+        const content = readFileSync(file, "utf-8");
+        if (hasReactGrabCode(content)) {
+          return file;
+        }
+      }
       return astroFiles.length > 0 ? astroFiles[0] : null;
     default:
       return null;
@@ -1445,12 +1456,11 @@ const addOptionsToAstroScript = (
   options: ReactGrabOptions,
   filePath: string,
 ): TransformResult => {
-  const optionsJson = formatOptionsAsJson(options);
-  const reactGrabImportMatch = originalContent.match(
-    /import\s*\(\s*["']react-grab["']\s*\)(?:\s*\.\s*then\s*\(\s*\([^)]*\)\s*=>[^}]*\}\s*\))?/,
+  const reactGrabImportWithInitMatch = originalContent.match(
+    /import\s*\(\s*["']react-grab["']\s*\)(?:\.then\s*\(\s*\(m\)\s*=>\s*m\.init\s*\([^)]*\)\s*\))?/,
   );
 
-  if (!reactGrabImportMatch) {
+  if (!reactGrabImportWithInitMatch) {
     return {
       success: false,
       filePath,
@@ -1458,9 +1468,10 @@ const addOptionsToAstroScript = (
     };
   }
 
+  const optionsJson = formatOptionsAsJson(options);
   const newImport = `import("react-grab").then((m) => m.init(${optionsJson}))`;
   const newContent = originalContent.replace(
-    reactGrabImportMatch[0],
+    reactGrabImportWithInitMatch[0],
     newImport,
   );
 
