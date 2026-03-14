@@ -59,6 +59,15 @@ describe("detectFramework", () => {
     expect(detectFramework("/test")).toBe("astro");
   });
 
+  it("should prioritize Astro over Vite when both are present", () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(
+      JSON.stringify({ devDependencies: { astro: "4.0.0", vite: "5.0.0" } }),
+    );
+
+    expect(detectFramework("/test")).toBe("astro");
+  });
+
   it("should detect Webpack", () => {
     mockExistsSync.mockReturnValue(true);
     mockReadFileSync.mockReturnValue(
