@@ -141,4 +141,25 @@ export const TANSTACK_EFFECT_WITH_AGENT = (agent: AgentIntegration): string => {
   }, []);`;
 };
 
+export const ASTRO_EFFECT = `{import.meta.env.DEV && (
+\t\t\t<script>
+\t\t\t\tif (import.meta.env.DEV) {
+\t\t\t\t\timport("react-grab");
+\t\t\t\t}
+\t\t\t</script>
+\t\t)}`;
+
+export const ASTRO_EFFECT_WITH_AGENT = (agent: AgentIntegration): string => {
+  if (agent === "none") return ASTRO_EFFECT;
+
+  return `{import.meta.env.DEV && (
+\t\t\t<script>
+\t\t\t\tif (import.meta.env.DEV) {
+\t\t\t\t\timport("react-grab");
+\t\t\t\t\timport("@react-grab/${agent}/client");
+\t\t\t\t}
+\t\t\t</script>
+\t\t)}`;
+};
+
 export const SCRIPT_IMPORT = 'import Script from "next/script";';
