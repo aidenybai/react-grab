@@ -1682,7 +1682,7 @@ const removeAgentFromAstro = (
   }
 
   const agentImportPattern = new RegExp(
-    `\\s*import\\s*\\(\\s*["']${agentPackage}/client["']\\s*\\);?`,
+    `\\s*import\\s*\\(\\s*["']${agentPackage.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/client["']\\s*\\);?`,
     "g",
   );
 
