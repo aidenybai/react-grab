@@ -22,7 +22,6 @@ export type {
   DeepPartial,
   ElementLabelVariant,
   PromptModeContext,
-  CrosshairContext,
   ElementLabelContext,
   AgentContext,
   AgentSession,

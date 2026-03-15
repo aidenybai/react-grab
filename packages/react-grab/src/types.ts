@@ -58,16 +58,6 @@ export interface Theme {
     enabled?: boolean;
   };
   /**
-   * The crosshair cursor overlay that helps with precise element targeting
-   */
-  crosshair?: {
-    /**
-     * Whether to show the crosshair
-     * @default true
-     */
-    enabled?: boolean;
-  };
-  /**
    * The floating toolbar that allows toggling React Grab activation
    */
   toolbar?: {
@@ -84,7 +74,6 @@ export interface ReactGrabState {
   isDragging: boolean;
   isCopying: boolean;
   isPromptMode: boolean;
-  isCrosshairVisible: boolean;
   isSelectionBoxVisible: boolean;
   isDragBoxVisible: boolean;
   targetElement: Element | null;
@@ -115,11 +104,6 @@ export interface PromptModeContext {
   x: number;
   y: number;
   targetElement: Element | null;
-}
-
-export interface CrosshairContext {
-  x: number;
-  y: number;
 }
 
 export interface ElementLabelContext {
@@ -308,7 +292,6 @@ export interface PluginHooks {
     variant: ElementLabelVariant,
     context: ElementLabelContext,
   ) => void;
-  onCrosshair?: (visible: boolean, context: CrosshairContext) => void;
   onContextMenu?: (
     element: Element,
     position: { x: number; y: number },
@@ -503,7 +486,6 @@ export interface ReactGrabRendererProps {
   labelZIndex?: number;
   mouseX?: number;
   mouseY?: number;
-  crosshairVisible?: boolean;
   isFrozen?: boolean;
   inputValue?: string;
   isPromptMode?: boolean;
@@ -529,6 +511,7 @@ export interface ReactGrabRendererProps {
   onInputCancel?: () => void;
   onToggleExpand?: () => void;
   isPendingDismiss?: boolean;
+  selectionLabelShakeCount?: number;
   onConfirmDismiss?: () => void;
   onCancelDismiss?: () => void;
   pendingAbortSessionId?: string | null;
@@ -688,6 +671,7 @@ export interface SelectionLabelProps {
   onUndo?: () => void;
   onFollowUpSubmit?: (prompt: string) => void;
   isPendingDismiss?: boolean;
+  selectionLabelShakeCount?: number;
   onConfirmDismiss?: () => void;
   onCancelDismiss?: () => void;
   isPendingAbort?: boolean;

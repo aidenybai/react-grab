@@ -15,9 +15,6 @@ export const DEFAULT_THEME: Required<Theme> = {
   elementLabel: {
     enabled: true,
   },
-  crosshair: {
-    enabled: true,
-  },
   toolbar: {
     enabled: true,
   },
@@ -43,9 +40,6 @@ export const deepMergeTheme = (
   elementLabel: {
     enabled:
       partialTheme.elementLabel?.enabled ?? baseTheme.elementLabel.enabled,
-  },
-  crosshair: {
-    enabled: partialTheme.crosshair?.enabled ?? baseTheme.crosshair.enabled,
   },
   toolbar: {
     enabled: partialTheme.toolbar?.enabled ?? baseTheme.toolbar.enabled,

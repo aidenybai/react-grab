@@ -273,6 +273,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       savedToolbarState?.enabled ?? true,
     );
     const [toolbarShakeCount, setToolbarShakeCount] = createSignal(0);
+    const [selectionLabelShakeCount, setSelectionLabelShakeCount] =
+      createSignal(0);
     const [currentToolbarState, setCurrentToolbarState] =
       createSignal<ToolbarState | null>(savedToolbarState);
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] =
@@ -531,19 +533,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const isRendererActive = createMemo(() => isActivated() && !isCopying());
-
-    const crosshairVisible = createMemo(
-      () =>
-        pluginRegistry.store.theme.enabled &&
-        pluginRegistry.store.theme.crosshair.enabled &&
-        isRendererActive() &&
-        !isDragging() &&
-        !store.isTouchMode &&
-        !isToggleFrozen() &&
-        !isPromptMode() &&
-        !isToolbarSelectHovered() &&
-        store.contextMenuPosition === null,
-    );
 
     const grabbedBoxTimeouts = new Map<string, number>();
 
@@ -1317,7 +1306,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const dragging = isDragging();
       const copying = isCopying();
       const inputMode = isPromptMode();
-      const crosshairState = crosshairVisible();
       const target = targetElement();
       const drag = dragBounds();
       const themeEnabled = pluginRegistry.store.theme.enabled;
@@ -1350,7 +1338,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         isDragging: dragging,
         isCopying: copying,
         isPromptMode: inputMode,
-        isCrosshairVisible: crosshairState ?? false,
         isSelectionBoxVisible,
         isDragBoxVisible,
         targetElement: target,
@@ -1413,15 +1400,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     createEffect(
       on(
-        () => [crosshairVisible(), store.pointer.x, store.pointer.y] as const,
-        ([visible, x, y]) => {
-          pluginRegistry.hooks.onCrosshair(Boolean(visible), { x, y });
-        },
-      ),
-    );
-
-    createEffect(
-      on(
         () =>
           [
             labelVisible(),
@@ -1464,10 +1442,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     createEffect(
       on(
         () => [isActivated(), isCopying(), isPromptMode()] as const,
-        ([activated, copying, inputMode]) => {
+        ([activated, copying, promptMode]) => {
           if (copying) {
             setCursorOverride("progress");
-          } else if (activated && !inputMode) {
+          } else if (activated && !promptMode) {
             setCursorOverride("crosshair");
           } else {
             setCursorOverride(null);
@@ -1643,15 +1621,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.clearLastCopied();
       if (!isPromptMode()) return;
 
-      const currentInput = store.inputText.trim();
-      if (currentInput && !isPendingDismiss()) {
-        actions.setPendingDismiss(true);
+      if (isPendingDismiss()) {
+        actions.clearInputText();
+        actions.clearReplySessionId();
+        deactivateRenderer();
         return;
       }
 
-      actions.clearInputText();
-      actions.clearReplySessionId();
-      deactivateRenderer();
+      actions.setPendingDismiss(true);
+      setSelectionLabelShakeCount((count) => count + 1);
     };
 
     const handleConfirmDismiss = () => {
@@ -4022,7 +4000,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               store.frozenElements.length > 1 ? undefined : cursorPosition().x
             }
             mouseY={cursorPosition().y}
-            crosshairVisible={crosshairVisible()}
             isFrozen={
               isToggleFrozen() || isActivated() || isToolbarSelectHovered()
             }
@@ -4047,6 +4024,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onInputCancel={handleInputCancel}
             onToggleExpand={handleToggleExpand}
             isPendingDismiss={isPendingDismiss()}
+            selectionLabelShakeCount={selectionLabelShakeCount()}
             onConfirmDismiss={handleConfirmDismiss}
             onCancelDismiss={handleCancelDismiss}
             pendingAbortSessionId={pendingAbortSessionId()}
@@ -4260,7 +4238,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         isDragging: isDragging(),
         isCopying: isCopying(),
         isPromptMode: isPromptMode(),
-        isCrosshairVisible: crosshairVisible() ?? false,
         isSelectionBoxVisible: selectionVisible() ?? false,
         isDragBoxVisible: dragVisible() ?? false,
         targetElement: targetElement(),
