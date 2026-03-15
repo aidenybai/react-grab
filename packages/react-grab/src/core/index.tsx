@@ -1621,9 +1621,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.clearLastCopied();
       if (!isPromptMode()) return;
 
-      if (!isPendingDismiss()) {
-        actions.setPendingDismiss(true);
+      if (isPendingDismiss()) {
+        actions.clearInputText();
+        actions.clearReplySessionId();
+        deactivateRenderer();
+        return;
       }
+
+      actions.setPendingDismiss(true);
       setSelectionLabelShakeCount((count) => count + 1);
     };
 
