@@ -1441,9 +1441,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     createEffect(
       on(
-        () => isCopying(),
-        (copying) => {
-          setCursorOverride(copying ? "progress" : null);
+        () => [isActivated(), isCopying(), isPromptMode()] as const,
+        ([activated, copying, promptMode]) => {
+          if (copying) {
+            setCursorOverride("progress");
+          } else if (activated && !promptMode) {
+            setCursorOverride("crosshair");
+          } else {
+            setCursorOverride(null);
+          }
         },
       ),
     );
