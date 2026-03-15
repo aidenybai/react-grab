@@ -1608,7 +1608,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                 <Show when={props.hasUnreadHistoryItems && (props.historyItemCount ?? 0) > 0}>
                   <span
                     data-react-grab-unread-indicator
-                    class="absolute -top-1 -right-1 min-w-2.5 h-2.5 flex items-center justify-center rounded-full bg-grab-pink text-white text-[6px] font-semibold leading-none"
+                    class="absolute -top-1 -right-1 min-w-2.5 h-2.5 px-0.5 flex items-center justify-center rounded-full bg-black text-white text-[8px] font-semibold leading-none"
                   >
                     {props.historyItemCount}
                   </span>

@@ -7,7 +7,6 @@ export const createNoopApi = (): ReactGrabAPI => {
       isDragging: false,
       isCopying: false,
       isPromptMode: false,
-      isCrosshairVisible: false,
       isSelectionBoxVisible: false,
       isDragBoxVisible: false,
       targetElement: null,

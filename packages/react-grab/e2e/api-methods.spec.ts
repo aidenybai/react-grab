@@ -212,7 +212,7 @@ test.describe("API Methods", () => {
     }) => {
       await reactGrab.updateOptions({ theme: { hue: 45 } });
       await reactGrab.updateOptions({
-        theme: { crosshair: { enabled: false } },
+        theme: { elementLabel: { enabled: false } },
       });
       await reactGrab.activate();
 

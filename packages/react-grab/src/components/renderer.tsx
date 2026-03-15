@@ -20,7 +20,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
   return (
     <>
       <OverlayCanvas
-        crosshairVisible={props.crosshairVisible}
         selectionVisible={props.selectionVisible}
         selectionBounds={props.selectionBounds}
         selectionBoundsMultiple={props.selectionBoundsMultiple}

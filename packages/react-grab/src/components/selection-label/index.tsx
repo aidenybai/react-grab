@@ -304,11 +304,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   createEffect(
     on(
       () => props.selectionLabelShakeCount,
-      (count) => {
-        if (count) {
-          setIsShaking(true);
-        }
-      },
+      () => setIsShaking(true),
       { defer: true },
     ),
   );
