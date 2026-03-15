@@ -273,6 +273,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       savedToolbarState?.enabled ?? true,
     );
     const [toolbarShakeCount, setToolbarShakeCount] = createSignal(0);
+    const [selectionLabelShakeCount, setSelectionLabelShakeCount] =
+      createSignal(0);
     const [currentToolbarState, setCurrentToolbarState] =
       createSignal<ToolbarState | null>(savedToolbarState);
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] =
@@ -1643,15 +1645,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.clearLastCopied();
       if (!isPromptMode()) return;
 
-      const currentInput = store.inputText.trim();
-      if (currentInput && !isPendingDismiss()) {
+      if (!isPendingDismiss()) {
         actions.setPendingDismiss(true);
-        return;
       }
-
-      actions.clearInputText();
-      actions.clearReplySessionId();
-      deactivateRenderer();
+      setSelectionLabelShakeCount((count) => count + 1);
     };
 
     const handleConfirmDismiss = () => {
@@ -4047,6 +4044,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onInputCancel={handleInputCancel}
             onToggleExpand={handleToggleExpand}
             isPendingDismiss={isPendingDismiss()}
+            selectionLabelShakeCount={selectionLabelShakeCount()}
             onConfirmDismiss={handleConfirmDismiss}
             onCancelDismiss={handleCancelDismiss}
             pendingAbortSessionId={pendingAbortSessionId()}

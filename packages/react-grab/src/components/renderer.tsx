@@ -141,6 +141,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           onCancel={props.onInputCancel}
           onToggleExpand={props.onToggleExpand}
           isPendingDismiss={props.isPendingDismiss}
+          selectionLabelShakeCount={props.selectionLabelShakeCount}
           onConfirmDismiss={props.onConfirmDismiss}
           onCancelDismiss={props.onCancelDismiss}
           onOpen={() => {

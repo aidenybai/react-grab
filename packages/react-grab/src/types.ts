@@ -529,6 +529,7 @@ export interface ReactGrabRendererProps {
   onInputCancel?: () => void;
   onToggleExpand?: () => void;
   isPendingDismiss?: boolean;
+  selectionLabelShakeCount?: number;
   onConfirmDismiss?: () => void;
   onCancelDismiss?: () => void;
   pendingAbortSessionId?: string | null;
@@ -688,6 +689,7 @@ export interface SelectionLabelProps {
   onUndo?: () => void;
   onFollowUpSubmit?: (prompt: string) => void;
   isPendingDismiss?: boolean;
+  selectionLabelShakeCount?: number;
   onConfirmDismiss?: () => void;
   onCancelDismiss?: () => void;
   isPendingAbort?: boolean;
