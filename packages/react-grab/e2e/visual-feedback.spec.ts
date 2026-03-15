@@ -154,8 +154,6 @@ test.describe("Visual Feedback", () => {
     });
   });
 
-  });
-
   test.describe("Selection Label", () => {
     test("label should show tag name", async ({ reactGrab }) => {
       await reactGrab.activate();
