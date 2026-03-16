@@ -30,6 +30,7 @@ export const createAnchoredDropdown = (
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
   const [shouldMount, setShouldMount] = createSignal(false);
   const [isAnimatedIn, setIsAnimatedIn] = createSignal(false);
+  const [viewportVersion, setViewportVersion] = createSignal(0);
   const [lastAnchorEdge, setLastAnchorEdge] =
     createSignal<DropdownAnchor["edge"]>("bottom");
 
@@ -50,6 +51,11 @@ export const createAnchoredDropdown = (
       setMeasuredWidth(container.offsetWidth);
       setMeasuredHeight(container.offsetHeight);
     }
+  };
+
+  const handleViewportChange = () => {
+    setViewportVersion((previousViewportVersion) => previousViewportVersion + 1);
+    measure();
   };
 
   createEffect(() => {
@@ -77,8 +83,24 @@ export const createAnchoredDropdown = (
     onCleanup(clearAnimationHandles);
   });
 
+  createEffect(() => {
+    const anchor = anchorAccessor();
+    if (!anchor) return;
+
+    window.addEventListener("resize", handleViewportChange);
+    window.visualViewport?.addEventListener("resize", handleViewportChange);
+    window.visualViewport?.addEventListener("scroll", handleViewportChange);
+
+    onCleanup(() => {
+      window.removeEventListener("resize", handleViewportChange);
+      window.visualViewport?.removeEventListener("resize", handleViewportChange);
+      window.visualViewport?.removeEventListener("scroll", handleViewportChange);
+    });
+  });
+
   const displayPosition = createMemo(
     (previousPosition: { left: number; top: number }) => {
+      viewportVersion();
       const position = getAnchoredDropdownPosition({
         anchor: anchorAccessor(),
         measuredWidth: measuredWidth(),

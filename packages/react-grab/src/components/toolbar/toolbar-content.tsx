@@ -1,6 +1,5 @@
 import type { Component, JSX } from "solid-js";
 import { cn } from "../../utils/cn.js";
-import { PANEL_STYLES } from "../../constants.js";
 import { IconSelect } from "../icons/icon-select.jsx";
 import { IconChevron } from "../icons/icon-chevron.jsx";
 import { IconClock } from "../icons/icon-clock.jsx";
@@ -222,7 +221,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
       class={cn(
         "flex items-center justify-center rounded-[10px] antialiased relative overflow-visible [font-synthesis:none] filter-[drop-shadow(0px_1px_2px_#51515140)] [corner-shape:superellipse(1.25)]",
         isVertical() && "flex-col",
-        PANEL_STYLES,
+        "bg-white",
         !props.isCollapsed &&
           (isVertical() ? "px-1.5 gap-1.5 py-2" : "py-1.5 gap-1.5 px-2"),
         collapsedEdgeClasses(),

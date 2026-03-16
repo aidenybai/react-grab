@@ -11,15 +11,14 @@ import {
 import type { Component } from "solid-js";
 import type { ArrowPosition, SelectionLabelProps } from "../../types.js";
 import {
-  DEFERRED_EXECUTION_DELAY_MS,
   IME_COMPOSING_KEY_CODE,
   VIEWPORT_MARGIN_PX,
   ARROW_CENTER_PERCENT,
   ARROW_LABEL_MARGIN_PX,
   LABEL_GAP_PX,
-  PANEL_STYLES,
   SELECTION_LABEL_OFFSCREEN_PX,
   TEXTAREA_MAX_HEIGHT_PX,
+  Z_INDEX_LABEL,
 } from "../../constants.js";
 import { autoResizeTextarea } from "../../utils/auto-resize-textarea.js";
 import { getArrowSize } from "../../utils/get-arrow-size.js";
@@ -58,7 +57,7 @@ interface PositionResult {
   position: LabelPosition;
   computedArrowPosition: ArrowPosition | null;
   hadValidBounds: boolean;
-  resetVersion: number;
+  elementIdentity: string;
 }
 
 export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
@@ -66,7 +65,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   let panelRef: HTMLDivElement | undefined;
   let inputRef: HTMLTextAreaElement | undefined;
   let isTagCurrentlyHovered = false;
-  let lastElementIdentity: string | null = null;
 
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
@@ -172,15 +170,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     });
   });
 
-  const [positionResetVersion, setPositionResetVersion] = createSignal(0);
-
-  createEffect(() => {
-    const elementIdentity = `${props.tagName ?? ""}:${props.componentName ?? ""}`;
-    if (elementIdentity !== lastElementIdentity) {
-      lastElementIdentity = elementIdentity;
-      setPositionResetVersion((version) => version + 1);
-    }
-  });
+  const elementIdentity = () =>
+    `${props.tagName ?? ""}:${props.componentName ?? ""}`;
 
   createEffect(() => {
     if (props.isPromptMode && inputRef && props.onSubmit) {
@@ -190,7 +181,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           inputRef.focus();
           autoResizeTextarea(inputRef, TEXTAREA_MAX_HEIGHT_PX);
         }
-      }, DEFERRED_EXECUTION_DELAY_MS);
+      }, 0);
       onCleanup(() => {
         clearTimeout(focusTimeout);
       });
@@ -200,14 +191,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const positionComputation = createMemo(
     (previousResult: PositionResult): PositionResult => {
       viewportVersion();
-      const resetVersion = positionResetVersion();
-      const didReset = resetVersion !== previousResult.resetVersion;
+      const currentElementIdentity = elementIdentity();
+      const didReset = currentElementIdentity !== previousResult.elementIdentity;
       const cached = didReset
         ? {
             position: DEFAULT_OFFSCREEN_POSITION,
             computedArrowPosition: null as ArrowPosition | null,
             hadValidBounds: false,
-            resetVersion,
+            elementIdentity: currentElementIdentity,
           }
         : previousResult;
 
@@ -224,7 +215,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             : DEFAULT_OFFSCREEN_POSITION,
           computedArrowPosition: cached.computedArrowPosition,
           hadValidBounds: cached.hadValidBounds,
-          resetVersion,
+          elementIdentity: currentElementIdentity,
         };
       }
 
@@ -247,7 +238,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           position: DEFAULT_OFFSCREEN_POSITION,
           computedArrowPosition: cached.computedArrowPosition,
           hadValidBounds: cached.hadValidBounds,
-          resetVersion,
+          elementIdentity: currentElementIdentity,
         };
       }
 
@@ -316,14 +307,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         },
         computedArrowPosition,
         hadValidBounds: true,
-        resetVersion,
+        elementIdentity: currentElementIdentity,
       };
     },
     {
       position: DEFAULT_OFFSCREEN_POSITION,
       computedArrowPosition: null as ArrowPosition | null,
       hadValidBounds: false,
-      resetVersion: 0,
+      elementIdentity: "",
     },
   );
 
@@ -374,12 +365,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       elementsCount: props.elementsCount,
     });
 
-  const tagDisplay = () => tagDisplayResult().tagName;
-  const componentNameDisplay = () => tagDisplayResult().componentName;
-  const actionCycleItems = () => props.actionCycleState?.items ?? [];
-  const actionCycleActiveIndex = () => props.actionCycleState?.activeIndex ?? 0;
-  const isActionCycleVisible = () => Boolean(props.actionCycleState?.isVisible);
-
   const isArrowNavigationVisible = () =>
     Boolean(props.arrowNavigationState?.isVisible);
 
@@ -389,8 +374,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       props.onOpen();
     }
   };
-
-  const isTagClickable = () => Boolean(props.filePath && props.onOpen);
 
   const handleContainerPointerDown = (event: PointerEvent) => {
     event.stopImmediatePropagation();
@@ -425,7 +408,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           top: `${positionComputation().position.top}px`,
           left: `${positionComputation().position.left}px`,
           transform: `translateX(calc(-50% + ${positionComputation().position.edgeOffsetX}px))`,
-          "z-index": "2147483647",
+          "z-index": `${Z_INDEX_LABEL}`,
           "pointer-events": shouldEnablePointerEvents() ? "auto" : "none",
           opacity: props.status === "fading" || isInternalFading() ? 0 : 1,
         }}
@@ -466,7 +449,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           ref={panelRef}
           class={cn(
             "contain-layout flex items-center gap-[5px] rounded-[10px] antialiased w-fit h-fit p-0 [font-synthesis:none] [corner-shape:superellipse(1.25)]",
-            PANEL_STYLES,
+            "bg-white",
             isShaking() && "animate-shake",
           )}
           style={{
@@ -545,15 +528,15 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 }}
               >
                 <TagBadge
-                  tagName={tagDisplay()}
-                  componentName={componentNameDisplay()}
-                  isClickable={isTagClickable()}
+                  tagName={tagDisplayResult().tagName}
+                  componentName={tagDisplayResult().componentName}
+                  isClickable={Boolean(props.filePath && props.onOpen)}
                   onClick={handleTagClick}
                   onHoverChange={handleTagHoverChange}
                   shrink
                   forceShowIcon={
                     isArrowNavigationVisible()
-                      ? isTagClickable()
+                      ? Boolean(props.filePath && props.onOpen)
                       : Boolean(props.isContextMenuOpen)
                   }
                 />
@@ -566,20 +549,25 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 />
               </Show>
               <Show
-                when={!isArrowNavigationVisible() && isActionCycleVisible()}
+                when={
+                  !isArrowNavigationVisible() &&
+                  Boolean(props.actionCycleState?.isVisible)
+                }
               >
                 <BottomSection>
                   <div class="flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5">
-                    <For each={actionCycleItems()}>
+                    <For each={props.actionCycleState?.items ?? []}>
                       {(item, itemIndex) => (
                         <div
                           data-react-grab-action-cycle-item={item.label.toLowerCase()}
                           class="contain-layout flex items-center justify-between w-full px-2 py-1 transition-colors"
                           classList={{
                             "bg-black/5":
-                              itemIndex() === actionCycleActiveIndex(),
+                              itemIndex() ===
+                              (props.actionCycleState?.activeIndex ?? 0),
                             "rounded-b-[6px]":
-                              itemIndex() === actionCycleItems().length - 1,
+                              itemIndex() ===
+                              (props.actionCycleState?.items ?? []).length - 1,
                           }}
                         >
                           <span class="text-[13px] leading-4 font-sans font-medium text-black">
@@ -607,9 +595,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start w-fit h-fit min-w-[150px] max-w-[280px]">
               <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 w-fit h-fit px-2 max-w-full">
                 <TagBadge
-                  tagName={tagDisplay()}
-                  componentName={componentNameDisplay()}
-                  isClickable={isTagClickable()}
+                  tagName={tagDisplayResult().tagName}
+                  componentName={tagDisplayResult().componentName}
+                  isClickable={Boolean(props.filePath && props.onOpen)}
                   onClick={handleTagClick}
                   onHoverChange={handleTagHoverChange}
                   forceShowIcon

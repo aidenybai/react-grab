@@ -1,6 +1,7 @@
 import { copyContent, type ReactGrabEntry } from "../utils/copy-content.js";
 import { generateSnippet } from "../utils/generate-snippet.js";
 import { joinSnippets } from "../utils/join-snippets.js";
+import { normalizeError } from "../utils/normalize-error.js";
 
 interface CopyOptions {
   maxContextLines?: number;
@@ -78,9 +79,7 @@ export const tryCopyWithFallback = async (
       });
     }
   } catch (error) {
-    const resolvedError =
-      error instanceof Error ? error : new Error(String(error));
-    hooks.onCopyError(resolvedError);
+    hooks.onCopyError(normalizeError(error));
   }
 
   if (didCopy) {

@@ -58,8 +58,8 @@ export const stripTranslateFromTransformString = (
 ): string => {
   if (!transform || transform === "none") return "none";
 
-  if (transform.charCodeAt(0) === 109) {
-    if (transform.charCodeAt(6) === 51) {
+  if (transform.startsWith("matrix")) {
+    if (transform.startsWith("matrix3d(")) {
       const start = 9;
       const end = transform.length - 1;
       const values = parseMatrixValues(transform.slice(start, end), 16);

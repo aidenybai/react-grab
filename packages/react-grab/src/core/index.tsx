@@ -45,7 +45,8 @@ import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { createElementSelector } from "../utils/create-element-selector.js";
 import { getVisibleBoundsCenter } from "../utils/get-visible-bounds-center.js";
-import { clearAllCaches } from "../utils/clear-all-caches.js";
+import { invalidateInteractionCaches } from "../utils/invalidate-interaction-caches.js";
+import { normalizeErrorMessage } from "../utils/normalize-error.js";
 import {
   createBoundsFromDragRect,
   createFlatOverlayBounds,
@@ -62,7 +63,6 @@ import {
   PENDING_DETECTION_STALENESS_MS,
   COMPONENT_NAME_DEBOUNCE_MS,
   DRAG_PREVIEW_DEBOUNCE_MS,
-  Z_INDEX_LABEL,
   MODIFIER_KEYS,
   BLUR_DEACTIVATION_THRESHOLD_MS,
   BOUNDS_RECALC_INTERVAL_MS,
@@ -76,7 +76,6 @@ import {
   WINDOW_REFOCUS_GRACE_PERIOD_MS,
   DROPDOWN_HOVER_OPEN_DELAY_MS,
   PREVIEW_TEXT_MAX_LENGTH,
-  DEFERRED_EXECUTION_DELAY_MS,
   NEXTJS_REVALIDATION_DELAY_MS,
   TOOLBAR_DEFAULT_POSITION_RATIO,
 } from "../constants.js";
@@ -116,7 +115,7 @@ import type {
 } from "../types.js";
 import { DEFAULT_THEME } from "./theme.js";
 import { createPluginRegistry } from "./plugin-registry.js";
-import { createAgentManager } from "./agent/index.js";
+import { createAgentManager } from "./agent/manager.js";
 import { createArrowNavigator } from "./arrow-navigation.js";
 import {
   getRequiredModifiers,
@@ -156,6 +155,9 @@ import {
 } from "../utils/history-storage.js";
 import { copyContent } from "../utils/copy-content.js";
 import { joinSnippets } from "../utils/join-snippets.js";
+
+const generateLabelId = (): string =>
+  `label-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 const builtInPlugins = [
   copyPlugin,
@@ -216,8 +218,36 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const isHoldingKeys = createMemo(() => store.current.state === "holding");
-
     const isActivated = createMemo(() => store.current.state === "active");
+    const isFrozenPhase = createMemo(
+      () =>
+        store.current.state === "active" && store.current.phase === "frozen",
+    );
+    const isDragging = createMemo(
+      () =>
+        store.current.state === "active" && store.current.phase === "dragging",
+    );
+    const didJustDrag = createMemo(
+      () =>
+        store.current.state === "active" &&
+        store.current.phase === "justDragged",
+    );
+    const isCopying = createMemo(() => store.current.state === "copying");
+    const didJustCopy = createMemo(() => store.current.state === "justCopied");
+    const isPromptMode = createMemo(
+      () =>
+        store.current.state === "active" &&
+        Boolean(store.current.isPromptMode),
+    );
+    const isCommentMode = createMemo(
+      () => store.pendingCommentMode || isPromptMode(),
+    );
+    const isPendingDismiss = createMemo(
+      () =>
+        store.current.state === "active" &&
+        Boolean(store.current.isPromptMode) &&
+        Boolean(store.current.isPendingDismiss),
+    );
 
     createEffect(
       on(isActivated, (activated, previousActivated) => {
@@ -232,41 +262,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           document.body.style.touchAction = "";
         }
       }),
-    );
-
-    const isFrozenPhase = createMemo(
-      () =>
-        store.current.state === "active" && store.current.phase === "frozen",
-    );
-
-    const isDragging = createMemo(
-      () =>
-        store.current.state === "active" && store.current.phase === "dragging",
-    );
-
-    const didJustDrag = createMemo(
-      () =>
-        store.current.state === "active" &&
-        store.current.phase === "justDragged",
-    );
-
-    const isCopying = createMemo(() => store.current.state === "copying");
-
-    const didJustCopy = createMemo(() => store.current.state === "justCopied");
-
-    const isPromptMode = createMemo(
-      () => store.current.state === "active" && store.current.isPromptMode,
-    );
-
-    const isCommentMode = createMemo(
-      () => store.pendingCommentMode || isPromptMode(),
-    );
-
-    const isPendingDismiss = createMemo(
-      () =>
-        store.current.state === "active" &&
-        store.current.isPromptMode &&
-        store.current.isPendingDismiss,
     );
 
     const savedToolbarState = loadToolbarState();
@@ -370,9 +365,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
     );
 
-    const pendingAbortSessionId = createMemo(() => store.pendingAbortSessionId);
+    const pendingAbortSessionId = () => store.pendingAbortSessionId;
 
-    const hasAgentProvider = createMemo(() => store.hasAgentProvider);
+    const hasAgentProvider = () => store.hasAgentProvider;
 
     const clearHoldTimer = () => {
       if (holdState.timerId !== null) {
@@ -541,7 +536,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       bounds: OverlayBounds,
       element: Element,
     ) => {
-      const boxId = `grabbed-${Date.now()}-${Math.random()}`;
+      const boxId = `grabbed-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const createdAt = Date.now();
       const newBox: GrabbedBox = { id: boxId, bounds, createdAt, element };
 
@@ -611,9 +606,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
     ): string => {
       actions.clearLabelInstances();
-      const instanceId = `label-${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2)}`;
+      const instanceId = generateLabelId();
       const boundsCenterX = bounds.x + bounds.width / 2;
       const boundsHalfWidth = bounds.width / 2;
       const mouseX = options?.mouseX;
@@ -736,10 +729,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         await operation();
         didSucceed = true;
       } catch (error) {
-        errorMessage =
-          error instanceof Error && error.message
-            ? error.message
-            : "Action failed";
+        errorMessage = normalizeErrorMessage(error, "Action failed");
       }
 
       if (instanceId) {
@@ -1118,7 +1108,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return createElementBounds(element);
     });
 
-    const frozenElementsCount = createMemo(() => store.frozenElements.length);
+    const frozenElementsCount = () => store.frozenElements.length;
 
     const calculateDragDistance = (endX: number, endY: number) => {
       const endPageX = endX + window.scrollX;
@@ -1567,15 +1557,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return;
       }
 
-      const elements =
-        frozenElements.length > 0 ? frozenElements : element ? [element] : [];
+      const elements = frozenElements.length > 0 ? frozenElements : [element];
 
       const currentSelectionBounds = elements.map((selectedElement) =>
         createElementBounds(selectedElement),
       );
       const firstBounds = currentSelectionBounds[0];
-      const currentX = firstBounds.x + firstBounds.width / 2;
-      const currentY = firstBounds.y + firstBounds.height / 2;
+      const { x: currentX, y: currentY } = getBoundsCenter(firstBounds);
       const labelPositionX = currentX + store.copyOffsetFromCenterX;
 
       if ((store.selectedAgent || hasAgentProvider()) && prompt) {
@@ -2945,10 +2933,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleViewportChange = () => {
-      clearAllCaches();
+      invalidateInteractionCaches();
       redetectElementUnderPointer();
       actions.incrementViewportVersion();
-      actions.updateSessionBounds();
+      agentManager._internal.updateBoundsOnViewportChange();
       actions.updateContextMenuPosition();
     };
 
@@ -2998,7 +2986,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let boundsRecalcIntervalId: number | null = null;
     let viewportChangeFrameId: number | null = null;
 
-    const startBoundsRecalcIntervalIfNeeded = () => {
+    const scheduleBoundsSync = () => {
+      if (viewportChangeFrameId !== null) return;
+
+      viewportChangeFrameId = nativeRequestAnimationFrame(() => {
+        viewportChangeFrameId = null;
+        actions.incrementViewportVersion();
+        agentManager._internal.updateBoundsOnViewportChange();
+      });
+    };
+
+    createEffect(() => {
       const shouldRunInterval =
         pluginRegistry.store.theme.enabled &&
         (isActivated() ||
@@ -3007,34 +3005,24 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           store.grabbedBoxes.length > 0 ||
           agentManager.sessions().size > 0);
 
-      if (shouldRunInterval && boundsRecalcIntervalId === null) {
-        boundsRecalcIntervalId = window.setInterval(() => {
-          if (viewportChangeFrameId !== null) return;
+      if (shouldRunInterval) {
+        if (boundsRecalcIntervalId !== null) return;
 
-          viewportChangeFrameId = nativeRequestAnimationFrame(() => {
-            viewportChangeFrameId = null;
-            actions.incrementViewportVersion();
-            actions.updateSessionBounds();
-          });
+        boundsRecalcIntervalId = window.setInterval(() => {
+          scheduleBoundsSync();
         }, BOUNDS_RECALC_INTERVAL_MS);
-      } else if (!shouldRunInterval && boundsRecalcIntervalId !== null) {
+        return;
+      }
+
+      if (boundsRecalcIntervalId !== null) {
         window.clearInterval(boundsRecalcIntervalId);
         boundsRecalcIntervalId = null;
-        if (viewportChangeFrameId !== null) {
-          nativeCancelAnimationFrame(viewportChangeFrameId);
-          viewportChangeFrameId = null;
-        }
       }
-    };
 
-    createEffect(() => {
-      void pluginRegistry.store.theme.enabled;
-      void isActivated();
-      void isCopying();
-      void store.labelInstances.length;
-      void store.grabbedBoxes.length;
-      void agentManager.sessions().size;
-      startBoundsRecalcIntervalIfNeeded();
+      if (viewportChangeFrameId !== null) {
+        nativeCancelAnimationFrame(viewportChangeFrameId);
+        viewportChangeFrameId = null;
+      }
     });
 
     onCleanup(() => {
@@ -3346,10 +3334,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               errorMessage = "Failed to copy";
             }
           } catch (error) {
-            errorMessage =
-              error instanceof Error && error.message
-                ? error.message
-                : "Action failed";
+            errorMessage = normalizeErrorMessage(error, "Action failed");
           }
 
           actions.updateLabelInstance(
@@ -3378,7 +3363,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const deferHideContextMenu = () => {
       setTimeout(() => {
         actions.hideContextMenu();
-      }, DEFERRED_EXECUTION_DELAY_MS);
+      }, 0);
     };
 
     interface BuildActionContextOptions {
@@ -3517,7 +3502,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setTimeout(() => {
         actions.hideContextMenu();
         deactivateRenderer();
-      }, DEFERRED_EXECUTION_DELAY_MS);
+      }, 0);
     };
 
     const clearHistoryHoverPreviews = () => {
@@ -3777,8 +3762,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (item.isComment && item.commentText && element) {
         const bounds = createElementBounds(element);
-        const centerX = bounds.x + bounds.width / 2;
-        const centerY = bounds.y + bounds.height / 2;
+        const { x: centerX, y: centerY } = getBoundsCenter(bounds);
         actions.enterPromptMode({ x: centerX, y: centerY }, element);
         actions.setInputText(item.commentText);
       } else {
@@ -3828,7 +3812,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             const connectedElements = getConnectedHistoryElements(historyItem);
             for (const element of connectedElements) {
               const bounds = createElementBounds(element);
-              const labelId = `label-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+              const labelId = generateLabelId();
 
               actions.addLabelInstance({
                 id: labelId,
@@ -3911,27 +3895,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       dismissHistoryDropdown();
     };
 
-    const handleShowContextMenuSession = (sessionId: string) => {
-      const session = agentManager.sessions().get(sessionId);
-      if (!session) return;
-
-      const element = agentManager.session.getElement(sessionId);
-      if (!element) return;
-      if (!isElementConnected(element)) return;
-
-      // HACK: Defer context menu display to avoid event interference
-      setTimeout(() => {
-        if (!isActivated()) {
-          actions.setWasActivatedByToggle(true);
-          activateRenderer();
-        }
-        actions.setPointer(session.position);
-        actions.setFrozenElement(element);
-        actions.freeze();
-        actions.showContextMenu(session.position, element);
-      }, DEFERRED_EXECUTION_DELAY_MS);
-    };
-
     const handleShowContextMenuInstance = (instanceId: string) => {
       const instance = store.labelInstances.find(
         (labelInstance) => labelInstance.id === instanceId,
@@ -3940,9 +3903,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!isElementConnected(instance.element)) return;
 
       const elementBounds = createElementBounds(instance.element);
+      const center = getBoundsCenter(elementBounds);
       const position = {
-        x: instance.mouseX ?? elementBounds.x + elementBounds.width / 2,
-        y: elementBounds.y + elementBounds.height / 2,
+        x: instance.mouseX ?? center.x,
+        y: center.y,
       };
 
       const elementsToFreeze =
@@ -3964,7 +3928,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
         actions.freeze();
         actions.showContextMenu(position, instance.element!);
-      }, DEFERRED_EXECUTION_DELAY_MS);
+      }, 0);
     };
 
     createEffect(() => {
@@ -4000,18 +3964,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             dragVisible={dragVisible()}
             dragBounds={dragBounds()}
             grabbedBoxes={computedGrabbedBoxes()}
-            labelZIndex={Z_INDEX_LABEL}
             mouseX={
               store.frozenElements.length > 1 ? undefined : cursorPosition().x
             }
-            mouseY={cursorPosition().y}
             isFrozen={
               isFrozenPhase() || isActivated() || isToolbarSelectHovered()
             }
             inputValue={store.inputText}
             isPromptMode={isPromptMode()}
             hasAgent={hasAgentProvider()}
-            isAgentConnected={store.isAgentConnected}
             agentSessions={agentManager.sessions()}
             supportsUndo={store.supportsUndo}
             supportsFollowUp={store.supportsFollowUp}
@@ -4021,12 +3982,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             onFollowUpSubmitSession={handleFollowUpSubmit}
             onAcknowledgeSessionError={handleAcknowledgeError}
             onRetrySession={agentManager.session.retry}
-            onShowContextMenuSession={handleShowContextMenuSession}
             onShowContextMenuInstance={handleShowContextMenuInstance}
             onLabelInstanceHoverChange={handleLabelInstanceHoverChange}
             onInputChange={actions.setInputText}
             onInputSubmit={() => void handleInputSubmit()}
-            onInputCancel={handleInputCancel}
             onToggleExpand={handleToggleExpand}
             isPendingDismiss={isPendingDismiss()}
             selectionLabelShakeCount={selectionLabelShakeCount()}
@@ -4037,7 +3996,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               actions.setPendingAbortSessionId(sessionId)
             }
             onAbortSession={handleAgentAbort}
-            theme={pluginRegistry.store.theme}
             toolbarVisible={pluginRegistry.store.theme.toolbar.enabled}
             isActive={isActivated()}
             onToggleActive={handleToggleActive}
@@ -4243,8 +4201,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         isDragging: isDragging(),
         isCopying: isCopying(),
         isPromptMode: isPromptMode(),
-        isSelectionBoxVisible: selectionVisible() ?? false,
-        isDragBoxVisible: dragVisible() ?? false,
+        isSelectionBoxVisible: Boolean(selectionVisible()),
+        isDragBoxVisible: Boolean(dragVisible()),
         targetElement: targetElement(),
         dragBounds: dragBounds() ?? null,
         grabbedBoxes: stateChangeGrabbedBoxes(),

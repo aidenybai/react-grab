@@ -1,6 +1,6 @@
 import { Show, Index } from "solid-js";
 import type { Component } from "solid-js";
-import type { ReactGrabRendererProps } from "../types.js";
+import type { AgentSession, ReactGrabRendererProps } from "../types.js";
 import {
   FROZEN_GLOW_COLOR,
   FROZEN_GLOW_EDGE_PX,
@@ -17,6 +17,20 @@ import { HistoryDropdown } from "./history-dropdown.js";
 import { ClearHistoryPrompt } from "./clear-history-prompt.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
+  const getSessionStatus = (
+    session: AgentSession,
+  ): "copying" | "copied" | "fading" => {
+    if (session.isFading) {
+      return "fading";
+    }
+
+    if (session.isStreaming) {
+      return "copying";
+    }
+
+    return "copied";
+  };
+
   return (
     <>
       <OverlayCanvas
@@ -56,63 +70,51 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         }
       >
         {(session) => (
-          <>
-            <Show when={session().selectionBounds.length > 0}>
-              <SelectionLabel
-                tagName={session().tagName}
-                componentName={session().componentName}
-                selectionBounds={session().selectionBounds[0]}
-                mouseX={session().position.x}
-                visible={true}
-                hasAgent={true}
-                isAgentConnected={true}
-                status={(() => {
-                  if (session().isFading) return "fading";
-                  if (session().isStreaming) return "copying";
-                  return "copied";
-                })()}
-                statusText={session().lastStatus || "Thinking…"}
-                inputValue={session().context.prompt}
-                previousPrompt={session().context.prompt}
-                supportsUndo={props.supportsUndo}
-                supportsFollowUp={props.supportsFollowUp}
-                dismissButtonText={props.dismissButtonText}
-                onAbort={() => props.onRequestAbortSession?.(session().id)}
-                onDismiss={
-                  session().isStreaming
-                    ? undefined
-                    : () => props.onDismissSession?.(session().id)
-                }
-                onUndo={
-                  session().isStreaming
-                    ? undefined
-                    : () => props.onUndoSession?.(session().id)
-                }
-                onFollowUpSubmit={
-                  session().isStreaming
-                    ? undefined
-                    : (prompt) =>
-                        props.onFollowUpSubmitSession?.(session().id, prompt)
-                }
-                error={session().error}
-                onAcknowledgeError={() =>
-                  props.onAcknowledgeSessionError?.(session().id)
-                }
-                onRetry={() => props.onRetrySession?.(session().id)}
-                isPendingAbort={
-                  session().isStreaming &&
-                  props.pendingAbortSessionId === session().id
-                }
-                onConfirmAbort={() =>
-                  props.onAbortSession?.(session().id, true)
-                }
-                onCancelAbort={() =>
-                  props.onAbortSession?.(session().id, false)
-                }
-                onShowContextMenu={undefined}
-              />
-            </Show>
-          </>
+          <Show when={session().selectionBounds.length > 0}>
+            <SelectionLabel
+              tagName={session().tagName}
+              componentName={session().componentName}
+              selectionBounds={session().selectionBounds[0]}
+              mouseX={session().position.x}
+              visible={true}
+              hasAgent={true}
+              status={getSessionStatus(session())}
+              statusText={session().lastStatus || "Thinking…"}
+              inputValue={session().context.prompt}
+              previousPrompt={session().context.prompt}
+              supportsUndo={props.supportsUndo}
+              supportsFollowUp={props.supportsFollowUp}
+              dismissButtonText={props.dismissButtonText}
+              onAbort={() => props.onRequestAbortSession?.(session().id)}
+              onDismiss={
+                session().isStreaming
+                  ? undefined
+                  : () => props.onDismissSession?.(session().id)
+              }
+              onUndo={
+                session().isStreaming
+                  ? undefined
+                  : () => props.onUndoSession?.(session().id)
+              }
+              onFollowUpSubmit={
+                session().isStreaming
+                  ? undefined
+                  : (prompt) =>
+                      props.onFollowUpSubmitSession?.(session().id, prompt)
+              }
+              error={session().error}
+              onAcknowledgeError={() =>
+                props.onAcknowledgeSessionError?.(session().id)
+              }
+              onRetry={() => props.onRetrySession?.(session().id)}
+              isPendingAbort={
+                session().isStreaming &&
+                props.pendingAbortSessionId === session().id
+              }
+              onConfirmAbort={() => props.onAbortSession?.(session().id, true)}
+              onCancelAbort={() => props.onAbortSession?.(session().id, false)}
+            />
+          </Show>
         )}
       </Index>
 
@@ -128,16 +130,13 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           inputValue={props.inputValue}
           replyToPrompt={props.replyToPrompt}
           hasAgent={props.hasAgent}
-          isAgentConnected={props.isAgentConnected}
           status={props.selectionLabelStatus}
           actionCycleState={props.selectionActionCycleState}
           arrowNavigationState={props.selectionArrowNavigationState}
           onArrowNavigationSelect={props.onArrowNavigationSelect}
           filePath={props.selectionFilePath}
-          lineNumber={props.selectionLineNumber}
           onInputChange={props.onInputChange}
           onSubmit={props.onInputSubmit}
-          onCancel={props.onInputCancel}
           onToggleExpand={props.onToggleExpand}
           isPendingDismiss={props.isPendingDismiss}
           selectionLabelShakeCount={props.selectionLabelShakeCount}

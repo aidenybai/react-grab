@@ -37,12 +37,11 @@ import {
   TOOLBAR_DEFAULT_HEIGHT_PX,
   TOOLBAR_DEFAULT_POSITION_RATIO,
   TOOLBAR_SHAKE_TOOLTIP_DURATION_MS,
-  SELECTION_HINT_CYCLE_INTERVAL_MS,
-  SELECTION_HINT_COUNT,
-  HINT_FLIP_IN_ANIMATION,
   FEEDBACK_DURATION_MS,
+  HINT_FLIP_IN_ANIMATION,
   SAFE_POLYGON_BUFFER_PX,
-  PANEL_STYLES,
+  SELECTION_HINT_COUNT,
+  SELECTION_HINT_CYCLE_INTERVAL_MS,
   Z_INDEX_HOST,
 } from "../../constants.js";
 import { freezeUpdates } from "../../utils/freeze-updates.js";
@@ -175,7 +174,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   let clockFlashRef: HTMLSpanElement | undefined;
   const [selectionHintIndex, setSelectionHintIndex] = createSignal(0);
   const [hasHintCycled, setHasHintCycled] = createSignal(false);
-
   const hasLearnedSelectionHints = () => (props.clockFlashTrigger ?? 0) > 0;
 
   createEffect(
@@ -188,7 +186,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         const intervalId = setInterval(() => {
           if (!hasHintCycled()) setHasHintCycled(true);
           setSelectionHintIndex(
-            (previous) => (previous + 1) % SELECTION_HINT_COUNT,
+            (previousIndex) => (previousIndex + 1) % SELECTION_HINT_COUNT,
           );
         }, SELECTION_HINT_CYCLE_INTERVAL_MS);
         onCleanup(() => clearInterval(intervalId));
@@ -1548,7 +1546,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               <div
                 class={cn(
                   "absolute whitespace-nowrap flex items-center gap-1 px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none animate-tooltip-fade-in [animation-fill-mode:backwards] overflow-hidden [corner-shape:superellipse(1.25)]",
-                  PANEL_STYLES,
+                  "bg-white",
                   shakeTooltipPositionClass(),
                 )}
                 style={{ "z-index": String(Z_INDEX_HOST) }}
@@ -1594,7 +1592,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               <div
                 class={cn(
                   "absolute whitespace-nowrap px-1.5 py-0.5 rounded-[10px] text-[10px] text-black/60 pointer-events-none animate-tooltip-fade-in [corner-shape:superellipse(1.25)]",
-                  PANEL_STYLES,
+                  "bg-white",
                   shakeTooltipPositionClass(),
                 )}
                 style={{ "z-index": String(Z_INDEX_HOST) }}

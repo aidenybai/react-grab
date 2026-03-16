@@ -4,13 +4,11 @@ import type {
   Theme,
   GrabbedBox,
   SelectionLabelInstance,
-  AgentSession,
   AgentOptions,
 } from "../types.js";
 import { OFFSCREEN_POSITION } from "../constants.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
-import { recalculateSessionPosition } from "../utils/recalculate-session-position.js";
 
 interface PendingClickData {
   clientX: number;
@@ -70,9 +68,6 @@ interface GrabStore {
   grabbedBoxes: GrabbedBox[];
   labelInstances: SelectionLabelInstance[];
 
-  agentSessions: Map<string, AgentSession>;
-  sessionElements: Map<string, Element>;
-
   isTouchMode: boolean;
 
   theme: Required<Theme>;
@@ -129,9 +124,6 @@ const createInitialStore = (input: GrabStoreInput): GrabStore => ({
   viewportVersion: 0,
   grabbedBoxes: [],
   labelInstances: [],
-
-  agentSessions: new Map(),
-  sessionElements: new Map(),
 
   isTouchMode: false,
 
@@ -211,16 +203,6 @@ interface GrabActions {
     isAgentConnected: boolean;
   }) => void;
   setPendingAbortSessionId: (sessionId: string | null) => void;
-  updateSessionBounds: () => void;
-  addAgentSession: (
-    sessionId: string,
-    session: AgentSession,
-    element: Element,
-  ) => void;
-  updateAgentSessionStatus: (sessionId: string, status: string) => void;
-  completeAgentSession: (sessionId: string, status?: string) => void;
-  setAgentSessionError: (sessionId: string, error: string) => void;
-  removeAgentSession: (sessionId: string) => void;
   showContextMenu: (position: Position, element: Element) => void;
   hideContextMenu: () => void;
   updateContextMenuPosition: () => void;
@@ -634,93 +616,6 @@ const createGrabStore = (input: GrabStoreInput) => {
 
     setPendingAbortSessionId: (sessionId: string | null) => {
       setStore("pendingAbortSessionId", sessionId);
-    },
-
-    updateSessionBounds: () => {
-      const currentSessions = store.agentSessions;
-      if (currentSessions.size === 0) return;
-
-      const updatedSessions = new Map(currentSessions);
-      let didUpdate = false;
-
-      for (const [sessionId, session] of currentSessions) {
-        const element = store.sessionElements.get(sessionId) ?? null;
-        if (isElementConnected(element)) {
-          const newBounds = createElementBounds(element);
-          const oldFirstBounds = session.selectionBounds[0];
-          const updatedPosition = recalculateSessionPosition({
-            currentPosition: session.position,
-            previousBounds: oldFirstBounds,
-            nextBounds: newBounds,
-          });
-
-          updatedSessions.set(sessionId, {
-            ...session,
-            selectionBounds: [newBounds],
-            position: updatedPosition,
-          });
-          didUpdate = true;
-        }
-      }
-
-      if (didUpdate) {
-        setStore("agentSessions", updatedSessions);
-      }
-    },
-
-    addAgentSession: (
-      sessionId: string,
-      session: AgentSession,
-      element: Element,
-    ) => {
-      const newSessions = new Map(store.agentSessions);
-      newSessions.set(sessionId, session);
-      setStore("agentSessions", newSessions);
-
-      const newSessionElements = new Map(store.sessionElements);
-      newSessionElements.set(sessionId, element);
-      setStore("sessionElements", newSessionElements);
-    },
-
-    updateAgentSessionStatus: (sessionId: string, status: string) => {
-      const session = store.agentSessions.get(sessionId);
-      if (!session) return;
-
-      const newSessions = new Map(store.agentSessions);
-      newSessions.set(sessionId, { ...session, lastStatus: status });
-      setStore("agentSessions", newSessions);
-    },
-
-    completeAgentSession: (sessionId: string, status?: string) => {
-      const session = store.agentSessions.get(sessionId);
-      if (!session) return;
-
-      const newSessions = new Map(store.agentSessions);
-      newSessions.set(sessionId, {
-        ...session,
-        isStreaming: false,
-        lastStatus: status ?? session.lastStatus,
-      });
-      setStore("agentSessions", newSessions);
-    },
-
-    setAgentSessionError: (sessionId: string, error: string) => {
-      const session = store.agentSessions.get(sessionId);
-      if (!session) return;
-
-      const newSessions = new Map(store.agentSessions);
-      newSessions.set(sessionId, { ...session, isStreaming: false, error });
-      setStore("agentSessions", newSessions);
-    },
-
-    removeAgentSession: (sessionId: string) => {
-      const newSessions = new Map(store.agentSessions);
-      newSessions.delete(sessionId);
-      setStore("agentSessions", newSessions);
-
-      const newSessionElements = new Map(store.sessionElements);
-      newSessionElements.delete(sessionId);
-      setStore("sessionElements", newSessionElements);
     },
 
     showContextMenu: (position: Position, element: Element) => {

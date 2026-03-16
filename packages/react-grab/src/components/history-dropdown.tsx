@@ -17,7 +17,7 @@ import {
   DROPDOWN_VIEWPORT_PADDING_PX,
   FEEDBACK_DURATION_MS,
   SAFE_POLYGON_BUFFER_PX,
-  PANEL_STYLES,
+  Z_INDEX_LABEL,
 } from "../constants.js";
 import { createSafePolygonTracker } from "../utils/safe-polygon.js";
 import { cn } from "../utils/cn.js";
@@ -28,6 +28,7 @@ import { Tooltip } from "./tooltip.jsx";
 import { createMenuHighlight } from "../utils/create-menu-highlight.js";
 import { suppressMenuEvent } from "../utils/suppress-menu-event.js";
 import { createAnchoredDropdown } from "../utils/create-anchored-dropdown.js";
+import { formatRelativeTime } from "../utils/format-relative-time.js";
 
 const ITEM_ACTION_CLASS =
   "flex items-center justify-center cursor-pointer text-black/25 transition-colors press-scale";
@@ -46,16 +47,6 @@ interface HistoryDropdownProps {
   onDismiss?: () => void;
   onDropdownHover?: (isHovered: boolean) => void;
 }
-
-const formatRelativeTime = (timestamp: number): string => {
-  const elapsedSeconds = Math.floor((Date.now() - timestamp) / 1000);
-  if (elapsedSeconds < 60) return "now";
-  const elapsedMinutes = Math.floor(elapsedSeconds / 60);
-  if (elapsedMinutes < 60) return `${elapsedMinutes}m`;
-  const elapsedHours = Math.floor(elapsedMinutes / 60);
-  if (elapsedHours < 24) return `${elapsedHours}h`;
-  return `${Math.floor(elapsedHours / 24)}d`;
-};
 
 const getHistoryItemDisplayName = (item: HistoryItem): string => {
   if (item.elementsCount && item.elementsCount > 1) {
@@ -171,7 +162,7 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
         style={{
           top: `${dropdown.displayPosition().top}px`,
           left: `${dropdown.displayPosition().left}px`,
-          "z-index": "2147483647",
+          "z-index": `${Z_INDEX_LABEL}`,
           "pointer-events": dropdown.isAnimatedIn() ? "auto" : "none",
           "transform-origin":
             DROPDOWN_EDGE_TRANSFORM_ORIGIN[dropdown.lastAnchorEdge()],
@@ -202,7 +193,7 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
         <div
           class={cn(
             "contain-layout flex flex-col rounded-[10px] antialiased w-fit h-fit overflow-hidden [font-synthesis:none] [corner-shape:superellipse(1.25)]",
-            PANEL_STYLES,
+            "bg-white",
           )}
           style={{
             "min-width": `${panelMinWidth()}px`,
