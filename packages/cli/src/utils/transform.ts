@@ -545,7 +545,11 @@ const transformVite = (
   if (!force) {
     const indexPath = findIndexHtml(projectRoot);
     if (indexPath) {
-      const existingResult = checkExistingInstallation(indexPath, agent, reactGrabAlreadyConfigured);
+      const existingResult = checkExistingInstallation(
+        indexPath,
+        agent,
+        reactGrabAlreadyConfigured,
+      );
       if (existingResult) return existingResult;
     }
   }
@@ -559,7 +563,11 @@ const transformVite = (
   }
 
   if (!force) {
-    const existingResult = checkExistingInstallation(entryPath, agent, reactGrabAlreadyConfigured);
+    const existingResult = checkExistingInstallation(
+      entryPath,
+      agent,
+      reactGrabAlreadyConfigured,
+    );
     if (existingResult) return existingResult;
   }
 
@@ -594,7 +602,11 @@ const transformWebpack = (
   }
 
   if (!force) {
-    const existingResult = checkExistingInstallation(entryPath, agent, reactGrabAlreadyConfigured);
+    const existingResult = checkExistingInstallation(
+      entryPath,
+      agent,
+      reactGrabAlreadyConfigured,
+    );
     if (existingResult) return existingResult;
   }
 

@@ -1,3 +1,4 @@
+import type { Position } from "../types.js";
 import {
   AUTO_SCROLL_EDGE_THRESHOLD_PX,
   AUTO_SCROLL_SPEED_PX,
@@ -33,7 +34,7 @@ interface AutoScroller {
 }
 
 export const createAutoScroller = (
-  getMousePosition: () => { x: number; y: number },
+  getMousePosition: () => Position,
   shouldContinue: () => boolean,
 ): AutoScroller => {
   let animationId: number | null = null;

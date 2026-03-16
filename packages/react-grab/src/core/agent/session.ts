@@ -1,5 +1,6 @@
 import { MAX_MEMORY_SESSIONS } from "../../constants.js";
 import type {
+  Position,
   AgentContext,
   AgentSession,
   AgentSessionStorage,
@@ -13,7 +14,7 @@ const generateSessionId = (): string =>
 
 export const createSession = (
   context: AgentContext,
-  position: { x: number; y: number },
+  position: Position,
   selectionBounds: OverlayBounds[],
   tagName?: string,
   componentName?: string,

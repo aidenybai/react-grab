@@ -480,9 +480,7 @@ import ReactDOM from "react-dom/client";`;
 
     mockExistsSync.mockImplementation((path) => {
       const pathStr = String(path);
-      return (
-        pathStr.endsWith("index.html") || pathStr.endsWith("main.tsx")
-      );
+      return pathStr.endsWith("index.html") || pathStr.endsWith("main.tsx");
     });
     mockReadFileSync.mockImplementation((path) => {
       if (String(path).endsWith("index.html")) return indexWithReactGrab;
@@ -512,22 +510,14 @@ import ReactDOM from "react-dom/client";`;
 
     mockExistsSync.mockImplementation((path) => {
       const pathStr = String(path);
-      return (
-        pathStr.endsWith("index.html") || pathStr.endsWith("main.tsx")
-      );
+      return pathStr.endsWith("index.html") || pathStr.endsWith("main.tsx");
     });
     mockReadFileSync.mockImplementation((path) => {
       if (String(path).endsWith("index.html")) return indexWithReactGrab;
       return `import React from "react";`;
     });
 
-    const result = previewTransform(
-      "/test",
-      "vite",
-      "unknown",
-      "cursor",
-      true,
-    );
+    const result = previewTransform("/test", "vite", "unknown", "cursor", true);
 
     expect(result.success).toBe(true);
     expect(result.newContent).toContain("@react-grab/cursor");

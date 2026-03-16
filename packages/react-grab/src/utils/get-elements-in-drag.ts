@@ -217,12 +217,12 @@ const removeNestedElements = (elements: Element[]): Element[] => {
 export const getElementsInDrag = (
   dragRect: DragRect,
   isValidGrabbableElement: (element: Element) => boolean,
-  strict = true,
+  shouldCheckCoverage = true,
 ): Element[] => {
   const elements = filterElementsInDrag(
     dragRect,
     isValidGrabbableElement,
-    strict,
+    shouldCheckCoverage,
   );
   return removeNestedElements(elements);
 };

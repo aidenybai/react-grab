@@ -92,6 +92,7 @@ import {
   resolveToolbarActionEnabled,
 } from "../utils/resolve-action-enabled.js";
 import type {
+  Position,
   Options,
   OverlayBounds,
   GrabbedBox,
@@ -233,7 +234,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }),
     );
 
-    const isToggleFrozen = createMemo(
+    const isFrozenPhase = createMemo(
       () =>
         store.current.state === "active" && store.current.phase === "frozen",
     );
@@ -493,7 +494,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
     let lastWindowFocusTimestamp = 0;
     const feedbackState = {
-      inTogglePeriod: false,
+      isInCopyFeedbackCooldown: false,
       timerId: null as number | null,
     };
     let actionCycleIdleTimeoutId: number | null = null;
@@ -709,7 +710,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       elements,
       existingInstanceId,
     }: ExecuteCopyOptions) => {
-      feedbackState.inTogglePeriod = false;
+      feedbackState.isInCopyFeedbackCooldown = false;
       if (store.current.state !== "copying") {
         actions.startCopy();
       }
@@ -763,12 +764,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           deactivateRenderer();
         } else if (didSucceed) {
           actions.activate();
-          feedbackState.inTogglePeriod = true;
+          feedbackState.isInCopyFeedbackCooldown = true;
           if (feedbackState.timerId !== null) {
             window.clearTimeout(feedbackState.timerId);
           }
           feedbackState.timerId = window.setTimeout(() => {
-            feedbackState.inTogglePeriod = false;
+            feedbackState.isInCopyFeedbackCooldown = false;
             feedbackState.timerId = null;
           }, FEEDBACK_DURATION_MS);
         } else {
@@ -956,7 +957,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           : positionX;
 
       const tagName = getTagName(element);
-      feedbackState.inTogglePeriod = false;
+      feedbackState.isInCopyFeedbackCooldown = false;
       actions.startCopy();
 
       const labelInstanceId = tagName
@@ -998,7 +999,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     const effectiveElement = createMemo(
-      () => store.frozenElement || (isToggleFrozen() ? null : targetElement()),
+      () => store.frozenElement || (isFrozenPhase() ? null : targetElement()),
     );
 
     createEffect(() => {
@@ -1467,7 +1468,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         window.clearTimeout(feedbackState.timerId);
         feedbackState.timerId = null;
       }
-      feedbackState.inTogglePeriod = false;
+      feedbackState.isInCopyFeedbackCooldown = false;
     };
 
     const deactivateRenderer = () => {
@@ -1493,7 +1494,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const forceDeactivateAll = () => {
       if (isHoldingKeys()) {
-        actions.release();
+        actions.releaseHold();
       }
       if (isActivated()) {
         deactivateRenderer();
@@ -1704,10 +1705,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.enterPromptMode({ x: positionX, y: positionY }, element);
     };
 
-    const openContextMenu = (
-      element: Element,
-      position: { x: number; y: number },
-    ) => {
+    const openContextMenu = (element: Element, position: Position) => {
       actions.showContextMenu(position, element);
       clearArrowNavigation();
       dismissAllPopups();
@@ -1752,7 +1750,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (
         !isEnabled() ||
         isPromptMode() ||
-        isToggleFrozen() ||
+        isFrozenPhase() ||
         store.contextMenuPosition !== null
       )
         return;
@@ -2427,7 +2425,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           } else if (isHoldingKeys()) {
             clearHoldTimer();
             resetCopyConfirmation();
-            actions.release();
+            actions.releaseHold();
           }
         }
         if (!isEnterCode(event.code) || !isHoldingKeys()) {
@@ -2647,9 +2645,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               )
           : isCLikeKey(event.key, event.code);
 
-        if (didJustCopy() || feedbackState.inTogglePeriod) {
+        if (didJustCopy() || feedbackState.isInCopyFeedbackCooldown) {
           if (isReleasingActivationKey || isReleasingModifier) {
-            feedbackState.inTogglePeriod = false;
+            feedbackState.isInCopyFeedbackCooldown = false;
             deactivateRenderer();
           }
           return;
@@ -2720,7 +2718,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             if (shouldActivateAfterCopy) {
               actions.activate();
             } else {
-              actions.release();
+              actions.releaseHold();
             }
           } else {
             deactivateRenderer();
@@ -2750,7 +2748,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (store.contextMenuPosition !== null) return;
         if (isTouchPointer && !isHoldingKeys() && !isActivated()) return;
         const isActiveState = isTouchPointer ? isHoldingKeys() : isActivated();
-        if (isActiveState && !isPromptMode() && isToggleFrozen()) {
+        if (isActiveState && !isPromptMode() && isFrozenPhase()) {
           actions.unfreeze();
           clearArrowNavigation();
         }
@@ -2909,7 +2907,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       cancelActiveDrag();
       if (isHoldingKeys()) {
         clearHoldTimer();
-        actions.release();
+        actions.releaseHold();
         resetCopyConfirmation();
       }
     });
@@ -2933,7 +2931,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (
         isEnabled() &&
         !isPromptMode() &&
-        !isToggleFrozen() &&
+        !isFrozenPhase() &&
         !isDragging() &&
         store.contextMenuPosition === null &&
         store.frozenElements.length === 0
@@ -3100,7 +3098,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => pluginRegistry.store.theme.dragBox.enabled,
     );
     const isSelectionSuppressed = createMemo(
-      () => didJustCopy() || (isToolbarSelectHovered() && !isToggleFrozen()),
+      () => didJustCopy() || (isToolbarSelectHovered() && !isFrozenPhase()),
     );
     const hasDragPreviewBounds = createMemo(
       () => dragPreviewBounds().length > 0,
@@ -3240,7 +3238,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const dragging = isDragging();
       const hasElement = Boolean(effectiveElement());
       const toolbarSelectHovered = isToolbarSelectHovered();
-      const frozen = isToggleFrozen();
+      const frozen = isFrozenPhase();
 
       if (!themeEnabled) return false;
       if (inPromptMode) return false;
@@ -3389,7 +3387,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       lineNumber: number | undefined;
       tagName: string | undefined;
       componentName: string | undefined;
-      position: { x: number; y: number };
+      position: Position;
       performWithFeedbackOptions?: PerformWithFeedbackOptions;
       shouldDeferHideContextMenu: boolean;
       onBeforeCopy?: () => void;
@@ -4008,7 +4006,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             }
             mouseY={cursorPosition().y}
             isFrozen={
-              isToggleFrozen() || isActivated() || isToolbarSelectHovered()
+              isFrozenPhase() || isActivated() || isToolbarSelectHovered()
             }
             inputValue={store.inputText}
             isPromptMode={isPromptMode()}

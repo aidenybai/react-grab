@@ -38,7 +38,15 @@ import { ErrorView } from "./error-view.js";
 import { CompletionView } from "./completion-view.js";
 import { ArrowNavigationMenu } from "./arrow-navigation-menu.js";
 
-const DEFAULT_OFFSCREEN_POSITION = {
+interface LabelPosition {
+  left: number;
+  top: number;
+  arrowLeftPercent: number;
+  arrowLeftOffset: number;
+  edgeOffsetX: number;
+}
+
+const DEFAULT_OFFSCREEN_POSITION: LabelPosition = {
   left: SELECTION_LABEL_OFFSCREEN_PX,
   top: SELECTION_LABEL_OFFSCREEN_PX,
   arrowLeftPercent: ARROW_CENTER_PERCENT,
@@ -46,27 +54,24 @@ const DEFAULT_OFFSCREEN_POSITION = {
   edgeOffsetX: 0,
 };
 
+interface PositionResult {
+  position: LabelPosition;
+  computedArrowPosition: ArrowPosition | null;
+  hadValidBounds: boolean;
+  resetVersion: number;
+}
+
 export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
   let panelRef: HTMLDivElement | undefined;
   let inputRef: HTMLTextAreaElement | undefined;
   let isTagCurrentlyHovered = false;
-  let lastValidPosition: {
-    left: number;
-    top: number;
-    arrowLeftPercent: number;
-    arrowLeftOffset: number;
-    edgeOffsetX: number;
-  } | null = null;
   let lastElementIdentity: string | null = null;
 
   const [measuredWidth, setMeasuredWidth] = createSignal(0);
   const [measuredHeight, setMeasuredHeight] = createSignal(0);
   const [panelWidth, setPanelWidth] = createSignal(0);
-  const [arrowPosition, setArrowPosition] =
-    createSignal<ArrowPosition>("bottom");
   const [viewportVersion, setViewportVersion] = createSignal(0);
-  const [hadValidBounds, setHadValidBounds] = createSignal(false);
   const [isInternalFading, setIsInternalFading] = createSignal(false);
   const [isShaking, setIsShaking] = createSignal(false);
 
@@ -167,11 +172,13 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     });
   });
 
+  const [positionResetVersion, setPositionResetVersion] = createSignal(0);
+
   createEffect(() => {
     const elementIdentity = `${props.tagName ?? ""}:${props.componentName ?? ""}`;
     if (elementIdentity !== lastElementIdentity) {
       lastElementIdentity = elementIdentity;
-      lastValidPosition = null;
+      setPositionResetVersion((version) => version + 1);
     }
   });
 
@@ -190,116 +197,139 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     }
   });
 
-  const positionComputation = createMemo(() => {
-    viewportVersion();
+  const positionComputation = createMemo(
+    (previousResult: PositionResult): PositionResult => {
+      viewportVersion();
+      const resetVersion = positionResetVersion();
+      const didReset = resetVersion !== previousResult.resetVersion;
+      const cached = didReset
+        ? {
+            position: DEFAULT_OFFSCREEN_POSITION,
+            computedArrowPosition: null as ArrowPosition | null,
+            hadValidBounds: false,
+            resetVersion,
+          }
+        : previousResult;
 
-    const bounds = props.selectionBounds;
-    const labelWidth = measuredWidth();
-    const labelHeight = measuredHeight();
-    const hasMeasurements = labelWidth > 0 && labelHeight > 0;
-    const hasValidBounds = bounds && bounds.width > 0 && bounds.height > 0;
+      const bounds = props.selectionBounds;
+      const labelWidth = measuredWidth();
+      const labelHeight = measuredHeight();
+      const hasMeasurements = labelWidth > 0 && labelHeight > 0;
+      const hasValidBounds = bounds && bounds.width > 0 && bounds.height > 0;
 
-    if (!hasMeasurements || !hasValidBounds) {
-      return {
-        position: lastValidPosition ?? DEFAULT_OFFSCREEN_POSITION,
-        computedArrowPosition: null,
-      };
-    }
-
-    const visualViewport = window.visualViewport;
-    const viewportLeft = visualViewport?.offsetLeft ?? 0;
-    const viewportTop = visualViewport?.offsetTop ?? 0;
-    const viewportRight =
-      viewportLeft + (visualViewport?.width ?? window.innerWidth);
-    const viewportBottom =
-      viewportTop + (visualViewport?.height ?? window.innerHeight);
-
-    const isSelectionVisibleInViewport =
-      bounds.x + bounds.width > viewportLeft &&
-      bounds.x < viewportRight &&
-      bounds.y + bounds.height > viewportTop &&
-      bounds.y < viewportBottom;
-
-    if (!isSelectionVisibleInViewport) {
-      return {
-        position: DEFAULT_OFFSCREEN_POSITION,
-        computedArrowPosition: null,
-      };
-    }
-
-    const selectionCenterX = bounds.x + bounds.width / 2;
-    const cursorX = props.mouseX ?? selectionCenterX;
-    const selectionBottom = bounds.y + bounds.height;
-    const selectionTop = bounds.y;
-
-    const actualArrowHeight = props.hideArrow ? 0 : getArrowSize(panelWidth());
-
-    // HACK: Use cursorX as anchor point, CSS transform handles centering via translateX(-50%)
-    // This avoids the flicker when content changes because centering doesn't depend on JS measurement
-    const anchorX = cursorX;
-    let edgeOffsetX = 0;
-    let positionTop = selectionBottom + actualArrowHeight + LABEL_GAP_PX;
-
-    if (labelWidth > 0) {
-      const labelLeft = anchorX - labelWidth / 2;
-      const labelRight = anchorX + labelWidth / 2;
-
-      if (labelRight > viewportRight - VIEWPORT_MARGIN_PX) {
-        edgeOffsetX = viewportRight - VIEWPORT_MARGIN_PX - labelRight;
+      if (!hasMeasurements || !hasValidBounds) {
+        return {
+          position: cached.hadValidBounds
+            ? cached.position
+            : DEFAULT_OFFSCREEN_POSITION,
+          computedArrowPosition: cached.computedArrowPosition,
+          hadValidBounds: cached.hadValidBounds,
+          resetVersion,
+        };
       }
-      if (labelLeft + edgeOffsetX < viewportLeft + VIEWPORT_MARGIN_PX) {
-        edgeOffsetX = viewportLeft + VIEWPORT_MARGIN_PX - labelLeft;
+
+      const visualViewport = window.visualViewport;
+      const viewportLeft = visualViewport?.offsetLeft ?? 0;
+      const viewportTop = visualViewport?.offsetTop ?? 0;
+      const viewportRight =
+        viewportLeft + (visualViewport?.width ?? window.innerWidth);
+      const viewportBottom =
+        viewportTop + (visualViewport?.height ?? window.innerHeight);
+
+      const isSelectionVisibleInViewport =
+        bounds.x + bounds.width > viewportLeft &&
+        bounds.x < viewportRight &&
+        bounds.y + bounds.height > viewportTop &&
+        bounds.y < viewportBottom;
+
+      if (!isSelectionVisibleInViewport) {
+        return {
+          position: DEFAULT_OFFSCREEN_POSITION,
+          computedArrowPosition: cached.computedArrowPosition,
+          hadValidBounds: cached.hadValidBounds,
+          resetVersion,
+        };
       }
-    }
 
-    const totalHeightNeeded = labelHeight + actualArrowHeight + LABEL_GAP_PX;
-    const fitsBelow =
-      positionTop + labelHeight <= viewportBottom - VIEWPORT_MARGIN_PX;
+      const selectionCenterX = bounds.x + bounds.width / 2;
+      const cursorX = props.mouseX ?? selectionCenterX;
+      const selectionBottom = bounds.y + bounds.height;
+      const selectionTop = bounds.y;
 
-    if (!fitsBelow) {
-      positionTop = selectionTop - totalHeightNeeded;
-    }
+      const actualArrowHeight = props.hideArrow
+        ? 0
+        : getArrowSize(panelWidth());
 
-    if (positionTop < viewportTop + VIEWPORT_MARGIN_PX) {
-      positionTop = viewportTop + VIEWPORT_MARGIN_PX;
-    }
+      // HACK: Use cursorX as anchor point, CSS transform handles centering via translateX(-50%)
+      // This avoids the flicker when content changes because centering doesn't depend on JS measurement
+      const anchorX = cursorX;
+      let edgeOffsetX = 0;
+      let positionTop = selectionBottom + actualArrowHeight + LABEL_GAP_PX;
 
-    const arrowLeftPercent = ARROW_CENTER_PERCENT;
-    const labelHalfWidth = labelWidth / 2;
-    const arrowCenterPx = labelHalfWidth - edgeOffsetX;
-    const arrowMinPx = Math.min(ARROW_LABEL_MARGIN_PX, labelHalfWidth);
-    const arrowMaxPx = Math.max(
-      labelWidth - ARROW_LABEL_MARGIN_PX,
-      labelHalfWidth,
-    );
-    const clampedArrowCenterPx = Math.max(
-      arrowMinPx,
-      Math.min(arrowMaxPx, arrowCenterPx),
-    );
-    const arrowLeftOffset = clampedArrowCenterPx - labelHalfWidth;
+      if (labelWidth > 0) {
+        const labelLeft = anchorX - labelWidth / 2;
+        const labelRight = anchorX + labelWidth / 2;
 
-    const computedArrowPosition: ArrowPosition = fitsBelow ? "bottom" : "top";
+        if (labelRight > viewportRight - VIEWPORT_MARGIN_PX) {
+          edgeOffsetX = viewportRight - VIEWPORT_MARGIN_PX - labelRight;
+        }
+        if (labelLeft + edgeOffsetX < viewportLeft + VIEWPORT_MARGIN_PX) {
+          edgeOffsetX = viewportLeft + VIEWPORT_MARGIN_PX - labelLeft;
+        }
+      }
 
-    return {
-      position: {
-        left: anchorX,
-        top: positionTop,
-        arrowLeftPercent,
-        arrowLeftOffset,
-        edgeOffsetX,
-      },
-      computedArrowPosition,
-    };
-  });
+      const totalHeightNeeded = labelHeight + actualArrowHeight + LABEL_GAP_PX;
+      const fitsBelow =
+        positionTop + labelHeight <= viewportBottom - VIEWPORT_MARGIN_PX;
 
-  createEffect(() => {
-    const result = positionComputation();
-    if (result.computedArrowPosition !== null) {
-      lastValidPosition = result.position;
-      setHadValidBounds(true);
-      setArrowPosition(result.computedArrowPosition);
-    }
-  });
+      if (!fitsBelow) {
+        positionTop = selectionTop - totalHeightNeeded;
+      }
+
+      if (positionTop < viewportTop + VIEWPORT_MARGIN_PX) {
+        positionTop = viewportTop + VIEWPORT_MARGIN_PX;
+      }
+
+      const arrowLeftPercent = ARROW_CENTER_PERCENT;
+      const labelHalfWidth = labelWidth / 2;
+      const arrowCenterPx = labelHalfWidth - edgeOffsetX;
+      const arrowMinPx = Math.min(ARROW_LABEL_MARGIN_PX, labelHalfWidth);
+      const arrowMaxPx = Math.max(
+        labelWidth - ARROW_LABEL_MARGIN_PX,
+        labelHalfWidth,
+      );
+      const clampedArrowCenterPx = Math.max(
+        arrowMinPx,
+        Math.min(arrowMaxPx, arrowCenterPx),
+      );
+      const arrowLeftOffset = clampedArrowCenterPx - labelHalfWidth;
+
+      const computedArrowPosition: ArrowPosition = fitsBelow ? "bottom" : "top";
+
+      return {
+        position: {
+          left: anchorX,
+          top: positionTop,
+          arrowLeftPercent,
+          arrowLeftOffset,
+          edgeOffsetX,
+        },
+        computedArrowPosition,
+        hadValidBounds: true,
+        resetVersion,
+      };
+    },
+    {
+      position: DEFAULT_OFFSCREEN_POSITION,
+      computedArrowPosition: null as ArrowPosition | null,
+      hadValidBounds: false,
+      resetVersion: 0,
+    },
+  );
+
+  const arrowPosition = () =>
+    positionComputation().computedArrowPosition ?? "bottom";
+  const hadValidBounds = () => positionComputation().hadValidBounds;
 
   createEffect(
     on(

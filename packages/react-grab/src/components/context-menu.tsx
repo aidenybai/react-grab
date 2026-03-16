@@ -9,6 +9,7 @@ import {
 } from "solid-js";
 import type { Component } from "solid-js";
 import type {
+  Position,
   OverlayBounds,
   ContextMenuAction,
   ContextMenuActionContext,
@@ -30,7 +31,7 @@ import { createMenuHighlight } from "../utils/create-menu-highlight.js";
 import { suppressMenuEvent } from "../utils/suppress-menu-event.js";
 
 interface ContextMenuProps {
-  position: { x: number; y: number } | null;
+  position: Position | null;
   selectionBounds: OverlayBounds | null;
   tagName?: string;
   componentName?: string;

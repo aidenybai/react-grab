@@ -1,3 +1,8 @@
+export interface Position {
+  x: number;
+  y: number;
+}
+
 export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object
     ? T[P] extends (...args: unknown[]) => unknown
@@ -134,7 +139,7 @@ export interface AgentSession {
   isFading?: boolean;
   createdAt: number;
   lastUpdatedAt: number;
-  position: { x: number; y: number };
+  position: Position;
   selectionBounds: OverlayBounds[];
   tagName?: string;
   componentName?: string;
@@ -256,7 +261,7 @@ export interface ArrowNavigationState {
 export interface PerformWithFeedbackOptions {
   fallbackBounds?: OverlayBounds;
   fallbackSelectionBounds?: OverlayBounds[];
-  position?: { x: number; y: number };
+  position?: Position;
 }
 
 export interface PluginHooks {
@@ -292,10 +297,7 @@ export interface PluginHooks {
     variant: ElementLabelVariant,
     context: ElementLabelContext,
   ) => void;
-  onContextMenu?: (
-    element: Element,
-    position: { x: number; y: number },
-  ) => void;
+  onContextMenu?: (element: Element, position: Position) => void;
   onOpenFile?: (filePath: string, lineNumber?: number) => boolean | void;
   transformHtmlContent?: (
     html: string,
@@ -528,7 +530,7 @@ export interface ReactGrabRendererProps {
   ) => () => void;
   onToolbarSelectHoverChange?: (isHovered: boolean) => void;
   onToolbarRef?: (element: HTMLDivElement) => void;
-  contextMenuPosition?: { x: number; y: number } | null;
+  contextMenuPosition?: Position | null;
   contextMenuBounds?: OverlayBounds | null;
   contextMenuTagName?: string;
   contextMenuComponentName?: string;

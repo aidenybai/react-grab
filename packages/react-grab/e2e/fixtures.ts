@@ -312,7 +312,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   const hoverElement = async (selector: string) => {
     const element = page.locator(selector).first();
     await element.hover({ force: true });
-    await page.waitForTimeout(100);
+    await page.waitForTimeout(250);
   };
 
   const clickElement = async (selector: string) => {
@@ -362,7 +362,8 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         const state = api?.getState();
         return state?.isSelectionBoxVisible || state?.targetElement !== null;
       },
-      { timeout: 2000 },
+      undefined,
+      { timeout: 10_000 },
     );
   };
 
@@ -378,6 +379,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         ).__REACT_GRAB__;
         return api?.getState()?.selectionFilePath !== null;
       },
+      undefined,
       { timeout: 5000 },
     );
   };
@@ -608,7 +610,31 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
   const enterPromptMode = async (selector: string) => {
     await activate();
     await hoverElement(selector);
-    await waitForSelectionBox();
+    const isSelected = await page
+      .waitForFunction(
+        () => {
+          const api = (
+            window as {
+              __REACT_GRAB__?: {
+                getState: () => {
+                  isSelectionBoxVisible: boolean;
+                  targetElement: unknown;
+                };
+              };
+            }
+          ).__REACT_GRAB__;
+          const state = api?.getState();
+          return state?.isSelectionBoxVisible || state?.targetElement !== null;
+        },
+        undefined,
+        { timeout: 2000 },
+      )
+      .then(() => true)
+      .catch(() => false);
+    if (!isSelected) {
+      await hoverElement(selector);
+      await waitForSelectionBox();
+    }
     await rightClickElement(selector);
     await clickContextMenuItem("Edit");
     await waitForPromptMode(true);
@@ -1820,6 +1846,7 @@ const createReactGrabPageObject = (page: Page): ReactGrabPageObject => {
         const api = (window as { __REACT_GRAB__?: unknown }).__REACT_GRAB__;
         return api !== undefined;
       },
+      undefined,
       { timeout: 5000 },
     );
   };
@@ -2494,6 +2521,7 @@ export const test = base.extend<{ reactGrab: ReactGrabPageObject }>({
           const api = (window as { __REACT_GRAB__?: unknown }).__REACT_GRAB__;
           return api !== undefined;
         },
+        undefined,
         { timeout: PAGE_SETUP_API_TIMEOUT_MS },
       );
     };
