@@ -1,7 +1,11 @@
 import { Show, onMount, onCleanup } from "solid-js";
 import type { Component } from "solid-js";
 import type { DropdownAnchor } from "../types.js";
-import { DROPDOWN_EDGE_TRANSFORM_ORIGIN, PANEL_STYLES } from "../constants.js";
+import {
+  DROPDOWN_EDGE_TRANSFORM_ORIGIN,
+  PANEL_STYLES,
+  Z_INDEX_LABEL,
+} from "../constants.js";
 import { cn } from "../utils/cn.js";
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
 import { isKeyboardEventTriggeredByInput } from "../utils/is-keyboard-event-triggered-by-input.js";
@@ -92,7 +96,7 @@ export const ClearHistoryPrompt: Component<ClearHistoryPromptProps> = (
         style={{
           top: `${dropdown.displayPosition().top}px`,
           left: `${dropdown.displayPosition().left}px`,
-          "z-index": "2147483647",
+          "z-index": `${Z_INDEX_LABEL}`,
           "pointer-events": dropdown.isAnimatedIn() ? "auto" : "none",
           "transform-origin":
             DROPDOWN_EDGE_TRANSFORM_ORIGIN[dropdown.lastAnchorEdge()],

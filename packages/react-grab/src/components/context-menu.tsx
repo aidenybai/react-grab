@@ -14,7 +14,13 @@ import type {
   ContextMenuAction,
   ContextMenuActionContext,
 } from "../types.js";
-import { ARROW_HEIGHT_PX, LABEL_GAP_PX, PANEL_STYLES } from "../constants.js";
+import {
+  ARROW_HEIGHT_PX,
+  DROPDOWN_OFFSCREEN_POSITION,
+  LABEL_GAP_PX,
+  PANEL_STYLES,
+  Z_INDEX_LABEL,
+} from "../constants.js";
 import { cn } from "../utils/cn.js";
 import { Arrow } from "./selection-label/arrow.js";
 import { TagBadge } from "./selection-label/tag-badge.js";
@@ -92,8 +98,8 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
 
     if (labelWidth === 0 || labelHeight === 0 || !bounds || !clickPosition) {
       return {
-        left: -9999,
-        top: -9999,
+        left: DROPDOWN_OFFSCREEN_POSITION.left,
+        top: DROPDOWN_OFFSCREEN_POSITION.top,
         arrowLeft: 0,
         arrowPosition: "bottom" as const,
       };
@@ -261,7 +267,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         style={{
           top: `${computedPosition().top}px`,
           left: `${computedPosition().left}px`,
-          "z-index": "2147483647",
+          "z-index": `${Z_INDEX_LABEL}`,
           "pointer-events": "auto",
         }}
         onPointerDown={suppressMenuEvent}

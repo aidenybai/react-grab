@@ -157,6 +157,9 @@ import {
 import { copyContent } from "../utils/copy-content.js";
 import { joinSnippets } from "../utils/join-snippets.js";
 
+const generateLabelId = (): string =>
+  `label-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
 const builtInPlugins = [
   copyPlugin,
   commentPlugin,
@@ -370,9 +373,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
     );
 
-    const pendingAbortSessionId = createMemo(() => store.pendingAbortSessionId);
+    const pendingAbortSessionId = () => store.pendingAbortSessionId;
 
-    const hasAgentProvider = createMemo(() => store.hasAgentProvider);
+    const hasAgentProvider = () => store.hasAgentProvider;
 
     const clearHoldTimer = () => {
       if (holdState.timerId !== null) {
@@ -611,9 +614,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
     ): string => {
       actions.clearLabelInstances();
-      const instanceId = `label-${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2)}`;
+      const instanceId = generateLabelId();
       const boundsCenterX = bounds.x + bounds.width / 2;
       const boundsHalfWidth = bounds.width / 2;
       const mouseX = options?.mouseX;
@@ -1118,7 +1119,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return createElementBounds(element);
     });
 
-    const frozenElementsCount = createMemo(() => store.frozenElements.length);
+    const frozenElementsCount = () => store.frozenElements.length;
 
     const calculateDragDistance = (endX: number, endY: number) => {
       const endPageX = endX + window.scrollX;
@@ -1567,15 +1568,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return;
       }
 
-      const elements =
-        frozenElements.length > 0 ? frozenElements : element ? [element] : [];
+      const elements = frozenElements.length > 0 ? frozenElements : [element];
 
       const currentSelectionBounds = elements.map((selectedElement) =>
         createElementBounds(selectedElement),
       );
       const firstBounds = currentSelectionBounds[0];
-      const currentX = firstBounds.x + firstBounds.width / 2;
-      const currentY = firstBounds.y + firstBounds.height / 2;
+      const { x: currentX, y: currentY } = getBoundsCenter(firstBounds);
       const labelPositionX = currentX + store.copyOffsetFromCenterX;
 
       if ((store.selectedAgent || hasAgentProvider()) && prompt) {
@@ -3777,8 +3776,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (item.isComment && item.commentText && element) {
         const bounds = createElementBounds(element);
-        const centerX = bounds.x + bounds.width / 2;
-        const centerY = bounds.y + bounds.height / 2;
+        const { x: centerX, y: centerY } = getBoundsCenter(bounds);
         actions.enterPromptMode({ x: centerX, y: centerY }, element);
         actions.setInputText(item.commentText);
       } else {
@@ -3828,7 +3826,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             const connectedElements = getConnectedHistoryElements(historyItem);
             for (const element of connectedElements) {
               const bounds = createElementBounds(element);
-              const labelId = `label-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+              const labelId = generateLabelId();
 
               actions.addLabelInstance({
                 id: labelId,
@@ -3940,9 +3938,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!isElementConnected(instance.element)) return;
 
       const elementBounds = createElementBounds(instance.element);
+      const center = getBoundsCenter(elementBounds);
       const position = {
-        x: instance.mouseX ?? elementBounds.x + elementBounds.width / 2,
-        y: elementBounds.y + elementBounds.height / 2,
+        x: instance.mouseX ?? center.x,
+        y: center.y,
       };
 
       const elementsToFreeze =
@@ -4243,8 +4242,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         isDragging: isDragging(),
         isCopying: isCopying(),
         isPromptMode: isPromptMode(),
-        isSelectionBoxVisible: selectionVisible() ?? false,
-        isDragBoxVisible: dragVisible() ?? false,
+        isSelectionBoxVisible: Boolean(selectionVisible()),
+        isDragBoxVisible: Boolean(dragVisible()),
         targetElement: targetElement(),
         dragBounds: dragBounds() ?? null,
         grabbedBoxes: stateChangeGrabbedBoxes(),

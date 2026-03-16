@@ -20,6 +20,7 @@ import {
   PANEL_STYLES,
   SELECTION_LABEL_OFFSCREEN_PX,
   TEXTAREA_MAX_HEIGHT_PX,
+  Z_INDEX_LABEL,
 } from "../../constants.js";
 import { autoResizeTextarea } from "../../utils/auto-resize-textarea.js";
 import { getArrowSize } from "../../utils/get-arrow-size.js";
@@ -425,7 +426,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           top: `${positionComputation().position.top}px`,
           left: `${positionComputation().position.left}px`,
           transform: `translateX(calc(-50% + ${positionComputation().position.edgeOffsetX}px))`,
-          "z-index": "2147483647",
+          "z-index": `${Z_INDEX_LABEL}`,
           "pointer-events": shouldEnablePointerEvents() ? "auto" : "none",
           opacity: props.status === "fading" || isInternalFading() ? 0 : 1,
         }}

@@ -16,8 +16,9 @@ import {
   DROPDOWN_MIN_WIDTH_PX,
   DROPDOWN_VIEWPORT_PADDING_PX,
   FEEDBACK_DURATION_MS,
-  SAFE_POLYGON_BUFFER_PX,
   PANEL_STYLES,
+  SAFE_POLYGON_BUFFER_PX,
+  Z_INDEX_LABEL,
 } from "../constants.js";
 import { createSafePolygonTracker } from "../utils/safe-polygon.js";
 import { cn } from "../utils/cn.js";
@@ -171,7 +172,7 @@ export const HistoryDropdown: Component<HistoryDropdownProps> = (props) => {
         style={{
           top: `${dropdown.displayPosition().top}px`,
           left: `${dropdown.displayPosition().left}px`,
-          "z-index": "2147483647",
+          "z-index": `${Z_INDEX_LABEL}`,
           "pointer-events": dropdown.isAnimatedIn() ? "auto" : "none",
           "transform-origin":
             DROPDOWN_EDGE_TRANSFORM_ORIGIN[dropdown.lastAnchorEdge()],

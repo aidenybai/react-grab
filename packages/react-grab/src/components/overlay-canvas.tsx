@@ -16,6 +16,7 @@ import {
   Z_INDEX_OVERLAY_CANVAS,
   OVERLAY_BORDER_COLOR_DRAG,
   OVERLAY_FILL_COLOR_DRAG,
+  OPACITY_CONVERGENCE_THRESHOLD,
   OVERLAY_BORDER_COLOR_DEFAULT,
   OVERLAY_FILL_COLOR_DEFAULT,
 } from "../constants.js";
@@ -389,7 +390,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
         animation.targetOpacity,
         lerpFactor,
       );
-      const opacityThreshold = 0.01;
+      const opacityThreshold = OPACITY_CONVERGENCE_THRESHOLD;
       hasOpacityConverged =
         Math.abs(lerpedOpacity - animation.targetOpacity) < opacityThreshold;
       animation.opacity = hasOpacityConverged
@@ -452,7 +453,8 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
       if (isLabelAnimation) {
         const hasOpacityConverged =
-          Math.abs(animation.opacity - animation.targetOpacity) < 0.01;
+          Math.abs(animation.opacity - animation.targetOpacity) <
+          OPACITY_CONVERGENCE_THRESHOLD;
         if (hasOpacityConverged && animation.targetOpacity === 0) {
           return false;
         }

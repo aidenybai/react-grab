@@ -2,9 +2,10 @@ import { createSignal, createEffect, on, onCleanup, Show } from "solid-js";
 import type { Component, JSX } from "solid-js";
 import { cn } from "../utils/cn.js";
 import {
+  PANEL_STYLES,
   TOOLTIP_DELAY_MS,
   TOOLTIP_GRACE_PERIOD_MS,
-  PANEL_STYLES,
+  Z_INDEX_LABEL,
 } from "../constants.js";
 
 let lastCloseTimestamp = 0;
@@ -77,7 +78,7 @@ export const Tooltip: Component<TooltipProps> = (props) => {
           props.position === "right" && "left-full ml-2.5",
           shouldAnimate() && "animate-tooltip-fade-in",
         )}
-        style={{ "z-index": "2147483647" }}
+        style={{ "z-index": `${Z_INDEX_LABEL}` }}
       >
         {props.children}
       </div>

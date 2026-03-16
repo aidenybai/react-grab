@@ -44,6 +44,7 @@ export const Z_INDEX_OVERLAY_CANVAS = 2147483645;
 
 export const DRAG_LERP_FACTOR = 0.7;
 export const LERP_CONVERGENCE_THRESHOLD_PX = 0.5;
+export const OPACITY_CONVERGENCE_THRESHOLD = 0.01;
 export const FADE_OUT_BUFFER_MS = 100;
 export const MIN_DEVICE_PIXEL_RATIO = 2;
 
