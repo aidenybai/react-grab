@@ -73,8 +73,6 @@ export const PREVIEW_PRIORITY_ATTRS: readonly string[] = [
   "title",
 ];
 
-export const SYMBOLICATION_TIMEOUT_MS = 5000;
-
 export const MODIFIER_KEYS: readonly string[] = [
   "Meta",
   "Control",

@@ -4,6 +4,7 @@ import type { CompletionViewProps } from "../../types.js";
 import {
   FEEDBACK_DURATION_MS,
   FADE_DURATION_MS,
+  IME_COMPOSING_KEY_CODE,
   PANEL_STYLES,
   TEXTAREA_MAX_HEIGHT_PX,
 } from "../../constants.js";
@@ -81,7 +82,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
   };
 
   const handleInputKeyDown = (event: KeyboardEvent) => {
-    if (event.isComposing || event.keyCode === 229) {
+    if (event.isComposing || event.keyCode === IME_COMPOSING_KEY_CODE) {
       return;
     }
 

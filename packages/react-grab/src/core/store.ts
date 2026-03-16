@@ -230,9 +230,6 @@ interface GrabActions {
 const createGrabStore = (input: GrabStoreInput) => {
   const [store, setStore] = createStore<GrabStore>(createInitialStore(input));
 
-  const isActive = () => store.current.state === "active";
-  const isHolding = () => store.current.state === "holding";
-
   const setActivePhase = (phase: GrabPhase) => {
     setStore(
       "current",
@@ -774,7 +771,7 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
   };
 
-  return { store, setStore, actions, isActive, isHolding };
+  return { store, actions };
 };
 
 export { createGrabStore };
