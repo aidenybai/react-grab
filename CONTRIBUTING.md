@@ -49,34 +49,29 @@ packages/
 ├── provider-codex/      # OpenAI Codex integration
 ├── provider-gemini/     # Google Gemini CLI integration
 ├── provider-amp/        # Amp SDK integration
+├── provider-droid/      # Droid integration
+├── provider-copilot/    # Copilot integration
 ├── website/             # Documentation site (react-grab.com)
-├── vite-playground/     # Vite development playground
-├── next-playground/     # Next.js development playground
+├── e2e-playground/      # E2E test target app
 ├── gym/                 # Agent testing playground
 └── web-extension/       # Browser extension
 ```
 
 ## Development Workflow
 
-### Running Playgrounds
+### Running the Gym
 
-Test your changes in the playgrounds:
+Test agent provider integrations in the gym:
 
 ```bash
-# Vite playground
-pnpm --filter vite-playground dev
-
-# Next.js playground
-pnpm --filter next-playground dev
-
-# Gym (for testing agent provider integrations)
 pnpm --filter @react-grab/gym dev:claude   # Claude Code
 pnpm --filter @react-grab/gym dev:cursor   # Cursor
 pnpm --filter @react-grab/gym dev:opencode # OpenCode
 pnpm --filter @react-grab/gym dev:codex    # Codex
 pnpm --filter @react-grab/gym dev:gemini   # Gemini
 pnpm --filter @react-grab/gym dev:amp      # Amp
-pnpm --filter @react-grab/gym dev:ami      # Ami
+pnpm --filter @react-grab/gym dev:droid    # Droid
+pnpm --filter @react-grab/gym dev:copilot  # Copilot
 ```
 
 The gym runs at `http://localhost:5174` and lets you test react-grab's agent provider API with multiple backends.
@@ -93,7 +88,7 @@ pnpm --filter @react-grab/cli test
 ```bash
 nr lint        # Check for lint errors
 nr lint:fix    # Fix lint errors
-nr format      # Format code with Prettier
+nr format      # Format code with oxfmt
 ```
 
 ## Code Style
