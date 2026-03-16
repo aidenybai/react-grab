@@ -17,9 +17,6 @@
     },
     "lint": {
       "dependsOn": ["^build"]
-    },
-    "check": {
-      "dependsOn": ["^build"]
     }
   }
 }

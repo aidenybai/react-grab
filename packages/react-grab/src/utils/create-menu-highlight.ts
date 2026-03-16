@@ -20,7 +20,7 @@ interface MenuHighlightController {
 const DEFAULT_HIDDEN_OPACITY = "0";
 const DEFAULT_VISIBLE_OPACITY = "1";
 
-export const createAnimatedBoundsFollower = ({
+const createAnimatedBoundsFollower = ({
   hiddenOpacity = DEFAULT_HIDDEN_OPACITY,
   visibleOpacity = DEFAULT_VISIBLE_OPACITY,
 }: AnimatedBoundsFollowerOptions = {}): AnimatedBoundsFollowerController => {

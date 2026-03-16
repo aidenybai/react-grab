@@ -3,7 +3,6 @@ import {
   resolveStack,
   formatStack,
   checkIsNextProject,
-  isSourceComponentName,
   resolveComponentName,
 } from "element-source";
 import {
@@ -25,7 +24,6 @@ import { truncateString } from "../utils/truncate-string.js";
 
 export {
   checkIsNextProject,
-  isSourceComponentName as checkIsSourceComponentName,
   getReactStack as getStack,
   resolveComponentName as getNearestComponentName,
 };

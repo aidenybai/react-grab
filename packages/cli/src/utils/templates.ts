@@ -5,7 +5,6 @@ export const AGENTS = [
   "codex",
   "gemini",
   "amp",
-  "ami",
   "droid",
   "copilot",
 ] as const;
@@ -21,7 +20,6 @@ export const AGENT_NAMES: Record<Agent, string> = {
   codex: "Codex",
   gemini: "Gemini",
   amp: "Amp",
-  ami: "Ami",
   droid: "Droid",
   copilot: "Copilot",
 };
@@ -33,10 +31,6 @@ export const getAgentDisplayName = (agent: string): string => {
   }
   return agent;
 };
-
-export const PROVIDERS = AGENTS.filter((agent) => agent !== "ami").map(
-  (agent) => `@react-grab/${agent}` as const,
-);
 
 export const NEXT_APP_ROUTER_SCRIPT = `{process.env.NODE_ENV === "development" && (
           <Script

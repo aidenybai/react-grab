@@ -90,7 +90,6 @@
     "dev": "concurrently \"pnpm:css:watch\" \"tsup --watch --ignore-watch dist\"",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
-    "format": "prettier --write .",
     "test": "playwright test",
     "typecheck": "tsc --noEmit",
     "publint": "publint",
