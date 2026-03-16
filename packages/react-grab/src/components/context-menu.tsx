@@ -27,13 +27,10 @@ import { BottomSection } from "./selection-label/bottom-section.js";
 import { formatShortcut } from "../utils/format-shortcut.js";
 import { getTagDisplay } from "../utils/get-tag-display.js";
 import { resolveActionEnabled } from "../utils/resolve-action-enabled.js";
-import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
-import {
-  nativeCancelAnimationFrame,
-  nativeRequestAnimationFrame,
-} from "../utils/native-raf.js";
+import { nativeRequestAnimationFrame } from "../utils/native-raf.js";
 import { createMenuHighlight } from "../utils/create-menu-highlight.js";
 import { suppressMenuEvent } from "../utils/suppress-menu-event.js";
+import { registerOverlayDismiss } from "../utils/register-overlay-dismiss.js";
 
 interface ContextMenuProps {
   position: Position | null;
@@ -171,20 +168,9 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
   onMount(() => {
     measureContainer();
 
-    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
-      if (
-        !isVisible() ||
-        isEventFromOverlay(event, "data-react-grab-ignore-events")
-      )
-        return;
-      if (event instanceof MouseEvent && event.button === 2) return;
-      props.onDismiss();
-    };
-
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!isVisible()) return;
 
-      const isEscape = event.code === "Escape";
       const isEnter = event.key === "Enter";
       const hasModifierKey = event.metaKey || event.ctrlKey;
       const keyLower = event.key.toLowerCase();
@@ -201,13 +187,6 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
         props.onHide();
         return true;
       };
-
-      if (isEscape) {
-        event.preventDefault();
-        event.stopPropagation();
-        props.onDismiss();
-        return;
-      }
 
       if (isEnter) {
         const enterAction = pluginActions.find(
@@ -233,25 +212,14 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
       }
     };
 
-    // HACK: Delay mousedown/touchstart listener to avoid catching the triggering right-click
-    const frameId = nativeRequestAnimationFrame(() => {
-      window.addEventListener("mousedown", handleClickOutside, {
-        capture: true,
-      });
-      window.addEventListener("touchstart", handleClickOutside, {
-        capture: true,
-      });
+    const unregisterOverlayDismiss = registerOverlayDismiss({
+      isOpen: isVisible,
+      onDismiss: props.onDismiss,
     });
     window.addEventListener("keydown", handleKeyDown, { capture: true });
 
     onCleanup(() => {
-      nativeCancelAnimationFrame(frameId);
-      window.removeEventListener("mousedown", handleClickOutside, {
-        capture: true,
-      });
-      window.removeEventListener("touchstart", handleClickOutside, {
-        capture: true,
-      });
+      unregisterOverlayDismiss();
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
     });
   });

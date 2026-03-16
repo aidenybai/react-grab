@@ -8,15 +8,11 @@ import {
 } from "../../constants.js";
 import { cn } from "../../utils/cn.js";
 import { formatShortcut } from "../../utils/format-shortcut.js";
-import { isEventFromOverlay } from "../../utils/is-event-from-overlay.js";
 import { resolveToolbarActionEnabled } from "../../utils/resolve-action-enabled.js";
-import {
-  nativeCancelAnimationFrame,
-  nativeRequestAnimationFrame,
-} from "../../utils/native-raf.js";
 import { createMenuHighlight } from "../../utils/create-menu-highlight.js";
 import { suppressMenuEvent } from "../../utils/suppress-menu-event.js";
 import { createAnchoredDropdown } from "../../utils/create-anchored-dropdown.js";
+import { registerOverlayDismiss } from "../../utils/register-overlay-dismiss.js";
 
 interface ToolbarMenuProps {
   position: DropdownAnchor | null;
@@ -55,46 +51,14 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
 
   onMount(() => {
     dropdown.measure();
-
-    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
-      if (
-        !props.position ||
-        isEventFromOverlay(event, "data-react-grab-ignore-events")
-      )
-        return;
-      props.onDismiss();
-    };
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (!props.position) return;
-      if (event.code === "Escape") {
-        event.preventDefault();
-        event.stopPropagation();
-        props.onDismiss();
-      }
-    };
-
-    // HACK: Delay mousedown listener to avoid catching the triggering click
-    const frameId = nativeRequestAnimationFrame(() => {
-      window.addEventListener("mousedown", handleClickOutside, {
-        capture: true,
-      });
-      window.addEventListener("touchstart", handleClickOutside, {
-        capture: true,
-      });
+    const unregisterOverlayDismiss = registerOverlayDismiss({
+      isOpen: () => Boolean(props.position),
+      onDismiss: props.onDismiss,
     });
-    window.addEventListener("keydown", handleKeyDown, { capture: true });
 
     onCleanup(() => {
-      nativeCancelAnimationFrame(frameId);
       dropdown.clearAnimationHandles();
-      window.removeEventListener("mousedown", handleClickOutside, {
-        capture: true,
-      });
-      window.removeEventListener("touchstart", handleClickOutside, {
-        capture: true,
-      });
-      window.removeEventListener("keydown", handleKeyDown, { capture: true });
+      unregisterOverlayDismiss();
     });
   });
 
@@ -134,9 +98,9 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
             />
             <For each={props.actions}>
               {(action) => {
-                const isEnabled = () => resolveToolbarActionEnabled(action);
-                const isToggle = () => action.isActive !== undefined;
-                const toggleActive = () => {
+                const isToggleAction = action.isActive !== undefined;
+                const isActionEnabled = () => resolveToolbarActionEnabled(action);
+                const isToggleActive = () => {
                   void toggleRefreshCounter();
                   return Boolean(action.isActive?.());
                 };
@@ -146,10 +110,10 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
                     data-react-grab-ignore-events
                     data-react-grab-menu-item={action.id}
                     class="relative z-1 contain-layout flex items-center justify-between w-full px-2 py-1 cursor-pointer text-left border-none bg-transparent disabled:opacity-40 disabled:cursor-default"
-                    disabled={!isEnabled()}
+                    disabled={!isActionEnabled()}
                     onPointerDown={(event) => event.stopPropagation()}
                     onPointerEnter={(event) => {
-                      if (isEnabled()) {
+                      if (isActionEnabled()) {
                         updateHighlight(event.currentTarget);
                       }
                     }}
@@ -159,24 +123,24 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
                     <span class="text-[13px] leading-4 font-sans font-medium text-black">
                       {action.label}
                     </span>
-                    <Show when={!isToggle() && action.shortcut}>
+                    <Show when={!isToggleAction && action.shortcut}>
                       {(shortcutKey) => (
                         <span class="text-[11px] font-sans text-black/50 ml-4">
                           {formatShortcut(shortcutKey())}
                         </span>
                       )}
                     </Show>
-                    <Show when={isToggle()}>
+                    <Show when={isToggleAction}>
                       <div
                         class={cn(
                           "relative rounded-full transition-colors ml-4 shrink-0 w-5 h-3",
-                          toggleActive() ? "bg-black" : "bg-black/25",
+                          isToggleActive() ? "bg-black" : "bg-black/25",
                         )}
                       >
                         <div
                           class={cn(
                             "absolute top-0.5 rounded-full bg-white transition-transform w-2 h-2",
-                            toggleActive() ? "left-2.5" : "left-0.5",
+                            isToggleActive() ? "left-2.5" : "left-0.5",
                           )}
                         />
                       </div>

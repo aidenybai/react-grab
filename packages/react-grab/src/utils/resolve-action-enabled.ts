@@ -1,17 +1,21 @@
-import type {
-  ActionContext,
-  ContextMenuAction,
-  ToolbarMenuAction,
-} from "../types.js";
+import type { ActionContext, ContextMenuAction, ToolbarMenuAction } from "../types.js";
+
+const resolveBooleanEnabled = (enabled: boolean | undefined): boolean =>
+  enabled ?? true;
 
 export const resolveActionEnabled = (
   action: ContextMenuAction,
   context: ActionContext | undefined,
 ): boolean => {
   if (typeof action.enabled === "function") {
-    return context ? action.enabled(context) : false;
+    if (!context) {
+      return false;
+    }
+
+    return action.enabled(context);
   }
-  return action.enabled ?? true;
+
+  return resolveBooleanEnabled(action.enabled);
 };
 
 export const resolveToolbarActionEnabled = (
@@ -20,5 +24,6 @@ export const resolveToolbarActionEnabled = (
   if (typeof action.enabled === "function") {
     return action.enabled();
   }
-  return action.enabled ?? true;
+
+  return resolveBooleanEnabled(action.enabled);
 };

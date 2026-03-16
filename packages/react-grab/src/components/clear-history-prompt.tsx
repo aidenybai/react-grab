@@ -3,15 +3,10 @@ import type { Component } from "solid-js";
 import type { DropdownAnchor } from "../types.js";
 import { DROPDOWN_EDGE_TRANSFORM_ORIGIN, Z_INDEX_LABEL } from "../constants.js";
 import { cn } from "../utils/cn.js";
-import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
-import { isKeyboardEventTriggeredByInput } from "../utils/is-keyboard-event-triggered-by-input.js";
 import { DiscardPrompt } from "./selection-label/discard-prompt.js";
-import {
-  nativeCancelAnimationFrame,
-  nativeRequestAnimationFrame,
-} from "../utils/native-raf.js";
 import { suppressMenuEvent } from "../utils/suppress-menu-event.js";
 import { createAnchoredDropdown } from "../utils/create-anchored-dropdown.js";
+import { registerOverlayDismiss } from "../utils/register-overlay-dismiss.js";
 
 interface ClearHistoryPromptProps {
   position: DropdownAnchor | null;
@@ -31,54 +26,16 @@ export const ClearHistoryPrompt: Component<ClearHistoryPromptProps> = (
 
   onMount(() => {
     dropdown.measure();
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (!props.position) return;
-      if (isKeyboardEventTriggeredByInput(event)) return;
-      const isEnter = event.code === "Enter";
-      const isEscape = event.code === "Escape";
-      if (isEnter || isEscape) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        if (isEscape) {
-          props.onCancel();
-        } else {
-          props.onConfirm();
-        }
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown, { capture: true });
-
-    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
-      if (
-        !props.position ||
-        isEventFromOverlay(event, "data-react-grab-ignore-events")
-      )
-        return;
-      props.onCancel();
-    };
-
-    // HACK: Delay mousedown listener to avoid catching the triggering click
-    const frameId = nativeRequestAnimationFrame(() => {
-      window.addEventListener("mousedown", handleClickOutside, {
-        capture: true,
-      });
-      window.addEventListener("touchstart", handleClickOutside, {
-        capture: true,
-      });
+    const unregisterOverlayDismiss = registerOverlayDismiss({
+      isOpen: () => Boolean(props.position),
+      onDismiss: props.onCancel,
+      onConfirm: props.onConfirm,
+      shouldIgnoreInputEvents: true,
     });
 
     onCleanup(() => {
-      nativeCancelAnimationFrame(frameId);
       dropdown.clearAnimationHandles();
-      window.removeEventListener("keydown", handleKeyDown, { capture: true });
-      window.removeEventListener("mousedown", handleClickOutside, {
-        capture: true,
-      });
-      window.removeEventListener("touchstart", handleClickOutside, {
-        capture: true,
-      });
+      unregisterOverlayDismiss();
     });
   });
 

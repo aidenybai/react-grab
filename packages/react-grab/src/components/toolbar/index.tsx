@@ -38,7 +38,10 @@ import {
   TOOLBAR_DEFAULT_POSITION_RATIO,
   TOOLBAR_SHAKE_TOOLTIP_DURATION_MS,
   FEEDBACK_DURATION_MS,
+  HINT_FLIP_IN_ANIMATION,
   SAFE_POLYGON_BUFFER_PX,
+  SELECTION_HINT_COUNT,
+  SELECTION_HINT_CYCLE_INTERVAL_MS,
   Z_INDEX_HOST,
 } from "../../constants.js";
 import { freezeUpdates } from "../../utils/freeze-updates.js";
@@ -68,11 +71,6 @@ import {
   getRatioFromPosition,
   getSnapPosition,
 } from "../../utils/toolbar-position.js";
-
-const SELECTION_HINT_CYCLE_INTERVAL_MS = 3000;
-const SELECTION_HINT_COUNT = 3;
-const HINT_FLIP_IN_ANIMATION =
-  "animate-[hint-flip-in_var(--transition-normal)_ease-out]";
 
 interface ToolbarProps {
   isActive?: boolean;
@@ -176,7 +174,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   let clockFlashRef: HTMLSpanElement | undefined;
   const [selectionHintIndex, setSelectionHintIndex] = createSignal(0);
   const [hasHintCycled, setHasHintCycled] = createSignal(false);
-
   const hasLearnedSelectionHints = () => (props.clockFlashTrigger ?? 0) > 0;
 
   createEffect(
@@ -189,7 +186,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         const intervalId = setInterval(() => {
           if (!hasHintCycled()) setHasHintCycled(true);
           setSelectionHintIndex(
-            (previous) => (previous + 1) % SELECTION_HINT_COUNT,
+            (previousIndex) => (previousIndex + 1) % SELECTION_HINT_COUNT,
           );
         }, SELECTION_HINT_CYCLE_INTERVAL_MS);
         onCleanup(() => clearInterval(intervalId));
