@@ -195,7 +195,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     expect(result.newContent).toContain("@react-grab/cursor");
   });
 
-  it("should add MCP client to layout when agent is mcp", () => {
+  it("should add base script without agent client when agent is mcp", () => {
     const layoutWithHead = `export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
@@ -214,7 +214,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
     expect(result.success).toBe(true);
     expect(result.newContent).toContain("react-grab");
-    expect(result.newContent).toContain("@react-grab/mcp");
+    expect(result.newContent).not.toContain("@react-grab/mcp");
   });
 
   it("should fail when layout file not found", () => {
@@ -304,7 +304,7 @@ describe("previewTransform - Vite", () => {
     expect(result.newContent).toContain("@react-grab/claude-code");
   });
 
-  it("should add MCP client to Vite index.html when agent is mcp", () => {
+  it("should add base script without agent client when agent is mcp", () => {
     mockExistsSync.mockImplementation((path) =>
       String(path).endsWith("index.html"),
     );
@@ -314,7 +314,7 @@ describe("previewTransform - Vite", () => {
 
     expect(result.success).toBe(true);
     expect(result.newContent).toContain("react-grab");
-    expect(result.newContent).toContain("@react-grab/mcp/client");
+    expect(result.newContent).not.toContain("@react-grab/mcp");
   });
 });
 

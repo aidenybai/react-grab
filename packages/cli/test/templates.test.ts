@@ -40,13 +40,6 @@ describe("Next.js App Router templates", () => {
       expect(script).toContain(`@react-grab/${agent}`);
     }
   });
-
-  it("should return basic script when agent is mcp", () => {
-    const script = NEXT_APP_ROUTER_SCRIPT_WITH_AGENT("mcp");
-
-    expect(script).toContain("react-grab");
-    expect(script).not.toContain("@react-grab/");
-  });
 });
 
 describe("Vite templates", () => {
@@ -67,13 +60,6 @@ describe("Vite templates", () => {
 
     expect(script).toContain("react-grab");
     expect(script).not.toContain("@react-grab/");
-  });
-
-  it("should generate script with mcp agent", () => {
-    const script = VITE_SCRIPT_WITH_AGENT("mcp");
-
-    expect(script).toContain("react-grab");
-    expect(script).toContain("@react-grab/mcp/client");
   });
 });
 
@@ -96,21 +82,5 @@ describe("Webpack templates", () => {
 
     expect(importBlock).toContain("react-grab");
     expect(importBlock).not.toContain("@react-grab/");
-  });
-
-  it("should generate import with mcp agent", () => {
-    const importBlock = WEBPACK_IMPORT_WITH_AGENT("mcp");
-
-    expect(importBlock).toContain("react-grab");
-    expect(importBlock).toContain("@react-grab/mcp/client");
-  });
-});
-
-describe("TanStack templates", () => {
-  it("should generate effect with mcp agent", () => {
-    const effect = TANSTACK_EFFECT_WITH_AGENT("mcp");
-
-    expect(effect).toContain("react-grab");
-    expect(effect).toContain("@react-grab/mcp/client");
   });
 });

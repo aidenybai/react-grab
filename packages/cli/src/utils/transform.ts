@@ -175,7 +175,7 @@ const addAgentToExistingNextApp = (
   agent: AgentIntegration,
   filePath: string,
 ): TransformResult => {
-  if (agent === "none" || agent === "mcp") {
+  if (agent === "none") {
     return {
       success: true,
       filePath,
@@ -249,7 +249,7 @@ const addAgentToExistingVite = (
   agent: AgentIntegration,
   filePath: string,
 ): TransformResult => {
-  if (agent === "none" || agent === "mcp") {
+  if (agent === "none") {
     return {
       success: true,
       filePath,
@@ -301,7 +301,7 @@ const addAgentToExistingWebpack = (
   agent: AgentIntegration,
   filePath: string,
 ): TransformResult => {
-  if (agent === "none" || agent === "mcp") {
+  if (agent === "none") {
     return {
       success: true,
       filePath,
@@ -353,7 +353,7 @@ const addAgentToExistingTanStack = (
   agent: AgentIntegration,
   filePath: string,
 ): TransformResult => {
-  if (agent === "none" || agent === "mcp") {
+  if (agent === "none") {
     return {
       success: true,
       filePath,
@@ -769,19 +769,21 @@ export const previewTransform = (
   reactGrabAlreadyConfigured: boolean = false,
   force: boolean = false,
 ): TransformResult => {
+  const resolvedAgent: AgentIntegration = agent === "mcp" ? "none" : agent;
+
   switch (framework) {
     case "next":
       if (nextRouterType === "app") {
         return transformNextAppRouter(
           projectRoot,
-          agent,
+          resolvedAgent,
           reactGrabAlreadyConfigured,
           force,
         );
       }
       return transformNextPagesRouter(
         projectRoot,
-        agent,
+        resolvedAgent,
         reactGrabAlreadyConfigured,
         force,
       );
@@ -789,7 +791,7 @@ export const previewTransform = (
     case "vite":
       return transformVite(
         projectRoot,
-        agent,
+        resolvedAgent,
         reactGrabAlreadyConfigured,
         force,
       );
@@ -797,7 +799,7 @@ export const previewTransform = (
     case "tanstack":
       return transformTanStack(
         projectRoot,
-        agent,
+        resolvedAgent,
         reactGrabAlreadyConfigured,
         force,
       );
@@ -805,7 +807,7 @@ export const previewTransform = (
     case "webpack":
       return transformWebpack(
         projectRoot,
-        agent,
+        resolvedAgent,
         reactGrabAlreadyConfigured,
         force,
       );

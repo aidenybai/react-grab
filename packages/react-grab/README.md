@@ -122,6 +122,15 @@ Add this to your `index.html`:
 </html>
 ```
 
+> **Note:** If you use Vite in [Express middleware mode](https://vite.dev/guide/ssr#setting-up-the-dev-server) (e.g. Replit starter templates), the inline script can cause `Failed to parse JSON file` errors when Chromium DevTools is open. For these setups, import from your entry file instead:
+>
+> ```tsx
+> // src/main.tsx
+> if (import.meta.env.DEV) {
+>   import("react-grab");
+> }
+> ```
+
 #### Webpack
 
 First, install React Grab:
